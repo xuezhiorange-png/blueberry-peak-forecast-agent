@@ -1,0 +1,3 @@
+Alembic migrations for the backend.
+
+Task 0 intentionally keeps an empty metadata baseline. Business tables start in task 1.
