@@ -1,1 +1,78 @@
-# blueberry-peak-forecast-agent
+# 蓝莓加工峰值预测 Agent
+
+本项目是一套可直接交给 Codex 分阶段开发的峰值预测系统骨架。核心原则：
+
+1. 预测对象是“每日有效商品果到厂曲线”，不是直接回归一个峰值数字。
+2. 农场种植面积是产量规模变量；加工厂建筑面积不参与峰值预测。
+3. 普鲜、普青、普冻、废果默认剔除；巴松加工厂默认剔除，规则配置化。
+4. 春节、采摘人员、降雨等因素通过“采摘能力与积压释放”建模，不粗暴删除数据。
+5. 输出单日操作峰值、连续3日持续峰值、峰值日期、P50/P80/P90区间和影响因素解释。
+
+
+## 用户极简输入模式
+
+生产版本的默认入口只要求用户提交：
+
+- 农场位置（文字地址、地图点位或经纬度）；
+- 各品种定植亩数。
+
+系统从历史数据库和气象数据中自动推断预计亩产、有效商品果率、成熟曲线、春节采摘实现率和不确定性，并输出：
+
+- 1—4月逐日产能预测 P50/P80/P90；
+- 单日操作峰值和连续3日持续峰值；
+- 产季总曲线与品种堆叠曲线；
+- 详细计算说明、历史样本和回测准确性；
+- 设备能力、人员、预冷、班次和分流建议。
+
+详细规范见 `docs/10_minimal_input_agent_spec.md` 和 `docs/11_output_report_spec.md`。亩产、商品果率、树龄、修剪日期等作为高级可选校正项，不是普通用户必填项。
+
+## 当前历史数据基础
+
+- `24~25到加工厂.xls`
+- `原果入库汇总表到加工厂_1.xls`
+- 原始列：时间、链路、农场、分场、品种、果径、入库公斤数、加工厂
+- 统一分析窗口：1月1日—4月30日
+- 默认剔除果径：普鲜、普青、普冻、废果
+- 默认剔除加工厂：巴松加工厂
+
+历史回测基线：在当季最终有效商品果总量和最终品种/农场/分场结构已知时，“总量 × 集中度模型”跨产季峰值 MAPE 约 12.8%，中位误差约 8.6%。该结果是模型能力上限，不等于真实提前预测误差；真实系统必须接入产量计划、物候、天气、采摘人员和跨厂调运数据。
+
+## 技术栈
+
+- Python 3.12
+- FastAPI + Pydantic v2
+- PostgreSQL 16 + SQLAlchemy 2 + Alembic
+- scikit-learn；二期可增加 LightGBM
+- React/Next.js 前端（方案见 `docs/06_ui_spec.md`）
+- Docker Compose
+- pytest
+- 可选 OpenAI Agent 层：仅负责任务编排、解释和情景问答，数值计算必须调用确定性工具。
+
+## 快速启动
+
+```bash
+cp .env.example .env
+docker compose up -d db
+python -m venv .venv
+source .venv/bin/activate  # Windows 使用 .venv\\Scripts\\activate
+pip install -e '.[dev]'
+alembic upgrade head
+python scripts/import_history.py --manifest configs/source_manifest.yaml
+uvicorn app.main:app --reload
+pytest
+```
+
+## 项目目录
+
+- `AGENTS.md`：Codex 在本仓库中的强制开发规则
+- `CODEX_TASKS.md`：可逐项交给 Codex 的开发任务
+- `docs/`：产品、模型、数据库、导入、API、界面、回测、输出报告、建议引擎与运维方案
+- `sql/schema.sql`：参考数据库结构
+- `configs/`：历史导入规则、工厂别名、节假日、源文件清单
+- `data/templates/`：位置、分品种面积、物候、人员、天气和极简请求模板
+- `CODEX_MASTER_PROMPT.md`：可直接复制给 Codex 的总控提示词
+- `app/etl/`：旧版 XLS 导入器
+- `app/domain/`：峰值定义和业务规则
+- `app/services/`：预测、回测、解释服务
+- `app/api/`：接口
+- `tests/`：核心业务规则测试
