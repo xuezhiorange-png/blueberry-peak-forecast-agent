@@ -35,13 +35,47 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Ruff
-        run: ruff check .
+      - name: Docker Compose config
+        run: docker compose config
 
-      - name: Mypy
-        run: mypy backend/app
+      - name: Wait for PostgreSQL service
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
 
-      - name: Pytest
+          import asyncpg
+
+          async def main() -> None:
+              last_error: Exception | None = None
+              for _ in range(30):
+                  try:
+                      conn = await asyncpg.connect(
+                          host=os.environ["POSTGRES_HOST"],
+                          port=int(os.environ["POSTGRES_PORT"]),
+                          database=os.environ["POSTGRES_DB"],
+                          user=os.environ["POSTGRES_USER"],
+                          password=os.environ["POSTGRES_PASSWORD"],
+                      )
+                      value = await conn.fetchval("SELECT 1")
+                      await conn.close()
+                      if value == 1:
+                          return
+                  except Exception as exc:
+                      last_error = exc
+                      await asyncio.sleep(1)
+              raise SystemExit(f"PostgreSQL service was not ready: {last_error}")
+
+          asyncio.run(main())
+          PY
+
+      - name: Alembic baseline migration
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -49,4 +83,73 @@ jobs:
           POSTGRES_DB: blueberry_peak
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
+        run: alembic -c backend/alembic.ini upgrade head
+
+      - name: Ruff
+        run: ruff check .
+
+      - name: Mypy
+        run: mypy backend/app
+
+      - name: Unit tests
+        env:
+          APP_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+        run: pytest -m "not integration"
+
+      - name: PostgreSQL integration tests
+        env:
+          APP_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+          RUN_POSTGRES_INTEGRATION: "1"
+        run: pytest -m integration
+
+      - name: Full pytest suite
+        env:
+          APP_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+          RUN_POSTGRES_INTEGRATION: "1"
         run: pytest
+
+  compose-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Compose config
+        run: docker compose config
+
+      - name: Start PostgreSQL with Docker Compose
+        run: docker compose up -d db
+
+      - name: Wait for Compose PostgreSQL health
+        run: |
+          for i in {1..30}; do
+            status="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q db)")"
+            echo "db health: ${status}"
+            if [ "${status}" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          exit 1
+
+      - name: Check container status
+        run: docker compose ps
+
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose down -v
