@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.venv/
+.uv-cache/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+htmlcov/
+.coverage
+docker/postgres-data/
