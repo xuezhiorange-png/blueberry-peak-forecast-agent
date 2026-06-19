@@ -45,7 +45,7 @@ async def test_health_live_succeeds_without_database():
 
 
 @pytest.mark.asyncio
-async def test_health_ready_succeeds_when_database_query_succeeds():
+async def test_unit_health_ready_succeeds_when_database_query_succeeds():
     app = create_app()
     app.dependency_overrides[get_db_session] = _ready_session_override
 

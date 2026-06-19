@@ -42,6 +42,9 @@ include = ["backend*"]
 testpaths = ["backend/tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
+markers = [
+    "integration: tests that require external services such as PostgreSQL",
+]
 
 [tool.ruff]
 line-length = 100
