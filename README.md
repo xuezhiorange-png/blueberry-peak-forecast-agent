@@ -53,14 +53,13 @@
 ```bash
 cp .env.example .env
 docker compose up -d db
-python -m venv .venv
-source .venv/bin/activate  # Windows 使用 .venv\\Scripts\\activate
-pip install -e '.[dev]'
-alembic upgrade head
-python scripts/import_history.py --manifest configs/source_manifest.yaml
-uvicorn app.main:app --reload
+uv sync --dev
+uv run alembic -c backend/alembic.ini upgrade head
+uv run uvicorn backend.app.main:app --reload
 pytest
 ```
+
+任务0仅初始化工程底座和健康检查。历史数据导入、业务表、预测模型和前端业务页面在后续任务中实现。
 
 ## 项目目录
 
