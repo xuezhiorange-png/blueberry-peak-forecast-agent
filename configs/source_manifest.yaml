@@ -5,6 +5,9 @@ sources:
     season_code: "2024-2025"
     enabled: true
     expected_sheets: []
+    expected_sheets_behavior: "warning"
+    header_aliases:
+      "<blank>": "加工厂"
     header_row: null
     description: "2024-2025 historical factory receipt workbook. File may be absent in CI."
   - path: "data/raw/原果入库汇总表到加工厂_1.xls"
@@ -12,5 +15,6 @@ sources:
     season_code: "2025-2026"
     enabled: true
     expected_sheets: []
+    expected_sheets_behavior: "warning"
     header_row: null
     description: "2025-2026 historical factory receipt workbook. File may be absent in CI."

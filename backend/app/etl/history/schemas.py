@@ -23,8 +23,18 @@ class SourceSpec:
     season_code: str
     enabled: bool = True
     expected_sheets: list[str] = field(default_factory=list)
+    expected_sheets_behavior: str = "warning"
+    header_aliases: dict[str, str] = field(default_factory=dict)
     header_row: int | None = None
     description: str = ""
+
+
+@dataclass(frozen=True)
+class FatalQualityThresholds:
+    max_invalid_date_count: int | None = None
+    max_invalid_date_ratio: Decimal | None = None
+    max_invalid_weight_count: int | None = None
+    max_invalid_weight_ratio: Decimal | None = None
 
 
 @dataclass(frozen=True)
@@ -38,6 +48,11 @@ class ImportRules:
     variety_prefixes_to_remove: list[str]
     empty_strings: set[str]
     max_issue_examples: int
+    allow_unknown_factory_in_analysis: bool
+    allow_unknown_variety_in_analysis: bool
+    allow_empty_factory_in_analysis: bool
+    allow_empty_variety_in_analysis: bool
+    fatal_quality_thresholds: FatalQualityThresholds
 
 
 @dataclass(frozen=True)
@@ -121,6 +136,7 @@ class SheetReport:
     latest_date: date | None = None
     rows_after_april_count: int = 0
     rows_after_april_weight_kg: Decimal = Decimal("0")
+    excluded_row_count_by_reason: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -134,11 +150,17 @@ class FileReport:
     row_count: int = 0
     inserted_row_count: int = 0
     suspected_duplicate_count: int = 0
+    actual_sheets: list[str] = field(default_factory=list)
+    missing_expected_sheets: list[str] = field(default_factory=list)
+    unexpected_sheets: list[str] = field(default_factory=list)
     sheet_reports: list[SheetReport] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     cross_sheet_duplicate_count: int = 0
     cross_file_duplicate_count: int = 0
+    cross_sheet_duplicate_examples: list[dict[str, Any]] = field(default_factory=list)
+    cross_file_duplicate_examples: list[dict[str, Any]] = field(default_factory=list)
+    excluded_row_count_by_reason: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

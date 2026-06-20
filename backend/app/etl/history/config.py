@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from backend.app.etl.history.schemas import AliasConfig, ImportConfig, ImportRules, SourceSpec
+from backend.app.etl.history.schemas import (
+    AliasConfig,
+    FatalQualityThresholds,
+    ImportConfig,
+    ImportRules,
+    SourceSpec,
+)
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -49,11 +56,16 @@ def load_import_config(
             season_code=str(item["season_code"]),
             enabled=bool(item.get("enabled", True)),
             expected_sheets=[str(sheet) for sheet in item.get("expected_sheets", [])],
+            expected_sheets_behavior=str(item.get("expected_sheets_behavior", "warning")),
+            header_aliases={
+                str(key): str(value) for key, value in item.get("header_aliases", {}).items()
+            },
             header_row=item.get("header_row"),
             description=str(item.get("description", "")),
         )
         for item in manifest.get("sources", [])
     ]
+    threshold_data = rules_data.get("fatal_quality_thresholds", {})
     rules = ImportRules(
         version=str(rules_data["version"]),
         valid_months={int(month) for month in rules_data["valid_months"]},
@@ -70,6 +82,26 @@ def load_import_config(
             str(value) for value in rules_data.get("empty_values", {}).get("strings", [])
         },
         max_issue_examples=int(rules_data.get("report", {}).get("max_issue_examples", 50)),
+        allow_unknown_factory_in_analysis=bool(
+            rules_data.get("allow_unknown_factory_in_analysis", False)
+        ),
+        allow_unknown_variety_in_analysis=bool(
+            rules_data.get("allow_unknown_variety_in_analysis", False)
+        ),
+        allow_empty_factory_in_analysis=bool(
+            rules_data.get("allow_empty_factory_in_analysis", False)
+        ),
+        allow_empty_variety_in_analysis=bool(
+            rules_data.get("allow_empty_variety_in_analysis", False)
+        ),
+        fatal_quality_thresholds=FatalQualityThresholds(
+            max_invalid_date_count=_optional_int(threshold_data.get("max_invalid_date_count")),
+            max_invalid_date_ratio=_optional_decimal(threshold_data.get("max_invalid_date_ratio")),
+            max_invalid_weight_count=_optional_int(threshold_data.get("max_invalid_weight_count")),
+            max_invalid_weight_ratio=_optional_decimal(
+                threshold_data.get("max_invalid_weight_ratio")
+            ),
+        ),
     )
     factory_aliases = AliasConfig(
         version=str(factory_data["version"]),
@@ -88,6 +120,18 @@ def load_import_config(
         config_hash=_config_hash(snapshot),
         snapshot=snapshot,
     )
+
+
+def _optional_decimal(value: Any) -> Decimal | None:
+    if value is None:
+        return None
+    return Decimal(str(value))
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    return int(value)
 
 
 def file_sha256(path: Path) -> str:

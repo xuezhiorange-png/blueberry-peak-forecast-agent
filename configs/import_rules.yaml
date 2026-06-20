@@ -3,6 +3,10 @@ valid_months: [1, 2, 3, 4]
 excluded_grades: ["普鲜", "普青", "普冻", "废果"]
 excluded_factories: ["巴松加工厂"]
 deduplicate_suspected_business_rows_in_curated: true
+allow_unknown_factory_in_analysis: false
+allow_unknown_variety_in_analysis: false
+allow_empty_factory_in_analysis: false
+allow_empty_variety_in_analysis: false
 date_formats:
   - "%Y-%m-%d"
   - "%Y/%m/%d"
@@ -25,6 +29,7 @@ invalid_weight: "raw_with_parse_error"
 zero_weight: "raw_excluded_from_analysis"
 negative_weight: "raw_excluded_from_analysis"
 fatal_quality_thresholds:
-  max_invalid_header_count: 0
+  max_invalid_date_ratio: "0.30"
+  max_invalid_weight_ratio: "0.30"
 report:
   max_issue_examples: 50

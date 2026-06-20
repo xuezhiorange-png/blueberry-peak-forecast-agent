@@ -1,4 +1,4 @@
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -20,35 +20,38 @@ def _add_weight(target: dict[str, Decimal], key: str, weight: Decimal | None) ->
         target[key] = target.get(key, Decimal("0")) + weight
 
 
+def _add_count(target: dict[str, int], key: str) -> None:
+    target[key] = target.get(key, 0) + 1
+
+
+def _append_limited(target: list[dict[str, Any]], item: dict[str, Any], limit: int) -> None:
+    if len(target) < limit:
+        target.append(item)
+
+
 def process_rows(
     *,
     rows: list[ParsedRow],
     source: SourceSpec,
     file_sha256: str,
     config: ImportConfig,
-    season_id: int,
     factory_ids_by_name: dict[str, int],
     variety_ids_by_name: dict[str, int],
     grade_ids_by_code: dict[str, int],
+    existing_business_rows: dict[str, list[dict[str, Any]]] | None = None,
 ) -> tuple[list[ProcessedRow], FileReport]:
-    business_counts = Counter(
-        business_fingerprint(
-            season_code=source.season_code,
-            receipt_date=row.receipt_date,
-            factory_raw=row.factory_raw,
-            farm_raw=row.farm_raw,
-            subfarm_raw=row.subfarm_raw,
-            variety_raw=row.variety_raw,
-            grade_raw=row.grade_raw,
-            weight_kg=row.weight_kg,
-        )
-        for row in rows
-    )
+    existing_business_rows = existing_business_rows or {}
     sheet_reports: dict[str, SheetReport] = defaultdict(lambda: SheetReport(sheet_name=""))
     processed: list[ProcessedRow] = []
     earliest: date | None = None
     latest: date | None = None
     warnings: list[str] = []
+    file_excluded_row_counts: dict[str, int] = {}
+    first_seen_in_file: dict[str, dict[str, Any]] = {}
+    cross_sheet_duplicate_count = 0
+    cross_file_duplicate_count = 0
+    cross_sheet_duplicate_examples: list[dict[str, Any]] = []
+    cross_file_duplicate_examples: list[dict[str, Any]] = []
 
     for row in rows:
         report = sheet_reports[row.source_sheet]
@@ -125,9 +128,40 @@ def process_rows(
             grade_raw=row.grade_raw,
             weight_kg=row.weight_kg,
         )
-        is_duplicate = business_counts[business_fp] > 1
-        if is_duplicate:
+        first_occurrence = first_seen_in_file.get(business_fp)
+        is_duplicate = first_occurrence is not None
+        if first_occurrence is None:
+            first_seen_in_file[business_fp] = {
+                "sheet_name": row.source_sheet,
+                "row_number": row.source_row_number,
+            }
+        else:
             report.suspected_duplicate_count += 1
+            if first_occurrence["sheet_name"] != row.source_sheet:
+                cross_sheet_duplicate_count += 1
+                _append_limited(
+                    cross_sheet_duplicate_examples,
+                    {
+                        "first_sheet": first_occurrence["sheet_name"],
+                        "first_row_number": first_occurrence["row_number"],
+                        "duplicate_sheet": row.source_sheet,
+                        "duplicate_row_number": row.source_row_number,
+                    },
+                    config.rules.max_issue_examples,
+                )
+
+        existing_matches = existing_business_rows.get(business_fp, [])
+        if existing_matches:
+            cross_file_duplicate_count += 1
+            _append_limited(
+                cross_file_duplicate_examples,
+                {
+                    "current_sheet": row.source_sheet,
+                    "current_row_number": row.source_row_number,
+                    "existing_examples": existing_matches[:1],
+                },
+                config.rules.max_issue_examples,
+            )
 
         exclusion_reasons = list(row.parse_errors)
         if row.receipt_date is None:
@@ -138,12 +172,29 @@ def process_rows(
             exclusion_reasons.append("grade_excluded")
         if factory_normalized in config.rules.excluded_factories:
             exclusion_reasons.append("factory_excluded")
+        if factory_clean is None:
+            exclusion_reasons.append("factory_empty")
+        elif not is_factory_known and not config.rules.allow_unknown_factory_in_analysis:
+            exclusion_reasons.append("factory_unknown")
+        if variety_clean is None:
+            exclusion_reasons.append("variety_empty")
+        elif not is_variety_known and not config.rules.allow_unknown_variety_in_analysis:
+            exclusion_reasons.append("variety_unknown")
         if row.weight_kg is None:
             exclusion_reasons.append("weight_invalid")
         elif row.weight_kg <= 0:
             exclusion_reasons.append("weight_not_positive")
         if is_duplicate and config.rules.deduplicate_suspected_business_rows_in_curated:
             exclusion_reasons.append("suspected_duplicate")
+        if factory_clean is None and config.rules.allow_empty_factory_in_analysis:
+            exclusion_reasons = [
+                reason for reason in exclusion_reasons if reason != "factory_empty"
+            ]
+        if variety_clean is None and config.rules.allow_empty_variety_in_analysis:
+            exclusion_reasons = [
+                reason for reason in exclusion_reasons if reason != "variety_empty"
+            ]
+        exclusion_reasons = list(dict.fromkeys(exclusion_reasons))
         is_analysis_eligible = not exclusion_reasons
         if row.weight_kg is not None:
             if is_analysis_eligible:
@@ -152,6 +203,12 @@ def process_rows(
                 report.excluded_weight_kg += row.weight_kg
                 for reason in exclusion_reasons:
                     _add_weight(report.excluded_weight_by_reason_kg, reason, row.weight_kg)
+                    _add_count(report.excluded_row_count_by_reason, reason)
+                    _add_count(file_excluded_row_counts, reason)
+        elif exclusion_reasons:
+            for reason in exclusion_reasons:
+                _add_count(report.excluded_row_count_by_reason, reason)
+                _add_count(file_excluded_row_counts, reason)
 
         processed.append(
             ProcessedRow(
@@ -195,8 +252,14 @@ def process_rows(
         suspected_duplicate_count=sum(
             report.suspected_duplicate_count for report in sheet_reports.values()
         ),
+        actual_sheets=list(sheet_reports.keys()),
         sheet_reports=list(sheet_reports.values()),
         warnings=warnings,
+        cross_sheet_duplicate_count=cross_sheet_duplicate_count,
+        cross_file_duplicate_count=cross_file_duplicate_count,
+        cross_sheet_duplicate_examples=cross_sheet_duplicate_examples,
+        cross_file_duplicate_examples=cross_file_duplicate_examples,
+        excluded_row_count_by_reason=file_excluded_row_counts,
     )
     return processed, file_report
 
