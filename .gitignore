@@ -12,3 +12,6 @@ build/
 htmlcov/
 .coverage
 docker/postgres-data/
+data/raw/*.xls
+data/raw/*.xlsx
+reports/import/

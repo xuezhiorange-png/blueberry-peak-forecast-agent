@@ -1,0 +1,21 @@
+version: "task2-v1"
+valid_months: [1, 2, 3, 4]
+excluded_grades: ["普鲜", "普青", "普冻", "废果"]
+excluded_factories: ["巴松加工厂"]
+deduplicate_suspected_business_rows_in_curated: true
+allow_unknown_factory_in_analysis: false
+allow_unknown_variety_in_analysis: false
+allow_empty_factory_in_analysis: false
+allow_empty_variety_in_analysis: false
+date_formats:
+  - "%Y-%m-%d"
+  - "%Y/%m/%d"
+  - "%Y.%m.%d"
+  - "%m/%d/%Y"
+empty_values:
+  strings: ["", "-", "—", "无", "NULL", "null"]
+fatal_quality_thresholds:
+  max_invalid_date_ratio: "0.30"
+  max_invalid_weight_ratio: "0.30"
+report:
+  max_issue_examples: 50

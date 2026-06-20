@@ -75,7 +75,7 @@ jobs:
           asyncio.run(main())
           PY
 
-      - name: Alembic master-data migration round trip
+      - name: Alembic historical ingest migration round trip
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -85,7 +85,7 @@ jobs:
           POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           alembic -c backend/alembic.ini upgrade head
-          alembic -c backend/alembic.ini downgrade 0001_task0_baseline
+          alembic -c backend/alembic.ini downgrade 0002_master_data
           alembic -c backend/alembic.ini upgrade head
 
       - name: Ruff
