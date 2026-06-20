@@ -433,4 +433,6 @@ async def test_header_failure_persists_quality_report_errors(tmp_path: Path) -> 
     assert ingest is not None
     assert ingest.status == "failed"
     assert ingest.quality_report["errors"]
-    assert "Missing headers" in ingest.quality_report["errors"][0]
+    error = ingest.quality_report["errors"][0]
+    assert "header" in error.lower()
+    assert "SheetA" in error
