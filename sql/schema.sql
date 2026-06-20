@@ -71,3 +71,9 @@ CREATE TABLE IF NOT EXISTS dim_holiday (
   CONSTRAINT uq_dim_holiday_season_id_code UNIQUE (season_id, code),
   CONSTRAINT ck_dim_holiday_date_range CHECK (end_date >= start_date)
 );
+
+CREATE INDEX IF NOT EXISTS ix_dim_factory_active ON dim_factory (active);
+CREATE INDEX IF NOT EXISTS ix_dim_subfarm_farm_id ON dim_subfarm (farm_id);
+CREATE INDEX IF NOT EXISTS ix_dim_holiday_season_id ON dim_holiday (season_id);
+CREATE INDEX IF NOT EXISTS ix_dim_holiday_region_name ON dim_holiday (region_name);
+CREATE INDEX IF NOT EXISTS ix_dim_holiday_active ON dim_holiday (active);
