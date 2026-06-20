@@ -1,0 +1,4 @@
+version: "task2-v1"
+remove_prefixes:
+  - "蓝莓原果"
+aliases: {}

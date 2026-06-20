@@ -2,6 +2,8 @@
 
 本文档定义任务1范围内的主数据模型。任务1只建立主数据表、ORM、迁移和 CRUD API，不创建历史事实表、预测表、天气表、人员表或模型运行表。
 
+任务2增加历史 XLS 导入所需的 `ingest_file` 与 `fact_receipt_raw`。任务2不创建 `fact_receipt_daily`，不做峰值计算。
+
 ## 设计原则
 
 - PostgreSQL 是约束来源，所有主键、唯一约束、外键和检查约束必须由 Alembic 迁移真实创建。
@@ -147,3 +149,18 @@
 - Alembic 迁移位于 `backend/alembic/versions/`，是数据库结构的发布记录。
 - `sql/schema.sql` 是面向评审和后续任务的参考 SQL，必须与当前 ORM 和最新 migration 保持一致。
 - 新字段或约束必须同时更新 ORM、migration 和 `sql/schema.sql`，并用 PostgreSQL 集成测试验证。
+
+## 任务2历史导入表
+
+### ingest_file
+
+记录源文件导入状态、文件 SHA、配置哈希、配置快照和质量报告。`file_sha256` 唯一，用于同一内容文件的正式导入幂等。`status` 限制为 `running`、`completed`、`failed`、`skipped`。`season_id` 可关联 `dim_season.id`，外键限制删除。
+
+### fact_receipt_raw
+
+append-only raw 层，保存每个源行的定位信息、原始字段、解析字段、归一化字段、主数据映射结果、质量标记、排除原因、解析错误和两类指纹。
+
+- `source_row_fingerprint` 基于 `file_sha256|sheet_name|source_row_number`，唯一约束用于技术幂等。
+- `business_fingerprint` 基于 `season|receipt_date|normalized_factory|normalized_farm|normalized_subfarm|normalized_variety|normalized_grade|round(weight_kg,6)`，只建立普通索引用于疑似业务重复识别。
+- raw 层允许非法日期、未知工厂、未知品种、空重量、零重量和负重量入库；这些问题通过质量字段和 `is_analysis_eligible` 表达，不用数据库检查约束阻止。
+- `fact_receipt_daily` 聚合延期到任务3。
