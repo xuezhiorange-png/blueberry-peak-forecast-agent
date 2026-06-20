@@ -8,6 +8,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Numeric,
     Text,
     UniqueConstraint,
@@ -38,6 +39,7 @@ class Factory(Base):
     __table_args__ = (
         UniqueConstraint("code", name="uq_dim_factory_code"),
         UniqueConstraint("name", name="uq_dim_factory_name"),
+        Index("ix_dim_factory_active", "active"),
         CheckConstraint(
             "latitude is null or (latitude >= -90 and latitude <= 90)",
             name="ck_dim_factory_latitude_range",
@@ -83,7 +85,10 @@ class Farm(Base):
 
 class Subfarm(Base):
     __tablename__ = "dim_subfarm"
-    __table_args__ = (UniqueConstraint("farm_id", "name", name="uq_dim_subfarm_farm_id_name"),)
+    __table_args__ = (
+        UniqueConstraint("farm_id", "name", name="uq_dim_subfarm_farm_id_name"),
+        Index("ix_dim_subfarm_farm_id", "farm_id"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     farm_id: Mapped[int] = mapped_column(
@@ -121,6 +126,9 @@ class Holiday(Base):
     __tablename__ = "dim_holiday"
     __table_args__ = (
         UniqueConstraint("season_id", "code", name="uq_dim_holiday_season_id_code"),
+        Index("ix_dim_holiday_season_id", "season_id"),
+        Index("ix_dim_holiday_region_name", "region_name"),
+        Index("ix_dim_holiday_active", "active"),
         CheckConstraint("end_date >= start_date", name="ck_dim_holiday_date_range"),
     )
 

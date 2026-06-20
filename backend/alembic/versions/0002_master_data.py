@@ -49,6 +49,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("code", name="uq_dim_factory_code"),
         sa.UniqueConstraint("name", name="uq_dim_factory_name"),
     )
+    op.create_index("ix_dim_factory_active", "dim_factory", ["active"])
     op.create_table(
         "dim_farm",
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
@@ -103,6 +104,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name="pk_dim_subfarm"),
         sa.UniqueConstraint("farm_id", "name", name="uq_dim_subfarm_farm_id_name"),
     )
+    op.create_index("ix_dim_subfarm_farm_id", "dim_subfarm", ["farm_id"])
     op.create_table(
         "dim_holiday",
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
@@ -129,9 +131,17 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name="pk_dim_holiday"),
         sa.UniqueConstraint("season_id", "code", name="uq_dim_holiday_season_id_code"),
     )
+    op.create_index("ix_dim_holiday_season_id", "dim_holiday", ["season_id"])
+    op.create_index("ix_dim_holiday_region_name", "dim_holiday", ["region_name"])
+    op.create_index("ix_dim_holiday_active", "dim_holiday", ["active"])
 
 
 def downgrade() -> None:
+    op.drop_index("ix_dim_holiday_active", table_name="dim_holiday")
+    op.drop_index("ix_dim_holiday_region_name", table_name="dim_holiday")
+    op.drop_index("ix_dim_holiday_season_id", table_name="dim_holiday")
+    op.drop_index("ix_dim_subfarm_farm_id", table_name="dim_subfarm")
+    op.drop_index("ix_dim_factory_active", table_name="dim_factory")
     op.drop_table("dim_holiday")
     op.drop_table("dim_subfarm")
     op.drop_table("dim_grade")

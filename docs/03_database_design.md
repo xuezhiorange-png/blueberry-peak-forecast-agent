@@ -34,6 +34,8 @@
 | altitude_m | NUMERIC(8,2) | 可空 |
 | active | BOOLEAN | 非空，默认 true |
 
+索引：`ix_dim_factory_active` 支持 `active` 列表过滤。
+
 ### dim_farm
 
 | 字段 | 类型 | 约束 |
@@ -54,6 +56,8 @@
 | altitude_m | NUMERIC(8,2) | 可空 |
 
 唯一约束：`UNIQUE(farm_id, name)`。删除仍被分场引用的农场必须返回 409。
+
+索引：`ix_dim_subfarm_farm_id` 支持按农场过滤分场。
 
 ### dim_variety
 
@@ -93,6 +97,8 @@
 唯一约束：`UNIQUE(season_id, code)`。
 
 `dim_holiday` 只维护节假日时间窗口。春节采摘能力、积压释放和预测影响属于后续任务，不在任务1实现。
+
+索引：`ix_dim_holiday_season_id`、`ix_dim_holiday_region_name`、`ix_dim_holiday_active` 支持节假日列表过滤。
 
 ## API
 

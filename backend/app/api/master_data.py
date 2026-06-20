@@ -1,6 +1,7 @@
-from typing import Annotated
+from datetime import date
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,6 +56,18 @@ def _read[ReadT: BaseModel](schema: type[ReadT], record: object) -> ReadT:
     return schema.model_validate(record)
 
 
+def _validate_merged_date_range(record: Season | Holiday, values: dict[str, Any]) -> None:
+    start_date = values.get("start_date", record.start_date)
+    end_date = values.get("end_date", record.end_date)
+    if not isinstance(start_date, date) or not isinstance(end_date, date):
+        return
+    if end_date < start_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="end_date must be greater than or equal to start_date",
+        )
+
+
 @router.post("/seasons", response_model=SeasonRead, status_code=status.HTTP_201_CREATED)
 async def create_season(payload: SeasonCreate, session: SessionDep) -> SeasonRead:
     record = await create_master_data(session, Season, payload.model_dump())
@@ -81,8 +94,15 @@ async def get_season(record_id: int, session: SessionDep) -> SeasonRead:
 
 @router.patch("/seasons/{record_id}", response_model=SeasonRead)
 async def update_season(record_id: int, payload: SeasonUpdate, session: SessionDep) -> SeasonRead:
+    values = payload.model_dump(exclude_unset=True)
+    existing = await get_master_data(session, Season, record_id, "season")
+    _validate_merged_date_range(existing, values)
     record = await update_master_data(
-        session, Season, record_id, "season", payload.model_dump(exclude_unset=True)
+        session,
+        Season,
+        record_id,
+        "season",
+        values,
     )
     return _read(SeasonRead, record)
 
@@ -345,8 +365,15 @@ async def get_holiday(record_id: int, session: SessionDep) -> HolidayRead:
 async def update_holiday(
     record_id: int, payload: HolidayUpdate, session: SessionDep
 ) -> HolidayRead:
+    values = payload.model_dump(exclude_unset=True)
+    existing = await get_master_data(session, Holiday, record_id, "holiday")
+    _validate_merged_date_range(existing, values)
     record = await update_master_data(
-        session, Holiday, record_id, "holiday", payload.model_dump(exclude_unset=True)
+        session,
+        Holiday,
+        record_id,
+        "holiday",
+        values,
     )
     return _read(HolidayRead, record)
 

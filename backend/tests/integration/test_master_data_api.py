@@ -275,3 +275,120 @@ async def test_coordinate_and_date_validation(client: AsyncClient) -> None:
         json={"name": _unique("Farm"), "latitude": "91", "longitude": "103"},
     )
     assert bad_farm.status_code == 422
+
+
+async def test_season_patch_single_date_range_validation(client: AsyncClient) -> None:
+    season = await _create(
+        client,
+        "seasons",
+        {"code": _unique("season"), "start_date": "2026-01-01", "end_date": "2026-04-30"},
+    )
+
+    invalid_start = await client.patch(
+        f"/api/v1/master-data/seasons/{season['id']}",
+        json={"start_date": "2026-05-01"},
+    )
+    assert invalid_start.status_code == 422
+
+    invalid_end = await client.patch(
+        f"/api/v1/master-data/seasons/{season['id']}",
+        json={"end_date": "2025-12-31"},
+    )
+    assert invalid_end.status_code == 422
+
+    valid_start = await client.patch(
+        f"/api/v1/master-data/seasons/{season['id']}",
+        json={"start_date": "2026-01-15"},
+    )
+    assert valid_start.status_code == 200
+    assert valid_start.json()["start_date"] == "2026-01-15"
+
+    valid_end = await client.patch(
+        f"/api/v1/master-data/seasons/{season['id']}",
+        json={"end_date": "2026-05-15"},
+    )
+    assert valid_end.status_code == 200
+    assert valid_end.json()["end_date"] == "2026-05-15"
+
+
+async def test_holiday_patch_single_date_range_validation(client: AsyncClient) -> None:
+    season = await _create(
+        client,
+        "seasons",
+        {"code": _unique("season"), "start_date": "2026-01-01", "end_date": "2026-04-30"},
+    )
+    holiday = await _create(
+        client,
+        "holidays",
+        {
+            "season_id": season["id"],
+            "code": _unique("holiday"),
+            "name": "春节窗口",
+            "start_date": "2026-02-10",
+            "end_date": "2026-02-17",
+        },
+    )
+
+    invalid_start = await client.patch(
+        f"/api/v1/master-data/holidays/{holiday['id']}",
+        json={"start_date": "2026-02-18"},
+    )
+    assert invalid_start.status_code == 422
+
+    invalid_end = await client.patch(
+        f"/api/v1/master-data/holidays/{holiday['id']}",
+        json={"end_date": "2026-02-09"},
+    )
+    assert invalid_end.status_code == 422
+
+    valid_start = await client.patch(
+        f"/api/v1/master-data/holidays/{holiday['id']}",
+        json={"start_date": "2026-02-11"},
+    )
+    assert valid_start.status_code == 200
+    assert valid_start.json()["start_date"] == "2026-02-11"
+
+    valid_end = await client.patch(
+        f"/api/v1/master-data/holidays/{holiday['id']}",
+        json={"end_date": "2026-02-18"},
+    )
+    assert valid_end.status_code == 200
+    assert valid_end.json()["end_date"] == "2026-02-18"
+
+
+async def test_referenced_season_and_patch_missing_foreign_keys_return_conflict(
+    client: AsyncClient,
+) -> None:
+    season = await _create(
+        client,
+        "seasons",
+        {"code": _unique("season"), "start_date": "2026-01-01", "end_date": "2026-04-30"},
+    )
+    holiday = await _create(
+        client,
+        "holidays",
+        {
+            "season_id": season["id"],
+            "code": _unique("holiday"),
+            "name": "春节窗口",
+            "start_date": "2026-02-10",
+            "end_date": "2026-02-17",
+        },
+    )
+    farm = await _create(client, "farms", {"name": _unique("Farm")})
+    subfarm = await _create(client, "subfarms", {"farm_id": farm["id"], "name": _unique("Block")})
+
+    season_delete = await client.delete(f"/api/v1/master-data/seasons/{season['id']}")
+    assert season_delete.status_code == 409
+
+    subfarm_missing_farm = await client.patch(
+        f"/api/v1/master-data/subfarms/{subfarm['id']}",
+        json={"farm_id": 999999999},
+    )
+    assert subfarm_missing_farm.status_code == 409
+
+    holiday_missing_season = await client.patch(
+        f"/api/v1/master-data/holidays/{holiday['id']}",
+        json={"season_id": 999999999},
+    )
+    assert holiday_missing_season.status_code == 409
