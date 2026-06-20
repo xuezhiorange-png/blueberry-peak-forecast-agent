@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -26,9 +26,13 @@ from backend.app.etl.history.schemas import (
 from backend.app.models.historical_import import FactReceiptRaw, IngestFile
 from backend.app.models.master_data import Factory, Grade, Season, Variety
 
+BUSINESS_FINGERPRINT_QUERY_BATCH_SIZE = 5000
+
 
 class ImportFatalError(RuntimeError):
-    pass
+    def __init__(self, message: str, *, report: FileReport | None = None) -> None:
+        super().__init__(message)
+        self.report = report
 
 
 @dataclass(frozen=True)
@@ -191,24 +195,34 @@ async def _existing_business_rows(
 ) -> dict[str, list[dict[str, Any]]]:
     if not business_fingerprints:
         return {}
-    rows = await session.execute(
-        select(
-            FactReceiptRaw.business_fingerprint,
-            FactReceiptRaw.ingest_file_id,
-            FactReceiptRaw.source_sheet,
-            FactReceiptRaw.source_row_number,
-        ).where(FactReceiptRaw.business_fingerprint.in_(business_fingerprints))
-    )
     result: dict[str, list[dict[str, Any]]] = {}
-    for fingerprint, ingest_file_id, source_sheet, source_row_number in rows:
-        result.setdefault(fingerprint, []).append(
-            {
-                "ingest_file_id": ingest_file_id,
-                "source_sheet": source_sheet,
-                "source_row_number": source_row_number,
-            }
+    ordered_fingerprints = sorted(business_fingerprints)
+    for start in range(0, len(ordered_fingerprints), BUSINESS_FINGERPRINT_QUERY_BATCH_SIZE):
+        batch = ordered_fingerprints[start : start + BUSINESS_FINGERPRINT_QUERY_BATCH_SIZE]
+        rows = await session.execute(
+            select(
+                FactReceiptRaw.business_fingerprint,
+                FactReceiptRaw.ingest_file_id,
+                FactReceiptRaw.source_sheet,
+                FactReceiptRaw.source_row_number,
+            ).where(FactReceiptRaw.business_fingerprint.in_(batch))
         )
+        for fingerprint, ingest_file_id, source_sheet, source_row_number in rows:
+            result.setdefault(fingerprint, []).append(
+                {
+                    "ingest_file_id": ingest_file_id,
+                    "source_sheet": source_sheet,
+                    "source_row_number": source_row_number,
+                }
+            )
     return result
+
+
+async def _ingest_by_sha(session: AsyncSession, file_sha256: str) -> IngestFile | None:
+    return cast(
+        IngestFile | None,
+        await session.scalar(select(IngestFile).where(IngestFile.file_sha256 == file_sha256)),
+    )
 
 
 def _row_to_model(row: ProcessedRow, ingest_file_id: int, season_id: int) -> FactReceiptRaw:
@@ -269,7 +283,7 @@ async def _prepare_file(
     except HeaderError as exc:
         report = _empty_report(source, path, digest)
         report.errors.append(str(exc))
-        raise ImportFatalError(decimal_json(report.errors)[0]) from exc
+        raise ImportFatalError(decimal_json(report.errors)[0], report=report) from exc
 
     season_id = await _season_id(session, source.season_code)
     factory_map, variety_map, grade_map = await _master_maps(session)
@@ -438,7 +452,7 @@ async def dry_run_source(
     try:
         prepared = await _prepare_file(session, source, config, base_dir)
     except ImportFatalError as exc:
-        report = _empty_report(source, path, digest)
+        report = exc.report or _empty_report(source, path, digest)
         return _failed_result(source, digest, report, str(exc))
     report = replace(prepared.report, inserted_row_count=0, row_count=len(prepared.rows))
     status = "failed" if _report_has_fatal_errors(report) else "dry_run"
@@ -461,10 +475,17 @@ async def import_source(
     if not path.exists():
         raise ImportFatalError(f"Source file not found: {source.path}")
     digest = file_sha256(path)
+    existing_ingest = await _ingest_by_sha(session, digest)
+    if existing_ingest is not None:
+        report = _empty_report(source, path, digest)
+        if existing_ingest.status == "completed":
+            return _warning_result(source, digest, "skipped", report)
+        if existing_ingest.status == "running":
+            return _warning_result(source, digest, "running", report)
     try:
         prepared = await _prepare_file(session, source, config, base_dir)
     except ImportFatalError as exc:
-        report = _empty_report(source, path, digest)
+        report = exc.report or _empty_report(source, path, digest)
         failed_prepared = PreparedImport(
             path=path,
             file_sha256=digest,

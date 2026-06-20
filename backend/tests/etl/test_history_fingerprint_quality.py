@@ -8,7 +8,7 @@ from backend.app.etl.history.fingerprint import (
     normalize_decimal_for_fingerprint,
     source_row_fingerprint,
 )
-from backend.app.etl.history.normalizer import normalize_text, normalize_variety
+from backend.app.etl.history.normalizer import normalize_factory, normalize_text, normalize_variety
 from backend.app.etl.history.quality import process_rows
 from backend.app.etl.history.schemas import (
     AliasConfig,
@@ -31,11 +31,11 @@ def test_business_fingerprint_uses_decimal_six_place_normalization() -> None:
     kwargs = {
         "season_code": "2025-2026",
         "receipt_date": date(2026, 1, 2),
-        "factory_raw": "工厂A",
-        "farm_raw": "农场A",
-        "subfarm_raw": "分场A",
-        "variety_raw": "Dx",
-        "grade_raw": "优果",
+        "factory_name": "工厂A",
+        "farm_name": "农场A",
+        "subfarm_name": "分场A",
+        "variety_name": "Dx",
+        "grade_code": "优果",
     }
     assert normalize_decimal_for_fingerprint(Decimal("1.2")) == "1.200000"
     assert business_fingerprint(weight_kg=Decimal("1.2"), **kwargs) == business_fingerprint(
@@ -47,6 +47,60 @@ def test_unicode_whitespace_and_variety_prefix_normalization() -> None:
     aliases = AliasConfig(version="test", aliases={"Dx": "DX"}, remove_prefixes=["蓝莓原果"])
     assert normalize_text(" Ｄｘ   A ") == "Dx A"
     assert normalize_variety(" 蓝莓原果Dx ", aliases) == ("Dx", "DX")
+
+
+def test_business_fingerprint_uses_normalized_business_values() -> None:
+    factory_aliases = AliasConfig(version="test", aliases={"新哨厂": "新哨加工厂"})
+    variety_aliases = AliasConfig(
+        version="test",
+        aliases={"Dx": "Dx"},
+        remove_prefixes=["蓝莓原果"],
+    )
+    base_kwargs = {
+        "season_code": "2025-2026",
+        "receipt_date": date(2026, 1, 2),
+        "farm_name": normalize_text(" 农场A "),
+        "subfarm_name": normalize_text(" 分场A "),
+        "grade_code": normalize_text(" 优果 "),
+        "weight_kg": Decimal("1.000000"),
+    }
+
+    assert business_fingerprint(
+        factory_name=normalize_factory("新哨厂", factory_aliases)[1],
+        variety_name=normalize_variety("蓝莓原果Dx", variety_aliases)[1],
+        **base_kwargs,
+    ) == business_fingerprint(
+        factory_name=normalize_factory("新哨加工厂", factory_aliases)[1],
+        variety_name=normalize_variety("Dx", variety_aliases)[1],
+        **base_kwargs,
+    )
+    assert business_fingerprint(
+        factory_name="工厂A",
+        variety_name="Dx",
+        **base_kwargs,
+    ) == business_fingerprint(
+        factory_name="工厂A",
+        variety_name="Dx",
+        **base_kwargs,
+    )
+    assert business_fingerprint(
+        factory_name="工厂A",
+        variety_name="Dx",
+        **base_kwargs,
+    ) != business_fingerprint(
+        factory_name="工厂B",
+        variety_name="Dx",
+        **base_kwargs,
+    )
+    assert business_fingerprint(
+        factory_name="工厂A",
+        variety_name="Dx",
+        **base_kwargs,
+    ) != business_fingerprint(
+        factory_name="工厂A",
+        variety_name="Dy",
+        **base_kwargs,
+    )
 
 
 def test_quality_rules_preserve_raw_but_record_all_exclusion_reasons() -> None:
@@ -288,16 +342,19 @@ def test_duplicate_exclusion_can_be_disabled_and_cross_file_duplicates_are_count
             business_fingerprint(
                 season_code="2025-2026",
                 receipt_date=date(2026, 1, 1),
-                factory_raw="工厂A",
-                farm_raw="农场A",
-                subfarm_raw="分场A",
-                variety_raw="Dx",
-                grade_raw="优果",
+                factory_name="工厂A",
+                farm_name="农场A",
+                subfarm_name="分场A",
+                variety_name="Dx",
+                grade_code="优果",
                 weight_kg=Decimal("1"),
             ): [{"ingest_file_id": 9, "source_sheet": "History", "source_row_number": 7}]
         },
     )
 
+    assert processed[0].is_suspected_duplicate is True
+    assert processed[0].is_analysis_eligible is True
+    assert "suspected_duplicate" not in processed[0].exclusion_reasons
     assert processed[1].is_suspected_duplicate is True
     assert processed[1].is_analysis_eligible is True
     assert report.cross_file_duplicate_count == 2

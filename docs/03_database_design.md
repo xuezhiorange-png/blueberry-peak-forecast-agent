@@ -161,6 +161,6 @@
 append-only raw 层，保存每个源行的定位信息、原始字段、解析字段、归一化字段、主数据映射结果、质量标记、排除原因、解析错误和两类指纹。
 
 - `source_row_fingerprint` 基于 `file_sha256|sheet_name|source_row_number`，唯一约束用于技术幂等。
-- `business_fingerprint` 基于 `season|receipt_date|factory_raw|farm_raw|subfarm_raw|variety_raw|grade_raw|round(weight_kg,6)`，只建立普通索引用于疑似业务重复识别。
+- `business_fingerprint` 基于 `season|receipt_date|normalized_factory|normalized_farm|normalized_subfarm|normalized_variety|normalized_grade|round(weight_kg,6)`，只建立普通索引用于疑似业务重复识别。
 - raw 层允许非法日期、未知工厂、未知品种、空重量、零重量和负重量入库；这些问题通过质量字段和 `is_analysis_eligible` 表达，不用数据库检查约束阻止。
 - `fact_receipt_daily` 聚合延期到任务3。

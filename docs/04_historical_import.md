@@ -39,7 +39,7 @@
 任务2区分两类指纹：
 
 - `source_row_fingerprint`：`sha256(file_sha256|sheet_name|source_row_number)`，用于严格技术幂等并建立唯一约束；
-- `business_fingerprint`：`sha256(season|date|factory_raw|farm_raw|subfarm_raw|variety_raw|grade_raw|round(weight,6))`，用于疑似业务重复识别，只建普通索引。
+- `business_fingerprint`：`sha256(season|date|normalized_factory|normalized_farm|normalized_subfarm|normalized_variety|normalized_grade|round(weight,6))`，用于疑似业务重复识别，只建普通索引。
 
 没有业务流水号时，不能百分百区分“真实相同的两笔”与重复行，因此 raw 层仍应保留原文件、Sheet和行号。是否去重必须可配置并输出争议清单。
 
@@ -70,6 +70,8 @@ and variety is known unless rules explicitly allow unknown varieties
 - 按排除原因统计的行数和重量。
 
 `fatal_quality_thresholds` 至少支持非法日期和非法重量的最大数量或比例。超过阈值时，dry-run 返回非0，正式导入写入 `failed` 状态但不写 raw 行。
+
+文本 NFKC、首尾空格清理、连续空格折叠和全角半角统一是内置规范化行为，不通过 `import_rules.yaml` 单独开关；别名文件只负责显式映射和品种前缀移除。
 
 ## 6. 导入命令
 
