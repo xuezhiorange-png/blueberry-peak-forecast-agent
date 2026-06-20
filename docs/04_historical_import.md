@@ -18,15 +18,17 @@
 ## 2. 导入流程
 
 1. 计算文件 SHA256；
-2. 创建 `ingest_file`；
+2. 创建或重用 `ingest_file`；
 3. 遍历全部 Sheet；
-4. 校验表头；
-5. 将每行原值写入 raw；
-6. 生成行指纹；
-7. 重复指纹使用唯一约束阻止重复导入；
-8. 归一化品种和加工厂；
+4. 按严格表头校验读取，并支持 manifest 中显式声明的表头别名；
+5. 生成行指纹；
+6. 归一化品种和加工厂；
+7. 评估质量阈值；
+8. 仅当文件通过校验时，将 raw 行作为单文件原子事务写入；
 9. 标记 `is_analysis_eligible`；
 10. 输出质量报告。
+
+如果导入失败，`ingest_file` 仍需保留，记录 `status=failed`、`error_message`、`finished_at` 和当时已形成的质量摘要；raw 行不得留下半文件状态。
 
 任务2只建立 `ingest_file` 和 `fact_receipt_raw`。`fact_receipt_daily` 聚合、峰值计算和任何模型特征生成延期到任务3。
 
@@ -48,6 +50,8 @@ month in [1,2,3,4]
 and grade not in [普鲜, 普青, 普冻, 废果]
 and normalized_factory != 巴松加工厂
 and weight_kg > 0
+and factory is known unless rules explicitly allow unknown factories
+and variety is known unless rules explicitly allow unknown varieties
 ```
 
 ## 5. 数据质量报告
@@ -61,6 +65,11 @@ and weight_kg > 0
 - 疑似重复；
 - 原始重量、有效重量、各类剔除重量；
 - 日期范围和异常5月数据。
+- 文件内重复、跨 Sheet 重复、跨文件重复；
+- 实际 Sheet、缺失 Sheet、额外 Sheet；
+- 按排除原因统计的行数和重量。
+
+`fatal_quality_thresholds` 至少支持非法日期和非法重量的最大数量或比例。超过阈值时，dry-run 返回非0，正式导入写入 `failed` 状态但不写 raw 行。
 
 ## 6. 导入命令
 

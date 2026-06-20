@@ -64,7 +64,30 @@ async def _run() -> int:
                 if args.fail_fast:
                     break
                 continue
+            except Exception as exc:
+                failures += 1
+                logging.error(
+                    "%s failed due to %s: %s",
+                    source.path.name,
+                    exc.__class__.__name__,
+                    exc,
+                )
+                if args.fail_fast:
+                    break
+                continue
             _write_report(result, Path(args.report_dir))
+            if result.status == "failed":
+                failures += 1
+                logging.error(
+                    "%s status=%s sha=%s errors=%s",
+                    source.path.name,
+                    result.status,
+                    result.file_sha256[:12],
+                    result.report.errors,
+                )
+                if args.fail_fast:
+                    break
+                continue
             logging.info(
                 "%s status=%s sha=%s inserted=%s rows=%s",
                 source.path.name,

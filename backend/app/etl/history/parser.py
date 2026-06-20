@@ -14,6 +14,10 @@ class HeaderError(ValueError):
     pass
 
 
+class ExpectedSheetsError(HeaderError):
+    pass
+
+
 def _cell_raw_value(cell: Cell, datemode: int) -> Any:
     if cell.ctype == xlrd.XL_CELL_DATE:
         try:
@@ -82,13 +86,17 @@ def _is_blank_row(values: list[Any], rules: ImportRules) -> bool:
     return True
 
 
-def _find_header_row(sheet: xlrd.sheet.Sheet, configured_header_row: int | None) -> int:
+def _find_header_row(
+    sheet: xlrd.sheet.Sheet,
+    configured_header_row: int | None,
+    header_aliases: dict[str, str] | None = None,
+) -> int:
     if configured_header_row is not None:
         return configured_header_row
     expected = set(EXPECTED_HEADERS)
     for row_index in range(sheet.nrows):
         values = {
-            normalize_text(sheet.cell_value(row_index, col_index))
+            _apply_header_alias(sheet.cell_value(row_index, col_index), header_aliases or {})
             for col_index in range(sheet.ncols)
         }
         if expected.issubset(values):
@@ -96,9 +104,25 @@ def _find_header_row(sheet: xlrd.sheet.Sheet, configured_header_row: int | None)
     raise HeaderError(f"Header row not found in sheet {sheet.name}")
 
 
-def _header_map(sheet: xlrd.sheet.Sheet, header_row: int, file_name: str) -> dict[str, int]:
+def _apply_header_alias(raw_header: Any, aliases: dict[str, str]) -> str | None:
+    normalized = normalize_text(raw_header)
+    if normalized is None and "<blank>" in aliases:
+        return aliases["<blank>"]
+    if normalized is None:
+        return None
+    return aliases.get(normalized, normalized)
+
+
+def _header_map(
+    sheet: xlrd.sheet.Sheet,
+    header_row: int,
+    file_name: str,
+    header_aliases: dict[str, str] | None = None,
+) -> dict[str, int]:
+    aliases = header_aliases or {}
     values = [
-        normalize_text(sheet.cell_value(header_row, col_index)) for col_index in range(sheet.ncols)
+        _apply_header_alias(sheet.cell_value(header_row, col_index), aliases)
+        for col_index in range(sheet.ncols)
     ]
     duplicates = sorted(
         {value for value in values if value is not None and values.count(value) > 1}
@@ -112,23 +136,65 @@ def _header_map(sheet: xlrd.sheet.Sheet, header_row: int, file_name: str) -> dic
     return {header: values.index(header) for header in EXPECTED_HEADERS}
 
 
+def _validate_expected_sheets(
+    workbook: xlrd.book.Book, expected_sheets: list[str], behavior: str
+) -> dict[str, Any]:
+    actual_sheets = [sheet.name for sheet in workbook.sheets()]
+    missing = [sheet for sheet in expected_sheets if sheet not in actual_sheets]
+    unexpected = [sheet for sheet in actual_sheets if sheet not in expected_sheets]
+    warnings: list[str] = []
+    if expected_sheets and (missing or unexpected):
+        message = (
+            f"Unexpected sheets in workbook; actual={actual_sheets}; "
+            f"missing={missing}; unexpected={unexpected}"
+        )
+        if behavior == "fatal":
+            raise ExpectedSheetsError(message)
+        warnings.append(message)
+    return {
+        "actual_sheets": actual_sheets,
+        "missing_expected_sheets": missing,
+        "unexpected_sheets": unexpected,
+        "warnings": warnings,
+    }
+
+
 def parse_workbook(
-    path: Path, rules: ImportRules, header_row: int | None = None
-) -> tuple[list[ParsedRow], dict[str, int]]:
+    path: Path,
+    rules: ImportRules,
+    header_row: int | None = None,
+    expected_sheets: list[str] | None = None,
+    expected_sheets_behavior: str = "warning",
+    header_aliases: dict[str, str] | None = None,
+) -> tuple[list[ParsedRow], dict[str, Any]]:
     workbook = xlrd.open_workbook(path)
     parsed_rows: list[ParsedRow] = []
-    stats = {"sheet_count": len(workbook.sheets()), "physical_row_count": 0, "blank_row_count": 0}
+    sheet_check = _validate_expected_sheets(
+        workbook,
+        expected_sheets=expected_sheets or [],
+        behavior=expected_sheets_behavior,
+    )
+    stats: dict[str, Any] = {
+        "sheet_count": len(workbook.sheets()),
+        "actual_sheets": sheet_check["actual_sheets"],
+        "missing_expected_sheets": sheet_check["missing_expected_sheets"],
+        "unexpected_sheets": sheet_check["unexpected_sheets"],
+        "warnings": sheet_check["warnings"],
+        "sheet_stats": [],
+    }
     for sheet in workbook.sheets():
-        header_index = _find_header_row(sheet, header_row)
-        columns = _header_map(sheet, header_index, path.name)
+        header_index = _find_header_row(sheet, header_row, header_aliases)
+        columns = _header_map(sheet, header_index, path.name, header_aliases)
+        sheet_physical_row_count = 0
+        sheet_blank_row_count = 0
         for row_index in range(header_index + 1, sheet.nrows):
-            stats["physical_row_count"] += 1
+            sheet_physical_row_count += 1
             row_values = [
                 _cell_raw_value(sheet.cell(row_index, columns[header]), workbook.datemode)
                 for header in EXPECTED_HEADERS
             ]
             if _is_blank_row(row_values, rules):
-                stats["blank_row_count"] += 1
+                sheet_blank_row_count += 1
                 continue
             raw_payload = dict(zip(EXPECTED_HEADERS, row_values, strict=True))
             receipt_cell = sheet.cell(row_index, columns["时间"])
@@ -154,4 +220,12 @@ def parse_workbook(
                     parse_errors=[*date_errors, *weight_errors],
                 )
             )
+        stats["sheet_stats"].append(
+            {
+                "sheet_name": sheet.name,
+                "physical_row_count": sheet_physical_row_count,
+                "blank_row_count": sheet_blank_row_count,
+                "data_row_count": sheet_physical_row_count - sheet_blank_row_count,
+            }
+        )
     return parsed_rows, stats
