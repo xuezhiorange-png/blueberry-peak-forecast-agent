@@ -26,20 +26,25 @@ def _require_postgres() -> None:
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
 
 
-def _write_xls(path: Path, *, duplicate_across_files: bool = False) -> None:
+def _write_xls(
+    path: Path,
+    *,
+    duplicate_across_files: bool = False,
+    link_name: str = "链路A",
+) -> None:
     workbook = xlwt.Workbook()
     date_style = xlwt.easyxf(num_format_str="YYYY-MM-DD")
     sheet1 = workbook.add_sheet("SheetA")
     sheet2 = workbook.add_sheet("SheetB")
     headers = ["时间", "链路", "农场", "分场", "品种", "果径", "入库公斤数", "加工厂"]
     rows = [
-        [datetime(2026, 1, 2), "链路A", "农场A", "分场A", "蓝莓原果Dx", "优果", 10, "工厂A"],
+        [datetime(2026, 1, 2), link_name, "农场A", "分场A", "蓝莓原果Dx", "优果", 10, "工厂A"],
         ["2026-05-01", "链路B", "农场B", "分场B", "品种B", "普鲜", 5, "巴松加工厂"],
         ["坏日期", "链路C", "农场C", "分场C", "未知品种", "优果", -1, "未知厂"],
     ]
     if duplicate_across_files:
         rows = [
-            [datetime(2026, 1, 2), "链路A", "农场A", "分场A", "蓝莓原果Dx", "优果", 10, "工厂A"],
+            [datetime(2026, 1, 2), link_name, "农场A", "分场A", "蓝莓原果Dx", "优果", 10, "工厂A"],
         ]
     for sheet in [sheet1, sheet2]:
         for col, header in enumerate(headers):
@@ -256,8 +261,8 @@ async def test_cross_file_duplicates_are_counted_against_prior_imports(tmp_path:
     await _seed_master_data()
     first_xls = tmp_path / "synthetic-a.xls"
     second_xls = tmp_path / "synthetic-b.xls"
-    _write_xls(first_xls, duplicate_across_files=True)
-    _write_xls(second_xls, duplicate_across_files=True)
+    _write_xls(first_xls, duplicate_across_files=True, link_name="链路A")
+    _write_xls(second_xls, duplicate_across_files=True, link_name="链路B")
     first_config = _load_config(tmp_path / "cfg-a", first_xls)
     second_config = _load_config(tmp_path / "cfg-b", second_xls)
 
