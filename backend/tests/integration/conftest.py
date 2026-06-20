@@ -7,6 +7,8 @@ from sqlalchemy import text
 from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
 
 _MASTER_DATA_TABLES = (
+    "fact_receipt_raw",
+    "ingest_file",
     "dim_holiday",
     "dim_subfarm",
     "dim_grade",

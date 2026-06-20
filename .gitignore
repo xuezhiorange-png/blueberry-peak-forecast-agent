@@ -12,3 +12,4 @@ build/
 htmlcov/
 .coverage
 docker/postgres-data/
+reports/import/
