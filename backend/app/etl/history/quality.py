@@ -107,6 +107,8 @@ def process_rows(
         variety_clean, variety_normalized = normalize_variety(
             row.variety_raw, config.variety_aliases
         )
+        farm_normalized = normalize_text(row.farm_raw)
+        subfarm_normalized = normalize_text(row.subfarm_raw)
         factory_id = factory_ids_by_name.get(factory_normalized or "")
         variety_id = variety_ids_by_name.get(variety_normalized or "")
         grade_normalized = normalize_text(row.grade_raw)
@@ -121,22 +123,21 @@ def process_rows(
         business_fp = business_fingerprint(
             season_code=source.season_code,
             receipt_date=row.receipt_date,
-            factory_raw=row.factory_raw,
-            farm_raw=row.farm_raw,
-            subfarm_raw=row.subfarm_raw,
-            variety_raw=row.variety_raw,
-            grade_raw=row.grade_raw,
+            factory_name=factory_normalized,
+            farm_name=farm_normalized,
+            subfarm_name=subfarm_normalized,
+            variety_name=variety_normalized,
+            grade_code=grade_normalized,
             weight_kg=row.weight_kg,
         )
         first_occurrence = first_seen_in_file.get(business_fp)
-        is_duplicate = first_occurrence is not None
+        is_later_in_file_duplicate = first_occurrence is not None
         if first_occurrence is None:
             first_seen_in_file[business_fp] = {
                 "sheet_name": row.source_sheet,
                 "row_number": row.source_row_number,
             }
         else:
-            report.suspected_duplicate_count += 1
             if first_occurrence["sheet_name"] != row.source_sheet:
                 cross_sheet_duplicate_count += 1
                 _append_limited(
@@ -151,6 +152,7 @@ def process_rows(
                 )
 
         existing_matches = existing_business_rows.get(business_fp, [])
+        has_prior_file_match = bool(existing_matches)
         if existing_matches:
             cross_file_duplicate_count += 1
             _append_limited(
@@ -162,6 +164,9 @@ def process_rows(
                 },
                 config.rules.max_issue_examples,
             )
+        is_duplicate = is_later_in_file_duplicate or has_prior_file_match
+        if is_duplicate:
+            report.suspected_duplicate_count += 1
 
         exclusion_reasons = list(row.parse_errors)
         if row.receipt_date is None:

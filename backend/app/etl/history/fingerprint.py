@@ -21,22 +21,22 @@ def business_fingerprint(
     *,
     season_code: str,
     receipt_date: date | None,
-    factory_raw: str | None,
-    farm_raw: str | None,
-    subfarm_raw: str | None,
-    variety_raw: str | None,
-    grade_raw: str | None,
+    factory_name: str | None,
+    farm_name: str | None,
+    subfarm_name: str | None,
+    variety_name: str | None,
+    grade_code: str | None,
     weight_kg: Decimal | None,
 ) -> str:
     payload = "|".join(
         [
             season_code,
             receipt_date.isoformat() if receipt_date else "",
-            factory_raw or "",
-            farm_raw or "",
-            subfarm_raw or "",
-            variety_raw or "",
-            grade_raw or "",
+            factory_name or "",
+            farm_name or "",
+            subfarm_name or "",
+            variety_name or "",
+            grade_code or "",
             normalize_decimal_for_fingerprint(weight_kg),
         ]
     )

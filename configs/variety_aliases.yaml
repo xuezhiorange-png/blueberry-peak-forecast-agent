@@ -1,8 +1,4 @@
 version: "task2-v1"
-normalization:
-  unicode_nfkc: true
-  strip: true
-  collapse_whitespace: true
 remove_prefixes:
   - "蓝莓原果"
 aliases: {}

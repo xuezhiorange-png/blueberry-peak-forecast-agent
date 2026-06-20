@@ -58,6 +58,16 @@ def _write_xls(
     workbook.save(str(path))
 
 
+def _write_invalid_header_xls(path: Path) -> None:
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("SheetA")
+    headers = ["时间", "链路", "农场", "分场", "品种", "果径", "错误列", "加工厂"]
+    for col, header in enumerate(headers):
+        sheet.write(0, col, header)
+    sheet.write(1, 0, "2026-01-01")
+    workbook.save(str(path))
+
+
 async def _seed_master_data(*, with_season: bool = True) -> None:
     async with AsyncSessionMaker() as session:
         rows = [
@@ -85,6 +95,7 @@ def _write_config_files(
     xls_path: Path,
     *,
     invalid_date_limit: int | None = None,
+    deduplicate_in_curated: bool = True,
 ) -> tuple[Path, Path, Path, Path]:
     configs = base / "configs"
     configs.mkdir(parents=True)
@@ -118,7 +129,7 @@ version: test
 valid_months: [1, 2, 3, 4]
 excluded_grades: ["普鲜", "普青", "普冻", "废果"]
 excluded_factories: ["巴松加工厂"]
-deduplicate_suspected_business_rows_in_curated: true
+deduplicate_suspected_business_rows_in_curated: {"true" if deduplicate_in_curated else "false"}
 date_formats: ["%Y-%m-%d", "%Y/%m/%d"]
 variety_prefixes_to_remove: ["蓝莓原果"]
 allow_unknown_factory_in_analysis: false
@@ -154,11 +165,18 @@ aliases:
     return manifest, rules, factory_aliases, variety_aliases
 
 
-def _load_config(base: Path, xls_path: Path, *, invalid_date_limit: int | None = None):
+def _load_config(
+    base: Path,
+    xls_path: Path,
+    *,
+    invalid_date_limit: int | None = None,
+    deduplicate_in_curated: bool = True,
+):
     manifest, rules, factory_aliases, variety_aliases = _write_config_files(
         base,
         xls_path,
         invalid_date_limit=invalid_date_limit,
+        deduplicate_in_curated=deduplicate_in_curated,
     )
     return load_import_config(manifest, rules, factory_aliases, variety_aliases)
 
@@ -279,11 +297,71 @@ async def test_cross_file_duplicates_are_counted_against_prior_imports(tmp_path:
             second_config,
             second_xls.parent,
         )
+        second_rows = (
+            await session.scalars(
+                select(FactReceiptRaw)
+                .join(IngestFile, FactReceiptRaw.ingest_file_id == IngestFile.id)
+                .where(IngestFile.file_sha256 == second.file_sha256)
+                .order_by(FactReceiptRaw.id)
+            )
+        ).all()
 
     assert first.status == "completed"
     assert second.status == "completed"
     assert second.report.cross_file_duplicate_count == 2
     assert second.report.cross_file_duplicate_examples
+    assert second_rows
+    assert all(row.is_suspected_duplicate for row in second_rows)
+    assert all("suspected_duplicate" in row.exclusion_reasons for row in second_rows)
+    assert all(row.is_analysis_eligible is False for row in second_rows)
+
+
+@pytest.mark.asyncio
+async def test_cross_file_duplicates_can_be_marked_without_curated_deduplication(
+    tmp_path: Path,
+) -> None:
+    _require_postgres()
+    await _seed_master_data()
+    first_xls = tmp_path / "synthetic-a.xls"
+    second_xls = tmp_path / "synthetic-b.xls"
+    _write_xls(first_xls, duplicate_across_files=True, link_name="链路A")
+    _write_xls(second_xls, duplicate_across_files=True, link_name="链路B")
+    first_config = _load_config(tmp_path / "cfg-a", first_xls)
+    second_config = _load_config(
+        tmp_path / "cfg-b",
+        second_xls,
+        deduplicate_in_curated=False,
+    )
+
+    async with AsyncSessionMaker() as session:
+        first = await import_source(
+            session,
+            first_config.sources[0],
+            first_config,
+            first_xls.parent,
+        )
+        second = await import_source(
+            session,
+            second_config.sources[0],
+            second_config,
+            second_xls.parent,
+        )
+        second_rows = (
+            await session.scalars(
+                select(FactReceiptRaw)
+                .join(IngestFile, FactReceiptRaw.ingest_file_id == IngestFile.id)
+                .where(IngestFile.file_sha256 == second.file_sha256)
+                .order_by(FactReceiptRaw.id)
+            )
+        ).all()
+
+    assert first.status == "completed"
+    assert second.status == "completed"
+    assert second.report.cross_file_duplicate_count == 2
+    assert second_rows
+    assert all(row.is_suspected_duplicate for row in second_rows)
+    assert all("suspected_duplicate" not in row.exclusion_reasons for row in second_rows)
+    assert all(row.is_analysis_eligible is True for row in second_rows)
 
 
 @pytest.mark.asyncio
@@ -305,3 +383,54 @@ async def test_fatal_quality_thresholds_fail_import_without_writing_raw(tmp_path
     assert ingest is not None
     assert ingest.status == "failed"
     assert ingest.inserted_row_count == 0
+
+
+@pytest.mark.asyncio
+async def test_completed_file_skips_before_reparsing_workbook(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _require_postgres()
+    await _seed_master_data()
+    xls_path = tmp_path / "synthetic.xls"
+    _write_xls(xls_path)
+    config = _load_config(tmp_path, xls_path)
+
+    call_count = 0
+    original = import_source.__globals__["parse_workbook"]
+
+    def spy_parse_workbook(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setitem(import_source.__globals__, "parse_workbook", spy_parse_workbook)
+
+    async with AsyncSessionMaker() as session:
+        first = await import_source(session, config.sources[0], config, tmp_path)
+        second = await import_source(session, config.sources[0], config, tmp_path)
+
+    assert first.status == "completed"
+    assert second.status == "skipped"
+    assert call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_header_failure_persists_quality_report_errors(tmp_path: Path) -> None:
+    _require_postgres()
+    await _seed_master_data()
+    xls_path = tmp_path / "invalid-header.xls"
+    _write_invalid_header_xls(xls_path)
+    config = _load_config(tmp_path, xls_path)
+
+    async with AsyncSessionMaker() as session:
+        result = await import_source(session, config.sources[0], config, tmp_path)
+        ingest = await session.scalar(
+            select(IngestFile).where(IngestFile.file_sha256 == result.file_sha256)
+        )
+
+    assert result.status == "failed"
+    assert ingest is not None
+    assert ingest.status == "failed"
+    assert ingest.quality_report["errors"]
+    assert "Missing headers" in ingest.quality_report["errors"][0]
