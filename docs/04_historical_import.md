@@ -12,7 +12,7 @@
 | 分场 | subfarm_raw | text | 后续映射主数据 |
 | 品种 | variety_raw | text | 去除“蓝莓原果”前缀 |
 | 果径 | grade_raw | text | 普鲜等在curated层标记排除 |
-| 入库公斤数 | weight_kg | numeric | 必须大于等于0 |
+| 入库公斤数 | weight_kg | numeric | raw层允许空值、零值和负值；通过质量字段标记 |
 | 加工厂 | factory_raw | text | 使用别名表归一化 |
 
 ## 2. 导入流程
@@ -26,14 +26,18 @@
 7. 重复指纹使用唯一约束阻止重复导入；
 8. 归一化品种和加工厂；
 9. 标记 `is_analysis_eligible`；
-10. 聚合 daily；
-11. 输出质量报告。
+10. 输出质量报告。
+
+任务2只建立 `ingest_file` 和 `fact_receipt_raw`。`fact_receipt_daily` 聚合、峰值计算和任何模型特征生成延期到任务3。
 
 ## 3. 行指纹
 
 建议：
 
-`sha256(season|date|factory_raw|farm_raw|subfarm_raw|variety_raw|grade_raw|round(weight,6))`
+任务2区分两类指纹：
+
+- `source_row_fingerprint`：`sha256(file_sha256|sheet_name|source_row_number)`，用于严格技术幂等并建立唯一约束；
+- `business_fingerprint`：`sha256(season|date|factory_raw|farm_raw|subfarm_raw|variety_raw|grade_raw|round(weight,6))`，用于疑似业务重复识别，只建普通索引。
 
 没有业务流水号时，不能百分百区分“真实相同的两笔”与重复行，因此 raw 层仍应保留原文件、Sheet和行号。是否去重必须可配置并输出争议清单。
 

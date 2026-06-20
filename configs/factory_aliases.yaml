@@ -1,0 +1,7 @@
+version: "task2-v1"
+normalization:
+  unicode_nfkc: true
+  strip: true
+  collapse_whitespace: true
+aliases:
+  巴松加工厂: 巴松加工厂

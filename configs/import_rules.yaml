@@ -1,0 +1,30 @@
+version: "task2-v1"
+valid_months: [1, 2, 3, 4]
+excluded_grades: ["普鲜", "普青", "普冻", "废果"]
+excluded_factories: ["巴松加工厂"]
+deduplicate_suspected_business_rows_in_curated: true
+date_formats:
+  - "%Y-%m-%d"
+  - "%Y/%m/%d"
+  - "%Y.%m.%d"
+  - "%m/%d/%Y"
+normalization:
+  unicode_nfkc: true
+  strip: true
+  collapse_whitespace: true
+  unify_full_half_width: true
+variety_prefixes_to_remove:
+  - "蓝莓原果"
+empty_values:
+  strings: ["", "-", "—", "无", "NULL", "null"]
+empty_row: "skip"
+empty_date: "raw_with_parse_error"
+invalid_date: "raw_with_parse_error"
+empty_weight: "raw_with_parse_error"
+invalid_weight: "raw_with_parse_error"
+zero_weight: "raw_excluded_from_analysis"
+negative_weight: "raw_excluded_from_analysis"
+fatal_quality_thresholds:
+  max_invalid_header_count: 0
+report:
+  max_issue_examples: 50
