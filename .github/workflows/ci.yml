@@ -113,7 +113,7 @@ jobs:
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
           RUN_POSTGRES_INTEGRATION: "1"
-        run: pytest -m integration -vv --tb=short --maxfail=1
+        run: pytest -m integration -vv --tb=long --maxfail=1
 
       - name: Full pytest suite
         env:
