@@ -96,9 +96,9 @@ def _evaluate_ridge_fold(
         return rows
 
     pipeline, scaler, ridge = _fit_ridge(train_samples=eligible_train, config=config)
-    scaler_mean = list(np.asarray(scaler.mean_, dtype=float))
-    scaler_scale = list(np.asarray(scaler.scale_, dtype=float))
-    ridge_coefficients = list(np.asarray(ridge.coef_, dtype=float))
+    scaler_mean = np.asarray(scaler.mean_, dtype=float).tolist()
+    scaler_scale = np.asarray(scaler.scale_, dtype=float).tolist()
+    ridge_coefficients = np.asarray(ridge.coef_, dtype=float).tolist()
     ridge_intercept = float(ridge.intercept_)
 
     for sample in test_samples:

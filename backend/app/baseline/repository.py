@@ -7,8 +7,8 @@ from sqlalchemy import Select, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
+from backend.app.baseline.json_types import canonical_json_value, canonicalize_result_row
 from backend.app.baseline.schemas import BacktestResultRow, SelectedBuildRun
-from backend.app.etl.history.quality import decimal_json
 from backend.app.models.analytics import AnalyticsBuildRun, FactorySeasonPeakMetric
 from backend.app.models.baseline_backtest import BaselineBacktestResult, BaselineBacktestRun
 from backend.app.models.master_data import Factory, Season
@@ -142,9 +142,9 @@ async def create_running_run(
     run = BaselineBacktestRun(
         model_version=model_version,
         config_hash=config_hash,
-        config_snapshot=decimal_json(config_snapshot),
+        config_snapshot=canonical_json_value(config_snapshot),
         source_signature=source_signature,
-        source_build_runs=list(source_build_runs),
+        source_build_runs=cast(list[dict[str, Any]], canonical_json_value(list(source_build_runs))),
         evaluation_scheme=evaluation_scheme,
         status="running",
         random_seed=random_seed,
@@ -161,6 +161,7 @@ async def insert_result_rows(
     run_id: int,
     rows: list[BacktestResultRow],
 ) -> None:
+    canonical_rows = [canonicalize_result_row(row) for row in rows]
     session.add_all(
         [
             BaselineBacktestResult(
@@ -176,12 +177,12 @@ async def insert_result_rows(
                 absolute_error_kg=row.absolute_error_kg,
                 signed_error_kg=row.signed_error_kg,
                 ape=row.ape,
-                input_features=decimal_json(row.input_features),
+                input_features=canonical_json_value(row.input_features),
                 training_season_codes=row.training_season_codes,
-                model_metadata=decimal_json(row.model_metadata),
+                model_metadata=canonical_json_value(row.model_metadata),
                 exclusion_reason=row.exclusion_reason,
             )
-            for row in rows
+            for row in canonical_rows
         ]
     )
 
@@ -281,10 +282,11 @@ async def load_result_rows_for_run(
         )
     ).all()
     return [
-        BacktestResultRow(
-            baseline_name=baseline_name,
-            target_season_id=target_season_id,
-            target_season_code=target_season_code,
+        canonicalize_result_row(
+            BacktestResultRow(
+                baseline_name=baseline_name,
+                target_season_id=target_season_id,
+                target_season_code=target_season_code,
             factory_id=factory_id,
             factory_name=factory_name,
             previous_season_id=previous_season_id,
@@ -299,7 +301,8 @@ async def load_result_rows_for_run(
             input_features=input_features,
             training_season_codes=training_season_codes,
             model_metadata=model_metadata,
-            exclusion_reason=exclusion_reason,
+                exclusion_reason=exclusion_reason,
+            )
         )
         for (
             baseline_name,
