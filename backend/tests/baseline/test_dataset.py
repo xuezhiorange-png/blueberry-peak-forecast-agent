@@ -67,6 +67,39 @@ def test_select_latest_build_runs_prefers_highest_cutoff_then_id() -> None:
     assert [row.build_run_id for row in selected] == [11, 21]
 
 
+def test_select_latest_build_runs_prefers_higher_id_when_cutoff_matches() -> None:
+    runs = [
+        _run(
+            season_id=2,
+            season_code="2025-2026",
+            season_start_date=date(2026, 1, 1),
+            build_run_id=100,
+            source_max_raw_id=199,
+            config_hash="task3-cfg",
+        ),
+        _run(
+            season_id=2,
+            season_code="2025-2026",
+            season_start_date=date(2026, 1, 1),
+            build_run_id=101,
+            source_max_raw_id=200,
+            config_hash="task3-old-cfg",
+        ),
+        _run(
+            season_id=2,
+            season_code="2025-2026",
+            season_start_date=date(2026, 1, 1),
+            build_run_id=102,
+            source_max_raw_id=200,
+            config_hash="task3-cfg",
+        ),
+    ]
+    selected = select_latest_build_runs(runs)
+    assert len(selected) == 1
+    assert selected[0].build_run_id == 102
+    assert selected[0].config_hash == "task3-cfg"
+
+
 def test_consistency_check_rejects_mixed_aggregation_version() -> None:
     runs = [
         _run(
