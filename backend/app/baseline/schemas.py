@@ -82,11 +82,13 @@ class BaselineBacktestExecutionResult:
     status: str
     run_id: int | str | None
     model_version: str
+    config_hash: str
     benchmark_mode: str
     production_eligible: bool
     source_signature: str
     source_build_runs: tuple[dict[str, Any], ...]
     evaluation_scheme: str
+    feature_list: tuple[str, ...]
     result_row_count: int
     model_summaries: tuple[dict[str, Any], ...]
     season_summaries: tuple[dict[str, Any], ...]

@@ -36,6 +36,7 @@ def _execution_result() -> BaselineBacktestExecutionResult:
         status="completed",
         run_id=42,
         model_version="task4-baseline-v1",
+        config_hash="task4-cfg",
         benchmark_mode="historical_oracle",
         production_eligible=False,
         source_signature="source-signature",
@@ -49,6 +50,12 @@ def _execution_result() -> BaselineBacktestExecutionResult:
             },
         ),
         evaluation_scheme="leave_one_season_out",
+        feature_list=(
+            "total_weight_kg",
+            "variety_hhi",
+            "farm_hhi",
+            "subfarm_hhi",
+        ),
         result_row_count=1,
         model_summaries=(
             {
@@ -89,5 +96,18 @@ def test_write_execution_reports_serializes_decimals_in_nested_tuples(tmp_path: 
     json_path = Path(written.report_paths[0])
     payload = json.loads(json_path.read_text(encoding="utf-8"))
 
+    assert payload["feature_list"] == [
+        "total_weight_kg",
+        "variety_hhi",
+        "farm_hhi",
+        "subfarm_hhi",
+    ]
+    assert payload["config_hash"] == "task4-cfg"
     assert payload["results"][0]["actual_stable_peak_kg"] == "100.000000"
     assert payload["model_summaries"][0]["mape"] == "0.0450000000"
+    assert payload["factory_error_rows"][0]["build_run_id"] == 10
+
+    csv_path = Path(written.report_paths[2])
+    csv_lines = csv_path.read_text(encoding="utf-8").splitlines()
+    assert csv_lines[0].split(",")[-2:] == ["build_run_id", "model_version"]
+    assert ",10,task4-baseline-v1" in csv_lines[1]
