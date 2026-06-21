@@ -10,6 +10,7 @@ from backend.app.analytics.config import AnalyticsConfig, AnalyticsRules
 from backend.app.analytics.daily_facts import (
     FactoryMetricSummary,
     _compute_daily_facts,
+    _mark_build_failed,
     build_daily_facts_for_season,
 )
 
@@ -160,3 +161,36 @@ async def test_build_daily_facts_allows_empty_analysis_calendar_without_global_r
 
     assert result.daily_fact_row_count == 0
     assert result.factory_count == 0
+
+
+@pytest.mark.asyncio
+async def test_mark_build_failed_updates_by_id_without_orm_instance() -> None:
+    statements: list[object] = []
+    commit_count = 0
+
+    class _Session:
+        async def execute(self, statement: object) -> None:
+            statements.append(statement)
+
+        async def commit(self) -> None:
+            nonlocal commit_count
+            commit_count += 1
+
+    await _mark_build_failed(
+        _Session(),
+        build_run_id=42,
+        source_eligible_row_count=3,
+        source_eligible_weight_kg=Decimal("60.000000"),
+        error_message="sanitized error",
+    )
+
+    assert len(statements) == 1
+    statement = statements[0]
+    assert statement.table.name == "analytics_build_run"
+    assert statement.compile().params["id_1"] == 42
+    assert statement.compile().params["status"] == "failed"
+    assert statement.compile().params["source_eligible_row_count"] == 3
+    assert statement.compile().params["source_eligible_weight_kg"] == Decimal("60.000000")
+    assert statement.compile().params["daily_fact_row_count"] == 0
+    assert statement.compile().params["error_message"] == "sanitized error"
+    assert commit_count == 1

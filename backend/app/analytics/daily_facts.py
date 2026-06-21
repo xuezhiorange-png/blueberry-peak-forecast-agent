@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, cast
 
-from sqlalchemy import Select, and_, extract, func, or_, select
+from sqlalchemy import Select, and_, extract, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -570,6 +570,29 @@ async def _existing_build_run(
     )
 
 
+async def _mark_build_failed(
+    session: AsyncSession,
+    *,
+    build_run_id: int,
+    source_eligible_row_count: int,
+    source_eligible_weight_kg: Decimal,
+    error_message: str,
+) -> None:
+    await session.execute(
+        update(AnalyticsBuildRun)
+        .where(AnalyticsBuildRun.id == build_run_id)
+        .values(
+            source_eligible_row_count=source_eligible_row_count,
+            source_eligible_weight_kg=source_eligible_weight_kg,
+            daily_fact_row_count=0,
+            status="failed",
+            finished_at=_now(),
+            error_message=error_message,
+        )
+    )
+    await session.commit()
+
+
 async def build_daily_facts_for_season(
     session: AsyncSession,
     season_code: str,
@@ -577,6 +600,7 @@ async def build_daily_facts_for_season(
 ) -> DailyFactsBuildResult:
     season = await _season_by_code(session, season_code)
     source_max_raw_id = await _current_source_cutoff(session, season_id=season.id)
+    season_code_value = season.code
     existing = await _existing_build_run(
         session,
         season_id=season.id,
@@ -648,11 +672,12 @@ async def build_daily_facts_for_season(
         return _result_from_build_run(
             status=status,
             config=config,
-            season_code=season.code,
+            season_code=season_code_value,
             build_run=current,
             metric_row_count=metric_row_count,
             factory_summaries=factory_summaries,
         )
+    build_run_id = build_run.id
 
     computation: DailyFactsComputation | None = None
     try:
@@ -720,41 +745,41 @@ async def build_daily_facts_for_season(
             status="completed",
             config=config,
             computation=computation,
-            build_run_id=build_run.id,
+            build_run_id=build_run_id,
         )
     except Exception as exc:
-        await session.rollback()
-        build_run.source_eligible_row_count = (
-            computation.source_eligible_row_count if computation is not None else 0
-        )
-        build_run.source_eligible_weight_kg = (
+        error_message = _sanitize_error_message(str(exc))
+        failed_row_count = computation.source_eligible_row_count if computation is not None else 0
+        failed_weight_kg = (
             computation.source_eligible_weight_kg if computation is not None else Decimal("0")
         )
-        build_run.daily_fact_row_count = 0
-        build_run.status = "failed"
-        build_run.finished_at = _now()
-        build_run.error_message = _sanitize_error_message(str(exc))
-        session.add(build_run)
-        await session.commit()
+        await session.rollback()
+        await _mark_build_failed(
+            session,
+            build_run_id=build_run_id,
+            source_eligible_row_count=failed_row_count,
+            source_eligible_weight_kg=failed_weight_kg,
+            error_message=error_message,
+        )
         if computation is not None:
             return _result_from_computation(
                 status="failed",
                 config=config,
                 computation=computation,
-                build_run_id=build_run.id,
-                error_message=build_run.error_message,
+                build_run_id=build_run_id,
+                error_message=error_message,
             )
         return DailyFactsBuildResult(
             status="failed",
-            season_code=season.code,
+            season_code=season_code_value,
             aggregation_version=config.rules.version,
             source_max_raw_id=source_max_raw_id,
             config_hash=config.config_hash,
-            source_eligible_row_count=0,
-            source_eligible_weight_kg=Decimal("0"),
+            source_eligible_row_count=failed_row_count,
+            source_eligible_weight_kg=failed_weight_kg,
             daily_fact_row_count=0,
             factory_count=0,
             metric_row_count=0,
-            build_run_id=build_run.id,
-            error_message=build_run.error_message,
+            build_run_id=build_run_id,
+            error_message=error_message,
         )

@@ -401,11 +401,18 @@ async def test_build_daily_facts_fails_on_consistency_error_and_can_retry(tmp_pa
         build_runs = (
             await session.scalars(select(AnalyticsBuildRun).order_by(AnalyticsBuildRun.id))
         ).all()
+        daily_count = await session.scalar(select(func.count()).select_from(FactReceiptDaily))
+        metric_count = await session.scalar(
+            select(func.count()).select_from(FactorySeasonPeakMetric)
+        )
         assert failed.status == "failed"
         assert len(build_runs) == 1
         assert build_runs[0].status == "failed"
+        assert build_runs[0].finished_at is not None
         assert build_runs[0].error_message
-        assert await session.scalar(select(func.count()).select_from(FactReceiptDaily)) == 0
+        assert build_runs[0].daily_fact_row_count == 0
+        assert daily_count == 0
+        assert metric_count == 0
 
     async with AsyncSessionMaker() as session:
         bad_row = (await session.scalars(select(FactReceiptRaw))).one()
@@ -419,12 +426,14 @@ async def test_build_daily_facts_fails_on_consistency_error_and_can_retry(tmp_pa
         build_runs = (
             await session.scalars(select(AnalyticsBuildRun).order_by(AnalyticsBuildRun.id))
         ).all()
+        daily_rows = (await session.scalars(select(FactReceiptDaily))).all()
         metrics = (await session.scalars(select(FactorySeasonPeakMetric))).all()
 
     assert retried.status == "completed"
     assert len(build_runs) == 2
     assert build_runs[0].status == "failed"
     assert build_runs[1].status == "completed"
+    assert len(daily_rows) == 1
     assert len(metrics) == 1
 
 
