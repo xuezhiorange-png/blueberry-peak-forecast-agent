@@ -246,3 +246,71 @@ CREATE TABLE IF NOT EXISTS factory_season_peak_metric (
 CREATE INDEX IF NOT EXISTS ix_factory_season_peak_metric_build_run_id ON factory_season_peak_metric (build_run_id);
 CREATE INDEX IF NOT EXISTS ix_factory_season_peak_metric_season_id ON factory_season_peak_metric (season_id);
 CREATE INDEX IF NOT EXISTS ix_factory_season_peak_metric_factory_id ON factory_season_peak_metric (factory_id);
+
+CREATE TABLE IF NOT EXISTS baseline_backtest_run (
+  id BIGSERIAL CONSTRAINT pk_baseline_backtest_run PRIMARY KEY,
+  model_version TEXT NOT NULL,
+  config_hash TEXT NOT NULL,
+  config_snapshot JSONB NOT NULL,
+  source_signature TEXT NOT NULL,
+  source_build_runs JSONB NOT NULL,
+  evaluation_scheme TEXT NOT NULL,
+  status TEXT NOT NULL,
+  random_seed BIGINT NOT NULL,
+  result_row_count BIGINT NOT NULL DEFAULT 0,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  error_message TEXT,
+  CONSTRAINT ck_baseline_backtest_run_status CHECK (status IN ('running', 'completed', 'failed'))
+);
+
+CREATE INDEX IF NOT EXISTS ix_baseline_backtest_run_status ON baseline_backtest_run (status);
+CREATE INDEX IF NOT EXISTS ix_baseline_backtest_run_evaluation_scheme ON baseline_backtest_run (evaluation_scheme);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_baseline_backtest_run_active_or_completed
+ON baseline_backtest_run (model_version, config_hash, source_signature, evaluation_scheme)
+WHERE status IN ('running', 'completed');
+
+CREATE TABLE IF NOT EXISTS baseline_backtest_result (
+  id BIGSERIAL CONSTRAINT pk_baseline_backtest_result PRIMARY KEY,
+  run_id BIGINT NOT NULL,
+  baseline_name TEXT NOT NULL,
+  target_season_id BIGINT NOT NULL,
+  factory_id BIGINT NOT NULL,
+  previous_season_id BIGINT,
+  fold_key TEXT NOT NULL,
+  status TEXT NOT NULL,
+  actual_stable_peak_kg NUMERIC(18,6),
+  predicted_stable_peak_kg NUMERIC(18,6),
+  absolute_error_kg NUMERIC(18,6),
+  signed_error_kg NUMERIC(18,6),
+  ape NUMERIC(12,10),
+  input_features JSONB NOT NULL,
+  training_season_codes JSONB NOT NULL,
+  model_metadata JSONB NOT NULL,
+  exclusion_reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_baseline_backtest_result_baseline_name CHECK (
+    baseline_name IN (
+      'previous_season_peak',
+      'volume_previous_concentration',
+      'ridge_structure',
+      'ridge_structure_factory_holdout'
+    )
+  ),
+  CONSTRAINT ck_baseline_backtest_result_status CHECK (status IN ('evaluated', 'excluded')),
+  CONSTRAINT fk_baseline_backtest_result_run_id_baseline_backtest_run
+    FOREIGN KEY (run_id) REFERENCES baseline_backtest_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_baseline_backtest_result_target_season_id_dim_season
+    FOREIGN KEY (target_season_id) REFERENCES dim_season(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_baseline_backtest_result_factory_id_dim_factory
+    FOREIGN KEY (factory_id) REFERENCES dim_factory(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_baseline_backtest_result_previous_season_id_dim_season
+    FOREIGN KEY (previous_season_id) REFERENCES dim_season(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_baseline_backtest_result_run_model_target_factory_fold
+    UNIQUE (run_id, baseline_name, target_season_id, factory_id, fold_key)
+);
+
+CREATE INDEX IF NOT EXISTS ix_baseline_backtest_result_run_id ON baseline_backtest_result (run_id);
+CREATE INDEX IF NOT EXISTS ix_baseline_backtest_result_baseline_name ON baseline_backtest_result (baseline_name);
+CREATE INDEX IF NOT EXISTS ix_baseline_backtest_result_target_season_id ON baseline_backtest_result (target_season_id);
+CREATE INDEX IF NOT EXISTS ix_baseline_backtest_result_factory_id ON baseline_backtest_result (factory_id);
