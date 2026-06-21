@@ -4,12 +4,14 @@ import os
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from types import MethodType
 
 import pytest
 from sqlalchemy import func, select, text
 
 from backend.app.analytics.config import load_analytics_config
 from backend.app.analytics.daily_facts import (
+    _current_source_cutoff,
     build_daily_facts_for_season,
     dry_run_daily_facts_for_season,
 )
@@ -207,6 +209,16 @@ async def _current_raw_cutoff_for_season(season_id: int) -> int:
     async with AsyncSessionMaker() as session:
         value = await session.scalar(
             select(func.max(FactReceiptRaw.id)).where(FactReceiptRaw.season_id == season_id)
+        )
+        return int(value or 0)
+
+
+async def _active_or_completed_build_run_count() -> int:
+    async with AsyncSessionMaker() as session:
+        value = await session.scalar(
+            select(func.count())
+            .select_from(AnalyticsBuildRun)
+            .where(AnalyticsBuildRun.status.in_(("running", "completed")))
         )
         return int(value or 0)
 
@@ -643,6 +655,83 @@ async def test_build_daily_facts_returns_empty_running_summary_without_committed
     assert len(build_runs) == 1
     assert result.metric_row_count == 0
     assert result.factory_summaries == ()
+
+
+@pytest.mark.asyncio
+async def test_build_daily_facts_handles_initial_build_run_insert_conflict(
+    tmp_path: Path,
+) -> None:
+    _require_postgres()
+    season_id, factory_id, variety_id = await _seed_master_data()
+    ingest_id = await _create_ingest_file(season_id, file_sha256="sha-conflict-a")
+    await _insert_raw_rows(
+        ingest_file_id=ingest_id,
+        season_id=season_id,
+        factory_id=factory_id,
+        variety_id=variety_id,
+        rows=[
+            {
+                "receipt_date": date(2026, 1, 2),
+                "weight_kg": Decimal("10"),
+                "farm_raw": "Farm A",
+                "subfarm_raw": "Block A",
+                "eligible": True,
+            }
+        ],
+    )
+    rules_path = tmp_path / "analytics_rules.yaml"
+    _write_analytics_rules(rules_path)
+    config = load_analytics_config(rules_path)
+
+    async with AsyncSessionMaker() as session:
+        source_max_raw_id = await _current_source_cutoff(session, season_id=season_id)
+        original_commit = session.commit
+        injected_conflict = False
+
+        async def commit_with_conflict(self: object) -> None:
+            nonlocal injected_conflict
+            if not injected_conflict and any(
+                isinstance(obj, AnalyticsBuildRun) for obj in session.new
+            ):
+                injected_conflict = True
+                await session.flush()
+                pending = next(obj for obj in session.new if isinstance(obj, AnalyticsBuildRun))
+                async with AsyncSessionMaker() as conflict_session:
+                    conflict_session.add(
+                        AnalyticsBuildRun(
+                            season_id=season_id,
+                            aggregation_version=pending.aggregation_version,
+                            source_max_raw_id=source_max_raw_id,
+                            config_hash=pending.config_hash,
+                            config_snapshot=pending.config_snapshot,
+                            status="running",
+                            source_eligible_row_count=0,
+                            source_eligible_weight_kg=Decimal("0"),
+                            daily_fact_row_count=0,
+                        )
+                    )
+                    await conflict_session.commit()
+            await original_commit()
+
+        session.commit = MethodType(commit_with_conflict, session)
+        result = await build_daily_facts_for_season(session, "2025-2026", config)
+
+    active_or_completed_count = await _active_or_completed_build_run_count()
+    async with AsyncSessionMaker() as session:
+        build_runs = (
+            await session.scalars(select(AnalyticsBuildRun).order_by(AnalyticsBuildRun.id))
+        ).all()
+        daily_count = await session.scalar(select(func.count()).select_from(FactReceiptDaily))
+        metric_count = await session.scalar(
+            select(func.count()).select_from(FactorySeasonPeakMetric)
+        )
+
+    assert result.status in {"running", "skipped"}
+    assert active_or_completed_count == 1
+    assert len(build_runs) == 1
+    assert build_runs[0].status in {"running", "completed"}
+    assert daily_count == 0
+    assert metric_count == 0
 
 
 @pytest.mark.asyncio
