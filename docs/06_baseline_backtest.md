@@ -66,3 +66,15 @@ Task 4 输出：
 默认输出目录：
 
 - `reports/baseline/`
+
+CLI：
+
+```bash
+uv run python scripts/run_baseline_backtest.py \
+  --config configs/baseline_model.yaml \
+  --season 2024-2025 \
+  --season 2025-2026 \
+  --output-dir reports/baseline
+```
+
+已完成运行可用 `--report-run-id` 重新生成 JSON / Markdown / CSV，而不重跑数据库回测。

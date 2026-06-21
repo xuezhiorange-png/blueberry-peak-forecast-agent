@@ -131,9 +131,7 @@ def aggregate_error_metrics(rows: list[BacktestResultRow]) -> ErrorMetrics:
     apes = [row.ape for row in evaluated if row.ape is not None]
     abs_errors = [row.absolute_error_kg for row in evaluated if row.absolute_error_kg is not None]
     actuals = [
-        row.actual_stable_peak_kg
-        for row in evaluated
-        if row.actual_stable_peak_kg is not None
+        row.actual_stable_peak_kg for row in evaluated if row.actual_stable_peak_kg is not None
     ]
     biases = [row.signed_error_kg for row in evaluated if row.signed_error_kg is not None]
     total_abs_error = sum(abs_errors, Decimal("0"))
@@ -155,6 +153,96 @@ def aggregate_error_metrics(rows: list[BacktestResultRow]) -> ErrorMetrics:
         mean_bias_kg=quantize_kg(sum(biases, Decimal("0")) / Decimal(len(biases))),
         exclusion_counts=exclusion_counts,
     )
+
+
+def split_excluded_rows(rows: list[BacktestResultRow]) -> tuple[BacktestResultRow, ...]:
+    return tuple(row for row in rows if row.status == "excluded")
+
+
+def build_model_summaries(rows: list[BacktestResultRow]) -> tuple[dict[str, object], ...]:
+    summaries: list[dict[str, object]] = []
+    baseline_names = sorted({row.baseline_name for row in rows})
+    for baseline_name in baseline_names:
+        baseline_rows = [row for row in rows if row.baseline_name == baseline_name]
+        metrics = aggregate_error_metrics(baseline_rows)
+        summaries.append(
+            {
+                "baseline_name": baseline_name,
+                "evaluated_row_count": metrics.evaluated_row_count,
+                "excluded_row_count": metrics.excluded_row_count,
+                "negative_prediction_count": metrics.negative_prediction_count,
+                "mape": metrics.mape,
+                "mdape": metrics.mdape,
+                "wmape": metrics.wmape,
+                "mae_kg": metrics.mae_kg,
+                "mae_tonne": metrics.mae_tonne,
+                "mean_bias_kg": metrics.mean_bias_kg,
+                "exclusion_counts": metrics.exclusion_counts,
+            }
+        )
+    return tuple(summaries)
+
+
+def build_season_summaries(rows: list[BacktestResultRow]) -> tuple[dict[str, object], ...]:
+    group_keys = sorted({(row.baseline_name, row.target_season_code) for row in rows})
+    summaries: list[dict[str, object]] = []
+    for baseline_name, target_season_code in group_keys:
+        grouped_rows = [
+            row
+            for row in rows
+            if row.baseline_name == baseline_name and row.target_season_code == target_season_code
+        ]
+        metrics = aggregate_error_metrics(grouped_rows)
+        summaries.append(
+            {
+                "baseline_name": baseline_name,
+                "target_season_code": target_season_code,
+                "evaluated_row_count": metrics.evaluated_row_count,
+                "excluded_row_count": metrics.excluded_row_count,
+                "negative_prediction_count": metrics.negative_prediction_count,
+                "mape": metrics.mape,
+                "mdape": metrics.mdape,
+                "wmape": metrics.wmape,
+                "mae_kg": metrics.mae_kg,
+                "mae_tonne": metrics.mae_tonne,
+                "mean_bias_kg": metrics.mean_bias_kg,
+                "exclusion_counts": metrics.exclusion_counts,
+            }
+        )
+    return tuple(summaries)
+
+
+def build_factory_summaries(rows: list[BacktestResultRow]) -> tuple[dict[str, object], ...]:
+    group_keys = sorted(
+        {(row.baseline_name, row.factory_id, row.factory_name) for row in rows},
+        key=lambda item: (item[0], item[2], item[1]),
+    )
+    summaries: list[dict[str, object]] = []
+    for baseline_name, factory_id, factory_name in group_keys:
+        grouped_rows = [
+            row
+            for row in rows
+            if row.baseline_name == baseline_name and row.factory_id == factory_id
+        ]
+        metrics = aggregate_error_metrics(grouped_rows)
+        summaries.append(
+            {
+                "baseline_name": baseline_name,
+                "factory_id": factory_id,
+                "factory_name": factory_name,
+                "evaluated_row_count": metrics.evaluated_row_count,
+                "excluded_row_count": metrics.excluded_row_count,
+                "negative_prediction_count": metrics.negative_prediction_count,
+                "mape": metrics.mape,
+                "mdape": metrics.mdape,
+                "wmape": metrics.wmape,
+                "mae_kg": metrics.mae_kg,
+                "mae_tonne": metrics.mae_tonne,
+                "mean_bias_kg": metrics.mean_bias_kg,
+                "exclusion_counts": metrics.exclusion_counts,
+            }
+        )
+    return tuple(summaries)
 
 
 def build_leakage_audit(

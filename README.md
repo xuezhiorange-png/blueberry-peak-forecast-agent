@@ -61,6 +61,30 @@ pytest
 
 任务0仅初始化工程底座和健康检查。历史数据导入、业务表、预测模型和前端业务页面在后续任务中实现。
 
+## Task 4 静态历史回测
+
+Task 4 基于 Task 3 已持久化的 `factory_season_peak_metric` 运行三类静态基线：
+
+- `previous_season_peak`
+- `volume_previous_concentration`
+- `ridge_structure`
+
+并额外输出 `ridge_structure_factory_holdout` 诊断结果。
+
+```bash
+uv run python scripts/run_baseline_backtest.py \
+  --config configs/baseline_model.yaml \
+  --output-dir reports/baseline
+```
+
+说明：
+
+- `benchmark_mode = historical_oracle`
+- `production_eligible = false`
+- `rolling_time_backtest = deferred_to_task_11`
+
+当前季最终总量和最终结构 HHI 仅用于历史静态能力上限评估，不代表真实提前预测可用输入。
+
 ## 项目目录
 
 - `AGENTS.md`：Codex 在本仓库中的强制开发规则
