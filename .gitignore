@@ -16,3 +16,4 @@ data/raw/*.xls
 data/raw/*.xlsx
 reports/import/
 reports/analytics/
+reports/test-results/

@@ -113,7 +113,18 @@ jobs:
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
           RUN_POSTGRES_INTEGRATION: "1"
-        run: pytest -m integration -vv --tb=long --maxfail=1
+        run: |
+          mkdir -p reports/test-results
+          pytest -m integration -vv --tb=long --maxfail=1 \
+            --junitxml=reports/test-results/integration.xml
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-integration-results
+          path: reports/test-results/integration.xml
+          if-no-files-found: warn
 
       - name: Full pytest suite
         env:
