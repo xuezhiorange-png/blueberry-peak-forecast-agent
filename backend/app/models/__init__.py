@@ -3,11 +3,14 @@ from backend.app.models.analytics import (
     FactorySeasonPeakMetric,
     FactReceiptDaily,
 )
+from backend.app.models.baseline_backtest import BaselineBacktestResult, BaselineBacktestRun
 from backend.app.models.historical_import import FactReceiptRaw, IngestFile
 from backend.app.models.master_data import Factory, Farm, Grade, Holiday, Season, Subfarm, Variety
 
 __all__ = [
     "AnalyticsBuildRun",
+    "BaselineBacktestResult",
+    "BaselineBacktestRun",
     "FactReceiptRaw",
     "FactReceiptDaily",
     "Factory",
