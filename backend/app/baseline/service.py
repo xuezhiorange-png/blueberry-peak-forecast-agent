@@ -114,6 +114,22 @@ def _build_leakage_audit(rows: list[BacktestResultRow]) -> tuple[LeakageAuditChe
     return tuple(audit_rows)
 
 
+def _sort_result_rows(
+    rows: list[BacktestResultRow],
+    *,
+    season_order: dict[str, int],
+) -> list[BacktestResultRow]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            row.baseline_name,
+            season_order.get(row.target_season_code, len(season_order)),
+            row.factory_name,
+            row.factory_id,
+        ),
+    )
+
+
 def _build_execution_result(
     *,
     status: str,
@@ -189,6 +205,7 @@ async def _compute_rows(
     session: AsyncSession,
     *,
     selected_build_runs_payload: tuple[dict[str, object], ...],
+    season_order: dict[str, int],
     config: BaselineConfig,
 ) -> list[BacktestResultRow]:
     build_run_ids = tuple(
@@ -205,6 +222,7 @@ async def _compute_rows(
     )
     rows = _apply_oracle_metadata(rows)
     rows = [canonicalize_result_row(row) for row in rows]
+    rows = _sort_result_rows(rows, season_order=season_order)
     _enforce_ridge_feature_guards(rows)
     return rows
 
@@ -251,11 +269,15 @@ async def execute_baseline_backtest(
 
     source_build_runs_value = source_build_run_payload(selected_runs)
     source_signature_value = source_signature(selected_runs)
+    season_order = {
+        item.season_code: index for index, item in enumerate(selected_runs)
+    }
 
     if dry_run:
         dry_run_rows = await _compute_rows(
             session,
             selected_build_runs_payload=source_build_runs_value,
+            season_order=season_order,
             config=config,
         )
         return _build_execution_result(
@@ -331,6 +353,7 @@ async def execute_baseline_backtest(
         rows = await _compute_rows(
             session,
             selected_build_runs_payload=source_build_runs_value,
+            season_order=season_order,
             config=config,
         )
         assert run_id is not None
