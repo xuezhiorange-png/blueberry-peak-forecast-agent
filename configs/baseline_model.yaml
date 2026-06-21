@@ -1,0 +1,17 @@
+model:
+  version: task4-baseline-v1
+  target: stable_median_3d_peak_kg
+  ridge:
+    alpha: 1.0
+    fit_intercept: true
+  features:
+    - total_weight_kg
+    - variety_hhi
+    - farm_hhi
+    - subfarm_hhi
+evaluation:
+  primary_scheme: leave_one_season_out
+  minimum_training_rows: 4
+  mape_zero_policy: exclude
+  unit: kg
+random_seed: 20260621

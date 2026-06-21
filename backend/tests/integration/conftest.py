@@ -7,6 +7,8 @@ from sqlalchemy import text
 from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
 
 _MASTER_DATA_TABLES = (
+    "baseline_backtest_result",
+    "baseline_backtest_run",
     "factory_season_peak_metric",
     "fact_receipt_daily",
     "analytics_build_run",
