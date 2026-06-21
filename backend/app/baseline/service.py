@@ -16,6 +16,7 @@ from backend.app.baseline.dataset import (
     select_source_build_runs,
     source_build_run_payload,
 )
+from backend.app.baseline.json_types import canonicalize_result_row
 from backend.app.baseline.metrics import (
     aggregate_error_metrics,
     build_factory_summaries,
@@ -203,6 +204,7 @@ async def _compute_rows(
         + evaluate_ridge_factory_holdout(samples, config)
     )
     rows = _apply_oracle_metadata(rows)
+    rows = [canonicalize_result_row(row) for row in rows]
     _enforce_ridge_feature_guards(rows)
     return rows
 

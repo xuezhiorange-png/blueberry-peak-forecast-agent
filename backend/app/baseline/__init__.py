@@ -3,6 +3,7 @@ from backend.app.baseline.baselines import (
     evaluate_volume_previous_concentration,
 )
 from backend.app.baseline.config import BaselineConfig, BaselineRules, load_baseline_config
+from backend.app.baseline.json_types import canonical_json_value, canonicalize_result_row
 from backend.app.baseline.metrics import (
     aggregate_error_metrics,
     build_factory_summaries,
@@ -23,6 +24,8 @@ __all__ = [
     "build_leakage_audit",
     "build_model_summaries",
     "build_season_summaries",
+    "canonical_json_value",
+    "canonicalize_result_row",
     "evaluate_previous_season_peak",
     "evaluate_ridge_factory_holdout",
     "evaluate_ridge_loso",
