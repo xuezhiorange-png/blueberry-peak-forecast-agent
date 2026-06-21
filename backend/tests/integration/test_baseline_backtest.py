@@ -210,19 +210,21 @@ async def test_baseline_backtest_dry_run_does_not_write_and_selects_latest_build
             _metric(factory_id=factory_ids["B"], total_weight_kg="1000", stable_peak_kg="100"),
         ],
     )
-    same_cutoff_higher_id = await _seed_task3_build_run(
+    same_cutoff_lower_id = await _seed_task3_build_run(
         season_id=season_ids["2025-2026"],
         season_start=date(2026, 1, 1),
         source_max_raw_id=200,
+        config_hash="task3-old-cfg",
         factory_metrics=[
             _metric(factory_id=factory_ids["A"], total_weight_kg="1200", stable_peak_kg="120"),
             _metric(factory_id=factory_ids["B"], total_weight_kg="1100", stable_peak_kg="110"),
         ],
     )
-    await _seed_task3_build_run(
+    same_cutoff_higher_id = await _seed_task3_build_run(
         season_id=season_ids["2025-2026"],
         season_start=date(2026, 1, 1),
         source_max_raw_id=200,
+        config_hash="task3-cfg",
         factory_metrics=[
             _metric(factory_id=factory_ids["A"], total_weight_kg="1190", stable_peak_kg="119"),
             _metric(factory_id=factory_ids["B"], total_weight_kg="1090", stable_peak_kg="109"),
@@ -254,8 +256,10 @@ async def test_baseline_backtest_dry_run_does_not_write_and_selects_latest_build
     assert result.status == "dry_run"
     assert run_count == 0
     assert result_count == 0
+    assert same_cutoff_higher_id > same_cutoff_lower_id
     assert result.source_build_runs[0]["build_run_id"] == newer_run_id
     assert result.source_build_runs[1]["build_run_id"] == same_cutoff_higher_id
+    assert result.source_build_runs[1]["config_hash"] == "task3-cfg"
     assert await _count_task3_tables() == before_counts
 
 
