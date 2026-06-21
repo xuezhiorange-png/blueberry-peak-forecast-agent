@@ -6,8 +6,8 @@ from dataclasses import asdict, replace
 from pathlib import Path
 from typing import cast
 
+from backend.app.baseline.json_types import canonical_json_value
 from backend.app.baseline.schemas import BaselineBacktestExecutionResult
-from backend.app.etl.history.quality import decimal_json
 
 
 def _run_label(result: BaselineBacktestExecutionResult) -> str:
@@ -17,7 +17,7 @@ def _run_label(result: BaselineBacktestExecutionResult) -> str:
 
 
 def _json_payload(result: BaselineBacktestExecutionResult) -> dict[str, object]:
-    return cast(dict[str, object], decimal_json(asdict(result)))
+    return cast(dict[str, object], canonical_json_value(asdict(result)))
 
 
 def _markdown_report(result: BaselineBacktestExecutionResult) -> str:
