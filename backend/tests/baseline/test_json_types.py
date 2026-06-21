@@ -9,6 +9,7 @@ import pytest
 
 from backend.app.baseline.json_types import canonical_json_value, canonicalize_result_row
 from backend.app.baseline.schemas import BacktestResultRow
+from backend.app.baseline.service import _sort_result_rows
 
 
 def _result_row() -> BacktestResultRow:
@@ -108,3 +109,40 @@ def test_canonicalize_result_row_round_trips_json_fields_stably() -> None:
     )
 
     assert reloaded_row == canonical_row
+
+
+def test_sort_result_rows_matches_repository_reload_order() -> None:
+    season_order = {
+        "2024-2025": 0,
+        "2025-2026": 1,
+    }
+    later_baseline = _result_row()
+    earlier_baseline = BacktestResultRow(
+        **{
+            **later_baseline.__dict__,
+            "baseline_name": "previous_season_peak",
+            "target_season_code": "2024-2025",
+            "factory_id": 2,
+            "factory_name": "Factory B",
+        }
+    )
+    middle_baseline = BacktestResultRow(
+        **{
+            **later_baseline.__dict__,
+            "baseline_name": "previous_season_peak",
+            "target_season_code": "2025-2026",
+            "factory_id": 1,
+            "factory_name": "Factory A",
+        }
+    )
+
+    ordered = _sort_result_rows(
+        [later_baseline, middle_baseline, earlier_baseline],
+        season_order=season_order,
+    )
+
+    assert ordered == [
+        earlier_baseline,
+        middle_baseline,
+        later_baseline,
+    ]
