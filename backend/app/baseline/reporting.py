@@ -17,7 +17,68 @@ def _run_label(result: BaselineBacktestExecutionResult) -> str:
 
 
 def _json_payload(result: BaselineBacktestExecutionResult) -> dict[str, object]:
-    return cast(dict[str, object], canonical_json_value(asdict(result)))
+    payload = cast(dict[str, object], canonical_json_value(asdict(result)))
+    payload["factory_error_rows"] = cast(
+        list[object],
+        canonical_json_value(_factory_error_rows(result)),
+    )
+    return payload
+
+
+def _source_build_run_ids_by_season(
+    result: BaselineBacktestExecutionResult,
+) -> dict[str, int]:
+    build_run_ids: dict[str, int] = {}
+    for item in result.source_build_runs:
+        season_code = item.get("season_code")
+        build_run_id = item.get("build_run_id")
+        if not isinstance(season_code, str):
+            raise TypeError("source_build_runs season_code must be str")
+        if not isinstance(build_run_id, int):
+            raise TypeError("source_build_runs build_run_id must be int")
+        build_run_ids[season_code] = build_run_id
+    return build_run_ids
+
+
+def _factory_error_rows(
+    result: BaselineBacktestExecutionResult,
+) -> list[dict[str, object]]:
+    source_build_run_ids = _source_build_run_ids_by_season(result)
+    rows: list[dict[str, object]] = []
+    for row in result.results:
+        source_build_run_id = source_build_run_ids.get(row.target_season_code)
+        if source_build_run_id is None:
+            raise KeyError(
+                f"Missing Task 3 source build run for target season {row.target_season_code}"
+            )
+        rows.append(
+            {
+                "model": row.baseline_name,
+                "target_season": row.target_season_code,
+                "factory": row.factory_name,
+                "previous_season": row.previous_season_code or "",
+                "status": row.status,
+                "actual_peak_kg": row.actual_stable_peak_kg,
+                "predicted_peak_kg": row.predicted_stable_peak_kg,
+                "actual_peak_tonne": (
+                    None
+                    if row.actual_stable_peak_kg is None
+                    else row.actual_stable_peak_kg / 1000
+                ),
+                "predicted_peak_tonne": (
+                    None
+                    if row.predicted_stable_peak_kg is None
+                    else row.predicted_stable_peak_kg / 1000
+                ),
+                "absolute_error_kg": row.absolute_error_kg,
+                "APE": row.ape,
+                "training_seasons": ",".join(row.training_season_codes),
+                "exclusion_reason": row.exclusion_reason or "",
+                "build_run_id": source_build_run_id,
+                "model_version": result.model_version,
+            }
+        )
+    return rows
 
 
 def _markdown_report(result: BaselineBacktestExecutionResult) -> str:
@@ -85,34 +146,8 @@ def _write_factory_error_csv(
             ],
         )
         writer.writeheader()
-        for row in result.results:
-            writer.writerow(
-                {
-                    "model": row.baseline_name,
-                    "target_season": row.target_season_code,
-                    "factory": row.factory_name,
-                    "previous_season": row.previous_season_code or "",
-                    "status": row.status,
-                    "actual_peak_kg": row.actual_stable_peak_kg,
-                    "predicted_peak_kg": row.predicted_stable_peak_kg,
-                    "actual_peak_tonne": (
-                        None
-                        if row.actual_stable_peak_kg is None
-                        else row.actual_stable_peak_kg / 1000
-                    ),
-                    "predicted_peak_tonne": (
-                        None
-                        if row.predicted_stable_peak_kg is None
-                        else row.predicted_stable_peak_kg / 1000
-                    ),
-                    "absolute_error_kg": row.absolute_error_kg,
-                    "APE": row.ape,
-                    "training_seasons": ",".join(row.training_season_codes),
-                    "exclusion_reason": row.exclusion_reason or "",
-                    "build_run_id": _run_label(result),
-                    "model_version": result.model_version,
-                }
-            )
+        for row in _factory_error_rows(result):
+            writer.writerow(row)
 
 
 def write_execution_reports(
