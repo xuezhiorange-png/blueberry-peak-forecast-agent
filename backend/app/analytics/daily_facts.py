@@ -168,6 +168,7 @@ def _result_from_build_run(
     season_code: str,
     build_run: AnalyticsBuildRun,
     metric_row_count: int,
+    factory_summaries: tuple[FactoryMetricSummary, ...] = (),
 ) -> DailyFactsBuildResult:
     return DailyFactsBuildResult(
         status=status,
@@ -182,6 +183,7 @@ def _result_from_build_run(
         metric_row_count=metric_row_count,
         build_run_id=build_run.id,
         error_message=build_run.error_message,
+        factory_summaries=factory_summaries,
     )
 
 
@@ -256,6 +258,40 @@ async def _load_holidays(
     )
 
 
+async def _load_factory_summaries_for_build_run(
+    session: AsyncSession,
+    *,
+    build_run_id: int,
+) -> tuple[FactoryMetricSummary, ...]:
+    rows = (
+        await session.scalars(
+            select(FactorySeasonPeakMetric)
+            .where(FactorySeasonPeakMetric.build_run_id == build_run_id)
+            .order_by(FactorySeasonPeakMetric.factory_id)
+        )
+    ).all()
+    return tuple(
+        FactoryMetricSummary(
+            factory_id=row.factory_id,
+            total_weight_kg=row.total_weight_kg,
+            single_day_peak_kg=row.single_day_peak_kg,
+            single_day_peak_date=row.single_day_peak_date,
+            stable_median_3d_peak_kg=row.stable_median_3d_peak_kg,
+            stable_median_3d_peak_date=row.stable_median_3d_peak_date,
+            mean_3d_peak_kg=row.mean_3d_peak_kg,
+            mean_3d_peak_date=row.mean_3d_peak_date,
+            peak_concentration=row.peak_concentration,
+            variety_hhi=row.variety_hhi,
+            farm_hhi=row.farm_hhi,
+            subfarm_hhi=row.subfarm_hhi,
+            unknown_farm_weight_share=row.unknown_farm_weight_share,
+            unknown_subfarm_weight_share=row.unknown_subfarm_weight_share,
+            spring_festival_day_count=row.spring_festival_day_count,
+        )
+        for row in rows
+    )
+
+
 def _holiday_codes_by_factory_date(
     *,
     factory_regions: dict[int, str | None],
@@ -300,9 +336,16 @@ async def _compute_daily_facts(
         analysis_months=config.rules.analysis_months,
     )
 
-    if not calendar_dates and source_max_raw_id > 0:
-        raise DailyFactsBuildError(
-            f"Analysis calendar is empty for season {season.code} and config {config.rules.version}"
+    if not calendar_dates:
+        return DailyFactsComputation(
+            season=season,
+            aggregation_version=config.rules.version,
+            source_max_raw_id=source_max_raw_id,
+            source_eligible_row_count=0,
+            source_eligible_weight_kg=Decimal("0.000000"),
+            daily_facts=[],
+            peak_metrics=[],
+            factory_summaries=[],
         )
 
     statement = (
@@ -541,6 +584,10 @@ async def build_daily_facts_for_season(
             )
             or 0
         )
+        factory_summaries = await _load_factory_summaries_for_build_run(
+            session,
+            build_run_id=existing.id,
+        )
         status = "skipped" if existing.status == "completed" else "running"
         return _result_from_build_run(
             status=status,
@@ -548,6 +595,7 @@ async def build_daily_facts_for_season(
             season_code=season.code,
             build_run=existing,
             metric_row_count=metric_row_count,
+            factory_summaries=factory_summaries,
         )
 
     build_run = AnalyticsBuildRun(
@@ -583,6 +631,10 @@ async def build_daily_facts_for_season(
             )
             or 0
         )
+        factory_summaries = await _load_factory_summaries_for_build_run(
+            session,
+            build_run_id=current.id,
+        )
         status = "skipped" if current.status == "completed" else "running"
         return _result_from_build_run(
             status=status,
@@ -590,6 +642,7 @@ async def build_daily_facts_for_season(
             season_code=season.code,
             build_run=current,
             metric_row_count=metric_row_count,
+            factory_summaries=factory_summaries,
         )
 
     computation: DailyFactsComputation | None = None
