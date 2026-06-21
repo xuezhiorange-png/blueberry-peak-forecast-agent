@@ -16,13 +16,29 @@
 - `variety_id IS NOT NULL`
 - `id <= source_max_raw_id`
 
-其中 `source_max_raw_id` 在构建开始时截取，构建全程只读取该快照之前的 raw 行，避免构建过程中新增导入破坏一致性。
+其中 `source_max_raw_id` 在构建开始时按当前 `season_id` 截取：
 
-如果出现 `is_analysis_eligible = true` 但 `factory_id` 或 `variety_id` 为空，视为 curated 一致性错误，构建必须失败并记录 `failed` 审计。
+```text
+source_max_raw_id = max(fact_receipt_raw.id where season_id = current season)
+```
+
+构建全程只读取该产季快照之前的 raw 行，避免构建过程中新增导入破坏一致性，也避免其他产季新增 raw 行无意义地改变当前产季的幂等键。
+
+一致性校验规则：
+
+- `receipt_date IS NULL` 且 `is_analysis_eligible = true`：始终视为一致性错误，因为无法判断分析月份；
+- `receipt_date IS NOT NULL` 时，仅对 `month(receipt_date) in analysis_months` 的行检查：
+  - `factory_id IS NULL`
+  - `variety_id IS NULL`
+  - `weight_kg IS NULL`
+  - `weight_kg <= 0`
+
+分析月份之外的 eligible 行不参与 Task 3 构建，也不应因为映射或重量问题阻塞当前构建。
 
 ## 2. 分析月份与日历
 
 任务3的月份范围来自 `configs/analytics_rules.yaml` 的 `analysis_months`，默认 `[1, 2, 3, 4]`。
+`rolling_window_days` 当前必须严格等于 `3`，因为数据库字段和业务定义固定为 `stable_median_3d_peak` 与 `mean_3d_peak`。
 
 对每个产季：
 
@@ -99,7 +115,7 @@ single_day_peak_kg = max(Y_t)
 
 ### 5.2 连续3日中位持续峰值
 
-对每个同时存在前后邻日的中心日 `t`：
+对每个同时存在前后邻日，且严格满足连续自然日的中心日 `t`：
 
 ```text
 stable_t = median(Y_(t-1), Y_t, Y_(t+1))
@@ -108,7 +124,8 @@ stable_median_3d_peak_kg = max(stable_t)
 
 - 峰值日期记录中心日 `t`；
 - 并列时取最早中心日；
-- 首尾两天不形成完整3日窗口，不参与该指标。
+- 首尾两天不形成完整3日窗口，不参与该指标；
+- 仅列表相邻但日期不连续的三点不得组成合法 3 日窗口。
 
 ### 5.3 连续3日均值峰值
 
@@ -191,6 +208,7 @@ HHI = Σ (group_weight / total_weight)^2
 - 已有 `running`：返回运行中状态；
 - `failed`：允许重试；
 - 新增 raw 行导致 `source_max_raw_id` 变化时必须创建新的 build run；
+- 其他产季新增 raw 行不得改变当前产季 build run 的幂等键；
 - 旧 build run 及其 daily facts / peak metrics 继续保留，支持历史对比。
 
 数据库实现对同一幂等键使用 PostgreSQL 部分唯一索引限制最多一条 `running/completed` 记录，因此并发重复构建会回落到已存在运行态或完成态，而 `failed` 记录仍可保留并重试。
@@ -210,6 +228,13 @@ dry-run 行为：
 - 不写 `fact_receipt_daily`
 - 不写 `factory_season_peak_metric`
 - 仅输出计划构建摘要和峰值预览
+
+如果分析月份过滤后日历为空，则允许生成合法空构建：
+
+- `source_eligible_row_count = 0`
+- `daily_fact_row_count = 0`
+- `metric_row_count = 0`
+- 该 `completed` 结果仍然可被后续相同幂等键安全返回
 
 ## 10. 性能约束
 

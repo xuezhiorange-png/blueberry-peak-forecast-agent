@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
+from itertools import pairwise
 
 from backend.app.analytics.config import AnalyticsRules
 
@@ -118,6 +119,13 @@ def _median(values: list[Decimal]) -> Decimal:
     return ordered[len(ordered) // 2]
 
 
+def _is_consecutive_window(window: list[DailySeriesPoint]) -> bool:
+    return all(
+        current.date == previous.date + timedelta(days=1)
+        for previous, current in pairwise(window)
+    )
+
+
 def compute_factory_peak_metrics(
     *,
     dense_series: list[DailySeriesPoint],
@@ -143,6 +151,8 @@ def compute_factory_peak_metrics(
     mean_candidates: list[tuple[date, Decimal]] = []
     for index in range(window_radius, len(dense_series) - window_radius):
         window = dense_series[index - window_radius : index + window_radius + 1]
+        if not _is_consecutive_window(window):
+            continue
         values = [point.weight_kg for point in window]
         center_date = dense_series[index].date
         stable_candidates.append((center_date, _quantize_kg(_median(values))))

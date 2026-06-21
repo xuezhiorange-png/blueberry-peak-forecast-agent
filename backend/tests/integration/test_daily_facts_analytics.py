@@ -87,6 +87,23 @@ async def _seed_master_data() -> tuple[int, int]:
         return season.id, factory.id
 
 
+async def _create_season(
+    *,
+    code: str,
+    start_date_value: date,
+    end_date_value: date,
+) -> int:
+    async with AsyncSessionMaker() as session:
+        season = Season(
+            code=code,
+            start_date=start_date_value,
+            end_date=end_date_value,
+        )
+        session.add(season)
+        await session.commit()
+        return season.id
+
+
 async def _create_ingest_file(season_id: int, file_sha256: str = "sha-a") -> int:
     async with AsyncSessionMaker() as session:
         ingest = IngestFile(
@@ -153,6 +170,30 @@ async def _insert_raw_rows(
                 )
             )
         await session.commit()
+
+
+async def _insert_running_build_run(
+    *,
+    season_id: int,
+    source_max_raw_id: int,
+    config_hash: str,
+    config_snapshot: dict[str, object],
+) -> int:
+    async with AsyncSessionMaker() as session:
+        build_run = AnalyticsBuildRun(
+            season_id=season_id,
+            aggregation_version="task3-v1",
+            source_max_raw_id=source_max_raw_id,
+            config_hash=config_hash,
+            config_snapshot=config_snapshot,
+            status="running",
+            source_eligible_row_count=0,
+            source_eligible_weight_kg=Decimal("0"),
+            daily_fact_row_count=0,
+        )
+        session.add(build_run)
+        await session.commit()
+        return build_run.id
 
 
 @pytest.mark.asyncio
@@ -312,6 +353,8 @@ async def test_build_daily_facts_success_skips_same_cutoff_and_creates_new_run_f
     assert len(all_runs) == 2
     assert all_runs[1].source_max_raw_id > all_runs[0].source_max_raw_id
     assert latest_metric.total_weight_kg == Decimal("65.000000")
+    assert first.factory_summaries
+    assert skipped.factory_summaries == first.factory_summaries
 
 
 @pytest.mark.asyncio
@@ -368,3 +411,205 @@ async def test_build_daily_facts_fails_on_consistency_error_and_can_retry(tmp_pa
     assert build_runs[0].status == "failed"
     assert build_runs[1].status == "completed"
     assert len(metrics) == 1
+
+
+@pytest.mark.asyncio
+async def test_build_daily_facts_uses_season_scoped_source_cutoff(tmp_path: Path) -> None:
+    _require_postgres()
+    season_a_id, factory_id = await _seed_master_data()
+    season_b_id = await _create_season(
+        code="2026-2027",
+        start_date_value=date(2027, 1, 1),
+        end_date_value=date(2027, 1, 5),
+    )
+    ingest_a_id = await _create_ingest_file(season_a_id, file_sha256="sha-a")
+    await _insert_raw_rows(
+        ingest_file_id=ingest_a_id,
+        season_id=season_a_id,
+        factory_id=factory_id,
+        variety_id=1,
+        rows=[
+            {
+                "receipt_date": date(2026, 1, 2),
+                "weight_kg": Decimal("10"),
+                "farm_raw": "Farm A",
+                "subfarm_raw": "Block A",
+                "eligible": True,
+            }
+        ],
+    )
+    rules_path = tmp_path / "analytics_rules.yaml"
+    _write_analytics_rules(rules_path)
+    config = load_analytics_config(rules_path)
+
+    async with AsyncSessionMaker() as session:
+        first = await build_daily_facts_for_season(session, "2025-2026", config)
+        build_runs_before = (
+            await session.scalars(select(AnalyticsBuildRun).order_by(AnalyticsBuildRun.id))
+        ).all()
+
+    ingest_b_id = await _create_ingest_file(season_b_id, file_sha256="sha-b")
+    await _insert_raw_rows(
+        ingest_file_id=ingest_b_id,
+        season_id=season_b_id,
+        factory_id=factory_id,
+        variety_id=1,
+        rows=[
+            {
+                "receipt_date": date(2027, 1, 2),
+                "weight_kg": Decimal("15"),
+                "farm_raw": "Farm B",
+                "subfarm_raw": "Block B",
+                "eligible": True,
+            }
+        ],
+    )
+
+    async with AsyncSessionMaker() as session:
+        skipped = await build_daily_facts_for_season(session, "2025-2026", config)
+        build_runs_after = (
+            await session.scalars(select(AnalyticsBuildRun).order_by(AnalyticsBuildRun.id))
+        ).all()
+
+    assert first.status == "completed"
+    assert skipped.status == "skipped"
+    assert len(build_runs_before) == 1
+    assert len(build_runs_after) == 1
+    assert skipped.source_max_raw_id == first.source_max_raw_id
+
+
+@pytest.mark.asyncio
+async def test_build_daily_facts_ignores_out_of_window_consistency_errors(tmp_path: Path) -> None:
+    _require_postgres()
+    season_id, factory_id = await _seed_master_data()
+
+    async with AsyncSessionMaker() as session:
+        season = await session.scalar(select(Season).where(Season.id == season_id))
+        assert season is not None
+        season.end_date = date(2026, 5, 31)
+        await session.commit()
+
+    ingest_id = await _create_ingest_file(season_id, file_sha256="sha-window")
+    await _insert_raw_rows(
+        ingest_file_id=ingest_id,
+        season_id=season_id,
+        factory_id=factory_id,
+        variety_id=1,
+        rows=[
+            {
+                "receipt_date": date(2026, 1, 2),
+                "weight_kg": Decimal("10"),
+                "farm_raw": "Farm A",
+                "subfarm_raw": "Block A",
+                "eligible": True,
+            },
+            {
+                "receipt_date": date(2026, 5, 2),
+                "weight_kg": Decimal("20"),
+                "farm_raw": "Farm A",
+                "subfarm_raw": "Block A",
+                "eligible": True,
+            },
+        ],
+    )
+
+    async with AsyncSessionMaker() as session:
+        may_row = (
+            await session.scalars(
+                select(FactReceiptRaw).where(FactReceiptRaw.receipt_date == date(2026, 5, 2))
+            )
+        ).one()
+        may_row.factory_id = None
+        may_row.factory_normalized = None
+        may_row.is_factory_known = False
+        await session.commit()
+
+    rules_path = tmp_path / "analytics_rules.yaml"
+    _write_analytics_rules(rules_path)
+    config = load_analytics_config(rules_path)
+
+    async with AsyncSessionMaker() as session:
+        result = await build_daily_facts_for_season(session, "2025-2026", config)
+        daily_rows = (await session.scalars(select(FactReceiptDaily))).all()
+
+    assert result.status == "completed"
+    assert result.source_eligible_row_count == 1
+    assert len(daily_rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_build_daily_facts_fails_when_eligible_row_has_null_receipt_date(
+    tmp_path: Path,
+) -> None:
+    _require_postgres()
+    season_id, factory_id = await _seed_master_data()
+    ingest_id = await _create_ingest_file(season_id, file_sha256="sha-null-date")
+    await _insert_raw_rows(
+        ingest_file_id=ingest_id,
+        season_id=season_id,
+        factory_id=factory_id,
+        variety_id=1,
+        rows=[
+            {
+                "receipt_date": None,
+                "weight_kg": Decimal("10"),
+                "farm_raw": "Farm A",
+                "subfarm_raw": "Block A",
+                "eligible": True,
+            }
+        ],
+    )
+    rules_path = tmp_path / "analytics_rules.yaml"
+    _write_analytics_rules(rules_path)
+    config = load_analytics_config(rules_path)
+
+    async with AsyncSessionMaker() as session:
+        failed = await build_daily_facts_for_season(session, "2025-2026", config)
+        build_runs = (
+            await session.scalars(select(AnalyticsBuildRun).order_by(AnalyticsBuildRun.id))
+        ).all()
+
+    assert failed.status == "failed"
+    assert len(build_runs) == 1
+    assert build_runs[0].status == "failed"
+    assert build_runs[0].error_message
+
+
+@pytest.mark.asyncio
+async def test_build_daily_facts_returns_empty_running_summary_without_committed_metrics(
+    tmp_path: Path,
+) -> None:
+    _require_postgres()
+    season_id, factory_id = await _seed_master_data()
+    ingest_id = await _create_ingest_file(season_id, file_sha256="sha-running")
+    await _insert_raw_rows(
+        ingest_file_id=ingest_id,
+        season_id=season_id,
+        factory_id=factory_id,
+        variety_id=1,
+        rows=[
+            {
+                "receipt_date": date(2026, 1, 2),
+                "weight_kg": Decimal("10"),
+                "farm_raw": "Farm A",
+                "subfarm_raw": "Block A",
+                "eligible": True,
+            }
+        ],
+    )
+    rules_path = tmp_path / "analytics_rules.yaml"
+    _write_analytics_rules(rules_path)
+    config = load_analytics_config(rules_path)
+    running_id = await _insert_running_build_run(
+        season_id=season_id,
+        source_max_raw_id=1,
+        config_hash=config.config_hash,
+        config_snapshot=config.snapshot,
+    )
+
+    async with AsyncSessionMaker() as session:
+        result = await build_daily_facts_for_season(session, "2025-2026", config)
+
+    assert running_id > 0
+    assert result.status == "running"
+    assert result.factory_summaries == ()

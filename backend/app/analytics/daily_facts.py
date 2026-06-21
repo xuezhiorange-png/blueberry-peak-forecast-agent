@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, cast
 
-from sqlalchemy import Select, extract, func, or_, select
+from sqlalchemy import Select, and_, extract, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -194,8 +194,10 @@ async def _season_by_code(session: AsyncSession, season_code: str) -> Season:
     return season
 
 
-async def _current_source_cutoff(session: AsyncSession) -> int:
-    max_raw_id = await session.scalar(select(func.max(FactReceiptRaw.id)))
+async def _current_source_cutoff(session: AsyncSession, *, season_id: int) -> int:
+    max_raw_id = await session.scalar(
+        select(func.max(FactReceiptRaw.id)).where(FactReceiptRaw.season_id == season_id)
+    )
     return int(max_raw_id or 0)
 
 
@@ -208,6 +210,7 @@ async def _ensure_consistent_source_rows(
     *,
     season_id: int,
     source_max_raw_id: int,
+    analysis_months: tuple[int, ...],
 ) -> None:
     inconsistent_rows = (
         await session.execute(
@@ -223,11 +226,16 @@ async def _ensure_consistent_source_rows(
                 FactReceiptRaw.id <= source_max_raw_id,
                 FactReceiptRaw.is_analysis_eligible.is_(True),
                 or_(
-                    FactReceiptRaw.factory_id.is_(None),
-                    FactReceiptRaw.variety_id.is_(None),
                     FactReceiptRaw.receipt_date.is_(None),
-                    FactReceiptRaw.weight_kg.is_(None),
-                    FactReceiptRaw.weight_kg <= 0,
+                    and_(
+                        extract("month", FactReceiptRaw.receipt_date).in_(analysis_months),
+                        or_(
+                            FactReceiptRaw.factory_id.is_(None),
+                            FactReceiptRaw.variety_id.is_(None),
+                            FactReceiptRaw.weight_kg.is_(None),
+                            FactReceiptRaw.weight_kg <= 0,
+                        ),
+                    ),
                 ),
             )
             .order_by(FactReceiptRaw.id)
@@ -328,6 +336,7 @@ async def _compute_daily_facts(
         session,
         season_id=season.id,
         source_max_raw_id=source_max_raw_id,
+        analysis_months=config.rules.analysis_months,
     )
 
     calendar_dates = build_analysis_calendar(
@@ -527,7 +536,7 @@ async def dry_run_daily_facts_for_season(
     config: AnalyticsConfig,
 ) -> DailyFactsBuildResult:
     season = await _season_by_code(session, season_code)
-    source_max_raw_id = await _current_source_cutoff(session)
+    source_max_raw_id = await _current_source_cutoff(session, season_id=season.id)
     computation = await _compute_daily_facts(
         session,
         season=season,
@@ -567,7 +576,7 @@ async def build_daily_facts_for_season(
     config: AnalyticsConfig,
 ) -> DailyFactsBuildResult:
     season = await _season_by_code(session, season_code)
-    source_max_raw_id = await _current_source_cutoff(session)
+    source_max_raw_id = await _current_source_cutoff(session, season_id=season.id)
     existing = await _existing_build_run(
         session,
         season_id=season.id,

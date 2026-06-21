@@ -84,10 +84,8 @@ class _AnalyticsRulesFile(BaseModel):
 
     @model_validator(mode="after")
     def _validate_window(self) -> _AnalyticsRulesFile:
-        if self.rolling_window_days < 3:
-            raise ValueError("rolling_window_days must be at least 3")
-        if self.rolling_window_days % 2 == 0:
-            raise ValueError("rolling_window_days must be odd")
+        if self.rolling_window_days != 3:
+            raise ValueError("rolling_window_days must be exactly 3")
         return self
 
 
