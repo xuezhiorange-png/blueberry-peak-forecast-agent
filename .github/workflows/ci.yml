@@ -75,7 +75,7 @@ jobs:
           asyncio.run(main())
           PY
 
-      - name: Alembic historical ingest migration round trip
+      - name: Alembic daily facts migration round trip
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -85,7 +85,7 @@ jobs:
           POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           alembic -c backend/alembic.ini upgrade head
-          alembic -c backend/alembic.ini downgrade 0002_master_data
+          alembic -c backend/alembic.ini downgrade 0003_historical_ingest
           alembic -c backend/alembic.ini upgrade head
 
       - name: Ruff
@@ -113,7 +113,18 @@ jobs:
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
           RUN_POSTGRES_INTEGRATION: "1"
-        run: pytest -m integration -vv --tb=long --maxfail=1
+        run: |
+          mkdir -p reports/test-results
+          pytest -m integration -vv --tb=long --maxfail=1 \
+            --junitxml=reports/test-results/integration.xml
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-integration-results
+          path: reports/test-results/integration.xml
+          if-no-files-found: warn
 
       - name: Full pytest suite
         env:
