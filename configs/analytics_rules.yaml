@@ -1,0 +1,11 @@
+version: "task3-v1"
+analysis_months: [1, 2, 3, 4]
+rolling_window_days: 3
+stable_peak_method: "median"
+mean_peak_method: "mean"
+peak_concentration_definition: "stable_median_3d_peak_over_total"
+spring_festival_codes:
+  - "spring_festival"
+unknown_farm_key: "__UNKNOWN_FARM__"
+unknown_subfarm_key: "__UNKNOWN_SUBFARM__"
+stream_batch_size: 5000

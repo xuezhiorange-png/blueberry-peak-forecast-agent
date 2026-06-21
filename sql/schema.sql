@@ -150,3 +150,99 @@ CREATE INDEX IF NOT EXISTS ix_fact_receipt_raw_business_fp ON fact_receipt_raw (
 CREATE INDEX IF NOT EXISTS ix_fact_receipt_raw_receipt_date ON fact_receipt_raw (receipt_date);
 CREATE INDEX IF NOT EXISTS ix_fact_receipt_raw_factory_id ON fact_receipt_raw (factory_id);
 CREATE INDEX IF NOT EXISTS ix_fact_receipt_raw_variety_id ON fact_receipt_raw (variety_id);
+
+CREATE TABLE IF NOT EXISTS analytics_build_run (
+  id BIGSERIAL CONSTRAINT pk_analytics_build_run PRIMARY KEY,
+  season_id BIGINT NOT NULL,
+  aggregation_version TEXT NOT NULL,
+  source_max_raw_id BIGINT NOT NULL,
+  config_hash TEXT NOT NULL,
+  config_snapshot JSONB NOT NULL,
+  status TEXT NOT NULL,
+  source_eligible_row_count INTEGER NOT NULL DEFAULT 0,
+  source_eligible_weight_kg NUMERIC(18,6) NOT NULL DEFAULT 0,
+  daily_fact_row_count INTEGER NOT NULL DEFAULT 0,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  error_message TEXT,
+  CONSTRAINT ck_analytics_build_run_status CHECK (status IN ('running', 'completed', 'failed')),
+  CONSTRAINT fk_analytics_build_run_season_id_dim_season FOREIGN KEY (season_id) REFERENCES dim_season(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS ix_analytics_build_run_season_id ON analytics_build_run (season_id);
+CREATE INDEX IF NOT EXISTS ix_analytics_build_run_status ON analytics_build_run (status);
+CREATE INDEX IF NOT EXISTS ix_analytics_build_run_source_max_raw_id ON analytics_build_run (source_max_raw_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_analytics_build_run_active_or_completed
+ON analytics_build_run (season_id, aggregation_version, source_max_raw_id, config_hash)
+WHERE status IN ('running', 'completed');
+
+CREATE TABLE IF NOT EXISTS fact_receipt_daily (
+  id BIGSERIAL CONSTRAINT pk_fact_receipt_daily PRIMARY KEY,
+  build_run_id BIGINT NOT NULL,
+  season_id BIGINT NOT NULL,
+  receipt_date DATE NOT NULL,
+  factory_id BIGINT NOT NULL,
+  farm_key TEXT NOT NULL,
+  subfarm_key TEXT NOT NULL,
+  variety_id BIGINT NOT NULL,
+  weight_kg NUMERIC(18,6) NOT NULL,
+  source_row_count INTEGER NOT NULL,
+  holiday_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_spring_festival BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_fact_receipt_daily_weight_positive CHECK (weight_kg > 0),
+  CONSTRAINT ck_fact_receipt_daily_source_row_count_positive CHECK (source_row_count > 0),
+  CONSTRAINT fk_fact_receipt_daily_build_run_id_analytics_build_run FOREIGN KEY (build_run_id) REFERENCES analytics_build_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_fact_receipt_daily_season_id_dim_season FOREIGN KEY (season_id) REFERENCES dim_season(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_fact_receipt_daily_factory_id_dim_factory FOREIGN KEY (factory_id) REFERENCES dim_factory(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_fact_receipt_daily_variety_id_dim_variety FOREIGN KEY (variety_id) REFERENCES dim_variety(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_fact_receipt_daily_build_grain UNIQUE (build_run_id, season_id, receipt_date, factory_id, farm_key, subfarm_key, variety_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_fact_receipt_daily_build_run_id ON fact_receipt_daily (build_run_id);
+CREATE INDEX IF NOT EXISTS ix_fact_receipt_daily_season_id ON fact_receipt_daily (season_id);
+CREATE INDEX IF NOT EXISTS ix_fact_receipt_daily_factory_id ON fact_receipt_daily (factory_id);
+CREATE INDEX IF NOT EXISTS ix_fact_receipt_daily_receipt_date ON fact_receipt_daily (receipt_date);
+CREATE INDEX IF NOT EXISTS ix_fact_receipt_daily_season_factory_date ON fact_receipt_daily (season_id, factory_id, receipt_date);
+
+CREATE TABLE IF NOT EXISTS factory_season_peak_metric (
+  id BIGSERIAL CONSTRAINT pk_factory_season_peak_metric PRIMARY KEY,
+  build_run_id BIGINT NOT NULL,
+  season_id BIGINT NOT NULL,
+  factory_id BIGINT NOT NULL,
+  analysis_start_date DATE NOT NULL,
+  analysis_end_date DATE NOT NULL,
+  calendar_day_count INTEGER NOT NULL,
+  observed_day_count INTEGER NOT NULL,
+  total_weight_kg NUMERIC(18,6) NOT NULL,
+  single_day_peak_kg NUMERIC(18,6) NOT NULL,
+  single_day_peak_date DATE NOT NULL,
+  stable_median_3d_peak_kg NUMERIC(18,6) NOT NULL,
+  stable_median_3d_peak_date DATE,
+  mean_3d_peak_kg NUMERIC(18,6) NOT NULL,
+  mean_3d_peak_date DATE,
+  peak_concentration NUMERIC(12,10) NOT NULL,
+  variety_hhi NUMERIC(12,10) NOT NULL,
+  farm_hhi NUMERIC(12,10) NOT NULL,
+  subfarm_hhi NUMERIC(12,10) NOT NULL,
+  unknown_farm_weight_share NUMERIC(12,10) NOT NULL,
+  unknown_subfarm_weight_share NUMERIC(12,10) NOT NULL,
+  spring_festival_day_count INTEGER NOT NULL DEFAULT 0,
+  computed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_factory_peak_total_weight_positive CHECK (total_weight_kg > 0),
+  CONSTRAINT ck_factory_peak_observed_day_count CHECK (calendar_day_count >= observed_day_count AND observed_day_count >= 0),
+  CONSTRAINT ck_factory_peak_peak_concentration_range CHECK (peak_concentration >= 0 AND peak_concentration <= 1),
+  CONSTRAINT ck_factory_peak_variety_hhi_range CHECK (variety_hhi >= 0 AND variety_hhi <= 1),
+  CONSTRAINT ck_factory_peak_farm_hhi_range CHECK (farm_hhi >= 0 AND farm_hhi <= 1),
+  CONSTRAINT ck_factory_peak_subfarm_hhi_range CHECK (subfarm_hhi >= 0 AND subfarm_hhi <= 1),
+  CONSTRAINT ck_factory_peak_unknown_farm_share_range CHECK (unknown_farm_weight_share >= 0 AND unknown_farm_weight_share <= 1),
+  CONSTRAINT ck_factory_peak_unknown_subfarm_share_range CHECK (unknown_subfarm_weight_share >= 0 AND unknown_subfarm_weight_share <= 1),
+  CONSTRAINT fk_factory_season_peak_metric_build_run_id_analytics_build_run FOREIGN KEY (build_run_id) REFERENCES analytics_build_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_factory_season_peak_metric_season_id_dim_season FOREIGN KEY (season_id) REFERENCES dim_season(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_factory_season_peak_metric_factory_id_dim_factory FOREIGN KEY (factory_id) REFERENCES dim_factory(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_factory_season_peak_metric_build_run_id_factory_id UNIQUE (build_run_id, factory_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_factory_season_peak_metric_build_run_id ON factory_season_peak_metric (build_run_id);
+CREATE INDEX IF NOT EXISTS ix_factory_season_peak_metric_season_id ON factory_season_peak_metric (season_id);
+CREATE INDEX IF NOT EXISTS ix_factory_season_peak_metric_factory_id ON factory_season_peak_metric (factory_id);
