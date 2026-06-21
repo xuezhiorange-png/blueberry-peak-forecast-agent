@@ -694,16 +694,18 @@ async def test_build_daily_facts_handles_initial_build_run_insert_conflict(
                 isinstance(obj, AnalyticsBuildRun) for obj in session.new
             ):
                 injected_conflict = True
-                await session.flush()
                 pending = next(obj for obj in session.new if isinstance(obj, AnalyticsBuildRun))
+                aggregation_version = pending.aggregation_version
+                config_hash = pending.config_hash
+                config_snapshot = pending.config_snapshot
                 async with AsyncSessionMaker() as conflict_session:
                     conflict_session.add(
                         AnalyticsBuildRun(
                             season_id=season_id,
-                            aggregation_version=pending.aggregation_version,
+                            aggregation_version=aggregation_version,
                             source_max_raw_id=source_max_raw_id,
-                            config_hash=pending.config_hash,
-                            config_snapshot=pending.config_snapshot,
+                            config_hash=config_hash,
+                            config_snapshot=config_snapshot,
                             status="running",
                             source_eligible_row_count=0,
                             source_eligible_weight_kg=Decimal("0"),
