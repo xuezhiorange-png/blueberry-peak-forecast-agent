@@ -71,7 +71,8 @@ async def test_build_daily_facts_skipped_result_keeps_factory_summaries(
     async def fake_season_by_code(_session: object, _season_code: str) -> SimpleNamespace:
         return season
 
-    async def fake_current_cutoff(_session: object) -> int:
+    async def fake_current_cutoff(_session: object, *, season_id: int) -> int:
+        assert season_id == 1
         return 99
 
     async def fake_existing_build_run(_session: object, **_: object) -> SimpleNamespace:

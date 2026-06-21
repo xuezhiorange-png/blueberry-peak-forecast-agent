@@ -52,3 +52,11 @@ def test_load_analytics_config_rejects_unknown_fields(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="unknown_field"):
         load_analytics_config(rules_path)
+
+
+def test_load_analytics_config_rejects_non_three_day_window(tmp_path: Path) -> None:
+    rules_path = tmp_path / "analytics_rules.yaml"
+    _write_rules(rules_path, extra="rolling_window_days: 5\n")
+
+    with pytest.raises(ValueError, match="rolling_window_days must be exactly 3"):
+        load_analytics_config(rules_path)

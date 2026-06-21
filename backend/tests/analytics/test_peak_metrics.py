@@ -138,6 +138,51 @@ def test_peak_metrics_do_not_use_incomplete_edge_windows() -> None:
     assert metrics.mean_3d_peak_kg == Decimal("33.333333")
 
 
+def test_peak_metrics_do_not_use_non_consecutive_three_day_windows() -> None:
+    dense = [
+        DailySeriesPoint(date=date(2026, 1, 31), weight_kg=Decimal("10")),
+        DailySeriesPoint(date=date(2026, 3, 1), weight_kg=Decimal("99")),
+        DailySeriesPoint(date=date(2026, 3, 2), weight_kg=Decimal("10")),
+    ]
+
+    metrics = compute_factory_peak_metrics(
+        dense_series=dense,
+        rules=_rules(),
+        total_weight_kg=Decimal("119"),
+        variety_weights={"Dx": Decimal("119")},
+        farm_weights={"FarmA": Decimal("119")},
+        subfarm_weights={"SubfarmA": Decimal("119")},
+    )
+
+    assert metrics.single_day_peak_date == date(2026, 3, 1)
+    assert metrics.stable_median_3d_peak_date is None
+    assert metrics.stable_median_3d_peak_kg == Decimal("0.000000")
+    assert metrics.mean_3d_peak_date is None
+    assert metrics.mean_3d_peak_kg == Decimal("0.000000")
+
+
+def test_peak_metrics_allow_month_boundary_consecutive_windows() -> None:
+    dense = [
+        DailySeriesPoint(date=date(2026, 1, 31), weight_kg=Decimal("10")),
+        DailySeriesPoint(date=date(2026, 2, 1), weight_kg=Decimal("30")),
+        DailySeriesPoint(date=date(2026, 2, 2), weight_kg=Decimal("20")),
+    ]
+
+    metrics = compute_factory_peak_metrics(
+        dense_series=dense,
+        rules=_rules(),
+        total_weight_kg=Decimal("60"),
+        variety_weights={"Dx": Decimal("60")},
+        farm_weights={"FarmA": Decimal("60")},
+        subfarm_weights={"SubfarmA": Decimal("60")},
+    )
+
+    assert metrics.stable_median_3d_peak_date == date(2026, 2, 1)
+    assert metrics.stable_median_3d_peak_kg == Decimal("20.000000")
+    assert metrics.mean_3d_peak_date == date(2026, 2, 1)
+    assert metrics.mean_3d_peak_kg == Decimal("20.000000")
+
+
 def test_stable_and_mean_peak_dates_can_differ() -> None:
     dense = [
         DailySeriesPoint(date=date(2026, 1, 1), weight_kg=Decimal("100")),
