@@ -599,11 +599,12 @@ async def build_daily_facts_for_season(
     config: AnalyticsConfig,
 ) -> DailyFactsBuildResult:
     season = await _season_by_code(session, season_code)
-    source_max_raw_id = await _current_source_cutoff(session, season_id=season.id)
+    season_id_value = season.id
     season_code_value = season.code
+    source_max_raw_id = await _current_source_cutoff(session, season_id=season_id_value)
     existing = await _existing_build_run(
         session,
-        season_id=season.id,
+        season_id=season_id_value,
         aggregation_version=config.rules.version,
         source_max_raw_id=source_max_raw_id,
         config_hash=config.config_hash,
@@ -625,14 +626,14 @@ async def build_daily_facts_for_season(
         return _result_from_build_run(
             status=status,
             config=config,
-            season_code=season.code,
+            season_code=season_code_value,
             build_run=existing,
             metric_row_count=metric_row_count,
             factory_summaries=factory_summaries,
         )
 
     build_run = AnalyticsBuildRun(
-        season_id=season.id,
+        season_id=season_id_value,
         aggregation_version=config.rules.version,
         source_max_raw_id=source_max_raw_id,
         config_hash=config.config_hash,
@@ -649,7 +650,7 @@ async def build_daily_facts_for_season(
         await session.rollback()
         current = await _existing_build_run(
             session,
-            season_id=season.id,
+            season_id=season_id_value,
             aggregation_version=config.rules.version,
             source_max_raw_id=source_max_raw_id,
             config_hash=config.config_hash,
@@ -691,8 +692,8 @@ async def build_daily_facts_for_season(
         session.add_all(
             [
                 FactReceiptDaily(
-                    build_run_id=build_run.id,
-                    season_id=season.id,
+                    build_run_id=build_run_id,
+                    season_id=season_id_value,
                     receipt_date=item.receipt_date,
                     factory_id=item.factory_id,
                     farm_key=item.farm_key,
@@ -709,8 +710,8 @@ async def build_daily_facts_for_season(
         session.add_all(
             [
                 FactorySeasonPeakMetric(
-                    build_run_id=build_run.id,
-                    season_id=season.id,
+                    build_run_id=build_run_id,
+                    season_id=season_id_value,
                     factory_id=item.factory_id,
                     analysis_start_date=item.metrics.analysis_start_date,
                     analysis_end_date=item.metrics.analysis_end_date,
