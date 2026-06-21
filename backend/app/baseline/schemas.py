@@ -75,3 +75,27 @@ class BacktestResultRow:
     training_season_codes: list[str] = field(default_factory=list)
     model_metadata: dict[str, Any] = field(default_factory=dict)
     exclusion_reason: str | None = None
+
+
+@dataclass(frozen=True)
+class BaselineBacktestExecutionResult:
+    status: str
+    run_id: int | str | None
+    model_version: str
+    benchmark_mode: str
+    production_eligible: bool
+    source_signature: str
+    source_build_runs: tuple[dict[str, Any], ...]
+    evaluation_scheme: str
+    result_row_count: int
+    model_summaries: tuple[dict[str, Any], ...]
+    season_summaries: tuple[dict[str, Any], ...]
+    factory_summaries: tuple[dict[str, Any], ...]
+    results: tuple[BacktestResultRow, ...]
+    excluded_rows: tuple[BacktestResultRow, ...]
+    leakage_audit: tuple[LeakageAuditCheck, ...]
+    limitations: tuple[str, ...]
+    database_completed: bool = False
+    report_generation_failed: bool = False
+    report_paths: tuple[str, ...] = ()
+    error_message: str | None = None

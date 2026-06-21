@@ -61,10 +61,9 @@ def _evaluate_ridge_fold(
     config: BaselineConfig,
 ) -> list[BacktestResultRow]:
     rows: list[BacktestResultRow] = []
-    eligible_train = [
-        sample for sample in train_samples if sample.stable_median_3d_peak_kg > 0
-    ]
+    eligible_train = [sample for sample in train_samples if sample.stable_median_3d_peak_kg > 0]
     training_seasons = sorted({sample.season_code for sample in eligible_train})
+    training_factories = sorted({sample.factory_id for sample in eligible_train})
     if len(eligible_train) < config.rules.evaluation.minimum_training_rows:
         for sample in test_samples:
             feature_values = ridge_feature_vector(sample)
@@ -86,6 +85,11 @@ def _evaluate_ridge_fold(
                             feature_values,
                             strict=True,
                         )
+                    },
+                    model_metadata={
+                        "feature_names": list(RIDGE_FEATURES),
+                        "training_row_count": len(eligible_train),
+                        "training_factories": training_factories,
                     },
                 )
             )
@@ -120,16 +124,29 @@ def _evaluate_ridge_fold(
                         )
                     },
                     model_metadata={
+                        "feature_names": list(RIDGE_FEATURES),
                         "ridge_alpha": config.rules.ridge.alpha,
                         "scaler_mean": scaler_mean,
                         "scaler_scale": scaler_scale,
                         "ridge_coefficients": ridge_coefficients,
                         "ridge_intercept": ridge_intercept,
                         "training_row_count": len(eligible_train),
+                        "training_factories": training_factories,
                     },
                 )
             )
             continue
+        if sample.season_code in training_seasons and baseline_name == "ridge_structure":
+            raise RuntimeError(
+                f"target season leaked into Ridge training fold: {sample.season_code}"
+            )
+        if (
+            sample.factory_id in training_factories
+            and baseline_name == "ridge_structure_factory_holdout"
+        ):
+            raise RuntimeError(
+                f"target factory leaked into holdout training fold: {sample.factory_id}"
+            )
         prediction = Decimal(
             str(float(pipeline.predict(np.array([feature_values], dtype=float))[0]))
         )
@@ -153,6 +170,7 @@ def _evaluate_ridge_fold(
                 },
                 training_season_codes=training_seasons,
                 model_metadata={
+                    "feature_names": list(RIDGE_FEATURES),
                     "ridge_alpha": config.rules.ridge.alpha,
                     "fit_intercept": config.rules.ridge.fit_intercept,
                     "scaler_mean": scaler_mean,
@@ -160,6 +178,7 @@ def _evaluate_ridge_fold(
                     "ridge_coefficients": ridge_coefficients,
                     "ridge_intercept": ridge_intercept,
                     "training_row_count": len(eligible_train),
+                    "training_factories": training_factories,
                     "raw_prediction": float(prediction),
                 },
             )
