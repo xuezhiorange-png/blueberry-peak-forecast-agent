@@ -1934,7 +1934,10 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
         )
 
     by_version = {candidate.source_version: candidate.source_level for candidate in candidates}
-    assert by_version["obs-high-alt"] == "same_province_variety"
+    # Altitude difference above the township threshold only excludes the
+    # township-altitude level. Matching county + climate zone should fall back
+    # to same_county_climate_zone_variety, not directly to same_province_variety.
+    assert by_version["obs-high-alt"] == "same_county_climate_zone_variety"
     assert by_version["obs-cross-province"] == "literature_variety_prior"
     assert by_version["obs-good-alt"] == "same_township_altitude_variety"
     assert by_version["obs-cross-prefecture"] == "same_province_variety"
