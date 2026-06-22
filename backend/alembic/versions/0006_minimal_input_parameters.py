@@ -284,7 +284,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["library_version_id"],
             ["parameter_library_version.id"],
-            name="fk_parameter_observation_library_version_id_parameter_library_version",
+            name="fk_param_obs_lib_ver_id_param_lib_ver",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
@@ -308,7 +308,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["location_reference_id"],
             ["location_reference.id"],
-            name="fk_parameter_observation_location_reference_id_location_reference",
+            name="fk_param_obs_loc_ref_id_location_ref",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
@@ -412,7 +412,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["library_version_id"],
             ["parameter_library_version.id"],
-            name="fk_parameter_inference_run_library_version_id_parameter_library_version",
+            name="fk_param_infer_run_lib_ver_id_param_lib_ver",
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id", name="pk_parameter_inference_run"),

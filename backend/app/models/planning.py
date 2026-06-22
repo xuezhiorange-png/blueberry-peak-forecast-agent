@@ -277,7 +277,7 @@ class ParameterObservation(Base):
         BigInteger,
         ForeignKey(
             "parameter_library_version.id",
-            name="fk_parameter_observation_library_version_id_parameter_library_version",
+            name="fk_param_obs_lib_ver_id_param_lib_ver",
             ondelete="RESTRICT",
         ),
         nullable=False,
@@ -314,7 +314,7 @@ class ParameterObservation(Base):
         BigInteger,
         ForeignKey(
             "location_reference.id",
-            name="fk_parameter_observation_location_reference_id_location_reference",
+            name="fk_param_obs_loc_ref_id_location_ref",
             ondelete="RESTRICT",
         ),
         nullable=True,
@@ -433,7 +433,7 @@ class ParameterInferenceRun(Base):
         BigInteger,
         ForeignKey(
             "parameter_library_version.id",
-            name="fk_parameter_inference_run_library_version_id_parameter_library_version",
+            name="fk_param_infer_run_lib_ver_id_param_lib_ver",
             ondelete="RESTRICT",
         ),
         nullable=False,
