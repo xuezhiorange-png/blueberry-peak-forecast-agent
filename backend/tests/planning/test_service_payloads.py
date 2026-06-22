@@ -184,7 +184,7 @@ def test_completed_and_rehydrated_variety_payloads_match_exactly() -> None:
             "variety_id": 1,
             "variety_code": "DX",
             "variety_name": "Dx",
-            "planted_area_mu": Decimal("700"),
+            "planted_area_mu": "700",
         },
         inferred_rows=rehydrated_rows,
     )

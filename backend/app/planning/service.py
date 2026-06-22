@@ -317,7 +317,7 @@ def _variety_payload(
     variety: dict[str, Any],
     inferred_rows: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    planted_area_mu = cast(Decimal, variety["planted_area_mu"])
+    planted_area_mu = Decimal(str(variety["planted_area_mu"]))
     public_rows = {
         parameter_type: _public_parameter_payload(payload)
         for parameter_type, payload in inferred_rows.items()
