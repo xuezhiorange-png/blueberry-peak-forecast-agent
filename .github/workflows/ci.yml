@@ -115,8 +115,16 @@ jobs:
           RUN_POSTGRES_INTEGRATION: "1"
         run: |
           mkdir -p reports/test-results
+          set +e
           pytest -m integration -vv --tb=long --maxfail=1 \
             --junitxml=reports/test-results/integration.xml
+          status=$?
+          if [ "$status" -ne 0 ] && [ -f reports/test-results/integration.xml ]; then
+            echo "::group::PostgreSQL integration JUnit XML"
+            cat reports/test-results/integration.xml
+            echo "::endgroup::"
+          fi
+          exit "$status"
 
       - name: Upload integration test results
         if: always()
