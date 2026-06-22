@@ -690,12 +690,19 @@ async def test_create_minimal_planning_task_ambiguous_address_fails_without_run(
 @pytest.mark.asyncio
 async def test_location_reference_id_respects_as_of_date_validity(tmp_path: Path) -> None:
     _require_postgres()
+    zone_csv = tmp_path / "agro_climate_zones.csv"
     location_csv = tmp_path / "farm_location_master.csv"
     config_path = tmp_path / "parameter_inference.yaml"
+    _write_zone_csv(zone_csv)
     _write_location_csv(location_csv)
     _write_parameter_config(config_path)
 
     async with AsyncSessionMaker() as session:
+        await import_agro_climate_zones_csv(
+            session,
+            file_path=zone_csv,
+            dry_run=False,
+        )
         await import_location_references_csv(
             session,
             file_path=location_csv,
