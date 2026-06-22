@@ -66,6 +66,24 @@ def _sanitize_error_message(message: str) -> str:
     return " ".join(str(message).replace("\n", " ").replace("\r", " ").split())[:500]
 
 
+def _decimal_value(value: Decimal | int | float | str | None, *, field: str) -> Decimal:
+    if value is None:
+        raise ValueError(f"{field} must not be null")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
+def _optional_decimal_value(
+    value: Decimal | int | float | str | None,
+) -> Decimal | None:
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
 def _compact_location_payload(location: dict[str, Any]) -> dict[str, Any]:
     return {str(key): value for key, value in location.items() if value is not None}
 
@@ -256,17 +274,17 @@ async def _load_candidates(
             else row.township
         )
         candidate_altitude = (
-            coerce_optional_decimal(reference.altitude_m)
+            _optional_decimal_value(reference.altitude_m)
             if reference is not None and reference.altitude_m is not None
-            else coerce_optional_decimal(row.altitude_m)
+            else _optional_decimal_value(row.altitude_m)
         )
         candidate_latitude = (
-            coerce_optional_decimal(reference.latitude)
+            _optional_decimal_value(reference.latitude)
             if reference is not None and reference.latitude is not None
             else None
         )
         candidate_longitude = (
-            coerce_optional_decimal(reference.longitude)
+            _optional_decimal_value(reference.longitude)
             if reference is not None and reference.longitude is not None
             else None
         )
@@ -318,8 +336,8 @@ async def _load_candidates(
             observation_id=row.id,
             parameter_type=row.parameter_type,
             variety_id=row.variety_id,
-            scalar_value=row.scalar_value,
-            sample_weight=row.sample_weight,
+            scalar_value=_decimal_value(row.scalar_value, field="scalar_value"),
+            sample_weight=_decimal_value(row.sample_weight, field="sample_weight"),
             source_level=source_level,
             farm_id=row.farm_id,
             subfarm_id=row.subfarm_id,
@@ -336,9 +354,9 @@ async def _load_candidates(
             season_id=row.season_id,
             season_code=season.code if season is not None else None,
             season_end_date=season.end_date if season is not None else None,
-            historical_mape=row.historical_mape,
-            date_mae_days=row.date_mae_days,
-            p90_coverage=row.p90_coverage,
+            historical_mape=_optional_decimal_value(row.historical_mape),
+            date_mae_days=_optional_decimal_value(row.date_mae_days),
+            p90_coverage=_optional_decimal_value(row.p90_coverage),
             valid_from=row.valid_from,
             valid_to=row.valid_to,
             available_at=row.available_at,
