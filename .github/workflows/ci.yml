@@ -145,6 +145,47 @@ jobs:
           RUN_POSTGRES_INTEGRATION: "1"
         run: pytest
 
+      - name: Summarize failed integration tests
+        if: failure()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          import xml.etree.ElementTree as ET
+
+          xml_path = Path("reports/test-results/integration.xml")
+          if not xml_path.exists():
+              print("integration.xml not found")
+              sys.exit(0)
+
+          root = ET.parse(xml_path).getroot()
+          failures = []
+          for testcase in root.iter("testcase"):
+              failure = testcase.find("failure")
+              error = testcase.find("error")
+              node = failure if failure is not None else error
+              if node is None:
+                  continue
+              message = (node.get("message") or (node.text or "")).strip()
+              first_line = next((line.strip() for line in message.splitlines() if line.strip()), "")
+              failures.append(
+                  {
+                      "classname": testcase.get("classname", ""),
+                      "name": testcase.get("name", ""),
+                      "message": first_line,
+                  }
+              )
+
+          if not failures:
+              print("No failing testcases recorded in integration.xml")
+              sys.exit(0)
+
+          print("Failing integration testcases:")
+          for item in failures:
+              print(f"- {item['classname']}::{item['name']}")
+              print(f"  {item['message']}")
+          PY
+
   compose-smoke:
     runs-on: ubuntu-latest
     steps:
