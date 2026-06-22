@@ -27,6 +27,7 @@ from backend.app.planning.importers import (
 )
 from backend.app.planning.imports.climate_zone_importer import (
     import_agro_climate_zones_csv,
+    normalize_climate_zone_code,
 )
 from backend.app.planning.location import resolve_location_input
 from backend.app.planning.service import create_minimal_planning_task
@@ -460,8 +461,9 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
             activate=True,
             dry_run=False,
         )
+        normalized_zone_code = normalize_climate_zone_code("zone-a")
         zone = await session.scalar(
-            select(AgroClimateZone).where(AgroClimateZone.code == "zone-a")
+            select(AgroClimateZone).where(AgroClimateZone.code == normalized_zone_code)
         )
         location_reference = await session.scalar(select(LocationReference))
         assert zone_result.inserted_rows == 1
