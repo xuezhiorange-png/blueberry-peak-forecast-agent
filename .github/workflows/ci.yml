@@ -32,8 +32,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          python -m pip install --upgrade --quiet pip
+          pip install --disable-pip-version-check --quiet -e ".[dev]"
 
       - name: Docker Compose config
         run: docker compose config
