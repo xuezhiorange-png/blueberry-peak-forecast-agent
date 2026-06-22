@@ -48,6 +48,15 @@ def _parse_date(value: str) -> date | None:
     return date.fromisoformat(text)
 
 
+def _parse_optional_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    return int(text)
+
+
 def normalized_location_reference_address(row: dict[str, str]) -> str:
     address_raw = normalize_location_name(row.get("address_raw"))
     if address_raw is not None:
@@ -250,6 +259,14 @@ async def import_parameter_library_csv(
                 if farm_name is not None
                 else None
             )
+            location_reference_id = _parse_optional_int(row.get("location_reference_id"))
+            location_reference = (
+                await session.get(LocationReference, location_reference_id)
+                if location_reference_id is not None
+                else None
+            )
+            if location_reference_id is not None and location_reference is None:
+                raise ValueError(f"unknown location_reference_id: {location_reference_id}")
             zone = await _get_zone(
                 session,
                 climate_zone_code=row.get("climate_zone_code"),
@@ -262,8 +279,18 @@ async def import_parameter_library_csv(
                     variety_id=variety.id,
                     farm_id=farm.id if farm is not None else None,
                     subfarm_id=None,
-                    location_reference_id=None,
-                    climate_zone_id=zone.id if zone is not None else None,
+                    location_reference_id=(
+                        location_reference.id if location_reference is not None else None
+                    ),
+                    climate_zone_id=(
+                        zone.id
+                        if zone is not None
+                        else (
+                            location_reference.climate_zone_id
+                            if location_reference is not None
+                            else None
+                        )
+                    ),
                     season_id=season.id if season is not None else None,
                     province=normalize_location_name(row.get("province")),
                     prefecture=normalize_location_name(row.get("prefecture")),

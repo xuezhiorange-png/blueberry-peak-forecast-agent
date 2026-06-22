@@ -244,7 +244,7 @@ def _write_ambiguous_location_csv(path: Path) -> None:
                 }
             )
 
-def _write_parameter_csv(path: Path) -> None:
+def _write_parameter_csv(path: Path, *, location_reference_id: int | None = None) -> None:
     with path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(
             file,
@@ -294,7 +294,11 @@ def _write_parameter_csv(path: Path) -> None:
                     "farm_code": "farm-a",
                     "farm_name": "农场A",
                     "subfarm_name": "",
-                    "location_reference_id": "",
+                    "location_reference_id": (
+                        str(location_reference_id)
+                        if location_reference_id is not None
+                        else ""
+                    ),
                     "climate_zone_code": "zone-a",
                     "season_code": "2024-2025",
                     "province": "云南省",
@@ -461,7 +465,6 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
     config_path = tmp_path / "parameter_inference.yaml"
     _write_zone_csv(zone_csv)
     _write_location_csv(location_csv)
-    _write_parameter_csv(parameter_csv)
     _write_parameter_config(config_path)
     config = load_parameter_inference_config(config_path)
 
@@ -476,6 +479,14 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
             file_path=location_csv,
             source_version="loc-v1",
             dry_run=False,
+        )
+        location_reference = await session.scalar(
+            select(LocationReference).order_by(LocationReference.id.asc())
+        )
+        assert location_reference is not None
+        _write_parameter_csv(
+            parameter_csv,
+            location_reference_id=location_reference.id,
         )
         parameter_result = await import_parameter_library_csv(
             session,
@@ -493,7 +504,6 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
         zone = await session.scalar(
             select(AgroClimateZone).where(AgroClimateZone.code == normalized_zone_code)
         )
-        location_reference = await session.scalar(select(LocationReference))
         parameter_observation = await session.scalar(select(ParameterObservation))
         assert zone_result.inserted_rows == 1
         assert location_result.inserted_row_count == 1
@@ -502,6 +512,7 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
         assert location_reference is not None
         assert parameter_observation is not None
         assert location_reference.climate_zone_id == zone.id
+        assert parameter_observation.location_reference_id == location_reference.id
         assert parameter_observation.climate_zone_id == zone.id
         first = await create_minimal_planning_task(
             session,
