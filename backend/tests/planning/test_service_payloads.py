@@ -1,10 +1,23 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import date
 from decimal import Decimal
 
+from backend.app.api.planning import _response_payload
+from backend.app.planning.config import (
+    ConfidenceRules,
+    FallbackRule,
+    FallbackRules,
+    ParameterInferenceConfig,
+    ParameterInferenceRules,
+    ResolverRules,
+    SimilarityRules,
+    UncertaintyRules,
+)
 from backend.app.planning.schemas import ParameterInferenceValue
 from backend.app.planning.service import (
+    _execution_result,
     _parameter_row,
     _variety_payload,
 )
@@ -177,3 +190,76 @@ def test_completed_and_rehydrated_variety_payloads_match_exactly() -> None:
     )
 
     assert first == second
+
+
+def test_api_response_payload_accepts_execution_result_dataclass() -> None:
+    config = ParameterInferenceConfig(
+        rules=ParameterInferenceRules(
+            resolver_version="task5-v1",
+            resolver=ResolverRules(
+                address_fuzzy_match_min_score=Decimal("0.75"),
+                nearest_reference_distance_km=Decimal("20"),
+                climate_zone_radius_km=Decimal("80"),
+            ),
+            similarity=SimilarityRules(
+                max_distance_km=Decimal("300"),
+                max_altitude_difference_m=Decimal("800"),
+                township_bonus=Decimal("0.30"),
+                county_bonus=Decimal("0.20"),
+                climate_zone_bonus=Decimal("0.25"),
+                same_farm_bonus=Decimal("1.00"),
+                distance_weight=Decimal("0.25"),
+                altitude_weight=Decimal("0.20"),
+                recency_weight=Decimal("0.10"),
+                ambiguity_margin=Decimal("0.05"),
+            ),
+            fallback=FallbackRules(
+                same_farm_variety=FallbackRule(2, 2, Decimal("0.20")),
+                same_township_altitude_variety=FallbackRule(3, 2, Decimal("0.25")),
+                same_county_climate_zone_variety=FallbackRule(
+                    4, 2, Decimal("0.30")
+                ),
+                same_province_variety=FallbackRule(1, 1, Decimal("0.35")),
+                literature_variety_prior=FallbackRule(1, 0, None),
+            ),
+            uncertainty=UncertaintyRules(
+                widen_low_confidence_factor=Decimal("1.50"),
+                widen_below_minimum_factor=Decimal("1.25"),
+            ),
+            confidence=ConfidenceRules(
+                high_min_score=Decimal("0.80"),
+                medium_min_score=Decimal("0.50"),
+                same_farm_high_min_seasons=2,
+                high_max_historical_mape=Decimal("0.20"),
+                medium_max_historical_mape=Decimal("0.30"),
+                missing_error_penalty=Decimal("0.15"),
+                fallback_below_minimum_penalty=Decimal("0.20"),
+                unresolved_location_penalty=Decimal("0.20"),
+            ),
+        ),
+        config_hash="cfg",
+        snapshot={},
+    )
+    result = _execution_result(
+        status="completed",
+        task_id=1,
+        run_id=2,
+        input_hash="hash",
+        as_of_date=date(2026, 1, 1),
+        config=config,
+        library_version="lib-v1",
+        source_signature_value="sig",
+        resolved_location_value={"status": "resolved"},
+        similar_historical_samples=[],
+        variety_parameters=[],
+        warnings=(),
+        missing_data=(),
+        reproducibility_snapshot={"library_version": "lib-v1"},
+    )
+
+    response = _response_payload(result)
+
+    assert response.status == "completed"
+    assert response.task_id == 1
+    assert response.run_id == 2
+    assert response.library_version == "lib-v1"
