@@ -10,7 +10,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.master_data import Farm, Season
-from backend.app.models.planning import ParameterLibraryVersion, ParameterObservation
+from backend.app.models.planning import (
+    LocationReference,
+    ParameterLibraryVersion,
+    ParameterObservation,
+)
 from backend.app.planning.config import ParameterInferenceConfig
 from backend.app.planning.hashing import input_hash as build_input_hash
 from backend.app.planning.hashing import source_signature
@@ -26,6 +30,7 @@ from backend.app.planning.repository import (
     create_task,
     find_existing_run,
     get_active_library_version,
+    get_latest_effective_library_version,
     get_library_version_by_code,
     get_library_version_by_id,
     get_run_by_task,
@@ -139,12 +144,21 @@ async def _select_library_version(
     session: AsyncSession,
     *,
     version_code: str | None,
+    as_of_date: date,
 ) -> ParameterLibraryVersion:
-    version = (
-        await get_library_version_by_code(session, version_code=version_code)
-        if version_code is not None
-        else await get_active_library_version(session)
-    )
+    if version_code is not None:
+        version = await get_library_version_by_code(session, version_code=version_code)
+        if version is None:
+            raise ValueError("parameter library version not found")
+        if version.status not in {"active", "retired"}:
+            raise ValueError("parameter library version is not selectable")
+        if version.effective_from > as_of_date:
+            raise ValueError("parameter library version is not effective for as_of_date")
+        return version
+
+    version = await get_active_library_version(session, as_of_date=as_of_date)
+    if version is None:
+        version = await get_latest_effective_library_version(session, as_of_date=as_of_date)
     if version is None:
         raise ValueError("parameter library version not found")
     return version
@@ -157,6 +171,7 @@ async def _load_candidates(
     variety_id: int,
     as_of_date: date,
     resolved_location: dict[str, Any],
+    rules: ParameterInferenceConfig,
 ) -> list[CandidateObservation]:
     farm_lookup = {
         row.id: row.name
@@ -179,42 +194,112 @@ async def _load_candidates(
             )
         )
     ).all()
+    location_reference_ids = [
+        item.location_reference_id for item in rows if item.location_reference_id is not None
+    ]
+    reference_lookup = {
+        row.id: row
+        for row in (
+            await session.scalars(
+                select(LocationReference).where(
+                    LocationReference.id.in_(location_reference_ids)
+                )
+            )
+        ).all()
+    }
 
     resolved_farm_name = cast(str | None, resolved_location.get("farm_name"))
+    resolved_province = cast(str | None, resolved_location.get("province"))
+    resolved_prefecture = cast(str | None, resolved_location.get("prefecture"))
     resolved_township = cast(str | None, resolved_location.get("township"))
     resolved_county = cast(str | None, resolved_location.get("county"))
     resolved_zone_id = cast(int | None, resolved_location.get("climate_zone_id"))
+    resolved_altitude = cast(Decimal | None, resolved_location.get("altitude_m"))
     latitude_value = resolved_location.get("latitude")
     longitude_value = resolved_location.get("longitude")
     if latitude_value is None or longitude_value is None:
         return []
-    latitude = Decimal(str(latitude_value))
-    longitude = Decimal(str(longitude_value))
 
     candidates: list[CandidateObservation] = []
     for row in rows:
-        farm_name = farm_lookup.get(row.farm_id) if row.farm_id is not None else None
+        reference = (
+            reference_lookup.get(row.location_reference_id)
+            if row.location_reference_id is not None
+            else None
+        )
+        farm_name = (
+            reference.farm_name
+            if reference is not None and reference.farm_name is not None
+            else (farm_lookup.get(row.farm_id) if row.farm_id is not None else None)
+        )
+        candidate_province = (
+            reference.province
+            if reference is not None and reference.province is not None
+            else row.province
+        )
+        candidate_prefecture = (
+            reference.prefecture
+            if reference is not None and reference.prefecture is not None
+            else row.prefecture
+        )
+        candidate_county = (
+            reference.county
+            if reference is not None and reference.county is not None
+            else row.county
+        )
+        candidate_township = (
+            reference.township
+            if reference is not None and reference.township is not None
+            else row.township
+        )
+        candidate_altitude = (
+            reference.altitude_m
+            if reference is not None and reference.altitude_m is not None
+            else row.altitude_m
+        )
+        candidate_latitude = reference.latitude if reference is not None else None
+        candidate_longitude = reference.longitude if reference is not None else None
+        candidate_climate_zone_id = (
+            reference.climate_zone_id
+            if reference is not None and reference.climate_zone_id is not None
+            else row.climate_zone_id
+        )
         season = season_lookup.get(row.season_id) if row.season_id is not None else None
         source_level = "literature_variety_prior"
         if resolved_farm_name and farm_name and resolved_farm_name == farm_name:
             source_level = "same_farm_variety"
         elif (
             resolved_township is not None
-            and row.township is not None
-            and resolved_township == row.township
+            and candidate_township is not None
+            and resolved_township == candidate_township
+            and resolved_altitude is not None
+            and candidate_altitude is not None
+            and abs(resolved_altitude - candidate_altitude)
+            <= rules.rules.similarity.max_altitude_difference_m
         ):
             source_level = "same_township_altitude_variety"
         elif (
-            resolved_county is not None
-            and row.county is not None
-            and resolved_county == row.county
+            resolved_province is not None
+            and candidate_province is not None
+            and resolved_province == candidate_province
+            and resolved_county is not None
+            and candidate_county is not None
+            and resolved_county == candidate_county
+            and (
+                (resolved_prefecture is None and candidate_prefecture is None)
+                or (
+                    resolved_prefecture is not None
+                    and candidate_prefecture is not None
+                    and resolved_prefecture == candidate_prefecture
+                )
+            )
             and resolved_zone_id is not None
-            and row.climate_zone_id == resolved_zone_id
+            and candidate_climate_zone_id == resolved_zone_id
         ):
             source_level = "same_county_climate_zone_variety"
         elif (
-            resolved_location.get("province") is not None
-            and row.province == resolved_location.get("province")
+            resolved_province is not None
+            and candidate_province == resolved_province
         ):
             source_level = "same_province_variety"
 
@@ -228,15 +313,15 @@ async def _load_candidates(
             farm_id=row.farm_id,
             subfarm_id=row.subfarm_id,
             location_reference_id=row.location_reference_id,
-            climate_zone_id=row.climate_zone_id,
-            province=row.province,
-            prefecture=row.prefecture,
-            county=row.county,
-            township=row.township,
+            climate_zone_id=candidate_climate_zone_id,
+            province=candidate_province,
+            prefecture=candidate_prefecture,
+            county=candidate_county,
+            township=candidate_township,
             farm_name=farm_name,
-            altitude_m=row.altitude_m,
-            latitude=latitude,
-            longitude=longitude,
+            altitude_m=candidate_altitude,
+            latitude=candidate_latitude,
+            longitude=candidate_longitude,
             season_id=row.season_id,
             season_code=season.code if season is not None else None,
             season_end_date=season.end_date if season is not None else None,
@@ -580,7 +665,11 @@ async def create_minimal_planning_task(
         payload=validated_payload,
     )
     input_hash_value = build_input_hash(normalized_input, as_of_date=as_of_date)
-    library_version = await _select_library_version(session, version_code=library_version_code)
+    library_version = await _select_library_version(
+        session,
+        version_code=library_version_code,
+        as_of_date=as_of_date,
+    )
     resolved_location = await resolve_location_input(
         session,
         location=cast(dict[str, object], validated_payload["location"]),
@@ -616,6 +705,7 @@ async def create_minimal_planning_task(
                 variety_id=variety_id,
                 as_of_date=as_of_date,
                 resolved_location=resolved_location_value,
+                rules=config,
             )
             for parameter_type in PARAMETER_UNITS:
                 parameter_candidates = [

@@ -52,8 +52,8 @@ def _candidate(
     climate_zone_id: int | None = 10,
     farm_name: str | None = "农场A",
     altitude_m: str | None = "1810",
-    latitude: str = "24.410000",
-    longitude: str = "103.410000",
+    latitude: str | None = "24.410000",
+    longitude: str | None = "103.410000",
     season_code: str = "2024-2025",
 ) -> CandidateObservation:
     return CandidateObservation(
@@ -73,8 +73,8 @@ def _candidate(
         township=township,
         farm_name=farm_name,
         altitude_m=Decimal(altitude_m) if altitude_m is not None else None,
-        latitude=Decimal(latitude),
-        longitude=Decimal(longitude),
+        latitude=Decimal(latitude) if latitude is not None else None,
+        longitude=Decimal(longitude) if longitude is not None else None,
         season_id=1,
         season_code=season_code,
         season_end_date=date(2025, 4, 30),
@@ -122,6 +122,100 @@ def test_rank_parameter_candidates_prefers_same_farm_then_stable_tie_break() -> 
     assert [item.observation_id for item in ranked] == [1, 2]
 
 
+def test_rank_candidates_prefers_nearer_historical_sample() -> None:
+    rules = SimilarityRules(
+        max_distance_km=Decimal("300"),
+        max_altitude_difference_m=Decimal("800"),
+        township_bonus=Decimal("0.30"),
+        county_bonus=Decimal("0.20"),
+        climate_zone_bonus=Decimal("0.25"),
+        same_farm_bonus=Decimal("1.00"),
+        distance_weight=Decimal("0.25"),
+        altitude_weight=Decimal("0.20"),
+        recency_weight=Decimal("0.10"),
+        ambiguity_margin=Decimal("0.05"),
+    )
+    ranked = rank_parameter_candidates(
+        resolved_location=_location(),
+        candidates=[
+            _candidate(
+                observation_id=1,
+                source_level="same_province_variety",
+                township=None,
+                county=None,
+                climate_zone_id=None,
+                farm_name=None,
+                latitude="24.401000",
+                longitude="103.401000",
+            ),
+            _candidate(
+                observation_id=2,
+                source_level="same_province_variety",
+                township=None,
+                county=None,
+                climate_zone_id=None,
+                farm_name=None,
+                latitude="24.450000",
+                longitude="103.450000",
+            ),
+        ],
+        rules=rules,
+        as_of_date=date(2026, 1, 1),
+    )
+
+    assert [item.observation_id for item in ranked] == [1, 2]
+    assert ranked[0].distance_km is not None
+    assert ranked[1].distance_km is not None
+    assert ranked[0].distance_km < ranked[1].distance_km
+
+
+def test_rank_candidates_missing_historical_coordinates_are_not_zero_distance() -> None:
+    rules = SimilarityRules(
+        max_distance_km=Decimal("300"),
+        max_altitude_difference_m=Decimal("800"),
+        township_bonus=Decimal("0.30"),
+        county_bonus=Decimal("0.20"),
+        climate_zone_bonus=Decimal("0.25"),
+        same_farm_bonus=Decimal("1.00"),
+        distance_weight=Decimal("0.25"),
+        altitude_weight=Decimal("0.20"),
+        recency_weight=Decimal("0.10"),
+        ambiguity_margin=Decimal("0.05"),
+    )
+    ranked = rank_parameter_candidates(
+        resolved_location=_location(),
+        candidates=[
+            _candidate(
+                observation_id=1,
+                source_level="same_province_variety",
+                township=None,
+                county=None,
+                climate_zone_id=None,
+                farm_name=None,
+                latitude="24.401000",
+                longitude="103.401000",
+            ),
+            _candidate(
+                observation_id=2,
+                source_level="same_province_variety",
+                township=None,
+                county=None,
+                climate_zone_id=None,
+                farm_name=None,
+                latitude=None,  # type: ignore[arg-type]
+                longitude=None,  # type: ignore[arg-type]
+            ),
+        ],
+        rules=rules,
+        as_of_date=date(2026, 1, 1),
+    )
+
+    assert ranked[0].observation_id == 1
+    assert ranked[0].distance_km is not None
+    assert ranked[1].observation_id == 2
+    assert ranked[1].distance_km is None
+
+
 def test_select_fallback_level_uses_first_satisfied_level_without_cross_level_mix() -> None:
     levels = fallback_order()
     rules = {
@@ -155,4 +249,3 @@ def test_select_fallback_level_uses_first_satisfied_level_without_cross_level_mi
 
     assert chosen.level == "same_township_altitude_variety"
     assert chosen.fallback_below_minimum is False
-

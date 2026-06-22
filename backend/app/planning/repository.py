@@ -51,13 +51,44 @@ async def get_season_by_code(session: AsyncSession, *, season_code: str) -> Seas
     )
 
 
-async def get_active_library_version(session: AsyncSession) -> ParameterLibraryVersion | None:
+async def get_active_library_version(
+    session: AsyncSession,
+    *,
+    as_of_date: date | None = None,
+) -> ParameterLibraryVersion | None:
+    statement = select(ParameterLibraryVersion).where(
+        ParameterLibraryVersion.status == "active"
+    )
+    if as_of_date is not None:
+        statement = statement.where(ParameterLibraryVersion.effective_from <= as_of_date)
+    return cast(
+        ParameterLibraryVersion | None,
+        await session.scalar(
+            statement.order_by(
+                ParameterLibraryVersion.effective_from.desc(),
+                ParameterLibraryVersion.id.desc(),
+            )
+        ),
+    )
+
+
+async def get_latest_effective_library_version(
+    session: AsyncSession,
+    *,
+    as_of_date: date,
+) -> ParameterLibraryVersion | None:
     return cast(
         ParameterLibraryVersion | None,
         await session.scalar(
             select(ParameterLibraryVersion)
-            .where(ParameterLibraryVersion.status == "active")
-            .order_by(ParameterLibraryVersion.id.desc())
+            .where(
+                ParameterLibraryVersion.status.in_(("active", "retired")),
+                ParameterLibraryVersion.effective_from <= as_of_date,
+            )
+            .order_by(
+                ParameterLibraryVersion.effective_from.desc(),
+                ParameterLibraryVersion.id.desc(),
+            )
         ),
     )
 
