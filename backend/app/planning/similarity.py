@@ -153,30 +153,34 @@ def _historical_mape_within_limit(
 def select_fallback_level(
     *,
     level_order: tuple[str, ...],
-    grouped_candidates: dict[str, list[CandidateObservation]],
+    grouped_candidates: dict[str, list[RankedObservation]],
     fallback_rules: dict[str, FallbackRule],
 ) -> FallbackSelection:
-    ranked_groups: dict[str, tuple[RankedObservation, ...]] = {}
+    normalized_groups: dict[str, tuple[RankedObservation, ...]] = {}
     for level in level_order:
-        candidates = grouped_candidates.get(level, [])
-        ranked_groups[level] = tuple(
-            RankedObservation(
-                observation_id=item.observation_id,
-                source_level=item.source_level,
-                similarity_score=Decimal("0"),
-                distance_km=Decimal("0"),
-                altitude_difference_m=None,
-                candidate=item,
-            )
-            for item in candidates
-        )
+        normalized_rows: list[RankedObservation] = []
+        for row in grouped_candidates.get(level, ()):
+            if isinstance(row, RankedObservation):
+                normalized_rows.append(row)
+            else:
+                normalized_rows.append(
+                    RankedObservation(
+                        observation_id=row.observation_id,
+                        source_level=row.source_level,
+                        similarity_score=Decimal("0"),
+                        distance_km=Decimal("0"),
+                        altitude_difference_m=None,
+                        candidate=row,
+                    )
+                )
+        normalized_groups[level] = tuple(normalized_rows)
 
     best_available_level = next(
-        (level for level in level_order if ranked_groups.get(level)),
+        (level for level in level_order if normalized_groups.get(level)),
         level_order[-1],
     )
     for level in level_order:
-        ranked = ranked_groups.get(level, ())
+        ranked = normalized_groups.get(level, ())
         if not ranked:
             continue
         rule = fallback_rules[level]
@@ -203,16 +207,15 @@ def select_fallback_level(
 
     return FallbackSelection(
         level=best_available_level,
-        candidates=ranked_groups.get(best_available_level, ()),
+        candidates=normalized_groups.get(best_available_level, ()),
         fallback_below_minimum=True,
     )
 
 
 def group_candidates_by_level(
     ranked_candidates: list[RankedObservation],
-) -> dict[str, list[CandidateObservation]]:
-    grouped: dict[str, list[CandidateObservation]] = defaultdict(list)
+) -> dict[str, list[RankedObservation]]:
+    grouped: dict[str, list[RankedObservation]] = defaultdict(list)
     for row in ranked_candidates:
-        grouped[row.source_level].append(row.candidate)
+        grouped[row.source_level].append(row)
     return dict(grouped)
-

@@ -31,6 +31,9 @@ class ResolvedLocation:
     candidates: tuple[dict[str, Any], ...] = ()
     reproducibility_snapshot: dict[str, Any] = field(default_factory=dict)
     climate_zone_version: str | None = None
+    climate_zone_distance_km: Decimal | None = None
+    climate_zone_altitude_difference_m: Decimal | None = None
+    climate_zone_score: Decimal | None = None
 
 
 @dataclass(frozen=True)
@@ -124,6 +127,16 @@ class ParameterInferenceValue:
     source_observation_ids: tuple[int, ...]
     fallback_below_minimum: bool
     missing_evidence: tuple[str, ...]
+    source_version: str | None = None
+    source_versions: tuple[str, ...] = ()
+    distance_range_km: tuple[Decimal, Decimal] | None = None
+    altitude_difference_range_m: tuple[Decimal, Decimal] | None = None
+    historical_mape: Decimal | None = None
+    date_mae_days: Decimal | None = None
+    p90_coverage: Decimal | None = None
+    historical_mape_observation_count: int = 0
+    date_mae_days_observation_count: int = 0
+    p90_coverage_observation_count: int = 0
 
 
 @dataclass(frozen=True)

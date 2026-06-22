@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
 from typing import Any, Literal
@@ -9,7 +10,9 @@ from backend.app.planning.config import ParameterInferenceRules
 from backend.app.planning.quantiles import clipped_interval, weighted_quantile, widen_interval
 from backend.app.planning.schemas import (
     CandidateObservation,
+    FallbackSelection,
     ParameterInferenceValue,
+    RankedObservation,
     ResolvedLocation,
 )
 from backend.app.planning.similarity import (
@@ -53,10 +56,19 @@ def eligible_as_of_date(
 
 def _group_candidates(
     candidates: list[CandidateObservation],
-) -> dict[str, list[CandidateObservation]]:
-    grouped: dict[str, list[CandidateObservation]] = defaultdict(list)
+) -> dict[str, list[RankedObservation]]:
+    grouped: dict[str, list[RankedObservation]] = defaultdict(list)
     for candidate in candidates:
-        grouped[candidate.source_level].append(candidate)
+        grouped[candidate.source_level].append(
+            RankedObservation(
+                observation_id=candidate.observation_id,
+                source_level=candidate.source_level,
+                similarity_score=Decimal("0"),
+                distance_km=Decimal("0"),
+                altitude_difference_m=None,
+                candidate=candidate,
+            )
+        )
     return dict(grouped)
 
 
@@ -68,27 +80,33 @@ def _mean_historical_mape(candidates: list[CandidateObservation]) -> Decimal | N
 
 
 def _level_meets_rule(
-    candidates: list[CandidateObservation],
+    candidates: list[RankedObservation],
     *,
     minimum_sample_count: int,
     minimum_season_count: int,
     maximum_historical_mape: Decimal | None,
 ) -> bool:
-    season_count = len({item.season_code for item in candidates if item.season_code is not None})
+    season_count = len(
+        {
+            item.candidate.season_code
+            for item in candidates
+            if item.candidate.season_code is not None
+        }
+    )
     if len(candidates) < minimum_sample_count or season_count < minimum_season_count:
         return False
     if maximum_historical_mape is None:
         return True
-    historical_mape = _mean_historical_mape(candidates)
+    historical_mape = _mean_historical_mape([item.candidate for item in candidates])
     if historical_mape is None:
         return False
     return historical_mape <= maximum_historical_mape
 
 
 def _choose_level(
-    grouped: dict[str, list[CandidateObservation]],
+    grouped: dict[str, list[RankedObservation]],
     rules: ParameterInferenceRules,
-) -> tuple[str | None, list[CandidateObservation], bool]:
+) -> FallbackSelection:
     for level in fallback_order():
         candidates = grouped.get(level, [])
         if not candidates:
@@ -100,13 +118,21 @@ def _choose_level(
             minimum_season_count=rule.minimum_season_count,
             maximum_historical_mape=rule.maximum_historical_mape,
         ):
-            return level, candidates, False
+            return FallbackSelection(
+                level=level,
+                candidates=tuple(candidates),
+                fallback_below_minimum=False,
+            )
 
     for level in fallback_order():
         candidates = grouped.get(level, [])
         if candidates:
-            return level, candidates, True
-    return None, [], False
+            return FallbackSelection(
+                level=level,
+                candidates=tuple(candidates),
+                fallback_below_minimum=True,
+            )
+    return FallbackSelection(level="", candidates=(), fallback_below_minimum=False)
 
 
 def _fallback_rule_map(rules: ParameterInferenceRules) -> dict[str, Any]:
@@ -122,7 +148,7 @@ def _select_candidates(
     rules: ParameterInferenceRules,
     resolved_location: ResolvedLocation | None,
     as_of_date: date | None,
-) -> tuple[str | None, list[CandidateObservation], bool]:
+) -> FallbackSelection:
     if resolved_location is None or as_of_date is None:
         return _choose_level(_group_candidates(candidates), rules)
 
@@ -133,16 +159,41 @@ def _select_candidates(
         as_of_date=as_of_date,
     )
     grouped = group_candidates_by_level(ranked)
-    selection = select_fallback_level(
+    return select_fallback_level(
         level_order=fallback_order(),
         grouped_candidates=grouped,
         fallback_rules=_fallback_rule_map(rules),
     )
-    return (
-        selection.level,
-        [item.candidate for item in selection.candidates],
-        selection.fallback_below_minimum,
-    )
+
+
+def _range(values: list[Decimal]) -> tuple[Decimal, Decimal] | None:
+    if not values:
+        return None
+    return min(values), max(values)
+
+
+def _weighted_metric(
+    ranked_rows: tuple[RankedObservation, ...],
+    *,
+    selector: Callable[[CandidateObservation], Decimal | None],
+) -> tuple[Decimal | None, int]:
+    weighted_total = Decimal("0")
+    total_weight = Decimal("0")
+    count = 0
+    for row in ranked_rows:
+        value = selector(row.candidate)
+        if value is None:
+            continue
+        weighted_total += value * row.candidate.sample_weight
+        total_weight += row.candidate.sample_weight
+        count += 1
+    if count == 0 or total_weight <= 0:
+        return None, 0
+    return weighted_total / total_weight, count
+
+
+def _source_versions(ranked_rows: tuple[RankedObservation, ...]) -> tuple[str, ...]:
+    return tuple(sorted({row.candidate.source_version for row in ranked_rows}))
 
 
 def _confidence(
@@ -215,13 +266,13 @@ def infer_parameter(
             missing_evidence=("no_historical_observations",),
         )
 
-    level, selected, fallback_below_minimum = _select_candidates(
+    selection = _select_candidates(
         candidates=candidates,
         rules=rules,
         resolved_location=resolved_location,
         as_of_date=as_of_date,
     )
-    if level is None or not selected:
+    if not selection.level or not selection.candidates:
         return ParameterInferenceValue(
             parameter_type=parameter_type,
             status="unavailable",
@@ -239,6 +290,10 @@ def infer_parameter(
             missing_evidence=("no_historical_observations",),
         )
 
+    level = selection.level
+    selected_ranked = selection.candidates
+    selected = [item.candidate for item in selected_ranked]
+    fallback_below_minimum = selection.fallback_below_minimum
     values = [item.scalar_value for item in selected]
     weights = [item.sample_weight for item in selected]
     raw_lower = weighted_quantile(values, weights, Decimal("0.10"))
@@ -249,12 +304,36 @@ def infer_parameter(
     sample_count = len(selected)
     season_count = len({item.season_code for item in selected if item.season_code is not None})
     farm_count = len({item.farm_id for item in selected if item.farm_id is not None})
-    historical_mape = _mean_historical_mape(selected)
+    confidence_historical_mape = _mean_historical_mape(selected)
+    historical_mape, historical_mape_observation_count = _weighted_metric(
+        selected_ranked,
+        selector=lambda item: item.historical_mape,
+    )
+    date_mae_days, date_mae_days_observation_count = _weighted_metric(
+        selected_ranked,
+        selector=lambda item: item.date_mae_days,
+    )
+    p90_coverage, p90_coverage_observation_count = _weighted_metric(
+        selected_ranked,
+        selector=lambda item: item.p90_coverage,
+    )
+    if p90_coverage is not None:
+        p90_coverage = max(Decimal("0"), min(Decimal("1"), p90_coverage))
+    source_versions = _source_versions(selected_ranked)
+    source_version = source_versions[0] if len(source_versions) == 1 else None
+    distance_range_km = _range([item.distance_km for item in selected_ranked])
+    altitude_difference_range_m = _range(
+        [
+            item.altitude_difference_m
+            for item in selected_ranked
+            if item.altitude_difference_m is not None
+        ]
+    )
     confidence_level, confidence_score, missing = _confidence(
         level=level,
         sample_count=sample_count,
         season_count=season_count,
-        historical_mape=historical_mape,
+        historical_mape=confidence_historical_mape,
         fallback_below_minimum=fallback_below_minimum,
         location_status=(resolved_location.status if resolved_location is not None else "resolved"),
         rules=rules,
@@ -295,7 +374,17 @@ def infer_parameter(
         sample_count=sample_count,
         season_count=season_count,
         farm_count=farm_count,
-        source_observation_ids=tuple(item.observation_id for item in selected),
+        source_observation_ids=tuple(item.observation_id for item in selected_ranked),
         fallback_below_minimum=fallback_below_minimum,
         missing_evidence=missing,
+        source_version=source_version,
+        source_versions=source_versions,
+        distance_range_km=distance_range_km,
+        altitude_difference_range_m=altitude_difference_range_m,
+        historical_mape=historical_mape,
+        date_mae_days=date_mae_days,
+        p90_coverage=p90_coverage,
+        historical_mape_observation_count=historical_mape_observation_count,
+        date_mae_days_observation_count=date_mae_days_observation_count,
+        p90_coverage_observation_count=p90_coverage_observation_count,
     )

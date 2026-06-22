@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.baseline.json_types import canonical_json_value
 from backend.app.models.master_data import Farm, Season
 from backend.app.models.planning import ParameterLibraryVersion, ParameterObservation
 from backend.app.planning.config import ParameterInferenceConfig
@@ -258,6 +259,40 @@ def _parameter_row(
     parameter_type: str,
     inferred: ParameterInferenceValue,
 ) -> dict[str, Any]:
+    distance_range_payload = _range_payload(inferred.distance_range_km)
+    altitude_range_payload = _range_payload(inferred.altitude_difference_range_m)
+    source_metadata = cast(
+        dict[str, Any],
+        canonical_json_value(
+            {
+                "source_level": inferred.source_level,
+                "source_version": inferred.source_version,
+                "source_versions": list(inferred.source_versions),
+                "distance_range_km": distance_range_payload,
+                "altitude_difference_range_m": altitude_range_payload,
+                "historical_mape": _decimal_payload(inferred.historical_mape),
+                "date_mae_days": _decimal_payload(inferred.date_mae_days),
+                "p90_coverage": _decimal_payload(inferred.p90_coverage),
+                "historical_mape_observation_count": inferred.historical_mape_observation_count,
+                "date_mae_days_observation_count": inferred.date_mae_days_observation_count,
+                "p90_coverage_observation_count": inferred.p90_coverage_observation_count,
+                "missing_evidence": list(inferred.missing_evidence),
+                "fallback_below_minimum": inferred.fallback_below_minimum,
+            }
+        ),
+    )
+    uncertainty_metadata = cast(
+        dict[str, Any],
+        canonical_json_value(
+            {
+                "uncertainty_method": "deterministic_quantile_combination",
+                "fallback_below_minimum": inferred.fallback_below_minimum,
+                "historical_mape_observation_count": inferred.historical_mape_observation_count,
+                "date_mae_days_observation_count": inferred.date_mae_days_observation_count,
+                "p90_coverage_observation_count": inferred.p90_coverage_observation_count,
+            }
+        ),
+    )
     return {
         "variety_id": variety_id,
         "parameter_type": parameter_type,
@@ -273,15 +308,17 @@ def _parameter_row(
         "season_count": inferred.season_count,
         "farm_count": inferred.farm_count,
         "source_observation_ids": list(inferred.source_observation_ids),
-        "source_metadata": {
-            "source_level": inferred.source_level,
-            "missing_evidence": list(inferred.missing_evidence),
-            "fallback_below_minimum": inferred.fallback_below_minimum,
-        },
-        "uncertainty_metadata": {
-            "uncertainty_method": "deterministic_quantile_combination",
-            "fallback_below_minimum": inferred.fallback_below_minimum,
-        },
+        "source_version": inferred.source_version,
+        "source_versions": list(inferred.source_versions),
+        "distance_range_km": distance_range_payload,
+        "altitude_difference_range_m": altitude_range_payload,
+        "historical_mape": _decimal_payload(inferred.historical_mape),
+        "date_mae_days": _decimal_payload(inferred.date_mae_days),
+        "p90_coverage": _decimal_payload(inferred.p90_coverage),
+        "fallback_below_minimum": inferred.fallback_below_minimum,
+        "missing_evidence": list(inferred.missing_evidence),
+        "source_metadata": source_metadata,
+        "uncertainty_metadata": uncertainty_metadata,
     }
 
 
@@ -291,6 +328,21 @@ def _public_parameter_payload(row: dict[str, Any]) -> dict[str, Any]:
         for key, value in row.items()
         if key not in {"variety_id", "parameter_type"}
     }
+
+
+def _decimal_payload(value: Decimal | None) -> str | None:
+    if value is None:
+        return None
+    return format(value, "f")
+
+
+def _range_payload(
+    value: tuple[Decimal, Decimal] | None,
+) -> dict[str, str] | None:
+    if value is None:
+        return None
+    lower, upper = value
+    return {"min": format(lower, "f"), "max": format(upper, "f")}
 
 
 def _effective_volume_summary(
@@ -324,32 +376,37 @@ def _variety_payload(
         parameter_type: _public_parameter_payload(payload)
         for parameter_type, payload in inferred_rows.items()
     }
-    return {
-        "variety_id": variety["variety_id"],
-        "variety_code": variety["variety_code"],
-        "variety_name": variety["variety_name"],
-        "planted_area_mu": planted_area_mu,
-        "yield_kg_per_mu": public_rows["yield_kg_per_mu"],
-        "marketable_rate": public_rows["marketable_rate"],
-        "estimated_effective_volume_kg": _effective_volume_summary(
-            planted_area_mu,
-            public_rows["yield_kg_per_mu"],
-            public_rows["marketable_rate"],
+    return cast(
+        dict[str, Any],
+        canonical_json_value(
+            {
+                "variety_id": variety["variety_id"],
+                "variety_code": variety["variety_code"],
+                "variety_name": variety["variety_name"],
+                "planted_area_mu": planted_area_mu,
+                "yield_kg_per_mu": public_rows["yield_kg_per_mu"],
+                "marketable_rate": public_rows["marketable_rate"],
+                "estimated_effective_volume_kg": _effective_volume_summary(
+                    planted_area_mu,
+                    public_rows["yield_kg_per_mu"],
+                    public_rows["marketable_rate"],
+                ),
+                "first_harvest_offset_days": public_rows["first_harvest_offset_days"],
+                "maturity_peak_offset_days": public_rows["maturity_peak_offset_days"],
+                "maturity_width_days": public_rows["maturity_width_days"],
+                "maturity_skewness": public_rows["maturity_skewness"],
+                "harvest_realization_rate": public_rows["harvest_realization_rate"],
+                "source": {
+                    "yield": public_rows["yield_kg_per_mu"].get("source_level"),
+                    "marketable_rate": public_rows["marketable_rate"].get("source_level"),
+                },
+                "confidence": {
+                    "yield": public_rows["yield_kg_per_mu"].get("confidence_level"),
+                    "marketable_rate": public_rows["marketable_rate"].get("confidence_level"),
+                },
+            }
         ),
-        "first_harvest_offset_days": public_rows["first_harvest_offset_days"],
-        "maturity_peak_offset_days": public_rows["maturity_peak_offset_days"],
-        "maturity_width_days": public_rows["maturity_width_days"],
-        "maturity_skewness": public_rows["maturity_skewness"],
-        "harvest_realization_rate": public_rows["harvest_realization_rate"],
-        "source": {
-            "yield": public_rows["yield_kg_per_mu"].get("source_level"),
-            "marketable_rate": public_rows["marketable_rate"].get("source_level"),
-        },
-        "confidence": {
-            "yield": public_rows["yield_kg_per_mu"].get("confidence_level"),
-            "marketable_rate": public_rows["marketable_rate"].get("confidence_level"),
-        },
-    }
+    )
 
 
 def _result_payload(result: ParameterInferenceExecutionResult) -> dict[str, Any]:
@@ -426,6 +483,8 @@ async def _rehydrate_existing(
     rows_by_variety: dict[int, dict[str, dict[str, Any]]] = {}
     similar_historical_samples: list[dict[str, Any]] = []
     for row in rows:
+        source_metadata = row.source_metadata
+        uncertainty_metadata = row.uncertainty_metadata
         row_payload = {
             "status": row.status,
             "p50_value": row.p50_value,
@@ -439,8 +498,22 @@ async def _rehydrate_existing(
             "season_count": row.season_count,
             "farm_count": row.farm_count,
             "source_observation_ids": list(row.source_observation_ids),
-            "source_metadata": row.source_metadata,
-            "uncertainty_metadata": row.uncertainty_metadata,
+            "source_version": source_metadata.get("source_version"),
+            "source_versions": source_metadata.get("source_versions", []),
+            "distance_range_km": source_metadata.get("distance_range_km"),
+            "altitude_difference_range_m": source_metadata.get(
+                "altitude_difference_range_m"
+            ),
+            "historical_mape": source_metadata.get("historical_mape"),
+            "date_mae_days": source_metadata.get("date_mae_days"),
+            "p90_coverage": source_metadata.get("p90_coverage"),
+            "fallback_below_minimum": source_metadata.get(
+                "fallback_below_minimum",
+                uncertainty_metadata.get("fallback_below_minimum", False),
+            ),
+            "missing_evidence": source_metadata.get("missing_evidence", []),
+            "source_metadata": source_metadata,
+            "uncertainty_metadata": uncertainty_metadata,
         }
         rows_by_variety.setdefault(row.variety_id, {})[row.parameter_type] = row_payload
         if row.source_observation_ids:

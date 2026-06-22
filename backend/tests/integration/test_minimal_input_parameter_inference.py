@@ -472,10 +472,21 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
     assert first.library_version == "lib-v1"
     assert second.status == "skipped"
     assert second.library_version == "lib-v1"
+    assert first.resolved_location == second.resolved_location
     assert first.variety_parameters == second.variety_parameters
     assert task_count == 1
     assert run_count == 1
     assert result_count == 7
+
+    yield_row = first.variety_parameters[0]["yield_kg_per_mu"]
+    assert yield_row["source_version"] == "param-v1"
+    assert yield_row["source_versions"] == ["param-v1"]
+    assert yield_row["distance_range_km"] is not None
+    assert yield_row["historical_mape"] == "0.10"
+    assert yield_row["date_mae_days"] == "2"
+    assert yield_row["p90_coverage"] == "0.85"
+    assert first.resolved_location["climate_zone_mapping_method"] == "reference"
+    assert first.resolved_location["climate_zone_score"] == "1"
 
     create_response = await client.post(
         "/planning/tasks",
@@ -490,12 +501,16 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
     assert payload["status"] in {"completed", "skipped"}
     assert payload["task_id"] == first.task_id
     assert payload["library_version"] == "lib-v1"
+    assert payload["resolved_location"] == first.resolved_location
+    assert payload["variety_parameters"] == first.variety_parameters
 
     get_response = await client.get(f"/planning/tasks/{first.task_id}")
     assert get_response.status_code == 200, get_response.text
     get_payload = get_response.json()
     assert get_payload["task_id"] == first.task_id
     assert get_payload["library_version"] == "lib-v1"
+    assert get_payload["resolved_location"] == first.resolved_location
+    assert get_payload["variety_parameters"] == first.variety_parameters
 
 
 
