@@ -18,3 +18,5 @@ reports/import/
 reports/analytics/
 reports/test-results/
 reports/baseline/
+reports/parameter-inference/
+reports/planning/
