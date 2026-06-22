@@ -19,6 +19,7 @@ from backend.app.models.planning import (
     ParameterInferenceResult,
     ParameterInferenceRun,
     ParameterLibraryVersion,
+    ParameterObservation,
 )
 from backend.app.planning.config import load_parameter_inference_config
 from backend.app.planning.importers import (
@@ -466,12 +467,15 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
             select(AgroClimateZone).where(AgroClimateZone.code == normalized_zone_code)
         )
         location_reference = await session.scalar(select(LocationReference))
+        parameter_observation = await session.scalar(select(ParameterObservation))
         assert zone_result.inserted_rows == 1
         assert location_result.inserted_row_count == 1
         assert parameter_result.status in {"draft", "active"}
         assert zone is not None
         assert location_reference is not None
+        assert parameter_observation is not None
         assert location_reference.climate_zone_id == zone.id
+        assert parameter_observation.climate_zone_id == zone.id
         first = await create_minimal_planning_task(
             session,
             payload={
