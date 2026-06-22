@@ -9,9 +9,9 @@ from typing import Literal, cast
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.baseline.json_types import canonical_json_value
 from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.planning.config import ParameterInferenceRules
+from backend.app.planning.json_types import canonical_json_value
 from backend.app.planning.normalization import (
     normalize_address_text,
     normalize_location_name,
