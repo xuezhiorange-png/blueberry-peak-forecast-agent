@@ -13,6 +13,7 @@ from backend.app.planning.config import (
 )
 from backend.app.planning.schemas import ParameterInferenceExecutionResult
 from backend.app.planning.service import (
+    _result_payload,
     create_minimal_planning_task,
     load_minimal_planning_task_result,
 )
@@ -34,7 +35,7 @@ def _load_config() -> ParameterInferenceConfig:
 def _response_payload(
     result: ParameterInferenceExecutionResult,
 ) -> PlanningTaskResponse:
-    return PlanningTaskResponse.model_validate(result)
+    return PlanningTaskResponse.model_validate(_result_payload(result))
 
 
 @router.post("/tasks", response_model=PlanningTaskResponse)
