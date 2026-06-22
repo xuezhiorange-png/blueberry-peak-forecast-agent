@@ -33,6 +33,7 @@ from backend.app.planning.imports.climate_zone_importer import (
     normalize_climate_zone_code,
 )
 from backend.app.planning.inference import infer_parameter
+from backend.app.planning.json_types import canonical_decimal_string
 from backend.app.planning.location import (
     resolve_location_input,
     resolved_location_payload,
@@ -958,8 +959,8 @@ async def test_create_minimal_planning_task_uses_real_historical_sample_coordina
     assert yield_row["source_observation_ids"][0] == near_observation_id
     assert yield_row["source_observation_ids"][1] == far_observation_id
     assert yield_row["distance_range_km"] == {
-        "min": str(expected_min_distance),
-        "max": str(expected_max_distance),
+        "min": canonical_decimal_string(expected_min_distance),
+        "max": canonical_decimal_string(expected_max_distance),
     }
     assert "historical_coordinates" in yield_row["missing_evidence"]
 
