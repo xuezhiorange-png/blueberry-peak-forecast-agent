@@ -32,7 +32,11 @@ from backend.app.planning.imports.climate_zone_importer import (
     import_agro_climate_zones_csv,
     normalize_climate_zone_code,
 )
-from backend.app.planning.location import resolve_location_input
+from backend.app.planning.inference import infer_parameter
+from backend.app.planning.location import (
+    resolve_location_input,
+    resolved_location_payload,
+)
 from backend.app.planning.service import _load_candidates, create_minimal_planning_task
 from backend.app.planning.similarity import haversine_distance_km
 
@@ -958,6 +962,177 @@ async def test_create_minimal_planning_task_uses_real_historical_sample_coordina
         "max": str(expected_max_distance),
     }
     assert "historical_coordinates" in yield_row["missing_evidence"]
+
+
+@pytest.mark.asyncio
+async def test_load_candidates_coerces_identity_map_numeric_fields_before_inference(
+    tmp_path: Path,
+) -> None:
+    _require_postgres()
+    season_id, variety_id = await _seed_master_data()
+    config_path = tmp_path / "parameter_inference.yaml"
+    _write_parameter_config(config_path)
+    config = load_parameter_inference_config(config_path)
+
+    async with AsyncSessionMaker() as session:
+        zone = AgroClimateZone(
+            code="ZONE-A",
+            name="Zone A",
+            country="China",
+            province="云南省",
+            prefecture="红河州",
+            county="弥勒市",
+            centroid_latitude="24.400000",
+            centroid_longitude="103.400000",
+            min_altitude_m="1700",
+            max_altitude_m="1900",
+            zone_version="zone-v1",
+            valid_from=date(2024, 1, 1),
+            valid_to=None,
+            source_name="synthetic",
+            source_version="src-v1",
+        )
+        target_reference = LocationReference(
+            farm_id=None,
+            subfarm_id=None,
+            farm_code="target",
+            farm_name="目标农场",
+            subfarm_name=None,
+            address_raw="云南省 红河州 弥勒市 西三镇",
+            address_normalized="云南省 红河州 弥勒市 西三镇",
+            province="云南省",
+            prefecture="红河州",
+            county="弥勒市",
+            township="西三镇",
+            village=None,
+            latitude="24.400000",
+            longitude="103.400000",
+            altitude_m="1800",
+            climate_zone_id=None,
+            location_source="synthetic",
+            source_version="loc-v1",
+            valid_from=date(2024, 1, 1),
+            valid_to=None,
+            source_row_hash="target-row",
+        )
+        sample_reference = LocationReference(
+            farm_id=None,
+            subfarm_id=None,
+            farm_code="sample",
+            farm_name="历史样本农场",
+            subfarm_name=None,
+            address_raw="云南省 红河州 弥勒市 西三镇 历史样本",
+            address_normalized="云南省 红河州 弥勒市 西三镇 历史样本",
+            province="云南省",
+            prefecture="红河州",
+            county="弥勒市",
+            township="西三镇",
+            village=None,
+            latitude="24.402000",
+            longitude="103.402000",
+            altitude_m="1808",
+            climate_zone_id=None,
+            location_source="synthetic",
+            source_version="loc-v1",
+            valid_from=date(2024, 1, 1),
+            valid_to=None,
+            source_row_hash="sample-row",
+        )
+        session.add(zone)
+        await session.flush()
+        target_reference.climate_zone_id = zone.id
+        sample_reference.climate_zone_id = zone.id
+        session.add_all([target_reference, sample_reference])
+        await session.flush()
+        library = ParameterLibraryVersion(
+            version_code="lib-v1",
+            status="active",
+            source_name="synthetic.csv",
+            source_file_sha256="sha",
+            config_hash="cfg",
+            record_count=0,
+            effective_from=date(2025, 1, 1),
+        )
+        session.add(library)
+        await session.flush()
+        session.add(
+            ParameterObservation(
+                library_version_id=library.id,
+                parameter_type="yield_kg_per_mu",
+                variety_id=variety_id,
+                farm_id=None,
+                subfarm_id=None,
+                location_reference_id=sample_reference.id,
+                climate_zone_id=zone.id,
+                season_id=season_id,
+                province="云南省",
+                prefecture="红河州",
+                county="弥勒市",
+                township="西三镇",
+                altitude_m="1808",
+                scalar_value="1000",
+                unit="kg_per_mu",
+                sample_weight="1",
+                source_level="same_province_variety",
+                source_name="synthetic",
+                source_version="sample-v1",
+                historical_mape="0.10",
+                date_mae_days="2",
+                p90_coverage="0.85",
+                available_at=date(2025, 5, 1),
+                valid_from=date(2024, 1, 1),
+                valid_to=None,
+                source_row_hash="sample-obs",
+            )
+        )
+        await session.commit()
+
+        resolved_location = await resolve_location_input(
+            session,
+            location={"location_reference_id": target_reference.id},
+            as_of_date=date(2026, 1, 1),
+            rules=config.rules,
+        )
+        candidates = await _load_candidates(
+            session,
+            library_version_id=library.id,
+            variety_id=variety_id,
+            as_of_date=date(2026, 1, 1),
+            resolved_location=resolved_location_payload(resolved_location),
+            rules=config,
+        )
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert isinstance(candidate.scalar_value, Decimal)
+    assert candidate.scalar_value == Decimal("1000")
+    assert isinstance(candidate.sample_weight, Decimal)
+    assert candidate.sample_weight == Decimal("1")
+    assert isinstance(candidate.altitude_m, Decimal)
+    assert candidate.altitude_m == Decimal("1808")
+    assert isinstance(candidate.latitude, Decimal)
+    assert candidate.latitude == Decimal("24.402000")
+    assert isinstance(candidate.longitude, Decimal)
+    assert candidate.longitude == Decimal("103.402000")
+    assert isinstance(candidate.historical_mape, Decimal)
+    assert candidate.historical_mape == Decimal("0.10")
+    assert isinstance(candidate.date_mae_days, Decimal)
+    assert candidate.date_mae_days == Decimal("2")
+    assert isinstance(candidate.p90_coverage, Decimal)
+    assert candidate.p90_coverage == Decimal("0.85")
+
+    inferred = infer_parameter(
+        parameter_type="yield_kg_per_mu",
+        candidates=candidates,
+        rules=config.rules,
+        floor=Decimal("0"),
+        ceiling=None,
+        resolved_location=resolved_location,
+        as_of_date=date(2026, 1, 1),
+    )
+    assert inferred.status == "available"
+    assert inferred.p50_value == Decimal("1000")
+    assert inferred.source_observation_ids == (candidate.observation_id,)
 
 
 @pytest.mark.asyncio
