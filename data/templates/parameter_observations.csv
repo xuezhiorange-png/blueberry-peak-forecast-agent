@@ -1,0 +1,2 @@
+parameter_type,variety_code,farm_code,farm_name,subfarm_name,location_reference_id,climate_zone_code,season_code,province,prefecture,county,township,altitude_m,scalar_value,unit,sample_weight,source_level,source_name,source_version,historical_mape,date_mae_days,p90_coverage,available_at,valid_from,valid_to
+

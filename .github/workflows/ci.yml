@@ -75,7 +75,7 @@ jobs:
           asyncio.run(main())
           PY
 
-      - name: Alembic baseline backtest migration round trip
+      - name: Alembic minimal input parameters migration round trip
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -85,7 +85,7 @@ jobs:
           POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           alembic -c backend/alembic.ini upgrade head
-          alembic -c backend/alembic.ini downgrade 0004_daily_facts_peak_metrics
+          alembic -c backend/alembic.ini downgrade 0005_baseline_backtest
           alembic -c backend/alembic.ini upgrade head
 
       - name: Ruff
