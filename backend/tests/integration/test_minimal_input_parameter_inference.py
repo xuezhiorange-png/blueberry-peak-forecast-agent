@@ -24,6 +24,9 @@ from backend.app.planning.importers import (
     import_location_references_csv,
     import_parameter_library_csv,
 )
+from backend.app.planning.imports.climate_zone_importer import (
+    import_agro_climate_zones_csv,
+)
 from backend.app.planning.location import resolve_location_input
 from backend.app.planning.service import create_minimal_planning_task
 
@@ -156,6 +159,19 @@ def _write_location_csv(path: Path) -> None:
                 "valid_to": "",
             }
         )
+
+
+def _write_zone_csv(path: Path) -> None:
+    path.write_text(
+        (
+            "code,name,country,province,prefecture,county,centroid_latitude,"
+            "centroid_longitude,min_altitude_m,max_altitude_m,zone_version,"
+            "valid_from,valid_to,source_name,source_version\n"
+            "zone-a,Zone A,China,云南省,红河州,弥勒市,24.400000,103.400000,"
+            "1700,1900,zone-v1,2024-01-01,,synthetic,src-v1\n"
+        ),
+        encoding="utf-8",
+    )
 
 
 
@@ -350,15 +366,22 @@ async def test_create_minimal_planning_task_dry_run_is_zero_write_and_excludes_f
 ) -> None:
     _require_postgres()
     await _seed_master_data()
+    zone_csv = tmp_path / "agro_climate_zones.csv"
     location_csv = tmp_path / "farm_location_master.csv"
     parameter_csv = tmp_path / "parameter_observations.csv"
     config_path = tmp_path / "parameter_inference.yaml"
+    _write_zone_csv(zone_csv)
     _write_location_csv(location_csv)
     _write_parameter_csv(parameter_csv)
     _write_parameter_config(config_path)
     config = load_parameter_inference_config(config_path)
 
     async with AsyncSessionMaker() as session:
+        await import_agro_climate_zones_csv(
+            session,
+            file_path=zone_csv,
+            dry_run=False,
+        )
         await import_location_references_csv(
             session,
             file_path=location_csv,
@@ -467,6 +490,7 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
             )
             or 0
         )
+        location_reference = await session.scalar(select(LocationReference))
 
     assert first.status == "completed"
     assert first.library_version == "lib-v1"
@@ -477,6 +501,8 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
     assert task_count == 1
     assert run_count == 1
     assert result_count == 7
+    assert location_reference is not None
+    assert location_reference.climate_zone_id is not None
 
     yield_row = first.variety_parameters[0]["yield_kg_per_mu"]
     assert yield_row["source_version"] == "param-v1"
