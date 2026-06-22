@@ -13,6 +13,7 @@ from backend.app.db.session import AsyncSessionMaker
 from backend.app.main import create_app
 from backend.app.models.master_data import Farm, Season, Variety
 from backend.app.models.planning import (
+    AgroClimateZone,
     LocationReference,
     MinimalForecastTask,
     ParameterInferenceResult,
@@ -430,28 +431,45 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
 ) -> None:
     _require_postgres()
     await _seed_master_data()
+    zone_csv = tmp_path / "agro_climate_zones.csv"
     location_csv = tmp_path / "farm_location_master.csv"
     parameter_csv = tmp_path / "parameter_observations.csv"
     config_path = tmp_path / "parameter_inference.yaml"
+    _write_zone_csv(zone_csv)
     _write_location_csv(location_csv)
     _write_parameter_csv(parameter_csv)
     _write_parameter_config(config_path)
     config = load_parameter_inference_config(config_path)
 
     async with AsyncSessionMaker() as session:
-        await import_location_references_csv(
+        zone_result = await import_agro_climate_zones_csv(
+            session,
+            file_path=zone_csv,
+            dry_run=False,
+        )
+        location_result = await import_location_references_csv(
             session,
             file_path=location_csv,
             source_version="loc-v1",
             dry_run=False,
         )
-        await import_parameter_library_csv(
+        parameter_result = await import_parameter_library_csv(
             session,
             file_path=parameter_csv,
             version_code="lib-v1",
             activate=True,
             dry_run=False,
         )
+        zone = await session.scalar(
+            select(AgroClimateZone).where(AgroClimateZone.code == "zone-a")
+        )
+        location_reference = await session.scalar(select(LocationReference))
+        assert zone_result.inserted_rows == 1
+        assert location_result.inserted_row_count == 1
+        assert parameter_result.status in {"draft", "active"}
+        assert zone is not None
+        assert location_reference is not None
+        assert location_reference.climate_zone_id == zone.id
         first = await create_minimal_planning_task(
             session,
             payload={
@@ -490,7 +508,6 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
             )
             or 0
         )
-        location_reference = await session.scalar(select(LocationReference))
 
     assert first.status == "completed"
     assert first.library_version == "lib-v1"
