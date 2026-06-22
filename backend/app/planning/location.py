@@ -119,6 +119,22 @@ def _zone_version_conflict(zones: list[AgroClimateZone]) -> bool:
     return False
 
 
+def _admin_matches(
+    zone: AgroClimateZone,
+    *,
+    province: str | None,
+    prefecture: str | None,
+    county: str | None,
+) -> bool:
+    if county is None or zone.county != county:
+        return False
+    if province is not None and zone.province != province:
+        return False
+    if prefecture is not None and zone.prefecture != prefecture:
+        return False
+    return True
+
+
 def _resolved_from_reference(
     reference: LocationReference,
     *,
@@ -207,53 +223,52 @@ async def _map_climate_zone(
 ) -> ClimateZoneResolution:
     zones = await _valid_climate_zones(session, as_of_date=as_of_date)
 
-    county_matches = [
-        zone
-        for zone in zones
-        if county is not None
-        and zone.county == county
-        and province is not None
-        and zone.province == province
-        and (
-            prefecture is None
-            or (zone.prefecture is not None and zone.prefecture == prefecture)
-        )
-    ]
-    if county_matches:
-        if len(county_matches) == 1:
-            zone = county_matches[0]
-            score = Decimal("1")
-            return ClimateZoneResolution(
-                zone_id=zone.id,
-                zone_code=zone.code,
-                zone_version=zone.zone_version,
-                mapping_method="county",
-                confidence=score,
-                distance_km=None,
-                altitude_difference_m=_altitude_difference_to_zone_range(zone, altitude_m),
-                score=score,
-                warning=None,
-                candidate_count=len(county_matches),
+    if county is not None:
+        admin_matches = [
+            zone
+            for zone in zones
+            if _admin_matches(
+                zone,
+                province=province,
+                prefecture=prefecture,
+                county=county,
             )
-        return ClimateZoneResolution(
-            zone_id=None,
-            zone_code=None,
-            zone_version=None,
-            mapping_method=None,
-            confidence=None,
-            distance_km=None,
-            altitude_difference_m=None,
-            score=None,
-            warning="climate_zone_conflict",
-            candidate_count=len(county_matches),
-        )
+        ]
+        if admin_matches:
+            if len(admin_matches) == 1:
+                zone = admin_matches[0]
+                score = Decimal("1")
+                return ClimateZoneResolution(
+                    zone_id=zone.id,
+                    zone_code=zone.code,
+                    zone_version=zone.zone_version,
+                    mapping_method="county",
+                    confidence=score,
+                    distance_km=None,
+                    altitude_difference_m=_altitude_difference_to_zone_range(zone, altitude_m),
+                    score=score,
+                    warning=None,
+                    candidate_count=len(admin_matches),
+                )
+            return ClimateZoneResolution(
+                zone_id=None,
+                zone_code=None,
+                zone_version=None,
+                mapping_method=None,
+                confidence=None,
+                distance_km=None,
+                altitude_difference_m=None,
+                score=None,
+                warning="climate_zone_conflict",
+                candidate_count=len(admin_matches),
+            )
 
     prefecture_matches = [
         zone
         for zone in zones
         if prefecture is not None
         and zone.prefecture == prefecture
-        and zone.province == province
+        and (province is None or zone.province == province)
     ]
     if prefecture_matches:
         if len(prefecture_matches) == 1:
@@ -338,10 +353,24 @@ async def _map_climate_zone(
         )
         for zone, distance in nearest_candidates
     ]
-    zone, distance, score = max(
+    sorted_candidates = sorted(
         scored_candidates,
-        key=lambda item: (item[2], -item[1], -Decimal(item[0].id)),
+        key=lambda item: (-item[2], item[1], item[0].id),
     )
+    zone, distance, score = sorted_candidates[0]
+    if len(sorted_candidates) > 1 and sorted_candidates[1][2] == score:
+        return ClimateZoneResolution(
+            zone_id=None,
+            zone_code=None,
+            zone_version=None,
+            mapping_method=None,
+            confidence=None,
+            distance_km=None,
+            altitude_difference_m=None,
+            score=None,
+            warning="climate_zone_conflict",
+            candidate_count=len(nearest_candidates),
+        )
     return ClimateZoneResolution(
         zone_id=zone.id,
         zone_code=zone.code,

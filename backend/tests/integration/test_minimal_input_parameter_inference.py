@@ -1471,6 +1471,91 @@ async def test_create_minimal_planning_task_coordinate_without_zone_candidates_d
 
 
 @pytest.mark.asyncio
+async def test_create_minimal_planning_task_conflicting_county_zone_does_not_create_run(
+    tmp_path: Path,
+) -> None:
+    _require_postgres()
+    _, variety_id = await _seed_master_data()
+    config_path = tmp_path / "parameter_inference.yaml"
+    _write_parameter_config(config_path)
+    config = load_parameter_inference_config(config_path)
+
+    async with AsyncSessionMaker() as session:
+        session.add_all(
+            [
+                ParameterLibraryVersion(
+                    version_code="lib-v1",
+                    status="active",
+                    source_name="synthetic.csv",
+                    source_file_sha256="sha",
+                    config_hash="cfg",
+                    record_count=0,
+                    effective_from=date(2024, 1, 1),
+                ),
+                AgroClimateZone(
+                    code="ZONE-A",
+                    name="Zone A",
+                    country="China",
+                    province="云南省",
+                    prefecture="红河州",
+                    county="弥勒市",
+                    centroid_latitude="24.400000",
+                    centroid_longitude="103.400000",
+                    min_altitude_m="1700",
+                    max_altitude_m="1900",
+                    zone_version="zone-v1",
+                    valid_from=date(2024, 1, 1),
+                    valid_to=None,
+                    source_name="synthetic",
+                    source_version="src-v1",
+                ),
+                AgroClimateZone(
+                    code="ZONE-B",
+                    name="Zone B",
+                    country="China",
+                    province="四川省",
+                    prefecture="凉山州",
+                    county="弥勒市",
+                    centroid_latitude="24.450000",
+                    centroid_longitude="103.450000",
+                    min_altitude_m="1700",
+                    max_altitude_m="1900",
+                    zone_version="zone-v2",
+                    valid_from=date(2024, 1, 1),
+                    valid_to=None,
+                    source_name="synthetic",
+                    source_version="src-v2",
+                ),
+            ]
+        )
+        await session.commit()
+
+        result = await create_minimal_planning_task(
+            session,
+            payload={
+                "location": {
+                    "latitude": "24.400000",
+                    "longitude": "103.400000",
+                    "county": "弥勒市",
+                },
+                "varieties": [{"variety_id": variety_id, "planted_area_mu": "700"}],
+                "as_of_date": "2026-01-01",
+            },
+            config=config,
+            dry_run=False,
+        )
+        run_count = int(
+            await session.scalar(select(func.count()).select_from(ParameterInferenceRun)) or 0
+        )
+
+    assert result.status == "failed"
+    assert result.run_id is None
+    assert result.resolved_location["status"] == "unresolved"
+    assert "climate_zone_conflict" in result.resolved_location["warnings"]
+    assert run_count == 0
+
+
+@pytest.mark.asyncio
 async def test_load_candidates_applies_township_altitude_and_county_matching_rules(
     tmp_path: Path,
 ) -> None:
