@@ -1517,29 +1517,6 @@ async def test_minimal_planning_task_fails_for_bad_reference_zones_and_no_run(
                 valid_to=None,
                 source_row_hash="missing-zone",
             ),
-            "invalid": LocationReference(
-                farm_id=None,
-                subfarm_id=None,
-                farm_code="invalid-zone",
-                farm_name="无效气候区农场",
-                subfarm_name=None,
-                address_raw="云南省 红河州 弥勒市 西三镇 无效",
-                address_normalized="云南省 红河州 弥勒市 西三镇 无效",
-                province="云南省",
-                prefecture="红河州",
-                county="弥勒市",
-                township="西三镇",
-                village=None,
-                latitude="24.401000",
-                longitude="103.401000",
-                altitude_m="1800",
-                climate_zone_id=999999,
-                location_source="synthetic",
-                source_version="loc-v1",
-                valid_from=date(2024, 1, 1),
-                valid_to=None,
-                source_row_hash="invalid-zone",
-            ),
             "expired": LocationReference(
                 farm_id=None,
                 subfarm_id=None,
@@ -1590,9 +1567,12 @@ async def test_minimal_planning_task_fails_for_bad_reference_zones_and_no_run(
         session.add_all(references.values())
         await session.commit()
 
+        # A reference pointing at a nonexistent zone cannot be persisted because
+        # the database foreign key blocks it. That path is covered in
+        # backend/tests/planning/test_location_resolution.py, while this
+        # integration test keeps only database-valid bad-reference states.
         for reference_id, warning in (
             (references["missing"].id, "climate_zone_unresolved"),
-            (references["invalid"].id, "climate_zone_not_valid_as_of_date"),
             (references["expired"].id, "climate_zone_not_valid_as_of_date"),
             (references["conflict"].id, "climate_zone_conflict"),
         ):
