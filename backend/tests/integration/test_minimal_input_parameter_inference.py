@@ -482,7 +482,7 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
     assert yield_row["source_version"] == "param-v1"
     assert yield_row["source_versions"] == ["param-v1"]
     assert yield_row["distance_range_km"] is not None
-    assert yield_row["historical_mape"] == "0.10"
+    assert yield_row["historical_mape"] == "0.1"
     assert yield_row["date_mae_days"] == "2"
     assert yield_row["p90_coverage"] == "0.85"
     assert first.resolved_location["climate_zone_mapping_method"] == "reference"

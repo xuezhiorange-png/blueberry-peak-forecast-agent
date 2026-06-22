@@ -162,16 +162,16 @@ def test_variety_payload_hides_internal_storage_keys_from_public_parameter_paylo
     assert payload["yield_kg_per_mu"]["source_version"] == "param-v1"
     assert payload["yield_kg_per_mu"]["source_versions"] == ["param-v1"]
     assert payload["yield_kg_per_mu"]["distance_range_km"] == {
-        "min": "1.250000",
-        "max": "2.500000",
+        "min": "1.25",
+        "max": "2.5",
     }
     assert payload["yield_kg_per_mu"]["altitude_difference_range_m"] == {
         "min": "10",
         "max": "20",
     }
-    assert payload["yield_kg_per_mu"]["historical_mape"] == "0.1000000000"
+    assert payload["yield_kg_per_mu"]["historical_mape"] == "0.1"
     assert payload["yield_kg_per_mu"]["date_mae_days"] == "2"
-    assert payload["yield_kg_per_mu"]["p90_coverage"] == "0.8500000000"
+    assert payload["yield_kg_per_mu"]["p90_coverage"] == "0.85"
     assert payload["yield_kg_per_mu"]["fallback_below_minimum"] is False
     assert payload["yield_kg_per_mu"]["missing_evidence"] == []
 

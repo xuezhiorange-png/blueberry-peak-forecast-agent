@@ -6,7 +6,6 @@ from typing import Any, cast
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.baseline.json_types import canonical_json_value
 from backend.app.models.master_data import Farm, Season, Variety
 from backend.app.models.planning import (
     MinimalForecastTask,
@@ -14,6 +13,7 @@ from backend.app.models.planning import (
     ParameterInferenceRun,
     ParameterLibraryVersion,
 )
+from backend.app.planning.json_types import canonical_json_value
 
 
 def _now() -> datetime:

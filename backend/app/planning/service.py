@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.baseline.json_types import canonical_json_value
 from backend.app.models.master_data import Farm, Season
 from backend.app.models.planning import ParameterLibraryVersion, ParameterObservation
 from backend.app.planning.config import ParameterInferenceConfig
@@ -20,6 +19,7 @@ from backend.app.planning.inference import (
     infer_parameter,
     merge_duplicate_varieties,
 )
+from backend.app.planning.json_types import canonical_decimal_string, canonical_json_value
 from backend.app.planning.location import resolve_location_input, resolved_location_payload
 from backend.app.planning.repository import (
     create_running_run,
@@ -333,7 +333,7 @@ def _public_parameter_payload(row: dict[str, Any]) -> dict[str, Any]:
 def _decimal_payload(value: Decimal | None) -> str | None:
     if value is None:
         return None
-    return format(value, "f")
+    return canonical_decimal_string(value)
 
 
 def _range_payload(
@@ -342,7 +342,10 @@ def _range_payload(
     if value is None:
         return None
     lower, upper = value
-    return {"min": format(lower, "f"), "max": format(upper, "f")}
+    return {
+        "min": canonical_decimal_string(lower),
+        "max": canonical_decimal_string(upper),
+    }
 
 
 def _effective_volume_summary(
