@@ -36,6 +36,12 @@ def normalize_variety_lookup(value: str) -> str:
     return normalized.lower()
 
 
+def coerce_optional_decimal(value: Decimal | int | float | str | None) -> Decimal | None:
+    if value is None:
+        return None
+    return Decimal(str(value))
+
+
 def validate_coordinate_pair(
     latitude: Decimal | int | float,
     longitude: Decimal | int | float,
@@ -46,4 +52,3 @@ def validate_coordinate_pair(
         raise ValueError("latitude must be between -90 and 90")
     if longitude_value < Decimal("-180") or longitude_value > Decimal("180"):
         raise ValueError("longitude must be between -180 and 180")
-

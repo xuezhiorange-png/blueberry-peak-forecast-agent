@@ -13,6 +13,7 @@ from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.planning.config import ParameterInferenceRules
 from backend.app.planning.json_types import canonical_json_value
 from backend.app.planning.normalization import (
+    coerce_optional_decimal,
     normalize_address_text,
     normalize_location_name,
     validate_coordinate_pair,
@@ -164,9 +165,9 @@ def _resolved_from_reference(
         township=reference.township,
         village=reference.village,
         farm_name=reference.farm_name,
-        latitude=reference.latitude,
-        longitude=reference.longitude,
-        altitude_m=reference.altitude_m,
+        latitude=coerce_optional_decimal(reference.latitude),
+        longitude=coerce_optional_decimal(reference.longitude),
+        altitude_m=coerce_optional_decimal(reference.altitude_m),
         climate_zone_id=zone.id if has_valid_reference_zone and zone is not None else None,
         climate_zone_code=zone.code if zone is not None else None,
         climate_zone_mapping_method=("reference" if has_valid_reference_zone else None),

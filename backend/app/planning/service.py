@@ -25,6 +25,7 @@ from backend.app.planning.inference import (
 )
 from backend.app.planning.json_types import canonical_decimal_string, canonical_json_value
 from backend.app.planning.location import resolve_location_input, resolved_location_payload
+from backend.app.planning.normalization import coerce_optional_decimal
 from backend.app.planning.repository import (
     create_running_run,
     create_task,
@@ -253,12 +254,20 @@ async def _load_candidates(
             else row.township
         )
         candidate_altitude = (
-            reference.altitude_m
+            coerce_optional_decimal(reference.altitude_m)
             if reference is not None and reference.altitude_m is not None
-            else row.altitude_m
+            else coerce_optional_decimal(row.altitude_m)
         )
-        candidate_latitude = reference.latitude if reference is not None else None
-        candidate_longitude = reference.longitude if reference is not None else None
+        candidate_latitude = (
+            coerce_optional_decimal(reference.latitude)
+            if reference is not None and reference.latitude is not None
+            else None
+        )
+        candidate_longitude = (
+            coerce_optional_decimal(reference.longitude)
+            if reference is not None and reference.longitude is not None
+            else None
+        )
         candidate_climate_zone_id = (
             reference.climate_zone_id
             if reference is not None and reference.climate_zone_id is not None
