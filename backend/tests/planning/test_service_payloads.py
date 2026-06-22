@@ -91,6 +91,16 @@ def test_variety_payload_hides_internal_storage_keys_from_public_parameter_paylo
         source_observation_ids=(1, 2),
         fallback_below_minimum=False,
         missing_evidence=(),
+        source_version="param-v1",
+        source_versions=("param-v1",),
+        distance_range_km=(Decimal("1.250000"), Decimal("2.500000")),
+        altitude_difference_range_m=(Decimal("10"), Decimal("20")),
+        historical_mape=Decimal("0.1000000000"),
+        date_mae_days=Decimal("2"),
+        p90_coverage=Decimal("0.8500000000"),
+        historical_mape_observation_count=2,
+        date_mae_days_observation_count=2,
+        p90_coverage_observation_count=2,
     )
     row = _parameter_row(
         variety_id=1,
@@ -112,6 +122,16 @@ def test_variety_payload_hides_internal_storage_keys_from_public_parameter_paylo
         source_observation_ids=(),
         fallback_below_minimum=False,
         missing_evidence=("no_historical_observations",),
+        source_version=None,
+        source_versions=(),
+        distance_range_km=None,
+        altitude_difference_range_m=None,
+        historical_mape=None,
+        date_mae_days=None,
+        p90_coverage=None,
+        historical_mape_observation_count=0,
+        date_mae_days_observation_count=0,
+        p90_coverage_observation_count=0,
     )
     rate_row = _parameter_row(
         variety_id=1,
@@ -139,6 +159,21 @@ def test_variety_payload_hides_internal_storage_keys_from_public_parameter_paylo
 
     assert "variety_id" not in payload["yield_kg_per_mu"]
     assert "parameter_type" not in payload["yield_kg_per_mu"]
+    assert payload["yield_kg_per_mu"]["source_version"] == "param-v1"
+    assert payload["yield_kg_per_mu"]["source_versions"] == ["param-v1"]
+    assert payload["yield_kg_per_mu"]["distance_range_km"] == {
+        "min": "1.250000",
+        "max": "2.500000",
+    }
+    assert payload["yield_kg_per_mu"]["altitude_difference_range_m"] == {
+        "min": "10",
+        "max": "20",
+    }
+    assert payload["yield_kg_per_mu"]["historical_mape"] == "0.1000000000"
+    assert payload["yield_kg_per_mu"]["date_mae_days"] == "2"
+    assert payload["yield_kg_per_mu"]["p90_coverage"] == "0.8500000000"
+    assert payload["yield_kg_per_mu"]["fallback_below_minimum"] is False
+    assert payload["yield_kg_per_mu"]["missing_evidence"] == []
 
 
 def test_completed_and_rehydrated_variety_payloads_match_exactly() -> None:
@@ -157,6 +192,16 @@ def test_completed_and_rehydrated_variety_payloads_match_exactly() -> None:
         source_observation_ids=(1, 2),
         fallback_below_minimum=False,
         missing_evidence=(),
+        source_version="param-v1",
+        source_versions=("param-v1",),
+        distance_range_km=(Decimal("1.250000"), Decimal("2.500000")),
+        altitude_difference_range_m=(Decimal("10"), Decimal("20")),
+        historical_mape=Decimal("0.1000000000"),
+        date_mae_days=Decimal("2"),
+        p90_coverage=Decimal("0.8500000000"),
+        historical_mape_observation_count=2,
+        date_mae_days_observation_count=2,
+        p90_coverage_observation_count=2,
     )
     rate = replace(
         base,
@@ -226,6 +271,15 @@ def test_completed_and_rehydrated_variety_payloads_match_exactly() -> None:
             "season_count": row["season_count"],
             "farm_count": row["farm_count"],
             "source_observation_ids": list(row["source_observation_ids"]),
+            "source_version": row["source_version"],
+            "source_versions": row["source_versions"],
+            "distance_range_km": row["distance_range_km"],
+            "altitude_difference_range_m": row["altitude_difference_range_m"],
+            "historical_mape": row["historical_mape"],
+            "date_mae_days": row["date_mae_days"],
+            "p90_coverage": row["p90_coverage"],
+            "fallback_below_minimum": row["fallback_below_minimum"],
+            "missing_evidence": row["missing_evidence"],
             "source_metadata": row["source_metadata"],
             "uncertainty_metadata": row["uncertainty_metadata"],
         }

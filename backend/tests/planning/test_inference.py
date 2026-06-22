@@ -20,6 +20,7 @@ from backend.app.planning.inference import (
     merge_duplicate_varieties,
 )
 from backend.app.planning.schemas import CandidateObservation, ResolvedLocation
+from backend.app.planning.similarity import haversine_distance_km
 
 
 def _rules() -> ParameterInferenceRules:
@@ -76,12 +77,15 @@ def _candidate(
     season_end_date: date | None = date(2025, 4, 30),
     available_at: date | None = date(2025, 5, 1),
     historical_mape: str | None = "0.10",
+    date_mae_days: str | None = "2",
+    p90_coverage: str | None = "0.85",
     distance_latlon: tuple[str, str] = ("24.400000", "103.400000"),
     altitude_m: str | None = "1800",
     township: str | None = "西三镇",
     county: str | None = "弥勒市",
     climate_zone_id: int | None = 10,
     farm_name: str | None = None,
+    source_version: str = "v1",
 ) -> CandidateObservation:
     return CandidateObservation(
         observation_id=observation_id,
@@ -110,12 +114,12 @@ def _candidate(
         season_code=season_code,
         season_end_date=season_end_date,
         historical_mape=Decimal(historical_mape) if historical_mape is not None else None,
-        date_mae_days=Decimal("2"),
-        p90_coverage=Decimal("0.85"),
+        date_mae_days=Decimal(date_mae_days) if date_mae_days is not None else None,
+        p90_coverage=Decimal(p90_coverage) if p90_coverage is not None else None,
         valid_from=date(2024, 1, 1),
         valid_to=None,
         available_at=available_at,
-        source_version="v1",
+        source_version=source_version,
     )
 
 
@@ -249,6 +253,9 @@ def _resolved_location() -> ResolvedLocation:
         warnings=(),
         candidates=(),
         reproducibility_snapshot={},
+        climate_zone_distance_km=None,
+        climate_zone_altitude_difference_m=Decimal("0"),
+        climate_zone_score=Decimal("1.0"),
     )
 
 
@@ -337,3 +344,98 @@ def test_infer_parameter_uses_similarity_rank_for_source_observation_order() -> 
 
     assert result.status == "available"
     assert result.source_observation_ids == (2, 1)
+
+
+def test_infer_parameter_exposes_selected_audit_ranges_and_weighted_metrics() -> None:
+    result = infer_parameter(
+        parameter_type="yield_kg_per_mu",
+        candidates=[
+            _candidate(
+                observation_id=1,
+                scalar_value="900",
+                sample_weight="1",
+                source_level="same_farm_variety",
+                season_code="2024-2025",
+                historical_mape="0.10",
+                date_mae_days="2",
+                p90_coverage="0.80",
+                distance_latlon=("24.401000", "103.401000"),
+                altitude_m="1810",
+                source_version="param-v2",
+            ),
+            _candidate(
+                observation_id=2,
+                scalar_value="1000",
+                sample_weight="3",
+                source_level="same_farm_variety",
+                season_code="2023-2024",
+                season_end_date=date(2024, 4, 30),
+                available_at=date(2024, 5, 1),
+                historical_mape="0.30",
+                date_mae_days="4",
+                p90_coverage="0.90",
+                distance_latlon=("24.430000", "103.430000"),
+                altitude_m=None,
+                source_version="param-v1",
+            ),
+        ],
+        rules=_rules(),
+        resolved_location=_resolved_location(),
+        as_of_date=date(2026, 1, 1),
+    )
+
+    expected_min_distance = haversine_distance_km(24.4, 103.4, 24.401, 103.401)
+    expected_max_distance = haversine_distance_km(24.4, 103.4, 24.43, 103.43)
+
+    assert result.status == "available"
+    assert result.source_version is None
+    assert result.source_versions == ("param-v1", "param-v2")
+    assert result.distance_range_km == (expected_min_distance, expected_max_distance)
+    assert result.altitude_difference_range_m == (Decimal("10.0"), Decimal("10.0"))
+    assert result.historical_mape == Decimal("0.25")
+    assert result.date_mae_days == Decimal("3.5")
+    assert result.p90_coverage == Decimal("0.875")
+    assert result.historical_mape_observation_count == 2
+    assert result.date_mae_days_observation_count == 2
+    assert result.p90_coverage_observation_count == 2
+
+
+def test_infer_parameter_returns_none_for_missing_optional_audit_fields() -> None:
+    result = infer_parameter(
+        parameter_type="yield_kg_per_mu",
+        candidates=[
+            _candidate(
+                observation_id=1,
+                scalar_value="900",
+                source_level="same_farm_variety",
+                historical_mape=None,
+                date_mae_days=None,
+                p90_coverage=None,
+                altitude_m=None,
+            ),
+            _candidate(
+                observation_id=2,
+                scalar_value="1000",
+                source_level="same_farm_variety",
+                season_code="2023-2024",
+                season_end_date=date(2024, 4, 30),
+                available_at=date(2024, 5, 1),
+                historical_mape=None,
+                date_mae_days=None,
+                p90_coverage=None,
+                altitude_m=None,
+            ),
+        ],
+        rules=_rules(),
+        resolved_location=_resolved_location(),
+        as_of_date=date(2026, 1, 1),
+    )
+
+    assert result.status == "available"
+    assert result.altitude_difference_range_m is None
+    assert result.historical_mape is None
+    assert result.date_mae_days is None
+    assert result.p90_coverage is None
+    assert result.historical_mape_observation_count == 0
+    assert result.date_mae_days_observation_count == 0
+    assert result.p90_coverage_observation_count == 0

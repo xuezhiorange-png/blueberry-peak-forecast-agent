@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import date
 from decimal import Decimal
 from difflib import SequenceMatcher
-from typing import Literal
+from typing import Literal, cast
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.baseline.json_types import canonical_json_value
 from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.planning.config import ParameterInferenceRules
 from backend.app.planning.normalization import (
@@ -20,14 +21,20 @@ from backend.app.planning.schemas import ResolvedLocation
 from backend.app.planning.similarity import haversine_distance_km
 
 type ResolvedStatus = Literal["resolved", "ambiguous", "unresolved"]
-type ClimateZoneResolution = tuple[
-    int | None,
-    str | None,
-    str | None,
-    str | None,
-    Decimal | None,
-    str | None,
-]
+
+
+@dataclass(frozen=True)
+class ClimateZoneResolution:
+    zone_id: int | None
+    zone_code: str | None
+    zone_version: str | None
+    mapping_method: str | None
+    confidence: Decimal | None
+    distance_km: Decimal | None
+    altitude_difference_m: Decimal | None
+    score: Decimal | None
+    warning: str | None
+    candidate_count: int = 0
 
 
 def _text_or_none(location: dict[str, object], key: str) -> str | None:
@@ -122,6 +129,8 @@ def _resolved_from_reference(
     warnings: tuple[str, ...] = (),
     candidates: tuple[dict[str, object], ...] = (),
 ) -> ResolvedLocation:
+    altitude_difference_m = _altitude_difference_to_zone_range(zone, reference.altitude_m)
+    score = Decimal("1") if reference.climate_zone_id is not None else None
     return ResolvedLocation(
         status=status,
         location_reference_id=reference.id,
@@ -153,8 +162,17 @@ def _resolved_from_reference(
             "source_version": reference.source_version,
             "source_row_hash": reference.source_row_hash,
             "climate_zone_version": zone.zone_version if zone is not None else None,
+            "climate_zone_mapping_method": (
+                "reference" if reference.climate_zone_id is not None else None
+            ),
+            "climate_zone_distance_km": None,
+            "climate_zone_altitude_difference_m": altitude_difference_m,
+            "climate_zone_score": score,
         },
         climate_zone_version=zone.zone_version if zone is not None else None,
+        climate_zone_distance_km=None,
+        climate_zone_altitude_difference_m=altitude_difference_m,
+        climate_zone_score=score,
     )
 
 
@@ -190,8 +208,31 @@ async def _map_climate_zone(
     if county_matches:
         if len(county_matches) == 1:
             zone = county_matches[0]
-            return zone.id, zone.code, zone.zone_version, "county", Decimal("1"), None
-        return None, None, None, None, None, "climate_zone_conflict"
+            score = Decimal("1")
+            return ClimateZoneResolution(
+                zone_id=zone.id,
+                zone_code=zone.code,
+                zone_version=zone.zone_version,
+                mapping_method="county",
+                confidence=score,
+                distance_km=None,
+                altitude_difference_m=_altitude_difference_to_zone_range(zone, altitude_m),
+                score=score,
+                warning=None,
+                candidate_count=len(county_matches),
+            )
+        return ClimateZoneResolution(
+            zone_id=None,
+            zone_code=None,
+            zone_version=None,
+            mapping_method=None,
+            confidence=None,
+            distance_km=None,
+            altitude_difference_m=None,
+            score=None,
+            warning="climate_zone_conflict",
+            candidate_count=len(county_matches),
+        )
 
     prefecture_matches = [
         zone
@@ -203,15 +244,31 @@ async def _map_climate_zone(
     if prefecture_matches:
         if len(prefecture_matches) == 1:
             zone = prefecture_matches[0]
-            return (
-                zone.id,
-                zone.code,
-                zone.zone_version,
-                "prefecture",
-                Decimal("0.8"),
-                None,
+            score = Decimal("0.8")
+            return ClimateZoneResolution(
+                zone_id=zone.id,
+                zone_code=zone.code,
+                zone_version=zone.zone_version,
+                mapping_method="prefecture",
+                confidence=score,
+                distance_km=None,
+                altitude_difference_m=_altitude_difference_to_zone_range(zone, altitude_m),
+                score=score,
+                warning=None,
+                candidate_count=len(prefecture_matches),
             )
-        return None, None, None, None, None, "climate_zone_conflict"
+        return ClimateZoneResolution(
+            zone_id=None,
+            zone_code=None,
+            zone_version=None,
+            mapping_method=None,
+            confidence=None,
+            distance_km=None,
+            altitude_difference_m=None,
+            score=None,
+            warning="climate_zone_conflict",
+            candidate_count=len(prefecture_matches),
+        )
 
     nearest_candidates: list[tuple[AgroClimateZone, Decimal]] = []
     for zone in zones:
@@ -231,22 +288,73 @@ async def _map_climate_zone(
         nearest_candidates.append((zone, distance))
 
     if not nearest_candidates:
-        return None, None, None, None, None, None
+        return ClimateZoneResolution(
+            zone_id=None,
+            zone_code=None,
+            zone_version=None,
+            mapping_method=None,
+            confidence=None,
+            distance_km=None,
+            altitude_difference_m=None,
+            score=None,
+            warning=None,
+            candidate_count=0,
+        )
 
     candidate_zones = [zone for zone, _ in nearest_candidates]
     if _zone_version_conflict(candidate_zones):
-        return None, None, None, None, None, "climate_zone_conflict"
+        return ClimateZoneResolution(
+            zone_id=None,
+            zone_code=None,
+            zone_version=None,
+            mapping_method=None,
+            confidence=None,
+            distance_km=None,
+            altitude_difference_m=None,
+            score=None,
+            warning="climate_zone_conflict",
+            candidate_count=len(nearest_candidates),
+        )
 
-    zone, distance = min(nearest_candidates, key=lambda item: (item[1], item[0].id))
-    confidence = max(Decimal("0"), Decimal("1") - distance / Decimal("100"))
-    return (
-        zone.id,
-        zone.code,
-        zone.zone_version,
-        "nearest_zone",
-        confidence,
-        None,
+    scored_candidates = [
+        (
+            zone,
+            distance,
+            (Decimal("1") / (Decimal("1") + distance)).quantize(Decimal("0.000001")),
+        )
+        for zone, distance in nearest_candidates
+    ]
+    zone, distance, score = max(
+        scored_candidates,
+        key=lambda item: (item[2], -item[1], -Decimal(item[0].id)),
     )
+    return ClimateZoneResolution(
+        zone_id=zone.id,
+        zone_code=zone.code,
+        zone_version=zone.zone_version,
+        mapping_method="nearest_zone",
+        confidence=score,
+        distance_km=distance,
+        altitude_difference_m=_altitude_difference_to_zone_range(zone, altitude_m),
+        score=score,
+        warning=None,
+        candidate_count=len(nearest_candidates),
+    )
+
+
+def _altitude_difference_to_zone_range(
+    zone: AgroClimateZone | None,
+    altitude_m: Decimal | None,
+) -> Decimal | None:
+    if zone is None or altitude_m is None:
+        return None
+    if zone.min_altitude_m is None and zone.max_altitude_m is None:
+        return None
+    if zone.min_altitude_m is not None and altitude_m < zone.min_altitude_m:
+        return zone.min_altitude_m - altitude_m
+    if zone.max_altitude_m is not None and altitude_m > zone.max_altitude_m:
+        return altitude_m - zone.max_altitude_m
+    return Decimal("0")
 
 
 def _unresolved_location(
@@ -279,6 +387,9 @@ def _unresolved_location(
         candidates=(),
         reproducibility_snapshot={},
         climate_zone_version=None,
+        climate_zone_distance_km=None,
+        climate_zone_altitude_difference_m=None,
+        climate_zone_score=None,
     )
 
 
@@ -357,14 +468,7 @@ async def resolve_location_input(
         farm_name = _text_or_none(location, "farm_name")
 
         nearest_reference = nearest[0] if nearest is not None else None
-        (
-            zone_id,
-            zone_code,
-            zone_version,
-            mapping_method,
-            zone_confidence,
-            zone_warning,
-        ) = await _map_climate_zone(
+        zone_resolution = await _map_climate_zone(
             session,
             province=province or (nearest_reference.province if nearest_reference else None),
             prefecture=(
@@ -377,15 +481,17 @@ async def resolve_location_input(
             as_of_date=as_of_date,
             rules=rules,
         )
-        if zone_warning is not None:
-            warnings.append(zone_warning)
+        if zone_resolution.warning is not None:
+            warnings.append(zone_resolution.warning)
         location_reference_value = None
         if (
             nearest is not None
             and nearest[1] <= rules.resolver.nearest_reference_distance_km
         ):
             location_reference_value = nearest[0].id
-        status: ResolvedStatus = "resolved" if zone_warning is None else "unresolved"
+        status: ResolvedStatus = (
+            "resolved" if zone_resolution.warning is None else "unresolved"
+        )
         return ResolvedLocation(
             status=status,
             location_reference_id=location_reference_value,
@@ -404,11 +510,11 @@ async def resolve_location_input(
             latitude=latitude_value,
             longitude=longitude_value,
             altitude_m=chosen_altitude,
-            climate_zone_id=zone_id,
-            climate_zone_code=zone_code,
-            climate_zone_mapping_method=mapping_method,
-            climate_zone_confidence=zone_confidence,
-            candidate_count=1,
+            climate_zone_id=zone_resolution.zone_id,
+            climate_zone_code=zone_resolution.zone_code,
+            climate_zone_mapping_method=zone_resolution.mapping_method,
+            climate_zone_confidence=zone_resolution.confidence,
+            candidate_count=zone_resolution.candidate_count,
             confidence_score=(
                 Decimal("1") if nearest_reference is not None else Decimal("0.8")
             ),
@@ -421,9 +527,18 @@ async def resolve_location_input(
                 "nearest_reference_distance_km": (
                     str(nearest[1]) if nearest is not None else None
                 ),
-                "climate_zone_version": zone_version,
+                "climate_zone_version": zone_resolution.zone_version,
+                "climate_zone_mapping_method": zone_resolution.mapping_method,
+                "climate_zone_distance_km": zone_resolution.distance_km,
+                "climate_zone_altitude_difference_m": (
+                    zone_resolution.altitude_difference_m
+                ),
+                "climate_zone_score": zone_resolution.score,
             },
-            climate_zone_version=zone_version,
+            climate_zone_version=zone_resolution.zone_version,
+            climate_zone_distance_km=zone_resolution.distance_km,
+            climate_zone_altitude_difference_m=zone_resolution.altitude_difference_m,
+            climate_zone_score=zone_resolution.score,
         )
 
     if isinstance(address, str):
@@ -493,4 +608,4 @@ async def resolve_location_input(
 
 
 def resolved_location_payload(location: ResolvedLocation) -> dict[str, object]:
-    return asdict(location)
+    return cast(dict[str, object], canonical_json_value(asdict(location)))
