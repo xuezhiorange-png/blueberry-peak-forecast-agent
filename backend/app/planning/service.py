@@ -278,6 +278,14 @@ def _parameter_row(
     }
 
 
+def _public_parameter_payload(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in row.items()
+        if key not in {"variety_id", "parameter_type"}
+    }
+
+
 def _effective_volume_summary(
     planted_area_mu: Decimal,
     yield_row: dict[str, Any],
@@ -305,30 +313,34 @@ def _variety_payload(
     inferred_rows: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     planted_area_mu = cast(Decimal, variety["planted_area_mu"])
+    public_rows = {
+        parameter_type: _public_parameter_payload(payload)
+        for parameter_type, payload in inferred_rows.items()
+    }
     return {
         "variety_id": variety["variety_id"],
         "variety_code": variety["variety_code"],
         "variety_name": variety["variety_name"],
         "planted_area_mu": planted_area_mu,
-        "yield_kg_per_mu": inferred_rows["yield_kg_per_mu"],
-        "marketable_rate": inferred_rows["marketable_rate"],
+        "yield_kg_per_mu": public_rows["yield_kg_per_mu"],
+        "marketable_rate": public_rows["marketable_rate"],
         "estimated_effective_volume_kg": _effective_volume_summary(
             planted_area_mu,
-            inferred_rows["yield_kg_per_mu"],
-            inferred_rows["marketable_rate"],
+            public_rows["yield_kg_per_mu"],
+            public_rows["marketable_rate"],
         ),
-        "first_harvest_offset_days": inferred_rows["first_harvest_offset_days"],
-        "maturity_peak_offset_days": inferred_rows["maturity_peak_offset_days"],
-        "maturity_width_days": inferred_rows["maturity_width_days"],
-        "maturity_skewness": inferred_rows["maturity_skewness"],
-        "harvest_realization_rate": inferred_rows["harvest_realization_rate"],
+        "first_harvest_offset_days": public_rows["first_harvest_offset_days"],
+        "maturity_peak_offset_days": public_rows["maturity_peak_offset_days"],
+        "maturity_width_days": public_rows["maturity_width_days"],
+        "maturity_skewness": public_rows["maturity_skewness"],
+        "harvest_realization_rate": public_rows["harvest_realization_rate"],
         "source": {
-            "yield": inferred_rows["yield_kg_per_mu"].get("source_level"),
-            "marketable_rate": inferred_rows["marketable_rate"].get("source_level"),
+            "yield": public_rows["yield_kg_per_mu"].get("source_level"),
+            "marketable_rate": public_rows["marketable_rate"].get("source_level"),
         },
         "confidence": {
-            "yield": inferred_rows["yield_kg_per_mu"].get("confidence_level"),
-            "marketable_rate": inferred_rows["marketable_rate"].get("confidence_level"),
+            "yield": public_rows["yield_kg_per_mu"].get("confidence_level"),
+            "marketable_rate": public_rows["marketable_rate"].get("confidence_level"),
         },
     }
 
