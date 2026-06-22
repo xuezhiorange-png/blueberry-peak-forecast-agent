@@ -57,6 +57,10 @@ def _sanitize_error_message(message: str) -> str:
     return " ".join(str(message).replace("\n", " ").replace("\r", " ").split())[:500]
 
 
+def _compact_location_payload(location: dict[str, Any]) -> dict[str, Any]:
+    return {str(key): value for key, value in location.items() if value is not None}
+
+
 async def _normalize_payload(
     session: AsyncSession,
     *,
@@ -65,6 +69,7 @@ async def _normalize_payload(
     location = payload.get("location")
     if not isinstance(location, dict):
         raise ValueError("location must be an object")
+    normalized_location = _compact_location_payload(location)
 
     raw_varieties = payload.get("varieties")
     if not isinstance(raw_varieties, list) or not raw_varieties:
@@ -113,7 +118,7 @@ async def _normalize_payload(
         for item in deduped
     }
     normalized_input = {
-        "location": location,
+        "location": normalized_location,
         "varieties": [
             {
                 "variety_id": item["variety_id"],

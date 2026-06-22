@@ -4,6 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from backend.app.planning.hashing import input_hash, source_signature
+from backend.app.planning.service import _compact_location_payload
 
 
 def test_input_hash_is_stable_for_same_normalized_payload() -> None:
@@ -20,6 +21,24 @@ def test_input_hash_is_stable_for_same_normalized_payload() -> None:
 
     assert first == second
     assert len(first) == 64
+
+
+def test_compact_location_payload_drops_none_fields_for_stable_hash_inputs() -> None:
+    assert _compact_location_payload(
+        {
+            "address": "云南省 红河州 弥勒市 西三镇",
+            "latitude": None,
+            "longitude": None,
+            "location_reference_id": None,
+            "altitude_m": None,
+            "province": None,
+            "prefecture": None,
+            "county": None,
+            "township": None,
+            "village": None,
+            "farm_name": None,
+        }
+    ) == {"address": "云南省 红河州 弥勒市 西三镇"}
 
 
 def test_source_signature_is_stable_for_sorted_pure_values() -> None:
@@ -41,4 +60,3 @@ def test_source_signature_is_stable_for_sorted_pure_values() -> None:
     )
 
     assert first == second
-
