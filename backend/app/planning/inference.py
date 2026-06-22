@@ -60,14 +60,14 @@ def _group_candidates(
     grouped: dict[str, list[RankedObservation]] = defaultdict(list)
     for candidate in candidates:
         grouped[candidate.source_level].append(
-            RankedObservation(
-                observation_id=candidate.observation_id,
-                source_level=candidate.source_level,
-                similarity_score=Decimal("0"),
-                distance_km=Decimal("0"),
-                altitude_difference_m=None,
-                candidate=candidate,
-            )
+                RankedObservation(
+                    observation_id=candidate.observation_id,
+                    source_level=candidate.source_level,
+                    similarity_score=Decimal("0"),
+                    distance_km=None,
+                    altitude_difference_m=None,
+                    candidate=candidate,
+                )
         )
     return dict(grouped)
 
@@ -321,7 +321,9 @@ def infer_parameter(
         p90_coverage = max(Decimal("0"), min(Decimal("1"), p90_coverage))
     source_versions = _source_versions(selected_ranked)
     source_version = source_versions[0] if len(source_versions) == 1 else None
-    distance_range_km = _range([item.distance_km for item in selected_ranked])
+    distance_range_km = _range(
+        [item.distance_km for item in selected_ranked if item.distance_km is not None]
+    )
     altitude_difference_range_m = _range(
         [
             item.altitude_difference_m
@@ -338,6 +340,10 @@ def infer_parameter(
         location_status=(resolved_location.status if resolved_location is not None else "resolved"),
         rules=rules,
     )
+    missing_list = list(missing)
+    if any(item.distance_km is None for item in selected_ranked):
+        missing_list.append("historical_coordinates")
+    missing = tuple(dict.fromkeys(missing_list))
     if confidence_level == "low":
         lower, upper = widen_interval(
             lower,

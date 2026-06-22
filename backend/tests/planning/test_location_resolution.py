@@ -190,6 +190,7 @@ async def test_resolve_location_coordinate_county_mapping_reports_altitude_bound
             "latitude": "24.400000",
             "longitude": "103.400000",
             "altitude_m": "2000",
+            "province": "云南省",
             "county": "弥勒市",
         },
         as_of_date=date(2026, 1, 1),
@@ -308,6 +309,7 @@ async def test_resolve_location_coordinate_conflict_clears_zone_audit_fields(
         location={
             "latitude": "24.400000",
             "longitude": "103.400000",
+            "province": "云南省",
             "county": "弥勒市",
         },
         as_of_date=date(2026, 1, 1),
@@ -319,3 +321,204 @@ async def test_resolve_location_coordinate_conflict_clears_zone_audit_fields(
     assert result.climate_zone_distance_km is None
     assert result.climate_zone_altitude_difference_m is None
     assert result.climate_zone_score is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_location_coordinate_without_any_zone_candidates_is_unresolved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_references(session: object, *, as_of_date: date) -> list[LocationReference]:
+        return []
+
+    async def fake_zones(session: object, *, as_of_date: date) -> list[AgroClimateZone]:
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_location_references",
+        fake_references,
+    )
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_climate_zones",
+        fake_zones,
+    )
+
+    result = await resolve_location_input(
+        cast(Any, object()),
+        location={
+            "latitude": "24.400000",
+            "longitude": "103.400000",
+            "altitude_m": "1800",
+        },
+        as_of_date=date(2026, 1, 1),
+        rules=_rules(),
+    )
+
+    assert result.status == "unresolved"
+    assert "climate_zone_unresolved" in result.warnings
+    assert result.climate_zone_mapping_method is None
+    assert result.climate_zone_distance_km is None
+    assert result.climate_zone_altitude_difference_m is None
+    assert result.climate_zone_score is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_location_reference_without_bound_climate_zone_is_unresolved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference = _reference(climate_zone_id=None)
+
+    async def fake_references(session: object, *, as_of_date: date) -> list[LocationReference]:
+        return [reference]
+
+    async def fake_zones(session: object, *, as_of_date: date) -> list[AgroClimateZone]:
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_location_references",
+        fake_references,
+    )
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_climate_zones",
+        fake_zones,
+    )
+
+    result = await resolve_location_input(
+        cast(Any, object()),
+        location={"location_reference_id": 1},
+        as_of_date=date(2026, 1, 1),
+        rules=_rules(),
+    )
+
+    assert result.status == "unresolved"
+    assert "climate_zone_unresolved" in result.warnings
+    assert result.climate_zone_mapping_method is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_location_reference_with_invalid_zone_as_of_date_is_unresolved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference = _reference(climate_zone_id=10)
+
+    async def fake_references(session: object, *, as_of_date: date) -> list[LocationReference]:
+        return [reference]
+
+    async def fake_zones(session: object, *, as_of_date: date) -> list[AgroClimateZone]:
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_location_references",
+        fake_references,
+    )
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_climate_zones",
+        fake_zones,
+    )
+
+    result = await resolve_location_input(
+        cast(Any, object()),
+        location={"location_reference_id": 1},
+        as_of_date=date(2026, 1, 1),
+        rules=_rules(),
+    )
+
+    assert result.status == "unresolved"
+    assert "climate_zone_not_valid_as_of_date" in result.warnings
+    assert result.climate_zone_mapping_method is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_location_reference_with_conflicting_zone_versions_is_unresolved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference = _reference(climate_zone_id=10)
+    zones = [
+        _zone(zone_id=10, code="ZONE-A"),
+        _zone(zone_id=11, code="ZONE-A", zone_version="zone-v2"),
+    ]
+
+    async def fake_references(session: object, *, as_of_date: date) -> list[LocationReference]:
+        return [reference]
+
+    async def fake_zones(session: object, *, as_of_date: date) -> list[AgroClimateZone]:
+        return zones
+
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_location_references",
+        fake_references,
+    )
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_climate_zones",
+        fake_zones,
+    )
+
+    result = await resolve_location_input(
+        cast(Any, object()),
+        location={"location_reference_id": 1},
+        as_of_date=date(2026, 1, 1),
+        rules=_rules(),
+    )
+
+    assert result.status == "unresolved"
+    assert "climate_zone_conflict" in result.warnings
+    assert result.climate_zone_mapping_method is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_ambiguous_address_keeps_ambiguous_status_when_reference_zone_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    references = [
+        _reference(climate_zone_id=None),
+        LocationReference(
+            id=2,
+            farm_id=None,
+            subfarm_id=None,
+            farm_code="farm-b",
+            farm_name="农场B",
+            subfarm_name=None,
+            address_raw="云南省 红河州 弥勒市 西三镇",
+            address_normalized="云南省 红河州 弥勒市 西三镇",
+            province="云南省",
+            prefecture="红河州",
+            county="弥勒市",
+            township="西三镇",
+            village=None,
+            latitude=Decimal("24.401000"),
+            longitude=Decimal("103.401000"),
+            altitude_m=Decimal("1800"),
+            climate_zone_id=None,
+            location_source="synthetic",
+            source_version="loc-v1",
+            valid_from=date(2024, 1, 1),
+            valid_to=None,
+            source_row_hash="row-hash-b",
+        ),
+    ]
+
+    async def fake_references(session: object, *, as_of_date: date) -> list[LocationReference]:
+        return references
+
+    async def fake_zones(session: object, *, as_of_date: date) -> list[AgroClimateZone]:
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_location_references",
+        fake_references,
+    )
+    monkeypatch.setattr(
+        "backend.app.planning.location._valid_climate_zones",
+        fake_zones,
+    )
+
+    result = await resolve_location_input(
+        cast(Any, object()),
+        location={"address": "云南省 红河州 弥勒市 西三镇"},
+        as_of_date=date(2026, 1, 1),
+        rules=_rules(),
+    )
+
+    assert result.status == "ambiguous"
+    assert "address_ambiguous" in result.warnings
+    assert "climate_zone_unresolved" in result.warnings
+    assert result.climate_zone_mapping_method is None

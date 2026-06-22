@@ -108,8 +108,8 @@ def _candidate(
             else ("农场A" if source_level == "same_farm_variety" else None)
         ),
         altitude_m=Decimal(altitude_m) if altitude_m is not None else None,
-        latitude=Decimal(distance_latlon[0]),
-        longitude=Decimal(distance_latlon[1]),
+        latitude=Decimal(distance_latlon[0]) if distance_latlon[0] is not None else None,
+        longitude=Decimal(distance_latlon[1]) if distance_latlon[1] is not None else None,
         season_id=1 if season_code is not None else None,
         season_code=season_code,
         season_end_date=season_end_date,

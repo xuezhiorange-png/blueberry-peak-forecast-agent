@@ -64,22 +64,25 @@ def rank_parameter_candidates(
         return ranked
 
     for candidate in candidates:
-        distance_km = haversine_distance_km(
-            float(resolved_location.latitude),
-            float(resolved_location.longitude),
-            float(candidate.latitude),
-            float(candidate.longitude),
-        )
+        distance_km = None
+        if candidate.latitude is not None and candidate.longitude is not None:
+            distance_km = haversine_distance_km(
+                float(resolved_location.latitude),
+                float(resolved_location.longitude),
+                float(candidate.latitude),
+                float(candidate.longitude),
+            )
         altitude_difference_m = None
         if resolved_location.altitude_m is not None and candidate.altitude_m is not None:
             altitude_difference_m = abs(resolved_location.altitude_m - candidate.altitude_m)
 
         score = Decimal("0")
-        distance_ratio = max(
-            Decimal("0"),
-            Decimal("1") - (distance_km / rules.max_distance_km),
-        )
-        score += distance_ratio * rules.distance_weight
+        if distance_km is not None:
+            distance_ratio = max(
+                Decimal("0"),
+                Decimal("1") - (distance_km / rules.max_distance_km),
+            )
+            score += distance_ratio * rules.distance_weight
         if altitude_difference_m is not None:
             altitude_ratio = max(
                 Decimal("0"),
@@ -103,6 +106,17 @@ def rank_parameter_candidates(
             resolved_location.county is not None
             and candidate.county is not None
             and resolved_location.county == candidate.county
+            and resolved_location.province is not None
+            and candidate.province is not None
+            and resolved_location.province == candidate.province
+            and (
+                (resolved_location.prefecture is None and candidate.prefecture is None)
+                or (
+                    resolved_location.prefecture is not None
+                    and candidate.prefecture is not None
+                    and resolved_location.prefecture == candidate.prefecture
+                )
+            )
         ):
             score += rules.county_bonus
         if (
@@ -168,7 +182,7 @@ def select_fallback_level(
                         observation_id=row.observation_id,
                         source_level=row.source_level,
                         similarity_score=Decimal("0"),
-                        distance_km=Decimal("0"),
+                        distance_km=None,
                         altitude_difference_m=None,
                         candidate=row,
                     )

@@ -80,8 +80,8 @@ class CandidateObservation:
     township: str | None
     farm_name: str | None
     altitude_m: Decimal | None
-    latitude: Decimal
-    longitude: Decimal
+    latitude: Decimal | None
+    longitude: Decimal | None
     season_id: int | None
     season_code: str | None
     season_end_date: date | None
@@ -99,7 +99,7 @@ class RankedObservation:
     observation_id: int
     source_level: str
     similarity_score: Decimal
-    distance_km: Decimal
+    distance_km: Decimal | None
     altitude_difference_m: Decimal | None
     candidate: CandidateObservation
 

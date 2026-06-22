@@ -128,11 +128,17 @@ def _resolved_from_reference(
     confidence_score: Decimal = Decimal("1"),
     warnings: tuple[str, ...] = (),
     candidates: tuple[dict[str, object], ...] = (),
+    preserve_status_without_zone: bool = False,
 ) -> ResolvedLocation:
+    has_valid_reference_zone = reference.climate_zone_id is not None and zone is not None
     altitude_difference_m = _altitude_difference_to_zone_range(zone, reference.altitude_m)
-    score = Decimal("1") if reference.climate_zone_id is not None else None
+    score = Decimal("1") if has_valid_reference_zone else None
     return ResolvedLocation(
-        status=status,
+        status=(
+            status
+            if has_valid_reference_zone or preserve_status_without_zone
+            else "unresolved"
+        ),
         location_reference_id=reference.id,
         address_raw=reference.address_raw,
         address_normalized=reference.address_normalized,
@@ -145,14 +151,10 @@ def _resolved_from_reference(
         latitude=reference.latitude,
         longitude=reference.longitude,
         altitude_m=reference.altitude_m,
-        climate_zone_id=reference.climate_zone_id,
+        climate_zone_id=zone.id if has_valid_reference_zone and zone is not None else None,
         climate_zone_code=zone.code if zone is not None else None,
-        climate_zone_mapping_method=(
-            "reference" if reference.climate_zone_id is not None else None
-        ),
-        climate_zone_confidence=(
-            Decimal("1") if reference.climate_zone_id is not None else None
-        ),
+        climate_zone_mapping_method=("reference" if has_valid_reference_zone else None),
+        climate_zone_confidence=(Decimal("1") if has_valid_reference_zone else None),
         candidate_count=candidate_count,
         confidence_score=confidence_score,
         warnings=warnings,
@@ -162,9 +164,7 @@ def _resolved_from_reference(
             "source_version": reference.source_version,
             "source_row_hash": reference.source_row_hash,
             "climate_zone_version": zone.zone_version if zone is not None else None,
-            "climate_zone_mapping_method": (
-                "reference" if reference.climate_zone_id is not None else None
-            ),
+            "climate_zone_mapping_method": ("reference" if has_valid_reference_zone else None),
             "climate_zone_distance_km": None,
             "climate_zone_altitude_difference_m": altitude_difference_m,
             "climate_zone_score": score,
@@ -181,11 +181,16 @@ async def _zone_for_reference(
     *,
     climate_zone_id: int | None,
     as_of_date: date,
-) -> AgroClimateZone | None:
+) -> tuple[AgroClimateZone | None, str | None]:
     if climate_zone_id is None:
-        return None
+        return None, "climate_zone_unresolved"
     zones = await _valid_climate_zones(session, as_of_date=as_of_date)
-    return next((zone for zone in zones if zone.id == climate_zone_id), None)
+    zone = next((item for item in zones if item.id == climate_zone_id), None)
+    if zone is None:
+        return None, "climate_zone_not_valid_as_of_date"
+    if len([item for item in zones if item.code == zone.code]) > 1:
+        return None, "climate_zone_conflict"
+    return zone, None
 
 
 async def _map_climate_zone(
@@ -203,7 +208,16 @@ async def _map_climate_zone(
     zones = await _valid_climate_zones(session, as_of_date=as_of_date)
 
     county_matches = [
-        zone for zone in zones if county is not None and zone.county == county
+        zone
+        for zone in zones
+        if county is not None
+        and zone.county == county
+        and province is not None
+        and zone.province == province
+        and (
+            prefecture is None
+            or (zone.prefecture is not None and zone.prefecture == prefecture)
+        )
     ]
     if county_matches:
         if len(county_matches) == 1:
@@ -297,7 +311,7 @@ async def _map_climate_zone(
             distance_km=None,
             altitude_difference_m=None,
             score=None,
-            warning=None,
+            warning="climate_zone_unresolved",
             candidate_count=0,
         )
 
@@ -424,11 +438,18 @@ async def resolve_location_input(
                 address_normalized=None,
                 warning="location_reference_not_valid_as_of_date",
             )
-        zone = await _zone_for_reference(
+        zone, zone_warning = await _zone_for_reference(
             session,
             climate_zone_id=reference.climate_zone_id,
             as_of_date=as_of_date,
         )
+        if zone_warning is not None:
+            return _resolved_from_reference(
+                reference,
+                zone=None,
+                status="unresolved",
+                warnings=(zone_warning,),
+            )
         return _resolved_from_reference(reference, zone=zone)
 
     if latitude is not None and longitude is not None:
@@ -574,7 +595,7 @@ async def resolve_location_input(
                 }
                 for score, item in scored[:5]
             )
-            zone = await _zone_for_reference(
+            zone, zone_warning = await _zone_for_reference(
                 session,
                 climate_zone_id=scored[0][1].climate_zone_id,
                 as_of_date=as_of_date,
@@ -585,14 +606,28 @@ async def resolve_location_input(
                 status="ambiguous",
                 candidate_count=len(scored),
                 confidence_score=scored[0][0],
-                warnings=("address_ambiguous",),
+                warnings=(
+                    ("address_ambiguous",)
+                    if zone_warning is None
+                    else ("address_ambiguous", zone_warning)
+                ),
                 candidates=candidates,
+                preserve_status_without_zone=True,
             )
-        zone = await _zone_for_reference(
+        zone, zone_warning = await _zone_for_reference(
             session,
             climate_zone_id=scored[0][1].climate_zone_id,
             as_of_date=as_of_date,
         )
+        if zone_warning is not None:
+            return _resolved_from_reference(
+                scored[0][1],
+                zone=None,
+                status="unresolved",
+                candidate_count=len(scored),
+                confidence_score=scored[0][0],
+                warnings=(zone_warning,),
+            )
         return _resolved_from_reference(
             scored[0][1],
             zone=zone,
