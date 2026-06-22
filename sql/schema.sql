@@ -314,3 +314,225 @@ CREATE INDEX IF NOT EXISTS ix_baseline_backtest_result_run_id ON baseline_backte
 CREATE INDEX IF NOT EXISTS ix_baseline_backtest_result_baseline_name ON baseline_backtest_result (baseline_name);
 CREATE INDEX IF NOT EXISTS ix_baseline_backtest_result_target_season_id ON baseline_backtest_result (target_season_id);
 CREATE INDEX IF NOT EXISTS ix_baseline_backtest_result_factory_id ON baseline_backtest_result (factory_id);
+
+CREATE TABLE IF NOT EXISTS dim_agro_climate_zone (
+  id BIGSERIAL CONSTRAINT pk_dim_agro_climate_zone PRIMARY KEY,
+  code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  country TEXT NOT NULL,
+  province TEXT NOT NULL,
+  prefecture TEXT,
+  county TEXT,
+  centroid_latitude NUMERIC(9,6) NOT NULL,
+  centroid_longitude NUMERIC(9,6) NOT NULL,
+  min_altitude_m NUMERIC(8,2),
+  max_altitude_m NUMERIC(8,2),
+  zone_version TEXT NOT NULL,
+  valid_from DATE NOT NULL,
+  valid_to DATE,
+  source_name TEXT NOT NULL,
+  source_version TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_dim_agro_climate_zone_code_version UNIQUE (code, zone_version),
+  CONSTRAINT ck_dim_agro_climate_zone_latitude_range CHECK (centroid_latitude >= -90 AND centroid_latitude <= 90),
+  CONSTRAINT ck_dim_agro_climate_zone_longitude_range CHECK (centroid_longitude >= -180 AND centroid_longitude <= 180),
+  CONSTRAINT ck_dim_agro_climate_zone_altitude_range CHECK (min_altitude_m IS NULL OR max_altitude_m IS NULL OR min_altitude_m <= max_altitude_m),
+  CONSTRAINT ck_dim_agro_climate_zone_valid_range CHECK (valid_to IS NULL OR valid_to >= valid_from)
+);
+
+CREATE TABLE IF NOT EXISTS climate_zone_import_run (
+  id BIGSERIAL CONSTRAINT pk_climate_zone_import_run PRIMARY KEY,
+  file_name TEXT NOT NULL,
+  file_sha256 TEXT NOT NULL,
+  zone_version TEXT,
+  source_name TEXT,
+  source_version TEXT,
+  status TEXT NOT NULL,
+  row_count BIGINT NOT NULL DEFAULT 0,
+  valid_row_count BIGINT NOT NULL DEFAULT 0,
+  invalid_row_count BIGINT NOT NULL DEFAULT 0,
+  inserted_count BIGINT NOT NULL DEFAULT 0,
+  skipped_count BIGINT NOT NULL DEFAULT 0,
+  conflict_count BIGINT NOT NULL DEFAULT 0,
+  report_json JSONB NOT NULL,
+  error_message TEXT,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  CONSTRAINT ck_climate_zone_import_run_status CHECK (status IN ('running', 'completed', 'failed'))
+);
+
+CREATE TABLE IF NOT EXISTS location_reference (
+  id BIGSERIAL CONSTRAINT pk_location_reference PRIMARY KEY,
+  farm_id BIGINT,
+  subfarm_id BIGINT,
+  farm_code TEXT,
+  farm_name TEXT,
+  subfarm_name TEXT,
+  address_raw TEXT,
+  address_normalized TEXT NOT NULL,
+  province TEXT,
+  prefecture TEXT,
+  county TEXT,
+  township TEXT,
+  village TEXT,
+  latitude NUMERIC(9,6) NOT NULL,
+  longitude NUMERIC(9,6) NOT NULL,
+  altitude_m NUMERIC(8,2),
+  climate_zone_id BIGINT,
+  location_source TEXT NOT NULL,
+  source_version TEXT NOT NULL,
+  valid_from DATE NOT NULL,
+  valid_to DATE,
+  source_row_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_location_reference_source_version_row_hash UNIQUE (source_version, source_row_hash),
+  CONSTRAINT ck_location_reference_latitude_range CHECK (latitude >= -90 AND latitude <= 90),
+  CONSTRAINT ck_location_reference_longitude_range CHECK (longitude >= -180 AND longitude <= 180),
+  CONSTRAINT ck_location_reference_valid_range CHECK (valid_to IS NULL OR valid_to >= valid_from),
+  CONSTRAINT fk_location_reference_farm_id_dim_farm FOREIGN KEY (farm_id) REFERENCES dim_farm(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_location_reference_subfarm_id_dim_subfarm FOREIGN KEY (subfarm_id) REFERENCES dim_subfarm(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_location_reference_climate_zone_id_dim_agro_climate_zone FOREIGN KEY (climate_zone_id) REFERENCES dim_agro_climate_zone(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS ix_location_reference_address_normalized ON location_reference (address_normalized);
+CREATE INDEX IF NOT EXISTS ix_location_reference_climate_zone_id ON location_reference (climate_zone_id);
+
+CREATE TABLE IF NOT EXISTS parameter_library_version (
+  id BIGSERIAL CONSTRAINT pk_parameter_library_version PRIMARY KEY,
+  version_code TEXT NOT NULL,
+  status TEXT NOT NULL,
+  source_name TEXT NOT NULL,
+  source_file_sha256 TEXT,
+  config_hash TEXT NOT NULL,
+  record_count BIGINT NOT NULL DEFAULT 0,
+  effective_from DATE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_parameter_library_version_version_code UNIQUE (version_code),
+  CONSTRAINT ck_parameter_library_version_status CHECK (status IN ('draft', 'active', 'retired', 'failed'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_parameter_library_version_active
+ON parameter_library_version (status)
+WHERE status = 'active';
+
+CREATE TABLE IF NOT EXISTS parameter_observation (
+  id BIGSERIAL CONSTRAINT pk_parameter_observation PRIMARY KEY,
+  library_version_id BIGINT NOT NULL,
+  parameter_type TEXT NOT NULL,
+  variety_id BIGINT NOT NULL,
+  farm_id BIGINT,
+  subfarm_id BIGINT,
+  location_reference_id BIGINT,
+  climate_zone_id BIGINT,
+  season_id BIGINT,
+  province TEXT,
+  prefecture TEXT,
+  county TEXT,
+  township TEXT,
+  altitude_m NUMERIC(8,2),
+  scalar_value NUMERIC(18,6) NOT NULL,
+  unit TEXT NOT NULL,
+  sample_weight NUMERIC(18,6) NOT NULL,
+  source_level TEXT NOT NULL,
+  source_name TEXT NOT NULL,
+  source_version TEXT NOT NULL,
+  historical_mape NUMERIC(12,10),
+  date_mae_days NUMERIC(12,6),
+  p90_coverage NUMERIC(12,10),
+  available_at DATE,
+  valid_from DATE NOT NULL,
+  valid_to DATE,
+  source_row_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_parameter_observation_library_row_hash UNIQUE (library_version_id, source_row_hash),
+  CONSTRAINT ck_parameter_observation_parameter_type CHECK (
+    parameter_type IN (
+      'yield_kg_per_mu',
+      'marketable_rate',
+      'first_harvest_offset_days',
+      'maturity_peak_offset_days',
+      'maturity_width_days',
+      'maturity_skewness',
+      'harvest_realization_rate'
+    )
+  ),
+  CONSTRAINT ck_parameter_observation_yield_positive CHECK (parameter_type != 'yield_kg_per_mu' OR scalar_value > 0),
+  CONSTRAINT ck_parameter_observation_marketable_rate_range CHECK (parameter_type != 'marketable_rate' OR (scalar_value >= 0 AND scalar_value <= 1)),
+  CONSTRAINT ck_parameter_observation_harvest_realization_rate_range CHECK (parameter_type != 'harvest_realization_rate' OR (scalar_value >= 0 AND scalar_value <= 1)),
+  CONSTRAINT ck_parameter_observation_width_positive CHECK (parameter_type != 'maturity_width_days' OR scalar_value > 0),
+  CONSTRAINT ck_parameter_observation_sample_weight_positive CHECK (sample_weight > 0),
+  CONSTRAINT ck_parameter_observation_valid_range CHECK (valid_to IS NULL OR valid_to >= valid_from),
+  CONSTRAINT fk_parameter_observation_library_version_id_parameter_library_version FOREIGN KEY (library_version_id) REFERENCES parameter_library_version(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_parameter_observation_variety_id_dim_variety FOREIGN KEY (variety_id) REFERENCES dim_variety(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_parameter_observation_farm_id_dim_farm FOREIGN KEY (farm_id) REFERENCES dim_farm(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_parameter_observation_subfarm_id_dim_subfarm FOREIGN KEY (subfarm_id) REFERENCES dim_subfarm(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_parameter_observation_location_reference_id_location_reference FOREIGN KEY (location_reference_id) REFERENCES location_reference(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_parameter_observation_climate_zone_id_dim_agro_climate_zone FOREIGN KEY (climate_zone_id) REFERENCES dim_agro_climate_zone(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_parameter_observation_season_id_dim_season FOREIGN KEY (season_id) REFERENCES dim_season(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS ix_parameter_observation_variety_id ON parameter_observation (variety_id);
+CREATE INDEX IF NOT EXISTS ix_parameter_observation_parameter_type ON parameter_observation (parameter_type);
+CREATE INDEX IF NOT EXISTS ix_parameter_observation_climate_zone_id ON parameter_observation (climate_zone_id);
+
+CREATE TABLE IF NOT EXISTS minimal_forecast_task (
+  id BIGSERIAL CONSTRAINT pk_minimal_forecast_task PRIMARY KEY,
+  input_payload JSONB NOT NULL,
+  normalized_input JSONB NOT NULL,
+  input_hash TEXT NOT NULL,
+  as_of_date DATE NOT NULL,
+  status TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  error_message TEXT,
+  CONSTRAINT uq_minimal_forecast_task_input_hash_as_of UNIQUE (input_hash, as_of_date),
+  CONSTRAINT ck_minimal_forecast_task_status CHECK (status IN ('created', 'resolving_location', 'inferring_parameters', 'parameters_ready', 'failed'))
+);
+
+CREATE TABLE IF NOT EXISTS parameter_inference_run (
+  id BIGSERIAL CONSTRAINT pk_parameter_inference_run PRIMARY KEY,
+  task_id BIGINT NOT NULL,
+  input_hash TEXT NOT NULL,
+  as_of_date DATE NOT NULL,
+  resolver_version TEXT NOT NULL,
+  library_version_id BIGINT NOT NULL,
+  config_hash TEXT NOT NULL,
+  source_signature TEXT NOT NULL,
+  status TEXT NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  error_message TEXT,
+  CONSTRAINT ck_parameter_inference_run_status CHECK (status IN ('running', 'completed', 'failed')),
+  CONSTRAINT fk_parameter_inference_run_task_id_minimal_forecast_task FOREIGN KEY (task_id) REFERENCES minimal_forecast_task(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_parameter_inference_run_library_version_id_parameter_library_version FOREIGN KEY (library_version_id) REFERENCES parameter_library_version(id) ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_parameter_inference_run_active_or_completed
+ON parameter_inference_run (input_hash, as_of_date, resolver_version, library_version_id, config_hash)
+WHERE status IN ('running', 'completed');
+
+CREATE TABLE IF NOT EXISTS parameter_inference_result (
+  id BIGSERIAL CONSTRAINT pk_parameter_inference_result PRIMARY KEY,
+  run_id BIGINT NOT NULL,
+  variety_id BIGINT NOT NULL,
+  parameter_type TEXT NOT NULL,
+  status TEXT NOT NULL,
+  p50_value NUMERIC(18,6),
+  p80_lower NUMERIC(18,6),
+  p80_upper NUMERIC(18,6),
+  unit TEXT NOT NULL,
+  source_level TEXT,
+  confidence_level TEXT,
+  confidence_score NUMERIC(12,10),
+  sample_count BIGINT NOT NULL DEFAULT 0,
+  season_count BIGINT NOT NULL DEFAULT 0,
+  farm_count BIGINT NOT NULL DEFAULT 0,
+  source_observation_ids JSONB NOT NULL,
+  source_metadata JSONB NOT NULL,
+  uncertainty_metadata JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_parameter_inference_result_run_variety_parameter UNIQUE (run_id, variety_id, parameter_type),
+  CONSTRAINT ck_parameter_inference_result_status CHECK (status IN ('available', 'unavailable')),
+  CONSTRAINT fk_parameter_inference_result_run_id_parameter_inference_run FOREIGN KEY (run_id) REFERENCES parameter_inference_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_parameter_inference_result_variety_id_dim_variety FOREIGN KEY (variety_id) REFERENCES dim_variety(id) ON DELETE RESTRICT
+);
