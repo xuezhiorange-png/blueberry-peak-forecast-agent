@@ -215,7 +215,9 @@ async def _load_candidates(
     resolved_township = cast(str | None, resolved_location.get("township"))
     resolved_county = cast(str | None, resolved_location.get("county"))
     resolved_zone_id = cast(int | None, resolved_location.get("climate_zone_id"))
-    resolved_altitude = cast(Decimal | None, resolved_location.get("altitude_m"))
+    resolved_altitude = coerce_optional_decimal(
+        cast(Decimal | int | float | str | None, resolved_location.get("altitude_m"))
+    )
     latitude_value = resolved_location.get("latitude")
     longitude_value = resolved_location.get("longitude")
     if latitude_value is None or longitude_value is None:
