@@ -6,10 +6,22 @@ from backend.app.models.analytics import (
 from backend.app.models.baseline_backtest import BaselineBacktestResult, BaselineBacktestRun
 from backend.app.models.historical_import import FactReceiptRaw, IngestFile
 from backend.app.models.master_data import Factory, Farm, Grade, Holiday, Season, Subfarm, Variety
+from backend.app.models.planning import (
+    AgroClimateZone,
+    ClimateZoneImportRun,
+    LocationReference,
+    MinimalForecastTask,
+    ParameterInferenceResult,
+    ParameterInferenceRun,
+    ParameterLibraryVersion,
+    ParameterObservation,
+)
 
 __all__ = [
     "AnalyticsBuildRun",
+    "AgroClimateZone",
     "BaselineBacktestResult",
+    "ClimateZoneImportRun",
     "BaselineBacktestRun",
     "FactReceiptRaw",
     "FactReceiptDaily",
@@ -19,6 +31,12 @@ __all__ = [
     "Grade",
     "Holiday",
     "IngestFile",
+    "LocationReference",
+    "MinimalForecastTask",
+    "ParameterInferenceResult",
+    "ParameterInferenceRun",
+    "ParameterLibraryVersion",
+    "ParameterObservation",
     "Season",
     "Subfarm",
     "Variety",

@@ -99,3 +99,39 @@ uv run python scripts/run_baseline_backtest.py \
 - `app/services/`：预测、回测、解释服务
 - `app/api/`：接口
 - `tests/`：核心业务规则测试
+
+## Task 5 极简输入与参数推断
+
+Task 5 将“位置 + 品种亩数”解析为可追溯的参数推断结果，不直接输出最终峰值预测。
+
+```bash
+uv run python scripts/import_agro_climate_zones.py \
+  --file data/templates/agro_climate_zones.csv \
+  --zone-version template-v1 \
+  --source-name template \
+  --source-version template-v1 \
+  --dry-run
+
+uv run python scripts/import_location_references.py \
+  --file data/templates/farm_location_master.csv \
+  --version template-v1 \
+  --dry-run
+
+uv run python scripts/import_parameter_library.py \
+  --file data/templates/parameter_observations.csv \
+  --version synthetic-v1 \
+  --dry-run
+
+uv run python scripts/create_minimal_planning_task.py \
+  --address "云南省 红河州 弥勒市 西三镇" \
+  --variety-area DX=700 \
+  --as-of-date 2026-01-01 \
+  --dry-run
+```
+
+Task 5 状态语义：
+
+- `parameters_ready`：参数推断完成
+- `forecast_completed`：不在本任务范围
+
+当前仓库仅提供模板 CSV 结构，不包含真实 `dim_agro_climate_zone`、`location_reference` 与 `parameter_observation` 业务数据。

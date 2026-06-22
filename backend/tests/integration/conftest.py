@@ -7,6 +7,14 @@ from sqlalchemy import text
 from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
 
 _MASTER_DATA_TABLES = (
+    "parameter_inference_result",
+    "parameter_inference_run",
+    "minimal_forecast_task",
+    "parameter_observation",
+    "parameter_library_version",
+    "location_reference",
+    "climate_zone_import_run",
+    "dim_agro_climate_zone",
     "baseline_backtest_result",
     "baseline_backtest_run",
     "factory_season_peak_metric",
