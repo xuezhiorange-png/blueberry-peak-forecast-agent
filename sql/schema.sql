@@ -462,11 +462,11 @@ CREATE TABLE IF NOT EXISTS parameter_observation (
   CONSTRAINT ck_parameter_observation_width_positive CHECK (parameter_type != 'maturity_width_days' OR scalar_value > 0),
   CONSTRAINT ck_parameter_observation_sample_weight_positive CHECK (sample_weight > 0),
   CONSTRAINT ck_parameter_observation_valid_range CHECK (valid_to IS NULL OR valid_to >= valid_from),
-  CONSTRAINT fk_parameter_observation_library_version_id_parameter_library_version FOREIGN KEY (library_version_id) REFERENCES parameter_library_version(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_param_obs_lib_ver_id_param_lib_ver FOREIGN KEY (library_version_id) REFERENCES parameter_library_version(id) ON DELETE RESTRICT,
   CONSTRAINT fk_parameter_observation_variety_id_dim_variety FOREIGN KEY (variety_id) REFERENCES dim_variety(id) ON DELETE RESTRICT,
   CONSTRAINT fk_parameter_observation_farm_id_dim_farm FOREIGN KEY (farm_id) REFERENCES dim_farm(id) ON DELETE RESTRICT,
   CONSTRAINT fk_parameter_observation_subfarm_id_dim_subfarm FOREIGN KEY (subfarm_id) REFERENCES dim_subfarm(id) ON DELETE RESTRICT,
-  CONSTRAINT fk_parameter_observation_location_reference_id_location_reference FOREIGN KEY (location_reference_id) REFERENCES location_reference(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_param_obs_loc_ref_id_location_ref FOREIGN KEY (location_reference_id) REFERENCES location_reference(id) ON DELETE RESTRICT,
   CONSTRAINT fk_parameter_observation_climate_zone_id_dim_agro_climate_zone FOREIGN KEY (climate_zone_id) REFERENCES dim_agro_climate_zone(id) ON DELETE RESTRICT,
   CONSTRAINT fk_parameter_observation_season_id_dim_season FOREIGN KEY (season_id) REFERENCES dim_season(id) ON DELETE RESTRICT
 );
@@ -504,7 +504,7 @@ CREATE TABLE IF NOT EXISTS parameter_inference_run (
   error_message TEXT,
   CONSTRAINT ck_parameter_inference_run_status CHECK (status IN ('running', 'completed', 'failed')),
   CONSTRAINT fk_parameter_inference_run_task_id_minimal_forecast_task FOREIGN KEY (task_id) REFERENCES minimal_forecast_task(id) ON DELETE RESTRICT,
-  CONSTRAINT fk_parameter_inference_run_library_version_id_parameter_library_version FOREIGN KEY (library_version_id) REFERENCES parameter_library_version(id) ON DELETE RESTRICT
+  CONSTRAINT fk_param_infer_run_lib_ver_id_param_lib_ver FOREIGN KEY (library_version_id) REFERENCES parameter_library_version(id) ON DELETE RESTRICT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_parameter_inference_run_active_or_completed
