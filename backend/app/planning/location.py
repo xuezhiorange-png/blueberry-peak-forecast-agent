@@ -38,17 +38,33 @@ def _text_or_none(location: dict[str, object], key: str) -> str | None:
 
 
 def _location_candidate_text(reference: LocationReference) -> str:
-    parts = (
-        reference.address_normalized,
-        reference.province,
-        reference.prefecture,
-        reference.county,
-        reference.township,
-        reference.village,
-        reference.farm_name,
-        reference.subfarm_name,
+    if reference.address_normalized:
+        return normalize_address_text(
+            " ".join(
+                part
+                for part in (
+                    reference.address_normalized,
+                    reference.farm_name,
+                    reference.subfarm_name,
+                )
+                if part
+            )
+        )
+    return normalize_address_text(
+        " ".join(
+            part
+            for part in (
+                reference.province,
+                reference.prefecture,
+                reference.county,
+                reference.township,
+                reference.village,
+                reference.farm_name,
+                reference.subfarm_name,
+            )
+            if part
+        )
     )
-    return normalize_address_text(" ".join(part for part in parts if part))
 
 
 async def _valid_location_references(
