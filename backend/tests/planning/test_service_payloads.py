@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
+from typing import Any, cast
+
+import pytest
 
 from backend.app.api.planning import _response_payload
 from backend.app.planning.config import (
@@ -20,7 +23,56 @@ from backend.app.planning.service import (
     _execution_result,
     _parameter_row,
     _variety_payload,
+    create_minimal_planning_task,
 )
+
+
+def _config() -> ParameterInferenceConfig:
+    return ParameterInferenceConfig(
+        rules=ParameterInferenceRules(
+            resolver_version="task5-v1",
+            resolver=ResolverRules(
+                address_fuzzy_match_min_score=Decimal("0.75"),
+                nearest_reference_distance_km=Decimal("20"),
+                climate_zone_radius_km=Decimal("80"),
+            ),
+            similarity=SimilarityRules(
+                max_distance_km=Decimal("300"),
+                max_altitude_difference_m=Decimal("800"),
+                township_bonus=Decimal("0.30"),
+                county_bonus=Decimal("0.20"),
+                climate_zone_bonus=Decimal("0.25"),
+                same_farm_bonus=Decimal("1.00"),
+                distance_weight=Decimal("0.25"),
+                altitude_weight=Decimal("0.20"),
+                recency_weight=Decimal("0.10"),
+                ambiguity_margin=Decimal("0.05"),
+            ),
+            fallback=FallbackRules(
+                same_farm_variety=FallbackRule(2, 2, Decimal("0.20")),
+                same_township_altitude_variety=FallbackRule(3, 2, Decimal("0.25")),
+                same_county_climate_zone_variety=FallbackRule(4, 2, Decimal("0.30")),
+                same_province_variety=FallbackRule(1, 1, Decimal("0.35")),
+                literature_variety_prior=FallbackRule(1, 0, None),
+            ),
+            uncertainty=UncertaintyRules(
+                widen_low_confidence_factor=Decimal("1.50"),
+                widen_below_minimum_factor=Decimal("1.25"),
+            ),
+            confidence=ConfidenceRules(
+                high_min_score=Decimal("0.80"),
+                medium_min_score=Decimal("0.50"),
+                same_farm_high_min_seasons=2,
+                high_max_historical_mape=Decimal("0.20"),
+                medium_max_historical_mape=Decimal("0.30"),
+                missing_error_penalty=Decimal("0.15"),
+                fallback_below_minimum_penalty=Decimal("0.20"),
+                unresolved_location_penalty=Decimal("0.20"),
+            ),
+        ),
+        config_hash="cfg",
+        snapshot={},
+    )
 
 
 def test_variety_payload_hides_internal_storage_keys_from_public_parameter_payloads() -> None:
@@ -193,53 +245,7 @@ def test_completed_and_rehydrated_variety_payloads_match_exactly() -> None:
 
 
 def test_api_response_payload_accepts_execution_result_dataclass() -> None:
-    config = ParameterInferenceConfig(
-        rules=ParameterInferenceRules(
-            resolver_version="task5-v1",
-            resolver=ResolverRules(
-                address_fuzzy_match_min_score=Decimal("0.75"),
-                nearest_reference_distance_km=Decimal("20"),
-                climate_zone_radius_km=Decimal("80"),
-            ),
-            similarity=SimilarityRules(
-                max_distance_km=Decimal("300"),
-                max_altitude_difference_m=Decimal("800"),
-                township_bonus=Decimal("0.30"),
-                county_bonus=Decimal("0.20"),
-                climate_zone_bonus=Decimal("0.25"),
-                same_farm_bonus=Decimal("1.00"),
-                distance_weight=Decimal("0.25"),
-                altitude_weight=Decimal("0.20"),
-                recency_weight=Decimal("0.10"),
-                ambiguity_margin=Decimal("0.05"),
-            ),
-            fallback=FallbackRules(
-                same_farm_variety=FallbackRule(2, 2, Decimal("0.20")),
-                same_township_altitude_variety=FallbackRule(3, 2, Decimal("0.25")),
-                same_county_climate_zone_variety=FallbackRule(
-                    4, 2, Decimal("0.30")
-                ),
-                same_province_variety=FallbackRule(1, 1, Decimal("0.35")),
-                literature_variety_prior=FallbackRule(1, 0, None),
-            ),
-            uncertainty=UncertaintyRules(
-                widen_low_confidence_factor=Decimal("1.50"),
-                widen_below_minimum_factor=Decimal("1.25"),
-            ),
-            confidence=ConfidenceRules(
-                high_min_score=Decimal("0.80"),
-                medium_min_score=Decimal("0.50"),
-                same_farm_high_min_seasons=2,
-                high_max_historical_mape=Decimal("0.20"),
-                medium_max_historical_mape=Decimal("0.30"),
-                missing_error_penalty=Decimal("0.15"),
-                fallback_below_minimum_penalty=Decimal("0.20"),
-                unresolved_location_penalty=Decimal("0.20"),
-            ),
-        ),
-        config_hash="cfg",
-        snapshot={},
-    )
+    config = _config()
     result = _execution_result(
         status="completed",
         task_id=1,
@@ -263,3 +269,38 @@ def test_api_response_payload_accepts_execution_result_dataclass() -> None:
     assert response.task_id == 1
     assert response.run_id == 2
     assert response.library_version == "lib-v1"
+
+
+@pytest.mark.asyncio
+async def test_create_minimal_planning_task_rejects_multiple_location_forms_before_db_access(
+) -> None:
+    with pytest.raises(ValueError, match="exactly one of address, latitude\\+longitude"):
+        await create_minimal_planning_task(
+            cast(Any, object()),
+            payload={
+                "location": {
+                    "address": "云南省 红河州 弥勒市 西三镇",
+                    "latitude": "24.400000",
+                    "longitude": "103.400000",
+                },
+                "varieties": [{"variety_code": "DX", "planted_area_mu": "700"}],
+            },
+            config=_config(),
+            dry_run=True,
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_minimal_planning_task_requires_coordinate_pair_before_db_access() -> None:
+    with pytest.raises(ValueError, match="exactly one of address, latitude\\+longitude"):
+        await create_minimal_planning_task(
+            cast(Any, object()),
+            payload={
+                "location": {
+                    "latitude": "24.400000",
+                },
+                "varieties": [{"variety_code": "DX", "planted_area_mu": "700"}],
+            },
+            config=_config(),
+            dry_run=True,
+        )

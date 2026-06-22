@@ -4,6 +4,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, cast
 
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,6 +42,7 @@ from backend.app.planning.schemas import (
     ParameterInferenceExecutionResult,
     ParameterInferenceValue,
 )
+from backend.app.schemas.planning import MinimalPlanningTaskCreate
 
 PARAMETER_UNITS = {
     "yield_kg_per_mu": "kg_per_mu",
@@ -490,17 +492,22 @@ async def create_minimal_planning_task(
     dry_run: bool,
     library_version_code: str | None = None,
 ) -> ParameterInferenceExecutionResult:
-    as_of_date = (
-        date.fromisoformat(str(payload["as_of_date"]))
-        if payload.get("as_of_date") is not None
-        else date.today()
+    try:
+        validated = MinimalPlanningTaskCreate.model_validate(payload)
+    except ValidationError as exc:
+        raise ValueError(str(exc)) from exc
+
+    validated_payload = validated.model_dump(mode="python")
+    as_of_date = validated.as_of_date or date.today()
+    normalized_input, normalized_varieties = await _normalize_payload(
+        session,
+        payload=validated_payload,
     )
-    normalized_input, normalized_varieties = await _normalize_payload(session, payload=payload)
     input_hash_value = build_input_hash(normalized_input, as_of_date=as_of_date)
     library_version = await _select_library_version(session, version_code=library_version_code)
     resolved_location = await resolve_location_input(
         session,
-        location=cast(dict[str, object], payload["location"]),
+        location=cast(dict[str, object], validated_payload["location"]),
         as_of_date=as_of_date,
         rules=config.rules,
     )
@@ -614,7 +621,7 @@ async def create_minimal_planning_task(
     if task is None:
         task = await create_task(
             session,
-            input_payload=payload,
+            input_payload=validated_payload,
             normalized_input=normalized_input,
             input_hash=input_hash_value,
             as_of_date=as_of_date,
