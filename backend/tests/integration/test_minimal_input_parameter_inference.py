@@ -1740,6 +1740,23 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
     config = load_parameter_inference_config(config_path)
 
     async with AsyncSessionMaker() as session:
+        zone = AgroClimateZone(
+            code="ZONE-A",
+            name="Zone A",
+            country="China",
+            province="云南省",
+            prefecture="红河州",
+            county="弥勒市",
+            centroid_latitude="24.400000",
+            centroid_longitude="103.400000",
+            min_altitude_m="1700",
+            max_altitude_m="1900",
+            zone_version="zone-v1",
+            valid_from=date(2024, 1, 1),
+            valid_to=None,
+            source_name="synthetic",
+            source_version="src-v1",
+        )
         library = ParameterLibraryVersion(
             version_code="lib-v1",
             status="active",
@@ -1749,7 +1766,7 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
             record_count=0,
             effective_from=date(2024, 1, 1),
         )
-        session.add(library)
+        session.add_all([zone, library])
         await session.flush()
         session.add_all(
             [
@@ -1760,7 +1777,7 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
                     farm_id=None,
                     subfarm_id=None,
                     location_reference_id=None,
-                    climate_zone_id=10,
+                    climate_zone_id=zone.id,
                     season_id=season_id,
                     province="云南省",
                     prefecture="红河州",
@@ -1788,7 +1805,7 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
                     farm_id=None,
                     subfarm_id=None,
                     location_reference_id=None,
-                    climate_zone_id=10,
+                    climate_zone_id=zone.id,
                     season_id=season_id,
                     province="四川省",
                     prefecture="红河州",
@@ -1816,7 +1833,7 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
                     farm_id=None,
                     subfarm_id=None,
                     location_reference_id=None,
-                    climate_zone_id=10,
+                    climate_zone_id=zone.id,
                     season_id=season_id,
                     province="云南省",
                     prefecture="红河州",
@@ -1844,7 +1861,7 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
                     farm_id=None,
                     subfarm_id=None,
                     location_reference_id=None,
-                    climate_zone_id=10,
+                    climate_zone_id=zone.id,
                     season_id=season_id,
                     province="云南省",
                     prefecture="曲靖市",
@@ -1872,7 +1889,7 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
                     farm_id=None,
                     subfarm_id=None,
                     location_reference_id=None,
-                    climate_zone_id=10,
+                    climate_zone_id=zone.id,
                     season_id=season_id,
                     province="云南省",
                     prefecture="红河州",
@@ -1908,7 +1925,7 @@ async def test_load_candidates_applies_township_altitude_and_county_matching_rul
                 "county": "弥勒市",
                 "township": "西三镇",
                 "farm_name": None,
-                "climate_zone_id": 10,
+                "climate_zone_id": zone.id,
                 "altitude_m": Decimal("1800"),
                 "latitude": Decimal("24.400000"),
                 "longitude": Decimal("103.400000"),
