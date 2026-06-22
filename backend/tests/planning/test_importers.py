@@ -3,7 +3,11 @@ from __future__ import annotations
 from decimal import Decimal
 
 from backend.app.models.planning import LocationReference
-from backend.app.planning.importers import normalized_location_reference_address
+from backend.app.planning.importers import (
+    _optional_climate_zone_code,
+    normalized_location_reference_address,
+)
+from backend.app.planning.imports.climate_zone_importer import normalize_climate_zone_code
 from backend.app.planning.location import _location_candidate_text
 
 
@@ -60,3 +64,14 @@ def test_location_candidate_text_does_not_duplicate_full_address_hierarchy() -> 
     candidate = _location_candidate_text(reference)
 
     assert candidate == "云南省 红河州 弥勒市 西三镇 农场A"
+
+
+def test_optional_climate_zone_code_uses_production_normalization() -> None:
+    assert _optional_climate_zone_code(" zone-a ") == "ZONE-A"
+    assert _optional_climate_zone_code("ＺＯＮＥ－Ａ") == "ZONE-A"
+    assert _optional_climate_zone_code(None) is None
+    assert _optional_climate_zone_code("   ") is None
+
+
+def test_normalize_climate_zone_code_is_uppercase_and_nfkc() -> None:
+    assert normalize_climate_zone_code(" zone-a ") == "ZONE-A"

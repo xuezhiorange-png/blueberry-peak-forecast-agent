@@ -14,6 +14,9 @@ from backend.app.models.planning import (
     ParameterLibraryVersion,
     ParameterObservation,
 )
+from backend.app.planning.imports.climate_zone_importer import (
+    normalize_climate_zone_code,
+)
 from backend.app.planning.normalization import normalize_address_text, normalize_location_name
 from backend.app.planning.repository import (
     get_farm_by_name,
@@ -64,19 +67,26 @@ def normalized_location_reference_address(row: dict[str, str]) -> str:
     )
 
 
+def _optional_climate_zone_code(value: str | None) -> str | None:
+    if value is None or not value.strip():
+        return None
+    return normalize_climate_zone_code(value)
+
+
 async def _get_zone(
     session: AsyncSession,
     *,
     climate_zone_code: str | None,
     as_of_date: date,
 ) -> AgroClimateZone | None:
-    if climate_zone_code is None:
+    normalized_code = _optional_climate_zone_code(climate_zone_code)
+    if normalized_code is None:
         return None
     matches = (
         await session.scalars(
             select(AgroClimateZone)
             .where(
-                AgroClimateZone.code == climate_zone_code,
+                AgroClimateZone.code == normalized_code,
                 AgroClimateZone.valid_from <= as_of_date,
                 (AgroClimateZone.valid_to.is_(None) | (AgroClimateZone.valid_to >= as_of_date)),
             )
@@ -84,7 +94,7 @@ async def _get_zone(
         )
     ).all()
     if len(matches) > 1:
-        raise ValueError(f"climate zone conflict for code: {climate_zone_code}")
+        raise ValueError(f"climate zone conflict for code: {normalized_code}")
     return matches[0] if matches else None
 
 
@@ -119,7 +129,7 @@ async def import_location_references_csv(
         valid_from = _parse_date(row["valid_from"]) or date(1970, 1, 1)
         zone = await _get_zone(
             session,
-            climate_zone_code=normalize_location_name(row.get("climate_zone_code")),
+            climate_zone_code=row.get("climate_zone_code"),
             as_of_date=valid_from,
         )
         farm_name = normalize_location_name(row.get("farm_name"))
@@ -242,7 +252,7 @@ async def import_parameter_library_csv(
             )
             zone = await _get_zone(
                 session,
-                climate_zone_code=normalize_location_name(row.get("climate_zone_code")),
+                climate_zone_code=row.get("climate_zone_code"),
                 as_of_date=_parse_date(row["valid_from"]) or date(1970, 1, 1),
             )
             session.add(
