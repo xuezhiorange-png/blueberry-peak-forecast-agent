@@ -45,6 +45,25 @@ def _parse_date(value: str) -> date | None:
     return date.fromisoformat(text)
 
 
+def normalized_location_reference_address(row: dict[str, str]) -> str:
+    address_raw = normalize_location_name(row.get("address_raw"))
+    if address_raw is not None:
+        return normalize_address_text(address_raw)
+    return normalize_address_text(
+        " ".join(
+            part
+            for part in (
+                row.get("province", ""),
+                row.get("prefecture", ""),
+                row.get("county", ""),
+                row.get("township", ""),
+                row.get("village", ""),
+            )
+            if part
+        )
+    )
+
+
 async def _get_zone(
     session: AsyncSession,
     *,
@@ -117,20 +136,7 @@ async def import_location_references_csv(
                 farm_name=farm_name,
                 subfarm_name=normalize_location_name(row.get("subfarm_name")),
                 address_raw=normalize_location_name(row.get("address_raw")),
-                address_normalized=normalize_address_text(
-                    " ".join(
-                        part
-                        for part in (
-                            row.get("address_raw", ""),
-                            row.get("province", ""),
-                            row.get("prefecture", ""),
-                            row.get("county", ""),
-                            row.get("township", ""),
-                            row.get("village", ""),
-                        )
-                        if part
-                    )
-                ),
+                address_normalized=normalized_location_reference_address(row),
                 province=normalize_location_name(row.get("province")),
                 prefecture=normalize_location_name(row.get("prefecture")),
                 county=normalize_location_name(row.get("county")),
