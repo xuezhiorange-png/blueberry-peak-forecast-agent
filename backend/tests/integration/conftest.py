@@ -7,6 +7,8 @@ from sqlalchemy import text
 from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
 
 _MASTER_DATA_TABLES = (
+    "production_plan_import_run",
+    "farm_season_variety_plan",
     "parameter_inference_result",
     "parameter_inference_run",
     "minimal_forecast_task",

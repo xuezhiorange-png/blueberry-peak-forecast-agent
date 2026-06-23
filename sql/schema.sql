@@ -536,3 +536,93 @@ CREATE TABLE IF NOT EXISTS parameter_inference_result (
   CONSTRAINT fk_parameter_inference_result_run_id_parameter_inference_run FOREIGN KEY (run_id) REFERENCES parameter_inference_run(id) ON DELETE RESTRICT,
   CONSTRAINT fk_parameter_inference_result_variety_id_dim_variety FOREIGN KEY (variety_id) REFERENCES dim_variety(id) ON DELETE RESTRICT
 );
+
+CREATE TABLE IF NOT EXISTS farm_season_variety_plan (
+  id BIGSERIAL CONSTRAINT pk_farm_season_variety_plan PRIMARY KEY,
+  farm_id BIGINT NOT NULL,
+  subfarm_id BIGINT,
+  season_id BIGINT NOT NULL,
+  variety_id BIGINT NOT NULL,
+  planted_area_mu NUMERIC(18,6) NOT NULL,
+  expected_yield_kg_per_mu NUMERIC(18,6) NOT NULL,
+  marketable_rate NUMERIC(12,10) NOT NULL,
+  tree_age_years NUMERIC(8,2),
+  pruning_date DATE,
+  flowering_start_date DATE,
+  flowering_peak_date DATE,
+  flowering_end_date DATE,
+  first_pick_date DATE,
+  expected_total_marketable_kg NUMERIC(18,6),
+  version INTEGER NOT NULL,
+  effective_from DATE NOT NULL,
+  effective_to DATE,
+  available_at DATE NOT NULL,
+  source_type TEXT NOT NULL,
+  source_name TEXT,
+  source_version TEXT,
+  notes TEXT,
+  row_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_farm_season_variety_plan_row_hash UNIQUE (row_hash),
+  CONSTRAINT ck_farm_season_variety_plan_planted_area_non_negative CHECK (planted_area_mu >= 0),
+  CONSTRAINT ck_farm_season_variety_plan_expected_yield_non_negative CHECK (expected_yield_kg_per_mu >= 0),
+  CONSTRAINT ck_farm_season_variety_plan_marketable_rate_range CHECK (marketable_rate >= 0 AND marketable_rate <= 1),
+  CONSTRAINT ck_farm_season_variety_plan_expected_total_non_negative CHECK (expected_total_marketable_kg IS NULL OR expected_total_marketable_kg >= 0),
+  CONSTRAINT ck_farm_season_variety_plan_tree_age_non_negative CHECK (tree_age_years IS NULL OR tree_age_years >= 0),
+  CONSTRAINT ck_farm_season_variety_plan_version_positive CHECK (version > 0),
+  CONSTRAINT ck_farm_season_variety_plan_effective_range CHECK (effective_to IS NULL OR effective_to > effective_from),
+  CONSTRAINT ck_farm_season_variety_plan_flowering_start_peak CHECK (flowering_start_date IS NULL OR flowering_peak_date IS NULL OR flowering_start_date <= flowering_peak_date),
+  CONSTRAINT ck_farm_season_variety_plan_flowering_peak_end CHECK (flowering_peak_date IS NULL OR flowering_end_date IS NULL OR flowering_peak_date <= flowering_end_date),
+  CONSTRAINT fk_farm_plan_farm_id_dim_farm FOREIGN KEY (farm_id) REFERENCES dim_farm(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_farm_plan_subfarm_id_dim_subfarm FOREIGN KEY (subfarm_id) REFERENCES dim_subfarm(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_farm_plan_season_id_dim_season FOREIGN KEY (season_id) REFERENCES dim_season(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_farm_plan_variety_id_dim_variety FOREIGN KEY (variety_id) REFERENCES dim_variety(id) ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_farm_season_variety_plan_version_null_subfarm
+ON farm_season_variety_plan (farm_id, season_id, variety_id, version)
+WHERE subfarm_id IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_farm_season_variety_plan_version_with_subfarm
+ON farm_season_variety_plan (farm_id, subfarm_id, season_id, variety_id, version)
+WHERE subfarm_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS ix_farm_season_variety_plan_business_key
+ON farm_season_variety_plan (farm_id, season_id, variety_id);
+CREATE INDEX IF NOT EXISTS ix_farm_season_variety_plan_subfarm_id
+ON farm_season_variety_plan (subfarm_id);
+CREATE INDEX IF NOT EXISTS ix_farm_season_variety_plan_effective_from
+ON farm_season_variety_plan (effective_from);
+CREATE INDEX IF NOT EXISTS ix_farm_season_variety_plan_effective_to
+ON farm_season_variety_plan (effective_to);
+CREATE INDEX IF NOT EXISTS ix_farm_season_variety_plan_available_at
+ON farm_season_variety_plan (available_at);
+CREATE INDEX IF NOT EXISTS ix_farm_season_variety_plan_row_hash
+ON farm_season_variety_plan (row_hash);
+
+CREATE TABLE IF NOT EXISTS production_plan_import_run (
+  id BIGSERIAL CONSTRAINT pk_production_plan_import_run PRIMARY KEY,
+  file_name TEXT NOT NULL,
+  file_sha256 TEXT NOT NULL,
+  source_version TEXT,
+  status TEXT NOT NULL,
+  row_count BIGINT NOT NULL DEFAULT 0,
+  inserted_count BIGINT NOT NULL DEFAULT 0,
+  skipped_count BIGINT NOT NULL DEFAULT 0,
+  rejected_count BIGINT NOT NULL DEFAULT 0,
+  duplicate_count BIGINT NOT NULL DEFAULT 0,
+  unknown_farm_count BIGINT NOT NULL DEFAULT 0,
+  unknown_subfarm_count BIGINT NOT NULL DEFAULT 0,
+  unknown_season_count BIGINT NOT NULL DEFAULT 0,
+  unknown_variety_count BIGINT NOT NULL DEFAULT 0,
+  invalid_date_count BIGINT NOT NULL DEFAULT 0,
+  invalid_numeric_count BIGINT NOT NULL DEFAULT 0,
+  overlap_conflict_count BIGINT NOT NULL DEFAULT 0,
+  version_conflict_count BIGINT NOT NULL DEFAULT 0,
+  report_json JSONB NOT NULL,
+  error_message TEXT,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  CONSTRAINT ck_production_plan_import_run_status CHECK (status IN ('running', 'completed', 'failed'))
+);

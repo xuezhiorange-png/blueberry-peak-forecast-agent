@@ -1,0 +1,1 @@
+farm_code, farm_name, subfarm_code, subfarm_name, season_code, variety_code, planted_area_mu, expected_yield_kg_per_mu, marketable_rate, tree_age_years, pruning_date, flowering_start_date, flowering_peak_date, flowering_end_date, first_pick_date, expected_total_marketable_kg, version, effective_from, effective_to, available_at, source_type, source_name, source_version, notes
