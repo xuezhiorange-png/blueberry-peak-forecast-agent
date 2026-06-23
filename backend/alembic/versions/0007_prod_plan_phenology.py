@@ -1,6 +1,6 @@
 """Create task 6 production plan and phenology tables.
 
-Revision ID: 0007_production_plan_and_phenology
+Revision ID: 0007_prod_plan_phenology
 Revises: 0006_minimal_input_parameters
 Create Date: 2026-06-23
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0007_production_plan_and_phenology"
+revision: str = "0007_prod_plan_phenology"
 down_revision: str | None = "0006_minimal_input_parameters"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
