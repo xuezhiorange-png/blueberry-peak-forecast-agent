@@ -5,6 +5,7 @@ import csv
 import os
 from collections.abc import AsyncIterator
 from datetime import date
+from numbers import Integral
 from pathlib import Path
 from typing import Any
 
@@ -404,15 +405,25 @@ async def test_concurrent_create_overlapping_versions_serializes_by_business_key
         return_exceptions=True,
     )
 
-    success_ids = [value for value in (first_result, second_result) if isinstance(value, int)]
+    success_ids = [
+        int(value)
+        for value in (first_result, second_result)
+        if isinstance(value, Integral) and not isinstance(value, bool)
+    ]
     errors = [
         value
         for value in (first_result, second_result)
         if isinstance(value, ProductionPlanIntervalConflictError)
     ]
+    unexpected = [
+        f"{type(value).__name__}: {value!r}"
+        for value in (first_result, second_result)
+        if not (isinstance(value, Integral) and not isinstance(value, bool))
+        and not isinstance(value, ProductionPlanIntervalConflictError)
+    ]
 
-    assert len(success_ids) == 1
-    assert len(errors) == 1
+    assert len(success_ids) == 1, unexpected
+    assert len(errors) == 1, unexpected
 
     async with AsyncSessionMaker() as session:
         count = await session.scalar(select(func.count(FarmSeasonVarietyPlan.id)))
@@ -465,15 +476,25 @@ async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_hi
         return_exceptions=True,
     )
 
-    success_ids = [value for value in (first_result, second_result) if isinstance(value, int)]
+    success_ids = [
+        int(value)
+        for value in (first_result, second_result)
+        if isinstance(value, Integral) and not isinstance(value, bool)
+    ]
     errors = [
         value
         for value in (first_result, second_result)
         if isinstance(value, ProductionPlanIntervalConflictError)
     ]
+    unexpected = [
+        f"{type(value).__name__}: {value!r}"
+        for value in (first_result, second_result)
+        if not (isinstance(value, Integral) and not isinstance(value, bool))
+        and not isinstance(value, ProductionPlanIntervalConflictError)
+    ]
 
-    assert len(success_ids) == 1
-    assert len(errors) == 1
+    assert len(success_ids) == 1, unexpected
+    assert len(errors) == 1, unexpected
 
     async with AsyncSessionMaker() as session:
         rows = (
