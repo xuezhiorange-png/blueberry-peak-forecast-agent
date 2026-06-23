@@ -392,16 +392,15 @@ async def test_concurrent_create_overlapping_versions_serializes_by_business_key
 
     from backend.app.planning import plan_service as service_module
 
-    original_list = service_module.list_plan_versions_by_key
+    original_create_plan = service_module.create_plan
 
-    async def wrapped_list(*args: Any, **kwargs: Any) -> list[FarmSeasonVarietyPlan]:
-        rows = await original_list(*args, **kwargs)
+    async def wrapped_create_plan(*args: Any, **kwargs: Any) -> FarmSeasonVarietyPlan:
         if not first_entered.is_set():
             first_entered.set()
             await release_first.wait()
-        return rows
+        return await original_create_plan(*args, **kwargs)
 
-    monkeypatch.setattr(service_module, "list_plan_versions_by_key", wrapped_list)
+    monkeypatch.setattr(service_module, "create_plan", wrapped_create_plan)
 
     async def create(payload: dict[str, Any]) -> int:
         async with AsyncSessionMaker() as session:
@@ -473,16 +472,22 @@ async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_hi
 
     from backend.app.planning import plan_service as service_module
 
-    original_list = service_module.list_plan_versions_by_key
+    original_create_replacement_plan = service_module.create_replacement_plan
 
-    async def wrapped_list(*args: Any, **kwargs: Any) -> list[FarmSeasonVarietyPlan]:
-        rows = await original_list(*args, **kwargs)
+    async def wrapped_create_replacement_plan(
+        *args: Any,
+        **kwargs: Any,
+    ) -> FarmSeasonVarietyPlan:
         if not first_entered.is_set():
             first_entered.set()
             await release_first.wait()
-        return rows
+        return await original_create_replacement_plan(*args, **kwargs)
 
-    monkeypatch.setattr(service_module, "list_plan_versions_by_key", wrapped_list)
+    monkeypatch.setattr(
+        service_module,
+        "create_replacement_plan",
+        wrapped_create_replacement_plan,
+    )
 
     async def replace(version: int, effective_from: str, total: str) -> int:
         async with AsyncSessionMaker() as session:
