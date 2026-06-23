@@ -316,6 +316,11 @@ async def import_production_plans_csv(
                 continue
 
             try:
+                # CSV import resolves master-data lookups in the same session first.
+                # Those reads open an implicit transaction; clear it before the
+                # version-write transaction acquires the business-key advisory lock.
+                if session.in_transaction():
+                    await session.rollback()
                 result = await create_plan_version(session, payload=payload, config=config)
             except ProductionPlanVersionConflictError:
                 rejected_count += 1
