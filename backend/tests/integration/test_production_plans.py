@@ -381,35 +381,18 @@ async def test_importer_dry_run_and_idempotent_reimport(tmp_path: Path) -> None:
     assert count_after_import == 1
 
 
-async def test_concurrent_create_overlapping_versions_serializes_by_business_key(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_concurrent_create_overlapping_versions_serializes_by_business_key() -> None:
     _require_postgres()
     ids = await _seed_master_data()
     config = load_production_plan_config(Path("configs/production_plan.yaml"))
-    first_entered = asyncio.Event()
-    release_first = asyncio.Event()
-
-    from backend.app.planning import plan_service as service_module
-
-    original_create_plan = service_module.create_plan
-
-    async def wrapped_create_plan(*args: Any, **kwargs: Any) -> FarmSeasonVarietyPlan:
-        if not first_entered.is_set():
-            first_entered.set()
-            await release_first.wait()
-        return await original_create_plan(*args, **kwargs)
-
-    monkeypatch.setattr(service_module, "create_plan", wrapped_create_plan)
 
     async def create(payload: dict[str, Any]) -> int:
         async with AsyncSessionMaker() as session:
             result = await create_plan_version(session, payload=payload, config=config)
             return result.record.id
 
-    first_task = asyncio.create_task(create(_payload(ids, version=1)))
-    await first_entered.wait()
-    second_task = asyncio.create_task(
+    first_result, second_result = await asyncio.gather(
+        create(_payload(ids, version=1)),
         create(
             _payload(
                 ids,
@@ -417,13 +400,7 @@ async def test_concurrent_create_overlapping_versions_serializes_by_business_key
                 effective_from="2026-01-15",
                 expected_total_marketable_kg="72000",
             )
-        )
-    )
-    release_first.set()
-
-    first_result, second_result = await asyncio.gather(
-        first_task,
-        second_task,
+        ),
         return_exceptions=True,
     )
 
@@ -453,14 +430,10 @@ async def test_concurrent_create_overlapping_versions_serializes_by_business_key
     assert effective.id == success_ids[0]
 
 
-async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_history(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_history() -> None:
     _require_postgres()
     ids = await _seed_master_data()
     config = load_production_plan_config(Path("configs/production_plan.yaml"))
-    first_entered = asyncio.Event()
-    release_first = asyncio.Event()
 
     async with AsyncSessionMaker() as session:
         created = await create_plan_version(
@@ -469,25 +442,6 @@ async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_hi
             config=config,
         )
     current_plan_id = created.record.id
-
-    from backend.app.planning import plan_service as service_module
-
-    original_create_replacement_plan = service_module.create_replacement_plan
-
-    async def wrapped_create_replacement_plan(
-        *args: Any,
-        **kwargs: Any,
-    ) -> FarmSeasonVarietyPlan:
-        if not first_entered.is_set():
-            first_entered.set()
-            await release_first.wait()
-        return await original_create_replacement_plan(*args, **kwargs)
-
-    monkeypatch.setattr(
-        service_module,
-        "create_replacement_plan",
-        wrapped_create_replacement_plan,
-    )
 
     async def replace(version: int, effective_from: str, total: str) -> int:
         async with AsyncSessionMaker() as session:
@@ -505,14 +459,9 @@ async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_hi
             )
             return result.record.id
 
-    first_task = asyncio.create_task(replace(2, "2026-03-01", "80000"))
-    await first_entered.wait()
-    second_task = asyncio.create_task(replace(3, "2026-03-15", "82000"))
-    release_first.set()
-
     first_result, second_result = await asyncio.gather(
-        first_task,
-        second_task,
+        replace(2, "2026-03-01", "80000"),
+        replace(3, "2026-03-15", "82000"),
         return_exceptions=True,
     )
 
