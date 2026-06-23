@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
@@ -13,7 +14,12 @@ from backend.app.weather.config import (
     WeatherFeatureConfig,
     WeatherFeatureRules,
 )
-from backend.app.weather.schemas import WeatherSourceSelection
+from backend.app.weather.schemas import (
+    PhenologyTimeline,
+    WeatherFeatureExecutionResult,
+    WeatherSourceSelection,
+    WeatherWindowFeature,
+)
 from backend.app.weather.service import (
     WeatherDataVersionConflictError,
     _select_visible_observation_per_day,
@@ -211,3 +217,68 @@ def test_window_feature_marks_missing_days_unavailable_without_zero_fill() -> No
     assert feature.coverage_ratio == Decimal("0.714286")
     assert feature.effective_temperature_sum is None
     assert feature.missing_dates == (date(2026, 2, 4), date(2026, 2, 5))
+
+
+def test_execution_result_copy_preserves_nested_weather_dataclasses() -> None:
+    feature = WeatherWindowFeature(
+        window_days=7,
+        status="available",
+        effective_temperature_sum=Decimal("10"),
+        solar_radiation_sum=Decimal("20"),
+        precipitation_sum=Decimal("1"),
+        minimum_temperature=Decimal("5"),
+        mean_diurnal_temperature_range=Decimal("6"),
+        maximum_consecutive_rainy_days=2,
+        observed_day_count=7,
+        expected_day_count=7,
+        coverage_ratio=Decimal("1"),
+        missing_dates=(),
+        quality_flags=("ok",),
+        source_observation_ids=(1, 2),
+    )
+    timeline = PhenologyTimeline(
+        plan_id=1,
+        plan_version=2,
+        pruning_date=date(2026, 1, 1),
+        flowering_start_date=date(2026, 2, 1),
+        flowering_peak_date=date(2026, 2, 5),
+        flowering_end_date=date(2026, 2, 10),
+        first_pick_date=date(2026, 3, 1),
+        days_since_pruning=31,
+        days_since_flowering_start=0,
+        days_since_flowering_peak=-4,
+        days_since_flowering_end=-9,
+        days_until_first_pick=28,
+        anchor_event="flowering_start_date",
+        anchor_date=date(2026, 2, 1),
+        cumulative_effective_temperature=Decimal("12"),
+        cumulative_expected_day_count=1,
+        cumulative_observed_day_count=1,
+        cumulative_coverage_ratio=Decimal("1"),
+        cumulative_missing_dates=(),
+        selected_weather_mapping_id=3,
+        weather_feature_version="task7-v1",
+        warnings=(),
+    )
+    result = WeatherFeatureExecutionResult(
+        status="completed",
+        run_id=None,
+        source_signature="sig",
+        feature_version="task7-v1",
+        config_hash="cfg",
+        mapping={"mapping_method": "nearest_station"},
+        weather_source_version="dataset-v1",
+        plan={"plan_id": 1},
+        windows=(feature,),
+        timeline=timeline,
+        weather_observation_ids=(1, 2),
+        warnings=(),
+        blockers=(),
+        input_snapshot={"feature_date": "2026-02-01"},
+    )
+
+    copied = replace(result, run_id=7)
+
+    assert isinstance(copied.windows, tuple)
+    assert isinstance(copied.windows[0], WeatherWindowFeature)
+    assert isinstance(copied.timeline, PhenologyTimeline)
