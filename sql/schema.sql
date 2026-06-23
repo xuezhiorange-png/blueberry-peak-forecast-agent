@@ -626,3 +626,209 @@ CREATE TABLE IF NOT EXISTS production_plan_import_run (
   finished_at TIMESTAMPTZ,
   CONSTRAINT ck_production_plan_import_run_status CHECK (status IN ('running', 'completed', 'failed'))
 );
+
+CREATE TABLE IF NOT EXISTS weather_source_location (
+  id BIGSERIAL PRIMARY KEY,
+  provider_code TEXT NOT NULL,
+  external_location_id TEXT NOT NULL,
+  location_type TEXT NOT NULL,
+  name TEXT,
+  latitude NUMERIC(9,6) NOT NULL,
+  longitude NUMERIC(9,6) NOT NULL,
+  altitude_m NUMERIC(8,2),
+  timezone_name TEXT NOT NULL,
+  grid_resolution TEXT,
+  source_version TEXT NOT NULL,
+  valid_from DATE NOT NULL,
+  valid_to DATE,
+  row_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_weather_src_loc_provider_ext_ver UNIQUE (provider_code, external_location_id, source_version),
+  CONSTRAINT uq_weather_src_loc_row_hash UNIQUE (row_hash),
+  CONSTRAINT ck_weather_src_loc_type CHECK (location_type IN ('station', 'grid')),
+  CONSTRAINT ck_weather_src_loc_latitude CHECK (latitude >= -90 AND latitude <= 90),
+  CONSTRAINT ck_weather_src_loc_longitude CHECK (longitude >= -180 AND longitude <= 180),
+  CONSTRAINT ck_weather_src_loc_valid_range CHECK (valid_to IS NULL OR valid_to >= valid_from)
+);
+
+CREATE INDEX IF NOT EXISTS ix_weather_src_loc_provider
+ON weather_source_location (provider_code);
+CREATE INDEX IF NOT EXISTS ix_weather_src_loc_type
+ON weather_source_location (location_type);
+
+CREATE TABLE IF NOT EXISTS weather_daily_observation (
+  id BIGSERIAL PRIMARY KEY,
+  weather_source_location_id BIGINT NOT NULL,
+  observation_date DATE NOT NULL,
+  temperature_min_c NUMERIC(12,6) NOT NULL,
+  temperature_max_c NUMERIC(12,6) NOT NULL,
+  temperature_mean_c NUMERIC(12,6),
+  temperature_mean_source TEXT NOT NULL,
+  precipitation_mm NUMERIC(12,6) NOT NULL,
+  solar_radiation_mj_m2 NUMERIC(12,6),
+  provider_code TEXT NOT NULL,
+  source_version TEXT NOT NULL,
+  available_at DATE NOT NULL,
+  quality_code TEXT,
+  quality_flags JSONB NOT NULL,
+  source_file_sha256 TEXT,
+  source_row_number BIGINT,
+  row_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_weather_daily_obs_row_hash UNIQUE (row_hash),
+  CONSTRAINT ck_weather_daily_obs_temp_range CHECK (temperature_max_c >= temperature_min_c),
+  CONSTRAINT ck_weather_daily_obs_mean_range CHECK (
+    temperature_mean_c IS NULL
+    OR (temperature_mean_c >= temperature_min_c AND temperature_mean_c <= temperature_max_c)
+  ),
+  CONSTRAINT ck_weather_daily_obs_mean_source CHECK (temperature_mean_source IN ('provided', 'derived')),
+  CONSTRAINT ck_weather_daily_obs_precip_non_negative CHECK (precipitation_mm >= 0),
+  CONSTRAINT ck_weather_daily_obs_solar_non_negative CHECK (solar_radiation_mj_m2 IS NULL OR solar_radiation_mj_m2 >= 0),
+  CONSTRAINT fk_weather_daily_obs_src_loc_id FOREIGN KEY (weather_source_location_id) REFERENCES weather_source_location(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS ix_weather_daily_obs_source_loc_id
+ON weather_daily_observation (weather_source_location_id);
+CREATE INDEX IF NOT EXISTS ix_weather_daily_obs_obs_date
+ON weather_daily_observation (observation_date);
+CREATE INDEX IF NOT EXISTS ix_weather_daily_obs_available_at
+ON weather_daily_observation (available_at);
+
+CREATE TABLE IF NOT EXISTS weather_import_run (
+  id BIGSERIAL PRIMARY KEY,
+  import_type TEXT NOT NULL,
+  provider_code TEXT,
+  file_name TEXT NOT NULL,
+  file_sha256 TEXT NOT NULL,
+  source_version TEXT,
+  dry_run BOOLEAN NOT NULL,
+  status TEXT NOT NULL,
+  row_count BIGINT NOT NULL DEFAULT 0,
+  inserted_count BIGINT NOT NULL DEFAULT 0,
+  skipped_count BIGINT NOT NULL DEFAULT 0,
+  duplicate_count BIGINT NOT NULL DEFAULT 0,
+  rejected_count BIGINT NOT NULL DEFAULT 0,
+  invalid_date_count BIGINT NOT NULL DEFAULT 0,
+  invalid_numeric_count BIGINT NOT NULL DEFAULT 0,
+  unknown_location_count BIGINT NOT NULL DEFAULT 0,
+  conflict_count BIGINT NOT NULL DEFAULT 0,
+  report_json JSONB NOT NULL,
+  error_message TEXT,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  CONSTRAINT ck_weather_import_run_type CHECK (import_type IN ('location', 'observation', 'mapping')),
+  CONSTRAINT ck_weather_import_run_status CHECK (status IN ('running', 'completed', 'failed'))
+);
+
+CREATE TABLE IF NOT EXISTS location_weather_mapping (
+  id BIGSERIAL PRIMARY KEY,
+  location_reference_id BIGINT NOT NULL,
+  weather_source_location_id BIGINT NOT NULL,
+  mapping_method TEXT NOT NULL,
+  distance_km NUMERIC(12,6) NOT NULL,
+  altitude_difference_m NUMERIC(12,6),
+  mapping_score NUMERIC(12,6) NOT NULL,
+  confidence_level TEXT NOT NULL,
+  mapping_version TEXT NOT NULL,
+  config_hash TEXT NOT NULL,
+  available_at DATE NOT NULL,
+  valid_from DATE NOT NULL,
+  valid_to DATE,
+  row_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_location_weather_mapping_row_hash UNIQUE (row_hash),
+  CONSTRAINT ck_location_weather_mapping_method CHECK (mapping_method IN ('explicit', 'nearest_station', 'nearest_grid')),
+  CONSTRAINT ck_location_weather_mapping_distance CHECK (distance_km >= 0),
+  CONSTRAINT ck_location_weather_mapping_score CHECK (mapping_score >= 0),
+  CONSTRAINT ck_location_weather_mapping_valid_range CHECK (valid_to IS NULL OR valid_to >= valid_from),
+  CONSTRAINT fk_loc_weather_mapping_loc_ref_id FOREIGN KEY (location_reference_id) REFERENCES location_reference(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_loc_weather_mapping_src_loc_id FOREIGN KEY (weather_source_location_id) REFERENCES weather_source_location(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS ix_loc_weather_mapping_loc_ref_id
+ON location_weather_mapping (location_reference_id);
+CREATE INDEX IF NOT EXISTS ix_loc_weather_mapping_src_loc_id
+ON location_weather_mapping (weather_source_location_id);
+CREATE INDEX IF NOT EXISTS ix_loc_weather_mapping_available_at
+ON location_weather_mapping (available_at);
+
+CREATE TABLE IF NOT EXISTS base_temperature_search_run (
+  id BIGSERIAL PRIMARY KEY,
+  scope_type TEXT NOT NULL,
+  variety_id BIGINT,
+  climate_zone_id BIGINT,
+  training_cutoff DATE NOT NULL,
+  anchor_event TEXT NOT NULL,
+  target_event TEXT NOT NULL,
+  candidate_temperatures JSONB NOT NULL,
+  selected_base_temperature NUMERIC(12,6),
+  scoring_method TEXT NOT NULL,
+  selected_score NUMERIC(12,6),
+  sample_count BIGINT NOT NULL DEFAULT 0,
+  distinct_season_count BIGINT NOT NULL DEFAULT 0,
+  training_sample_ids JSONB NOT NULL,
+  candidate_scores JSONB NOT NULL,
+  config_hash TEXT NOT NULL,
+  feature_version TEXT NOT NULL,
+  source_signature TEXT NOT NULL,
+  status TEXT NOT NULL,
+  warnings JSONB NOT NULL,
+  blockers JSONB NOT NULL,
+  input_snapshot JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  error_message TEXT,
+  CONSTRAINT ck_base_temp_search_run_status CHECK (status IN ('running', 'completed', 'failed', 'unavailable')),
+  CONSTRAINT fk_base_temp_search_run_variety_id FOREIGN KEY (variety_id) REFERENCES dim_variety(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_base_temp_search_run_zone_id FOREIGN KEY (climate_zone_id) REFERENCES dim_agro_climate_zone(id) ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_base_temp_search_run_active_or_done
+ON base_temperature_search_run (source_signature)
+WHERE status IN ('running', 'completed', 'unavailable');
+
+CREATE INDEX IF NOT EXISTS ix_base_temp_search_run_variety_id
+ON base_temperature_search_run (variety_id);
+CREATE INDEX IF NOT EXISTS ix_base_temp_search_run_zone_id
+ON base_temperature_search_run (climate_zone_id);
+
+CREATE TABLE IF NOT EXISTS weather_feature_run (
+  id BIGSERIAL PRIMARY KEY,
+  feature_version TEXT NOT NULL,
+  config_hash TEXT NOT NULL,
+  mapping_version TEXT NOT NULL,
+  weather_source_version TEXT NOT NULL,
+  base_temperature_search_run_id BIGINT,
+  plan_id BIGINT NOT NULL,
+  location_reference_id BIGINT NOT NULL,
+  location_weather_mapping_id BIGINT NOT NULL,
+  weather_source_location_id BIGINT NOT NULL,
+  as_of_date DATE NOT NULL,
+  feature_date DATE NOT NULL,
+  source_signature TEXT NOT NULL,
+  status TEXT NOT NULL,
+  input_snapshot JSONB NOT NULL,
+  window_features JSONB NOT NULL,
+  timeline_payload JSONB NOT NULL,
+  weather_observation_ids JSONB NOT NULL,
+  warnings JSONB NOT NULL,
+  blockers JSONB NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  error_message TEXT,
+  CONSTRAINT ck_weather_feature_run_status CHECK (status IN ('running', 'completed', 'failed', 'unavailable')),
+  CONSTRAINT fk_weather_feature_run_base_temp_run_id FOREIGN KEY (base_temperature_search_run_id) REFERENCES base_temperature_search_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_weather_feature_run_plan_id FOREIGN KEY (plan_id) REFERENCES farm_season_variety_plan(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_weather_feature_run_loc_ref_id FOREIGN KEY (location_reference_id) REFERENCES location_reference(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_weather_feature_run_mapping_id FOREIGN KEY (location_weather_mapping_id) REFERENCES location_weather_mapping(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_weather_feature_run_src_loc_id FOREIGN KEY (weather_source_location_id) REFERENCES weather_source_location(id) ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_weather_feature_run_active_or_done
+ON weather_feature_run (source_signature)
+WHERE status IN ('running', 'completed', 'unavailable');
+
+CREATE INDEX IF NOT EXISTS ix_weather_feature_run_plan_id
+ON weather_feature_run (plan_id);
+CREATE INDEX IF NOT EXISTS ix_weather_feature_run_feature_date
+ON weather_feature_run (feature_date);

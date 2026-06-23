@@ -1,0 +1,2 @@
+provider_code,external_location_id,location_type,name,latitude,longitude,altitude_m,timezone_name,grid_resolution,valid_from,valid_to,source_version,quality_flags
+synthetic_station,station-001,station,Template Weather Station,24.000000,102.000000,1800,Asia/Shanghai,,2026-01-01,,template-v1,template_only

@@ -1,0 +1,2 @@
+provider_code,external_location_id,observation_date,temperature_min_c,temperature_max_c,temperature_mean_c,precipitation_mm,solar_radiation_mj_m2,available_at,quality_code,quality_flags,source_version
+synthetic_station,station-001,2026-01-01,5,15,10,0,12.5,2026-01-02,ok,template_only,template-v1
