@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import csv
 import os
 from collections.abc import AsyncIterator
@@ -10,6 +11,7 @@ from typing import Any
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.main import create_app
@@ -17,6 +19,15 @@ from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.planning.plan_config import load_production_plan_config
 from backend.app.planning.plan_importer import import_production_plans_csv
+from backend.app.planning.plan_schemas import (
+    ProductionPlanIntervalConflictError,
+    ProductionPlanVersionConflictError,
+)
+from backend.app.planning.plan_service import (
+    create_plan_version,
+    create_replacement_version,
+    get_effective_plan,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -368,3 +379,214 @@ async def test_importer_dry_run_and_idempotent_reimport(tmp_path: Path) -> None:
     assert second.skipped_count == 1
     assert second.duplicate_count == 1
     assert count_after_import == 1
+
+
+async def test_concurrent_create_overlapping_versions_serializes_by_business_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _require_postgres()
+    ids = await _seed_master_data()
+    config = load_production_plan_config(Path("configs/production_plan.yaml"))
+    first_entered = asyncio.Event()
+    release_first = asyncio.Event()
+
+    from backend.app.planning import plan_service as service_module
+
+    original_list = service_module.list_plan_versions_by_key
+
+    async def wrapped_list(*args: Any, **kwargs: Any) -> list[FarmSeasonVarietyPlan]:
+        rows = await original_list(*args, **kwargs)
+        if not first_entered.is_set():
+            first_entered.set()
+            await release_first.wait()
+        return rows
+
+    monkeypatch.setattr(service_module, "list_plan_versions_by_key", wrapped_list)
+
+    async def create(payload: dict[str, Any]) -> int:
+        async with AsyncSessionMaker() as session:
+            result = await create_plan_version(session, payload=payload, config=config)
+            return result.record.id
+
+    first_task = asyncio.create_task(create(_payload(ids, version=1)))
+    await first_entered.wait()
+    second_task = asyncio.create_task(
+        create(
+            _payload(
+                ids,
+                version=2,
+                effective_from="2026-01-15",
+                expected_total_marketable_kg="72000",
+            )
+        )
+    )
+    release_first.set()
+
+    first_result, second_result = await asyncio.gather(
+        first_task,
+        second_task,
+        return_exceptions=True,
+    )
+
+    success_ids = [value for value in (first_result, second_result) if isinstance(value, int)]
+    errors = [
+        value
+        for value in (first_result, second_result)
+        if isinstance(value, ProductionPlanIntervalConflictError)
+    ]
+
+    assert len(success_ids) == 1
+    assert len(errors) == 1
+
+    async with AsyncSessionMaker() as session:
+        count = await session.scalar(select(func.count(FarmSeasonVarietyPlan.id)))
+        effective = await get_effective_plan(
+            session,
+            farm_id=ids["farm_id"],
+            subfarm_id=None,
+            season_id=ids["season_id"],
+            variety_id=ids["variety_id"],
+            as_of_date=date(2026, 2, 1),
+            config=config,
+        )
+
+    assert count == 1
+    assert effective.id == success_ids[0]
+
+
+async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_history(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _require_postgres()
+    ids = await _seed_master_data()
+    config = load_production_plan_config(Path("configs/production_plan.yaml"))
+    first_entered = asyncio.Event()
+    release_first = asyncio.Event()
+
+    async with AsyncSessionMaker() as session:
+        created = await create_plan_version(
+            session,
+            payload=_payload(ids, version=1),
+            config=config,
+        )
+    current_plan_id = created.record.id
+
+    from backend.app.planning import plan_service as service_module
+
+    original_list = service_module.list_plan_versions_by_key
+
+    async def wrapped_list(*args: Any, **kwargs: Any) -> list[FarmSeasonVarietyPlan]:
+        rows = await original_list(*args, **kwargs)
+        if not first_entered.is_set():
+            first_entered.set()
+            await release_first.wait()
+        return rows
+
+    monkeypatch.setattr(service_module, "list_plan_versions_by_key", wrapped_list)
+
+    async def replace(version: int, effective_from: str, total: str) -> int:
+        async with AsyncSessionMaker() as session:
+            result = await create_replacement_version(
+                session,
+                plan_id=current_plan_id,
+                payload=_payload(
+                    ids,
+                    version=version,
+                    effective_from=effective_from,
+                    available_at="2026-02-20",
+                    expected_total_marketable_kg=total,
+                ),
+                config=config,
+            )
+            return result.record.id
+
+    first_task = asyncio.create_task(replace(2, "2026-03-01", "80000"))
+    await first_entered.wait()
+    second_task = asyncio.create_task(replace(3, "2026-03-15", "82000"))
+    release_first.set()
+
+    first_result, second_result = await asyncio.gather(
+        first_task,
+        second_task,
+        return_exceptions=True,
+    )
+
+    success_ids = [value for value in (first_result, second_result) if isinstance(value, int)]
+    errors = [
+        value
+        for value in (first_result, second_result)
+        if isinstance(value, ProductionPlanIntervalConflictError)
+    ]
+
+    assert len(success_ids) == 1
+    assert len(errors) == 1
+
+    async with AsyncSessionMaker() as session:
+        rows = (
+            await session.scalars(
+                select(FarmSeasonVarietyPlan).order_by(FarmSeasonVarietyPlan.version.asc())
+            )
+        ).all()
+
+    assert len(rows) == 2
+    assert rows[0].version == 1
+    assert rows[0].effective_to == date(2026, 3, 1)
+    assert rows[1].id == success_ids[0]
+
+
+async def test_non_overlapping_versions_still_create_successfully() -> None:
+    _require_postgres()
+    ids = await _seed_master_data()
+    config = load_production_plan_config(Path("configs/production_plan.yaml"))
+
+    async with AsyncSessionMaker() as session:
+        first = await create_plan_version(
+            session,
+            payload=_payload(ids, version=1, effective_to="2026-02-01"),
+            config=config,
+        )
+        second = await create_plan_version(
+            session,
+            payload=_payload(
+                ids,
+                version=2,
+                effective_from="2026-02-01",
+                expected_total_marketable_kg="71000",
+            ),
+            config=config,
+        )
+
+    assert first.created
+    assert second.created
+
+
+async def test_database_conflict_is_translated_and_session_remains_usable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _require_postgres()
+    ids = await _seed_master_data()
+    config = load_production_plan_config(Path("configs/production_plan.yaml"))
+
+    from backend.app.planning import plan_service as service_module
+
+    original_create = service_module.create_plan
+
+    async def broken_create(*args: Any, **kwargs: Any) -> FarmSeasonVarietyPlan:
+        raise IntegrityError("insert", {}, Exception("unique violation"))
+
+    monkeypatch.setattr(service_module, "create_plan", broken_create)
+
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ProductionPlanVersionConflictError):
+            await create_plan_version(session, payload=_payload(ids), config=config)
+
+        count_after_failure = await session.scalar(select(func.count(FarmSeasonVarietyPlan.id)))
+
+    assert count_after_failure == 0
+
+    monkeypatch.setattr(service_module, "create_plan", original_create)
+
+    async with AsyncSessionMaker() as session:
+        result = await create_plan_version(session, payload=_payload(ids), config=config)
+
+    assert result.created

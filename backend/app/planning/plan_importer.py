@@ -272,7 +272,7 @@ async def import_production_plans_csv(
                         season_id=season.id,
                         variety_id=variety.id,
                     )
-                    preview_plan, _warnings, _created = await _prepare_plan_inputs(
+                    preview_plan, _row_hash, _warnings, _created = await _prepare_plan_inputs(
                         session,
                         payload=payload,
                         config=config,

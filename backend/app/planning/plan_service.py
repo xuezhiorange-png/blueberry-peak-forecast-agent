@@ -4,6 +4,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any, cast
 
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
@@ -11,6 +12,7 @@ from backend.app.planning.json_types import canonical_json_value
 from backend.app.planning.plan_config import ProductionPlanConfig
 from backend.app.planning.plan_hashing import plan_row_hash
 from backend.app.planning.plan_repository import (
+    acquire_production_plan_lock,
     create_plan,
     create_replacement_plan,
     get_farm,
@@ -353,7 +355,7 @@ async def _prepare_plan_inputs(
     existing_rows: list[FarmSeasonVarietyPlan],
     excluded_plan_ids: set[int] | None = None,
     allow_existing_row_hash: bool = True,
-) -> tuple[FarmSeasonVarietyPlan | None, tuple[str, ...], bool]:
+) -> tuple[FarmSeasonVarietyPlan | None, str, tuple[str, ...], bool]:
     excluded = excluded_plan_ids or set()
     farm_id = int(payload["farm_id"])
     subfarm_id = int(payload["subfarm_id"]) if payload.get("subfarm_id") is not None else None
@@ -449,7 +451,7 @@ async def _prepare_plan_inputs(
     existing_row = await get_plan_by_row_hash(session, row_hash=row_hash)
     if existing_row is not None and existing_row.id not in excluded:
         if allow_existing_row_hash:
-            return None, warnings, False
+            return None, row_hash, warnings, False
         raise ProductionPlanVersionConflictError("row hash already exists")
 
     for row in existing_rows:
@@ -493,9 +495,30 @@ async def _prepare_plan_inputs(
             notes=notes,
             row_hash=row_hash,
         ),
+        row_hash,
         warnings,
         True,
     )
+
+
+def _conflict_from_db_error(exc: Exception) -> Exception | None:
+    sqlstate = getattr(getattr(exc, "orig", None), "sqlstate", None)
+    message = str(getattr(exc, "orig", exc)).lower()
+    if sqlstate == "40001":
+        return ProductionPlanIntervalConflictError("concurrent production plan write conflict")
+    if sqlstate == "23P01":
+        return ProductionPlanIntervalConflictError(
+            "effective interval overlaps with existing version"
+        )
+    if sqlstate == "23505":
+        if "row_hash" in message:
+            return ProductionPlanVersionConflictError("row hash already exists")
+        if "version" in message or "uq_farm_season_variety_plan_version" in message:
+            return ProductionPlanVersionConflictError("version already exists for business key")
+        return ProductionPlanVersionConflictError("concurrent production plan write conflict")
+    if isinstance(exc, IntegrityError):
+        return ProductionPlanVersionConflictError("concurrent production plan write conflict")
+    return None
 
 
 async def create_plan_version(
@@ -508,35 +531,48 @@ async def create_plan_version(
     subfarm_id = int(payload["subfarm_id"]) if payload.get("subfarm_id") is not None else None
     season_id = int(payload["season_id"])
     variety_id = int(payload["variety_id"])
-    existing_rows = await list_plan_versions_by_key(
-        session,
-        farm_id=farm_id,
-        subfarm_id=subfarm_id,
-        season_id=season_id,
-        variety_id=variety_id,
-    )
-    plan, warnings, created_flag = await _prepare_plan_inputs(
-        session,
-        payload=payload,
-        config=config,
-        existing_rows=existing_rows,
-    )
-    if plan is None:
-        existing_row = await get_plan_by_row_hash(
-            session,
-            row_hash=plan_row_hash(_build_row_hash_payload(payload)),
-        )
-        if existing_row is None:
-            raise ProductionPlanNotFoundError("existing plan not found for row_hash")
-        return ProductionPlanMutationResult(
-            record=await _build_record(session, plan=existing_row, warnings=warnings),
-            created=False,
-        )
-    created = await create_plan(session, plan=plan)
-    return ProductionPlanMutationResult(
-        record=await _build_record(session, plan=created, warnings=warnings),
-        created=created_flag,
-    )
+    try:
+        async with session.begin():
+            await acquire_production_plan_lock(
+                session,
+                farm_id=farm_id,
+                subfarm_id=subfarm_id,
+                season_id=season_id,
+                variety_id=variety_id,
+            )
+            existing_rows = await list_plan_versions_by_key(
+                session,
+                farm_id=farm_id,
+                subfarm_id=subfarm_id,
+                season_id=season_id,
+                variety_id=variety_id,
+                for_update=True,
+            )
+            plan, row_hash, warnings, created_flag = await _prepare_plan_inputs(
+                session,
+                payload=payload,
+                config=config,
+                existing_rows=existing_rows,
+            )
+            if plan is None:
+                existing_row = await get_plan_by_row_hash(session, row_hash=row_hash)
+                if existing_row is None:
+                    raise ProductionPlanNotFoundError("existing plan not found for row_hash")
+                return ProductionPlanMutationResult(
+                    record=await _build_record(session, plan=existing_row, warnings=warnings),
+                    created=False,
+                )
+            created = await create_plan(session, plan=plan)
+            return ProductionPlanMutationResult(
+                record=await _build_record(session, plan=created, warnings=warnings),
+                created=created_flag,
+            )
+    except (IntegrityError, DBAPIError) as exc:
+        await session.rollback()
+        translated = _conflict_from_db_error(exc)
+        if translated is not None:
+            raise translated from exc
+        raise
 
 
 async def get_plan_version(
@@ -614,53 +650,78 @@ async def create_replacement_version(
     payload: dict[str, Any],
     config: ProductionPlanConfig,
 ) -> ProductionPlanMutationResult:
-    current = await get_plan_by_id(session, plan_id=plan_id)
-    if current is None:
-        raise ProductionPlanNotFoundError("plan not found")
-    if int(payload["farm_id"]) != current.farm_id:
-        raise ProductionPlanValidationError("replacement farm_id must match current plan")
     payload_subfarm_id = (
         int(payload["subfarm_id"]) if payload.get("subfarm_id") is not None else None
     )
-    if payload_subfarm_id != current.subfarm_id:
-        raise ProductionPlanValidationError("replacement subfarm_id must match current plan")
-    if int(payload["season_id"]) != current.season_id:
-        raise ProductionPlanValidationError("replacement season_id must match current plan")
-    if int(payload["variety_id"]) != current.variety_id:
-        raise ProductionPlanValidationError("replacement variety_id must match current plan")
-    new_effective_from = payload["effective_from"]
-    if new_effective_from <= current.effective_from:
-        raise ProductionPlanValidationError(
-            "replacement effective_from must be later than current effective_from"
-        )
-    if current.effective_to is not None and new_effective_from > current.effective_to:
-        raise ProductionPlanValidationError(
-            "replacement effective_from must not extend beyond current effective_to"
-        )
-    existing_rows = await list_plan_versions_by_key(
-        session,
-        farm_id=current.farm_id,
-        subfarm_id=current.subfarm_id,
-        season_id=current.season_id,
-        variety_id=current.variety_id,
-    )
-    plan, warnings, created_flag = await _prepare_plan_inputs(
-        session,
-        payload=payload,
-        config=config,
-        existing_rows=existing_rows,
-        excluded_plan_ids={current.id},
-        allow_existing_row_hash=False,
-    )
-    if plan is None:
-        raise ProductionPlanVersionConflictError("replacement row already exists")
-    replaced = await create_replacement_plan(
-        session,
-        current_plan_id=current.id,
-        current_effective_to=new_effective_from,
-        new_plan=plan,
-    )
-    return ProductionPlanMutationResult(
-        record=await _build_record(session, plan=replaced, warnings=warnings),
-        created=created_flag,
-    )
+    farm_id = int(payload["farm_id"])
+    season_id = int(payload["season_id"])
+    variety_id = int(payload["variety_id"])
+    new_effective_from = cast(date, payload["effective_from"])
+    try:
+        async with session.begin():
+            await acquire_production_plan_lock(
+                session,
+                farm_id=farm_id,
+                subfarm_id=payload_subfarm_id,
+                season_id=season_id,
+                variety_id=variety_id,
+            )
+            current = await get_plan_by_id(session, plan_id=plan_id, for_update=True)
+            if current is None:
+                raise ProductionPlanNotFoundError("plan not found")
+            if farm_id != current.farm_id:
+                raise ProductionPlanValidationError("replacement farm_id must match current plan")
+            if payload_subfarm_id != current.subfarm_id:
+                raise ProductionPlanValidationError(
+                    "replacement subfarm_id must match current plan"
+                )
+            if season_id != current.season_id:
+                raise ProductionPlanValidationError(
+                    "replacement season_id must match current plan"
+                )
+            if variety_id != current.variety_id:
+                raise ProductionPlanValidationError(
+                    "replacement variety_id must match current plan"
+                )
+            if current.effective_to is not None:
+                raise ProductionPlanIntervalConflictError(
+                    "current plan is no longer open for replacement"
+                )
+            if new_effective_from <= current.effective_from:
+                raise ProductionPlanValidationError(
+                    "replacement effective_from must be later than current effective_from"
+                )
+            existing_rows = await list_plan_versions_by_key(
+                session,
+                farm_id=current.farm_id,
+                subfarm_id=current.subfarm_id,
+                season_id=current.season_id,
+                variety_id=current.variety_id,
+                for_update=True,
+            )
+            plan, _, warnings, created_flag = await _prepare_plan_inputs(
+                session,
+                payload=payload,
+                config=config,
+                existing_rows=existing_rows,
+                excluded_plan_ids={current.id},
+                allow_existing_row_hash=False,
+            )
+            if plan is None:
+                raise ProductionPlanVersionConflictError("replacement row already exists")
+            replaced = await create_replacement_plan(
+                session,
+                current_plan_id=current.id,
+                current_effective_to=new_effective_from,
+                new_plan=plan,
+            )
+            return ProductionPlanMutationResult(
+                record=await _build_record(session, plan=replaced, warnings=warnings),
+                created=created_flag,
+            )
+    except (IntegrityError, DBAPIError) as exc:
+        await session.rollback()
+        translated = _conflict_from_db_error(exc)
+        if translated is not None:
+            raise translated from exc
+        raise
