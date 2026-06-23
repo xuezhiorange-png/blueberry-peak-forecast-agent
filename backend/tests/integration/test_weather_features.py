@@ -25,7 +25,11 @@ from backend.app.models.weather import (
 from backend.app.planning.plan_config import ProductionPlanConfig, load_production_plan_config
 from backend.app.weather.config import WeatherFeatureConfig, load_weather_feature_config
 from backend.app.weather.repository import get_base_temperature_search_run, get_weather_feature_run
-from backend.app.weather.schemas import BaseTemperatureTrainingSample
+from backend.app.weather.schemas import (
+    BaseTemperatureTrainingSample,
+    PhenologyTimeline,
+    WeatherWindowFeature,
+)
 from backend.app.weather.service import (
     compute_weather_window_features,
     get_effective_weather_observations,
@@ -370,10 +374,29 @@ async def test_compute_weather_features_persists_and_skips_rehydrated_result() -
     assert plan_id > 0
     assert first.status == "completed"
     assert second.status == "skipped"
+    assert isinstance(first.windows, tuple)
+    assert isinstance(first.windows[0], WeatherWindowFeature)
+    assert isinstance(first.timeline, PhenologyTimeline)
     assert first.windows[0].status == "available"
+    assert isinstance(second.windows, tuple)
+    assert isinstance(second.windows[0], WeatherWindowFeature)
+    assert isinstance(second.timeline, PhenologyTimeline)
     assert len(first.windows) == 3
     assert second.windows == first.windows
     assert second.timeline == first.timeline
+    assert type(first.windows[0]) is type(second.windows[0])
+    assert type(first.timeline) is type(second.timeline)
+    for first_window, second_window in zip(first.windows, second.windows, strict=True):
+        assert first_window.window_days == second_window.window_days
+        assert first_window.status == second_window.status
+        assert first_window.coverage_ratio == second_window.coverage_ratio
+        assert first_window.source_observation_ids == second_window.source_observation_ids
+    assert first.timeline.plan_id == second.timeline.plan_id
+    assert first.timeline.plan_version == second.timeline.plan_version
+    assert (
+        first.timeline.cumulative_effective_temperature
+        == second.timeline.cumulative_effective_temperature
+    )
     assert run is not None
     assert run.status == "completed"
     assert mapping_count == 1

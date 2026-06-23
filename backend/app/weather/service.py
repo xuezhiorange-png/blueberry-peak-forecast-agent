@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -1836,9 +1836,7 @@ async def compute_weather_window_features(
         )
         raise
 
-    return WeatherFeatureExecutionResult(
-        **{**asdict(result), "run_id": run.id},
-    )
+    return replace(result, run_id=run.id)
 
 
 def _training_sample_payload(sample: BaseTemperatureTrainingSample) -> dict[str, Any]:
@@ -2026,7 +2024,7 @@ async def search_base_temperature(
                     "error_message": None,
                 },
             )
-            return BaseTemperatureSearchExecutionResult(**{**asdict(result), "run_id": run.id})
+            return replace(result, run_id=run.id)
         return result
 
     candidate_scores: list[BaseTemperatureCandidateScore] = []
@@ -2170,7 +2168,7 @@ async def search_base_temperature(
             "error_message": None,
         },
     )
-    return BaseTemperatureSearchExecutionResult(**{**asdict(result), "run_id": run.id})
+    return replace(result, run_id=run.id)
 
 
 async def load_base_temperature_search_result(
