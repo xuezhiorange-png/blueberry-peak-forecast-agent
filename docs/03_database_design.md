@@ -542,3 +542,50 @@ Task 6 统一使用半开区间 `[effective_from, effective_to)`。
 - 记录 Task 6 CSV 导入审计；
 - dry-run 不写该表；
 - 正式导入采用明确的逐行拒绝策略，并保留全量统计。
+
+## 任务7天气与物候时间轴表
+
+任务7增加天气源、天气观测、农场到天气源映射、天气特征运行和基温搜索运行。Task 7 只提供确定性的天气与物候特征，不训练自然成熟曲线。
+
+### weather_source_location
+
+- 粒度：`provider_code × external_location_id × source_version`
+- 字段：`provider_code`、`external_location_id`、`location_type(station/grid)`、`latitude`、`longitude`、`altitude_m`、`timezone_name`、`grid_resolution`、`valid_from`、`valid_to`、`row_hash`
+- 约束：坐标范围校验、`valid_to >= valid_from`、`row_hash` 唯一、同一 provider/business key/source_version 唯一
+
+### weather_daily_observation
+
+- append-only，每条记录代表一个天气源在一个自然日的一次可见版本
+- 字段：`observation_date`、`temperature_min_c`、`temperature_max_c`、`temperature_mean_c`、`temperature_mean_source`、`precipitation_mm`、`solar_radiation_mj_m2`、`available_at`、`quality_code`、`quality_flags`、`source_version`、`row_hash`
+- 约束：`temperature_max_c >= temperature_min_c`、显式 mean 必须位于 min/max 之间、降雨和辐射不得为负
+- 历史查询必须同时满足：
+  - `available_at <= as_of_date`
+  - `observation_date <= feature_date`
+- 同一天多个可见版本按 `available_at DESC, source_version DESC, id DESC` 选择；若同优先级内容冲突，则返回 version conflict
+
+### weather_import_run
+
+- 审计天气位置、天气观测和显式映射的 CSV 导入
+- `import_type` 限定为 `location / observation / mapping`
+- `status` 限定为 `running / completed / failed`
+- dry-run 零写入；正式导入保留文件 SHA、统计计数和质量报告
+
+### location_weather_mapping
+
+- 粒度：`location_reference × weather_source_location × mapping_version × available_at × valid_from`
+- 字段：`mapping_method(explicit/nearest_station/nearest_grid)`、`distance_km`、`altitude_difference_m`、`mapping_score`、`confidence_level`、`config_hash`、`row_hash`
+- 优先级：显式映射优先；自动映射再按 station/grid 配置优先级和评分选择
+- 缺失海拔不得按 0 处理，只能返回 `NULL` 并降低可信度
+
+### weather_feature_run
+
+- 粒度：`plan_id × as_of_date × feature_date × mapping_row_hash × base_temperature_search_run_id × feature_version × config_hash`
+- 字段：`input_snapshot`、`window_features`、`timeline_payload`、`weather_observation_ids`、`warnings`、`blockers`
+- PostgreSQL 部分唯一索引保护 `running/completed/unavailable` 的幂等 source signature
+- 相同输入和数据版本必须返回同一 run 或 skipped 结果
+
+### base_temperature_search_run
+
+- 粒度：`training_cutoff × scope_type × variety_id? × climate_zone_id? × anchor_event × target_event × config_hash × feature_version × training_sample_ids`
+- 持久化候选基温集合、选中基温、评分方法、候选分数、样本数、distinct season 数和输入快照
+- 数据不足时返回 `unavailable`，不得静默采用默认基温

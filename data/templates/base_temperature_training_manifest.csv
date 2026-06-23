@@ -1,0 +1,2 @@
+plan_id,anchor_event,target_event,sample_weight,include,exclusion_reason
+1,flowering_start_date,first_pick_date,1,true,
