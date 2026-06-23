@@ -1,0 +1,4 @@
+version: "task6-v1"
+interval_semantics: "half_open"
+explicit_total_tolerance_kg: 1
+explicit_total_mismatch_behavior: "warn"

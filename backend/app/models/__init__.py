@@ -16,6 +16,7 @@ from backend.app.models.planning import (
     ParameterLibraryVersion,
     ParameterObservation,
 )
+from backend.app.models.production_plan import FarmSeasonVarietyPlan, ProductionPlanImportRun
 
 __all__ = [
     "AnalyticsBuildRun",
@@ -28,6 +29,7 @@ __all__ = [
     "Factory",
     "FactorySeasonPeakMetric",
     "Farm",
+    "FarmSeasonVarietyPlan",
     "Grade",
     "Holiday",
     "IngestFile",
@@ -37,6 +39,7 @@ __all__ = [
     "ParameterInferenceRun",
     "ParameterLibraryVersion",
     "ParameterObservation",
+    "ProductionPlanImportRun",
     "Season",
     "Subfarm",
     "Variety",
