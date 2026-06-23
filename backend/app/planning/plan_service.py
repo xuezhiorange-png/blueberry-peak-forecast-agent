@@ -687,7 +687,7 @@ async def create_replacement_version(
     farm_id = int(payload["farm_id"])
     season_id = int(payload["season_id"])
     variety_id = int(payload["variety_id"])
-    new_effective_from = cast(date, payload["effective_from"])
+    new_effective_from = _date_value(payload.get("effective_from"), field="effective_from")
     try:
         async with session.begin():
             await acquire_production_plan_lock(
