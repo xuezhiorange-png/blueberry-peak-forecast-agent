@@ -505,8 +505,11 @@ async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_hi
 
     assert len(rows) == 2
     assert rows[0].version == 1
-    assert rows[0].effective_to == date(2026, 3, 1)
     assert rows[1].id == success_ids[0]
+    # The winner is whichever replacement acquires the business-key lock first.
+    # The old open-ended version must close exactly at that winning replacement's
+    # effective_from boundary, regardless of whether version 2 or version 3 wins.
+    assert rows[0].effective_to == rows[1].effective_from
 
 
 async def test_non_overlapping_versions_still_create_successfully() -> None:
