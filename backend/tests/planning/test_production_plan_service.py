@@ -6,6 +6,7 @@ from decimal import Decimal
 import pytest
 
 from backend.app.planning.plan_config import ProductionPlanConfig, ProductionPlanRules
+from backend.app.planning.plan_repository import production_plan_business_lock_key
 from backend.app.planning.plan_schemas import ProductionPlanValidationError
 from backend.app.planning.plan_service import (
     _decimal_value,
@@ -122,3 +123,27 @@ def test_difference_warning_within_tolerance_has_no_warning() -> None:
     )
     assert difference == Decimal("0.4")
     assert warnings == ()
+
+
+def test_business_key_lock_key_is_stable_and_distinguishes_null_subfarm() -> None:
+    first = production_plan_business_lock_key(
+        farm_id=1,
+        subfarm_id=None,
+        season_id=2,
+        variety_id=3,
+    )
+    second = production_plan_business_lock_key(
+        farm_id=1,
+        subfarm_id=None,
+        season_id=2,
+        variety_id=3,
+    )
+    with_subfarm = production_plan_business_lock_key(
+        farm_id=1,
+        subfarm_id=9,
+        season_id=2,
+        variety_id=3,
+    )
+
+    assert first == second
+    assert first != with_subfarm

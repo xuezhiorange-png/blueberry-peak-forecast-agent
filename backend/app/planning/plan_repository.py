@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, date, datetime
 from typing import Any, cast
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
@@ -12,6 +13,45 @@ from backend.app.models.production_plan import FarmSeasonVarietyPlan, Production
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def production_plan_business_lock_key(
+    *,
+    farm_id: int,
+    subfarm_id: int | None,
+    season_id: int,
+    variety_id: int,
+) -> int:
+    subfarm_component = subfarm_id if subfarm_id is not None else -1
+    payload = (
+        f"farm:{farm_id}|subfarm:{subfarm_component}|season:{season_id}|variety:{variety_id}"
+    )
+    digest = hashlib.sha256(payload.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], byteorder="big", signed=True)
+
+
+async def acquire_production_plan_lock(
+    session: AsyncSession,
+    *,
+    farm_id: int,
+    subfarm_id: int | None,
+    season_id: int,
+    variety_id: int,
+) -> None:
+    if session.get_bind().dialect.name != "postgresql":
+        return
+    await session.execute(
+        select(
+            func.pg_advisory_xact_lock(
+                production_plan_business_lock_key(
+                    farm_id=farm_id,
+                    subfarm_id=subfarm_id,
+                    season_id=season_id,
+                    variety_id=variety_id,
+                )
+            )
+        )
+    )
 
 
 async def get_farm(session: AsyncSession, *, farm_id: int) -> Farm | None:
@@ -72,8 +112,12 @@ async def get_plan_by_id(
     session: AsyncSession,
     *,
     plan_id: int,
+    for_update: bool = False,
 ) -> FarmSeasonVarietyPlan | None:
-    return await session.get(FarmSeasonVarietyPlan, plan_id)
+    statement = select(FarmSeasonVarietyPlan).where(FarmSeasonVarietyPlan.id == plan_id)
+    if for_update and session.get_bind().dialect.name == "postgresql":
+        statement = statement.with_for_update()
+    return cast(FarmSeasonVarietyPlan | None, await session.scalar(statement))
 
 
 async def get_plan_by_row_hash(
@@ -96,6 +140,7 @@ async def list_plan_versions_by_key(
     subfarm_id: int | None,
     season_id: int,
     variety_id: int,
+    for_update: bool = False,
 ) -> list[FarmSeasonVarietyPlan]:
     statement = select(FarmSeasonVarietyPlan).where(
         FarmSeasonVarietyPlan.farm_id == farm_id,
@@ -111,6 +156,8 @@ async def list_plan_versions_by_key(
         FarmSeasonVarietyPlan.version.asc(),
         FarmSeasonVarietyPlan.id.asc(),
     )
+    if for_update and session.get_bind().dialect.name == "postgresql":
+        statement = statement.with_for_update()
     return list((await session.scalars(statement)).all())
 
 
@@ -120,7 +167,7 @@ async def create_plan(
     plan: FarmSeasonVarietyPlan,
 ) -> FarmSeasonVarietyPlan:
     session.add(plan)
-    await session.commit()
+    await session.flush()
     return plan
 
 
@@ -140,7 +187,7 @@ async def create_replacement_plan(
         )
     )
     session.add(new_plan)
-    await session.commit()
+    await session.flush()
     return new_plan
 
 
