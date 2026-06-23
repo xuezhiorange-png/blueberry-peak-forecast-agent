@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncIterator
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -33,10 +33,12 @@ from backend.app.weather.schemas import (
     WeatherWindowFeature,
 )
 from backend.app.weather.service import (
+    BaseTemperatureSearchUnavailableError,
     compute_weather_window_features,
     get_effective_weather_observations,
     import_weather_locations,
     import_weather_observations,
+    resolve_weather_mapping,
     search_base_temperature,
 )
 
@@ -230,6 +232,97 @@ async def _seed_weather_days(
         await session.commit()
 
 
+async def _seed_weather_revision(
+    *,
+    weather_source_location_id: int,
+    observation_date: date,
+    source_version: str,
+    available_at: date,
+    mean_c: Decimal,
+) -> int:
+    async with AsyncSessionMaker() as session:
+        row = WeatherDailyObservation(
+            weather_source_location_id=weather_source_location_id,
+            observation_date=observation_date,
+            temperature_min_c=mean_c - Decimal("5"),
+            temperature_max_c=mean_c + Decimal("5"),
+            temperature_mean_c=mean_c,
+            temperature_mean_source="provided",
+            precipitation_mm=Decimal("0"),
+            solar_radiation_mj_m2=Decimal("12"),
+            provider_code="synthetic_station",
+            source_version=source_version,
+            available_at=available_at,
+            quality_code="ok",
+            quality_flags=["ok"],
+            source_file_sha256=None,
+            source_row_number=None,
+            row_hash=f"obs-{source_version}-{observation_date.isoformat()}-{available_at.isoformat()}",
+        )
+        session.add(row)
+        await session.commit()
+        return row.id
+
+
+async def _seed_base_temperature_search_run(
+    *,
+    variety_id: int,
+    climate_zone_id: int,
+    selected_base_temperature: Decimal | None = Decimal("5"),
+    status: str = "completed",
+    source_signature: str = "base-temp-signature",
+    feature_version: str = "task7-v1",
+    config_hash: str | None = None,
+    error_message: str | None = None,
+) -> int:
+    config = _weather_config()
+    async with AsyncSessionMaker() as session:
+        run = BaseTemperatureSearchRun(
+            scope_type="variety_zone",
+            variety_id=variety_id,
+            climate_zone_id=climate_zone_id,
+            training_cutoff=date(2027, 5, 1),
+            anchor_event="flowering_start_date",
+            target_event="first_pick_date",
+            candidate_temperatures=["0", "1", "2", "3", "4", "5", "6", "7"],
+            selected_base_temperature=selected_base_temperature,
+            scoring_method=config.rules.search.scoring_method,
+            selected_score=Decimal("0.000000") if selected_base_temperature is not None else None,
+            sample_count=3,
+            distinct_season_count=3,
+            training_sample_ids=[1, 2, 3],
+            candidate_scores={
+                "candidates": [
+                    {
+                        "base_temperature": "5",
+                        "fold_count": 3,
+                        "evaluated_sample_count": 3,
+                        "mae_days": "0.000000",
+                        "warnings": [],
+                    }
+                ]
+            },
+            config_hash=config_hash or config.config_hash,
+            feature_version=feature_version,
+            source_signature=source_signature,
+            status=status,
+            warnings=[],
+            blockers=[],
+            input_snapshot={
+                "training_cutoff": "2027-05-01",
+                "scope_type": "variety_zone",
+                "variety_id": variety_id,
+                "climate_zone_id": climate_zone_id,
+                "samples": [],
+            },
+            finished_at=None if status == "running" else datetime.now(UTC),
+            error_message=error_message,
+        )
+        session.add(run)
+        await session.commit()
+        return run.id
+
+
 async def test_weather_imports_are_idempotent_and_history_respects_as_of_date(
     tmp_path: Path,
 ) -> None:
@@ -340,6 +433,10 @@ async def test_compute_weather_features_persists_and_skips_rehydrated_result() -
         days=21,
         source_version="dataset-v1",
     )
+    base_temperature_run_id = await _seed_base_temperature_search_run(
+        variety_id=ids["variety_id"],
+        climate_zone_id=ids["zone_id"],
+    )
 
     async with AsyncSessionMaker() as session:
         first = await compute_weather_window_features(
@@ -352,7 +449,7 @@ async def test_compute_weather_features_persists_and_skips_rehydrated_result() -
             feature_date=date(2026, 1, 21),
             config=_weather_config(),
             production_plan_config=_plan_config(),
-            base_temperature_search_run_id=None,
+            base_temperature_search_run_id=base_temperature_run_id,
             anchor_event="flowering_start_date",
             dry_run=False,
         )
@@ -366,7 +463,7 @@ async def test_compute_weather_features_persists_and_skips_rehydrated_result() -
             feature_date=date(2026, 1, 21),
             config=_weather_config(),
             production_plan_config=_plan_config(),
-            base_temperature_search_run_id=None,
+            base_temperature_search_run_id=base_temperature_run_id,
             anchor_event="flowering_start_date",
             dry_run=False,
         )
@@ -402,6 +499,97 @@ async def test_compute_weather_features_persists_and_skips_rehydrated_result() -
     assert run is not None
     assert run.status == "completed"
     assert mapping_count == 1
+
+
+async def test_compute_weather_features_requires_base_temperature_search_run() -> None:
+    _require_postgres()
+    ids = await _seed_dimensions()
+    await _seed_plan(
+        season_id=ids["season_ids"]["2025-2026"],
+        farm_id=ids["farm_id"],
+        variety_id=ids["variety_id"],
+        version=1,
+        flowering_start_date=date(2026, 1, 5),
+        first_pick_date=date(2026, 1, 20),
+    )
+    await _seed_weather_days(
+        weather_source_location_id=ids["weather_source_location_id"],
+        start_date=date(2026, 1, 1),
+        days=21,
+        source_version="dataset-v1",
+    )
+
+    async with AsyncSessionMaker() as session:
+        result = await compute_weather_window_features(
+            session,
+            farm_id=ids["farm_id"],
+            subfarm_id=None,
+            season_id=ids["season_ids"]["2025-2026"],
+            variety_id=ids["variety_id"],
+            as_of_date=date(2026, 1, 25),
+            feature_date=date(2026, 1, 21),
+            config=_weather_config(),
+            production_plan_config=_plan_config(),
+            base_temperature_search_run_id=None,
+            anchor_event="flowering_start_date",
+            dry_run=False,
+        )
+        run = await get_weather_feature_run(session, run_id=result.run_id or 0)
+
+    assert result.status == "unavailable"
+    assert result.run_id is not None
+    assert "base_temperature_search_required" in result.blockers
+    assert all(window.effective_temperature_sum is None for window in result.windows)
+    assert result.timeline.cumulative_effective_temperature is None
+    assert run is not None
+    assert run.status == "unavailable"
+
+
+async def test_compute_weather_features_rejects_incompatible_base_temperature_run() -> None:
+    _require_postgres()
+    ids = await _seed_dimensions()
+    await _seed_plan(
+        season_id=ids["season_ids"]["2025-2026"],
+        farm_id=ids["farm_id"],
+        variety_id=ids["variety_id"],
+        version=1,
+        flowering_start_date=date(2026, 1, 5),
+        first_pick_date=date(2026, 1, 20),
+    )
+    await _seed_weather_days(
+        weather_source_location_id=ids["weather_source_location_id"],
+        start_date=date(2026, 1, 1),
+        days=21,
+        source_version="dataset-v1",
+    )
+    failed_run_id = await _seed_base_temperature_search_run(
+        variety_id=ids["variety_id"],
+        climate_zone_id=ids["zone_id"],
+        status="failed",
+        selected_base_temperature=None,
+        source_signature="failed-search-run",
+        error_message="search failed",
+    )
+
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(
+            BaseTemperatureSearchUnavailableError,
+            match="not completed: failed",
+        ):
+            await compute_weather_window_features(
+                session,
+                farm_id=ids["farm_id"],
+                subfarm_id=None,
+                season_id=ids["season_ids"]["2025-2026"],
+                variety_id=ids["variety_id"],
+                as_of_date=date(2026, 1, 25),
+                feature_date=date(2026, 1, 21),
+                config=_weather_config(),
+                production_plan_config=_plan_config(),
+                base_temperature_search_run_id=failed_run_id,
+                anchor_event="flowering_start_date",
+                dry_run=False,
+            )
 
 
 async def test_base_temperature_search_persists_result_and_is_idempotent() -> None:
@@ -507,6 +695,345 @@ async def test_base_temperature_search_persists_result_and_is_idempotent() -> No
     assert second.selected_score == first.selected_score
 
 
+async def test_weather_feature_signature_tracks_visible_weather_revisions() -> None:
+    _require_postgres()
+    ids = await _seed_dimensions()
+    await _seed_plan(
+        season_id=ids["season_ids"]["2025-2026"],
+        farm_id=ids["farm_id"],
+        variety_id=ids["variety_id"],
+        version=1,
+        flowering_start_date=date(2026, 1, 5),
+        first_pick_date=date(2026, 1, 20),
+    )
+    await _seed_weather_days(
+        weather_source_location_id=ids["weather_source_location_id"],
+        start_date=date(2026, 1, 1),
+        days=21,
+        source_version="dataset-v1",
+        mean_c=Decimal("10"),
+    )
+    base_temperature_run_id = await _seed_base_temperature_search_run(
+        variety_id=ids["variety_id"],
+        climate_zone_id=ids["zone_id"],
+        source_signature="bt-source-v1",
+    )
+
+    async with AsyncSessionMaker() as session:
+        first = await compute_weather_window_features(
+            session,
+            farm_id=ids["farm_id"],
+            subfarm_id=None,
+            season_id=ids["season_ids"]["2025-2026"],
+            variety_id=ids["variety_id"],
+            as_of_date=date(2026, 1, 25),
+            feature_date=date(2026, 1, 21),
+            config=_weather_config(),
+            production_plan_config=_plan_config(),
+            base_temperature_search_run_id=base_temperature_run_id,
+            anchor_event="flowering_start_date",
+            dry_run=False,
+        )
+
+    revised_visible_id = await _seed_weather_revision(
+        weather_source_location_id=ids["weather_source_location_id"],
+        observation_date=date(2026, 1, 21),
+        source_version="dataset-v2",
+        available_at=date(2026, 1, 24),
+        mean_c=Decimal("14"),
+    )
+
+    async with AsyncSessionMaker() as session:
+        second = await compute_weather_window_features(
+            session,
+            farm_id=ids["farm_id"],
+            subfarm_id=None,
+            season_id=ids["season_ids"]["2025-2026"],
+            variety_id=ids["variety_id"],
+            as_of_date=date(2026, 1, 25),
+            feature_date=date(2026, 1, 21),
+            config=_weather_config(),
+            production_plan_config=_plan_config(),
+            base_temperature_search_run_id=base_temperature_run_id,
+            anchor_event="flowering_start_date",
+            dry_run=False,
+        )
+        first_run = await session.get(WeatherFeatureRun, first.run_id)
+        second_run = await session.get(WeatherFeatureRun, second.run_id)
+
+    assert first.status == "completed"
+    assert second.status == "completed"
+    assert first.run_id != second.run_id
+    assert first.source_signature != second.source_signature
+    assert revised_visible_id in second.weather_observation_ids
+    assert second.windows[0].effective_temperature_sum != first.windows[0].effective_temperature_sum
+    assert first_run is not None
+    assert second_run is not None
+    assert first_run.source_signature == first.source_signature
+    assert second_run.source_signature == second.source_signature
+
+    await _seed_weather_revision(
+        weather_source_location_id=ids["weather_source_location_id"],
+        observation_date=date(2026, 1, 21),
+        source_version="dataset-v3",
+        available_at=date(2026, 1, 30),
+        mean_c=Decimal("18"),
+    )
+
+    async with AsyncSessionMaker() as session:
+        third = await compute_weather_window_features(
+            session,
+            farm_id=ids["farm_id"],
+            subfarm_id=None,
+            season_id=ids["season_ids"]["2025-2026"],
+            variety_id=ids["variety_id"],
+            as_of_date=date(2026, 1, 25),
+            feature_date=date(2026, 1, 21),
+            config=_weather_config(),
+            production_plan_config=_plan_config(),
+            base_temperature_search_run_id=base_temperature_run_id,
+            anchor_event="flowering_start_date",
+            dry_run=False,
+        )
+
+    assert third.status == "skipped"
+    assert third.run_id == second.run_id
+    assert third.source_signature == second.source_signature
+    assert third.windows == second.windows
+
+
+async def test_base_temperature_search_signature_tracks_manifest_and_visible_weather() -> None:
+    _require_postgres()
+    ids = await _seed_dimensions()
+    base_plans = [
+        await _seed_plan(
+            season_id=ids["season_ids"]["2024-2025"],
+            farm_id=ids["farm_id"],
+            variety_id=ids["variety_id"],
+            version=1,
+            flowering_start_date=date(2025, 1, 5),
+            first_pick_date=date(2025, 1, 10),
+        ),
+        await _seed_plan(
+            season_id=ids["season_ids"]["2025-2026"],
+            farm_id=ids["farm_id"],
+            variety_id=ids["variety_id"],
+            version=1,
+            flowering_start_date=date(2026, 1, 5),
+            first_pick_date=date(2026, 1, 10),
+        ),
+        await _seed_plan(
+            season_id=ids["season_ids"]["2026-2027"],
+            farm_id=ids["farm_id"],
+            variety_id=ids["variety_id"],
+            version=1,
+            flowering_start_date=date(2027, 1, 5),
+            first_pick_date=date(2027, 1, 10),
+        ),
+    ]
+    await _seed_weather_days(
+        weather_source_location_id=ids["weather_source_location_id"],
+        start_date=date(2025, 1, 5),
+        days=116,
+        source_version="dataset-v1",
+    )
+    await _seed_weather_days(
+        weather_source_location_id=ids["weather_source_location_id"],
+        start_date=date(2026, 1, 5),
+        days=116,
+        source_version="dataset-v1-2026",
+    )
+    await _seed_weather_days(
+        weather_source_location_id=ids["weather_source_location_id"],
+        start_date=date(2027, 1, 5),
+        days=116,
+        source_version="dataset-v1-2027",
+    )
+
+    def base_samples() -> list[BaseTemperatureTrainingSample]:
+        return [
+            BaseTemperatureTrainingSample(
+                plan_id=plan_id,
+                anchor_event="flowering_start_date",
+                target_event="first_pick_date",
+                sample_weight=Decimal("1"),
+                include=True,
+                exclusion_reason=None,
+            )
+            for plan_id in base_plans
+        ]
+
+    async with AsyncSessionMaker() as session:
+        first = await search_base_temperature(
+            session,
+            training_cutoff=date(2027, 5, 1),
+            samples=base_samples(),
+            config=_weather_config(),
+            variety_id=ids["variety_id"],
+            climate_zone_id=ids["zone_id"],
+            scope_type="variety_zone",
+            dry_run=False,
+        )
+        second = await search_base_temperature(
+            session,
+            training_cutoff=date(2027, 5, 1),
+            samples=base_samples(),
+            config=_weather_config(),
+            variety_id=ids["variety_id"],
+            climate_zone_id=ids["zone_id"],
+            scope_type="variety_zone",
+            dry_run=False,
+        )
+
+    assert second.status == "skipped"
+    assert second.run_id == first.run_id
+
+    weighted_samples = base_samples()
+    weighted_samples[0] = BaseTemperatureTrainingSample(
+        plan_id=weighted_samples[0].plan_id,
+        anchor_event=weighted_samples[0].anchor_event,
+        target_event=weighted_samples[0].target_event,
+        sample_weight=Decimal("2"),
+        include=True,
+        exclusion_reason=None,
+    )
+    async with AsyncSessionMaker() as session:
+        weighted = await search_base_temperature(
+            session,
+            training_cutoff=date(2027, 5, 1),
+            samples=weighted_samples,
+            config=_weather_config(),
+            variety_id=ids["variety_id"],
+            climate_zone_id=ids["zone_id"],
+            scope_type="variety_zone",
+            dry_run=False,
+        )
+    assert weighted.status == "completed"
+    assert weighted.run_id != first.run_id
+    assert weighted.source_signature != first.source_signature
+
+    anchor_changed = base_samples()
+    anchor_changed[0] = BaseTemperatureTrainingSample(
+        plan_id=anchor_changed[0].plan_id,
+        anchor_event="flowering_peak_date",
+        target_event=anchor_changed[0].target_event,
+        sample_weight=Decimal("1"),
+        include=True,
+        exclusion_reason=None,
+    )
+    async with AsyncSessionMaker() as session:
+        changed_anchor = await search_base_temperature(
+            session,
+            training_cutoff=date(2027, 5, 1),
+            samples=anchor_changed,
+            config=_weather_config(),
+            variety_id=ids["variety_id"],
+            climate_zone_id=ids["zone_id"],
+            scope_type="variety_zone",
+            dry_run=False,
+        )
+    assert changed_anchor.run_id != first.run_id
+    assert changed_anchor.source_signature != first.source_signature
+
+    target_changed = base_samples()
+    target_changed[0] = BaseTemperatureTrainingSample(
+        plan_id=target_changed[0].plan_id,
+        anchor_event=target_changed[0].anchor_event,
+        target_event="flowering_end_date",
+        sample_weight=Decimal("1"),
+        include=True,
+        exclusion_reason=None,
+    )
+    async with AsyncSessionMaker() as session:
+        changed_target = await search_base_temperature(
+            session,
+            training_cutoff=date(2027, 5, 1),
+            samples=target_changed,
+            config=_weather_config(),
+            variety_id=ids["variety_id"],
+            climate_zone_id=ids["zone_id"],
+            scope_type="variety_zone",
+            dry_run=False,
+        )
+    assert changed_target.run_id != first.run_id
+    assert changed_target.source_signature != first.source_signature
+
+    include_changed = base_samples()
+    include_changed[0] = BaseTemperatureTrainingSample(
+        plan_id=include_changed[0].plan_id,
+        anchor_event=include_changed[0].anchor_event,
+        target_event=include_changed[0].target_event,
+        sample_weight=Decimal("1"),
+        include=False,
+        exclusion_reason="manual_exclude",
+    )
+    async with AsyncSessionMaker() as session:
+        changed_include = await search_base_temperature(
+            session,
+            training_cutoff=date(2027, 5, 1),
+            samples=include_changed,
+            config=_weather_config(),
+            variety_id=ids["variety_id"],
+            climate_zone_id=ids["zone_id"],
+            scope_type="variety_zone",
+            dry_run=False,
+        )
+    assert changed_include.run_id != first.run_id
+    assert changed_include.source_signature != first.source_signature
+
+    await _seed_weather_revision(
+        weather_source_location_id=ids["weather_source_location_id"],
+        observation_date=date(2027, 1, 9),
+        source_version="dataset-v2-2027",
+        available_at=date(2027, 1, 10),
+        mean_c=Decimal("15"),
+    )
+    async with AsyncSessionMaker() as session:
+        revised_weather = await search_base_temperature(
+            session,
+            training_cutoff=date(2027, 5, 1),
+            samples=base_samples(),
+            config=_weather_config(),
+            variety_id=ids["variety_id"],
+            climate_zone_id=ids["zone_id"],
+            scope_type="variety_zone",
+            dry_run=False,
+        )
+    assert revised_weather.run_id != first.run_id
+    assert revised_weather.source_signature != first.source_signature
+
+    replacement_plan_id = await _seed_plan(
+        season_id=ids["season_ids"]["2026-2027"],
+        farm_id=ids["farm_id"],
+        variety_id=ids["variety_id"],
+        version=2,
+        flowering_start_date=date(2027, 1, 6),
+        first_pick_date=date(2027, 1, 11),
+    )
+    changed_plan = base_samples()
+    changed_plan[2] = BaseTemperatureTrainingSample(
+        plan_id=replacement_plan_id,
+        anchor_event="flowering_start_date",
+        target_event="first_pick_date",
+        sample_weight=Decimal("1"),
+        include=True,
+        exclusion_reason=None,
+    )
+    async with AsyncSessionMaker() as session:
+        replaced_plan = await search_base_temperature(
+            session,
+            training_cutoff=date(2027, 5, 1),
+            samples=changed_plan,
+            config=_weather_config(),
+            variety_id=ids["variety_id"],
+            climate_zone_id=ids["zone_id"],
+            scope_type="variety_zone",
+            dry_run=False,
+        )
+    assert replaced_plan.run_id != first.run_id
+    assert replaced_plan.source_signature != first.source_signature
+
+
 async def test_weather_feature_api_round_trip(client: AsyncClient) -> None:
     ids = await _seed_dimensions()
     await _seed_plan(
@@ -523,6 +1050,10 @@ async def test_weather_feature_api_round_trip(client: AsyncClient) -> None:
         days=21,
         source_version="dataset-v1",
     )
+    base_temperature_run_id = await _seed_base_temperature_search_run(
+        variety_id=ids["variety_id"],
+        climate_zone_id=ids["zone_id"],
+    )
 
     response = await client.post(
         "/planning/weather/features",
@@ -532,6 +1063,7 @@ async def test_weather_feature_api_round_trip(client: AsyncClient) -> None:
             "variety_id": ids["variety_id"],
             "as_of_date": "2026-01-25",
             "feature_date": "2026-01-21",
+            "base_temperature_search_run_id": base_temperature_run_id,
             "anchor_event": "flowering_start_date",
             "dry_run": False,
         },
@@ -645,3 +1177,103 @@ async def test_weather_history_unavailable_mapping_does_not_create_feature_run()
         run_count = await session.scalar(select(func.count(WeatherFeatureRun.id)))
     assert result.status == "unavailable"
     assert run_count == 0
+
+
+async def test_failed_run_api_reports_failed_status(client: AsyncClient) -> None:
+    _require_postgres()
+    ids = await _seed_dimensions()
+    plan_id = await _seed_plan(
+        season_id=ids["season_ids"]["2025-2026"],
+        farm_id=ids["farm_id"],
+        variety_id=ids["variety_id"],
+        version=1,
+        flowering_start_date=date(2026, 1, 5),
+        first_pick_date=date(2026, 1, 20),
+    )
+    base_temperature_run_id = await _seed_base_temperature_search_run(
+        variety_id=ids["variety_id"],
+        climate_zone_id=ids["zone_id"],
+        status="failed",
+        selected_base_temperature=None,
+        source_signature="failed-base-temp-run",
+        error_message="search failed",
+    )
+
+    async with AsyncSessionMaker() as session:
+        mapping = await resolve_weather_mapping(
+            session,
+            location_reference_id=ids["location_reference_id"],
+            as_of_date=date(2026, 1, 25),
+            config=_weather_config(),
+            persist=True,
+        )
+        assert mapping.mapping_id is not None
+        feature_run = WeatherFeatureRun(
+            feature_version=_weather_config().rules.features.version,
+            config_hash=_weather_config().config_hash,
+            mapping_version=mapping.mapping_version,
+            weather_source_version="dataset-v1",
+            base_temperature_search_run_id=base_temperature_run_id,
+            plan_id=plan_id,
+            location_reference_id=ids["location_reference_id"],
+            location_weather_mapping_id=mapping.mapping_id,
+            weather_source_location_id=ids["weather_source_location_id"],
+            as_of_date=date(2026, 1, 25),
+            feature_date=date(2026, 1, 21),
+            source_signature="failed-weather-run",
+            status="failed",
+            input_snapshot={
+                "farm_id": ids["farm_id"],
+                "season_id": ids["season_ids"]["2025-2026"],
+                "variety_id": ids["variety_id"],
+            },
+            window_features={"windows": []},
+            timeline_payload={
+                "plan_id": plan_id,
+                "plan_version": 1,
+                "pruning_date": None,
+                "flowering_start_date": None,
+                "flowering_peak_date": None,
+                "flowering_end_date": None,
+                "first_pick_date": None,
+                "days_since_pruning": None,
+                "days_since_flowering_start": None,
+                "days_since_flowering_peak": None,
+                "days_since_flowering_end": None,
+                "days_until_first_pick": None,
+                "anchor_event": None,
+                "anchor_date": None,
+                "cumulative_effective_temperature": None,
+                "cumulative_expected_day_count": 0,
+                "cumulative_observed_day_count": 0,
+                "cumulative_coverage_ratio": None,
+                "cumulative_missing_dates": [],
+                "selected_weather_mapping_id": mapping.mapping_id,
+                "weather_feature_version": _weather_config().rules.features.version,
+                "warnings": [],
+            },
+            weather_observation_ids=[],
+            warnings=[],
+            blockers=["base_temperature_search_required"],
+            finished_at=datetime.now(UTC),
+            error_message="feature failed",
+        )
+        session.add(feature_run)
+        await session.commit()
+        feature_run_id = feature_run.id
+
+    feature_response = await client.get(f"/planning/weather/features/{feature_run_id}")
+    assert feature_response.status_code == 200, feature_response.text
+    feature_body = feature_response.json()
+    assert feature_body["status"] == "failed"
+    assert feature_body["payload"]["status"] == "failed"
+    assert feature_body["payload"]["error_message"] == "feature failed"
+
+    base_response = await client.get(
+        f"/planning/weather/base-temperature-searches/{base_temperature_run_id}"
+    )
+    assert base_response.status_code == 200, base_response.text
+    base_body = base_response.json()
+    assert base_body["status"] == "failed"
+    assert base_body["payload"]["status"] == "failed"
+    assert base_body["payload"]["error_message"] == "search failed"

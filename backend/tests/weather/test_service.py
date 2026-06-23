@@ -4,6 +4,7 @@ import json
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 
@@ -24,7 +25,9 @@ from backend.app.weather.schemas import (
 )
 from backend.app.weather.service import (
     WeatherDataVersionConflictError,
+    _build_phenology_timeline,
     _candidate_scores_payload,
+    _run_status_value,
     _select_visible_observation_per_day,
     _window_feature_from_observations,
 )
@@ -103,6 +106,7 @@ def _selection(
     return WeatherSourceSelection(
         observation_date=date(2026, 2, day),
         observation_id=day,
+        row_hash=f"row-{day}",
         weather_source_location_id=1,
         provider_code="synthetic_station",
         source_version="v1",
@@ -327,3 +331,47 @@ def test_candidate_scores_payload_canonicalizes_for_jsonb() -> None:
     }
     _assert_json_native(payload)
     json.dumps(payload)
+
+
+def test_run_status_value_preserves_failed_and_unavailable() -> None:
+    assert _run_status_value("running") == "running"
+    assert _run_status_value("completed") == "completed"
+    assert _run_status_value("failed") == "failed"
+    assert _run_status_value("unavailable") == "unavailable"
+
+    with pytest.raises(ValueError, match="unsupported persisted run status"):
+        _run_status_value("skipped")
+
+
+def test_build_phenology_timeline_requires_complete_anchor_weather() -> None:
+    plan = SimpleNamespace(
+        id=1,
+        version=2,
+        pruning_date=date(2026, 1, 1),
+        flowering_start_date=date(2026, 2, 1),
+        flowering_peak_date=date(2026, 2, 5),
+        flowering_end_date=date(2026, 2, 10),
+        first_pick_date=date(2026, 3, 1),
+    )
+    observations = {
+        date(2026, 2, 1): _selection(1, mean_c="12"),
+        date(2026, 2, 3): _selection(3, mean_c="14"),
+    }
+
+    timeline = _build_phenology_timeline(
+        plan=plan,
+        feature_date=date(2026, 2, 3),
+        mapping_id=7,
+        feature_version="task7-v1",
+        anchor_event="flowering_start_date",
+        base_temperature=Decimal("5"),
+        observations_by_date=observations,
+    )
+
+    assert timeline.anchor_date == date(2026, 2, 1)
+    assert timeline.cumulative_effective_temperature is None
+    assert timeline.cumulative_expected_day_count == 3
+    assert timeline.cumulative_observed_day_count == 2
+    assert timeline.cumulative_coverage_ratio == Decimal("0.666667")
+    assert timeline.cumulative_missing_dates == (date(2026, 2, 2),)
+    assert timeline.warnings == ("anchor_weather_incomplete",)

@@ -247,25 +247,52 @@ def _mapping_row_hash(
     )
 
 
+def _selected_observation_fingerprint(
+    selections: list[WeatherSourceSelection] | tuple[WeatherSourceSelection, ...],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "observation_date": item.observation_date,
+            "observation_id": item.observation_id,
+            "row_hash": item.row_hash,
+            "available_at": item.available_at,
+            "source_version": item.source_version,
+            "weather_source_location_id": item.weather_source_location_id,
+        }
+        for item in sorted(
+            selections,
+            key=lambda entry: (entry.observation_date, entry.observation_id),
+        )
+    ]
+
+
 def _feature_source_signature(
     *,
     plan_id: int,
+    plan_version: int,
     as_of_date: date,
     feature_date: date,
     mapping_row_hash: str,
     base_temperature_search_run_id: int | None,
+    base_temperature_search_source_signature: str | None,
+    selected_base_temperature: Decimal | None,
     config_hash: str,
     feature_version: str,
+    weather_observation_fingerprint: list[dict[str, Any]],
 ) -> str:
     return sha256_payload(
         {
             "plan_id": plan_id,
+            "plan_version": plan_version,
             "as_of_date": as_of_date,
             "feature_date": feature_date,
             "mapping_row_hash": mapping_row_hash,
             "base_temperature_search_run_id": base_temperature_search_run_id,
+            "base_temperature_search_source_signature": base_temperature_search_source_signature,
+            "selected_base_temperature": selected_base_temperature,
             "config_hash": config_hash,
             "feature_version": feature_version,
+            "weather_observation_fingerprint": weather_observation_fingerprint,
         }
     )
 
@@ -276,12 +303,10 @@ def _base_temperature_source_signature(
     scope_type: str,
     variety_id: int | None,
     climate_zone_id: int | None,
-    anchor_event: str,
-    target_event: str,
     config_hash: str,
     feature_version: str,
-    training_sample_ids: list[int],
     candidate_temperatures: tuple[Decimal, ...],
+    training_manifest: list[dict[str, Any]],
 ) -> str:
     return sha256_payload(
         {
@@ -289,12 +314,10 @@ def _base_temperature_source_signature(
             "scope_type": scope_type,
             "variety_id": variety_id,
             "climate_zone_id": climate_zone_id,
-            "anchor_event": anchor_event,
-            "target_event": target_event,
             "config_hash": config_hash,
             "feature_version": feature_version,
-            "training_sample_ids": sorted(training_sample_ids),
             "candidate_temperatures": list(candidate_temperatures),
+            "training_manifest": training_manifest,
         }
     )
 
@@ -382,6 +405,7 @@ def _select_visible_observation_per_day(
             WeatherSourceSelection(
                 observation_date=winner.observation_date,
                 observation_id=winner.id,
+                row_hash=winner.row_hash,
                 weather_source_location_id=winner.weather_source_location_id,
                 provider_code=winner.provider_code,
                 source_version=winner.source_version,
@@ -403,7 +427,7 @@ def _window_feature_from_observations(
     observations_by_date: dict[date, WeatherSourceSelection],
     feature_date: date,
     window_days: int,
-    base_temperature: Decimal,
+    base_temperature: Decimal | None,
     config: WeatherFeatureConfig,
 ) -> WeatherWindowFeature:
     expected_dates = _daterange(_window_start(feature_date, window_days), feature_date)
@@ -455,12 +479,16 @@ def _window_feature_from_observations(
             source_observation_ids=tuple(item.observation_id for item in valid_days),
         )
 
-    effective_temperature_sum = sum(
-        (
-            max(item.temperature_mean_c - base_temperature, Decimal("0"))
-            for item in valid_days
-        ),
-        Decimal("0"),
+    effective_temperature_sum = (
+        sum(
+            (
+                max(item.temperature_mean_c - base_temperature, Decimal("0"))
+                for item in valid_days
+            ),
+            Decimal("0"),
+        )
+        if base_temperature is not None
+        else None
     )
     precipitation_sum = sum((item.precipitation_mm for item in valid_days), Decimal("0"))
     solar_sum = sum(
@@ -479,7 +507,11 @@ def _window_feature_from_observations(
     return WeatherWindowFeature(
         window_days=window_days,
         status="available",
-        effective_temperature_sum=effective_temperature_sum.quantize(Decimal("0.000001")),
+        effective_temperature_sum=(
+            None
+            if effective_temperature_sum is None
+            else effective_temperature_sum.quantize(Decimal("0.000001"))
+        ),
         solar_radiation_sum=solar_sum.quantize(Decimal("0.000001")),
         precipitation_sum=precipitation_sum.quantize(Decimal("0.000001")),
         minimum_temperature=minimum_temperature.quantize(Decimal("0.000001")),
@@ -561,9 +593,11 @@ def _build_phenology_timeline(
             ).quantize(Decimal("0.000001"))
         if missing_dates:
             warnings.append("anchor_weather_incomplete")
-        cumulative_effective_temperature = sum(observed_values, Decimal("0")).quantize(
-            Decimal("0.000001")
-        )
+        else:
+            cumulative_effective_temperature = sum(
+                observed_values,
+                Decimal("0"),
+            ).quantize(Decimal("0.000001"))
 
     return PhenologyTimeline(
         plan_id=plan.id,
@@ -666,11 +700,9 @@ def _candidate_scores_payload(
 def _run_status_value(
     status: str,
 ) -> Literal["completed", "skipped", "running", "failed", "unavailable", "dry_run"]:
-    if status == "running":
-        return "running"
-    if status == "unavailable":
-        return "unavailable"
-    return "completed"
+    if status in {"running", "completed", "failed", "unavailable"}:
+        return cast(Literal["completed", "running", "failed", "unavailable"], status)
+    raise ValueError(f"unsupported persisted run status: {status}")
 
 
 def _base_temperature_result_from_run(
@@ -1303,8 +1335,12 @@ def _explicit_mapping_result(
         external_location_id=source_location.external_location_id,
         warnings=(),
         reproducibility_snapshot={
+            "mapping_id": mapping.id,
+            "row_hash": mapping.row_hash,
             "location_reference_id": mapping.location_reference_id,
             "weather_source_location_id": source_location.id,
+            "provider_code": source_location.provider_code,
+            "external_location_id": source_location.external_location_id,
             "mapping_method": mapping.mapping_method,
             "mapping_version": mapping.mapping_version,
             "config_hash": config.config_hash,
@@ -1515,6 +1551,8 @@ async def resolve_weather_mapping(
         external_location_id=source_location.external_location_id,
         warnings=(() if altitude_difference_m is not None else ("mapping_altitude_missing",)),
         reproducibility_snapshot={
+            "mapping_id": mapping.id if mapping is not None else None,
+            "row_hash": row_hash,
             "location_reference_id": location_reference.id,
             "weather_source_location_id": source_location.id,
             "provider_code": source_location.provider_code,
@@ -1524,6 +1562,8 @@ async def resolve_weather_mapping(
             "altitude_difference_m": altitude_difference_m,
             "mapping_score": score,
             "confidence_level": confidence,
+            "mapping_version": config.rules.features.version,
+            "config_hash": config.config_hash,
         },
     )
 
@@ -1654,18 +1694,31 @@ async def compute_weather_window_features(
         )
         return result
 
+    mapping_payload = cast(dict[str, Any], canonical_json_value(asdict(mapping)))
+    mapping_row_hash = cast(str | None, mapping.reproducibility_snapshot.get("row_hash"))
+    if mapping_row_hash is None:
+        raise WeatherMappingConflictError("mapping row hash unavailable for feature signature")
     base_temperature_run = None
     base_temperature: Decimal | None = None
+    base_temperature_blockers: list[str] = []
     if base_temperature_search_run_id is not None:
         base_temperature_run = await get_base_temperature_search_run(
             session,
             run_id=base_temperature_search_run_id,
         )
-        if base_temperature_run is None or base_temperature_run.selected_base_temperature is None:
+        if base_temperature_run is None:
             raise BaseTemperatureSearchUnavailableError("base temperature search run unavailable")
+        _validate_base_temperature_search_run(
+            run=base_temperature_run,
+            variety_id=variety_id,
+            climate_zone_id=location_reference.climate_zone_id,
+            config=config,
+        )
         base_temperature = base_temperature_run.selected_base_temperature
         if anchor_event is None:
             anchor_event = base_temperature_run.anchor_event
+    else:
+        base_temperature_blockers.append("base_temperature_search_required")
 
     source_location = await get_weather_source_location(
         session,
@@ -1693,21 +1746,24 @@ async def compute_weather_window_features(
         as_of_date=as_of_date,
     )
     observations_by_date = {item.observation_date: item for item in selections}
-    base_temperature_value = base_temperature or Decimal("0")
+    observation_fingerprint = _selected_observation_fingerprint(selections)
     windows = tuple(
         _window_feature_from_observations(
             observations_by_date=observations_by_date,
             feature_date=feature_date,
             window_days=window_days,
-            base_temperature=base_temperature_value,
+            base_temperature=base_temperature,
             config=config,
         )
         for window_days in config.rules.features.rolling_windows
     )
     blockers = tuple(
-        f"insufficient_weather_coverage_{item.window_days}d"
-        for item in windows
-        if item.status != "available"
+        base_temperature_blockers
+        + [
+            f"insufficient_weather_coverage_{item.window_days}d"
+            for item in windows
+            if item.status != "available"
+        ]
     )
     timeline = _build_phenology_timeline(
         plan=plan_row,
@@ -1720,21 +1776,18 @@ async def compute_weather_window_features(
     )
     source_signature = _feature_source_signature(
         plan_id=plan_row.id,
+        plan_version=plan_row.version,
         as_of_date=as_of_date,
         feature_date=feature_date,
-        mapping_row_hash=_mapping_row_hash(
-            location_reference_id=location_reference.id,
-            weather_source_location_id=source_location.id,
-            mapping_method=cast(str, mapping.mapping_method),
-            mapping_version=mapping.mapping_version,
-            config_hash=config.config_hash,
-            available_at=as_of_date,
-            valid_from=as_of_date,
-            valid_to=None,
-        ),
+        mapping_row_hash=mapping_row_hash,
         base_temperature_search_run_id=base_temperature_search_run_id,
+        base_temperature_search_source_signature=(
+            None if base_temperature_run is None else base_temperature_run.source_signature
+        ),
+        selected_base_temperature=base_temperature,
         config_hash=config.config_hash,
         feature_version=config.rules.features.version,
+        weather_observation_fingerprint=observation_fingerprint,
     )
     if not dry_run:
         existing = await find_existing_weather_feature_run(
@@ -1751,7 +1804,7 @@ async def compute_weather_window_features(
                 source_signature=source_signature,
                 feature_version=existing.feature_version,
                 config_hash=existing.config_hash,
-                mapping=cast(dict[str, Any], canonical_json_value(asdict(mapping))),
+                mapping=mapping_payload,
                 weather_source_version=existing.weather_source_version,
                 plan=_plan_payload(plan_row, season, variety),
                 windows=tuple(
@@ -1774,7 +1827,7 @@ async def compute_weather_window_features(
         source_signature=source_signature,
         feature_version=config.rules.features.version,
         config_hash=config.config_hash,
-        mapping=cast(dict[str, Any], canonical_json_value(asdict(mapping))),
+        mapping=mapping_payload,
         weather_source_version=source_location.source_version,
         plan=_plan_payload(plan_row, season, variety),
         windows=windows,
@@ -1795,11 +1848,17 @@ async def compute_weather_window_features(
                     "feature_date": feature_date,
                     "location_reference_id": location_reference.id,
                     "weather_source_location_id": source_location.id,
+                    "base_temperature_search_run": (
+                        None
+                        if base_temperature_run is None
+                        else _search_run_snapshot(base_temperature_run)
+                    ),
                     "base_temperature_search_run_id": base_temperature_search_run_id,
                     "base_temperature": base_temperature,
                     "anchor_event": anchor_event,
-                    "mapping": canonical_json_value(asdict(mapping)),
+                    "mapping": mapping_payload,
                     "plan": _plan_payload(plan_row, season, variety),
+                    "weather_observation_fingerprint": observation_fingerprint,
                 }
             ),
         ),
@@ -1872,6 +1931,55 @@ def _training_sample_payload(sample: BaseTemperatureTrainingSample) -> dict[str,
     }
 
 
+def _search_run_snapshot(run: BaseTemperatureSearchRun) -> dict[str, Any]:
+    return {
+        "run_id": run.id,
+        "source_signature": run.source_signature,
+        "selected_base_temperature": run.selected_base_temperature,
+        "config_hash": run.config_hash,
+        "feature_version": run.feature_version,
+        "scope_type": run.scope_type,
+        "variety_id": run.variety_id,
+        "climate_zone_id": run.climate_zone_id,
+        "anchor_event": run.anchor_event,
+        "target_event": run.target_event,
+        "status": run.status,
+    }
+
+
+def _validate_base_temperature_search_run(
+    *,
+    run: BaseTemperatureSearchRun,
+    variety_id: int,
+    climate_zone_id: int | None,
+    config: WeatherFeatureConfig,
+) -> None:
+    if run.status != "completed":
+        raise BaseTemperatureSearchUnavailableError(
+            f"base temperature search run is not completed: {run.status}"
+        )
+    if run.selected_base_temperature is None:
+        raise BaseTemperatureSearchUnavailableError(
+            "base temperature search run did not select a base temperature"
+        )
+    if run.feature_version != config.rules.features.version:
+        raise BaseTemperatureSearchUnavailableError(
+            "base temperature search run feature_version is incompatible"
+        )
+    if run.config_hash != config.config_hash:
+        raise BaseTemperatureSearchUnavailableError(
+            "base temperature search run config_hash is incompatible"
+        )
+    if run.variety_id != variety_id:
+        raise BaseTemperatureSearchUnavailableError(
+            "base temperature search run variety scope does not match"
+        )
+    if run.climate_zone_id != climate_zone_id:
+        raise BaseTemperatureSearchUnavailableError(
+            "base temperature search run climate-zone scope does not match"
+        )
+
+
 def _weighted_median(values: list[Decimal], weights: list[Decimal]) -> Decimal:
     from backend.app.planning.quantiles import weighted_quantile
 
@@ -1889,18 +1997,151 @@ async def search_base_temperature(
     scope_type: str,
     dry_run: bool,
 ) -> BaseTemperatureSearchExecutionResult:
-    included_plan_ids = sorted(item.plan_id for item in samples if item.include)
+    eligible_samples: list[dict[str, Any]] = []
+    training_manifest: list[dict[str, Any]] = []
+    blockers: list[str] = []
+    for sample in samples:
+        manifest_row: dict[str, Any] = {
+            "plan_id": sample.plan_id,
+            "anchor_event": sample.anchor_event,
+            "target_event": sample.target_event,
+            "sample_weight": sample.sample_weight,
+            "include": sample.include,
+            "exclusion_reason": sample.exclusion_reason,
+        }
+        if not sample.include:
+            manifest_row["status"] = "excluded"
+            manifest_row["resolved_exclusion_reason"] = (
+                sample.exclusion_reason or "input_excluded"
+            )
+            training_manifest.append(manifest_row)
+            continue
+        plan = await get_plan_by_id(session, plan_id=sample.plan_id)
+        if plan is None:
+            manifest_row["status"] = "invalid"
+            manifest_row["resolved_exclusion_reason"] = "plan_not_found"
+            training_manifest.append(manifest_row)
+            continue
+        manifest_row["plan_version"] = plan.version
+        manifest_row["available_at"] = plan.available_at
+        if plan.available_at > training_cutoff:
+            manifest_row["status"] = "excluded"
+            manifest_row["resolved_exclusion_reason"] = "plan_not_available_at_cutoff"
+            training_manifest.append(manifest_row)
+            continue
+        anchor_date = _event_date(plan, sample.anchor_event)
+        target_date = _event_date(plan, sample.target_event)
+        manifest_row["anchor_date"] = anchor_date
+        manifest_row["target_date"] = target_date
+        if anchor_date is None or target_date is None or target_date < anchor_date:
+            manifest_row["status"] = "invalid"
+            manifest_row["resolved_exclusion_reason"] = "invalid_anchor_target_dates"
+            training_manifest.append(manifest_row)
+            continue
+        season, _ = await _get_supporting_plan_dimensions(session, plan=plan)
+        manifest_row["season_id"] = season.id
+        manifest_row["season_code"] = season.code
+        references = await find_location_reference_for_plan(
+            session,
+            farm_id=plan.farm_id,
+            subfarm_id=plan.subfarm_id,
+            as_of_date=training_cutoff,
+        )
+        if len(references) != 1:
+            manifest_row["status"] = "excluded"
+            manifest_row["resolved_exclusion_reason"] = "location_reference_unavailable"
+            training_manifest.append(manifest_row)
+            continue
+        mapping = await resolve_weather_mapping(
+            session,
+            location_reference_id=references[0].id,
+            as_of_date=training_cutoff,
+            config=config,
+            persist=not dry_run,
+        )
+        if mapping.status != "resolved" or mapping.weather_source_location_id is None:
+            manifest_row["status"] = "excluded"
+            manifest_row["resolved_exclusion_reason"] = "mapping_unavailable"
+            manifest_row["mapping"] = canonical_json_value(asdict(mapping))
+            training_manifest.append(manifest_row)
+            continue
+        mapping_row_hash = cast(str | None, mapping.reproducibility_snapshot.get("row_hash"))
+        if mapping_row_hash is None:
+            raise WeatherMappingConflictError(
+                "mapping row hash unavailable for base temperature search"
+            )
+        observations = await get_effective_weather_observations(
+            session,
+            weather_source_location_id=mapping.weather_source_location_id,
+            start_date=anchor_date,
+            end_date=season.end_date,
+            feature_date=season.end_date,
+            as_of_date=training_cutoff,
+        )
+        observations_by_date = {item.observation_date: item for item in observations}
+        target_expected_dates = _daterange(anchor_date, target_date)
+        missing_target_dates = [
+            day for day in target_expected_dates if day not in observations_by_date
+        ]
+        observation_fingerprint = _selected_observation_fingerprint(observations)
+        manifest_row["mapping"] = {
+            "mapping_id": mapping.mapping_id,
+            "location_reference_id": references[0].id,
+            "weather_source_location_id": mapping.weather_source_location_id,
+            "row_hash": mapping_row_hash,
+            "mapping_method": mapping.mapping_method,
+            "mapping_version": mapping.mapping_version,
+        }
+        manifest_row["weather_observation_fingerprint"] = observation_fingerprint
+        manifest_row["season_end_date"] = season.end_date
+        if missing_target_dates:
+            manifest_row["status"] = "excluded"
+            manifest_row["resolved_exclusion_reason"] = "training_weather_incomplete"
+            manifest_row["missing_target_dates"] = missing_target_dates
+            training_manifest.append(manifest_row)
+            continue
+        manifest_row["status"] = "included"
+        manifest_row["resolved_exclusion_reason"] = None
+        training_manifest.append(manifest_row)
+        eligible_samples.append(
+            {
+                "plan_id": plan.id,
+                "plan_version": plan.version,
+                "season_id": plan.season_id,
+                "season_code": season.code,
+                "anchor_event": sample.anchor_event,
+                "target_event": sample.target_event,
+                "anchor_date": anchor_date,
+                "target_date": target_date,
+                "sample_weight": sample.sample_weight,
+                "observations": observations_by_date,
+                "season_end_date": season.end_date,
+                "mapping_row_hash": mapping_row_hash,
+                "location_reference_id": references[0].id,
+                "weather_source_location_id": mapping.weather_source_location_id,
+                "weather_observation_fingerprint": observation_fingerprint,
+            }
+        )
+
+    training_manifest.sort(
+        key=lambda item: (
+            cast(int, item.get("plan_id", 0)),
+            cast(str, item.get("anchor_event", "")),
+            cast(str, item.get("target_event", "")),
+            cast(str, item.get("status", "")),
+            canonical_decimal_string(cast(Decimal, item.get("sample_weight", Decimal("0")))),
+            cast(str, item.get("resolved_exclusion_reason", "") or ""),
+        )
+    )
     source_signature = _base_temperature_source_signature(
         training_cutoff=training_cutoff,
         scope_type=scope_type,
         variety_id=variety_id,
         climate_zone_id=climate_zone_id,
-        anchor_event=samples[0].anchor_event if samples else "",
-        target_event=samples[0].target_event if samples else "",
         config_hash=config.config_hash,
         feature_version=config.rules.features.version,
-        training_sample_ids=included_plan_ids,
         candidate_temperatures=config.rules.search.base_temperature_candidates,
+        training_manifest=training_manifest,
     )
     if not dry_run:
         existing = await find_existing_base_temperature_search_run(
@@ -1932,64 +2173,20 @@ async def search_base_temperature(
                 error_message=existing.error_message,
             )
 
-    eligible_samples: list[dict[str, Any]] = []
-    blockers: list[str] = []
-    for sample in samples:
-        if not sample.include:
-            continue
-        plan = await get_plan_by_id(session, plan_id=sample.plan_id)
-        if plan is None:
-            continue
-        if plan.available_at > training_cutoff:
-            continue
-        anchor_date = _event_date(plan, sample.anchor_event)
-        target_date = _event_date(plan, sample.target_event)
-        if anchor_date is None or target_date is None or target_date < anchor_date:
-            continue
-        season, _ = await _get_supporting_plan_dimensions(session, plan=plan)
-        references = await find_location_reference_for_plan(
-            session,
-            farm_id=plan.farm_id,
-            subfarm_id=plan.subfarm_id,
-            as_of_date=training_cutoff,
-        )
-        if len(references) != 1:
-            continue
-        mapping = await resolve_weather_mapping(
-            session,
-            location_reference_id=references[0].id,
-            as_of_date=training_cutoff,
-            config=config,
-            persist=not dry_run,
-        )
-        if mapping.status != "resolved" or mapping.weather_source_location_id is None:
-            continue
-        observations = await get_effective_weather_observations(
-            session,
-            weather_source_location_id=mapping.weather_source_location_id,
-            start_date=anchor_date,
-            end_date=season.end_date,
-            feature_date=season.end_date,
-            as_of_date=training_cutoff,
-        )
-        observations_by_date = {item.observation_date: item for item in observations}
-        target_expected_dates = _daterange(anchor_date, target_date)
-        if any(day not in observations_by_date for day in target_expected_dates):
-            continue
-        eligible_samples.append(
-            {
-                "plan_id": plan.id,
-                "season_id": plan.season_id,
-                "season_code": season.code,
-                "anchor_date": anchor_date,
-                "target_date": target_date,
-                "sample_weight": sample.sample_weight,
-                "observations": observations_by_date,
-                "season_end_date": season.end_date,
-            }
-        )
-
     distinct_season_count = len({item["season_code"] for item in eligible_samples})
+    input_snapshot = cast(
+        dict[str, Any],
+        canonical_json_value(
+            {
+                "training_cutoff": training_cutoff,
+                "scope_type": scope_type,
+                "variety_id": variety_id,
+                "climate_zone_id": climate_zone_id,
+                "candidate_temperatures": list(config.rules.search.base_temperature_candidates),
+                "samples": training_manifest,
+            }
+        ),
+    )
     if (
         len(eligible_samples) < config.rules.search.minimum_training_sample_count
         or distinct_season_count < config.rules.search.minimum_distinct_season_count
@@ -2009,12 +2206,10 @@ async def search_base_temperature(
             candidate_scores=(),
             warnings=(),
             blockers=tuple(blockers),
-            input_snapshot={
-                "training_cutoff": training_cutoff.isoformat(),
-                "samples": [_training_sample_payload(item) for item in samples],
-            },
+            input_snapshot=input_snapshot,
         )
         if not dry_run:
+            included_plan_ids = sorted(item["plan_id"] for item in eligible_samples)
             run = await create_base_temperature_search_run(
                 session,
                 payload={
@@ -2128,18 +2323,6 @@ async def search_base_temperature(
     available_scores.sort(key=lambda item: (cast(Decimal, item.mae_days), item.base_temperature))
     winner = available_scores[0]
 
-    input_snapshot = cast(
-        dict[str, Any],
-        canonical_json_value(
-            {
-                "training_cutoff": training_cutoff,
-                "scope_type": scope_type,
-                "variety_id": variety_id,
-                "climate_zone_id": climate_zone_id,
-                "samples": [_training_sample_payload(item) for item in samples],
-            }
-        ),
-    )
     result = BaseTemperatureSearchExecutionResult(
         status="dry_run" if dry_run else "completed",
         run_id=None,
@@ -2159,6 +2342,7 @@ async def search_base_temperature(
     if dry_run:
         return result
 
+    included_plan_ids = sorted(item["plan_id"] for item in eligible_samples)
     run = await create_base_temperature_search_run(
         session,
         payload={

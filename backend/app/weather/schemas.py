@@ -61,6 +61,7 @@ class DailyWeatherRecord:
 class WeatherSourceSelection:
     observation_date: date
     observation_id: int
+    row_hash: str
     weather_source_location_id: int
     provider_code: str
     source_version: str
