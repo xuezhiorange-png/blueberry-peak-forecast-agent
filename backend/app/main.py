@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from backend.app.api.health import router as health_router
 from backend.app.api.master_data import router as master_data_router
 from backend.app.api.planning import router as planning_router
+from backend.app.api.production_plans import router as production_plan_router
 from backend.app.core.config import AppSettings, get_settings
 from backend.app.core.version import APP_VERSION
 from backend.app.db import session as db_session
@@ -28,6 +29,7 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     app.include_router(health_router, prefix="/health", tags=["health"])
     app.include_router(master_data_router, prefix="/api/v1/master-data", tags=["master-data"])
     app.include_router(planning_router, prefix="/planning", tags=["planning"])
+    app.include_router(production_plan_router, prefix="/planning", tags=["production-plans"])
     return app
 
 

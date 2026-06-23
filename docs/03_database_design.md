@@ -433,3 +433,112 @@ Task 5 新增位置参考、农业气候区、参数库版本、参数 observati
 - `GET /planning/tasks/{task_id}`
 
 返回状态只允许参数推断相关状态，不返回最终峰值预测。
+
+## 任务6产量计划与物候表
+
+Task 6 单独保存人工计划与物候版本，不覆盖 Task 5 自动参数结果。基础业务键统一为：
+
+- `farm_id`
+- `subfarm_id`（可空）
+- `season_id`
+- `variety_id`
+
+### 有效区间与 as_of_date 语义
+
+Task 6 统一使用半开区间 `[effective_from, effective_to)`。
+
+历史时点查询必须同时满足：
+
+- `available_at <= as_of_date`
+- `effective_from <= as_of_date`
+- `effective_to is null` 或 `as_of_date < effective_to`
+
+因此未来才录入、未来才生效或已经失效的版本都不会被历史查询读到。
+
+### farm_season_variety_plan
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| id | BIGINT | 主键 |
+| farm_id | BIGINT | 非空，外键到 `dim_farm.id`，限制删除 |
+| subfarm_id | BIGINT | 可空，外键到 `dim_subfarm.id`，限制删除 |
+| season_id | BIGINT | 非空，外键到 `dim_season.id`，限制删除 |
+| variety_id | BIGINT | 非空，外键到 `dim_variety.id`，限制删除 |
+| planted_area_mu | NUMERIC(18,6) | 非空，`>= 0` |
+| expected_yield_kg_per_mu | NUMERIC(18,6) | 非空，`>= 0` |
+| marketable_rate | NUMERIC(12,10) | 非空，`0 <= value <= 1` |
+| tree_age_years | NUMERIC(8,2) | 可空，`>= 0` |
+| pruning_date | DATE | 可空 |
+| flowering_start_date | DATE | 可空 |
+| flowering_peak_date | DATE | 可空 |
+| flowering_end_date | DATE | 可空 |
+| first_pick_date | DATE | 可空 |
+| expected_total_marketable_kg | NUMERIC(18,6) | 可空，`>= 0` |
+| version | INTEGER | 非空，`> 0` |
+| effective_from | DATE | 非空 |
+| effective_to | DATE | 可空，必须晚于 `effective_from` |
+| available_at | DATE | 非空 |
+| source_type | TEXT | 非空 |
+| source_name | TEXT | 可空 |
+| source_version | TEXT | 可空 |
+| notes | TEXT | 可空 |
+| row_hash | TEXT | 非空，唯一 |
+| created_at | TIMESTAMPTZ | 非空，默认 `now()` |
+| updated_at | TIMESTAMPTZ | 非空，默认 `now()` |
+
+花期约束：
+
+- `flowering_start_date <= flowering_peak_date`
+- `flowering_peak_date <= flowering_end_date`
+
+索引与唯一约束：
+
+- `uq_farm_season_variety_plan_row_hash`
+- `uq_farm_season_variety_plan_version_null_subfarm`
+- `uq_farm_season_variety_plan_version_with_subfarm`
+- `ix_farm_season_variety_plan_business_key`
+- `ix_farm_season_variety_plan_subfarm_id`
+- `ix_farm_season_variety_plan_effective_from`
+- `ix_farm_season_variety_plan_effective_to`
+- `ix_farm_season_variety_plan_available_at`
+- `ix_farm_season_variety_plan_row_hash`
+
+说明：
+
+- `row_hash` 用于幂等写入；
+- 同一业务键、同一版本号但内容不同返回 `version_conflict`；
+- 同一业务键区间重叠返回 `effective_interval_conflict`；
+- 派生总量使用 `面积 × 预计亩产 × 商品果率`，响应同时返回显式总量、派生总量和差异。
+
+### production_plan_import_run
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| id | BIGINT | 主键 |
+| file_name | TEXT | 非空 |
+| file_sha256 | TEXT | 非空 |
+| source_version | TEXT | 可空 |
+| status | TEXT | 非空，`running/completed/failed` |
+| row_count | BIGINT | 非空，默认 0 |
+| inserted_count | BIGINT | 非空，默认 0 |
+| skipped_count | BIGINT | 非空，默认 0 |
+| rejected_count | BIGINT | 非空，默认 0 |
+| duplicate_count | BIGINT | 非空，默认 0 |
+| unknown_farm_count | BIGINT | 非空，默认 0 |
+| unknown_subfarm_count | BIGINT | 非空，默认 0 |
+| unknown_season_count | BIGINT | 非空，默认 0 |
+| unknown_variety_count | BIGINT | 非空，默认 0 |
+| invalid_date_count | BIGINT | 非空，默认 0 |
+| invalid_numeric_count | BIGINT | 非空，默认 0 |
+| overlap_conflict_count | BIGINT | 非空，默认 0 |
+| version_conflict_count | BIGINT | 非空，默认 0 |
+| report_json | JSONB | 非空 |
+| error_message | TEXT | 可空 |
+| started_at | TIMESTAMPTZ | 非空，默认 `now()` |
+| finished_at | TIMESTAMPTZ | 可空 |
+
+用途：
+
+- 记录 Task 6 CSV 导入审计；
+- dry-run 不写该表；
+- 正式导入采用明确的逐行拒绝策略，并保留全量统计。

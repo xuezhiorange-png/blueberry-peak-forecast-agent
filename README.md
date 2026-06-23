@@ -135,3 +135,23 @@ Task 5 状态语义：
 - `forecast_completed`：不在本任务范围
 
 当前仓库仅提供模板 CSV 结构，不包含真实 `dim_agro_climate_zone`、`location_reference` 与 `parameter_observation` 业务数据。
+
+## Task 6 产量计划与物候数据
+
+Task 6 增加 `farm × subfarm? × season × variety` 粒度的版本化计划录入，单独保存人工计划与物候字段，不覆盖 Task 5 自动参数推断结果。
+
+```bash
+uv run python scripts/import_production_plans.py \
+  --file data/templates/production_plans.csv \
+  --dry-run
+```
+
+Task 6 核心约定：
+
+- 版本查询同时要求 `available_at <= as_of_date`
+- 有效区间采用半开区间 `[effective_from, effective_to)`
+- 同一业务键同一 `as_of_date` 只能解析出唯一有效版本
+- 派生总商品果量使用 `面积 × 预计亩产 × 商品果率`
+- 若显式总量与派生总量差异超过容差，按配置返回 warning 或拒绝
+
+Task 6 只做到 `计划录入 → 版本化持久化 → 历史查询 → CSV 导入 → API`，不进入 Task 7 天气与物候时间轴。
