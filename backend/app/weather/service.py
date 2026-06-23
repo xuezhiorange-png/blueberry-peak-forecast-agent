@@ -641,6 +641,28 @@ def _base_temperature_payload(result: BaseTemperatureSearchExecutionResult) -> d
     )
 
 
+def _candidate_scores_payload(
+    candidate_scores: list[BaseTemperatureCandidateScore]
+    | tuple[BaseTemperatureCandidateScore, ...],
+) -> dict[str, Any]:
+    payload = {
+        "candidates": [
+            {
+                "base_temperature": canonical_decimal_string(item.base_temperature),
+                "fold_count": item.fold_count,
+                "evaluated_sample_count": item.evaluated_sample_count,
+                "mae_days": None if item.mae_days is None else format(item.mae_days, "f"),
+                "warnings": list(item.warnings),
+            }
+            for item in candidate_scores
+        ],
+    }
+    return cast(
+        dict[str, Any],
+        canonical_json_value(payload),
+    )
+
+
 def _run_status_value(
     status: str,
 ) -> Literal["completed", "skipped", "running", "failed", "unavailable", "dry_run"]:
@@ -2012,7 +2034,7 @@ async def search_base_temperature(
                     "sample_count": len(eligible_samples),
                     "distinct_season_count": distinct_season_count,
                     "training_sample_ids": included_plan_ids,
-                    "candidate_scores": {"candidates": []},
+                    "candidate_scores": _candidate_scores_payload(()),
                     "config_hash": config.config_hash,
                     "feature_version": config.rules.features.version,
                     "source_signature": source_signature,
@@ -2156,7 +2178,7 @@ async def search_base_temperature(
             "sample_count": len(eligible_samples),
             "distinct_season_count": distinct_season_count,
             "training_sample_ids": included_plan_ids,
-            "candidate_scores": {"candidates": [asdict(item) for item in candidate_scores]},
+            "candidate_scores": _candidate_scores_payload(candidate_scores),
             "config_hash": config.config_hash,
             "feature_version": config.rules.features.version,
             "source_signature": source_signature,

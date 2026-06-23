@@ -17,6 +17,7 @@ from backend.app.models.master_data import Farm, Season, Variety
 from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.models.weather import (
+    BaseTemperatureSearchRun,
     LocationWeatherMapping,
     WeatherDailyObservation,
     WeatherFeatureRun,
@@ -26,6 +27,7 @@ from backend.app.planning.plan_config import ProductionPlanConfig, load_producti
 from backend.app.weather.config import WeatherFeatureConfig, load_weather_feature_config
 from backend.app.weather.repository import get_base_temperature_search_run, get_weather_feature_run
 from backend.app.weather.schemas import (
+    BaseTemperatureCandidateScore,
     BaseTemperatureTrainingSample,
     PhenologyTimeline,
     WeatherWindowFeature,
@@ -487,10 +489,22 @@ async def test_base_temperature_search_persists_result_and_is_idempotent() -> No
     assert first.status == "completed"
     assert first.selected_base_temperature is not None
     assert len(first.candidate_scores) == 8
+    assert first.run_id is not None
+    assert isinstance(first.candidate_scores[0], BaseTemperatureCandidateScore)
+    assert isinstance(first.candidate_scores[0].base_temperature, Decimal)
     assert second.status == "skipped"
+    assert second.run_id == first.run_id
     assert second.selected_base_temperature == first.selected_base_temperature
     assert run is not None
     assert run.status == "completed"
+    stored = await session.get(BaseTemperatureSearchRun, first.run_id)
+    assert stored is not None
+    assert isinstance(stored.candidate_scores["candidates"][0]["base_temperature"], str)
+    assert isinstance(stored.candidate_scores["candidates"][0]["mae_days"], str)
+    assert isinstance(second.candidate_scores[0], BaseTemperatureCandidateScore)
+    assert isinstance(second.candidate_scores[0].base_temperature, Decimal)
+    assert second.candidate_scores == first.candidate_scores
+    assert second.selected_score == first.selected_score
 
 
 async def test_weather_feature_api_round_trip(client: AsyncClient) -> None:
