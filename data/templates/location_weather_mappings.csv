@@ -1,0 +1,2 @@
+location_reference_id,provider_code,external_location_id,mapping_method,mapping_version,available_at,valid_from,valid_to
+1,synthetic_station,station-001,explicit,task7-v1,2026-01-01,2026-01-01,

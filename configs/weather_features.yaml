@@ -1,0 +1,25 @@
+mapping:
+  provider_priorities:
+    synthetic_station: 0
+    synthetic_grid: 1
+  location_type_priorities:
+    station: 0
+    grid: 1
+  maximum_mapping_distance_km: "150"
+  altitude_penalty_weight: "0.25"
+  missing_altitude_penalty: "5"
+  high_confidence_max_score: "10"
+  medium_confidence_max_score: "30"
+
+features:
+  version: "task7-v1"
+  rainy_day_threshold_mm: "1"
+  rolling_windows: [7, 14, 21]
+  minimum_coverage_ratio: "0.85"
+
+search:
+  base_temperature_candidates: ["0", "1", "2", "3", "4", "5", "6", "7"]
+  minimum_training_sample_count: 3
+  minimum_distinct_season_count: 2
+  scoring_method: "season_loso_mae_days"
+  tie_break_rule: "mae_then_temperature"

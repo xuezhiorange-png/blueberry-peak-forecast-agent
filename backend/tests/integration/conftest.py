@@ -7,6 +7,12 @@ from sqlalchemy import text
 from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
 
 _MASTER_DATA_TABLES = (
+    "weather_feature_run",
+    "base_temperature_search_run",
+    "location_weather_mapping",
+    "weather_import_run",
+    "weather_daily_observation",
+    "weather_source_location",
     "production_plan_import_run",
     "farm_season_variety_plan",
     "parameter_inference_result",

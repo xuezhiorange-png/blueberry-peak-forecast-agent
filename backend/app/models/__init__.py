@@ -17,6 +17,14 @@ from backend.app.models.planning import (
     ParameterObservation,
 )
 from backend.app.models.production_plan import FarmSeasonVarietyPlan, ProductionPlanImportRun
+from backend.app.models.weather import (
+    BaseTemperatureSearchRun,
+    LocationWeatherMapping,
+    WeatherDailyObservation,
+    WeatherFeatureRun,
+    WeatherImportRun,
+    WeatherSourceLocation,
+)
 
 __all__ = [
     "AnalyticsBuildRun",
@@ -35,6 +43,7 @@ __all__ = [
     "IngestFile",
     "LocationReference",
     "MinimalForecastTask",
+    "LocationWeatherMapping",
     "ParameterInferenceResult",
     "ParameterInferenceRun",
     "ParameterLibraryVersion",
@@ -43,4 +52,9 @@ __all__ = [
     "Season",
     "Subfarm",
     "Variety",
+    "BaseTemperatureSearchRun",
+    "WeatherDailyObservation",
+    "WeatherFeatureRun",
+    "WeatherImportRun",
+    "WeatherSourceLocation",
 ]
