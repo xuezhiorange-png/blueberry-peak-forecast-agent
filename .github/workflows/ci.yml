@@ -8,6 +8,7 @@ on:
 
 jobs:
   backend:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -117,6 +118,8 @@ jobs:
           mkdir -p reports/test-results
           set +e
           pytest -m integration -vv --tb=long --maxfail=1 \
+            --timeout=120 \
+            --timeout-method=thread \
             --junitxml=reports/test-results/integration.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/integration.xml ]; then
