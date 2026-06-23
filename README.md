@@ -155,3 +155,51 @@ Task 6 核心约定：
 - 若显式总量与派生总量差异超过容差，按配置返回 warning 或拒绝
 
 Task 6 只做到 `计划录入 → 版本化持久化 → 历史查询 → CSV 导入 → API`，不进入 Task 7 天气与物候时间轴。
+
+## Task 7 天气数据与物候时间轴
+
+Task 7 在 Task 6 的有效计划版本之上增加确定性的天气特征、物候时间轴和基温搜索，不训练自然成熟曲线，也不进入 Task 8。
+
+```bash
+uv run python scripts/import_weather_locations.py \
+  --file data/templates/weather_source_locations.csv \
+  --provider-code synthetic_station \
+  --source-version template-v1 \
+  --location-type station \
+  --dry-run
+
+uv run python scripts/import_weather_observations.py \
+  --file data/templates/weather_daily_observations.csv \
+  --provider-code synthetic_station \
+  --source-version template-v1 \
+  --location-type station \
+  --dry-run
+
+uv run python scripts/import_location_weather_mappings.py \
+  --file data/templates/location_weather_mappings.csv \
+  --config configs/weather_features.yaml \
+  --dry-run
+
+uv run python scripts/build_weather_features.py \
+  --farm-id 1 \
+  --season-id 1 \
+  --variety-id 1 \
+  --as-of-date 2026-03-01 \
+  --feature-date 2026-03-15 \
+  --dry-run
+
+uv run python scripts/search_base_temperature.py \
+  --file data/templates/base_temperature_training_manifest.csv \
+  --training-cutoff 2026-04-30 \
+  --scope-type variety \
+  --dry-run
+```
+
+Task 7 核心约定：
+
+- 历史天气读取必须同时满足 `available_at <= as_of_date` 与 `observation_date <= feature_date`
+- 同一观测日多个修订版本只能选择预测当时可见的最新版本
+- 窗口固定为 7/14/21 天，区间定义为 `[feature_date - window_days + 1, feature_date]`
+- 缺失天气不得以 0 填充，覆盖率不足时返回 `unavailable`
+- 基温必须从训练样本搜索，不允许硬编码固定业务值
+- Task 7 只输出天气特征、物候时间轴与基温搜索结果，不输出每日成熟量和峰值预测
