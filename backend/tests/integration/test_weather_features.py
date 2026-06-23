@@ -485,6 +485,7 @@ async def test_base_temperature_search_persists_result_and_is_idempotent() -> No
             dry_run=False,
         )
         run = await get_base_temperature_search_run(session, run_id=first.run_id or 0)
+        stored = await session.get(BaseTemperatureSearchRun, first.run_id)
 
     assert first.status == "completed"
     assert first.selected_base_temperature is not None
@@ -497,7 +498,6 @@ async def test_base_temperature_search_persists_result_and_is_idempotent() -> No
     assert second.selected_base_temperature == first.selected_base_temperature
     assert run is not None
     assert run.status == "completed"
-    stored = await session.get(BaseTemperatureSearchRun, first.run_id)
     assert stored is not None
     assert isinstance(stored.candidate_scores["candidates"][0]["base_temperature"], str)
     assert isinstance(stored.candidate_scores["candidates"][0]["mae_days"], str)
