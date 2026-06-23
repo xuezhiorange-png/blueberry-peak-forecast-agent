@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
@@ -15,6 +16,7 @@ from backend.app.weather.config import (
     WeatherFeatureRules,
 )
 from backend.app.weather.schemas import (
+    BaseTemperatureCandidateScore,
     PhenologyTimeline,
     WeatherFeatureExecutionResult,
     WeatherSourceSelection,
@@ -22,6 +24,7 @@ from backend.app.weather.schemas import (
 )
 from backend.app.weather.service import (
     WeatherDataVersionConflictError,
+    _candidate_scores_payload,
     _select_visible_observation_per_day,
     _window_feature_from_observations,
 )
@@ -282,3 +285,45 @@ def test_execution_result_copy_preserves_nested_weather_dataclasses() -> None:
     assert isinstance(copied.windows, tuple)
     assert isinstance(copied.windows[0], WeatherWindowFeature)
     assert isinstance(copied.timeline, PhenologyTimeline)
+
+
+def _assert_json_native(value: object) -> None:
+    if value is None or isinstance(value, (str, int, bool)):
+        return
+    if isinstance(value, list):
+        for item in value:
+            _assert_json_native(item)
+        return
+    if isinstance(value, dict):
+        for key, item in value.items():
+            assert isinstance(key, str)
+            _assert_json_native(item)
+        return
+    raise AssertionError(f"non-JSON-native value: {type(value).__name__}: {value!r}")
+
+
+def test_candidate_scores_payload_canonicalizes_for_jsonb() -> None:
+    scores = (
+        BaseTemperatureCandidateScore(
+            base_temperature=Decimal("5.0"),
+            fold_count=3,
+            evaluated_sample_count=3,
+            mae_days=Decimal("1.250000"),
+        ),
+    )
+
+    payload = _candidate_scores_payload(scores)
+
+    assert payload == {
+        "candidates": [
+            {
+                "base_temperature": "5",
+                "fold_count": 3,
+                "evaluated_sample_count": 3,
+                "mae_days": "1.250000",
+                "warnings": [],
+            }
+        ]
+    }
+    _assert_json_native(payload)
+    json.dumps(payload)
