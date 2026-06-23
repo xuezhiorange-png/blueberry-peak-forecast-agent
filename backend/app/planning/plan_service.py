@@ -59,6 +59,25 @@ def _optional_decimal_value(
     return _decimal_value(value, field=field)
 
 
+def _date_value(value: date | str | None, *, field: str) -> date:
+    if value is None:
+        raise ProductionPlanValidationError(f"{field} is required")
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise ProductionPlanValidationError(f"{field} must be an ISO date") from exc
+    raise ProductionPlanValidationError(f"{field} must be an ISO date")
+
+
+def _optional_date_value(value: date | str | None, *, field: str) -> date | None:
+    if value is None:
+        return None
+    return _date_value(value, field=field)
+
+
 def _validate_non_negative(value: Decimal, *, field: str) -> None:
     if value < 0:
         raise ProductionPlanValidationError(f"{field} must be greater than or equal to 0")
@@ -373,18 +392,30 @@ async def _prepare_plan_inputs(
         field="expected_total_marketable_kg",
     )
     version = int(payload["version"])
-    effective_from = cast(date, payload["effective_from"])
-    effective_to = cast(date | None, payload.get("effective_to"))
-    available_at = cast(date, payload["available_at"])
+    effective_from = _date_value(payload.get("effective_from"), field="effective_from")
+    effective_to = _optional_date_value(payload.get("effective_to"), field="effective_to")
+    available_at = _date_value(payload.get("available_at"), field="available_at")
     source_type = str(payload["source_type"])
     source_name = cast(str | None, payload.get("source_name"))
     source_version = cast(str | None, payload.get("source_version"))
     notes = cast(str | None, payload.get("notes"))
-    pruning_date = cast(date | None, payload.get("pruning_date"))
-    flowering_start_date = cast(date | None, payload.get("flowering_start_date"))
-    flowering_peak_date = cast(date | None, payload.get("flowering_peak_date"))
-    flowering_end_date = cast(date | None, payload.get("flowering_end_date"))
-    first_pick_date = cast(date | None, payload.get("first_pick_date"))
+    pruning_date = _optional_date_value(payload.get("pruning_date"), field="pruning_date")
+    flowering_start_date = _optional_date_value(
+        payload.get("flowering_start_date"),
+        field="flowering_start_date",
+    )
+    flowering_peak_date = _optional_date_value(
+        payload.get("flowering_peak_date"),
+        field="flowering_peak_date",
+    )
+    flowering_end_date = _optional_date_value(
+        payload.get("flowering_end_date"),
+        field="flowering_end_date",
+    )
+    first_pick_date = _optional_date_value(
+        payload.get("first_pick_date"),
+        field="first_pick_date",
+    )
 
     _validate_non_negative(planted_area_mu, field="planted_area_mu")
     _validate_non_negative(expected_yield_kg_per_mu, field="expected_yield_kg_per_mu")
