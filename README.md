@@ -203,3 +203,37 @@ Task 7 核心约定：
 - 缺失天气不得以 0 填充，覆盖率不足时返回 `unavailable`
 - 基温必须从训练样本搜索，不允许硬编码固定业务值
 - Task 7 只输出天气特征、物候时间轴与基温搜索结果，不输出每日成熟量和峰值预测
+
+## Task 8 自然成熟曲线模型
+
+Task 8 在 Task 6 计划版本和 Task 7 天气/物候/基温能力之上，训练 `season × farm/subfarm × variety` 粒度的自然成熟代理曲线，并输出逐日自然成熟量，不进入 Task 9 的采摘能力、积压或到厂状态方程。
+
+```bash
+env UV_CACHE_DIR=.uv-cache uv run python scripts/train_maturity_curve.py \
+  --file data/templates/maturity_curve_training_manifest.csv \
+  --training-cutoff 2026-04-30 \
+  --config configs/maturity_curve.yaml \
+  --dry-run
+
+env UV_CACHE_DIR=.uv-cache uv run python scripts/forecast_natural_maturity.py \
+  --model-run-id 1 \
+  --farm-id 1 \
+  --season-id 1 \
+  --variety-id 1 \
+  --as-of-date 2026-03-01 \
+  --prediction-start-date 2026-03-01 \
+  --prediction-end-date 2026-03-07 \
+  --facility-type open_field \
+  --expected-marketable-total-kg 96000 \
+  --dry-run
+```
+
+Task 8 核心约定：
+
+- 训练标签明确为 `smoothed_arrival_proxy_for_natural_maturity`
+- 区域共享曲线按 `climate_zone × variety` 建模，并向 `province × variety` / `variety_global` 层级显式回退
+- P50 每日量执行质量守恒，对账到 `expected_marketable_total_kg`
+- JSONB artifact 和报告 payload 只写 canonical JSON 类型，Decimal 以稳定字符串持久化
+- 训练和预测 source signature 必须包含 manifest、计划版本、天气映射、天气 observation fingerprint、基温 run、配置和随机种子
+- 只输出自然成熟量曲线及其区间，不输出实际到厂量或最终加工厂峰值
+- Task 8 明确不进入 Task 9

@@ -1,0 +1,2 @@
+season_id,analytics_build_run_id,farm_key,farm_id,subfarm_key,subfarm_id,variety_id,location_reference_id,production_plan_id,base_temperature_search_run_id,anchor_event,facility_type,include,sample_weight,exclusion_reason
+1,1,FARM_A,1,__UNKNOWN_SUBFARM__,,1,1,1,1,flowering_start_date,open_field,true,1,

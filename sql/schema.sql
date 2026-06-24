@@ -832,3 +832,108 @@ CREATE INDEX IF NOT EXISTS ix_weather_feature_run_plan_id
 ON weather_feature_run (plan_id);
 CREATE INDEX IF NOT EXISTS ix_weather_feature_run_feature_date
 ON weather_feature_run (feature_date);
+
+CREATE TABLE IF NOT EXISTS maturity_model_run (
+  id BIGSERIAL PRIMARY KEY,
+  model_version TEXT NOT NULL,
+  config_hash TEXT NOT NULL,
+  config_snapshot JSONB NOT NULL,
+  training_cutoff DATE NOT NULL,
+  source_signature TEXT NOT NULL,
+  status TEXT NOT NULL,
+  random_seed BIGINT NOT NULL,
+  model_family TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  sample_count BIGINT NOT NULL,
+  distinct_season_count BIGINT NOT NULL,
+  distinct_farm_count BIGINT NOT NULL,
+  distinct_subfarm_count BIGINT NOT NULL,
+  training_metrics JSONB NOT NULL,
+  calibration_metrics JSONB NOT NULL,
+  warnings JSONB NOT NULL,
+  blockers JSONB NOT NULL,
+  input_snapshot JSONB NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  error_message TEXT,
+  CONSTRAINT ck_maturity_model_run_status CHECK (status IN ('running', 'completed', 'failed', 'unavailable')),
+  CONSTRAINT uq_maturity_model_run_sig_status UNIQUE (source_signature, status)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_maturity_model_run_active_or_done
+ON maturity_model_run (source_signature)
+WHERE status IN ('running', 'completed', 'unavailable');
+
+CREATE TABLE IF NOT EXISTS maturity_model_artifact (
+  id BIGSERIAL PRIMARY KEY,
+  run_id BIGINT NOT NULL,
+  artifact_hash TEXT NOT NULL,
+  support_min_day BIGINT NOT NULL,
+  support_max_day BIGINT NOT NULL,
+  artifact_payload JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT fk_maturity_artifact_run_id FOREIGN KEY (run_id) REFERENCES maturity_model_run(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_maturity_model_artifact_run_id UNIQUE (run_id),
+  CONSTRAINT uq_maturity_model_artifact_hash UNIQUE (artifact_hash)
+);
+
+CREATE TABLE IF NOT EXISTS maturity_forecast_run (
+  id BIGSERIAL PRIMARY KEY,
+  model_run_id BIGINT NOT NULL,
+  artifact_id BIGINT NOT NULL,
+  plan_id BIGINT NOT NULL,
+  location_reference_id BIGINT NOT NULL,
+  weather_mapping_id BIGINT,
+  base_temperature_search_run_id BIGINT,
+  as_of_date DATE NOT NULL,
+  prediction_start_date DATE NOT NULL,
+  prediction_end_date DATE NOT NULL,
+  expected_marketable_total_kg NUMERIC(18,6) NOT NULL,
+  expected_total_source TEXT NOT NULL,
+  axis_mode TEXT NOT NULL,
+  source_signature TEXT NOT NULL,
+  status TEXT NOT NULL,
+  warnings JSONB NOT NULL,
+  blockers JSONB NOT NULL,
+  input_snapshot JSONB NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  error_message TEXT,
+  CONSTRAINT ck_maturity_forecast_run_status CHECK (status IN ('running', 'completed', 'failed', 'unavailable')),
+  CONSTRAINT ck_maturity_forecast_run_axis_mode CHECK (axis_mode IN ('observed_phenology_axis', 'calendar_proxy_axis')),
+  CONSTRAINT fk_maturity_forecast_run_model_id FOREIGN KEY (model_run_id) REFERENCES maturity_model_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_maturity_forecast_run_artifact_id FOREIGN KEY (artifact_id) REFERENCES maturity_model_artifact(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_maturity_forecast_run_plan_id FOREIGN KEY (plan_id) REFERENCES farm_season_variety_plan(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_maturity_forecast_run_loc_ref_id FOREIGN KEY (location_reference_id) REFERENCES location_reference(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_maturity_forecast_run_mapping_id FOREIGN KEY (weather_mapping_id) REFERENCES location_weather_mapping(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_maturity_forecast_run_base_temp_id FOREIGN KEY (base_temperature_search_run_id) REFERENCES base_temperature_search_run(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_maturity_forecast_run_sig_status UNIQUE (source_signature, status)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_maturity_forecast_run_active_or_done
+ON maturity_forecast_run (source_signature)
+WHERE status IN ('running', 'completed', 'unavailable');
+
+CREATE TABLE IF NOT EXISTS maturity_daily_prediction (
+  id BIGSERIAL PRIMARY KEY,
+  forecast_run_id BIGINT NOT NULL,
+  prediction_date DATE NOT NULL,
+  phenology_coordinate_day NUMERIC(12,6) NOT NULL,
+  p50_kg NUMERIC(18,6) NOT NULL,
+  p80_kg NUMERIC(18,6) NOT NULL,
+  p90_kg NUMERIC(18,6) NOT NULL,
+  cumulative_p50_kg NUMERIC(18,6) NOT NULL,
+  cumulative_p80_kg NUMERIC(18,6) NOT NULL,
+  cumulative_p90_kg NUMERIC(18,6) NOT NULL,
+  curve_share NUMERIC(12,10) NOT NULL,
+  confidence_level TEXT NOT NULL,
+  quality_flags JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT fk_maturity_daily_prediction_run_id FOREIGN KEY (forecast_run_id) REFERENCES maturity_forecast_run(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_maturity_daily_run_date UNIQUE (forecast_run_id, prediction_date)
+);
+
+CREATE INDEX IF NOT EXISTS ix_maturity_daily_prediction_run_id
+ON maturity_daily_prediction (forecast_run_id);
+CREATE INDEX IF NOT EXISTS ix_maturity_daily_prediction_date
+ON maturity_daily_prediction (prediction_date);

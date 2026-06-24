@@ -6,6 +6,12 @@ from backend.app.models.analytics import (
 from backend.app.models.baseline_backtest import BaselineBacktestResult, BaselineBacktestRun
 from backend.app.models.historical_import import FactReceiptRaw, IngestFile
 from backend.app.models.master_data import Factory, Farm, Grade, Holiday, Season, Subfarm, Variety
+from backend.app.models.maturity import (
+    MaturityDailyPredictionModel,
+    MaturityForecastRun,
+    MaturityModelArtifact,
+    MaturityModelRun,
+)
 from backend.app.models.planning import (
     AgroClimateZone,
     ClimateZoneImportRun,
@@ -42,6 +48,10 @@ __all__ = [
     "Holiday",
     "IngestFile",
     "LocationReference",
+    "MaturityDailyPredictionModel",
+    "MaturityForecastRun",
+    "MaturityModelArtifact",
+    "MaturityModelRun",
     "MinimalForecastTask",
     "LocationWeatherMapping",
     "ParameterInferenceResult",
