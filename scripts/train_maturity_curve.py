@@ -17,6 +17,14 @@ if TYPE_CHECKING:
     from backend.app.maturity.schemas import MaturityManifestRow
 
 
+NULLABLE_COLUMNS = frozenset(
+    {
+        "subfarm_id",
+        "exclusion_reason",
+    }
+)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Train Task 8 natural maturity curve model")
     parser.add_argument("--file", required=True, help="Training manifest CSV path")
@@ -36,6 +44,15 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _normalize_csv_row(raw: dict[str, str | None]) -> dict[str, str | None]:
+    normalized = dict(raw)
+    for column in NULLABLE_COLUMNS:
+        value = normalized.get(column)
+        if value is None or value.strip() == "":
+            normalized[column] = None
+    return normalized
+
+
 def _manifest_rows(path: Path) -> list[MaturityManifestRow]:
     from backend.app.maturity.schemas import MaturityManifestRow
     from backend.app.schemas.maturity import MaturityManifestRowInput
@@ -43,7 +60,7 @@ def _manifest_rows(path: Path) -> list[MaturityManifestRow]:
     rows: list[MaturityManifestRow] = []
     with path.open("r", encoding="utf-8") as file:
         for raw in csv.DictReader(file):
-            parsed = MaturityManifestRowInput.model_validate(raw)
+            parsed = MaturityManifestRowInput.model_validate(_normalize_csv_row(raw))
             rows.append(MaturityManifestRow(**parsed.model_dump()))
     return rows
 
