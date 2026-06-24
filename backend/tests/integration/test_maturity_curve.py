@@ -267,6 +267,12 @@ async def _seed_analytics_sample(
             source_eligible_row_count=len(daily_weights),
             source_eligible_weight_kg=sum(daily_weights, Decimal("0")),
             daily_fact_row_count=len(daily_weights),
+            finished_at=datetime(
+                season.end_date.year,
+                season.end_date.month,
+                season.end_date.day,
+                tzinfo=UTC,
+            ),
         )
         session.add(build_run)
         await session.flush()
