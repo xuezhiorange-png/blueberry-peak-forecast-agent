@@ -1,0 +1,38 @@
+model_family: shared_spline_partial_pooling
+random_seed: 20260624
+
+curve:
+  version: task8-v1
+  support_min_day: -30
+  support_max_day: 90
+  spline_degree: 3
+  spline_knot_count: 6
+  ridge_alpha: 0.10
+
+pooling:
+  minimum_samples: 2
+  minimum_seasons: 2
+  minimum_farms: 1
+  minimum_subfarms: 1
+  full_pooling_sample_target: 4
+
+offset:
+  maximum_abs_shift_days: 21
+  minimum_training_samples: 3
+
+holidays:
+  spring_festival_codes:
+    - spring_festival
+  disturbance_weight: 0.50
+  exclude_from_loss: false
+
+intervals:
+  p80_quantile: 0.80
+  p90_quantile: 0.90
+  calendar_proxy_widening_factor: 1.25
+  uncalibrated_widening_factor: 1.50
+
+forecast:
+  p50_mass_tolerance_kg: 0.01
+  observed_phase_adjustment_max_days: 14
+  minimum_observed_axis_coverage_ratio: 1.0

@@ -589,3 +589,78 @@ Task 6 统一使用半开区间 `[effective_from, effective_to)`。
 - 粒度：`training_cutoff × scope_type × variety_id? × climate_zone_id? × anchor_event × target_event × config_hash × feature_version × training_sample_ids`
 - 持久化候选基温集合、选中基温、评分方法、候选分数、样本数、distinct season 数和输入快照
 - 数据不足时返回 `unavailable`，不得静默采用默认基温
+
+## 任务8自然成熟曲线表
+
+任务8新增自然成熟代理曲线训练、artifact 持久化和逐日预测结果。Task 8 只输出自然成熟量曲线，不引入 Task 9 的采摘能力、积压或到厂状态方程。
+
+### maturity_model_run
+
+- 粒度：`training_cutoff × source_signature × model_version × config_hash`
+- 状态：`running / completed / failed / unavailable`
+- 关键字段：
+  - `config_snapshot`
+  - `training_cutoff`
+  - `source_signature`
+  - `model_family`
+  - `scope`
+  - `sample_count`
+  - `distinct_season_count`
+  - `distinct_farm_count`
+  - `distinct_subfarm_count`
+  - `training_metrics`
+  - `calibration_metrics`
+  - `warnings`
+  - `blockers`
+  - `input_snapshot`
+- PostgreSQL 部分唯一索引保护 `running/completed/unavailable` 的幂等训练 run。
+
+### maturity_model_artifact
+
+- 与 `maturity_model_run` 一对一
+- 保存：
+  - `artifact_hash`
+  - `support_min_day`
+  - `support_max_day`
+  - `artifact_payload`
+- `artifact_payload` 只允许 canonical JSON 类型，Decimal 以稳定字符串持久化，禁止写入原生 `Decimal`、`date`、`datetime` 或 dataclass。
+
+### maturity_forecast_run
+
+- 粒度：`plan_id × as_of_date × prediction date range × source_signature`
+- 状态：`running / completed / failed / unavailable`
+- 关键字段：
+  - `model_run_id`
+  - `artifact_id`
+  - `location_reference_id`
+  - `weather_mapping_id`
+  - `base_temperature_search_run_id`
+  - `expected_marketable_total_kg`
+  - `expected_total_source`
+  - `axis_mode`
+  - `warnings`
+  - `blockers`
+  - `input_snapshot`
+- `axis_mode` 限定为：
+  - `observed_phenology_axis`
+  - `calendar_proxy_axis`
+- PostgreSQL 部分唯一索引保护 `running/completed/unavailable` 的幂等预测 run。
+
+### maturity_daily_prediction
+
+- 粒度：`forecast_run_id × prediction_date`
+- 字段：
+  - `phenology_coordinate_day`
+  - `p50_kg`
+  - `p80_kg`
+  - `p90_kg`
+  - `cumulative_p50_kg`
+  - `cumulative_p80_kg`
+  - `cumulative_p90_kg`
+  - `curve_share`
+  - `confidence_level`
+  - `quality_flags`
+- 约束：
+  - `forecast_run_id + prediction_date` 唯一
+  - 重量字段使用 `NUMERIC`
+  - `quality_flags` 使用 JSONB 持久化稳定 flag 集
