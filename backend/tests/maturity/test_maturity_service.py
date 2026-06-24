@@ -5,6 +5,8 @@ from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 
@@ -33,6 +35,7 @@ from backend.app.maturity.service import (
     _support_days,
     _training_blockers,
     _training_source_signature,
+    train_maturity_curve,
 )
 
 
@@ -225,6 +228,68 @@ def test_training_source_signature_changes_when_provenance_changes() -> None:
     )
 
     assert signature_a != signature_b
+
+
+def test_training_source_signature_is_order_invariant_for_tied_rows_with_different_provenance(
+) -> None:
+    row_a = {
+        "season_id": 1,
+        "production_plan_id": 201,
+        "farm_key": "farm-a",
+        "subfarm_key": "__UNKNOWN_SUBFARM__",
+        "variety_id": 1,
+        "anchor_event": "flowering_start_date",
+        "facility_type": "open_field",
+        "include": True,
+        "sample_weight": Decimal("1"),
+        "exclusion_reason": None,
+        "analytics_build_run_id": 101,
+        "farm_id": 1,
+        "subfarm_id": None,
+        "location_reference_id": 11,
+        "base_temperature_search_run_id": 301,
+        "analytics_provenance": {"source_max_raw_id": 100},
+        "weather_observation_fingerprint": [
+            {
+                "observation_date": date(2026, 2, 1),
+                "observation_id": 1,
+                "row_hash": "obs-a",
+                "available_at": date(2026, 4, 30),
+            }
+        ],
+    }
+    row_b = {
+        **row_a,
+        "analytics_build_run_id": 102,
+        "location_reference_id": 12,
+        "base_temperature_search_run_id": 302,
+        "analytics_provenance": {"source_max_raw_id": 101},
+        "weather_observation_fingerprint": [
+            {
+                "observation_date": date(2026, 2, 1),
+                "observation_id": 2,
+                "row_hash": "obs-b",
+                "available_at": date(2026, 4, 30),
+            }
+        ],
+    }
+
+    signature_a = _training_source_signature(
+        manifest_rows=[row_a, row_b],
+        training_cutoff=date(2026, 4, 30),
+        config_hash="cfg",
+        model_version="task8-v1",
+        random_seed=20260624,
+    )
+    signature_b = _training_source_signature(
+        manifest_rows=[row_b, row_a],
+        training_cutoff=date(2026, 4, 30),
+        config_hash="cfg",
+        model_version="task8-v1",
+        random_seed=20260624,
+    )
+
+    assert signature_a == signature_b
 
 
 def test_forecast_source_signature_changes_when_observation_fingerprint_changes() -> None:
@@ -899,6 +964,214 @@ def test_leakage_checks_fail_when_excluded_rows_make_training_unavailable() -> N
     assert analytics_visibility["status"] == "fail"
     assert analytics_visibility["excluded_row_count"] == 0
     assert analytics_visibility["failed_row_count"] == 1
+
+
+def test_leakage_checks_track_weather_visibility_and_future_revision_exclusion() -> None:
+    checks = _leakage_checks(
+        resolved_snapshots=[
+            {
+                "status": "included",
+                "season_id": 1,
+                "resolved_exclusion_reason": None,
+                "weather_observation_audit": {
+                    "selected_observation_count": 2,
+                    "visible_observation_count": 2,
+                    "candidate_observation_count": 4,
+                    "future_excluded_observation_count": 2,
+                    "future_excluded_observation_dates": [
+                        "2026-02-02",
+                        "2026-02-03",
+                    ],
+                },
+            },
+            {
+                "status": "included",
+                "season_id": 2,
+                "resolved_exclusion_reason": None,
+                "weather_observation_audit": {
+                    "selected_observation_count": 1,
+                    "visible_observation_count": 1,
+                    "candidate_observation_count": 1,
+                    "future_excluded_observation_count": 0,
+                    "future_excluded_observation_dates": [],
+                },
+            },
+        ],
+        training_unavailable=False,
+    )
+
+    weather_visibility = checks["weather_observation_visibility"]
+    assert weather_visibility["status"] == "pass"
+    assert weather_visibility["selected_observation_count"] == 3
+    assert weather_visibility["visible_observation_count"] == 3
+    assert weather_visibility["invisible_selected_observation_count"] == 0
+
+    future_revisions = checks["future_revision_exclusion"]
+    assert future_revisions["status"] == "warn"
+    assert future_revisions["candidate_observation_count"] == 5
+    assert future_revisions["future_excluded_observation_count"] == 2
+    assert future_revisions["reason_code_breakdown"] == {
+        "future_weather_revisions_excluded_at_cutoff": 2
+    }
+    assert future_revisions["affected_manifest_rows"][0][
+        "future_excluded_observation_dates"
+    ] == ["2026-02-02", "2026-02-03"]
+
+
+def test_leakage_checks_warn_for_invisible_selected_weather_observations() -> None:
+    checks = _leakage_checks(
+        resolved_snapshots=[
+            {
+                "status": "included",
+                "season_id": 1,
+                "resolved_exclusion_reason": None,
+                "weather_observation_audit": {
+                    "selected_observation_count": 2,
+                    "visible_observation_count": 1,
+                    "candidate_observation_count": 2,
+                    "future_excluded_observation_count": 0,
+                    "future_excluded_observation_dates": [],
+                },
+            }
+        ],
+        training_unavailable=False,
+    )
+
+    weather_visibility = checks["weather_observation_visibility"]
+    assert weather_visibility["status"] == "warn"
+    assert weather_visibility["reason_code_breakdown"] == {
+        "selected_weather_observations_not_visible_at_cutoff": 1
+    }
+    assert weather_visibility["affected_manifest_rows"][0][
+        "invisible_selected_observation_count"
+    ] == 1
+
+
+@pytest.mark.asyncio
+async def test_train_maturity_curve_marks_unavailable_when_no_variety_global_models(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_config = _config()
+    config = replace(
+        base_config,
+        rules=replace(
+            base_config.rules,
+            pooling=replace(
+                base_config.rules.pooling,
+                minimum_samples=2,
+                minimum_seasons=2,
+                minimum_farms=2,
+                minimum_subfarms=2,
+            ),
+        ),
+    )
+    sample_a_base = _sample(
+        season_code="2024-2025",
+        variety_id=1,
+        province="Yunnan",
+    )
+    sample_a = replace(
+        sample_a_base,
+        manifest_row=replace(
+            sample_a_base.manifest_row,
+            season_id=1,
+            farm_id=1,
+            farm_key="farm-a",
+            subfarm_id=11,
+            subfarm_key="sf-11",
+            production_plan_id=201,
+            analytics_build_run_id=101,
+            location_reference_id=11,
+            base_temperature_search_run_id=301,
+        ),
+    )
+    sample_b_base = _sample(
+        season_code="2025-2026",
+        variety_id=2,
+        province="Sichuan",
+    )
+    sample_b = replace(
+        sample_b_base,
+        manifest_row=replace(
+            sample_b_base.manifest_row,
+            season_id=2,
+            farm_id=2,
+            farm_key="farm-b",
+            subfarm_id=22,
+            subfarm_key="sf-22",
+            production_plan_id=202,
+            analytics_build_run_id=102,
+            location_reference_id=12,
+            base_temperature_search_run_id=302,
+        ),
+    )
+    resolved_map = {
+        (1, 1): sample_a,
+        (2, 2): sample_b,
+    }
+
+    async def fake_resolve_training_sample(session, *, row, training_cutoff, config):
+        resolved = resolved_map[(row.season_id, row.variety_id)]
+        return (
+            {
+                "status": "included",
+                "season_id": row.season_id,
+                "season_code": resolved.season_code,
+                "farm_id": row.farm_id,
+                "farm_key": row.farm_key,
+                "subfarm_id": row.subfarm_id,
+                "subfarm_key": row.subfarm_key,
+                "variety_id": row.variety_id,
+                "production_plan_id": row.production_plan_id,
+                "analytics_build_run_id": row.analytics_build_run_id,
+                "resolved_exclusion_reason": None,
+                "weather_observation_audit": {
+                    "selected_observation_count": 1,
+                    "visible_observation_count": 1,
+                    "candidate_observation_count": 1,
+                    "future_excluded_observation_count": 0,
+                    "future_excluded_observation_dates": [],
+                },
+            },
+            resolved,
+        )
+
+    async def fake_find_existing(session, *, source_signature):
+        return None
+
+    async def fake_create_run(session, *, payload):
+        return SimpleNamespace(id=77)
+
+    monkeypatch.setattr(
+        "backend.app.maturity.service._resolve_training_sample",
+        fake_resolve_training_sample,
+    )
+    monkeypatch.setattr(
+        "backend.app.maturity.service.find_existing_maturity_model_run",
+        fake_find_existing,
+    )
+    monkeypatch.setattr(
+        "backend.app.maturity.service.create_maturity_model_run",
+        fake_create_run,
+    )
+
+    result = await train_maturity_curve(
+        cast(Any, None),
+        training_cutoff=date(2026, 4, 30),
+        manifest_rows=[
+            sample_a.manifest_row,
+            sample_b.manifest_row,
+        ],
+        config=config,
+        dry_run=False,
+    )
+
+    assert result.status == "unavailable"
+    assert result.run_id == 77
+    assert result.blockers == ("no_supported_variety_global_models",)
+    assert result.artifact == {}
+    assert result.training_metrics["group_levels"]["variety:1"]["available"] is False
+    assert result.training_metrics["group_levels"]["variety:2"]["available"] is False
 
 
 def test_execution_result_keeps_daily_prediction_dataclasses() -> None:

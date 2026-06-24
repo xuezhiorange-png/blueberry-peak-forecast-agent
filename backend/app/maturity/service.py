@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from collections import defaultdict
 from dataclasses import asdict
@@ -50,7 +51,7 @@ from backend.app.models.maturity import (
 )
 from backend.app.models.planning import LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
-from backend.app.models.weather import BaseTemperatureSearchRun
+from backend.app.models.weather import BaseTemperatureSearchRun, WeatherDailyObservation
 from backend.app.planning.json_types import canonical_decimal_string, canonical_json_value
 from backend.app.planning.plan_config import load_production_plan_config
 from backend.app.planning.plan_service import get_effective_plan
@@ -233,6 +234,19 @@ def _manifest_row_ref(snapshot: dict[str, Any], index: int) -> dict[str, Any]:
     }
 
 
+def _leakage_check_status(
+    *,
+    affected_count: int,
+    included_count: int,
+    training_unavailable: bool,
+) -> str:
+    if affected_count == 0:
+        return "pass"
+    if training_unavailable or included_count == 0:
+        return "fail"
+    return "warn"
+
+
 def _leakage_checks(
     *,
     resolved_snapshots: list[dict[str, Any]],
@@ -241,6 +255,8 @@ def _leakage_checks(
     included_count = sum(1 for row in resolved_snapshots if row.get("status") == "included")
     checks: dict[str, Any] = {}
     for check_name, reasons in _LEAKAGE_CHECK_REASON_MAP.items():
+        if check_name in {"weather_observation_visibility", "future_revision_exclusion"}:
+            continue
         affected_rows = [
             _manifest_row_ref(row, index)
             for index, row in enumerate(resolved_snapshots)
@@ -252,12 +268,11 @@ def _leakage_checks(
             if reason is not None:
                 reason_breakdown[reason] += 1
         affected_count = len(affected_rows)
-        if affected_count == 0:
-            status = "pass"
-        elif training_unavailable or included_count == 0:
-            status = "fail"
-        else:
-            status = "warn"
+        status = _leakage_check_status(
+            affected_count=affected_count,
+            included_count=included_count,
+            training_unavailable=training_unavailable,
+        )
         excluded_count = affected_count if status == "warn" else 0
         failed_count = affected_count if status == "fail" else 0
         checks[check_name] = {
@@ -269,6 +284,81 @@ def _leakage_checks(
             "reason_code_breakdown": dict(reason_breakdown),
             "affected_manifest_rows": affected_rows,
         }
+    weather_visibility_rows: list[dict[str, Any]] = []
+    selected_observation_count = 0
+    visible_observation_count = 0
+    weather_reason_breakdown: dict[str, int] = defaultdict(int)
+    future_revision_rows: list[dict[str, Any]] = []
+    future_revision_checked_count = 0
+    future_revision_excluded_count = 0
+    future_revision_reason_breakdown: dict[str, int] = defaultdict(int)
+    for index, row in enumerate(resolved_snapshots):
+        audit = cast(dict[str, Any], row.get("weather_observation_audit", {}))
+        selected_count = int(audit.get("selected_observation_count", 0) or 0)
+        visible_count = int(audit.get("visible_observation_count", 0) or 0)
+        selected_observation_count += selected_count
+        visible_observation_count += visible_count
+        invisible_count = max(selected_count - visible_count, 0)
+        if invisible_count > 0:
+            entry = _manifest_row_ref(row, index)
+            entry["invisible_selected_observation_count"] = invisible_count
+            weather_visibility_rows.append(entry)
+            weather_reason_breakdown[
+                "selected_weather_observations_not_visible_at_cutoff"
+            ] += invisible_count
+
+        revision_count = int(audit.get("candidate_observation_count", 0) or 0)
+        future_excluded_count = int(audit.get("future_excluded_observation_count", 0) or 0)
+        future_revision_checked_count += revision_count
+        future_revision_excluded_count += future_excluded_count
+        if future_excluded_count > 0:
+            entry = _manifest_row_ref(row, index)
+            entry["future_excluded_observation_count"] = future_excluded_count
+            entry["future_excluded_observation_dates"] = cast(
+                list[str],
+                audit.get("future_excluded_observation_dates", []),
+            )
+            future_revision_rows.append(entry)
+            future_revision_reason_breakdown[
+                "future_weather_revisions_excluded_at_cutoff"
+            ] += future_excluded_count
+
+    weather_status = _leakage_check_status(
+        affected_count=len(weather_visibility_rows),
+        included_count=included_count,
+        training_unavailable=training_unavailable,
+    )
+    checks["weather_observation_visibility"] = {
+        "status": weather_status,
+        "checked_row_count": len(resolved_snapshots),
+        "passed_row_count": len(resolved_snapshots) - len(weather_visibility_rows),
+        "excluded_row_count": len(weather_visibility_rows) if weather_status == "warn" else 0,
+        "failed_row_count": len(weather_visibility_rows) if weather_status == "fail" else 0,
+        "reason_code_breakdown": dict(weather_reason_breakdown),
+        "affected_manifest_rows": weather_visibility_rows,
+        "selected_observation_count": selected_observation_count,
+        "visible_observation_count": visible_observation_count,
+        "invisible_selected_observation_count": max(
+            selected_observation_count - visible_observation_count,
+            0,
+        ),
+    }
+    future_status = _leakage_check_status(
+        affected_count=len(future_revision_rows),
+        included_count=included_count,
+        training_unavailable=training_unavailable,
+    )
+    checks["future_revision_exclusion"] = {
+        "status": future_status,
+        "checked_row_count": len(resolved_snapshots),
+        "passed_row_count": len(resolved_snapshots) - len(future_revision_rows),
+        "excluded_row_count": len(future_revision_rows) if future_status == "warn" else 0,
+        "failed_row_count": len(future_revision_rows) if future_status == "fail" else 0,
+        "reason_code_breakdown": dict(future_revision_reason_breakdown),
+        "affected_manifest_rows": future_revision_rows,
+        "candidate_observation_count": future_revision_checked_count,
+        "future_excluded_observation_count": future_revision_excluded_count,
+    }
     return checks
 
 
@@ -285,9 +375,9 @@ def _model_run_status_value(status: str) -> PersistedMaturityRunStatus:
 def _sorted_manifest_rows(
     manifest_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    return sorted(
-        manifest_rows,
-        key=lambda item: (
+    def sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
+        canonical_row = cast(dict[str, Any], canonical_json_value(item))
+        return (
             cast(int, item.get("season_id", 0)),
             cast(int, item.get("production_plan_id", 0)),
             cast(str, item.get("farm_key", "")),
@@ -300,7 +390,22 @@ def _sorted_manifest_rows(
                 _decimal_value(item.get("sample_weight", Decimal("0")), field="sample_weight")
             ),
             cast(str, item.get("exclusion_reason", "") or ""),
-        ),
+            cast(int, item.get("analytics_build_run_id", 0) or 0),
+            cast(int, item.get("farm_id", 0) or 0),
+            cast(int, item.get("subfarm_id", 0) or 0),
+            cast(int, item.get("location_reference_id", 0) or 0),
+            cast(int, item.get("base_temperature_search_run_id", 0) or 0),
+            json.dumps(
+                canonical_row,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
+        )
+
+    return sorted(
+        manifest_rows,
+        key=sort_key,
     )
 
 
@@ -696,7 +801,36 @@ async def _resolve_training_sample(
         feature_date=season.end_date,
         as_of_date=training_cutoff,
     )
+    all_observation_rows = list(
+        (
+            await session.scalars(
+                select(WeatherDailyObservation)
+                .where(
+                    WeatherDailyObservation.weather_source_location_id
+                    == mapping.weather_source_location_id,
+                    WeatherDailyObservation.observation_date >= season.start_date,
+                    WeatherDailyObservation.observation_date <= season.end_date,
+                )
+                .order_by(
+                    WeatherDailyObservation.observation_date.asc(),
+                    WeatherDailyObservation.available_at.desc(),
+                    WeatherDailyObservation.source_version.desc(),
+                    WeatherDailyObservation.id.desc(),
+                )
+            )
+        ).all()
+    )
     observation_fingerprint = tuple(_selected_observation_fingerprint(observations))
+    selected_visible_count = sum(
+        1
+        for item in observation_fingerprint
+        if date.fromisoformat(str(item["available_at"])) <= training_cutoff
+    )
+    future_excluded_observation_rows = [
+        row
+        for row in all_observation_rows
+        if row.available_at > training_cutoff and row.observation_date <= season.end_date
+    ]
     holiday_dates = await _holiday_dates(
         session,
         season_id=row.season_id,
@@ -847,6 +981,17 @@ async def _resolve_training_sample(
         list[dict[str, Any]],
         canonical_json_value(list(observation_fingerprint)),
     )
+    snapshot["weather_observation_audit"] = {
+        "selected_observation_count": len(observation_fingerprint),
+        "visible_observation_count": selected_visible_count,
+        "candidate_observation_count": len(all_observation_rows),
+        "future_excluded_observation_count": len(
+            future_excluded_observation_rows
+        ),
+        "future_excluded_observation_dates": sorted(
+            {item.observation_date.isoformat() for item in future_excluded_observation_rows}
+        ),
+    }
     snapshot["holiday_summary"] = {
         "raw_day_count": raw_day_count,
         "used_day_count": used_day_count,
@@ -1945,6 +2090,57 @@ async def train_maturity_curve(
         resolved_samples=resolved_samples,
         config=config,
     )
+    supported_variety_global_models = [
+        key for key, artifact in artifacts.items() if artifact.level == "variety_global"
+    ]
+    if not supported_variety_global_models:
+        unavailable_blockers = ("no_supported_variety_global_models",)
+        result = MaturityModelExecutionResult(
+            status="dry_run" if dry_run else "unavailable",
+            run_id=None,
+            source_signature=source_signature,
+            config_hash=config.config_hash,
+            model_version=config.rules.curve.version,
+            model_family=config.rules.model_family,
+            sample_count=counts["sample_count"],
+            distinct_season_count=counts["distinct_season_count"],
+            distinct_farm_count=counts["distinct_farm_count"],
+            distinct_subfarm_count=counts["distinct_subfarm_count"],
+            warnings=(),
+            blockers=unavailable_blockers,
+            training_metrics=training_metrics,
+            calibration_metrics={},
+            artifact={},
+            input_snapshot=shared_input_snapshot,
+        )
+        if dry_run:
+            return result
+        run = await create_maturity_model_run(
+            session,
+            payload={
+                "model_version": config.rules.curve.version,
+                "config_hash": config.config_hash,
+                "config_snapshot": config.snapshot,
+                "training_cutoff": training_cutoff,
+                "source_signature": source_signature,
+                "status": "unavailable",
+                "random_seed": config.rules.random_seed,
+                "model_family": config.rules.model_family,
+                "scope": "task8",
+                "sample_count": result.sample_count,
+                "distinct_season_count": result.distinct_season_count,
+                "distinct_farm_count": result.distinct_farm_count,
+                "distinct_subfarm_count": result.distinct_subfarm_count,
+                "training_metrics": result.training_metrics,
+                "calibration_metrics": {},
+                "warnings": [],
+                "blockers": list(unavailable_blockers),
+                "input_snapshot": result.input_snapshot,
+                "finished_at": _now(),
+                "error_message": None,
+            },
+        )
+        return MaturityModelExecutionResult(**{**asdict(result), "run_id": run.id})
     shift_model = _build_shift_model(
         resolved_samples=resolved_samples,
         artifacts=artifacts,
