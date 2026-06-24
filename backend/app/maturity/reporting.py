@@ -108,12 +108,14 @@ def _manifest_audit(result: MaturityModelExecutionResult) -> dict[str, Any]:
 
 def _hierarchy_payload(result: MaturityModelExecutionResult) -> dict[str, Any]:
     group_models = cast(dict[str, dict[str, Any]], result.artifact.get("group_models", {}))
+    group_audit = cast(dict[str, dict[str, Any]], result.artifact.get("group_audit", {}))
     levels: dict[str, list[dict[str, Any]]] = {
         "climate_zone_variety": [],
         "province_variety": [],
         "variety_global": [],
     }
-    for key, row in sorted(group_models.items()):
+    rows = group_audit or group_models
+    for key, row in sorted(rows.items()):
         level = str(row.get("level"))
         entry = {
             "group_key": key,
@@ -126,6 +128,7 @@ def _hierarchy_payload(result: MaturityModelExecutionResult) -> dict[str, Any]:
             "shrinkage": row.get("shrinkage"),
             "peak_day": row.get("peak_day"),
             "fallback_reason": row.get("fallback_reason"),
+            "available": row.get("available", True),
             "support_range": {
                 "min_day": result.artifact.get("support_days", [None])[0],
                 "max_day": result.artifact.get("support_days", [None])[-1],
@@ -160,6 +163,10 @@ def _reproducibility_payload(result: MaturityModelExecutionResult) -> dict[str, 
         "manifest_rows": result.input_snapshot.get("manifest_rows", []),
         "base_temperature_context": result.input_snapshot.get("base_temperature_context", {}),
     }
+
+
+def _leakage_checks_payload(result: MaturityModelExecutionResult) -> dict[str, Any]:
+    return cast(dict[str, Any], result.input_snapshot.get("leakage_checks", {}))
 
 
 def _model_json_payload(result: MaturityModelExecutionResult) -> dict[str, Any]:
@@ -199,6 +206,7 @@ def _model_json_payload(result: MaturityModelExecutionResult) -> dict[str, Any]:
                 },
                 "artifact": result.artifact,
                 "reproducibility": _reproducibility_payload(result),
+                "leakage_checks": _leakage_checks_payload(result),
                 "warnings": list(result.warnings),
                 "blockers": list(result.blockers),
                 "raw_result": asdict(result),
@@ -235,6 +243,7 @@ def _model_markdown(result: MaturityModelExecutionResult) -> str:
     hierarchy = _hierarchy_payload(result)
     calibration = _calibration_payload(result)
     reproducibility = _reproducibility_payload(result)
+    leakage_checks = _leakage_checks_payload(result)
     holiday_audit = cast(dict[str, Any], manifest_audit["holiday_audit"])
     shift_model = cast(dict[str, Any], result.artifact.get("shift_model", {}))
     lines = [
@@ -326,7 +335,8 @@ def _model_markdown(result: MaturityModelExecutionResult) -> str:
                 f"fallback_reason={entry['fallback_reason']}, "
                 f"peak_day={entry['peak_day']}, "
                 f"support_range={entry['support_range']}, "
-                f"warnings={entry['warnings']}"
+                f"warnings={entry['warnings']}, "
+                f"available={entry['available']}"
             )
             lines.append(f"- {summary}")
         lines.append("")
@@ -374,8 +384,18 @@ def _model_markdown(result: MaturityModelExecutionResult) -> str:
             "",
         ]
     )
-    for key, value in cast(dict[str, Any], reproducibility["leakage_checks"]).items():
-        lines.append(f"- {key}: {value}")
+    for key, value in leakage_checks.items():
+        if isinstance(value, dict):
+            lines.append(
+                f"- {key}: status={value.get('status')}, "
+                f"checked={value.get('checked_row_count')}, "
+                f"passed={value.get('passed_row_count')}, "
+                f"excluded={value.get('excluded_row_count')}, "
+                f"failed={value.get('failed_row_count')}, "
+                f"reasons={value.get('reason_code_breakdown')}"
+            )
+        else:
+            lines.append(f"- {key}: {value}")
     lines.extend(
         [
             "",

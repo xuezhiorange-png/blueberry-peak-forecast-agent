@@ -177,6 +177,101 @@ def _training_blockers(
     return blockers
 
 
+_LEAKAGE_CHECK_REASON_MAP: dict[str, tuple[str, ...]] = {
+    "analytics_completed_finished_visibility": (
+        "analytics_build_run_not_found",
+        "analytics_build_run_not_completed",
+        "analytics_build_run_season_mismatch",
+        "analytics_build_run_missing_finished_at",
+        "analytics_build_run_not_visible_at_cutoff",
+    ),
+    "season_complete_by_cutoff": (
+        "season_not_complete_by_training_cutoff",
+    ),
+    "fact_visibility": (
+        "future_fact_rows_not_visible_at_cutoff",
+        "fact_rows_not_visible_at_cutoff",
+    ),
+    "effective_task6_plan": (
+        "effective_plan_unavailable_at_cutoff",
+        "manifest_plan_not_effective_at_cutoff",
+        "plan_not_found",
+        "plan_manifest_mismatch",
+    ),
+    "weather_mapping": (
+        "location_reference_farm_mismatch",
+        "location_reference_subfarm_mismatch",
+        "mapping_unavailable",
+    ),
+    "weather_observation_visibility": (),
+    "base_temperature_cutoff": (
+        "base_temperature_run_not_visible_at_cutoff",
+    ),
+    "future_revision_exclusion": (
+        "analytics_build_run_missing_finished_at",
+        "analytics_build_run_not_visible_at_cutoff",
+        "future_fact_rows_not_visible_at_cutoff",
+        "fact_rows_not_visible_at_cutoff",
+        "base_temperature_run_not_visible_at_cutoff",
+    ),
+}
+
+
+def _manifest_row_ref(snapshot: dict[str, Any], index: int) -> dict[str, Any]:
+    return {
+        "index": index,
+        "season_id": snapshot.get("season_id"),
+        "season_code": snapshot.get("season_code"),
+        "farm_id": snapshot.get("farm_id"),
+        "farm_key": snapshot.get("farm_key"),
+        "subfarm_id": snapshot.get("subfarm_id"),
+        "subfarm_key": snapshot.get("subfarm_key"),
+        "variety_id": snapshot.get("variety_id"),
+        "production_plan_id": snapshot.get("production_plan_id"),
+        "analytics_build_run_id": snapshot.get("analytics_build_run_id"),
+        "resolved_exclusion_reason": snapshot.get("resolved_exclusion_reason"),
+    }
+
+
+def _leakage_checks(
+    *,
+    resolved_snapshots: list[dict[str, Any]],
+    training_unavailable: bool,
+) -> dict[str, Any]:
+    included_count = sum(1 for row in resolved_snapshots if row.get("status") == "included")
+    checks: dict[str, Any] = {}
+    for check_name, reasons in _LEAKAGE_CHECK_REASON_MAP.items():
+        affected_rows = [
+            _manifest_row_ref(row, index)
+            for index, row in enumerate(resolved_snapshots)
+            if cast(str | None, row.get("resolved_exclusion_reason")) in reasons
+        ]
+        reason_breakdown: dict[str, int] = defaultdict(int)
+        for row in affected_rows:
+            reason = cast(str | None, row.get("resolved_exclusion_reason"))
+            if reason is not None:
+                reason_breakdown[reason] += 1
+        affected_count = len(affected_rows)
+        if affected_count == 0:
+            status = "pass"
+        elif training_unavailable or included_count == 0:
+            status = "fail"
+        else:
+            status = "warn"
+        excluded_count = affected_count if status == "warn" else 0
+        failed_count = affected_count if status == "fail" else 0
+        checks[check_name] = {
+            "status": status,
+            "checked_row_count": len(resolved_snapshots),
+            "passed_row_count": len(resolved_snapshots) - affected_count,
+            "excluded_row_count": excluded_count,
+            "failed_row_count": failed_count,
+            "reason_code_breakdown": dict(reason_breakdown),
+            "affected_manifest_rows": affected_rows,
+        }
+    return checks
+
+
 def _run_status_value(status: str) -> PersistedMaturityRunStatus:
     if status in {"running", "completed", "failed", "unavailable"}:
         return cast(PersistedMaturityRunStatus, status)
@@ -953,6 +1048,22 @@ def _build_group_curves(
     global_curves: dict[int, tuple[Decimal, ...]] = {}
     for group_key, samples in variety_grouped.items():
         counts = _group_counts(samples)
+        blockers = _training_blockers(config=config, **counts)
+        if blockers:
+            metrics["group_levels"][group_key] = {
+                "level": "variety_global",
+                "sample_count": counts["sample_count"],
+                "distinct_season_count": counts["distinct_season_count"],
+                "distinct_farm_count": counts["distinct_farm_count"],
+                "distinct_subfarm_count": counts["distinct_subfarm_count"],
+                "parent_group_key": None,
+                "shrinkage": None,
+                "fallback_reason": blockers[0],
+                "warnings": list(blockers),
+                "available": False,
+            }
+            metrics["reference_phase_rates"][group_key] = _reference_phase_rate_payload(samples)
+            continue
         density = fit_for_samples(samples)
         peak_day = Decimal(
             support_days[int(np.argmax(np.asarray([float(item) for item in density], dtype=float)))]
@@ -976,7 +1087,22 @@ def _build_group_curves(
     for group_key, samples in province_grouped.items():
         counts = _group_counts(samples)
         parent_key = f"variety:{samples[0].manifest_row.variety_id}"
-        parent_curve = global_curves[samples[0].manifest_row.variety_id]
+        parent_curve = global_curves.get(samples[0].manifest_row.variety_id)
+        if parent_curve is None:
+            metrics["group_levels"][group_key] = {
+                "level": "province_variety",
+                "sample_count": counts["sample_count"],
+                "distinct_season_count": counts["distinct_season_count"],
+                "distinct_farm_count": counts["distinct_farm_count"],
+                "distinct_subfarm_count": counts["distinct_subfarm_count"],
+                "parent_group_key": parent_key,
+                "shrinkage": None,
+                "fallback_reason": "parent_group_unavailable",
+                "warnings": ["parent_group_unavailable"],
+                "available": False,
+            }
+            metrics["reference_phase_rates"][group_key] = _reference_phase_rate_payload(samples)
+            continue
         blockers = _training_blockers(config=config, **counts)
         if blockers:
             density = parent_curve
@@ -1019,7 +1145,23 @@ def _build_group_curves(
             if province_key in province_curves
             else f"variety:{samples[0].manifest_row.variety_id}"
         )
-        parent_curve = artifacts[parent_key].density
+        parent_artifact = artifacts.get(parent_key)
+        if parent_artifact is None:
+            metrics["group_levels"][group_key] = {
+                "level": "climate_zone_variety",
+                "sample_count": counts["sample_count"],
+                "distinct_season_count": counts["distinct_season_count"],
+                "distinct_farm_count": counts["distinct_farm_count"],
+                "distinct_subfarm_count": counts["distinct_subfarm_count"],
+                "parent_group_key": parent_key,
+                "shrinkage": None,
+                "fallback_reason": "parent_group_unavailable",
+                "warnings": ["parent_group_unavailable"],
+                "available": False,
+            }
+            metrics["reference_phase_rates"][group_key] = _reference_phase_rate_payload(samples)
+            continue
+        parent_curve = parent_artifact.density
         blockers = _training_blockers(config=config, **counts)
         if blockers:
             density = parent_curve
@@ -1051,17 +1193,22 @@ def _build_group_curves(
         )
         metrics["reference_phase_rates"][group_key] = _reference_phase_rate_payload(samples)
     metrics["group_levels"] = {
-        key: {
-            "level": artifact.level,
-            "sample_count": artifact.sample_count,
-            "distinct_season_count": artifact.distinct_season_count,
-            "distinct_farm_count": artifact.distinct_farm_count,
-            "distinct_subfarm_count": artifact.distinct_subfarm_count,
-            "parent_group_key": artifact.parent_group_key,
-            "shrinkage": artifact.shrinkage,
-            "fallback_reason": artifact.fallback_reason,
-        }
-        for key, artifact in artifacts.items()
+        **metrics["group_levels"],
+        **{
+            key: {
+                "level": artifact.level,
+                "sample_count": artifact.sample_count,
+                "distinct_season_count": artifact.distinct_season_count,
+                "distinct_farm_count": artifact.distinct_farm_count,
+                "distinct_subfarm_count": artifact.distinct_subfarm_count,
+                "parent_group_key": artifact.parent_group_key,
+                "shrinkage": artifact.shrinkage,
+                "fallback_reason": artifact.fallback_reason,
+                "warnings": list(artifact.warnings),
+                "available": True,
+            }
+            for key, artifact in artifacts.items()
+        },
     }
     return artifacts, metrics
 
@@ -1488,6 +1635,7 @@ def _model_artifact_payload(
     *,
     config: MaturityCurveConfig,
     artifacts: dict[str, GroupCurveArtifact],
+    group_audit: dict[str, Any],
     shift_model: ShiftModelArtifact,
     calibration: dict[str, Any],
     anchor_event: str,
@@ -1503,6 +1651,7 @@ def _model_artifact_payload(
         "formula_version": _PHASE_COORDINATE_FORMULA_VERSION,
         "support_days": support_days,
         "anchor_event": anchor_event,
+        "group_audit": group_audit,
         "group_models": {
             key: {
                 "level": artifact.level,
@@ -1733,22 +1882,17 @@ async def train_maturity_curve(
     warnings: list[str] = []
     counts = _group_counts(resolved_samples)
     blockers = _training_blockers(config=config, **counts)
+    leakage_checks = _leakage_checks(
+        resolved_snapshots=resolved_snapshots,
+        training_unavailable=bool(blockers) or not resolved_samples,
+    )
     shared_input_snapshot = {
         "training_cutoff": training_cutoff,
         "manifest_rows": resolved_snapshots,
         "config_snapshot": config.snapshot,
         "random_seed": config.rules.random_seed,
         "code_version": _code_version(),
-        "leakage_checks": {
-            "analytics_completed_finished_visibility": "pass",
-            "season_complete_by_cutoff": "pass",
-            "fact_visibility": "pass",
-            "effective_task6_plan": "pass",
-            "weather_mapping": "pass",
-            "weather_observation_visibility": "pass",
-            "base_temperature_cutoff": "pass",
-            "future_revision_exclusion": "pass",
-        },
+        "leakage_checks": leakage_checks,
     }
     if blockers:
         result = MaturityModelExecutionResult(
@@ -1835,6 +1979,7 @@ async def train_maturity_curve(
     artifact_payload = _model_artifact_payload(
         config=config,
         artifacts=artifacts,
+        group_audit=cast(dict[str, Any], training_metrics.get("group_levels", {})),
         shift_model=shift_model,
         calibration=calibration,
         anchor_event=anchor_event,

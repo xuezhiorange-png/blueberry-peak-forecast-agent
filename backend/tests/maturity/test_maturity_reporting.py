@@ -93,8 +93,40 @@ def test_write_model_reports_creates_json_and_markdown(tmp_path: Path) -> None:
                 },
             },
             "leakage_checks": {
-                "analytics_completed_finished_visibility": "pass",
-                "fact_visibility": "pass",
+                "analytics_completed_finished_visibility": {
+                    "status": "pass",
+                    "checked_row_count": 2,
+                    "passed_row_count": 2,
+                    "excluded_row_count": 0,
+                    "failed_row_count": 0,
+                    "reason_code_breakdown": {},
+                    "affected_manifest_rows": [],
+                },
+                "fact_visibility": {
+                    "status": "warn",
+                    "checked_row_count": 2,
+                    "passed_row_count": 1,
+                    "excluded_row_count": 1,
+                    "failed_row_count": 0,
+                    "reason_code_breakdown": {
+                        "fact_rows_not_visible_at_cutoff": 1
+                    },
+                    "affected_manifest_rows": [
+                        {
+                            "index": 1,
+                            "season_id": 2,
+                            "season_code": "2024-2025",
+                            "farm_id": 2,
+                            "farm_key": "farm-b",
+                            "subfarm_id": None,
+                            "subfarm_key": "__UNKNOWN_SUBFARM__",
+                            "variety_id": 1,
+                            "production_plan_id": 202,
+                            "analytics_build_run_id": 102,
+                            "resolved_exclusion_reason": "fact_rows_not_visible_at_cutoff",
+                        }
+                    ],
+                },
             },
             "base_temperature_context": {"zone:1|variety:1": {"run_id": 301}},
             "manifest_rows": [
@@ -156,7 +188,11 @@ def test_write_model_reports_creates_json_and_markdown(tmp_path: Path) -> None:
     assert "base_temperature_run_id=301" in markdown_text
     assert "random_seed: 20260624" in markdown_text
     assert "code_version: deadbeef" in markdown_text
-    assert "analytics_completed_finished_visibility: pass" in markdown_text
+    assert '"status": "warn"' in json_text
+    assert '"fact_rows_not_visible_at_cutoff": 1' in json_text
+    assert "analytics_completed_finished_visibility: status=pass" in markdown_text
+    assert "fact_visibility: status=warn" in markdown_text
+    assert "excluded=1" in markdown_text
 
 
 def test_write_forecast_reports_creates_json_and_markdown(tmp_path: Path) -> None:

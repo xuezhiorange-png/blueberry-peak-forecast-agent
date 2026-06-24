@@ -26,6 +26,7 @@ from backend.app.maturity.service import (
     _forecast_axis_payload,
     _forecast_source_signature,
     _group_counts,
+    _leakage_checks,
     _model_artifact_payload,
     _model_run_status_value,
     _predict_shift_days,
@@ -525,6 +526,7 @@ def test_model_artifact_payload_keys_base_temperature_by_zone_and_variety() -> N
     payload = _model_artifact_payload(
         config=config,
         artifacts={},
+        group_audit={},
         shift_model=ShiftModelArtifact(
             enabled=False,
             intercept_days=Decimal("0"),
@@ -769,20 +771,134 @@ def test_build_group_curves_falls_back_when_subfarm_threshold_is_not_met() -> No
             pooling=replace(config.rules.pooling, minimum_subfarms=2),
         ),
     )
-    sample_a = _sample(season_code="2024-2025")
-    sample_b = _sample(season_code="2025-2026", proxy_peak_day=6)
+    sample_a_base = _sample(
+        season_code="2024-2025",
+        province="Yunnan",
+    )
+    sample_a = replace(
+        sample_a_base,
+        manifest_row=replace(
+            sample_a_base.manifest_row,
+            farm_id=1,
+            farm_key="farm-a",
+            subfarm_id=11,
+            subfarm_key="sf-11",
+        ),
+    )
+    sample_b_base = _sample(
+        season_code="2025-2026",
+        province="Sichuan",
+        proxy_peak_day=6,
+    )
+    sample_b = replace(
+        sample_b_base,
+        manifest_row=replace(
+            sample_b_base.manifest_row,
+            farm_id=2,
+            farm_key="farm-b",
+            subfarm_id=22,
+            subfarm_key="sf-22",
+        ),
+    )
 
     artifacts, metrics = _build_group_curves(
         resolved_samples=[sample_a, sample_b],
         config=stricter,
     )
 
-    climate = artifacts["zone:1|variety:1"]
-    province = artifacts["province:Yunnan|variety:1"]
-    assert climate.fallback_reason == "insufficient_training_subfarms"
-    assert province.fallback_reason == "insufficient_training_subfarms"
-    assert climate.density == province.density
-    assert metrics["group_levels"]["zone:1|variety:1"]["distinct_subfarm_count"] == 1
+    assert "variety:1" in artifacts
+    yunnan = artifacts["province:Yunnan|variety:1"]
+    sichuan = artifacts["province:Sichuan|variety:1"]
+    assert yunnan.fallback_reason == "insufficient_training_samples"
+    assert sichuan.fallback_reason == "insufficient_training_samples"
+    assert yunnan.density == artifacts["variety:1"].density
+    assert sichuan.density == artifacts["variety:1"].density
+    assert metrics["group_levels"]["province:Yunnan|variety:1"]["distinct_subfarm_count"] == 1
+
+
+def test_build_group_curves_marks_sparse_variety_global_unavailable() -> None:
+    config = _config()
+    sparse_base = _sample(season_code="2024-2025", variety_id=2)
+    sparse = replace(
+        sparse_base,
+        manifest_row=replace(
+            sparse_base.manifest_row,
+            farm_id=9,
+            farm_key="farm-sparse",
+            subfarm_id=90,
+            subfarm_key="sf-90",
+        ),
+    )
+    supported_a = _sample(season_code="2024-2025", variety_id=1)
+    supported_b_base = _sample(season_code="2025-2026", variety_id=1, proxy_peak_day=6)
+    supported_b = replace(
+        supported_b_base,
+        manifest_row=replace(
+            supported_b_base.manifest_row,
+            farm_id=2,
+            farm_key="farm-b",
+            subfarm_id=22,
+            subfarm_key="sf-22",
+        ),
+    )
+
+    artifacts, metrics = _build_group_curves(
+        resolved_samples=[supported_a, supported_b, sparse],
+        config=config,
+    )
+
+    assert "variety:1" in artifacts
+    assert "variety:2" not in artifacts
+    assert metrics["group_levels"]["variety:2"]["available"] is False
+    assert (
+        metrics["group_levels"]["variety:2"]["fallback_reason"]
+        == "insufficient_training_samples"
+    )
+    assert "zone:1|variety:2" not in artifacts
+    assert (
+        metrics["group_levels"]["zone:1|variety:2"]["fallback_reason"]
+        == "parent_group_unavailable"
+    )
+
+
+def test_leakage_checks_warn_for_mixed_visible_and_excluded_rows() -> None:
+    checks = _leakage_checks(
+        resolved_snapshots=[
+            {"status": "included", "season_id": 1, "resolved_exclusion_reason": None},
+            {
+                "status": "excluded",
+                "season_id": 2,
+                "resolved_exclusion_reason": "fact_rows_not_visible_at_cutoff",
+            },
+        ],
+        training_unavailable=False,
+    )
+
+    fact_visibility = checks["fact_visibility"]
+    assert fact_visibility["status"] == "warn"
+    assert fact_visibility["excluded_row_count"] == 1
+    assert fact_visibility["failed_row_count"] == 0
+    assert fact_visibility["reason_code_breakdown"] == {
+        "fact_rows_not_visible_at_cutoff": 1
+    }
+
+
+def test_leakage_checks_fail_when_excluded_rows_make_training_unavailable() -> None:
+    checks = _leakage_checks(
+        resolved_snapshots=[
+            {
+                "status": "excluded",
+                "season_id": 2,
+                "resolved_exclusion_reason": "analytics_build_run_not_visible_at_cutoff",
+            },
+        ],
+        training_unavailable=True,
+    )
+
+    analytics_visibility = checks["analytics_completed_finished_visibility"]
+    assert analytics_visibility["status"] == "fail"
+    assert analytics_visibility["excluded_row_count"] == 0
+    assert analytics_visibility["failed_row_count"] == 1
 
 
 def test_execution_result_keeps_daily_prediction_dataclasses() -> None:

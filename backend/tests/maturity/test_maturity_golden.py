@@ -6,8 +6,11 @@ from decimal import Decimal
 from pathlib import Path
 
 from backend.app.maturity.config import load_maturity_curve_config
+from backend.app.maturity.model import reconcile_p50_mass
+from backend.app.maturity.reporting import write_model_reports
 from backend.app.maturity.schemas import (
     MaturityManifestRow,
+    MaturityModelExecutionResult,
     ResolvedTrainingSample,
     TrainingDensityPoint,
 )
@@ -15,10 +18,12 @@ from backend.app.maturity.service import (
     _build_group_curves,
     _build_shift_model,
     _calibration_payload,
+    _forecast_axis_payload,
     _model_artifact_payload,
     _predict_shift_days,
     _support_days,
 )
+from backend.app.models.planning import Base
 
 
 def _config():
@@ -277,6 +282,11 @@ def test_maturity_golden_order_invariance_and_mass_conservation() -> None:
         == Decimal("1.000000")
     )
     assert all(value >= 0 for value in artifacts_a["zone:1|variety:1"].density)
+    daily_p50 = reconcile_p50_mass(
+        expected_total_kg=Decimal("96000"),
+        density=artifacts_a["zone:1|variety:1"].density,
+    )
+    assert sum(daily_p50, Decimal("0")) == Decimal("96000.000000")
 
 
 def test_maturity_golden_shift_direction_and_sparse_group_fallback() -> None:
@@ -285,11 +295,17 @@ def test_maturity_golden_shift_direction_and_sparse_group_fallback() -> None:
         config,
         rules=replace(
             config.rules,
-            pooling=replace(config.rules.pooling, minimum_farms=2, minimum_subfarms=2),
+            pooling=replace(
+                config.rules.pooling,
+                minimum_samples=3,
+                minimum_seasons=3,
+                minimum_farms=3,
+                minimum_subfarms=3,
+            ),
         ),
     )
     samples = _golden_samples()
-    artifacts, _ = _build_group_curves(
+    artifacts, metrics = _build_group_curves(
         resolved_samples=samples,
         config=stricter,
     )
@@ -311,12 +327,82 @@ def test_maturity_golden_shift_direction_and_sparse_group_fallback() -> None:
     assert high_shift > low_shift
     assert (
         artifacts["zone:2|variety:1"].fallback_reason
-        == "insufficient_training_farms"
+        == "insufficient_training_samples"
     )
     assert (
         artifacts["zone:2|variety:1"].density
         == artifacts["province:Sichuan|variety:1"].density
     )
+    assert "variety:2" not in artifacts
+    assert metrics["group_levels"]["variety:2"]["available"] is False
+    assert (
+        metrics["group_levels"]["variety:2"]["fallback_reason"]
+        == "insufficient_training_samples"
+    )
+    assert (
+        metrics["group_levels"]["zone:1|variety:2"]["fallback_reason"]
+        == "parent_group_unavailable"
+    )
+
+
+def test_maturity_golden_observed_axis_hot_cold_bounds_and_proxy_fallback() -> None:
+    hot_mode, hot_snapshot, hot_coordinates, _ = _forecast_axis_payload(
+        anchor_date=date(2026, 3, 1),
+        as_of_date=date(2026, 3, 3),
+        prediction_dates=[date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)],
+        base_temperature=Decimal("5"),
+        observations_by_date={
+            date(2026, 3, 1): type("Obs", (), {"temperature_mean_c": Decimal("13")})(),
+            date(2026, 3, 2): type("Obs", (), {"temperature_mean_c": Decimal("14")})(),
+            date(2026, 3, 3): type("Obs", (), {"temperature_mean_c": Decimal("15")})(),
+        },
+        reference_effective_temperature_per_day=Decimal("4"),
+        support_min_day=-30,
+        support_max_day=7,
+        maximum_abs_adjustment_days=Decimal("2"),
+        minimum_observed_axis_coverage_ratio=Decimal("1"),
+    )
+    cold_mode, _, cold_coordinates, _ = _forecast_axis_payload(
+        anchor_date=date(2026, 3, 1),
+        as_of_date=date(2026, 3, 3),
+        prediction_dates=[date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)],
+        base_temperature=Decimal("5"),
+        observations_by_date={
+            date(2026, 3, 1): type("Obs", (), {"temperature_mean_c": Decimal("6")})(),
+            date(2026, 3, 2): type("Obs", (), {"temperature_mean_c": Decimal("6")})(),
+            date(2026, 3, 3): type("Obs", (), {"temperature_mean_c": Decimal("6")})(),
+        },
+        reference_effective_temperature_per_day=Decimal("4"),
+        support_min_day=-30,
+        support_max_day=7,
+        maximum_abs_adjustment_days=Decimal("2"),
+        minimum_observed_axis_coverage_ratio=Decimal("1"),
+    )
+    proxy_mode, proxy_snapshot, _, proxy_warnings = _forecast_axis_payload(
+        anchor_date=date(2026, 3, 1),
+        as_of_date=date(2026, 3, 3),
+        prediction_dates=[date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)],
+        base_temperature=Decimal("5"),
+        observations_by_date={
+            date(2026, 3, 1): type("Obs", (), {"temperature_mean_c": Decimal("13")})(),
+            date(2026, 3, 3): type("Obs", (), {"temperature_mean_c": Decimal("15")})(),
+        },
+        reference_effective_temperature_per_day=Decimal("4"),
+        support_min_day=-30,
+        support_max_day=7,
+        maximum_abs_adjustment_days=Decimal("2"),
+        minimum_observed_axis_coverage_ratio=Decimal("1"),
+    )
+
+    assert hot_mode == "observed_phenology_axis"
+    assert cold_mode == "observed_phenology_axis"
+    assert hot_snapshot["coordinate_unit"] == "day"
+    assert hot_coordinates[date(2026, 3, 3)] > Decimal("2.000000")
+    assert cold_coordinates[date(2026, 3, 3)] < Decimal("2.000000")
+    assert abs(hot_snapshot["bounded_phase_adjustment_days"]) <= Decimal("2.000000")
+    assert proxy_mode == "calendar_proxy_axis"
+    assert "anchor_weather_incomplete" in proxy_warnings
+    assert proxy_snapshot["axis_provenance"] == "calendar_proxy_from_observed_prefix"
 
 
 def test_maturity_golden_calibration_and_base_temperature_context_are_separated() -> None:
@@ -339,6 +425,7 @@ def test_maturity_golden_calibration_and_base_temperature_context_are_separated(
     payload = _model_artifact_payload(
         config=config,
         artifacts=artifacts,
+        group_audit=metrics["group_levels"],
         shift_model=shift_model,
         calibration=calibration,
         anchor_event="flowering_start_date",
@@ -379,3 +466,166 @@ def test_maturity_golden_calibration_and_base_temperature_context_are_separated(
     assert artifacts["zone:1|variety:1"].peak_day in {
         Decimal(str(day)).quantize(Decimal("0.000001")) for day in support_days
     }
+
+
+def test_maturity_golden_reports_include_representative_values(tmp_path: Path) -> None:
+    config = _config()
+    samples = _golden_samples()
+    artifacts, metrics = _build_group_curves(
+        resolved_samples=samples,
+        config=config,
+    )
+    shift_model = _build_shift_model(
+        resolved_samples=samples,
+        artifacts=artifacts,
+        config=config,
+    )
+    calibration = _calibration_payload(
+        resolved_samples=samples,
+        artifacts=artifacts,
+        config=config,
+    )
+    artifact_payload = _model_artifact_payload(
+        config=config,
+        artifacts=artifacts,
+        group_audit=metrics["group_levels"],
+        shift_model=shift_model,
+        calibration=calibration,
+        anchor_event="flowering_start_date",
+        base_temperature_context={
+            "zone:1|variety:1": {
+                "run_id": 101,
+                "selected_base_temperature": Decimal("4"),
+                "feature_version": "task7-v1",
+                "config_hash": "weather-cfg",
+            }
+        },
+        reference_phase_rates=metrics["reference_phase_rates"],
+    )
+    result = MaturityModelExecutionResult(
+        status="completed",
+        run_id=77,
+        source_signature="golden-sig",
+        config_hash=config.config_hash,
+        model_version=config.rules.curve.version,
+        model_family=config.rules.model_family,
+        sample_count=len(samples),
+        distinct_season_count=len({item.season_code for item in samples}),
+        distinct_farm_count=len({item.manifest_row.farm_id for item in samples}),
+        distinct_subfarm_count=len(
+            {(item.manifest_row.farm_id, item.manifest_row.subfarm_key) for item in samples}
+        ),
+        warnings=(),
+        blockers=(),
+        training_metrics=metrics,
+        calibration_metrics=calibration,
+        artifact=artifact_payload,
+        input_snapshot={
+            "training_cutoff": date(2026, 4, 30),
+            "artifact_hash": "golden-artifact",
+            "config_snapshot": config.snapshot,
+            "random_seed": config.rules.random_seed,
+            "code_version": "golden-sha",
+            "base_temperature_context": artifact_payload["base_temperature_context"],
+            "manifest_rows": [
+                {
+                    "status": "included",
+                    "season_code": item.season_code,
+                    "analytics_provenance": item.analytics_provenance,
+                    "plan_row_hash": item.plan_row_hash,
+                    "base_temperature_run": {
+                        "run_id": item.manifest_row.base_temperature_search_run_id
+                    },
+                    "holiday_summary": item.holiday_summary,
+                }
+                for item in samples
+            ],
+            "leakage_checks": {
+                "fact_visibility": {
+                    "status": "warn",
+                    "checked_row_count": len(samples) + 1,
+                    "passed_row_count": len(samples),
+                    "excluded_row_count": 1,
+                    "failed_row_count": 0,
+                    "reason_code_breakdown": {
+                        "fact_rows_not_visible_at_cutoff": 1
+                    },
+                    "affected_manifest_rows": [
+                        {
+                            "index": 99,
+                            "season_id": 99,
+                            "season_code": "2027-2028",
+                            "farm_id": 99,
+                            "farm_key": "farm-leak",
+                            "subfarm_id": None,
+                            "subfarm_key": "__UNKNOWN_SUBFARM__",
+                            "variety_id": 1,
+                            "production_plan_id": 999,
+                            "analytics_build_run_id": 999,
+                            "resolved_exclusion_reason": "fact_rows_not_visible_at_cutoff",
+                        }
+                    ],
+                }
+            },
+        },
+    )
+
+    json_path, markdown_path = write_model_reports(result, output_dir=tmp_path)
+    json_text = json_path.read_text(encoding="utf-8")
+    markdown_text = markdown_path.read_text(encoding="utf-8")
+    assert "zone:1|variety:1" in json_text
+    assert "province:Yunnan|variety:1" in markdown_text
+    assert "shrinkage=" in markdown_text
+    assert "coefficients:" in markdown_text
+    assert "pointwise_p80_coverage" in markdown_text
+    assert "source_max_raw_id=" in markdown_text
+    assert '"status": "warn"' in json_text
+    assert '"fact_rows_not_visible_at_cutoff": 1' in json_text
+    assert "fact_visibility: status=warn" in markdown_text
+    assert "checked=8" in markdown_text
+    assert "excluded=1" in markdown_text
+    assert "zone:1|variety:1" in markdown_text
+    assert "available=True" in markdown_text
+    assert "variety:2" in markdown_text
+    assert "reference_phase_rates" in markdown_text
+    assert "golden-artifact" in markdown_text
+
+
+def test_maturity_golden_forbidden_task9_tables_absent() -> None:
+    forbidden_tables = {
+        "harvest_capacity_run",
+        "harvest_capacity_daily",
+        "arrival_state_run",
+        "arrival_state_daily",
+        "maturity_backlog_run",
+        "maturity_backlog_daily",
+        "factory_peak_forecast_run",
+    }
+    assert forbidden_tables.isdisjoint(Base.metadata.tables)
+
+
+def test_maturity_golden_order_invariance_preserves_reference_phase_rates_and_calibration() -> None:
+    config = _config()
+    samples = _golden_samples()
+
+    artifacts_a, metrics_a = _build_group_curves(
+        resolved_samples=samples,
+        config=config,
+    )
+    artifacts_b, metrics_b = _build_group_curves(
+        resolved_samples=list(reversed(samples)),
+        config=config,
+    )
+    calibration_a = _calibration_payload(
+        resolved_samples=samples,
+        artifacts=artifacts_a,
+        config=config,
+    )
+    calibration_b = _calibration_payload(
+        resolved_samples=list(reversed(samples)),
+        artifacts=artifacts_b,
+        config=config,
+    )
+
+    assert metrics_a["reference_phase_rates"] == metrics_b["reference_phase_rates"]
+    assert calibration_a == calibration_b
