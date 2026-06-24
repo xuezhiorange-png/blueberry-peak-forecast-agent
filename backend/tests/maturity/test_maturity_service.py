@@ -25,10 +25,12 @@ from backend.app.maturity.service import (
     _calibration_payload,
     _forecast_axis_payload,
     _forecast_source_signature,
+    _group_counts,
     _model_artifact_payload,
     _model_run_status_value,
     _predict_shift_days,
     _support_days,
+    _training_blockers,
     _training_source_signature,
 )
 
@@ -127,6 +129,7 @@ def _sample(
         base_temperature_feature_version="task7-v1",
         base_temperature_config_hash="weather-cfg",
         selected_base_temperature=base_temperature,
+        reference_effective_temperature_per_day=Decimal("4.000000"),
         observation_fingerprint=(
             {
                 "observation_date": date(2026, 2, 1),
@@ -145,6 +148,7 @@ def _sample(
         feature_values={
             "altitude_m": altitude_m,
             "tree_age_years": tree_age_years,
+            "facility_type_raw": facility_type,
             "facility_type": facility_type,
             "pruning_offset_days": pruning_offset_days,
             "flowering_peak_offset_days": flowering_peak_offset_days,
@@ -238,7 +242,8 @@ def test_forecast_source_signature_changes_when_observation_fingerprint_changes(
         "prediction_end_date": date(2026, 3, 7),
         "expected_marketable_total_kg": Decimal("96000"),
         "expected_total_source": "explicit",
-        "facility_type": "open_field",
+        "facility_type_raw": "open_field",
+        "facility_type_normalized": "open_field",
         "altitude_m": Decimal("1800"),
         "tree_age_years": Decimal("3"),
         "pruning_offset_days": Decimal("0"),
@@ -317,31 +322,43 @@ def test_forecast_source_signature_changes_when_total_or_facility_changes() -> N
     signature_a = _forecast_source_signature(
         expected_marketable_total_kg=Decimal("96000"),
         expected_total_source="explicit",
-        facility_type="open_field",
+        facility_type_raw="open_field",
+        facility_type_normalized="open_field",
         **common,
     )
     signature_b = _forecast_source_signature(
         expected_marketable_total_kg=Decimal("97000"),
         expected_total_source="explicit",
-        facility_type="open_field",
+        facility_type_raw="open_field",
+        facility_type_normalized="open_field",
         **common,
     )
     signature_c = _forecast_source_signature(
         expected_marketable_total_kg=Decimal("96000"),
         expected_total_source="explicit",
-        facility_type="tunnel",
+        facility_type_raw="tunnel",
+        facility_type_normalized="tunnel",
         **common,
     )
     signature_d = _forecast_source_signature(
         expected_marketable_total_kg=Decimal("96000"),
         expected_total_source="derived_from_task6_plan",
-        facility_type="open_field",
+        facility_type_raw="open_field",
+        facility_type_normalized="open_field",
+        **common,
+    )
+    signature_e = _forecast_source_signature(
+        expected_marketable_total_kg=Decimal("96000"),
+        expected_total_source="explicit",
+        facility_type_raw="greenhouse",
+        facility_type_normalized="unknown",
         **common,
     )
 
     assert signature_a != signature_b
     assert signature_a != signature_c
     assert signature_a != signature_d
+    assert signature_c != signature_e
 
 
 def test_model_run_status_value_preserves_failed_and_unavailable() -> None:
@@ -514,6 +531,8 @@ def test_model_artifact_payload_keys_base_temperature_by_zone_and_variety() -> N
             coefficients={},
             category_vocabulary={"facility_type": ("open_field", "unknown")},
             reference_categories={"facility_type": "open_field"},
+            unknown_categories={"facility_type": "unknown"},
+            unknown_handling_rules={"facility_type": "map_unseen_to_unknown"},
             feature_order=(),
             scaler_center={},
             scaler_scale={},
@@ -545,6 +564,7 @@ def test_model_artifact_payload_keys_base_temperature_by_zone_and_variety() -> N
                 "config_hash": "weather-cfg",
             },
         },
+        reference_phase_rates={"zone:1|variety:1": {"effective_temperature_per_day": Decimal("4")}},
     )
 
     assert "zone:1|variety:1" in payload["base_temperature_context"]
@@ -562,12 +582,18 @@ def test_forecast_axis_payload_uses_observed_mode_only_with_complete_history() -
             date(2026, 3, 2): type("Obs", (), {"temperature_mean_c": Decimal("9")})(),
             date(2026, 3, 3): type("Obs", (), {"temperature_mean_c": Decimal("10")})(),
         },
+        reference_effective_temperature_per_day=Decimal("4"),
+        support_min_day=-30,
+        support_max_day=90,
+        maximum_abs_adjustment_days=Decimal("14"),
+        minimum_observed_axis_coverage_ratio=Decimal("1"),
     )
 
     assert axis_mode == "observed_phenology_axis"
     assert warnings == []
     assert axis_snapshot["axis_provenance"] == "observed_weather_complete"
-    assert coordinates[date(2026, 3, 3)] == Decimal("12.000000")
+    assert axis_snapshot["coordinate_unit"] == "day"
+    assert coordinates[date(2026, 3, 3)] == Decimal("2.000000")
 
 
 def test_forecast_axis_payload_falls_back_when_history_is_incomplete() -> None:
@@ -580,13 +606,183 @@ def test_forecast_axis_payload_falls_back_when_history_is_incomplete() -> None:
             date(2026, 3, 1): type("Obs", (), {"temperature_mean_c": Decimal("8")})(),
             date(2026, 3, 3): type("Obs", (), {"temperature_mean_c": Decimal("10")})(),
         },
+        reference_effective_temperature_per_day=Decimal("4"),
+        support_min_day=-30,
+        support_max_day=90,
+        maximum_abs_adjustment_days=Decimal("14"),
+        minimum_observed_axis_coverage_ratio=Decimal("1"),
     )
 
     assert axis_mode == "calendar_proxy_axis"
     assert "anchor_weather_incomplete" in warnings
     assert axis_snapshot["coverage_ratio"] == Decimal("0.666667")
     assert axis_snapshot["axis_provenance"] == "calendar_proxy_from_observed_prefix"
-    assert coordinates[date(2026, 3, 3)] != Decimal("2")
+    assert coordinates[date(2026, 3, 3)] == Decimal("2.000000")
+
+
+def test_forecast_axis_payload_hot_and_cold_day_equivalent_adjustment() -> None:
+    hot_mode, _, hot_coordinates, _ = _forecast_axis_payload(
+        anchor_date=date(2026, 3, 1),
+        as_of_date=date(2026, 3, 3),
+        prediction_dates=[date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)],
+        base_temperature=Decimal("5"),
+        observations_by_date={
+            date(2026, 3, 1): type("Obs", (), {"temperature_mean_c": Decimal("12")})(),
+            date(2026, 3, 2): type("Obs", (), {"temperature_mean_c": Decimal("13")})(),
+            date(2026, 3, 3): type("Obs", (), {"temperature_mean_c": Decimal("14")})(),
+        },
+        reference_effective_temperature_per_day=Decimal("4"),
+        support_min_day=-30,
+        support_max_day=90,
+        maximum_abs_adjustment_days=Decimal("14"),
+        minimum_observed_axis_coverage_ratio=Decimal("1"),
+    )
+    cold_mode, _, cold_coordinates, _ = _forecast_axis_payload(
+        anchor_date=date(2026, 3, 1),
+        as_of_date=date(2026, 3, 3),
+        prediction_dates=[date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)],
+        base_temperature=Decimal("5"),
+        observations_by_date={
+            date(2026, 3, 1): type("Obs", (), {"temperature_mean_c": Decimal("6")})(),
+            date(2026, 3, 2): type("Obs", (), {"temperature_mean_c": Decimal("7")})(),
+            date(2026, 3, 3): type("Obs", (), {"temperature_mean_c": Decimal("8")})(),
+        },
+        reference_effective_temperature_per_day=Decimal("4"),
+        support_min_day=-30,
+        support_max_day=90,
+        maximum_abs_adjustment_days=Decimal("14"),
+        minimum_observed_axis_coverage_ratio=Decimal("1"),
+    )
+
+    assert hot_mode == "observed_phenology_axis"
+    assert cold_mode == "observed_phenology_axis"
+    assert hot_coordinates[date(2026, 3, 3)] > Decimal("2.000000")
+    assert cold_coordinates[date(2026, 3, 3)] < Decimal("2.000000")
+
+
+def test_forecast_axis_payload_falls_back_without_reference_phase_rate() -> None:
+    axis_mode, axis_snapshot, coordinates, warnings = _forecast_axis_payload(
+        anchor_date=date(2026, 3, 1),
+        as_of_date=date(2026, 3, 3),
+        prediction_dates=[date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)],
+        base_temperature=Decimal("5"),
+        observations_by_date={
+            date(2026, 3, 1): type("Obs", (), {"temperature_mean_c": Decimal("8")})(),
+            date(2026, 3, 2): type("Obs", (), {"temperature_mean_c": Decimal("9")})(),
+            date(2026, 3, 3): type("Obs", (), {"temperature_mean_c": Decimal("10")})(),
+        },
+        reference_effective_temperature_per_day=None,
+        support_min_day=-30,
+        support_max_day=90,
+        maximum_abs_adjustment_days=Decimal("14"),
+        minimum_observed_axis_coverage_ratio=Decimal("1"),
+    )
+
+    assert axis_mode == "calendar_proxy_axis"
+    assert "reference_phase_rate_unavailable" in warnings
+    assert axis_snapshot["bounded_phase_adjustment_days"] == Decimal("0.000000")
+    assert coordinates[date(2026, 3, 3)] == Decimal("2.000000")
+
+
+def test_predict_shift_days_maps_unseen_facility_to_unknown() -> None:
+    shift_model = ShiftModelArtifact(
+        enabled=True,
+        intercept_days=Decimal("0"),
+        coefficients={"facility_type=unknown": Decimal("2.500000")},
+        category_vocabulary={"facility_type": ("open_field", "unknown")},
+        reference_categories={"facility_type": "open_field"},
+        unknown_categories={"facility_type": "unknown"},
+        unknown_handling_rules={"facility_type": "map_unseen_to_unknown"},
+        feature_order=("facility_type=unknown",),
+        scaler_center={},
+        scaler_scale={},
+        feature_units={"facility_type=unknown": "indicator"},
+        missing_value_rules={},
+        bounds=(Decimal("-7"), Decimal("7")),
+        warnings=(),
+    )
+
+    predicted = _predict_shift_days(
+        shift_model=shift_model,
+        feature_values={"facility_type_raw": "greenhouse", "facility_type": "greenhouse"},
+    )
+
+    assert predicted == Decimal("2.500000")
+
+
+def test_group_counts_do_not_merge_unknown_subfarms_across_farms() -> None:
+    sample_a = _sample(season_code="2024-2025")
+    sample_b_base = _sample(season_code="2025-2026")
+    sample_b = replace(
+        sample_b_base,
+        manifest_row=replace(
+            sample_b_base.manifest_row,
+            farm_id=2,
+            farm_key="farm-b",
+            subfarm_id=None,
+            subfarm_key="__UNKNOWN_SUBFARM__",
+        ),
+    )
+
+    counts = _group_counts([sample_a, sample_b])
+
+    assert counts["distinct_farm_count"] == 2
+    assert counts["distinct_subfarm_count"] == 2
+
+
+def test_training_blockers_include_farm_and_subfarm_thresholds() -> None:
+    config = _config()
+    stricter = replace(
+        config,
+        rules=replace(
+            config.rules,
+            pooling=replace(
+                config.rules.pooling,
+                minimum_samples=2,
+                minimum_seasons=2,
+                minimum_farms=2,
+                minimum_subfarms=2,
+            ),
+        ),
+    )
+
+    blockers = _training_blockers(
+        config=stricter,
+        sample_count=2,
+        distinct_season_count=2,
+        distinct_farm_count=1,
+        distinct_subfarm_count=1,
+    )
+
+    assert blockers == [
+        "insufficient_training_farms",
+        "insufficient_training_subfarms",
+    ]
+
+
+def test_build_group_curves_falls_back_when_subfarm_threshold_is_not_met() -> None:
+    config = _config()
+    stricter = replace(
+        config,
+        rules=replace(
+            config.rules,
+            pooling=replace(config.rules.pooling, minimum_subfarms=2),
+        ),
+    )
+    sample_a = _sample(season_code="2024-2025")
+    sample_b = _sample(season_code="2025-2026", proxy_peak_day=6)
+
+    artifacts, metrics = _build_group_curves(
+        resolved_samples=[sample_a, sample_b],
+        config=stricter,
+    )
+
+    climate = artifacts["zone:1|variety:1"]
+    province = artifacts["province:Yunnan|variety:1"]
+    assert climate.fallback_reason == "insufficient_training_subfarms"
+    assert province.fallback_reason == "insufficient_training_subfarms"
+    assert climate.density == province.density
+    assert metrics["group_levels"]["zone:1|variety:1"]["distinct_subfarm_count"] == 1
 
 
 def test_execution_result_keeps_daily_prediction_dataclasses() -> None:

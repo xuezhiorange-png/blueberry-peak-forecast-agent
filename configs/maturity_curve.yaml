@@ -13,6 +13,7 @@ pooling:
   minimum_samples: 2
   minimum_seasons: 2
   minimum_farms: 1
+  minimum_subfarms: 1
   full_pooling_sample_target: 4
 
 offset:
@@ -33,4 +34,5 @@ intervals:
 
 forecast:
   p50_mass_tolerance_kg: 0.01
-
+  observed_phase_adjustment_max_days: 14
+  minimum_observed_axis_coverage_ratio: 1.0

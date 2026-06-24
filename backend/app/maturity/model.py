@@ -63,7 +63,14 @@ def blend_curves(
     total = sum(mixed, Decimal("0"))
     if total <= 0:
         raise ValueError("blended curve mass must be positive")
-    return tuple((value / total).quantize(Decimal("0.000001")) for value in mixed)
+    normalized = [
+        (value / total).quantize(Decimal("0.000001"))
+        for value in mixed
+    ]
+    difference = Decimal("1.000000") - sum(normalized, Decimal("0"))
+    if normalized:
+        normalized[-1] += difference
+    return tuple(normalized)
 
 
 def reconcile_p50_mass(

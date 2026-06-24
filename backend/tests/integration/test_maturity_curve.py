@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import csv
+import json
 import os
+import sys
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -30,6 +35,8 @@ from backend.app.models.weather import (
 )
 
 pytestmark = pytest.mark.integration
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _require_postgres() -> None:
@@ -365,6 +372,65 @@ async def _seed_weather_revision(
         return row.id
 
 
+async def _task8_table_counts() -> dict[str, int]:
+    async with AsyncSessionMaker() as session:
+        return {
+            "maturity_model_run": int(
+                await session.scalar(select(func.count()).select_from(MaturityModelRun)) or 0
+            ),
+            "maturity_model_artifact": int(
+                await session.scalar(select(func.count()).select_from(MaturityModelArtifact)) or 0
+            ),
+            "maturity_forecast_run": int(
+                await session.scalar(select(func.count()).select_from(MaturityForecastRun)) or 0
+            ),
+            "maturity_daily_prediction": int(
+                await session.scalar(
+                    select(func.count()).select_from(MaturityDailyPredictionModel)
+                )
+                or 0
+            ),
+        }
+
+
+def _write_manifest_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    fieldnames = [
+        "season_id",
+        "analytics_build_run_id",
+        "farm_key",
+        "farm_id",
+        "subfarm_key",
+        "subfarm_id",
+        "variety_id",
+        "location_reference_id",
+        "production_plan_id",
+        "base_temperature_search_run_id",
+        "anchor_event",
+        "facility_type",
+        "include",
+        "sample_weight",
+        "exclusion_reason",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+async def _run_cli(args: list[str], *, env: dict[str, str]) -> tuple[int, str, str]:
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        *args,
+        cwd=str(REPO_ROOT),
+        env=env,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate()
+    return process.returncode, stdout.decode(), stderr.decode()
+
+
 async def test_train_and_forecast_maturity_curve_are_idempotent(client: AsyncClient) -> None:
     dimensions = await _seed_dimensions()
     await _seed_mapping(
@@ -528,6 +594,207 @@ async def test_train_and_forecast_maturity_curve_are_idempotent(client: AsyncCli
             )
         )
         assert total_p50 == Decimal("96000.000000")
+
+
+async def test_task8_clis_dry_run_do_not_write_rows(
+    client: AsyncClient,
+    tmp_path: Path,
+) -> None:
+    dimensions = await _seed_dimensions()
+    await _seed_mapping(
+        location_reference_id=dimensions["location_reference_id"],
+        weather_source_location_id=dimensions["weather_source_location_id"],
+    )
+    await _seed_weather_days(
+        weather_source_location_id=dimensions["weather_source_location_id"],
+        start_date=date(2026, 1, 1),
+        days=61,
+        source_version="weather-v1",
+    )
+    base_temp_run_id = await _seed_base_temperature_run(
+        variety_id=dimensions["variety_id"],
+        climate_zone_id=dimensions["zone_id"],
+    )
+    plan_a = await _seed_plan(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        farm_id=dimensions["farm_id"],
+        variety_id=dimensions["variety_id"],
+        version=1,
+        available_at=date(2024, 12, 15),
+    )
+    plan_b = await _seed_plan(
+        season_id=dimensions["season_ids"]["2025-2026"],
+        farm_id=dimensions["farm_id"],
+        variety_id=dimensions["variety_id"],
+        version=1,
+        available_at=date(2025, 12, 15),
+    )
+    build_a = await _seed_analytics_sample(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        factory_id=dimensions["factory_id"],
+        variety_id=dimensions["variety_id"],
+        farm_key="farm-a",
+        subfarm_key="__UNKNOWN_SUBFARM__",
+        daily_weights=[Decimal("100")] * 10,
+    )
+    build_b = await _seed_analytics_sample(
+        season_id=dimensions["season_ids"]["2025-2026"],
+        factory_id=dimensions["factory_id"],
+        variety_id=dimensions["variety_id"],
+        farm_key="farm-a",
+        subfarm_key="__UNKNOWN_SUBFARM__",
+        daily_weights=[Decimal("120")] * 10,
+    )
+    manifest_csv = tmp_path / "maturity_manifest.csv"
+    _write_manifest_csv(
+        manifest_csv,
+        [
+            {
+                "season_id": dimensions["season_ids"]["2024-2025"],
+                "analytics_build_run_id": build_a,
+                "farm_key": "farm-a",
+                "farm_id": dimensions["farm_id"],
+                "subfarm_key": "__UNKNOWN_SUBFARM__",
+                "subfarm_id": "",
+                "variety_id": dimensions["variety_id"],
+                "location_reference_id": dimensions["location_reference_id"],
+                "production_plan_id": plan_a,
+                "base_temperature_search_run_id": base_temp_run_id,
+                "anchor_event": "flowering_start_date",
+                "facility_type": "open_field",
+                "include": "true",
+                "sample_weight": "1",
+                "exclusion_reason": "",
+            },
+            {
+                "season_id": dimensions["season_ids"]["2025-2026"],
+                "analytics_build_run_id": build_b,
+                "farm_key": "farm-a",
+                "farm_id": dimensions["farm_id"],
+                "subfarm_key": "__UNKNOWN_SUBFARM__",
+                "subfarm_id": "",
+                "variety_id": dimensions["variety_id"],
+                "location_reference_id": dimensions["location_reference_id"],
+                "production_plan_id": plan_b,
+                "base_temperature_search_run_id": base_temp_run_id,
+                "anchor_event": "flowering_start_date",
+                "facility_type": "open_field",
+                "include": "true",
+                "sample_weight": "1",
+                "exclusion_reason": "",
+            },
+        ],
+    )
+    env = os.environ.copy()
+    env["UV_CACHE_DIR"] = env.get("UV_CACHE_DIR", ".uv-cache")
+
+    counts_before_train = await _task8_table_counts()
+    train_output = tmp_path / "train_dry_run.json"
+    train_code, _, train_stderr = await _run_cli(
+        [
+            "scripts/train_maturity_curve.py",
+            "--file",
+            str(manifest_csv),
+            "--training-cutoff",
+            "2026-04-30",
+            "--config",
+            "configs/maturity_curve.yaml",
+            "--dry-run",
+            "--output",
+            str(train_output),
+        ],
+        env=env,
+    )
+    counts_after_train = await _task8_table_counts()
+    assert train_code == 0, train_stderr
+    assert json.loads(train_output.read_text(encoding="utf-8"))["payload"]["status"] == "dry_run"
+    assert counts_after_train == counts_before_train
+
+    train_response = await client.post(
+        "/planning/maturity/models/train",
+        json={
+            "training_cutoff": "2026-04-30",
+            "manifest_rows": [
+                {
+                    "season_id": dimensions["season_ids"]["2024-2025"],
+                    "analytics_build_run_id": build_a,
+                    "farm_key": "farm-a",
+                    "farm_id": dimensions["farm_id"],
+                    "subfarm_key": "__UNKNOWN_SUBFARM__",
+                    "subfarm_id": None,
+                    "variety_id": dimensions["variety_id"],
+                    "location_reference_id": dimensions["location_reference_id"],
+                    "production_plan_id": plan_a,
+                    "base_temperature_search_run_id": base_temp_run_id,
+                    "anchor_event": "flowering_start_date",
+                    "facility_type": "open_field",
+                    "include": True,
+                    "sample_weight": "1",
+                    "exclusion_reason": None,
+                },
+                {
+                    "season_id": dimensions["season_ids"]["2025-2026"],
+                    "analytics_build_run_id": build_b,
+                    "farm_key": "farm-a",
+                    "farm_id": dimensions["farm_id"],
+                    "subfarm_key": "__UNKNOWN_SUBFARM__",
+                    "subfarm_id": None,
+                    "variety_id": dimensions["variety_id"],
+                    "location_reference_id": dimensions["location_reference_id"],
+                    "production_plan_id": plan_b,
+                    "base_temperature_search_run_id": base_temp_run_id,
+                    "anchor_event": "flowering_start_date",
+                    "facility_type": "open_field",
+                    "include": True,
+                    "sample_weight": "1",
+                    "exclusion_reason": None,
+                },
+            ],
+            "dry_run": False,
+        },
+    )
+    assert train_response.status_code == 200, train_response.text
+    model_run_id = train_response.json()["payload"]["run_id"]
+    assert model_run_id is not None
+
+    counts_before_forecast = await _task8_table_counts()
+    forecast_output = tmp_path / "forecast_dry_run.json"
+    forecast_code, _, forecast_stderr = await _run_cli(
+        [
+            "scripts/forecast_natural_maturity.py",
+            "--model-run-id",
+            str(model_run_id),
+            "--farm-id",
+            str(dimensions["farm_id"]),
+            "--season-id",
+            str(dimensions["season_ids"]["2025-2026"]),
+            "--variety-id",
+            str(dimensions["variety_id"]),
+            "--as-of-date",
+            "2026-03-01",
+            "--prediction-start-date",
+            "2026-03-01",
+            "--prediction-end-date",
+            "2026-03-07",
+            "--facility-type",
+            "open_field",
+            "--expected-marketable-total-kg",
+            "96000",
+            "--config",
+            "configs/maturity_curve.yaml",
+            "--dry-run",
+            "--output",
+            str(forecast_output),
+        ],
+        env=env,
+    )
+    counts_after_forecast = await _task8_table_counts()
+    assert forecast_code == 0, forecast_stderr
+    assert (
+        json.loads(forecast_output.read_text(encoding="utf-8"))["payload"]["status"]
+        == "dry_run"
+    )
+    assert counts_after_forecast == counts_before_forecast
 
 
 async def test_forecast_source_signature_changes_for_total_facility_and_visible_weather(
@@ -851,6 +1118,304 @@ async def test_training_cutoff_blocks_future_base_temperature_run(client: AsyncC
     assert payload["status"] == "unavailable"
     manifest_row = payload["input_snapshot"]["manifest_rows"][0]
     assert manifest_row["resolved_exclusion_reason"] == "base_temperature_run_not_visible_at_cutoff"
+
+
+async def test_training_cutoff_blocks_completed_run_without_finished_at(
+    client: AsyncClient,
+) -> None:
+    dimensions = await _seed_dimensions()
+    await _seed_mapping(
+        location_reference_id=dimensions["location_reference_id"],
+        weather_source_location_id=dimensions["weather_source_location_id"],
+    )
+    await _seed_weather_days(
+        weather_source_location_id=dimensions["weather_source_location_id"],
+        start_date=date(2025, 1, 1),
+        days=30,
+        source_version="weather-v1",
+    )
+    base_temp_run_id = await _seed_base_temperature_run(
+        variety_id=dimensions["variety_id"],
+        climate_zone_id=dimensions["zone_id"],
+    )
+    plan_id = await _seed_plan(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        farm_id=dimensions["farm_id"],
+        variety_id=dimensions["variety_id"],
+        version=1,
+        available_at=date(2024, 12, 15),
+    )
+    build_run_id = await _seed_analytics_sample(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        factory_id=dimensions["factory_id"],
+        variety_id=dimensions["variety_id"],
+        farm_key="farm-a",
+        subfarm_key="__UNKNOWN_SUBFARM__",
+        daily_weights=[Decimal("100")] * 10,
+    )
+    async with AsyncSessionMaker() as session:
+        build_run = await session.get(AnalyticsBuildRun, build_run_id)
+        assert build_run is not None
+        build_run.finished_at = None
+        await session.commit()
+
+    response = await client.post(
+        "/planning/maturity/models/train",
+        json={
+            "training_cutoff": "2026-04-30",
+            "manifest_rows": [
+                {
+                    "season_id": dimensions["season_ids"]["2024-2025"],
+                    "analytics_build_run_id": build_run_id,
+                    "farm_key": "farm-a",
+                    "farm_id": dimensions["farm_id"],
+                    "subfarm_key": "__UNKNOWN_SUBFARM__",
+                    "subfarm_id": None,
+                    "variety_id": dimensions["variety_id"],
+                    "location_reference_id": dimensions["location_reference_id"],
+                    "production_plan_id": plan_id,
+                    "base_temperature_search_run_id": base_temp_run_id,
+                    "anchor_event": "flowering_start_date",
+                    "facility_type": "open_field",
+                    "include": True,
+                    "sample_weight": "1",
+                    "exclusion_reason": None,
+                }
+            ],
+            "dry_run": False,
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()["payload"]
+    assert payload["status"] == "unavailable"
+    manifest_row = payload["input_snapshot"]["manifest_rows"][0]
+    assert manifest_row["resolved_exclusion_reason"] == "analytics_build_run_missing_finished_at"
+
+
+async def test_training_cutoff_blocks_fact_rows_created_after_cutoff(
+    client: AsyncClient,
+) -> None:
+    dimensions = await _seed_dimensions()
+    await _seed_mapping(
+        location_reference_id=dimensions["location_reference_id"],
+        weather_source_location_id=dimensions["weather_source_location_id"],
+    )
+    await _seed_weather_days(
+        weather_source_location_id=dimensions["weather_source_location_id"],
+        start_date=date(2025, 1, 1),
+        days=30,
+        source_version="weather-v1",
+    )
+    base_temp_run_id = await _seed_base_temperature_run(
+        variety_id=dimensions["variety_id"],
+        climate_zone_id=dimensions["zone_id"],
+    )
+    plan_id = await _seed_plan(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        farm_id=dimensions["farm_id"],
+        variety_id=dimensions["variety_id"],
+        version=1,
+        available_at=date(2024, 12, 15),
+    )
+    build_run_id = await _seed_analytics_sample(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        factory_id=dimensions["factory_id"],
+        variety_id=dimensions["variety_id"],
+        farm_key="farm-a",
+        subfarm_key="__UNKNOWN_SUBFARM__",
+        daily_weights=[Decimal("100")] * 10,
+    )
+    async with AsyncSessionMaker() as session:
+        rows = list(
+            (
+                await session.scalars(
+                    select(FactReceiptDaily).where(
+                        FactReceiptDaily.build_run_id == build_run_id
+                    )
+                )
+            ).all()
+        )
+        for row in rows:
+            row.created_at = datetime(2026, 5, 1, tzinfo=UTC)
+        await session.commit()
+
+    response = await client.post(
+        "/planning/maturity/models/train",
+        json={
+            "training_cutoff": "2026-04-30",
+            "manifest_rows": [
+                {
+                    "season_id": dimensions["season_ids"]["2024-2025"],
+                    "analytics_build_run_id": build_run_id,
+                    "farm_key": "farm-a",
+                    "farm_id": dimensions["farm_id"],
+                    "subfarm_key": "__UNKNOWN_SUBFARM__",
+                    "subfarm_id": None,
+                    "variety_id": dimensions["variety_id"],
+                    "location_reference_id": dimensions["location_reference_id"],
+                    "production_plan_id": plan_id,
+                    "base_temperature_search_run_id": base_temp_run_id,
+                    "anchor_event": "flowering_start_date",
+                    "facility_type": "open_field",
+                    "include": True,
+                    "sample_weight": "1",
+                    "exclusion_reason": None,
+                }
+            ],
+            "dry_run": False,
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()["payload"]
+    assert payload["status"] == "unavailable"
+    manifest_row = payload["input_snapshot"]["manifest_rows"][0]
+    assert manifest_row["resolved_exclusion_reason"] == "fact_rows_not_visible_at_cutoff"
+
+
+async def test_forecast_observed_axis_uses_day_coordinate_and_nonzero_mass(
+    client: AsyncClient,
+) -> None:
+    dimensions = await _seed_dimensions()
+    await _seed_mapping(
+        location_reference_id=dimensions["location_reference_id"],
+        weather_source_location_id=dimensions["weather_source_location_id"],
+    )
+    await _seed_weather_days(
+        weather_source_location_id=dimensions["weather_source_location_id"],
+        start_date=date(2026, 1, 1),
+        days=61,
+        source_version="weather-v1",
+        mean_c=Decimal("10"),
+    )
+    base_temp_run_id = await _seed_base_temperature_run(
+        variety_id=dimensions["variety_id"],
+        climate_zone_id=dimensions["zone_id"],
+    )
+    plan_a = await _seed_plan(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        farm_id=dimensions["farm_id"],
+        variety_id=dimensions["variety_id"],
+        version=1,
+        available_at=date(2024, 12, 15),
+    )
+    plan_b = await _seed_plan(
+        season_id=dimensions["season_ids"]["2025-2026"],
+        farm_id=dimensions["farm_id"],
+        variety_id=dimensions["variety_id"],
+        version=1,
+        available_at=date(2025, 12, 15),
+    )
+    build_a = await _seed_analytics_sample(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        factory_id=dimensions["factory_id"],
+        variety_id=dimensions["variety_id"],
+        farm_key="farm-a",
+        subfarm_key="__UNKNOWN_SUBFARM__",
+        daily_weights=[
+            Decimal("80"),
+            Decimal("120"),
+            Decimal("300"),
+            Decimal("450"),
+            Decimal("600"),
+        ]
+        * 2,
+    )
+    build_b = await _seed_analytics_sample(
+        season_id=dimensions["season_ids"]["2025-2026"],
+        factory_id=dimensions["factory_id"],
+        variety_id=dimensions["variety_id"],
+        farm_key="farm-a",
+        subfarm_key="__UNKNOWN_SUBFARM__",
+        daily_weights=[
+            Decimal("90"),
+            Decimal("140"),
+            Decimal("320"),
+            Decimal("420"),
+            Decimal("580"),
+        ]
+        * 2,
+    )
+    train_response = await client.post(
+        "/planning/maturity/models/train",
+        json={
+            "training_cutoff": "2026-04-30",
+            "manifest_rows": [
+                {
+                    "season_id": dimensions["season_ids"]["2024-2025"],
+                    "analytics_build_run_id": build_a,
+                    "farm_key": "farm-a",
+                    "farm_id": dimensions["farm_id"],
+                    "subfarm_key": "__UNKNOWN_SUBFARM__",
+                    "subfarm_id": None,
+                    "variety_id": dimensions["variety_id"],
+                    "location_reference_id": dimensions["location_reference_id"],
+                    "production_plan_id": plan_a,
+                    "base_temperature_search_run_id": base_temp_run_id,
+                    "anchor_event": "flowering_start_date",
+                    "facility_type": "open_field",
+                    "include": True,
+                    "sample_weight": "1",
+                    "exclusion_reason": None,
+                },
+                {
+                    "season_id": dimensions["season_ids"]["2025-2026"],
+                    "analytics_build_run_id": build_b,
+                    "farm_key": "farm-a",
+                    "farm_id": dimensions["farm_id"],
+                    "subfarm_key": "__UNKNOWN_SUBFARM__",
+                    "subfarm_id": None,
+                    "variety_id": dimensions["variety_id"],
+                    "location_reference_id": dimensions["location_reference_id"],
+                    "production_plan_id": plan_b,
+                    "base_temperature_search_run_id": base_temp_run_id,
+                    "anchor_event": "flowering_start_date",
+                    "facility_type": "open_field",
+                    "include": True,
+                    "sample_weight": "1",
+                    "exclusion_reason": None,
+                },
+            ],
+            "dry_run": False,
+        },
+    )
+    assert train_response.status_code == 200, train_response.text
+    model_run_id = train_response.json()["payload"]["run_id"]
+    assert model_run_id is not None
+
+    forecast_response = await client.post(
+        "/planning/maturity/forecasts",
+        json={
+            "model_run_id": model_run_id,
+            "farm_id": dimensions["farm_id"],
+            "subfarm_id": None,
+            "season_id": dimensions["season_ids"]["2025-2026"],
+            "variety_id": dimensions["variety_id"],
+            "as_of_date": "2026-03-07",
+            "prediction_start_date": "2026-03-01",
+            "prediction_end_date": "2026-03-07",
+            "expected_marketable_total_kg": "96000",
+            "facility_type": "open_field",
+            "dry_run": False,
+        },
+    )
+    assert forecast_response.status_code == 200, forecast_response.text
+    payload = forecast_response.json()["payload"]
+    assert payload["status"] == "completed"
+    assert payload["axis_mode"] == "observed_phenology_axis"
+    assert payload["input_snapshot"]["axis_snapshot"]["coordinate_unit"] == "day"
+    assert (
+        payload["input_snapshot"]["axis_snapshot"]["coordinate_system"]
+        == "observed_weather_phase_adjusted_day"
+    )
+    assert (
+        Decimal(payload["input_snapshot"]["axis_snapshot"]["phenology_coordinate_day"])
+        <= Decimal("90")
+    )
+    p50_values = [Decimal(item["p50_kg"]) for item in payload["daily_predictions"]]
+    assert any(value > 0 for value in p50_values)
+    assert sum(p50_values, Decimal("0")) == Decimal("96000.000000")
 
 
 async def test_failed_model_and_forecast_api_preserve_failed_status(

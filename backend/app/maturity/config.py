@@ -26,6 +26,7 @@ class PoolingRules:
     minimum_samples: int
     minimum_seasons: int
     minimum_farms: int
+    minimum_subfarms: int
     full_pooling_sample_target: int
 
 
@@ -53,6 +54,8 @@ class IntervalRules:
 @dataclass(frozen=True)
 class ForecastRules:
     p50_mass_tolerance_kg: Decimal
+    observed_phase_adjustment_max_days: Decimal
+    minimum_observed_axis_coverage_ratio: Decimal
 
 
 @dataclass(frozen=True)
@@ -105,6 +108,7 @@ class _PoolingFile(BaseModel):
     minimum_samples: int
     minimum_seasons: int
     minimum_farms: int
+    minimum_subfarms: int
     full_pooling_sample_target: int
 
 
@@ -150,6 +154,15 @@ class _ForecastFile(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     p50_mass_tolerance_kg: Decimal
+    observed_phase_adjustment_max_days: Decimal
+    minimum_observed_axis_coverage_ratio: Decimal
+
+    @field_validator("minimum_observed_axis_coverage_ratio")
+    @classmethod
+    def _validate_coverage_ratio(cls, value: Decimal) -> Decimal:
+        if value <= 0 or value > 1:
+            raise ValueError("minimum_observed_axis_coverage_ratio must be between 0 and 1")
+        return value
 
 
 class _ConfigFile(BaseModel):

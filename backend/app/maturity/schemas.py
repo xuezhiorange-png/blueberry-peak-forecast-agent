@@ -95,6 +95,7 @@ class GroupCurveArtifact:
     parent_group_key: str | None
     shrinkage: Decimal
     warnings: tuple[str, ...] = ()
+    fallback_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -113,6 +114,8 @@ class ShiftModelArtifact:
     coefficients: dict[str, Decimal]
     category_vocabulary: dict[str, tuple[str, ...]]
     reference_categories: dict[str, str]
+    unknown_categories: dict[str, str]
+    unknown_handling_rules: dict[str, str]
     feature_order: tuple[str, ...]
     scaler_center: dict[str, Decimal]
     scaler_scale: dict[str, Decimal]
@@ -150,6 +153,7 @@ class ResolvedTrainingSample:
     base_temperature_feature_version: str
     base_temperature_config_hash: str
     selected_base_temperature: Decimal
+    reference_effective_temperature_per_day: Decimal | None
     observation_fingerprint: tuple[dict[str, Any], ...]
     holiday_summary: dict[str, Any]
     density_points: tuple[tuple[int, Decimal], ...]

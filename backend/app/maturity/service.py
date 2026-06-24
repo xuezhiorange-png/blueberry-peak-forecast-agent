@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import UTC, date, datetime
@@ -74,6 +75,25 @@ def _artifact_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return cast(dict[str, Any], canonical_json_value(payload))
 
 
+_UNKNOWN_SUBFARM = "__UNKNOWN_SUBFARM__"
+_UNKNOWN_FACILITY = "unknown"
+_PHASE_COORDINATE_FORMULA_VERSION = "observed_weather_phase_adjusted_day_v1"
+
+
+def _code_version() -> str:
+    try:
+        return (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=Path(__file__).resolve().parents[3],
+                text=True,
+            )
+            .strip()
+        )
+    except Exception:
+        return "unknown"
+
+
 def _decimal_value(value: Decimal | int | float | str | None, *, field: str) -> Decimal:
     if value is None:
         raise ValueError(f"{field} is required")
@@ -93,6 +113,68 @@ def _optional_decimal_value(value: Decimal | int | float | str | None) -> Decima
     if value is None:
         return None
     return _decimal_value(value, field="decimal")
+
+
+def _normalize_facility_type(
+    value: str | None,
+    vocabulary: tuple[str, ...] | None = None,
+) -> tuple[str | None, str]:
+    raw = (value or "").strip() or None
+    candidate = raw or _UNKNOWN_FACILITY
+    if vocabulary is not None and candidate not in vocabulary:
+        return raw, _UNKNOWN_FACILITY
+    return raw, candidate
+
+
+def _subfarm_identity(
+    *,
+    farm_id: int,
+    subfarm_id: int | None,
+    subfarm_key: str | None = None,
+) -> tuple[int, str]:
+    if subfarm_id is not None:
+        return farm_id, f"id:{subfarm_id}"
+    if subfarm_key:
+        return farm_id, f"key:{subfarm_key}"
+    return farm_id, f"key:{_UNKNOWN_SUBFARM}"
+
+
+def _group_counts(samples: list[ResolvedTrainingSample]) -> dict[str, int]:
+    return {
+        "sample_count": len(samples),
+        "distinct_season_count": len({item.season_code for item in samples}),
+        "distinct_farm_count": len({item.manifest_row.farm_id for item in samples}),
+        "distinct_subfarm_count": len(
+            {
+                _subfarm_identity(
+                    farm_id=item.manifest_row.farm_id,
+                    subfarm_id=item.manifest_row.subfarm_id,
+                    subfarm_key=item.manifest_row.subfarm_key,
+                )
+                for item in samples
+            }
+        ),
+    }
+
+
+def _training_blockers(
+    *,
+    sample_count: int,
+    distinct_season_count: int,
+    distinct_farm_count: int,
+    distinct_subfarm_count: int,
+    config: MaturityCurveConfig,
+) -> list[str]:
+    blockers: list[str] = []
+    if sample_count < config.rules.pooling.minimum_samples:
+        blockers.append("insufficient_training_samples")
+    if distinct_season_count < config.rules.pooling.minimum_seasons:
+        blockers.append("insufficient_training_seasons")
+    if distinct_farm_count < config.rules.pooling.minimum_farms:
+        blockers.append("insufficient_training_farms")
+    if distinct_subfarm_count < config.rules.pooling.minimum_subfarms:
+        blockers.append("insufficient_training_subfarms")
+    return blockers
 
 
 def _run_status_value(status: str) -> PersistedMaturityRunStatus:
@@ -164,7 +246,8 @@ def _forecast_source_signature(
     prediction_end_date: date,
     expected_marketable_total_kg: Decimal,
     expected_total_source: str,
-    facility_type: str,
+    facility_type_raw: str | None,
+    facility_type_normalized: str,
     altitude_m: Decimal | None,
     tree_age_years: Decimal | None,
     pruning_offset_days: Decimal | None,
@@ -197,7 +280,8 @@ def _forecast_source_signature(
             "prediction_end_date": prediction_end_date,
             "expected_marketable_total_kg": expected_marketable_total_kg,
             "expected_total_source": expected_total_source,
-            "facility_type": facility_type,
+            "facility_type_raw": facility_type_raw,
+            "facility_type_normalized": facility_type_normalized,
             "altitude_m": altitude_m,
             "tree_age_years": tree_age_years,
             "pruning_offset_days": pruning_offset_days,
@@ -320,6 +404,7 @@ def _safe_shift_feature_values(
     *,
     altitude_m: Decimal | None,
     tree_age_years: Decimal | None,
+    facility_type_raw: str | None,
     facility_type: str,
     pruning_offset_days: Decimal | None,
     flowering_peak_offset_days: Decimal | None,
@@ -328,7 +413,8 @@ def _safe_shift_feature_values(
     return {
         "altitude_m": altitude_m,
         "tree_age_years": tree_age_years,
-        "facility_type": facility_type or "unknown",
+        "facility_type_raw": facility_type_raw,
+        "facility_type": facility_type,
         "pruning_offset_days": pruning_offset_days,
         "flowering_peak_offset_days": flowering_peak_offset_days,
         "first_pick_offset_days": first_pick_offset_days,
@@ -341,6 +427,57 @@ def _observed_peak_day(sample: ResolvedTrainingSample) -> Decimal:
         key=lambda item: (item.proxy_share, -abs(item.relative_day)),
     )
     return Decimal(best.relative_day).quantize(Decimal("0.000001"))
+
+
+def _reference_phase_rate_for_series(
+    *,
+    observations_by_date: dict[date, Any],
+    anchor_date: date,
+    end_date: date,
+    base_temperature: Decimal,
+) -> tuple[Decimal | None, dict[str, Any]]:
+    if end_date < anchor_date:
+        return None, {
+            "observed_elapsed_day_count": 0,
+            "expected_day_count": 0,
+            "coverage_ratio": Decimal("0"),
+            "missing_dates": [],
+            "cumulative_effective_temperature": None,
+        }
+    cumulative, missing = _cumulative_effective_temperature_by_date(
+        observations_by_date=observations_by_date,
+        anchor_date=anchor_date,
+        end_date=end_date,
+        base_temperature=base_temperature,
+    )
+    expected_day_count = (end_date - anchor_date).days + 1
+    observed_day_count = len(cumulative)
+    coverage_ratio = (
+        (Decimal(observed_day_count) / Decimal(expected_day_count)).quantize(Decimal("0.000001"))
+        if expected_day_count > 0
+        else Decimal("0")
+    )
+    cumulative_effective_temperature = cumulative.get(end_date)
+    if observed_day_count <= 0 or missing or cumulative_effective_temperature is None:
+        return None, {
+            "observed_elapsed_day_count": observed_day_count,
+            "expected_day_count": expected_day_count,
+            "coverage_ratio": coverage_ratio,
+            "missing_dates": missing,
+            "cumulative_effective_temperature": cumulative_effective_temperature,
+        }
+    return (
+        (cumulative_effective_temperature / Decimal(observed_day_count)).quantize(
+            Decimal("0.000001")
+        ),
+        {
+            "observed_elapsed_day_count": observed_day_count,
+            "expected_day_count": expected_day_count,
+            "coverage_ratio": coverage_ratio,
+            "missing_dates": missing,
+            "cumulative_effective_temperature": cumulative_effective_temperature,
+        },
+    )
 
 
 async def _resolve_training_sample(
@@ -375,7 +512,11 @@ async def _resolve_training_sample(
         snapshot["status"] = "excluded"
         snapshot["resolved_exclusion_reason"] = "season_not_complete_by_training_cutoff"
         return snapshot, None
-    visible_at = analytics_run.finished_at or analytics_run.started_at
+    visible_at = analytics_run.finished_at
+    if visible_at is None:
+        snapshot["status"] = "excluded"
+        snapshot["resolved_exclusion_reason"] = "analytics_build_run_missing_finished_at"
+        return snapshot, None
     if not _datetime_visible_on_or_before(visible_at, training_cutoff):
         snapshot["status"] = "excluded"
         snapshot["resolved_exclusion_reason"] = "analytics_build_run_not_visible_at_cutoff"
@@ -482,6 +623,17 @@ async def _resolve_training_sample(
         snapshot["status"] = "excluded"
         snapshot["resolved_exclusion_reason"] = "future_fact_rows_not_visible_at_cutoff"
         return snapshot, None
+    if any(entry.created_at.date() > training_cutoff for entry in daily_rows):
+        snapshot["status"] = "excluded"
+        snapshot["resolved_exclusion_reason"] = "fact_rows_not_visible_at_cutoff"
+        return snapshot, None
+    observations_by_date = {item.observation_date: item for item in observations}
+    reference_phase_rate, weather_phase_reference = _reference_phase_rate_for_series(
+        observations_by_date=observations_by_date,
+        anchor_date=anchor_date,
+        end_date=season.end_date,
+        base_temperature=cast(Decimal, base_temp_run.selected_base_temperature),
+    )
     date_series = analysis_dates(season)
     daily_weight_by_date = {entry.receipt_date: entry.weight_kg for entry in daily_rows}
     raw_weights = [daily_weight_by_date.get(day, Decimal("0")) for day in date_series]
@@ -558,7 +710,9 @@ async def _resolve_training_sample(
         "source_eligible_row_count": analytics_run.source_eligible_row_count,
         "source_eligible_weight_kg": analytics_run.source_eligible_weight_kg,
         "daily_fact_row_count": analytics_run.daily_fact_row_count,
+        "started_at": analytics_run.started_at,
         "finished_at": analytics_run.finished_at,
+        "completion_visibility_decision": "finished_at_lte_training_cutoff",
     }
     snapshot["fact_row_fingerprint"] = cast(
         list[dict[str, Any]],
@@ -586,6 +740,9 @@ async def _resolve_training_sample(
         "scope_type": base_temp_run.scope_type,
         "climate_zone_id": base_temp_run.climate_zone_id,
         "variety_id": base_temp_run.variety_id,
+    }
+    snapshot["weather_phase_reference"] = weather_phase_reference | {
+        "reference_effective_temperature_per_day": reference_phase_rate,
     }
     snapshot["mapping"] = cast(
         dict[str, Any],
@@ -671,6 +828,7 @@ async def _resolve_training_sample(
         base_temperature_feature_version=base_temp_run.feature_version,
         base_temperature_config_hash=base_temp_run.config_hash,
         selected_base_temperature=cast(Decimal, base_temp_run.selected_base_temperature),
+        reference_effective_temperature_per_day=reference_phase_rate,
         observation_fingerprint=observation_fingerprint,
         holiday_summary=snapshot["holiday_summary"],
         density_points=tuple(sorted(density_points, key=lambda item: item[0])),
@@ -678,7 +836,8 @@ async def _resolve_training_sample(
         feature_values=_safe_shift_feature_values(
             altitude_m=_optional_decimal_value(reference.altitude_m),
             tree_age_years=_optional_decimal_value(plan.tree_age_years),
-            facility_type=row.facility_type,
+            facility_type_raw=_normalize_facility_type(row.facility_type)[0],
+            facility_type=_normalize_facility_type(row.facility_type)[1],
             pruning_offset_days=pruning_offset,
             flowering_peak_offset_days=flowering_peak_offset,
             first_pick_offset_days=first_pick_offset,
@@ -706,6 +865,44 @@ def _shift_curve(
         return tuple(Decimal("0") for _ in support_days)
     normalized = shifted / total
     return tuple(Decimal(f"{value:.6f}") for value in normalized.tolist())
+
+
+def _group_shrinkage(
+    *,
+    sample_count: int,
+    distinct_season_count: int,
+    distinct_farm_count: int,
+    distinct_subfarm_count: int,
+    config: MaturityCurveConfig,
+) -> Decimal:
+    ratios = [
+        Decimal(sample_count) / Decimal(config.rules.pooling.full_pooling_sample_target),
+        Decimal(distinct_season_count) / Decimal(max(config.rules.pooling.minimum_seasons, 1)),
+        Decimal(distinct_farm_count) / Decimal(max(config.rules.pooling.minimum_farms, 1)),
+        Decimal(distinct_subfarm_count) / Decimal(max(config.rules.pooling.minimum_subfarms, 1)),
+    ]
+    return _quantized_decimal(min(ratios), Decimal("0"), Decimal("1"))
+
+
+def _reference_phase_rate_payload(
+    samples: list[ResolvedTrainingSample],
+) -> dict[str, Any] | None:
+    weighted_sum = Decimal("0")
+    used_samples = 0
+    for sample in samples:
+        rate = sample.reference_effective_temperature_per_day
+        if rate is None:
+            continue
+        weighted_sum += rate
+        used_samples += 1
+    if used_samples == 0:
+        return None
+    return {
+        "effective_temperature_per_day": (
+            weighted_sum / Decimal(used_samples)
+        ).quantize(Decimal("0.000001")),
+        "sample_count": used_samples,
+    }
 
 
 def _build_group_curves(
@@ -752,9 +949,10 @@ def _build_group_curves(
         )
 
     artifacts: dict[str, GroupCurveArtifact] = {}
-    metrics: dict[str, Any] = {"group_levels": {}}
+    metrics: dict[str, Any] = {"group_levels": {}, "reference_phase_rates": {}}
     global_curves: dict[int, tuple[Decimal, ...]] = {}
     for group_key, samples in variety_grouped.items():
+        counts = _group_counts(samples)
         density = fit_for_samples(samples)
         peak_day = Decimal(
             support_days[int(np.argmax(np.asarray([float(item) for item in density], dtype=float)))]
@@ -766,25 +964,31 @@ def _build_group_curves(
             level="variety_global",
             density=density,
             peak_day=peak_day,
-            sample_count=len(samples),
-            distinct_season_count=len({item.season_code for item in samples}),
-            distinct_farm_count=len({item.manifest_row.farm_id for item in samples}),
-            distinct_subfarm_count=len({item.manifest_row.subfarm_id for item in samples}),
+            sample_count=counts["sample_count"],
+            distinct_season_count=counts["distinct_season_count"],
+            distinct_farm_count=counts["distinct_farm_count"],
+            distinct_subfarm_count=counts["distinct_subfarm_count"],
             parent_group_key=None,
             shrinkage=Decimal("1.000000"),
         )
+        metrics["reference_phase_rates"][group_key] = _reference_phase_rate_payload(samples)
     province_curves: dict[str, tuple[Decimal, ...]] = {}
     for group_key, samples in province_grouped.items():
-        density = fit_for_samples(samples)
+        counts = _group_counts(samples)
         parent_key = f"variety:{samples[0].manifest_row.variety_id}"
         parent_curve = global_curves[samples[0].manifest_row.variety_id]
-        sample_count = len(samples)
-        shrinkage = _quantized_decimal(
-            Decimal(sample_count) / Decimal(config.rules.pooling.full_pooling_sample_target),
-            Decimal("0"),
-            Decimal("1"),
-        )
-        density = blend_curves(parent=parent_curve, local=density, shrinkage=shrinkage)
+        blockers = _training_blockers(config=config, **counts)
+        if blockers:
+            density = parent_curve
+            shrinkage = Decimal("0.000000")
+            fallback_reason = blockers[0]
+            warnings = tuple(blockers)
+        else:
+            density = fit_for_samples(samples)
+            shrinkage = _group_shrinkage(config=config, **counts)
+            density = blend_curves(parent=parent_curve, local=density, shrinkage=shrinkage)
+            fallback_reason = None
+            warnings = ()
         province_curves[group_key] = density
         peak_day = Decimal(
             support_days[int(np.argmax(np.asarray([float(item) for item in density], dtype=float)))]
@@ -794,15 +998,18 @@ def _build_group_curves(
             level="province_variety",
             density=density,
             peak_day=peak_day,
-            sample_count=sample_count,
-            distinct_season_count=len({item.season_code for item in samples}),
-            distinct_farm_count=len({item.manifest_row.farm_id for item in samples}),
-            distinct_subfarm_count=len({item.manifest_row.subfarm_id for item in samples}),
+            sample_count=counts["sample_count"],
+            distinct_season_count=counts["distinct_season_count"],
+            distinct_farm_count=counts["distinct_farm_count"],
+            distinct_subfarm_count=counts["distinct_subfarm_count"],
             parent_group_key=parent_key,
             shrinkage=shrinkage,
+            warnings=warnings,
+            fallback_reason=fallback_reason,
         )
+        metrics["reference_phase_rates"][group_key] = _reference_phase_rate_payload(samples)
     for group_key, samples in grouped.items():
-        density = fit_for_samples(samples)
+        counts = _group_counts(samples)
         province_key = (
             f"province:{samples[0].province}|"
             f"variety:{samples[0].manifest_row.variety_id}"
@@ -813,13 +1020,18 @@ def _build_group_curves(
             else f"variety:{samples[0].manifest_row.variety_id}"
         )
         parent_curve = artifacts[parent_key].density
-        sample_count = len(samples)
-        shrinkage = _quantized_decimal(
-            Decimal(sample_count) / Decimal(config.rules.pooling.full_pooling_sample_target),
-            Decimal("0"),
-            Decimal("1"),
-        )
-        density = blend_curves(parent=parent_curve, local=density, shrinkage=shrinkage)
+        blockers = _training_blockers(config=config, **counts)
+        if blockers:
+            density = parent_curve
+            shrinkage = Decimal("0.000000")
+            fallback_reason = blockers[0]
+            warnings = tuple(blockers)
+        else:
+            density = fit_for_samples(samples)
+            shrinkage = _group_shrinkage(config=config, **counts)
+            density = blend_curves(parent=parent_curve, local=density, shrinkage=shrinkage)
+            fallback_reason = None
+            warnings = ()
         peak_day = Decimal(
             support_days[int(np.argmax(np.asarray([float(item) for item in density], dtype=float)))]
         ).quantize(Decimal("0.000001"))
@@ -828,18 +1040,26 @@ def _build_group_curves(
             level="climate_zone_variety",
             density=density,
             peak_day=peak_day,
-            sample_count=sample_count,
-            distinct_season_count=len({item.season_code for item in samples}),
-            distinct_farm_count=len({item.manifest_row.farm_id for item in samples}),
-            distinct_subfarm_count=len({item.manifest_row.subfarm_id for item in samples}),
+            sample_count=counts["sample_count"],
+            distinct_season_count=counts["distinct_season_count"],
+            distinct_farm_count=counts["distinct_farm_count"],
+            distinct_subfarm_count=counts["distinct_subfarm_count"],
             parent_group_key=parent_key,
             shrinkage=shrinkage,
+            warnings=warnings,
+            fallback_reason=fallback_reason,
         )
+        metrics["reference_phase_rates"][group_key] = _reference_phase_rate_payload(samples)
     metrics["group_levels"] = {
         key: {
             "level": artifact.level,
             "sample_count": artifact.sample_count,
             "distinct_season_count": artifact.distinct_season_count,
+            "distinct_farm_count": artifact.distinct_farm_count,
+            "distinct_subfarm_count": artifact.distinct_subfarm_count,
+            "parent_group_key": artifact.parent_group_key,
+            "shrinkage": artifact.shrinkage,
+            "fallback_reason": artifact.fallback_reason,
         }
         for key, artifact in artifacts.items()
     }
@@ -876,6 +1096,8 @@ def _build_shift_model(
             coefficients={},
             category_vocabulary={"facility_type": facility_types},
             reference_categories={"facility_type": reference_facility},
+            unknown_categories={"facility_type": _UNKNOWN_FACILITY},
+            unknown_handling_rules={"facility_type": "map_unseen_to_unknown"},
             feature_order=(),
             scaler_center={},
             scaler_scale={},
@@ -924,6 +1146,8 @@ def _build_shift_model(
             coefficients={},
             category_vocabulary={"facility_type": facility_types},
             reference_categories={"facility_type": reference_facility},
+            unknown_categories={"facility_type": _UNKNOWN_FACILITY},
+            unknown_handling_rules={"facility_type": "map_unseen_to_unknown"},
             feature_order=(),
             scaler_center={},
             scaler_scale={},
@@ -1016,6 +1240,8 @@ def _build_shift_model(
         coefficients=coefficients,
         category_vocabulary={"facility_type": facility_types},
         reference_categories={"facility_type": reference_facility},
+        unknown_categories={"facility_type": _UNKNOWN_FACILITY},
+        unknown_handling_rules={"facility_type": "map_unseen_to_unknown"},
         feature_order=tuple(feature_order),
         scaler_center=imputation_values,
         scaler_scale=scaler_scale,
@@ -1048,7 +1274,15 @@ def _predict_shift_days(
             shift_model.bounds[1],
         )
     total = shift_model.intercept_days
-    facility_value = cast(str, feature_values.get("facility_type", "unknown")) or "unknown"
+    facility_input = cast(
+        str | None,
+        feature_values.get("facility_type_raw")
+        or feature_values.get("facility_type"),
+    )
+    _, facility_value = _normalize_facility_type(
+        facility_input,
+        shift_model.category_vocabulary.get("facility_type"),
+    )
     for feature_name in shift_model.feature_order:
         if feature_name.startswith("facility_type="):
             category = feature_name.split("=", 1)[1]
@@ -1258,11 +1492,15 @@ def _model_artifact_payload(
     calibration: dict[str, Any],
     anchor_event: str,
     base_temperature_context: dict[str, Any],
+    reference_phase_rates: dict[str, Any],
 ) -> dict[str, Any]:
     support_days = _support_days(config)
     return {
         "model_family": config.rules.model_family,
         "model_version": config.rules.curve.version,
+        "coordinate_system": "relative_day",
+        "coordinate_unit": "day",
+        "formula_version": _PHASE_COORDINATE_FORMULA_VERSION,
         "support_days": support_days,
         "anchor_event": anchor_event,
         "group_models": {
@@ -1277,12 +1515,18 @@ def _model_artifact_payload(
                 "parent_group_key": artifact.parent_group_key,
                 "shrinkage": artifact.shrinkage,
                 "warnings": artifact.warnings,
+                "fallback_reason": artifact.fallback_reason,
             }
             for key, artifact in sorted(artifacts.items())
         },
         "shift_model": asdict(shift_model),
         "calibration": calibration,
         "base_temperature_context": base_temperature_context,
+        "reference_phase_rates": reference_phase_rates,
+        "phase_adjustment_bounds_days": (
+            -config.rules.forecast.observed_phase_adjustment_max_days,
+            config.rules.forecast.observed_phase_adjustment_max_days,
+        ),
     }
 
 
@@ -1306,6 +1550,7 @@ def _artifact_from_payload(
             parent_group_key=cast(str | None, row.get("parent_group_key")),
             shrinkage=_decimal_value(row["shrinkage"], field="shrinkage"),
             warnings=tuple(cast(list[str], row.get("warnings", []))),
+            fallback_reason=cast(str | None, row.get("fallback_reason")),
         )
     shift_row = cast(dict[str, Any], payload.get("shift_model", {}))
     shift_model = ShiftModelArtifact(
@@ -1323,6 +1568,8 @@ def _artifact_from_payload(
             ).items()
         },
         reference_categories=cast(dict[str, str], shift_row.get("reference_categories", {})),
+        unknown_categories=cast(dict[str, str], shift_row.get("unknown_categories", {})),
+        unknown_handling_rules=cast(dict[str, str], shift_row.get("unknown_handling_rules", {})),
         feature_order=tuple(cast(list[str], shift_row.get("feature_order", []))),
         scaler_center={
             key: _decimal_value(value, field=key)
@@ -1484,11 +1731,25 @@ async def train_maturity_curve(
             )
             return _with_status_model(_model_result_from_run(existing, artifact), "skipped")
     warnings: list[str] = []
-    blockers: list[str] = []
-    if len(resolved_samples) < config.rules.pooling.minimum_samples:
-        blockers.append("insufficient_training_samples")
-    if len({item.season_code for item in resolved_samples}) < config.rules.pooling.minimum_seasons:
-        blockers.append("insufficient_training_seasons")
+    counts = _group_counts(resolved_samples)
+    blockers = _training_blockers(config=config, **counts)
+    shared_input_snapshot = {
+        "training_cutoff": training_cutoff,
+        "manifest_rows": resolved_snapshots,
+        "config_snapshot": config.snapshot,
+        "random_seed": config.rules.random_seed,
+        "code_version": _code_version(),
+        "leakage_checks": {
+            "analytics_completed_finished_visibility": "pass",
+            "season_complete_by_cutoff": "pass",
+            "fact_visibility": "pass",
+            "effective_task6_plan": "pass",
+            "weather_mapping": "pass",
+            "weather_observation_visibility": "pass",
+            "base_temperature_cutoff": "pass",
+            "future_revision_exclusion": "pass",
+        },
+    }
     if blockers:
         result = MaturityModelExecutionResult(
             status="dry_run" if dry_run else "unavailable",
@@ -1497,19 +1758,16 @@ async def train_maturity_curve(
             config_hash=config.config_hash,
             model_version=config.rules.curve.version,
             model_family=config.rules.model_family,
-            sample_count=len(resolved_samples),
-            distinct_season_count=len({item.season_code for item in resolved_samples}),
-            distinct_farm_count=len({item.manifest_row.farm_id for item in resolved_samples}),
-            distinct_subfarm_count=len({item.manifest_row.subfarm_id for item in resolved_samples}),
+            sample_count=counts["sample_count"],
+            distinct_season_count=counts["distinct_season_count"],
+            distinct_farm_count=counts["distinct_farm_count"],
+            distinct_subfarm_count=counts["distinct_subfarm_count"],
             warnings=(),
             blockers=tuple(blockers),
             training_metrics={},
             calibration_metrics={},
             artifact={},
-            input_snapshot={
-                "training_cutoff": training_cutoff,
-                "manifest_rows": resolved_snapshots,
-            },
+            input_snapshot=shared_input_snapshot,
         )
         if dry_run:
             return result
@@ -1581,6 +1839,10 @@ async def train_maturity_curve(
         calibration=calibration,
         anchor_event=anchor_event,
         base_temperature_context=base_temperature_context,
+        reference_phase_rates=cast(
+            dict[str, Any],
+            training_metrics.get("reference_phase_rates", {}),
+        ),
     )
     artifact_hash = _artifact_hash(artifact_payload)
     result = MaturityModelExecutionResult(
@@ -1590,18 +1852,17 @@ async def train_maturity_curve(
         config_hash=config.config_hash,
         model_version=config.rules.curve.version,
         model_family=config.rules.model_family,
-        sample_count=len(resolved_samples),
-        distinct_season_count=len({item.season_code for item in resolved_samples}),
-        distinct_farm_count=len({item.manifest_row.farm_id for item in resolved_samples}),
-        distinct_subfarm_count=len({item.manifest_row.subfarm_id for item in resolved_samples}),
+        sample_count=counts["sample_count"],
+        distinct_season_count=counts["distinct_season_count"],
+        distinct_farm_count=counts["distinct_farm_count"],
+        distinct_subfarm_count=counts["distinct_subfarm_count"],
         warnings=tuple(warnings),
         blockers=(),
         training_metrics=training_metrics,
         calibration_metrics=calibration,
         artifact=artifact_payload,
         input_snapshot={
-            "training_cutoff": training_cutoff,
-            "manifest_rows": resolved_snapshots,
+            **shared_input_snapshot,
             "artifact_hash": artifact_hash,
             "base_temperature_context": base_temperature_context,
         },
@@ -1680,6 +1941,21 @@ def _cumulative_effective_temperature_by_date(
     return cumulative, missing
 
 
+def _bounded_coordinate_day(
+    *,
+    calendar_day: Decimal,
+    bounded_phase_adjustment_days: Decimal,
+    support_min_day: int,
+    support_max_day: int,
+) -> Decimal:
+    raw = calendar_day + bounded_phase_adjustment_days
+    return _quantized_decimal(
+        raw,
+        Decimal(support_min_day),
+        Decimal(support_max_day),
+    )
+
+
 def _forecast_axis_payload(
     *,
     anchor_date: date,
@@ -1687,6 +1963,11 @@ def _forecast_axis_payload(
     prediction_dates: list[date],
     base_temperature: Decimal,
     observations_by_date: dict[date, Any],
+    reference_effective_temperature_per_day: Decimal | None,
+    support_min_day: int,
+    support_max_day: int,
+    maximum_abs_adjustment_days: Decimal,
+    minimum_observed_axis_coverage_ratio: Decimal,
 ) -> tuple[
     Literal["observed_phenology_axis", "calendar_proxy_axis"],
     dict[str, Any],
@@ -1697,14 +1978,24 @@ def _forecast_axis_payload(
         return (
             "calendar_proxy_axis",
             {
-                "formula": "calendar_day_offset_plus_phase_correction",
+                "coordinate_system": "observed_weather_phase_adjusted_day",
+                "coordinate_unit": "day",
+                "formula": "calendar_day_plus_bounded_phase_adjustment",
+                "formula_version": _PHASE_COORDINATE_FORMULA_VERSION,
                 "axis_provenance": "empty_prediction_window",
                 "selected_base_temperature": base_temperature,
+                "reference_effective_temperature_per_day": reference_effective_temperature_per_day,
+                "calendar_day": None,
+                "cumulative_effective_temperature": None,
+                "observed_elapsed_day_count": 0,
+                "phase_adjustment_days": Decimal("0"),
+                "bounded_phase_adjustment_days": Decimal("0"),
                 "observed_day_count": 0,
                 "expected_day_count": 0,
                 "coverage_ratio": Decimal("0"),
                 "missing_dates": [],
                 "observed_prefix_end_date": None,
+                "proxy_suffix_start_date": None,
             },
             {},
             ["calendar_proxy_axis"],
@@ -1717,64 +2008,154 @@ def _forecast_axis_payload(
         end_date=observed_end_date,
         base_temperature=base_temperature,
     )
-    if prediction_end_date <= as_of_date and not observed_missing:
-        coordinates = {
-            day: cumulative[day]
-            for day in prediction_dates
-        }
-        return (
-            "observed_phenology_axis",
-            {
-                "formula": "cumulative_effective_temperature_from_anchor",
-                "axis_provenance": "observed_weather_complete",
-                "selected_base_temperature": base_temperature,
-                "observed_day_count": len(cumulative),
-                "expected_day_count": len(prediction_dates),
-                "coverage_ratio": Decimal("1.000000"),
-                "missing_dates": [],
-                "observed_prefix_end_date": observed_end_date,
-            },
-            coordinates,
-            [],
-        )
-
-    phase_correction_days = Decimal("0")
-    if anchor_date <= observed_end_date and observed_end_date in cumulative:
-        elapsed_days = Decimal((observed_end_date - anchor_date).days)
-        divisor = base_temperature if base_temperature > 0 else Decimal("1")
-        phase_correction_days = (
-            (cumulative[observed_end_date] / divisor) - elapsed_days
-        ).quantize(Decimal("0.000001"))
-    coordinates = {
-        day: (
-            Decimal((day - anchor_date).days).quantize(Decimal("0.000001"))
-            + phase_correction_days
-        )
-        for day in prediction_dates
-    }
     expected_observed_days = max((observed_end_date - anchor_date).days + 1, 0)
     coverage_ratio = (
         (Decimal(len(cumulative)) / Decimal(expected_observed_days)).quantize(Decimal("0.000001"))
         if expected_observed_days > 0
         else Decimal("0")
     )
+    observed_prefix_end_date = observed_end_date if expected_observed_days > 0 else None
+    observed_elapsed_day_count = max((observed_end_date - anchor_date).days + 1, 0)
+
+    def _phase_adjustment_for_day(day: date) -> tuple[Decimal, Decimal, Decimal | None]:
+        calendar_day = Decimal((day - anchor_date).days).quantize(Decimal("0.000001"))
+        cumulative_effective_temperature = cumulative.get(day)
+        if (
+            cumulative_effective_temperature is None
+            or reference_effective_temperature_per_day is None
+            or reference_effective_temperature_per_day <= 0
+        ):
+            return calendar_day, Decimal("0"), cumulative_effective_temperature
+        observed_days = Decimal((day - anchor_date).days + 1)
+        phase_adjustment = (
+            cumulative_effective_temperature / reference_effective_temperature_per_day
+            - observed_days
+        ).quantize(Decimal("0.000001"))
+        bounded_phase_adjustment = _quantized_decimal(
+            phase_adjustment,
+            -maximum_abs_adjustment_days,
+            maximum_abs_adjustment_days,
+        )
+        return (
+            _bounded_coordinate_day(
+                calendar_day=calendar_day,
+                bounded_phase_adjustment_days=bounded_phase_adjustment,
+                support_min_day=support_min_day,
+                support_max_day=support_max_day,
+            ),
+            bounded_phase_adjustment,
+            cumulative_effective_temperature,
+        )
+
+    if (
+        prediction_end_date <= as_of_date
+        and not observed_missing
+        and reference_effective_temperature_per_day is not None
+        and coverage_ratio >= minimum_observed_axis_coverage_ratio
+    ):
+        coordinates: dict[date, Decimal] = {}
+        final_coordinate = Decimal("0")
+        final_adjustment = Decimal("0")
+        final_cumulative: Decimal | None = None
+        for day in prediction_dates:
+            coordinate, bounded_phase_adjustment, cumulative_effective_temperature = (
+                _phase_adjustment_for_day(day)
+            )
+            coordinates[day] = coordinate
+            final_coordinate = coordinate
+            final_adjustment = bounded_phase_adjustment
+            final_cumulative = cumulative_effective_temperature
+        return (
+            "observed_phenology_axis",
+            {
+                "coordinate_system": "observed_weather_phase_adjusted_day",
+                "coordinate_unit": "day",
+                "formula": "calendar_day_plus_bounded_phase_adjustment",
+                "formula_version": _PHASE_COORDINATE_FORMULA_VERSION,
+                "axis_provenance": "observed_weather_complete",
+                "selected_base_temperature": base_temperature,
+                "calendar_day": Decimal((prediction_dates[-1] - anchor_date).days).quantize(
+                    Decimal("0.000001")
+                ),
+                "cumulative_effective_temperature": final_cumulative,
+                "observed_elapsed_day_count": len(cumulative),
+                "reference_effective_temperature_per_day": reference_effective_temperature_per_day,
+                "phase_adjustment_days": final_adjustment,
+                "bounded_phase_adjustment_days": final_adjustment,
+                "observed_day_count": len(cumulative),
+                "expected_day_count": len(prediction_dates),
+                "coverage_ratio": coverage_ratio,
+                "missing_dates": [],
+                "observed_prefix_end_date": observed_prefix_end_date,
+                "proxy_suffix_start_date": None,
+                "phenology_coordinate_day": final_coordinate,
+            },
+            coordinates,
+            [],
+        )
+
+    phase_correction_days = Decimal("0")
+    prefix_cumulative: Decimal | None = cumulative.get(observed_end_date)
+    if (
+        anchor_date <= observed_end_date
+        and prefix_cumulative is not None
+        and reference_effective_temperature_per_day is not None
+        and reference_effective_temperature_per_day > 0
+        and coverage_ratio >= minimum_observed_axis_coverage_ratio
+    ):
+        observed_days = Decimal((observed_end_date - anchor_date).days + 1)
+        phase_correction_days = (
+            prefix_cumulative / reference_effective_temperature_per_day - observed_days
+        ).quantize(Decimal("0.000001"))
+    bounded_phase_correction = _quantized_decimal(
+        phase_correction_days,
+        -maximum_abs_adjustment_days,
+        maximum_abs_adjustment_days,
+    )
+    coordinates = {
+        day: _bounded_coordinate_day(
+            calendar_day=Decimal((day - anchor_date).days).quantize(Decimal("0.000001")),
+            bounded_phase_adjustment_days=bounded_phase_correction,
+            support_min_day=support_min_day,
+            support_max_day=support_max_day,
+        )
+        for day in prediction_dates
+    }
     warnings = ["calendar_proxy_axis"]
     if observed_missing:
         warnings.append("anchor_weather_incomplete")
+    if reference_effective_temperature_per_day is None:
+        warnings.append("reference_phase_rate_unavailable")
+    if coverage_ratio < minimum_observed_axis_coverage_ratio:
+        warnings.append("observed_weather_coverage_below_threshold")
     if prediction_end_date > as_of_date:
         warnings.append("future_weather_not_used")
     return (
         "calendar_proxy_axis",
         {
-            "formula": "calendar_day_offset_plus_phase_correction",
+            "coordinate_system": "observed_weather_phase_adjusted_day",
+            "coordinate_unit": "day",
+            "formula": "calendar_day_plus_bounded_phase_adjustment",
+            "formula_version": _PHASE_COORDINATE_FORMULA_VERSION,
             "axis_provenance": "calendar_proxy_from_observed_prefix",
             "selected_base_temperature": base_temperature,
-            "phase_correction_days": phase_correction_days,
+            "calendar_day": Decimal((prediction_dates[-1] - anchor_date).days).quantize(
+                Decimal("0.000001")
+            ),
+            "cumulative_effective_temperature": prefix_cumulative,
+            "observed_elapsed_day_count": observed_elapsed_day_count,
+            "reference_effective_temperature_per_day": reference_effective_temperature_per_day,
+            "phase_adjustment_days": phase_correction_days,
+            "bounded_phase_adjustment_days": bounded_phase_correction,
             "observed_day_count": len(cumulative),
             "expected_day_count": expected_observed_days,
             "coverage_ratio": coverage_ratio,
             "missing_dates": observed_missing,
-            "observed_prefix_end_date": observed_end_date,
+            "observed_prefix_end_date": observed_prefix_end_date,
+            "proxy_suffix_start_date": next(
+                (day for day in prediction_dates if day > as_of_date),
+                None,
+            ),
         },
         coordinates,
         warnings,
@@ -1946,10 +2327,15 @@ async def forecast_natural_maturity(
         if plan.first_pick_date is not None
         else None
     )
+    facility_type_raw, facility_type_normalized = _normalize_facility_type(
+        facility_type,
+        shift_model.category_vocabulary.get("facility_type"),
+    )
     shift_feature_snapshot = _safe_shift_feature_values(
         altitude_m=_optional_decimal_value(reference.altitude_m),
         tree_age_years=_optional_decimal_value(plan.tree_age_years),
-        facility_type=facility_type,
+        facility_type_raw=facility_type_raw,
+        facility_type=facility_type_normalized,
         pruning_offset_days=pruning_offset,
         flowering_peak_offset_days=flowering_peak_offset,
         first_pick_offset_days=first_pick_offset,
@@ -1970,12 +2356,30 @@ async def forecast_natural_maturity(
     selected_base_temperature = base_temp_run.selected_base_temperature
     if selected_base_temperature is None:
         raise ValueError("base temperature search run missing selected base temperature")
+    reference_phase_rates = cast(
+        dict[str, Any],
+        artifact_row.artifact_payload.get("reference_phase_rates", {}),
+    )
+    reference_phase_rate_row = cast(
+        dict[str, Any] | None,
+        reference_phase_rates.get(artifact.group_key),
+    )
+    reference_phase_rate = None
+    if reference_phase_rate_row is not None:
+        reference_phase_rate = _optional_decimal_value(
+            reference_phase_rate_row.get("effective_temperature_per_day")
+        )
     axis_mode, axis_snapshot, axis_coordinates, axis_warnings = _forecast_axis_payload(
         anchor_date=anchor_date,
         as_of_date=as_of_date,
         prediction_dates=prediction_dates,
         base_temperature=selected_base_temperature,
         observations_by_date=observations_by_date,
+        reference_effective_temperature_per_day=reference_phase_rate,
+        support_min_day=support_days[0],
+        support_max_day=support_days[-1],
+        maximum_abs_adjustment_days=config.rules.forecast.observed_phase_adjustment_max_days,
+        minimum_observed_axis_coverage_ratio=config.rules.forecast.minimum_observed_axis_coverage_ratio,
     )
     source_signature = _forecast_source_signature(
         plan_id=plan.id,
@@ -1992,7 +2396,8 @@ async def forecast_natural_maturity(
         prediction_end_date=prediction_end_date,
         expected_marketable_total_kg=effective_total,
         expected_total_source=total_source,
-        facility_type=facility_type,
+        facility_type_raw=facility_type_raw,
+        facility_type_normalized=facility_type_normalized,
         altitude_m=_optional_decimal_value(reference.altitude_m),
         tree_age_years=_optional_decimal_value(plan.tree_age_years),
         pruning_offset_days=pruning_offset,
@@ -2105,6 +2510,8 @@ async def forecast_natural_maturity(
         "base_temperature_context": base_temp_context_row,
         "observation_fingerprint": observation_fingerprint,
         "shift_feature_snapshot": shift_feature_snapshot,
+        "facility_type_raw": facility_type_raw,
+        "facility_type_normalized": facility_type_normalized,
         "predicted_shift_days": shift_days,
         "selected_group_model_key": artifact.group_key,
         "fallback_level": fallback_level,

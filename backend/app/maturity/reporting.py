@@ -84,6 +84,7 @@ def _manifest_audit(result: MaturityModelExecutionResult) -> dict[str, Any]:
         "included_row_count": len(included),
         "excluded_row_count": len(excluded),
         "include_false_rows": [row for row in rows if row.get("include") is False],
+        "excluded_rows": excluded,
         "holiday_audit": _holiday_summary(rows),
         "season_breakdown": {
             season_code: {
@@ -116,12 +117,19 @@ def _hierarchy_payload(result: MaturityModelExecutionResult) -> dict[str, Any]:
         level = str(row.get("level"))
         entry = {
             "group_key": key,
+            "level": level,
             "parent_group_key": row.get("parent_group_key"),
             "sample_count": row.get("sample_count"),
             "distinct_season_count": row.get("distinct_season_count"),
             "distinct_farm_count": row.get("distinct_farm_count"),
             "distinct_subfarm_count": row.get("distinct_subfarm_count"),
             "shrinkage": row.get("shrinkage"),
+            "peak_day": row.get("peak_day"),
+            "fallback_reason": row.get("fallback_reason"),
+            "support_range": {
+                "min_day": result.artifact.get("support_days", [None])[0],
+                "max_day": result.artifact.get("support_days", [None])[-1],
+            },
             "warnings": row.get("warnings", []),
         }
         if level in levels:
@@ -145,6 +153,11 @@ def _reproducibility_payload(result: MaturityModelExecutionResult) -> dict[str, 
         "model_version": result.model_version,
         "artifact_hash": result.input_snapshot.get("artifact_hash"),
         "training_cutoff": result.input_snapshot.get("training_cutoff"),
+        "config_snapshot": result.input_snapshot.get("config_snapshot", {}),
+        "random_seed": result.input_snapshot.get("random_seed"),
+        "code_version": result.input_snapshot.get("code_version"),
+        "leakage_checks": result.input_snapshot.get("leakage_checks", {}),
+        "manifest_rows": result.input_snapshot.get("manifest_rows", []),
         "base_temperature_context": result.input_snapshot.get("base_temperature_context", {}),
     }
 
@@ -160,6 +173,10 @@ def _model_json_payload(result: MaturityModelExecutionResult) -> dict[str, Any]:
                 "model_family": result.model_family,
                 "source_signature": result.source_signature,
                 "config_hash": result.config_hash,
+                "training_cutoff": result.input_snapshot.get("training_cutoff"),
+                "code_version": result.input_snapshot.get("code_version"),
+                "random_seed": result.input_snapshot.get("random_seed"),
+                "artifact_hash": result.input_snapshot.get("artifact_hash"),
                 "label_proxy": {
                     "name": "smoothed_arrival_proxy_for_natural_maturity",
                     "description": (
@@ -172,6 +189,14 @@ def _model_json_payload(result: MaturityModelExecutionResult) -> dict[str, Any]:
                 "training_metrics": result.training_metrics,
                 "calibration": _calibration_payload(result),
                 "shift_model": result.artifact.get("shift_model", {}),
+                "spline_partial_pooling": {
+                    "support_days": result.artifact.get("support_days", []),
+                    "reference_phase_rates": result.artifact.get("reference_phase_rates", {}),
+                    "phase_adjustment_bounds_days": result.artifact.get(
+                        "phase_adjustment_bounds_days",
+                        [],
+                    ),
+                },
                 "artifact": result.artifact,
                 "reproducibility": _reproducibility_payload(result),
                 "warnings": list(result.warnings),
@@ -211,6 +236,7 @@ def _model_markdown(result: MaturityModelExecutionResult) -> str:
     calibration = _calibration_payload(result)
     reproducibility = _reproducibility_payload(result)
     holiday_audit = cast(dict[str, Any], manifest_audit["holiday_audit"])
+    shift_model = cast(dict[str, Any], result.artifact.get("shift_model", {}))
     lines = [
         "# Maturity Model Report",
         "",
@@ -219,13 +245,17 @@ def _model_markdown(result: MaturityModelExecutionResult) -> str:
         f"- model_version: {result.model_version}",
         f"- model_family: {result.model_family}",
         f"- source_signature: {result.source_signature}",
-        f"- sample_count: {result.sample_count}",
-        f"- distinct_season_count: {result.distinct_season_count}",
+        f"- config_hash: {result.config_hash}",
+        f"- training_cutoff: {reproducibility['training_cutoff']}",
+        f"- code_version: {reproducibility['code_version']}",
+        f"- random_seed: {reproducibility['random_seed']}",
+        f"- artifact_hash: {reproducibility['artifact_hash']}",
         "",
         "## Proxy Label",
         "",
         "- label: smoothed_arrival_proxy_for_natural_maturity",
         "- source: smoothed fact_receipt_daily arrival proxy",
+        "- note: not a direct physiological maturity observation",
         "",
         "## Manifest Audit",
         "",
@@ -236,29 +266,135 @@ def _model_markdown(result: MaturityModelExecutionResult) -> str:
         f"- used_day_count: {holiday_audit['used_day_count']}",
         f"- downweighted_day_count: {holiday_audit['downweighted_day_count']}",
         f"- excluded_day_count: {holiday_audit['excluded_day_count']}",
+        f"- raw_proxy_weight: {holiday_audit['raw_proxy_weight']}",
+        f"- effective_training_weight: {holiday_audit['effective_training_weight']}",
+        f"- reason_code_breakdown: {holiday_audit['reason_code_breakdown']}",
         "",
-        "## Hierarchy",
-        "",
-        f"- climate_zone_variety_groups: {len(hierarchy['climate_zone_variety'])}",
-        f"- province_variety_groups: {len(hierarchy['province_variety'])}",
-        f"- variety_global_groups: {len(hierarchy['variety_global'])}",
-        "",
-        "## Calibration",
-        "",
-        f"- interval_semantics: {calibration.get('interval_semantics')}",
-        f"- pointwise_p80_coverage: {calibration.get('pointwise_p80_coverage')}",
-        f"- pointwise_p90_coverage: {calibration.get('pointwise_p90_coverage')}",
-        f"- calibration_status: {calibration.get('calibration_status')}",
-        "",
-        "## Reproducibility",
-        "",
-        f"- config_hash: {reproducibility['config_hash']}",
-        f"- artifact_hash: {reproducibility['artifact_hash']}",
-        f"- training_cutoff: {reproducibility['training_cutoff']}",
-        "",
-        "## Warnings",
+        "### Include False Rows",
         "",
     ]
+    include_false_rows = cast(list[dict[str, Any]], manifest_audit["include_false_rows"])
+    if include_false_rows:
+        for row in include_false_rows:
+            exclusion_reason = (
+                row.get("resolved_exclusion_reason") or row.get("exclusion_reason")
+            )
+            lines.append(
+                f"- season={row.get('season_code')}, "
+                f"include={row.get('include')}, "
+                f"exclusion_reason={exclusion_reason}"
+            )
+    else:
+        lines.append("- (none)")
+    lines.extend(
+        [
+            "",
+            "### Season Breakdown",
+            "",
+        ]
+    )
+    for season_code, row in cast(dict[str, Any], manifest_audit["season_breakdown"]).items():
+        lines.append(
+            f"- {season_code}: "
+            f"row_count={row['row_count']}, "
+            f"included_row_count={row['included_row_count']}"
+        )
+    lines.extend(
+        [
+            "",
+            "## Hierarchy",
+            "",
+        ]
+    )
+    for level in ("climate_zone_variety", "province_variety", "variety_global"):
+        lines.append(f"### {level}")
+        lines.append("")
+        entries = cast(list[dict[str, Any]], hierarchy[level])
+        if not entries:
+            lines.append("- (none)")
+            lines.append("")
+            continue
+        for entry in entries:
+            summary = (
+                f"group_key={entry['group_key']}, "
+                f"parent_group={entry['parent_group_key']}, "
+                f"sample_count={entry['sample_count']}, "
+                f"season_count={entry['distinct_season_count']}, "
+                f"farm_count={entry['distinct_farm_count']}, "
+                f"subfarm_count={entry['distinct_subfarm_count']}, "
+                f"shrinkage={entry['shrinkage']}, "
+                f"fallback_reason={entry['fallback_reason']}, "
+                f"peak_day={entry['peak_day']}, "
+                f"support_range={entry['support_range']}, "
+                f"warnings={entry['warnings']}"
+            )
+            lines.append(f"- {summary}")
+        lines.append("")
+    lines.extend(
+        [
+            "## Spline / Partial Pooling",
+            "",
+            f"- support_days: {result.artifact.get('support_days', [])}",
+            f"- reference_phase_rates: {result.artifact.get('reference_phase_rates', {})}",
+            "- phase_adjustment_bounds_days: "
+            f"{result.artifact.get('phase_adjustment_bounds_days', [])}",
+            f"- curve_config: {reproducibility['config_snapshot'].get('curve', {})}",
+            f"- pooling_config: {reproducibility['config_snapshot'].get('pooling', {})}",
+            "",
+            "## Shift Model",
+            "",
+            f"- enabled: {shift_model.get('enabled')}",
+            f"- intercept: {shift_model.get('intercept_days')}",
+            f"- feature_order: {shift_model.get('feature_order', [])}",
+            f"- coefficients: {shift_model.get('coefficients', {})}",
+            f"- scaler_center: {shift_model.get('scaler_center', {})}",
+            f"- scaler_scale: {shift_model.get('scaler_scale', {})}",
+            f"- feature_units: {shift_model.get('feature_units', {})}",
+            f"- reference_category: {shift_model.get('reference_categories', {})}",
+            f"- category_vocabulary: {shift_model.get('category_vocabulary', {})}",
+            f"- missing_value_rules: {shift_model.get('missing_value_rules', {})}",
+            f"- bounds: {shift_model.get('bounds', [])}",
+            "",
+            "## Calibration",
+            "",
+            f"- calibration_status: {calibration.get('calibration_status')}",
+            f"- fold_count: {calibration.get('fold_count')}",
+            f"- held_out_seasons: {calibration.get('held_out_seasons')}",
+            f"- residual_count: {calibration.get('residual_count')}",
+            f"- interval_semantics: {calibration.get('interval_semantics')}",
+            f"- pointwise_p80_coverage: {calibration.get('pointwise_p80_coverage')}",
+            f"- pointwise_p90_coverage: {calibration.get('pointwise_p90_coverage')}",
+            f"- curve_wmape: {calibration.get('curve_wmape')}",
+            f"- peak_date_mae_days: {calibration.get('peak_date_mae_days')}",
+            f"- cumulative_share_error: {calibration.get('cumulative_share_error')}",
+            "- p50_mass_conserving: True",
+            "- p80_p90_sum_mass_conserving: False",
+            "",
+            "## Leakage Checks",
+            "",
+        ]
+    )
+    for key, value in cast(dict[str, Any], reproducibility["leakage_checks"]).items():
+        lines.append(f"- {key}: {value}")
+    lines.extend(
+        [
+            "",
+            "## Reproducibility",
+            "",
+        ]
+    )
+    for row in cast(list[dict[str, Any]], reproducibility["manifest_rows"]):
+        if row.get("status") != "included":
+            continue
+        analytics = cast(dict[str, Any], row.get("analytics_provenance", {}))
+        base_temperature_run = cast(dict[str, Any], row.get("base_temperature_run", {}))
+        lines.append(
+            f"- season={row.get('season_code')}, "
+            f"source_max_raw_id={analytics.get('source_max_raw_id')}, "
+            f"plan_row_hash={row.get('plan_row_hash')}, "
+            f"base_temperature_run_id={base_temperature_run.get('run_id')}"
+        )
+    lines.extend(["", "## Warnings", ""])
     if result.warnings:
         lines.extend(f"- {item}" for item in result.warnings)
     else:

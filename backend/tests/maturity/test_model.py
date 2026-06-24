@@ -66,3 +66,16 @@ def test_blend_curves_uses_parent_for_zero_shrinkage() -> None:
 
     assert blend_curves(parent=parent, local=local, shrinkage=Decimal("0")) == parent
     assert blend_curves(parent=parent, local=local, shrinkage=Decimal("1")) == local
+
+
+def test_blend_curves_preserves_unit_mass_after_quantization() -> None:
+    parent = (Decimal("0.333333"), Decimal("0.333333"), Decimal("0.333334"))
+    local = (Decimal("0.123456"), Decimal("0.234567"), Decimal("0.641977"))
+
+    blended = blend_curves(
+        parent=parent,
+        local=local,
+        shrinkage=Decimal("0.75"),
+    )
+
+    assert sum(blended, Decimal("0")) == Decimal("1.000000")
