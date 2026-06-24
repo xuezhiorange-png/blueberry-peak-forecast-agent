@@ -1776,6 +1776,13 @@ async def test_forecast_observed_axis_uses_day_coordinate_and_nonzero_mass(
     )
     await _seed_weather_days(
         weather_source_location_id=dimensions["weather_source_location_id"],
+        start_date=date(2025, 1, 1),
+        days=120,
+        source_version="weather-v0",
+        mean_c=Decimal("10"),
+    )
+    await _seed_weather_days(
+        weather_source_location_id=dimensions["weather_source_location_id"],
         start_date=date(2026, 1, 1),
         days=66,
         source_version="weather-v1",
