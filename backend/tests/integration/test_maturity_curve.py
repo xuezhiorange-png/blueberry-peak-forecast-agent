@@ -260,6 +260,7 @@ async def _seed_analytics_sample(
     farm_key: str,
     subfarm_key: str,
     daily_weights: list[Decimal],
+    source_max_raw_id: int = 100,
 ) -> int:
     async with AsyncSessionMaker() as session:
         season = await session.get(Season, season_id)
@@ -267,7 +268,7 @@ async def _seed_analytics_sample(
         build_run = AnalyticsBuildRun(
             season_id=season_id,
             aggregation_version="task3-v1",
-            source_max_raw_id=100,
+            source_max_raw_id=source_max_raw_id,
             config_hash="analytics-cfg",
             config_snapshot={"analysis_months": [1, 2, 3, 4]},
             status="completed",
@@ -1403,6 +1404,7 @@ async def test_training_cutoff_warns_for_mixed_visible_and_leaking_rows(
         farm_key="farm-a",
         subfarm_key="__UNKNOWN_SUBFARM__",
         daily_weights=[Decimal("90")] * 10,
+        source_max_raw_id=101,
     )
     await _assert_fact_rows_visible_by_cutoff(
         build_run_id=build_a,
