@@ -1636,6 +1636,134 @@ async def test_training_cutoff_warns_for_future_invisible_weather_revisions(
     }
 
 
+async def test_training_source_signature_ignores_future_invisible_weather_revisions(
+    client: AsyncClient,
+) -> None:
+    dimensions = await _seed_dimensions()
+    await _seed_mapping(
+        location_reference_id=dimensions["location_reference_id"],
+        weather_source_location_id=dimensions["weather_source_location_id"],
+    )
+    await _seed_weather_days(
+        weather_source_location_id=dimensions["weather_source_location_id"],
+        start_date=date(2025, 1, 1),
+        days=30,
+        source_version="weather-v1",
+        mean_c=Decimal("10"),
+    )
+    base_temp_run_id = await _seed_base_temperature_run(
+        variety_id=dimensions["variety_id"],
+        climate_zone_id=dimensions["zone_id"],
+    )
+    plan_a = await _seed_plan(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        farm_id=dimensions["farm_id"],
+        variety_id=dimensions["variety_id"],
+        version=1,
+        available_at=date(2024, 12, 15),
+    )
+    plan_b = await _seed_plan(
+        season_id=dimensions["season_ids"]["2025-2026"],
+        farm_id=dimensions["farm_id"],
+        variety_id=dimensions["variety_id"],
+        version=1,
+        available_at=date(2025, 12, 15),
+    )
+    build_a = await _seed_analytics_sample(
+        season_id=dimensions["season_ids"]["2024-2025"],
+        factory_id=dimensions["factory_id"],
+        variety_id=dimensions["variety_id"],
+        farm_key="farm-a",
+        subfarm_key="__UNKNOWN_SUBFARM__",
+        daily_weights=[Decimal("100")] * 10,
+    )
+    build_b = await _seed_analytics_sample(
+        season_id=dimensions["season_ids"]["2025-2026"],
+        factory_id=dimensions["factory_id"],
+        variety_id=dimensions["variety_id"],
+        farm_key="farm-a",
+        subfarm_key="__UNKNOWN_SUBFARM__",
+        daily_weights=[Decimal("120")] * 10,
+    )
+    await _assert_fact_rows_visible_by_cutoff(
+        build_run_id=build_a,
+        cutoff=date(2026, 4, 30),
+    )
+    await _assert_fact_rows_visible_by_cutoff(
+        build_run_id=build_b,
+        cutoff=date(2026, 4, 30),
+    )
+
+    payload = {
+        "training_cutoff": "2026-04-30",
+        "manifest_rows": [
+            {
+                "season_id": dimensions["season_ids"]["2024-2025"],
+                "analytics_build_run_id": build_a,
+                "farm_key": "farm-a",
+                "farm_id": dimensions["farm_id"],
+                "subfarm_key": "__UNKNOWN_SUBFARM__",
+                "subfarm_id": None,
+                "variety_id": dimensions["variety_id"],
+                "location_reference_id": dimensions["location_reference_id"],
+                "production_plan_id": plan_a,
+                "base_temperature_search_run_id": base_temp_run_id,
+                "anchor_event": "flowering_start_date",
+                "facility_type": "open_field",
+                "include": True,
+                "sample_weight": "1",
+                "exclusion_reason": None,
+            },
+            {
+                "season_id": dimensions["season_ids"]["2025-2026"],
+                "analytics_build_run_id": build_b,
+                "farm_key": "farm-a",
+                "farm_id": dimensions["farm_id"],
+                "subfarm_key": "__UNKNOWN_SUBFARM__",
+                "subfarm_id": None,
+                "variety_id": dimensions["variety_id"],
+                "location_reference_id": dimensions["location_reference_id"],
+                "production_plan_id": plan_b,
+                "base_temperature_search_run_id": base_temp_run_id,
+                "anchor_event": "flowering_start_date",
+                "facility_type": "open_field",
+                "include": True,
+                "sample_weight": "1",
+                "exclusion_reason": None,
+            },
+        ],
+        "dry_run": True,
+    }
+
+    first = await client.post("/planning/maturity/models/train", json=payload)
+    assert first.status_code == 200, first.text
+    first_payload = first.json()["payload"]
+    assert first_payload["status"] == "dry_run"
+    assert (
+        first_payload["input_snapshot"]["leakage_checks"]["future_revision_exclusion"]["status"]
+        == "pass"
+    )
+
+    await _seed_weather_revision(
+        weather_source_location_id=dimensions["weather_source_location_id"],
+        observation_date=date(2025, 1, 5),
+        source_version="weather-v2",
+        available_at=date(2026, 5, 1),
+        mean_c=Decimal("18"),
+    )
+
+    second = await client.post("/planning/maturity/models/train", json=payload)
+    assert second.status_code == 200, second.text
+    second_payload = second.json()["payload"]
+    assert second_payload["status"] == "dry_run"
+    assert second_payload["source_signature"] == first_payload["source_signature"]
+    future_revision = second_payload["input_snapshot"]["leakage_checks"][
+        "future_revision_exclusion"
+    ]
+    assert future_revision["status"] == "warn"
+    assert future_revision["future_excluded_observation_count"] >= 1
+
+
 async def test_forecast_observed_axis_uses_day_coordinate_and_nonzero_mass(
     client: AsyncClient,
 ) -> None:

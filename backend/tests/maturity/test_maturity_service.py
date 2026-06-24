@@ -292,6 +292,74 @@ def test_training_source_signature_is_order_invariant_for_tied_rows_with_differe
     assert signature_a == signature_b
 
 
+def test_training_source_signature_ignores_future_only_weather_audit_fields() -> None:
+    row = {
+        "season_id": 1,
+        "production_plan_id": 201,
+        "farm_key": "farm-a",
+        "subfarm_key": "__UNKNOWN_SUBFARM__",
+        "variety_id": 1,
+        "anchor_event": "flowering_start_date",
+        "facility_type": "open_field",
+        "include": True,
+        "sample_weight": Decimal("1"),
+        "exclusion_reason": None,
+        "analytics_build_run_id": 101,
+        "farm_id": 1,
+        "subfarm_id": None,
+        "location_reference_id": 11,
+        "base_temperature_search_run_id": 301,
+        "weather_observation_fingerprint": [
+            {
+                "observation_date": date(2026, 2, 1),
+                "observation_id": 1,
+                "row_hash": "obs-a",
+                "available_at": date(2026, 4, 30),
+                "source_version": "weather-v1",
+                "weather_source_location_id": 501,
+            }
+        ],
+        "weather_observation_audit": {
+            "selected_observation_count": 1,
+            "visible_observation_count": 1,
+            "candidate_observation_count": 1,
+            "future_excluded_observation_count": 0,
+            "future_excluded_observation_dates": [],
+        },
+    }
+
+    signature_a = _training_source_signature(
+        manifest_rows=[row],
+        training_cutoff=date(2026, 4, 30),
+        config_hash="cfg",
+        model_version="task8-v1",
+        random_seed=20260624,
+    )
+    signature_b = _training_source_signature(
+        manifest_rows=[
+            {
+                **row,
+                "weather_observation_audit": {
+                    "selected_observation_count": 1,
+                    "visible_observation_count": 1,
+                    "candidate_observation_count": 3,
+                    "future_excluded_observation_count": 2,
+                    "future_excluded_observation_dates": [
+                        "2026-02-05",
+                        "2026-02-06",
+                    ],
+                },
+            }
+        ],
+        training_cutoff=date(2026, 4, 30),
+        config_hash="cfg",
+        model_version="task8-v1",
+        random_seed=20260624,
+    )
+
+    assert signature_a == signature_b
+
+
 def test_forecast_source_signature_changes_when_observation_fingerprint_changes() -> None:
     common = {
         "plan_id": 1,
@@ -553,6 +621,80 @@ def test_shift_model_learns_altitude_direction_when_samples_are_sufficient() -> 
         feature_values=high_alt_2.feature_values,
     )
     assert predicted_high > predicted_low
+
+
+def test_shift_model_ignores_unavailable_sparse_variety_samples() -> None:
+    config = _config()
+    support_days = _support_days(config)
+    parent_artifact = GroupCurveArtifact(
+        group_key="variety:1",
+        level="variety_global",
+        density=tuple(Decimal("0.6") if day == 5 else Decimal("0.05") for day in support_days),
+        peak_day=Decimal("5.000000"),
+        sample_count=4,
+        distinct_season_count=4,
+        distinct_farm_count=4,
+        distinct_subfarm_count=1,
+        parent_group_key=None,
+        shrinkage=Decimal("1.000000"),
+    )
+    artifacts = {
+        "variety:1": parent_artifact,
+        "province:Yunnan|variety:1": replace(
+            parent_artifact,
+            group_key="province:Yunnan|variety:1",
+            parent_group_key="variety:1",
+        ),
+        "zone:1|variety:1": replace(
+            parent_artifact,
+            group_key="zone:1|variety:1",
+            parent_group_key="province:Yunnan|variety:1",
+        ),
+    }
+    supported_samples = [
+        _sample(season_code="2024-2025", altitude_m=Decimal("1700"), proxy_peak_day=4),
+        _sample(season_code="2025-2026", altitude_m=Decimal("1900"), proxy_peak_day=6),
+        _sample(season_code="2026-2027", altitude_m=Decimal("2000"), proxy_peak_day=7),
+        _sample(season_code="2027-2028", altitude_m=Decimal("1600"), proxy_peak_day=3),
+    ]
+    sparse_base = _sample(
+        season_code="2028-2029",
+        variety_id=2,
+        climate_zone_id=2,
+        facility_type="extreme_new_facility",
+        altitude_m=Decimal("9999"),
+        proxy_peak_day=9,
+    )
+    sparse_unavailable = replace(
+        sparse_base,
+        manifest_row=replace(
+            sparse_base.manifest_row,
+            variety_id=2,
+            farm_id=99,
+            farm_key="farm-z",
+            subfarm_id=999,
+            subfarm_key="sf-z",
+        ),
+        feature_values={
+            **sparse_base.feature_values,
+            "facility_type_raw": "extreme_new_facility",
+            "facility_type": "extreme_new_facility",
+            "altitude_m": Decimal("9999"),
+        },
+    )
+
+    base_model = _build_shift_model(
+        resolved_samples=supported_samples,
+        artifacts=artifacts,
+        config=config,
+    )
+    contaminated_model = _build_shift_model(
+        resolved_samples=[*supported_samples, sparse_unavailable],
+        artifacts=artifacts,
+        config=config,
+    )
+
+    assert contaminated_model == base_model
 
 
 def test_calibration_payload_uses_holdout_seasons() -> None:

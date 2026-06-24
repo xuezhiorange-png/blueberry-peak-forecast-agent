@@ -375,8 +375,21 @@ def _model_run_status_value(status: str) -> PersistedMaturityRunStatus:
 def _sorted_manifest_rows(
     manifest_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    projected_rows = [
+        cast(
+            dict[str, Any],
+            canonical_json_value(
+                {
+                    key: value
+                    for key, value in item.items()
+                    if key != "weather_observation_audit"
+                }
+            ),
+        )
+        for item in manifest_rows
+    ]
+
     def sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
-        canonical_row = cast(dict[str, Any], canonical_json_value(item))
         return (
             cast(int, item.get("season_id", 0)),
             cast(int, item.get("production_plan_id", 0)),
@@ -396,17 +409,14 @@ def _sorted_manifest_rows(
             cast(int, item.get("location_reference_id", 0) or 0),
             cast(int, item.get("base_temperature_search_run_id", 0) or 0),
             json.dumps(
-                canonical_row,
+                item,
                 ensure_ascii=False,
                 sort_keys=True,
                 separators=(",", ":"),
             ),
         )
 
-    return sorted(
-        manifest_rows,
-        key=sort_key,
-    )
+    return sorted(projected_rows, key=sort_key)
 
 
 def _training_source_signature(
@@ -1364,11 +1374,28 @@ def _build_shift_model(
     artifacts: dict[str, GroupCurveArtifact],
     config: MaturityCurveConfig,
 ) -> ShiftModelArtifact:
+    eligible_shift_samples: list[
+        tuple[ResolvedTrainingSample, GroupCurveArtifact, GroupCurveArtifact]
+    ] = []
+    for sample in resolved_samples:
+        artifact, _ = _curve_for_sample(
+            artifacts=artifacts,
+            climate_zone_id=sample.climate_zone_id,
+            province=sample.province,
+            variety_id=sample.manifest_row.variety_id,
+        )
+        if artifact is None:
+            continue
+        parent_artifact = artifact
+        if artifact.parent_group_key is not None and artifact.parent_group_key in artifacts:
+            parent_artifact = artifacts[artifact.parent_group_key]
+        eligible_shift_samples.append((sample, artifact, parent_artifact))
+
     facility_types = tuple(
         sorted(
             {
-                cast(str, item.feature_values.get("facility_type", "unknown")) or "unknown"
-                for item in resolved_samples
+                cast(str, sample.feature_values.get("facility_type", "unknown")) or "unknown"
+                for sample, _, _ in eligible_shift_samples
             }
             | {"unknown"}
         )
@@ -1381,7 +1408,7 @@ def _build_shift_model(
         "flowering_peak_offset_days",
         "first_pick_offset_days",
     )
-    if len(resolved_samples) < config.rules.offset.minimum_training_samples:
+    if len(eligible_shift_samples) < config.rules.offset.minimum_training_samples:
         return ShiftModelArtifact(
             enabled=False,
             intercept_days=Decimal("0"),
@@ -1417,18 +1444,7 @@ def _build_shift_model(
     imputation_values: dict[str, Decimal] = {}
     scaler_scale: dict[str, Decimal] = {}
     targets: list[Decimal] = []
-    for sample in resolved_samples:
-        artifact, _ = _curve_for_sample(
-            artifacts=artifacts,
-            climate_zone_id=sample.climate_zone_id,
-            province=sample.province,
-            variety_id=sample.manifest_row.variety_id,
-        )
-        if artifact is None:
-            continue
-        parent_artifact = artifact
-        if artifact.parent_group_key is not None and artifact.parent_group_key in artifacts:
-            parent_artifact = artifacts[artifact.parent_group_key]
+    for sample, _, parent_artifact in eligible_shift_samples:
         observed_peak = _observed_peak_day(sample)
         targets.append((observed_peak - parent_artifact.peak_day).quantize(Decimal("0.000001")))
     if len(targets) < config.rules.offset.minimum_training_samples:
@@ -1459,7 +1475,9 @@ def _build_shift_model(
         )
 
     for name in numeric_features:
-        observed = [feature_numeric(sample, name) for sample in resolved_samples]
+        observed = [
+            feature_numeric(sample, name) for sample, _, _ in eligible_shift_samples
+        ]
         present = [item for item in observed if item is not None]
         if present:
             center = (sum(present, Decimal("0")) / Decimal(len(present))).quantize(
@@ -1490,15 +1508,7 @@ def _build_shift_model(
 
     matrix_rows: list[list[float]] = []
     filtered_samples: list[ResolvedTrainingSample] = []
-    for sample in resolved_samples:
-        artifact, _ = _curve_for_sample(
-            artifacts=artifacts,
-            climate_zone_id=sample.climate_zone_id,
-            province=sample.province,
-            variety_id=sample.manifest_row.variety_id,
-        )
-        if artifact is None:
-            continue
+    for sample, _, _ in eligible_shift_samples:
         filtered_samples.append(sample)
         row_values: list[float] = []
         for name in numeric_features:
