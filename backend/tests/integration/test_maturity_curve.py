@@ -1777,7 +1777,7 @@ async def test_forecast_observed_axis_uses_day_coordinate_and_nonzero_mass(
     await _seed_weather_days(
         weather_source_location_id=dimensions["weather_source_location_id"],
         start_date=date(2026, 1, 1),
-        days=61,
+        days=66,
         source_version="weather-v1",
         mean_c=Decimal("10"),
     )
@@ -1892,7 +1892,7 @@ async def test_forecast_observed_axis_uses_day_coordinate_and_nonzero_mass(
             "subfarm_id": None,
             "season_id": dimensions["season_ids"]["2025-2026"],
             "variety_id": dimensions["variety_id"],
-            "as_of_date": "2026-03-07",
+            "as_of_date": "2026-03-08",
             "prediction_start_date": "2026-03-01",
             "prediction_end_date": "2026-03-07",
             "expected_marketable_total_kg": "96000",
