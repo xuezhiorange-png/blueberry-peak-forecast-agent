@@ -98,12 +98,26 @@ class GroupCurveArtifact:
 
 
 @dataclass(frozen=True)
+class TrainingDensityPoint:
+    relative_day: int
+    proxy_share: Decimal
+    loss_weight: Decimal
+    disturbance_reason: str | None
+    included_in_loss: bool
+
+
+@dataclass(frozen=True)
 class ShiftModelArtifact:
     enabled: bool
     intercept_days: Decimal
     coefficients: dict[str, Decimal]
     category_vocabulary: dict[str, tuple[str, ...]]
     reference_categories: dict[str, str]
+    feature_order: tuple[str, ...]
+    scaler_center: dict[str, Decimal]
+    scaler_scale: dict[str, Decimal]
+    feature_units: dict[str, str]
+    missing_value_rules: dict[str, str]
     bounds: tuple[Decimal, Decimal]
     warnings: tuple[str, ...] = ()
 
@@ -120,12 +134,26 @@ class ResolvedTrainingSample:
     anchor_date: date
     expected_total_kg: Decimal
     expected_total_source: str
+    plan_id: int
+    plan_version: int
+    plan_row_hash: str
+    plan_available_at: date
+    plan_effective_from: date
+    plan_effective_to: date | None
     mapping_row_hash: str
+    location_reference_source_hash: str
+    analytics_build_run_finished_at: date | None
+    analytics_provenance: dict[str, Any]
+    fact_row_fingerprint: tuple[dict[str, Any], ...]
     base_temperature_source_signature: str
+    base_temperature_training_cutoff: date
+    base_temperature_feature_version: str
+    base_temperature_config_hash: str
     selected_base_temperature: Decimal
     observation_fingerprint: tuple[dict[str, Any], ...]
     holiday_summary: dict[str, Any]
     density_points: tuple[tuple[int, Decimal], ...]
+    training_points: tuple[TrainingDensityPoint, ...]
     feature_values: dict[str, Decimal | str | None]
     warnings: tuple[str, ...] = ()
     blockers: tuple[str, ...] = ()

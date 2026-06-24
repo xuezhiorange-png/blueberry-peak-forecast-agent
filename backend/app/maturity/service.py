@@ -8,10 +8,11 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 import numpy as np
+from sklearn.linear_model import Ridge
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.maturity.calibration import calibration_payload
+from backend.app.maturity.calibration import empirical_quantile
 from backend.app.maturity.config import MaturityCurveConfig
 from backend.app.maturity.features import analysis_dates, date_range, smooth_series
 from backend.app.maturity.model import blend_curves, fit_shared_curve, reconcile_p50_mass
@@ -36,6 +37,7 @@ from backend.app.maturity.schemas import (
     PersistedMaturityRunStatus,
     ResolvedTrainingSample,
     ShiftModelArtifact,
+    TrainingDensityPoint,
 )
 from backend.app.models.analytics import AnalyticsBuildRun, FactReceiptDaily
 from backend.app.models.master_data import Holiday, Season
@@ -160,6 +162,23 @@ def _forecast_source_signature(
     as_of_date: date,
     prediction_start_date: date,
     prediction_end_date: date,
+    expected_marketable_total_kg: Decimal,
+    expected_total_source: str,
+    facility_type: str,
+    altitude_m: Decimal | None,
+    tree_age_years: Decimal | None,
+    pruning_offset_days: Decimal | None,
+    flowering_peak_offset_days: Decimal | None,
+    first_pick_offset_days: Decimal | None,
+    shift_feature_snapshot: dict[str, Any],
+    predicted_shift_days: Decimal,
+    selected_group_model_key: str,
+    fallback_level: str,
+    axis_mode: str,
+    axis_snapshot: dict[str, Any],
+    plan_row_hash: str,
+    location_reference_source_hash: str,
+    base_temperature_context: dict[str, Any],
     observation_fingerprint: list[dict[str, Any]],
 ) -> str:
     return sha256_payload(
@@ -176,6 +195,23 @@ def _forecast_source_signature(
             "as_of_date": as_of_date,
             "prediction_start_date": prediction_start_date,
             "prediction_end_date": prediction_end_date,
+            "expected_marketable_total_kg": expected_marketable_total_kg,
+            "expected_total_source": expected_total_source,
+            "facility_type": facility_type,
+            "altitude_m": altitude_m,
+            "tree_age_years": tree_age_years,
+            "pruning_offset_days": pruning_offset_days,
+            "flowering_peak_offset_days": flowering_peak_offset_days,
+            "first_pick_offset_days": first_pick_offset_days,
+            "shift_feature_snapshot": shift_feature_snapshot,
+            "predicted_shift_days": predicted_shift_days,
+            "selected_group_model_key": selected_group_model_key,
+            "fallback_level": fallback_level,
+            "axis_mode": axis_mode,
+            "axis_snapshot": axis_snapshot,
+            "plan_row_hash": plan_row_hash,
+            "location_reference_source_hash": location_reference_source_hash,
+            "base_temperature_context": base_temperature_context,
             "observation_fingerprint": observation_fingerprint,
         }
     )
@@ -258,6 +294,55 @@ async def _holiday_dates(
     return dates
 
 
+def _datetime_visible_on_or_before(value: datetime | None, cutoff: date) -> bool:
+    if value is None:
+        return False
+    return value.date() <= cutoff
+
+
+def _fact_row_fingerprint(row: FactReceiptDaily) -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "receipt_date": row.receipt_date,
+        "factory_id": row.factory_id,
+        "farm_key": row.farm_key,
+        "subfarm_key": row.subfarm_key,
+        "variety_id": row.variety_id,
+        "weight_kg": row.weight_kg,
+        "source_row_count": row.source_row_count,
+        "holiday_codes": list(row.holiday_codes),
+        "is_spring_festival": row.is_spring_festival,
+        "created_at": row.created_at,
+    }
+
+
+def _safe_shift_feature_values(
+    *,
+    altitude_m: Decimal | None,
+    tree_age_years: Decimal | None,
+    facility_type: str,
+    pruning_offset_days: Decimal | None,
+    flowering_peak_offset_days: Decimal | None,
+    first_pick_offset_days: Decimal | None,
+) -> dict[str, Decimal | str | None]:
+    return {
+        "altitude_m": altitude_m,
+        "tree_age_years": tree_age_years,
+        "facility_type": facility_type or "unknown",
+        "pruning_offset_days": pruning_offset_days,
+        "flowering_peak_offset_days": flowering_peak_offset_days,
+        "first_pick_offset_days": first_pick_offset_days,
+    }
+
+
+def _observed_peak_day(sample: ResolvedTrainingSample) -> Decimal:
+    best = max(
+        sample.training_points,
+        key=lambda item: (item.proxy_share, -abs(item.relative_day)),
+    )
+    return Decimal(best.relative_day).quantize(Decimal("0.000001"))
+
+
 async def _resolve_training_sample(
     session: AsyncSession,
     *,
@@ -271,16 +356,55 @@ async def _resolve_training_sample(
         snapshot["resolved_exclusion_reason"] = row.exclusion_reason or "input_excluded"
         return snapshot, None
 
+    analytics_run = await session.get(AnalyticsBuildRun, row.analytics_build_run_id)
+    if analytics_run is None:
+        snapshot["status"] = "invalid"
+        snapshot["resolved_exclusion_reason"] = "analytics_build_run_not_found"
+        return snapshot, None
+    if analytics_run.status != "completed":
+        snapshot["status"] = "excluded"
+        snapshot["resolved_exclusion_reason"] = "analytics_build_run_not_completed"
+        return snapshot, None
+    if analytics_run.season_id != row.season_id:
+        snapshot["status"] = "invalid"
+        snapshot["resolved_exclusion_reason"] = "analytics_build_run_season_mismatch"
+        return snapshot, None
+
+    season = await _season(session, row.season_id)
+    if season.end_date > training_cutoff:
+        snapshot["status"] = "excluded"
+        snapshot["resolved_exclusion_reason"] = "season_not_complete_by_training_cutoff"
+        return snapshot, None
+    visible_at = analytics_run.finished_at or analytics_run.started_at
+    if not _datetime_visible_on_or_before(visible_at, training_cutoff):
+        snapshot["status"] = "excluded"
+        snapshot["resolved_exclusion_reason"] = "analytics_build_run_not_visible_at_cutoff"
+        return snapshot, None
+
+    plan_config = load_production_plan_config(Path("configs/production_plan.yaml"))
+    try:
+        effective_plan = await get_effective_plan(
+            session,
+            farm_id=row.farm_id,
+            subfarm_id=row.subfarm_id,
+            season_id=row.season_id,
+            variety_id=row.variety_id,
+            as_of_date=training_cutoff,
+            config=plan_config,
+        )
+    except Exception:
+        snapshot["status"] = "excluded"
+        snapshot["resolved_exclusion_reason"] = "effective_plan_unavailable_at_cutoff"
+        return snapshot, None
+    if effective_plan.id != row.production_plan_id:
+        snapshot["status"] = "invalid"
+        snapshot["resolved_exclusion_reason"] = "manifest_plan_not_effective_at_cutoff"
+        return snapshot, None
     plan = await session.get(FarmSeasonVarietyPlan, row.production_plan_id)
     if plan is None:
         snapshot["status"] = "invalid"
         snapshot["resolved_exclusion_reason"] = "plan_not_found"
         return snapshot, None
-    if plan.available_at > training_cutoff:
-        snapshot["status"] = "excluded"
-        snapshot["resolved_exclusion_reason"] = "plan_not_available_at_cutoff"
-        return snapshot, None
-    season = await _season(session, row.season_id)
     if plan.season_id != row.season_id or plan.variety_id != row.variety_id:
         snapshot["status"] = "invalid"
         snapshot["resolved_exclusion_reason"] = "plan_manifest_mismatch"
@@ -290,12 +414,24 @@ async def _resolve_training_sample(
         location_reference_id=row.location_reference_id,
         as_of_date=training_cutoff,
     )
+    if reference.farm_id != row.farm_id or reference.farm_id != plan.farm_id:
+        snapshot["status"] = "invalid"
+        snapshot["resolved_exclusion_reason"] = "location_reference_farm_mismatch"
+        return snapshot, None
+    if reference.subfarm_id != row.subfarm_id or reference.subfarm_id != plan.subfarm_id:
+        snapshot["status"] = "invalid"
+        snapshot["resolved_exclusion_reason"] = "location_reference_subfarm_mismatch"
+        return snapshot, None
     base_temp_run = await _base_temperature_run(
         session,
         run_id=row.base_temperature_search_run_id,
         variety_id=row.variety_id,
         climate_zone_id=cast(int, reference.climate_zone_id),
     )
+    if base_temp_run.training_cutoff > training_cutoff:
+        snapshot["status"] = "excluded"
+        snapshot["resolved_exclusion_reason"] = "base_temperature_run_not_visible_at_cutoff"
+        return snapshot, None
     anchor_date = getattr(plan, row.anchor_event, None)
     if not isinstance(anchor_date, date):
         snapshot["status"] = "invalid"
@@ -342,45 +478,64 @@ async def _resolve_training_sample(
         .order_by(FactReceiptDaily.receipt_date.asc())
     )
     daily_rows = list((await session.scalars(statement)).all())
-    analytics_run = await session.get(AnalyticsBuildRun, row.analytics_build_run_id)
-    if analytics_run is None:
-        snapshot["status"] = "invalid"
-        snapshot["resolved_exclusion_reason"] = "analytics_build_run_not_found"
+    if any(entry.receipt_date > training_cutoff for entry in daily_rows):
+        snapshot["status"] = "excluded"
+        snapshot["resolved_exclusion_reason"] = "future_fact_rows_not_visible_at_cutoff"
         return snapshot, None
     date_series = analysis_dates(season)
     daily_weight_by_date = {entry.receipt_date: entry.weight_kg for entry in daily_rows}
     raw_weights = [daily_weight_by_date.get(day, Decimal("0")) for day in date_series]
     smoothed_weights = smooth_series(raw_weights)
-    included_weights: list[Decimal] = []
     density_points: list[tuple[int, Decimal]] = []
+    training_points: list[TrainingDensityPoint] = []
     raw_day_count = len(date_series)
     downweighted_day_count = 0
     excluded_day_count = 0
     used_day_count = 0
-    for day, smoothed in zip(date_series, smoothed_weights, strict=True):
-        if day in holiday_dates and config.rules.holidays.exclude_from_loss:
-            excluded_day_count += 1
-            continue
-        if day in holiday_dates and config.rules.holidays.disturbance_weight < Decimal("1"):
-            downweighted_day_count += 1
-        used_day_count += 1
-        included_weights.append(smoothed)
-    total_proxy_weight = sum(included_weights, Decimal("0"))
-    if total_proxy_weight <= 0:
+    raw_proxy_weight = sum(smoothed_weights, Decimal("0"))
+    if raw_proxy_weight <= 0:
         snapshot["status"] = "excluded"
         snapshot["resolved_exclusion_reason"] = "empty_proxy_curve"
         return snapshot, None
+    effective_training_weight = Decimal("0")
+    downweighted_weight = Decimal("0")
+    exclusion_reason_breakdown: dict[str, int] = defaultdict(int)
     for day, smoothed in zip(date_series, smoothed_weights, strict=True):
-        if day in holiday_dates and config.rules.holidays.exclude_from_loss:
-            continue
         rel_day = (day - anchor_date).days
         if (
             rel_day < config.rules.curve.support_min_day
             or rel_day > config.rules.curve.support_max_day
         ):
             continue
-        density_points.append(
-            (rel_day, (smoothed / total_proxy_weight).quantize(Decimal("0.000001")))
+        is_disturbance = day in holiday_dates
+        proxy_share = (smoothed / raw_proxy_weight).quantize(Decimal("0.000001"))
+        included_in_loss = True
+        loss_weight = row.sample_weight
+        disturbance_reason: str | None = None
+        if is_disturbance:
+            disturbance_reason = "spring_festival"
+            if config.rules.holidays.exclude_from_loss:
+                included_in_loss = False
+                excluded_day_count += 1
+                exclusion_reason_breakdown["spring_festival"] += 1
+            elif config.rules.holidays.disturbance_weight < Decimal("1"):
+                downweighted_day_count += 1
+                loss_weight = (
+                    row.sample_weight * config.rules.holidays.disturbance_weight
+                ).quantize(Decimal("0.000001"))
+                downweighted_weight += loss_weight
+        if included_in_loss:
+            used_day_count += 1
+            effective_training_weight += loss_weight
+        density_points.append((rel_day, proxy_share))
+        training_points.append(
+            TrainingDensityPoint(
+                relative_day=rel_day,
+                proxy_share=proxy_share,
+                loss_weight=loss_weight,
+                disturbance_reason=disturbance_reason,
+                included_in_loss=included_in_loss,
+            )
         )
     expected_total = plan.expected_total_marketable_kg or (
         plan.planted_area_mu * plan.expected_yield_kg_per_mu * plan.marketable_rate
@@ -388,8 +543,50 @@ async def _resolve_training_sample(
     snapshot["status"] = "included"
     snapshot["resolved_exclusion_reason"] = None
     snapshot["plan_version"] = plan.version
+    snapshot["plan_row_hash"] = plan.row_hash
+    snapshot["plan_available_at"] = plan.available_at
+    snapshot["plan_effective_from"] = plan.effective_from
+    snapshot["plan_effective_to"] = plan.effective_to
     snapshot["season_code"] = season.code
     snapshot["anchor_date"] = anchor_date
+    snapshot["location_reference_source_hash"] = reference.source_row_hash
+    snapshot["analytics_provenance"] = {
+        "build_run_id": analytics_run.id,
+        "aggregation_version": analytics_run.aggregation_version,
+        "config_hash": analytics_run.config_hash,
+        "source_max_raw_id": analytics_run.source_max_raw_id,
+        "source_eligible_row_count": analytics_run.source_eligible_row_count,
+        "source_eligible_weight_kg": analytics_run.source_eligible_weight_kg,
+        "daily_fact_row_count": analytics_run.daily_fact_row_count,
+        "finished_at": analytics_run.finished_at,
+    }
+    snapshot["fact_row_fingerprint"] = cast(
+        list[dict[str, Any]],
+        canonical_json_value(
+            sorted(
+                (_fact_row_fingerprint(entry) for entry in daily_rows),
+                key=lambda item: (
+                    item["id"],
+                    item["receipt_date"],
+                    item["factory_id"],
+                    item["farm_key"],
+                    item["subfarm_key"],
+                    item["variety_id"],
+                ),
+            )
+        ),
+    )
+    snapshot["base_temperature_run"] = {
+        "run_id": base_temp_run.id,
+        "source_signature": base_temp_run.source_signature,
+        "selected_base_temperature": base_temp_run.selected_base_temperature,
+        "training_cutoff": base_temp_run.training_cutoff,
+        "feature_version": base_temp_run.feature_version,
+        "config_hash": base_temp_run.config_hash,
+        "scope_type": base_temp_run.scope_type,
+        "climate_zone_id": base_temp_run.climate_zone_id,
+        "variety_id": base_temp_run.variety_id,
+    }
     snapshot["mapping"] = cast(
         dict[str, Any],
         canonical_json_value(mapping.reproducibility_snapshot),
@@ -403,7 +600,15 @@ async def _resolve_training_sample(
         "used_day_count": used_day_count,
         "downweighted_day_count": downweighted_day_count,
         "excluded_day_count": excluded_day_count,
-        "excluded_reason_codes": ["spring_festival"] if excluded_day_count else [],
+        "raw_proxy_weight": raw_proxy_weight,
+        "effective_training_weight": effective_training_weight,
+        "downweighted_weight_share": (
+            Decimal("0")
+            if effective_training_weight <= 0
+            else (downweighted_weight / effective_training_weight).quantize(Decimal("0.000001"))
+        ),
+        "excluded_reason_codes": sorted(exclusion_reason_breakdown),
+        "reason_code_breakdown": dict(exclusion_reason_breakdown),
     }
     pruning_offset = None
     if plan.pruning_date is not None:
@@ -429,20 +634,55 @@ async def _resolve_training_sample(
             if plan.expected_total_marketable_kg is not None
             else "derived_from_task6_plan"
         ),
+        plan_id=plan.id,
+        plan_version=plan.version,
+        plan_row_hash=plan.row_hash,
+        plan_available_at=plan.available_at,
+        plan_effective_from=plan.effective_from,
+        plan_effective_to=plan.effective_to,
         mapping_row_hash=mapping_row_hash,
+        location_reference_source_hash=reference.source_row_hash,
+        analytics_build_run_finished_at=visible_at.date() if visible_at is not None else None,
+        analytics_provenance={
+            "build_run_id": analytics_run.id,
+            "aggregation_version": analytics_run.aggregation_version,
+            "config_hash": analytics_run.config_hash,
+            "source_max_raw_id": analytics_run.source_max_raw_id,
+            "source_eligible_row_count": analytics_run.source_eligible_row_count,
+            "source_eligible_weight_kg": analytics_run.source_eligible_weight_kg,
+            "daily_fact_row_count": analytics_run.daily_fact_row_count,
+            "finished_at": analytics_run.finished_at,
+        },
+        fact_row_fingerprint=tuple(
+            sorted(
+                (_fact_row_fingerprint(entry) for entry in daily_rows),
+                key=lambda item: (
+                    item["id"],
+                    item["receipt_date"],
+                    item["factory_id"],
+                    item["farm_key"],
+                    item["subfarm_key"],
+                    item["variety_id"],
+                ),
+            )
+        ),
         base_temperature_source_signature=base_temp_run.source_signature,
+        base_temperature_training_cutoff=base_temp_run.training_cutoff,
+        base_temperature_feature_version=base_temp_run.feature_version,
+        base_temperature_config_hash=base_temp_run.config_hash,
         selected_base_temperature=cast(Decimal, base_temp_run.selected_base_temperature),
         observation_fingerprint=observation_fingerprint,
         holiday_summary=snapshot["holiday_summary"],
         density_points=tuple(sorted(density_points, key=lambda item: item[0])),
-        feature_values={
-            "altitude_m": _optional_decimal_value(reference.altitude_m),
-            "tree_age_years": _optional_decimal_value(plan.tree_age_years),
-            "facility_type": row.facility_type,
-            "pruning_offset_days": pruning_offset,
-            "flowering_peak_offset_days": flowering_peak_offset,
-            "first_pick_offset_days": first_pick_offset,
-        },
+        training_points=tuple(sorted(training_points, key=lambda item: item.relative_day)),
+        feature_values=_safe_shift_feature_values(
+            altitude_m=_optional_decimal_value(reference.altitude_m),
+            tree_age_years=_optional_decimal_value(plan.tree_age_years),
+            facility_type=row.facility_type,
+            pruning_offset_days=pruning_offset,
+            flowering_peak_offset_days=flowering_peak_offset,
+            first_pick_offset_days=first_pick_offset,
+        ),
     )
     return snapshot, resolved
 
@@ -485,8 +725,10 @@ def _build_group_curves(
     def fit_for_samples(samples: list[ResolvedTrainingSample]) -> tuple[Decimal, ...]:
         point_map: dict[int, list[tuple[Decimal, Decimal]]] = defaultdict(list)
         for sample in samples:
-            for rel_day, share in sample.density_points:
-                point_map[rel_day].append((share, sample.manifest_row.sample_weight))
+            for point in sample.training_points:
+                if not point.included_in_loss or point.loss_weight <= 0:
+                    continue
+                point_map[point.relative_day].append((point.proxy_share, point.loss_weight))
         rel_days: list[int] = []
         shares: list[Decimal] = []
         weights: list[Decimal] = []
@@ -611,7 +853,21 @@ def _build_shift_model(
     config: MaturityCurveConfig,
 ) -> ShiftModelArtifact:
     facility_types = tuple(
-        sorted({item.manifest_row.facility_type for item in resolved_samples})
+        sorted(
+            {
+                cast(str, item.feature_values.get("facility_type", "unknown")) or "unknown"
+                for item in resolved_samples
+            }
+            | {"unknown"}
+        )
+    )
+    reference_facility = facility_types[0] if facility_types else "unknown"
+    numeric_features = (
+        "altitude_m",
+        "tree_age_years",
+        "pruning_offset_days",
+        "flowering_peak_offset_days",
+        "first_pick_offset_days",
     )
     if len(resolved_samples) < config.rules.offset.minimum_training_samples:
         return ShiftModelArtifact(
@@ -619,30 +875,164 @@ def _build_shift_model(
             intercept_days=Decimal("0"),
             coefficients={},
             category_vocabulary={"facility_type": facility_types},
-            reference_categories={
-                "facility_type": min(item.manifest_row.facility_type for item in resolved_samples)
-                if resolved_samples
-                else "unknown"
+            reference_categories={"facility_type": reference_facility},
+            feature_order=(),
+            scaler_center={},
+            scaler_scale={},
+            feature_units={
+                "altitude_m": "m",
+                "tree_age_years": "year",
+                "pruning_offset_days": "day",
+                "flowering_peak_offset_days": "day",
+                "first_pick_offset_days": "day",
             },
+            missing_value_rules={name: "mean_impute" for name in numeric_features},
             bounds=(
                 -config.rules.offset.maximum_abs_shift_days,
                 config.rules.offset.maximum_abs_shift_days,
             ),
             warnings=("insufficient_shift_training_data",),
         )
+
+    def feature_numeric(sample: ResolvedTrainingSample, name: str) -> Decimal | None:
+        value = sample.feature_values.get(name)
+        if value is None:
+            return None
+        return _optional_decimal_value(cast(Decimal | int | float | str | None, value))
+
+    imputation_values: dict[str, Decimal] = {}
+    scaler_scale: dict[str, Decimal] = {}
+    targets: list[Decimal] = []
+    for sample in resolved_samples:
+        artifact, _ = _curve_for_sample(
+            artifacts=artifacts,
+            climate_zone_id=sample.climate_zone_id,
+            province=sample.province,
+            variety_id=sample.manifest_row.variety_id,
+        )
+        if artifact is None:
+            continue
+        parent_artifact = artifact
+        if artifact.parent_group_key is not None and artifact.parent_group_key in artifacts:
+            parent_artifact = artifacts[artifact.parent_group_key]
+        observed_peak = _observed_peak_day(sample)
+        targets.append((observed_peak - parent_artifact.peak_day).quantize(Decimal("0.000001")))
+    if len(targets) < config.rules.offset.minimum_training_samples:
+        return ShiftModelArtifact(
+            enabled=False,
+            intercept_days=Decimal("0"),
+            coefficients={},
+            category_vocabulary={"facility_type": facility_types},
+            reference_categories={"facility_type": reference_facility},
+            feature_order=(),
+            scaler_center={},
+            scaler_scale={},
+            feature_units={
+                "altitude_m": "m",
+                "tree_age_years": "year",
+                "pruning_offset_days": "day",
+                "flowering_peak_offset_days": "day",
+                "first_pick_offset_days": "day",
+            },
+            missing_value_rules={name: "mean_impute" for name in numeric_features},
+            bounds=(
+                -config.rules.offset.maximum_abs_shift_days,
+                config.rules.offset.maximum_abs_shift_days,
+            ),
+            warnings=("insufficient_shift_training_data",),
+        )
+
+    for name in numeric_features:
+        observed = [feature_numeric(sample, name) for sample in resolved_samples]
+        present = [item for item in observed if item is not None]
+        if present:
+            center = (sum(present, Decimal("0")) / Decimal(len(present))).quantize(
+                Decimal("0.000001")
+            )
+            variance = sum(
+                ((item - center) ** 2 for item in present),
+                Decimal("0"),
+            ) / Decimal(len(present))
+            scale = Decimal(str(float(variance.sqrt()) if variance > 0 else 1.0)).quantize(
+                Decimal("0.000001")
+            )
+            if scale == 0:
+                scale = Decimal("1.000000")
+        else:
+            center = Decimal("0.000000")
+            scale = Decimal("1.000000")
+        imputation_values[name] = center
+        scaler_scale[name] = scale
+
+    feature_order = list(numeric_features)
+    facility_feature_names = [
+        f"facility_type={name}"
+        for name in facility_types
+        if name != reference_facility
+    ]
+    feature_order.extend(facility_feature_names)
+
+    matrix_rows: list[list[float]] = []
+    filtered_samples: list[ResolvedTrainingSample] = []
+    for sample in resolved_samples:
+        artifact, _ = _curve_for_sample(
+            artifacts=artifacts,
+            climate_zone_id=sample.climate_zone_id,
+            province=sample.province,
+            variety_id=sample.manifest_row.variety_id,
+        )
+        if artifact is None:
+            continue
+        filtered_samples.append(sample)
+        row_values: list[float] = []
+        for name in numeric_features:
+            raw = feature_numeric(sample, name)
+            filled = imputation_values[name] if raw is None else raw
+            standardized = (filled - imputation_values[name]) / scaler_scale[name]
+            row_values.append(float(standardized))
+        facility_value = (
+            cast(str, sample.feature_values.get("facility_type", "unknown")) or "unknown"
+        )
+        for name in facility_types:
+            if name == reference_facility:
+                continue
+            row_values.append(1.0 if facility_value == name else 0.0)
+        matrix_rows.append(row_values)
+    y = np.asarray([float(item) for item in targets[: len(matrix_rows)]], dtype=float)
+    X = np.asarray(matrix_rows, dtype=float)
+    model = Ridge(
+        alpha=float(config.rules.curve.ridge_alpha),
+        random_state=config.rules.random_seed,
+    )
+    model.fit(X, y)
+
+    coefficients = {
+        name: Decimal(f"{value:.6f}")
+        for name, value in zip(feature_order, model.coef_.tolist(), strict=True)
+    }
     return ShiftModelArtifact(
-        enabled=False,
-        intercept_days=Decimal("0"),
-        coefficients={},
+        enabled=True,
+        intercept_days=Decimal(f"{float(model.intercept_):.6f}"),
+        coefficients=coefficients,
         category_vocabulary={"facility_type": facility_types},
-        reference_categories={
-            "facility_type": min(item.manifest_row.facility_type for item in resolved_samples)
+        reference_categories={"facility_type": reference_facility},
+        feature_order=tuple(feature_order),
+        scaler_center=imputation_values,
+        scaler_scale=scaler_scale,
+        feature_units={
+            "altitude_m": "m",
+            "tree_age_years": "year",
+            "pruning_offset_days": "day",
+            "flowering_peak_offset_days": "day",
+            "first_pick_offset_days": "day",
+            **{name: "indicator" for name in facility_feature_names},
         },
+        missing_value_rules={name: "mean_impute" for name in numeric_features},
         bounds=(
             -config.rules.offset.maximum_abs_shift_days,
             config.rules.offset.maximum_abs_shift_days,
         ),
-        warnings=("shift_model_zero_offset_fallback",),
+        warnings=(),
     )
 
 
@@ -651,12 +1041,28 @@ def _predict_shift_days(
     shift_model: ShiftModelArtifact,
     feature_values: dict[str, Decimal | str | None],
 ) -> Decimal:
-    del feature_values
-    return _quantized_decimal(
-        shift_model.intercept_days,
-        shift_model.bounds[0],
-        shift_model.bounds[1],
-    )
+    if not shift_model.enabled or not shift_model.feature_order:
+        return _quantized_decimal(
+            shift_model.intercept_days,
+            shift_model.bounds[0],
+            shift_model.bounds[1],
+        )
+    total = shift_model.intercept_days
+    facility_value = cast(str, feature_values.get("facility_type", "unknown")) or "unknown"
+    for feature_name in shift_model.feature_order:
+        if feature_name.startswith("facility_type="):
+            category = feature_name.split("=", 1)[1]
+            feature_value = Decimal("1") if facility_value == category else Decimal("0")
+        else:
+            raw = _optional_decimal_value(
+                cast(Decimal | int | float | str | None, feature_values.get(feature_name))
+            )
+            center = shift_model.scaler_center.get(feature_name, Decimal("0"))
+            scale = shift_model.scaler_scale.get(feature_name, Decimal("1"))
+            filled = center if raw is None else raw
+            feature_value = (filled - center) / scale if scale != 0 else Decimal("0")
+        total += shift_model.coefficients.get(feature_name, Decimal("0")) * feature_value
+    return _quantized_decimal(total, shift_model.bounds[0], shift_model.bounds[1])
 
 
 def _curve_for_sample(
@@ -674,6 +1080,174 @@ def _curve_for_sample(
         if artifact is not None:
             return artifact, artifact.level
     return None, "unavailable"
+
+
+def _calibration_payload(
+    *,
+    resolved_samples: list[ResolvedTrainingSample],
+    artifacts: dict[str, GroupCurveArtifact],
+    config: MaturityCurveConfig,
+) -> dict[str, Any]:
+    del artifacts
+    support_days = _support_days(config)
+    seasons = sorted({item.season_code for item in resolved_samples})
+    if len(seasons) < 2:
+        return {
+            "p80_margin_share": Decimal("0"),
+            "p90_margin_share": Decimal("0"),
+            "p80_margin_share_by_support_day": {},
+            "p90_margin_share_by_support_day": {},
+            "residual_count": 0,
+            "held_out_seasons": seasons,
+            "fold_count": 0,
+            "interval_semantics": "pointwise_marginal",
+            "calibration_status": "uncalibrated",
+            "pointwise_p80_coverage": None,
+            "pointwise_p90_coverage": None,
+            "peak_date_mae_days": None,
+            "curve_wmape": None,
+            "cumulative_share_error": None,
+            "warnings": ["uncalibrated_interval"],
+        }
+
+    by_day: dict[int, list[Decimal]] = defaultdict(list)
+    all_residuals: list[Decimal] = []
+    peak_date_errors: list[Decimal] = []
+    cumulative_errors: list[Decimal] = []
+    absolute_error_sum = Decimal("0")
+    actual_sum = Decimal("0")
+    covered_p80 = 0
+    covered_p90 = 0
+
+    for held_out_season in seasons:
+        train_samples = [
+            item for item in resolved_samples if item.season_code != held_out_season
+        ]
+        held_out_samples = [
+            item for item in resolved_samples if item.season_code == held_out_season
+        ]
+        if not train_samples or not held_out_samples:
+            continue
+        train_artifacts, _ = _build_group_curves(resolved_samples=train_samples, config=config)
+        train_shift = _build_shift_model(
+            resolved_samples=train_samples,
+            artifacts=train_artifacts,
+            config=config,
+        )
+        for sample in held_out_samples:
+            artifact, _ = _curve_for_sample(
+                artifacts=train_artifacts,
+                climate_zone_id=sample.climate_zone_id,
+                province=sample.province,
+                variety_id=sample.manifest_row.variety_id,
+            )
+            if artifact is None:
+                continue
+            shift_days = _predict_shift_days(
+                shift_model=train_shift,
+                feature_values=sample.feature_values,
+            )
+            shifted_density = _shift_curve(
+                density=artifact.density,
+                support_days=support_days,
+                shift_days=shift_days,
+            )
+            predicted_map = {
+                rel_day: share
+                for rel_day, share in zip(support_days, shifted_density, strict=True)
+            }
+            actual_map = {point.relative_day: point.proxy_share for point in sample.training_points}
+            for rel_day, actual_share in actual_map.items():
+                residual = abs(actual_share - predicted_map.get(rel_day, Decimal("0")))
+                by_day[rel_day].append(residual)
+                all_residuals.append(residual)
+                absolute_error_sum += residual
+                actual_sum += actual_share
+            observed_peak = _observed_peak_day(sample)
+            predicted_peak_index = int(
+                np.argmax(np.asarray([float(item) for item in shifted_density], dtype=float))
+            )
+            predicted_peak = Decimal(support_days[predicted_peak_index]).quantize(
+                Decimal("0.000001")
+            )
+            peak_date_errors.append(abs(observed_peak - predicted_peak))
+            cumulative_errors.append(
+                abs(sum(actual_map.values(), Decimal("0")) - sum(shifted_density, Decimal("0")))
+            )
+
+    p80_by_day = {
+        str(day): empirical_quantile(values, config.rules.intervals.p80_quantile).quantize(
+            Decimal("0.000001")
+        )
+        for day, values in sorted(by_day.items())
+    }
+    p90_by_day = {
+        str(day): empirical_quantile(values, config.rules.intervals.p90_quantile).quantize(
+            Decimal("0.000001")
+        )
+        for day, values in sorted(by_day.items())
+    }
+    p80_margin = empirical_quantile(all_residuals, config.rules.intervals.p80_quantile).quantize(
+        Decimal("0.000001")
+    )
+    p90_margin = empirical_quantile(all_residuals, config.rules.intervals.p90_quantile).quantize(
+        Decimal("0.000001")
+    )
+    for day, values in by_day.items():
+        margin80 = p80_by_day[str(day)]
+        margin90 = p90_by_day[str(day)]
+        covered_p80 += sum(1 for value in values if value <= margin80)
+        covered_p90 += sum(1 for value in values if value <= margin90)
+    residual_count = len(all_residuals)
+    warnings: list[str] = []
+    status = "calibrated"
+    if residual_count < 10:
+        warnings.append("uncalibrated_interval")
+        status = "uncalibrated"
+        p80_margin *= config.rules.intervals.uncalibrated_widening_factor
+        p90_margin *= config.rules.intervals.uncalibrated_widening_factor
+
+    return {
+        "p80_margin_share": p80_margin.quantize(Decimal("0.000001")),
+        "p90_margin_share": p90_margin.quantize(Decimal("0.000001")),
+        "p80_margin_share_by_support_day": p80_by_day,
+        "p90_margin_share_by_support_day": p90_by_day,
+        "residual_count": residual_count,
+        "held_out_seasons": seasons,
+        "fold_count": len(seasons),
+        "interval_semantics": "pointwise_marginal",
+        "calibration_status": status,
+        "pointwise_p80_coverage": (
+            None
+            if residual_count == 0
+            else (Decimal(covered_p80) / Decimal(residual_count)).quantize(Decimal("0.000001"))
+        ),
+        "pointwise_p90_coverage": (
+            None
+            if residual_count == 0
+            else (Decimal(covered_p90) / Decimal(residual_count)).quantize(Decimal("0.000001"))
+        ),
+        "peak_date_mae_days": (
+            None
+            if not peak_date_errors
+            else (sum(peak_date_errors, Decimal("0")) / Decimal(len(peak_date_errors))).quantize(
+                Decimal("0.000001")
+            )
+        ),
+        "curve_wmape": (
+            None
+            if actual_sum <= 0
+            else (absolute_error_sum / actual_sum).quantize(Decimal("0.000001"))
+        ),
+        "cumulative_share_error": (
+            None
+            if not cumulative_errors
+            else (
+                sum(cumulative_errors, Decimal("0")) / Decimal(len(cumulative_errors))
+            ).quantize(Decimal("0.000001"))
+        ),
+        "warnings": warnings,
+    }
 
 
 def _model_artifact_payload(
@@ -749,6 +1323,20 @@ def _artifact_from_payload(
             ).items()
         },
         reference_categories=cast(dict[str, str], shift_row.get("reference_categories", {})),
+        feature_order=tuple(cast(list[str], shift_row.get("feature_order", []))),
+        scaler_center={
+            key: _decimal_value(value, field=key)
+            for key, value in cast(dict[str, Any], shift_row.get("scaler_center", {})).items()
+        },
+        scaler_scale={
+            key: _decimal_value(value, field=key)
+            for key, value in cast(dict[str, Any], shift_row.get("scaler_scale", {})).items()
+        },
+        feature_units=cast(dict[str, str], shift_row.get("feature_units", {})),
+        missing_value_rules=cast(
+            dict[str, str],
+            shift_row.get("missing_value_rules", {}),
+        ),
         bounds=(
             _decimal_value(cast(list[Any], shift_row.get("bounds", ["0", "0"]))[0], field="bound"),
             _decimal_value(cast(list[Any], shift_row.get("bounds", ["0", "0"]))[1], field="bound"),
@@ -960,21 +1548,32 @@ async def train_maturity_curve(
         artifacts=artifacts,
         config=config,
     )
-    calibration = calibration_payload(
+    calibration = _calibration_payload(
         resolved_samples=resolved_samples,
         artifacts=artifacts,
-        support_days=_support_days(config),
         config=config,
     )
     warnings.extend(cast(list[str], calibration.get("warnings", [])))
-    base_temperature_context = {
-        str(sample.climate_zone_id): {
+    base_temperature_context: dict[str, Any] = {}
+    for sample in resolved_samples:
+        context_key = (
+            f"zone:{sample.climate_zone_id}|variety:{sample.manifest_row.variety_id}"
+        )
+        row_payload = {
             "run_id": sample.manifest_row.base_temperature_search_run_id,
             "source_signature": sample.base_temperature_source_signature,
             "selected_base_temperature": sample.selected_base_temperature,
+            "training_cutoff": sample.base_temperature_training_cutoff,
+            "feature_version": sample.base_temperature_feature_version,
+            "config_hash": sample.base_temperature_config_hash,
+            "scope": "climate_zone_variety",
+            "climate_zone_id": sample.climate_zone_id,
+            "variety_id": sample.manifest_row.variety_id,
         }
-        for sample in resolved_samples
-    }
+        existing_payload = base_temperature_context.get(context_key)
+        if existing_payload is not None and existing_payload != row_payload:
+            raise ValueError("conflicting base temperature context for climate zone and variety")
+        base_temperature_context[context_key] = row_payload
     artifact_payload = _model_artifact_payload(
         config=config,
         artifacts=artifacts,
@@ -1004,6 +1603,7 @@ async def train_maturity_curve(
             "training_cutoff": training_cutoff,
             "manifest_rows": resolved_snapshots,
             "artifact_hash": artifact_hash,
+            "base_temperature_context": base_temperature_context,
         },
     )
     if dry_run:
@@ -1058,6 +1658,127 @@ def _with_status_forecast(
     status: str,
 ) -> MaturityForecastExecutionResult:
     return MaturityForecastExecutionResult(**{**asdict(result), "status": status})
+
+
+def _cumulative_effective_temperature_by_date(
+    *,
+    observations_by_date: dict[date, Any],
+    anchor_date: date,
+    end_date: date,
+    base_temperature: Decimal,
+) -> tuple[dict[date, Decimal], list[date]]:
+    cumulative: dict[date, Decimal] = {}
+    running = Decimal("0")
+    missing: list[date] = []
+    for day in date_range(anchor_date, end_date):
+        observation = observations_by_date.get(day)
+        if observation is None:
+            missing.append(day)
+            continue
+        running += max(observation.temperature_mean_c - base_temperature, Decimal("0"))
+        cumulative[day] = running.quantize(Decimal("0.000001"))
+    return cumulative, missing
+
+
+def _forecast_axis_payload(
+    *,
+    anchor_date: date,
+    as_of_date: date,
+    prediction_dates: list[date],
+    base_temperature: Decimal,
+    observations_by_date: dict[date, Any],
+) -> tuple[
+    Literal["observed_phenology_axis", "calendar_proxy_axis"],
+    dict[str, Any],
+    dict[date, Decimal],
+    list[str],
+]:
+    if not prediction_dates:
+        return (
+            "calendar_proxy_axis",
+            {
+                "formula": "calendar_day_offset_plus_phase_correction",
+                "axis_provenance": "empty_prediction_window",
+                "selected_base_temperature": base_temperature,
+                "observed_day_count": 0,
+                "expected_day_count": 0,
+                "coverage_ratio": Decimal("0"),
+                "missing_dates": [],
+                "observed_prefix_end_date": None,
+            },
+            {},
+            ["calendar_proxy_axis"],
+        )
+    prediction_end_date = prediction_dates[-1]
+    observed_end_date = min(prediction_end_date, as_of_date)
+    cumulative, observed_missing = _cumulative_effective_temperature_by_date(
+        observations_by_date=observations_by_date,
+        anchor_date=anchor_date,
+        end_date=observed_end_date,
+        base_temperature=base_temperature,
+    )
+    if prediction_end_date <= as_of_date and not observed_missing:
+        coordinates = {
+            day: cumulative[day]
+            for day in prediction_dates
+        }
+        return (
+            "observed_phenology_axis",
+            {
+                "formula": "cumulative_effective_temperature_from_anchor",
+                "axis_provenance": "observed_weather_complete",
+                "selected_base_temperature": base_temperature,
+                "observed_day_count": len(cumulative),
+                "expected_day_count": len(prediction_dates),
+                "coverage_ratio": Decimal("1.000000"),
+                "missing_dates": [],
+                "observed_prefix_end_date": observed_end_date,
+            },
+            coordinates,
+            [],
+        )
+
+    phase_correction_days = Decimal("0")
+    if anchor_date <= observed_end_date and observed_end_date in cumulative:
+        elapsed_days = Decimal((observed_end_date - anchor_date).days)
+        divisor = base_temperature if base_temperature > 0 else Decimal("1")
+        phase_correction_days = (
+            (cumulative[observed_end_date] / divisor) - elapsed_days
+        ).quantize(Decimal("0.000001"))
+    coordinates = {
+        day: (
+            Decimal((day - anchor_date).days).quantize(Decimal("0.000001"))
+            + phase_correction_days
+        )
+        for day in prediction_dates
+    }
+    expected_observed_days = max((observed_end_date - anchor_date).days + 1, 0)
+    coverage_ratio = (
+        (Decimal(len(cumulative)) / Decimal(expected_observed_days)).quantize(Decimal("0.000001"))
+        if expected_observed_days > 0
+        else Decimal("0")
+    )
+    warnings = ["calendar_proxy_axis"]
+    if observed_missing:
+        warnings.append("anchor_weather_incomplete")
+    if prediction_end_date > as_of_date:
+        warnings.append("future_weather_not_used")
+    return (
+        "calendar_proxy_axis",
+        {
+            "formula": "calendar_day_offset_plus_phase_correction",
+            "axis_provenance": "calendar_proxy_from_observed_prefix",
+            "selected_base_temperature": base_temperature,
+            "phase_correction_days": phase_correction_days,
+            "observed_day_count": len(cumulative),
+            "expected_day_count": expected_observed_days,
+            "coverage_ratio": coverage_ratio,
+            "missing_dates": observed_missing,
+            "observed_prefix_end_date": observed_end_date,
+        },
+        coordinates,
+        warnings,
+    )
 
 
 async def load_maturity_model_result(
@@ -1135,16 +1856,31 @@ async def forecast_natural_maturity(
         dict[str, Any],
         artifact_row.artifact_payload.get("base_temperature_context", {}),
     )
+    base_temp_context_key = f"zone:{reference.climate_zone_id}|variety:{variety_id}"
     base_temp_context_row = cast(
         dict[str, Any] | None,
-        base_temp_context.get(str(reference.climate_zone_id)),
+        base_temp_context.get(base_temp_context_key),
     )
     if base_temp_context_row is None:
-        raise ValueError("base temperature context unavailable for climate zone")
+        raise ValueError("base temperature context unavailable for climate zone and variety")
     base_temp_run_id = int(base_temp_context_row["run_id"])
     base_temp_run = await get_base_temperature_search_run(session, run_id=base_temp_run_id)
     if base_temp_run is None:
         raise ValueError("base temperature search run not found")
+    if base_temp_run.status != "completed":
+        raise ValueError(f"base temperature search run not completed: {base_temp_run.status}")
+    if base_temp_run.selected_base_temperature is None:
+        raise ValueError("base temperature search run missing selected base temperature")
+    if base_temp_run.variety_id != variety_id:
+        raise ValueError("base temperature context variety mismatch")
+    if base_temp_run.climate_zone_id != reference.climate_zone_id:
+        raise ValueError("base temperature context climate zone mismatch")
+    if base_temp_run.source_signature != base_temp_context_row.get("source_signature"):
+        raise ValueError("base temperature context source signature mismatch")
+    if base_temp_run.feature_version != base_temp_context_row.get("feature_version"):
+        raise ValueError("base temperature context feature version mismatch")
+    if base_temp_run.config_hash != base_temp_context_row.get("config_hash"):
+        raise ValueError("base temperature context config hash mismatch")
     effective_total = expected_marketable_total_kg
     total_source = "explicit"
     if effective_total is None:
@@ -1166,32 +1902,7 @@ async def forecast_natural_maturity(
         as_of_date=as_of_date,
     )
     observation_fingerprint = _selected_observation_fingerprint(observations)
-    source_signature = _forecast_source_signature(
-        plan_id=plan.id,
-        plan_version=plan.version,
-        mapping_row_hash=mapping_row_hash,
-        base_temperature_search_run_id=base_temp_run_id,
-        base_temperature_source_signature=base_temp_run.source_signature,
-        selected_base_temperature=base_temp_run.selected_base_temperature,
-        artifact_hash=artifact_row.artifact_hash,
-        config_hash=config.config_hash,
-        model_version=model_run.model_version,
-        as_of_date=as_of_date,
-        prediction_start_date=prediction_start_date,
-        prediction_end_date=prediction_end_date,
-        observation_fingerprint=observation_fingerprint,
-    )
-    if not dry_run:
-        existing = await find_existing_maturity_forecast_run(
-            session,
-            source_signature=source_signature,
-        )
-        if existing is not None:
-            rows = await list_maturity_daily_predictions(session, forecast_run_id=existing.id)
-            return _with_status_forecast(
-                _forecast_result_from_run(existing, rows, model_run),
-                "skipped",
-            )
+    source_signature = ""
     artifact, fallback_level = _curve_for_sample(
         artifacts=group_models,
         climate_zone_id=reference.climate_zone_id,
@@ -1220,13 +1931,32 @@ async def forecast_natural_maturity(
     anchor_date = getattr(plan, anchor_event, None)
     if not isinstance(anchor_date, date):
         raise ValueError("forecast anchor date missing")
+    pruning_offset = (
+        Decimal((plan.pruning_date - anchor_date).days).quantize(Decimal("0.000001"))
+        if plan.pruning_date is not None
+        else None
+    )
+    flowering_peak_offset = (
+        Decimal((plan.flowering_peak_date - anchor_date).days).quantize(Decimal("0.000001"))
+        if plan.flowering_peak_date is not None
+        else None
+    )
+    first_pick_offset = (
+        Decimal((plan.first_pick_date - anchor_date).days).quantize(Decimal("0.000001"))
+        if plan.first_pick_date is not None
+        else None
+    )
+    shift_feature_snapshot = _safe_shift_feature_values(
+        altitude_m=_optional_decimal_value(reference.altitude_m),
+        tree_age_years=_optional_decimal_value(plan.tree_age_years),
+        facility_type=facility_type,
+        pruning_offset_days=pruning_offset,
+        flowering_peak_offset_days=flowering_peak_offset,
+        first_pick_offset_days=first_pick_offset,
+    )
     shift_days = _predict_shift_days(
         shift_model=shift_model,
-        feature_values={
-            "facility_type": facility_type,
-            "altitude_m": _optional_decimal_value(reference.altitude_m),
-            "tree_age_years": plan.tree_age_years,
-        },
+        feature_values=shift_feature_snapshot,
     )
     shifted_density = _shift_curve(
         density=artifact.density,
@@ -1234,6 +1964,62 @@ async def forecast_natural_maturity(
         shift_days=shift_days,
     )
     prediction_dates = date_range(prediction_start_date, prediction_end_date)
+    observations_by_date = {
+        item.observation_date: item for item in observations
+    }
+    selected_base_temperature = base_temp_run.selected_base_temperature
+    if selected_base_temperature is None:
+        raise ValueError("base temperature search run missing selected base temperature")
+    axis_mode, axis_snapshot, axis_coordinates, axis_warnings = _forecast_axis_payload(
+        anchor_date=anchor_date,
+        as_of_date=as_of_date,
+        prediction_dates=prediction_dates,
+        base_temperature=selected_base_temperature,
+        observations_by_date=observations_by_date,
+    )
+    source_signature = _forecast_source_signature(
+        plan_id=plan.id,
+        plan_version=plan.version,
+        mapping_row_hash=mapping_row_hash,
+        base_temperature_search_run_id=base_temp_run_id,
+        base_temperature_source_signature=base_temp_run.source_signature,
+        selected_base_temperature=selected_base_temperature,
+        artifact_hash=artifact_row.artifact_hash,
+        config_hash=config.config_hash,
+        model_version=model_run.model_version,
+        as_of_date=as_of_date,
+        prediction_start_date=prediction_start_date,
+        prediction_end_date=prediction_end_date,
+        expected_marketable_total_kg=effective_total,
+        expected_total_source=total_source,
+        facility_type=facility_type,
+        altitude_m=_optional_decimal_value(reference.altitude_m),
+        tree_age_years=_optional_decimal_value(plan.tree_age_years),
+        pruning_offset_days=pruning_offset,
+        flowering_peak_offset_days=flowering_peak_offset,
+        first_pick_offset_days=first_pick_offset,
+        shift_feature_snapshot=cast(dict[str, Any], canonical_json_value(shift_feature_snapshot)),
+        predicted_shift_days=shift_days,
+        selected_group_model_key=artifact.group_key,
+        fallback_level=fallback_level,
+        axis_mode=axis_mode,
+        axis_snapshot=cast(dict[str, Any], canonical_json_value(axis_snapshot)),
+        plan_row_hash=plan.row_hash,
+        location_reference_source_hash=reference.source_row_hash,
+        base_temperature_context=cast(dict[str, Any], canonical_json_value(base_temp_context_row)),
+        observation_fingerprint=observation_fingerprint,
+    )
+    if not dry_run:
+        existing = await find_existing_maturity_forecast_run(
+            session,
+            source_signature=source_signature,
+        )
+        if existing is not None:
+            rows = await list_maturity_daily_predictions(session, forecast_run_id=existing.id)
+            return _with_status_forecast(
+                _forecast_result_from_run(existing, rows, model_run),
+                "skipped",
+            )
     slice_shares: list[Decimal] = []
     slice_coords: list[Decimal] = []
     density_map = {
@@ -1241,7 +2027,7 @@ async def forecast_natural_maturity(
         for rel_day, share in zip(support_days, shifted_density, strict=True)
     }
     for day in prediction_dates:
-        rel_day = Decimal((day - anchor_date).days).quantize(Decimal("0.000001")) - shift_days
+        rel_day = axis_coordinates[day]
         rel_day_int = int(rel_day.to_integral_value(rounding=ROUND_HALF_UP))
         slice_coords.append(rel_day)
         slice_shares.append(density_map.get(rel_day_int, Decimal("0")))
@@ -1263,14 +2049,10 @@ async def forecast_natural_maturity(
         field="p90_margin_share",
     )
     calibration_warnings = tuple(cast(list[str], calibration.get("warnings", [])))
-    axis_mode: Literal["observed_phenology_axis", "calendar_proxy_axis"] = (
-        "calendar_proxy_axis" if prediction_end_date > as_of_date else "observed_phenology_axis"
-    )
     widening = Decimal("1")
-    warnings = list(calibration_warnings)
+    warnings = list(calibration_warnings) + axis_warnings
     if axis_mode == "calendar_proxy_axis":
         widening = config.rules.intervals.calendar_proxy_widening_factor
-        warnings.append("calendar_proxy_axis")
     daily_predictions: list[MaturityDailyPrediction] = []
     cumulative_p50 = Decimal("0")
     cumulative_p80 = Decimal("0")
@@ -1310,13 +2092,24 @@ async def forecast_natural_maturity(
         "plan_id": plan.id,
         "plan_version": plan.version,
         "plan_row_hash": plan.row_hash,
+        "plan_available_at": plan.available_at,
+        "plan_effective_from": plan.effective_from,
+        "plan_effective_to": plan.effective_to,
         "location_reference_id": reference.id,
+        "location_reference_source_hash": reference.source_row_hash,
         "mapping": mapping.reproducibility_snapshot,
         "base_temperature_search_run_id": base_temp_run_id,
         "base_temperature_source_signature": base_temp_run.source_signature,
-        "selected_base_temperature": base_temp_run.selected_base_temperature,
+        "selected_base_temperature": selected_base_temperature,
+        "base_temperature_context_key": base_temp_context_key,
+        "base_temperature_context": base_temp_context_row,
         "observation_fingerprint": observation_fingerprint,
+        "shift_feature_snapshot": shift_feature_snapshot,
+        "predicted_shift_days": shift_days,
+        "selected_group_model_key": artifact.group_key,
+        "fallback_level": fallback_level,
         "axis_mode": axis_mode,
+        "axis_snapshot": axis_snapshot,
         "artifact_hash": artifact_row.artifact_hash,
     }
     result = MaturityForecastExecutionResult(

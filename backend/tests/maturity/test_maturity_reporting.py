@@ -27,17 +27,72 @@ def test_write_model_reports_creates_json_and_markdown(tmp_path: Path) -> None:
         warnings=("proxy_label",),
         blockers=(),
         training_metrics={"wmape": Decimal("0.123456")},
-        calibration_metrics={"pointwise_p80_coverage": Decimal("0.8")},
-        artifact={"support_days": [0, 1, 2]},
-        input_snapshot={"training_cutoff": date(2026, 4, 30)},
+        calibration_metrics={
+            "pointwise_p80_coverage": Decimal("0.8"),
+            "interval_semantics": "pointwise_marginal",
+        },
+        artifact={
+            "support_days": [0, 1, 2],
+            "group_models": {
+                "zone:1|variety:1": {
+                    "level": "climate_zone_variety",
+                    "sample_count": 4,
+                    "distinct_season_count": 2,
+                    "distinct_farm_count": 2,
+                    "distinct_subfarm_count": 1,
+                    "parent_group_key": "province:Yunnan|variety:1",
+                    "shrinkage": "0.500000",
+                    "warnings": [],
+                }
+            },
+            "shift_model": {
+                "enabled": True,
+                "coefficients": {"altitude_m": "0.100000"},
+                "feature_units": {"altitude_m": "m"},
+            },
+            "calibration": {
+                "interval_semantics": "pointwise_marginal",
+                "pointwise_p80_coverage": "0.800000",
+            },
+        },
+        input_snapshot={
+            "training_cutoff": date(2026, 4, 30),
+            "manifest_rows": [
+                {
+                    "include": True,
+                    "season_code": "2025-2026",
+                    "holiday_summary": {
+                        "raw_day_count": 10,
+                        "used_day_count": 9,
+                        "downweighted_day_count": 1,
+                        "excluded_day_count": 0,
+                    },
+                },
+                {
+                    "include": False,
+                    "season_code": "2024-2025",
+                    "resolved_exclusion_reason": "manual",
+                },
+            ],
+        },
     )
 
     json_path, markdown_path = write_model_reports(result, output_dir=tmp_path)
 
     assert json_path.exists()
     assert markdown_path.exists()
-    assert '"wmape": "0.123456"' in json_path.read_text(encoding="utf-8")
-    assert "# Maturity Model Report" in markdown_path.read_text(encoding="utf-8")
+    json_text = json_path.read_text(encoding="utf-8")
+    markdown_text = markdown_path.read_text(encoding="utf-8")
+    assert '"wmape": "0.123456"' in json_text
+    assert '"label_proxy"' in json_text
+    assert '"manifest_audit"' in json_text
+    assert '"hierarchy"' in json_text
+    assert '"reproducibility"' in json_text
+    assert "# Maturity Model Report" in markdown_text
+    assert "## Proxy Label" in markdown_text
+    assert "## Manifest Audit" in markdown_text
+    assert "## Hierarchy" in markdown_text
+    assert "## Calibration" in markdown_text
 
 
 def test_write_forecast_reports_creates_json_and_markdown(tmp_path: Path) -> None:
