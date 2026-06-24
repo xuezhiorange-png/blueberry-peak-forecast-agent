@@ -34,8 +34,9 @@ from backend.app.maturity.service import (
 
 
 def _config():
+    repo_root = Path(__file__).resolve().parents[3]
     return load_maturity_curve_config(
-        Path("/Users/charles/Documents/智能agent开发/configs/maturity_curve.yaml")
+        repo_root / "configs/maturity_curve.yaml"
     )
 
 
