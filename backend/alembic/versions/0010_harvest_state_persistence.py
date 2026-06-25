@@ -28,9 +28,41 @@ def _sha256_check_sql(column_name: str) -> str:
     )
 
 
+_NON_NEGATIVE_CHECK_SUFFIXES = {
+    "pool_row_count": "prc",
+    "member_row_count": "mrc",
+    "cohort_row_count": "crc",
+    "future_arrival_row_count": "farc",
+    "opening_mature_inventory_kg": "open_inv",
+    "natural_maturity_supply_kg": "supply",
+    "available_mature_quantity_kg": "avail",
+    "mature_inventory_loss_quantity_kg": "loss",
+    "harvestable_mature_quantity_kg": "harvestable",
+    "nominal_harvest_capacity_kg_per_day": "nom_cap",
+    "effective_harvest_capacity_kg_per_day": "eff_cap",
+    "effective_capacity_for_day_kg": "day_cap",
+    "harvested_quantity_kg": "harvested",
+    "closing_mature_inventory_kg": "close_inv",
+    "unharvested_backlog_kg": "backlog",
+    "arrival_quantity_kg": "arrival",
+    "opening_cohort_count": "open_coh",
+    "closing_cohort_count": "close_coh",
+    "member_count": "members",
+    "allocated_harvest_capacity_kg": "alloc_cap",
+    "opening_quantity_kg": "open_qty",
+    "new_supply_quantity_kg": "new_supply",
+    "quantity_before_loss_kg": "before_loss",
+    "quantity_before_harvest_kg": "before_harvest",
+    "closing_quantity_kg": "close_qty",
+}
+
+
 def _non_negative_check_sql(prefix: str, *columns: str) -> list[sa.CheckConstraint]:
     return [
-        sa.CheckConstraint(f"{column} >= 0", name=f"ck_{prefix}_{column}_non_negative")
+        sa.CheckConstraint(
+            f"{column} >= 0",
+            name=f"ck_{prefix}_{_NON_NEGATIVE_CHECK_SUFFIXES[column]}_nn",
+        )
         for column in columns
     ]
 
@@ -133,7 +165,7 @@ def upgrade() -> None:
             name="ck_harvest_state_run_forecast_date_range",
         ),
         *_non_negative_check_sql(
-            "harvest_state_run",
+            "hsr",
             "pool_row_count",
             "member_row_count",
             "cohort_row_count",
@@ -229,7 +261,7 @@ def upgrade() -> None:
             name="ck_harvest_state_daily_pool_operational_ratio",
         ),
         *_non_negative_check_sql(
-            "harvest_state_daily_pool",
+            "hsdp",
             "opening_mature_inventory_kg",
             "natural_maturity_supply_kg",
             "available_mature_quantity_kg",
@@ -315,7 +347,7 @@ def upgrade() -> None:
             name="ck_harvest_state_daily_member_subfarm_identity_key",
         ),
         *_non_negative_check_sql(
-            "harvest_state_daily_member",
+            "hsdm",
             "opening_mature_inventory_kg",
             "natural_maturity_supply_kg",
             "available_mature_quantity_kg",
@@ -402,7 +434,7 @@ def upgrade() -> None:
             name="ck_harvest_state_cohort_transition_membership_hash",
         ),
         *_non_negative_check_sql(
-            "harvest_state_cohort_transition",
+            "hsct",
             "opening_quantity_kg",
             "new_supply_quantity_kg",
             "quantity_before_loss_kg",
