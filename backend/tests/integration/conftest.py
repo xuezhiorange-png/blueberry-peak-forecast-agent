@@ -7,6 +7,11 @@ from sqlalchemy import text
 from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
 
 _MASTER_DATA_TABLES = (
+    "harvest_state_future_arrival_row",
+    "harvest_state_cohort_transition_row",
+    "harvest_state_daily_member_row",
+    "harvest_state_daily_pool_row",
+    "harvest_state_run",
     "maturity_daily_prediction",
     "maturity_forecast_run",
     "maturity_model_artifact",
