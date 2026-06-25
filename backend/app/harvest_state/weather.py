@@ -15,11 +15,20 @@ def _band_matches(band: WeatherFeatureBand, value: Decimal) -> bool:
 
 def validate_weather_rule_config(config: WeatherEfficiencyRuleConfig) -> list[str]:
     blockers: list[str] = []
+    seen_feature_ids: set[str] = set()
     for rule in config.feature_rules:
+        if rule.feature_id in seen_feature_ids:
+            blockers.append(f"{BlockerCode.DUPLICATE_WEATHER_FEATURE_RULE}:{rule.feature_id}")
+            continue
+        seen_feature_ids.add(rule.feature_id)
         bands = sorted(rule.bands, key=lambda item: (item.lower_bound, item.upper_bound))
         if len(bands) == 1 and bands[0].lower_bound == bands[0].upper_bound:
             blockers.append(f"{BlockerCode.WEATHER_RULE_BAND_GAP}:{rule.feature_id}")
             continue
+        for band in bands:
+            if band.lower_bound > band.upper_bound:
+                blockers.append(f"{BlockerCode.WEATHER_RULE_INVALID_BOUNDS}:{rule.feature_id}")
+                break
         for current, nxt in zip(bands, bands[1:], strict=False):
             overlaps = nxt.lower_bound < current.upper_bound or (
                 nxt.lower_bound == current.upper_bound
@@ -28,6 +37,13 @@ def validate_weather_rule_config(config: WeatherEfficiencyRuleConfig) -> list[st
             )
             if overlaps:
                 blockers.append(f"{BlockerCode.WEATHER_RULE_BAND_OVERLAP}:{rule.feature_id}")
+                break
+            no_gap = (
+                nxt.lower_bound == current.upper_bound
+                and (current.upper_inclusive or nxt.lower_inclusive)
+            )
+            if nxt.lower_bound > current.upper_bound or not no_gap:
+                blockers.append(f"{BlockerCode.WEATHER_RULE_BAND_GAP}:{rule.feature_id}")
                 break
     return blockers
 

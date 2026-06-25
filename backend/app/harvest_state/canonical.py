@@ -18,6 +18,8 @@ _CANONICAL_DECIMAL_RE = re.compile(r"^(0|[-]?[1-9][0-9]*)(\.[0-9]+)?$")
 
 def parse_decimal(value: object) -> Decimal:
     if isinstance(value, Decimal):
+        if not value.is_finite():
+            raise ValueError("non-finite Decimal is not allowed")
         return value
     if isinstance(value, bool):
         raise ValueError("bool is not a valid Decimal input")
@@ -34,9 +36,12 @@ def parse_decimal(value: object) -> Decimal:
         if text.startswith("-0"):
             raise ValueError("negative zero is not allowed")
         try:
-            return Decimal(text)
+            parsed = Decimal(text)
         except InvalidOperation as exc:  # pragma: no cover - defensive
             raise ValueError(f"invalid Decimal string: {value!r}") from exc
+        if not parsed.is_finite():
+            raise ValueError("non-finite Decimal is not allowed")
+        return parsed
     raise ValueError(f"unsupported Decimal input type: {type(value).__name__}")
 
 
@@ -105,6 +110,10 @@ def make_membership_hash(capacity_pool_grain: str, members: list[dict[str, int |
 
 
 def make_source_ref_hash(payload: dict[str, Any]) -> str:
+    return sha256_hex(payload)
+
+
+def make_stable_cohort_key(payload: dict[str, Any]) -> str:
     return sha256_hex(payload)
 
 

@@ -1,18 +1,26 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
+
+from pydantic import ValidationError
 
 from backend.app.harvest_state.canonical import (
     canonical_json_value,
     make_membership_hash,
     make_result_hash,
+    make_stable_cohort_key,
     quantize_quantity,
 )
-from backend.app.harvest_state.capacity import allocate_fifo_harvest, allocate_fifo_loss
+from backend.app.harvest_state.capacity import (
+    allocate_fifo_harvest,
+    allocate_fifo_loss,
+    resolve_harvest_arrival,
+)
 from backend.app.harvest_state.enums import (
     OUTPUT_SCHEMA_VERSION,
     RESOLVED_PARAMETER_SNAPSHOT_SCHEMA_VERSION,
@@ -99,6 +107,22 @@ def _cohort_sort_key(cohort: dict[str, Any]) -> tuple[date, int, int, str]:
     )
 
 
+def _sum_member_field(
+    member_rows: list[dict[str, Any]],
+    *,
+    pool_id: str,
+    field_name: str,
+) -> Decimal:
+    return sum(
+        (
+            row[field_name]
+            for row in member_rows
+            if row["capacity_pool_id"] == pool_id
+        ),
+        Decimal("0"),
+    )
+
+
 def _compute_initial_cohort_key(
     cohort: InitialInventoryCohortInput,
     *,
@@ -122,7 +146,7 @@ def _compute_initial_cohort_key(
         "capacity_pool_membership_hash": capacity_pool_membership_hash,
         "destination_factory_id": destination_factory_id,
     }
-    return make_result_hash(payload)
+    return make_stable_cohort_key(payload)
 
 
 def _compute_task8_cohort_key(
@@ -149,7 +173,7 @@ def _compute_task8_cohort_key(
         "capacity_pool_membership_hash": capacity_pool_membership_hash,
         "destination_factory_id": destination_factory_id,
     }
-    return make_result_hash(payload)
+    return make_stable_cohort_key(payload)
 
 
 def _sorted_request_snapshot(
@@ -207,8 +231,8 @@ def _sorted_request_snapshot(
         "holiday_calendar_hash": request.holiday_calendar_hash,
         "holiday_dates": sorted(request.holiday_dates),
         "weather_rule_config": request.weather_rule_config.model_dump(mode="python"),
-        "run_parameter_source_refs": [
-            item.model_dump(mode="python")
+        "run_parameter_source_ref_hashes": [
+            source_ref_hash(item)
             for item in sorted(
                 request.run_parameter_source_refs,
                 key=lambda item: (item.parameter_code, item.source_row_hash),
@@ -225,12 +249,68 @@ def _sorted_request_snapshot(
             }
             for pool in pools
         ],
-        "daily_capacity_inputs": [item.model_dump(mode="python") for item in capacity_inputs],
-        "daily_weather_features": [item.model_dump(mode="python") for item in weather_inputs],
-        "task8_daily_predictions": [item.model_dump(mode="python") for item in task8_inputs],
-        "initial_inventory_cohorts": [item.model_dump(mode="python") for item in initial_inputs],
+        "daily_capacity_inputs": [
+            {
+                "capacity_date": item.capacity_date,
+                "capacity_pool_id": item.capacity_pool_id,
+                "capacity_input_mode": item.capacity_input_mode,
+                "planned_picker_count": item.planned_picker_count,
+                "kg_per_person_per_day": item.kg_per_person_per_day,
+                "direct_nominal_capacity_kg_per_day": item.direct_nominal_capacity_kg_per_day,
+                "labor_availability_ratio": item.labor_availability_ratio,
+                "operational_efficiency_ratio": item.operational_efficiency_ratio,
+                "capacity_parameter_source_ref_hashes": sorted(
+                    source_ref_hash(source_ref)
+                    for source_ref in item.capacity_parameter_source_refs
+                ),
+            }
+            for item in capacity_inputs
+        ],
+        "daily_weather_features": [
+            {
+                "capacity_date": item.capacity_date,
+                "capacity_pool_id": item.capacity_pool_id,
+                "feature_id": item.feature_id,
+                "value": item.value,
+                "source_ref_hash": source_ref_hash(item.source_ref),
+            }
+            for item in weather_inputs
+        ],
+        "task8_daily_predictions": [
+            {
+                "prediction_date": item.prediction_date,
+                "farm_id": item.farm_id,
+                "subfarm_id": item.subfarm_id,
+                "variety_id": item.variety_id,
+                "source_ref_hash": source_ref_hash(item.source_ref),
+            }
+            for item in task8_inputs
+        ],
+        "initial_inventory_cohorts": [
+            {
+                "cohort_date": item.cohort_date,
+                "farm_id": item.farm_id,
+                "subfarm_id": item.subfarm_id,
+                "variety_id": item.variety_id,
+                "remaining_quantity_kg": item.remaining_quantity_kg,
+                "source_ref_hash": source_ref_hash(item.source_ref),
+                "forecast_quantile": item.forecast_quantile,
+                "stable_cohort_key": item.stable_cohort_key,
+                "stable_cohort_key_schema_version": item.stable_cohort_key_schema_version,
+            }
+            for item in initial_inputs
+        ],
         "initial_opening_mature_inventory_kg": request.initial_opening_mature_inventory_kg,
-        "mature_inventory_loss_inputs": [item.model_dump(mode="python") for item in loss_inputs],
+        "mature_inventory_loss_inputs": [
+            {
+                "state_date": item.state_date,
+                "capacity_pool_id": item.capacity_pool_id,
+                "forecast_quantile": item.forecast_quantile,
+                "mature_inventory_loss_quantity_kg": item.mature_inventory_loss_quantity_kg,
+                "source_ref_hash": source_ref_hash(item.source_ref),
+            }
+            for item in loss_inputs
+        ],
     }
     if validated is not None:
         snapshot["pool_membership_hash_by_pool"] = validated.pool_membership_hash_by_pool
@@ -257,10 +337,130 @@ def _sorted_blockers(blockers: list[str]) -> list[str]:
     return sorted(dict.fromkeys(blockers))
 
 
+def _normalize_raw_snapshot(payload: Mapping[str, object]) -> dict[str, Any]:
+    normalized = dict(payload)
+    if "capacity_pools" in normalized and isinstance(normalized["capacity_pools"], list):
+        normalized["capacity_pools"] = sorted(
+            [
+                {
+                    **dict(item),
+                    "members": sorted(
+                        list(dict(item).get("members", [])),
+                        key=lambda member: (
+                            dict(member).get("farm_id", -1),
+                            dict(member).get("subfarm_id", -1),
+                            dict(member).get("variety_id", -1),
+                        ),
+                    ),
+                }
+                for item in normalized["capacity_pools"]
+                if isinstance(item, Mapping)
+            ],
+            key=lambda item: str(item.get("capacity_pool_id", "")),
+        )
+    if "task8_daily_predictions" in normalized and isinstance(
+        normalized["task8_daily_predictions"], list
+    ):
+        normalized["task8_daily_predictions"] = sorted(
+            [
+                dict(item)
+                for item in normalized["task8_daily_predictions"]
+                if isinstance(item, Mapping)
+            ],
+            key=lambda item: (
+                str(item.get("prediction_date", "")),
+                int(item.get("farm_id", -1)),
+                -1 if item.get("subfarm_id") is None else int(item.get("subfarm_id", -1)),
+                int(item.get("variety_id", -1)),
+                str(dict(item.get("source_ref", {})).get("forecast_quantile", "")),
+            ),
+        )
+    if "mature_inventory_loss_inputs" in normalized and isinstance(
+        normalized["mature_inventory_loss_inputs"], list
+    ):
+        normalized["mature_inventory_loss_inputs"] = sorted(
+            [
+                dict(item)
+                for item in normalized["mature_inventory_loss_inputs"]
+                if isinstance(item, Mapping)
+            ],
+            key=lambda item: (
+                str(item.get("state_date", "")),
+                str(item.get("capacity_pool_id", "")),
+                str(item.get("forecast_quantile", "")),
+            ),
+        )
+    return canonical_json_value(normalized)  # type: ignore[return-value]
+
+
+def _map_validation_error_codes(error: ValidationError) -> list[str]:
+    blockers: list[str] = []
+    for detail in error.errors():
+        location = ".".join(str(item) for item in detail.get("loc", ()))
+        error_type = str(detail.get("type", ""))
+        if "harvest_to_arrival_lag_days" in location:
+            blockers.append(BlockerCode.INVALID_ARRIVAL_LAG)
+        elif "capacity_pool_grain" in location:
+            blockers.append(BlockerCode.UNSUPPORTED_CAPACITY_POOL_GRAIN)
+        elif "timezone" in location:
+            blockers.append(BlockerCode.INVALID_TIMEZONE)
+        elif error_type.startswith("missing"):
+            blockers.append(f"{BlockerCode.MISSING_REQUIRED_INPUT}:{location}")
+        elif error_type.startswith("value_error"):
+            message = str(detail.get("msg", ""))
+            if "float" in message:
+                blockers.append(BlockerCode.NATIVE_FLOAT_INPUT)
+            else:
+                blockers.append(f"{BlockerCode.INVALID_DECIMAL_INPUT}:{location}")
+        else:
+            blockers.append(f"{BlockerCode.INVALID_DECIMAL_INPUT}:{location}")
+    return _sorted_blockers(blockers)
+
+
+def _blocked_from_raw_payload(
+    payload: Mapping[str, object],
+    blockers: list[str],
+) -> Task9ABlockedOutput:
+    input_snapshot = _normalize_raw_snapshot(payload)
+    response_payload = {
+        "output_schema_version": OUTPUT_SCHEMA_VERSION,
+        "status": "blocked",
+        "input_snapshot": input_snapshot,
+        "resolved_parameter_snapshot": None,
+        "daily_pool_state_rows": [],
+        "daily_member_state_rows": [],
+        "cohort_transition_rows": [],
+        "future_arrival_schedule": [],
+        "source_ref_catalog": [],
+        "warnings": [],
+        "blockers": _sorted_blockers(blockers),
+        "config_hash": make_result_hash({"raw_input_snapshot": input_snapshot}),
+    }
+    return Task9ABlockedOutput(
+        input_snapshot=input_snapshot,
+        resolved_parameter_snapshot=None,
+        source_ref_catalog=[],
+        warnings=[],
+        blockers=_sorted_blockers(blockers),
+        config_hash=response_payload["config_hash"],
+        result_hash=make_result_hash(response_payload),
+    )
+
+
 def _validated_request(request: Task9ARequest) -> ValidatedRequest:
     blockers: list[str] = []
     warnings: list[str] = []
-    pools_by_id = {pool.capacity_pool_id: pool for pool in request.capacity_pools}
+    try:
+        ZoneInfo(request.farm_timezone)
+        ZoneInfo(request.destination_factory_timezone)
+    except Exception:
+        blockers.append(BlockerCode.INVALID_TIMEZONE)
+
+    pools_by_id: dict[str, Any] = {}
+    for pool in request.capacity_pools:
+        if pool.capacity_pool_id in pools_by_id:
+            blockers.append(f"{BlockerCode.DUPLICATE_CAPACITY_POOL_ID}:{pool.capacity_pool_id}")
+        pools_by_id[pool.capacity_pool_id] = pool
     pool_membership_hash_by_pool: dict[str, str] = {}
     member_to_pool: dict[tuple[int, int | None, int], str] = {}
     source_refs: list[SourceRef] = []
@@ -305,12 +505,23 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
 
     weather_values_by_key: dict[tuple[date, str], dict[str, Decimal]] = {}
     weather_refs_by_key: dict[tuple[date, str], list[ParameterSourceRef]] = {}
+    seen_weather_keys: set[tuple[date, str, str]] = set()
+    allowed_weather_features = set(request.weather_rule_config.required_feature_ids)
     for feature in request.daily_weather_features:
         source_refs.append(feature.source_ref)
         if feature.source_ref.available_at > request.as_of_date:
             blockers.append(
                 f"{BlockerCode.PARAMETER_SOURCE_NOT_VISIBLE_AT_AS_OF}:{feature.feature_id}"
             )
+        if feature.source_ref.parameter_code.value != "WEATHER_FEATURE_OBSERVATION":
+            blockers.append(f"{BlockerCode.UNKNOWN_PARAMETER_CODE}:{feature.feature_id}")
+        if feature.feature_id not in allowed_weather_features:
+            blockers.append(f"{BlockerCode.UNKNOWN_WEATHER_FEATURE}:{feature.feature_id}")
+        weather_dedup_key = (feature.capacity_date, feature.capacity_pool_id, feature.feature_id)
+        if weather_dedup_key in seen_weather_keys:
+            blockers.append(f"{BlockerCode.DUPLICATE_WEATHER_INPUT}:{weather_dedup_key}")
+            continue
+        seen_weather_keys.add(weather_dedup_key)
         weather_lookup_key = (feature.capacity_date, feature.capacity_pool_id)
         weather_values_by_key.setdefault(weather_lookup_key, {})
         weather_refs_by_key.setdefault(weather_lookup_key, [])
@@ -435,11 +646,12 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
             operational_efficiency_ratio=capacity_input.operational_efficiency_ratio,
             resolved_effective_capacity_kg_per_day=resolved_effective,
             holiday_applied=capacity_input.capacity_date in request.holiday_dates,
-            capacity_parameter_source_refs=sorted(
-                capacity_input.capacity_parameter_source_refs,
-                key=lambda item: (item.parameter_code, item.source_row_hash),
+            capacity_parameter_source_ref_hashes=sorted(
+                source_ref_hash(item) for item in capacity_input.capacity_parameter_source_refs
             ),
-            weather_feature_source_refs=weather_refs,
+            weather_feature_source_ref_hashes=sorted(
+                source_ref_hash(item) for item in weather_refs
+            ),
         )
 
     for forecast_date in forecast_dates:
@@ -452,6 +664,7 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
     task8_daily_predictions_by_key: dict[
         tuple[ForecastQuantile, date, str], list[Task8DailyPredictionInput]
     ] = {}
+    seen_task8_keys: set[tuple[date, int, int | None, int, ForecastQuantile]] = set()
     for prediction in request.task8_daily_predictions:
         source_refs.append(prediction.source_ref)
         member_key = _member_key(prediction.farm_id, prediction.subfarm_id, prediction.variety_id)
@@ -459,9 +672,66 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
         if mapped_pool_id is None:
             blockers.append(f"{BlockerCode.MISSING_POOL_MEMBERSHIP}:{member_key}")
             continue
+        task8_row_key = (
+            prediction.prediction_date,
+            prediction.farm_id,
+            prediction.subfarm_id,
+            prediction.variety_id,
+            prediction.source_ref.forecast_quantile,
+        )
+        if task8_row_key in seen_task8_keys:
+            blockers.append(f"{BlockerCode.DUPLICATE_TASK8_INPUT}:{task8_row_key}")
+            continue
+        seen_task8_keys.add(task8_row_key)
         if prediction.source_ref.prediction_date != prediction.prediction_date:
             blockers.append(
                 f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{prediction.prediction_date}"
+            )
+        if prediction.source_ref.forecast_run_status != "completed":
+            blockers.append(
+                f"{BlockerCode.TASK8_FORECAST_NOT_COMPLETED}:{prediction.source_ref.maturity_forecast_run_id}"
+            )
+        if (
+            prediction.source_ref.forecast_model_run_id
+            != prediction.source_ref.maturity_model_run_id
+        ):
+            blockers.append(
+                f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{prediction.source_ref.maturity_forecast_run_id}"
+            )
+        if prediction.source_ref.artifact_run_id != prediction.source_ref.maturity_model_run_id:
+            blockers.append(
+                f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{prediction.source_ref.maturity_model_artifact_id}"
+            )
+        if (
+            prediction.source_ref.forecast_artifact_id
+            != prediction.source_ref.maturity_model_artifact_id
+        ):
+            blockers.append(
+                f"{BlockerCode.TASK8_ARTIFACT_HASH_MISMATCH}:{prediction.source_ref.maturity_model_artifact_id}"
+            )
+        if (
+            prediction.source_ref.daily_prediction_forecast_run_id
+            != prediction.source_ref.maturity_forecast_run_id
+        ):
+            blockers.append(
+                f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{prediction.source_ref.maturity_daily_prediction_id}"
+            )
+        if not (
+            prediction.source_ref.maturity_forecast_prediction_start_date
+            <= prediction.prediction_date
+            <= prediction.source_ref.maturity_forecast_prediction_end_date
+        ):
+            blockers.append(
+                f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{prediction.prediction_date}"
+            )
+        expected_quantity = {
+            ForecastQuantile.P50: prediction.source_ref.p50_kg,
+            ForecastQuantile.P80: prediction.source_ref.p80_kg,
+            ForecastQuantile.P90: prediction.source_ref.p90_kg,
+        }[prediction.source_ref.forecast_quantile]
+        if expected_quantity != prediction.source_ref.source_quantity_kg:
+            blockers.append(
+                f"{BlockerCode.TASK8_QUANTILE_VALUE_MISMATCH}:{task8_row_key}"
             )
         prediction_lookup_key = (
             prediction.source_ref.forecast_quantile,
@@ -477,6 +747,8 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
         source_refs.append(cohort.source_ref)
         if cohort.source_ref.available_at > request.as_of_date:
             blockers.append(BlockerCode.INITIAL_SOURCE_NOT_VISIBLE_AT_AS_OF)
+        if not cohort.source_ref.source_row_hash:
+            blockers.append(BlockerCode.INITIAL_SOURCE_ROW_HASH_MISSING)
         member_key = _member_key(cohort.farm_id, cohort.subfarm_id, cohort.variety_id)
         mapped_pool_id = member_to_pool.get(member_key)
         if mapped_pool_id is None:
@@ -488,8 +760,12 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
             capacity_pool_membership_hash=pool_membership_hash_by_pool[mapped_pool_id],
             destination_factory_id=request.destination_factory_id,
         )
+        if cohort.stable_cohort_key != computed_key:
+            blockers.append(f"{BlockerCode.STABLE_COHORT_KEY_MISMATCH}:{computed_key}")
         initial_cohort_keys.append(computed_key)
         initial_total += cohort.remaining_quantity_kg
+    if len(set(initial_cohort_keys)) != len(initial_cohort_keys):
+        blockers.append(BlockerCode.DUPLICATE_STABLE_COHORT_KEY)
     if request.initial_opening_mature_inventory_kg is not None and quantize_quantity(
         initial_total
     ) != quantize_quantity(request.initial_opening_mature_inventory_kg):
@@ -521,6 +797,22 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
                     blockers.append(
                         f"{BlockerCode.MISSING_MATURE_LOSS_INPUT}:{pool_id}:{forecast_date}:{quantile}"
                     )
+                if (
+                    (quantile, forecast_date, pool_id) not in task8_daily_predictions_by_key
+                    or not task8_daily_predictions_by_key[(quantile, forecast_date, pool_id)]
+                ):
+                    blockers.append(
+                        f"{BlockerCode.MISSING_TASK8_INPUT}:{pool_id}:{forecast_date}:{quantile}"
+                    )
+                else:
+                    expected_member_count = len(pools_by_id[pool_id].members)
+                    actual_member_count = len(
+                        task8_daily_predictions_by_key[(quantile, forecast_date, pool_id)]
+                    )
+                    if actual_member_count != expected_member_count:
+                        blockers.append(
+                            f"{BlockerCode.MISSING_TASK8_INPUT}:{pool_id}:{forecast_date}:{quantile}"
+                        )
 
     provisional = ValidatedRequest(
         request=request,
@@ -547,7 +839,11 @@ def _blocked_output(
     request: Task9ARequest,
     validated: ValidatedRequest,
 ) -> Task9ABlockedOutput:
-    source_ref_catalog, catalog_blockers = build_source_ref_catalog(validated.source_refs)
+    referenced_hashes = _referenced_source_hashes_from_input_snapshot(validated.input_snapshot)
+    source_ref_catalog, catalog_blockers = build_source_ref_catalog(
+        validated.source_refs,
+        referenced_hashes=referenced_hashes,
+    )
     blockers = _sorted_blockers(validated.blockers + catalog_blockers)
     payload = {
         "output_schema_version": OUTPUT_SCHEMA_VERSION,
@@ -574,9 +870,58 @@ def _blocked_output(
     )
 
 
+def _referenced_source_hashes_from_input_snapshot(snapshot: dict[str, Any]) -> set[str]:
+    referenced: set[str] = set()
+    referenced.update(snapshot.get("run_parameter_source_ref_hashes", []))
+    for item in snapshot.get("daily_capacity_inputs", []):
+        referenced.update(item.get("capacity_parameter_source_ref_hashes", []))
+    for item in snapshot.get("daily_weather_features", []):
+        if item.get("source_ref_hash"):
+            referenced.add(item["source_ref_hash"])
+    for item in snapshot.get("task8_daily_predictions", []):
+        if item.get("source_ref_hash"):
+            referenced.add(item["source_ref_hash"])
+    for item in snapshot.get("initial_inventory_cohorts", []):
+        if item.get("source_ref_hash"):
+            referenced.add(item["source_ref_hash"])
+    for item in snapshot.get("mature_inventory_loss_inputs", []):
+        if item.get("source_ref_hash"):
+            referenced.add(item["source_ref_hash"])
+    return referenced
+
+
+def _referenced_source_hashes_from_completed_output(
+    *,
+    input_snapshot: dict[str, Any],
+    resolved_snapshot: ResolvedParameterSnapshot,
+    pool_rows: list[DailyPoolStateRow],
+    member_rows: list[DailyMemberStateRow],
+    cohort_rows: list[CohortTransitionRow],
+) -> set[str]:
+    referenced = _referenced_source_hashes_from_input_snapshot(input_snapshot)
+    for item in resolved_snapshot.daily_pool_parameters:
+        referenced.update(item.capacity_parameter_source_ref_hashes)
+        referenced.update(item.weather_feature_source_ref_hashes)
+    for pool_row in pool_rows:
+        referenced.update(pool_row.parameter_source_ref_hashes)
+        referenced.update(pool_row.cohort_source_ref_hashes)
+    for member_row in member_rows:
+        referenced.update(member_row.cohort_source_ref_hashes)
+    for cohort_row in cohort_rows:
+        referenced.add(cohort_row.source_ref_hash)
+    return referenced
+
+
 def run_harvest_state_model(
-    request: Task9ARequest,
+    payload: Mapping[str, object] | Task9ARequest,
 ) -> Task9ACompletedOutput | Task9ABlockedOutput:
+    if not isinstance(payload, Task9ARequest):
+        try:
+            request = Task9ARequest.model_validate(payload)
+        except ValidationError as exc:
+            return _blocked_from_raw_payload(payload, _map_validation_error_codes(exc))
+    else:
+        request = payload
     validated = _validated_request(request)
     if validated.blockers:
         return _blocked_output(request, validated)
@@ -615,13 +960,13 @@ def run_harvest_state_model(
         ],
     )
 
-    all_pool_rows: list[DailyPoolStateRow] = []
-    all_member_rows: list[DailyMemberStateRow] = []
-    all_cohort_rows: list[CohortTransitionRow] = []
-    future_arrivals: dict[tuple[int, date, int, ForecastQuantile], Decimal] = {}
+    cohort_row_inputs: list[dict[str, Any]] = []
+    member_row_inputs: list[dict[str, Any]] = []
+    pool_row_inputs: list[dict[str, Any]] = []
 
     for quantile in request.forecast_quantiles:
         current_cohorts: list[dict[str, Any]] = []
+        seen_cohort_identity_by_key: dict[str, dict[str, Any]] = {}
         for initial_cohort in validated.initial_inventory_cohorts:
             if initial_cohort.forecast_quantile is not quantile:
                 continue
@@ -638,11 +983,29 @@ def run_harvest_state_model(
                 capacity_pool_membership_hash=membership_hash,
                 destination_factory_id=request.destination_factory_id,
             )
+            identity_payload = {
+                "source_ref_hash": source_ref_hash(initial_cohort.source_ref),
+                "pool_id": pool_id,
+                "farm_id": initial_cohort.farm_id,
+                "subfarm_id": initial_cohort.subfarm_id,
+                "variety_id": initial_cohort.variety_id,
+                "cohort_date": initial_cohort.cohort_date,
+                "forecast_quantile": quantile,
+            }
+            existing = seen_cohort_identity_by_key.get(stable_key)
+            if existing is not None and canonical_json_value(existing) != canonical_json_value(
+                identity_payload
+            ):
+                validated.blockers.append(f"{BlockerCode.COHORT_IDENTITY_COLLISION}:{stable_key}")
+                return _blocked_output(request, validated)
+            if existing is not None:
+                validated.blockers.append(f"{BlockerCode.DUPLICATE_STABLE_COHORT_KEY}:{stable_key}")
+                return _blocked_output(request, validated)
+            seen_cohort_identity_by_key[stable_key] = identity_payload
             current_cohorts.append(
                 {
                     "stable_cohort_key": stable_key,
-                    "source_ref_hash": source_ref_hash(initial_cohort.source_ref),
-                    "source_ref": initial_cohort.source_ref,
+                    "source_ref_hash": identity_payload["source_ref_hash"],
                     "capacity_pool_id": pool_id,
                     "capacity_pool_membership_hash": membership_hash,
                     "farm_id": initial_cohort.farm_id,
@@ -650,16 +1013,19 @@ def run_harvest_state_model(
                     "variety_id": initial_cohort.variety_id,
                     "cohort_date": initial_cohort.cohort_date,
                     "forecast_quantile": quantile,
-                    "remaining_quantity_kg": quantize_quantity(
-                        initial_cohort.remaining_quantity_kg
-                    ),
+                    "remaining_quantity_kg": initial_cohort.remaining_quantity_kg,
                 }
             )
 
-        previous_closing_by_key: dict[str, Decimal] = {}
+        previous_day_closing_by_key: dict[str, Decimal] = {}
         date_count = (request.forecast_end_date - request.forecast_start_date).days + 1
         for offset in range(date_count):
             state_date = request.forecast_start_date + timedelta(days=offset)
+            day_opening_by_key: dict[str, Decimal] = {}
+            day_closing_by_key: dict[str, Decimal] = {}
+            day_member_inputs: list[dict[str, Any]] = []
+            day_pool_inputs: list[dict[str, Any]] = []
+
             for pool_id, pool in sorted(validated.pools_by_id.items(), key=lambda item: item[0]):
                 params = validated.daily_pool_parameters[(state_date, pool_id)]
                 member_keys = [
@@ -672,9 +1038,11 @@ def run_harvest_state_model(
                     if cohort["capacity_pool_id"] == pool_id and cohort["remaining_quantity_kg"] > 0
                 ]
                 opening_qty_map = {
-                    cohort["stable_cohort_key"]: quantize_quantity(cohort["remaining_quantity_kg"])
+                    str(cohort["stable_cohort_key"]): cohort["remaining_quantity_kg"]
                     for cohort in opening_cohorts
                 }
+                day_opening_by_key.update(opening_qty_map)
+
                 new_predictions = validated.task8_daily_predictions_by_key.get(
                     (quantile, state_date, pool_id),
                     [],
@@ -696,11 +1064,34 @@ def run_harvest_state_model(
                         ],
                         destination_factory_id=request.destination_factory_id,
                     )
+                    identity_payload = {
+                        "source_ref_hash": source_ref_hash(prediction.source_ref),
+                        "pool_id": pool_id,
+                        "farm_id": prediction.farm_id,
+                        "subfarm_id": prediction.subfarm_id,
+                        "variety_id": prediction.variety_id,
+                        "cohort_date": prediction.prediction_date,
+                        "forecast_quantile": quantile,
+                    }
+                    existing = seen_cohort_identity_by_key.get(stable_key)
+                    if existing is not None and (
+                        canonical_json_value(existing)
+                        != canonical_json_value(identity_payload)
+                    ):
+                        validated.blockers.append(
+                            f"{BlockerCode.COHORT_IDENTITY_COLLISION}:{stable_key}"
+                        )
+                        return _blocked_output(request, validated)
+                    if existing is not None:
+                        validated.blockers.append(
+                            f"{BlockerCode.DUPLICATE_STABLE_COHORT_KEY}:{stable_key}"
+                        )
+                        return _blocked_output(request, validated)
+                    seen_cohort_identity_by_key[stable_key] = identity_payload
                     new_cohorts.append(
                         {
                             "stable_cohort_key": stable_key,
-                            "source_ref_hash": source_ref_hash(prediction.source_ref),
-                            "source_ref": prediction.source_ref,
+                            "source_ref_hash": identity_payload["source_ref_hash"],
                             "capacity_pool_id": pool_id,
                             "capacity_pool_membership_hash": validated.pool_membership_hash_by_pool[
                                 pool_id
@@ -710,45 +1101,40 @@ def run_harvest_state_model(
                             "variety_id": prediction.variety_id,
                             "cohort_date": prediction.prediction_date,
                             "forecast_quantile": quantile,
-                            "remaining_quantity_kg": quantize_quantity(
-                                prediction.source_ref.source_quantity_kg
-                            ),
+                            "remaining_quantity_kg": prediction.source_ref.source_quantity_kg,
                         }
                     )
+
                 current_cohorts.extend(new_cohorts)
-                pool_cohorts = [
-                    cohort for cohort in current_cohorts if cohort["capacity_pool_id"] == pool_id
-                ]
-                fifo_cohorts = sorted(pool_cohorts, key=_cohort_sort_key)
+                fifo_cohorts = sorted(
+                    [cohort for cohort in current_cohorts if cohort["capacity_pool_id"] == pool_id],
+                    key=_cohort_sort_key,
+                )
                 new_supply_qty_map = {
-                    cohort["stable_cohort_key"]: quantize_quantity(cohort["remaining_quantity_kg"])
+                    str(cohort["stable_cohort_key"]): cohort["remaining_quantity_kg"]
                     for cohort in new_cohorts
                 }
                 before_loss_map = {
-                    cohort["stable_cohort_key"]: quantize_quantity(cohort["remaining_quantity_kg"])
+                    str(cohort["stable_cohort_key"]): cohort["remaining_quantity_kg"]
                     for cohort in fifo_cohorts
                 }
-                available_total = quantize_quantity(
-                    sum(
-                        (Decimal(value) for value in before_loss_map.values()),
-                        Decimal("0"),
-                    )
-                )
+                available_total = sum(before_loss_map.values(), Decimal("0"))
                 loss_input = validated.loss_inputs_by_key[(state_date, pool_id, quantile)]
                 if loss_input.mature_inventory_loss_quantity_kg > available_total:
                     validated.blockers.append(
                         f"{BlockerCode.MATURE_LOSS_EXCEEDS_AVAILABLE}:{pool_id}:{state_date}:{quantile}"
                     )
                     return _blocked_output(request, validated)
+
                 loss_allocations = allocate_fifo_loss(
                     fifo_cohorts,
-                    quantize_quantity(loss_input.mature_inventory_loss_quantity_kg),
+                    loss_input.mature_inventory_loss_quantity_kg,
                 )
                 loss_map = {
                     item.stable_cohort_key: item.loss_quantity_kg for item in loss_allocations
                 }
                 before_harvest_map = {
-                    cohort["stable_cohort_key"]: quantize_quantity(cohort["remaining_quantity_kg"])
+                    str(cohort["stable_cohort_key"]): cohort["remaining_quantity_kg"]
                     for cohort in fifo_cohorts
                 }
                 harvest_allocations = allocate_fifo_harvest(
@@ -760,21 +1146,13 @@ def run_harvest_state_model(
                     for item in harvest_allocations
                 }
                 closing_map = {
-                    cohort["stable_cohort_key"]: quantize_quantity(cohort["remaining_quantity_kg"])
+                    str(cohort["stable_cohort_key"]): cohort["remaining_quantity_kg"]
                     for cohort in fifo_cohorts
                 }
 
-                member_rows: list[DailyMemberStateRow] = []
-                pool_transition_rows: list[CohortTransitionRow] = []
-                continuity_passed = True
+                pool_cohort_inputs: list[dict[str, Any]] = []
                 for working_cohort in fifo_cohorts:
                     stable_key = str(working_cohort["stable_cohort_key"])
-                    opening_quantity = opening_qty_map.get(stable_key, Decimal("0"))
-                    if (
-                        stable_key in previous_closing_by_key
-                        and opening_quantity != previous_closing_by_key[stable_key]
-                    ):
-                        continuity_passed = False
                     harvested_quantity = harvest_map.get(stable_key, Decimal("0"))
                     arrival_payload: dict[str, Any] = {
                         "harvest_anchor_at": None,
@@ -782,262 +1160,312 @@ def run_harvest_state_model(
                         "arrival_local_date": None,
                     }
                     if harvested_quantity > 0:
-                        farm_zone = ZoneInfo(request.farm_timezone)
-                        factory_zone = ZoneInfo(request.destination_factory_timezone)
-                        harvest_anchor_at = datetime.combine(
-                            state_date,
-                            request.harvest_bucket_anchor_local_time,
-                            farm_zone,
-                        )
-                        arrival_at = harvest_anchor_at + timedelta(
-                            days=request.harvest_to_arrival_lag_days
-                        )
-                        arrival_local = arrival_at.astimezone(factory_zone)
-                        arrival_payload = {
-                            "harvest_anchor_at": harvest_anchor_at,
-                            "arrival_at": arrival_local,
-                            "arrival_local_date": arrival_local.date(),
-                        }
-                        if arrival_local.date() > request.forecast_end_date:
-                            future_key = (
-                                request.destination_factory_id,
-                                arrival_local.date(),
-                                int(working_cohort["variety_id"]),
-                                quantile,
+                        try:
+                            arrival_payload = resolve_harvest_arrival(
+                                harvest_local_date=state_date,
+                                harvest_bucket_anchor_local_time=request.harvest_bucket_anchor_local_time,
+                                farm_timezone=request.farm_timezone,
+                                destination_factory_timezone=request.destination_factory_timezone,
+                                harvest_to_arrival_lag_days=request.harvest_to_arrival_lag_days,
                             )
-                            future_arrivals[future_key] = (
-                                future_arrivals.get(
-                                    future_key,
-                                    Decimal("0"),
-                                )
-                                + harvested_quantity
+                        except ValueError as exc:
+                            code = (
+                                BlockerCode.DST_NONEXISTENT_LOCAL_TIME
+                                if str(exc) == "NONEXISTENT_LOCAL_TIME"
+                                else BlockerCode.DST_AMBIGUOUS_LOCAL_TIME
                             )
-                    pool_transition_rows.append(
-                        CohortTransitionRow(
-                            state_date=state_date,
-                            forecast_quantile=quantile,
-                            capacity_pool_id=pool_id,
-                            farm_id=int(working_cohort["farm_id"]),
-                            subfarm_id=working_cohort["subfarm_id"],
-                            variety_id=int(working_cohort["variety_id"]),
-                            destination_factory_id=request.destination_factory_id,
-                            stable_cohort_key=stable_key,
-                            source_ref_hash=str(working_cohort["source_ref_hash"]),
-                            cohort_date=working_cohort["cohort_date"],
-                            opening_quantity_kg=opening_quantity,
-                            new_supply_quantity_kg=new_supply_qty_map.get(stable_key, Decimal("0")),
-                            quantity_before_loss_kg=before_loss_map[stable_key],
-                            mature_inventory_loss_quantity_kg=loss_map.get(
-                                stable_key, Decimal("0")
-                            ),
-                            quantity_before_harvest_kg=before_harvest_map[stable_key],
-                            harvested_quantity_kg=harvested_quantity,
-                            closing_quantity_kg=closing_map[stable_key],
-                            harvest_anchor_at=arrival_payload["harvest_anchor_at"],
-                            arrival_at=arrival_payload["arrival_at"],
-                            arrival_local_date=arrival_payload["arrival_local_date"],
-                            arrival_quantity_kg=harvested_quantity,
-                        )
-                    )
+                            validated.blockers.append(f"{code}:{state_date}:{pool_id}")
+                            return _blocked_output(request, validated)
+
+                    cohort_input = {
+                        "state_date": state_date,
+                        "forecast_quantile": quantile,
+                        "capacity_pool_id": pool_id,
+                        "farm_id": int(working_cohort["farm_id"]),
+                        "subfarm_id": working_cohort["subfarm_id"],
+                        "variety_id": int(working_cohort["variety_id"]),
+                        "destination_factory_id": request.destination_factory_id,
+                        "stable_cohort_key": stable_key,
+                        "source_ref_hash": str(working_cohort["source_ref_hash"]),
+                        "cohort_date": working_cohort["cohort_date"],
+                        "opening_quantity_kg": opening_qty_map.get(stable_key, Decimal("0")),
+                        "new_supply_quantity_kg": new_supply_qty_map.get(stable_key, Decimal("0")),
+                        "quantity_before_loss_kg": before_loss_map[stable_key],
+                        "mature_inventory_loss_quantity_kg": loss_map.get(stable_key, Decimal("0")),
+                        "quantity_before_harvest_kg": before_harvest_map[stable_key],
+                        "harvested_quantity_kg": harvested_quantity,
+                        "closing_quantity_kg": closing_map[stable_key],
+                        "harvest_anchor_at": arrival_payload["harvest_anchor_at"],
+                        "arrival_at": arrival_payload["arrival_at"],
+                        "arrival_local_date": arrival_payload["arrival_local_date"],
+                        "arrival_quantity_kg": harvested_quantity,
+                    }
+                    pool_cohort_inputs.append(cohort_input)
+                    if closing_map[stable_key] > 0:
+                        day_closing_by_key[stable_key] = closing_map[stable_key]
+
                 current_cohorts = [
                     cohort for cohort in current_cohorts if cohort["remaining_quantity_kg"] > 0
                 ]
-                previous_closing_by_key = {
-                    row.stable_cohort_key: row.closing_quantity_kg
-                    for row in pool_transition_rows
-                    if row.closing_quantity_kg > 0
-                }
+
                 for member_key in member_keys:
                     farm_id, subfarm_id, variety_id = member_key
                     member_rows_for_day = [
                         row
-                        for row in pool_transition_rows
-                        if row.farm_id == farm_id
-                        and row.subfarm_id == subfarm_id
-                        and row.variety_id == variety_id
+                        for row in pool_cohort_inputs
+                        if row["farm_id"] == farm_id
+                        and row["subfarm_id"] == subfarm_id
+                        and row["variety_id"] == variety_id
                     ]
-                    member_rows.append(
-                        DailyMemberStateRow(
-                            state_date=state_date,
-                            forecast_quantile=quantile,
-                            capacity_pool_id=pool_id,
-                            capacity_pool_grain=pool.capacity_pool_grain,
-                            capacity_pool_membership_hash=validated.pool_membership_hash_by_pool[
+                    day_member_inputs.append(
+                        {
+                            "state_date": state_date,
+                            "forecast_quantile": quantile,
+                            "capacity_pool_id": pool_id,
+                            "capacity_pool_grain": pool.capacity_pool_grain,
+                            "capacity_pool_membership_hash": validated.pool_membership_hash_by_pool[
                                 pool_id
                             ],
-                            farm_id=farm_id,
-                            subfarm_id=subfarm_id,
-                            variety_id=variety_id,
-                            destination_factory_id=request.destination_factory_id,
-                            opening_mature_inventory_kg=quantize_quantity(
-                                sum(
-                                    (row.opening_quantity_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "farm_id": farm_id,
+                            "subfarm_id": subfarm_id,
+                            "variety_id": variety_id,
+                            "destination_factory_id": request.destination_factory_id,
+                            "opening_mature_inventory_kg": sum(
+                                (row["opening_quantity_kg"] for row in member_rows_for_day),
+                                Decimal("0"),
                             ),
-                            natural_maturity_supply_kg=quantize_quantity(
-                                sum(
-                                    (row.new_supply_quantity_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "natural_maturity_supply_kg": sum(
+                                (row["new_supply_quantity_kg"] for row in member_rows_for_day),
+                                Decimal("0"),
                             ),
-                            available_mature_quantity_kg=quantize_quantity(
-                                sum(
-                                    (row.quantity_before_loss_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "available_mature_quantity_kg": sum(
+                                (row["quantity_before_loss_kg"] for row in member_rows_for_day),
+                                Decimal("0"),
                             ),
-                            mature_inventory_loss_quantity_kg=quantize_quantity(
-                                sum(
-                                    (
-                                        row.mature_inventory_loss_quantity_kg
-                                        for row in member_rows_for_day
-                                    ),
-                                    Decimal("0"),
-                                )
+                            "mature_inventory_loss_quantity_kg": sum(
+                                (
+                                    row["mature_inventory_loss_quantity_kg"]
+                                    for row in member_rows_for_day
+                                ),
+                                Decimal("0"),
                             ),
-                            harvestable_mature_quantity_kg=quantize_quantity(
-                                sum(
-                                    (row.quantity_before_harvest_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "harvestable_mature_quantity_kg": sum(
+                                (row["quantity_before_harvest_kg"] for row in member_rows_for_day),
+                                Decimal("0"),
                             ),
-                            allocated_harvest_capacity_kg=quantize_quantity(
-                                sum(
-                                    (row.harvested_quantity_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "allocated_harvest_capacity_kg": sum(
+                                (row["harvested_quantity_kg"] for row in member_rows_for_day),
+                                Decimal("0"),
                             ),
-                            harvested_quantity_kg=quantize_quantity(
-                                sum(
-                                    (row.harvested_quantity_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "harvested_quantity_kg": sum(
+                                (row["harvested_quantity_kg"] for row in member_rows_for_day),
+                                Decimal("0"),
                             ),
-                            closing_mature_inventory_kg=quantize_quantity(
-                                sum(
-                                    (row.closing_quantity_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "closing_mature_inventory_kg": sum(
+                                (row["closing_quantity_kg"] for row in member_rows_for_day),
+                                Decimal("0"),
                             ),
-                            unharvested_backlog_kg=quantize_quantity(
-                                sum(
-                                    (row.closing_quantity_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "unharvested_backlog_kg": sum(
+                                (row["closing_quantity_kg"] for row in member_rows_for_day),
+                                Decimal("0"),
                             ),
-                            arrival_quantity_kg=quantize_quantity(
-                                sum(
-                                    (row.arrival_quantity_kg for row in member_rows_for_day),
-                                    Decimal("0"),
-                                )
+                            "opening_cohort_count": sum(
+                                1 for row in member_rows_for_day if row["opening_quantity_kg"] > 0
                             ),
-                            opening_cohort_count=sum(
-                                1 for row in member_rows_for_day if row.opening_quantity_kg > 0
+                            "closing_cohort_count": sum(
+                                1 for row in member_rows_for_day if row["closing_quantity_kg"] > 0
                             ),
-                            closing_cohort_count=sum(
-                                1 for row in member_rows_for_day if row.closing_quantity_kg > 0
+                            "cohort_source_ref_hashes": sorted(
+                                {str(row["source_ref_hash"]) for row in member_rows_for_day}
                             ),
-                            cohort_source_ref_hashes=sorted(
-                                {row.source_ref_hash for row in member_rows_for_day}
-                            ),
-                        )
+                        }
                     )
-                pool_opening = quantize_quantity(
-                    sum((row.opening_mature_inventory_kg for row in member_rows), Decimal("0"))
+
+                pool_opening = _sum_member_field(
+                    day_member_inputs,
+                    pool_id=pool_id,
+                    field_name="opening_mature_inventory_kg",
                 )
-                pool_supply = quantize_quantity(
-                    sum((row.natural_maturity_supply_kg for row in member_rows), Decimal("0"))
+                pool_supply = _sum_member_field(
+                    day_member_inputs,
+                    pool_id=pool_id,
+                    field_name="natural_maturity_supply_kg",
                 )
-                pool_available = quantize_quantity(
-                    sum((row.available_mature_quantity_kg for row in member_rows), Decimal("0"))
+                pool_available = _sum_member_field(
+                    day_member_inputs,
+                    pool_id=pool_id,
+                    field_name="available_mature_quantity_kg",
                 )
-                pool_loss = quantize_quantity(
-                    sum(
-                        (row.mature_inventory_loss_quantity_kg for row in member_rows), Decimal("0")
-                    )
+                pool_loss = _sum_member_field(
+                    day_member_inputs,
+                    pool_id=pool_id,
+                    field_name="mature_inventory_loss_quantity_kg",
                 )
-                pool_harvestable = quantize_quantity(
-                    sum((row.harvestable_mature_quantity_kg for row in member_rows), Decimal("0"))
+                pool_harvestable = _sum_member_field(
+                    day_member_inputs,
+                    pool_id=pool_id,
+                    field_name="harvestable_mature_quantity_kg",
                 )
-                pool_harvested = quantize_quantity(
-                    sum((row.harvested_quantity_kg for row in member_rows), Decimal("0"))
+                pool_harvested = _sum_member_field(
+                    day_member_inputs,
+                    pool_id=pool_id,
+                    field_name="harvested_quantity_kg",
                 )
-                pool_closing = quantize_quantity(
-                    sum((row.closing_mature_inventory_kg for row in member_rows), Decimal("0"))
+                pool_closing = _sum_member_field(
+                    day_member_inputs,
+                    pool_id=pool_id,
+                    field_name="closing_mature_inventory_kg",
                 )
-                pool_arrival = quantize_quantity(
-                    sum((row.arrival_quantity_kg for row in member_rows), Decimal("0"))
-                )
-                mass_balance_passed = (
-                    pool_opening + pool_supply == pool_loss + pool_harvested + pool_closing
-                )
-                capacity_constraint_passed = (
-                    pool_harvested <= pool_available
-                    and pool_harvested <= params.resolved_effective_capacity_kg_per_day
-                )
-                all_pool_rows.append(
-                    DailyPoolStateRow(
-                        state_date=state_date,
-                        forecast_quantile=quantile,
-                        capacity_pool_id=pool_id,
-                        capacity_pool_grain=pool.capacity_pool_grain,
-                        capacity_pool_membership_hash=validated.pool_membership_hash_by_pool[
+                day_pool_inputs.append(
+                    {
+                        "state_date": state_date,
+                        "forecast_quantile": quantile,
+                        "capacity_pool_id": pool_id,
+                        "capacity_pool_grain": pool.capacity_pool_grain,
+                        "capacity_pool_membership_hash": validated.pool_membership_hash_by_pool[
                             pool_id
                         ],
-                        capacity_input_mode=params.capacity_input_mode,
-                        opening_mature_inventory_kg=pool_opening,
-                        natural_maturity_supply_kg=pool_supply,
-                        available_mature_quantity_kg=pool_available,
-                        mature_inventory_loss_quantity_kg=pool_loss,
-                        harvestable_mature_quantity_kg=pool_harvestable,
-                        nominal_harvest_capacity_kg_per_day=params.resolved_nominal_capacity_kg_per_day,
-                        labor_availability_ratio=params.labor_availability_ratio,
-                        weather_harvest_efficiency_ratio=params.weather_harvest_efficiency_ratio,
-                        operational_efficiency_ratio=params.operational_efficiency_ratio,
-                        effective_harvest_capacity_kg_per_day=params.resolved_effective_capacity_kg_per_day,
-                        effective_capacity_for_day_kg=params.resolved_effective_capacity_kg_per_day,
-                        harvested_quantity_kg=pool_harvested,
-                        closing_mature_inventory_kg=pool_closing,
-                        unharvested_backlog_kg=pool_closing,
-                        arrival_quantity_kg=pool_arrival,
-                        opening_cohort_count=sum(
-                            1 for row in pool_transition_rows if row.opening_quantity_kg > 0
+                        "capacity_input_mode": params.capacity_input_mode,
+                        "opening_mature_inventory_kg": pool_opening,
+                        "natural_maturity_supply_kg": pool_supply,
+                        "available_mature_quantity_kg": pool_available,
+                        "mature_inventory_loss_quantity_kg": pool_loss,
+                        "harvestable_mature_quantity_kg": pool_harvestable,
+                        "nominal_harvest_capacity_kg_per_day": (
+                            params.resolved_nominal_capacity_kg_per_day
                         ),
-                        closing_cohort_count=sum(
-                            1 for row in pool_transition_rows if row.closing_quantity_kg > 0
+                        "labor_availability_ratio": params.labor_availability_ratio,
+                        "weather_harvest_efficiency_ratio": params.weather_harvest_efficiency_ratio,
+                        "operational_efficiency_ratio": params.operational_efficiency_ratio,
+                        "effective_harvest_capacity_kg_per_day": (
+                            params.resolved_effective_capacity_kg_per_day
                         ),
-                        member_count=len(member_rows),
-                        mass_balance_passed=mass_balance_passed,
-                        capacity_constraint_passed=capacity_constraint_passed,
-                        continuity_passed=continuity_passed,
-                        parameter_source_ref_hashes=sorted(
-                            {
-                                source_ref_hash(item)
-                                for item in (
-                                    list(params.capacity_parameter_source_refs)
-                                    + list(params.weather_feature_source_refs)
-                                )
-                            }
+                        "effective_capacity_for_day_kg": (
+                            params.resolved_effective_capacity_kg_per_day
                         ),
-                        cohort_source_ref_hashes=sorted(
-                            {row.source_ref_hash for row in pool_transition_rows}
+                        "harvested_quantity_kg": pool_harvested,
+                        "closing_mature_inventory_kg": pool_closing,
+                        "unharvested_backlog_kg": pool_closing,
+                        "opening_cohort_count": sum(
+                            1 for row in pool_cohort_inputs if row["opening_quantity_kg"] > 0
                         ),
-                    )
+                        "closing_cohort_count": sum(
+                            1 for row in pool_cohort_inputs if row["closing_quantity_kg"] > 0
+                        ),
+                        "member_count": len(member_keys),
+                        "mass_balance_passed": (
+                            pool_opening + pool_supply == pool_loss + pool_harvested + pool_closing
+                        ),
+                        "capacity_constraint_passed": (
+                            pool_harvested <= pool_available
+                            and pool_harvested <= params.resolved_effective_capacity_kg_per_day
+                        ),
+                        "parameter_source_ref_hashes": sorted(
+                            params.capacity_parameter_source_ref_hashes
+                            + params.weather_feature_source_ref_hashes
+                        ),
+                        "cohort_source_ref_hashes": sorted(
+                            {str(row["source_ref_hash"]) for row in pool_cohort_inputs}
+                        ),
+                    }
                 )
-                all_member_rows.extend(member_rows)
-                all_cohort_rows.extend(pool_transition_rows)
+                cohort_row_inputs.extend(pool_cohort_inputs)
 
-    all_pool_rows = sorted(
-        all_pool_rows,
-        key=lambda row: (
-            row.state_date,
-            row.capacity_pool_id,
-            _forecast_quantile_sort_key(row.forecast_quantile),
-        ),
-    )
+            continuity_passed = canonical_json_value(day_opening_by_key) == canonical_json_value(
+                previous_day_closing_by_key
+            )
+            for row in day_pool_inputs:
+                row["continuity_passed"] = continuity_passed
+            previous_day_closing_by_key = day_closing_by_key
+            member_row_inputs.extend(day_member_inputs)
+            pool_row_inputs.extend(day_pool_inputs)
+
+    arrival_by_member_key: dict[
+        tuple[date, str, int, int | None, int, ForecastQuantile], Decimal
+    ] = {}
+    arrival_by_pool_key: dict[tuple[date, str, ForecastQuantile], Decimal] = {}
+    future_arrivals: dict[
+        tuple[int, date, str, int, int | None, int, ForecastQuantile], Decimal
+    ] = {}
+    for row in cohort_row_inputs:
+        harvested_quantity = row["harvested_quantity_kg"]
+        arrival_local_date = row["arrival_local_date"]
+        if harvested_quantity <= 0 or arrival_local_date is None:
+            continue
+        member_arrival_key = (
+            arrival_local_date,
+            row["capacity_pool_id"],
+            row["farm_id"],
+            row["subfarm_id"],
+            row["variety_id"],
+            row["forecast_quantile"],
+        )
+        pool_arrival_key = (
+            arrival_local_date,
+            row["capacity_pool_id"],
+            row["forecast_quantile"],
+        )
+        if request.forecast_start_date <= arrival_local_date <= request.forecast_end_date:
+            arrival_by_member_key[member_arrival_key] = (
+                arrival_by_member_key.get(member_arrival_key, Decimal("0")) + harvested_quantity
+            )
+            arrival_by_pool_key[pool_arrival_key] = (
+                arrival_by_pool_key.get(pool_arrival_key, Decimal("0")) + harvested_quantity
+            )
+        else:
+            future_key = (
+                row["destination_factory_id"],
+                arrival_local_date,
+                row["capacity_pool_id"],
+                row["farm_id"],
+                row["subfarm_id"],
+                row["variety_id"],
+                row["forecast_quantile"],
+            )
+            future_arrivals[future_key] = (
+                future_arrivals.get(future_key, Decimal("0")) + harvested_quantity
+            )
+
     all_member_rows = sorted(
-        all_member_rows,
+        [
+            DailyMemberStateRow(
+                state_date=row["state_date"],
+                forecast_quantile=row["forecast_quantile"],
+                capacity_pool_id=row["capacity_pool_id"],
+                capacity_pool_grain=row["capacity_pool_grain"],
+                capacity_pool_membership_hash=row["capacity_pool_membership_hash"],
+                farm_id=row["farm_id"],
+                subfarm_id=row["subfarm_id"],
+                variety_id=row["variety_id"],
+                destination_factory_id=row["destination_factory_id"],
+                opening_mature_inventory_kg=quantize_quantity(row["opening_mature_inventory_kg"]),
+                natural_maturity_supply_kg=quantize_quantity(row["natural_maturity_supply_kg"]),
+                available_mature_quantity_kg=quantize_quantity(row["available_mature_quantity_kg"]),
+                mature_inventory_loss_quantity_kg=quantize_quantity(row["mature_inventory_loss_quantity_kg"]),
+                harvestable_mature_quantity_kg=quantize_quantity(row["harvestable_mature_quantity_kg"]),
+                allocated_harvest_capacity_kg=quantize_quantity(row["allocated_harvest_capacity_kg"]),
+                harvested_quantity_kg=quantize_quantity(row["harvested_quantity_kg"]),
+                closing_mature_inventory_kg=quantize_quantity(row["closing_mature_inventory_kg"]),
+                unharvested_backlog_kg=quantize_quantity(row["unharvested_backlog_kg"]),
+                arrival_quantity_kg=quantize_quantity(
+                    arrival_by_member_key.get(
+                        (
+                            row["state_date"],
+                            row["capacity_pool_id"],
+                            row["farm_id"],
+                            row["subfarm_id"],
+                            row["variety_id"],
+                            row["forecast_quantile"],
+                        ),
+                        Decimal("0"),
+                    )
+                ),
+                opening_cohort_count=row["opening_cohort_count"],
+                closing_cohort_count=row["closing_cohort_count"],
+                cohort_source_ref_hashes=row["cohort_source_ref_hashes"],
+            )
+            for row in member_row_inputs
+        ],
         key=lambda row: (
             row.state_date,
             row.capacity_pool_id,
@@ -1047,8 +1475,83 @@ def run_harvest_state_model(
             _forecast_quantile_sort_key(row.forecast_quantile),
         ),
     )
+    all_pool_rows = sorted(
+        [
+            DailyPoolStateRow(
+                state_date=row["state_date"],
+                forecast_quantile=row["forecast_quantile"],
+                capacity_pool_id=row["capacity_pool_id"],
+                capacity_pool_grain=row["capacity_pool_grain"],
+                capacity_pool_membership_hash=row["capacity_pool_membership_hash"],
+                capacity_input_mode=row["capacity_input_mode"],
+                opening_mature_inventory_kg=quantize_quantity(row["opening_mature_inventory_kg"]),
+                natural_maturity_supply_kg=quantize_quantity(row["natural_maturity_supply_kg"]),
+                available_mature_quantity_kg=quantize_quantity(row["available_mature_quantity_kg"]),
+                mature_inventory_loss_quantity_kg=quantize_quantity(row["mature_inventory_loss_quantity_kg"]),
+                harvestable_mature_quantity_kg=quantize_quantity(row["harvestable_mature_quantity_kg"]),
+                nominal_harvest_capacity_kg_per_day=quantize_quantity(row["nominal_harvest_capacity_kg_per_day"]),
+                labor_availability_ratio=row["labor_availability_ratio"],
+                weather_harvest_efficiency_ratio=row["weather_harvest_efficiency_ratio"],
+                operational_efficiency_ratio=row["operational_efficiency_ratio"],
+                effective_harvest_capacity_kg_per_day=quantize_quantity(row["effective_harvest_capacity_kg_per_day"]),
+                effective_capacity_for_day_kg=quantize_quantity(row["effective_capacity_for_day_kg"]),
+                harvested_quantity_kg=quantize_quantity(row["harvested_quantity_kg"]),
+                closing_mature_inventory_kg=quantize_quantity(row["closing_mature_inventory_kg"]),
+                unharvested_backlog_kg=quantize_quantity(row["unharvested_backlog_kg"]),
+                arrival_quantity_kg=quantize_quantity(
+                    arrival_by_pool_key.get(
+                        (
+                            row["state_date"],
+                            row["capacity_pool_id"],
+                            row["forecast_quantile"],
+                        ),
+                        Decimal("0"),
+                    )
+                ),
+                opening_cohort_count=row["opening_cohort_count"],
+                closing_cohort_count=row["closing_cohort_count"],
+                member_count=row["member_count"],
+                mass_balance_passed=row["mass_balance_passed"],
+                capacity_constraint_passed=row["capacity_constraint_passed"],
+                continuity_passed=row["continuity_passed"],
+                parameter_source_ref_hashes=row["parameter_source_ref_hashes"],
+                cohort_source_ref_hashes=row["cohort_source_ref_hashes"],
+            )
+            for row in pool_row_inputs
+        ],
+        key=lambda row: (
+            row.state_date,
+            row.capacity_pool_id,
+            _forecast_quantile_sort_key(row.forecast_quantile),
+        ),
+    )
     all_cohort_rows = sorted(
-        all_cohort_rows,
+        [
+            CohortTransitionRow(
+                state_date=row["state_date"],
+                forecast_quantile=row["forecast_quantile"],
+                capacity_pool_id=row["capacity_pool_id"],
+                farm_id=row["farm_id"],
+                subfarm_id=row["subfarm_id"],
+                variety_id=row["variety_id"],
+                destination_factory_id=row["destination_factory_id"],
+                stable_cohort_key=row["stable_cohort_key"],
+                source_ref_hash=row["source_ref_hash"],
+                cohort_date=row["cohort_date"],
+                opening_quantity_kg=quantize_quantity(row["opening_quantity_kg"]),
+                new_supply_quantity_kg=quantize_quantity(row["new_supply_quantity_kg"]),
+                quantity_before_loss_kg=quantize_quantity(row["quantity_before_loss_kg"]),
+                mature_inventory_loss_quantity_kg=quantize_quantity(row["mature_inventory_loss_quantity_kg"]),
+                quantity_before_harvest_kg=quantize_quantity(row["quantity_before_harvest_kg"]),
+                harvested_quantity_kg=quantize_quantity(row["harvested_quantity_kg"]),
+                closing_quantity_kg=quantize_quantity(row["closing_quantity_kg"]),
+                harvest_anchor_at=row["harvest_anchor_at"],
+                arrival_at=row["arrival_at"],
+                arrival_local_date=row["arrival_local_date"],
+                arrival_quantity_kg=quantize_quantity(row["arrival_quantity_kg"]),
+            )
+            for row in cohort_row_inputs
+        ],
         key=lambda row: (
             row.state_date,
             row.capacity_pool_id,
@@ -1062,6 +1565,9 @@ def run_harvest_state_model(
         FutureArrivalScheduleRow(
             destination_factory_id=destination_factory_id,
             arrival_local_date=arrival_local_date,
+            capacity_pool_id=capacity_pool_id,
+            farm_id=farm_id,
+            subfarm_id=subfarm_id,
             variety_id=variety_id,
             forecast_quantile=forecast_quantile,
             quantity_kg=quantize_quantity(quantity),
@@ -1069,6 +1575,9 @@ def run_harvest_state_model(
         for (
             destination_factory_id,
             arrival_local_date,
+            capacity_pool_id,
+            farm_id,
+            subfarm_id,
             variety_id,
             forecast_quantile,
         ), quantity in sorted(
@@ -1077,10 +1586,28 @@ def run_harvest_state_model(
                 item[0][0],
                 item[0][1],
                 item[0][2],
-                _forecast_quantile_sort_key(item[0][3]),
+                item[0][3],
+                -1 if item[0][4] is None else item[0][4],
+                item[0][5],
+                _forecast_quantile_sort_key(item[0][6]),
             ),
         )
     ]
+    referenced_hashes = _referenced_source_hashes_from_completed_output(
+        input_snapshot=validated.input_snapshot,
+        resolved_snapshot=resolved_snapshot,
+        pool_rows=all_pool_rows,
+        member_rows=all_member_rows,
+        cohort_rows=all_cohort_rows,
+    )
+    source_ref_catalog, catalog_blockers = build_source_ref_catalog(
+        validated.source_refs,
+        referenced_hashes=referenced_hashes,
+    )
+    if catalog_blockers:
+        validated.blockers.extend(catalog_blockers)
+        return _blocked_output(request, validated)
+
     payload = {
         "output_schema_version": OUTPUT_SCHEMA_VERSION,
         "status": "completed",

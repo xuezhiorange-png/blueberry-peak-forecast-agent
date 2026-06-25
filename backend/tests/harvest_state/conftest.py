@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import date, time
 from decimal import Decimal
 from typing import Any
@@ -7,6 +9,14 @@ from typing import Any
 
 def canonical_hash_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
+
+
+def _canonical_json(value: object) -> str:
+    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+
+
+def make_stable_cohort_key(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
 
 
 def make_task8_source_ref(
@@ -20,6 +30,7 @@ def make_task8_source_ref(
     artifact_hash: str = "artifact-hash-1",
     weather_mapping_id: int | None = 801,
     base_temperature_search_run_id: int | None = 901,
+    forecast_run_status: str = "completed",
 ) -> dict[str, Any]:
     return {
         "source_ref_type": "TASK8_DAILY_PREDICTION",
@@ -31,14 +42,22 @@ def make_task8_source_ref(
         "maturity_model_artifact_id": 201,
         "maturity_model_artifact_hash": artifact_hash,
         "maturity_forecast_run_id": forecast_run_id,
+        "forecast_run_status": forecast_run_status,
+        "artifact_run_id": 101,
+        "forecast_model_run_id": 101,
+        "forecast_artifact_id": 201,
         "maturity_forecast_source_signature": forecast_source_signature,
         "maturity_forecast_as_of_date": date(2026, 2, 28),
         "maturity_forecast_prediction_start_date": date(2026, 3, 1),
         "maturity_forecast_prediction_end_date": date(2026, 3, 3),
         "maturity_daily_prediction_id": 301 + prediction_date.day,
+        "daily_prediction_forecast_run_id": forecast_run_id,
         "prediction_date": prediction_date,
         "forecast_quantile": forecast_quantile,
         "source_quantity_kg": source_quantity_kg,
+        "p50_kg": Decimal("20") if forecast_quantile != "P50" else source_quantity_kg,
+        "p80_kg": Decimal("24") if forecast_quantile != "P80" else source_quantity_kg,
+        "p90_kg": Decimal("28") if forecast_quantile != "P90" else source_quantity_kg,
         "plan_id": 501,
         "location_reference_id": 601,
         "weather_mapping_id": weather_mapping_id,
@@ -217,16 +236,38 @@ def make_initial_cohort(
     quantity: Decimal,
     cohort_date: date = date(2026, 2, 28),
     variety_id: int = 101,
+    capacity_pool_id: str = "pool-a",
+    capacity_pool_membership_hash: str = "membership-hash-placeholder",
+    destination_factory_id: int = 701,
 ) -> dict[str, Any]:
+    source_ref = make_initial_source_ref(as_of_date=date(2026, 2, 28))
+    stable_key = make_stable_cohort_key(
+        {
+            "schema_version": "task9a-cohort-key-v1",
+            "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT",
+            "source_system": source_ref["source_system"],
+            "source_record_key": source_ref["source_record_key"],
+            "source_version": source_ref["source_version"],
+            "source_row_hash": source_ref["source_row_hash"],
+            "cohort_date": cohort_date.isoformat(),
+            "forecast_quantile": quantile,
+            "farm_id": 1,
+            "subfarm_id": 11,
+            "variety_id": variety_id,
+            "capacity_pool_id": capacity_pool_id,
+            "capacity_pool_membership_hash": capacity_pool_membership_hash,
+            "destination_factory_id": destination_factory_id,
+        }
+    )
     return {
         "cohort_date": cohort_date,
         "farm_id": 1,
         "subfarm_id": 11,
         "variety_id": variety_id,
         "remaining_quantity_kg": quantity,
-        "source_ref": make_initial_source_ref(as_of_date=date(2026, 2, 28)),
+        "source_ref": source_ref,
         "forecast_quantile": quantile,
-        "stable_cohort_key": "placeholder",
+        "stable_cohort_key": stable_key,
         "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
     }
 
@@ -255,6 +296,15 @@ def make_request() -> dict[str, Any]:
     forecast_dates = [date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)]
     quantiles = ("P50", "P80", "P90")
     pool = make_pool()
+    capacity_pool_membership_hash = make_stable_cohort_key(
+        {
+            "capacity_pool_grain": pool["capacity_pool_grain"],
+            "members": sorted(
+                pool["members"],
+                key=lambda item: (item["farm_id"], item["subfarm_id"], item["variety_id"]),
+            ),
+        }
+    )
     task8_predictions = []
     for prediction_date in forecast_dates:
         for quantile, amount in (
@@ -376,8 +426,8 @@ def make_request() -> dict[str, Any]:
                             "multiplier": "1",
                         },
                         {
-                            "lower_bound": "0.001",
-                            "lower_inclusive": True,
+                            "lower_bound": "0",
+                            "lower_inclusive": False,
                             "upper_bound": "1000",
                             "upper_inclusive": True,
                             "multiplier": "0.5",
@@ -395,8 +445,8 @@ def make_request() -> dict[str, Any]:
                             "multiplier": "1",
                         },
                         {
-                            "lower_bound": "3",
-                            "lower_inclusive": True,
+                            "lower_bound": "2",
+                            "lower_inclusive": False,
                             "upper_bound": "1000",
                             "upper_inclusive": True,
                             "multiplier": "0.7",
@@ -409,8 +459,8 @@ def make_request() -> dict[str, Any]:
                         {
                             "lower_bound": "-100",
                             "lower_inclusive": True,
-                            "upper_bound": "9.999",
-                            "upper_inclusive": True,
+                            "upper_bound": "10",
+                            "upper_inclusive": False,
                             "multiplier": "0.8",
                         },
                         {
@@ -436,12 +486,42 @@ def make_request() -> dict[str, Any]:
         "daily_weather_features": weather_features,
         "task8_daily_predictions": task8_predictions,
         "initial_inventory_cohorts": [
-            make_initial_cohort(quantile="P50", quantity=Decimal("5"), variety_id=101),
-            make_initial_cohort(quantile="P50", quantity=Decimal("3"), variety_id=102),
-            make_initial_cohort(quantile="P80", quantity=Decimal("6"), variety_id=101),
-            make_initial_cohort(quantile="P80", quantity=Decimal("4"), variety_id=102),
-            make_initial_cohort(quantile="P90", quantity=Decimal("7"), variety_id=101),
-            make_initial_cohort(quantile="P90", quantity=Decimal("5"), variety_id=102),
+            make_initial_cohort(
+                quantile="P50",
+                quantity=Decimal("5"),
+                variety_id=101,
+                capacity_pool_membership_hash=capacity_pool_membership_hash,
+            ),
+            make_initial_cohort(
+                quantile="P50",
+                quantity=Decimal("3"),
+                variety_id=102,
+                capacity_pool_membership_hash=capacity_pool_membership_hash,
+            ),
+            make_initial_cohort(
+                quantile="P80",
+                quantity=Decimal("6"),
+                variety_id=101,
+                capacity_pool_membership_hash=capacity_pool_membership_hash,
+            ),
+            make_initial_cohort(
+                quantile="P80",
+                quantity=Decimal("4"),
+                variety_id=102,
+                capacity_pool_membership_hash=capacity_pool_membership_hash,
+            ),
+            make_initial_cohort(
+                quantile="P90",
+                quantity=Decimal("7"),
+                variety_id=101,
+                capacity_pool_membership_hash=capacity_pool_membership_hash,
+            ),
+            make_initial_cohort(
+                quantile="P90",
+                quantity=Decimal("5"),
+                variety_id=102,
+                capacity_pool_membership_hash=capacity_pool_membership_hash,
+            ),
         ],
         "initial_opening_mature_inventory_kg": Decimal("30"),
         "mature_inventory_loss_inputs": losses,
