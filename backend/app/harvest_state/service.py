@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal, localcontext
 from typing import Any
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import ValidationError
 
@@ -19,6 +19,8 @@ from backend.app.harvest_state.canonical import (
     make_task9a_config_hash,
     make_weather_rule_config_hash,
     quantize_quantity,
+    quantize_ratio,
+    sha256_hex,
 )
 from backend.app.harvest_state.capacity import (
     allocate_fifo_harvest,
@@ -68,7 +70,7 @@ class ValidatedRequest:
     pools_by_id: dict[str, Any]
     pool_membership_hash_by_pool: dict[str, str]
     member_to_pool: dict[tuple[int, int | None, int], str]
-    daily_pool_parameters: dict[tuple[date, str], DailyPoolResolvedParameters]
+    daily_pool_parameters: dict[tuple[date, str], InternalDailyPoolParameters]
     weather_values_by_key: dict[tuple[date, str], dict[str, Decimal]]
     task8_daily_predictions_by_key: dict[
         tuple[ForecastQuantile, date, str], list[Task8DailyPredictionInput]
@@ -79,6 +81,26 @@ class ValidatedRequest:
     config_hash: str
     input_snapshot: dict[str, Any]
     source_refs: list[SourceRef]
+
+
+@dataclass(slots=True)
+class InternalDailyPoolParameters:
+    capacity_date: date
+    capacity_pool_id: str
+    capacity_pool_grain: CapacityPoolGrain
+    capacity_pool_membership_hash: str
+    capacity_input_mode: CapacityInputMode
+    planned_picker_count: Decimal | None
+    kg_per_person_per_day: Decimal | None
+    direct_nominal_capacity_kg_per_day: Decimal | None
+    resolved_nominal_capacity_kg_per_day: Decimal
+    labor_availability_ratio: Decimal
+    weather_harvest_efficiency_ratio: Decimal
+    operational_efficiency_ratio: Decimal
+    resolved_effective_capacity_kg_per_day: Decimal
+    holiday_applied: bool
+    capacity_parameter_source_ref_hashes: list[str]
+    weather_feature_source_ref_hashes: list[str]
 
 
 def _member_key(
@@ -305,6 +327,10 @@ def _sorted_request_snapshot(
                 "subfarm_id": item.subfarm_id,
                 "variety_id": item.variety_id,
                 "source_ref_hash": source_ref_hash(item.source_ref),
+                "verification_snapshot": item.verification_snapshot.model_dump(mode="python"),
+                "verification_snapshot_hash": sha256_hex(
+                    item.verification_snapshot.model_dump(mode="python")
+                ),
             }
             for item in task8_inputs
         ],
@@ -374,59 +400,97 @@ def _sorted_blockers(blockers: list[str]) -> list[str]:
     return sorted(dict.fromkeys(blockers))
 
 
+def _raw_sortable_key(value: object) -> tuple[int, str]:
+    if value is None:
+        return (0, "")
+    if isinstance(value, bool):
+        return (1, "true" if value else "false")
+    if isinstance(value, (int, str, Decimal, date)):
+        return (2, str(value))
+    if isinstance(value, Mapping):
+        return (3, canonical_json_value(_canonicalize_raw_value(value)).__repr__())
+    if isinstance(value, list | tuple):
+        return (4, canonical_json_value(_canonicalize_raw_value(value)).__repr__())
+    return (9, type(value).__name__)
+
+
+def _canonicalize_raw_value(value: object) -> Any:
+    if value is None or isinstance(value, (bool, int, str, float, Decimal, date)):
+        try:
+            return canonical_json_value(value)
+        except Exception:
+            return {"__unsupported_type__": type(value).__name__}
+    if isinstance(value, Mapping):
+        normalized: dict[str, Any] = {}
+        for key, item in sorted(value.items(), key=lambda pair: str(pair[0])):
+            normalized[str(key)] = _canonicalize_raw_value(item)
+        return normalized
+    if isinstance(value, list | tuple):
+        return [_canonicalize_raw_value(item) for item in value]
+    return {"__unsupported_type__": type(value).__name__}
+
+
 def _normalize_raw_snapshot(payload: Mapping[str, object]) -> dict[str, Any]:
-    normalized = dict(payload)
-    if "capacity_pools" in normalized and isinstance(normalized["capacity_pools"], list):
-        normalized["capacity_pools"] = sorted(
-            [
-                {
-                    **dict(item),
-                    "members": sorted(
-                        list(dict(item).get("members", [])),
-                        key=lambda member: (
-                            _safe_scalar(_as_mapping(member).get("farm_id")),
-                            _safe_scalar(_as_mapping(member).get("subfarm_id")),
-                            _safe_scalar(_as_mapping(member).get("variety_id")),
+    normalized = _canonicalize_raw_value(payload)
+    if not isinstance(normalized, dict):
+        return {"raw_payload": normalized}
+
+    capacity_pools = normalized.get("capacity_pools")
+    if isinstance(capacity_pools, list):
+        sorted_pools: list[Any] = []
+        for item in capacity_pools:
+            if isinstance(item, dict):
+                members = item.get("members")
+                if isinstance(members, list):
+                    item = {
+                        **item,
+                        "members": sorted(
+                            members,
+                            key=lambda member: (
+                                _raw_sortable_key(_as_mapping(member).get("farm_id")),
+                                _raw_sortable_key(_as_mapping(member).get("subfarm_id")),
+                                _raw_sortable_key(_as_mapping(member).get("variety_id")),
+                            ),
                         ),
-                    ),
-                }
-                for item in normalized["capacity_pools"]
-                if isinstance(item, Mapping)
-            ],
-            key=lambda item: str(item.get("capacity_pool_id", "")),
-        )
-    if "task8_daily_predictions" in normalized and isinstance(
-        normalized["task8_daily_predictions"], list
-    ):
-        normalized["task8_daily_predictions"] = sorted(
-            [
-                dict(item)
-                for item in normalized["task8_daily_predictions"]
-                if isinstance(item, Mapping)
-            ],
+                    }
+            sorted_pools.append(item)
+        normalized["capacity_pools"] = sorted(
+            sorted_pools,
             key=lambda item: (
-                str(item.get("prediction_date", "")),
-                _safe_scalar(item.get("farm_id")),
-                _safe_scalar(item.get("subfarm_id")),
-                _safe_scalar(item.get("variety_id")),
-                _forecast_quantile_from_string(
-                    str(_as_mapping(item.get("source_ref")).get("forecast_quantile", ""))
-                ),
+                _raw_sortable_key(_as_mapping(item).get("capacity_pool_id")),
+                _raw_sortable_key(item),
             ),
         )
-    if "mature_inventory_loss_inputs" in normalized and isinstance(
-        normalized["mature_inventory_loss_inputs"], list
-    ):
-        normalized["mature_inventory_loss_inputs"] = sorted(
-            [
-                dict(item)
-                for item in normalized["mature_inventory_loss_inputs"]
-                if isinstance(item, Mapping)
-            ],
+
+    task8_predictions = normalized.get("task8_daily_predictions")
+    if isinstance(task8_predictions, list):
+        normalized["task8_daily_predictions"] = sorted(
+            task8_predictions,
             key=lambda item: (
-                str(item.get("state_date", "")),
-                str(item.get("capacity_pool_id", "")),
-                str(item.get("forecast_quantile", "")),
+                _raw_sortable_key(_as_mapping(item).get("prediction_date")),
+                _raw_sortable_key(_as_mapping(item).get("farm_id")),
+                _raw_sortable_key(_as_mapping(item).get("subfarm_id")),
+                _raw_sortable_key(_as_mapping(item).get("variety_id")),
+                _forecast_quantile_from_string(
+                    str(
+                        _as_mapping(_as_mapping(item).get("source_ref")).get(
+                            "forecast_quantile", ""
+                        )
+                    )
+                ),
+                _raw_sortable_key(item),
+            ),
+        )
+
+    mature_loss = normalized.get("mature_inventory_loss_inputs")
+    if isinstance(mature_loss, list):
+        normalized["mature_inventory_loss_inputs"] = sorted(
+            mature_loss,
+            key=lambda item: (
+                _raw_sortable_key(_as_mapping(item).get("state_date")),
+                _raw_sortable_key(_as_mapping(item).get("capacity_pool_id")),
+                _raw_sortable_key(_as_mapping(item).get("forecast_quantile")),
+                _raw_sortable_key(item),
             ),
         )
     return canonical_json_value(normalized)  # type: ignore[return-value]
@@ -437,7 +501,8 @@ def _map_validation_error_codes(error: ValidationError) -> list[str]:
     for detail in error.errors():
         location = ".".join(str(item) for item in detail.get("loc", ()))
         error_type = str(detail.get("type", ""))
-        if "harvest_to_arrival_lag_days" in location:
+        message = str(detail.get("msg", ""))
+        if "harvest_to_arrival_lag_days" in location or "harvest_to_arrival_lag_days" in message:
             blockers.append(BlockerCode.INVALID_ARRIVAL_LAG)
         elif "capacity_pool_grain" in location:
             blockers.append(BlockerCode.UNSUPPORTED_CAPACITY_POOL_GRAIN)
@@ -446,11 +511,12 @@ def _map_validation_error_codes(error: ValidationError) -> list[str]:
         elif error_type.startswith("missing"):
             blockers.append(f"{BlockerCode.MISSING_REQUIRED_INPUT}:{location}")
         elif error_type.startswith("value_error"):
-            message = str(detail.get("msg", ""))
             if "float" in message:
                 blockers.append(BlockerCode.NATIVE_FLOAT_INPUT)
             else:
                 blockers.append(f"{BlockerCode.INVALID_DECIMAL_INPUT}:{location}")
+        elif error_type.startswith("list_type"):
+            blockers.append(f"{BlockerCode.MISSING_REQUIRED_INPUT}:{location}")
         else:
             blockers.append(f"{BlockerCode.INVALID_DECIMAL_INPUT}:{location}")
     return _sorted_blockers(blockers)
@@ -489,11 +555,13 @@ def _blocked_from_raw_payload(
 def _validated_request(request: Task9ARequest) -> ValidatedRequest:
     blockers: list[str] = []
     warnings: list[str] = []
+    timezone_valid = True
     try:
         ZoneInfo(request.farm_timezone)
         ZoneInfo(request.destination_factory_timezone)
-    except Exception:
+    except ZoneInfoNotFoundError:
         blockers.append(BlockerCode.INVALID_TIMEZONE)
+        timezone_valid = False
 
     pools_by_id: dict[str, Any] = {}
     for pool in request.capacity_pools:
@@ -599,7 +667,7 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
 
     blockers.extend(validate_weather_rule_config(request.weather_rule_config))
 
-    daily_pool_parameters: dict[tuple[date, str], DailyPoolResolvedParameters] = {}
+    daily_pool_parameters: dict[tuple[date, str], InternalDailyPoolParameters] = {}
     seen_capacity_keys: set[tuple[date, str]] = set()
     forecast_dates = list(
         request.forecast_start_date + timedelta(days=offset)
@@ -697,7 +765,13 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
                     feature_values=feature_values,
                 )
             except ValueError as exc:
-                blockers.append(str(exc))
+                message = str(exc)
+                if ":" in message:
+                    blockers.append(message)
+                elif message == "unsupported weather combination method":
+                    blockers.append(BlockerCode.UNKNOWN_WEATHER_FEATURE)
+                else:
+                    blockers.append(f"{BlockerCode.UNKNOWN_WEATHER_FEATURE}:{message}")
                 weather_ratio = Decimal("0")
             weather_refs = sorted(
                 weather_refs_by_key.get(weather_key, []),
@@ -710,7 +784,7 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
             * weather_ratio
             * capacity_input.operational_efficiency_ratio
         )
-        daily_pool_parameters[capacity_lookup_key] = DailyPoolResolvedParameters(
+        daily_pool_parameters[capacity_lookup_key] = InternalDailyPoolParameters(
             capacity_date=capacity_input.capacity_date,
             capacity_pool_id=capacity_input.capacity_pool_id,
             capacity_pool_grain=capacity_pool.capacity_pool_grain,
@@ -735,22 +809,23 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
             ),
         )
 
-    for forecast_date in forecast_dates:
-        try:
-            resolve_harvest_arrival(
-                harvest_local_date=forecast_date,
-                harvest_bucket_anchor_local_time=request.harvest_bucket_anchor_local_time,
-                farm_timezone=request.farm_timezone,
-                destination_factory_timezone=request.destination_factory_timezone,
-                harvest_to_arrival_lag_days=request.harvest_to_arrival_lag_days,
-            )
-        except ValueError as exc:
-            if str(exc) == "NONEXISTENT_LOCAL_TIME":
-                blockers.append(f"{BlockerCode.DST_NONEXISTENT_LOCAL_TIME}:{forecast_date}")
-            elif str(exc) == "AMBIGUOUS_LOCAL_TIME":
-                blockers.append(f"{BlockerCode.DST_AMBIGUOUS_LOCAL_TIME}:{forecast_date}")
-            else:
-                blockers.append(BlockerCode.INVALID_TIMEZONE)
+    if timezone_valid:
+        for forecast_date in forecast_dates:
+            try:
+                resolve_harvest_arrival(
+                    harvest_local_date=forecast_date,
+                    harvest_bucket_anchor_local_time=request.harvest_bucket_anchor_local_time,
+                    farm_timezone=request.farm_timezone,
+                    destination_factory_timezone=request.destination_factory_timezone,
+                    harvest_to_arrival_lag_days=request.harvest_to_arrival_lag_days,
+                )
+            except ValueError as exc:
+                if str(exc) == "NONEXISTENT_LOCAL_TIME":
+                    blockers.append(f"{BlockerCode.DST_NONEXISTENT_LOCAL_TIME}:{forecast_date}")
+                elif str(exc) == "AMBIGUOUS_LOCAL_TIME":
+                    blockers.append(f"{BlockerCode.DST_AMBIGUOUS_LOCAL_TIME}:{forecast_date}")
+                else:
+                    blockers.append(BlockerCode.INVALID_TIMEZONE)
 
     for forecast_date in forecast_dates:
         for pool_id in pools_by_id:
@@ -763,7 +838,9 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
         tuple[ForecastQuantile, date, str], list[Task8DailyPredictionInput]
     ] = {}
     seen_task8_keys: set[tuple[date, int, int | None, int, ForecastQuantile]] = set()
-    task8_request_signature: tuple[int, str, int, str, date] | None = None
+    task8_request_identity: tuple[int, str, str, str, int, str, int, str, date] | None = None
+    task8_daily_prediction_identity_by_id: dict[int, dict[str, Any]] = {}
+    task8_daily_prediction_id_by_grain: dict[tuple[date, int, int | None, int], int] = {}
     for prediction in request.task8_daily_predictions:
         source_refs.append(prediction.source_ref)
         member_key = _member_key(prediction.farm_id, prediction.subfarm_id, prediction.variety_id)
@@ -874,17 +951,60 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
         }[prediction.source_ref.forecast_quantile]
         if expected_quantity != prediction.source_ref.source_quantity_kg:
             blockers.append(f"{BlockerCode.TASK8_QUANTILE_VALUE_MISMATCH}:{task8_row_key}")
-        signature = (
+        request_identity = (
+            verification.maturity_model_run_id,
+            verification.maturity_model_version,
+            verification.maturity_model_config_hash,
+            verification.maturity_model_source_signature,
+            verification.maturity_model_artifact_id,
+            verification.maturity_model_artifact_hash,
             verification.maturity_forecast_run_id,
             verification.maturity_forecast_source_signature,
-            verification.maturity_model_run_id,
-            verification.maturity_model_artifact_hash,
             verification.maturity_forecast_as_of_date,
         )
-        if task8_request_signature is None:
-            task8_request_signature = signature
-        elif task8_request_signature != signature:
-            blockers.append(BlockerCode.TASK8_SOURCE_RELATION_MISMATCH)
+        if task8_request_identity is None:
+            task8_request_identity = request_identity
+        elif task8_request_identity != request_identity:
+            if task8_request_identity[5] != request_identity[5]:
+                blockers.append(f"{BlockerCode.TASK8_ARTIFACT_HASH_MISMATCH}:{task8_row_key}")
+            elif (
+                task8_request_identity[1] != request_identity[1]
+                or task8_request_identity[2] != request_identity[2]
+                or task8_request_identity[3] != request_identity[3]
+                or task8_request_identity[7] != request_identity[7]
+            ):
+                blockers.append(f"{BlockerCode.TASK8_SOURCE_SIGNATURE_MISMATCH}:{task8_row_key}")
+            else:
+                blockers.append(f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{task8_row_key}")
+
+        daily_prediction_identity = verification.model_dump(mode="python")
+        existing_identity = task8_daily_prediction_identity_by_id.get(
+            verification.maturity_daily_prediction_id
+        )
+        if existing_identity is None:
+            task8_daily_prediction_identity_by_id[verification.maturity_daily_prediction_id] = (
+                daily_prediction_identity
+            )
+        elif canonical_json_value(existing_identity) != canonical_json_value(
+            daily_prediction_identity
+        ):
+            blockers.append(
+                f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{verification.maturity_daily_prediction_id}"
+            )
+
+        grain_key = (
+            prediction.prediction_date,
+            prediction.farm_id,
+            prediction.subfarm_id,
+            prediction.variety_id,
+        )
+        existing_daily_prediction_id = task8_daily_prediction_id_by_grain.get(grain_key)
+        if existing_daily_prediction_id is None:
+            task8_daily_prediction_id_by_grain[grain_key] = (
+                verification.maturity_daily_prediction_id
+            )
+        elif existing_daily_prediction_id != verification.maturity_daily_prediction_id:
+            blockers.append(f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{grain_key}")
         prediction_lookup_key = (
             prediction.source_ref.forecast_quantile,
             prediction.prediction_date,
@@ -921,9 +1041,10 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
         initial_total += cohort.remaining_quantity_kg
     if len(set(initial_cohort_keys)) != len(initial_cohort_keys):
         blockers.append(BlockerCode.DUPLICATE_STABLE_COHORT_KEY)
-    if request.initial_opening_mature_inventory_kg is not None and quantize_quantity(
-        initial_total
-    ) != quantize_quantity(request.initial_opening_mature_inventory_kg):
+    if (
+        request.initial_opening_mature_inventory_kg is not None
+        and initial_total != request.initial_opening_mature_inventory_kg
+    ):
         blockers.append(BlockerCode.INITIAL_INVENTORY_SUM_MISMATCH)
 
     loss_inputs_by_key: dict[tuple[date, str, ForecastQuantile], MatureInventoryLossInput] = {}
@@ -1078,6 +1199,204 @@ def _referenced_source_hashes_from_completed_output(
     return referenced
 
 
+DISPLAY_TOLERANCE_KG = Decimal("0.001")
+
+
+def _within_display_tolerance(left: Decimal, right: Decimal) -> bool:
+    return abs(left - right) <= DISPLAY_TOLERANCE_KG
+
+
+def _display_reconciliation_blockers(
+    *,
+    pool_rows: list[DailyPoolStateRow],
+    member_rows: list[DailyMemberStateRow],
+    cohort_rows: list[CohortTransitionRow],
+    forecast_start_date: date,
+    forecast_end_date: date,
+) -> list[str]:
+    blockers: list[str] = []
+
+    for row in cohort_rows:
+        if not _within_display_tolerance(
+            row.quantity_before_loss_kg,
+            row.opening_quantity_kg + row.new_supply_quantity_kg,
+        ):
+            blockers.append(
+                f"{BlockerCode.COHORT_TRANSITION_EQUATION_FAILED}:{row.capacity_pool_id}:{row.state_date}:{row.stable_cohort_key}"
+            )
+        if not _within_display_tolerance(
+            row.quantity_before_harvest_kg,
+            row.quantity_before_loss_kg - row.mature_inventory_loss_quantity_kg,
+        ):
+            blockers.append(
+                f"{BlockerCode.COHORT_TRANSITION_EQUATION_FAILED}:{row.capacity_pool_id}:{row.state_date}:{row.stable_cohort_key}"
+            )
+        if not _within_display_tolerance(
+            row.closing_quantity_kg,
+            row.quantity_before_harvest_kg - row.harvested_quantity_kg,
+        ):
+            blockers.append(
+                f"{BlockerCode.COHORT_TRANSITION_EQUATION_FAILED}:{row.capacity_pool_id}:{row.state_date}:{row.stable_cohort_key}"
+            )
+
+    member_sums: dict[
+        tuple[date, str, int, int | None, int, ForecastQuantile], dict[str, Decimal]
+    ] = {}
+    member_arrival_sums: dict[
+        tuple[date, str, int, int | None, int, ForecastQuantile], Decimal
+    ] = {}
+    for row in cohort_rows:
+        key = (
+            row.state_date,
+            row.capacity_pool_id,
+            row.farm_id,
+            row.subfarm_id,
+            row.variety_id,
+            row.forecast_quantile,
+        )
+        bucket = member_sums.setdefault(
+            key,
+            {
+                "opening_mature_inventory_kg": Decimal("0"),
+                "natural_maturity_supply_kg": Decimal("0"),
+                "available_mature_quantity_kg": Decimal("0"),
+                "mature_inventory_loss_quantity_kg": Decimal("0"),
+                "harvestable_mature_quantity_kg": Decimal("0"),
+                "harvested_quantity_kg": Decimal("0"),
+                "closing_mature_inventory_kg": Decimal("0"),
+                "unharvested_backlog_kg": Decimal("0"),
+                "arrival_quantity_kg": Decimal("0"),
+            },
+        )
+        bucket["opening_mature_inventory_kg"] += row.opening_quantity_kg
+        bucket["natural_maturity_supply_kg"] += row.new_supply_quantity_kg
+        bucket["available_mature_quantity_kg"] += row.quantity_before_loss_kg
+        bucket["mature_inventory_loss_quantity_kg"] += row.mature_inventory_loss_quantity_kg
+        bucket["harvestable_mature_quantity_kg"] += row.quantity_before_harvest_kg
+        bucket["harvested_quantity_kg"] += row.harvested_quantity_kg
+        bucket["closing_mature_inventory_kg"] += row.closing_quantity_kg
+        bucket["unharvested_backlog_kg"] += row.closing_quantity_kg
+        if (
+            row.arrival_local_date is not None
+            and forecast_start_date <= row.arrival_local_date <= forecast_end_date
+        ):
+            arrival_key = (
+                row.arrival_local_date,
+                row.capacity_pool_id,
+                row.farm_id,
+                row.subfarm_id,
+                row.variety_id,
+                row.forecast_quantile,
+            )
+            member_arrival_sums[arrival_key] = (
+                member_arrival_sums.get(arrival_key, Decimal("0")) + row.arrival_quantity_kg
+            )
+
+    zero_member_bucket = {
+        "opening_mature_inventory_kg": Decimal("0"),
+        "natural_maturity_supply_kg": Decimal("0"),
+        "available_mature_quantity_kg": Decimal("0"),
+        "mature_inventory_loss_quantity_kg": Decimal("0"),
+        "harvestable_mature_quantity_kg": Decimal("0"),
+        "harvested_quantity_kg": Decimal("0"),
+        "closing_mature_inventory_kg": Decimal("0"),
+        "unharvested_backlog_kg": Decimal("0"),
+    }
+    member_fields = tuple(zero_member_bucket.keys())
+    for member_row in member_rows:
+        member_display_key = (
+            member_row.state_date,
+            member_row.capacity_pool_id,
+            member_row.farm_id,
+            member_row.subfarm_id,
+            member_row.variety_id,
+            member_row.forecast_quantile,
+        )
+        bucket = member_sums.get(member_display_key, zero_member_bucket)
+        for field_name in member_fields:
+            if not _within_display_tolerance(
+                getattr(member_row, field_name), bucket[field_name]
+            ):
+                blockers.append(
+                    f"{BlockerCode.POOL_COHORT_SUM_MISMATCH}:{member_row.capacity_pool_id}:{member_row.state_date}:{member_row.forecast_quantile}:{member_row.farm_id}:{member_row.subfarm_id}:{member_row.variety_id}"
+                )
+                break
+        expected_arrival = member_arrival_sums.get(member_display_key, Decimal("0"))
+        if not _within_display_tolerance(member_row.arrival_quantity_kg, expected_arrival):
+            blockers.append(
+                f"{BlockerCode.POOL_COHORT_SUM_MISMATCH}:{member_row.capacity_pool_id}:{member_row.state_date}:{member_row.forecast_quantile}:{member_row.farm_id}:{member_row.subfarm_id}:{member_row.variety_id}"
+            )
+
+    pool_sums: dict[tuple[date, str, ForecastQuantile], dict[str, Decimal]] = {}
+    pool_arrival_sums: dict[tuple[date, str, ForecastQuantile], Decimal] = {}
+    for member_row in member_rows:
+        pool_display_key = (
+            member_row.state_date,
+            member_row.capacity_pool_id,
+            member_row.forecast_quantile,
+        )
+        bucket = pool_sums.setdefault(
+            pool_display_key,
+            {
+                "opening_mature_inventory_kg": Decimal("0"),
+                "natural_maturity_supply_kg": Decimal("0"),
+                "available_mature_quantity_kg": Decimal("0"),
+                "mature_inventory_loss_quantity_kg": Decimal("0"),
+                "harvestable_mature_quantity_kg": Decimal("0"),
+                "harvested_quantity_kg": Decimal("0"),
+                "closing_mature_inventory_kg": Decimal("0"),
+                "unharvested_backlog_kg": Decimal("0"),
+                "arrival_quantity_kg": Decimal("0"),
+            },
+        )
+        bucket["opening_mature_inventory_kg"] += member_row.opening_mature_inventory_kg
+        bucket["natural_maturity_supply_kg"] += member_row.natural_maturity_supply_kg
+        bucket["available_mature_quantity_kg"] += member_row.available_mature_quantity_kg
+        bucket["mature_inventory_loss_quantity_kg"] += (
+            member_row.mature_inventory_loss_quantity_kg
+        )
+        bucket["harvestable_mature_quantity_kg"] += member_row.harvestable_mature_quantity_kg
+        bucket["harvested_quantity_kg"] += member_row.harvested_quantity_kg
+        bucket["closing_mature_inventory_kg"] += member_row.closing_mature_inventory_kg
+        bucket["unharvested_backlog_kg"] += member_row.unharvested_backlog_kg
+        pool_arrival_sums[pool_display_key] = (
+            pool_arrival_sums.get(pool_display_key, Decimal("0"))
+            + member_row.arrival_quantity_kg
+        )
+
+    zero_pool_bucket = {
+        "opening_mature_inventory_kg": Decimal("0"),
+        "natural_maturity_supply_kg": Decimal("0"),
+        "available_mature_quantity_kg": Decimal("0"),
+        "mature_inventory_loss_quantity_kg": Decimal("0"),
+        "harvestable_mature_quantity_kg": Decimal("0"),
+        "harvested_quantity_kg": Decimal("0"),
+        "closing_mature_inventory_kg": Decimal("0"),
+        "unharvested_backlog_kg": Decimal("0"),
+    }
+    pool_fields = tuple(zero_pool_bucket.keys())
+    for pool_row in pool_rows:
+        pool_display_key = (
+            pool_row.state_date,
+            pool_row.capacity_pool_id,
+            pool_row.forecast_quantile,
+        )
+        bucket = pool_sums.get(pool_display_key, zero_pool_bucket)
+        for field_name in pool_fields:
+            if not _within_display_tolerance(getattr(pool_row, field_name), bucket[field_name]):
+                blockers.append(
+                    f"{BlockerCode.POOL_MEMBER_SUM_MISMATCH}:{pool_row.capacity_pool_id}:{pool_row.state_date}:{pool_row.forecast_quantile}"
+                )
+                break
+        expected_arrival = pool_arrival_sums.get(pool_display_key, Decimal("0"))
+        if not _within_display_tolerance(pool_row.arrival_quantity_kg, expected_arrival):
+            blockers.append(
+                f"{BlockerCode.POOL_MEMBER_SUM_MISMATCH}:{pool_row.capacity_pool_id}:{pool_row.state_date}:{pool_row.forecast_quantile}"
+            )
+
+    return _sorted_blockers(blockers)
+
+
 def run_harvest_state_model(
     payload: Mapping[str, object] | Task9ARequest,
 ) -> Task9ACompletedOutput | Task9ABlockedOutput:
@@ -1121,8 +1440,48 @@ def run_harvest_state_model(
     resolved_snapshot = ResolvedParameterSnapshot(
         run_parameters=run_parameters,
         daily_pool_parameters=[
-            validated.daily_pool_parameters[key]
-            for key in sorted(validated.daily_pool_parameters, key=lambda item: (item[0], item[1]))
+            DailyPoolResolvedParameters(
+                capacity_date=params.capacity_date,
+                capacity_pool_id=params.capacity_pool_id,
+                capacity_pool_grain=params.capacity_pool_grain,
+                capacity_pool_membership_hash=params.capacity_pool_membership_hash,
+                capacity_input_mode=params.capacity_input_mode,
+                planned_picker_count=(
+                    None
+                    if params.planned_picker_count is None
+                    else quantize_quantity(params.planned_picker_count)
+                ),
+                kg_per_person_per_day=(
+                    None
+                    if params.kg_per_person_per_day is None
+                    else quantize_quantity(params.kg_per_person_per_day)
+                ),
+                direct_nominal_capacity_kg_per_day=(
+                    None
+                    if params.direct_nominal_capacity_kg_per_day is None
+                    else quantize_quantity(params.direct_nominal_capacity_kg_per_day)
+                ),
+                resolved_nominal_capacity_kg_per_day=quantize_quantity(
+                    params.resolved_nominal_capacity_kg_per_day
+                ),
+                labor_availability_ratio=quantize_ratio(params.labor_availability_ratio),
+                weather_harvest_efficiency_ratio=quantize_ratio(
+                    params.weather_harvest_efficiency_ratio
+                ),
+                operational_efficiency_ratio=quantize_ratio(
+                    params.operational_efficiency_ratio
+                ),
+                resolved_effective_capacity_kg_per_day=quantize_quantity(
+                    params.resolved_effective_capacity_kg_per_day
+                ),
+                holiday_applied=params.holiday_applied,
+                capacity_parameter_source_ref_hashes=params.capacity_parameter_source_ref_hashes,
+                weather_feature_source_ref_hashes=params.weather_feature_source_ref_hashes,
+            )
+            for _, params in sorted(
+                validated.daily_pool_parameters.items(),
+                key=lambda item: (item[0][0], item[0][1]),
+            )
         ],
     )
 
@@ -1721,9 +2080,13 @@ def run_harvest_state_model(
                 nominal_harvest_capacity_kg_per_day=quantize_quantity(
                     row["nominal_harvest_capacity_kg_per_day"]
                 ),
-                labor_availability_ratio=row["labor_availability_ratio"],
-                weather_harvest_efficiency_ratio=row["weather_harvest_efficiency_ratio"],
-                operational_efficiency_ratio=row["operational_efficiency_ratio"],
+                labor_availability_ratio=quantize_ratio(row["labor_availability_ratio"]),
+                weather_harvest_efficiency_ratio=quantize_ratio(
+                    row["weather_harvest_efficiency_ratio"]
+                ),
+                operational_efficiency_ratio=quantize_ratio(
+                    row["operational_efficiency_ratio"]
+                ),
                 effective_harvest_capacity_kg_per_day=quantize_quantity(
                     row["effective_harvest_capacity_kg_per_day"]
                 ),
@@ -1798,6 +2161,18 @@ def run_harvest_state_model(
             row.stable_cohort_key,
         ),
     )
+
+    display_blockers = _display_reconciliation_blockers(
+        pool_rows=all_pool_rows,
+        member_rows=all_member_rows,
+        cohort_rows=all_cohort_rows,
+        forecast_start_date=request.forecast_start_date,
+        forecast_end_date=request.forecast_end_date,
+    )
+    if display_blockers:
+        validated.blockers.extend(display_blockers)
+        return _blocked_output(request, validated)
+
     future_arrival_schedule = [
         FutureArrivalScheduleRow(
             destination_factory_id=destination_factory_id,
@@ -1845,6 +2220,10 @@ def run_harvest_state_model(
         validated.blockers.extend(catalog_blockers)
         return _blocked_output(request, validated)
 
+    internal_mass_balance_passed = all(row.mass_balance_passed for row in all_pool_rows)
+    display_mass_balance_passed = not display_blockers
+    continuity_passed = all(row.continuity_passed for row in all_pool_rows)
+
     payload = {
         "output_schema_version": OUTPUT_SCHEMA_VERSION,
         "status": "completed",
@@ -1862,8 +2241,13 @@ def run_harvest_state_model(
         "source_ref_catalog": [entry.model_dump(mode="python") for entry in source_ref_catalog],
         "warnings": [],
         "blockers": [],
-        "mass_balance_result": {"passed": all(row.mass_balance_passed for row in all_pool_rows)},
-        "continuity_result": {"passed": all(row.continuity_passed for row in all_pool_rows)},
+        "mass_balance_result": {
+            "internal_passed": internal_mass_balance_passed,
+            "display_passed": display_mass_balance_passed,
+            "tolerance_kg": canonical_json_value(DISPLAY_TOLERANCE_KG),
+            "passed": internal_mass_balance_passed and display_mass_balance_passed,
+        },
+        "continuity_result": {"passed": continuity_passed},
         "config_hash": validated.config_hash,
     }
     return Task9ACompletedOutput(
@@ -1879,8 +2263,13 @@ def run_harvest_state_model(
         source_ref_catalog=source_ref_catalog,
         warnings=[],
         blockers=[],
-        mass_balance_result={"passed": all(row.mass_balance_passed for row in all_pool_rows)},
-        continuity_result={"passed": all(row.continuity_passed for row in all_pool_rows)},
+        mass_balance_result={
+            "internal_passed": internal_mass_balance_passed,
+            "display_passed": display_mass_balance_passed,
+            "tolerance_kg": canonical_json_value(DISPLAY_TOLERANCE_KG),
+            "passed": internal_mass_balance_passed and display_mass_balance_passed,
+        },
+        continuity_result={"passed": continuity_passed},
         config_hash=validated.config_hash,
         result_hash=make_result_hash(payload),
     )

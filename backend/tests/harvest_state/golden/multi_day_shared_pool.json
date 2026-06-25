@@ -162,7 +162,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "24",
       "quantity_before_loss_kg": "24",
-      "source_ref_hash": "e7b5a39c222b9cdeaf946298c8c1adf08c0f6f1744ad35b4ae640c60fa7113fc",
+      "source_ref_hash": "158bf1d24a3fcf53f8c0f1015afb496581076c12972766518244ee460020f569",
       "stable_cohort_key": "15cc4ef38d7c59f4d5b9279253e50622744fc81096de53263f301f93341d79bb",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-01",
@@ -186,7 +186,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "28",
       "quantity_before_loss_kg": "28",
-      "source_ref_hash": "46dfa7a99308842233164c0949bf2206821481e0c3c77cb3951d0937a8dc5953",
+      "source_ref_hash": "0eb0f07bcf9a3ab04ecae9e024dd102e5ce332444b8ae6bf5ba05fc6e7db980d",
       "stable_cohort_key": "7b949cfc26cbbc3f5c69cf1a5299cf3cf07b87ab85e7166b6aff9a276711eb79",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-01",
@@ -210,7 +210,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "20",
       "quantity_before_loss_kg": "20",
-      "source_ref_hash": "229c12d8809385230f765924c10c1a1025b92a7442ec6ec7aedf17ef3b2bd062",
+      "source_ref_hash": "f3a3f1986b3e85b61061717b3d555637e6eaa515e8676c07f71aab2494175657",
       "stable_cohort_key": "b4c48c41236f6c25dd4856507589524136330137069fe910f511f8c7ce79d0aa",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-01",
@@ -234,7 +234,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "24",
       "quantity_before_loss_kg": "24",
-      "source_ref_hash": "e7b5a39c222b9cdeaf946298c8c1adf08c0f6f1744ad35b4ae640c60fa7113fc",
+      "source_ref_hash": "6ee4a7b34b00e2aed7e6392ba5bfcac2f77d4864263da84b5851d42605f31bb8",
       "stable_cohort_key": "1e8ac2738ca7313c7f6b077d0587e0dce6551605b77b82c7ea4b3b9292f364e4",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-01",
@@ -258,7 +258,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "28",
       "quantity_before_loss_kg": "28",
-      "source_ref_hash": "46dfa7a99308842233164c0949bf2206821481e0c3c77cb3951d0937a8dc5953",
+      "source_ref_hash": "de812479c205bfcbfadbb1b889487647fa70709d3da98d0aea00ec0bca57122f",
       "stable_cohort_key": "646dcb4089196d5a39e7f584a31e199a5073a5e6fcb56e43a6e5bbbafadc6a9a",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-01",
@@ -282,7 +282,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "20",
       "quantity_before_loss_kg": "20",
-      "source_ref_hash": "229c12d8809385230f765924c10c1a1025b92a7442ec6ec7aedf17ef3b2bd062",
+      "source_ref_hash": "7cbfb549dd2e6b5a6b4c3e444e4a3edb803a3fcc45e798895626a86fa5764bc8",
       "stable_cohort_key": "da386f4a14235340a76a4f26dc5f92aaadbf4949182276cb25f15301770bf6c3",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-01",
@@ -306,7 +306,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "20",
       "quantity_before_loss_kg": "20",
-      "source_ref_hash": "58d2d0a5341fefd4002248bb9a50ac8cdb37b98a946e150136ade8231e787f08",
+      "source_ref_hash": "d99c76f7bc4c4d0397451106c7cf2b438b6a11d88f50c04fc20e60a95563cc9f",
       "stable_cohort_key": "314bba9a87af0be0c0a31f915c5fb715856fc3febc43e220664634827d607ae8",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-02",
@@ -330,7 +330,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "28",
       "quantity_before_loss_kg": "28",
-      "source_ref_hash": "da76fd9fb481df1e7dff28bebd42abe3fce3bf43877bbfb373688f7c293375d7",
+      "source_ref_hash": "65d60b85e34f569be87a8f770faa647b511434f38efc9f6f1ccf4c31efa0631f",
       "stable_cohort_key": "7cdaaa42a83bf532edda3f71b9ad2c4d88f47a59eea8aa52335329491267b891",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-02",
@@ -354,7 +354,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "24",
       "quantity_before_loss_kg": "24",
-      "source_ref_hash": "3e31b10cd1dad8b7eb691640affdf14cc28c25c29823cb2fcf7f237a9bd0b4ae",
+      "source_ref_hash": "b2820de37755027c96ff660d7104f6c86696993b46a0ae97e94511e25a416cc3",
       "stable_cohort_key": "fd2fc3d893a9443c7ef54d207c92b28c07b11bfc85c977b0edd740210a3eba20",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-02",
@@ -378,7 +378,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "28",
       "quantity_before_loss_kg": "28",
-      "source_ref_hash": "da76fd9fb481df1e7dff28bebd42abe3fce3bf43877bbfb373688f7c293375d7",
+      "source_ref_hash": "b42cac39d328e566c7dd46aa35129e6f81509a9a53a0d1307b6d0c3ec0757c91",
       "stable_cohort_key": "0557cb3d44a5e2d57202a410fd82f9ad4b70d7729baff099128747b71d5dbd1e",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-02",
@@ -402,7 +402,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "20",
       "quantity_before_loss_kg": "20",
-      "source_ref_hash": "58d2d0a5341fefd4002248bb9a50ac8cdb37b98a946e150136ade8231e787f08",
+      "source_ref_hash": "c0f5237ce9f725ed7d39f81271549398ca2b616fd85e52751284fd6bfdabd67a",
       "stable_cohort_key": "50a6a8a8ee7c4bb40f1951b206e7ebef20e4e67eaf3e2da77096c931cacc4ebc",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-02",
@@ -426,7 +426,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "24",
       "quantity_before_loss_kg": "24",
-      "source_ref_hash": "3e31b10cd1dad8b7eb691640affdf14cc28c25c29823cb2fcf7f237a9bd0b4ae",
+      "source_ref_hash": "cd08297576b8a519c85c49ec7ff7887c41135f93a3146579c691c20e57067386",
       "stable_cohort_key": "50c6478e1994d83e032e5769e700698a834c5ffe82252833c9a120f4aaba17f1",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-02",
@@ -450,7 +450,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "28",
       "quantity_before_loss_kg": "28",
-      "source_ref_hash": "d1125f0f9d9ad7c16d5610e4a5eedec65a4c21638a82f700645d271ecc9444a0",
+      "source_ref_hash": "4bdb3a94b9f480bd632b74d45cc22b16620a63785a8cf7fac43c49fb73543e57",
       "stable_cohort_key": "90a7405bcd68ed635f23b4927187c06cdc6969b16b5449ee12df13d9376f1e99",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-03",
@@ -474,7 +474,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "20",
       "quantity_before_loss_kg": "20",
-      "source_ref_hash": "516c627a18b08f5e0edd9085257b53351a576cba546e06494fd16c1fee41b330",
+      "source_ref_hash": "7500ac93ece2153e9d5d369f4e8594bf6dde6ae2076b92622b652925da07abc5",
       "stable_cohort_key": "e29ff1014e11ee81270b77fde07a317f380e8a3edda5013127a73d5c70590397",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-03",
@@ -498,7 +498,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "24",
       "quantity_before_loss_kg": "24",
-      "source_ref_hash": "0586020a143a24b31a277e522c2ec3af98fff441427907737ff817bedc67035b",
+      "source_ref_hash": "1d3fec3f5a710953569fa4db97b6a618adf36660d410d6e0c50a82d4584d53c5",
       "stable_cohort_key": "ee46cb01a301a1c04e86b51e11595b7600d8819a8c6ba6018aafc7c26ec75c63",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-03",
@@ -522,7 +522,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "20",
       "quantity_before_loss_kg": "20",
-      "source_ref_hash": "516c627a18b08f5e0edd9085257b53351a576cba546e06494fd16c1fee41b330",
+      "source_ref_hash": "a938187f1772845f1011814b23bddf7d701024cbaebcd1d61bf471f969d45a5e",
       "stable_cohort_key": "5ca9a99da50d547925a1174ad2a5b3f2ecb86e5c65ff38fb69ad57b6a3228cb5",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-03",
@@ -546,7 +546,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "24",
       "quantity_before_loss_kg": "24",
-      "source_ref_hash": "0586020a143a24b31a277e522c2ec3af98fff441427907737ff817bedc67035b",
+      "source_ref_hash": "35701398683a7b5e82656facd0a66642664cde299d991de63375d8fb90580145",
       "stable_cohort_key": "705b8ca954e302d091a2c9887ad6bca340af231c17f30600d747da1c8b76e7e7",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-03",
@@ -570,7 +570,7 @@
       "opening_quantity_kg": "0",
       "quantity_before_harvest_kg": "28",
       "quantity_before_loss_kg": "28",
-      "source_ref_hash": "d1125f0f9d9ad7c16d5610e4a5eedec65a4c21638a82f700645d271ecc9444a0",
+      "source_ref_hash": "60dea92fa990527aaca8183afa714c4b1c5c474e5dbc48a6f8b04bdb5eb8ab40",
       "stable_cohort_key": "abb7218be2d4dfcca8f53cedd3aa9f9a89c44fb53812183a0ce4d5ff5e1b1da5",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
       "state_date": "2026-03-03",
@@ -593,8 +593,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "229c12d8809385230f765924c10c1a1025b92a7442ec6ec7aedf17ef3b2bd062",
-        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
+        "f3a3f1986b3e85b61061717b3d555637e6eaa515e8676c07f71aab2494175657"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -620,8 +620,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
-        "e7b5a39c222b9cdeaf946298c8c1adf08c0f6f1744ad35b4ae640c60fa7113fc"
+        "158bf1d24a3fcf53f8c0f1015afb496581076c12972766518244ee460020f569",
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -647,7 +647,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "46dfa7a99308842233164c0949bf2206821481e0c3c77cb3951d0937a8dc5953",
+        "0eb0f07bcf9a3ab04ecae9e024dd102e5ce332444b8ae6bf5ba05fc6e7db980d",
         "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
       ],
       "destination_factory_id": 701,
@@ -674,8 +674,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "229c12d8809385230f765924c10c1a1025b92a7442ec6ec7aedf17ef3b2bd062",
-        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
+        "7cbfb549dd2e6b5a6b4c3e444e4a3edb803a3fcc45e798895626a86fa5764bc8"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -701,8 +701,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
-        "e7b5a39c222b9cdeaf946298c8c1adf08c0f6f1744ad35b4ae640c60fa7113fc"
+        "6ee4a7b34b00e2aed7e6392ba5bfcac2f77d4864263da84b5851d42605f31bb8",
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -728,8 +728,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "46dfa7a99308842233164c0949bf2206821481e0c3c77cb3951d0937a8dc5953",
-        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
+        "de812479c205bfcbfadbb1b889487647fa70709d3da98d0aea00ec0bca57122f"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -755,7 +755,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "58d2d0a5341fefd4002248bb9a50ac8cdb37b98a946e150136ade8231e787f08"
+        "d99c76f7bc4c4d0397451106c7cf2b438b6a11d88f50c04fc20e60a95563cc9f"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -781,7 +781,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "3e31b10cd1dad8b7eb691640affdf14cc28c25c29823cb2fcf7f237a9bd0b4ae"
+        "b2820de37755027c96ff660d7104f6c86696993b46a0ae97e94511e25a416cc3"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -807,7 +807,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "da76fd9fb481df1e7dff28bebd42abe3fce3bf43877bbfb373688f7c293375d7"
+        "65d60b85e34f569be87a8f770faa647b511434f38efc9f6f1ccf4c31efa0631f"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -833,7 +833,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "58d2d0a5341fefd4002248bb9a50ac8cdb37b98a946e150136ade8231e787f08"
+        "c0f5237ce9f725ed7d39f81271549398ca2b616fd85e52751284fd6bfdabd67a"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -859,7 +859,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "3e31b10cd1dad8b7eb691640affdf14cc28c25c29823cb2fcf7f237a9bd0b4ae"
+        "cd08297576b8a519c85c49ec7ff7887c41135f93a3146579c691c20e57067386"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -885,7 +885,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "da76fd9fb481df1e7dff28bebd42abe3fce3bf43877bbfb373688f7c293375d7"
+        "b42cac39d328e566c7dd46aa35129e6f81509a9a53a0d1307b6d0c3ec0757c91"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -911,7 +911,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "516c627a18b08f5e0edd9085257b53351a576cba546e06494fd16c1fee41b330"
+        "7500ac93ece2153e9d5d369f4e8594bf6dde6ae2076b92622b652925da07abc5"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -937,7 +937,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "0586020a143a24b31a277e522c2ec3af98fff441427907737ff817bedc67035b"
+        "1d3fec3f5a710953569fa4db97b6a618adf36660d410d6e0c50a82d4584d53c5"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -963,7 +963,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "d1125f0f9d9ad7c16d5610e4a5eedec65a4c21638a82f700645d271ecc9444a0"
+        "4bdb3a94b9f480bd632b74d45cc22b16620a63785a8cf7fac43c49fb73543e57"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -989,7 +989,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "516c627a18b08f5e0edd9085257b53351a576cba546e06494fd16c1fee41b330"
+        "a938187f1772845f1011814b23bddf7d701024cbaebcd1d61bf471f969d45a5e"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -1015,7 +1015,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "0586020a143a24b31a277e522c2ec3af98fff441427907737ff817bedc67035b"
+        "35701398683a7b5e82656facd0a66642664cde299d991de63375d8fb90580145"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -1041,7 +1041,7 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "d1125f0f9d9ad7c16d5610e4a5eedec65a4c21638a82f700645d271ecc9444a0"
+        "60dea92fa990527aaca8183afa714c4b1c5c474e5dbc48a6f8b04bdb5eb8ab40"
       ],
       "destination_factory_id": 701,
       "farm_id": 1,
@@ -1070,8 +1070,9 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "229c12d8809385230f765924c10c1a1025b92a7442ec6ec7aedf17ef3b2bd062",
-        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
+        "7cbfb549dd2e6b5a6b4c3e444e4a3edb803a3fcc45e798895626a86fa5764bc8",
+        "f3a3f1986b3e85b61061717b3d555637e6eaa515e8676c07f71aab2494175657"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1112,8 +1113,9 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
-        "e7b5a39c222b9cdeaf946298c8c1adf08c0f6f1744ad35b4ae640c60fa7113fc"
+        "158bf1d24a3fcf53f8c0f1015afb496581076c12972766518244ee460020f569",
+        "6ee4a7b34b00e2aed7e6392ba5bfcac2f77d4864263da84b5851d42605f31bb8",
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1154,8 +1156,9 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "46dfa7a99308842233164c0949bf2206821481e0c3c77cb3951d0937a8dc5953",
-        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
+        "0eb0f07bcf9a3ab04ecae9e024dd102e5ce332444b8ae6bf5ba05fc6e7db980d",
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
+        "de812479c205bfcbfadbb1b889487647fa70709d3da98d0aea00ec0bca57122f"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1196,7 +1199,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "58d2d0a5341fefd4002248bb9a50ac8cdb37b98a946e150136ade8231e787f08"
+        "c0f5237ce9f725ed7d39f81271549398ca2b616fd85e52751284fd6bfdabd67a",
+        "d99c76f7bc4c4d0397451106c7cf2b438b6a11d88f50c04fc20e60a95563cc9f"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1237,7 +1241,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "3e31b10cd1dad8b7eb691640affdf14cc28c25c29823cb2fcf7f237a9bd0b4ae"
+        "b2820de37755027c96ff660d7104f6c86696993b46a0ae97e94511e25a416cc3",
+        "cd08297576b8a519c85c49ec7ff7887c41135f93a3146579c691c20e57067386"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1278,7 +1283,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "da76fd9fb481df1e7dff28bebd42abe3fce3bf43877bbfb373688f7c293375d7"
+        "65d60b85e34f569be87a8f770faa647b511434f38efc9f6f1ccf4c31efa0631f",
+        "b42cac39d328e566c7dd46aa35129e6f81509a9a53a0d1307b6d0c3ec0757c91"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1319,7 +1325,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "516c627a18b08f5e0edd9085257b53351a576cba546e06494fd16c1fee41b330"
+        "7500ac93ece2153e9d5d369f4e8594bf6dde6ae2076b92622b652925da07abc5",
+        "a938187f1772845f1011814b23bddf7d701024cbaebcd1d61bf471f969d45a5e"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1360,7 +1367,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "0586020a143a24b31a277e522c2ec3af98fff441427907737ff817bedc67035b"
+        "1d3fec3f5a710953569fa4db97b6a618adf36660d410d6e0c50a82d4584d53c5",
+        "35701398683a7b5e82656facd0a66642664cde299d991de63375d8fb90580145"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1401,7 +1409,8 @@
       "closing_cohort_count": 0,
       "closing_mature_inventory_kg": "0",
       "cohort_source_ref_hashes": [
-        "d1125f0f9d9ad7c16d5610e4a5eedec65a4c21638a82f700645d271ecc9444a0"
+        "4bdb3a94b9f480bd632b74d45cc22b16620a63785a8cf7fac43c49fb73543e57",
+        "60dea92fa990527aaca8183afa714c4b1c5c474e5dbc48a6f8b04bdb5eb8ab40"
       ],
       "continuity_passed": true,
       "effective_capacity_for_day_kg": "200",
@@ -1799,128 +1808,650 @@
       {
         "farm_id": 1,
         "prediction_date": "2026-03-01",
-        "source_ref_hash": "229c12d8809385230f765924c10c1a1025b92a7442ec6ec7aedf17ef3b2bd062",
+        "source_ref_hash": "f3a3f1986b3e85b61061717b3d555637e6eaa515e8676c07f71aab2494175657",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "00c427de0c9d6e9a3d7b8b94bc5602cc5ce8cc64ddd008d4249a87cbebfded99"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-01",
-        "source_ref_hash": "e7b5a39c222b9cdeaf946298c8c1adf08c0f6f1744ad35b4ae640c60fa7113fc",
+        "source_ref_hash": "158bf1d24a3fcf53f8c0f1015afb496581076c12972766518244ee460020f569",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "00c427de0c9d6e9a3d7b8b94bc5602cc5ce8cc64ddd008d4249a87cbebfded99"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-01",
-        "source_ref_hash": "46dfa7a99308842233164c0949bf2206821481e0c3c77cb3951d0937a8dc5953",
+        "source_ref_hash": "0eb0f07bcf9a3ab04ecae9e024dd102e5ce332444b8ae6bf5ba05fc6e7db980d",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "00c427de0c9d6e9a3d7b8b94bc5602cc5ce8cc64ddd008d4249a87cbebfded99"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-01",
-        "source_ref_hash": "229c12d8809385230f765924c10c1a1025b92a7442ec6ec7aedf17ef3b2bd062",
+        "source_ref_hash": "7cbfb549dd2e6b5a6b4c3e444e4a3edb803a3fcc45e798895626a86fa5764bc8",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "ea9843b104a0964a12d19915846ca5249bb33bc1a17f8d9cb617406f56127a6f"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-01",
-        "source_ref_hash": "e7b5a39c222b9cdeaf946298c8c1adf08c0f6f1744ad35b4ae640c60fa7113fc",
+        "source_ref_hash": "6ee4a7b34b00e2aed7e6392ba5bfcac2f77d4864263da84b5851d42605f31bb8",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "ea9843b104a0964a12d19915846ca5249bb33bc1a17f8d9cb617406f56127a6f"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-01",
-        "source_ref_hash": "46dfa7a99308842233164c0949bf2206821481e0c3c77cb3951d0937a8dc5953",
+        "source_ref_hash": "de812479c205bfcbfadbb1b889487647fa70709d3da98d0aea00ec0bca57122f",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "ea9843b104a0964a12d19915846ca5249bb33bc1a17f8d9cb617406f56127a6f"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-02",
-        "source_ref_hash": "58d2d0a5341fefd4002248bb9a50ac8cdb37b98a946e150136ade8231e787f08",
+        "source_ref_hash": "d99c76f7bc4c4d0397451106c7cf2b438b6a11d88f50c04fc20e60a95563cc9f",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967711201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-02",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "4deead068900c03332045c340a4e48ccaf2b1527e6681dc3a0321047fabf5890"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-02",
-        "source_ref_hash": "3e31b10cd1dad8b7eb691640affdf14cc28c25c29823cb2fcf7f237a9bd0b4ae",
+        "source_ref_hash": "b2820de37755027c96ff660d7104f6c86696993b46a0ae97e94511e25a416cc3",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967711201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-02",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "4deead068900c03332045c340a4e48ccaf2b1527e6681dc3a0321047fabf5890"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-02",
-        "source_ref_hash": "da76fd9fb481df1e7dff28bebd42abe3fce3bf43877bbfb373688f7c293375d7",
+        "source_ref_hash": "65d60b85e34f569be87a8f770faa647b511434f38efc9f6f1ccf4c31efa0631f",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967711201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-02",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "4deead068900c03332045c340a4e48ccaf2b1527e6681dc3a0321047fabf5890"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-02",
-        "source_ref_hash": "58d2d0a5341fefd4002248bb9a50ac8cdb37b98a946e150136ade8231e787f08",
+        "source_ref_hash": "c0f5237ce9f725ed7d39f81271549398ca2b616fd85e52751284fd6bfdabd67a",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967711202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-02",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "3f07084dfc661ae51e884199c2f2a58d0b8c9df47e02b270bc7fa41e4c23bf5e"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-02",
-        "source_ref_hash": "3e31b10cd1dad8b7eb691640affdf14cc28c25c29823cb2fcf7f237a9bd0b4ae",
+        "source_ref_hash": "cd08297576b8a519c85c49ec7ff7887c41135f93a3146579c691c20e57067386",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967711202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-02",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "3f07084dfc661ae51e884199c2f2a58d0b8c9df47e02b270bc7fa41e4c23bf5e"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-02",
-        "source_ref_hash": "da76fd9fb481df1e7dff28bebd42abe3fce3bf43877bbfb373688f7c293375d7",
+        "source_ref_hash": "b42cac39d328e566c7dd46aa35129e6f81509a9a53a0d1307b6d0c3ec0757c91",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967711202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-02",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "3f07084dfc661ae51e884199c2f2a58d0b8c9df47e02b270bc7fa41e4c23bf5e"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-03",
-        "source_ref_hash": "516c627a18b08f5e0edd9085257b53351a576cba546e06494fd16c1fee41b330",
+        "source_ref_hash": "7500ac93ece2153e9d5d369f4e8594bf6dde6ae2076b92622b652925da07abc5",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967811201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-03",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "74550148e7353e17d0ffed30391d11e0a92f6af09ab8c4a2221970e79766f359"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-03",
-        "source_ref_hash": "0586020a143a24b31a277e522c2ec3af98fff441427907737ff817bedc67035b",
+        "source_ref_hash": "1d3fec3f5a710953569fa4db97b6a618adf36660d410d6e0c50a82d4584d53c5",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967811201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-03",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "74550148e7353e17d0ffed30391d11e0a92f6af09ab8c4a2221970e79766f359"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-03",
-        "source_ref_hash": "d1125f0f9d9ad7c16d5610e4a5eedec65a4c21638a82f700645d271ecc9444a0",
+        "source_ref_hash": "4bdb3a94b9f480bd632b74d45cc22b16620a63785a8cf7fac43c49fb73543e57",
         "subfarm_id": 11,
-        "variety_id": 101
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967811201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-03",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "74550148e7353e17d0ffed30391d11e0a92f6af09ab8c4a2221970e79766f359"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-03",
-        "source_ref_hash": "516c627a18b08f5e0edd9085257b53351a576cba546e06494fd16c1fee41b330",
+        "source_ref_hash": "a938187f1772845f1011814b23bddf7d701024cbaebcd1d61bf471f969d45a5e",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967811202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-03",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "38ea933d3ba6c9b9acc94b41e93e3d09162b11847d33297cc8c54504526b3344"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-03",
-        "source_ref_hash": "0586020a143a24b31a277e522c2ec3af98fff441427907737ff817bedc67035b",
+        "source_ref_hash": "35701398683a7b5e82656facd0a66642664cde299d991de63375d8fb90580145",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967811202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-03",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "38ea933d3ba6c9b9acc94b41e93e3d09162b11847d33297cc8c54504526b3344"
       },
       {
         "farm_id": 1,
         "prediction_date": "2026-03-03",
-        "source_ref_hash": "d1125f0f9d9ad7c16d5610e4a5eedec65a4c21638a82f700645d271ecc9444a0",
+        "source_ref_hash": "60dea92fa990527aaca8183afa714c4b1c5c474e5dbc48a6f8b04bdb5eb8ab40",
         "subfarm_id": 11,
-        "variety_id": 102
+        "variety_id": 102,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967811202,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "20",
+          "p80_kg": "24",
+          "p90_kg": "28",
+          "plan_id": 501,
+          "prediction_date": "2026-03-03",
+          "subfarm_id": 11,
+          "variety_id": 102
+        },
+        "verification_snapshot_hash": "38ea933d3ba6c9b9acc94b41e93e3d09162b11847d33297cc8c54504526b3344"
       }
     ],
     "weather_rule_config": {
@@ -1996,7 +2527,10 @@
     }
   },
   "mass_balance_result": {
-    "passed": true
+    "display_passed": true,
+    "internal_passed": true,
+    "passed": true,
+    "tolerance_kg": "0.001"
   },
   "output_schema_version": "task9a-output-v1",
   "resolved_parameter_snapshot": {
@@ -2110,7 +2644,7 @@
     },
     "schema_version": "task9a-resolved-parameters-v1"
   },
-  "result_hash": "db9d6b283af05e69a02aaecbc3341154c4da8abb365af075e888a0d9060fd698",
+  "result_hash": "868e0c87ea7eb3414668f12f95483010e5dfe91e54e0275e05b93816b9de0591",
   "source_ref_catalog": [
     {
       "source_ref_hash": "02faa51a86be73c45f084f50bbfa9cca2a7f0c285017e8990930fbd9a7192eb5",
@@ -2129,32 +2663,6 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
-      "source_ref_hash": "0586020a143a24b31a277e522c2ec3af98fff441427907737ff817bedc67035b",
-      "source_ref_payload": {
-        "base_temperature_search_run_id": 901,
-        "forecast_quantile": "P80",
-        "location_reference_id": 601,
-        "maturity_daily_prediction_id": 304,
-        "maturity_forecast_as_of_date": "2026-02-28",
-        "maturity_forecast_run_id": 401,
-        "maturity_forecast_source_signature": "forecast-sig-1",
-        "maturity_model_artifact_hash": "artifact-hash-1",
-        "maturity_model_artifact_id": 201,
-        "maturity_model_config_hash": "task8-model-config-hash",
-        "maturity_model_run_id": 101,
-        "maturity_model_source_signature": "model-sig-1",
-        "maturity_model_version": "task8-v1",
-        "plan_id": 501,
-        "prediction_date": "2026-03-03",
-        "source_quantity_kg": "24",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "TASK8_DAILY_PREDICTION",
-        "weather_mapping_id": 801
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "TASK8_DAILY_PREDICTION"
-    },
-    {
       "source_ref_hash": "074b1b3fc328249d47a7afa2f9947b94f88fbc12632f55acd7e333bd5a7e1e6d",
       "source_ref_payload": {
         "as_of_date": "2026-02-28",
@@ -2171,144 +2679,12 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
-      "source_ref_hash": "16d9845ab355e3240f66ebfc28f9ee3e475d45cd465b0124350573e9a0aa61bb",
-      "source_ref_payload": {
-        "as_of_date": "2026-02-28",
-        "available_at": "2026-02-28",
-        "parameter_code": "MATURE_INVENTORY_LOSS",
-        "source_record_key": "pool-a-2026-03-02-P80-loss",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "PARAMETER_SOURCE",
-        "source_row_hash": "000893d98668f9c7ed7336915ad4ffd0dfaf1644ba6e9a18b6053e66f28ade3e",
-        "source_system": "task9a-config",
-        "source_version": "v1"
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "PARAMETER_SOURCE"
-    },
-    {
-      "source_ref_hash": "1ffc5b59ffc4fb22332574a0a98af58754ae255a6596765c7196d26e2d2989af",
-      "source_ref_payload": {
-        "as_of_date": "2026-02-28",
-        "available_at": "2026-02-28",
-        "parameter_code": "PICKER_PRODUCTIVITY",
-        "source_record_key": "pool-a-2026-03-02-productivity",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "PARAMETER_SOURCE",
-        "source_row_hash": "0676637c4b9d5870e944ed76d6f03da9b26c9cc32e8f28573854c8185f348ee1",
-        "source_system": "task9a-config",
-        "source_version": "v1"
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "PARAMETER_SOURCE"
-    },
-    {
-      "source_ref_hash": "229c12d8809385230f765924c10c1a1025b92a7442ec6ec7aedf17ef3b2bd062",
-      "source_ref_payload": {
-        "base_temperature_search_run_id": 901,
-        "forecast_quantile": "P50",
-        "location_reference_id": 601,
-        "maturity_daily_prediction_id": 302,
-        "maturity_forecast_as_of_date": "2026-02-28",
-        "maturity_forecast_run_id": 401,
-        "maturity_forecast_source_signature": "forecast-sig-1",
-        "maturity_model_artifact_hash": "artifact-hash-1",
-        "maturity_model_artifact_id": 201,
-        "maturity_model_config_hash": "task8-model-config-hash",
-        "maturity_model_run_id": 101,
-        "maturity_model_source_signature": "model-sig-1",
-        "maturity_model_version": "task8-v1",
-        "plan_id": 501,
-        "prediction_date": "2026-03-01",
-        "source_quantity_kg": "20",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "TASK8_DAILY_PREDICTION",
-        "weather_mapping_id": 801
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "TASK8_DAILY_PREDICTION"
-    },
-    {
-      "source_ref_hash": "2eda4abf48b6ad7b3ca9fb20831cd8028b97360e65e3772daff62a22ba664b5f",
-      "source_ref_payload": {
-        "as_of_date": "2026-02-28",
-        "available_at": "2026-02-28",
-        "parameter_code": "LABOR_AVAILABILITY_RATIO",
-        "source_record_key": "pool-a-2026-03-02-labor",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "PARAMETER_SOURCE",
-        "source_row_hash": "1dbf2d1b7b0c9a2ed0c0cf1cd11769746246d8f947cfe0d1e76fe66fe786a4b0",
-        "source_system": "task9a-config",
-        "source_version": "v1"
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "PARAMETER_SOURCE"
-    },
-    {
-      "source_ref_hash": "3ddb8218624ce29edbb2c79cc69de7ab8638413fc0fd0a6b21a12eb6086006d8",
-      "source_ref_payload": {
-        "as_of_date": "2026-02-28",
-        "available_at": "2026-02-28",
-        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
-        "source_record_key": "pool-a-2026-03-01-minimum_temperature_c",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "PARAMETER_SOURCE",
-        "source_row_hash": "c02c43a45340b0205ddb1e7a1b42ebcd1ce25cccc87ed7e071a7422abef8fc0f",
-        "source_system": "task9a-config",
-        "source_version": "v1"
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "PARAMETER_SOURCE"
-    },
-    {
-      "source_ref_hash": "3e31b10cd1dad8b7eb691640affdf14cc28c25c29823cb2fcf7f237a9bd0b4ae",
-      "source_ref_payload": {
-        "base_temperature_search_run_id": 901,
-        "forecast_quantile": "P80",
-        "location_reference_id": 601,
-        "maturity_daily_prediction_id": 303,
-        "maturity_forecast_as_of_date": "2026-02-28",
-        "maturity_forecast_run_id": 401,
-        "maturity_forecast_source_signature": "forecast-sig-1",
-        "maturity_model_artifact_hash": "artifact-hash-1",
-        "maturity_model_artifact_id": 201,
-        "maturity_model_config_hash": "task8-model-config-hash",
-        "maturity_model_run_id": 101,
-        "maturity_model_source_signature": "model-sig-1",
-        "maturity_model_version": "task8-v1",
-        "plan_id": 501,
-        "prediction_date": "2026-03-02",
-        "source_quantity_kg": "24",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "TASK8_DAILY_PREDICTION",
-        "weather_mapping_id": 801
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "TASK8_DAILY_PREDICTION"
-    },
-    {
-      "source_ref_hash": "3e76ef5df3c325567d51b0584b72e80b1b18b3e7ba717e02df285295ffeea0bc",
-      "source_ref_payload": {
-        "as_of_date": "2026-02-28",
-        "available_at": "2026-02-28",
-        "parameter_code": "PLANNED_PICKER_COUNT",
-        "source_record_key": "pool-a-2026-03-01-pickers",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "PARAMETER_SOURCE",
-        "source_row_hash": "5e305999ac6fbb91c6e633f2abd6386b58c282f045f648e2f86bee6673431e3b",
-        "source_system": "task9a-config",
-        "source_version": "v1"
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "PARAMETER_SOURCE"
-    },
-    {
-      "source_ref_hash": "46dfa7a99308842233164c0949bf2206821481e0c3c77cb3951d0937a8dc5953",
+      "source_ref_hash": "0eb0f07bcf9a3ab04ecae9e024dd102e5ce332444b8ae6bf5ba05fc6e7db980d",
       "source_ref_payload": {
         "base_temperature_search_run_id": 901,
         "forecast_quantile": "P90",
         "location_reference_id": 601,
-        "maturity_daily_prediction_id": 302,
+        "maturity_daily_prediction_id": 73967611201,
         "maturity_forecast_as_of_date": "2026-02-28",
         "maturity_forecast_run_id": 401,
         "maturity_forecast_source_signature": "forecast-sig-1",
@@ -2329,6 +2705,164 @@
       "source_ref_type": "TASK8_DAILY_PREDICTION"
     },
     {
+      "source_ref_hash": "158bf1d24a3fcf53f8c0f1015afb496581076c12972766518244ee460020f569",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P80",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967611201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-01",
+        "source_quantity_kg": "24",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
+      "source_ref_hash": "16d9845ab355e3240f66ebfc28f9ee3e475d45cd465b0124350573e9a0aa61bb",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "MATURE_INVENTORY_LOSS",
+        "source_record_key": "pool-a-2026-03-02-P80-loss",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "000893d98668f9c7ed7336915ad4ffd0dfaf1644ba6e9a18b6053e66f28ade3e",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "1d3fec3f5a710953569fa4db97b6a618adf36660d410d6e0c50a82d4584d53c5",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P80",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967811201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-03",
+        "source_quantity_kg": "24",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
+      "source_ref_hash": "1ffc5b59ffc4fb22332574a0a98af58754ae255a6596765c7196d26e2d2989af",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "PICKER_PRODUCTIVITY",
+        "source_record_key": "pool-a-2026-03-02-productivity",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "0676637c4b9d5870e944ed76d6f03da9b26c9cc32e8f28573854c8185f348ee1",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "2eda4abf48b6ad7b3ca9fb20831cd8028b97360e65e3772daff62a22ba664b5f",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "LABOR_AVAILABILITY_RATIO",
+        "source_record_key": "pool-a-2026-03-02-labor",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "1dbf2d1b7b0c9a2ed0c0cf1cd11769746246d8f947cfe0d1e76fe66fe786a4b0",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "35701398683a7b5e82656facd0a66642664cde299d991de63375d8fb90580145",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P80",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967811202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-03",
+        "source_quantity_kg": "24",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
+      "source_ref_hash": "3ddb8218624ce29edbb2c79cc69de7ab8638413fc0fd0a6b21a12eb6086006d8",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-01-minimum_temperature_c",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "c02c43a45340b0205ddb1e7a1b42ebcd1ce25cccc87ed7e071a7422abef8fc0f",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "3e76ef5df3c325567d51b0584b72e80b1b18b3e7ba717e02df285295ffeea0bc",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "PLANNED_PICKER_COUNT",
+        "source_record_key": "pool-a-2026-03-01-pickers",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "5e305999ac6fbb91c6e633f2abd6386b58c282f045f648e2f86bee6673431e3b",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
       "source_ref_hash": "4b56fb89dab1ff70b8121bffd0c716cb330d87484bf641c40f5b467171393fdb",
       "source_ref_payload": {
         "as_of_date": "2026-02-28",
@@ -2345,12 +2879,12 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
-      "source_ref_hash": "516c627a18b08f5e0edd9085257b53351a576cba546e06494fd16c1fee41b330",
+      "source_ref_hash": "4bdb3a94b9f480bd632b74d45cc22b16620a63785a8cf7fac43c49fb73543e57",
       "source_ref_payload": {
         "base_temperature_search_run_id": 901,
-        "forecast_quantile": "P50",
+        "forecast_quantile": "P90",
         "location_reference_id": 601,
-        "maturity_daily_prediction_id": 304,
+        "maturity_daily_prediction_id": 73967811201,
         "maturity_forecast_as_of_date": "2026-02-28",
         "maturity_forecast_run_id": 401,
         "maturity_forecast_source_signature": "forecast-sig-1",
@@ -2362,33 +2896,7 @@
         "maturity_model_version": "task8-v1",
         "plan_id": 501,
         "prediction_date": "2026-03-03",
-        "source_quantity_kg": "20",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "TASK8_DAILY_PREDICTION",
-        "weather_mapping_id": 801
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "TASK8_DAILY_PREDICTION"
-    },
-    {
-      "source_ref_hash": "58d2d0a5341fefd4002248bb9a50ac8cdb37b98a946e150136ade8231e787f08",
-      "source_ref_payload": {
-        "base_temperature_search_run_id": 901,
-        "forecast_quantile": "P50",
-        "location_reference_id": 601,
-        "maturity_daily_prediction_id": 303,
-        "maturity_forecast_as_of_date": "2026-02-28",
-        "maturity_forecast_run_id": 401,
-        "maturity_forecast_source_signature": "forecast-sig-1",
-        "maturity_model_artifact_hash": "artifact-hash-1",
-        "maturity_model_artifact_id": 201,
-        "maturity_model_config_hash": "task8-model-config-hash",
-        "maturity_model_run_id": 101,
-        "maturity_model_source_signature": "model-sig-1",
-        "maturity_model_version": "task8-v1",
-        "plan_id": 501,
-        "prediction_date": "2026-03-02",
-        "source_quantity_kg": "20",
+        "source_quantity_kg": "28",
         "source_ref_schema_version": "task9a-source-ref-v1",
         "source_ref_type": "TASK8_DAILY_PREDICTION",
         "weather_mapping_id": 801
@@ -2445,6 +2953,84 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
+      "source_ref_hash": "60dea92fa990527aaca8183afa714c4b1c5c474e5dbc48a6f8b04bdb5eb8ab40",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P90",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967811202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-03",
+        "source_quantity_kg": "28",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
+      "source_ref_hash": "65d60b85e34f569be87a8f770faa647b511434f38efc9f6f1ccf4c31efa0631f",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P90",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967711201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-02",
+        "source_quantity_kg": "28",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
+      "source_ref_hash": "6ee4a7b34b00e2aed7e6392ba5bfcac2f77d4864263da84b5851d42605f31bb8",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P80",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967611202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-01",
+        "source_quantity_kg": "24",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
       "source_ref_hash": "6eec36e0d30833d1bc51a4887c7158efd6c4cc308f8cfff65f4b45511e207235",
       "source_ref_payload": {
         "as_of_date": "2026-02-28",
@@ -2493,6 +3079,32 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
+      "source_ref_hash": "7500ac93ece2153e9d5d369f4e8594bf6dde6ae2076b92622b652925da07abc5",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P50",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967811201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-03",
+        "source_quantity_kg": "20",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
       "source_ref_hash": "7555db4ce0ec3e882172825f9ee77947adc78aa208398c90a6eba9e76ab0d299",
       "source_ref_payload": {
         "as_of_date": "2026-02-28",
@@ -2522,6 +3134,32 @@
       },
       "source_ref_schema_version": "task9a-source-ref-v1",
       "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT"
+    },
+    {
+      "source_ref_hash": "7cbfb549dd2e6b5a6b4c3e444e4a3edb803a3fcc45e798895626a86fa5764bc8",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P50",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967611202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-01",
+        "source_quantity_kg": "20",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
     },
     {
       "source_ref_hash": "92454e756f347a156c16140255d5c27f0ab3c8038bd566650b654192ba12468e",
@@ -2588,6 +3226,32 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
+      "source_ref_hash": "a938187f1772845f1011814b23bddf7d701024cbaebcd1d61bf471f969d45a5e",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P50",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967811202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-03",
+        "source_quantity_kg": "20",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
       "source_ref_hash": "aa9b74979ef717e9ae3a2a590bc71852898e4e8f7da6bb20f91aeb906ca6b939",
       "source_ref_payload": {
         "as_of_date": "2026-02-28",
@@ -2602,6 +3266,32 @@
       },
       "source_ref_schema_version": "task9a-source-ref-v1",
       "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "b2820de37755027c96ff660d7104f6c86696993b46a0ae97e94511e25a416cc3",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P80",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967711201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-02",
+        "source_quantity_kg": "24",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
     },
     {
       "source_ref_hash": "b3ed50ff7ffdb33f507a290b167a8e43a96945a0b2708b7e36811e5d050d9c9c",
@@ -2620,6 +3310,32 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
+      "source_ref_hash": "b42cac39d328e566c7dd46aa35129e6f81509a9a53a0d1307b6d0c3ec0757c91",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P90",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967711202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-02",
+        "source_quantity_kg": "28",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
       "source_ref_hash": "b6a8d40989b953239b62d6bbd2a8665ed78a3f77c227ad2a22e857a814d366b9",
       "source_ref_payload": {
         "as_of_date": "2026-02-28",
@@ -2634,6 +3350,32 @@
       },
       "source_ref_schema_version": "task9a-source-ref-v1",
       "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "c0f5237ce9f725ed7d39f81271549398ca2b616fd85e52751284fd6bfdabd67a",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P50",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967711202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-02",
+        "source_quantity_kg": "20",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
     },
     {
       "source_ref_hash": "c5b3a7e28c91b98136c4ef79fbe887af5a1547c38a4d5b2ed657ea0dd833b771",
@@ -2666,6 +3408,32 @@
       },
       "source_ref_schema_version": "task9a-source-ref-v1",
       "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "cd08297576b8a519c85c49ec7ff7887c41135f93a3146579c691c20e57067386",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P80",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967711202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-02",
+        "source_quantity_kg": "24",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
     },
     {
       "source_ref_hash": "cd4c040f30e9c8a5b85547ce2a34e3e42a2ef2cdad01b4f371a0b45103d0ebde",
@@ -2732,32 +3500,6 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
-      "source_ref_hash": "d1125f0f9d9ad7c16d5610e4a5eedec65a4c21638a82f700645d271ecc9444a0",
-      "source_ref_payload": {
-        "base_temperature_search_run_id": 901,
-        "forecast_quantile": "P90",
-        "location_reference_id": 601,
-        "maturity_daily_prediction_id": 304,
-        "maturity_forecast_as_of_date": "2026-02-28",
-        "maturity_forecast_run_id": 401,
-        "maturity_forecast_source_signature": "forecast-sig-1",
-        "maturity_model_artifact_hash": "artifact-hash-1",
-        "maturity_model_artifact_id": 201,
-        "maturity_model_config_hash": "task8-model-config-hash",
-        "maturity_model_run_id": 101,
-        "maturity_model_source_signature": "model-sig-1",
-        "maturity_model_version": "task8-v1",
-        "plan_id": 501,
-        "prediction_date": "2026-03-03",
-        "source_quantity_kg": "28",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "TASK8_DAILY_PREDICTION",
-        "weather_mapping_id": 801
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "TASK8_DAILY_PREDICTION"
-    },
-    {
       "source_ref_hash": "d78d5b20c747db990d69f8baf979b54271f4e616f7ecc60965582d7c05c310f2",
       "source_ref_payload": {
         "as_of_date": "2026-02-28",
@@ -2774,12 +3516,12 @@
       "source_ref_type": "PARAMETER_SOURCE"
     },
     {
-      "source_ref_hash": "da76fd9fb481df1e7dff28bebd42abe3fce3bf43877bbfb373688f7c293375d7",
+      "source_ref_hash": "d99c76f7bc4c4d0397451106c7cf2b438b6a11d88f50c04fc20e60a95563cc9f",
       "source_ref_payload": {
         "base_temperature_search_run_id": 901,
-        "forecast_quantile": "P90",
+        "forecast_quantile": "P50",
         "location_reference_id": 601,
-        "maturity_daily_prediction_id": 303,
+        "maturity_daily_prediction_id": 73967711201,
         "maturity_forecast_as_of_date": "2026-02-28",
         "maturity_forecast_run_id": 401,
         "maturity_forecast_source_signature": "forecast-sig-1",
@@ -2791,6 +3533,32 @@
         "maturity_model_version": "task8-v1",
         "plan_id": 501,
         "prediction_date": "2026-03-02",
+        "source_quantity_kg": "20",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
+      "source_ref_hash": "de812479c205bfcbfadbb1b889487647fa70709d3da98d0aea00ec0bca57122f",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P90",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967611202,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-01",
         "source_quantity_kg": "28",
         "source_ref_schema_version": "task9a-source-ref-v1",
         "source_ref_type": "TASK8_DAILY_PREDICTION",
@@ -2814,32 +3582,6 @@
       },
       "source_ref_schema_version": "task9a-source-ref-v1",
       "source_ref_type": "PARAMETER_SOURCE"
-    },
-    {
-      "source_ref_hash": "e7b5a39c222b9cdeaf946298c8c1adf08c0f6f1744ad35b4ae640c60fa7113fc",
-      "source_ref_payload": {
-        "base_temperature_search_run_id": 901,
-        "forecast_quantile": "P80",
-        "location_reference_id": 601,
-        "maturity_daily_prediction_id": 302,
-        "maturity_forecast_as_of_date": "2026-02-28",
-        "maturity_forecast_run_id": 401,
-        "maturity_forecast_source_signature": "forecast-sig-1",
-        "maturity_model_artifact_hash": "artifact-hash-1",
-        "maturity_model_artifact_id": 201,
-        "maturity_model_config_hash": "task8-model-config-hash",
-        "maturity_model_run_id": 101,
-        "maturity_model_source_signature": "model-sig-1",
-        "maturity_model_version": "task8-v1",
-        "plan_id": 501,
-        "prediction_date": "2026-03-01",
-        "source_quantity_kg": "24",
-        "source_ref_schema_version": "task9a-source-ref-v1",
-        "source_ref_type": "TASK8_DAILY_PREDICTION",
-        "weather_mapping_id": 801
-      },
-      "source_ref_schema_version": "task9a-source-ref-v1",
-      "source_ref_type": "TASK8_DAILY_PREDICTION"
     },
     {
       "source_ref_hash": "ec9ce9922066a0b51b1060925718cda620843cac40e6162e7f9b4ef354d5c0ee",
@@ -2888,6 +3630,32 @@
       },
       "source_ref_schema_version": "task9a-source-ref-v1",
       "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "f3a3f1986b3e85b61061717b3d555637e6eaa515e8676c07f71aab2494175657",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P50",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967611201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-01",
+        "source_quantity_kg": "20",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
     },
     {
       "source_ref_hash": "f5605f6dda6a2b5595ac2c0c5484695f54f7f97f7201aa39c902fa603176a08c",

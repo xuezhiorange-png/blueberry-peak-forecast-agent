@@ -56,6 +56,29 @@ def _retarget_to_single_day(payload: dict[str, object], target_date: date) -> No
         item["state_date"] = target_date
 
 
+def _synchronize_task8_verification_snapshot(
+    payload: dict[str, object],
+    *,
+    prediction_date: date,
+    farm_id: int = 1,
+    subfarm_id: int | None = 11,
+    variety_id: int,
+    p50_kg: Decimal,
+    p80_kg: Decimal,
+    p90_kg: Decimal,
+) -> None:
+    for item in payload["task8_daily_predictions"]:
+        if (
+            item["prediction_date"] == prediction_date
+            and item["farm_id"] == farm_id
+            and item["subfarm_id"] == subfarm_id
+            and item["variety_id"] == variety_id
+        ):
+            item["verification_snapshot"]["p50_kg"] = p50_kg
+            item["verification_snapshot"]["p80_kg"] = p80_kg
+            item["verification_snapshot"]["p90_kg"] = p90_kg
+
+
 def test_arrival_lag_one_moves_arrival_to_destination_date() -> None:
     from backend.app.harvest_state.service import run_harvest_state_model
 
@@ -77,6 +100,17 @@ def test_arrival_lag_one_moves_arrival_to_destination_date() -> None:
     )
     assert day1_pool.arrival_quantity_kg == Decimal("0")
     assert day2_pool.arrival_quantity_kg > Decimal("0")
+
+
+def test_verification_snapshot_is_preserved_in_input_snapshot() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    result = run_harvest_state_model(make_request())
+
+    assert result.status == "completed"
+    first = result.input_snapshot["task8_daily_predictions"][0]
+    assert first["verification_snapshot"]["maturity_model_version"] == "task8-v1"
+    assert len(first["verification_snapshot_hash"]) == 64
 
 
 def test_arrival_outside_window_goes_to_schedule_not_harvest_day() -> None:
@@ -131,6 +165,14 @@ def test_explicit_zero_task8_row_is_valid_zero() -> None:
     from backend.app.harvest_state.service import run_harvest_state_model
 
     payload = make_request()
+    _synchronize_task8_verification_snapshot(
+        payload,
+        prediction_date=date(2026, 3, 2),
+        variety_id=102,
+        p50_kg=Decimal("0"),
+        p80_kg=Decimal("24"),
+        p90_kg=Decimal("28"),
+    )
     for item in payload["task8_daily_predictions"]:
         if (
             item["prediction_date"] == date(2026, 3, 2)
@@ -254,6 +296,15 @@ def test_sub_milligram_quantity_is_not_lost_before_output_quantization() -> None
             variety_id=101,
         ),
     ]
+    for prediction_date in (date(2026, 3, 1), date(2026, 3, 2)):
+        _synchronize_task8_verification_snapshot(
+            payload,
+            prediction_date=prediction_date,
+            variety_id=101,
+            p50_kg=Decimal("0.0004"),
+            p80_kg=Decimal("0"),
+            p90_kg=Decimal("0"),
+        )
     payload["capacity_pools"] = [
         make_pool(
             grain="SUBFARM_VARIETY",
@@ -318,6 +369,7 @@ def test_sub_milligram_quantity_is_not_lost_before_output_quantization() -> None
     result = run_harvest_state_model(payload)
 
     assert result.status == "completed"
+    assert result.mass_balance_result["internal_passed"] is True
     day2 = next(
         row
         for row in result.daily_member_state_rows
@@ -325,6 +377,7 @@ def test_sub_milligram_quantity_is_not_lost_before_output_quantization() -> None
         and row.variety_id == 101
         and row.forecast_quantile == "P50"
     )
+    assert day2.available_mature_quantity_kg == Decimal("0.001")
     assert day2.closing_mature_inventory_kg == Decimal("0.001")
 
 
@@ -377,6 +430,7 @@ def test_raw_payload_validation_returns_blocked_output() -> None:
 
     assert result.status == "blocked"
     assert result.daily_pool_state_rows == []
+    assert "INVALID_ARRIVAL_LAG" in result.blockers
 
 
 def test_native_float_payload_returns_blocked_output() -> None:
@@ -389,6 +443,50 @@ def test_native_float_payload_returns_blocked_output() -> None:
 
     assert result.status == "blocked"
     assert any("NATIVE_FLOAT_INPUT" in item for item in result.blockers)
+
+
+def test_invalid_farm_timezone_returns_blocked_output() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["farm_timezone"] = "Bad/Timezone"
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert "INVALID_TIMEZONE" in result.blockers
+    assert result.daily_pool_state_rows == []
+    assert result.daily_member_state_rows == []
+    assert result.cohort_transition_rows == []
+    assert result.future_arrival_schedule == []
+
+
+def test_invalid_destination_timezone_returns_blocked_output() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["destination_factory_timezone"] = "Bad/Timezone"
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert "INVALID_TIMEZONE" in result.blockers
+
+
+def test_invalid_timezone_result_hash_is_deterministic() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload_a = make_request()
+    payload_b = make_request()
+    payload_a["farm_timezone"] = "Bad/Timezone"
+    payload_b["farm_timezone"] = "Bad/Timezone"
+
+    result_a = run_harvest_state_model(payload_a)
+    result_b = run_harvest_state_model(payload_b)
+
+    assert result_a.status == "blocked"
+    assert result_b.status == "blocked"
+    assert result_a.result_hash == result_b.result_hash
 
 
 def test_task8_future_as_of_date_blocks() -> None:
@@ -411,6 +509,63 @@ def test_task8_signature_mismatch_blocks() -> None:
     payload["task8_daily_predictions"][0]["verification_snapshot"][
         "maturity_model_source_signature"
     ] = "other-model-sig"
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+
+
+def test_task8_model_version_mismatch_blocks() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    for item in payload["task8_daily_predictions"]:
+        item["source_ref"]["maturity_model_version"] = "task8-v2"
+        item["verification_snapshot"]["maturity_model_version"] = "task8-v2"
+        break
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+
+
+def test_task8_model_config_hash_mismatch_blocks() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    for item in payload["task8_daily_predictions"]:
+        item["source_ref"]["maturity_model_config_hash"] = "cfg-v2"
+        item["verification_snapshot"]["maturity_model_config_hash"] = "cfg-v2"
+        break
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+
+
+def test_task8_model_source_signature_mismatch_blocks() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    for item in payload["task8_daily_predictions"]:
+        item["source_ref"]["maturity_model_source_signature"] = "model-sig-v2"
+        item["verification_snapshot"]["maturity_model_source_signature"] = "model-sig-v2"
+        break
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+
+
+def test_task8_artifact_id_mismatch_blocks() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    for item in payload["task8_daily_predictions"]:
+        item["source_ref"]["maturity_model_artifact_id"] = 999
+        item["verification_snapshot"]["maturity_model_artifact_id"] = 999
+        item["verification_snapshot"]["maturity_forecast_artifact_id"] = 999
+        break
 
     result = run_harvest_state_model(payload)
 
@@ -449,6 +604,45 @@ def test_mixed_task8_forecast_runs_block() -> None:
     result = run_harvest_state_model(payload)
 
     assert result.status == "blocked"
+
+
+def test_same_prediction_id_different_variety_blocks() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    shared_id = payload["task8_daily_predictions"][0]["source_ref"]["maturity_daily_prediction_id"]
+    payload["task8_daily_predictions"][1]["source_ref"]["maturity_daily_prediction_id"] = shared_id
+    payload["task8_daily_predictions"][1]["verification_snapshot"][
+        "maturity_daily_prediction_id"
+    ] = shared_id
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+
+
+def test_same_prediction_id_different_snapshot_blocks() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    shared_id = payload["task8_daily_predictions"][0]["source_ref"]["maturity_daily_prediction_id"]
+    payload["task8_daily_predictions"][3]["source_ref"]["maturity_daily_prediction_id"] = shared_id
+    payload["task8_daily_predictions"][3]["verification_snapshot"][
+        "maturity_daily_prediction_id"
+    ] = shared_id
+    payload["task8_daily_predictions"][3]["verification_snapshot"]["p50_kg"] = Decimal("999")
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+
+
+def test_three_quantiles_share_identical_verification_identity() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    result = run_harvest_state_model(make_request())
+
+    assert result.status == "completed"
 
 
 def test_continuity_failure_after_day_one_blocks() -> None:
@@ -500,6 +694,31 @@ def test_continuity_failure_after_day_one_blocks() -> None:
     assert result.status == "blocked"
 
 
+def test_initial_inventory_aggregate_requires_exact_decimal_equality() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["initial_inventory_cohorts"] = []
+    payload["initial_opening_mature_inventory_kg"] = Decimal("0.0004")
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert any("INITIAL_INVENTORY_SUM_MISMATCH" in item for item in result.blockers)
+
+
+def test_empty_initial_inventory_with_exact_zero_is_valid() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["initial_inventory_cohorts"] = []
+    payload["initial_opening_mature_inventory_kg"] = Decimal("0")
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "completed"
+
+
 def test_sub_milligram_capacity_harvests_before_output_quantization() -> None:
     from backend.app.harvest_state.service import run_harvest_state_model
 
@@ -535,6 +754,14 @@ def test_sub_milligram_capacity_harvests_before_output_quantization() -> None:
             variety_id=101,
         ),
     ]
+    _synchronize_task8_verification_snapshot(
+        payload,
+        prediction_date=date(2026, 3, 1),
+        variety_id=101,
+        p50_kg=Decimal("0.0010"),
+        p80_kg=Decimal("0"),
+        p90_kg=Decimal("0"),
+    )
     payload["capacity_pools"] = [
         make_pool(
             grain="SUBFARM_VARIETY",
@@ -571,6 +798,121 @@ def test_sub_milligram_capacity_harvests_before_output_quantization() -> None:
     p50_row = next(row for row in result.cohort_transition_rows if row.forecast_quantile == "P50")
     assert p50_row.harvested_quantity_kg == Decimal("0.000")
     assert p50_row.closing_quantity_kg == Decimal("0.001")
+
+
+def test_weather_ratio_is_not_quantized_before_capacity_calculation() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["weather_rule_config"]["feature_rules"][0]["bands"][0]["multiplier"] = Decimal(
+        "0.1234567"
+    )
+    payload["weather_rule_config"]["feature_rules"][1]["bands"][0]["multiplier"] = Decimal("1")
+    payload["weather_rule_config"]["feature_rules"][2]["bands"][1]["multiplier"] = Decimal("1")
+    payload["daily_capacity_inputs"] = [
+        make_capacity_input(
+            capacity_date=date(2026, 3, 1),
+            mode="DIRECT_CAPACITY",
+            planned_picker_count=None,
+            productivity=None,
+            direct_capacity=Decimal("1000000"),
+        )
+    ]
+    payload["forecast_start_date"] = date(2026, 3, 1)
+    payload["forecast_end_date"] = date(2026, 3, 1)
+    payload["daily_weather_features"] = payload["daily_weather_features"][:3]
+    payload["task8_daily_predictions"] = payload["task8_daily_predictions"][:6]
+    payload["mature_inventory_loss_inputs"] = payload["mature_inventory_loss_inputs"][:3]
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "completed"
+    assert (
+        result.resolved_parameter_snapshot.daily_pool_parameters[0].weather_harvest_efficiency_ratio
+        == Decimal("0.123457")
+    )
+
+
+def test_resolved_parameter_snapshot_quantizes_ratio_only_on_output() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["weather_rule_config"]["feature_rules"][0]["bands"][0]["multiplier"] = Decimal(
+        "0.1234567"
+    )
+    payload["weather_rule_config"]["feature_rules"][1]["bands"][0]["multiplier"] = Decimal("1")
+    payload["weather_rule_config"]["feature_rules"][2]["bands"][1]["multiplier"] = Decimal("1")
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "completed"
+    assert (
+        result.resolved_parameter_snapshot.daily_pool_parameters[0].weather_harvest_efficiency_ratio
+        == Decimal("0.123457")
+    )
+
+
+def test_verification_snapshot_change_changes_result_hash() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload_a = make_request()
+    payload_b = make_request()
+    for item in payload_b["task8_daily_predictions"]:
+        item["verification_snapshot"]["maturity_forecast_prediction_end_date"] = date(
+            2026, 3, 31
+        )
+
+    result_a = run_harvest_state_model(payload_a)
+    result_b = run_harvest_state_model(payload_b)
+
+    assert result_a.status == "completed"
+    assert result_b.status == "completed"
+    assert result_a.input_snapshot != result_b.input_snapshot
+    assert result_a.result_hash != result_b.result_hash
+
+
+def test_unselected_quantile_value_change_changes_result_hash() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload_a = make_request()
+    payload_b = make_request()
+    _synchronize_task8_verification_snapshot(
+        payload_b,
+        prediction_date=date(2026, 3, 1),
+        variety_id=101,
+        p50_kg=Decimal("20"),
+        p80_kg=Decimal("999"),
+        p90_kg=Decimal("28"),
+    )
+    for item in payload_b["task8_daily_predictions"]:
+        if (
+            item["prediction_date"] == date(2026, 3, 1)
+            and item["variety_id"] == 101
+            and item["source_ref"]["forecast_quantile"] == "P80"
+        ):
+            item["source_ref"]["source_quantity_kg"] = Decimal("999")
+
+    result_a = run_harvest_state_model(payload_a)
+    result_b = run_harvest_state_model(payload_b)
+
+    assert result_a.status == "completed"
+    assert result_b.status == "completed"
+    assert result_a.result_hash != result_b.result_hash
+
+
+def test_task8_input_order_does_not_change_result_hash() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload_a = make_request()
+    payload_b = make_request()
+    payload_b["task8_daily_predictions"] = list(reversed(payload_b["task8_daily_predictions"]))
+
+    result_a = run_harvest_state_model(payload_a)
+    result_b = run_harvest_state_model(payload_b)
+
+    assert result_a.status == "completed"
+    assert result_b.status == "completed"
+    assert result_a.result_hash == result_b.result_hash
 
 
 def test_run_parameter_source_conflict_blocks() -> None:
@@ -759,3 +1101,39 @@ def test_fixed_golden_payload_single_member_single_day() -> None:
     assert member_row.harvested_quantity_kg == Decimal("7.000")
     p50_rows = [row for row in result.cohort_transition_rows if row.forecast_quantile == "P50"]
     assert len(p50_rows) == 2
+
+
+def test_malformed_members_container_returns_blocked() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["capacity_pools"][0]["members"] = 42
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert result.daily_pool_state_rows == []
+
+
+def test_malformed_capacity_pools_array_item_returns_blocked() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["capacity_pools"] = [42]
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert result.daily_pool_state_rows == []
+
+
+def test_malformed_source_ref_returns_blocked() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["task8_daily_predictions"][0]["source_ref"] = []
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert result.daily_pool_state_rows == []
