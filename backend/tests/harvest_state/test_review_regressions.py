@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, time
 from decimal import Decimal
+from enum import Enum
+
+import pytest
 
 from backend.tests.harvest_state.conftest import (
     make_capacity_input,
@@ -15,6 +18,10 @@ from backend.tests.harvest_state.conftest import (
     make_task8_verification_snapshot,
     sha256_hex,
 )
+
+
+class _RawAuditEnum(Enum):
+    P50 = "P50"
 
 
 def _retarget_to_single_day(payload: dict[str, object], target_date: date) -> None:
@@ -473,6 +480,53 @@ def test_invalid_destination_timezone_returns_blocked_output() -> None:
     assert "INVALID_TIMEZONE" in result.blockers
 
 
+@pytest.mark.parametrize(
+    ("field_name", "timezone_value"),
+    [
+        ("farm_timezone", "Bad/Timezone"),
+        ("destination_factory_timezone", "Bad/Timezone"),
+        ("farm_timezone", ""),
+        ("destination_factory_timezone", ""),
+        ("farm_timezone", "/etc/passwd"),
+        ("destination_factory_timezone", "/etc/passwd"),
+        ("farm_timezone", "../UTC"),
+        ("destination_factory_timezone", "../UTC"),
+        ("farm_timezone", "UTC\0x"),
+        ("destination_factory_timezone", "UTC\0x"),
+    ],
+)
+def test_invalid_timezone_key_returns_blocked_output(
+    field_name: str,
+    timezone_value: str,
+) -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload[field_name] = timezone_value
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert "INVALID_TIMEZONE" in result.blockers
+    assert result.daily_pool_state_rows == []
+    assert result.daily_member_state_rows == []
+    assert result.cohort_transition_rows == []
+    assert result.future_arrival_schedule == []
+
+
+@pytest.mark.parametrize("timezone_value", ["", "/etc/passwd", "../UTC", "UTC\0x"])
+def test_invalid_timezone_value_error_does_not_escape(timezone_value: str) -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["farm_timezone"] = timezone_value
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert "INVALID_TIMEZONE" in result.blockers
+
+
 def test_invalid_timezone_result_hash_is_deterministic() -> None:
     from backend.app.harvest_state.service import run_harvest_state_model
 
@@ -480,6 +534,23 @@ def test_invalid_timezone_result_hash_is_deterministic() -> None:
     payload_b = make_request()
     payload_a["farm_timezone"] = "Bad/Timezone"
     payload_b["farm_timezone"] = "Bad/Timezone"
+
+    result_a = run_harvest_state_model(payload_a)
+    result_b = run_harvest_state_model(payload_b)
+
+    assert result_a.status == "blocked"
+    assert result_b.status == "blocked"
+    assert result_a.result_hash == result_b.result_hash
+
+
+@pytest.mark.parametrize("timezone_value", ["", "/etc/passwd", "../UTC", "UTC\0x"])
+def test_invalid_timezone_variants_have_deterministic_hash(timezone_value: str) -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload_a = make_request()
+    payload_b = make_request()
+    payload_a["destination_factory_timezone"] = timezone_value
+    payload_b["destination_factory_timezone"] = timezone_value
 
     result_a = run_harvest_state_model(payload_a)
     result_b = run_harvest_state_model(payload_b)
@@ -1132,6 +1203,77 @@ def test_malformed_source_ref_returns_blocked() -> None:
 
     payload = make_request()
     payload["task8_daily_predictions"][0]["source_ref"] = []
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert result.daily_pool_state_rows == []
+
+
+def test_raw_time_value_is_preserved_in_blocked_snapshot() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["harvest_bucket_anchor_local_time"] = time(18, 0)
+    payload["capacity_pools"][0]["members"] = 42
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert result.input_snapshot["harvest_bucket_anchor_local_time"] == "18:00:00"
+
+
+def test_different_raw_time_values_change_blocked_result_hash() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload_a = make_request()
+    payload_b = make_request()
+    payload_a["harvest_bucket_anchor_local_time"] = time(18, 0)
+    payload_b["harvest_bucket_anchor_local_time"] = time(19, 0)
+    payload_a["capacity_pools"][0]["members"] = 42
+    payload_b["capacity_pools"][0]["members"] = 42
+
+    result_a = run_harvest_state_model(payload_a)
+    result_b = run_harvest_state_model(payload_b)
+
+    assert result_a.status == "blocked"
+    assert result_b.status == "blocked"
+    assert result_a.input_snapshot["harvest_bucket_anchor_local_time"] == "18:00:00"
+    assert result_b.input_snapshot["harvest_bucket_anchor_local_time"] == "19:00:00"
+    assert result_a.result_hash != result_b.result_hash
+
+
+def test_raw_datetime_value_is_preserved() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["audit_datetime"] = datetime(2026, 3, 1, 18, 30, 0)
+    payload["capacity_pools"] = [42]
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert result.input_snapshot["audit_datetime"] == "2026-03-01T18:30:00"
+
+
+def test_raw_enum_value_is_canonicalized() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["audit_quantile"] = _RawAuditEnum.P50
+    payload["task8_daily_predictions"][0]["source_ref"] = []
+
+    result = run_harvest_state_model(payload)
+
+    assert result.status == "blocked"
+    assert result.input_snapshot["audit_quantile"] == "P50"
+
+
+def test_malformed_nested_mapping_returns_blocked() -> None:
+    from backend.app.harvest_state.service import run_harvest_state_model
+
+    payload = make_request()
+    payload["task8_daily_predictions"] = [{"farm_id": {"bad": 1}}]
 
     result = run_harvest_state_model(payload)
 
