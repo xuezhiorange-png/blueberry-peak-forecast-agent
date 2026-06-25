@@ -296,7 +296,7 @@ async def test_harvest_state_invalid_result_hash_constraint() -> None:
                     '["x"]'::jsonb,
                     NULL,
                     NULL,
-                    '{"output_schema_version":"task9a-output-v1","status":"blocked","input_snapshot":{},"resolved_parameter_snapshot":null,"daily_pool_state_rows":[],"daily_member_state_rows":[],"cohort_transition_rows":[],"future_arrival_schedule":[],"source_ref_catalog":[],"warnings":[],"blockers":["x"],"config_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","result_hash":"bad-hash"}'::jsonb,
+                    CAST(:canonical_output AS jsonb),
                     :config_hash,
                     :result_hash,
                     :canonical_payload_hash,
@@ -312,6 +312,23 @@ async def test_harvest_state_invalid_result_hash_constraint() -> None:
                 """
             ),
             {
+                "canonical_output": canonical_json_dumps(
+                    {
+                        "output_schema_version": "task9a-output-v1",
+                        "status": "blocked",
+                        "input_snapshot": {},
+                        "resolved_parameter_snapshot": None,
+                        "daily_pool_state_rows": [],
+                        "daily_member_state_rows": [],
+                        "cohort_transition_rows": [],
+                        "future_arrival_schedule": [],
+                        "source_ref_catalog": [],
+                        "warnings": [],
+                        "blockers": ["x"],
+                        "config_hash": "a" * 64,
+                        "result_hash": "bad-hash",
+                    }
+                ),
                 "config_hash": "a" * 64,
                 "result_hash": "bad-hash",
                 "canonical_payload_hash": "c" * 64,
