@@ -1,0 +1,1150 @@
+{
+  "blockers": [],
+  "cohort_transition_rows": [
+    {
+      "arrival_at": "2026-03-02T19:00:00+09:00",
+      "arrival_local_date": "2026-03-02",
+      "arrival_quantity_kg": "1",
+      "capacity_pool_id": "pool-a",
+      "closing_quantity_kg": "0",
+      "cohort_date": "2026-02-28",
+      "destination_factory_id": 701,
+      "farm_id": 1,
+      "forecast_quantile": "P50",
+      "harvest_anchor_at": "2026-03-01T18:00:00+08:00",
+      "harvested_quantity_kg": "1",
+      "mature_inventory_loss_quantity_kg": "1",
+      "new_supply_quantity_kg": "0",
+      "opening_quantity_kg": "2",
+      "quantity_before_harvest_kg": "1",
+      "quantity_before_loss_kg": "2",
+      "source_ref_hash": "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
+      "stable_cohort_key": "66c87f83f2155e83969387669aa346d4fd5f6ab7dfe0d12b0b99418b1a71ef1c",
+      "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
+      "state_date": "2026-03-01",
+      "subfarm_id": 11,
+      "variety_id": 101
+    },
+    {
+      "arrival_at": null,
+      "arrival_local_date": null,
+      "arrival_quantity_kg": "0",
+      "capacity_pool_id": "pool-a",
+      "closing_quantity_kg": "0",
+      "cohort_date": "2026-03-01",
+      "destination_factory_id": 701,
+      "farm_id": 1,
+      "forecast_quantile": "P80",
+      "harvest_anchor_at": null,
+      "harvested_quantity_kg": "0",
+      "mature_inventory_loss_quantity_kg": "0",
+      "new_supply_quantity_kg": "0",
+      "opening_quantity_kg": "0",
+      "quantity_before_harvest_kg": "0",
+      "quantity_before_loss_kg": "0",
+      "source_ref_hash": "fa8062e57cb29f6ebe3d4b5799542ee62c1f4c087e4848ca3080db22a1e60c24",
+      "stable_cohort_key": "807628923ce6f5583443c642108d9d236d6802954715b8586448b5751f447108",
+      "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
+      "state_date": "2026-03-01",
+      "subfarm_id": 11,
+      "variety_id": 101
+    },
+    {
+      "arrival_at": null,
+      "arrival_local_date": null,
+      "arrival_quantity_kg": "0",
+      "capacity_pool_id": "pool-a",
+      "closing_quantity_kg": "0",
+      "cohort_date": "2026-03-01",
+      "destination_factory_id": 701,
+      "farm_id": 1,
+      "forecast_quantile": "P90",
+      "harvest_anchor_at": null,
+      "harvested_quantity_kg": "0",
+      "mature_inventory_loss_quantity_kg": "0",
+      "new_supply_quantity_kg": "0",
+      "opening_quantity_kg": "0",
+      "quantity_before_harvest_kg": "0",
+      "quantity_before_loss_kg": "0",
+      "source_ref_hash": "b9895b25b853e812c44c4c7286539e5c343ea02ff7f856554680d05b5ff6904e",
+      "stable_cohort_key": "edaf29b295f6d45e9f504cccb8a5bf0e6852c13e70fac055f1c70b49ed36c9ce",
+      "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
+      "state_date": "2026-03-01",
+      "subfarm_id": 11,
+      "variety_id": 101
+    },
+    {
+      "arrival_at": "2026-03-02T19:00:00+09:00",
+      "arrival_local_date": "2026-03-02",
+      "arrival_quantity_kg": "6",
+      "capacity_pool_id": "pool-a",
+      "closing_quantity_kg": "4",
+      "cohort_date": "2026-03-01",
+      "destination_factory_id": 701,
+      "farm_id": 1,
+      "forecast_quantile": "P50",
+      "harvest_anchor_at": "2026-03-01T18:00:00+08:00",
+      "harvested_quantity_kg": "6",
+      "mature_inventory_loss_quantity_kg": "0",
+      "new_supply_quantity_kg": "10",
+      "opening_quantity_kg": "0",
+      "quantity_before_harvest_kg": "10",
+      "quantity_before_loss_kg": "10",
+      "source_ref_hash": "3e5f8fbc7df13970edcb09d5eebb0f6b2413e8e6e76342ebc6cd73d25e161f00",
+      "stable_cohort_key": "f6b8e4a274559c47d16a5e85cbd3e964aff0d3078d104896082782bdef425faf",
+      "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
+      "state_date": "2026-03-01",
+      "subfarm_id": 11,
+      "variety_id": 101
+    }
+  ],
+  "config_hash": "2fb0a2e15fa1bab12c44ee127d8635bb0e7e6351da7ec39628157485ddb2d609",
+  "continuity_result": {
+    "passed": true
+  },
+  "daily_member_state_rows": [
+    {
+      "allocated_harvest_capacity_kg": "7",
+      "arrival_quantity_kg": "0",
+      "available_mature_quantity_kg": "12",
+      "capacity_pool_grain": "SUBFARM_VARIETY",
+      "capacity_pool_id": "pool-a",
+      "capacity_pool_membership_hash": "83c959652dd014f4eee10dcf981995d82494a65f55ec491da16a0cd1ac43d5ef",
+      "closing_cohort_count": 1,
+      "closing_mature_inventory_kg": "4",
+      "cohort_source_ref_hashes": [
+        "3e5f8fbc7df13970edcb09d5eebb0f6b2413e8e6e76342ebc6cd73d25e161f00",
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
+      ],
+      "destination_factory_id": 701,
+      "farm_id": 1,
+      "forecast_quantile": "P50",
+      "harvestable_mature_quantity_kg": "11",
+      "harvested_quantity_kg": "7",
+      "mature_inventory_loss_quantity_kg": "1",
+      "natural_maturity_supply_kg": "10",
+      "opening_cohort_count": 1,
+      "opening_mature_inventory_kg": "2",
+      "state_date": "2026-03-01",
+      "subfarm_id": 11,
+      "unharvested_backlog_kg": "4",
+      "variety_id": 101
+    },
+    {
+      "allocated_harvest_capacity_kg": "0",
+      "arrival_quantity_kg": "0",
+      "available_mature_quantity_kg": "0",
+      "capacity_pool_grain": "SUBFARM_VARIETY",
+      "capacity_pool_id": "pool-a",
+      "capacity_pool_membership_hash": "83c959652dd014f4eee10dcf981995d82494a65f55ec491da16a0cd1ac43d5ef",
+      "closing_cohort_count": 0,
+      "closing_mature_inventory_kg": "0",
+      "cohort_source_ref_hashes": [
+        "fa8062e57cb29f6ebe3d4b5799542ee62c1f4c087e4848ca3080db22a1e60c24"
+      ],
+      "destination_factory_id": 701,
+      "farm_id": 1,
+      "forecast_quantile": "P80",
+      "harvestable_mature_quantity_kg": "0",
+      "harvested_quantity_kg": "0",
+      "mature_inventory_loss_quantity_kg": "0",
+      "natural_maturity_supply_kg": "0",
+      "opening_cohort_count": 0,
+      "opening_mature_inventory_kg": "0",
+      "state_date": "2026-03-01",
+      "subfarm_id": 11,
+      "unharvested_backlog_kg": "0",
+      "variety_id": 101
+    },
+    {
+      "allocated_harvest_capacity_kg": "0",
+      "arrival_quantity_kg": "0",
+      "available_mature_quantity_kg": "0",
+      "capacity_pool_grain": "SUBFARM_VARIETY",
+      "capacity_pool_id": "pool-a",
+      "capacity_pool_membership_hash": "83c959652dd014f4eee10dcf981995d82494a65f55ec491da16a0cd1ac43d5ef",
+      "closing_cohort_count": 0,
+      "closing_mature_inventory_kg": "0",
+      "cohort_source_ref_hashes": [
+        "b9895b25b853e812c44c4c7286539e5c343ea02ff7f856554680d05b5ff6904e"
+      ],
+      "destination_factory_id": 701,
+      "farm_id": 1,
+      "forecast_quantile": "P90",
+      "harvestable_mature_quantity_kg": "0",
+      "harvested_quantity_kg": "0",
+      "mature_inventory_loss_quantity_kg": "0",
+      "natural_maturity_supply_kg": "0",
+      "opening_cohort_count": 0,
+      "opening_mature_inventory_kg": "0",
+      "state_date": "2026-03-01",
+      "subfarm_id": 11,
+      "unharvested_backlog_kg": "0",
+      "variety_id": 101
+    }
+  ],
+  "daily_pool_state_rows": [
+    {
+      "arrival_quantity_kg": "0",
+      "available_mature_quantity_kg": "12",
+      "capacity_constraint_passed": true,
+      "capacity_input_mode": "DIRECT_CAPACITY",
+      "capacity_pool_grain": "SUBFARM_VARIETY",
+      "capacity_pool_id": "pool-a",
+      "capacity_pool_membership_hash": "83c959652dd014f4eee10dcf981995d82494a65f55ec491da16a0cd1ac43d5ef",
+      "closing_cohort_count": 1,
+      "closing_mature_inventory_kg": "4",
+      "cohort_source_ref_hashes": [
+        "3e5f8fbc7df13970edcb09d5eebb0f6b2413e8e6e76342ebc6cd73d25e161f00",
+        "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678"
+      ],
+      "continuity_passed": true,
+      "effective_capacity_for_day_kg": "7",
+      "effective_harvest_capacity_kg_per_day": "7",
+      "forecast_quantile": "P50",
+      "harvestable_mature_quantity_kg": "11",
+      "harvested_quantity_kg": "7",
+      "labor_availability_ratio": "1",
+      "mass_balance_passed": true,
+      "mature_inventory_loss_quantity_kg": "1",
+      "member_count": 1,
+      "natural_maturity_supply_kg": "10",
+      "nominal_harvest_capacity_kg_per_day": "7",
+      "opening_cohort_count": 1,
+      "opening_mature_inventory_kg": "2",
+      "operational_efficiency_ratio": "1",
+      "parameter_source_ref_hashes": [
+        "3ddb8218624ce29edbb2c79cc69de7ab8638413fc0fd0a6b21a12eb6086006d8",
+        "954b11b4ceda616b0da0bcbdd3eb8fee0bcd8270b6067f98094cfef7801c945a",
+        "c1b105954320e74e65919daff65ef73ea766bd16665beee482a2c26d737db835",
+        "cdef24bb2711b9cac7560e1a6aa275167ff0da4427d9bf14c951a2b9f48d0590",
+        "f03e17befe03eba343916f4a59412d648ac0f96e3af098e9d35b123e1bc5262a",
+        "f80e0f378e7372fa766b8d0ea588c2518b62a4b53b6a922192339835bca82dc4"
+      ],
+      "state_date": "2026-03-01",
+      "unharvested_backlog_kg": "4",
+      "weather_harvest_efficiency_ratio": "1"
+    },
+    {
+      "arrival_quantity_kg": "0",
+      "available_mature_quantity_kg": "0",
+      "capacity_constraint_passed": true,
+      "capacity_input_mode": "DIRECT_CAPACITY",
+      "capacity_pool_grain": "SUBFARM_VARIETY",
+      "capacity_pool_id": "pool-a",
+      "capacity_pool_membership_hash": "83c959652dd014f4eee10dcf981995d82494a65f55ec491da16a0cd1ac43d5ef",
+      "closing_cohort_count": 0,
+      "closing_mature_inventory_kg": "0",
+      "cohort_source_ref_hashes": [
+        "fa8062e57cb29f6ebe3d4b5799542ee62c1f4c087e4848ca3080db22a1e60c24"
+      ],
+      "continuity_passed": true,
+      "effective_capacity_for_day_kg": "7",
+      "effective_harvest_capacity_kg_per_day": "7",
+      "forecast_quantile": "P80",
+      "harvestable_mature_quantity_kg": "0",
+      "harvested_quantity_kg": "0",
+      "labor_availability_ratio": "1",
+      "mass_balance_passed": true,
+      "mature_inventory_loss_quantity_kg": "0",
+      "member_count": 1,
+      "natural_maturity_supply_kg": "0",
+      "nominal_harvest_capacity_kg_per_day": "7",
+      "opening_cohort_count": 0,
+      "opening_mature_inventory_kg": "0",
+      "operational_efficiency_ratio": "1",
+      "parameter_source_ref_hashes": [
+        "3ddb8218624ce29edbb2c79cc69de7ab8638413fc0fd0a6b21a12eb6086006d8",
+        "954b11b4ceda616b0da0bcbdd3eb8fee0bcd8270b6067f98094cfef7801c945a",
+        "c1b105954320e74e65919daff65ef73ea766bd16665beee482a2c26d737db835",
+        "cdef24bb2711b9cac7560e1a6aa275167ff0da4427d9bf14c951a2b9f48d0590",
+        "f03e17befe03eba343916f4a59412d648ac0f96e3af098e9d35b123e1bc5262a",
+        "f80e0f378e7372fa766b8d0ea588c2518b62a4b53b6a922192339835bca82dc4"
+      ],
+      "state_date": "2026-03-01",
+      "unharvested_backlog_kg": "0",
+      "weather_harvest_efficiency_ratio": "1"
+    },
+    {
+      "arrival_quantity_kg": "0",
+      "available_mature_quantity_kg": "0",
+      "capacity_constraint_passed": true,
+      "capacity_input_mode": "DIRECT_CAPACITY",
+      "capacity_pool_grain": "SUBFARM_VARIETY",
+      "capacity_pool_id": "pool-a",
+      "capacity_pool_membership_hash": "83c959652dd014f4eee10dcf981995d82494a65f55ec491da16a0cd1ac43d5ef",
+      "closing_cohort_count": 0,
+      "closing_mature_inventory_kg": "0",
+      "cohort_source_ref_hashes": [
+        "b9895b25b853e812c44c4c7286539e5c343ea02ff7f856554680d05b5ff6904e"
+      ],
+      "continuity_passed": true,
+      "effective_capacity_for_day_kg": "7",
+      "effective_harvest_capacity_kg_per_day": "7",
+      "forecast_quantile": "P90",
+      "harvestable_mature_quantity_kg": "0",
+      "harvested_quantity_kg": "0",
+      "labor_availability_ratio": "1",
+      "mass_balance_passed": true,
+      "mature_inventory_loss_quantity_kg": "0",
+      "member_count": 1,
+      "natural_maturity_supply_kg": "0",
+      "nominal_harvest_capacity_kg_per_day": "7",
+      "opening_cohort_count": 0,
+      "opening_mature_inventory_kg": "0",
+      "operational_efficiency_ratio": "1",
+      "parameter_source_ref_hashes": [
+        "3ddb8218624ce29edbb2c79cc69de7ab8638413fc0fd0a6b21a12eb6086006d8",
+        "954b11b4ceda616b0da0bcbdd3eb8fee0bcd8270b6067f98094cfef7801c945a",
+        "c1b105954320e74e65919daff65ef73ea766bd16665beee482a2c26d737db835",
+        "cdef24bb2711b9cac7560e1a6aa275167ff0da4427d9bf14c951a2b9f48d0590",
+        "f03e17befe03eba343916f4a59412d648ac0f96e3af098e9d35b123e1bc5262a",
+        "f80e0f378e7372fa766b8d0ea588c2518b62a4b53b6a922192339835bca82dc4"
+      ],
+      "state_date": "2026-03-01",
+      "unharvested_backlog_kg": "0",
+      "weather_harvest_efficiency_ratio": "1"
+    }
+  ],
+  "forecast_end_date": "2026-03-01",
+  "forecast_quantiles": [
+    "P50",
+    "P80",
+    "P90"
+  ],
+  "forecast_start_date": "2026-03-01",
+  "future_arrival_schedule": [
+    {
+      "arrival_local_date": "2026-03-02",
+      "capacity_pool_id": "pool-a",
+      "destination_factory_id": 701,
+      "farm_id": 1,
+      "forecast_quantile": "P50",
+      "quantity_kg": "7",
+      "subfarm_id": 11,
+      "variety_id": 101
+    }
+  ],
+  "input_snapshot": {
+    "as_of_date": "2026-02-28",
+    "capacity_pools": [
+      {
+        "capacity_pool_grain": "SUBFARM_VARIETY",
+        "capacity_pool_id": "pool-a",
+        "members": [
+          {
+            "farm_id": 1,
+            "subfarm_id": 11,
+            "variety_id": 101
+          }
+        ]
+      }
+    ],
+    "daily_capacity_inputs": [
+      {
+        "capacity_date": "2026-03-01",
+        "capacity_input_mode": "DIRECT_CAPACITY",
+        "capacity_parameter_source_ref_hashes": [
+          "c1b105954320e74e65919daff65ef73ea766bd16665beee482a2c26d737db835",
+          "cdef24bb2711b9cac7560e1a6aa275167ff0da4427d9bf14c951a2b9f48d0590",
+          "f80e0f378e7372fa766b8d0ea588c2518b62a4b53b6a922192339835bca82dc4"
+        ],
+        "capacity_pool_id": "pool-a",
+        "direct_nominal_capacity_kg_per_day": "7",
+        "kg_per_person_per_day": null,
+        "labor_availability_ratio": "1",
+        "operational_efficiency_ratio": "1",
+        "planned_picker_count": null
+      }
+    ],
+    "daily_weather_features": [
+      {
+        "capacity_date": "2026-03-01",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "consecutive_rainy_days",
+        "source_ref_hash": "f03e17befe03eba343916f4a59412d648ac0f96e3af098e9d35b123e1bc5262a",
+        "value": "0"
+      },
+      {
+        "capacity_date": "2026-03-01",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "daily_precipitation_mm",
+        "source_ref_hash": "954b11b4ceda616b0da0bcbdd3eb8fee0bcd8270b6067f98094cfef7801c945a",
+        "value": "0"
+      },
+      {
+        "capacity_date": "2026-03-01",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "minimum_temperature_c",
+        "source_ref_hash": "3ddb8218624ce29edbb2c79cc69de7ab8638413fc0fd0a6b21a12eb6086006d8",
+        "value": "12"
+      },
+      {
+        "capacity_date": "2026-03-02",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "consecutive_rainy_days",
+        "source_ref_hash": "5c69c66a4b240662b8617da6ca41011e95de0cdc5f1711aba05818b670c0ac2c",
+        "value": "0"
+      },
+      {
+        "capacity_date": "2026-03-02",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "daily_precipitation_mm",
+        "source_ref_hash": "7555db4ce0ec3e882172825f9ee77947adc78aa208398c90a6eba9e76ab0d299",
+        "value": "0"
+      },
+      {
+        "capacity_date": "2026-03-02",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "minimum_temperature_c",
+        "source_ref_hash": "5fec4e4b29beeeda26228fee1d0542d5480202e94a1ef373f7c5c5dfe9cfae2b",
+        "value": "12"
+      },
+      {
+        "capacity_date": "2026-03-03",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "consecutive_rainy_days",
+        "source_ref_hash": "ee3cbaf79ff8a015f5b1c3ae7ef804b70558c0c74f9ea71ee3f8b8930fd5f3c1",
+        "value": "0"
+      },
+      {
+        "capacity_date": "2026-03-03",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "daily_precipitation_mm",
+        "source_ref_hash": "d0e28f4284bd29a7d82ea0db1eb4cf31cee69b9b5fb3baf69470418cad7c9957",
+        "value": "0"
+      },
+      {
+        "capacity_date": "2026-03-03",
+        "capacity_pool_id": "pool-a",
+        "feature_id": "minimum_temperature_c",
+        "source_ref_hash": "73394b1cb18cbccff5331f9c057ae215695910d8699116421ca3e993b44d7443",
+        "value": "12"
+      }
+    ],
+    "destination_factory_id": 701,
+    "destination_factory_timezone": "Asia/Tokyo",
+    "farm_timezone": "Asia/Shanghai",
+    "forecast_end_date": "2026-03-01",
+    "forecast_quantiles": [
+      "P50",
+      "P80",
+      "P90"
+    ],
+    "forecast_start_date": "2026-03-01",
+    "harvest_bucket_anchor_local_time": "18:00:00",
+    "harvest_to_arrival_lag_days": 1,
+    "holiday_calendar_hash": "c552c29b7331f054da0d706eed087650b79ae9d90b68efa5aa93c79fef9bc4ec",
+    "holiday_calendar_version": "holiday-v1",
+    "holiday_dates": [],
+    "initial_inventory_cohorts": [
+      {
+        "cohort_date": "2026-02-28",
+        "farm_id": 1,
+        "forecast_quantile": "P50",
+        "remaining_quantity_kg": "2",
+        "source_ref_hash": "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
+        "stable_cohort_key": "66c87f83f2155e83969387669aa346d4fd5f6ab7dfe0d12b0b99418b1a71ef1c",
+        "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
+        "subfarm_id": 11,
+        "variety_id": 101
+      }
+    ],
+    "initial_opening_mature_inventory_kg": "2",
+    "mature_inventory_loss_inputs": [
+      {
+        "capacity_pool_id": "pool-a",
+        "forecast_quantile": "P50",
+        "mature_inventory_loss_quantity_kg": "1",
+        "source_ref_hash": "cae51b7fad7dd5979d5b324c36001804f341b970cfe95565c1ce26ada9a87e64",
+        "state_date": "2026-03-01"
+      },
+      {
+        "capacity_pool_id": "pool-a",
+        "forecast_quantile": "P80",
+        "mature_inventory_loss_quantity_kg": "0",
+        "source_ref_hash": "a03743dc5293f0c973e977d66c1593077cf80e4b664b5b558008c58e325715a5",
+        "state_date": "2026-03-01"
+      },
+      {
+        "capacity_pool_id": "pool-a",
+        "forecast_quantile": "P90",
+        "mature_inventory_loss_quantity_kg": "0",
+        "source_ref_hash": "aa9b74979ef717e9ae3a2a590bc71852898e4e8f7da6bb20f91aeb906ca6b939",
+        "state_date": "2026-03-01"
+      }
+    ],
+    "pool_membership_hash_by_pool": {
+      "pool-a": "83c959652dd014f4eee10dcf981995d82494a65f55ec491da16a0cd1ac43d5ef"
+    },
+    "run_parameter_source_ref_hashes": [
+      "b6a8d40989b953239b62d6bbd2a8665ed78a3f77c227ad2a22e857a814d366b9",
+      "e14795de66ce625ee477219dd90b959b23096821a6ee005fbcbf1b1f9c364d74",
+      "4b56fb89dab1ff70b8121bffd0c716cb330d87484bf641c40f5b467171393fdb",
+      "d78d5b20c747db990d69f8baf979b54271f4e616f7ecc60965582d7c05c310f2",
+      "596017cd888aebcf049dab04b07f48cec20260ae319b0b8b984b586f312830cb"
+    ],
+    "task8_daily_predictions": [
+      {
+        "farm_id": 1,
+        "prediction_date": "2026-03-01",
+        "source_ref_hash": "3e5f8fbc7df13970edcb09d5eebb0f6b2413e8e6e76342ebc6cd73d25e161f00",
+        "subfarm_id": 11,
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "10",
+          "p80_kg": "0",
+          "p90_kg": "0",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "ea8972b17eb0bbc4010910ad79b21b3b0b49d64391f971930ff98d2b5571fee9"
+      },
+      {
+        "farm_id": 1,
+        "prediction_date": "2026-03-01",
+        "source_ref_hash": "fa8062e57cb29f6ebe3d4b5799542ee62c1f4c087e4848ca3080db22a1e60c24",
+        "subfarm_id": 11,
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "10",
+          "p80_kg": "0",
+          "p90_kg": "0",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "ea8972b17eb0bbc4010910ad79b21b3b0b49d64391f971930ff98d2b5571fee9"
+      },
+      {
+        "farm_id": 1,
+        "prediction_date": "2026-03-01",
+        "source_ref_hash": "b9895b25b853e812c44c4c7286539e5c343ea02ff7f856554680d05b5ff6904e",
+        "subfarm_id": 11,
+        "variety_id": 101,
+        "verification_snapshot": {
+          "farm_id": 1,
+          "location_reference_id": 601,
+          "maturity_daily_prediction_forecast_run_id": 401,
+          "maturity_daily_prediction_id": 73967611201,
+          "maturity_forecast_artifact_id": 201,
+          "maturity_forecast_as_of_date": "2026-02-28",
+          "maturity_forecast_model_run_id": 101,
+          "maturity_forecast_prediction_end_date": "2026-03-03",
+          "maturity_forecast_prediction_start_date": "2026-03-01",
+          "maturity_forecast_run_id": 401,
+          "maturity_forecast_run_status": "completed",
+          "maturity_forecast_source_signature": "forecast-sig-1",
+          "maturity_model_artifact_hash": "artifact-hash-1",
+          "maturity_model_artifact_id": 201,
+          "maturity_model_artifact_run_id": 101,
+          "maturity_model_config_hash": "task8-model-config-hash",
+          "maturity_model_run_id": 101,
+          "maturity_model_source_signature": "model-sig-1",
+          "maturity_model_version": "task8-v1",
+          "p50_kg": "10",
+          "p80_kg": "0",
+          "p90_kg": "0",
+          "plan_id": 501,
+          "prediction_date": "2026-03-01",
+          "subfarm_id": 11,
+          "variety_id": 101
+        },
+        "verification_snapshot_hash": "ea8972b17eb0bbc4010910ad79b21b3b0b49d64391f971930ff98d2b5571fee9"
+      }
+    ],
+    "weather_rule_config": {
+      "combination_method": "MULTIPLY",
+      "feature_rules": [
+        {
+          "bands": [
+            {
+              "lower_bound": "0",
+              "lower_inclusive": true,
+              "multiplier": "1",
+              "upper_bound": "0",
+              "upper_inclusive": true
+            },
+            {
+              "lower_bound": "0",
+              "lower_inclusive": false,
+              "multiplier": "0.5",
+              "upper_bound": "1000",
+              "upper_inclusive": true
+            }
+          ],
+          "feature_id": "daily_precipitation_mm"
+        },
+        {
+          "bands": [
+            {
+              "lower_bound": "0",
+              "lower_inclusive": true,
+              "multiplier": "1",
+              "upper_bound": "2",
+              "upper_inclusive": true
+            },
+            {
+              "lower_bound": "2",
+              "lower_inclusive": false,
+              "multiplier": "0.7",
+              "upper_bound": "1000",
+              "upper_inclusive": true
+            }
+          ],
+          "feature_id": "consecutive_rainy_days"
+        },
+        {
+          "bands": [
+            {
+              "lower_bound": "-100",
+              "lower_inclusive": true,
+              "multiplier": "0.8",
+              "upper_bound": "10",
+              "upper_inclusive": false
+            },
+            {
+              "lower_bound": "10",
+              "lower_inclusive": true,
+              "multiplier": "1",
+              "upper_bound": "100",
+              "upper_inclusive": true
+            }
+          ],
+          "feature_id": "minimum_temperature_c"
+        }
+      ],
+      "maximum_ratio": "1",
+      "minimum_ratio": "0",
+      "missing_feature_policy": "BLOCK",
+      "required_feature_ids": [
+        "daily_precipitation_mm",
+        "consecutive_rainy_days",
+        "minimum_temperature_c"
+      ],
+      "version": "weather-rule-v1"
+    }
+  },
+  "mass_balance_result": {
+    "display_passed": true,
+    "internal_passed": true,
+    "passed": true,
+    "tolerance_kg": "0.001"
+  },
+  "output_schema_version": "task9a-output-v1",
+  "resolved_parameter_snapshot": {
+    "daily_pool_parameters": [
+      {
+        "capacity_date": "2026-03-01",
+        "capacity_input_mode": "DIRECT_CAPACITY",
+        "capacity_parameter_source_ref_hashes": [
+          "c1b105954320e74e65919daff65ef73ea766bd16665beee482a2c26d737db835",
+          "cdef24bb2711b9cac7560e1a6aa275167ff0da4427d9bf14c951a2b9f48d0590",
+          "f80e0f378e7372fa766b8d0ea588c2518b62a4b53b6a922192339835bca82dc4"
+        ],
+        "capacity_pool_grain": "SUBFARM_VARIETY",
+        "capacity_pool_id": "pool-a",
+        "capacity_pool_membership_hash": "83c959652dd014f4eee10dcf981995d82494a65f55ec491da16a0cd1ac43d5ef",
+        "direct_nominal_capacity_kg_per_day": "7",
+        "holiday_applied": false,
+        "kg_per_person_per_day": null,
+        "labor_availability_ratio": "1",
+        "operational_efficiency_ratio": "1",
+        "planned_picker_count": null,
+        "resolved_effective_capacity_kg_per_day": "7",
+        "resolved_nominal_capacity_kg_per_day": "7",
+        "weather_feature_source_ref_hashes": [
+          "3ddb8218624ce29edbb2c79cc69de7ab8638413fc0fd0a6b21a12eb6086006d8",
+          "954b11b4ceda616b0da0bcbdd3eb8fee0bcd8270b6067f98094cfef7801c945a",
+          "f03e17befe03eba343916f4a59412d648ac0f96e3af098e9d35b123e1bc5262a"
+        ],
+        "weather_harvest_efficiency_ratio": "1"
+      }
+    ],
+    "run_parameters": {
+      "decimal_precision": 28,
+      "destination_factory_id": 701,
+      "destination_factory_timezone": "Asia/Tokyo",
+      "farm_timezone": "Asia/Shanghai",
+      "forecast_end_date": "2026-03-01",
+      "forecast_quantiles": [
+        "P50",
+        "P80",
+        "P90"
+      ],
+      "forecast_start_date": "2026-03-01",
+      "harvest_bucket_anchor_local_time": "18:00:00",
+      "harvest_to_arrival_lag_days": 1,
+      "holiday_calendar_hash": "c552c29b7331f054da0d706eed087650b79ae9d90b68efa5aa93c79fef9bc4ec",
+      "holiday_calendar_version": "holiday-v1",
+      "quantity_scale": "0.001",
+      "ratio_scale": "0.000001",
+      "result_hash_schema_version": "task9a-result-hash-v1",
+      "rounding_mode": "ROUND_HALF_UP",
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
+      "weather_rule_config_hash": "c813ec8b436c5fc1286bde714bf6f5244a325b7125e9f20ace6359e233bd34fa",
+      "weather_rule_version": "weather-rule-v1"
+    },
+    "schema_version": "task9a-resolved-parameters-v1"
+  },
+  "result_hash": "4578d5244657f82eacdc8052388aa076cee3dbffa362b1d0b10edd036d6fcb21",
+  "source_ref_catalog": [
+    {
+      "source_ref_hash": "3ddb8218624ce29edbb2c79cc69de7ab8638413fc0fd0a6b21a12eb6086006d8",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-01-minimum_temperature_c",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "c02c43a45340b0205ddb1e7a1b42ebcd1ce25cccc87ed7e071a7422abef8fc0f",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "3e5f8fbc7df13970edcb09d5eebb0f6b2413e8e6e76342ebc6cd73d25e161f00",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P50",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967611201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-01",
+        "source_quantity_kg": "10",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
+      "source_ref_hash": "4b56fb89dab1ff70b8121bffd0c716cb330d87484bf641c40f5b467171393fdb",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "HOLIDAY_CALENDAR",
+        "source_record_key": "holiday-calendar-v1",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "c5c4aa8745875776c51215b6528deb8ad0eff9a8bc3229866f33f377766e1b16",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "596017cd888aebcf049dab04b07f48cec20260ae319b0b8b984b586f312830cb",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_RULE_CONFIG",
+        "source_record_key": "weather-rule-v1",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "8dac3a611b2bfb71baeffc54469b8e980c41c7abeabb0c29173a4b81b722187f",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "5c69c66a4b240662b8617da6ca41011e95de0cdc5f1711aba05818b670c0ac2c",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-02-consecutive_rainy_days",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "adcffed206049f419342c56179a4d5a504afb12e6c5084cbab797acdad73b996",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "5fec4e4b29beeeda26228fee1d0542d5480202e94a1ef373f7c5c5dfe9cfae2b",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-02-minimum_temperature_c",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "4873331d59e40bfac477013b2720b80e2d04331ee7dace5502dda1bc0fb9bb4e",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "73394b1cb18cbccff5331f9c057ae215695910d8699116421ca3e993b44d7443",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-03-minimum_temperature_c",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "bdc2454803a99c802e53797c9f6c8cee009e018b2f0d6bbc033b084579017d69",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "7555db4ce0ec3e882172825f9ee77947adc78aa208398c90a6eba9e76ab0d299",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-02-daily_precipitation_mm",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "5f506682dcfe817c65233f1916fc8fccf9b219d0c07987c3256e1aaeaec13f47",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "75b1d864be3283dea1e068d040a4cfdd55b9a1c7569ecc7cd83c0717469bb678",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "source_record_key": "init-row-1",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT",
+        "source_row_hash": "bad4b8794b2c4715a53477c0b7a696ab4f2cbfb721cc07ad76447b7e5e84ab7e",
+        "source_system": "ops_snapshot",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT"
+    },
+    {
+      "source_ref_hash": "954b11b4ceda616b0da0bcbdd3eb8fee0bcd8270b6067f98094cfef7801c945a",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-01-daily_precipitation_mm",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "760801829a05bc4398b9134e6960fde44bdb5c92baa064e682a53e641701df65",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "a03743dc5293f0c973e977d66c1593077cf80e4b664b5b558008c58e325715a5",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "MATURE_INVENTORY_LOSS",
+        "source_record_key": "pool-a-2026-03-01-P80-loss",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "7d126b51e52e8b01ccfb8898776a56a039463eeb5ee5bfeaf147e58d58f2ea63",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "aa9b74979ef717e9ae3a2a590bc71852898e4e8f7da6bb20f91aeb906ca6b939",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "MATURE_INVENTORY_LOSS",
+        "source_record_key": "pool-a-2026-03-01-P90-loss",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "5bfd8bf3d359a492ded92e67298aa919a20b5d36ce96fafbcca6c197f7cb4479",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "b6a8d40989b953239b62d6bbd2a8665ed78a3f77c227ad2a22e857a814d366b9",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "HARVEST_BUCKET_ANCHOR_TIME",
+        "source_record_key": "anchor-time-v1",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "791486c7ddc6082d453c5b1cb1de77e24e457a6e443cf0d6e8df4f0cc6c9384f",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "b9895b25b853e812c44c4c7286539e5c343ea02ff7f856554680d05b5ff6904e",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P90",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967611201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-01",
+        "source_quantity_kg": "0",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    },
+    {
+      "source_ref_hash": "c1b105954320e74e65919daff65ef73ea766bd16665beee482a2c26d737db835",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "DIRECT_NOMINAL_CAPACITY",
+        "source_record_key": "pool-a-2026-03-01-direct",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "f5eb9de9b3cea228515e5d0637e1f05a17c09f2ee1bbfdf7b770b553d9ef2346",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "cae51b7fad7dd5979d5b324c36001804f341b970cfe95565c1ce26ada9a87e64",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "MATURE_INVENTORY_LOSS",
+        "source_record_key": "pool-a-2026-03-01-P50-loss",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "50d0f778c5a54ad68e940c383d3a0608fe4562fbb2b7bd3c56343d8d6905e3a9",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "cdef24bb2711b9cac7560e1a6aa275167ff0da4427d9bf14c951a2b9f48d0590",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "LABOR_AVAILABILITY_RATIO",
+        "source_record_key": "pool-a-2026-03-01-labor",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "03841b6c684b38bf3d6aff8f076d491760eb6b31e039fffb07babe455899861c",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "d0e28f4284bd29a7d82ea0db1eb4cf31cee69b9b5fb3baf69470418cad7c9957",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-03-daily_precipitation_mm",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "c61e1a6fd5dca6ccf16faf248be2ae6849e2c281cb79385d3c4e336e1d0151f4",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "d78d5b20c747db990d69f8baf979b54271f4e616f7ecc60965582d7c05c310f2",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "TIMEZONE_CONFIG",
+        "source_record_key": "timezone-v1",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "fe2b6b16db1d122666298f3b9ccfe6f0d47f08cdc9b39249ec80cae32d53148b",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "e14795de66ce625ee477219dd90b959b23096821a6ee005fbcbf1b1f9c364d74",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "HARVEST_TO_ARRIVAL_LAG",
+        "source_record_key": "arrival-lag-v1",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "1ffb8996a21767e84b2d60fddc054e2febb507ec8a6833ed42ef2018f0339006",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "ee3cbaf79ff8a015f5b1c3ae7ef804b70558c0c74f9ea71ee3f8b8930fd5f3c1",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-03-consecutive_rainy_days",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "3b6836779526f9c5583bf33f22b41e76d514edea1b423c65129b7fd7478443d5",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "f03e17befe03eba343916f4a59412d648ac0f96e3af098e9d35b123e1bc5262a",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "WEATHER_FEATURE_OBSERVATION",
+        "source_record_key": "pool-a-2026-03-01-consecutive_rainy_days",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "c9faf9f42a2cc1c0ddad6ebdad925fe1a19eb31f1299116536a1048c5d9020c4",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "f80e0f378e7372fa766b8d0ea588c2518b62a4b53b6a922192339835bca82dc4",
+      "source_ref_payload": {
+        "as_of_date": "2026-02-28",
+        "available_at": "2026-02-28",
+        "parameter_code": "OPERATIONAL_EFFICIENCY_RATIO",
+        "source_record_key": "pool-a-2026-03-01-ops",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "PARAMETER_SOURCE",
+        "source_row_hash": "76d7b9452828f44ab56fd8d6a10a3aed54bb704a6f624e4f8eadabca606796b0",
+        "source_system": "task9a-config",
+        "source_version": "v1"
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "PARAMETER_SOURCE"
+    },
+    {
+      "source_ref_hash": "fa8062e57cb29f6ebe3d4b5799542ee62c1f4c087e4848ca3080db22a1e60c24",
+      "source_ref_payload": {
+        "base_temperature_search_run_id": 901,
+        "forecast_quantile": "P80",
+        "location_reference_id": 601,
+        "maturity_daily_prediction_id": 73967611201,
+        "maturity_forecast_as_of_date": "2026-02-28",
+        "maturity_forecast_run_id": 401,
+        "maturity_forecast_source_signature": "forecast-sig-1",
+        "maturity_model_artifact_hash": "artifact-hash-1",
+        "maturity_model_artifact_id": 201,
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_run_id": 101,
+        "maturity_model_source_signature": "model-sig-1",
+        "maturity_model_version": "task8-v1",
+        "plan_id": 501,
+        "prediction_date": "2026-03-01",
+        "source_quantity_kg": "0",
+        "source_ref_schema_version": "task9a-source-ref-v1",
+        "source_ref_type": "TASK8_DAILY_PREDICTION",
+        "weather_mapping_id": 801
+      },
+      "source_ref_schema_version": "task9a-source-ref-v1",
+      "source_ref_type": "TASK8_DAILY_PREDICTION"
+    }
+  ],
+  "status": "completed",
+  "warnings": []
+}
