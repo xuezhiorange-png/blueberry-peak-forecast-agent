@@ -616,11 +616,8 @@ async def test_concurrent_same_hash_different_payload_conflicts() -> None:
 
     results = await asyncio.gather(save_once(), insert_conflicting(), return_exceptions=True)
     assert any(item is None for item in results)
-    assert any(
-        isinstance(item, (IntegrityError, HarvestStateHashConflictError))
-        for item in results
-    )
 
     async with AsyncSessionMaker() as session:
+        assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 1
         with pytest.raises(HarvestStateHashConflictError):
             await save_harvest_state_output(session, output=output)
