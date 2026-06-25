@@ -19,6 +19,10 @@ def make_stable_cohort_key(payload: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
 
 
+def sha256_hex(value: object) -> str:
+    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
 def make_task8_source_ref(
     *,
     prediction_date: date,
@@ -30,7 +34,6 @@ def make_task8_source_ref(
     artifact_hash: str = "artifact-hash-1",
     weather_mapping_id: int | None = 801,
     base_temperature_search_run_id: int | None = 901,
-    forecast_run_status: str = "completed",
 ) -> dict[str, Any]:
     return {
         "source_ref_type": "TASK8_DAILY_PREDICTION",
@@ -42,26 +45,62 @@ def make_task8_source_ref(
         "maturity_model_artifact_id": 201,
         "maturity_model_artifact_hash": artifact_hash,
         "maturity_forecast_run_id": forecast_run_id,
-        "forecast_run_status": forecast_run_status,
-        "artifact_run_id": 101,
-        "forecast_model_run_id": 101,
-        "forecast_artifact_id": 201,
+        "maturity_forecast_source_signature": forecast_source_signature,
+        "maturity_forecast_as_of_date": date(2026, 2, 28),
+        "maturity_daily_prediction_id": 301 + prediction_date.day,
+        "prediction_date": prediction_date,
+        "forecast_quantile": forecast_quantile,
+        "source_quantity_kg": source_quantity_kg,
+        "plan_id": 501,
+        "location_reference_id": 601,
+        "weather_mapping_id": weather_mapping_id,
+        "base_temperature_search_run_id": base_temperature_search_run_id,
+    }
+
+
+def make_task8_verification_snapshot(
+    *,
+    prediction_date: date,
+    forecast_quantile: str,
+    source_quantity_kg: Decimal,
+    forecast_run_id: int = 401,
+    forecast_source_signature: str = "forecast-sig-1",
+    model_source_signature: str = "model-sig-1",
+    artifact_hash: str = "artifact-hash-1",
+    forecast_run_status: str = "completed",
+    farm_id: int = 1,
+    subfarm_id: int | None = 11,
+    variety_id: int = 101,
+    plan_id: int = 501,
+    location_reference_id: int = 601,
+) -> dict[str, Any]:
+    return {
+        "maturity_model_run_id": 101,
+        "maturity_model_version": "task8-v1",
+        "maturity_model_config_hash": "task8-model-config-hash",
+        "maturity_model_source_signature": model_source_signature,
+        "maturity_model_artifact_id": 201,
+        "maturity_model_artifact_run_id": 101,
+        "maturity_model_artifact_hash": artifact_hash,
+        "maturity_forecast_run_id": forecast_run_id,
+        "maturity_forecast_run_status": forecast_run_status,
+        "maturity_forecast_model_run_id": 101,
+        "maturity_forecast_artifact_id": 201,
         "maturity_forecast_source_signature": forecast_source_signature,
         "maturity_forecast_as_of_date": date(2026, 2, 28),
         "maturity_forecast_prediction_start_date": date(2026, 3, 1),
         "maturity_forecast_prediction_end_date": date(2026, 3, 3),
         "maturity_daily_prediction_id": 301 + prediction_date.day,
-        "daily_prediction_forecast_run_id": forecast_run_id,
+        "maturity_daily_prediction_forecast_run_id": forecast_run_id,
         "prediction_date": prediction_date,
-        "forecast_quantile": forecast_quantile,
-        "source_quantity_kg": source_quantity_kg,
+        "farm_id": farm_id,
+        "subfarm_id": subfarm_id,
+        "variety_id": variety_id,
+        "plan_id": plan_id,
+        "location_reference_id": location_reference_id,
         "p50_kg": Decimal("20") if forecast_quantile != "P50" else source_quantity_kg,
         "p80_kg": Decimal("24") if forecast_quantile != "P80" else source_quantity_kg,
         "p90_kg": Decimal("28") if forecast_quantile != "P90" else source_quantity_kg,
-        "plan_id": 501,
-        "location_reference_id": 601,
-        "weather_mapping_id": weather_mapping_id,
-        "base_temperature_search_run_id": base_temperature_search_run_id,
     }
 
 
@@ -70,7 +109,7 @@ def make_initial_source_ref(
     as_of_date: date,
     available_at: date | None = None,
     source_record_key: str = "init-row-1",
-    source_row_hash: str = "init-row-hash-1",
+    source_row_hash: str | None = None,
 ) -> dict[str, Any]:
     return {
         "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT",
@@ -78,7 +117,7 @@ def make_initial_source_ref(
         "source_system": "ops_snapshot",
         "source_record_key": source_record_key,
         "source_version": "v1",
-        "source_row_hash": source_row_hash,
+        "source_row_hash": source_row_hash or sha256_hex({"source": source_record_key}),
         "available_at": available_at or as_of_date,
         "as_of_date": as_of_date,
     }
@@ -93,7 +132,14 @@ def make_parameter_source_ref(
     available_at: date | None = None,
 ) -> dict[str, Any]:
     key = source_record_key or parameter_code.lower()
-    row_hash = source_row_hash or f"{parameter_code.lower()}-hash"
+    row_hash = source_row_hash or sha256_hex(
+        {
+            "parameter_code": parameter_code,
+            "key": key,
+            "available_at": (available_at or as_of_date).isoformat(),
+            "as_of_date": as_of_date.isoformat(),
+        }
+    )
     return {
         "source_ref_type": "PARAMETER_SOURCE",
         "source_ref_schema_version": "task9a-source-ref-v1",
@@ -140,13 +186,13 @@ def make_capacity_input(
             parameter_code="LABOR_AVAILABILITY_RATIO",
             as_of_date=date(2026, 2, 28),
             source_record_key=f"{pool_id}-{capacity_date}-labor",
-            source_row_hash=f"{pool_id}-{capacity_date}-labor-hash",
+            source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-labor"}),
         ),
         make_parameter_source_ref(
             parameter_code="OPERATIONAL_EFFICIENCY_RATIO",
             as_of_date=date(2026, 2, 28),
             source_record_key=f"{pool_id}-{capacity_date}-ops",
-            source_row_hash=f"{pool_id}-{capacity_date}-ops-hash",
+            source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-ops"}),
         ),
     ]
     if mode == "LABOR_DERIVED":
@@ -156,13 +202,15 @@ def make_capacity_input(
                     parameter_code="PLANNED_PICKER_COUNT",
                     as_of_date=date(2026, 2, 28),
                     source_record_key=f"{pool_id}-{capacity_date}-pickers",
-                    source_row_hash=f"{pool_id}-{capacity_date}-pickers-hash",
+                    source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-pickers"}),
                 ),
                 make_parameter_source_ref(
                     parameter_code="PICKER_PRODUCTIVITY",
                     as_of_date=date(2026, 2, 28),
                     source_record_key=f"{pool_id}-{capacity_date}-productivity",
-                    source_row_hash=f"{pool_id}-{capacity_date}-productivity-hash",
+                    source_row_hash=sha256_hex(
+                        {"source": f"{pool_id}-{capacity_date}-productivity"}
+                    ),
                 ),
             ]
         )
@@ -172,7 +220,7 @@ def make_capacity_input(
                 parameter_code="DIRECT_NOMINAL_CAPACITY",
                 as_of_date=date(2026, 2, 28),
                 source_record_key=f"{pool_id}-{capacity_date}-direct",
-                source_row_hash=f"{pool_id}-{capacity_date}-direct-hash",
+                source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-direct"}),
             )
         )
     return {
@@ -204,7 +252,7 @@ def make_weather_feature(
             parameter_code="WEATHER_FEATURE_OBSERVATION",
             as_of_date=date(2026, 2, 28),
             source_record_key=f"{pool_id}-{capacity_date}-{feature_id}",
-            source_row_hash=f"{pool_id}-{capacity_date}-{feature_id}-hash",
+            source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-{feature_id}"}),
         ),
     }
 
@@ -225,7 +273,7 @@ def make_loss_input(
             parameter_code="MATURE_INVENTORY_LOSS",
             as_of_date=date(2026, 2, 28),
             source_record_key=f"{pool_id}-{state_date}-{quantile}-loss",
-            source_row_hash=f"{pool_id}-{state_date}-{quantile}-loss-hash",
+            source_row_hash=sha256_hex({"source": f"{pool_id}-{state_date}-{quantile}-loss"}),
         ),
     }
 
@@ -279,15 +327,24 @@ def make_task8_supply(
     quantity: Decimal,
     variety_id: int = 101,
 ) -> dict[str, Any]:
+    source_ref = make_task8_source_ref(
+        prediction_date=prediction_date,
+        forecast_quantile=quantile,
+        source_quantity_kg=quantity,
+    )
     return {
         "prediction_date": prediction_date,
         "farm_id": 1,
         "subfarm_id": 11,
         "variety_id": variety_id,
-        "source_ref": make_task8_source_ref(
+        "source_ref": source_ref,
+        "verification_snapshot": make_task8_verification_snapshot(
             prediction_date=prediction_date,
             forecast_quantile=quantile,
             source_quantity_kg=quantity,
+            farm_id=1,
+            subfarm_id=11,
+            variety_id=variety_id,
         ),
     }
 
@@ -367,31 +424,31 @@ def make_request() -> dict[str, Any]:
             parameter_code="HOLIDAY_CALENDAR",
             as_of_date=date(2026, 2, 28),
             source_record_key="holiday-calendar-v1",
-            source_row_hash="holiday-calendar-v1-hash",
+            source_row_hash=sha256_hex({"source": "holiday-calendar-v1"}),
         ),
         make_parameter_source_ref(
             parameter_code="WEATHER_RULE_CONFIG",
             as_of_date=date(2026, 2, 28),
             source_record_key="weather-rule-v1",
-            source_row_hash="weather-rule-v1-hash",
+            source_row_hash=sha256_hex({"source": "weather-rule-v1"}),
         ),
         make_parameter_source_ref(
             parameter_code="HARVEST_TO_ARRIVAL_LAG",
             as_of_date=date(2026, 2, 28),
             source_record_key="arrival-lag-v1",
-            source_row_hash="arrival-lag-v1-hash",
+            source_row_hash=sha256_hex({"source": "arrival-lag-v1"}),
         ),
         make_parameter_source_ref(
             parameter_code="TIMEZONE_CONFIG",
             as_of_date=date(2026, 2, 28),
             source_record_key="timezone-v1",
-            source_row_hash="timezone-v1-hash",
+            source_row_hash=sha256_hex({"source": "timezone-v1"}),
         ),
         make_parameter_source_ref(
             parameter_code="HARVEST_BUCKET_ANCHOR_TIME",
             as_of_date=date(2026, 2, 28),
             source_record_key="anchor-time-v1",
-            source_row_hash="anchor-time-v1-hash",
+            source_row_hash=sha256_hex({"source": "anchor-time-v1"}),
         ),
     ]
     return {
@@ -405,7 +462,12 @@ def make_request() -> dict[str, Any]:
         "harvest_bucket_anchor_local_time": time(18, 0, 0),
         "harvest_to_arrival_lag_days": 1,
         "holiday_calendar_version": "holiday-v1",
-        "holiday_calendar_hash": "holiday-hash-v1",
+        "holiday_calendar_hash": sha256_hex(
+            {
+                "holiday_calendar_version": "holiday-v1",
+                "holiday_dates": [],
+            }
+        ),
         "holiday_dates": [],
         "weather_rule_config": {
             "version": "weather-rule-v1",
