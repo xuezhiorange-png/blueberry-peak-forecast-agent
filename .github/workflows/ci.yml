@@ -76,7 +76,7 @@ jobs:
           asyncio.run(main())
           PY
 
-      - name: Alembic natural maturity curve migration round trip
+      - name: Alembic harvest-state persistence migration round trip
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -86,7 +86,7 @@ jobs:
           POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           alembic -c backend/alembic.ini upgrade head
-          alembic -c backend/alembic.ini downgrade 0008_weather_timeline
+          alembic -c backend/alembic.ini downgrade 0009_natural_maturity_curve
           alembic -c backend/alembic.ini upgrade head
 
       - name: Ruff

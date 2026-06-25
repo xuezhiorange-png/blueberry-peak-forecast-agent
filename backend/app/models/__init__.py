@@ -4,6 +4,13 @@ from backend.app.models.analytics import (
     FactReceiptDaily,
 )
 from backend.app.models.baseline_backtest import BaselineBacktestResult, BaselineBacktestRun
+from backend.app.models.harvest_state import (
+    HarvestStateCohortTransitionRowModel,
+    HarvestStateDailyMemberRowModel,
+    HarvestStateDailyPoolRowModel,
+    HarvestStateFutureArrivalRowModel,
+    HarvestStateRun,
+)
 from backend.app.models.historical_import import FactReceiptRaw, IngestFile
 from backend.app.models.master_data import Factory, Farm, Grade, Holiday, Season, Subfarm, Variety
 from backend.app.models.maturity import (
@@ -45,6 +52,11 @@ __all__ = [
     "Farm",
     "FarmSeasonVarietyPlan",
     "Grade",
+    "HarvestStateCohortTransitionRowModel",
+    "HarvestStateDailyMemberRowModel",
+    "HarvestStateDailyPoolRowModel",
+    "HarvestStateFutureArrivalRowModel",
+    "HarvestStateRun",
     "Holiday",
     "IngestFile",
     "LocationReference",
