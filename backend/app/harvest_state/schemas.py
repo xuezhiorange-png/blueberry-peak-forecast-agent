@@ -121,14 +121,22 @@ class Task8PredictionSourceRef(_BaseModel):
     maturity_model_artifact_id: int
     maturity_model_artifact_hash: str = Field(min_length=1)
     maturity_forecast_run_id: int
+    forecast_run_status: Literal["completed", "running", "failed", "unavailable"]
+    artifact_run_id: int
+    forecast_model_run_id: int
+    forecast_artifact_id: int
     maturity_forecast_source_signature: str = Field(min_length=1)
     maturity_forecast_as_of_date: date
     maturity_forecast_prediction_start_date: date
     maturity_forecast_prediction_end_date: date
     maturity_daily_prediction_id: int
+    daily_prediction_forecast_run_id: int
     prediction_date: date
     forecast_quantile: ForecastQuantile
     source_quantity_kg: NonNegativeBusinessDecimal
+    p50_kg: NonNegativeBusinessDecimal
+    p80_kg: NonNegativeBusinessDecimal
+    p90_kg: NonNegativeBusinessDecimal
     plan_id: int
     location_reference_id: int
     weather_mapping_id: int | None
@@ -237,8 +245,8 @@ class DailyPoolResolvedParameters(_BaseModel):
     operational_efficiency_ratio: RatioDecimal
     resolved_effective_capacity_kg_per_day: NonNegativeBusinessDecimal
     holiday_applied: bool
-    capacity_parameter_source_refs: list[ParameterSourceRef]
-    weather_feature_source_refs: list[ParameterSourceRef]
+    capacity_parameter_source_ref_hashes: list[str]
+    weather_feature_source_ref_hashes: list[str]
 
 
 class ResolvedParameterSnapshot(_BaseModel):
@@ -330,6 +338,9 @@ class CohortTransitionRow(_BaseModel):
 
 
 class FutureArrivalScheduleRow(_BaseModel):
+    capacity_pool_id: str
+    farm_id: int
+    subfarm_id: int | None
     destination_factory_id: int
     arrival_local_date: date
     variety_id: int
