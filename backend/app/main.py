@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -24,6 +25,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await db_session.dispose_db_engine()
 
 
+def _is_harvest_state_path(path: str) -> bool:
+    return path == "/api/v1/harvest-state" or path.startswith("/api/v1/harvest-state/")
+
+
 def create_app(settings: AppSettings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(title=app_settings.app_name, version=APP_VERSION, lifespan=lifespan)
@@ -31,9 +36,11 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def _handle_request_validation_error(
-        request: Request,  # noqa: ARG001
-        exc: RequestValidationError,  # noqa: ARG001
+        request: Request,
+        exc: RequestValidationError,
     ) -> JSONResponse:
+        if not _is_harvest_state_path(request.url.path):
+            return await request_validation_exception_handler(request, exc)
         return JSONResponse(
             status_code=422,
             content=HarvestStateErrorResponse(
