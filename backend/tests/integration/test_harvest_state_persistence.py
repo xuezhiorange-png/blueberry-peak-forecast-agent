@@ -253,88 +253,88 @@ async def test_harvest_state_jsonb_numeric_and_timezone_round_trip() -> None:
 async def test_harvest_state_invalid_result_hash_constraint() -> None:
     _require_postgres()
     async with AsyncSessionMaker() as session:
-        await session.execute(
-            text(
-                """
-                INSERT INTO harvest_state_run (
-                    status,
-                    output_schema_version,
-                    result_hash_schema_version,
-                    resolved_parameter_snapshot_schema_version,
-                    source_ref_schema_version,
-                    stable_cohort_key_schema_version,
-                    input_snapshot,
-                    resolved_parameter_snapshot,
-                    source_ref_catalog,
-                    warnings,
-                    blockers,
-                    mass_balance_result,
-                    continuity_result,
-                    canonical_output,
-                    config_hash,
-                    result_hash,
-                    canonical_payload_hash,
-                    forecast_start_date,
-                    forecast_end_date,
-                    as_of_date,
-                    destination_factory_id,
-                    pool_row_count,
-                    member_row_count,
-                    cohort_row_count,
-                    future_arrival_row_count
-                ) VALUES (
-                    'blocked',
-                    'task9a-output-v1',
-                    'task9a-result-hash-v1',
-                    'task9a-resolved-parameters-v1',
-                    'task9a-source-ref-v1',
-                    'task9a-cohort-key-v1',
-                    '{}'::jsonb,
-                    NULL,
-                    '[]'::jsonb,
-                    '[]'::jsonb,
-                    '["x"]'::jsonb,
-                    NULL,
-                    NULL,
-                    CAST(:canonical_output AS jsonb),
-                    :config_hash,
-                    :result_hash,
-                    :canonical_payload_hash,
-                    DATE '2026-03-01',
-                    DATE '2026-03-01',
-                    DATE '2026-02-28',
-                    1,
-                    0,
-                    0,
-                    0,
-                    0
-                )
-                """
-            ),
-            {
-                "canonical_output": canonical_json_dumps(
-                    {
-                        "output_schema_version": "task9a-output-v1",
-                        "status": "blocked",
-                        "input_snapshot": {},
-                        "resolved_parameter_snapshot": None,
-                        "daily_pool_state_rows": [],
-                        "daily_member_state_rows": [],
-                        "cohort_transition_rows": [],
-                        "future_arrival_schedule": [],
-                        "source_ref_catalog": [],
-                        "warnings": [],
-                        "blockers": ["x"],
-                        "config_hash": "a" * 64,
-                        "result_hash": "bad-hash",
-                    }
-                ),
-                "config_hash": "a" * 64,
-                "result_hash": "bad-hash",
-                "canonical_payload_hash": "c" * 64,
-            },
-        )
         with pytest.raises(IntegrityError):
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO harvest_state_run (
+                        status,
+                        output_schema_version,
+                        result_hash_schema_version,
+                        resolved_parameter_snapshot_schema_version,
+                        source_ref_schema_version,
+                        stable_cohort_key_schema_version,
+                        input_snapshot,
+                        resolved_parameter_snapshot,
+                        source_ref_catalog,
+                        warnings,
+                        blockers,
+                        mass_balance_result,
+                        continuity_result,
+                        canonical_output,
+                        config_hash,
+                        result_hash,
+                        canonical_payload_hash,
+                        forecast_start_date,
+                        forecast_end_date,
+                        as_of_date,
+                        destination_factory_id,
+                        pool_row_count,
+                        member_row_count,
+                        cohort_row_count,
+                        future_arrival_row_count
+                    ) VALUES (
+                        'blocked',
+                        'task9a-output-v1',
+                        'task9a-result-hash-v1',
+                        'task9a-resolved-parameters-v1',
+                        'task9a-source-ref-v1',
+                        'task9a-cohort-key-v1',
+                        '{}'::jsonb,
+                        NULL,
+                        '[]'::jsonb,
+                        '[]'::jsonb,
+                        '["x"]'::jsonb,
+                        NULL,
+                        NULL,
+                        CAST(:canonical_output AS jsonb),
+                        :config_hash,
+                        :result_hash,
+                        :canonical_payload_hash,
+                        DATE '2026-03-01',
+                        DATE '2026-03-01',
+                        DATE '2026-02-28',
+                        1,
+                        0,
+                        0,
+                        0,
+                        0
+                    )
+                    """
+                ),
+                {
+                    "canonical_output": canonical_json_dumps(
+                        {
+                            "output_schema_version": "task9a-output-v1",
+                            "status": "blocked",
+                            "input_snapshot": {},
+                            "resolved_parameter_snapshot": None,
+                            "daily_pool_state_rows": [],
+                            "daily_member_state_rows": [],
+                            "cohort_transition_rows": [],
+                            "future_arrival_schedule": [],
+                            "source_ref_catalog": [],
+                            "warnings": [],
+                            "blockers": ["x"],
+                            "config_hash": "a" * 64,
+                            "result_hash": "bad-hash",
+                        }
+                    ),
+                    "config_hash": "a" * 64,
+                    "result_hash": "bad-hash",
+                    "canonical_payload_hash": "c" * 64,
+                },
+            )
             await session.commit()
         await session.rollback()
 
