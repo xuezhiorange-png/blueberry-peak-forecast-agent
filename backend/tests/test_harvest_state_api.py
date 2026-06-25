@@ -101,7 +101,9 @@ async def test_get_missing_run_returns_404(harvest_state_client: AsyncClient) ->
 
 
 @pytest.mark.asyncio
-async def test_invalid_result_hash_returns_422(harvest_state_client: AsyncClient) -> None:
+async def test_harvest_state_invalid_hash_uses_delivery_error_payload(
+    harvest_state_client: AsyncClient,
+) -> None:
     response = await harvest_state_client.get(
         "/api/v1/harvest-state/runs/by-result-hash/not-a-hash"
     )
@@ -117,7 +119,9 @@ async def test_invalid_result_hash_returns_422(harvest_state_client: AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_invalid_request_returns_422(harvest_state_client: AsyncClient) -> None:
+async def test_harvest_state_invalid_body_uses_delivery_error_payload(
+    harvest_state_client: AsyncClient,
+) -> None:
     payload = _request_json()
     del payload["destination_factory_id"]
 
@@ -134,7 +138,7 @@ async def test_invalid_request_returns_422(harvest_state_client: AsyncClient) ->
 
 
 @pytest.mark.asyncio
-async def test_invalid_run_id_returns_stable_422_payload(
+async def test_harvest_state_invalid_run_id_uses_delivery_error_payload(
     harvest_state_client: AsyncClient,
 ) -> None:
     response = await harvest_state_client.get("/api/v1/harvest-state/runs/not-an-int")
@@ -164,6 +168,36 @@ async def test_validation_error_does_not_leak_internal_details(
     assert "traceback" not in serialized
     assert "sqlalchemy" not in serialized
     assert "asyncpg" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_non_harvest_state_validation_keeps_native_fastapi_payload(
+    harvest_state_client: AsyncClient,
+) -> None:
+    response = await harvest_state_client.get("/api/v1/master-data/seasons", params={"limit": 0})
+
+    body = response.json()
+    serialized = str(body)
+    assert response.status_code == 422
+    assert "detail" in body
+    assert "error" not in body
+    assert "HARVEST_STATE_DELIVERY_INPUT_ERROR" not in serialized
+    assert "Harvest-state request is invalid." not in serialized
+
+
+@pytest.mark.asyncio
+async def test_non_harvest_state_path_validation_is_not_relabelled(
+    harvest_state_client: AsyncClient,
+) -> None:
+    response = await harvest_state_client.get("/api/v1/master-data/seasons/not-an-int")
+
+    body = response.json()
+    serialized = str(body)
+    assert response.status_code == 422
+    assert "detail" in body
+    assert "error" not in body
+    assert "HARVEST_STATE_DELIVERY_INPUT_ERROR" not in serialized
+    assert "Harvest-state request is invalid." not in serialized
 
 
 @pytest.mark.asyncio
