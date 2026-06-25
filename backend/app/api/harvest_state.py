@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, Response
 from fastapi.responses import JSONResponse
@@ -27,6 +27,12 @@ from backend.app.schemas.harvest_state import HarvestStateErrorResponse, Harvest
 router = APIRouter()
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 HashPath = Annotated[str, Path(pattern=r"^[0-9a-f]{64}$")]
+_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    404: {"model": HarvestStateErrorResponse},
+    409: {"model": HarvestStateErrorResponse},
+    422: {"model": HarvestStateErrorResponse},
+    500: {"model": HarvestStateErrorResponse},
+}
 
 
 def _error_response(
@@ -58,12 +64,8 @@ def _map_error(exc: HarvestStateDeliveryError) -> JSONResponse:
 @router.post(
     "/runs",
     response_model=HarvestStateRunEnvelope,
-    responses={
-        404: {"model": HarvestStateErrorResponse},
-        409: {"model": HarvestStateErrorResponse},
-        422: {"model": HarvestStateErrorResponse},
-        500: {"model": HarvestStateErrorResponse},
-    },
+    operation_id="createHarvestStateRun",
+    responses=_ERROR_RESPONSES,
 )
 async def create_harvest_state_run(
     payload: Task9ARequest,
@@ -78,12 +80,8 @@ async def create_harvest_state_run(
 @router.get(
     "/runs/{run_id}",
     response_model=HarvestStateRunEnvelope,
-    responses={
-        404: {"model": HarvestStateErrorResponse},
-        409: {"model": HarvestStateErrorResponse},
-        422: {"model": HarvestStateErrorResponse},
-        500: {"model": HarvestStateErrorResponse},
-    },
+    operation_id="getHarvestStateRunById",
+    responses=_ERROR_RESPONSES,
 )
 async def read_harvest_state_run(
     run_id: int,
@@ -98,12 +96,8 @@ async def read_harvest_state_run(
 @router.get(
     "/runs/by-result-hash/{result_hash}",
     response_model=HarvestStateRunEnvelope,
-    responses={
-        404: {"model": HarvestStateErrorResponse},
-        409: {"model": HarvestStateErrorResponse},
-        422: {"model": HarvestStateErrorResponse},
-        500: {"model": HarvestStateErrorResponse},
-    },
+    operation_id="getHarvestStateRunByResultHash",
+    responses=_ERROR_RESPONSES,
 )
 async def read_harvest_state_run_by_hash(
     result_hash: HashPath,
@@ -115,7 +109,15 @@ async def read_harvest_state_run_by_hash(
         return _map_error(exc)
 
 
-@router.get("/runs/{run_id}/report.json")
+@router.get(
+    "/runs/{run_id}/report.json",
+    operation_id="downloadHarvestStateJsonReport",
+    response_class=Response,
+    responses={
+        200: {"content": {"application/json": {}}},
+        **_ERROR_RESPONSES,
+    },
+)
 async def download_harvest_state_json_report(
     run_id: int,
     session: SessionDep,
@@ -137,7 +139,15 @@ async def download_harvest_state_json_report(
     )
 
 
-@router.get("/runs/{run_id}/report.csv")
+@router.get(
+    "/runs/{run_id}/report.csv",
+    operation_id="downloadHarvestStateCsvReport",
+    response_class=Response,
+    responses={
+        200: {"content": {"application/zip": {}}},
+        **_ERROR_RESPONSES,
+    },
+)
 async def download_harvest_state_csv_report(
     run_id: int,
     session: SessionDep,

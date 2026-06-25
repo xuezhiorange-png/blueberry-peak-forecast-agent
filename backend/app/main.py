@@ -1,7 +1,9 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from backend.app.api.harvest_state import router as harvest_state_router
 from backend.app.api.health import router as health_router
@@ -13,6 +15,7 @@ from backend.app.api.weather import router as weather_router
 from backend.app.core.config import AppSettings, get_settings
 from backend.app.core.version import APP_VERSION
 from backend.app.db import session as db_session
+from backend.app.schemas.harvest_state import HarvestStateErrorResponse
 
 
 @asynccontextmanager
@@ -25,6 +28,21 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(title=app_settings.app_name, version=APP_VERSION, lifespan=lifespan)
     app.state.settings = app_settings
+
+    @app.exception_handler(RequestValidationError)
+    async def _handle_request_validation_error(
+        request: Request,  # noqa: ARG001
+        exc: RequestValidationError,  # noqa: ARG001
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content=HarvestStateErrorResponse(
+                error={
+                    "code": "HARVEST_STATE_DELIVERY_INPUT_ERROR",
+                    "message": "Harvest-state request is invalid.",
+                }
+            ).model_dump(mode="json"),
+        )
 
     if settings is not None:
         app.dependency_overrides[get_settings] = lambda: app_settings
