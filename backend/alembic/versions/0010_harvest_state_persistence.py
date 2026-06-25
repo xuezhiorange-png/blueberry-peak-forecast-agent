@@ -28,6 +28,13 @@ def _sha256_check_sql(column_name: str) -> str:
     )
 
 
+def _non_negative_check_sql(prefix: str, *columns: str) -> list[sa.CheckConstraint]:
+    return [
+        sa.CheckConstraint(f"{column} >= 0", name=f"ck_{prefix}_{column}_non_negative")
+        for column in columns
+    ]
+
+
 def upgrade() -> None:
     op.create_table(
         "harvest_state_run",
@@ -69,12 +76,22 @@ def upgrade() -> None:
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=True,
         ),
+        sa.Column(
+            "canonical_output",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+        ),
         sa.Column("config_hash", sa.Text(), nullable=False),
         sa.Column("result_hash", sa.Text(), nullable=False),
+        sa.Column("canonical_payload_hash", sa.Text(), nullable=False),
         sa.Column("forecast_start_date", sa.Date(), nullable=False),
         sa.Column("forecast_end_date", sa.Date(), nullable=False),
         sa.Column("as_of_date", sa.Date(), nullable=False),
         sa.Column("destination_factory_id", sa.BigInteger(), nullable=False),
+        sa.Column("pool_row_count", sa.BigInteger(), nullable=False),
+        sa.Column("member_row_count", sa.BigInteger(), nullable=False),
+        sa.Column("cohort_row_count", sa.BigInteger(), nullable=False),
+        sa.Column("future_arrival_row_count", sa.BigInteger(), nullable=False),
         sa.Column("maturity_model_run_id", sa.BigInteger(), nullable=True),
         sa.Column("maturity_model_version", sa.Text(), nullable=True),
         sa.Column("maturity_model_config_hash", sa.Text(), nullable=True),
@@ -106,6 +123,21 @@ def upgrade() -> None:
         sa.CheckConstraint(
             _sha256_check_sql("result_hash"),
             name="ck_harvest_state_run_result_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("canonical_payload_hash"),
+            name="ck_harvest_state_run_canonical_payload_hash",
+        ),
+        sa.CheckConstraint(
+            "forecast_end_date >= forecast_start_date",
+            name="ck_harvest_state_run_forecast_date_range",
+        ),
+        *_non_negative_check_sql(
+            "harvest_state_run",
+            "pool_row_count",
+            "member_row_count",
+            "cohort_row_count",
+            "future_arrival_row_count",
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("result_hash", name="uq_harvest_state_run_result_hash"),
@@ -172,6 +204,48 @@ def upgrade() -> None:
             "forecast_quantile in ('P50', 'P80', 'P90')",
             name="ck_harvest_state_daily_pool_quantile",
         ),
+        sa.CheckConstraint(
+            "capacity_pool_grain in ('SUBFARM_VARIETY', 'SUBFARM', 'FARM')",
+            name="ck_harvest_state_daily_pool_grain",
+        ),
+        sa.CheckConstraint(
+            "capacity_input_mode in ('LABOR_DERIVED', 'DIRECT_CAPACITY')",
+            name="ck_harvest_state_daily_pool_input_mode",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("capacity_pool_membership_hash"),
+            name="ck_harvest_state_daily_pool_membership_hash",
+        ),
+        sa.CheckConstraint(
+            "labor_availability_ratio >= 0 and labor_availability_ratio <= 1",
+            name="ck_harvest_state_daily_pool_labor_ratio",
+        ),
+        sa.CheckConstraint(
+            "weather_harvest_efficiency_ratio >= 0 and weather_harvest_efficiency_ratio <= 1",
+            name="ck_harvest_state_daily_pool_weather_ratio",
+        ),
+        sa.CheckConstraint(
+            "operational_efficiency_ratio >= 0 and operational_efficiency_ratio <= 1",
+            name="ck_harvest_state_daily_pool_operational_ratio",
+        ),
+        *_non_negative_check_sql(
+            "harvest_state_daily_pool",
+            "opening_mature_inventory_kg",
+            "natural_maturity_supply_kg",
+            "available_mature_quantity_kg",
+            "mature_inventory_loss_quantity_kg",
+            "harvestable_mature_quantity_kg",
+            "nominal_harvest_capacity_kg_per_day",
+            "effective_harvest_capacity_kg_per_day",
+            "effective_capacity_for_day_kg",
+            "harvested_quantity_kg",
+            "closing_mature_inventory_kg",
+            "unharvested_backlog_kg",
+            "arrival_quantity_kg",
+            "opening_cohort_count",
+            "closing_cohort_count",
+            "member_count",
+        ),
         sa.ForeignKeyConstraint(
             ["harvest_state_run_id"],
             ["harvest_state_run.id"],
@@ -204,6 +278,7 @@ def upgrade() -> None:
         sa.Column("capacity_pool_membership_hash", sa.Text(), nullable=False),
         sa.Column("farm_id", sa.BigInteger(), nullable=False),
         sa.Column("subfarm_id", sa.BigInteger(), nullable=True),
+        sa.Column("subfarm_identity_key", sa.Text(), nullable=False),
         sa.Column("variety_id", sa.BigInteger(), nullable=False),
         sa.Column("destination_factory_id", sa.BigInteger(), nullable=False),
         sa.Column("opening_mature_inventory_kg", sa.Numeric(18, 3), nullable=False),
@@ -227,6 +302,33 @@ def upgrade() -> None:
             "forecast_quantile in ('P50', 'P80', 'P90')",
             name="ck_harvest_state_daily_member_quantile",
         ),
+        sa.CheckConstraint(
+            "capacity_pool_grain in ('SUBFARM_VARIETY', 'SUBFARM', 'FARM')",
+            name="ck_harvest_state_daily_member_grain",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("capacity_pool_membership_hash"),
+            name="ck_harvest_state_daily_member_membership_hash",
+        ),
+        sa.CheckConstraint(
+            "subfarm_identity_key <> ''",
+            name="ck_harvest_state_daily_member_subfarm_identity_key",
+        ),
+        *_non_negative_check_sql(
+            "harvest_state_daily_member",
+            "opening_mature_inventory_kg",
+            "natural_maturity_supply_kg",
+            "available_mature_quantity_kg",
+            "mature_inventory_loss_quantity_kg",
+            "harvestable_mature_quantity_kg",
+            "allocated_harvest_capacity_kg",
+            "harvested_quantity_kg",
+            "closing_mature_inventory_kg",
+            "unharvested_backlog_kg",
+            "arrival_quantity_kg",
+            "opening_cohort_count",
+            "closing_cohort_count",
+        ),
         sa.ForeignKeyConstraint(
             ["harvest_state_run_id"],
             ["harvest_state_run.id"],
@@ -239,7 +341,7 @@ def upgrade() -> None:
             "state_date",
             "capacity_pool_id",
             "farm_id",
-            "subfarm_id",
+            "subfarm_identity_key",
             "variety_id",
             "forecast_quantile",
             name="uq_harvest_state_daily_member_business_key",
@@ -262,6 +364,7 @@ def upgrade() -> None:
         sa.Column("subfarm_id", sa.BigInteger(), nullable=True),
         sa.Column("variety_id", sa.BigInteger(), nullable=False),
         sa.Column("destination_factory_id", sa.BigInteger(), nullable=False),
+        sa.Column("capacity_pool_membership_hash", sa.Text(), nullable=False),
         sa.Column("stable_cohort_key", sa.Text(), nullable=False),
         sa.Column("stable_cohort_key_schema_version", sa.Text(), nullable=False),
         sa.Column("source_ref_hash", sa.Text(), nullable=False),
@@ -294,6 +397,21 @@ def upgrade() -> None:
             _sha256_check_sql("source_ref_hash"),
             name="ck_harvest_state_cohort_transition_source_ref_hash",
         ),
+        sa.CheckConstraint(
+            _sha256_check_sql("capacity_pool_membership_hash"),
+            name="ck_harvest_state_cohort_transition_membership_hash",
+        ),
+        *_non_negative_check_sql(
+            "harvest_state_cohort_transition",
+            "opening_quantity_kg",
+            "new_supply_quantity_kg",
+            "quantity_before_loss_kg",
+            "mature_inventory_loss_quantity_kg",
+            "quantity_before_harvest_kg",
+            "harvested_quantity_kg",
+            "closing_quantity_kg",
+            "arrival_quantity_kg",
+        ),
         sa.ForeignKeyConstraint(
             ["harvest_state_run_id"],
             ["harvest_state_run.id"],
@@ -323,6 +441,7 @@ def upgrade() -> None:
         sa.Column("capacity_pool_id", sa.Text(), nullable=False),
         sa.Column("farm_id", sa.BigInteger(), nullable=False),
         sa.Column("subfarm_id", sa.BigInteger(), nullable=True),
+        sa.Column("subfarm_identity_key", sa.Text(), nullable=False),
         sa.Column("destination_factory_id", sa.BigInteger(), nullable=False),
         sa.Column("arrival_local_date", sa.Date(), nullable=False),
         sa.Column("variety_id", sa.BigInteger(), nullable=False),
@@ -334,6 +453,18 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "forecast_quantile in ('P50', 'P80', 'P90')",
             name="ck_harvest_state_future_arrival_quantile",
+        ),
+        sa.CheckConstraint(
+            "subfarm_identity_key <> ''",
+            name="ck_harvest_state_future_arrival_subfarm_identity_key",
+        ),
+        sa.CheckConstraint(
+            "harvest_to_arrival_lag_days >= 0",
+            name="ck_harvest_state_future_arrival_lag_non_negative",
+        ),
+        sa.CheckConstraint(
+            "quantity_kg >= 0",
+            name="ck_harvest_state_future_arrival_quantity_non_negative",
         ),
         sa.ForeignKeyConstraint(
             ["harvest_state_run_id"],
@@ -347,7 +478,7 @@ def upgrade() -> None:
             "arrival_local_date",
             "capacity_pool_id",
             "farm_id",
-            "subfarm_id",
+            "subfarm_identity_key",
             "variety_id",
             "forecast_quantile",
             name="uq_harvest_state_future_arrival_business_key",

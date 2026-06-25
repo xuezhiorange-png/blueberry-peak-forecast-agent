@@ -66,6 +66,13 @@ def _sha256_check_sql(column_name: str) -> str:
     )
 
 
+def _non_negative_check_sql(prefix: str, *columns: str) -> list[CheckConstraint]:
+    return [
+        CheckConstraint(f"{column} >= 0", name=f"ck_{prefix}_{column}_non_negative")
+        for column in columns
+    ]
+
+
 class HarvestStateRun(Base):
     __tablename__ = "harvest_state_run"
     __table_args__ = (
@@ -80,6 +87,21 @@ class HarvestStateRun(Base):
         CheckConstraint(
             _sha256_check_sql("result_hash"),
             name="ck_harvest_state_run_result_hash",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("canonical_payload_hash"),
+            name="ck_harvest_state_run_canonical_payload_hash",
+        ),
+        CheckConstraint(
+            "forecast_end_date >= forecast_start_date",
+            name="ck_harvest_state_run_forecast_date_range",
+        ),
+        *_non_negative_check_sql(
+            "harvest_state_run",
+            "pool_row_count",
+            "member_row_count",
+            "cohort_row_count",
+            "future_arrival_row_count",
         ),
         UniqueConstraint("result_hash", name="uq_harvest_state_run_result_hash"),
         Index("ix_harvest_state_run_status", "status"),
@@ -120,12 +142,18 @@ class HarvestStateRun(Base):
         _JSON_VARIANT,
         nullable=True,
     )
+    canonical_output: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
     config_hash: Mapped[str] = mapped_column(Text, nullable=False)
     result_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    canonical_payload_hash: Mapped[str] = mapped_column(Text, nullable=False)
     forecast_start_date: Mapped[date] = mapped_column(Date, nullable=False)
     forecast_end_date: Mapped[date] = mapped_column(Date, nullable=False)
     as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
     destination_factory_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    pool_row_count: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    member_row_count: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    cohort_row_count: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    future_arrival_row_count: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     maturity_model_run_id: Mapped[int | None] = mapped_column(_BIGINT_VARIANT, nullable=True)
     maturity_model_version: Mapped[str | None] = mapped_column(Text, nullable=True)
     maturity_model_config_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -153,6 +181,48 @@ class HarvestStateDailyPoolRowModel(Base):
         CheckConstraint(
             "forecast_quantile in ('P50', 'P80', 'P90')",
             name="ck_harvest_state_daily_pool_quantile",
+        ),
+        CheckConstraint(
+            "capacity_pool_grain in ('SUBFARM_VARIETY', 'SUBFARM', 'FARM')",
+            name="ck_harvest_state_daily_pool_grain",
+        ),
+        CheckConstraint(
+            "capacity_input_mode in ('LABOR_DERIVED', 'DIRECT_CAPACITY')",
+            name="ck_harvest_state_daily_pool_input_mode",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("capacity_pool_membership_hash"),
+            name="ck_harvest_state_daily_pool_membership_hash",
+        ),
+        CheckConstraint(
+            "labor_availability_ratio >= 0 and labor_availability_ratio <= 1",
+            name="ck_harvest_state_daily_pool_labor_ratio",
+        ),
+        CheckConstraint(
+            "weather_harvest_efficiency_ratio >= 0 and weather_harvest_efficiency_ratio <= 1",
+            name="ck_harvest_state_daily_pool_weather_ratio",
+        ),
+        CheckConstraint(
+            "operational_efficiency_ratio >= 0 and operational_efficiency_ratio <= 1",
+            name="ck_harvest_state_daily_pool_operational_ratio",
+        ),
+        *_non_negative_check_sql(
+            "harvest_state_daily_pool",
+            "opening_mature_inventory_kg",
+            "natural_maturity_supply_kg",
+            "available_mature_quantity_kg",
+            "mature_inventory_loss_quantity_kg",
+            "harvestable_mature_quantity_kg",
+            "nominal_harvest_capacity_kg_per_day",
+            "effective_harvest_capacity_kg_per_day",
+            "effective_capacity_for_day_kg",
+            "harvested_quantity_kg",
+            "closing_mature_inventory_kg",
+            "unharvested_backlog_kg",
+            "arrival_quantity_kg",
+            "opening_cohort_count",
+            "closing_cohort_count",
+            "member_count",
         ),
         UniqueConstraint(
             "harvest_state_run_id",
@@ -230,12 +300,39 @@ class HarvestStateDailyMemberRowModel(Base):
             "forecast_quantile in ('P50', 'P80', 'P90')",
             name="ck_harvest_state_daily_member_quantile",
         ),
+        CheckConstraint(
+            "capacity_pool_grain in ('SUBFARM_VARIETY', 'SUBFARM', 'FARM')",
+            name="ck_harvest_state_daily_member_grain",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("capacity_pool_membership_hash"),
+            name="ck_harvest_state_daily_member_membership_hash",
+        ),
+        CheckConstraint(
+            "subfarm_identity_key <> ''",
+            name="ck_harvest_state_daily_member_subfarm_identity_key",
+        ),
+        *_non_negative_check_sql(
+            "harvest_state_daily_member",
+            "opening_mature_inventory_kg",
+            "natural_maturity_supply_kg",
+            "available_mature_quantity_kg",
+            "mature_inventory_loss_quantity_kg",
+            "harvestable_mature_quantity_kg",
+            "allocated_harvest_capacity_kg",
+            "harvested_quantity_kg",
+            "closing_mature_inventory_kg",
+            "unharvested_backlog_kg",
+            "arrival_quantity_kg",
+            "opening_cohort_count",
+            "closing_cohort_count",
+        ),
         UniqueConstraint(
             "harvest_state_run_id",
             "state_date",
             "capacity_pool_id",
             "farm_id",
-            "subfarm_id",
+            "subfarm_identity_key",
             "variety_id",
             "forecast_quantile",
             name="uq_harvest_state_daily_member_business_key",
@@ -260,6 +357,7 @@ class HarvestStateDailyMemberRowModel(Base):
     capacity_pool_membership_hash: Mapped[str] = mapped_column(Text, nullable=False)
     farm_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     subfarm_id: Mapped[int | None] = mapped_column(_BIGINT_VARIANT, nullable=True)
+    subfarm_identity_key: Mapped[str] = mapped_column(Text, nullable=False)
     variety_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     destination_factory_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     opening_mature_inventory_kg: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False)
@@ -298,6 +396,21 @@ class HarvestStateCohortTransitionRowModel(Base):
             _sha256_check_sql("source_ref_hash"),
             name="ck_harvest_state_cohort_transition_source_ref_hash",
         ),
+        CheckConstraint(
+            _sha256_check_sql("capacity_pool_membership_hash"),
+            name="ck_harvest_state_cohort_transition_membership_hash",
+        ),
+        *_non_negative_check_sql(
+            "harvest_state_cohort_transition",
+            "opening_quantity_kg",
+            "new_supply_quantity_kg",
+            "quantity_before_loss_kg",
+            "mature_inventory_loss_quantity_kg",
+            "quantity_before_harvest_kg",
+            "harvested_quantity_kg",
+            "closing_quantity_kg",
+            "arrival_quantity_kg",
+        ),
         UniqueConstraint(
             "harvest_state_run_id",
             "state_date",
@@ -326,6 +439,7 @@ class HarvestStateCohortTransitionRowModel(Base):
     subfarm_id: Mapped[int | None] = mapped_column(_BIGINT_VARIANT, nullable=True)
     variety_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     destination_factory_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    capacity_pool_membership_hash: Mapped[str] = mapped_column(Text, nullable=False)
     stable_cohort_key: Mapped[str] = mapped_column(Text, nullable=False)
     stable_cohort_key_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
     source_ref_hash: Mapped[str] = mapped_column(Text, nullable=False)
@@ -360,12 +474,24 @@ class HarvestStateFutureArrivalRowModel(Base):
             "forecast_quantile in ('P50', 'P80', 'P90')",
             name="ck_harvest_state_future_arrival_quantile",
         ),
+        CheckConstraint(
+            "subfarm_identity_key <> ''",
+            name="ck_harvest_state_future_arrival_subfarm_identity_key",
+        ),
+        CheckConstraint(
+            "harvest_to_arrival_lag_days >= 0",
+            name="ck_harvest_state_future_arrival_lag_non_negative",
+        ),
+        CheckConstraint(
+            "quantity_kg >= 0",
+            name="ck_harvest_state_future_arrival_quantity_non_negative",
+        ),
         UniqueConstraint(
             "harvest_state_run_id",
             "arrival_local_date",
             "capacity_pool_id",
             "farm_id",
-            "subfarm_id",
+            "subfarm_identity_key",
             "variety_id",
             "forecast_quantile",
             name="uq_harvest_state_future_arrival_business_key",
@@ -386,6 +512,7 @@ class HarvestStateFutureArrivalRowModel(Base):
     capacity_pool_id: Mapped[str] = mapped_column(Text, nullable=False)
     farm_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     subfarm_id: Mapped[int | None] = mapped_column(_BIGINT_VARIANT, nullable=True)
+    subfarm_identity_key: Mapped[str] = mapped_column(Text, nullable=False)
     destination_factory_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     arrival_local_date: Mapped[date] = mapped_column(Date, nullable=False)
     variety_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)

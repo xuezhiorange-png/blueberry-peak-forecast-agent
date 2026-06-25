@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def test_harvest_state_migration_upgrade() -> None:
+def test_harvest_state_migration_metadata() -> None:
     revision_path = Path("backend/alembic/versions/0010_harvest_state_persistence.py")
 
     assert revision_path.exists()
@@ -11,14 +11,14 @@ def test_harvest_state_migration_upgrade() -> None:
     assert "def upgrade() -> None:" in source
 
 
-def test_harvest_state_migration_downgrade() -> None:
+def test_harvest_state_migration_has_downgrade() -> None:
     revision_path = Path("backend/alembic/versions/0010_harvest_state_persistence.py")
 
     source = revision_path.read_text()
     assert "def downgrade() -> None:" in source
 
 
-def test_harvest_state_migration_round_trip() -> None:
+def test_harvest_state_schema_contains_tables() -> None:
     schema_path = Path("sql/schema.sql")
     source = schema_path.read_text()
 

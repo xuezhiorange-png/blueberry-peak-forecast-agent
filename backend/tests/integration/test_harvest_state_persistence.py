@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from decimal import Decimal
 
@@ -8,9 +9,11 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
-from backend.app.harvest_state.canonical import canonical_json_dumps
+from backend.app.harvest_state.canonical import canonical_json_dumps, make_result_hash
 from backend.app.harvest_state.persistence import (
     HarvestStateHashConflictError,
+    HarvestStatePersistenceIntegrityError,
+    HarvestStateResultHashMismatchError,
     load_harvest_state_output_by_id,
     load_harvest_state_output_by_result_hash,
     save_harvest_state_output,
@@ -53,8 +56,14 @@ def _blocked_output() -> object:
     return result
 
 
+def _with_valid_result_hash(output: object) -> object:
+    payload = output.model_dump(mode="python")
+    payload.pop("result_hash", None)
+    return output.model_copy(update={"result_hash": make_result_hash(payload)})
+
+
 @pytest.mark.integration
-async def test_harvest_state_migration_upgrade() -> None:
+async def test_harvest_state_tables_exist_after_migration_upgrade() -> None:
     _require_postgres()
     async with AsyncSessionMaker() as session:
         for table_name in (
@@ -159,30 +168,46 @@ async def test_harvest_state_result_hash_is_idempotent() -> None:
 async def test_harvest_state_same_hash_different_payload_raises_conflict() -> None:
     _require_postgres()
     output = _completed_output()
-    conflicting = output.model_copy(
-        update={
-            "warnings": ["pg-conflict"],
-            "result_hash": output.result_hash,
-        }
-    )
 
     async with AsyncSessionMaker() as session:
-        await save_harvest_state_output(session, output=output)
+        run = await save_harvest_state_output(session, output=output)
+        await session.execute(
+            text(
+                """
+                UPDATE harvest_state_run
+                SET canonical_output = CAST(:value AS jsonb),
+                    canonical_payload_hash = :payload_hash
+                WHERE id = :run_id
+                """
+            ),
+            {
+                "value": canonical_json_dumps(
+                    output.model_copy(update={"warnings": ["pg-conflict"]}).model_dump(
+                        mode="json"
+                    )
+                ),
+                "payload_hash": "d" * 64,
+                "run_id": run.id,
+            },
+        )
+        await session.commit()
         with pytest.raises(HarvestStateHashConflictError):
-            await save_harvest_state_output(session, output=conflicting)
+            await save_harvest_state_output(session, output=output)
 
 
 @pytest.mark.integration
 async def test_harvest_state_transaction_rollback_on_child_failure() -> None:
     _require_postgres()
     output = _completed_output()
-    broken = output.model_copy(
-        update={
-            "daily_pool_state_rows": [
-                *output.daily_pool_state_rows,
-                output.daily_pool_state_rows[0],
-            ]
-        }
+    broken = _with_valid_result_hash(
+        output.model_copy(
+            update={
+                "daily_pool_state_rows": [
+                    *output.daily_pool_state_rows,
+                    output.daily_pool_state_rows[0],
+                ]
+            }
+        )
     )
 
     async with AsyncSessionMaker() as session:
@@ -245,12 +270,18 @@ async def test_harvest_state_invalid_result_hash_constraint() -> None:
                     blockers,
                     mass_balance_result,
                     continuity_result,
+                    canonical_output,
                     config_hash,
                     result_hash,
+                    canonical_payload_hash,
                     forecast_start_date,
                     forecast_end_date,
                     as_of_date,
-                    destination_factory_id
+                    destination_factory_id,
+                    pool_row_count,
+                    member_row_count,
+                    cohort_row_count,
+                    future_arrival_row_count
                 ) VALUES (
                     'blocked',
                     'task9a-output-v1',
@@ -265,20 +296,310 @@ async def test_harvest_state_invalid_result_hash_constraint() -> None:
                     '["x"]'::jsonb,
                     NULL,
                     NULL,
+                    '{"output_schema_version":"task9a-output-v1","status":"blocked","input_snapshot":{},"resolved_parameter_snapshot":null,"daily_pool_state_rows":[],"daily_member_state_rows":[],"cohort_transition_rows":[],"future_arrival_schedule":[],"source_ref_catalog":[],"warnings":[],"blockers":["x"],"config_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","result_hash":"bad-hash"}'::jsonb,
                     :config_hash,
                     :result_hash,
+                    :canonical_payload_hash,
                     DATE '2026-03-01',
                     DATE '2026-03-01',
                     DATE '2026-02-28',
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0
                 )
                 """
             ),
             {
                 "config_hash": "a" * 64,
                 "result_hash": "bad-hash",
+                "canonical_payload_hash": "c" * 64,
             },
         )
         with pytest.raises(IntegrityError):
             await session.commit()
         await session.rollback()
+
+
+@pytest.mark.integration
+async def test_postgres_round_trip_preserves_original_datetime_offsets() -> None:
+    _require_postgres()
+    output = _completed_output()
+
+    async with AsyncSessionMaker() as session:
+        run = await save_harvest_state_output(session, output=output)
+        loaded = await load_harvest_state_output_by_id(session, run_id=run.id)
+
+        assert loaded is not None
+        original_rows = [
+            row for row in output.cohort_transition_rows if row.arrival_at is not None
+        ]
+        loaded_rows = [
+            row for row in loaded.cohort_transition_rows if row.arrival_at is not None  # type: ignore[attr-defined]
+        ]
+        assert original_rows
+        assert loaded_rows
+        assert loaded_rows[0].harvest_anchor_at is not None
+        assert loaded_rows[0].arrival_at is not None
+        assert original_rows[0].harvest_anchor_at is not None
+        assert original_rows[0].arrival_at is not None
+        assert (
+            loaded_rows[0].harvest_anchor_at.isoformat()
+            == original_rows[0].harvest_anchor_at.isoformat()
+        )
+        assert loaded_rows[0].arrival_at.isoformat() == original_rows[0].arrival_at.isoformat()
+
+
+@pytest.mark.integration
+async def test_duplicate_member_business_key_with_null_subfarm_rejected() -> None:
+    _require_postgres()
+    output = _with_valid_result_hash(_completed_output())
+    completed = output.model_copy(
+        update={
+            "daily_member_state_rows": [
+                row.model_copy(update={"subfarm_id": None})
+                for row in output.daily_member_state_rows
+            ],
+            "future_arrival_schedule": [
+                row.model_copy(update={"subfarm_id": None})
+                for row in output.future_arrival_schedule
+            ],
+        }
+    )
+    completed = _with_valid_result_hash(completed)
+
+    async with AsyncSessionMaker() as session:
+        run = await save_harvest_state_output(session, output=completed)
+        row = completed.daily_member_state_rows[0]
+        session.add(
+            HarvestStateDailyMemberRowModel(
+                harvest_state_run_id=run.id,
+                subfarm_identity_key="NONE",
+                **row.model_dump(mode="python"),
+            )
+        )
+        with pytest.raises(IntegrityError):
+            await session.commit()
+        await session.rollback()
+
+
+@pytest.mark.integration
+async def test_duplicate_future_arrival_key_with_null_subfarm_rejected() -> None:
+    _require_postgres()
+    output = _with_valid_result_hash(_completed_output())
+    if not output.future_arrival_schedule:
+        pytest.skip("fixture does not produce future arrivals")
+    completed = output.model_copy(
+        update={
+            "daily_member_state_rows": [
+                row.model_copy(update={"subfarm_id": None})
+                for row in output.daily_member_state_rows
+            ],
+            "future_arrival_schedule": [
+                row.model_copy(update={"subfarm_id": None})
+                for row in output.future_arrival_schedule
+            ],
+        }
+    )
+    completed = _with_valid_result_hash(completed)
+
+    async with AsyncSessionMaker() as session:
+        run = await save_harvest_state_output(session, output=completed)
+        row = completed.future_arrival_schedule[0]
+        session.add(
+            HarvestStateFutureArrivalRowModel(
+                harvest_state_run_id=run.id,
+                subfarm_identity_key="NONE",
+                harvest_to_arrival_lag_days=1,
+                farm_timezone="Asia/Shanghai",
+                destination_factory_timezone="Asia/Tokyo",
+                **row.model_dump(mode="python"),
+            )
+        )
+        with pytest.raises(IntegrityError):
+            await session.commit()
+        await session.rollback()
+
+
+@pytest.mark.integration
+async def test_load_rejects_missing_completed_pool_row() -> None:
+    _require_postgres()
+    output = _completed_output()
+
+    async with AsyncSessionMaker() as session:
+        run = await save_harvest_state_output(session, output=output)
+        await session.execute(
+            text(
+                """
+                DELETE FROM harvest_state_daily_pool_row
+                WHERE id = (
+                    SELECT id
+                    FROM harvest_state_daily_pool_row
+                    WHERE harvest_state_run_id = :run_id
+                    ORDER BY id
+                    LIMIT 1
+                )
+                """
+            ),
+            {"run_id": run.id},
+        )
+        await session.commit()
+
+        with pytest.raises(HarvestStatePersistenceIntegrityError):
+            await load_harvest_state_output_by_id(session, run_id=run.id)
+
+
+@pytest.mark.integration
+async def test_load_rejects_blocked_run_with_state_rows() -> None:
+    _require_postgres()
+    blocked = _blocked_output()
+    completed = _completed_output()
+
+    async with AsyncSessionMaker() as session:
+        run = await save_harvest_state_output(session, output=blocked)
+        session.add(
+            HarvestStateDailyPoolRowModel(
+                harvest_state_run_id=run.id,
+                **completed.daily_pool_state_rows[0].model_dump(mode="python"),
+            )
+        )
+        await session.commit()
+
+        with pytest.raises(HarvestStatePersistenceIntegrityError):
+            await load_harvest_state_output_by_id(session, run_id=run.id)
+
+
+@pytest.mark.integration
+async def test_first_save_rejects_mismatched_result_hash() -> None:
+    _require_postgres()
+    output = _completed_output().model_copy(update={"result_hash": "f" * 64})
+
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(HarvestStateResultHashMismatchError):
+            await save_harvest_state_output(session, output=output)
+
+
+@pytest.mark.integration
+async def test_concurrent_same_payload_save_creates_one_run() -> None:
+    _require_postgres()
+    output = _completed_output()
+
+    async def save_once() -> int:
+        async with AsyncSessionMaker() as session:
+            run = await save_harvest_state_output(session, output=output)
+            return run.id
+
+    first_id, second_id = await asyncio.gather(save_once(), save_once())
+    assert first_id == second_id
+
+    async with AsyncSessionMaker() as session:
+        assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 1
+
+
+@pytest.mark.integration
+async def test_concurrent_same_hash_different_payload_conflicts() -> None:
+    _require_postgres()
+    output = _completed_output()
+    conflicting_payload = output.model_copy(update={"warnings": ["pg-conflict"]}).model_dump(
+        mode="json"
+    )
+
+    async def save_once() -> None:
+        async with AsyncSessionMaker() as session:
+            await save_harvest_state_output(session, output=output)
+
+    async def insert_conflicting() -> None:
+        async with AsyncSessionMaker() as session:
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO harvest_state_run (
+                        status,
+                        output_schema_version,
+                        result_hash_schema_version,
+                        resolved_parameter_snapshot_schema_version,
+                        source_ref_schema_version,
+                        stable_cohort_key_schema_version,
+                        input_snapshot,
+                        resolved_parameter_snapshot,
+                        source_ref_catalog,
+                        warnings,
+                        blockers,
+                        mass_balance_result,
+                        continuity_result,
+                        canonical_output,
+                        config_hash,
+                        result_hash,
+                        canonical_payload_hash,
+                        forecast_start_date,
+                        forecast_end_date,
+                        as_of_date,
+                        destination_factory_id,
+                        pool_row_count,
+                        member_row_count,
+                        cohort_row_count,
+                        future_arrival_row_count
+                    ) VALUES (
+                        'completed',
+                        'task9a-output-v1',
+                        'task9a-result-hash-v1',
+                        'task9a-resolved-parameters-v1',
+                        'task9a-source-ref-v1',
+                        'task9a-cohort-key-v1',
+                        CAST(:input_snapshot AS jsonb),
+                        CAST(:resolved_parameter_snapshot AS jsonb),
+                        CAST(:source_ref_catalog AS jsonb),
+                        CAST(:warnings AS jsonb),
+                        CAST(:blockers AS jsonb),
+                        CAST(:mass_balance_result AS jsonb),
+                        CAST(:continuity_result AS jsonb),
+                        CAST(:canonical_output AS jsonb),
+                        :config_hash,
+                        :result_hash,
+                        :canonical_payload_hash,
+                        :forecast_start_date,
+                        :forecast_end_date,
+                        :as_of_date,
+                        :destination_factory_id,
+                        :pool_row_count,
+                        :member_row_count,
+                        :cohort_row_count,
+                        :future_arrival_row_count
+                    )
+                    """
+                ),
+                {
+                    "input_snapshot": canonical_json_dumps(output.input_snapshot),
+                    "resolved_parameter_snapshot": canonical_json_dumps(
+                        output.resolved_parameter_snapshot.model_dump(mode="json")
+                    ),
+                    "source_ref_catalog": canonical_json_dumps(
+                        [item.model_dump(mode="json") for item in output.source_ref_catalog]
+                    ),
+                    "warnings": canonical_json_dumps(["pg-conflict"]),
+                    "blockers": canonical_json_dumps([]),
+                    "mass_balance_result": canonical_json_dumps(output.mass_balance_result),
+                    "continuity_result": canonical_json_dumps(output.continuity_result),
+                    "canonical_output": canonical_json_dumps(conflicting_payload),
+                    "config_hash": output.config_hash,
+                    "result_hash": output.result_hash,
+                    "canonical_payload_hash": "d" * 64,
+                    "forecast_start_date": output.forecast_start_date,
+                    "forecast_end_date": output.forecast_end_date,
+                    "as_of_date": output.input_snapshot["as_of_date"],
+                    "destination_factory_id": output.input_snapshot["destination_factory_id"],
+                    "pool_row_count": len(output.daily_pool_state_rows),
+                    "member_row_count": len(output.daily_member_state_rows),
+                    "cohort_row_count": len(output.cohort_transition_rows),
+                    "future_arrival_row_count": len(output.future_arrival_schedule),
+                },
+            )
+            await session.commit()
+
+    results = await asyncio.gather(save_once(), insert_conflicting(), return_exceptions=True)
+    assert any(isinstance(item, IntegrityError) for item in results)
+
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(HarvestStateHashConflictError):
+            await save_harvest_state_output(session, output=output)
