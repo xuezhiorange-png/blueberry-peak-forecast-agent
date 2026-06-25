@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import date
 from decimal import Decimal
 
 import pytest
@@ -553,6 +554,7 @@ async def test_concurrent_same_hash_different_payload_conflicts() -> None:
 
     async def insert_conflicting() -> str:
         async with AsyncSessionMaker() as session:
+            as_of_date = output.input_snapshot["as_of_date"]
             await session.execute(
                 text(
                     """
@@ -629,7 +631,11 @@ async def test_concurrent_same_hash_different_payload_conflicts() -> None:
                     "canonical_payload_hash": "d" * 64,
                     "forecast_start_date": output.forecast_start_date,
                     "forecast_end_date": output.forecast_end_date,
-                    "as_of_date": output.input_snapshot["as_of_date"],
+                    "as_of_date": (
+                        date.fromisoformat(as_of_date)
+                        if isinstance(as_of_date, str)
+                        else as_of_date
+                    ),
                     "destination_factory_id": output.input_snapshot["destination_factory_id"],
                     "pool_row_count": len(output.daily_pool_state_rows),
                     "member_row_count": len(output.daily_member_state_rows),
