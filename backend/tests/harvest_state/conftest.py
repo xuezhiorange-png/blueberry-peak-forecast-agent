@@ -28,6 +28,11 @@ def make_task8_source_ref(
     prediction_date: date,
     forecast_quantile: str,
     source_quantity_kg: Decimal,
+    farm_id: int = 1,
+    subfarm_id: int | None = 11,
+    variety_id: int = 101,
+    plan_id: int = 501,
+    location_reference_id: int = 601,
     forecast_run_id: int = 401,
     forecast_source_signature: str = "forecast-sig-1",
     model_source_signature: str = "model-sig-1",
@@ -35,6 +40,13 @@ def make_task8_source_ref(
     weather_mapping_id: int | None = 801,
     base_temperature_search_run_id: int | None = 901,
 ) -> dict[str, Any]:
+    subfarm_component = 0 if subfarm_id is None else subfarm_id
+    daily_prediction_id = (
+        prediction_date.toordinal() * 100_000
+        + farm_id * 10_000
+        + subfarm_component * 100
+        + variety_id
+    )
     return {
         "source_ref_type": "TASK8_DAILY_PREDICTION",
         "source_ref_schema_version": "task9a-source-ref-v1",
@@ -47,12 +59,12 @@ def make_task8_source_ref(
         "maturity_forecast_run_id": forecast_run_id,
         "maturity_forecast_source_signature": forecast_source_signature,
         "maturity_forecast_as_of_date": date(2026, 2, 28),
-        "maturity_daily_prediction_id": 301 + prediction_date.day,
+        "maturity_daily_prediction_id": daily_prediction_id,
         "prediction_date": prediction_date,
         "forecast_quantile": forecast_quantile,
         "source_quantity_kg": source_quantity_kg,
-        "plan_id": 501,
-        "location_reference_id": 601,
+        "plan_id": plan_id,
+        "location_reference_id": location_reference_id,
         "weather_mapping_id": weather_mapping_id,
         "base_temperature_search_run_id": base_temperature_search_run_id,
     }
@@ -74,6 +86,13 @@ def make_task8_verification_snapshot(
     plan_id: int = 501,
     location_reference_id: int = 601,
 ) -> dict[str, Any]:
+    subfarm_component = 0 if subfarm_id is None else subfarm_id
+    daily_prediction_id = (
+        prediction_date.toordinal() * 100_000
+        + farm_id * 10_000
+        + subfarm_component * 100
+        + variety_id
+    )
     return {
         "maturity_model_run_id": 101,
         "maturity_model_version": "task8-v1",
@@ -90,7 +109,7 @@ def make_task8_verification_snapshot(
         "maturity_forecast_as_of_date": date(2026, 2, 28),
         "maturity_forecast_prediction_start_date": date(2026, 3, 1),
         "maturity_forecast_prediction_end_date": date(2026, 3, 3),
-        "maturity_daily_prediction_id": 301 + prediction_date.day,
+        "maturity_daily_prediction_id": daily_prediction_id,
         "maturity_daily_prediction_forecast_run_id": forecast_run_id,
         "prediction_date": prediction_date,
         "farm_id": farm_id,
@@ -325,25 +344,30 @@ def make_task8_supply(
     prediction_date: date,
     quantile: str,
     quantity: Decimal,
+    farm_id: int = 1,
+    subfarm_id: int | None = 11,
     variety_id: int = 101,
 ) -> dict[str, Any]:
     source_ref = make_task8_source_ref(
         prediction_date=prediction_date,
         forecast_quantile=quantile,
         source_quantity_kg=quantity,
+        farm_id=farm_id,
+        subfarm_id=subfarm_id,
+        variety_id=variety_id,
     )
     return {
         "prediction_date": prediction_date,
-        "farm_id": 1,
-        "subfarm_id": 11,
+        "farm_id": farm_id,
+        "subfarm_id": subfarm_id,
         "variety_id": variety_id,
         "source_ref": source_ref,
         "verification_snapshot": make_task8_verification_snapshot(
             prediction_date=prediction_date,
             forecast_quantile=quantile,
             source_quantity_kg=quantity,
-            farm_id=1,
-            subfarm_id=11,
+            farm_id=farm_id,
+            subfarm_id=subfarm_id,
             variety_id=variety_id,
         ),
     }

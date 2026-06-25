@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from backend.app.harvest_state.canonical import quantize_ratio
 from backend.app.harvest_state.enums import BlockerCode, WeatherCombinationMethod
 from backend.app.harvest_state.schemas import WeatherEfficiencyRuleConfig, WeatherFeatureBand
 
@@ -66,4 +65,4 @@ def compute_weather_efficiency_ratio(
             raise ValueError(f"{BlockerCode.WEATHER_RULE_BAND_GAP}:{feature_id}")
         ratio *= matches[0].multiplier
     clamped = min(config.maximum_ratio, max(config.minimum_ratio, ratio))
-    return quantize_ratio(clamped)
+    return clamped
