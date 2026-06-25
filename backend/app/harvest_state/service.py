@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal, localcontext
+from enum import Enum
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import ValidationError
 
 from backend.app.harvest_state.canonical import (
+    canonical_json_dumps,
     canonical_json_value,
     is_sha256_hex,
     make_holiday_calendar_hash,
@@ -405,17 +407,33 @@ def _raw_sortable_key(value: object) -> tuple[int, str]:
         return (0, "")
     if isinstance(value, bool):
         return (1, "true" if value else "false")
-    if isinstance(value, (int, str, Decimal, date)):
+    if isinstance(value, datetime):
+        return (2, value.isoformat())
+    if isinstance(value, date):
+        return (2, value.isoformat())
+    if isinstance(value, time):
+        return (2, value.isoformat())
+    if isinstance(value, Enum):
+        return _raw_sortable_key(value.value)
+    if isinstance(value, (int, str, Decimal, float)):
         return (2, str(value))
     if isinstance(value, Mapping):
-        return (3, canonical_json_value(_canonicalize_raw_value(value)).__repr__())
+        return (3, canonical_json_dumps(_canonicalize_raw_value(value)))
     if isinstance(value, list | tuple):
-        return (4, canonical_json_value(_canonicalize_raw_value(value)).__repr__())
+        return (4, canonical_json_dumps(_canonicalize_raw_value(value)))
     return (9, type(value).__name__)
 
 
 def _canonicalize_raw_value(value: object) -> Any:
-    if value is None or isinstance(value, (bool, int, str, float, Decimal, date)):
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, time):
+        return value.isoformat()
+    if isinstance(value, Enum):
+        return _canonicalize_raw_value(value.value)
+    if value is None or isinstance(value, (bool, int, str, float, Decimal)):
         try:
             return canonical_json_value(value)
         except Exception:
@@ -559,7 +577,7 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
     try:
         ZoneInfo(request.farm_timezone)
         ZoneInfo(request.destination_factory_timezone)
-    except ZoneInfoNotFoundError:
+    except (ZoneInfoNotFoundError, ValueError):
         blockers.append(BlockerCode.INVALID_TIMEZONE)
         timezone_valid = False
 
