@@ -19,7 +19,14 @@ async def get_harvest_state_run(
     *,
     run_id: int,
 ) -> HarvestStateRun | None:
-    return await session.get(HarvestStateRun, run_id)
+    return cast(
+        HarvestStateRun | None,
+        await session.scalar(
+            select(HarvestStateRun)
+            .where(HarvestStateRun.id == run_id)
+            .execution_options(populate_existing=True)
+        ),
+    )
 
 
 async def get_harvest_state_run_by_result_hash(
@@ -30,7 +37,9 @@ async def get_harvest_state_run_by_result_hash(
     return cast(
         HarvestStateRun | None,
         await session.scalar(
-            select(HarvestStateRun).where(HarvestStateRun.result_hash == result_hash)
+            select(HarvestStateRun)
+            .where(HarvestStateRun.result_hash == result_hash)
+            .execution_options(populate_existing=True)
         ),
     )
 
