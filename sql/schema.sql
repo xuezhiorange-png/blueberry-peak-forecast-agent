@@ -937,3 +937,275 @@ CREATE INDEX IF NOT EXISTS ix_maturity_daily_prediction_run_id
 ON maturity_daily_prediction (forecast_run_id);
 CREATE INDEX IF NOT EXISTS ix_maturity_daily_prediction_date
 ON maturity_daily_prediction (prediction_date);
+
+CREATE TABLE IF NOT EXISTS harvest_state_run (
+  id BIGSERIAL PRIMARY KEY,
+  status TEXT NOT NULL,
+  output_schema_version TEXT NOT NULL,
+  result_hash_schema_version TEXT NOT NULL,
+  resolved_parameter_snapshot_schema_version TEXT NOT NULL,
+  source_ref_schema_version TEXT NOT NULL,
+  stable_cohort_key_schema_version TEXT NOT NULL,
+  input_snapshot JSONB NOT NULL,
+  resolved_parameter_snapshot JSONB,
+  source_ref_catalog JSONB NOT NULL,
+  warnings JSONB NOT NULL,
+  blockers JSONB NOT NULL,
+  mass_balance_result JSONB,
+  continuity_result JSONB,
+  canonical_output JSONB NOT NULL,
+  config_hash TEXT NOT NULL,
+  result_hash TEXT NOT NULL,
+  canonical_payload_hash TEXT NOT NULL,
+  forecast_start_date DATE NOT NULL,
+  forecast_end_date DATE NOT NULL,
+  as_of_date DATE NOT NULL,
+  destination_factory_id BIGINT NOT NULL,
+  pool_row_count BIGINT NOT NULL,
+  member_row_count BIGINT NOT NULL,
+  cohort_row_count BIGINT NOT NULL,
+  future_arrival_row_count BIGINT NOT NULL,
+  maturity_model_run_id BIGINT,
+  maturity_model_version TEXT,
+  maturity_model_config_hash TEXT,
+  maturity_model_source_signature TEXT,
+  maturity_model_artifact_id BIGINT,
+  maturity_model_artifact_hash TEXT,
+  maturity_forecast_run_id BIGINT,
+  maturity_forecast_source_signature TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_harvest_state_run_status CHECK (status IN ('completed', 'blocked')),
+  CONSTRAINT ck_harvest_state_run_config_hash CHECK (
+    length(config_hash) = 64
+    AND lower(config_hash) = config_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(config_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_harvest_state_run_result_hash CHECK (
+    length(result_hash) = 64
+    AND lower(result_hash) = result_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(result_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_harvest_state_run_canonical_payload_hash CHECK (
+    length(canonical_payload_hash) = 64
+    AND lower(canonical_payload_hash) = canonical_payload_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(canonical_payload_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_harvest_state_run_forecast_date_range CHECK (forecast_end_date >= forecast_start_date),
+  CONSTRAINT ck_hsr_prc_nn CHECK (pool_row_count >= 0),
+  CONSTRAINT ck_hsr_mrc_nn CHECK (member_row_count >= 0),
+  CONSTRAINT ck_hsr_crc_nn CHECK (cohort_row_count >= 0),
+  CONSTRAINT ck_hsr_farc_nn CHECK (future_arrival_row_count >= 0),
+  CONSTRAINT uq_harvest_state_run_result_hash UNIQUE (result_hash)
+);
+
+CREATE INDEX IF NOT EXISTS ix_harvest_state_run_status
+ON harvest_state_run (status);
+CREATE INDEX IF NOT EXISTS ix_harvest_state_run_as_of_date
+ON harvest_state_run (as_of_date);
+CREATE INDEX IF NOT EXISTS ix_harvest_state_run_maturity_forecast_run_id
+ON harvest_state_run (maturity_forecast_run_id);
+CREATE INDEX IF NOT EXISTS ix_harvest_state_run_maturity_model_run_id
+ON harvest_state_run (maturity_model_run_id);
+
+CREATE TABLE IF NOT EXISTS harvest_state_daily_pool_row (
+  id BIGSERIAL PRIMARY KEY,
+  harvest_state_run_id BIGINT NOT NULL,
+  state_date DATE NOT NULL,
+  forecast_quantile TEXT NOT NULL,
+  capacity_pool_id TEXT NOT NULL,
+  capacity_pool_grain TEXT NOT NULL,
+  capacity_pool_membership_hash TEXT NOT NULL,
+  capacity_input_mode TEXT NOT NULL,
+  opening_mature_inventory_kg NUMERIC(18,3) NOT NULL,
+  natural_maturity_supply_kg NUMERIC(18,3) NOT NULL,
+  available_mature_quantity_kg NUMERIC(18,3) NOT NULL,
+  mature_inventory_loss_quantity_kg NUMERIC(18,3) NOT NULL,
+  harvestable_mature_quantity_kg NUMERIC(18,3) NOT NULL,
+  nominal_harvest_capacity_kg_per_day NUMERIC(18,3) NOT NULL,
+  labor_availability_ratio NUMERIC(12,6) NOT NULL,
+  weather_harvest_efficiency_ratio NUMERIC(12,6) NOT NULL,
+  operational_efficiency_ratio NUMERIC(12,6) NOT NULL,
+  effective_harvest_capacity_kg_per_day NUMERIC(18,3) NOT NULL,
+  effective_capacity_for_day_kg NUMERIC(18,3) NOT NULL,
+  harvested_quantity_kg NUMERIC(18,3) NOT NULL,
+  closing_mature_inventory_kg NUMERIC(18,3) NOT NULL,
+  unharvested_backlog_kg NUMERIC(18,3) NOT NULL,
+  arrival_quantity_kg NUMERIC(18,3) NOT NULL,
+  opening_cohort_count BIGINT NOT NULL,
+  closing_cohort_count BIGINT NOT NULL,
+  member_count BIGINT NOT NULL,
+  mass_balance_passed BOOLEAN NOT NULL,
+  capacity_constraint_passed BOOLEAN NOT NULL,
+  continuity_passed BOOLEAN NOT NULL,
+  parameter_source_ref_hashes JSONB NOT NULL,
+  cohort_source_ref_hashes JSONB NOT NULL,
+  CONSTRAINT ck_harvest_state_daily_pool_quantile CHECK (forecast_quantile IN ('P50', 'P80', 'P90')),
+  CONSTRAINT ck_harvest_state_daily_pool_grain CHECK (capacity_pool_grain IN ('SUBFARM_VARIETY', 'SUBFARM', 'FARM')),
+  CONSTRAINT ck_harvest_state_daily_pool_input_mode CHECK (capacity_input_mode IN ('LABOR_DERIVED', 'DIRECT_CAPACITY')),
+  CONSTRAINT ck_harvest_state_daily_pool_membership_hash CHECK (
+    length(capacity_pool_membership_hash) = 64
+    AND lower(capacity_pool_membership_hash) = capacity_pool_membership_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(capacity_pool_membership_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_harvest_state_daily_pool_labor_ratio CHECK (labor_availability_ratio >= 0 AND labor_availability_ratio <= 1),
+  CONSTRAINT ck_harvest_state_daily_pool_weather_ratio CHECK (weather_harvest_efficiency_ratio >= 0 AND weather_harvest_efficiency_ratio <= 1),
+  CONSTRAINT ck_harvest_state_daily_pool_operational_ratio CHECK (operational_efficiency_ratio >= 0 AND operational_efficiency_ratio <= 1),
+  CONSTRAINT ck_hsdp_open_inv_nn CHECK (opening_mature_inventory_kg >= 0),
+  CONSTRAINT ck_hsdp_supply_nn CHECK (natural_maturity_supply_kg >= 0),
+  CONSTRAINT ck_hsdp_avail_nn CHECK (available_mature_quantity_kg >= 0),
+  CONSTRAINT ck_hsdp_loss_nn CHECK (mature_inventory_loss_quantity_kg >= 0),
+  CONSTRAINT ck_hsdp_harvestable_nn CHECK (harvestable_mature_quantity_kg >= 0),
+  CONSTRAINT ck_hsdp_nom_cap_nn CHECK (nominal_harvest_capacity_kg_per_day >= 0),
+  CONSTRAINT ck_hsdp_eff_cap_nn CHECK (effective_harvest_capacity_kg_per_day >= 0),
+  CONSTRAINT ck_hsdp_day_cap_nn CHECK (effective_capacity_for_day_kg >= 0),
+  CONSTRAINT ck_hsdp_harvested_nn CHECK (harvested_quantity_kg >= 0),
+  CONSTRAINT ck_hsdp_close_inv_nn CHECK (closing_mature_inventory_kg >= 0),
+  CONSTRAINT ck_hsdp_backlog_nn CHECK (unharvested_backlog_kg >= 0),
+  CONSTRAINT ck_hsdp_arrival_nn CHECK (arrival_quantity_kg >= 0),
+  CONSTRAINT ck_hsdp_open_coh_nn CHECK (opening_cohort_count >= 0),
+  CONSTRAINT ck_hsdp_close_coh_nn CHECK (closing_cohort_count >= 0),
+  CONSTRAINT ck_hsdp_members_nn CHECK (member_count >= 0),
+  CONSTRAINT fk_harvest_state_daily_pool_run_id FOREIGN KEY (harvest_state_run_id) REFERENCES harvest_state_run(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_harvest_state_daily_pool_business_key UNIQUE (harvest_state_run_id, state_date, capacity_pool_id, forecast_quantile)
+);
+
+CREATE INDEX IF NOT EXISTS ix_harvest_state_daily_pool_run_id
+ON harvest_state_daily_pool_row (harvest_state_run_id);
+
+CREATE TABLE IF NOT EXISTS harvest_state_daily_member_row (
+  id BIGSERIAL PRIMARY KEY,
+  harvest_state_run_id BIGINT NOT NULL,
+  state_date DATE NOT NULL,
+  forecast_quantile TEXT NOT NULL,
+  capacity_pool_id TEXT NOT NULL,
+  capacity_pool_grain TEXT NOT NULL,
+  capacity_pool_membership_hash TEXT NOT NULL,
+  farm_id BIGINT NOT NULL,
+  subfarm_id BIGINT,
+  subfarm_identity_key TEXT NOT NULL,
+  variety_id BIGINT NOT NULL,
+  destination_factory_id BIGINT NOT NULL,
+  opening_mature_inventory_kg NUMERIC(18,3) NOT NULL,
+  natural_maturity_supply_kg NUMERIC(18,3) NOT NULL,
+  available_mature_quantity_kg NUMERIC(18,3) NOT NULL,
+  mature_inventory_loss_quantity_kg NUMERIC(18,3) NOT NULL,
+  harvestable_mature_quantity_kg NUMERIC(18,3) NOT NULL,
+  allocated_harvest_capacity_kg NUMERIC(18,3) NOT NULL,
+  harvested_quantity_kg NUMERIC(18,3) NOT NULL,
+  closing_mature_inventory_kg NUMERIC(18,3) NOT NULL,
+  unharvested_backlog_kg NUMERIC(18,3) NOT NULL,
+  arrival_quantity_kg NUMERIC(18,3) NOT NULL,
+  opening_cohort_count BIGINT NOT NULL,
+  closing_cohort_count BIGINT NOT NULL,
+  cohort_source_ref_hashes JSONB NOT NULL,
+  CONSTRAINT ck_harvest_state_daily_member_quantile CHECK (forecast_quantile IN ('P50', 'P80', 'P90')),
+  CONSTRAINT ck_harvest_state_daily_member_grain CHECK (capacity_pool_grain IN ('SUBFARM_VARIETY', 'SUBFARM', 'FARM')),
+  CONSTRAINT ck_harvest_state_daily_member_membership_hash CHECK (
+    length(capacity_pool_membership_hash) = 64
+    AND lower(capacity_pool_membership_hash) = capacity_pool_membership_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(capacity_pool_membership_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_harvest_state_daily_member_subfarm_identity_key CHECK (subfarm_identity_key <> ''),
+  CONSTRAINT ck_hsdm_open_inv_nn CHECK (opening_mature_inventory_kg >= 0),
+  CONSTRAINT ck_hsdm_supply_nn CHECK (natural_maturity_supply_kg >= 0),
+  CONSTRAINT ck_hsdm_avail_nn CHECK (available_mature_quantity_kg >= 0),
+  CONSTRAINT ck_hsdm_loss_nn CHECK (mature_inventory_loss_quantity_kg >= 0),
+  CONSTRAINT ck_hsdm_harvestable_nn CHECK (harvestable_mature_quantity_kg >= 0),
+  CONSTRAINT ck_hsdm_alloc_cap_nn CHECK (allocated_harvest_capacity_kg >= 0),
+  CONSTRAINT ck_hsdm_harvested_nn CHECK (harvested_quantity_kg >= 0),
+  CONSTRAINT ck_hsdm_close_inv_nn CHECK (closing_mature_inventory_kg >= 0),
+  CONSTRAINT ck_hsdm_backlog_nn CHECK (unharvested_backlog_kg >= 0),
+  CONSTRAINT ck_hsdm_arrival_nn CHECK (arrival_quantity_kg >= 0),
+  CONSTRAINT ck_hsdm_open_coh_nn CHECK (opening_cohort_count >= 0),
+  CONSTRAINT ck_hsdm_close_coh_nn CHECK (closing_cohort_count >= 0),
+  CONSTRAINT fk_harvest_state_daily_member_run_id FOREIGN KEY (harvest_state_run_id) REFERENCES harvest_state_run(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_harvest_state_daily_member_business_key UNIQUE (harvest_state_run_id, state_date, capacity_pool_id, farm_id, subfarm_identity_key, variety_id, forecast_quantile)
+);
+
+CREATE INDEX IF NOT EXISTS ix_harvest_state_daily_member_run_id
+ON harvest_state_daily_member_row (harvest_state_run_id);
+
+CREATE TABLE IF NOT EXISTS harvest_state_cohort_transition_row (
+  id BIGSERIAL PRIMARY KEY,
+  harvest_state_run_id BIGINT NOT NULL,
+  state_date DATE NOT NULL,
+  forecast_quantile TEXT NOT NULL,
+  capacity_pool_id TEXT NOT NULL,
+  farm_id BIGINT NOT NULL,
+  subfarm_id BIGINT,
+  variety_id BIGINT NOT NULL,
+  destination_factory_id BIGINT NOT NULL,
+  capacity_pool_membership_hash TEXT NOT NULL,
+  stable_cohort_key TEXT NOT NULL,
+  stable_cohort_key_schema_version TEXT NOT NULL,
+  source_ref_hash TEXT NOT NULL,
+  source_ref JSONB NOT NULL,
+  cohort_date DATE NOT NULL,
+  opening_quantity_kg NUMERIC(18,3) NOT NULL,
+  new_supply_quantity_kg NUMERIC(18,3) NOT NULL,
+  quantity_before_loss_kg NUMERIC(18,3) NOT NULL,
+  mature_inventory_loss_quantity_kg NUMERIC(18,3) NOT NULL,
+  quantity_before_harvest_kg NUMERIC(18,3) NOT NULL,
+  harvested_quantity_kg NUMERIC(18,3) NOT NULL,
+  closing_quantity_kg NUMERIC(18,3) NOT NULL,
+  harvest_anchor_at TIMESTAMPTZ,
+  arrival_at TIMESTAMPTZ,
+  arrival_local_date DATE,
+  arrival_quantity_kg NUMERIC(18,3) NOT NULL,
+  CONSTRAINT ck_harvest_state_cohort_transition_quantile CHECK (forecast_quantile IN ('P50', 'P80', 'P90')),
+  CONSTRAINT ck_harvest_state_cohort_transition_stable_key CHECK (
+    length(stable_cohort_key) = 64
+    AND lower(stable_cohort_key) = stable_cohort_key
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(stable_cohort_key, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_harvest_state_cohort_transition_source_ref_hash CHECK (
+    length(source_ref_hash) = 64
+    AND lower(source_ref_hash) = source_ref_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(source_ref_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_harvest_state_cohort_transition_membership_hash CHECK (
+    length(capacity_pool_membership_hash) = 64
+    AND lower(capacity_pool_membership_hash) = capacity_pool_membership_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(capacity_pool_membership_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_hsct_open_qty_nn CHECK (opening_quantity_kg >= 0),
+  CONSTRAINT ck_hsct_new_supply_nn CHECK (new_supply_quantity_kg >= 0),
+  CONSTRAINT ck_hsct_before_loss_nn CHECK (quantity_before_loss_kg >= 0),
+  CONSTRAINT ck_hsct_loss_nn CHECK (mature_inventory_loss_quantity_kg >= 0),
+  CONSTRAINT ck_hsct_before_harvest_nn CHECK (quantity_before_harvest_kg >= 0),
+  CONSTRAINT ck_hsct_harvested_nn CHECK (harvested_quantity_kg >= 0),
+  CONSTRAINT ck_hsct_close_qty_nn CHECK (closing_quantity_kg >= 0),
+  CONSTRAINT ck_hsct_arrival_nn CHECK (arrival_quantity_kg >= 0),
+  CONSTRAINT fk_harvest_state_cohort_transition_run_id FOREIGN KEY (harvest_state_run_id) REFERENCES harvest_state_run(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_harvest_state_cohort_transition_business_key UNIQUE (harvest_state_run_id, state_date, capacity_pool_id, forecast_quantile, stable_cohort_key)
+);
+
+CREATE INDEX IF NOT EXISTS ix_harvest_state_cohort_transition_run_id
+ON harvest_state_cohort_transition_row (harvest_state_run_id);
+
+CREATE TABLE IF NOT EXISTS harvest_state_future_arrival_row (
+  id BIGSERIAL PRIMARY KEY,
+  harvest_state_run_id BIGINT NOT NULL,
+  capacity_pool_id TEXT NOT NULL,
+  farm_id BIGINT NOT NULL,
+  subfarm_id BIGINT,
+  subfarm_identity_key TEXT NOT NULL,
+  destination_factory_id BIGINT NOT NULL,
+  arrival_local_date DATE NOT NULL,
+  variety_id BIGINT NOT NULL,
+  forecast_quantile TEXT NOT NULL,
+  quantity_kg NUMERIC(18,3) NOT NULL,
+  harvest_to_arrival_lag_days BIGINT NOT NULL,
+  farm_timezone TEXT NOT NULL,
+  destination_factory_timezone TEXT NOT NULL,
+  CONSTRAINT ck_harvest_state_future_arrival_quantile CHECK (forecast_quantile IN ('P50', 'P80', 'P90')),
+  CONSTRAINT ck_harvest_state_future_arrival_subfarm_identity_key CHECK (subfarm_identity_key <> ''),
+  CONSTRAINT ck_harvest_state_future_arrival_lag_non_negative CHECK (harvest_to_arrival_lag_days >= 0),
+  CONSTRAINT ck_harvest_state_future_arrival_quantity_non_negative CHECK (quantity_kg >= 0),
+  CONSTRAINT fk_harvest_state_future_arrival_run_id FOREIGN KEY (harvest_state_run_id) REFERENCES harvest_state_run(id) ON DELETE RESTRICT,
+  CONSTRAINT uq_harvest_state_future_arrival_business_key UNIQUE (harvest_state_run_id, arrival_local_date, capacity_pool_id, farm_id, subfarm_identity_key, variety_id, forecast_quantile)
+);
+
+CREATE INDEX IF NOT EXISTS ix_harvest_state_future_arrival_run_id
+ON harvest_state_future_arrival_row (harvest_state_run_id);
