@@ -30,6 +30,14 @@ from backend.app.harvest_state.reports import (
 )
 
 
+def _input_file_error() -> HarvestStateDeliveryInputError:
+    return HarvestStateDeliveryInputError("Harvest-state input file could not be read.")
+
+
+def _output_file_error() -> HarvestStateDeliveryIntegrityError:
+    return HarvestStateDeliveryIntegrityError("Harvest-state output file could not be written.")
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Task 9C harvest-state delivery")
     subparsers = parser.add_subparsers(dest="resource", required=True)
@@ -54,10 +62,13 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _read_json_input(path: str, stdin: TextIO) -> Mapping[str, object]:
-    if path == "-":
-        text = stdin.read()
-    else:
-        text = Path(path).read_text(encoding="utf-8")
+    try:
+        if path == "-":
+            text = stdin.read()
+        else:
+            text = Path(path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise _input_file_error() from exc
     payload = json.loads(text)
     if not isinstance(payload, Mapping):
         raise HarvestStateDeliveryInputError("Harvest-state request root must be a JSON object.")
@@ -69,11 +80,17 @@ def _write_text_output(path: str, content: str, stdout: TextIO) -> None:
         stdout.write(content)
         stdout.flush()
         return
-    Path(path).write_text(content, encoding="utf-8")
+    try:
+        Path(path).write_text(content, encoding="utf-8")
+    except OSError as exc:
+        raise _output_file_error() from exc
 
 
 def _write_binary_output(path: str, content: bytes) -> None:
-    Path(path).write_bytes(content)
+    try:
+        Path(path).write_bytes(content)
+    except OSError as exc:
+        raise _output_file_error() from exc
 
 
 def _delivery_error_exit_code(exc: HarvestStateDeliveryError) -> int:

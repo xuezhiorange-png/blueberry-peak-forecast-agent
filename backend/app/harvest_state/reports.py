@@ -14,7 +14,6 @@ from backend.app.harvest_state.schemas import (
     DailyMemberStateRow,
     DailyPoolStateRow,
     FutureArrivalScheduleRow,
-    SourceRefCatalogEntry,
     Task9ABlockedOutput,
     Task9ACompletedOutput,
 )
@@ -29,6 +28,10 @@ def _scalar_text(value: object) -> str:
         return ""
     if isinstance(value, Decimal):
         return canonical_decimal_string(value)
+    if isinstance(value, Mapping):
+        return canonical_json_dumps(value)
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return canonical_json_dumps(value)
     if isinstance(value, datetime):
         return value.isoformat()
     if hasattr(value, "isoformat"):

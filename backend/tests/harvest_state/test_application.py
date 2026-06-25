@@ -1,16 +1,25 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.harvest_state.application import (
     HarvestStateDeliveryConflictError,
+    HarvestStateDeliveryIntegrityError,
     HarvestStateRunNotFoundError,
     execute_harvest_state_run,
     get_harvest_state_run_by_id,
     get_harvest_state_run_by_result_hash,
 )
-from backend.app.harvest_state.persistence import HarvestStateHashConflictError
+from backend.app.harvest_state.persistence import (
+    HarvestStateHashConflictError,
+    HarvestStatePersistenceIntegrityError,
+    HarvestStateResultHashMismatchError,
+)
+from backend.app.models.harvest_state import HarvestStateRun
 from backend.tests.harvest_state.conftest import make_request
 
 
@@ -87,3 +96,131 @@ async def test_persistence_conflict_is_mapped(
 
     with pytest.raises(HarvestStateDeliveryConflictError):
         await execute_harvest_state_run(sqlite_session, request=make_request())
+
+
+@pytest.mark.asyncio
+async def test_persistence_integrity_error_is_mapped(
+    sqlite_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _raise_integrity(*args: object, **kwargs: object) -> object:
+        raise HarvestStatePersistenceIntegrityError("broken")
+
+    monkeypatch.setattr(
+        "backend.app.harvest_state.application.save_harvest_state_output",
+        _raise_integrity,
+    )
+
+    with pytest.raises(HarvestStateDeliveryIntegrityError):
+        await execute_harvest_state_run(sqlite_session, request=make_request())
+
+
+@pytest.mark.asyncio
+async def test_result_hash_mismatch_is_mapped_to_integrity_error(
+    sqlite_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _raise_mismatch(*args: object, **kwargs: object) -> object:
+        raise HarvestStateResultHashMismatchError("mismatch")
+
+    monkeypatch.setattr(
+        "backend.app.harvest_state.application.save_harvest_state_output",
+        _raise_mismatch,
+    )
+
+    with pytest.raises(HarvestStateDeliveryIntegrityError):
+        await execute_harvest_state_run(sqlite_session, request=make_request())
+
+
+@pytest.mark.asyncio
+async def test_reload_missing_after_save_raises_integrity_error(
+    sqlite_session: AsyncSession,
+    completed_harvest_state_output: object,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _SavedRun:
+        id = 1
+        created_at = datetime(2026, 6, 26, 12, 0, tzinfo=UTC)
+
+    async def _save(*args: object, **kwargs: object) -> object:
+        return _SavedRun()
+
+    async def _load(*args: object, **kwargs: object) -> object:
+        return None
+
+    monkeypatch.setattr(
+        "backend.app.harvest_state.application.save_harvest_state_output",
+        _save,
+    )
+    monkeypatch.setattr(
+        "backend.app.harvest_state.application.load_harvest_state_output_by_id",
+        _load,
+    )
+
+    with pytest.raises(HarvestStateDeliveryIntegrityError):
+        await execute_harvest_state_run(sqlite_session, request=make_request())
+
+
+@pytest.mark.asyncio
+async def test_reload_payload_mismatch_raises_integrity_error(
+    sqlite_session: AsyncSession,
+    completed_harvest_state_output: object,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _SavedRun:
+        id = 1
+        created_at = datetime(2026, 6, 26, 12, 0, tzinfo=UTC)
+
+    async def _save(*args: object, **kwargs: object) -> object:
+        return _SavedRun()
+
+    async def _load(*args: object, **kwargs: object) -> object:
+        return completed_harvest_state_output.model_copy(update={"warnings": ["mismatch"]})
+
+    monkeypatch.setattr(
+        "backend.app.harvest_state.application.save_harvest_state_output",
+        _save,
+    )
+    monkeypatch.setattr(
+        "backend.app.harvest_state.application.load_harvest_state_output_by_id",
+        _load,
+    )
+
+    with pytest.raises(HarvestStateDeliveryIntegrityError):
+        await execute_harvest_state_run(sqlite_session, request=make_request())
+
+
+@pytest.mark.asyncio
+async def test_failed_save_does_not_return_envelope(
+    sqlite_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _raise_integrity(*args: object, **kwargs: object) -> object:
+        raise HarvestStatePersistenceIntegrityError("broken")
+
+    monkeypatch.setattr(
+        "backend.app.harvest_state.application.save_harvest_state_output",
+        _raise_integrity,
+    )
+
+    with pytest.raises(HarvestStateDeliveryIntegrityError):
+        await execute_harvest_state_run(sqlite_session, request=make_request())
+
+
+@pytest.mark.asyncio
+async def test_failed_save_leaves_no_partial_run(
+    sqlite_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _raise_integrity(*args: object, **kwargs: object) -> object:
+        raise HarvestStatePersistenceIntegrityError("broken")
+
+    monkeypatch.setattr(
+        "backend.app.harvest_state.application.save_harvest_state_output",
+        _raise_integrity,
+    )
+
+    with pytest.raises(HarvestStateDeliveryIntegrityError):
+        await execute_harvest_state_run(sqlite_session, request=make_request())
+
+    assert await sqlite_session.scalar(select(func.count()).select_from(HarvestStateRun)) == 0
