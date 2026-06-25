@@ -511,7 +511,31 @@ async def test_concurrent_same_payload_save_creates_one_run() -> None:
     assert first_id == second_id
 
     async with AsyncSessionMaker() as session:
+        run = await session.scalar(select(HarvestStateRun))
+        assert run is not None
         assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 1
+        assert (
+            await session.scalar(select(func.count()).select_from(HarvestStateDailyPoolRowModel))
+            == len(output.daily_pool_state_rows)
+        )
+        assert (
+            await session.scalar(
+                select(func.count()).select_from(HarvestStateDailyMemberRowModel)
+            )
+            == len(output.daily_member_state_rows)
+        )
+        assert (
+            await session.scalar(
+                select(func.count()).select_from(HarvestStateCohortTransitionRowModel)
+            )
+            == len(output.cohort_transition_rows)
+        )
+        assert (
+            await session.scalar(
+                select(func.count()).select_from(HarvestStateFutureArrivalRowModel)
+            )
+            == len(output.future_arrival_schedule)
+        )
 
 
 @pytest.mark.integration
@@ -522,11 +546,12 @@ async def test_concurrent_same_hash_different_payload_conflicts() -> None:
         mode="json"
     )
 
-    async def save_once() -> None:
+    async def save_once() -> int:
         async with AsyncSessionMaker() as session:
-            await save_harvest_state_output(session, output=output)
+            run = await save_harvest_state_output(session, output=output)
+            return run.id
 
-    async def insert_conflicting() -> None:
+    async def insert_conflicting() -> str:
         async with AsyncSessionMaker() as session:
             await session.execute(
                 text(
@@ -613,11 +638,67 @@ async def test_concurrent_same_hash_different_payload_conflicts() -> None:
                 },
             )
             await session.commit()
+            return "inserted"
 
-    results = await asyncio.gather(save_once(), insert_conflicting(), return_exceptions=True)
-    assert any(item is None for item in results)
+    service_result, raw_insert_result = await asyncio.gather(
+        save_once(),
+        insert_conflicting(),
+        return_exceptions=True,
+    )
+
+    success_count = sum(
+        not isinstance(item, BaseException)
+        for item in (service_result, raw_insert_result)
+    )
+    assert success_count == 1
+    if isinstance(service_result, BaseException):
+        assert isinstance(service_result, (IntegrityError, HarvestStateHashConflictError))
+    else:
+        assert isinstance(service_result, int)
+    if isinstance(raw_insert_result, BaseException):
+        assert isinstance(raw_insert_result, IntegrityError)
+    else:
+        assert raw_insert_result == "inserted"
 
     async with AsyncSessionMaker() as session:
+        persisted = await session.scalar(select(HarvestStateRun))
+        assert persisted is not None
         assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 1
-        with pytest.raises(HarvestStateHashConflictError):
-            await save_harvest_state_output(session, output=output)
+        pool_count = int(
+            await session.scalar(select(func.count()).select_from(HarvestStateDailyPoolRowModel))
+            or 0
+        )
+        member_count = int(
+            await session.scalar(
+                select(func.count()).select_from(HarvestStateDailyMemberRowModel)
+            )
+            or 0
+        )
+        cohort_count = int(
+            await session.scalar(
+                select(func.count()).select_from(HarvestStateCohortTransitionRowModel)
+            )
+            or 0
+        )
+        future_count = int(
+            await session.scalar(
+                select(func.count()).select_from(HarvestStateFutureArrivalRowModel)
+            )
+            or 0
+        )
+
+        if persisted.canonical_output == output.model_dump(mode="json"):
+            loaded = await save_harvest_state_output(session, output=output)
+            assert loaded.id == persisted.id
+            assert pool_count == len(output.daily_pool_state_rows)
+            assert member_count == len(output.daily_member_state_rows)
+            assert cohort_count == len(output.cohort_transition_rows)
+            assert future_count == len(output.future_arrival_schedule)
+        else:
+            assert persisted.canonical_output == conflicting_payload
+            with pytest.raises(HarvestStateHashConflictError):
+                await save_harvest_state_output(session, output=output)
+            assert pool_count == 0
+            assert member_count == 0
+            assert cohort_count == 0
+            assert future_count == 0
