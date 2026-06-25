@@ -106,7 +106,7 @@ class ParameterSourceRef(_BaseModel):
     source_system: str = Field(min_length=1)
     source_record_key: str = Field(min_length=1)
     source_version: str = Field(min_length=1)
-    source_row_hash: str = Field(min_length=1)
+    source_row_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     available_at: date
     as_of_date: date
 
@@ -121,26 +121,45 @@ class Task8PredictionSourceRef(_BaseModel):
     maturity_model_artifact_id: int
     maturity_model_artifact_hash: str = Field(min_length=1)
     maturity_forecast_run_id: int
-    forecast_run_status: Literal["completed", "running", "failed", "unavailable"]
-    artifact_run_id: int
-    forecast_model_run_id: int
-    forecast_artifact_id: int
+    maturity_forecast_source_signature: str = Field(min_length=1)
+    maturity_forecast_as_of_date: date
+    maturity_daily_prediction_id: int
+    prediction_date: date
+    forecast_quantile: ForecastQuantile
+    source_quantity_kg: NonNegativeBusinessDecimal
+    plan_id: int
+    location_reference_id: int
+    weather_mapping_id: int | None
+    base_temperature_search_run_id: int | None
+
+
+class Task8PredictionVerificationSnapshot(_BaseModel):
+    maturity_model_run_id: int
+    maturity_model_version: str = Field(min_length=1)
+    maturity_model_config_hash: str = Field(min_length=1)
+    maturity_model_source_signature: str = Field(min_length=1)
+    maturity_model_artifact_id: int
+    maturity_model_artifact_run_id: int
+    maturity_model_artifact_hash: str = Field(min_length=1)
+    maturity_forecast_run_id: int
+    maturity_forecast_run_status: Literal["completed", "running", "failed", "unavailable"]
+    maturity_forecast_model_run_id: int
+    maturity_forecast_artifact_id: int
     maturity_forecast_source_signature: str = Field(min_length=1)
     maturity_forecast_as_of_date: date
     maturity_forecast_prediction_start_date: date
     maturity_forecast_prediction_end_date: date
     maturity_daily_prediction_id: int
-    daily_prediction_forecast_run_id: int
+    maturity_daily_prediction_forecast_run_id: int
     prediction_date: date
-    forecast_quantile: ForecastQuantile
-    source_quantity_kg: NonNegativeBusinessDecimal
+    farm_id: int
+    subfarm_id: int | None
+    variety_id: int
+    plan_id: int
+    location_reference_id: int
     p50_kg: NonNegativeBusinessDecimal
     p80_kg: NonNegativeBusinessDecimal
     p90_kg: NonNegativeBusinessDecimal
-    plan_id: int
-    location_reference_id: int
-    weather_mapping_id: int | None
-    base_temperature_search_run_id: int | None
 
 
 class InitialInventorySourceRef(_BaseModel):
@@ -149,7 +168,7 @@ class InitialInventorySourceRef(_BaseModel):
     source_system: str = Field(min_length=1)
     source_record_key: str = Field(min_length=1)
     source_version: str = Field(min_length=1)
-    source_row_hash: str = Field(min_length=1)
+    source_row_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     available_at: date
     as_of_date: date
 
@@ -166,6 +185,7 @@ class Task8DailyPredictionInput(_BaseModel):
     subfarm_id: int | None
     variety_id: int
     source_ref: Task8PredictionSourceRef
+    verification_snapshot: Task8PredictionVerificationSnapshot
 
 
 class InitialInventoryCohortInput(_BaseModel):

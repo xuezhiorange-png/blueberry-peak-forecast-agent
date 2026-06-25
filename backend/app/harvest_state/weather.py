@@ -38,9 +38,8 @@ def validate_weather_rule_config(config: WeatherEfficiencyRuleConfig) -> list[st
             if overlaps:
                 blockers.append(f"{BlockerCode.WEATHER_RULE_BAND_OVERLAP}:{rule.feature_id}")
                 break
-            no_gap = (
-                nxt.lower_bound == current.upper_bound
-                and (current.upper_inclusive or nxt.lower_inclusive)
+            no_gap = nxt.lower_bound == current.upper_bound and (
+                current.upper_inclusive or nxt.lower_inclusive
             )
             if nxt.lower_bound > current.upper_bound or not no_gap:
                 blockers.append(f"{BlockerCode.WEATHER_RULE_BAND_GAP}:{rule.feature_id}")
@@ -60,11 +59,11 @@ def compute_weather_efficiency_ratio(
     rules_by_feature = {rule.feature_id: rule for rule in config.feature_rules}
     for feature_id in config.required_feature_ids:
         if feature_id not in feature_values:
-            raise ValueError(f"missing required weather feature: {feature_id}")
+            raise ValueError(f"{BlockerCode.MISSING_WEATHER_FEATURE}:{feature_id}")
         rule = rules_by_feature[feature_id]
         matches = [band for band in rule.bands if _band_matches(band, feature_values[feature_id])]
         if len(matches) != 1:
-            raise ValueError(f"weather feature band match ambiguity for {feature_id}")
+            raise ValueError(f"{BlockerCode.WEATHER_RULE_BAND_GAP}:{feature_id}")
         ratio *= matches[0].multiplier
     clamped = min(config.maximum_ratio, max(config.minimum_ratio, ratio))
     return quantize_ratio(clamped)

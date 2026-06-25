@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from backend.tests.harvest_state.conftest import make_request
+from backend.tests.harvest_state.conftest import make_request, sha256_hex
 
 
 def test_normal_flow_golden_preserves_mass_and_non_negative_inventory() -> None:
@@ -41,6 +41,12 @@ def test_spring_festival_golden_reduces_capacity_not_supply() -> None:
 
     payload = make_request()
     payload["holiday_dates"] = [date(2026, 3, 2)]
+    payload["holiday_calendar_hash"] = sha256_hex(
+        {
+            "holiday_calendar_version": payload["holiday_calendar_version"],
+            "holiday_dates": ["2026-03-02"],
+        }
+    )
     for capacity in payload["daily_capacity_inputs"]:
         if capacity["capacity_date"] == date(2026, 3, 2):
             capacity["labor_availability_ratio"] = Decimal("0")
