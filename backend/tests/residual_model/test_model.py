@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
+
+from backend.tests.residual_model.support import residual_model_config_path
 
 
 def test_quantile_estimators_use_correct_quantiles() -> None:
     from backend.app.residual_model.config import load_residual_model_config
     from backend.app.residual_model.model import train_quantile_estimators
 
-    config = load_residual_model_config(
-        Path("/Users/charles/Documents/智能agent开发/configs/residual_model.yaml")
-    )
+    config = load_residual_model_config(residual_model_config_path())
     features = np.array([[1.0], [2.0], [3.0], [4.0]])
     labels = np.array([1.0, 2.0, 3.0, 4.0])
     estimators = train_quantile_estimators(
@@ -33,9 +31,7 @@ def test_resolved_config_contains_all_estimator_parameters() -> None:
         train_quantile_estimators,
     )
 
-    config = load_residual_model_config(
-        Path("/Users/charles/Documents/智能agent开发/configs/residual_model.yaml")
-    )
+    config = load_residual_model_config(residual_model_config_path())
     features = np.array([[1.0], [2.0], [3.0], [4.0]])
     labels = np.array([1.0, 2.0, 3.0, 4.0])
     estimators = train_quantile_estimators(
@@ -48,6 +44,7 @@ def test_resolved_config_contains_all_estimator_parameters() -> None:
         config=config,
         training_signature="a" * 64,
         manifest_hash="b" * 64,
+        feature_schema_hash="c" * 64,
         category_encodings=[],
     )
     metadata = artifacts[0].metadata

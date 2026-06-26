@@ -17,6 +17,7 @@ from backend.app.residual_model.schemas import (
 )
 from backend.tests.residual_model.test_training_manifest import (
     _config,
+    _diverse_training_samples,
     _persist_task9_run,
     _seed_build_run,
     _seed_daily_fact,
@@ -89,16 +90,12 @@ async def test_execute_residual_prediction_persists_and_reloads(
 
     training_result, training_run_id = await execute_residual_training(
         sqlite_session,
-        samples=[
-            ResidualTrainingSampleSpec(
-                task9_run_id=task9_run_id,
-                label_analytics_build_run_id=label_build.id,
-                feature_analytics_build_run_id=feature_build.id,
-                split="train",
-                supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
-            )
-        ]
-        * 30,
+        samples=_diverse_training_samples(
+            task9_run_id=task9_run_id,
+            label_build_run_id=label_build.id,
+            feature_build_run_id=feature_build.id,
+            as_of_date=as_of_date,
+        ),
         config=_relaxed_config(),
     )
     assert training_result.eligibility_status == "eligible"

@@ -30,6 +30,7 @@ from backend.app.residual_model.schemas import (
 )
 from backend.tests.residual_model.test_training_manifest import (
     _config,
+    _diverse_training_samples,
     _persist_task9_run,
     _seed_build_run,
     _seed_daily_fact,
@@ -140,15 +141,12 @@ async def test_postgres_execute_residual_training_completed_eligible_round_trip(
         _factory_id,
     ) = await _seed_prediction_fixture()
 
-    samples = [
-        ResidualTrainingSampleSpec(
-            task9_run_id=task9_run_id,
-            label_analytics_build_run_id=label_build_run_id,
-            feature_analytics_build_run_id=feature_build_run_id,
-            split="train",
-            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
-        )
-    ] * 30
+    samples = _diverse_training_samples(
+        task9_run_id=task9_run_id,
+        label_build_run_id=label_build_run_id,
+        feature_build_run_id=feature_build_run_id,
+        as_of_date=date(2026, 2, 28),
+    )
 
     async with AsyncSessionMaker() as session:
         training_result, training_run_id = await execute_residual_training(
@@ -177,15 +175,12 @@ async def test_postgres_execute_residual_training_same_signature_is_idempotent()
     task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
         await _seed_prediction_fixture()
     )
-    samples = [
-        ResidualTrainingSampleSpec(
-            task9_run_id=task9_run_id,
-            label_analytics_build_run_id=label_build_run_id,
-            feature_analytics_build_run_id=feature_build_run_id,
-            split="train",
-            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
-        )
-    ] * 30
+    samples = _diverse_training_samples(
+        task9_run_id=task9_run_id,
+        label_build_run_id=label_build_run_id,
+        feature_build_run_id=feature_build_run_id,
+        as_of_date=date(2026, 2, 28),
+    )
 
     async with AsyncSessionMaker() as session:
         first_result, first_run_id = await execute_residual_training(
@@ -216,15 +211,12 @@ async def test_postgres_execute_residual_prediction_round_trip() -> None:
     task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
         await _seed_prediction_fixture()
     )
-    samples = [
-        ResidualTrainingSampleSpec(
-            task9_run_id=task9_run_id,
-            label_analytics_build_run_id=label_build_run_id,
-            feature_analytics_build_run_id=feature_build_run_id,
-            split="train",
-            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
-        )
-    ] * 30
+    samples = _diverse_training_samples(
+        task9_run_id=task9_run_id,
+        label_build_run_id=label_build_run_id,
+        feature_build_run_id=feature_build_run_id,
+        as_of_date=date(2026, 2, 28),
+    )
 
     async with AsyncSessionMaker() as session:
         training_result, training_run_id = await execute_residual_training(
@@ -309,15 +301,12 @@ async def test_postgres_artifact_hash_corruption_forces_structural_only_fallback
     task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
         await _seed_prediction_fixture()
     )
-    samples = [
-        ResidualTrainingSampleSpec(
-            task9_run_id=task9_run_id,
-            label_analytics_build_run_id=label_build_run_id,
-            feature_analytics_build_run_id=feature_build_run_id,
-            split="train",
-            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
-        )
-    ] * 30
+    samples = _diverse_training_samples(
+        task9_run_id=task9_run_id,
+        label_build_run_id=label_build_run_id,
+        feature_build_run_id=feature_build_run_id,
+        as_of_date=date(2026, 2, 28),
+    )
 
     async with AsyncSessionMaker() as session:
         _training_result, training_run_id = await execute_residual_training(

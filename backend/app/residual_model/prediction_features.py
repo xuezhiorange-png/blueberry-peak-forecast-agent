@@ -7,6 +7,7 @@ from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.analytics.peak_metrics import build_analysis_calendar
 from backend.app.harvest_state.persistence import load_harvest_state_output_by_id
 from backend.app.harvest_state.schemas import Task9ACompletedOutput
 from backend.app.models.analytics import AnalyticsBuildRun
@@ -18,20 +19,21 @@ from backend.app.residual_model.schemas import (
 )
 from backend.app.residual_model.structural import aggregate_structural_arrivals
 from backend.app.residual_model.training_manifest import (
+    _analysis_months,
     _as_of_cutoff,
     _as_of_date_from_task9_output,
     _load_completed_build_run,
     _load_fact_map,
-    _load_factory,
+    _load_factory_date_spans,
     _load_factory_ids_with_any_fact,
     _load_season,
-    _load_spring_festival_dates,
     _mean,
     _missing_feature_value,
     _receipt_value,
     _snapshot_from_build_run,
     _structural_cumulative_to_as_of,
     _supplemental_map,
+    _task9_holiday_snapshot,
 )
 from backend.app.residual_model.visibility import audit_feature_visibility
 
@@ -79,6 +81,9 @@ async def build_prediction_feature_rows(
     feature_season = None
     feature_fact_map: dict[tuple[int, date], Decimal] = {}
     feature_factory_ids: set[int] = set()
+    feature_factory_spans: dict[int, tuple[date, date]] = {}
+    holiday_calendar_version = "task9-missing-v1"
+    holiday_calendar_hash = "0" * 64
     spring_festival_dates: set[date] = set()
     if feature_analytics_build_run_id is not None:
         feature_build_run = await _load_completed_build_run(
@@ -91,10 +96,15 @@ async def build_prediction_feature_rows(
             session,
             build_run_id=feature_build_run.id,
         )
-        spring_festival_dates = await _load_spring_festival_dates(
+        feature_factory_spans = await _load_factory_date_spans(
             session,
-            season_id=feature_build_run.season_id,
+            build_run_id=feature_build_run.id,
         )
+    (
+        holiday_calendar_version,
+        holiday_calendar_hash,
+        spring_festival_dates,
+    ) = _task9_holiday_snapshot(output)
 
     feature_rows: list[tuple[FeatureValue, ...]] = []
     audits: list[FeatureVisibilityAudit] = []
@@ -104,7 +114,6 @@ async def build_prediction_feature_rows(
     for structural_row in structural_rows:
         destination_factory_id = cast(int, structural_row["destination_factory_id"])
         arrival_local_date = cast(date, structural_row["arrival_local_date"])
-        factory = await _load_factory(session, factory_id=destination_factory_id)
         structural_cumulative = _structural_cumulative_to_as_of(
             structural_rows=structural_rows,
             destination_factory_id=destination_factory_id,
@@ -120,58 +129,102 @@ async def build_prediction_feature_rows(
         realized_cumulative_residual: Decimal | None = None
         if feature_build_run is not None and feature_season is not None:
             actual_lag_1, reason_1 = _receipt_value(
+                build_run=feature_build_run,
                 season=feature_season,
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=1),
                 fact_map=feature_fact_map,
                 covered_factory_ids=feature_factory_ids,
+                factory_date_spans=feature_factory_spans,
             )
             actual_lag_3, reason_3 = _receipt_value(
+                build_run=feature_build_run,
                 season=feature_season,
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=3),
                 fact_map=feature_fact_map,
                 covered_factory_ids=feature_factory_ids,
+                factory_date_spans=feature_factory_spans,
             )
             actual_lag_7, reason_7 = _receipt_value(
+                build_run=feature_build_run,
                 season=feature_season,
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=7),
                 fact_map=feature_fact_map,
                 covered_factory_ids=feature_factory_ids,
+                factory_date_spans=feature_factory_spans,
             )
             if reason_1 or reason_3 or reason_7:
                 warnings.append(reason_1 or reason_3 or reason_7 or "unknown_feature_gap")
-            rolling_3d_values = [
-                _receipt_value(
+            rolling_3d_values = []
+            rolling_3d_missing = False
+            for offset in range(1, 4):
+                value, reason = _receipt_value(
+                    build_run=feature_build_run,
                     season=feature_season,
                     factory_id=destination_factory_id,
                     receipt_date=as_of_date - timedelta(days=offset),
                     fact_map=feature_fact_map,
                     covered_factory_ids=feature_factory_ids,
-                )[0]
-                or Decimal("0")
-                for offset in range(0, 3)
-            ]
-            rolling_7d_values = [
-                _receipt_value(
+                    factory_date_spans=feature_factory_spans,
+                )
+                if value is None:
+                    warnings.append(reason or "unknown_feature_gap")
+                    rolling_3d_missing = True
+                    break
+                rolling_3d_values.append(value)
+            rolling_7d_values = []
+            rolling_7d_missing = False
+            for offset in range(1, 8):
+                value, reason = _receipt_value(
+                    build_run=feature_build_run,
                     season=feature_season,
                     factory_id=destination_factory_id,
                     receipt_date=as_of_date - timedelta(days=offset),
                     fact_map=feature_fact_map,
                     covered_factory_ids=feature_factory_ids,
-                )[0]
-                or Decimal("0")
-                for offset in range(0, 7)
-            ]
-            rolling_3d_mean = _mean(rolling_3d_values)
-            rolling_7d_mean = _mean(rolling_7d_values)
-            actual_cumulative = sum(
-                weight
-                for (factory_id, receipt_date), weight in feature_fact_map.items()
-                if factory_id == destination_factory_id and receipt_date <= as_of_date
-            ) + Decimal("0")
-            realized_cumulative_residual = actual_cumulative - structural_cumulative
+                    factory_date_spans=feature_factory_spans,
+                )
+                if value is None:
+                    warnings.append(reason or "unknown_feature_gap")
+                    rolling_7d_missing = True
+                    break
+                rolling_7d_values.append(value)
+            rolling_3d_mean = None if rolling_3d_missing else _mean(rolling_3d_values)
+            rolling_7d_mean = None if rolling_7d_missing else _mean(rolling_7d_values)
+            cumulative_value = Decimal("0")
+            cumulative_missing = False
+            for receipt_date in build_analysis_calendar(
+                start_date=feature_season.start_date,
+                end_date=min(
+                    feature_season.end_date,
+                    _snapshot_from_build_run(feature_build_run).source_cutoff.date(),
+                ),
+                analysis_months=_analysis_months(feature_build_run),
+            ):
+                if receipt_date >= as_of_date:
+                    break
+                value, reason = _receipt_value(
+                    build_run=feature_build_run,
+                    season=feature_season,
+                    factory_id=destination_factory_id,
+                    receipt_date=receipt_date,
+                    fact_map=feature_fact_map,
+                    covered_factory_ids=feature_factory_ids,
+                    factory_date_spans=feature_factory_spans,
+                )
+                if value is None:
+                    warnings.append(reason or "unknown_feature_gap")
+                    cumulative_missing = True
+                    break
+                cumulative_value += value
+            actual_cumulative = None if cumulative_missing else cumulative_value
+            realized_cumulative_residual = (
+                None
+                if actual_cumulative is None
+                else actual_cumulative - structural_cumulative
+            )
 
         resolved_features: list[FeatureValue] = []
         for definition in registry:
@@ -391,21 +444,24 @@ async def build_prediction_feature_rows(
                         feature_name=definition.feature_name,
                         value=arrival_local_date in spring_festival_dates,
                         known_at=cutoff,
-                        source_ref={"task9_run_id": task9_run_id, "season_source": "feature_build"},
-                        source_version="holiday-calendar-v1",
+                        source_ref={
+                            "task9_run_id": task9_run_id,
+                            "task9_result_hash": output.result_hash,
+                            "holiday_calendar_hash": holiday_calendar_hash,
+                        },
+                        source_version=holiday_calendar_version,
                         source_available_at=cutoff,
                         observation_date=arrival_local_date,
                     )
                 )
             elif definition.feature_name == "destination_factory_category":
                 resolved_features.append(
-                    FeatureValue(
-                        feature_name=definition.feature_name,
-                        value=factory.region_name or factory.code or str(factory.id),
-                        known_at=cutoff,
-                        source_ref={"factory_id": factory.id},
-                        source_version="master-data-v1",
-                        source_available_at=cutoff,
+                    supplemental_features.get(
+                        definition.feature_name,
+                        _missing_feature_value(
+                            feature_name=definition.feature_name,
+                            as_of_date=as_of_date,
+                        ),
                     )
                 )
             else:

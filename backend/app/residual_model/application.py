@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.repositories.residual_model import get_residual_training_run
@@ -22,6 +24,8 @@ from backend.app.residual_model.persistence import (
 )
 from backend.app.residual_model.prediction_features import build_prediction_feature_rows
 from backend.app.residual_model.schemas import (
+    FeatureValue,
+    FeatureVisibilityAudit,
     ResidualPredictionExecutionResult,
     ResidualPredictionRequest,
     ResidualTrainingExecutionResult,
@@ -41,6 +45,41 @@ class ResidualTrainingApplicationIntegrityError(RuntimeError):
 
 class ResidualPredictionApplicationIntegrityError(RuntimeError):
     pass
+
+
+def _prediction_input_snapshot(
+    *,
+    request: ResidualPredictionRequest,
+    model_run: ResidualTrainingExecutionResult,
+    feature_snapshot: dict[str, Any] | None,
+    feature_audits: list[FeatureVisibilityAudit],
+    artifact_hashes: list[str],
+    feature_rows: list[tuple[FeatureValue, ...]],
+    fallback_reason: str | None,
+) -> dict[str, Any]:
+    return {
+        "model_run_id": request.model_run_id,
+        "training_signature": model_run.training_signature,
+        "task9_run_id": request.task9_run_id,
+        "task9_result_hash": None,
+        "feature_analytics_build_run_id": request.feature_analytics_build_run_id,
+        "feature_actual_snapshot": feature_snapshot,
+        "supplemental_feature_values": [
+            value.model_dump(mode="json") for value in request.supplemental_feature_values
+        ],
+        "feature_audit_hashes": [audit.audit_hash for audit in feature_audits],
+        "feature_rows": [
+            [item.model_dump(mode="json") for item in row] for row in feature_rows
+        ],
+        "feature_schema_version": model_run.feature_schema_version,
+        "config_hash": model_run.config_hash,
+        "artifact_hashes": artifact_hashes,
+        "projection_version": model_run.input_snapshot["config_snapshot"]["projection"]["version"],
+        "fallback_policy": model_run.input_snapshot["config_snapshot"]["categorical_encoding"][
+            "unknown_policy"
+        ],
+        "fallback_reason": fallback_reason,
+    }
 
 
 async def execute_residual_training(
@@ -93,7 +132,7 @@ async def execute_residual_prediction(
         feature_audits,
         warnings,
         blockers,
-        _feature_snapshot,
+        feature_snapshot,
     ) = await build_prediction_feature_rows(
         session,
         task9_run_id=request.task9_run_id,
@@ -123,42 +162,54 @@ async def execute_residual_prediction(
             ),
         )
     else:
-        artifacts = await load_residual_training_artifacts(session, run_id=training_run_row.id)
-        artifact_hashes = [item.metadata.binary_sha256 for item in artifacts]
-        if len(artifacts) != 3:
-            result = structural_only_prediction(
-                model_run_id=training_run_row.id,
-                task9_run_id=request.task9_run_id,
-                task9_result_hash=task9_output.result_hash,
-                config_hash=training_run_row.config_hash,
-                structural_rows=structural_rows,
-                fallback_reason="artifact_count_mismatch",
-            )
-        else:
-            try:
+        try:
+            artifacts = await load_residual_training_artifacts(session, run_id=training_run_row.id)
+            artifact_hashes = [item.metadata.binary_sha256 for item in artifacts]
+            if len(artifacts) != 3:
+                result = structural_only_prediction(
+                    model_run_id=training_run_row.id,
+                    task9_run_id=request.task9_run_id,
+                    task9_result_hash=task9_output.result_hash,
+                    config_hash=training_run_row.config_hash,
+                    structural_rows=structural_rows,
+                    fallback_reason="artifact_count_mismatch",
+                )
+            else:
                 estimators = TrainedResidualEstimators(
                     p50=load_trusted_quantile_estimator(
                         artifact=next(item for item in artifacts if item.quantile_label == "P50"),
                         expected_model_family=training_run_row.model_family,
+                        expected_model_version=training_run_row.model_version,
                         expected_artifact_schema_version=training_run_row.artifact_schema_version,
                         expected_feature_schema_version=training_run_row.feature_schema_version,
+                        expected_feature_schema_hash=training_run_row.feature_schema_hash,
                         expected_config_hash=training_run_row.config_hash,
+                        expected_training_signature=model_run.training_signature,
+                        expected_manifest_hash=model_run.manifest_hash,
                         expected_quantile_label="P50",
                     ),
                     p80=load_trusted_quantile_estimator(
                         artifact=next(item for item in artifacts if item.quantile_label == "P80"),
                         expected_model_family=training_run_row.model_family,
+                        expected_model_version=training_run_row.model_version,
                         expected_artifact_schema_version=training_run_row.artifact_schema_version,
                         expected_feature_schema_version=training_run_row.feature_schema_version,
+                        expected_feature_schema_hash=training_run_row.feature_schema_hash,
                         expected_config_hash=training_run_row.config_hash,
+                        expected_training_signature=model_run.training_signature,
+                        expected_manifest_hash=model_run.manifest_hash,
                         expected_quantile_label="P80",
                     ),
                     p90=load_trusted_quantile_estimator(
                         artifact=next(item for item in artifacts if item.quantile_label == "P90"),
                         expected_model_family=training_run_row.model_family,
+                        expected_model_version=training_run_row.model_version,
                         expected_artifact_schema_version=training_run_row.artifact_schema_version,
                         expected_feature_schema_version=training_run_row.feature_schema_version,
+                        expected_feature_schema_hash=training_run_row.feature_schema_hash,
                         expected_config_hash=training_run_row.config_hash,
+                        expected_training_signature=model_run.training_signature,
+                        expected_manifest_hash=model_run.manifest_hash,
                         expected_quantile_label="P90",
                     ),
                 )
@@ -176,15 +227,15 @@ async def execute_residual_prediction(
                     feature_audits=feature_audits,
                     estimators=estimators,
                 )
-            except ResidualArtifactValidationError:
-                result = structural_only_prediction(
-                    model_run_id=training_run_row.id,
-                    task9_run_id=request.task9_run_id,
-                    task9_result_hash=task9_output.result_hash,
-                    config_hash=training_run_row.config_hash,
-                    structural_rows=structural_rows,
-                    fallback_reason="artifact_validation_failed",
-                )
+        except (ResidualArtifactValidationError, ResidualModelPersistenceIntegrityError):
+            result = structural_only_prediction(
+                model_run_id=training_run_row.id,
+                task9_run_id=request.task9_run_id,
+                task9_result_hash=task9_output.result_hash,
+                config_hash=training_run_row.config_hash,
+                structural_rows=structural_rows,
+                fallback_reason="artifact_validation_failed",
+            )
 
     if warnings or blockers:
         result = result.model_copy(
@@ -193,6 +244,25 @@ async def execute_residual_prediction(
                 "blockers": tuple(sorted(set(result.blockers) | set(blockers))),
             }
         )
+    result = result.model_copy(
+        update={
+            "task9_result_hash": task9_output.result_hash,
+            "input_snapshot": _prediction_input_snapshot(
+                request=request,
+                model_run=model_run,
+                feature_snapshot=(
+                    feature_snapshot.model_dump(mode="json")
+                    if feature_snapshot is not None
+                    else None
+                ),
+                feature_audits=feature_audits,
+                artifact_hashes=artifact_hashes,
+                feature_rows=feature_rows,
+                fallback_reason=result.fallback_reason,
+            )
+            | {"task9_result_hash": task9_output.result_hash},
+        }
+    )
 
     run = await save_residual_prediction_run(
         session,

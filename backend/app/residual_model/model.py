@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import platform
 from dataclasses import dataclass
@@ -11,7 +12,7 @@ import numpy as np
 import sklearn
 from sklearn.ensemble import HistGradientBoostingRegressor
 
-from backend.app.residual_model.canonical import canonical_payload_hash, sha256_hex
+from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.config import ResidualModelConfig
 from backend.app.residual_model.schemas import (
     CategoryEncoding,
@@ -87,15 +88,34 @@ def build_artifact_metadata(
     config: ResidualModelConfig,
     training_signature: str,
     manifest_hash: str,
+    feature_schema_hash: str,
+    estimator: HistGradientBoostingRegressor,
     artifact_bytes: bytes,
     category_encodings: list[CategoryEncoding],
 ) -> ResidualArtifactMetadata:
-    binary_sha256 = sha256_hex(artifact_bytes.hex())
+    binary_sha256 = hashlib.sha256(artifact_bytes).hexdigest()
+    estimator_parameters: dict[str, Any] = {
+        "loss": estimator.loss,
+        "quantile": estimator.quantile,
+        "learning_rate": estimator.learning_rate,
+        "max_iter": estimator.max_iter,
+        "max_leaf_nodes": estimator.max_leaf_nodes,
+        "max_depth": estimator.max_depth,
+        "min_samples_leaf": estimator.min_samples_leaf,
+        "l2_regularization": estimator.l2_regularization,
+        "early_stopping": estimator.early_stopping,
+        "validation_fraction": estimator.validation_fraction,
+        "n_iter_no_change": estimator.n_iter_no_change,
+        "tol": estimator.tol,
+        "random_state": estimator.random_state,
+    }
     metadata_payload: dict[str, Any] = {
+        "quantile_label": quantile_label,
         "artifact_schema_version": config.rules.artifact_schema_version,
         "model_family": config.rules.model_family,
         "model_version": config.rules.model_version,
         "feature_schema_version": config.rules.feature_schema_version,
+        "feature_schema_hash": feature_schema_hash,
         "category_encoding_version": config.rules.categorical_encoding_version,
         "projection_version": config.rules.projection_version,
         "config_hash": config.config_hash,
@@ -108,12 +128,12 @@ def build_artifact_metadata(
         "created_by_service_version": config.rules.model_version,
         "binary_format": "joblib_bundle",
         "binary_sha256": binary_sha256,
+        "estimator_parameters": estimator_parameters,
         "category_encodings": [item.model_dump(mode="json") for item in category_encodings],
     }
     metadata_sha256 = canonical_payload_hash(metadata_payload)
     return ResidualArtifactMetadata(
         **metadata_payload,
-        quantile_label=quantile_label,
         metadata_sha256=metadata_sha256,
     )
 
@@ -124,6 +144,7 @@ def serialize_quantile_artifacts(
     config: ResidualModelConfig,
     training_signature: str,
     manifest_hash: str,
+    feature_schema_hash: str,
     category_encodings: list[CategoryEncoding],
 ) -> tuple[PersistableResidualArtifact, ...]:
     artifacts: list[PersistableResidualArtifact] = []
@@ -142,6 +163,8 @@ def serialize_quantile_artifacts(
                     config=config,
                     training_signature=training_signature,
                     manifest_hash=manifest_hash,
+                    feature_schema_hash=feature_schema_hash,
+                    estimator=estimator,
                     artifact_bytes=artifact_bytes,
                     category_encodings=category_encodings,
                 ),
