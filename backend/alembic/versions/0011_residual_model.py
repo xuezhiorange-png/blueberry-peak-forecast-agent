@@ -1,0 +1,494 @@
+"""Persist Task 10 leakage-safe residual correction models and predictions.
+
+Revision ID: 0011_residual_model
+Revises: 0010_harvest_state_persistence
+Create Date: 2026-06-26
+"""
+
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.dialects import postgresql
+
+revision: str = "0011_residual_model"
+down_revision: str | None = "0010_harvest_state_persistence"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+
+def _sha256_check_sql(column_name: str) -> str:
+    stripped = column_name
+    for char in "0123456789abcdef":
+        stripped = f"replace({stripped}, '{char}', '')"
+    return (
+        f"length({column_name}) = 64 "
+        f"and lower({column_name}) = {column_name} "
+        f"and {stripped} = ''"
+    )
+
+
+def upgrade() -> None:
+    op.create_table(
+        "residual_model_training_run",
+        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("execution_status", sa.Text(), nullable=False),
+        sa.Column("eligibility_status", sa.Text(), nullable=False),
+        sa.Column("model_family", sa.Text(), nullable=False),
+        sa.Column("model_version", sa.Text(), nullable=False),
+        sa.Column("feature_schema_version", sa.Text(), nullable=False),
+        sa.Column("feature_schema_hash", sa.Text(), nullable=False),
+        sa.Column("artifact_schema_version", sa.Text(), nullable=False),
+        sa.Column("training_signature", sa.Text(), nullable=False),
+        sa.Column("config_hash", sa.Text(), nullable=False),
+        sa.Column("config_snapshot", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("manifest_hash", sa.Text(), nullable=False),
+        sa.Column("manifest_snapshot", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("feature_audit_summary", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column(
+            "category_encoding_snapshot",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+        ),
+        sa.Column("training_metrics", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("validation_metrics", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("eligibility_reasons", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("warnings", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("blockers", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("fallback_reason", sa.Text(), nullable=True),
+        sa.Column("input_snapshot", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("canonical_output", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("canonical_payload_hash", sa.Text(), nullable=False),
+        sa.Column("sample_count", sa.BigInteger(), nullable=False, server_default="0"),
+        sa.Column("distinct_season_count", sa.BigInteger(), nullable=False, server_default="0"),
+        sa.Column("distinct_factory_count", sa.BigInteger(), nullable=False, server_default="0"),
+        sa.Column("manifest_row_count", sa.BigInteger(), nullable=False, server_default="0"),
+        sa.Column("expected_artifact_count", sa.BigInteger(), nullable=False, server_default="0"),
+        sa.Column("python_version", sa.Text(), nullable=False),
+        sa.Column("numpy_version", sa.Text(), nullable=False),
+        sa.Column("sklearn_version", sa.Text(), nullable=False),
+        sa.Column(
+            "started_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column("error_message", sa.Text(), nullable=True),
+        sa.CheckConstraint(
+            "execution_status in ('running', 'completed', 'blocked', 'failed')",
+            name="ck_residual_model_training_run_execution_status",
+        ),
+        sa.CheckConstraint(
+            "eligibility_status in ('not_evaluated', 'eligible', 'ineligible')",
+            name="ck_residual_model_training_run_eligibility_status",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("training_signature"),
+            name="ck_residual_model_training_run_signature",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("config_hash"),
+            name="ck_residual_model_training_run_config_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("manifest_hash"),
+            name="ck_residual_model_training_run_manifest_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("feature_schema_hash"),
+            name="ck_residual_model_training_run_feature_schema_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("canonical_payload_hash"),
+            name="ck_residual_model_training_run_payload_hash",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "training_signature",
+            name="uq_residual_model_training_run_signature",
+        ),
+    )
+    op.create_index(
+        "ix_residual_model_training_run_execution_status",
+        "residual_model_training_run",
+        ["execution_status"],
+    )
+    op.create_index(
+        "ix_residual_model_training_run_eligibility_status",
+        "residual_model_training_run",
+        ["eligibility_status"],
+    )
+
+    op.create_table(
+        "residual_model_manifest_row",
+        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("training_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("row_index", sa.BigInteger(), nullable=False),
+        sa.Column("split", sa.Text(), nullable=False),
+        sa.Column("include", sa.Boolean(), nullable=False),
+        sa.Column("season_id", sa.BigInteger(), nullable=False),
+        sa.Column("destination_factory_id", sa.BigInteger(), nullable=False),
+        sa.Column("task9_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("task9_result_hash", sa.Text(), nullable=False),
+        sa.Column("as_of_date", sa.Date(), nullable=False),
+        sa.Column("target_arrival_local_date", sa.Date(), nullable=False),
+        sa.Column("forecast_horizon_days", sa.BigInteger(), nullable=False),
+        sa.Column("label_analytics_build_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("label_actual_source_max_raw_id", sa.BigInteger(), nullable=False),
+        sa.Column("label_actual_aggregation_version", sa.Text(), nullable=False),
+        sa.Column("label_actual_config_hash", sa.Text(), nullable=False),
+        sa.Column("label_actual_source_cutoff", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("feature_analytics_build_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("feature_actual_source_max_raw_id", sa.BigInteger(), nullable=False),
+        sa.Column("feature_actual_aggregation_version", sa.Text(), nullable=False),
+        sa.Column("feature_actual_config_hash", sa.Text(), nullable=False),
+        sa.Column("feature_actual_source_cutoff", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("observed_effective_receipt_kg", sa.Numeric(18, 6), nullable=False),
+        sa.Column("structural_p50_kg", sa.Numeric(18, 6), nullable=False),
+        sa.Column("structural_p80_kg", sa.Numeric(18, 6), nullable=False),
+        sa.Column("structural_p90_kg", sa.Numeric(18, 6), nullable=False),
+        sa.Column("residual_label_kg", sa.Numeric(18, 6), nullable=False),
+        sa.Column("sample_weight", sa.Numeric(18, 6), nullable=False),
+        sa.Column("feature_vector_hash", sa.Text(), nullable=False),
+        sa.Column("feature_visibility_audit_hash", sa.Text(), nullable=False),
+        sa.Column("exclusion_reason", sa.Text(), nullable=True),
+        sa.Column("source_refs", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("row_payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.CheckConstraint(
+            "split in ('train', 'validation', 'test')",
+            name="ck_residual_model_manifest_row_split",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("task9_result_hash"),
+            name="ck_residual_model_manifest_row_task9_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("feature_vector_hash"),
+            name="ck_residual_model_manifest_row_vector_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("feature_visibility_audit_hash"),
+            name="ck_residual_model_manifest_row_audit_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("label_actual_config_hash"),
+            name="ck_residual_model_manifest_row_label_config_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("feature_actual_config_hash"),
+            name="ck_residual_model_manifest_row_feature_config_hash",
+        ),
+        sa.ForeignKeyConstraint(
+            ["training_run_id"],
+            ["residual_model_training_run.id"],
+            name="fk_residual_model_manifest_row_training_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "training_run_id",
+            "row_index",
+            name="uq_residual_model_manifest_row_run_index",
+        ),
+    )
+    op.create_index(
+        "ix_residual_model_manifest_row_run_id",
+        "residual_model_manifest_row",
+        ["training_run_id"],
+    )
+
+    op.create_table(
+        "residual_model_artifact",
+        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("training_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("quantile_label", sa.Text(), nullable=False),
+        sa.Column("artifact_format", sa.Text(), nullable=False),
+        sa.Column("artifact_schema_version", sa.Text(), nullable=False),
+        sa.Column("estimator_type", sa.Text(), nullable=False),
+        sa.Column("loss_name", sa.Text(), nullable=False),
+        sa.Column("quantile_value", sa.Numeric(6, 4), nullable=False),
+        sa.Column("artifact_bytes", sa.LargeBinary(), nullable=False),
+        sa.Column("artifact_sha256", sa.Text(), nullable=False),
+        sa.Column("feature_schema_version", sa.Text(), nullable=False),
+        sa.Column("feature_schema_hash", sa.Text(), nullable=False),
+        sa.Column("config_hash", sa.Text(), nullable=False),
+        sa.Column("trusted_internal_source", sa.Boolean(), nullable=False, server_default="true"),
+        sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("python_version", sa.Text(), nullable=False),
+        sa.Column("numpy_version", sa.Text(), nullable=False),
+        sa.Column("sklearn_version", sa.Text(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.CheckConstraint(
+            "quantile_label in ('P50', 'P80', 'P90')",
+            name="ck_residual_model_artifact_quantile_label",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("artifact_sha256"),
+            name="ck_residual_model_artifact_sha256",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("feature_schema_hash"),
+            name="ck_residual_model_artifact_feature_schema_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("config_hash"),
+            name="ck_residual_model_artifact_config_hash",
+        ),
+        sa.ForeignKeyConstraint(
+            ["training_run_id"],
+            ["residual_model_training_run.id"],
+            name="fk_residual_model_artifact_training_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "training_run_id",
+            "quantile_label",
+            name="uq_residual_model_artifact_run_quantile",
+        ),
+        sa.UniqueConstraint("artifact_sha256", name="uq_residual_model_artifact_sha256"),
+    )
+    op.create_index(
+        "ix_residual_model_artifact_training_run_id",
+        "residual_model_artifact",
+        ["training_run_id"],
+    )
+
+    op.create_table(
+        "residual_model_metric",
+        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("training_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("metric_scope", sa.Text(), nullable=False),
+        sa.Column("scope_key", sa.Text(), nullable=False),
+        sa.Column("metric_name", sa.Text(), nullable=False),
+        sa.Column("metric_payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["training_run_id"],
+            ["residual_model_training_run.id"],
+            name="fk_residual_model_metric_training_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "training_run_id",
+            "metric_scope",
+            "scope_key",
+            "metric_name",
+            name="uq_residual_model_metric_scope_name",
+        ),
+    )
+    op.create_index(
+        "ix_residual_model_metric_training_run_id",
+        "residual_model_metric",
+        ["training_run_id"],
+    )
+
+    op.create_table(
+        "residual_model_prediction_run",
+        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("training_run_id", sa.BigInteger(), nullable=True),
+        sa.Column("task9_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("task9_result_hash", sa.Text(), nullable=False),
+        sa.Column("execution_status", sa.Text(), nullable=False),
+        sa.Column("mode", sa.Text(), nullable=False),
+        sa.Column("config_hash", sa.Text(), nullable=False),
+        sa.Column("feature_schema_version", sa.Text(), nullable=False),
+        sa.Column("feature_schema_hash", sa.Text(), nullable=False),
+        sa.Column("artifact_hashes", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("input_hash", sa.Text(), nullable=False),
+        sa.Column("prediction_hash", sa.Text(), nullable=False),
+        sa.Column("feature_audit", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("warnings", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("blockers", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("fallback_reason", sa.Text(), nullable=True),
+        sa.Column(
+            "expected_prediction_row_count",
+            sa.BigInteger(),
+            nullable=False,
+            server_default="0",
+        ),
+        sa.Column("input_snapshot", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("canonical_output", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("canonical_payload_hash", sa.Text(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("error_message", sa.Text(), nullable=True),
+        sa.CheckConstraint(
+            "execution_status in ('completed', 'blocked', 'failed')",
+            name="ck_residual_model_prediction_run_execution_status",
+        ),
+        sa.CheckConstraint(
+            "mode in ('residual_corrected', 'structural_only', 'blocked')",
+            name="ck_residual_model_prediction_run_mode",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("task9_result_hash"),
+            name="ck_residual_model_prediction_run_task9_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("config_hash"),
+            name="ck_residual_model_prediction_run_config_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("feature_schema_hash"),
+            name="ck_residual_model_prediction_run_feature_schema_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("input_hash"),
+            name="ck_residual_model_prediction_run_input_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("prediction_hash"),
+            name="ck_residual_model_prediction_run_prediction_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("canonical_payload_hash"),
+            name="ck_residual_model_prediction_run_payload_hash",
+        ),
+        sa.ForeignKeyConstraint(
+            ["training_run_id"],
+            ["residual_model_training_run.id"],
+            name="fk_residual_model_prediction_run_training_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("input_hash", name="uq_residual_model_prediction_run_input_hash"),
+    )
+    op.create_index(
+        "ix_residual_model_prediction_run_execution_status",
+        "residual_model_prediction_run",
+        ["execution_status"],
+    )
+    op.create_index(
+        "ix_residual_model_prediction_run_task9_run_id",
+        "residual_model_prediction_run",
+        ["task9_run_id"],
+    )
+
+    op.create_table(
+        "residual_model_prediction_row",
+        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("prediction_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("model_run_id", sa.BigInteger(), nullable=True),
+        sa.Column("task9_run_id", sa.BigInteger(), nullable=False),
+        sa.Column("task9_result_hash", sa.Text(), nullable=False),
+        sa.Column("destination_factory_id", sa.BigInteger(), nullable=False),
+        sa.Column("arrival_local_date", sa.Date(), nullable=False),
+        sa.Column("forecast_horizon_days", sa.BigInteger(), nullable=False),
+        sa.Column("structural_p50_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("structural_p80_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("structural_p90_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("raw_residual_p50_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("raw_residual_p80_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("raw_residual_p90_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("corrected_raw_p50_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("corrected_raw_p80_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("corrected_raw_p90_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("corrected_p50_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("corrected_p80_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("corrected_p90_kg", sa.Numeric(18, 3), nullable=False),
+        sa.Column("nonnegative_projection_applied", sa.Boolean(), nullable=False),
+        sa.Column("quantile_projection_applied", sa.Boolean(), nullable=False),
+        sa.Column("projection_reasons", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("feature_vector_hash", sa.Text(), nullable=False),
+        sa.Column("feature_audit_hash", sa.Text(), nullable=False),
+        sa.Column("prediction_row_hash", sa.Text(), nullable=False),
+        sa.Column("mode", sa.Text(), nullable=False),
+        sa.CheckConstraint(
+            _sha256_check_sql("task9_result_hash"),
+            name="ck_residual_model_prediction_row_task9_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("feature_vector_hash"),
+            name="ck_residual_model_prediction_row_vector_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("feature_audit_hash"),
+            name="ck_residual_model_prediction_row_audit_hash",
+        ),
+        sa.CheckConstraint(
+            _sha256_check_sql("prediction_row_hash"),
+            name="ck_residual_model_prediction_row_hash",
+        ),
+        sa.CheckConstraint(
+            "corrected_p50_kg >= 0 and corrected_p80_kg >= 0 and corrected_p90_kg >= 0",
+            name="ck_residual_model_prediction_row_nonnegative",
+        ),
+        sa.CheckConstraint(
+            "corrected_p50_kg <= corrected_p80_kg and corrected_p80_kg <= corrected_p90_kg",
+            name="ck_residual_model_prediction_row_monotonic",
+        ),
+        sa.ForeignKeyConstraint(
+            ["prediction_run_id"],
+            ["residual_model_prediction_run.id"],
+            name="fk_residual_model_prediction_row_prediction_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "prediction_run_id",
+            "destination_factory_id",
+            "arrival_local_date",
+            name="uq_residual_model_prediction_row_run_factory_date",
+        ),
+    )
+    op.create_index(
+        "ix_residual_model_prediction_row_prediction_run_id",
+        "residual_model_prediction_row",
+        ["prediction_run_id"],
+    )
+
+
+def downgrade() -> None:
+    op.drop_index(
+        "ix_residual_model_prediction_row_prediction_run_id",
+        table_name="residual_model_prediction_row",
+    )
+    op.drop_table("residual_model_prediction_row")
+    op.drop_index(
+        "ix_residual_model_prediction_run_task9_run_id",
+        table_name="residual_model_prediction_run",
+    )
+    op.drop_index(
+        "ix_residual_model_prediction_run_execution_status",
+        table_name="residual_model_prediction_run",
+    )
+    op.drop_table("residual_model_prediction_run")
+    op.drop_index("ix_residual_model_metric_training_run_id", table_name="residual_model_metric")
+    op.drop_table("residual_model_metric")
+    op.drop_index(
+        "ix_residual_model_artifact_training_run_id",
+        table_name="residual_model_artifact",
+    )
+    op.drop_table("residual_model_artifact")
+    op.drop_index(
+        "ix_residual_model_manifest_row_run_id",
+        table_name="residual_model_manifest_row",
+    )
+    op.drop_table("residual_model_manifest_row")
+    op.drop_index(
+        "ix_residual_model_training_run_eligibility_status",
+        table_name="residual_model_training_run",
+    )
+    op.drop_index(
+        "ix_residual_model_training_run_execution_status",
+        table_name="residual_model_training_run",
+    )
+    op.drop_table("residual_model_training_run")

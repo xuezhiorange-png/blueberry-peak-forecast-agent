@@ -86,7 +86,7 @@ jobs:
           POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           alembic -c backend/alembic.ini upgrade head
-          alembic -c backend/alembic.ini downgrade 0009_natural_maturity_curve
+          alembic -c backend/alembic.ini downgrade 0010_harvest_state_persistence
           alembic -c backend/alembic.ini upgrade head
 
       - name: Ruff

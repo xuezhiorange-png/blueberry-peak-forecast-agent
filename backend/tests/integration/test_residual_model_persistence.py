@@ -1,0 +1,358 @@
+from __future__ import annotations
+
+import os
+from dataclasses import replace
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+
+import pytest
+from sqlalchemy import func, select, text
+
+from backend.app.db.session import AsyncSessionMaker
+from backend.app.models.residual_model import (
+    ResidualModelArtifact,
+    ResidualModelManifestRow,
+    ResidualModelPredictionRow,
+    ResidualModelPredictionRun,
+    ResidualModelTrainingRun,
+)
+from backend.app.residual_model.application import (
+    execute_residual_prediction,
+    execute_residual_training,
+)
+from backend.app.residual_model.persistence import (
+    load_residual_prediction_run_by_id,
+    load_residual_training_run_by_id,
+)
+from backend.app.residual_model.schemas import (
+    ResidualPredictionRequest,
+    ResidualTrainingSampleSpec,
+)
+from backend.tests.residual_model.test_training_manifest import (
+    _config,
+    _persist_task9_run,
+    _seed_build_run,
+    _seed_daily_fact,
+    _seed_master_data,
+    _snapshot_as_of_date,
+    _supplemental_features,
+)
+
+pytestmark = pytest.mark.integration
+
+
+def _require_postgres() -> None:
+    if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
+        pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
+
+
+def _relaxed_config():
+    config = _config()
+    eligibility = replace(
+        config.rules.eligibility,
+        min_training_rows=1,
+        min_seasons=1,
+        min_factories=1,
+    )
+    rules = replace(config.rules, eligibility=eligibility)
+    return replace(config, rules=rules)
+
+
+async def _seed_prediction_fixture() -> tuple[int, int, int, int, int]:
+    async with AsyncSessionMaker() as session:
+        season_id, factory_id, variety_id = await _seed_master_data(session)
+        task9_run_id, output = await _persist_task9_run(session)
+        as_of_date = _snapshot_as_of_date(output)
+        label_build = await _seed_build_run(
+            session,
+            build_run_id=1,
+            season_id=season_id,
+            source_max_raw_id=100,
+            config_hash="a" * 64,
+            finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        )
+        feature_build = await _seed_build_run(
+            session,
+            build_run_id=2,
+            season_id=season_id,
+            source_max_raw_id=50,
+            config_hash="b" * 64,
+            finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+        )
+        for index, target_date in enumerate(
+            (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
+        ):
+            await _seed_daily_fact(
+                session,
+                fact_id=100 + index,
+                build_run_id=label_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=target_date,
+                weight_kg=Decimal("100") + Decimal(index),
+            )
+        for offset, weight in ((1, Decimal("11")), (3, Decimal("13")), (7, Decimal("17"))):
+            await _seed_daily_fact(
+                session,
+                fact_id=200 + offset,
+                build_run_id=feature_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=as_of_date - timedelta(days=offset),
+                weight_kg=weight,
+            )
+        await session.commit()
+        return (
+            task9_run_id,
+            label_build.id,
+            feature_build.id,
+            season_id,
+            factory_id,
+        )
+
+
+@pytest.mark.integration
+async def test_residual_model_tables_exist_after_migration_upgrade() -> None:
+    _require_postgres()
+    async with AsyncSessionMaker() as session:
+        for table_name in (
+            "residual_model_training_run",
+            "residual_model_manifest_row",
+            "residual_model_artifact",
+            "residual_model_metric",
+            "residual_model_prediction_run",
+            "residual_model_prediction_row",
+        ):
+            exists = await session.scalar(select(func.to_regclass(table_name)))
+            assert exists == table_name
+
+
+@pytest.mark.integration
+async def test_postgres_execute_residual_training_completed_eligible_round_trip() -> None:
+    _require_postgres()
+    (
+        task9_run_id,
+        label_build_run_id,
+        feature_build_run_id,
+        _season_id,
+        _factory_id,
+    ) = await _seed_prediction_fixture()
+
+    samples = [
+        ResidualTrainingSampleSpec(
+            task9_run_id=task9_run_id,
+            label_analytics_build_run_id=label_build_run_id,
+            feature_analytics_build_run_id=feature_build_run_id,
+            split="train",
+            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
+        )
+    ] * 30
+
+    async with AsyncSessionMaker() as session:
+        training_result, training_run_id = await execute_residual_training(
+            session,
+            samples=samples,
+            config=_relaxed_config(),
+        )
+        loaded = await load_residual_training_run_by_id(session, run_id=training_run_id)
+
+        assert training_result.execution_status == "completed"
+        assert training_result.eligibility_status == "eligible"
+        assert loaded is not None
+        assert loaded.model_dump(mode="json") == training_result.model_dump(mode="json")
+        assert (
+            await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
+        )
+        assert (
+            await session.scalar(select(func.count()).select_from(ResidualModelManifestRow)) == 30
+        )
+        assert await session.scalar(select(func.count()).select_from(ResidualModelArtifact)) == 3
+
+
+@pytest.mark.integration
+async def test_postgres_execute_residual_training_same_signature_is_idempotent() -> None:
+    _require_postgres()
+    task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
+        await _seed_prediction_fixture()
+    )
+    samples = [
+        ResidualTrainingSampleSpec(
+            task9_run_id=task9_run_id,
+            label_analytics_build_run_id=label_build_run_id,
+            feature_analytics_build_run_id=feature_build_run_id,
+            split="train",
+            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
+        )
+    ] * 30
+
+    async with AsyncSessionMaker() as session:
+        first_result, first_run_id = await execute_residual_training(
+            session,
+            samples=samples,
+            config=_relaxed_config(),
+        )
+        second_result, second_run_id = await execute_residual_training(
+            session,
+            samples=samples,
+            config=_relaxed_config(),
+        )
+
+        assert first_run_id == second_run_id
+        assert first_result.training_signature == second_result.training_signature
+        assert (
+            await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
+        )
+        assert (
+            await session.scalar(select(func.count()).select_from(ResidualModelManifestRow)) == 30
+        )
+        assert await session.scalar(select(func.count()).select_from(ResidualModelArtifact)) == 3
+
+
+@pytest.mark.integration
+async def test_postgres_execute_residual_prediction_round_trip() -> None:
+    _require_postgres()
+    task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
+        await _seed_prediction_fixture()
+    )
+    samples = [
+        ResidualTrainingSampleSpec(
+            task9_run_id=task9_run_id,
+            label_analytics_build_run_id=label_build_run_id,
+            feature_analytics_build_run_id=feature_build_run_id,
+            split="train",
+            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
+        )
+    ] * 30
+
+    async with AsyncSessionMaker() as session:
+        training_result, training_run_id = await execute_residual_training(
+            session,
+            samples=samples,
+            config=_relaxed_config(),
+        )
+        assert training_result.eligibility_status == "eligible"
+
+        prediction_result, prediction_run_id = await execute_residual_prediction(
+            session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=task9_run_id,
+                feature_analytics_build_run_id=feature_build_run_id,
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=date(2026, 2, 28)
+                ),
+            ),
+        )
+        loaded = await load_residual_prediction_run_by_id(session, run_id=prediction_run_id)
+
+        assert prediction_result.execution_status == "completed"
+        assert prediction_result.mode == "residual_corrected"
+        assert loaded is not None
+        assert loaded.model_dump(mode="json") == prediction_result.model_dump(mode="json")
+        assert (
+            await session.scalar(select(func.count()).select_from(ResidualModelPredictionRun))
+            == 1
+        )
+        assert (
+            await session.scalar(select(func.count()).select_from(ResidualModelPredictionRow))
+            == len(prediction_result.rows)
+        )
+
+
+@pytest.mark.integration
+async def test_postgres_execute_residual_prediction_structural_only_for_ineligible_model() -> None:
+    _require_postgres()
+    task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
+        await _seed_prediction_fixture()
+    )
+
+    async with AsyncSessionMaker() as session:
+        training_result, training_run_id = await execute_residual_training(
+            session,
+            samples=[
+                ResidualTrainingSampleSpec(
+                    task9_run_id=task9_run_id,
+                    label_analytics_build_run_id=label_build_run_id,
+                    feature_analytics_build_run_id=feature_build_run_id,
+                    split="train",
+                    supplemental_feature_values=_supplemental_features(
+                        as_of_date=date(2026, 2, 28)
+                    ),
+                )
+            ],
+            config=_config(),
+        )
+        assert training_result.eligibility_status == "ineligible"
+
+        prediction_result, _prediction_run_id = await execute_residual_prediction(
+            session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=task9_run_id,
+                feature_analytics_build_run_id=feature_build_run_id,
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=date(2026, 2, 28)
+                ),
+            ),
+        )
+
+        assert prediction_result.execution_status == "completed"
+        assert prediction_result.mode == "structural_only"
+        assert prediction_result.fallback_reason == "model_not_eligible"
+
+
+@pytest.mark.integration
+async def test_postgres_artifact_hash_corruption_forces_structural_only_fallback() -> None:
+    _require_postgres()
+    task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
+        await _seed_prediction_fixture()
+    )
+    samples = [
+        ResidualTrainingSampleSpec(
+            task9_run_id=task9_run_id,
+            label_analytics_build_run_id=label_build_run_id,
+            feature_analytics_build_run_id=feature_build_run_id,
+            split="train",
+            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
+        )
+    ] * 30
+
+    async with AsyncSessionMaker() as session:
+        _training_result, training_run_id = await execute_residual_training(
+            session,
+            samples=samples,
+            config=_relaxed_config(),
+        )
+        await session.execute(
+            text(
+                """
+                UPDATE residual_model_artifact
+                SET artifact_sha256 = :artifact_sha256
+                WHERE training_run_id = :training_run_id
+                  AND quantile_label = 'P50'
+                """
+            ),
+            {
+                "artifact_sha256": "f" * 64,
+                "training_run_id": training_run_id,
+            },
+        )
+        await session.commit()
+
+        prediction_result, _prediction_run_id = await execute_residual_prediction(
+            session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=task9_run_id,
+                feature_analytics_build_run_id=feature_build_run_id,
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=date(2026, 2, 28)
+                ),
+            ),
+        )
+
+        assert prediction_result.execution_status == "completed"
+        assert prediction_result.mode == "structural_only"
+        assert prediction_result.fallback_reason == "artifact_validation_failed"
