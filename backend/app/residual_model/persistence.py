@@ -25,6 +25,7 @@ from backend.app.repositories.residual_model import (
     get_residual_training_run,
     get_residual_training_run_by_signature,
     list_residual_artifacts,
+    list_residual_manifest_rows,
     list_residual_prediction_rows,
 )
 from backend.app.residual_model.canonical import canonical_payload_hash
@@ -78,6 +79,20 @@ def _training_payload_hash(result: ResidualTrainingExecutionResult) -> str:
 
 def _prediction_payload_hash(result: ResidualPredictionExecutionResult) -> str:
     return canonical_payload_hash(_canonical_dump(result))
+
+
+def _prediction_input_hash(result: ResidualPredictionExecutionResult) -> str:
+    return canonical_payload_hash(
+        {
+            "model_run_id": result.model_run_id,
+            "task9_run_id": result.task9_run_id,
+            "task9_result_hash": result.task9_result_hash,
+            "config_hash": result.config_hash,
+            "mode": result.mode.value,
+            "fallback_reason": result.fallback_reason,
+            "input_snapshot": result.input_snapshot,
+        }
+    )
 
 
 def _training_storage_payload(result: ResidualTrainingExecutionResult) -> dict[str, Any]:
@@ -315,7 +330,16 @@ async def load_residual_training_run_by_id(
     run = await get_residual_training_run(session, run_id=run_id)
     if run is None:
         return None
+    manifest_rows = await list_residual_manifest_rows(session, training_run_id=run_id)
     artifacts = await list_residual_artifacts(session, training_run_id=run_id)
+    if len(manifest_rows) != run.manifest_row_count:
+        raise ResidualModelPersistenceIntegrityError("manifest row count mismatch")
+    if len(artifacts) != run.expected_artifact_count:
+        raise ResidualModelPersistenceIntegrityError("artifact count mismatch")
+    normalized_manifest_rows = [row.row_payload for row in manifest_rows]
+    expected_manifest_rows = run.manifest_snapshot.get("rows")
+    if normalized_manifest_rows != expected_manifest_rows:
+        raise ResidualModelPersistenceIntegrityError("manifest row payload mismatch")
     payload = dict(run.canonical_output)
     payload["artifacts"] = [
         {
@@ -325,7 +349,16 @@ async def load_residual_training_run_by_id(
         }
         for item in artifacts
     ]
-    return ResidualTrainingExecutionResult.model_validate(payload)
+    loaded = ResidualTrainingExecutionResult.model_validate(payload)
+    if _training_payload_hash(loaded) != run.canonical_payload_hash:
+        raise ResidualModelPersistenceIntegrityError("training canonical payload hash mismatch")
+    if loaded.training_signature != run.training_signature:
+        raise ResidualModelPersistenceIntegrityError("training signature mismatch")
+    if loaded.manifest_hash != run.manifest_hash:
+        raise ResidualModelPersistenceIntegrityError("manifest hash mismatch")
+    if loaded.config_hash != run.config_hash:
+        raise ResidualModelPersistenceIntegrityError("training config hash mismatch")
+    return loaded
 
 
 async def save_residual_prediction_run(
@@ -337,9 +370,10 @@ async def save_residual_prediction_run(
     artifact_hashes: list[str],
 ) -> ResidualModelPredictionRun:
     _validate_prediction_result(result)
+    input_hash = _prediction_input_hash(result)
     existing = await get_residual_prediction_run_by_input_hash(
         session,
-        input_hash=result.prediction_hash,
+        input_hash=input_hash,
     )
     payload_hash = _prediction_payload_hash(result)
     if existing is not None:
@@ -358,7 +392,7 @@ async def save_residual_prediction_run(
         feature_schema_version=feature_schema_version,
         feature_schema_hash=feature_schema_hash,
         artifact_hashes=cast(list[str], canonical_json_value(artifact_hashes)),
-        input_hash=result.prediction_hash,
+        input_hash=input_hash,
         prediction_hash=result.prediction_hash,
         feature_audit={},
         warnings=cast(list[str], canonical_json_value(list(result.warnings))),
@@ -417,7 +451,7 @@ async def save_residual_prediction_run(
         await session.rollback()
         existing = await get_residual_prediction_run_by_input_hash(
             session,
-            input_hash=result.prediction_hash,
+            input_hash=input_hash,
         )
         if existing is not None and existing.canonical_payload_hash == payload_hash:
             return existing
@@ -433,7 +467,63 @@ async def load_residual_prediction_run_by_id(
     run = await get_residual_prediction_run(session, run_id=run_id)
     if run is None:
         return None
-    return ResidualPredictionExecutionResult.model_validate(run.canonical_output)
+    rows = await list_residual_prediction_rows(session, prediction_run_id=run_id)
+    if len(rows) != run.expected_prediction_row_count:
+        raise ResidualModelPersistenceIntegrityError("prediction row count mismatch")
+    seen_keys: set[tuple[int, Any]] = set()
+    normalized_rows: list[dict[str, Any]] = []
+    for row in rows:
+        business_key = (row.destination_factory_id, row.arrival_local_date)
+        if business_key in seen_keys:
+            raise ResidualModelPersistenceIntegrityError("duplicate prediction row business key")
+        seen_keys.add(business_key)
+        if row.corrected_p50_kg < 0 or row.corrected_p80_kg < 0 or row.corrected_p90_kg < 0:
+            raise ResidualModelPersistenceIntegrityError(
+                "prediction row nonnegative contract failed"
+            )
+        if not (row.corrected_p50_kg <= row.corrected_p80_kg <= row.corrected_p90_kg):
+            raise ResidualModelPersistenceIntegrityError(
+                "prediction row monotonic contract failed"
+            )
+        row_payload = {
+            "model_run_id": row.model_run_id or 0,
+            "prediction_run_id": 0,
+            "task9_run_id": row.task9_run_id,
+            "task9_result_hash": row.task9_result_hash,
+            "destination_factory_id": row.destination_factory_id,
+            "arrival_local_date": row.arrival_local_date,
+            "forecast_horizon_days": row.forecast_horizon_days,
+            "structural_p50_kg": row.structural_p50_kg,
+            "structural_p80_kg": row.structural_p80_kg,
+            "structural_p90_kg": row.structural_p90_kg,
+            "raw_residual_p50_kg": row.raw_residual_p50_kg,
+            "raw_residual_p80_kg": row.raw_residual_p80_kg,
+            "raw_residual_p90_kg": row.raw_residual_p90_kg,
+            "corrected_raw_p50_kg": row.corrected_raw_p50_kg,
+            "corrected_raw_p80_kg": row.corrected_raw_p80_kg,
+            "corrected_raw_p90_kg": row.corrected_raw_p90_kg,
+            "corrected_p50_kg": row.corrected_p50_kg,
+            "corrected_p80_kg": row.corrected_p80_kg,
+            "corrected_p90_kg": row.corrected_p90_kg,
+            "nonnegative_projection_applied": row.nonnegative_projection_applied,
+            "quantile_projection_applied": row.quantile_projection_applied,
+            "projection_reasons": row.projection_reasons,
+            "feature_vector_hash": row.feature_vector_hash,
+            "feature_audit_hash": row.feature_audit_hash,
+            "mode": row.mode,
+        }
+        if canonical_payload_hash(row_payload) != row.prediction_row_hash:
+            raise ResidualModelPersistenceIntegrityError("prediction row hash mismatch")
+        row_payload["prediction_hash"] = row.prediction_row_hash
+        normalized_rows.append(row_payload)
+    payload = dict(run.canonical_output)
+    payload["rows"] = normalized_rows
+    loaded = ResidualPredictionExecutionResult.model_validate(payload)
+    if _prediction_payload_hash(loaded) != run.canonical_payload_hash:
+        raise ResidualModelPersistenceIntegrityError("prediction canonical payload hash mismatch")
+    if loaded.prediction_hash != run.prediction_hash:
+        raise ResidualModelPersistenceIntegrityError("prediction hash mismatch")
+    return loaded
 
 
 async def load_residual_training_artifacts(
@@ -441,14 +531,68 @@ async def load_residual_training_artifacts(
     *,
     run_id: int,
 ) -> tuple[PersistableResidualArtifact, ...]:
-    artifacts = await list_residual_artifacts(session, training_run_id=run_id)
-    return tuple(
-        PersistableResidualArtifact(
-            quantile_label=item.quantile_label,
-            artifact_bytes=item.artifact_bytes,
-            metadata=ResidualArtifactMetadata.model_validate(item.artifact_metadata_json),
+    run = await get_residual_training_run(session, run_id=run_id)
+    if run is None:
+        raise ResidualModelPersistenceIntegrityError("training run was not found")
+    if run.execution_status != "completed" or run.eligibility_status != "eligible":
+        raise ResidualModelPersistenceIntegrityError(
+            "trusted artifacts require a completed eligible training run"
         )
-        for item in artifacts
+    artifacts = await list_residual_artifacts(session, training_run_id=run_id)
+    if len(artifacts) != run.expected_artifact_count:
+        raise ResidualModelPersistenceIntegrityError("artifact count mismatch")
+    seen_quantiles: set[str] = set()
+    validated: list[PersistableResidualArtifact] = []
+    for item in artifacts:
+        if item.quantile_label in seen_quantiles:
+            raise ResidualModelPersistenceIntegrityError("duplicate artifact quantile")
+        seen_quantiles.add(item.quantile_label)
+        if not item.trusted_internal_source:
+            raise ResidualModelPersistenceIntegrityError("artifact trusted source marker mismatch")
+        metadata = ResidualArtifactMetadata.model_validate(item.artifact_metadata_json)
+        if metadata.binary_sha256 != item.artifact_sha256:
+            raise ResidualModelPersistenceIntegrityError("artifact sha mismatch")
+        if metadata.artifact_schema_version != item.artifact_schema_version:
+            raise ResidualModelPersistenceIntegrityError("artifact schema version mismatch")
+        if metadata.feature_schema_version != item.feature_schema_version:
+            raise ResidualModelPersistenceIntegrityError("artifact feature schema version mismatch")
+        if metadata.feature_schema_hash != item.feature_schema_hash:
+            raise ResidualModelPersistenceIntegrityError("artifact feature schema hash mismatch")
+        if metadata.config_hash != item.config_hash:
+            raise ResidualModelPersistenceIntegrityError("artifact config hash mismatch")
+        if metadata.python_version != item.python_version:
+            raise ResidualModelPersistenceIntegrityError("artifact python version mismatch")
+        if metadata.numpy_version != item.numpy_version:
+            raise ResidualModelPersistenceIntegrityError("artifact numpy version mismatch")
+        if metadata.sklearn_version != item.sklearn_version:
+            raise ResidualModelPersistenceIntegrityError("artifact sklearn version mismatch")
+        if metadata.training_signature != run.training_signature:
+            raise ResidualModelPersistenceIntegrityError("artifact training signature mismatch")
+        if metadata.manifest_hash != run.manifest_hash:
+            raise ResidualModelPersistenceIntegrityError("artifact manifest hash mismatch")
+        if metadata.model_version != run.model_version:
+            raise ResidualModelPersistenceIntegrityError("artifact model version mismatch")
+        if metadata.feature_schema_version != run.feature_schema_version:
+            raise ResidualModelPersistenceIntegrityError(
+                "artifact/run feature schema version mismatch"
+            )
+        if metadata.feature_schema_hash != run.feature_schema_hash:
+            raise ResidualModelPersistenceIntegrityError(
+                "artifact/run feature schema hash mismatch"
+            )
+        if metadata.config_hash != run.config_hash:
+            raise ResidualModelPersistenceIntegrityError("artifact/run config hash mismatch")
+        validated.append(
+            PersistableResidualArtifact(
+                quantile_label=item.quantile_label,
+                artifact_bytes=item.artifact_bytes,
+                metadata=metadata,
+            )
+        )
+    if seen_quantiles != {"P50", "P80", "P90"}:
+        raise ResidualModelPersistenceIntegrityError("artifact quantiles are incomplete")
+    return tuple(
+        validated
     )
 
 
@@ -462,7 +606,7 @@ async def load_residual_prediction_rows_by_run_id(
         ResidualPredictionRow.model_validate(
             {
                 "model_run_id": row.model_run_id or 0,
-                "prediction_run_id": row.prediction_run_id,
+                "prediction_run_id": 0,
                 "task9_run_id": row.task9_run_id,
                 "task9_result_hash": row.task9_result_hash,
                 "destination_factory_id": row.destination_factory_id,

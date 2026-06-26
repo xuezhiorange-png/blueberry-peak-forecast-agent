@@ -79,7 +79,7 @@ def build_training_matrix(
     *,
     config: ResidualModelConfig,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], list[CategoryEncoding]]:
-    included_rows = [row for row in rows if row.include]
+    included_rows = [row for row in rows if row.include and row.split.value == "train"]
     feature_names = sorted(
         {
             feature.feature_name

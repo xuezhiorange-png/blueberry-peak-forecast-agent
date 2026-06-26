@@ -4,8 +4,8 @@ import io
 import json
 import zipfile
 from csv import DictReader
+from dataclasses import replace
 from datetime import UTC, date, datetime
-from pathlib import Path
 
 from backend.app.residual_model.config import load_residual_model_config
 from backend.app.residual_model.manifest import manifest_row_payload
@@ -23,18 +23,31 @@ from backend.app.residual_model.service import (
     structural_only_prediction,
     train_residual_model_from_manifest,
 )
+from backend.tests.residual_model.support import residual_model_config_path
 from backend.tests.residual_model.test_persistence import _training_row
 
 
 def _config():
-    return load_residual_model_config(
-        Path("/Users/charles/Documents/智能agent开发/configs/residual_model.yaml")
+    return load_residual_model_config(residual_model_config_path())
+
+
+def _relaxed_config():
+    config = _config()
+    eligibility = replace(
+        config.rules.eligibility,
+        min_training_rows=1,
+        min_seasons=1,
+        min_factories=1,
+        max_validation_wmape=1.0,
+        require_improvement_over_structural=False,
+        max_fallback_rate=1.0,
     )
+    return replace(config, rules=replace(config.rules, eligibility=eligibility))
 
 
 def _eligible_training():
     rows = [_training_row(index) for index in range(30)]
-    result = train_residual_model_from_manifest(rows=rows, config=_config())
+    result = train_residual_model_from_manifest(rows=rows, config=_relaxed_config())
     assert result.execution_status == "completed"
     assert result.eligibility_status == "eligible"
     manifest_snapshot = {

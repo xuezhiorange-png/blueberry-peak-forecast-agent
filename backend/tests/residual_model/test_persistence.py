@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from pathlib import Path
 
 import pytest
 from sqlalchemy import func, select, text
@@ -19,7 +19,9 @@ from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.config import load_residual_model_config
 from backend.app.residual_model.persistence import (
     ResidualModelHashConflictError,
+    ResidualModelPersistenceIntegrityError,
     load_residual_prediction_run_by_id,
+    load_residual_training_artifacts,
     load_residual_training_run_by_id,
     save_residual_prediction_run,
     save_residual_training_run,
@@ -29,6 +31,7 @@ from backend.app.residual_model.service import (
     structural_only_prediction,
     train_residual_model_from_manifest,
 )
+from backend.tests.residual_model.support import residual_model_config_path
 
 RESIDUAL_TABLES = [
     ResidualModelTrainingRun.__table__,
@@ -56,9 +59,21 @@ async def sqlite_session() -> AsyncSession:
 
 
 def _config():
-    return load_residual_model_config(
-        Path("/Users/charles/Documents/智能agent开发/configs/residual_model.yaml")
+    return load_residual_model_config(residual_model_config_path())
+
+
+def _relaxed_config():
+    config = _config()
+    eligibility = replace(
+        config.rules.eligibility,
+        min_training_rows=1,
+        min_seasons=1,
+        min_factories=1,
+        max_validation_wmape=1.0,
+        require_improvement_over_structural=False,
+        max_fallback_rate=1.0,
     )
+    return replace(config, rules=replace(config.rules, eligibility=eligibility))
 
 
 def _training_row(index: int) -> ResidualTrainingManifestRow:
@@ -137,7 +152,7 @@ def _training_row(index: int) -> ResidualTrainingManifestRow:
 
 def _eligible_training():
     rows = [_training_row(index) for index in range(30)]
-    result = train_residual_model_from_manifest(rows=rows, config=_config())
+    result = train_residual_model_from_manifest(rows=rows, config=_relaxed_config())
     assert result.execution_status == "completed"
     assert result.eligibility_status == "eligible"
     return rows, result
@@ -233,3 +248,125 @@ async def test_save_and_load_structural_only_prediction_run(sqlite_session: Asyn
     assert loaded.execution_status == "completed"
     assert loaded.mode == "structural_only"
     assert len(loaded.rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_load_training_run_detects_missing_manifest_row(
+    sqlite_session: AsyncSession,
+) -> None:
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "DELETE FROM residual_model_manifest_row "
+            "WHERE training_run_id = :run_id AND row_index = 1"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_load_training_artifacts_detects_metadata_mismatch(
+    sqlite_session: AsyncSession,
+) -> None:
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_artifact "
+            "SET config_hash = :config_hash "
+            "WHERE training_run_id = :run_id AND quantile_label = 'P50'"
+        ),
+        {"config_hash": "f" * 64, "run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_artifacts(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_load_prediction_run_detects_deleted_child_row(
+    sqlite_session: AsyncSession,
+) -> None:
+    prediction = structural_only_prediction(
+        model_run_id=None,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+    run = await save_residual_prediction_run(
+        sqlite_session,
+        result=prediction,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+    await sqlite_session.execute(
+        text(
+            "DELETE FROM residual_model_prediction_row "
+            "WHERE prediction_run_id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_prediction_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_load_prediction_run_detects_modified_child_row(
+    sqlite_session: AsyncSession,
+) -> None:
+    prediction = structural_only_prediction(
+        model_run_id=None,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+    run = await save_residual_prediction_run(
+        sqlite_session,
+        result=prediction,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_prediction_row "
+            "SET feature_vector_hash = :feature_vector_hash "
+            "WHERE prediction_run_id = :run_id"
+        ),
+        {"feature_vector_hash": "f" * 64, "run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_prediction_run_by_id(sqlite_session, run_id=run.id)

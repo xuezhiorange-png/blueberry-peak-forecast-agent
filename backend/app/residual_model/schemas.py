@@ -163,6 +163,7 @@ class ResidualArtifactMetadata(_BaseModel):
     model_family: str = Field(min_length=1)
     model_version: str = Field(min_length=1)
     feature_schema_version: str = Field(min_length=1)
+    feature_schema_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     category_encoding_version: str = Field(min_length=1)
     projection_version: str = Field(min_length=1)
     config_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -176,6 +177,7 @@ class ResidualArtifactMetadata(_BaseModel):
     binary_format: str = Field(min_length=1)
     binary_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     metadata_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    estimator_parameters: dict[str, Any]
     category_encodings: list[CategoryEncoding] = Field(default_factory=list)
 
 

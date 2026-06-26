@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.schemas import FeatureValue, ResidualTrainingManifestRow
+from backend.tests.residual_model.support import residual_model_config_path
 
 
 def _training_row(
@@ -88,14 +89,10 @@ def _training_row(
 
 
 def test_structural_only_fallback_for_ineligible_model() -> None:
-    from pathlib import Path
-
     from backend.app.residual_model.config import load_residual_model_config
     from backend.app.residual_model.service import train_residual_model_from_manifest
 
-    config = load_residual_model_config(
-        Path("/Users/charles/Documents/智能agent开发/configs/residual_model.yaml")
-    )
+    config = load_residual_model_config(residual_model_config_path())
     row = _training_row(
         season_id=1,
         factory_id=1,
@@ -112,14 +109,10 @@ def test_structural_only_fallback_for_ineligible_model() -> None:
 
 
 def test_completed_eligible_training_emits_three_quantile_artifacts() -> None:
-    from pathlib import Path
-
     from backend.app.residual_model.config import load_residual_model_config
     from backend.app.residual_model.service import train_residual_model_from_manifest
 
-    config = load_residual_model_config(
-        Path("/Users/charles/Documents/智能agent开发/configs/residual_model.yaml")
-    )
+    config = load_residual_model_config(residual_model_config_path())
     rows = [
         _training_row(
             season_id=(index % 3) + 1,
@@ -163,5 +156,51 @@ def test_structural_only_preserves_structural_values() -> None:
     assert result.mode == "structural_only"
     assert result.rows[0].raw_residual_p50_kg == Decimal("0")
     assert result.rows[0].corrected_p50_kg == Decimal("100")
-    assert result.rows[0].corrected_p80_kg == Decimal("110")
-    assert result.rows[0].corrected_p90_kg == Decimal("120")
+    assert result.rows[0].corrected_raw_p50_kg == Decimal("100")
+    assert result.rows[0].corrected_raw_p80_kg == Decimal("100")
+    assert result.rows[0].corrected_raw_p90_kg == Decimal("100")
+    assert result.rows[0].corrected_p80_kg == Decimal("100")
+    assert result.rows[0].corrected_p90_kg == Decimal("100")
+
+
+def test_structural_only_prediction_hash_is_not_index_derived() -> None:
+    from backend.app.residual_model.service import structural_only_prediction
+
+    first = structural_only_prediction(
+        model_run_id=1,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+    second = structural_only_prediction(
+        model_run_id=2,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+
+    assert first.rows[0].prediction_hash != "0" * 64
+    assert second.rows[0].prediction_hash != "0" * 64
+    assert first.prediction_hash != second.prediction_hash
