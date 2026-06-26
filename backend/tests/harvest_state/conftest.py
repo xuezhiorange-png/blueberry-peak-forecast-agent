@@ -6,6 +6,18 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Any
 
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from backend.app.harvest_state.service import run_harvest_state_model
+from backend.app.models.harvest_state import (
+    HarvestStateCohortTransitionRowModel,
+    HarvestStateDailyMemberRowModel,
+    HarvestStateDailyPoolRowModel,
+    HarvestStateFutureArrivalRowModel,
+    HarvestStateRun,
+)
+
 
 def canonical_hash_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
@@ -612,3 +624,44 @@ def make_request() -> dict[str, Any]:
         "initial_opening_mature_inventory_kg": Decimal("30"),
         "mature_inventory_loss_inputs": losses,
     }
+
+
+HARVEST_STATE_TABLES = [
+    HarvestStateRun.__table__,
+    HarvestStateDailyPoolRowModel.__table__,
+    HarvestStateDailyMemberRowModel.__table__,
+    HarvestStateCohortTransitionRowModel.__table__,
+    HarvestStateFutureArrivalRowModel.__table__,
+]
+
+
+@pytest.fixture
+async def sqlite_session() -> AsyncSession:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(
+            lambda sync_conn: HarvestStateRun.metadata.create_all(
+                sync_conn,
+                tables=HARVEST_STATE_TABLES,
+            )
+        )
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async with sessionmaker() as session:
+        yield session
+    await engine.dispose()
+
+
+@pytest.fixture
+def completed_harvest_state_output() -> Any:
+    result = run_harvest_state_model(make_request())
+    assert result.status == "completed"
+    return result
+
+
+@pytest.fixture
+def blocked_harvest_state_output() -> Any:
+    payload = make_request()
+    payload["farm_timezone"] = "Bad/Timezone"
+    result = run_harvest_state_model(payload)
+    assert result.status == "blocked"
+    return result
