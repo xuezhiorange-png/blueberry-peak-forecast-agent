@@ -1,0 +1,167 @@
+from __future__ import annotations
+
+from datetime import UTC, date, datetime
+from decimal import Decimal
+
+from backend.app.residual_model.canonical import canonical_payload_hash
+from backend.app.residual_model.schemas import FeatureValue, ResidualTrainingManifestRow
+
+
+def _training_row(
+    *,
+    season_id: int,
+    factory_id: int,
+    target_date: date,
+    rainfall: str,
+    residual: str,
+) -> ResidualTrainingManifestRow:
+    features = (
+        FeatureValue.model_validate(
+            {
+                "feature_name": "structural_arrival_p50_kg",
+                "value": "100",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"task9": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "weather_7d_rainfall",
+                "value": rainfall,
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"weather": rainfall},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "observation_date": date(2026, 2, 28),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "destination_factory_category",
+                "value": "north",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"plan": factory_id},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+    )
+    return ResidualTrainingManifestRow(
+        season_id=season_id,
+        destination_factory_id=factory_id,
+        task9_run_id=100 + season_id,
+        task9_result_hash=f"{season_id:064x}"[-64:],
+        as_of_date=date(2026, 3, 1),
+        target_arrival_local_date=target_date,
+        forecast_horizon_days=1,
+        label_actual_snapshot={
+            "build_run_id": 200 + season_id,
+            "source_max_raw_id": 1000 + season_id,
+            "aggregation_version": "task3-v1",
+            "config_hash": "c" * 64,
+            "source_cutoff": datetime(2026, 3, 1, 10, 0, tzinfo=UTC),
+        },
+        feature_actual_snapshot={
+            "build_run_id": 300 + season_id,
+            "source_max_raw_id": 900 + season_id,
+            "aggregation_version": "task3-v1",
+            "config_hash": "d" * 64,
+            "source_cutoff": datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        },
+        observed_effective_receipt_kg=Decimal("100") + Decimal(residual),
+        structural_p50_kg=Decimal("100"),
+        structural_p80_kg=Decimal("110"),
+        structural_p90_kg=Decimal("120"),
+        residual_label_kg=Decimal(residual),
+        feature_values=features,
+        feature_vector_hash=canonical_payload_hash(
+            [item.model_dump(mode="json") for item in features]
+        ),
+        feature_visibility_audit_hash="a" * 64,
+        split="train",
+        include=True,
+        sample_weight=Decimal("1"),
+        source_refs=("task9", "analytics"),
+    )
+
+
+def test_structural_only_fallback_for_ineligible_model() -> None:
+    from pathlib import Path
+
+    from backend.app.residual_model.config import load_residual_model_config
+    from backend.app.residual_model.service import train_residual_model_from_manifest
+
+    config = load_residual_model_config(
+        Path("/Users/charles/Documents/智能agent开发/configs/residual_model.yaml")
+    )
+    row = _training_row(
+        season_id=1,
+        factory_id=1,
+        target_date=date(2026, 3, 2),
+        rainfall="3",
+        residual="5",
+    )
+    result = train_residual_model_from_manifest(rows=[row], config=config)
+
+    assert result.execution_status == "completed"
+    assert result.eligibility_status == "ineligible"
+    assert "insufficient_training_rows" in result.eligibility_reasons
+    assert result.artifacts == ()
+
+
+def test_completed_eligible_training_emits_three_quantile_artifacts() -> None:
+    from pathlib import Path
+
+    from backend.app.residual_model.config import load_residual_model_config
+    from backend.app.residual_model.service import train_residual_model_from_manifest
+
+    config = load_residual_model_config(
+        Path("/Users/charles/Documents/智能agent开发/configs/residual_model.yaml")
+    )
+    rows = [
+        _training_row(
+            season_id=(index % 3) + 1,
+            factory_id=(index % 2) + 1,
+            target_date=date(2026, 3, 2 + (index % 5)),
+            rainfall=str(3 + (index % 4)),
+            residual=str(5 + (index % 6)),
+        )
+        for index in range(30)
+    ]
+
+    result = train_residual_model_from_manifest(rows=rows, config=config)
+
+    assert result.execution_status == "completed"
+    assert result.eligibility_status == "eligible"
+    assert [item.quantile_label for item in result.artifacts] == ["P50", "P80", "P90"]
+
+
+def test_structural_only_preserves_structural_values() -> None:
+    from backend.app.residual_model.service import structural_only_prediction
+
+    result = structural_only_prediction(
+        model_run_id=1,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+
+    assert result.execution_status == "completed"
+    assert result.mode == "structural_only"
+    assert result.rows[0].raw_residual_p50_kg == Decimal("0")
+    assert result.rows[0].corrected_p50_kg == Decimal("100")
+    assert result.rows[0].corrected_p80_kg == Decimal("110")
+    assert result.rows[0].corrected_p90_kg == Decimal("120")
