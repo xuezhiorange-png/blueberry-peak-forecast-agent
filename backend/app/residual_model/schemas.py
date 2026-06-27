@@ -252,3 +252,4 @@ class ResidualPredictionRow(_BaseModel):
     feature_audit_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     prediction_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     mode: ResidualPredictionMode
+    fallback_reason: str | None = None

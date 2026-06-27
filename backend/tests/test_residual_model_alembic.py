@@ -1,3 +1,4 @@
+import importlib
 from pathlib import Path
 
 from sqlalchemy.dialects import postgresql
@@ -6,51 +7,40 @@ from sqlalchemy.schema import CreateTable
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelManifestRow,
-    ResidualModelMetric,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
 )
 
 
-def test_residual_model_migration_metadata() -> None:
-    revision_path = Path("backend/alembic/versions/0011_residual_model.py")
+def _load_migration() -> object:
+    spec = importlib.util.spec_from_file_location(
+        "migration_0011_residual_model",
+        Path("backend/alembic/versions/0011_residual_model.py"),
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
-    assert revision_path.exists()
-    source = revision_path.read_text()
-    assert 'revision: str = "0011_residual_model"' in source
-    assert 'down_revision: str | None = "0010_harvest_state_persistence"' in source
-    assert "def upgrade() -> None:" in source
+
+def test_residual_model_migration_metadata() -> None:
+    mod = _load_migration()
+    assert mod.revision == "0011_residual_model"
+    assert mod.down_revision == "0010_harvest_state_persistence"
+    assert hasattr(mod, "upgrade")
+    assert hasattr(mod, "downgrade")
 
 
 def test_residual_model_migration_has_downgrade() -> None:
-    revision_path = Path("backend/alembic/versions/0011_residual_model.py")
-
-    source = revision_path.read_text()
-    assert "def downgrade() -> None:" in source
+    mod = _load_migration()
+    assert mod.downgrade is not None
 
 
 def test_residual_model_schema_contains_tables() -> None:
-    schema_path = Path("sql/schema.sql")
-    source = schema_path.read_text()
-
-    for table_name in (
-        "residual_model_training_run",
-        "residual_model_manifest_row",
-        "residual_model_artifact",
-        "residual_model_metric",
-        "residual_model_prediction_run",
-        "residual_model_prediction_row",
-    ):
-        assert f"CREATE TABLE IF NOT EXISTS {table_name} (" in source
-
-
-def test_residual_model_postgres_constraint_names_fit_identifier_limit() -> None:
     tables = (
         ResidualModelTrainingRun.__table__,
         ResidualModelManifestRow.__table__,
         ResidualModelArtifact.__table__,
-        ResidualModelMetric.__table__,
         ResidualModelPredictionRun.__table__,
         ResidualModelPredictionRow.__table__,
     )

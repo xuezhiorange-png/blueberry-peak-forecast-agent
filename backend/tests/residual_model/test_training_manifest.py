@@ -30,7 +30,6 @@ from backend.app.models.master_data import Factory, Grade, Holiday, Season, Vari
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelManifestRow,
-    ResidualModelMetric,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
@@ -65,7 +64,6 @@ TABLES = [
     ResidualModelTrainingRun.__table__,
     ResidualModelManifestRow.__table__,
     ResidualModelArtifact.__table__,
-    ResidualModelMetric.__table__,
     ResidualModelPredictionRun.__table__,
     ResidualModelPredictionRow.__table__,
 ]

@@ -50,7 +50,7 @@ class ResidualPredictionApplicationIntegrityError(RuntimeError):
 def _prediction_input_snapshot(
     *,
     request: ResidualPredictionRequest,
-    model_run: ResidualTrainingExecutionResult,
+    training_run_row: Any,
     feature_snapshot: dict[str, Any] | None,
     feature_audits: list[FeatureVisibilityAudit],
     artifact_hashes: list[str],
@@ -58,7 +58,7 @@ def _prediction_input_snapshot(
 ) -> dict[str, Any]:
     return {
         "model_run_id": request.model_run_id,
-        "training_signature": model_run.training_signature,
+        "training_signature": training_run_row.training_signature,
         "task9_run_id": request.task9_run_id,
         "task9_result_hash": None,
         "feature_analytics_build_run_id": request.feature_analytics_build_run_id,
@@ -70,13 +70,12 @@ def _prediction_input_snapshot(
         "feature_rows": [
             [item.model_dump(mode="json") for item in row] for row in feature_rows
         ],
-        "feature_schema_version": model_run.feature_schema_version,
-        "feature_schema_hash": model_run.metrics.get("feature_schema_hash")
-        or model_run.input_snapshot.get("feature_schema_hash"),
-        "config_hash": model_run.config_hash,
+        "feature_schema_version": training_run_row.feature_schema_version,
+        "feature_schema_hash": training_run_row.feature_schema_hash,
+        "config_hash": training_run_row.config_hash,
         "artifact_hashes": artifact_hashes,
-        "projection_version": model_run.input_snapshot["config_snapshot"]["projection"]["version"],
-        "fallback_policy": model_run.input_snapshot["config_snapshot"]["categorical_encoding"][
+        "projection_version": training_run_row.config_snapshot["projection"]["version"],
+        "fallback_policy": training_run_row.config_snapshot["categorical_encoding"][
             "unknown_policy"
         ],
     }
@@ -121,8 +120,7 @@ async def execute_residual_prediction(
     request: ResidualPredictionRequest,
 ) -> tuple[ResidualPredictionExecutionResult, int]:
     training_run_row = await get_residual_training_run(session, run_id=request.model_run_id)
-    model_run = await load_residual_training_run_by_id(session, run_id=request.model_run_id)
-    if training_run_row is None or model_run is None:
+    if training_run_row is None:
         raise ResidualPredictionApplicationIntegrityError("Residual training run was not found")
 
     (
@@ -140,8 +138,18 @@ async def execute_residual_prediction(
         supplemental_feature_values=request.supplemental_feature_values,
     )
 
+    # Phase 1: Get training metadata from DB row (safe, no artifact loading)
+    model_family = training_run_row.model_family
+    model_version = training_run_row.model_version
+    feature_schema_version = training_run_row.feature_schema_version
+    feature_schema_hash = training_run_row.feature_schema_hash
+    config_hash = training_run_row.config_hash
+    training_signature = training_run_row.training_signature
+    manifest_hash = training_run_row.manifest_hash
+
+    config = load_residual_model_config_from_snapshot(training_run_row.config_snapshot)
+
     artifact_hashes: list[str] = []
-    config = load_residual_model_config_from_snapshot(model_run.input_snapshot["config_snapshot"])
     result: ResidualPredictionExecutionResult
     fallback_reason: str | None = None
     feature_names: list[str] = []
@@ -149,12 +157,13 @@ async def execute_residual_prediction(
     estimators: TrainedResidualEstimators | None = None
 
     if (
-        model_run.execution_status != "completed"
-        or model_run.eligibility_status != "eligible"
+        training_run_row.execution_status != "completed"
+        or training_run_row.eligibility_status != "eligible"
         or blockers
     ):
         fallback_reason = "feature_visibility_failed" if blockers else "model_not_eligible"
     else:
+        # Phase 2: Try artifact loading with catch
         try:
             artifacts = await load_residual_training_artifacts(session, run_id=training_run_row.id)
             artifact_hashes = [item.metadata.binary_sha256 for item in artifacts]
@@ -164,50 +173,50 @@ async def execute_residual_prediction(
                 estimators = TrainedResidualEstimators(
                     p50=load_trusted_quantile_estimator(
                         artifact=next(item for item in artifacts if item.quantile_label == "P50"),
-                        expected_model_family=training_run_row.model_family,
-                        expected_model_version=training_run_row.model_version,
+                        expected_model_family=model_family,
+                        expected_model_version=model_version,
                         expected_artifact_schema_version=training_run_row.artifact_schema_version,
-                        expected_feature_schema_version=training_run_row.feature_schema_version,
-                        expected_feature_schema_hash=training_run_row.feature_schema_hash,
-                        expected_config_hash=training_run_row.config_hash,
-                        expected_training_signature=model_run.training_signature,
-                        expected_manifest_hash=model_run.manifest_hash,
+                        expected_feature_schema_version=feature_schema_version,
+                        expected_feature_schema_hash=feature_schema_hash,
+                        expected_config_hash=config_hash,
+                        expected_training_signature=training_signature,
+                        expected_manifest_hash=manifest_hash,
                         expected_quantile_label="P50",
                     ),
                     p80=load_trusted_quantile_estimator(
                         artifact=next(item for item in artifacts if item.quantile_label == "P80"),
-                        expected_model_family=training_run_row.model_family,
-                        expected_model_version=training_run_row.model_version,
+                        expected_model_family=model_family,
+                        expected_model_version=model_version,
                         expected_artifact_schema_version=training_run_row.artifact_schema_version,
-                        expected_feature_schema_version=training_run_row.feature_schema_version,
-                        expected_feature_schema_hash=training_run_row.feature_schema_hash,
-                        expected_config_hash=training_run_row.config_hash,
-                        expected_training_signature=model_run.training_signature,
-                        expected_manifest_hash=model_run.manifest_hash,
+                        expected_feature_schema_version=feature_schema_version,
+                        expected_feature_schema_hash=feature_schema_hash,
+                        expected_config_hash=config_hash,
+                        expected_training_signature=training_signature,
+                        expected_manifest_hash=manifest_hash,
                         expected_quantile_label="P80",
                     ),
                     p90=load_trusted_quantile_estimator(
                         artifact=next(item for item in artifacts if item.quantile_label == "P90"),
-                        expected_model_family=training_run_row.model_family,
-                        expected_model_version=training_run_row.model_version,
+                        expected_model_family=model_family,
+                        expected_model_version=model_version,
                         expected_artifact_schema_version=training_run_row.artifact_schema_version,
-                        expected_feature_schema_version=training_run_row.feature_schema_version,
-                        expected_feature_schema_hash=training_run_row.feature_schema_hash,
-                        expected_config_hash=training_run_row.config_hash,
-                        expected_training_signature=model_run.training_signature,
-                        expected_manifest_hash=model_run.manifest_hash,
+                        expected_feature_schema_version=feature_schema_version,
+                        expected_feature_schema_hash=feature_schema_hash,
+                        expected_config_hash=config_hash,
+                        expected_training_signature=training_signature,
+                        expected_manifest_hash=manifest_hash,
                         expected_quantile_label="P90",
                     ),
                 )
                 category_encodings = artifacts[0].metadata.category_encodings
-                feature_names = list(model_run.metrics.get("feature_names", []))
+                feature_names = list(training_run_row.training_metrics.get("feature_names", []))
                 fallback_reason = None
         except (ResidualArtifactValidationError, ResidualModelPersistenceIntegrityError):
             fallback_reason = "artifact_validation_failed"
 
     input_snapshot = _prediction_input_snapshot(
         request=request,
-        model_run=model_run,
+        training_run_row=training_run_row,
         feature_snapshot=(
             feature_snapshot.model_dump(mode="json")
             if feature_snapshot is not None
@@ -223,7 +232,7 @@ async def execute_residual_prediction(
             model_run_id=training_run_row.id,
             task9_run_id=request.task9_run_id,
             task9_result_hash=task9_output.result_hash,
-            config_hash=training_run_row.config_hash,
+            config_hash=config_hash,
             structural_rows=structural_rows,
             fallback_reason=fallback_reason,
             warnings=warnings,
@@ -255,8 +264,8 @@ async def execute_residual_prediction(
     run = await save_residual_prediction_run(
         session,
         result=result,
-        feature_schema_version=training_run_row.feature_schema_version,
-        feature_schema_hash=training_run_row.feature_schema_hash,
+        feature_schema_version=feature_schema_version,
+        feature_schema_hash=feature_schema_hash,
         artifact_hashes=artifact_hashes,
     )
     loaded = await load_residual_prediction_run_by_id(session, run_id=run.id)
