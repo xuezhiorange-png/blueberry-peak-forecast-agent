@@ -20,12 +20,9 @@ from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.residual_model import (
     ResidualModelExecutionAttempt,
 )
-from backend.app.repositories.residual_model import (
-    create_residual_execution_attempt,
-    fail_residual_execution_attempt,
-    get_residual_execution_attempt,
-)
 from backend.app.residual_model.application import (
+    ResidualPredictionApplicationIntegrityError,
+    ResidualTrainingApplicationIntegrityError,
     execute_residual_prediction,
     execute_residual_training,
 )
@@ -35,7 +32,6 @@ from backend.app.residual_model.schemas import (
 )
 from backend.tests.residual_model.test_training_manifest import (
     _config,
-    _diverse_training_samples,
     _persist_task9_run,
     _seed_build_run,
     _seed_daily_fact,
@@ -75,40 +71,33 @@ async def test_training_manifest_failure_persists_failed_attempt() -> None:
     """When training manifest building fails, the attempt is 'failed'."""
     _require_postgres()
     async with AsyncSessionMaker() as session:
-        attempt = await create_residual_execution_attempt(
-            session,
-            attempt_type="training",
-            execution_status="running",
-            current_stage="manifest_build",
-            requested_inputs={"sample_count": 1, "season_ids": [999]},
-            config_identity={
-                "model_family": "residual_hgb",
-                "model_version": "task10-v1",
-                "config_hash": "a" * 64,
-            },
-            upstream_requested_ids={
-                "task9_run_ids": [999],
-                "label_analytics_build_run_ids": [999],
-                "feature_analytics_build_run_ids": [999],
-            },
-        )
-        attempt_id = attempt.id
-        await session.commit()
+        with pytest.raises(ResidualTrainingApplicationIntegrityError):
+            await execute_residual_training(
+                session,
+                samples=[
+                    ResidualTrainingSampleSpec(
+                        task9_run_id=999,
+                        label_analytics_build_run_id=999,
+                        feature_analytics_build_run_id=999,
+                        split="train",
+                        supplemental_feature_values=_supplemental_features(
+                            as_of_date=date(2026, 2, 28)
+                        ),
+                    )
+                ],
+                config=_relaxed_config(),
+            )
 
-        await fail_residual_execution_attempt(
-            session,
-            attempt_id=attempt_id,
-            sanitized_error="ManifestBuildError: Task 9 run 999 was not found",
-        )
-        await session.commit()
-
-        loaded = await get_residual_execution_attempt(
-            session, attempt_id=attempt_id
+        loaded = await session.scalar(
+            select(ResidualModelExecutionAttempt)
+            .where(ResidualModelExecutionAttempt.attempt_type == "training")
+            .order_by(ResidualModelExecutionAttempt.id.desc())
         )
         assert loaded is not None
         assert loaded.execution_status == "failed"
+        assert loaded.current_stage == "manifest_build"
         assert loaded.sanitized_error is not None
-        assert "ManifestBuildError" in loaded.sanitized_error
+        assert "999" in loaded.sanitized_error
         assert loaded.finished_at is not None
 
 
@@ -152,16 +141,36 @@ async def test_prediction_task9_failure_persists_failed_attempt() -> None:
             receipt_date=output.forecast_start_date,
             weight_kg=Decimal("100"),
         )
+        for fact_id, offset, weight in (
+            (11, 1, Decimal("11")),
+            (13, 3, Decimal("13")),
+            (17, 7, Decimal("17")),
+        ):
+            await _seed_daily_fact(
+                session,
+                fact_id=fact_id,
+                build_run_id=feature_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=as_of_date - date.resolution * offset,
+                weight_kg=weight,
+            )
         await session.commit()
 
-        training_result, training_run_id = await execute_residual_training(
+        _training_result, training_run_id = await execute_residual_training(
             session,
-            samples=_diverse_training_samples(
-                task9_run_id=task9_run_id,
-                label_build_run_id=label_build.id,
-                feature_build_run_id=feature_build.id,
-                as_of_date=as_of_date,
-            ),
+            samples=[
+                ResidualTrainingSampleSpec(
+                    task9_run_id=task9_run_id,
+                    label_analytics_build_run_id=label_build.id,
+                    feature_analytics_build_run_id=feature_build.id,
+                    split="train",
+                    supplemental_feature_values=_supplemental_features(
+                        as_of_date=as_of_date
+                    ),
+                )
+            ],
             config=_relaxed_config(),
         )
 
@@ -192,8 +201,7 @@ async def test_prediction_task9_failure_persists_failed_attempt() -> None:
 
 @pytest.mark.asyncio
 async def test_prediction_feature_failure_persists_failed_attempt() -> None:
-    """Prediction structural_only from ineligible model succeeds and
-    attempt is completed (not failed)."""
+    """When prediction feature building fails, the attempt is 'failed'."""
     _require_postgres()
     async with AsyncSessionMaker() as session:
         season_id, factory_id, variety_id = await _seed_master_data(session)
@@ -218,6 +226,31 @@ async def test_prediction_feature_failure_persists_failed_attempt() -> None:
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
+        await _seed_daily_fact(
+            session,
+            fact_id=1,
+            build_run_id=label_build.id,
+            season_id=season_id,
+            factory_id=factory_id,
+            variety_id=variety_id,
+            receipt_date=output.forecast_start_date,
+            weight_kg=Decimal("100"),
+        )
+        for fact_id, offset, weight in (
+            (11, 1, Decimal("11")),
+            (13, 3, Decimal("13")),
+            (17, 7, Decimal("17")),
+        ):
+            await _seed_daily_fact(
+                session,
+                fact_id=fact_id,
+                build_run_id=feature_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=as_of_date - date.resolution * offset,
+                weight_kg=weight,
+            )
         await session.commit()
 
         training_result, training_run_id = await execute_residual_training(
@@ -235,68 +268,122 @@ async def test_prediction_feature_failure_persists_failed_attempt() -> None:
         )
         assert training_result.eligibility_status == "ineligible"
 
-        prediction_result, prediction_run_id = await execute_residual_prediction(
-            session,
-            request=ResidualPredictionRequest(
-                model_run_id=training_run_id,
-                task9_run_id=task9_run_id,
-                feature_analytics_build_run_id=feature_build.id,
-                supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
-            ),
-        )
-        assert prediction_result.execution_status == "completed"
-        assert prediction_result.mode == "structural_only"
+        with pytest.raises(ResidualPredictionApplicationIntegrityError):
+            await execute_residual_prediction(
+                session,
+                request=ResidualPredictionRequest(
+                    model_run_id=training_run_id,
+                    task9_run_id=task9_run_id,
+                    feature_analytics_build_run_id=99999,
+                    supplemental_feature_values=_supplemental_features(
+                        as_of_date=as_of_date
+                    ),
+                ),
+            )
 
-        completed_attempt = await session.scalar(
+        failed_attempt = await session.scalar(
             select(ResidualModelExecutionAttempt)
             .where(ResidualModelExecutionAttempt.attempt_type == "prediction")
-            .where(ResidualModelExecutionAttempt.execution_status == "completed")
+            .where(ResidualModelExecutionAttempt.execution_status == "failed")
             .order_by(ResidualModelExecutionAttempt.id.desc())
         )
-        assert completed_attempt is not None
-        assert completed_attempt.linked_prediction_run_id is not None
+        assert failed_attempt is not None
+        assert failed_attempt.current_stage == "feature_build"
+        assert failed_attempt.linked_prediction_run_id is None
 
 
 # ── 4. Persistence rollback test ─────────────────────────────────────────
 
 
 @pytest.mark.asyncio
-async def test_persistence_rollback_on_failure() -> None:
+async def test_persistence_rollback_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """When a persistence step fails, attempt is 'failed' and no
     training run is linked."""
     _require_postgres()
     async with AsyncSessionMaker() as session:
-        attempt = await create_residual_execution_attempt(
+        season_id, factory_id, variety_id = await _seed_master_data(session)
+        task9_run_id, output = await _persist_task9_run(session)
+        as_of_date = _snapshot_as_of_date(output)
+        label_build = await _seed_build_run(
             session,
-            attempt_type="training",
-            execution_status="running",
-            current_stage="model_training",
-            requested_inputs={"sample_count": 0},
-            config_identity={
-                "model_family": "residual_hgb",
-                "model_version": "task10-v1",
-                "config_hash": "a" * 64,
-            },
-            upstream_requested_ids={},
+            build_run_id=1,
+            season_id=season_id,
+            source_max_raw_id=100,
+            config_hash="a" * 64,
+            finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+            covered_factory_ids=(factory_id,),
         )
-        attempt_id = attempt.id
+        feature_build = await _seed_build_run(
+            session,
+            build_run_id=2,
+            season_id=season_id,
+            source_max_raw_id=50,
+            config_hash="b" * 64,
+            finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+            covered_factory_ids=(factory_id,),
+        )
+        await _seed_daily_fact(
+            session,
+            fact_id=1,
+            build_run_id=label_build.id,
+            season_id=season_id,
+            factory_id=factory_id,
+            variety_id=variety_id,
+            receipt_date=output.forecast_start_date,
+            weight_kg=Decimal("100"),
+        )
+        for fact_id, offset, weight in (
+            (11, 1, Decimal("11")),
+            (13, 3, Decimal("13")),
+            (17, 7, Decimal("17")),
+        ):
+            await _seed_daily_fact(
+                session,
+                fact_id=fact_id,
+                build_run_id=feature_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=as_of_date - date.resolution * offset,
+                weight_kg=weight,
+            )
         await session.commit()
 
-        await fail_residual_execution_attempt(
-            session,
-            attempt_id=attempt_id,
-            sanitized_error="ModelTrainingError: Not enough training samples",
-        )
-        await session.commit()
+        async def _boom(*args, **kwargs):
+            raise RuntimeError("synthetic persistence failure")
 
-        loaded = await get_residual_execution_attempt(
-            session, attempt_id=attempt_id
+        monkeypatch.setattr(
+            "backend.app.residual_model.application.save_residual_training_run",
+            _boom,
+        )
+
+        with pytest.raises(ResidualTrainingApplicationIntegrityError):
+            await execute_residual_training(
+                session,
+                samples=[
+                    ResidualTrainingSampleSpec(
+                        task9_run_id=task9_run_id,
+                        label_analytics_build_run_id=label_build.id,
+                        feature_analytics_build_run_id=feature_build.id,
+                        split="train",
+                        supplemental_feature_values=_supplemental_features(
+                            as_of_date=as_of_date
+                        ),
+                    )
+                ],
+                config=_relaxed_config(),
+            )
+
+        loaded = await session.scalar(
+            select(ResidualModelExecutionAttempt)
+            .where(ResidualModelExecutionAttempt.attempt_type == "training")
+            .where(ResidualModelExecutionAttempt.execution_status == "failed")
+            .order_by(ResidualModelExecutionAttempt.id.desc())
         )
         assert loaded is not None
-        assert loaded.execution_status == "failed"
-        assert loaded.current_stage == "model_training"
-        assert loaded.finished_at is not None
+        assert loaded.current_stage == "persistence"
         assert loaded.linked_training_run_id is None
+        assert loaded.finished_at is not None
 
 
 # ── 5. Successful completion finalizes attempt ───────────────────────────
@@ -341,16 +428,36 @@ async def test_successful_completion_finalizes_attempt() -> None:
                 receipt_date=date(2026, 3, 1 + index),
                 weight_kg=Decimal("100"),
             )
+        for fact_id, offset, weight in (
+            (11, 1, Decimal("11")),
+            (13, 3, Decimal("13")),
+            (17, 7, Decimal("17")),
+        ):
+            await _seed_daily_fact(
+                session,
+                fact_id=fact_id,
+                build_run_id=feature_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=as_of_date - date.resolution * offset,
+                weight_kg=weight,
+            )
         await session.commit()
 
         training_result, training_run_id = await execute_residual_training(
             session,
-            samples=_diverse_training_samples(
-                task9_run_id=task9_run_id,
-                label_build_run_id=label_build.id,
-                feature_build_run_id=feature_build.id,
-                as_of_date=as_of_date,
-            ),
+            samples=[
+                ResidualTrainingSampleSpec(
+                    task9_run_id=task9_run_id,
+                    label_analytics_build_run_id=label_build.id,
+                    feature_analytics_build_run_id=feature_build.id,
+                    split="train",
+                    supplemental_feature_values=_supplemental_features(
+                        as_of_date=as_of_date
+                    ),
+                )
+            ],
             config=_relaxed_config(),
         )
 

@@ -438,9 +438,9 @@ def _diverse_training_samples(
             ResidualTrainingSampleSpec(
                 task9_run_id=validation_task9_run_id or task9_run_id,
                 label_analytics_build_run_id=validation_label_build_run_id
-                or (label_build_run_id + 100),
+                or label_build_run_id,
                 feature_analytics_build_run_id=validation_feature_build_run_id
-                or (feature_build_run_id + 100),
+                or feature_build_run_id,
                 split="validation",
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=as_of_date,

@@ -4,7 +4,7 @@ import hashlib
 import pickle
 import platform
 from collections.abc import Iterable
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 from io import BytesIO
 from typing import Any, cast
 
@@ -228,14 +228,15 @@ async def _verify_task3_authority(
       4. source_cutoff matches build_run.finished_at
       5. For each prediction row: destination factory is in frozen coverage
          (FactorySeasonPeakMetric) — reads ONLY frozen snapshot, NOT mutable master
-      6. Analysis calendar coverage is verified via the build's frozen metadata:
-         source_cutoff date falls within analysis_start_date .. analysis_end_date
-      7. source_cutoff date is not later than prediction as-of contract
-         (earliest arrival_local_date in rows)
+      6. Prediction as-of visibility comes from the frozen prediction snapshot,
+         not from forecast target dates.
+      7. Observed-feature dates must align with frozen factory coverage when a
+         concrete feature value is present.
 
     Returns the verified AnalyticsBuildRun.
     Raises ResidualModelPersistenceError on any mismatch.
     """
+    normalized_prediction_rows = list(prediction_rows)
     feature_actual_snapshot = cast(
         dict[str, Any] | None,
         input_snapshot.get("feature_actual_snapshot"),
@@ -303,6 +304,27 @@ async def _verify_task3_authority(
             "AnalyticsBuildRun source_cutoff authority mismatch: missing in snapshot"
         )
 
+    prediction_as_of_raw = input_snapshot.get("prediction_as_of_date")
+    if not isinstance(prediction_as_of_raw, str):
+        raise ResidualModelPersistenceError(
+            "Task 3 authority binding: missing prediction_as_of_date in input_snapshot"
+        )
+    try:
+        prediction_as_of_date = date.fromisoformat(prediction_as_of_raw)
+    except ValueError as exc:
+        raise ResidualModelPersistenceError(
+            "Task 3 authority binding: invalid prediction_as_of_date"
+        ) from exc
+    prediction_as_of_cutoff = datetime.combine(
+        prediction_as_of_date,
+        time.max,
+        tzinfo=UTC,
+    )
+    if snapshot_cutoff > prediction_as_of_cutoff:
+        raise ResidualModelPersistenceError(
+            "AnalyticsBuildRun source_cutoff is later than prediction as-of contract"
+        )
+
     # 5 + 6: Load frozen coverage (FactorySeasonPeakMetric) — do NOT touch Factory master
     peak_metrics = (
         await session.execute(
@@ -318,61 +340,24 @@ async def _verify_task3_authority(
         )
 
     covered_factory_ids: set[int] = set()
-    # Track the analysis calendar range from frozen coverage
-    overall_analysis_start: date | None = None
-    overall_analysis_end: date | None = None
+    factory_coverages: dict[int, tuple[date, date]] = {}
     for pm in peak_metrics:
         covered_factory_ids.add(pm.factory_id)
-        if overall_analysis_start is None or pm.analysis_start_date < overall_analysis_start:
-            overall_analysis_start = pm.analysis_start_date
-        if overall_analysis_end is None or pm.analysis_end_date > overall_analysis_end:
-            overall_analysis_end = pm.analysis_end_date
-
-    # Verify source_cutoff date falls within the analysis calendar of the build.
-    # This validates that the build's cutoff is consistent with its frozen coverage.
-    if overall_analysis_start is not None and overall_analysis_end is not None:
-        cutoff_date = snapshot_cutoff.date()
-        if cutoff_date < overall_analysis_start:
-            raise ResidualModelPersistenceError(
-                "AnalyticsBuildRun source_cutoff date is before analysis calendar start: "
-                f"{cutoff_date} < {overall_analysis_start}"
-            )
-        if cutoff_date > overall_analysis_end:
-            raise ResidualModelPersistenceError(
-                "AnalyticsBuildRun source_cutoff date is after analysis calendar end: "
-                f"{cutoff_date} > {overall_analysis_end}"
-            )
-
-    # 7. Determine prediction as-of contract: earliest arrival_local_date.
-    # arrival_local_date represents forecast target dates; we use the earliest
-    # as a proxy for the as-of contract to ensure cutoff is not in the future
-    # relative to the prediction context.
-    earliest_arrival: date | None = None
-    for row in prediction_rows:
-        if isinstance(row, dict):
-            row_date = row.get("arrival_local_date")
-        else:
-            row_date = row.arrival_local_date
-        if isinstance(row_date, date):
-            if earliest_arrival is None or row_date < earliest_arrival:
-                earliest_arrival = row_date
-
-    # source_cutoff must not be later than prediction as-of contract
-    if earliest_arrival is not None:
-        cutoff_date = snapshot_cutoff.date()
-        if cutoff_date > earliest_arrival:
-            raise ResidualModelPersistenceError(
-                "AnalyticsBuildRun source_cutoff is later than prediction as-of contract: "
-                f"source_cutoff date {cutoff_date} > earliest arrival {earliest_arrival}"
-            )
+        factory_coverages[pm.factory_id] = (
+            pm.analysis_start_date,
+            pm.analysis_end_date,
+        )
 
     # 5: Destination factory in frozen coverage (uses ONLY FactorySeasonPeakMetric,
     #    not the mutable Factory master table)
-    for row in prediction_rows:
+    for row in normalized_prediction_rows:
         if isinstance(row, dict):
             factory_id = row.get("destination_factory_id")
         else:
-            factory_id = row.destination_factory_id
+            factory_id = cast(
+                ResidualPredictionRow | ResidualModelPredictionRow,
+                row,
+            ).destination_factory_id
 
         if factory_id is None:
             continue
@@ -382,6 +367,62 @@ async def _verify_task3_authority(
                 f"Destination factory {factory_id} is not in AnalyticsBuildRun "
                 f"{build_run_id} frozen factory coverage"
             )
+
+    feature_rows = input_snapshot.get("feature_rows")
+    if not isinstance(feature_rows, list):
+        return build_run
+
+    for row_index, feature_row in enumerate(feature_rows):
+        if row_index >= len(normalized_prediction_rows) or not isinstance(feature_row, list):
+            continue
+        prediction_row = normalized_prediction_rows[row_index]
+        destination_factory_id = (
+            prediction_row.get("destination_factory_id")
+            if isinstance(prediction_row, dict)
+            else cast(
+                ResidualPredictionRow | ResidualModelPredictionRow,
+                prediction_row,
+            ).destination_factory_id
+        )
+        if not isinstance(destination_factory_id, int):
+            continue
+        coverage = factory_coverages.get(destination_factory_id)
+        if coverage is None:
+            continue
+        analysis_start_date, analysis_end_date = coverage
+        for feature_value in feature_row:
+            if not isinstance(feature_value, dict):
+                continue
+            source_ref = feature_value.get("source_ref")
+            if not isinstance(source_ref, dict):
+                continue
+            if source_ref.get("analytics_build_run_id") != build_run_id:
+                continue
+            observation_date_raw = feature_value.get("observation_date")
+            observed_value = feature_value.get("value")
+            if observed_value is None or observation_date_raw is None:
+                continue
+            if not isinstance(observation_date_raw, str):
+                raise ResidualModelPersistenceError(
+                    "Task 3 authority binding: invalid observation_date payload"
+                )
+            try:
+                observation_date = date.fromisoformat(observation_date_raw)
+            except ValueError as exc:
+                raise ResidualModelPersistenceError(
+                    "Task 3 authority binding: invalid observation_date payload"
+                ) from exc
+            if (
+                observation_date < analysis_start_date
+                or observation_date > analysis_end_date
+            ):
+                raise ResidualModelPersistenceError(
+                    "AnalyticsBuildRun observation date is outside frozen factory coverage"
+                )
+            if observation_date > snapshot_cutoff.date():
+                raise ResidualModelPersistenceError(
+                    "AnalyticsBuildRun observation date is after source_cutoff"
+                )
 
     return build_run
 
