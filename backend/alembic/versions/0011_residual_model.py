@@ -91,6 +91,42 @@ def upgrade() -> None:
             name="ck_residual_model_training_run_eligibility_status",
         ),
         sa.CheckConstraint(
+            "sample_count >= 0",
+            name="ck_residual_model_training_run_sample_count",
+        ),
+        sa.CheckConstraint(
+            "distinct_season_count >= 0",
+            name="ck_residual_model_training_run_season_count",
+        ),
+        sa.CheckConstraint(
+            "distinct_factory_count >= 0",
+            name="ck_residual_model_training_run_factory_count",
+        ),
+        sa.CheckConstraint(
+            "manifest_row_count >= 0",
+            name="ck_residual_model_training_run_manifest_row_count",
+        ),
+        sa.CheckConstraint(
+            "expected_artifact_count >= 0",
+            name="ck_residual_model_training_run_expected_artifact_count",
+        ),
+        sa.CheckConstraint(
+            "(execution_status != 'completed' OR eligibility_status != 'eligible' OR expected_artifact_count = 3)",
+            name="ck_residual_model_training_run_completed_eligible_artifacts",
+        ),
+        sa.CheckConstraint(
+            "(execution_status != 'completed' OR eligibility_status != 'ineligible' OR expected_artifact_count = 0)",
+            name="ck_residual_model_training_run_completed_ineligible_artifacts",
+        ),
+        sa.CheckConstraint(
+            "(execution_status NOT IN ('blocked', 'failed') OR expected_artifact_count = 0)",
+            name="ck_residual_model_training_run_blocked_failed_artifacts",
+        ),
+        sa.CheckConstraint(
+            "(eligibility_status != 'eligible' OR execution_status = 'completed')",
+            name="ck_residual_model_training_run_eligible_only_when_completed",
+        ),
+        sa.CheckConstraint(
             _sha256_check_sql("training_signature"),
             name="ck_residual_model_training_run_signature",
         ),
@@ -278,6 +314,30 @@ def upgrade() -> None:
             name="ck_residual_model_artifact_quantile_label",
         ),
         sa.CheckConstraint(
+            "artifact_format in ('joblib_bundle')",
+            name="ck_residual_model_artifact_format",
+        ),
+        sa.CheckConstraint(
+            "estimator_type in ('HistGradientBoostingRegressor')",
+            name="ck_residual_model_artifact_estimator_type",
+        ),
+        sa.CheckConstraint(
+            "loss_name in ('quantile')",
+            name="ck_residual_model_artifact_loss_name",
+        ),
+        sa.CheckConstraint(
+            "trusted_internal_source = true",
+            name="ck_residual_model_artifact_trusted_source",
+        ),
+        sa.CheckConstraint(
+            sa.text(
+                "(quantile_label = 'P50' AND quantile_value = 0.5000) OR "
+                "(quantile_label = 'P80' AND quantile_value = 0.8000) OR "
+                "(quantile_label = 'P90' AND quantile_value = 0.9000)"
+            ),
+            name="ck_residual_model_artifact_quantile_value",
+        ),
+        sa.CheckConstraint(
             _sha256_check_sql("artifact_sha256"),
             name="ck_residual_model_artifact_sha256",
         ),
@@ -352,6 +412,22 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "mode in ('residual_corrected', 'structural_only', 'blocked')",
             name="ck_residual_model_prediction_run_mode",
+        ),
+        sa.CheckConstraint(
+            "expected_prediction_row_count >= 0",
+            name="ck_residual_model_prediction_run_row_count",
+        ),
+        sa.CheckConstraint(
+            "(execution_status != 'blocked' OR expected_prediction_row_count = 0)",
+            name="ck_residual_model_prediction_run_blocked_zero",
+        ),
+        sa.CheckConstraint(
+            sa.text(
+                "(execution_status != 'completed' OR "
+                "mode != 'structural_only' OR "
+                "fallback_reason IS NOT NULL)"
+            ),
+            name="ck_residual_model_prediction_run_structural_fallback",
         ),
         sa.CheckConstraint(
             _sha256_check_sql("task9_result_hash"),
@@ -451,6 +527,18 @@ def upgrade() -> None:
         sa.CheckConstraint(
             _sha256_check_sql("prediction_row_hash"),
             name="ck_residual_model_prediction_row_hash",
+        ),
+        sa.CheckConstraint(
+            "mode in ('residual_corrected', 'structural_only', 'blocked')",
+            name="ck_residual_model_prediction_row_mode",
+        ),
+        sa.CheckConstraint(
+            "(mode != 'structural_only' OR fallback_reason IS NOT NULL)",
+            name="ck_residual_model_prediction_row_structural_fallback",
+        ),
+        sa.CheckConstraint(
+            "(mode != 'residual_corrected' OR fallback_reason IS NULL)",
+            name="ck_residual_model_prediction_row_corrected_no_fallback",
         ),
         sa.CheckConstraint(
             "corrected_p50_kg >= 0 and corrected_p80_kg >= 0 and corrected_p90_kg >= 0",

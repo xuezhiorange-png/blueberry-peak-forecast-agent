@@ -1211,11 +1211,13 @@ CREATE INDEX IF NOT EXISTS ix_harvest_state_future_arrival_run_id
 ON harvest_state_future_arrival_row (harvest_state_run_id);
 
 CREATE TABLE IF NOT EXISTS residual_model_training_run (
-  id BIGSERIAL PRIMARY KEY,
-  status TEXT NOT NULL,
+  id BIGSERIAL CONSTRAINT pk_residual_model_training_run PRIMARY KEY,
+  execution_status TEXT NOT NULL,
+  eligibility_status TEXT NOT NULL,
   model_family TEXT NOT NULL,
   model_version TEXT NOT NULL,
   feature_schema_version TEXT NOT NULL,
+  feature_schema_hash TEXT NOT NULL,
   artifact_schema_version TEXT NOT NULL,
   training_signature TEXT NOT NULL,
   config_hash TEXT NOT NULL,
@@ -1223,10 +1225,13 @@ CREATE TABLE IF NOT EXISTS residual_model_training_run (
   manifest_hash TEXT NOT NULL,
   manifest_snapshot JSONB NOT NULL,
   feature_audit_summary JSONB NOT NULL,
-  metrics JSONB NOT NULL,
+  category_encoding_snapshot JSONB NOT NULL,
+  training_metrics JSONB NOT NULL,
+  validation_metrics JSONB NOT NULL,
   eligibility_reasons JSONB NOT NULL,
   warnings JSONB NOT NULL,
   blockers JSONB NOT NULL,
+  fallback_reason TEXT,
   input_snapshot JSONB NOT NULL,
   canonical_output JSONB NOT NULL,
   canonical_payload_hash TEXT NOT NULL,
@@ -1234,13 +1239,26 @@ CREATE TABLE IF NOT EXISTS residual_model_training_run (
   distinct_season_count BIGINT NOT NULL DEFAULT 0,
   distinct_factory_count BIGINT NOT NULL DEFAULT 0,
   manifest_row_count BIGINT NOT NULL DEFAULT 0,
-  artifact_count BIGINT NOT NULL DEFAULT 0,
+  expected_artifact_count BIGINT NOT NULL DEFAULT 0,
+  python_version TEXT NOT NULL,
+  numpy_version TEXT NOT NULL,
+  sklearn_version TEXT NOT NULL,
   started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  completed_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   error_message TEXT,
   typed_attempt JSONB,
-  CONSTRAINT ck_residual_model_training_run_status CHECK (status IN ('completed_eligible', 'completed_ineligible', 'blocked', 'failed')),
+  CONSTRAINT ck_residual_model_training_run_execution_status CHECK (execution_status IN ('running', 'completed', 'blocked', 'failed')),
+  CONSTRAINT ck_residual_model_training_run_eligibility_status CHECK (eligibility_status IN ('not_evaluated', 'eligible', 'ineligible')),
+  CONSTRAINT ck_residual_model_training_run_sample_count CHECK (sample_count >= 0),
+  CONSTRAINT ck_residual_model_training_run_season_count CHECK (distinct_season_count >= 0),
+  CONSTRAINT ck_residual_model_training_run_factory_count CHECK (distinct_factory_count >= 0),
+  CONSTRAINT ck_residual_model_training_run_manifest_row_count CHECK (manifest_row_count >= 0),
+  CONSTRAINT ck_residual_model_training_run_expected_artifact_count CHECK (expected_artifact_count >= 0),
+  CONSTRAINT ck_residual_model_training_run_completed_eligible_artifacts CHECK ((execution_status != 'completed' OR eligibility_status != 'eligible' OR expected_artifact_count = 3)),
+  CONSTRAINT ck_residual_model_training_run_completed_ineligible_artifacts CHECK ((execution_status != 'completed' OR eligibility_status != 'ineligible' OR expected_artifact_count = 0)),
+  CONSTRAINT ck_residual_model_training_run_blocked_failed_artifacts CHECK ((execution_status NOT IN ('blocked', 'failed') OR expected_artifact_count = 0)),
+  CONSTRAINT ck_residual_model_training_run_eligible_only_when_completed CHECK ((eligibility_status != 'eligible' OR execution_status = 'completed')),
   CONSTRAINT ck_residual_model_training_run_signature CHECK (
     length(training_signature) = 64
     AND lower(training_signature) = training_signature
@@ -1256,6 +1274,11 @@ CREATE TABLE IF NOT EXISTS residual_model_training_run (
     AND lower(manifest_hash) = manifest_hash
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(manifest_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
+  CONSTRAINT ck_residual_model_training_run_feature_schema_hash CHECK (
+    length(feature_schema_hash) = 64
+    AND lower(feature_schema_hash) = feature_schema_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(feature_schema_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
   CONSTRAINT ck_residual_model_training_run_payload_hash CHECK (
     length(canonical_payload_hash) = 64
     AND lower(canonical_payload_hash) = canonical_payload_hash
@@ -1264,11 +1287,13 @@ CREATE TABLE IF NOT EXISTS residual_model_training_run (
   CONSTRAINT uq_residual_model_training_run_signature UNIQUE (training_signature)
 );
 
-CREATE INDEX IF NOT EXISTS ix_residual_model_training_run_status
-ON residual_model_training_run (status);
+CREATE INDEX IF NOT EXISTS ix_residual_model_training_run_execution_status
+ON residual_model_training_run (execution_status);
+CREATE INDEX IF NOT EXISTS ix_residual_model_training_run_eligibility_status
+ON residual_model_training_run (eligibility_status);
 
 CREATE TABLE IF NOT EXISTS residual_model_manifest_row (
-  id BIGSERIAL PRIMARY KEY,
+  id BIGSERIAL CONSTRAINT pk_residual_model_manifest_row PRIMARY KEY,
   training_run_id BIGINT NOT NULL,
   row_index BIGINT NOT NULL,
   split TEXT NOT NULL,
@@ -1280,13 +1305,22 @@ CREATE TABLE IF NOT EXISTS residual_model_manifest_row (
   as_of_date DATE NOT NULL,
   target_arrival_local_date DATE NOT NULL,
   forecast_horizon_days BIGINT NOT NULL,
-  analytics_build_run_id BIGINT NOT NULL,
-  actual_source_cutoff TIMESTAMPTZ NOT NULL,
+  label_analytics_build_run_id BIGINT NOT NULL,
+  label_actual_source_max_raw_id BIGINT NOT NULL,
+  label_actual_aggregation_version TEXT NOT NULL,
+  label_actual_config_hash TEXT NOT NULL,
+  label_actual_source_cutoff TIMESTAMPTZ NOT NULL,
+  feature_analytics_build_run_id BIGINT NOT NULL,
+  feature_actual_source_max_raw_id BIGINT NOT NULL,
+  feature_actual_aggregation_version TEXT NOT NULL,
+  feature_actual_config_hash TEXT NOT NULL,
+  feature_actual_source_cutoff TIMESTAMPTZ NOT NULL,
   observed_effective_receipt_kg NUMERIC(18,6) NOT NULL,
   structural_p50_kg NUMERIC(18,6) NOT NULL,
   structural_p80_kg NUMERIC(18,6) NOT NULL,
   structural_p90_kg NUMERIC(18,6) NOT NULL,
   residual_label_kg NUMERIC(18,6) NOT NULL,
+  sample_weight NUMERIC(18,6) NOT NULL,
   feature_vector_hash TEXT NOT NULL,
   feature_visibility_audit_hash TEXT NOT NULL,
   exclusion_reason TEXT,
@@ -1308,13 +1342,25 @@ CREATE TABLE IF NOT EXISTS residual_model_manifest_row (
     AND lower(feature_visibility_audit_hash) = feature_visibility_audit_hash
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(feature_visibility_audit_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
+  CONSTRAINT ck_residual_model_manifest_row_label_config_hash CHECK (
+    length(label_actual_config_hash) = 64
+    AND lower(label_actual_config_hash) = label_actual_config_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(label_actual_config_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_residual_model_manifest_row_feature_config_hash CHECK (
+    length(feature_actual_config_hash) = 64
+    AND lower(feature_actual_config_hash) = feature_actual_config_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(feature_actual_config_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
   CONSTRAINT ck_residual_model_manifest_row_row_index CHECK (row_index > 0),
   CONSTRAINT ck_residual_model_manifest_row_forecast_horizon CHECK (forecast_horizon_days >= 0),
+  CONSTRAINT ck_residual_model_manifest_row_sample_weight CHECK (sample_weight >= 0),
   CONSTRAINT fk_residual_model_manifest_row_training_run_id FOREIGN KEY (training_run_id) REFERENCES residual_model_training_run(id) ON DELETE RESTRICT,
   CONSTRAINT fk_residual_model_manifest_row_season_id FOREIGN KEY (season_id) REFERENCES dim_season(id) ON DELETE RESTRICT,
   CONSTRAINT fk_residual_model_manifest_row_factory_id FOREIGN KEY (destination_factory_id) REFERENCES dim_factory(id) ON DELETE RESTRICT,
   CONSTRAINT fk_residual_model_manifest_row_task9_run_id FOREIGN KEY (task9_run_id) REFERENCES harvest_state_run(id) ON DELETE RESTRICT,
-  CONSTRAINT fk_residual_model_manifest_row_analytics_build_run_id FOREIGN KEY (analytics_build_run_id) REFERENCES analytics_build_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_manifest_row_label_analytics_build_run_id FOREIGN KEY (label_analytics_build_run_id) REFERENCES analytics_build_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_manifest_row_feature_analytics_build_run_id FOREIGN KEY (feature_analytics_build_run_id) REFERENCES analytics_build_run(id) ON DELETE RESTRICT,
   CONSTRAINT uq_residual_model_manifest_row_run_index UNIQUE (training_run_id, row_index)
 );
 
@@ -1322,26 +1368,52 @@ CREATE INDEX IF NOT EXISTS ix_residual_model_manifest_row_run_id
 ON residual_model_manifest_row (training_run_id);
 
 CREATE TABLE IF NOT EXISTS residual_model_artifact (
-  id BIGSERIAL PRIMARY KEY,
+  id BIGSERIAL CONSTRAINT pk_residual_model_artifact PRIMARY KEY,
   training_run_id BIGINT NOT NULL,
-  quantile TEXT NOT NULL,
+  quantile_label TEXT NOT NULL,
   artifact_format TEXT NOT NULL,
   artifact_schema_version TEXT NOT NULL,
+  estimator_type TEXT NOT NULL,
+  loss_name TEXT NOT NULL,
+  quantile_value NUMERIC(6,4) NOT NULL,
   artifact_bytes BYTEA NOT NULL,
   artifact_sha256 TEXT NOT NULL,
+  feature_schema_version TEXT NOT NULL,
+  feature_schema_hash TEXT NOT NULL,
+  config_hash TEXT NOT NULL,
+  trusted_internal_source BOOLEAN NOT NULL DEFAULT true,
   metadata JSONB NOT NULL,
   python_version TEXT NOT NULL,
   numpy_version TEXT NOT NULL,
   sklearn_version TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT ck_residual_model_artifact_quantile CHECK (quantile IN ('P50', 'P80', 'P90')),
+  CONSTRAINT ck_residual_model_artifact_quantile_label CHECK (quantile_label IN ('P50', 'P80', 'P90')),
+  CONSTRAINT ck_residual_model_artifact_format CHECK (artifact_format IN ('joblib_bundle')),
+  CONSTRAINT ck_residual_model_artifact_estimator_type CHECK (estimator_type IN ('HistGradientBoostingRegressor')),
+  CONSTRAINT ck_residual_model_artifact_loss_name CHECK (loss_name IN ('quantile')),
+  CONSTRAINT ck_residual_model_artifact_trusted_source CHECK (trusted_internal_source = true),
+  CONSTRAINT ck_residual_model_artifact_quantile_value CHECK (
+    (quantile_label = 'P50' AND quantile_value = 0.5000) OR
+    (quantile_label = 'P80' AND quantile_value = 0.8000) OR
+    (quantile_label = 'P90' AND quantile_value = 0.9000)
+  ),
   CONSTRAINT ck_residual_model_artifact_sha256 CHECK (
     length(artifact_sha256) = 64
     AND lower(artifact_sha256) = artifact_sha256
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(artifact_sha256, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
+  CONSTRAINT ck_residual_model_artifact_feature_schema_hash CHECK (
+    length(feature_schema_hash) = 64
+    AND lower(feature_schema_hash) = feature_schema_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(feature_schema_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
+  CONSTRAINT ck_residual_model_artifact_config_hash CHECK (
+    length(config_hash) = 64
+    AND lower(config_hash) = config_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(config_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
   CONSTRAINT fk_residual_model_artifact_training_run_id FOREIGN KEY (training_run_id) REFERENCES residual_model_training_run(id) ON DELETE RESTRICT,
-  CONSTRAINT uq_residual_model_artifact_run_quantile UNIQUE (training_run_id, quantile),
+  CONSTRAINT uq_residual_model_artifact_run_quantile UNIQUE (training_run_id, quantile_label),
   CONSTRAINT uq_residual_model_artifact_sha256 UNIQUE (artifact_sha256)
 );
 
@@ -1349,27 +1421,35 @@ CREATE INDEX IF NOT EXISTS ix_residual_model_artifact_training_run_id
 ON residual_model_artifact (training_run_id);
 
 CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
-  id BIGSERIAL PRIMARY KEY,
+  id BIGSERIAL CONSTRAINT pk_residual_model_prediction_run PRIMARY KEY,
   training_run_id BIGINT,
   task9_run_id BIGINT NOT NULL,
   task9_result_hash TEXT NOT NULL,
-  status TEXT NOT NULL,
+  execution_status TEXT NOT NULL,
+  mode TEXT NOT NULL,
   config_hash TEXT NOT NULL,
+  feature_schema_version TEXT NOT NULL,
+  feature_schema_hash TEXT NOT NULL,
+  artifact_hashes JSONB NOT NULL,
   prediction_input_signature TEXT NOT NULL,
   prediction_hash TEXT NOT NULL,
   feature_audit JSONB NOT NULL,
   warnings JSONB NOT NULL,
   blockers JSONB NOT NULL,
   fallback_reason TEXT,
+  expected_prediction_row_count BIGINT NOT NULL DEFAULT 0,
   input_snapshot JSONB NOT NULL,
   canonical_output JSONB NOT NULL,
   canonical_payload_hash TEXT NOT NULL,
-  row_count BIGINT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at TIMESTAMPTZ,
   error_message TEXT,
   typed_attempt JSONB,
-  CONSTRAINT ck_residual_model_prediction_run_status CHECK (status IN ('residual_corrected', 'structural_only', 'blocked')),
+  CONSTRAINT ck_residual_model_prediction_run_execution_status CHECK (execution_status IN ('completed', 'blocked', 'failed')),
+  CONSTRAINT ck_residual_model_prediction_run_mode CHECK (mode IN ('residual_corrected', 'structural_only', 'blocked')),
+  CONSTRAINT ck_residual_model_prediction_run_row_count CHECK (expected_prediction_row_count >= 0),
+  CONSTRAINT ck_residual_model_prediction_run_blocked_zero CHECK ((execution_status != 'blocked' OR expected_prediction_row_count = 0)),
+  CONSTRAINT ck_residual_model_prediction_run_structural_fallback CHECK ((execution_status != 'completed' OR mode != 'structural_only' OR fallback_reason IS NOT NULL)),
   CONSTRAINT ck_residual_model_prediction_run_task9_hash CHECK (
     length(task9_result_hash) = 64
     AND lower(task9_result_hash) = task9_result_hash
@@ -1380,10 +1460,15 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
     AND lower(config_hash) = config_hash
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(config_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
+  CONSTRAINT ck_residual_model_prediction_run_feature_schema_hash CHECK (
+    length(feature_schema_hash) = 64
+    AND lower(feature_schema_hash) = feature_schema_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(feature_schema_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  ),
   CONSTRAINT ck_residual_model_prediction_run_input_signature CHECK (
-    length(input_hash) = 64
-    AND lower(input_hash) = input_hash
-    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(input_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+    length(prediction_input_signature) = 64
+    AND lower(prediction_input_signature) = prediction_input_signature
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(prediction_input_signature, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
   CONSTRAINT ck_residual_model_prediction_run_prediction_hash CHECK (
     length(prediction_hash) = 64
@@ -1400,13 +1485,13 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
   CONSTRAINT uq_residual_model_prediction_run_input_signature UNIQUE (prediction_input_signature)
 );
 
-CREATE INDEX IF NOT EXISTS ix_residual_model_prediction_run_status
-ON residual_model_prediction_run (status);
+CREATE INDEX IF NOT EXISTS ix_residual_model_prediction_run_execution_status
+ON residual_model_prediction_run (execution_status);
 CREATE INDEX IF NOT EXISTS ix_residual_model_prediction_run_task9_run_id
 ON residual_model_prediction_run (task9_run_id);
 
 CREATE TABLE IF NOT EXISTS residual_model_prediction_row (
-  id BIGSERIAL PRIMARY KEY,
+  id BIGSERIAL CONSTRAINT pk_residual_model_prediction_row PRIMARY KEY,
   prediction_run_id BIGINT NOT NULL,
   model_run_id BIGINT,
   task9_run_id BIGINT NOT NULL,
@@ -1414,18 +1499,18 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_row (
   destination_factory_id BIGINT NOT NULL,
   arrival_local_date DATE NOT NULL,
   forecast_horizon_days BIGINT NOT NULL,
-  structural_p50_kg NUMERIC(18,3) NOT NULL,
-  structural_p80_kg NUMERIC(18,3) NOT NULL,
-  structural_p90_kg NUMERIC(18,3) NOT NULL,
-  raw_residual_p50_kg NUMERIC(18,3) NOT NULL,
-  raw_residual_p80_kg NUMERIC(18,3) NOT NULL,
-  raw_residual_p90_kg NUMERIC(18,3) NOT NULL,
-  corrected_raw_p50_kg NUMERIC(18,3) NOT NULL,
-  corrected_raw_p80_kg NUMERIC(18,3) NOT NULL,
-  corrected_raw_p90_kg NUMERIC(18,3) NOT NULL,
-  corrected_p50_kg NUMERIC(18,3) NOT NULL,
-  corrected_p80_kg NUMERIC(18,3) NOT NULL,
-  corrected_p90_kg NUMERIC(18,3) NOT NULL,
+  structural_p50_kg NUMERIC(18,6) NOT NULL,
+  structural_p80_kg NUMERIC(18,6) NOT NULL,
+  structural_p90_kg NUMERIC(18,6) NOT NULL,
+  raw_residual_p50_kg NUMERIC(18,6) NOT NULL,
+  raw_residual_p80_kg NUMERIC(18,6) NOT NULL,
+  raw_residual_p90_kg NUMERIC(18,6) NOT NULL,
+  corrected_raw_p50_kg NUMERIC(18,6) NOT NULL,
+  corrected_raw_p80_kg NUMERIC(18,6) NOT NULL,
+  corrected_raw_p90_kg NUMERIC(18,6) NOT NULL,
+  corrected_p50_kg NUMERIC(18,6) NOT NULL,
+  corrected_p80_kg NUMERIC(18,6) NOT NULL,
+  corrected_p90_kg NUMERIC(18,6) NOT NULL,
   nonnegative_projection_applied BOOLEAN NOT NULL,
   quantile_projection_applied BOOLEAN NOT NULL,
   projection_reasons JSONB NOT NULL,
@@ -1449,11 +1534,14 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_row (
     AND lower(feature_audit_hash) = feature_audit_hash
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(feature_audit_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
-  CONSTRAINT ck_residual_model_prediction_row_prediction_hash CHECK (
-    length(prediction_hash) = 64
-    AND lower(prediction_hash) = prediction_hash
-    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(prediction_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
+  CONSTRAINT ck_residual_model_prediction_row_hash CHECK (
+    length(prediction_row_hash) = 64
+    AND lower(prediction_row_hash) = prediction_row_hash
+    AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(prediction_row_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
+  CONSTRAINT ck_residual_model_prediction_row_mode CHECK (mode IN ('residual_corrected', 'structural_only', 'blocked')),
+  CONSTRAINT ck_residual_model_prediction_row_structural_fallback CHECK ((mode != 'structural_only' OR fallback_reason IS NOT NULL)),
+  CONSTRAINT ck_residual_model_prediction_row_corrected_no_fallback CHECK ((mode != 'residual_corrected' OR fallback_reason IS NULL)),
   CONSTRAINT ck_residual_model_prediction_row_nonnegative CHECK (corrected_p50_kg >= 0 AND corrected_p80_kg >= 0 AND corrected_p90_kg >= 0),
   CONSTRAINT ck_residual_model_prediction_row_monotonic CHECK (corrected_p50_kg <= corrected_p80_kg AND corrected_p80_kg <= corrected_p90_kg),
   CONSTRAINT ck_residual_model_prediction_row_forecast_horizon CHECK (forecast_horizon_days >= 0),

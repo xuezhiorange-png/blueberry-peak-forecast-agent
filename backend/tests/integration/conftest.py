@@ -9,7 +9,6 @@ from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
 _MASTER_DATA_TABLES = (
     "residual_model_prediction_row",
     "residual_model_prediction_run",
-    "residual_model_metric",
     "residual_model_artifact",
     "residual_model_manifest_row",
     "residual_model_training_run",
