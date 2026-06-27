@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import JSON, Integer, text
@@ -84,6 +85,30 @@ async def sqlite_session_with_task3() -> AsyncSession:
     async with sessionmaker() as session:
         yield session
     await engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def stub_task9_authority(monkeypatch: pytest.MonkeyPatch) -> dict[int, str]:
+    authority_hashes = {
+        10: "c" * 64,
+        11: "c" * 64,
+    }
+
+    async def _fake_load_harvest_state_output_by_id(
+        session: AsyncSession,
+        *,
+        run_id: int,
+    ) -> object | None:
+        result_hash = authority_hashes.get(run_id)
+        if result_hash is None:
+            return None
+        return SimpleNamespace(status="completed", result_hash=result_hash)
+
+    monkeypatch.setattr(
+        "backend.app.residual_model.persistence.load_harvest_state_output_by_id",
+        _fake_load_harvest_state_output_by_id,
+    )
+    return authority_hashes
 
 
 # ── 1. Prediction parent + canonical output + payload hash all modified ──
