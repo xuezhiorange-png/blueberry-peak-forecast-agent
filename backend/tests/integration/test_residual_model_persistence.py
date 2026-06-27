@@ -88,6 +88,9 @@ async def _seed_prediction_fixture() -> dict[str, int]:
             source_max_raw_id=100,
             config_hash="a" * 64,
             finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+            covered_factory_ids=(factory_id,),
+            analysis_start_date=date(2026, 1, 1),
+            analysis_end_date=date(2026, 3, 20),
         )
         feature_build = await _seed_build_run(
             session,
@@ -96,6 +99,9 @@ async def _seed_prediction_fixture() -> dict[str, int]:
             source_max_raw_id=50,
             config_hash="b" * 64,
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+            covered_factory_ids=(factory_id,),
+            analysis_start_date=date(2026, 1, 1),
+            analysis_end_date=date(2026, 2, 27),
         )
         for index, target_date in enumerate(
             (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
@@ -216,6 +222,10 @@ async def test_postgres_execute_residual_training_completed_eligible_round_trip(
         )
         loaded = await load_residual_training_run_by_id(session, run_id=training_run_id)
 
+        assert training_result.blockers == ()
+        assert (
+            training_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
+        )
         assert training_result.execution_status == "completed"
         assert training_result.eligibility_status == "eligible"
         assert loaded is not None

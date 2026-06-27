@@ -29,7 +29,10 @@ from backend.app.repositories.residual_model import (
     list_residual_manifest_rows,
     list_residual_prediction_rows,
 )
-from backend.app.residual_model.canonical import canonical_payload_hash
+from backend.app.residual_model.canonical import (
+    canonical_payload_hash,
+    prediction_input_signature_hash,
+)
 from backend.app.residual_model.manifest import manifest_hash, manifest_row_payload
 from backend.app.residual_model.schemas import (
     FeatureValue,
@@ -93,7 +96,36 @@ def _prediction_payload_hash(result: ResidualPredictionExecutionResult) -> str:
 
 
 def _prediction_input_signature(result: ResidualPredictionExecutionResult) -> str:
-    return result.prediction_input_signature
+    snapshot = result.input_snapshot
+    return prediction_input_signature_hash(
+        model_run_id=result.model_run_id,
+        training_signature=cast(str, snapshot["training_signature"]),
+        task9_run_id=cast(int, result.task9_run_id),
+        task9_result_hash=cast(str, result.task9_result_hash),
+        feature_analytics_build_run_id=cast(
+            int | None,
+            snapshot.get("feature_analytics_build_run_id"),
+        ),
+        feature_actual_snapshot=cast(
+            dict[str, Any] | None,
+            snapshot.get("feature_actual_snapshot"),
+        ),
+        supplemental_feature_values=cast(
+            list[object],
+            snapshot.get("supplemental_feature_values", []),
+        ),
+        feature_audit_hashes=cast(
+            list[str],
+            snapshot.get("feature_audit_hashes", []),
+        ),
+        feature_rows=cast(list[object], snapshot.get("feature_rows", [])),
+        artifact_hashes=cast(list[str], snapshot.get("artifact_hashes", [])),
+        config_hash=result.config_hash,
+        feature_schema_version=cast(str, snapshot["feature_schema_version"]),
+        feature_schema_hash=cast(str, snapshot["feature_schema_hash"]),
+        projection_version=cast(str, snapshot["projection_version"]),
+        fallback_policy_version=cast(str, snapshot["fallback_policy"]),
+    )
 
 
 def _training_storage_payload(result: ResidualTrainingExecutionResult) -> dict[str, Any]:
@@ -225,19 +257,31 @@ def training_parent_payload_from_columns(
                 "model_family": run.model_family,
                 "model_version": run.model_version,
                 "feature_schema_version": run.feature_schema_version,
+                "feature_schema_hash": run.feature_schema_hash,
                 "artifact_schema_version": run.artifact_schema_version,
                 "training_signature": run.training_signature,
                 "config_hash": run.config_hash,
+                "config_snapshot": run.config_snapshot,
                 "manifest_hash": run.manifest_hash,
+                "manifest_snapshot": run.manifest_snapshot,
                 "sample_count": run.sample_count,
                 "distinct_season_count": run.distinct_season_count,
                 "distinct_factory_count": run.distinct_factory_count,
+                "manifest_row_count": run.manifest_row_count,
+                "expected_artifact_count": run.expected_artifact_count,
                 "warnings": run.warnings,
                 "blockers": run.blockers,
                 "feature_audit_summary": run.feature_audit_summary,
                 "metrics": run.training_metrics,
+                "validation_metrics": run.validation_metrics,
+                "category_encoding_snapshot": run.category_encoding_snapshot,
                 "eligibility_reasons": run.eligibility_reasons,
                 "input_snapshot": run.input_snapshot,
+                "python_version": run.python_version,
+                "numpy_version": run.numpy_version,
+                "sklearn_version": run.sklearn_version,
+                "fallback_reason": run.fallback_reason,
+                "error_message": run.error_message,
             }
         ),
     )
@@ -256,12 +300,17 @@ def prediction_parent_payload_from_columns(
                 "task9_run_id": run.task9_run_id,
                 "task9_result_hash": run.task9_result_hash,
                 "config_hash": run.config_hash,
+                "feature_schema_version": run.feature_schema_version,
+                "feature_schema_hash": run.feature_schema_hash,
+                "artifact_hashes": run.artifact_hashes,
                 "prediction_input_signature": run.prediction_input_signature,
                 "prediction_hash": run.prediction_hash,
                 "warnings": run.warnings,
                 "blockers": run.blockers,
                 "fallback_reason": run.fallback_reason,
+                "expected_prediction_row_count": run.expected_prediction_row_count,
                 "input_snapshot": run.input_snapshot,
+                "error_message": run.error_message,
             }
         ),
     )
@@ -490,6 +539,10 @@ async def load_residual_training_run_by_id(
     if run.execution_status == "completed" and run.eligibility_status == "eligible":
         artifacts = await load_residual_training_artifacts(session, run_id=run_id)
     else:
+        if await list_residual_artifacts(session, training_run_id=run_id):
+            raise ResidualModelPersistenceIntegrityError(
+                "non-eligible training run contains unexpected artifacts"
+            )
         artifacts = ()
     if len(manifest_rows) != run.manifest_row_count:
         raise ResidualModelPersistenceIntegrityError("manifest row count mismatch")
@@ -531,19 +584,31 @@ async def load_residual_training_run_by_id(
                 "model_family": loaded.model_family,
                 "model_version": loaded.model_version,
                 "feature_schema_version": loaded.feature_schema_version,
+                "feature_schema_hash": run.feature_schema_hash,
                 "artifact_schema_version": loaded.artifact_schema_version,
                 "training_signature": loaded.training_signature,
                 "config_hash": loaded.config_hash,
+                "config_snapshot": run.config_snapshot,
                 "manifest_hash": loaded.manifest_hash,
+                "manifest_snapshot": run.manifest_snapshot,
                 "sample_count": loaded.sample_count,
                 "distinct_season_count": loaded.distinct_season_count,
                 "distinct_factory_count": loaded.distinct_factory_count,
+                "manifest_row_count": run.manifest_row_count,
+                "expected_artifact_count": run.expected_artifact_count,
                 "warnings": list(loaded.warnings),
                 "blockers": list(loaded.blockers),
                 "feature_audit_summary": loaded.feature_audit_summary,
                 "metrics": loaded.metrics,
+                "validation_metrics": run.validation_metrics,
+                "category_encoding_snapshot": run.category_encoding_snapshot,
                 "eligibility_reasons": list(loaded.eligibility_reasons),
                 "input_snapshot": loaded.input_snapshot,
+                "python_version": run.python_version,
+                "numpy_version": run.numpy_version,
+                "sklearn_version": run.sklearn_version,
+                "fallback_reason": run.fallback_reason,
+                "error_message": run.error_message,
             }
         ),
     )
@@ -694,6 +759,37 @@ async def load_residual_prediction_run_by_id(
     rows = await list_residual_prediction_rows(session, prediction_run_id=run_id)
     if len(rows) != run.expected_prediction_row_count:
         raise ResidualModelPersistenceIntegrityError("prediction row count mismatch")
+    column_prediction_input_signature = prediction_input_signature_hash(
+        model_run_id=run.training_run_id,
+        training_signature=cast(str, run.input_snapshot["training_signature"]),
+        task9_run_id=run.task9_run_id,
+        task9_result_hash=run.task9_result_hash,
+        feature_analytics_build_run_id=cast(
+            int | None,
+            run.input_snapshot.get("feature_analytics_build_run_id"),
+        ),
+        feature_actual_snapshot=cast(
+            dict[str, Any] | None,
+            run.input_snapshot.get("feature_actual_snapshot"),
+        ),
+        supplemental_feature_values=cast(
+            list[object],
+            run.input_snapshot.get("supplemental_feature_values", []),
+        ),
+        feature_audit_hashes=cast(
+            list[str],
+            run.input_snapshot.get("feature_audit_hashes", []),
+        ),
+        feature_rows=cast(list[object], run.input_snapshot.get("feature_rows", [])),
+        artifact_hashes=cast(list[str], run.input_snapshot.get("artifact_hashes", [])),
+        config_hash=run.config_hash,
+        feature_schema_version=cast(str, run.input_snapshot["feature_schema_version"]),
+        feature_schema_hash=cast(str, run.input_snapshot["feature_schema_hash"]),
+        projection_version=cast(str, run.input_snapshot["projection_version"]),
+        fallback_policy_version=cast(str, run.input_snapshot["fallback_policy"]),
+    )
+    if column_prediction_input_signature != run.prediction_input_signature:
+        raise ResidualModelPersistenceIntegrityError("prediction input signature mismatch")
     seen_keys: set[tuple[int, Any]] = set()
     normalized_rows: list[dict[str, Any]] = []
     for row in rows:
@@ -753,12 +849,17 @@ async def load_residual_prediction_run_by_id(
                 "task9_run_id": loaded.task9_run_id,
                 "task9_result_hash": loaded.task9_result_hash,
                 "config_hash": loaded.config_hash,
+                "feature_schema_version": run.feature_schema_version,
+                "feature_schema_hash": run.feature_schema_hash,
+                "artifact_hashes": run.artifact_hashes,
                 "prediction_input_signature": loaded.prediction_input_signature,
                 "prediction_hash": loaded.prediction_hash,
                 "warnings": list(loaded.warnings),
                 "blockers": list(loaded.blockers),
                 "fallback_reason": loaded.fallback_reason,
+                "expected_prediction_row_count": run.expected_prediction_row_count,
                 "input_snapshot": loaded.input_snapshot,
+                "error_message": run.error_message,
             }
         ),
     )
