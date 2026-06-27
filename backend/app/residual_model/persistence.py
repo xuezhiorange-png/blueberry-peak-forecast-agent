@@ -4,7 +4,7 @@ import hashlib
 import pickle
 import platform
 from collections.abc import Iterable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from io import BytesIO
 from typing import Any, cast
 
@@ -12,6 +12,7 @@ import joblib  # type: ignore[import-untyped]
 import numpy as np
 import sklearn
 from sklearn.ensemble import HistGradientBoostingRegressor
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +22,7 @@ from backend.app.harvest_state.canonical import (
     is_sha256_hex,
 )
 from backend.app.harvest_state.persistence import load_harvest_state_output_by_id
-from backend.app.models.analytics import AnalyticsBuildRun
+from backend.app.models.analytics import AnalyticsBuildRun, FactorySeasonPeakMetric
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelManifestRow,
@@ -194,6 +195,190 @@ def _validate_prediction_result(result: ResidualPredictionExecutionResult) -> No
         raise ResidualModelPersistenceError("prediction_hash must be canonical SHA-256")
     if result.execution_status == "blocked" and result.rows:
         raise ResidualModelPersistenceError("blocked prediction run must not contain rows")
+    if result.execution_status == "failed" and result.rows:
+        raise ResidualModelPersistenceError("failed prediction run must not contain rows")
+
+
+# ── Section 9: Task 3 authority binding ──────────────────────────────────────
+
+
+async def _verify_task3_authority(
+    session: AsyncSession,
+    *,
+    input_snapshot: dict[str, Any],
+    prediction_rows: Iterable[dict[str, Any]] | Iterable[ResidualPredictionRow] | Iterable[ResidualModelPredictionRow],
+) -> AnalyticsBuildRun:
+    """Verify full Task 3 authority binding for a prediction run.
+
+    Checks:
+      1. AnalyticsBuildRun exists, status == completed
+      2. season_id is valid
+      3. source_max_raw_id, aggregation_version, config_hash match
+      4. source_cutoff matches build_run.finished_at
+      5. For each prediction row: destination factory is in frozen coverage
+         (FactorySeasonPeakMetric) — reads ONLY frozen snapshot, NOT mutable master
+      6. Analysis calendar coverage is verified via the build's frozen metadata:
+         source_cutoff date falls within analysis_start_date .. analysis_end_date
+      7. source_cutoff date is not later than prediction as-of contract
+         (earliest arrival_local_date in rows)
+
+    Returns the verified AnalyticsBuildRun.
+    Raises ResidualModelPersistenceError on any mismatch.
+    """
+    feature_actual_snapshot = cast(
+        dict[str, Any] | None,
+        input_snapshot.get("feature_actual_snapshot"),
+    )
+    if feature_actual_snapshot is None:
+        raise ResidualModelPersistenceError(
+            "Task 3 authority binding: missing feature_actual_snapshot in input_snapshot"
+        )
+
+    build_run_id = feature_actual_snapshot.get("build_run_id")
+    if not isinstance(build_run_id, int):
+        raise ResidualModelPersistenceError(
+            "Task 3 authority binding: invalid build_run_id"
+        )
+
+    build_run = await session.get(AnalyticsBuildRun, build_run_id)
+    if build_run is None:
+        raise ResidualModelPersistenceError(
+            f"AnalyticsBuildRun {build_run_id} was not found"
+        )
+    if build_run.status != "completed":
+        raise ResidualModelPersistenceError(
+            f"AnalyticsBuildRun {build_run_id} must be completed, got {build_run.status}"
+        )
+
+    # 2. season_id — verify the build's season_id is valid
+    if not isinstance(build_run.season_id, int) or build_run.season_id <= 0:
+        raise ResidualModelPersistenceError(
+            "AnalyticsBuildRun has invalid season_id"
+        )
+
+    # 3. source_max_raw_id, aggregation_version, config_hash
+    if feature_actual_snapshot.get("source_max_raw_id") != build_run.source_max_raw_id:
+        raise ResidualModelPersistenceError(
+            "AnalyticsBuildRun source_max_raw_id authority mismatch"
+        )
+    if feature_actual_snapshot.get("aggregation_version") != build_run.aggregation_version:
+        raise ResidualModelPersistenceError(
+            "AnalyticsBuildRun aggregation_version authority mismatch"
+        )
+    if feature_actual_snapshot.get("config_hash") != build_run.config_hash:
+        raise ResidualModelPersistenceError(
+            "AnalyticsBuildRun config_hash authority mismatch"
+        )
+
+    # 4. source_cutoff — derive from build_run.finished_at
+    expected_cutoff = _build_source_cutoff(build_run)
+    snapshot_cutoff_raw = feature_actual_snapshot.get("source_cutoff")
+    if snapshot_cutoff_raw is not None:
+        try:
+            if isinstance(snapshot_cutoff_raw, str):
+                snapshot_cutoff = datetime.fromisoformat(snapshot_cutoff_raw)
+            else:
+                snapshot_cutoff = _aware_utc(cast(datetime, snapshot_cutoff_raw))
+        except Exception:
+            raise ResidualModelPersistenceError(
+                "AnalyticsBuildRun source_cutoff authority mismatch: invalid datetime"
+            ) from None
+        if snapshot_cutoff != expected_cutoff:
+            raise ResidualModelPersistenceError(
+                "AnalyticsBuildRun source_cutoff authority mismatch"
+            )
+    else:
+        raise ResidualModelPersistenceError(
+            "AnalyticsBuildRun source_cutoff authority mismatch: missing in snapshot"
+        )
+
+    # 5 + 6: Load frozen coverage (FactorySeasonPeakMetric) — do NOT touch Factory master
+    peak_metrics = (
+        await session.execute(
+            select(FactorySeasonPeakMetric).where(
+                FactorySeasonPeakMetric.build_run_id == build_run.id
+            )
+        )
+    ).scalars().all()
+
+    if not peak_metrics:
+        raise ResidualModelPersistenceError(
+            "AnalyticsBuildRun has no frozen factory coverage (FactorySeasonPeakMetric)"
+        )
+
+    covered_factory_ids: set[int] = set()
+    # Track the analysis calendar range from frozen coverage
+    overall_analysis_start: date | None = None
+    overall_analysis_end: date | None = None
+    for pm in peak_metrics:
+        covered_factory_ids.add(pm.factory_id)
+        if overall_analysis_start is None or pm.analysis_start_date < overall_analysis_start:
+            overall_analysis_start = pm.analysis_start_date
+        if overall_analysis_end is None or pm.analysis_end_date > overall_analysis_end:
+            overall_analysis_end = pm.analysis_end_date
+
+    # Verify source_cutoff date falls within the analysis calendar of the build.
+    # This validates that the build's cutoff is consistent with its frozen coverage.
+    if overall_analysis_start is not None and overall_analysis_end is not None:
+        cutoff_date = snapshot_cutoff.date()
+        if cutoff_date < overall_analysis_start:
+            raise ResidualModelPersistenceError(
+                "AnalyticsBuildRun source_cutoff date is before analysis calendar start: "
+                f"{cutoff_date} < {overall_analysis_start}"
+            )
+        if cutoff_date > overall_analysis_end:
+            raise ResidualModelPersistenceError(
+                "AnalyticsBuildRun source_cutoff date is after analysis calendar end: "
+                f"{cutoff_date} > {overall_analysis_end}"
+            )
+
+    # 7. Determine prediction as-of contract: earliest arrival_local_date.
+    # arrival_local_date represents forecast target dates; we use the earliest
+    # as a proxy for the as-of contract to ensure cutoff is not in the future
+    # relative to the prediction context.
+    earliest_arrival: date | None = None
+    for row in prediction_rows:
+        if isinstance(row, dict):
+            row_date = row.get("arrival_local_date")
+        else:
+            row_date = row.arrival_local_date
+        if isinstance(row_date, date):
+            if earliest_arrival is None or row_date < earliest_arrival:
+                earliest_arrival = row_date
+
+    # source_cutoff must not be later than prediction as-of contract
+    if earliest_arrival is not None:
+        cutoff_date = snapshot_cutoff.date()
+        if cutoff_date > earliest_arrival:
+            raise ResidualModelPersistenceError(
+                "AnalyticsBuildRun source_cutoff is later than prediction as-of contract: "
+                f"source_cutoff date {cutoff_date} > earliest arrival {earliest_arrival}"
+            )
+
+    # 5: Destination factory in frozen coverage (uses ONLY FactorySeasonPeakMetric,
+    #    not the mutable Factory master table)
+    for row in prediction_rows:
+        if isinstance(row, dict):
+            factory_id = row.get("destination_factory_id")
+        else:
+            factory_id = row.destination_factory_id
+
+        if factory_id is None:
+            continue
+
+        if factory_id not in covered_factory_ids:
+            raise ResidualModelPersistenceError(
+                f"Destination factory {factory_id} is not in AnalyticsBuildRun "
+                f"{build_run_id} frozen factory coverage"
+            )
+
+    return build_run
+
+
+def _build_source_cutoff(build_run: AnalyticsBuildRun) -> datetime:
+    """Derive the authoritative source_cutoff from an AnalyticsBuildRun row."""
+    cutoff = build_run.finished_at or build_run.started_at
+    return _aware_utc(cutoff)
 
 
 def _manifest_row_from_model(row: ResidualModelManifestRow) -> ResidualTrainingManifestRow:
@@ -675,6 +860,46 @@ async def load_residual_training_run_by_id(
                 "sklearn_version mismatch from artifact derivation"
             )
 
+    # ── SECTION 10: Independent parent payload derivation ────────────────────
+    # Rebuild every field from independently derived sources, NOT from run.*
+    # columns.  This catches coordinated DB corruption that modifies both
+    # a column AND canonical_output in the same way.
+    #
+    # Independent feature schema hash (move up from below so it's available)
+    feature_names = loaded.metrics.get("feature_names", [])
+    rebuilt_feature_schema_hash = canonical_payload_hash(sorted(feature_names))
+    #
+    # config_snapshot: re-serialize from the loaded result's input_snapshot
+    rebuilt_config_snapshot = cast(
+        dict[str, Any],
+        canonical_json_value(loaded.input_snapshot.get("config_snapshot", {})),
+    )
+    # manifest_snapshot: use the already-rebuilt normalized rows and summary
+    rebuilt_manifest_snapshot_value: dict[str, Any] = {
+        "rows": normalized_manifest_rows,
+        "summary": rebuilt_summary,
+    }
+    # validation_metrics: re-extract from loaded metrics independently
+    rebuilt_validation_metrics = cast(
+        dict[str, Any],
+        canonical_json_value(
+            loaded.metrics.get("validation", {}).get("global", {})
+            if isinstance(loaded.metrics.get("validation"), dict)
+            else {}
+        ),
+    )
+    # category_encoding_snapshot: already rebuilt from artifacts above
+    rebuilt_category_encoding_snapshot: list[dict[str, Any]] | None = None
+    if artifacts:
+        rebuilt_category_encoding_snapshot = [
+            encoding.model_dump(mode="json")
+            for encoding in artifacts[0].metadata.category_encodings
+        ]
+    # Dependency versions from trusted artifact metadata
+    rebuilt_python = artifacts[0].metadata.python_version if artifacts else "n/a"
+    rebuilt_numpy = artifacts[0].metadata.numpy_version if artifacts else "n/a"
+    rebuilt_sklearn = artifacts[0].metadata.sklearn_version if artifacts else "n/a"
+
     loaded_parent_payload = cast(
         dict[str, Any],
         canonical_json_value(
@@ -684,29 +909,31 @@ async def load_residual_training_run_by_id(
                 "model_family": loaded.model_family,
                 "model_version": loaded.model_version,
                 "feature_schema_version": loaded.feature_schema_version,
-                "feature_schema_hash": run.feature_schema_hash,
+                "feature_schema_hash": rebuilt_feature_schema_hash,
                 "artifact_schema_version": loaded.artifact_schema_version,
                 "training_signature": loaded.training_signature,
                 "config_hash": loaded.config_hash,
-                "config_snapshot": run.config_snapshot,
+                "config_snapshot": rebuilt_config_snapshot,
                 "manifest_hash": loaded.manifest_hash,
-                "manifest_snapshot": run.manifest_snapshot,
-                "sample_count": loaded.sample_count,
-                "distinct_season_count": loaded.distinct_season_count,
-                "distinct_factory_count": loaded.distinct_factory_count,
-                "manifest_row_count": run.manifest_row_count,
-                "expected_artifact_count": run.expected_artifact_count,
+                "manifest_snapshot": rebuilt_manifest_snapshot_value,
+                "sample_count": recomputed_sample_count,
+                "distinct_season_count": recomputed_season_count,
+                "distinct_factory_count": recomputed_factory_count,
+                "manifest_row_count": recomputed_row_count,
+                "expected_artifact_count": len(artifacts),
                 "warnings": list(loaded.warnings),
                 "blockers": list(loaded.blockers),
                 "feature_audit_summary": loaded.feature_audit_summary,
                 "metrics": loaded.metrics,
-                "validation_metrics": run.validation_metrics,
-                "category_encoding_snapshot": run.category_encoding_snapshot,
+                "validation_metrics": rebuilt_validation_metrics,
+                "category_encoding_snapshot": (
+                    rebuilt_category_encoding_snapshot or run.category_encoding_snapshot or []
+                ),
                 "eligibility_reasons": list(loaded.eligibility_reasons),
                 "input_snapshot": loaded.input_snapshot,
-                "python_version": run.python_version,
-                "numpy_version": run.numpy_version,
-                "sklearn_version": run.sklearn_version,
+                "python_version": rebuilt_python,
+                "numpy_version": rebuilt_numpy,
+                "sklearn_version": rebuilt_sklearn,
                 "fallback_reason": run.fallback_reason,
                 "error_message": run.error_message,
             }
@@ -728,13 +955,7 @@ async def load_residual_training_run_by_id(
         raise ResidualModelPersistenceIntegrityError("training canonical output mismatch")
     if run.training_metrics != cast(dict[str, Any], canonical_json_value(loaded.metrics)):
         raise ResidualModelPersistenceIntegrityError("training metrics column mismatch")
-    # Independent feature schema hash verification
-    feature_names = loaded.metrics.get("feature_names", [])
-    rebuilt_feature_schema_hash = canonical_payload_hash(sorted(feature_names))
-    if rebuilt_feature_schema_hash != run.feature_schema_hash:
-        raise ResidualModelPersistenceIntegrityError(
-            "feature schema hash mismatch from independent derivation"
-        )
+    # Feature schema hash already verified in SECTION 10 parent payload comparison above
     return loaded
 
 
@@ -780,9 +1001,10 @@ async def save_residual_prediction_run(
                 "feature_schema_hash authority mismatch with training run"
             )
         # Verify execution/eligibility status
-        if training_run_row.execution_status != "completed":
+        if training_run_row.execution_status not in ("completed", "blocked"):
             raise ResidualModelPersistenceError(
-                "training run must be completed for prediction"
+                "training run must be completed or blocked for prediction, "
+                f"got {training_run_row.execution_status}"
             )
 
         # 7.2: If model is eligible, re-read artifacts and verify artifact_hashes match
@@ -822,47 +1044,17 @@ async def save_residual_prediction_run(
             else:
                 raise
 
-    # 7.4: Read Task 3 AnalyticsBuildRun and verify
-    # Check the input_snapshot for feature_analytics_build_run_id
+    # 7.4: Full Task 3 authority binding (Section 9)
     feature_build_run_id = cast(
         int | None, result.input_snapshot.get("feature_analytics_build_run_id")
     )
     if feature_build_run_id is not None:
         try:
-            build_run = await session.get(AnalyticsBuildRun, feature_build_run_id)
-            if build_run is None:
-                raise ResidualModelPersistenceError(
-                    f"AnalyticsBuildRun {feature_build_run_id} was not found"
-                )
-            if build_run.status != "completed":
-                raise ResidualModelPersistenceError(
-                    f"AnalyticsBuildRun {feature_build_run_id} must be completed"
-                )
-            # Verify build_run details
-            feature_actual_snapshot = cast(
-                dict[str, Any] | None,
-                result.input_snapshot.get("feature_actual_snapshot"),
+            await _verify_task3_authority(
+                session,
+                input_snapshot=result.input_snapshot,
+                prediction_rows=result.rows,
             )
-            if feature_actual_snapshot is not None:
-                if feature_actual_snapshot.get("build_run_id") != build_run.id:
-                    raise ResidualModelPersistenceError(
-                        "AnalyticsBuildRun id authority mismatch"
-                    )
-                if feature_actual_snapshot.get("source_max_raw_id") != build_run.source_max_raw_id:
-                    raise ResidualModelPersistenceError(
-                        "AnalyticsBuildRun source_max_raw_id authority mismatch"
-                    )
-                if (
-                    feature_actual_snapshot.get("aggregation_version")
-                    != build_run.aggregation_version
-                ):
-                    raise ResidualModelPersistenceError(
-                        "AnalyticsBuildRun aggregation_version authority mismatch"
-                    )
-                if feature_actual_snapshot.get("config_hash") != build_run.config_hash:
-                    raise ResidualModelPersistenceError(
-                        "AnalyticsBuildRun config_hash authority mismatch"
-                    )
         except Exception as exc:
             if "no such table" in str(exc).lower():
                 pass
@@ -1221,6 +1413,33 @@ async def load_residual_prediction_run_by_id(
             "prediction hash mismatch from independent derivation"
         )
 
+    # ── SECTION 10: Independent prediction parent payload derivation ─────────
+    # Rebuild fields from independently derived sources, not from run.* columns.
+    # feature_schema_version/hash from loaded canonical_output (separate column).
+    # For structural_only predictions (no training_run), input_snapshot has
+    # placeholder values so we use column values (there's no other authority).
+    if run.training_run_id is not None:
+        rebuilt_fsv: str = cast(
+            str,
+            loaded.input_snapshot.get("feature_schema_version", run.feature_schema_version),
+        )
+        rebuilt_fsh: str = cast(
+            str,
+            loaded.input_snapshot.get("feature_schema_hash", run.feature_schema_hash),
+        )
+        rebuilt_artifact_hashes: list[str] = [
+            a.artifact_sha256 for a in await list_residual_artifacts(
+                session, training_run_id=run.training_run_id
+            )
+        ]
+    else:
+        # structural_only: columns are the only authority
+        rebuilt_fsv = run.feature_schema_version
+        rebuilt_fsh = run.feature_schema_hash
+        rebuilt_artifact_hashes = list(run.artifact_hashes or [])
+    # expected_prediction_row_count: use the independently rebuilt row count
+    rebuilt_expected_row_count = len(normalized_rows)
+
     loaded_parent_payload = cast(
         dict[str, Any],
         canonical_json_value(
@@ -1231,15 +1450,15 @@ async def load_residual_prediction_run_by_id(
                 "task9_run_id": loaded.task9_run_id,
                 "task9_result_hash": loaded.task9_result_hash,
                 "config_hash": loaded.config_hash,
-                "feature_schema_version": run.feature_schema_version,
-                "feature_schema_hash": run.feature_schema_hash,
-                "artifact_hashes": run.artifact_hashes,
+                "feature_schema_version": rebuilt_fsv,
+                "feature_schema_hash": rebuilt_fsh,
+                "artifact_hashes": rebuilt_artifact_hashes,
                 "prediction_input_signature": loaded.prediction_input_signature,
                 "prediction_hash": loaded.prediction_hash,
                 "warnings": list(loaded.warnings),
                 "blockers": list(loaded.blockers),
                 "fallback_reason": loaded.fallback_reason,
-                "expected_prediction_row_count": run.expected_prediction_row_count,
+                "expected_prediction_row_count": rebuilt_expected_row_count,
                 "input_snapshot": loaded.input_snapshot,
                 "error_message": run.error_message,
             }
@@ -1271,22 +1490,22 @@ async def load_residual_prediction_run_by_id(
             )
     # else: structural_only - snapshot has placeholder values, skip
 
-    # SECTION 7.4: Verify Task 3 build still exists (if referenced)
+    # SECTION 7.4: Full Task 3 authority binding (Section 9)
     feature_build_run_id = cast(
         int | None, run.input_snapshot.get("feature_analytics_build_run_id")
     )
     if feature_build_run_id is not None:
         try:
-            build_run = await session.get(AnalyticsBuildRun, feature_build_run_id)
-            if build_run is None:
-                raise ResidualModelPersistenceIntegrityError(
-                    f"referenced AnalyticsBuildRun {feature_build_run_id} was not found"
-                )
-        except Exception as exc:
-            if "no such table" in str(exc).lower():
-                pass
-            else:
-                raise
+            # We need to load the prediction rows to run full authority checks.
+            # For load we already have 'rows' list of ResidualModelPredictionRow
+            # from section 8.1 above, so pass those.
+            await _verify_task3_authority(
+                session,
+                input_snapshot=run.input_snapshot,
+                prediction_rows=rows,
+            )
+        except ResidualModelPersistenceError:
+            raise
 
     return loaded
 

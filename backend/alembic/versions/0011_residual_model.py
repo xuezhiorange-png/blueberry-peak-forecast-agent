@@ -111,10 +111,12 @@ def upgrade() -> None:
             name="ck_residual_model_training_run_expected_artifact_count",
         ),
         sa.CheckConstraint(
+            # ruff: noqa: E501
             "(execution_status != 'completed' OR eligibility_status != 'eligible' OR expected_artifact_count = 3)",
             name="ck_residual_model_training_run_completed_eligible_artifacts",
         ),
         sa.CheckConstraint(
+            # ruff: noqa: E501
             "(execution_status != 'completed' OR eligibility_status != 'ineligible' OR expected_artifact_count = 0)",
             name="ck_residual_model_training_run_completed_ineligible_artifacts",
         ),
@@ -420,6 +422,10 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "(execution_status != 'blocked' OR expected_prediction_row_count = 0)",
             name="ck_residual_model_prediction_run_blocked_zero",
+        ),
+        sa.CheckConstraint(
+            "(execution_status != 'failed' OR expected_prediction_row_count = 0)",
+            name="ck_residual_model_prediction_run_failed_zero",
         ),
         sa.CheckConstraint(
             sa.text(

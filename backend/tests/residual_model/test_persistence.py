@@ -8,8 +8,11 @@ import pytest
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from backend.app.models.analytics import AnalyticsBuildRun, FactorySeasonPeakMetric
+from backend.app.models.master_data import Factory, Season
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
+    ResidualModelExecutionAttempt,
     ResidualModelManifestRow,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
@@ -18,6 +21,7 @@ from backend.app.models.residual_model import (
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.config import load_residual_model_config
 from backend.app.residual_model.persistence import (
+    ResidualModelPersistenceError,
     ResidualModelPersistenceIntegrityError,
     load_residual_prediction_run_by_id,
     load_residual_training_artifacts,
@@ -25,7 +29,11 @@ from backend.app.residual_model.persistence import (
     save_residual_prediction_run,
     save_residual_training_run,
 )
-from backend.app.residual_model.schemas import FeatureValue, ResidualTrainingManifestRow
+from backend.app.residual_model.schemas import (
+    FeatureValue,
+    ResidualPredictionExecutionResult,
+    ResidualTrainingManifestRow,
+)
 from backend.app.residual_model.service import (
     structural_only_prediction,
     train_residual_model_from_manifest,
@@ -38,6 +46,14 @@ RESIDUAL_TABLES = [
     ResidualModelArtifact.__table__,
     ResidualModelPredictionRun.__table__,
     ResidualModelPredictionRow.__table__,
+    ResidualModelExecutionAttempt.__table__,
+]
+
+TASK3_TABLES = [
+    AnalyticsBuildRun.__table__,
+    FactorySeasonPeakMetric.__table__,
+    Season.__table__,
+    Factory.__table__,
 ]
 
 
@@ -556,5 +572,983 @@ async def test_load_prediction_run_detects_modified_input_signature(
     )
     await sqlite_session.commit()
 
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_prediction_run_by_id(sqlite_session, run_id=run.id)
+
+
+# ── Section 9: Task 3 authority binding tests ────────────────────────────────
+
+
+@pytest.fixture
+async def sqlite_session_with_task3() -> AsyncSession:
+    """SQLite session with both residual model AND Task 3 tables."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    from sqlalchemy import JSON as SAJSON
+    from sqlalchemy import Integer as SAInteger
+
+    AnalyticsBuildRun.__table__.c.id.type = SAInteger()
+    AnalyticsBuildRun.__table__.c.season_id.type = SAInteger()
+    AnalyticsBuildRun.__table__.c.source_max_raw_id.type = SAInteger()
+    AnalyticsBuildRun.__table__.c.source_eligible_row_count.type = SAInteger()
+    AnalyticsBuildRun.__table__.c.daily_fact_row_count.type = SAInteger()
+    AnalyticsBuildRun.__table__.c.config_snapshot.type = SAJSON()
+    FactorySeasonPeakMetric.__table__.c.id.type = SAInteger()
+    FactorySeasonPeakMetric.__table__.c.build_run_id.type = SAInteger()
+    FactorySeasonPeakMetric.__table__.c.season_id.type = SAInteger()
+    FactorySeasonPeakMetric.__table__.c.factory_id.type = SAInteger()
+    FactorySeasonPeakMetric.__table__.c.calendar_day_count.type = SAInteger()
+    FactorySeasonPeakMetric.__table__.c.observed_day_count.type = SAInteger()
+    FactorySeasonPeakMetric.__table__.c.spring_festival_day_count.type = SAInteger()
+
+    all_tables = RESIDUAL_TABLES + TASK3_TABLES
+    async with engine.begin() as conn:
+        await conn.run_sync(
+            lambda sync_conn: ResidualModelTrainingRun.metadata.create_all(
+                sync_conn, tables=all_tables
+            )
+        )
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async with sessionmaker() as session:
+        yield session
+    await engine.dispose()
+
+
+async def _seed_task3_build(
+    session: AsyncSession,
+    *,
+    build_run_id: int = 1,
+    season_id: int = 1,
+    source_max_raw_id: int = 100,
+    config_hash: str | None = None,
+    finished_at: datetime | None = None,
+    aggregation_version: str = "task3-v1",
+    factory_ids: tuple[int, ...] = (701,),
+    analysis_start_date: date | None = None,
+    analysis_end_date: date | None = None,
+) -> AnalyticsBuildRun:
+    """Seed an AnalyticsBuildRun with FactorySeasonPeakMetric coverage."""
+    if config_hash is None:
+        config_hash = "a" * 64
+    if finished_at is None:
+        finished_at = datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
+
+    build = AnalyticsBuildRun(
+        id=build_run_id,
+        season_id=season_id,
+        aggregation_version=aggregation_version,
+        source_max_raw_id=source_max_raw_id,
+        config_hash=config_hash,
+        config_snapshot={"version": "task3-v1", "analysis_months": [1, 2, 3, 4]},
+        status="completed",
+        source_eligible_row_count=1,
+        source_eligible_weight_kg=Decimal("1"),
+        daily_fact_row_count=1,
+        started_at=finished_at,
+        finished_at=finished_at,
+    )
+    session.add(build)
+    await session.flush()
+
+    for factory_id in factory_ids:
+        session.add(
+            FactorySeasonPeakMetric(
+                id=build_run_id * 1000 + factory_id,
+                build_run_id=build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                analysis_start_date=analysis_start_date or date(2026, 1, 1),
+                analysis_end_date=analysis_end_date or date(2026, 3, 31),
+                calendar_day_count=90,
+                observed_day_count=90,
+                total_weight_kg=Decimal("1000"),
+                single_day_peak_kg=Decimal("100"),
+                single_day_peak_date=date(2026, 2, 15),
+                stable_median_3d_peak_kg=Decimal("90"),
+                stable_median_3d_peak_date=date(2026, 2, 15),
+                mean_3d_peak_kg=Decimal("85"),
+                mean_3d_peak_date=date(2026, 2, 15),
+                peak_concentration=Decimal("0.5"),
+                variety_hhi=Decimal("0.3"),
+                farm_hhi=Decimal("0.4"),
+                subfarm_hhi=Decimal("0.2"),
+                unknown_farm_weight_share=Decimal("0"),
+                unknown_subfarm_weight_share=Decimal("0"),
+                spring_festival_day_count=0,
+                computed_at=finished_at,
+            )
+        )
+    await session.flush()
+    return build
+
+
+def _prediction_with_task3(
+    *,
+    build_run_id: int | None = 1,
+    feature_source_max_raw_id: int = 100,
+    feature_aggregation_version: str = "task3-v1",
+    feature_config_hash: str | None = None,
+    feature_source_cutoff: datetime | None = None,
+    factory_id: int = 701,
+    arrival_date: date | None = None,
+    config_hash: str | None = None,
+    task9_run_id: int = 10,
+    task9_result_hash: str | None = None,
+) -> ResidualPredictionExecutionResult:
+    """Create a prediction result with Task 3 feature_actual_snapshot for testing."""
+    if config_hash is None:
+        config_hash = "b" * 64
+    if feature_config_hash is None:
+        feature_config_hash = "a" * 64
+    if feature_source_cutoff is None:
+        feature_source_cutoff = datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
+    if task9_result_hash is None:
+        task9_result_hash = "c" * 64
+    if arrival_date is None:
+        arrival_date = date(2026, 3, 2)
+
+    feature_actual_snapshot = {
+        "build_run_id": build_run_id,
+        "source_max_raw_id": feature_source_max_raw_id,
+        "aggregation_version": feature_aggregation_version,
+        "config_hash": feature_config_hash,
+        "source_cutoff": feature_source_cutoff,
+    }
+    input_snapshot = {
+        "model_run_id": None,
+        "training_signature": "d" * 64,
+        "task9_run_id": task9_run_id,
+        "task9_result_hash": task9_result_hash,
+        "feature_analytics_build_run_id": build_run_id,
+        "feature_actual_snapshot": feature_actual_snapshot,
+        "supplemental_feature_values": [],
+        "feature_audit_hashes": [],
+        "feature_rows": [],
+        "artifact_hashes": [],
+        "config_hash": config_hash,
+        "feature_schema_version": "task10-features-v1",
+        "feature_schema_hash": "e" * 64,
+        "projection_version": "v1",
+        "fallback_policy": "structural_only_fallback",
+    }
+    row = {
+        "destination_factory_id": factory_id,
+        "arrival_local_date": arrival_date,
+        "forecast_horizon_days": 1,
+        "structural_p50_kg": Decimal("100"),
+        "structural_p80_kg": Decimal("110"),
+        "structural_p90_kg": Decimal("120"),
+    }
+
+    result = structural_only_prediction(
+        model_run_id=None,
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        config_hash=config_hash,
+        structural_rows=[row],
+        fallback_reason="model_ineligible",
+        input_snapshot=input_snapshot,
+    )
+    return result
+
+
+@pytest.mark.asyncio
+async def test_save_and_load_prediction_with_task3_authority(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """Happy path: save and load a prediction run with full Task 3 authority binding."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(session)
+    await session.commit()
+
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=build.finished_at,
+        feature_aggregation_version=build.aggregation_version,
+    )
+
+    run = await save_residual_prediction_run(
+        session,
+        result=result,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+    loaded = await load_residual_prediction_run_by_id(session, run_id=run.id)
+    assert loaded is not None
+    assert loaded.execution_status == "completed"
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_rejects_wrong_build_run_id(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """Snapshot build_run_id does not match the actual AnalyticsBuildRun."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(session, build_run_id=1)
+    await session.commit()
+
+    # Use build_run_id=2 in snapshot but only build_run_id=1 exists
+    result = _prediction_with_task3(
+        build_run_id=2,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=build.finished_at,
+    )
+
+    with pytest.raises(ResidualModelPersistenceError, match="was not found"):
+        await save_residual_prediction_run(
+            session,
+            result=result,
+            feature_schema_version="task10-features-v1",
+            feature_schema_hash="e" * 64,
+            artifact_hashes=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_rejects_wrong_source_max_raw_id(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """Coordinated mutation of source_max_raw_id detected."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(session, build_run_id=1, source_max_raw_id=100)
+    await session.commit()
+
+    # Use source_max_raw_id=999 in snapshot while build has 100
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=999,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=build.finished_at,
+    )
+
+    with pytest.raises(ResidualModelPersistenceError, match="source_max_raw_id authority mismatch"):
+        await save_residual_prediction_run(
+            session,
+            result=result,
+            feature_schema_version="task10-features-v1",
+            feature_schema_hash="e" * 64,
+            artifact_hashes=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_rejects_wrong_config_hash(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """Coordinated mutation of config_hash detected."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(session, build_run_id=1, config_hash="a" * 64)
+    await session.commit()
+
+    # Use different config_hash in snapshot
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash="f" * 64,
+        feature_source_cutoff=build.finished_at,
+    )
+
+    with pytest.raises(ResidualModelPersistenceError, match="config_hash authority mismatch"):
+        await save_residual_prediction_run(
+            session,
+            result=result,
+            feature_schema_version="task10-features-v1",
+            feature_schema_hash="e" * 64,
+            artifact_hashes=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_rejects_wrong_source_cutoff(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """Coordinated mutation of source_cutoff detected."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(
+        session,
+        build_run_id=1,
+        finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+    )
+    await session.commit()
+
+    # Use wrong source_cutoff in snapshot
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=datetime(2026, 3, 15, 12, 0, tzinfo=UTC),
+    )
+
+    with pytest.raises(ResidualModelPersistenceError, match="source_cutoff authority mismatch"):
+        await save_residual_prediction_run(
+            session,
+            result=result,
+            feature_schema_version="task10-features-v1",
+            feature_schema_hash="e" * 64,
+            artifact_hashes=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_rejects_uncovered_factory(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """Destination factory not in frozen coverage (FactorySeasonPeakMetric) is rejected."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(
+        session,
+        build_run_id=1,
+        factory_ids=(701,),  # Only factory 701 is covered
+    )
+    await session.commit()
+
+    # Use factory 999 which is NOT in coverage
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=build.finished_at,
+        factory_id=999,
+    )
+
+    with pytest.raises(
+        ResidualModelPersistenceError,
+        match="is not in AnalyticsBuildRun",
+    ):
+        await save_residual_prediction_run(
+            session,
+            result=result,
+            feature_schema_version="task10-features-v1",
+            feature_schema_hash="e" * 64,
+            artifact_hashes=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_rejects_date_outside_calendar(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """source_cutoff date outside analysis calendar coverage is rejected."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(
+        session,
+        build_run_id=1,
+        factory_ids=(701,),
+        finished_at=datetime(2026, 6, 1, 12, 0, tzinfo=UTC),  # June, outside Jan-Mar range
+        analysis_start_date=date(2026, 1, 1),
+        analysis_end_date=date(2026, 3, 31),
+    )
+    await session.commit()
+
+    # source_cutoff (June 1) is after analysis calendar end (March 31)
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=build.finished_at,
+        arrival_date=date(2026, 6, 15),
+    )
+
+    with pytest.raises(
+        ResidualModelPersistenceError,
+        match="source_cutoff date is after analysis calendar end",
+    ):
+        await save_residual_prediction_run(
+            session,
+            result=result,
+            feature_schema_version="task10-features-v1",
+            feature_schema_hash="e" * 64,
+            artifact_hashes=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_rejects_source_cutoff_after_asof(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """source_cutoff after prediction as-of contract is rejected."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(
+        session,
+        build_run_id=1,
+        factory_ids=(701,),
+        finished_at=datetime(2026, 3, 10, 12, 0, tzinfo=UTC),
+    )
+    await session.commit()
+
+    # source_cutoff date = 2026-03-10, but earliest arrival = 2026-03-02
+    # This should fail because cutoff (March 10) > arrival (March 2)
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=build.finished_at,
+        arrival_date=date(2026, 3, 2),
+    )
+
+    with pytest.raises(
+        ResidualModelPersistenceError,
+        match="source_cutoff is later than prediction as-of contract",
+    ):
+        await save_residual_prediction_run(
+            session,
+            result=result,
+            feature_schema_version="task10-features-v1",
+            feature_schema_hash="e" * 64,
+            artifact_hashes=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_load_rejects_modified_source_cutoff(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """Load detects a modified source_cutoff in the stored snapshot."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(
+        session,
+        build_run_id=1,
+        finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+    )
+    await session.commit()
+
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=build.finished_at,
+    )
+
+    run = await save_residual_prediction_run(
+        session,
+        result=result,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+
+    # Directly corrupt the source_cutoff in the stored input_snapshot
+    await session.execute(
+        text(
+            "UPDATE residual_model_prediction_run "
+            "SET input_snapshot = json_set(input_snapshot, "
+            "'$.feature_actual_snapshot.source_cutoff', '2026-03-15T12:00:00+00:00') "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await session.commit()
+
+    with pytest.raises(
+        (ResidualModelPersistenceError, ResidualModelPersistenceIntegrityError),
+    ):
+        await load_residual_prediction_run_by_id(session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_task3_authority_load_rejects_deleted_factory_coverage(
+    sqlite_session_with_task3: AsyncSession,
+) -> None:
+    """Load detects when factory coverage rows are deleted after save."""
+    session = sqlite_session_with_task3
+    build = await _seed_task3_build(
+        session,
+        build_run_id=1,
+        factory_ids=(701,),
+    )
+    await session.commit()
+
+    result = _prediction_with_task3(
+        build_run_id=build.id,
+        feature_source_max_raw_id=build.source_max_raw_id,
+        feature_config_hash=build.config_hash,
+        feature_source_cutoff=build.finished_at,
+    )
+
+    run = await save_residual_prediction_run(
+        session,
+        result=result,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+
+    # Delete the factory coverage
+    await session.execute(
+        text("DELETE FROM factory_season_peak_metric WHERE build_run_id = :bid"),
+        {"bid": build.id},
+    )
+    await session.commit()
+
+    with pytest.raises(
+        (ResidualModelPersistenceError, ResidualModelPersistenceIntegrityError),
+    ):
+        await load_residual_prediction_run_by_id(session, run_id=run.id)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 10: Complete parent parity independent derivation tests
+#
+# Each test corrupts a single stored column (or a coordinated pair) and verifies
+# that the load integrity gate catches it — confirming the independent derivation
+# does not rely on the corrupted column itself.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Training: single-field corruption tests ──────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_config_snapshot(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting config_snapshot column is caught by independent re-serialization."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET config_snapshot = json_set(config_snapshot, '$.model_version', 'corrupted') "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_manifest_snapshot_rows(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting manifest_snapshot.rows is caught by independent rebuild."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    # Remove one row from the stored manifest_snapshot
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET manifest_snapshot = json_set(manifest_snapshot, '$.rows', json('[]')) "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_manifest_snapshot_summary(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting manifest_snapshot.summary is caught by independent summary rebuild."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET manifest_snapshot = json_set(manifest_snapshot, "
+            "'$.summary.row_count', 9999) "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_training_metrics(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting training_metrics column is caught by separate-column comparison."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET training_metrics = json_set(training_metrics, '$.row_count', 9999) "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_validation_metrics(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting validation_metrics column is caught by independent re-extraction."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET validation_metrics = json_set(validation_metrics, '$.row_count', 9999) "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_python_version(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting python_version column is caught by independent derivation from artifacts."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET python_version = 'corrupted' "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_numpy_version(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting numpy_version column is caught by independent derivation from artifacts."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET numpy_version = 'corrupted' "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_sklearn_version(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting sklearn_version column is caught by independent derivation from artifacts."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET sklearn_version = 'corrupted' "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_feature_audit_summary(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting feature_audit_summary column is caught by canonical_output comparison."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET feature_audit_summary = json_set(feature_audit_summary, '$.row_count', 9999) "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_manifest_row_count(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting manifest_row_count column is caught by independent row count."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET manifest_row_count = 9999 "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_sample_count(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting sample_count column is caught by independent train-row count."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET sample_count = 9999 "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_distinct_season_count(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting distinct_season_count column is caught by independent season count."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET distinct_season_count = 9999 "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_corrupted_distinct_factory_count(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting distinct_factory_count column is caught by independent factory count."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET distinct_factory_count = 9999 "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+# ── Training: coordinated multi-field mutation tests ─────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_coordinated_metrics_and_counts(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Coordinated corruption of training_metrics AND sample_count is caught."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    # Corrupt both training_metrics AND sample_count in the same way
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET training_metrics = json_set(training_metrics, '$.row_count', 8888), "
+            "    sample_count = 8888 "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    # At least one of the independently rebuilt values should mismatch
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_coordinated_config_and_manifest(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Coordinated corruption of config_snapshot AND manifest_snapshot is caught."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    # Corrupt both config_snapshot and manifest_snapshot (both stored JSON columns)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET config_snapshot = json('{\"corrupted\": true}'), "
+            "    manifest_snapshot = json('{\"rows\": [], \"summary\": {}}') "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_coordinated_version_triple(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Coordinated corruption of python/numpy/sklearn versions is caught."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET python_version = 'p', "
+            "    numpy_version = 'n', "
+            "    sklearn_version = 's' "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_training_independent_derivation_rejects_coordinated_counts_triple(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Coordinated corruption of manifest_row_count, sample_count, and distinct counts is caught."""
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_training_run "
+            "SET manifest_row_count = 5555, "
+            "    sample_count = 5555, "
+            "    distinct_season_count = 5555, "
+            "    distinct_factory_count = 5555 "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+# ── Prediction: single-field corruption tests ────────────────────────────────
+# NOTE: feature_schema_version/hash independent derivation only works when
+# a training run exists (structural_only has placeholder input_snapshot values).
+# These tests use structural_only predictions + the always-independent
+# expected_prediction_row_count field.
+
+
+@pytest.mark.asyncio
+async def test_prediction_independent_derivation_rejects_corrupted_expected_prediction_row_count(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Corrupting expected_prediction_row_count is caught by independent row count."""
+    prediction = structural_only_prediction(
+        model_run_id=None,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+    run = await save_residual_prediction_run(
+        sqlite_session,
+        result=prediction,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_prediction_run "
+            "SET expected_prediction_row_count = 9999 "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_prediction_run_by_id(sqlite_session, run_id=run.id)
+
+
+# ── Prediction: coordinated multi-field mutation tests ───────────────────────
+# NOTE: schema-field-only coordinated tests use structural_only predictions
+# where feature_schema_version/hash have no independent authority.  Only the
+# row-count-based coordinated test is meaningful here.
+
+
+@pytest.mark.asyncio
+async def test_prediction_independent_derivation_rejects_coordinated_row_count_and_schema(
+    sqlite_session: AsyncSession,
+) -> None:
+    """Coordinated corruption of expected_prediction_row_count AND feature_schema_version.
+    Expected_prediction_row_count mismatch is caught by Section 8.1 independent row count check."""
+    prediction = structural_only_prediction(
+        model_run_id=None,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+    run = await save_residual_prediction_run(
+        sqlite_session,
+        result=prediction,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_prediction_run "
+            "SET expected_prediction_row_count = 7777, "
+            "    feature_schema_version = 'v-corrupted' "
+            "WHERE id = :run_id"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
     with pytest.raises(ResidualModelPersistenceIntegrityError):
         await load_residual_prediction_run_by_id(sqlite_session, run_id=run.id)

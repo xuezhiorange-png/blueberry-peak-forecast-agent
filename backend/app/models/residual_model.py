@@ -459,6 +459,10 @@ class ResidualModelPredictionRun(Base):
             name="ck_residual_model_prediction_run_blocked_zero",
         ),
         CheckConstraint(
+            "(execution_status != 'failed' OR expected_prediction_row_count = 0)",
+            name="ck_residual_model_prediction_run_failed_zero",
+        ),
+        CheckConstraint(
             "(execution_status != 'completed' OR "
             "mode != 'structural_only' OR "
             "fallback_reason IS NOT NULL)",
@@ -645,3 +649,72 @@ class ResidualModelPredictionRow(Base):
     prediction_row_hash: Mapped[str] = mapped_column(Text, nullable=False)
     mode: Mapped[str] = mapped_column(Text, nullable=False)
     fallback_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ResidualModelExecutionAttempt(Base):
+    __tablename__ = "residual_model_execution_attempt"
+    __table_args__ = (
+        CheckConstraint(
+            "attempt_type in ('training', 'prediction')",
+            name="ck_residual_model_attempt_type",
+        ),
+        CheckConstraint(
+            "execution_status in ('running', 'completed', 'blocked', 'failed')",
+            name="ck_residual_model_attempt_execution_status",
+        ),
+        Index(
+            "ix_residual_model_attempt_execution_status",
+            "execution_status",
+        ),
+        Index(
+            "ix_residual_model_attempt_type",
+            "attempt_type",
+        ),
+        Index(
+            "ix_residual_model_attempt_linked_training_run_id",
+            "linked_training_run_id",
+        ),
+        Index(
+            "ix_residual_model_attempt_linked_prediction_run_id",
+            "linked_prediction_run_id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(_BIGINT_VARIANT, primary_key=True, autoincrement=True)
+    attempt_type: Mapped[str] = mapped_column(Text, nullable=False)
+    execution_status: Mapped[str] = mapped_column(Text, nullable=False)
+    current_stage: Mapped[str] = mapped_column(Text, nullable=False)
+    requested_inputs: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    config_identity: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    upstream_requested_ids: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    blockers: Mapped[list[str]] = mapped_column(_JSON_VARIANT, nullable=False)
+    sanitized_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    linked_training_run_id: Mapped[int | None] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "residual_model_training_run.id",
+            name="fk_residual_model_attempt_training_run_id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+    linked_prediction_run_id: Mapped[int | None] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "residual_model_prediction_run.id",
+            name="fk_residual_model_attempt_prediction_run_id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )

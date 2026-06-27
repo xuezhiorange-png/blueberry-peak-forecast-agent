@@ -6,6 +6,7 @@ from sqlalchemy.schema import CreateTable
 
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
+    ResidualModelExecutionAttempt,
     ResidualModelManifestRow,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
@@ -43,6 +44,7 @@ def test_residual_model_schema_contains_tables() -> None:
         ResidualModelArtifact.__table__,
         ResidualModelPredictionRun.__table__,
         ResidualModelPredictionRow.__table__,
+        ResidualModelExecutionAttempt.__table__,
     )
 
     for table in tables:
@@ -71,8 +73,8 @@ def test_residual_model_training_run_check_constraints() -> None:
         "distinct_factory_count >= 0",
         "manifest_row_count >= 0",
         "expected_artifact_count >= 0",
-        "execution_status != 'completed' OR eligibility_status != 'eligible' OR expected_artifact_count = 3",
-        "execution_status != 'completed' OR eligibility_status != 'ineligible' OR expected_artifact_count = 0",
+        "execution_status != 'completed' OR eligibility_status != 'eligible' OR expected_artifact_count = 3",  # noqa: E501
+        "execution_status != 'completed' OR eligibility_status != 'ineligible' OR expected_artifact_count = 0",  # noqa: E501
         "execution_status NOT IN ('blocked', 'failed') OR expected_artifact_count = 0",
         "eligibility_status != 'eligible' OR execution_status = 'completed'",
         "ck_residual_model_training_run_sample_count",
@@ -161,9 +163,11 @@ def test_residual_model_prediction_run_check_constraints() -> None:
         "mode in ('residual_corrected', 'structural_only', 'blocked')",
         "expected_prediction_row_count >= 0",
         "execution_status != 'blocked' OR expected_prediction_row_count = 0",
-        "execution_status != 'completed' OR mode != 'structural_only' OR fallback_reason IS NOT NULL",
+        "execution_status != 'failed' OR expected_prediction_row_count = 0",
+        "execution_status != 'completed' OR mode != 'structural_only' OR fallback_reason IS NOT NULL",  # noqa: E501
         "ck_residual_model_prediction_run_row_count",
         "ck_residual_model_prediction_run_blocked_zero",
+        "ck_residual_model_prediction_run_failed_zero",
         "ck_residual_model_prediction_run_structural_fallback",
     ])
     assert "CREATE TABLE" in sql
@@ -197,3 +201,28 @@ def test_residual_model_prediction_row_check_constraints() -> None:
     assert "CREATE TABLE" in sql
     assert "NUMERIC(18, 6)" in sql or "NUMERIC(18,6)" in sql
     assert "fallback_reason" in sql
+
+
+def test_residual_model_execution_attempt_check_constraints() -> None:
+    """Verify execution_attempt CHECK constraints appear in compiled PostgreSQL DDL."""
+    table = ResidualModelExecutionAttempt.__table__
+    sql = _assert_compiled_sql_contains(
+        table,
+        [
+            "attempt_type in ('training', 'prediction')",
+            "execution_status in ('running', 'completed', 'blocked', 'failed')",
+            "ck_residual_model_attempt_type",
+            "ck_residual_model_attempt_execution_status",
+            "requested_inputs",
+            "config_identity",
+            "upstream_requested_ids",
+            "sanitized_error",
+            "linked_training_run_id",
+            "linked_prediction_run_id",
+            "started_at",
+            "finished_at",
+        ],
+    )
+    assert "CREATE TABLE" in sql
+    assert "JSONB" in sql
+    assert "TIMESTAMP WITH TIME ZONE" in sql

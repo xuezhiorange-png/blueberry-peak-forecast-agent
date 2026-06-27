@@ -32,6 +32,7 @@ from backend.app.models.planning import (
 from backend.app.models.production_plan import FarmSeasonVarietyPlan, ProductionPlanImportRun
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
+    ResidualModelExecutionAttempt,
     ResidualModelManifestRow,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
@@ -79,6 +80,7 @@ __all__ = [
     "ParameterObservation",
     "ProductionPlanImportRun",
     "ResidualModelArtifact",
+    "ResidualModelExecutionAttempt",
     "ResidualModelManifestRow",
     "ResidualModelPredictionRow",
     "ResidualModelPredictionRun",

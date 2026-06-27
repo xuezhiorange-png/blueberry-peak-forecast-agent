@@ -11,12 +11,14 @@ from sqlalchemy import func, select, text
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
+    ResidualModelExecutionAttempt,
     ResidualModelManifestRow,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
 )
 from backend.app.residual_model.application import (
+    ResidualTrainingApplicationIntegrityError,
     execute_residual_prediction,
     execute_residual_training,
 )
@@ -193,6 +195,7 @@ async def test_residual_model_tables_exist_after_migration_upgrade() -> None:
             "residual_model_artifact",
             "residual_model_prediction_run",
             "residual_model_prediction_row",
+            "residual_model_execution_attempt",
         ):
             exists = await session.scalar(select(func.to_regclass(table_name)))
             assert exists == table_name
@@ -434,3 +437,168 @@ async def test_postgres_artifact_hash_corruption_forces_structural_only_fallback
         assert prediction_result.execution_status == "completed"
         assert prediction_result.mode == "structural_only"
         assert prediction_result.fallback_reason == "artifact_validation_failed"
+
+
+# ── Section 6: Failed-attempt persistence tests ──────────────────────────────
+
+
+@pytest.mark.integration
+async def test_postgres_training_manifest_build_failure_persists_failed_attempt() -> None:
+    """Manifest build failure persists a failed attempt record."""
+    _require_postgres()
+    fixture = await _seed_prediction_fixture()
+
+    # Use non-existent task9_run_id to trigger manifest build failure
+    samples = [
+        ResidualTrainingSampleSpec(
+            task9_run_id=999999,
+            label_analytics_build_run_id=fixture["train_label_build_run_id"],
+            feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
+            split="train",
+            supplemental_feature_values=_supplemental_features(
+                as_of_date=date(2026, 2, 28)
+            ),
+        )
+    ]
+
+    with pytest.raises(ResidualTrainingApplicationIntegrityError):
+        async with AsyncSessionMaker() as session:
+            await execute_residual_training(
+                session,
+                samples=samples,
+                config=_relaxed_config(),
+            )
+
+    # Verify attempt record was persisted as failed
+    async with AsyncSessionMaker() as session:
+        attempts = (
+            await session.scalars(
+                select(ResidualModelExecutionAttempt)
+                .order_by(ResidualModelExecutionAttempt.id.desc())
+                .limit(1)
+            )
+        ).all()
+        assert len(attempts) == 1
+        attempt = attempts[0]
+        assert attempt.attempt_type == "training"
+        assert attempt.execution_status == "failed"
+        assert attempt.current_stage == "manifest_build"
+        assert attempt.sanitized_error is not None
+        assert len(attempt.sanitized_error) > 0
+        assert attempt.finished_at is not None
+        assert attempt.linked_training_run_id is None
+        assert attempt.linked_prediction_run_id is None
+
+
+@pytest.mark.integration
+async def test_postgres_prediction_training_load_failure_persists_failed_attempt() -> None:
+    """Non-existent training run triggers a failed attempt record."""
+    _require_postgres()
+    fixture = await _seed_prediction_fixture()
+
+    with pytest.raises(ResidualTrainingApplicationIntegrityError):
+        async with AsyncSessionMaker() as session:
+            await execute_residual_prediction(
+                session,
+                request=ResidualPredictionRequest(
+                    model_run_id=999999,
+                    task9_run_id=fixture["train_task9_run_id"],
+                    feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
+                    supplemental_feature_values=_supplemental_features(
+                        as_of_date=date(2026, 2, 28)
+                    ),
+                ),
+            )
+
+    # Verify attempt record was persisted as failed
+    async with AsyncSessionMaker() as session:
+        attempts = (
+            await session.scalars(
+                select(ResidualModelExecutionAttempt)
+                .order_by(ResidualModelExecutionAttempt.id.desc())
+                .limit(1)
+            )
+        ).all()
+        assert len(attempts) == 1
+        attempt = attempts[0]
+        assert attempt.attempt_type == "prediction"
+        assert attempt.execution_status == "failed"
+        assert attempt.linked_training_run_id is None
+        assert attempt.linked_prediction_run_id is None
+
+
+@pytest.mark.integration
+async def test_postgres_prediction_feature_build_failure_persists_failed_attempt() -> None:
+    """Non-existent feature build triggers a failed attempt record."""
+    _require_postgres()
+    fixture = await _seed_prediction_fixture()
+
+    with pytest.raises(ResidualTrainingApplicationIntegrityError):
+        async with AsyncSessionMaker() as session:
+            await execute_residual_prediction(
+                session,
+                request=ResidualPredictionRequest(
+                    model_run_id=fixture["train_model_run_id"],
+                    task9_run_id=fixture["train_task9_run_id"],
+                    feature_analytics_build_run_id=999999,
+                    supplemental_feature_values=_supplemental_features(
+                        as_of_date=date(2026, 2, 28)
+                    ),
+                ),
+            )
+
+    # Verify attempt record was persisted as failed
+    async with AsyncSessionMaker() as session:
+        attempts = (
+            await session.scalars(
+                select(ResidualModelExecutionAttempt)
+                .order_by(ResidualModelExecutionAttempt.id.desc())
+                .limit(1)
+            )
+        ).all()
+        assert len(attempts) == 1
+        attempt = attempts[0]
+        assert attempt.attempt_type == "prediction"
+        assert attempt.execution_status == "failed"
+        assert attempt.linked_training_run_id is None
+        assert attempt.linked_prediction_run_id is None
+
+
+@pytest.mark.integration
+async def test_postgres_successful_training_run_attempt_finalized_as_completed() -> None:
+    """Successful training run finalizes as completed and linked."""
+    _require_postgres()
+    fixture = await _seed_prediction_fixture()
+
+    # Perform successful training
+    async with AsyncSessionMaker() as session:
+        training_result, _ = await execute_residual_training(
+            session,
+            samples=[ResidualTrainingSampleSpec(
+                task9_run_id=fixture["train_task9_run_id"],
+                label_analytics_build_run_id=fixture["train_label_build_run_id"],
+                feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
+                split="train",
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=date(2026, 2, 28)
+                ),
+            )],
+            config=_relaxed_config(),
+        )
+
+        assert training_result.execution_status == "completed"
+        assert training_result.eligibility_status == "eligible"
+
+        # Verify attempt record was persisted as completed
+        attempts = (
+            await session.scalars(
+                select(ResidualModelExecutionAttempt)
+                .where(ResidualModelExecutionAttempt.attempt_type == "training")
+                .order_by(ResidualModelExecutionAttempt.id.desc())
+                .limit(1)
+            )
+        ).all()
+        assert len(attempts) == 1
+        attempt = attempts[0]
+        assert attempt.execution_status == "completed"
+        assert attempt.linked_training_run_id is not None
