@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import pickle
 from io import BytesIO
 
 import joblib  # type: ignore[import-untyped]
@@ -63,13 +64,31 @@ def load_trusted_quantile_estimator(
         raise ResidualArtifactValidationError("artifact sklearn version mismatch")
     if metadata.numpy_version != np.__version__:
         raise ResidualArtifactValidationError("artifact numpy version mismatch")
+    expected_quantile = {"P50": 0.5, "P80": 0.8, "P90": 0.9}[expected_quantile_label]
+    if metadata.quantiles != [0.5, 0.8, 0.9]:
+        raise ResidualArtifactValidationError("artifact quantiles mismatch")
+    if metadata.estimator_parameters.get("loss") != "quantile":
+        raise ResidualArtifactValidationError("artifact metadata loss mismatch")
+    if metadata.estimator_parameters.get("quantile") != expected_quantile:
+        raise ResidualArtifactValidationError("artifact metadata quantile mismatch")
 
-    loaded = joblib.load(BytesIO(artifact.artifact_bytes))
+    try:
+        loaded = joblib.load(BytesIO(artifact.artifact_bytes))
+    except (
+        EOFError,
+        ValueError,
+        TypeError,
+        pickle.PickleError,
+        AttributeError,
+        ImportError,
+        ModuleNotFoundError,
+        Exception,
+    ) as exc:
+        raise ResidualArtifactValidationError("artifact deserialization failed") from exc
     if not isinstance(loaded, HistGradientBoostingRegressor):
         raise ResidualArtifactValidationError("artifact estimator type mismatch")
     if loaded.loss != "quantile":
         raise ResidualArtifactValidationError("artifact loss mismatch")
-    expected_quantile = {"P50": 0.5, "P80": 0.8, "P90": 0.9}[expected_quantile_label]
     if loaded.quantile != expected_quantile:
         raise ResidualArtifactValidationError("artifact estimator quantile mismatch")
     expected_parameters = metadata.estimator_parameters

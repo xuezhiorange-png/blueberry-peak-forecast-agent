@@ -22,6 +22,7 @@ from backend.tests.residual_model.test_training_manifest import (
     _seed_build_run,
     _seed_daily_fact,
     _seed_master_data,
+    _seed_season,
     _snapshot_as_of_date,
     _supplemental_features,
 )
@@ -37,6 +38,9 @@ def _relaxed_config():
         min_training_rows=1,
         min_seasons=1,
         min_factories=1,
+        max_validation_wmape=Decimal("10"),
+        require_improvement_over_structural=False,
+        max_fallback_rate=Decimal("1"),
     )
     rules = replace(config.rules, eligibility=eligibility)
     return replace(config, rules=rules)
@@ -46,6 +50,13 @@ async def test_execute_residual_prediction_persists_and_reloads(
     sqlite_session: AsyncSession,
 ) -> None:
     season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
+    validation_season_id = await _seed_season(
+        sqlite_session,
+        season_id=2,
+        code="2026-2027",
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 3, 31),
+    )
     task9_run_id, output = await _persist_task9_run(sqlite_session)
     as_of_date = _snapshot_as_of_date(output)
     label_build = await _seed_build_run(
@@ -55,6 +66,7 @@ async def test_execute_residual_prediction_persists_and_reloads(
         source_max_raw_id=100,
         config_hash="a" * 64,
         finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
     )
     feature_build = await _seed_build_run(
         sqlite_session,
@@ -63,6 +75,25 @@ async def test_execute_residual_prediction_persists_and_reloads(
         source_max_raw_id=50,
         config_hash="b" * 64,
         finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
+    )
+    validation_label_build = await _seed_build_run(
+        sqlite_session,
+        build_run_id=101,
+        season_id=validation_season_id,
+        source_max_raw_id=200,
+        config_hash="c" * 64,
+        finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
+    )
+    validation_feature_build = await _seed_build_run(
+        sqlite_session,
+        build_run_id=102,
+        season_id=validation_season_id,
+        source_max_raw_id=150,
+        config_hash="d" * 64,
+        finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
     )
     for index, target_date in enumerate((date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))):
         await _seed_daily_fact(
@@ -81,6 +112,28 @@ async def test_execute_residual_prediction_persists_and_reloads(
             fact_id=200 + offset,
             build_run_id=feature_build.id,
             season_id=season_id,
+            factory_id=factory_id,
+            variety_id=variety_id,
+            receipt_date=as_of_date - timedelta(days=offset),
+            weight_kg=weight,
+        )
+    for index, target_date in enumerate((date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))):
+        await _seed_daily_fact(
+            sqlite_session,
+            fact_id=300 + index,
+            build_run_id=validation_label_build.id,
+            season_id=validation_season_id,
+            factory_id=factory_id,
+            variety_id=variety_id,
+            receipt_date=target_date,
+            weight_kg=Decimal("120") + Decimal(index),
+        )
+    for offset, weight in ((1, Decimal("21")), (3, Decimal("23")), (7, Decimal("27"))):
+        await _seed_daily_fact(
+            sqlite_session,
+            fact_id=400 + offset,
+            build_run_id=validation_feature_build.id,
+            season_id=validation_season_id,
             factory_id=factory_id,
             variety_id=variety_id,
             receipt_date=as_of_date - timedelta(days=offset),
@@ -133,6 +186,7 @@ async def test_execute_residual_prediction_falls_back_for_ineligible_model(
         source_max_raw_id=100,
         config_hash="a" * 64,
         finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
     )
     feature_build = await _seed_build_run(
         sqlite_session,
@@ -141,6 +195,7 @@ async def test_execute_residual_prediction_falls_back_for_ineligible_model(
         source_max_raw_id=50,
         config_hash="b" * 64,
         finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
     )
     await _seed_daily_fact(
         sqlite_session,

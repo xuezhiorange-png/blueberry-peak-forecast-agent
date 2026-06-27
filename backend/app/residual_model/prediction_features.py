@@ -24,6 +24,7 @@ from backend.app.residual_model.training_manifest import (
     _as_of_date_from_task9_output,
     _load_completed_build_run,
     _load_fact_map,
+    _load_factory_coverages,
     _load_factory_date_spans,
     _load_factory_ids_with_any_fact,
     _load_season,
@@ -80,7 +81,7 @@ async def build_prediction_feature_rows(
     feature_build_run: AnalyticsBuildRun | None = None
     feature_season = None
     feature_fact_map: dict[tuple[int, date], Decimal] = {}
-    feature_factory_ids: set[int] = set()
+    feature_factory_coverages = {}
     feature_factory_spans: dict[int, tuple[date, date]] = {}
     holiday_calendar_version = "task9-missing-v1"
     holiday_calendar_hash = "0" * 64
@@ -99,6 +100,13 @@ async def build_prediction_feature_rows(
         feature_factory_spans = await _load_factory_date_spans(
             session,
             build_run_id=feature_build_run.id,
+        )
+        feature_factory_coverages = await _load_factory_coverages(
+            session,
+            build_run=feature_build_run,
+            season=feature_season,
+            covered_factory_ids=feature_factory_ids,
+            factory_date_spans=feature_factory_spans,
         )
     (
         holiday_calendar_version,
@@ -134,8 +142,7 @@ async def build_prediction_feature_rows(
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=1),
                 fact_map=feature_fact_map,
-                covered_factory_ids=feature_factory_ids,
-                factory_date_spans=feature_factory_spans,
+                factory_coverages=feature_factory_coverages,
             )
             actual_lag_3, reason_3 = _receipt_value(
                 build_run=feature_build_run,
@@ -143,8 +150,7 @@ async def build_prediction_feature_rows(
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=3),
                 fact_map=feature_fact_map,
-                covered_factory_ids=feature_factory_ids,
-                factory_date_spans=feature_factory_spans,
+                factory_coverages=feature_factory_coverages,
             )
             actual_lag_7, reason_7 = _receipt_value(
                 build_run=feature_build_run,
@@ -152,8 +158,7 @@ async def build_prediction_feature_rows(
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=7),
                 fact_map=feature_fact_map,
-                covered_factory_ids=feature_factory_ids,
-                factory_date_spans=feature_factory_spans,
+                factory_coverages=feature_factory_coverages,
             )
             if reason_1 or reason_3 or reason_7:
                 warnings.append(reason_1 or reason_3 or reason_7 or "unknown_feature_gap")
@@ -166,8 +171,7 @@ async def build_prediction_feature_rows(
                     factory_id=destination_factory_id,
                     receipt_date=as_of_date - timedelta(days=offset),
                     fact_map=feature_fact_map,
-                    covered_factory_ids=feature_factory_ids,
-                    factory_date_spans=feature_factory_spans,
+                    factory_coverages=feature_factory_coverages,
                 )
                 if value is None:
                     warnings.append(reason or "unknown_feature_gap")
@@ -183,8 +187,7 @@ async def build_prediction_feature_rows(
                     factory_id=destination_factory_id,
                     receipt_date=as_of_date - timedelta(days=offset),
                     fact_map=feature_fact_map,
-                    covered_factory_ids=feature_factory_ids,
-                    factory_date_spans=feature_factory_spans,
+                    factory_coverages=feature_factory_coverages,
                 )
                 if value is None:
                     warnings.append(reason or "unknown_feature_gap")
@@ -211,8 +214,7 @@ async def build_prediction_feature_rows(
                     factory_id=destination_factory_id,
                     receipt_date=receipt_date,
                     fact_map=feature_fact_map,
-                    covered_factory_ids=feature_factory_ids,
-                    factory_date_spans=feature_factory_spans,
+                    factory_coverages=feature_factory_coverages,
                 )
                 if value is None:
                     warnings.append(reason or "unknown_feature_gap")

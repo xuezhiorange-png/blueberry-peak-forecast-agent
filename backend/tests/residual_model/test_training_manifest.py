@@ -2,14 +2,20 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import cast
 
 import pytest
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from backend.app.analytics.peak_metrics import build_analysis_calendar
 from backend.app.harvest_state.persistence import save_harvest_state_output
 from backend.app.harvest_state.service import run_harvest_state_model
-from backend.app.models.analytics import AnalyticsBuildRun, FactReceiptDaily
+from backend.app.models.analytics import (
+    AnalyticsBuildRun,
+    FactorySeasonPeakMetric,
+    FactReceiptDaily,
+)
 from backend.app.models.harvest_state import (
     HarvestStateCohortTransitionRowModel,
     HarvestStateDailyMemberRowModel,
@@ -44,6 +50,7 @@ TABLES = [
     Variety.__table__,
     AnalyticsBuildRun.__table__,
     FactReceiptDaily.__table__,
+    FactorySeasonPeakMetric.__table__,
     HarvestStateRun.__table__,
     HarvestStateDailyPoolRowModel.__table__,
     HarvestStateDailyMemberRowModel.__table__,
@@ -94,6 +101,25 @@ async def _seed_master_data(session: AsyncSession) -> tuple[int, int, int]:
     return season.id, factory.id, variety.id
 
 
+async def _seed_season(
+    session: AsyncSession,
+    *,
+    season_id: int,
+    code: str,
+    start_date: date,
+    end_date: date,
+) -> int:
+    season = Season(
+        id=season_id,
+        code=code,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    session.add(season)
+    await session.flush()
+    return season.id
+
+
 async def _persist_task9_run(session: AsyncSession) -> tuple[int, object]:
     output = run_harvest_state_model(make_request())
     assert output.status == "completed"
@@ -121,6 +147,9 @@ async def _seed_build_run(
     config_hash: str,
     finished_at: datetime,
     config_snapshot: dict[str, object] | None = None,
+    covered_factory_ids: tuple[int, ...] = (),
+    analysis_start_date: date | None = None,
+    analysis_end_date: date | None = None,
 ) -> AnalyticsBuildRun:
     build = AnalyticsBuildRun(
         id=build_run_id,
@@ -132,7 +161,6 @@ async def _seed_build_run(
         or {
             "version": "task3-v1",
             "analysis_months": [1, 2, 3, 4],
-            "coverage_scope": "season_calendar_for_observed_factories",
         },
         status="completed",
         source_eligible_row_count=1,
@@ -143,6 +171,48 @@ async def _seed_build_run(
     )
     session.add(build)
     await session.flush()
+    if covered_factory_ids:
+        season = await session.get(Season, season_id)
+        assert season is not None
+        analysis_start = analysis_start_date or season.start_date
+        analysis_end = analysis_end_date or min(season.end_date, finished_at.date())
+        analysis_months = tuple(cast(list[int], build.config_snapshot["analysis_months"]))
+        calendar_day_count = len(
+            build_analysis_calendar(
+                start_date=analysis_start,
+                end_date=analysis_end,
+                analysis_months=analysis_months,
+            )
+        )
+        for index, factory_id in enumerate(covered_factory_ids, start=1):
+            session.add(
+                FactorySeasonPeakMetric(
+                    id=build_run_id * 1000 + index,
+                    build_run_id=build.id,
+                    season_id=season_id,
+                    factory_id=factory_id,
+                    analysis_start_date=analysis_start,
+                    analysis_end_date=analysis_end,
+                    calendar_day_count=calendar_day_count,
+                    observed_day_count=0,
+                    total_weight_kg=Decimal("1"),
+                    single_day_peak_kg=Decimal("1"),
+                    single_day_peak_date=analysis_start,
+                    stable_median_3d_peak_kg=Decimal("1"),
+                    stable_median_3d_peak_date=analysis_start,
+                    mean_3d_peak_kg=Decimal("1"),
+                    mean_3d_peak_date=analysis_start,
+                    peak_concentration=Decimal("0"),
+                    variety_hhi=Decimal("0"),
+                    farm_hhi=Decimal("0"),
+                    subfarm_hhi=Decimal("0"),
+                    unknown_farm_weight_share=Decimal("0"),
+                    unknown_subfarm_weight_share=Decimal("0"),
+                    spring_festival_day_count=0,
+                    computed_at=finished_at,
+                )
+            )
+        await session.flush()
     return build
 
 
@@ -236,21 +306,40 @@ def _diverse_training_samples(
     as_of_date: date,
     count: int = 30,
 ) -> list[ResidualTrainingSampleSpec]:
-    return [
-        ResidualTrainingSampleSpec(
-            task9_run_id=task9_run_id,
-            label_analytics_build_run_id=label_build_run_id,
-            feature_analytics_build_run_id=feature_build_run_id,
-            split="train",
-            supplemental_feature_values=_supplemental_features(
-                as_of_date=as_of_date,
-                destination_factory_category=f"snapshot-{index % 3}",
-                weather_7d_rainfall=Decimal("12.5") + Decimal(index % 5),
-                weather_7d_gdd=Decimal("33.0") + Decimal(index % 7),
-            ),
+    train_count = max(count - 6, 1)
+    validation_count = count - train_count
+    samples: list[ResidualTrainingSampleSpec] = []
+    for index in range(train_count):
+        samples.append(
+            ResidualTrainingSampleSpec(
+                task9_run_id=task9_run_id,
+                label_analytics_build_run_id=label_build_run_id,
+                feature_analytics_build_run_id=feature_build_run_id,
+                split="train",
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=as_of_date,
+                    destination_factory_category=f"snapshot-{index % 3}",
+                    weather_7d_rainfall=Decimal("12.5") + Decimal(index % 5),
+                    weather_7d_gdd=Decimal("33.0") + Decimal(index % 7),
+                ),
+            )
         )
-        for index in range(count)
-    ]
+    for index in range(validation_count):
+        samples.append(
+            ResidualTrainingSampleSpec(
+                task9_run_id=task9_run_id,
+                label_analytics_build_run_id=label_build_run_id + 100,
+                feature_analytics_build_run_id=feature_build_run_id + 100,
+                split="validation",
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=as_of_date,
+                    destination_factory_category=f"snapshot-validation-{index % 2}",
+                    weather_7d_rainfall=Decimal("22.5") + Decimal(index % 3),
+                    weather_7d_gdd=Decimal("43.0") + Decimal(index % 5),
+                ),
+            )
+        )
+    return samples
 
 
 def _snapshot_as_of_date(output: object) -> date:
@@ -453,6 +542,7 @@ async def test_zero_receipt_and_missing_fact_are_distinguished(
         source_max_raw_id=100,
         config_hash="a" * 64,
         finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
     )
     covered_feature_build = await _seed_build_run(
         sqlite_session,
@@ -461,6 +551,7 @@ async def test_zero_receipt_and_missing_fact_are_distinguished(
         source_max_raw_id=50,
         config_hash="b" * 64,
         finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
     )
     missing_feature_build = await _seed_build_run(
         sqlite_session,
@@ -676,7 +767,6 @@ async def test_uncovered_prior_day_receipt_does_not_silently_zero_fill(
         config_snapshot={
             "version": "task3-v1",
             "analysis_months": [1, 2, 3, 4],
-            "coverage_scope": "observed_date_span",
         },
     )
     await _seed_daily_fact(
@@ -965,6 +1055,13 @@ async def test_task9_completed_only_is_required(sqlite_session: AsyncSession) ->
 @pytest.mark.asyncio
 async def test_execute_residual_training_persists_and_reloads(sqlite_session: AsyncSession) -> None:
     season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
+    validation_season_id = await _seed_season(
+        sqlite_session,
+        season_id=2,
+        code="2026-2027",
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 3, 31),
+    )
     task9_run_id, output = await _persist_task9_run(sqlite_session)
     as_of_date = _snapshot_as_of_date(output)
     label_build = await _seed_build_run(
@@ -974,6 +1071,7 @@ async def test_execute_residual_training_persists_and_reloads(sqlite_session: As
         source_max_raw_id=100,
         config_hash="a" * 64,
         finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
     )
     feature_build = await _seed_build_run(
         sqlite_session,
@@ -982,6 +1080,25 @@ async def test_execute_residual_training_persists_and_reloads(sqlite_session: As
         source_max_raw_id=50,
         config_hash="b" * 64,
         finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
+    )
+    validation_label_build = await _seed_build_run(
+        sqlite_session,
+        build_run_id=101,
+        season_id=validation_season_id,
+        source_max_raw_id=200,
+        config_hash="c" * 64,
+        finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
+    )
+    validation_feature_build = await _seed_build_run(
+        sqlite_session,
+        build_run_id=102,
+        season_id=validation_season_id,
+        source_max_raw_id=150,
+        config_hash="d" * 64,
+        finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+        covered_factory_ids=(factory_id,),
     )
     for index, target_date in enumerate((date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))):
         await _seed_daily_fact(
@@ -1005,6 +1122,28 @@ async def test_execute_residual_training_persists_and_reloads(sqlite_session: As
             receipt_date=as_of_date - timedelta(days=offset),
             weight_kg=weight,
         )
+    for index, target_date in enumerate((date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))):
+        await _seed_daily_fact(
+            sqlite_session,
+            fact_id=300 + index,
+            build_run_id=validation_label_build.id,
+            season_id=validation_season_id,
+            factory_id=factory_id,
+            variety_id=variety_id,
+            receipt_date=target_date,
+            weight_kg=Decimal("120") + Decimal(index),
+        )
+    for offset, weight in ((1, Decimal("21")), (3, Decimal("23")), (7, Decimal("27"))):
+        await _seed_daily_fact(
+            sqlite_session,
+            fact_id=400 + offset,
+            build_run_id=validation_feature_build.id,
+            season_id=validation_season_id,
+            factory_id=factory_id,
+            variety_id=variety_id,
+            receipt_date=as_of_date - timedelta(days=offset),
+            weight_kg=weight,
+        )
     await sqlite_session.commit()
 
     loaded, run_id = await execute_residual_training(
@@ -1020,6 +1159,7 @@ async def test_execute_residual_training_persists_and_reloads(sqlite_session: As
 
     assert run_id > 0
     assert loaded.execution_status == "completed"
+    assert loaded.eligibility_status == "ineligible"
     assert loaded.training_signature
 
 

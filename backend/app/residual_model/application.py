@@ -143,37 +143,23 @@ async def execute_residual_prediction(
     artifact_hashes: list[str] = []
     config = load_residual_model_config_from_snapshot(model_run.input_snapshot["config_snapshot"])
     result: ResidualPredictionExecutionResult
+    fallback_reason: str | None = None
+    feature_names: list[str] = []
+    category_encodings: list[Any] = []
+    estimators: TrainedResidualEstimators | None = None
 
     if (
         model_run.execution_status != "completed"
         or model_run.eligibility_status != "eligible"
         or blockers
     ):
-        result = structural_only_prediction(
-            model_run_id=training_run_row.id,
-            task9_run_id=request.task9_run_id,
-            task9_result_hash=task9_output.result_hash,
-            config_hash=training_run_row.config_hash,
-            structural_rows=structural_rows,
-            fallback_reason=(
-                "feature_visibility_failed"
-                if blockers
-                else "model_not_eligible"
-            ),
-        )
+        fallback_reason = "feature_visibility_failed" if blockers else "model_not_eligible"
     else:
         try:
             artifacts = await load_residual_training_artifacts(session, run_id=training_run_row.id)
             artifact_hashes = [item.metadata.binary_sha256 for item in artifacts]
             if len(artifacts) != 3:
-                result = structural_only_prediction(
-                    model_run_id=training_run_row.id,
-                    task9_run_id=request.task9_run_id,
-                    task9_result_hash=task9_output.result_hash,
-                    config_hash=training_run_row.config_hash,
-                    structural_rows=structural_rows,
-                    fallback_reason="artifact_count_mismatch",
-                )
+                fallback_reason = "artifact_count_mismatch"
             else:
                 estimators = TrainedResidualEstimators(
                     p50=load_trusted_quantile_estimator(
@@ -215,54 +201,57 @@ async def execute_residual_prediction(
                 )
                 category_encodings = artifacts[0].metadata.category_encodings
                 feature_names = list(model_run.metrics.get("feature_names", []))
-                result = predict_residual_correction(
-                    model_run_id=training_run_row.id,
-                    task9_run_id=request.task9_run_id,
-                    task9_result_hash=task9_output.result_hash,
-                    config=config,
-                    feature_names=feature_names,
-                    category_encodings=category_encodings,
-                    structural_rows=structural_rows,
-                    feature_rows=feature_rows,
-                    feature_audits=feature_audits,
-                    estimators=estimators,
-                )
+                fallback_reason = None
         except (ResidualArtifactValidationError, ResidualModelPersistenceIntegrityError):
-            result = structural_only_prediction(
-                model_run_id=training_run_row.id,
-                task9_run_id=request.task9_run_id,
-                task9_result_hash=task9_output.result_hash,
-                config_hash=training_run_row.config_hash,
-                structural_rows=structural_rows,
-                fallback_reason="artifact_validation_failed",
-            )
+            fallback_reason = "artifact_validation_failed"
 
-    if warnings or blockers:
-        result = result.model_copy(
-            update={
-                "warnings": tuple(sorted(set(result.warnings) | set(warnings))),
-                "blockers": tuple(sorted(set(result.blockers) | set(blockers))),
-            }
+    input_snapshot = _prediction_input_snapshot(
+        request=request,
+        model_run=model_run,
+        feature_snapshot=(
+            feature_snapshot.model_dump(mode="json")
+            if feature_snapshot is not None
+            else None
+        ),
+        feature_audits=feature_audits,
+        artifact_hashes=artifact_hashes,
+        feature_rows=feature_rows,
+        fallback_reason=fallback_reason,
+    ) | {"task9_result_hash": task9_output.result_hash}
+
+    if fallback_reason is not None:
+        result = structural_only_prediction(
+            model_run_id=training_run_row.id,
+            task9_run_id=request.task9_run_id,
+            task9_result_hash=task9_output.result_hash,
+            config_hash=training_run_row.config_hash,
+            structural_rows=structural_rows,
+            fallback_reason=fallback_reason,
+            warnings=warnings,
+            blockers=blockers,
+            input_snapshot=input_snapshot,
         )
-    result = result.model_copy(
-        update={
-            "task9_result_hash": task9_output.result_hash,
-            "input_snapshot": _prediction_input_snapshot(
-                request=request,
-                model_run=model_run,
-                feature_snapshot=(
-                    feature_snapshot.model_dump(mode="json")
-                    if feature_snapshot is not None
-                    else None
-                ),
-                feature_audits=feature_audits,
-                artifact_hashes=artifact_hashes,
-                feature_rows=feature_rows,
-                fallback_reason=result.fallback_reason,
+    else:
+        if estimators is None:
+            raise ResidualPredictionApplicationIntegrityError(
+                "Residual prediction estimators were not resolved for residual_corrected mode"
             )
-            | {"task9_result_hash": task9_output.result_hash},
-        }
-    )
+        result = predict_residual_correction(
+            model_run_id=training_run_row.id,
+            task9_run_id=request.task9_run_id,
+            task9_result_hash=task9_output.result_hash,
+            config=config,
+            feature_names=feature_names,
+            category_encodings=category_encodings,
+            structural_rows=structural_rows,
+            feature_rows=feature_rows,
+            feature_audits=feature_audits,
+            estimators=estimators,
+            warnings=warnings,
+            blockers=blockers,
+            fallback_reason=None,
+            input_snapshot=input_snapshot,
+        )
 
     run = await save_residual_prediction_run(
         session,

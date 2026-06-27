@@ -15,6 +15,7 @@ def _training_row(
     target_date: date,
     rainfall: str,
     residual: str,
+    split: str = "train",
 ) -> ResidualTrainingManifestRow:
     features = (
         FeatureValue.model_validate(
@@ -81,7 +82,7 @@ def _training_row(
             [item.model_dump(mode="json") for item in features]
         ),
         feature_visibility_audit_hash="a" * 64,
-        split="train",
+        split=split,
         include=True,
         sample_weight=Decimal("1"),
         source_refs=("task9", "analytics"),
@@ -109,6 +110,47 @@ def test_structural_only_fallback_for_ineligible_model() -> None:
 
 
 def test_completed_eligible_training_emits_three_quantile_artifacts() -> None:
+    from dataclasses import replace
+
+    from backend.app.residual_model.config import load_residual_model_config
+    from backend.app.residual_model.service import train_residual_model_from_manifest
+
+    config = load_residual_model_config(residual_model_config_path())
+    relaxed = replace(
+        config,
+        rules=replace(
+            config.rules,
+            eligibility=replace(
+                config.rules.eligibility,
+                min_training_rows=1,
+                min_seasons=1,
+                min_factories=1,
+                max_validation_wmape=1.0,
+                require_improvement_over_structural=False,
+                max_fallback_rate=1.0,
+            ),
+        ),
+    )
+    rows = [
+        _training_row(
+            season_id=(index % 2) + 1 if index < 20 else 3,
+            factory_id=(index % 2) + 1,
+            target_date=date(2026, 3, 2 + (index % 5)),
+            rainfall=str(3 + (index % 4)),
+            residual=str(5 + (index % 6)),
+            split="train" if index < 20 else "validation",
+        )
+        for index in range(30)
+    ]
+
+    result = train_residual_model_from_manifest(rows=rows, config=relaxed)
+
+    assert result.execution_status == "completed"
+    assert result.eligibility_status == "eligible"
+    assert [item.quantile_label for item in result.artifacts] == ["P50", "P80", "P90"]
+
+
+def test_leave_one_season_out_requires_validation_season() -> None:
     from backend.app.residual_model.config import load_residual_model_config
     from backend.app.residual_model.service import train_residual_model_from_manifest
 
@@ -120,6 +162,7 @@ def test_completed_eligible_training_emits_three_quantile_artifacts() -> None:
             target_date=date(2026, 3, 2 + (index % 5)),
             rainfall=str(3 + (index % 4)),
             residual=str(5 + (index % 6)),
+            split="train",
         )
         for index in range(30)
     ]
@@ -127,8 +170,8 @@ def test_completed_eligible_training_emits_three_quantile_artifacts() -> None:
     result = train_residual_model_from_manifest(rows=rows, config=config)
 
     assert result.execution_status == "completed"
-    assert result.eligibility_status == "eligible"
-    assert [item.quantile_label for item in result.artifacts] == ["P50", "P80", "P90"]
+    assert result.eligibility_status == "ineligible"
+    assert "missing_validation_season" in result.eligibility_reasons
 
 
 def test_structural_only_preserves_structural_values() -> None:
