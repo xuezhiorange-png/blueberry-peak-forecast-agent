@@ -91,16 +91,19 @@ async def get_residual_prediction_run(
     )
 
 
-async def get_residual_prediction_run_by_input_hash(
+async def get_residual_prediction_run_by_input_signature(
     session: AsyncSession,
     *,
-    input_hash: str,
+    prediction_input_signature: str,
 ) -> ResidualModelPredictionRun | None:
     return cast(
         ResidualModelPredictionRun | None,
         await session.scalar(
             select(ResidualModelPredictionRun)
-            .where(ResidualModelPredictionRun.input_hash == input_hash)
+            .where(
+                ResidualModelPredictionRun.prediction_input_signature
+                == prediction_input_signature
+            )
             .execution_options(populate_existing=True)
         ),
     )

@@ -55,7 +55,6 @@ def _prediction_input_snapshot(
     feature_audits: list[FeatureVisibilityAudit],
     artifact_hashes: list[str],
     feature_rows: list[tuple[FeatureValue, ...]],
-    fallback_reason: str | None,
 ) -> dict[str, Any]:
     return {
         "model_run_id": request.model_run_id,
@@ -72,13 +71,14 @@ def _prediction_input_snapshot(
             [item.model_dump(mode="json") for item in row] for row in feature_rows
         ],
         "feature_schema_version": model_run.feature_schema_version,
+        "feature_schema_hash": model_run.metrics.get("feature_schema_hash")
+        or model_run.input_snapshot.get("feature_schema_hash"),
         "config_hash": model_run.config_hash,
         "artifact_hashes": artifact_hashes,
         "projection_version": model_run.input_snapshot["config_snapshot"]["projection"]["version"],
         "fallback_policy": model_run.input_snapshot["config_snapshot"]["categorical_encoding"][
             "unknown_policy"
         ],
-        "fallback_reason": fallback_reason,
     }
 
 
@@ -216,7 +216,6 @@ async def execute_residual_prediction(
         feature_audits=feature_audits,
         artifact_hashes=artifact_hashes,
         feature_rows=feature_rows,
-        fallback_reason=fallback_reason,
     ) | {"task9_result_hash": task9_output.result_hash}
 
     if fallback_reason is not None:

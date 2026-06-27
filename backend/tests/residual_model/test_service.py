@@ -174,6 +174,106 @@ def test_leave_one_season_out_requires_validation_season() -> None:
     assert "missing_validation_season" in result.eligibility_reasons
 
 
+def test_leave_one_season_out_rejects_train_test_overlap() -> None:
+    from dataclasses import replace
+
+    from backend.app.residual_model.config import load_residual_model_config
+    from backend.app.residual_model.service import train_residual_model_from_manifest
+
+    config = load_residual_model_config(residual_model_config_path())
+    relaxed = replace(
+        config,
+        rules=replace(
+            config.rules,
+            eligibility=replace(
+                config.rules.eligibility,
+                min_training_rows=1,
+                min_seasons=1,
+                min_factories=1,
+                require_improvement_over_structural=False,
+                max_validation_wmape=1.0,
+                max_fallback_rate=1.0,
+            ),
+        ),
+    )
+    rows = [
+        _training_row(
+            season_id=1,
+            factory_id=1,
+            target_date=date(2026, 3, 2),
+            rainfall="3",
+            residual="5",
+            split="train",
+        ),
+        _training_row(
+            season_id=2,
+            factory_id=1,
+            target_date=date(2026, 3, 3),
+            rainfall="4",
+            residual="6",
+            split="validation",
+        ),
+        _training_row(
+            season_id=1,
+            factory_id=2,
+            target_date=date(2026, 3, 4),
+            rainfall="5",
+            residual="7",
+            split="test",
+        ),
+    ]
+
+    result = train_residual_model_from_manifest(rows=rows, config=relaxed)
+
+    assert result.execution_status == "completed"
+    assert result.eligibility_status == "ineligible"
+    assert "train_test_season_overlap" in result.eligibility_reasons
+
+
+def test_prediction_input_signature_is_independent_from_output_fields() -> None:
+    from backend.app.residual_model.service import structural_only_prediction
+
+    first = structural_only_prediction(
+        model_run_id=1,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+        warnings=("warning-a",),
+    )
+    second = structural_only_prediction(
+        model_run_id=1,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="artifact_validation_failed",
+        warnings=("warning-b",),
+    )
+
+    assert first.prediction_input_signature == second.prediction_input_signature
+    assert first.prediction_hash != second.prediction_hash
+
+
 def test_structural_only_preserves_structural_values() -> None:
     from backend.app.residual_model.service import structural_only_prediction
 

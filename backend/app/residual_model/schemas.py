@@ -216,6 +216,7 @@ class ResidualPredictionExecutionResult(_BaseModel):
     task9_run_id: int | None = None
     task9_result_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     config_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prediction_input_signature: str = Field(pattern=r"^[0-9a-f]{64}$")
     prediction_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     warnings: tuple[str, ...]
     blockers: tuple[str, ...]

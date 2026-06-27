@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import pickle
+import platform
 from io import BytesIO
 
 import joblib  # type: ignore[import-untyped]
@@ -64,6 +65,8 @@ def load_trusted_quantile_estimator(
         raise ResidualArtifactValidationError("artifact sklearn version mismatch")
     if metadata.numpy_version != np.__version__:
         raise ResidualArtifactValidationError("artifact numpy version mismatch")
+    if metadata.python_version != platform.python_version():
+        raise ResidualArtifactValidationError("artifact python version mismatch")
     expected_quantile = {"P50": 0.5, "P80": 0.8, "P90": 0.9}[expected_quantile_label]
     if metadata.quantiles != [0.5, 0.8, 0.9]:
         raise ResidualArtifactValidationError("artifact quantiles mismatch")
@@ -82,7 +85,6 @@ def load_trusted_quantile_estimator(
         AttributeError,
         ImportError,
         ModuleNotFoundError,
-        Exception,
     ) as exc:
         raise ResidualArtifactValidationError("artifact deserialization failed") from exc
     if not isinstance(loaded, HistGradientBoostingRegressor):

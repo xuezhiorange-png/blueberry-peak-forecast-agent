@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import cast
+from typing import Any, cast
 
 import pytest
 from sqlalchemy import JSON
@@ -120,8 +120,16 @@ async def _seed_season(
     return season.id
 
 
-async def _persist_task9_run(session: AsyncSession) -> tuple[int, object]:
-    output = run_harvest_state_model(make_request())
+async def _persist_task9_run(
+    session: AsyncSession,
+    *,
+    payload: dict[str, Any] | None = None,
+    payload_overrides: dict[str, object] | None = None,
+) -> tuple[int, object]:
+    payload = payload.copy() if payload is not None else make_request()
+    if payload_overrides:
+        payload.update(payload_overrides)
+    output = run_harvest_state_model(payload)
     assert output.status == "completed"
     run = await save_harvest_state_output(session, output=output)
     await session.commit()
@@ -304,6 +312,9 @@ def _diverse_training_samples(
     label_build_run_id: int,
     feature_build_run_id: int,
     as_of_date: date,
+    validation_task9_run_id: int | None = None,
+    validation_label_build_run_id: int | None = None,
+    validation_feature_build_run_id: int | None = None,
     count: int = 30,
 ) -> list[ResidualTrainingSampleSpec]:
     train_count = max(count - 6, 1)
@@ -327,9 +338,11 @@ def _diverse_training_samples(
     for index in range(validation_count):
         samples.append(
             ResidualTrainingSampleSpec(
-                task9_run_id=task9_run_id,
-                label_analytics_build_run_id=label_build_run_id + 100,
-                feature_analytics_build_run_id=feature_build_run_id + 100,
+                task9_run_id=validation_task9_run_id or task9_run_id,
+                label_analytics_build_run_id=validation_label_build_run_id
+                or (label_build_run_id + 100),
+                feature_analytics_build_run_id=validation_feature_build_run_id
+                or (feature_build_run_id + 100),
                 split="validation",
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=as_of_date,
