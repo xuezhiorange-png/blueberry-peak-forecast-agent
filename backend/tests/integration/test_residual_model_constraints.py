@@ -41,10 +41,9 @@ async def _expect_integrity_error(
     async with AsyncSessionMaker() as session:
         with pytest.raises(IntegrityError):
             await session.execute(text(sql), params or {})
-            await session.commit()
+            await session.flush()
 
-        # Verify no partial rows remain — the error must have rolled back.
-        # We just need any valid query to confirm the connection is alive.
+        await session.rollback()
         await session.execute(text("SELECT 1"))
 
 
@@ -299,12 +298,14 @@ async def _seed_prediction_row(
     factory_id: int | None = None,
 ) -> int:
     """Insert a minimal prediction_row and return its id."""
+    if factory_id is None:
+        factory_id = await _seed_factory(
+            name=f"Prediction Row Factory {prediction_run_id or 'auto'}"
+        )
     if prediction_run_id is None:
         prediction_run_id = await _seed_prediction_run()
     if task9_run_id is None:
         task9_run_id = await _seed_harvest_state_run(factory_id=factory_id)
-    if factory_id is None:
-        factory_id = await _seed_factory()
     async with AsyncSessionMaker() as session:
         row = (
             await session.execute(

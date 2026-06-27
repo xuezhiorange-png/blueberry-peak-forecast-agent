@@ -312,6 +312,7 @@ async def test_prediction_authority_artifact_hash_modified(
         "feature_schema_hash": training_run.feature_schema_hash,
         "projection_version": "v1",
         "fallback_policy": "structural_only_fallback",
+        "prediction_as_of_date": "2026-02-28",
     }
     result = structural_only_prediction(
         model_run_id=training_run.id,
@@ -403,6 +404,7 @@ async def test_prediction_authority_schema_hash_mismatch_on_load(
         "feature_schema_hash": training_run.feature_schema_hash,
         "projection_version": "v1",
         "fallback_policy": "structural_only_fallback",
+        "prediction_as_of_date": "2026-02-28",
     }
     result = structural_only_prediction(
         model_run_id=training_run.id,
@@ -487,6 +489,7 @@ async def test_prediction_authority_schema_version_mismatch_with_training_run(
         "feature_schema_hash": training_run.feature_schema_hash,
         "projection_version": "v1",
         "fallback_policy": "structural_only_fallback",
+        "prediction_as_of_date": "2026-02-28",
     }
     result = structural_only_prediction(
         model_run_id=training_run.id,

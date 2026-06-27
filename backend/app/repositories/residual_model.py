@@ -194,6 +194,7 @@ async def complete_residual_execution_attempt(
     attempt = await get_residual_execution_attempt(session, attempt_id=attempt_id)
     if attempt is not None:
         attempt.execution_status = "completed"
+        attempt.current_stage = "completed"
         attempt.finished_at = func.now()
         if linked_training_run_id is not None:
             attempt.linked_training_run_id = linked_training_run_id

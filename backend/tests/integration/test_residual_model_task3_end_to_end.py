@@ -36,6 +36,7 @@ from backend.app.models.analytics import (
     AnalyticsBuildRun,
     FactorySeasonPeakMetric,
 )
+from backend.app.models.master_data import Factory
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelManifestRow,
@@ -112,6 +113,15 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         # 1. Seed master data — train season + validation season
         # ------------------------------------------------------------------
         season_id, factory_id, variety_id = await _seed_master_data(session)
+        secondary_factory = Factory(
+            id=702,
+            code="factory-b",
+            name="Factory B",
+            region_name="south",
+            active=True,
+        )
+        session.add(secondary_factory)
+        await session.flush()
         # season_id = 1, code = "2025-2026"
 
         # Validation season: different season_id AND different code (disjoint)
@@ -128,8 +138,9 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         )
 
         # ------------------------------------------------------------------
-        # 2. TRAIN SEASON — Limited feature build (for uncovered test)
-        #    Insert only Jan 10 data so build coverage ends at Jan 10
+        # 2. TRAIN SEASON — Limited feature build for a different factory.
+        #    This creates a real frozen coverage snapshot that excludes the
+        #    Task 9 destination factory, without relying on sparse-fact myths.
         # ------------------------------------------------------------------
         limited_ingest_id = await _create_ingest_file(
             session,
@@ -141,7 +152,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             session,
             ingest_file_id=limited_ingest_id,
             season_id=season_id,
-            factory_id=factory_id,
+            factory_id=secondary_factory.id,
             variety_id=variety_id,
             rows=[
                 {
@@ -540,9 +551,8 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             f"got {feature_map['actual_receipt_rolling_3d_mean_kg']}"
         )
 
-        # B4. Uncovered date = excluded (using limited feature build)
-        #     The limited build only has data for 2026-01-10, so all lag
-        #     windows (Feb 27, Feb 25, Feb 21) fall outside its coverage.
+        # B4. Frozen coverage exclusion = excluded (using limited feature build
+        #     that does not cover the Task 9 destination factory).
         uncovered_manifest_rows = await build_residual_training_manifest(
             session,
             samples=[
@@ -562,10 +572,10 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             row.include is False for row in uncovered_manifest_rows
         ), "Every uncovered row must be excluded"
         assert all(
-            row.exclusion_reason == "receipt_date_not_covered_by_build"
+            row.exclusion_reason == "factory_missing_from_build_run"
             for row in uncovered_manifest_rows
         ), (
-            "Exclusion reason must be receipt_date_not_covered_by_build, "
+            "Exclusion reason must be factory_missing_from_build_run, "
             f"got {set(r.exclusion_reason for r in uncovered_manifest_rows)}"
         )
 

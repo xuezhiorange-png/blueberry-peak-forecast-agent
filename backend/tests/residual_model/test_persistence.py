@@ -745,6 +745,7 @@ def _prediction_with_task3(
     feature_source_cutoff: datetime | None = None,
     factory_id: int = 701,
     arrival_date: date | None = None,
+    prediction_as_of_date: date = date(2026, 2, 28),
     config_hash: str | None = None,
     task9_run_id: int = 11,
     task9_result_hash: str | None = None,
@@ -784,6 +785,7 @@ def _prediction_with_task3(
         "feature_schema_hash": "e" * 64,
         "projection_version": "v1",
         "fallback_policy": "structural_only_fallback",
+        "prediction_as_of_date": str(prediction_as_of_date),
     }
     row = {
         "destination_factory_id": factory_id,
@@ -983,41 +985,37 @@ async def test_task3_authority_rejects_uncovered_factory(
 
 
 @pytest.mark.asyncio
-async def test_task3_authority_rejects_date_outside_calendar(
+async def test_task3_authority_allows_build_finished_after_analysis_end(
     sqlite_session_with_task3: AsyncSession,
 ) -> None:
-    """source_cutoff date outside analysis calendar coverage is rejected."""
+    """Build completion timestamp can be later than the last covered observation date."""
     session = sqlite_session_with_task3
     build = await _seed_task3_build(
         session,
         build_run_id=1,
         factory_ids=(701,),
-        finished_at=datetime(2026, 6, 1, 12, 0, tzinfo=UTC),  # June, outside Jan-Mar range
+        finished_at=datetime(2026, 4, 1, 12, 0, tzinfo=UTC),
         analysis_start_date=date(2026, 1, 1),
         analysis_end_date=date(2026, 3, 31),
     )
     await session.commit()
-
-    # source_cutoff (June 1) is after analysis calendar end (March 31)
     result = _prediction_with_task3(
         build_run_id=build.id,
         feature_source_max_raw_id=build.source_max_raw_id,
         feature_config_hash=build.config_hash,
         feature_source_cutoff=build.finished_at,
-        arrival_date=date(2026, 6, 15),
+        arrival_date=date(2026, 4, 15),
+        prediction_as_of_date=date(2026, 4, 2),
     )
 
-    with pytest.raises(
-        ResidualModelPersistenceError,
-        match="source_cutoff date is after analysis calendar end",
-    ):
-        await save_residual_prediction_run(
-            session,
-            result=result,
-            feature_schema_version="task10-features-v1",
-            feature_schema_hash="e" * 64,
-            artifact_hashes=[],
-        )
+    run = await save_residual_prediction_run(
+        session,
+        result=result,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+    assert run.id > 0
 
 
 @pytest.mark.asyncio
@@ -1033,15 +1031,13 @@ async def test_task3_authority_rejects_source_cutoff_after_asof(
         finished_at=datetime(2026, 3, 10, 12, 0, tzinfo=UTC),
     )
     await session.commit()
-
-    # source_cutoff date = 2026-03-10, but earliest arrival = 2026-03-02
-    # This should fail because cutoff (March 10) > arrival (March 2)
     result = _prediction_with_task3(
         build_run_id=build.id,
         feature_source_max_raw_id=build.source_max_raw_id,
         feature_config_hash=build.config_hash,
         feature_source_cutoff=build.finished_at,
-        arrival_date=date(2026, 3, 2),
+        arrival_date=date(2026, 3, 20),
+        prediction_as_of_date=date(2026, 3, 2),
     )
 
     with pytest.raises(
