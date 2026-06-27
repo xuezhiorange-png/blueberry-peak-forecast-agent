@@ -1557,3 +1557,33 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_row (
 
 CREATE INDEX IF NOT EXISTS ix_residual_model_prediction_row_prediction_run_id
 ON residual_model_prediction_row (prediction_run_id);
+
+CREATE TABLE IF NOT EXISTS residual_model_execution_attempt (
+  id BIGSERIAL CONSTRAINT pk_residual_model_execution_attempt PRIMARY KEY,
+  attempt_type TEXT NOT NULL,
+  execution_status TEXT NOT NULL,
+  current_stage TEXT NOT NULL,
+  requested_inputs JSONB NOT NULL,
+  config_identity JSONB NOT NULL,
+  upstream_requested_ids JSONB NOT NULL,
+  blockers JSONB NOT NULL,
+  sanitized_error TEXT,
+  linked_training_run_id BIGINT,
+  linked_prediction_run_id BIGINT,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_residual_model_attempt_type CHECK (attempt_type IN ('training', 'prediction')),
+  CONSTRAINT ck_residual_model_attempt_execution_status CHECK (execution_status IN ('running', 'completed', 'blocked', 'failed')),
+  CONSTRAINT fk_residual_model_attempt_training_run_id FOREIGN KEY (linked_training_run_id) REFERENCES residual_model_training_run(id) ON DELETE SET NULL,
+  CONSTRAINT fk_residual_model_attempt_prediction_run_id FOREIGN KEY (linked_prediction_run_id) REFERENCES residual_model_prediction_run(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_residual_model_attempt_execution_status
+ON residual_model_execution_attempt (execution_status);
+CREATE INDEX IF NOT EXISTS ix_residual_model_attempt_type
+ON residual_model_execution_attempt (attempt_type);
+CREATE INDEX IF NOT EXISTS ix_residual_model_attempt_linked_training_run_id
+ON residual_model_execution_attempt (linked_training_run_id);
+CREATE INDEX IF NOT EXISTS ix_residual_model_attempt_linked_prediction_run_id
+ON residual_model_execution_attempt (linked_prediction_run_id);

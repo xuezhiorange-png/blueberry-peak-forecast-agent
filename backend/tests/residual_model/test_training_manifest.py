@@ -29,6 +29,7 @@ from backend.app.models.historical_import import FactReceiptRaw, IngestFile
 from backend.app.models.master_data import Factory, Grade, Holiday, Season, Variety
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
+    ResidualModelExecutionAttempt,
     ResidualModelManifestRow,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
@@ -66,6 +67,7 @@ TABLES = [
     ResidualModelArtifact.__table__,
     ResidualModelPredictionRun.__table__,
     ResidualModelPredictionRow.__table__,
+    ResidualModelExecutionAttempt.__table__,
 ]
 
 

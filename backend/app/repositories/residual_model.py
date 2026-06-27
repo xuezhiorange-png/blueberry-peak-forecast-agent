@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import cast
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
+    ResidualModelExecutionAttempt,
     ResidualModelManifestRow,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
@@ -126,3 +127,106 @@ async def list_residual_prediction_rows(
             )
         ).all()
     )
+
+
+async def get_residual_execution_attempt(
+    session: AsyncSession,
+    *,
+    attempt_id: int,
+) -> ResidualModelExecutionAttempt | None:
+    return cast(
+        ResidualModelExecutionAttempt | None,
+        await session.scalar(
+            select(ResidualModelExecutionAttempt)
+            .where(ResidualModelExecutionAttempt.id == attempt_id)
+            .execution_options(populate_existing=True)
+        ),
+    )
+
+
+async def create_residual_execution_attempt(
+    session: AsyncSession,
+    *,
+    attempt_type: str,
+    execution_status: str,
+    current_stage: str,
+    requested_inputs: dict[str, object],
+    config_identity: dict[str, object],
+    upstream_requested_ids: dict[str, object],
+    blockers: list[str] | None = None,
+    sanitized_error: str | None = None,
+) -> ResidualModelExecutionAttempt:
+    attempt = ResidualModelExecutionAttempt(
+        attempt_type=attempt_type,
+        execution_status=execution_status,
+        current_stage=current_stage,
+        requested_inputs=requested_inputs,
+        config_identity=config_identity,
+        upstream_requested_ids=upstream_requested_ids,
+        blockers=blockers or [],
+        sanitized_error=sanitized_error,
+        started_at=func.now(),
+    )
+    session.add(attempt)
+    await session.flush()
+    return attempt
+
+
+async def update_residual_execution_attempt_stage(
+    session: AsyncSession,
+    *,
+    attempt_id: int,
+    current_stage: str,
+) -> None:
+    attempt = await get_residual_execution_attempt(session, attempt_id=attempt_id)
+    if attempt is not None:
+        attempt.current_stage = current_stage
+        await session.flush()
+
+
+async def complete_residual_execution_attempt(
+    session: AsyncSession,
+    *,
+    attempt_id: int,
+    linked_training_run_id: int | None = None,
+    linked_prediction_run_id: int | None = None,
+) -> None:
+    attempt = await get_residual_execution_attempt(session, attempt_id=attempt_id)
+    if attempt is not None:
+        attempt.execution_status = "completed"
+        attempt.finished_at = func.now()
+        if linked_training_run_id is not None:
+            attempt.linked_training_run_id = linked_training_run_id
+        if linked_prediction_run_id is not None:
+            attempt.linked_prediction_run_id = linked_prediction_run_id
+        await session.flush()
+
+
+async def fail_residual_execution_attempt(
+    session: AsyncSession,
+    *,
+    attempt_id: int,
+    sanitized_error: str,
+) -> None:
+    attempt = await get_residual_execution_attempt(session, attempt_id=attempt_id)
+    if attempt is not None:
+        attempt.execution_status = "failed"
+        attempt.sanitized_error = sanitized_error
+        attempt.finished_at = func.now()
+        await session.flush()
+
+
+async def link_residual_execution_attempt_to_run(
+    session: AsyncSession,
+    *,
+    attempt_id: int,
+    linked_training_run_id: int | None = None,
+    linked_prediction_run_id: int | None = None,
+) -> None:
+    attempt = await get_residual_execution_attempt(session, attempt_id=attempt_id)
+    if attempt is not None:
+        if linked_training_run_id is not None:
+            attempt.linked_training_run_id = linked_training_run_id
+        if linked_prediction_run_id is not None:
+            attempt.linked_prediction_run_id = linked_prediction_run_id
+        await session.flush()

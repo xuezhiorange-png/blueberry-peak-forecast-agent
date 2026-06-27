@@ -430,7 +430,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
 
         # A3. Train builds belong to train season; validation builds to
         #     validation season (disjoint season verification)
-        for build_run_id in [limited_feature_build_run_id, main_feature_build_run_id, label_build_run_id]:
+        train_build_ids = [
+            limited_feature_build_run_id,
+            main_feature_build_run_id,
+            label_build_run_id,
+        ]
+        for build_run_id in train_build_ids:
             row = await session.get(AnalyticsBuildRun, build_run_id)
             assert row is not None
             assert row.season_id == season_id, (
@@ -644,6 +649,33 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             as_of_date=as_of_date,
         )
 
+        # C1a. Rebuild manifest for disjoint season verification
+        manifest_for_verification = await build_residual_training_manifest(
+            session, samples=training_samples,
+        )
+        train_seasons = {
+            row.season_id
+            for row in manifest_for_verification
+            if row.include and row.split == "train"
+        }
+        validation_seasons = {
+            row.season_id
+            for row in manifest_for_verification
+            if row.include and row.split == "validation"
+        }
+        assert train_seasons, "Must have at least one train season"
+        assert validation_seasons, "Must have at least one validation season"
+        assert train_seasons.isdisjoint(validation_seasons), (
+            f"Train seasons {train_seasons} and validation seasons "
+            f"{validation_seasons} must be disjoint"
+        )
+        assert len(train_seasons) == 1, (
+            f"Expected exactly 1 train season, got {len(train_seasons)}"
+        )
+        assert len(validation_seasons) == 1, (
+            f"Expected exactly 1 validation season, got {len(validation_seasons)}"
+        )
+
         training_result, training_run_id = await execute_residual_training(
             session,
             samples=training_samples,
@@ -670,9 +702,11 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         # C5. Manifest hash is set
         assert training_result.manifest_hash, "Manifest hash must not be empty"
 
-        # C6. Distinct seasons = 2 (train + validation)
-        assert training_result.distinct_season_count == 2, (
-            f"Expected 2 distinct seasons, got {training_result.distinct_season_count}"
+        # C6. Distinct seasons = 1 (train rows only, validation is excluded
+        #     from training distinct_season_count)
+        assert training_result.distinct_season_count == 1, (
+            f"Expected 1 distinct season (train only), "
+            f"got {training_result.distinct_season_count}"
         )
 
         # C7. Distinct factories >= 1
