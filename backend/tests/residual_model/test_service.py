@@ -274,6 +274,94 @@ def test_prediction_input_signature_is_independent_from_output_fields() -> None:
     assert first.prediction_hash != second.prediction_hash
 
 
+def test_validation_unknown_categories_drive_structural_only_fallback_rate() -> None:
+    from dataclasses import replace
+
+    from backend.app.residual_model.config import load_residual_model_config
+    from backend.app.residual_model.service import train_residual_model_from_manifest
+
+    config = load_residual_model_config(residual_model_config_path())
+    relaxed = replace(
+        config,
+        rules=replace(
+            config.rules,
+            eligibility=replace(
+                config.rules.eligibility,
+                min_training_rows=1,
+                min_seasons=1,
+                min_factories=1,
+                require_improvement_over_structural=False,
+                max_validation_wmape=1.0,
+                max_fallback_rate=Decimal("0.5"),
+            ),
+        ),
+    )
+    rows = [
+        _training_row(
+            season_id=1,
+            factory_id=1,
+            target_date=date(2026, 3, 2),
+            rainfall="3",
+            residual="5",
+            split="train",
+        ),
+        _training_row(
+            season_id=1,
+            factory_id=2,
+            target_date=date(2026, 3, 3),
+            rainfall="4",
+            residual="6",
+            split="train",
+        ),
+        _training_row(
+            season_id=2,
+            factory_id=1,
+            target_date=date(2026, 3, 4),
+            rainfall="5",
+            residual="7",
+            split="validation",
+        ),
+        _training_row(
+            season_id=2,
+            factory_id=2,
+            target_date=date(2026, 3, 5),
+            rainfall="6",
+            residual="8",
+            split="validation",
+        ),
+    ]
+    rows[2] = rows[2].model_copy(
+        update={
+            "feature_values": tuple(
+                item.model_copy(update={"value": "validation-only"})
+                if item.feature_name == "destination_factory_category"
+                else item
+                for item in rows[2].feature_values
+            )
+        }
+    )
+    rows[3] = rows[3].model_copy(
+        update={
+            "feature_values": tuple(
+                item.model_copy(update={"value": "validation-only"})
+                if item.feature_name == "destination_factory_category"
+                else item
+                for item in rows[3].feature_values
+            )
+        }
+    )
+
+    result = train_residual_model_from_manifest(rows=rows, config=relaxed)
+
+    validation_global = result.metrics["validation"]["global"]
+    assert result.execution_status == "completed"
+    assert result.eligibility_status == "ineligible"
+    assert "fallback_rate_above_threshold" in result.eligibility_reasons
+    assert validation_global["fallback_row_count"] == 2
+    assert validation_global["evaluated_row_count"] == 2
+    assert validation_global["fallback_rate"] == Decimal("1")
+
+
 def test_structural_only_preserves_structural_values() -> None:
     from backend.app.residual_model.service import structural_only_prediction
 

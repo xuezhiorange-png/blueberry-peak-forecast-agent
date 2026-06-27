@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Sequence
+from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from typing import cast
 
-from backend.app.residual_model.canonical import canonical_json_value, canonical_payload_hash
+from backend.app.residual_model.canonical import (
+    canonical_json_value,
+    canonical_payload_hash,
+    prediction_input_signature_hash,
+)
 from backend.app.residual_model.config import ResidualModelConfig
 from backend.app.residual_model.dataset import (
     build_prediction_matrix,
@@ -39,6 +44,14 @@ from backend.app.residual_model.schemas import (
     ResidualTrainingExecutionResult,
     ResidualTrainingManifestRow,
 )
+
+
+@dataclass(frozen=True)
+class ResidualRowDecision:
+    fallback_reason: str | None
+    feature_vector_hash: str
+    feature_audit_hash: str
+    mode: str
 
 
 def _split_rows(
@@ -91,24 +104,24 @@ def _projection_payloads(
     return payloads
 
 
-def _fallback_row_count(
+def _row_decision(
     *,
-    rows: Sequence[ResidualTrainingManifestRow],
+    feature_values: Sequence[FeatureValue],
+    audit: FeatureVisibilityAudit | None,
     category_encodings: Sequence[CategoryEncoding],
     config: ResidualModelConfig,
-) -> int:
-    if not rows:
-        return 0
+) -> ResidualRowDecision:
     definitions = feature_definition_map()
     encoding_map = {item.feature_name: item for item in category_encodings}
-    fallback_count = 0
-    for row in rows:
-        feature_map = {item.feature_name: item.value for item in row.feature_values}
-        should_fallback = False
+    feature_map = {item.feature_name: item.value for item in feature_values}
+    fallback_reason: str | None = None
+    if audit is not None and audit.status.value == "blocked":
+        fallback_reason = "feature_visibility_failed"
+    else:
         for feature_name, definition in definitions.items():
             value = feature_map.get(feature_name)
             if value is None and definition.missing_policy.value == "block":
-                should_fallback = True
+                fallback_reason = "required_feature_missing"
                 break
             encoding = encoding_map.get(feature_name)
             if (
@@ -117,11 +130,57 @@ def _fallback_row_count(
                 and value not in encoding.ordered_known_categories
                 and config.rules.categorical_unknown_policy == "structural_only_fallback"
             ):
-                should_fallback = True
+                fallback_reason = "unknown_category"
                 break
-        if should_fallback:
-            fallback_count += 1
-    return fallback_count
+    return ResidualRowDecision(
+        fallback_reason=fallback_reason,
+        feature_vector_hash=canonical_payload_hash(
+            [item.model_dump(mode="json") for item in feature_values]
+        ),
+        feature_audit_hash=(audit.audit_hash if audit is not None else canonical_payload_hash([])),
+        mode="structural_only" if fallback_reason is not None else "residual_corrected",
+    )
+
+
+def _predict_residual_vectors(
+    *,
+    feature_rows: Sequence[tuple[FeatureValue, ...]],
+    feature_audits: Sequence[FeatureVisibilityAudit | None],
+    feature_names: list[str],
+    category_encodings: Sequence[CategoryEncoding],
+    config: ResidualModelConfig,
+    estimators: TrainedResidualEstimators,
+) -> tuple[list[Decimal], list[Decimal], list[Decimal], list[ResidualRowDecision]]:
+    decisions = [
+        _row_decision(
+            feature_values=feature_values,
+            audit=audit,
+            category_encodings=category_encodings,
+            config=config,
+        )
+        for feature_values, audit in zip(feature_rows, feature_audits, strict=True)
+    ]
+    estimated_indices = [
+        index for index, decision in enumerate(decisions) if decision.fallback_reason is None
+    ]
+    residual_p50 = [Decimal("0")] * len(feature_rows)
+    residual_p80 = [Decimal("0")] * len(feature_rows)
+    residual_p90 = [Decimal("0")] * len(feature_rows)
+    if estimated_indices:
+        matrix = build_prediction_matrix(
+            feature_rows=[feature_rows[index] for index in estimated_indices],
+            feature_names=feature_names,
+            category_encodings=list(category_encodings),
+        )
+        predicted_p50, predicted_p80, predicted_p90 = predict_quantiles(
+            estimators=estimators,
+            features=matrix,
+        )
+        for output_index, row_index in enumerate(estimated_indices):
+            residual_p50[row_index] = Decimal(str(predicted_p50[output_index]))
+            residual_p80[row_index] = Decimal(str(predicted_p80[output_index]))
+            residual_p90[row_index] = Decimal(str(predicted_p90[output_index]))
+    return residual_p50, residual_p80, residual_p90, decisions
 
 
 def _metrics_from_projection_payloads(
@@ -243,23 +302,6 @@ def _prediction_row_sort_key(row_payload: dict[str, object]) -> tuple[object, ..
     )
 
 
-def _prediction_input_signature_payload(
-    *,
-    model_run_id: int | None,
-    task9_run_id: int,
-    task9_result_hash: str,
-    config_hash: str,
-    input_snapshot: dict[str, object],
-) -> dict[str, object]:
-    return {
-        "model_run_id": model_run_id,
-        "task9_run_id": task9_run_id,
-        "task9_result_hash": task9_result_hash,
-        "config_hash": config_hash,
-        "input_snapshot": cast(dict[str, object], canonical_json_value(input_snapshot)),
-    }
-
-
 def finalize_prediction_result(
     *,
     execution_status: str,
@@ -279,14 +321,49 @@ def finalize_prediction_result(
         row_hash = canonical_payload_hash(payload)
         rows.append(ResidualPredictionRow.model_validate({**payload, "prediction_hash": row_hash}))
     normalized_input_snapshot = cast(dict[str, object], canonical_json_value(input_snapshot))
-    prediction_input_signature = canonical_payload_hash(
-        _prediction_input_signature_payload(
-            model_run_id=model_run_id,
-            task9_run_id=task9_run_id,
-            task9_result_hash=task9_result_hash,
-            config_hash=config_hash,
-            input_snapshot=normalized_input_snapshot,
-        )
+    prediction_input_signature = prediction_input_signature_hash(
+        model_run_id=model_run_id,
+        training_signature=cast(str, normalized_input_snapshot["training_signature"]),
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        feature_analytics_build_run_id=cast(
+            int | None,
+            normalized_input_snapshot.get("feature_analytics_build_run_id"),
+        ),
+        feature_actual_snapshot=cast(
+            dict[str, object] | None,
+            normalized_input_snapshot.get("feature_actual_snapshot"),
+        ),
+        supplemental_feature_values=cast(
+            list[object],
+            normalized_input_snapshot.get("supplemental_feature_values", []),
+        ),
+        feature_audit_hashes=cast(
+            list[str],
+            normalized_input_snapshot.get("feature_audit_hashes", []),
+        ),
+        feature_rows=cast(
+            list[object],
+            normalized_input_snapshot.get("feature_rows", []),
+        ),
+        artifact_hashes=cast(
+            list[str],
+            normalized_input_snapshot.get("artifact_hashes", []),
+        ),
+        config_hash=config_hash,
+        feature_schema_version=cast(
+            str,
+            normalized_input_snapshot["feature_schema_version"],
+        ),
+        feature_schema_hash=cast(
+            str,
+            normalized_input_snapshot["feature_schema_hash"],
+        ),
+        projection_version=cast(str, normalized_input_snapshot["projection_version"]),
+        fallback_policy_version=cast(
+            str,
+            normalized_input_snapshot["fallback_policy"],
+        ),
     )
     result_payload = {
         "execution_status": execution_status,
@@ -455,22 +532,21 @@ def train_residual_model_from_manifest(
         labels=labels,
         sample_weight=weights,
     )
-    predicted_p50, predicted_p80, predicted_p90 = predict_quantiles(
+    pred50, pred80, pred90, train_decisions = _predict_residual_vectors(
+        feature_rows=[row.feature_values for row in train_rows],
+        feature_audits=[row.feature_visibility_audit for row in train_rows],
+        feature_names=feature_names,
+        category_encodings=category_encodings,
+        config=config,
         estimators=estimators,
-        features=features,
     )
-    pred50 = [Decimal(str(item)) for item in predicted_p50.tolist()]
-    pred80 = [Decimal(str(item)) for item in predicted_p80.tolist()]
-    pred90 = [Decimal(str(item)) for item in predicted_p90.tolist()]
     train_metrics = _split_metrics(
         rows=train_rows,
         residual_p50=pred50,
         residual_p80=pred80,
         residual_p90=pred90,
-        fallback_row_count=_fallback_row_count(
-            rows=train_rows,
-            category_encodings=category_encodings,
-            config=config,
+        fallback_row_count=sum(
+            1 for decision in train_decisions if decision.fallback_reason is not None
         ),
     )
     metrics: dict[str, object] = {
@@ -488,27 +564,25 @@ def train_residual_model_from_manifest(
     }
     validation_global_metrics: dict[str, object] = {}
     if validation_rows:
-        validation_matrix = build_prediction_matrix(
-            feature_rows=[row.feature_values for row in validation_rows],
-            feature_names=feature_names,
-            category_encodings=category_encodings,
+        validation_pred50, validation_pred80, validation_pred90, validation_decisions = (
+            _predict_residual_vectors(
+                feature_rows=[row.feature_values for row in validation_rows],
+                feature_audits=[row.feature_visibility_audit for row in validation_rows],
+                feature_names=feature_names,
+                category_encodings=category_encodings,
+                config=config,
+                estimators=estimators,
+            )
         )
-        validation_p50, validation_p80, validation_p90 = predict_quantiles(
-            estimators=estimators,
-            features=validation_matrix,
-        )
-        validation_pred50 = [Decimal(str(item)) for item in validation_p50.tolist()]
-        validation_pred80 = [Decimal(str(item)) for item in validation_p80.tolist()]
-        validation_pred90 = [Decimal(str(item)) for item in validation_p90.tolist()]
         validation_metrics = _split_metrics(
             rows=validation_rows,
             residual_p50=validation_pred50,
             residual_p80=validation_pred80,
             residual_p90=validation_pred90,
-            fallback_row_count=_fallback_row_count(
-                rows=validation_rows,
-                category_encodings=category_encodings,
-                config=config,
+            fallback_row_count=sum(
+                1
+                for decision in validation_decisions
+                if decision.fallback_reason is not None
             ),
         )
         metrics["validation"] = validation_metrics
@@ -528,24 +602,21 @@ def train_residual_model_from_manifest(
         ):
             eligibility_reasons.append("no_validation_improvement_over_structural")
     if test_rows:
-        test_matrix = build_prediction_matrix(
+        test_pred50, test_pred80, test_pred90, test_decisions = _predict_residual_vectors(
             feature_rows=[row.feature_values for row in test_rows],
+            feature_audits=[row.feature_visibility_audit for row in test_rows],
             feature_names=feature_names,
             category_encodings=category_encodings,
-        )
-        test_p50, test_p80, test_p90 = predict_quantiles(
+            config=config,
             estimators=estimators,
-            features=test_matrix,
         )
         metrics["test"] = _split_metrics(
             rows=test_rows,
-            residual_p50=[Decimal(str(item)) for item in test_p50.tolist()],
-            residual_p80=[Decimal(str(item)) for item in test_p80.tolist()],
-            residual_p90=[Decimal(str(item)) for item in test_p90.tolist()],
-            fallback_row_count=_fallback_row_count(
-                rows=test_rows,
-                category_encodings=category_encodings,
-                config=config,
+            residual_p50=test_pred50,
+            residual_p80=test_pred80,
+            residual_p90=test_pred90,
+            fallback_row_count=sum(
+                1 for decision in test_decisions if decision.fallback_reason is not None
             ),
         )
     fallback_rate = cast(
@@ -684,6 +755,17 @@ def structural_only_prediction(
         "task9_result_hash": task9_result_hash,
         "structural_row_count": len(structural_rows),
         "model_run_id": model_run_id,
+        "training_signature": "0" * 64,
+        "feature_analytics_build_run_id": None,
+        "feature_actual_snapshot": None,
+        "supplemental_feature_values": [],
+        "feature_audit_hashes": [],
+        "feature_rows": [],
+        "artifact_hashes": [],
+        "feature_schema_version": "task10-features-v1",
+        "feature_schema_hash": "0" * 64,
+        "projection_version": "task10-projection-v1",
+        "fallback_policy": "structural_only_fallback",
     }
     return finalize_prediction_result(
         execution_status="completed",
@@ -717,31 +799,27 @@ def predict_residual_correction(
     blockers: Sequence[str] = (),
     input_snapshot: dict[str, object] | None = None,
 ) -> ResidualPredictionExecutionResult:
-    matrix = build_prediction_matrix(
+    predicted_p50, predicted_p80, predicted_p90, decisions = _predict_residual_vectors(
         feature_rows=feature_rows,
+        feature_audits=feature_audits,
         feature_names=feature_names,
         category_encodings=category_encodings,
-    )
-    predicted_p50, predicted_p80, predicted_p90 = predict_quantiles(
+        config=config,
         estimators=estimators,
-        features=matrix,
     )
     row_payloads: list[dict[str, object]] = []
-    for index, (structural_row, features, audit) in enumerate(
-        zip(structural_rows, feature_rows, feature_audits, strict=True),
-        start=1,
+    for index, (structural_row, decision) in enumerate(
+        zip(structural_rows, decisions, strict=True),
+        start=0,
     ):
         structural_p50 = Decimal(str(structural_row["structural_p50_kg"]))
         structural_p80 = Decimal(str(structural_row["structural_p80_kg"]))
         structural_p90 = Decimal(str(structural_row["structural_p90_kg"]))
         projection = project_corrected_quantiles(
             structural_arrival_p50_kg=structural_p50,
-            predicted_residual_p50_kg=Decimal(str(predicted_p50[index - 1])),
-            predicted_residual_p80_kg=Decimal(str(predicted_p80[index - 1])),
-            predicted_residual_p90_kg=Decimal(str(predicted_p90[index - 1])),
-        )
-        feature_vector_hash = canonical_payload_hash(
-            [item.model_dump(mode="json") for item in features]
+            predicted_residual_p50_kg=predicted_p50[index],
+            predicted_residual_p80_kg=predicted_p80[index],
+            predicted_residual_p90_kg=predicted_p90[index],
         )
         row_payload = {
             "model_run_id": model_run_id,
@@ -766,9 +844,9 @@ def predict_residual_correction(
             "nonnegative_projection_applied": projection.nonnegative_projection_applied,
             "quantile_projection_applied": projection.quantile_projection_applied,
             "projection_reasons": [item.value for item in projection.projection_reasons],
-            "feature_vector_hash": feature_vector_hash,
-            "feature_audit_hash": audit.audit_hash,
-            "mode": "residual_corrected",
+            "feature_vector_hash": decision.feature_vector_hash,
+            "feature_audit_hash": decision.feature_audit_hash,
+            "mode": decision.mode,
         }
         row_payloads.append(row_payload)
 
@@ -777,18 +855,31 @@ def predict_residual_correction(
         "task9_result_hash": task9_result_hash,
         "model_run_id": model_run_id,
         "feature_names": feature_names,
-        "fallback_reason": fallback_reason,
     }
+    row_fallback_reasons = {
+        decision.fallback_reason
+        for decision in decisions
+        if decision.fallback_reason is not None
+    }
+    resolved_fallback_reason = fallback_reason
+    if resolved_fallback_reason is None and len(row_fallback_reasons) == 1:
+        resolved_fallback_reason = next(iter(row_fallback_reasons))
+    if resolved_fallback_reason is None and row_fallback_reasons:
+        resolved_fallback_reason = "mixed_row_level_fallback"
     return finalize_prediction_result(
         execution_status="completed",
-        mode="residual_corrected",
+        mode=(
+            "structural_only"
+            if all(decision.fallback_reason is not None for decision in decisions)
+            else "residual_corrected"
+        ),
         model_run_id=model_run_id,
         task9_run_id=task9_run_id,
         task9_result_hash=task9_result_hash,
         config_hash=config.config_hash,
         warnings=warnings,
         blockers=blockers,
-        fallback_reason=fallback_reason,
+        fallback_reason=resolved_fallback_reason,
         row_payloads=row_payloads,
         input_snapshot=snapshot,
     )

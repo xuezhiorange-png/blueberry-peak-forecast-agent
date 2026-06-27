@@ -5,9 +5,11 @@ from decimal import Decimal
 from typing import Any, cast
 
 import pytest
-from sqlalchemy import JSON
+from sqlalchemy import JSON, Integer
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from backend.app.analytics.config import load_analytics_config
+from backend.app.analytics.daily_facts import build_daily_facts_for_season
 from backend.app.analytics.peak_metrics import build_analysis_calendar
 from backend.app.harvest_state.persistence import save_harvest_state_output
 from backend.app.harvest_state.service import run_harvest_state_model
@@ -23,7 +25,8 @@ from backend.app.models.harvest_state import (
     HarvestStateFutureArrivalRowModel,
     HarvestStateRun,
 )
-from backend.app.models.master_data import Factory, Holiday, Season, Variety
+from backend.app.models.historical_import import FactReceiptRaw, IngestFile
+from backend.app.models.master_data import Factory, Grade, Holiday, Season, Variety
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelManifestRow,
@@ -41,13 +44,16 @@ from backend.app.residual_model.training_manifest import (
     build_residual_training_manifest,
 )
 from backend.tests.harvest_state.conftest import make_request
-from backend.tests.residual_model.support import residual_model_config_path
+from backend.tests.residual_model.support import repo_root, residual_model_config_path
 
 TABLES = [
     Season.__table__,
     Holiday.__table__,
     Factory.__table__,
     Variety.__table__,
+    Grade.__table__,
+    IngestFile.__table__,
+    FactReceiptRaw.__table__,
     AnalyticsBuildRun.__table__,
     FactReceiptDaily.__table__,
     FactorySeasonPeakMetric.__table__,
@@ -68,9 +74,19 @@ TABLES = [
 @pytest.fixture
 async def sqlite_session() -> AsyncSession:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    AnalyticsBuildRun.__table__.c.id.type = Integer()
+    FactorySeasonPeakMetric.__table__.c.id.type = Integer()
+    FactReceiptDaily.__table__.c.id.type = Integer()
+    IngestFile.__table__.c.id.type = Integer()
+    FactReceiptRaw.__table__.c.id.type = Integer()
     AnalyticsBuildRun.__table__.c.config_snapshot.type = JSON()
     FactReceiptDaily.__table__.c.holiday_codes.type = JSON()
     FactReceiptDaily.__table__.c.holiday_codes.server_default = None
+    IngestFile.__table__.c.config_snapshot.type = JSON()
+    IngestFile.__table__.c.quality_report.type = JSON()
+    FactReceiptRaw.__table__.c.raw_payload.type = JSON()
+    FactReceiptRaw.__table__.c.exclusion_reasons.type = JSON()
+    FactReceiptRaw.__table__.c.parse_errors.type = JSON()
     async with engine.begin() as conn:
         await conn.run_sync(
             lambda sync_conn: Season.metadata.create_all(sync_conn, tables=TABLES)
@@ -96,7 +112,8 @@ async def _seed_master_data(session: AsyncSession) -> tuple[int, int, int]:
         active=True,
     )
     variety = Variety(id=101, code="DX", name="Dx")
-    session.add_all([season, factory, variety])
+    grade = Grade(id=301, code="优果", is_analysis_eligible_default=True)
+    session.add_all([season, factory, variety, grade])
     await session.flush()
     return season.id, factory.id, variety.id
 
@@ -255,6 +272,80 @@ async def _seed_daily_fact(
     )
 
 
+async def _create_ingest_file(
+    session: AsyncSession,
+    *,
+    ingest_file_id: int,
+    season_id: int,
+    file_sha256: str,
+) -> int:
+    ingest = IngestFile(
+        id=ingest_file_id,
+        file_name=f"{file_sha256}.xls",
+        source_path=f"{file_sha256}.xls",
+        file_sha256=file_sha256,
+        season_id=season_id,
+        status="completed",
+        sheet_count=1,
+        row_count=1,
+        inserted_row_count=1,
+        suspected_duplicate_count=0,
+        config_hash="import-hash",
+        config_snapshot={"version": "task2"},
+        quality_report={},
+    )
+    session.add(ingest)
+    await session.flush()
+    return ingest.id
+
+
+async def _insert_raw_rows(
+    session: AsyncSession,
+    *,
+    ingest_file_id: int,
+    season_id: int,
+    factory_id: int,
+    variety_id: int,
+    rows: list[dict[str, object]],
+) -> None:
+    for offset, row in enumerate(rows, start=1):
+        session.add(
+            FactReceiptRaw(
+                id=ingest_file_id * 1000 + offset,
+                ingest_file_id=ingest_file_id,
+                season_id=season_id,
+                source_sheet="SheetA",
+                source_row_number=offset,
+                raw_payload={},
+                receipt_date_raw=str(row["receipt_date"]),
+                link_name_raw=None,
+                farm_raw=cast(str | None, row.get("farm_raw")),
+                subfarm_raw=cast(str | None, row.get("subfarm_raw")),
+                variety_raw="Dx",
+                grade_raw="优果",
+                weight_kg_raw=str(row["weight_kg"]),
+                factory_raw="Factory A",
+                receipt_date=cast(date, row["receipt_date"]),
+                weight_kg=cast(Decimal, row["weight_kg"]),
+                factory_normalized="Factory A",
+                variety_normalized="Dx",
+                factory_id=factory_id,
+                variety_id=variety_id,
+                grade_id=301,
+                is_date_valid=True,
+                is_weight_valid=True,
+                is_factory_known=True,
+                is_variety_known=True,
+                is_suspected_duplicate=False,
+                is_analysis_eligible=bool(row.get("eligible", True)),
+                exclusion_reasons=[],
+                parse_errors=[],
+                source_row_fingerprint=f"raw-{ingest_file_id}-{offset}",
+                business_fingerprint=f"biz-{season_id}-{ingest_file_id}-{offset}",
+            )
+        )
+
+
 def _supplemental_features(
     *,
     as_of_date: date,
@@ -316,7 +407,14 @@ def _diverse_training_samples(
     validation_label_build_run_id: int | None = None,
     validation_feature_build_run_id: int | None = None,
     count: int = 30,
+    train_category_prefix: str = "snapshot",
+    validation_category_prefix: str | None = None,
 ) -> list[ResidualTrainingSampleSpec]:
+    resolved_validation_category_prefix = (
+        validation_category_prefix
+        if validation_category_prefix is not None
+        else train_category_prefix
+    )
     train_count = max(count - 6, 1)
     validation_count = count - train_count
     samples: list[ResidualTrainingSampleSpec] = []
@@ -329,7 +427,7 @@ def _diverse_training_samples(
                 split="train",
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=as_of_date,
-                    destination_factory_category=f"snapshot-{index % 3}",
+                    destination_factory_category=f"{train_category_prefix}-{index % 3}",
                     weather_7d_rainfall=Decimal("12.5") + Decimal(index % 5),
                     weather_7d_gdd=Decimal("33.0") + Decimal(index % 7),
                 ),
@@ -346,7 +444,9 @@ def _diverse_training_samples(
                 split="validation",
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=as_of_date,
-                    destination_factory_category=f"snapshot-validation-{index % 2}",
+                    destination_factory_category=(
+                        f"{resolved_validation_category_prefix}-{index % 2}"
+                    ),
                     weather_7d_rainfall=Decimal("22.5") + Decimal(index % 3),
                     weather_7d_gdd=Decimal("43.0") + Decimal(index % 5),
                 ),
@@ -1027,6 +1127,144 @@ async def test_manifest_uses_explicit_factory_category_snapshot_not_current_fact
     assert first_categories == ["snapshot-north"] * len(first)
     assert second_categories == first_categories
     assert [row.feature_vector_hash for row in first] == [row.feature_vector_hash for row in second]
+
+
+@pytest.mark.asyncio
+async def test_real_task3_build_feeds_manifest_with_aggregated_actuals(
+    sqlite_session: AsyncSession,
+) -> None:
+    season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
+    task9_run_id, output = await _persist_task9_run(sqlite_session)
+    as_of_date = _snapshot_as_of_date(output)
+    analytics_config = load_analytics_config(repo_root() / "configs" / "analytics_rules.yaml")
+
+    feature_ingest_id = await _create_ingest_file(
+        sqlite_session,
+        ingest_file_id=1,
+        season_id=season_id,
+        file_sha256="feature-build",
+    )
+    await _insert_raw_rows(
+        sqlite_session,
+        ingest_file_id=feature_ingest_id,
+        season_id=season_id,
+        factory_id=factory_id,
+        variety_id=variety_id,
+        rows=[
+            {
+                "receipt_date": date(2026, 1, 10),
+                "weight_kg": Decimal("5"),
+                "farm_raw": "farm-a",
+                "subfarm_raw": "subfarm-a",
+            },
+            {
+                "receipt_date": date(2026, 2, 21),
+                "weight_kg": Decimal("17"),
+                "farm_raw": "farm-a",
+                "subfarm_raw": "subfarm-a",
+            },
+            {
+                "receipt_date": date(2026, 2, 25),
+                "weight_kg": Decimal("10"),
+                "farm_raw": "farm-b",
+                "subfarm_raw": "subfarm-b",
+            },
+            {
+                "receipt_date": date(2026, 2, 25),
+                "weight_kg": Decimal("13"),
+                "farm_raw": "farm-c",
+                "subfarm_raw": "subfarm-c",
+            },
+            {
+                "receipt_date": date(2026, 2, 27),
+                "weight_kg": Decimal("11"),
+                "farm_raw": "farm-a",
+                "subfarm_raw": "subfarm-d",
+            },
+        ],
+    )
+    await sqlite_session.commit()
+    feature_build = await build_daily_facts_for_season(
+        sqlite_session,
+        "2025-2026",
+        analytics_config,
+    )
+    assert feature_build.status == "completed"
+    assert feature_build.build_run_id is not None
+
+    label_ingest_id = await _create_ingest_file(
+        sqlite_session,
+        ingest_file_id=2,
+        season_id=season_id,
+        file_sha256="label-build",
+    )
+    await _insert_raw_rows(
+        sqlite_session,
+        ingest_file_id=label_ingest_id,
+        season_id=season_id,
+        factory_id=factory_id,
+        variety_id=variety_id,
+        rows=[
+            {
+                "receipt_date": date(2026, 3, 1),
+                "weight_kg": Decimal("100"),
+                "farm_raw": "farm-a",
+                "subfarm_raw": "subfarm-a",
+            },
+            {
+                "receipt_date": date(2026, 3, 2),
+                "weight_kg": Decimal("101"),
+                "farm_raw": "farm-b",
+                "subfarm_raw": "subfarm-b",
+            },
+            {
+                "receipt_date": date(2026, 3, 3),
+                "weight_kg": Decimal("102"),
+                "farm_raw": "farm-c",
+                "subfarm_raw": "subfarm-c",
+            },
+        ],
+    )
+    await sqlite_session.commit()
+    label_build = await build_daily_facts_for_season(
+        sqlite_session,
+        "2025-2026",
+        analytics_config,
+    )
+    assert label_build.status == "completed"
+    assert label_build.build_run_id is not None
+
+    manifest_rows = await build_residual_training_manifest(
+        sqlite_session,
+        samples=[
+            ResidualTrainingSampleSpec(
+                task9_run_id=task9_run_id,
+                label_analytics_build_run_id=label_build.build_run_id,
+                feature_analytics_build_run_id=feature_build.build_run_id,
+                split="train",
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=as_of_date,
+                    destination_factory_category="snapshot-north",
+                ),
+            )
+        ],
+    )
+
+    assert manifest_rows
+    first_row = manifest_rows[0]
+    feature_map = {item.feature_name: item.value for item in first_row.feature_values}
+    assert first_row.feature_actual_snapshot.build_run_id == feature_build.build_run_id
+    assert first_row.label_actual_snapshot.build_run_id == label_build.build_run_id
+    assert feature_map["actual_receipt_lag_1d_kg"] == Decimal("11")
+    assert feature_map["actual_receipt_lag_3d_kg"] == Decimal("23")
+    assert feature_map["actual_receipt_lag_7d_kg"] == Decimal("17")
+    assert feature_map["actual_receipt_rolling_3d_mean_kg"] == Decimal(
+        "11.33333333333333333333333333"
+    )
+    assert feature_map["actual_receipt_rolling_7d_mean_kg"] == Decimal(
+        "7.285714285714285714285714286"
+    )
+    assert feature_map["actual_receipt_cumulative_to_as_of_kg"] == Decimal("56")
 
 
 @pytest.mark.asyncio
