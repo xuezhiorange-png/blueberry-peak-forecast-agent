@@ -81,6 +81,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("error_message", sa.Text(), nullable=True),
+        sa.Column("typed_attempt", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.CheckConstraint(
             "execution_status in ('running', 'completed', 'blocked', 'failed')",
             name="ck_residual_model_training_run_execution_status",
@@ -185,10 +186,52 @@ def upgrade() -> None:
             _sha256_check_sql("feature_actual_config_hash"),
             name="ck_residual_model_manifest_row_feature_config_hash",
         ),
+        sa.CheckConstraint(
+            "row_index > 0",
+            name="ck_residual_model_manifest_row_row_index",
+        ),
+        sa.CheckConstraint(
+            "forecast_horizon_days >= 0",
+            name="ck_residual_model_manifest_row_forecast_horizon",
+        ),
+        sa.CheckConstraint(
+            "sample_weight >= 0",
+            name="ck_residual_model_manifest_row_sample_weight",
+        ),
         sa.ForeignKeyConstraint(
             ["training_run_id"],
             ["residual_model_training_run.id"],
             name="fk_residual_model_manifest_row_training_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["season_id"],
+            ["dim_season.id"],
+            name="fk_residual_model_manifest_row_season_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["destination_factory_id"],
+            ["dim_factory.id"],
+            name="fk_residual_model_manifest_row_factory_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["task9_run_id"],
+            ["harvest_state_run.id"],
+            name="fk_residual_model_manifest_row_task9_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["label_analytics_build_run_id"],
+            ["analytics_build_run.id"],
+            name="fk_residual_model_manifest_row_label_analytics_build_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["feature_analytics_build_run_id"],
+            ["analytics_build_run.id"],
+            name="fk_residual_model_manifest_row_feature_analytics_build_run_id",
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id"),
@@ -267,35 +310,6 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "residual_model_metric",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
-        sa.Column("training_run_id", sa.BigInteger(), nullable=False),
-        sa.Column("metric_scope", sa.Text(), nullable=False),
-        sa.Column("scope_key", sa.Text(), nullable=False),
-        sa.Column("metric_name", sa.Text(), nullable=False),
-        sa.Column("metric_payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["training_run_id"],
-            ["residual_model_training_run.id"],
-            name="fk_residual_model_metric_training_run_id",
-            ondelete="RESTRICT",
-        ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "training_run_id",
-            "metric_scope",
-            "scope_key",
-            "metric_name",
-            name="uq_residual_model_metric_scope_name",
-        ),
-    )
-    op.create_index(
-        "ix_residual_model_metric_training_run_id",
-        "residual_model_metric",
-        ["training_run_id"],
-    )
-
-    op.create_table(
         "residual_model_prediction_run",
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("training_run_id", sa.BigInteger(), nullable=True),
@@ -330,6 +344,7 @@ def upgrade() -> None:
         ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("error_message", sa.Text(), nullable=True),
+        sa.Column("typed_attempt", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.CheckConstraint(
             "execution_status in ('completed', 'blocked', 'failed')",
             name="ck_residual_model_prediction_run_execution_status",
@@ -366,6 +381,12 @@ def upgrade() -> None:
             ["training_run_id"],
             ["residual_model_training_run.id"],
             name="fk_residual_model_prediction_run_training_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["task9_run_id"],
+            ["harvest_state_run.id"],
+            name="fk_residual_model_prediction_run_task9_run_id",
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id"),
@@ -414,6 +435,7 @@ def upgrade() -> None:
         sa.Column("feature_audit_hash", sa.Text(), nullable=False),
         sa.Column("prediction_row_hash", sa.Text(), nullable=False),
         sa.Column("mode", sa.Text(), nullable=False),
+        sa.Column("fallback_reason", sa.Text(), nullable=True),
         sa.CheckConstraint(
             _sha256_check_sql("task9_result_hash"),
             name="ck_residual_model_prediction_row_task9_hash",
@@ -438,10 +460,41 @@ def upgrade() -> None:
             "corrected_p50_kg <= corrected_p80_kg and corrected_p80_kg <= corrected_p90_kg",
             name="ck_residual_model_prediction_row_monotonic",
         ),
+        sa.CheckConstraint(
+            "forecast_horizon_days >= 0",
+            name="ck_residual_model_prediction_row_forecast_horizon",
+        ),
+        sa.CheckConstraint(
+            sa.text(
+                "mode != 'structural_only' or "
+                "(raw_residual_p50_kg = 0 and "
+                "raw_residual_p80_kg = 0 and "
+                "raw_residual_p90_kg = 0)"
+            ),
+            name="ck_residual_model_prediction_row_structural_only",
+        ),
         sa.ForeignKeyConstraint(
             ["prediction_run_id"],
             ["residual_model_prediction_run.id"],
             name="fk_residual_model_prediction_row_prediction_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["model_run_id"],
+            ["residual_model_training_run.id"],
+            name="fk_residual_model_prediction_row_model_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["task9_run_id"],
+            ["harvest_state_run.id"],
+            name="fk_residual_model_prediction_row_task9_run_id",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["destination_factory_id"],
+            ["dim_factory.id"],
+            name="fk_residual_model_prediction_row_factory_id",
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id"),
@@ -474,8 +527,6 @@ def downgrade() -> None:
         table_name="residual_model_prediction_run",
     )
     op.drop_table("residual_model_prediction_run")
-    op.drop_index("ix_residual_model_metric_training_run_id", table_name="residual_model_metric")
-    op.drop_table("residual_model_metric")
     op.drop_index(
         "ix_residual_model_artifact_training_run_id",
         table_name="residual_model_artifact",

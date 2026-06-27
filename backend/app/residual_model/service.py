@@ -99,6 +99,8 @@ def _projection_payloads(
                 "residual_p50": p50,
                 "residual_p80": p80,
                 "residual_p90": p90,
+                "season_id": row.season_id,
+                "factory_id": row.destination_factory_id,
             }
         )
     return payloads
@@ -185,8 +187,11 @@ def _predict_residual_vectors(
 
 def _metrics_from_projection_payloads(
     payloads: Sequence[dict[str, object]],
+    fallback_count: int = 0,
+    total_evaluated: int | None = None,
 ) -> dict[str, object]:
     rows = [cast(ResidualTrainingManifestRow, item["row"]) for item in payloads]
+    evaluated = total_evaluated if total_evaluated is not None else len(rows)
     if not rows:
         return {
             "row_count": 0,
@@ -201,9 +206,13 @@ def _metrics_from_projection_payloads(
             "quantile_crossing_count_raw": 0,
             "quantile_crossing_count_projected": 0,
             "correction_magnitude_mean_kg": None,
-            "fallback_row_count": 0,
-            "evaluated_row_count": 0,
-            "fallback_rate": Decimal("0"),
+            "fallback_row_count": fallback_count,
+            "evaluated_row_count": evaluated,
+            "fallback_rate": (
+                Decimal(fallback_count) / Decimal(evaluated)
+                if evaluated > 0
+                else Decimal("0")
+            ),
         }
     actual_receipts = [row.observed_effective_receipt_kg for row in rows]
     residual_labels = [row.residual_label_kg for row in rows]
@@ -248,9 +257,13 @@ def _metrics_from_projection_payloads(
             [Decimal("0")] * len(residual_p50),
             [abs(item) for item in residual_p50],
         ),
-        "fallback_row_count": 0,
+        "fallback_row_count": fallback_count,
         "evaluated_row_count": len(rows),
-        "fallback_rate": Decimal("0"),
+        "fallback_rate": (
+            Decimal(fallback_count) / Decimal(len(rows))
+            if len(rows) > 0
+            else Decimal("0")
+        ),
     }
 
 
@@ -261,6 +274,7 @@ def _split_metrics(
     residual_p80: Sequence[Decimal],
     residual_p90: Sequence[Decimal],
     fallback_row_count: int = 0,
+    row_is_fallback: Sequence[bool] | None = None,
 ) -> dict[str, object]:
     payloads = _projection_payloads(
         rows=rows,
@@ -270,26 +284,38 @@ def _split_metrics(
     )
     grouped_by_season: dict[str, list[dict[str, object]]] = {}
     grouped_by_factory: dict[str, list[dict[str, object]]] = {}
-    for payload in payloads:
+    season_fallback: dict[str, int] = {}
+    factory_fallback: dict[str, int] = {}
+    for index, payload in enumerate(payloads):
         row = cast(ResidualTrainingManifestRow, payload["row"])
-        grouped_by_season.setdefault(str(row.season_id), []).append(payload)
-        grouped_by_factory.setdefault(str(row.destination_factory_id), []).append(payload)
-    global_metrics = _metrics_from_projection_payloads(payloads)
-    evaluated_row_count = cast(int, global_metrics["evaluated_row_count"])
-    global_metrics["fallback_row_count"] = fallback_row_count
-    global_metrics["fallback_rate"] = (
-        Decimal(fallback_row_count) / Decimal(evaluated_row_count)
-        if evaluated_row_count > 0
-        else Decimal("0")
+        season_key = str(row.season_id)
+        factory_key = str(row.destination_factory_id)
+        grouped_by_season.setdefault(season_key, []).append(payload)
+        grouped_by_factory.setdefault(factory_key, []).append(payload)
+        if row_is_fallback is not None and index < len(row_is_fallback) and row_is_fallback[index]:
+            season_fallback[season_key] = season_fallback.get(season_key, 0) + 1
+            factory_fallback[factory_key] = factory_fallback.get(factory_key, 0) + 1
+        elif row_is_fallback is None and not row.include:
+            pass
+    global_metrics = _metrics_from_projection_payloads(
+        payloads, fallback_count=fallback_row_count, total_evaluated=len(rows)
     )
     return {
         "global": global_metrics,
         "per_season": {
-            key: _metrics_from_projection_payloads(grouped_by_season[key])
+            key: _metrics_from_projection_payloads(
+                grouped_by_season[key],
+                fallback_count=season_fallback.get(key, 0),
+                total_evaluated=len(grouped_by_season[key]),
+            )
             for key in sorted(grouped_by_season)
         },
         "per_factory": {
-            key: _metrics_from_projection_payloads(grouped_by_factory[key])
+            key: _metrics_from_projection_payloads(
+                grouped_by_factory[key],
+                fallback_count=factory_fallback.get(key, 0),
+                total_evaluated=len(grouped_by_factory[key]),
+            )
             for key in sorted(grouped_by_factory)
         },
     }
@@ -548,6 +574,7 @@ def train_residual_model_from_manifest(
         fallback_row_count=sum(
             1 for decision in train_decisions if decision.fallback_reason is not None
         ),
+        row_is_fallback=[decision.fallback_reason is not None for decision in train_decisions],
     )
     metrics: dict[str, object] = {
         **cast(dict[str, object], train_metrics["global"]),
@@ -584,6 +611,10 @@ def train_residual_model_from_manifest(
                 for decision in validation_decisions
                 if decision.fallback_reason is not None
             ),
+            row_is_fallback=[
+                decision.fallback_reason is not None
+                for decision in validation_decisions
+            ],
         )
         metrics["validation"] = validation_metrics
         validation_global_metrics = cast(dict[str, object], validation_metrics["global"])
@@ -618,6 +649,7 @@ def train_residual_model_from_manifest(
             fallback_row_count=sum(
                 1 for decision in test_decisions if decision.fallback_reason is not None
             ),
+            row_is_fallback=[decision.fallback_reason is not None for decision in test_decisions],
         )
     fallback_rate = cast(
         Decimal | None,
@@ -747,6 +779,7 @@ def structural_only_prediction(
                         "fallback_reason": fallback_reason,
                     }
                 ),
+                "fallback_reason": fallback_reason,
             }
         )
         row_payloads.append(row_payload)
@@ -846,6 +879,7 @@ def predict_residual_correction(
             "projection_reasons": [item.value for item in projection.projection_reasons],
             "feature_vector_hash": decision.feature_vector_hash,
             "feature_audit_hash": decision.feature_audit_hash,
+            "fallback_reason": decision.fallback_reason,
             "mode": decision.mode,
         }
         row_payloads.append(row_payload)

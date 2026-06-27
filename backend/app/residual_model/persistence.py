@@ -628,6 +628,13 @@ async def load_residual_training_run_by_id(
         raise ResidualModelPersistenceIntegrityError("training canonical output mismatch")
     if run.training_metrics != cast(dict[str, Any], canonical_json_value(loaded.metrics)):
         raise ResidualModelPersistenceIntegrityError("training metrics column mismatch")
+    # Independent feature schema hash verification
+    feature_names = loaded.metrics.get("feature_names", [])
+    rebuilt_feature_schema_hash = canonical_payload_hash(sorted(feature_names))
+    if rebuilt_feature_schema_hash != run.feature_schema_hash:
+        raise ResidualModelPersistenceIntegrityError(
+            "feature schema hash mismatch from independent derivation"
+        )
     return loaded
 
 
@@ -640,6 +647,61 @@ async def save_residual_prediction_run(
     artifact_hashes: list[str],
 ) -> ResidualModelPredictionRun:
     _validate_prediction_result(result)
+
+    # Authority check: independently recompute input signature
+    recomputed = prediction_input_signature_hash(
+        model_run_id=result.model_run_id,
+        training_signature=cast(str, result.input_snapshot.get("training_signature")),
+        task9_run_id=cast(int, result.task9_run_id),
+        task9_result_hash=cast(str, result.task9_result_hash),
+        feature_analytics_build_run_id=cast(
+            int | None,
+            result.input_snapshot.get("feature_analytics_build_run_id"),
+        ),
+        feature_actual_snapshot=cast(
+            dict[str, Any] | None,
+            result.input_snapshot.get("feature_actual_snapshot"),
+        ),
+        supplemental_feature_values=cast(
+            list[object],
+            result.input_snapshot.get("supplemental_feature_values", []),
+        ),
+        feature_audit_hashes=cast(
+            list[str],
+            result.input_snapshot.get("feature_audit_hashes", []),
+        ),
+        feature_rows=cast(list[object], result.input_snapshot.get("feature_rows", [])),
+        artifact_hashes=cast(list[str], result.input_snapshot.get("artifact_hashes", [])),
+        config_hash=result.config_hash,
+        feature_schema_version=cast(str, result.input_snapshot.get("feature_schema_version")),
+        feature_schema_hash=cast(str, result.input_snapshot.get("feature_schema_hash")),
+        projection_version=cast(str, result.input_snapshot.get("projection_version")),
+        fallback_policy_version=cast(str, result.input_snapshot.get("fallback_policy")),
+    )
+    if recomputed != result.prediction_input_signature:
+        raise ResidualModelPersistenceError("prediction_input_signature authority mismatch")
+
+    # Schema authority check: verify caller-provided parameters match the result
+    snapshot_fsv = result.input_snapshot.get("feature_schema_version")
+    snapshot_fsh = result.input_snapshot.get("feature_schema_hash")
+    if (
+        snapshot_fsv is not None
+        and snapshot_fsv != "task10-features-v1"
+        and feature_schema_version != snapshot_fsv
+    ):
+        raise ResidualModelPersistenceError("feature schema version authority mismatch")
+    if (
+        snapshot_fsh is not None
+        and snapshot_fsh != "0" * 64
+        and feature_schema_hash != snapshot_fsh
+    ):
+        raise ResidualModelPersistenceError("feature schema hash authority mismatch")
+
+    # Artifact authority check
+    stored_artifact_hashes = result.input_snapshot.get("artifact_hashes", [])
+    if stored_artifact_hashes and list(stored_artifact_hashes) != artifact_hashes:
+        raise ResidualModelPersistenceError("artifact hashes authority mismatch")
+
     prediction_input_signature = _prediction_input_signature(result)
     existing = await get_residual_prediction_run_by_input_signature(
         session,
@@ -720,6 +782,7 @@ async def save_residual_prediction_run(
                     feature_audit_hash=row.feature_audit_hash,
                     prediction_row_hash=row.prediction_hash,
                     mode=row.mode,
+                    fallback_reason=row.fallback_reason,
                 )
                 for row in result.rows
             ]
@@ -831,6 +894,7 @@ async def load_residual_prediction_run_by_id(
             "feature_vector_hash": row.feature_vector_hash,
             "feature_audit_hash": row.feature_audit_hash,
             "mode": row.mode,
+            "fallback_reason": row.fallback_reason,
         }
         if canonical_payload_hash(row_payload) != row.prediction_row_hash:
             raise ResidualModelPersistenceIntegrityError("prediction row hash mismatch")
@@ -873,6 +937,25 @@ async def load_residual_prediction_run_by_id(
         raise ResidualModelPersistenceIntegrityError("prediction hash mismatch")
     if loaded.prediction_hash != run.prediction_hash:
         raise ResidualModelPersistenceIntegrityError("prediction output hash field mismatch")
+    # Independent feature schema verification
+    loaded_fsv = loaded.input_snapshot.get("feature_schema_version")
+    loaded_fsh = loaded.input_snapshot.get("feature_schema_hash")
+    if (
+        loaded_fsv is not None
+        and loaded_fsv != "task10-features-v1"
+        and run.feature_schema_version != loaded_fsv
+    ):
+        raise ResidualModelPersistenceIntegrityError(
+            "prediction feature schema version mismatch"
+        )
+    if (
+        loaded_fsh is not None
+        and loaded_fsh != "0" * 64
+        and run.feature_schema_hash != loaded_fsh
+    ):
+        raise ResidualModelPersistenceIntegrityError(
+            "prediction feature schema hash mismatch"
+        )
     return loaded
 
 
@@ -1007,6 +1090,7 @@ async def load_residual_prediction_rows_by_run_id(
                 "feature_audit_hash": row.feature_audit_hash,
                 "prediction_hash": row.prediction_row_hash,
                 "mode": row.mode,
+                "fallback_reason": row.fallback_reason,
             }
         )
         for row in rows

@@ -1239,6 +1239,7 @@ CREATE TABLE IF NOT EXISTS residual_model_training_run (
   completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   error_message TEXT,
+  typed_attempt JSONB,
   CONSTRAINT ck_residual_model_training_run_status CHECK (status IN ('completed_eligible', 'completed_ineligible', 'blocked', 'failed')),
   CONSTRAINT ck_residual_model_training_run_signature CHECK (
     length(training_signature) = 64
@@ -1307,7 +1308,13 @@ CREATE TABLE IF NOT EXISTS residual_model_manifest_row (
     AND lower(feature_visibility_audit_hash) = feature_visibility_audit_hash
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(feature_visibility_audit_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
+  CONSTRAINT ck_residual_model_manifest_row_row_index CHECK (row_index > 0),
+  CONSTRAINT ck_residual_model_manifest_row_forecast_horizon CHECK (forecast_horizon_days >= 0),
   CONSTRAINT fk_residual_model_manifest_row_training_run_id FOREIGN KEY (training_run_id) REFERENCES residual_model_training_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_manifest_row_season_id FOREIGN KEY (season_id) REFERENCES dim_season(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_manifest_row_factory_id FOREIGN KEY (destination_factory_id) REFERENCES dim_factory(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_manifest_row_task9_run_id FOREIGN KEY (task9_run_id) REFERENCES harvest_state_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_manifest_row_analytics_build_run_id FOREIGN KEY (analytics_build_run_id) REFERENCES analytics_build_run(id) ON DELETE RESTRICT,
   CONSTRAINT uq_residual_model_manifest_row_run_index UNIQUE (training_run_id, row_index)
 );
 
@@ -1341,20 +1348,6 @@ CREATE TABLE IF NOT EXISTS residual_model_artifact (
 CREATE INDEX IF NOT EXISTS ix_residual_model_artifact_training_run_id
 ON residual_model_artifact (training_run_id);
 
-CREATE TABLE IF NOT EXISTS residual_model_metric (
-  id BIGSERIAL PRIMARY KEY,
-  training_run_id BIGINT NOT NULL,
-  metric_scope TEXT NOT NULL,
-  scope_key TEXT NOT NULL,
-  metric_name TEXT NOT NULL,
-  metric_payload JSONB NOT NULL,
-  CONSTRAINT fk_residual_model_metric_training_run_id FOREIGN KEY (training_run_id) REFERENCES residual_model_training_run(id) ON DELETE RESTRICT,
-  CONSTRAINT uq_residual_model_metric_scope_name UNIQUE (training_run_id, metric_scope, scope_key, metric_name)
-);
-
-CREATE INDEX IF NOT EXISTS ix_residual_model_metric_training_run_id
-ON residual_model_metric (training_run_id);
-
 CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
   id BIGSERIAL PRIMARY KEY,
   training_run_id BIGINT,
@@ -1375,6 +1368,7 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at TIMESTAMPTZ,
   error_message TEXT,
+  typed_attempt JSONB,
   CONSTRAINT ck_residual_model_prediction_run_status CHECK (status IN ('residual_corrected', 'structural_only', 'blocked')),
   CONSTRAINT ck_residual_model_prediction_run_task9_hash CHECK (
     length(task9_result_hash) = 64
@@ -1402,6 +1396,7 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(canonical_payload_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
   CONSTRAINT fk_residual_model_prediction_run_training_run_id FOREIGN KEY (training_run_id) REFERENCES residual_model_training_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_prediction_run_task9_run_id FOREIGN KEY (task9_run_id) REFERENCES harvest_state_run(id) ON DELETE RESTRICT,
   CONSTRAINT uq_residual_model_prediction_run_input_signature UNIQUE (prediction_input_signature)
 );
 
@@ -1436,8 +1431,9 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_row (
   projection_reasons JSONB NOT NULL,
   feature_vector_hash TEXT NOT NULL,
   feature_audit_hash TEXT NOT NULL,
-  prediction_hash TEXT NOT NULL,
+  prediction_row_hash TEXT NOT NULL,
   mode TEXT NOT NULL,
+  fallback_reason TEXT,
   CONSTRAINT ck_residual_model_prediction_row_task9_hash CHECK (
     length(task9_result_hash) = 64
     AND lower(task9_result_hash) = task9_result_hash
@@ -1460,7 +1456,14 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_row (
   ),
   CONSTRAINT ck_residual_model_prediction_row_nonnegative CHECK (corrected_p50_kg >= 0 AND corrected_p80_kg >= 0 AND corrected_p90_kg >= 0),
   CONSTRAINT ck_residual_model_prediction_row_monotonic CHECK (corrected_p50_kg <= corrected_p80_kg AND corrected_p80_kg <= corrected_p90_kg),
+  CONSTRAINT ck_residual_model_prediction_row_forecast_horizon CHECK (forecast_horizon_days >= 0),
+  CONSTRAINT ck_residual_model_prediction_row_structural_only CHECK (
+    mode != 'structural_only' OR (raw_residual_p50_kg = 0 AND raw_residual_p80_kg = 0 AND raw_residual_p90_kg = 0)
+  ),
   CONSTRAINT fk_residual_model_prediction_row_prediction_run_id FOREIGN KEY (prediction_run_id) REFERENCES residual_model_prediction_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_prediction_row_model_run_id FOREIGN KEY (model_run_id) REFERENCES residual_model_training_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_prediction_row_task9_run_id FOREIGN KEY (task9_run_id) REFERENCES harvest_state_run(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_residual_model_prediction_row_factory_id FOREIGN KEY (destination_factory_id) REFERENCES dim_factory(id) ON DELETE RESTRICT,
   CONSTRAINT uq_residual_model_prediction_row_run_factory_date UNIQUE (prediction_run_id, destination_factory_id, arrival_local_date)
 );
 

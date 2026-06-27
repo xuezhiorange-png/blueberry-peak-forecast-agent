@@ -14,7 +14,11 @@ from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.schemas import PersistableResidualArtifact
 
 
-class ResidualArtifactValidationError(RuntimeError):
+class ResidualArtifactIntegrityError(RuntimeError):
+    pass
+
+
+class ResidualArtifactValidationError(ResidualArtifactIntegrityError):
     pass
 
 

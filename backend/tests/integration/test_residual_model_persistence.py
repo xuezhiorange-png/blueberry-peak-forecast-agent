@@ -238,8 +238,15 @@ async def test_postgres_execute_residual_training_completed_eligible_round_trip(
         assert (
             await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
         )
+        expected_manifest_row_count = int(
+            training_result.input_snapshot["manifest_summary"]["row_count"]
+        )
         assert (
-            await session.scalar(select(func.count()).select_from(ResidualModelManifestRow)) == 30
+            await session.scalar(select(func.count()).select_from(ResidualModelManifestRow))
+            == expected_manifest_row_count
+        )
+        assert (
+            training_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
         )
         assert await session.scalar(select(func.count()).select_from(ResidualModelArtifact)) == 3
 
@@ -275,8 +282,15 @@ async def test_postgres_execute_residual_training_same_signature_is_idempotent()
         assert (
             await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
         )
+        expected_manifest_row_count = int(
+            first_result.input_snapshot["manifest_summary"]["row_count"]
+        )
         assert (
-            await session.scalar(select(func.count()).select_from(ResidualModelManifestRow)) == 30
+            await session.scalar(select(func.count()).select_from(ResidualModelManifestRow))
+            == expected_manifest_row_count
+        )
+        assert (
+            first_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
         )
         assert await session.scalar(select(func.count()).select_from(ResidualModelArtifact)) == 3
 

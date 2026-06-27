@@ -145,6 +145,9 @@ class ResidualModelTrainingRun(Base):
         server_default=func.now(),
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    typed_attempt: Mapped[dict[str, Any] | None] = mapped_column(
+        _JSON_VARIANT, nullable=True, default=None
+    )
 
 
 class ResidualModelManifestRow(Base):
@@ -174,6 +177,18 @@ class ResidualModelManifestRow(Base):
             _sha256_check_sql("feature_actual_config_hash"),
             name="ck_residual_model_manifest_row_feature_config_hash",
         ),
+        CheckConstraint(
+            "row_index > 0",
+            name="ck_residual_model_manifest_row_row_index",
+        ),
+        CheckConstraint(
+            "forecast_horizon_days >= 0",
+            name="ck_residual_model_manifest_row_forecast_horizon",
+        ),
+        CheckConstraint(
+            "sample_weight >= 0",
+            name="ck_residual_model_manifest_row_sample_weight",
+        ),
         UniqueConstraint(
             "training_run_id",
             "row_index",
@@ -195,14 +210,46 @@ class ResidualModelManifestRow(Base):
     row_index: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     split: Mapped[str] = mapped_column(Text, nullable=False)
     include: Mapped[bool] = mapped_column(nullable=False)
-    season_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
-    destination_factory_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
-    task9_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    season_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "dim_season.id",
+            name="fk_residual_model_manifest_row_season_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    destination_factory_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "dim_factory.id",
+            name="fk_residual_model_manifest_row_factory_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    task9_run_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "harvest_state_run.id",
+            name="fk_residual_model_manifest_row_task9_run_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     task9_result_hash: Mapped[str] = mapped_column(Text, nullable=False)
     as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
     target_arrival_local_date: Mapped[date] = mapped_column(Date, nullable=False)
     forecast_horizon_days: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
-    label_analytics_build_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    label_analytics_build_run_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "analytics_build_run.id",
+            name="fk_residual_model_manifest_row_label_analytics_build_run_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     label_actual_source_max_raw_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     label_actual_aggregation_version: Mapped[str] = mapped_column(Text, nullable=False)
     label_actual_config_hash: Mapped[str] = mapped_column(Text, nullable=False)
@@ -210,7 +257,15 @@ class ResidualModelManifestRow(Base):
         DateTime(timezone=True),
         nullable=False,
     )
-    feature_analytics_build_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    feature_analytics_build_run_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "analytics_build_run.id",
+            name="fk_residual_model_manifest_row_feature_analytics_build_run_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     feature_actual_source_max_raw_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     feature_actual_aggregation_version: Mapped[str] = mapped_column(Text, nullable=False)
     feature_actual_config_hash: Mapped[str] = mapped_column(Text, nullable=False)
@@ -300,35 +355,6 @@ class ResidualModelArtifact(Base):
     )
 
 
-class ResidualModelMetric(Base):
-    __tablename__ = "residual_model_metric"
-    __table_args__ = (
-        UniqueConstraint(
-            "training_run_id",
-            "metric_scope",
-            "scope_key",
-            "metric_name",
-            name="uq_residual_model_metric_scope_name",
-        ),
-        Index("ix_residual_model_metric_training_run_id", "training_run_id"),
-    )
-
-    id: Mapped[int] = mapped_column(_BIGINT_VARIANT, primary_key=True, autoincrement=True)
-    training_run_id: Mapped[int] = mapped_column(
-        _BIGINT_VARIANT,
-        ForeignKey(
-            "residual_model_training_run.id",
-            name="fk_residual_model_metric_training_run_id",
-            ondelete="RESTRICT",
-        ),
-        nullable=False,
-    )
-    metric_scope: Mapped[str] = mapped_column(Text, nullable=False)
-    scope_key: Mapped[str] = mapped_column(Text, nullable=False)
-    metric_name: Mapped[str] = mapped_column(Text, nullable=False)
-    metric_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
-
-
 class ResidualModelPredictionRun(Base):
     __tablename__ = "residual_model_prediction_run"
     __table_args__ = (
@@ -382,7 +408,15 @@ class ResidualModelPredictionRun(Base):
         ),
         nullable=True,
     )
-    task9_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    task9_run_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "harvest_state_run.id",
+            name="fk_residual_model_prediction_run_task9_run_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     task9_result_hash: Mapped[str] = mapped_column(Text, nullable=False)
     execution_status: Mapped[str] = mapped_column(Text, nullable=False)
     mode: Mapped[str] = mapped_column(Text, nullable=False)
@@ -411,6 +445,9 @@ class ResidualModelPredictionRun(Base):
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    typed_attempt: Mapped[dict[str, Any] | None] = mapped_column(
+        _JSON_VARIANT, nullable=True, default=None
+    )
 
 
 class ResidualModelPredictionRow(Base):
@@ -440,6 +477,19 @@ class ResidualModelPredictionRow(Base):
             "corrected_p50_kg <= corrected_p80_kg and corrected_p80_kg <= corrected_p90_kg",
             name="ck_residual_model_prediction_row_monotonic",
         ),
+        CheckConstraint(
+            "forecast_horizon_days >= 0",
+            name="ck_residual_model_prediction_row_forecast_horizon",
+        ),
+        CheckConstraint(
+            (
+                "mode != 'structural_only' or "
+                "(raw_residual_p50_kg = 0 and "
+                "raw_residual_p80_kg = 0 and "
+                "raw_residual_p90_kg = 0)"
+            ),
+            name="ck_residual_model_prediction_row_structural_only",
+        ),
         UniqueConstraint(
             "prediction_run_id",
             "destination_factory_id",
@@ -459,10 +509,34 @@ class ResidualModelPredictionRow(Base):
         ),
         nullable=False,
     )
-    model_run_id: Mapped[int | None] = mapped_column(_BIGINT_VARIANT, nullable=True)
-    task9_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    model_run_id: Mapped[int | None] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "residual_model_training_run.id",
+            name="fk_residual_model_prediction_row_model_run_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+    )
+    task9_run_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "harvest_state_run.id",
+            name="fk_residual_model_prediction_row_task9_run_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     task9_result_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    destination_factory_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    destination_factory_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "dim_factory.id",
+            name="fk_residual_model_prediction_row_factory_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     arrival_local_date: Mapped[date] = mapped_column(Date, nullable=False)
     forecast_horizon_days: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     structural_p50_kg: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
@@ -484,3 +558,4 @@ class ResidualModelPredictionRow(Base):
     feature_audit_hash: Mapped[str] = mapped_column(Text, nullable=False)
     prediction_row_hash: Mapped[str] = mapped_column(Text, nullable=False)
     mode: Mapped[str] = mapped_column(Text, nullable=False)
+    fallback_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
