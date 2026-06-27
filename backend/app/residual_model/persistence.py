@@ -40,7 +40,7 @@ from backend.app.repositories.residual_model import (
     list_residual_prediction_rows,
 )
 from backend.app.residual_model.artifact import (
-    ResidualArtifactIntegrityError,
+    ResidualArtifactIntegrityError as ArtifactValidationIntegrityError,
 )
 from backend.app.residual_model.canonical import (
     canonical_payload_hash,
@@ -71,7 +71,10 @@ class ResidualModelPersistenceIntegrityError(ResidualModelPersistenceError):
     pass
 
 
-class ResidualArtifactIntegrityError(ResidualModelPersistenceIntegrityError):
+class ResidualArtifactIntegrityError(
+    ArtifactValidationIntegrityError,
+    ResidualModelPersistenceIntegrityError,
+):
     pass
 
 
@@ -210,7 +213,11 @@ async def _verify_task3_authority(
     session: AsyncSession,
     *,
     input_snapshot: dict[str, Any],
-    prediction_rows: Iterable[dict[str, Any]] | Iterable[ResidualPredictionRow] | Iterable[ResidualModelPredictionRow],
+    prediction_rows: (
+        Iterable[dict[str, Any]]
+        | Iterable[ResidualPredictionRow]
+        | Iterable[ResidualModelPredictionRow]
+    ),
 ) -> AnalyticsBuildRun:
     """Verify full Task 3 authority binding for a prediction run.
 
@@ -283,7 +290,7 @@ async def _verify_task3_authority(
                 snapshot_cutoff = datetime.fromisoformat(snapshot_cutoff_raw)
             else:
                 snapshot_cutoff = _aware_utc(cast(datetime, snapshot_cutoff_raw))
-        except Exception:
+        except (TypeError, ValueError):
             raise ResidualModelPersistenceError(
                 "AnalyticsBuildRun source_cutoff authority mismatch: invalid datetime"
             ) from None
@@ -973,6 +980,7 @@ async def save_residual_prediction_run(
     typed_attempt: dict[str, Any] | None = None,
 ) -> ResidualModelPredictionRun:
     _validate_prediction_result(result)
+    resolved_artifact_hashes = list(artifact_hashes)
 
     # === SECTION 7: Authority re-verification ===
 
@@ -1017,59 +1025,51 @@ async def save_residual_prediction_run(
                 session, training_run_id=result.model_run_id
             )
             training_artifact_hashes = [a.artifact_sha256 for a in training_artifacts]
-            if sorted(training_artifact_hashes) != sorted(artifact_hashes):
+            if (
+                not resolved_artifact_hashes
+                and result.mode == "structural_only"
+                and result.fallback_reason == "artifact_validation_failed"
+            ):
+                resolved_artifact_hashes = training_artifact_hashes
+            if sorted(training_artifact_hashes) != sorted(resolved_artifact_hashes):
                 raise ResidualModelPersistenceError(
                     "artifact_hashes authority mismatch with training artifacts"
                 )
 
     # 7.3: Read Task 9 via integrity loader and verify task9_result_hash
     if result.task9_run_id is not None:
-        try:
-            task9_output = await load_harvest_state_output_by_id(
-                session, run_id=result.task9_run_id
+        task9_output = await load_harvest_state_output_by_id(
+            session, run_id=result.task9_run_id
+        )
+        if task9_output is None:
+            raise ResidualModelPersistenceError(
+                f"Task 9 run {result.task9_run_id} was not found"
             )
-            if task9_output is None:
-                raise ResidualModelPersistenceError(
-                    f"Task 9 run {result.task9_run_id} was not found"
-                )
-            if task9_output.status != "completed":
-                raise ResidualModelPersistenceError(
-                    f"Task 9 run {result.task9_run_id} must be completed"
-                )
-            if task9_output.result_hash != result.task9_result_hash:
-                raise ResidualModelPersistenceError(
-                    "task9_result_hash authority mismatch"
-                )
-        except Exception as exc:
-            # If the upstream table doesn't exist (test DB without migrations),
-            # skip the check rather than failing
-            if "no such table" in str(exc).lower():
-                pass
-            else:
-                raise
+        if task9_output.status != "completed":
+            raise ResidualModelPersistenceError(
+                f"Task 9 run {result.task9_run_id} must be completed"
+            )
+        if task9_output.result_hash != result.task9_result_hash:
+            raise ResidualModelPersistenceError(
+                "task9_result_hash authority mismatch"
+            )
 
     # 7.4: Full Task 3 authority binding (Section 9)
     feature_build_run_id = cast(
         int | None, result.input_snapshot.get("feature_analytics_build_run_id")
     )
     if feature_build_run_id is not None:
-        try:
-            await _verify_task3_authority(
-                session,
-                input_snapshot=result.input_snapshot,
-                prediction_rows=result.rows,
-            )
-        except Exception as exc:
-            if "no such table" in str(exc).lower():
-                pass
-            else:
-                raise
+        await _verify_task3_authority(
+            session,
+            input_snapshot=result.input_snapshot,
+            prediction_rows=result.rows,
+        )
 
     # 7.5: Force equivalence: input_snapshot.artifact_hashes == parent artifact_hashes == training
     snapshot_artifact_hashes = cast(
         list[str], result.input_snapshot.get("artifact_hashes", [])
     )
-    if sorted(snapshot_artifact_hashes) != sorted(artifact_hashes):
+    if sorted(snapshot_artifact_hashes) != sorted(resolved_artifact_hashes):
         raise ResidualModelPersistenceError(
             "input_snapshot artifact_hashes authority mismatch"
         )
@@ -1078,7 +1078,7 @@ async def save_residual_prediction_run(
             session, training_run_id=cast(int, result.model_run_id)
         )
         training_artifact_hashes = [a.artifact_sha256 for a in training_artifacts]
-        if sorted(training_artifact_hashes) != sorted(artifact_hashes):
+        if sorted(training_artifact_hashes) != sorted(resolved_artifact_hashes):
             raise ResidualModelPersistenceError(
                 "training artifact_hashes authority mismatch"
             )
@@ -1129,7 +1129,7 @@ async def save_residual_prediction_run(
 
     # Artifact authority check
     stored_artifact_hashes = result.input_snapshot.get("artifact_hashes", [])
-    if list(stored_artifact_hashes) != artifact_hashes:
+    if list(stored_artifact_hashes) != resolved_artifact_hashes:
         raise ResidualModelPersistenceError("artifact hashes authority mismatch")
 
     prediction_input_signature = _prediction_input_signature(result)
@@ -1161,7 +1161,10 @@ async def save_residual_prediction_run(
         config_hash=result.config_hash,
         feature_schema_version=feature_schema_version,
         feature_schema_hash=feature_schema_hash,
-        artifact_hashes=cast(list[str], canonical_json_value(artifact_hashes)),
+        artifact_hashes=cast(
+            list[str],
+            canonical_json_value(resolved_artifact_hashes),
+        ),
         prediction_input_signature=prediction_input_signature,
         prediction_hash=result.prediction_hash,
         feature_audit={},
@@ -1352,27 +1355,21 @@ async def load_residual_prediction_run_by_id(
 
     # SECTION 7.3: Verify Task 9 identity against referenced Task 9 run
     if run.task9_run_id is not None:
-        try:
-            task9_output = await load_harvest_state_output_by_id(
-                session, run_id=run.task9_run_id
+        task9_output = await load_harvest_state_output_by_id(
+            session, run_id=run.task9_run_id
+        )
+        if task9_output is None:
+            raise ResidualModelPersistenceIntegrityError(
+                f"referenced Task 9 run {run.task9_run_id} was not found"
             )
-            if task9_output is None:
-                raise ResidualModelPersistenceIntegrityError(
-                    f"referenced Task 9 run {run.task9_run_id} was not found"
-                )
-            if task9_output.status != "completed":
-                raise ResidualModelPersistenceIntegrityError(
-                    f"referenced Task 9 run {run.task9_run_id} must be completed"
-                )
-            if task9_output.result_hash != run.task9_result_hash:
-                raise ResidualModelPersistenceIntegrityError(
-                    "task9_result_hash mismatch with referenced Task 9 run"
-                )
-        except Exception as exc:
-            if "no such table" in str(exc).lower():
-                pass
-            else:
-                raise
+        if task9_output.status != "completed":
+            raise ResidualModelPersistenceIntegrityError(
+                f"referenced Task 9 run {run.task9_run_id} must be completed"
+            )
+        if task9_output.result_hash != run.task9_result_hash:
+            raise ResidualModelPersistenceIntegrityError(
+                "task9_result_hash mismatch with referenced Task 9 run"
+            )
 
     # SECTION 8.4: Rebuild prediction_input_signature from authorities, compare
     column_prediction_input_signature = prediction_input_signature_hash(
@@ -1833,12 +1830,12 @@ async def load_and_validate_trusted_residual_artifacts(
         )
 
     # 4. Parent parity: dependency versions match parent
-    if run.python_version != validated[0].metadata.python_version if validated else "n/a":
-        pass  # already validated against columns above
-    if run.numpy_version != validated[0].metadata.numpy_version if validated else "n/a":
-        pass
-    if run.sklearn_version != validated[0].metadata.sklearn_version if validated else "n/a":
-        pass
+    if validated and run.python_version != validated[0].metadata.python_version:
+        raise ResidualArtifactIntegrityError("training run python version mismatch")
+    if validated and run.numpy_version != validated[0].metadata.numpy_version:
+        raise ResidualArtifactIntegrityError("training run numpy version mismatch")
+    if validated and run.sklearn_version != validated[0].metadata.sklearn_version:
+        raise ResidualArtifactIntegrityError("training run sklearn version mismatch")
 
     return tuple(validated)
 

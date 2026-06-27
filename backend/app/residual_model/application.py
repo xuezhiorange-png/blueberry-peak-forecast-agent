@@ -52,6 +52,19 @@ class ResidualPredictionApplicationIntegrityError(RuntimeError):
     pass
 
 
+def _training_run_fallback_reason(
+    training_run: Any,
+) -> str | None:
+    if training_run.execution_status == "blocked":
+        return "model_blocked"
+    if (
+        training_run.execution_status == "completed"
+        and training_run.eligibility_status != "eligible"
+    ):
+        return "model_not_eligible"
+    return None
+
+
 def _prediction_input_snapshot(
     *,
     request: ResidualPredictionRequest,
@@ -128,16 +141,23 @@ async def execute_residual_prediction(
 ) -> tuple[ResidualPredictionExecutionResult, int]:
     training_run_row = await get_residual_training_run(session, run_id=request.model_run_id)
     if training_run_row is None:
-        raise ResidualPredictionApplicationIntegrityError("Residual training run was not found")
+        raise ResidualTrainingApplicationIntegrityError("Residual training run was not found")
+    if training_run_row.execution_status == "running":
+        raise ResidualTrainingApplicationIntegrityError("Residual training run is running")
+    if training_run_row.execution_status == "failed":
+        raise ResidualTrainingApplicationIntegrityError("Residual training run is failed")
     model_run: ResidualTrainingExecutionResult | None
-    preload_artifact_error: ResidualArtifactIntegrityError | None = None
+    preload_artifact_error: Exception | None = None
     try:
         model_run = await load_residual_training_run_by_id(session, run_id=request.model_run_id)
-    except ResidualArtifactIntegrityError as exc:
+    except (
+        ResidualArtifactIntegrityError,
+        ResidualModelPersistenceIntegrityError,
+    ) as exc:
         model_run = None
         preload_artifact_error = exc
     if model_run is None and preload_artifact_error is None:
-        raise ResidualPredictionApplicationIntegrityError("Residual training run was not found")
+        raise ResidualTrainingApplicationIntegrityError("Residual training run was not found")
 
     (
         task9_output,
@@ -155,6 +175,21 @@ async def execute_residual_prediction(
     )
 
     artifact_hashes: list[str] = []
+    if (
+        preload_artifact_error is not None
+        and training_run_row.eligibility_status == "eligible"
+    ):
+        try:
+            training_artifact_rows = await list_residual_artifacts(
+                session,
+                training_run_id=training_run_row.id,
+            )
+        except SQLAlchemyError as exc:
+            raise ResidualPredictionApplicationIntegrityError(
+                "Authoritative residual artifact identities could not be loaded"
+            ) from exc
+        artifact_hashes = [item.artifact_sha256 for item in training_artifact_rows]
+
     model_run_snapshot = (
         model_run.input_snapshot
         if model_run is not None
@@ -167,19 +202,13 @@ async def execute_residual_prediction(
     category_encodings: list[Any] = []
     estimators: TrainedResidualEstimators | None = None
 
-    if (
-        preload_artifact_error is not None
-        or model_run is None
-        or model_run.execution_status != "completed"
-        or model_run.eligibility_status != "eligible"
-        or blockers
-    ):
-        if blockers:
-            fallback_reason = "feature_visibility_failed"
-        elif preload_artifact_error is not None:
-            fallback_reason = "artifact_validation_failed"
-        else:
-            fallback_reason = "model_not_eligible"
+    training_run_fallback_reason = _training_run_fallback_reason(training_run_row)
+    if training_run_fallback_reason is not None:
+        fallback_reason = training_run_fallback_reason
+    elif preload_artifact_error is not None or model_run is None:
+        fallback_reason = "artifact_validation_failed"
+    elif blockers:
+        fallback_reason = "feature_visibility_failed"
     else:
         try:
             artifact_rows = await list_residual_artifacts(
