@@ -413,6 +413,29 @@ async def test_load_training_artifacts_detects_metadata_mismatch(
 
 
 @pytest.mark.asyncio
+async def test_load_training_run_detects_corrupted_artifact_bytes(
+    sqlite_session: AsyncSession,
+) -> None:
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_artifact "
+            "SET artifact_bytes = :artifact_bytes "
+            "WHERE training_run_id = :run_id AND quantile_label = 'P50'"
+        ),
+        {"artifact_bytes": b"corrupted-bytes", "run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+
+
+@pytest.mark.asyncio
 async def test_load_prediction_run_detects_deleted_child_row(
     sqlite_session: AsyncSession,
 ) -> None:
@@ -488,6 +511,48 @@ async def test_load_prediction_run_detects_modified_child_row(
             "WHERE prediction_run_id = :run_id"
         ),
         {"feature_vector_hash": "f" * 64, "run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_prediction_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_load_prediction_run_detects_modified_input_signature(
+    sqlite_session: AsyncSession,
+) -> None:
+    prediction = structural_only_prediction(
+        model_run_id=None,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+    run = await save_residual_prediction_run(
+        sqlite_session,
+        result=prediction,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_prediction_run "
+            "SET prediction_input_signature = :value "
+            "WHERE id = :run_id"
+        ),
+        {"value": "f" * 64, "run_id": run.id},
     )
     await sqlite_session.commit()
 

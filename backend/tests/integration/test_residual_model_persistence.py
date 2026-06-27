@@ -29,6 +29,7 @@ from backend.app.residual_model.schemas import (
     ResidualPredictionRequest,
     ResidualTrainingSampleSpec,
 )
+from backend.tests.harvest_state.conftest import make_request
 from backend.tests.residual_model.test_training_manifest import (
     _config,
     _diverse_training_samples,
@@ -36,6 +37,7 @@ from backend.tests.residual_model.test_training_manifest import (
     _seed_build_run,
     _seed_daily_fact,
     _seed_master_data,
+    _seed_season,
     _snapshot_as_of_date,
     _supplemental_features,
 )
@@ -60,10 +62,24 @@ def _relaxed_config():
     return replace(config, rules=rules)
 
 
-async def _seed_prediction_fixture() -> tuple[int, int, int, int, int]:
+async def _seed_prediction_fixture() -> dict[str, int]:
     async with AsyncSessionMaker() as session:
         season_id, factory_id, variety_id = await _seed_master_data(session)
+        validation_season_id = await _seed_season(
+            session,
+            season_id=2,
+            code="2026-2027",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 3, 31),
+        )
         task9_run_id, output = await _persist_task9_run(session)
+        validation_payload = make_request()
+        validation_payload["initial_inventory_cohorts"][0]["remaining_quantity_kg"] = Decimal("6")
+        validation_payload["initial_opening_mature_inventory_kg"] = Decimal("31")
+        validation_task9_run_id, _validation_output = await _persist_task9_run(
+            session,
+            payload=validation_payload,
+        )
         as_of_date = _snapshot_as_of_date(output)
         label_build = await _seed_build_run(
             session,
@@ -105,14 +121,60 @@ async def _seed_prediction_fixture() -> tuple[int, int, int, int, int]:
                 receipt_date=as_of_date - timedelta(days=offset),
                 weight_kg=weight,
             )
-        await session.commit()
-        return (
-            task9_run_id,
-            label_build.id,
-            feature_build.id,
-            season_id,
-            factory_id,
+        validation_label_build = await _seed_build_run(
+            session,
+            build_run_id=101,
+            season_id=validation_season_id,
+            source_max_raw_id=200,
+            config_hash="c" * 64,
+            finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+            covered_factory_ids=(factory_id,),
         )
+        validation_feature_build = await _seed_build_run(
+            session,
+            build_run_id=102,
+            season_id=validation_season_id,
+            source_max_raw_id=150,
+            config_hash="d" * 64,
+            finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+            covered_factory_ids=(factory_id,),
+        )
+        for index, target_date in enumerate(
+            (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
+        ):
+            await _seed_daily_fact(
+                session,
+                fact_id=300 + index,
+                build_run_id=validation_label_build.id,
+                season_id=validation_season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=target_date,
+                weight_kg=Decimal("120") + Decimal(index),
+            )
+        for offset, weight in ((1, Decimal("21")), (3, Decimal("23")), (7, Decimal("27"))):
+            await _seed_daily_fact(
+                session,
+                fact_id=400 + offset,
+                build_run_id=validation_feature_build.id,
+                season_id=validation_season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=as_of_date - timedelta(days=offset),
+                weight_kg=weight,
+            )
+        await session.commit()
+        return {
+            "train_task9_run_id": task9_run_id,
+            "validation_task9_run_id": validation_task9_run_id,
+            "train_label_build_run_id": label_build.id,
+            "train_feature_build_run_id": feature_build.id,
+            "validation_label_build_run_id": validation_label_build.id,
+            "validation_feature_build_run_id": validation_feature_build.id,
+            "season_id": season_id,
+            "validation_season_id": validation_season_id,
+            "factory_id": factory_id,
+        }
 
 
 @pytest.mark.integration
@@ -134,18 +196,15 @@ async def test_residual_model_tables_exist_after_migration_upgrade() -> None:
 @pytest.mark.integration
 async def test_postgres_execute_residual_training_completed_eligible_round_trip() -> None:
     _require_postgres()
-    (
-        task9_run_id,
-        label_build_run_id,
-        feature_build_run_id,
-        _season_id,
-        _factory_id,
-    ) = await _seed_prediction_fixture()
+    fixture = await _seed_prediction_fixture()
 
     samples = _diverse_training_samples(
-        task9_run_id=task9_run_id,
-        label_build_run_id=label_build_run_id,
-        feature_build_run_id=feature_build_run_id,
+        task9_run_id=fixture["train_task9_run_id"],
+        label_build_run_id=fixture["train_label_build_run_id"],
+        feature_build_run_id=fixture["train_feature_build_run_id"],
+        validation_task9_run_id=fixture["validation_task9_run_id"],
+        validation_label_build_run_id=fixture["validation_label_build_run_id"],
+        validation_feature_build_run_id=fixture["validation_feature_build_run_id"],
         as_of_date=date(2026, 2, 28),
     )
 
@@ -178,13 +237,14 @@ async def test_postgres_execute_residual_training_completed_eligible_round_trip(
 @pytest.mark.integration
 async def test_postgres_execute_residual_training_same_signature_is_idempotent() -> None:
     _require_postgres()
-    task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
-        await _seed_prediction_fixture()
-    )
+    fixture = await _seed_prediction_fixture()
     samples = _diverse_training_samples(
-        task9_run_id=task9_run_id,
-        label_build_run_id=label_build_run_id,
-        feature_build_run_id=feature_build_run_id,
+        task9_run_id=fixture["train_task9_run_id"],
+        label_build_run_id=fixture["train_label_build_run_id"],
+        feature_build_run_id=fixture["train_feature_build_run_id"],
+        validation_task9_run_id=fixture["validation_task9_run_id"],
+        validation_label_build_run_id=fixture["validation_label_build_run_id"],
+        validation_feature_build_run_id=fixture["validation_feature_build_run_id"],
         as_of_date=date(2026, 2, 28),
     )
 
@@ -214,13 +274,14 @@ async def test_postgres_execute_residual_training_same_signature_is_idempotent()
 @pytest.mark.integration
 async def test_postgres_execute_residual_prediction_round_trip() -> None:
     _require_postgres()
-    task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
-        await _seed_prediction_fixture()
-    )
+    fixture = await _seed_prediction_fixture()
     samples = _diverse_training_samples(
-        task9_run_id=task9_run_id,
-        label_build_run_id=label_build_run_id,
-        feature_build_run_id=feature_build_run_id,
+        task9_run_id=fixture["train_task9_run_id"],
+        label_build_run_id=fixture["train_label_build_run_id"],
+        feature_build_run_id=fixture["train_feature_build_run_id"],
+        validation_task9_run_id=fixture["validation_task9_run_id"],
+        validation_label_build_run_id=fixture["validation_label_build_run_id"],
+        validation_feature_build_run_id=fixture["validation_feature_build_run_id"],
         as_of_date=date(2026, 2, 28),
     )
 
@@ -236,8 +297,8 @@ async def test_postgres_execute_residual_prediction_round_trip() -> None:
             session,
             request=ResidualPredictionRequest(
                 model_run_id=training_run_id,
-                task9_run_id=task9_run_id,
-                feature_analytics_build_run_id=feature_build_run_id,
+                task9_run_id=fixture["train_task9_run_id"],
+                feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=date(2026, 2, 28)
                 ),
@@ -262,18 +323,16 @@ async def test_postgres_execute_residual_prediction_round_trip() -> None:
 @pytest.mark.integration
 async def test_postgres_execute_residual_prediction_structural_only_for_ineligible_model() -> None:
     _require_postgres()
-    task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
-        await _seed_prediction_fixture()
-    )
+    fixture = await _seed_prediction_fixture()
 
     async with AsyncSessionMaker() as session:
         training_result, training_run_id = await execute_residual_training(
             session,
             samples=[
                 ResidualTrainingSampleSpec(
-                    task9_run_id=task9_run_id,
-                    label_analytics_build_run_id=label_build_run_id,
-                    feature_analytics_build_run_id=feature_build_run_id,
+                    task9_run_id=fixture["train_task9_run_id"],
+                    label_analytics_build_run_id=fixture["train_label_build_run_id"],
+                    feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
                     split="train",
                     supplemental_feature_values=_supplemental_features(
                         as_of_date=date(2026, 2, 28)
@@ -288,8 +347,8 @@ async def test_postgres_execute_residual_prediction_structural_only_for_ineligib
             session,
             request=ResidualPredictionRequest(
                 model_run_id=training_run_id,
-                task9_run_id=task9_run_id,
-                feature_analytics_build_run_id=feature_build_run_id,
+                task9_run_id=fixture["train_task9_run_id"],
+                feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=date(2026, 2, 28)
                 ),
@@ -304,13 +363,14 @@ async def test_postgres_execute_residual_prediction_structural_only_for_ineligib
 @pytest.mark.integration
 async def test_postgres_artifact_hash_corruption_forces_structural_only_fallback() -> None:
     _require_postgres()
-    task9_run_id, label_build_run_id, feature_build_run_id, _season_id, _factory_id = (
-        await _seed_prediction_fixture()
-    )
+    fixture = await _seed_prediction_fixture()
     samples = _diverse_training_samples(
-        task9_run_id=task9_run_id,
-        label_build_run_id=label_build_run_id,
-        feature_build_run_id=feature_build_run_id,
+        task9_run_id=fixture["train_task9_run_id"],
+        label_build_run_id=fixture["train_label_build_run_id"],
+        feature_build_run_id=fixture["train_feature_build_run_id"],
+        validation_task9_run_id=fixture["validation_task9_run_id"],
+        validation_label_build_run_id=fixture["validation_label_build_run_id"],
+        validation_feature_build_run_id=fixture["validation_feature_build_run_id"],
         as_of_date=date(2026, 2, 28),
     )
 
@@ -340,8 +400,8 @@ async def test_postgres_artifact_hash_corruption_forces_structural_only_fallback
             session,
             request=ResidualPredictionRequest(
                 model_run_id=training_run_id,
-                task9_run_id=task9_run_id,
-                feature_analytics_build_run_id=feature_build_run_id,
+                task9_run_id=fixture["train_task9_run_id"],
+                feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=date(2026, 2, 28)
                 ),

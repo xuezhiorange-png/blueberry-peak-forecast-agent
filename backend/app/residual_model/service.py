@@ -13,6 +13,7 @@ from backend.app.residual_model.dataset import (
     summarize_manifest,
     training_signature,
 )
+from backend.app.residual_model.feature_registry import feature_definition_map
 from backend.app.residual_model.manifest import manifest_hash
 from backend.app.residual_model.metrics import (
     empirical_coverage,
@@ -90,6 +91,39 @@ def _projection_payloads(
     return payloads
 
 
+def _fallback_row_count(
+    *,
+    rows: Sequence[ResidualTrainingManifestRow],
+    category_encodings: Sequence[CategoryEncoding],
+    config: ResidualModelConfig,
+) -> int:
+    if not rows:
+        return 0
+    definitions = feature_definition_map()
+    encoding_map = {item.feature_name: item for item in category_encodings}
+    fallback_count = 0
+    for row in rows:
+        feature_map = {item.feature_name: item.value for item in row.feature_values}
+        should_fallback = False
+        for feature_name, definition in definitions.items():
+            value = feature_map.get(feature_name)
+            if value is None and definition.missing_policy.value == "block":
+                should_fallback = True
+                break
+            encoding = encoding_map.get(feature_name)
+            if (
+                encoding is not None
+                and isinstance(value, str)
+                and value not in encoding.ordered_known_categories
+                and config.rules.categorical_unknown_policy == "structural_only_fallback"
+            ):
+                should_fallback = True
+                break
+        if should_fallback:
+            fallback_count += 1
+    return fallback_count
+
+
 def _metrics_from_projection_payloads(
     payloads: Sequence[dict[str, object]],
 ) -> dict[str, object]:
@@ -108,6 +142,8 @@ def _metrics_from_projection_payloads(
             "quantile_crossing_count_raw": 0,
             "quantile_crossing_count_projected": 0,
             "correction_magnitude_mean_kg": None,
+            "fallback_row_count": 0,
+            "evaluated_row_count": 0,
             "fallback_rate": Decimal("0"),
         }
     actual_receipts = [row.observed_effective_receipt_kg for row in rows]
@@ -153,6 +189,8 @@ def _metrics_from_projection_payloads(
             [Decimal("0")] * len(residual_p50),
             [abs(item) for item in residual_p50],
         ),
+        "fallback_row_count": 0,
+        "evaluated_row_count": len(rows),
         "fallback_rate": Decimal("0"),
     }
 
@@ -163,6 +201,7 @@ def _split_metrics(
     residual_p50: Sequence[Decimal],
     residual_p80: Sequence[Decimal],
     residual_p90: Sequence[Decimal],
+    fallback_row_count: int = 0,
 ) -> dict[str, object]:
     payloads = _projection_payloads(
         rows=rows,
@@ -176,8 +215,16 @@ def _split_metrics(
         row = cast(ResidualTrainingManifestRow, payload["row"])
         grouped_by_season.setdefault(str(row.season_id), []).append(payload)
         grouped_by_factory.setdefault(str(row.destination_factory_id), []).append(payload)
+    global_metrics = _metrics_from_projection_payloads(payloads)
+    evaluated_row_count = cast(int, global_metrics["evaluated_row_count"])
+    global_metrics["fallback_row_count"] = fallback_row_count
+    global_metrics["fallback_rate"] = (
+        Decimal(fallback_row_count) / Decimal(evaluated_row_count)
+        if evaluated_row_count > 0
+        else Decimal("0")
+    )
     return {
-        "global": _metrics_from_projection_payloads(payloads),
+        "global": global_metrics,
         "per_season": {
             key: _metrics_from_projection_payloads(grouped_by_season[key])
             for key in sorted(grouped_by_season)
@@ -194,6 +241,23 @@ def _prediction_row_sort_key(row_payload: dict[str, object]) -> tuple[object, ..
         row_payload["destination_factory_id"],
         row_payload["arrival_local_date"],
     )
+
+
+def _prediction_input_signature_payload(
+    *,
+    model_run_id: int | None,
+    task9_run_id: int,
+    task9_result_hash: str,
+    config_hash: str,
+    input_snapshot: dict[str, object],
+) -> dict[str, object]:
+    return {
+        "model_run_id": model_run_id,
+        "task9_run_id": task9_run_id,
+        "task9_result_hash": task9_result_hash,
+        "config_hash": config_hash,
+        "input_snapshot": cast(dict[str, object], canonical_json_value(input_snapshot)),
+    }
 
 
 def finalize_prediction_result(
@@ -214,6 +278,16 @@ def finalize_prediction_result(
     for payload in sorted(row_payloads, key=_prediction_row_sort_key):
         row_hash = canonical_payload_hash(payload)
         rows.append(ResidualPredictionRow.model_validate({**payload, "prediction_hash": row_hash}))
+    normalized_input_snapshot = cast(dict[str, object], canonical_json_value(input_snapshot))
+    prediction_input_signature = canonical_payload_hash(
+        _prediction_input_signature_payload(
+            model_run_id=model_run_id,
+            task9_run_id=task9_run_id,
+            task9_result_hash=task9_result_hash,
+            config_hash=config_hash,
+            input_snapshot=normalized_input_snapshot,
+        )
+    )
     result_payload = {
         "execution_status": execution_status,
         "mode": mode,
@@ -221,6 +295,7 @@ def finalize_prediction_result(
         "task9_run_id": task9_run_id,
         "task9_result_hash": task9_result_hash,
         "config_hash": config_hash,
+        "prediction_input_signature": prediction_input_signature,
         "prediction_hash": None,
         "warnings": sorted(set(warnings)),
         "blockers": sorted(set(blockers)),
@@ -229,7 +304,7 @@ def finalize_prediction_result(
             cast(dict[str, object], canonical_json_value(row.model_dump(mode="python")))
             for row in rows
         ],
-        "input_snapshot": cast(dict[str, object], canonical_json_value(input_snapshot)),
+        "input_snapshot": normalized_input_snapshot,
     }
     prediction_hash = canonical_payload_hash(result_payload)
     return ResidualPredictionExecutionResult(
@@ -239,12 +314,13 @@ def finalize_prediction_result(
         task9_run_id=task9_run_id,
         task9_result_hash=task9_result_hash,
         config_hash=config_hash,
+        prediction_input_signature=prediction_input_signature,
         prediction_hash=prediction_hash,
         warnings=tuple(cast(list[str], result_payload["warnings"])),
         blockers=tuple(cast(list[str], result_payload["blockers"])),
         fallback_reason=fallback_reason,
         rows=tuple(rows),
-        input_snapshot=input_snapshot,
+        input_snapshot=normalized_input_snapshot,
     )
 
 
@@ -302,6 +378,8 @@ def train_residual_model_from_manifest(
             eligibility_reasons.append("missing_validation_season")
         if train_seasons.intersection(validation_seasons):
             eligibility_reasons.append("train_validation_season_overlap")
+        if train_seasons.intersection(test_seasons):
+            eligibility_reasons.append("train_test_season_overlap")
         if validation_rows and not validation_seasons.isdisjoint(test_seasons):
             eligibility_reasons.append("validation_test_season_overlap")
     if sample_count == 0:
@@ -389,10 +467,16 @@ def train_residual_model_from_manifest(
         residual_p50=pred50,
         residual_p80=pred80,
         residual_p90=pred90,
+        fallback_row_count=_fallback_row_count(
+            rows=train_rows,
+            category_encodings=category_encodings,
+            config=config,
+        ),
     )
     metrics: dict[str, object] = {
         **cast(dict[str, object], train_metrics["global"]),
         "feature_names": feature_names,
+        "feature_schema_hash": _feature_schema_hash(feature_names),
         "split_counts": {
             "train": len(train_rows),
             "validation": len(validation_rows),
@@ -421,6 +505,11 @@ def train_residual_model_from_manifest(
             residual_p50=validation_pred50,
             residual_p80=validation_pred80,
             residual_p90=validation_pred90,
+            fallback_row_count=_fallback_row_count(
+                rows=validation_rows,
+                category_encodings=category_encodings,
+                config=config,
+            ),
         )
         metrics["validation"] = validation_metrics
         validation_global_metrics = cast(dict[str, object], validation_metrics["global"])
@@ -453,10 +542,17 @@ def train_residual_model_from_manifest(
             residual_p50=[Decimal(str(item)) for item in test_p50.tolist()],
             residual_p80=[Decimal(str(item)) for item in test_p80.tolist()],
             residual_p90=[Decimal(str(item)) for item in test_p90.tolist()],
+            fallback_row_count=_fallback_row_count(
+                rows=test_rows,
+                category_encodings=category_encodings,
+                config=config,
+            ),
         )
     fallback_rate = cast(
         Decimal | None,
-        cast(dict[str, object], train_metrics["global"]).get("fallback_rate"),
+        cast(dict[str, object], validation_global_metrics or train_metrics["global"]).get(
+            "fallback_rate"
+        ),
     ) or Decimal("0")
     if fallback_rate > Decimal(str(config.rules.eligibility.max_fallback_rate)):
         eligibility_reasons.append("fallback_rate_above_threshold")
@@ -588,7 +684,6 @@ def structural_only_prediction(
         "task9_result_hash": task9_result_hash,
         "structural_row_count": len(structural_rows),
         "model_run_id": model_run_id,
-        "fallback_reason": fallback_reason,
     }
     return finalize_prediction_result(
         execution_status="completed",

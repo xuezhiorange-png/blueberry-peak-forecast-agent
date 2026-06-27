@@ -353,8 +353,8 @@ class ResidualModelPredictionRun(Base):
             name="ck_residual_model_prediction_run_feature_schema_hash",
         ),
         CheckConstraint(
-            _sha256_check_sql("input_hash"),
-            name="ck_residual_model_prediction_run_input_hash",
+            _sha256_check_sql("prediction_input_signature"),
+            name="ck_residual_model_prediction_run_input_signature",
         ),
         CheckConstraint(
             _sha256_check_sql("prediction_hash"),
@@ -364,7 +364,10 @@ class ResidualModelPredictionRun(Base):
             _sha256_check_sql("canonical_payload_hash"),
             name="ck_residual_model_prediction_run_payload_hash",
         ),
-        UniqueConstraint("input_hash", name="uq_residual_model_prediction_run_input_hash"),
+        UniqueConstraint(
+            "prediction_input_signature",
+            name="uq_residual_model_prediction_run_input_signature",
+        ),
         Index("ix_residual_model_prediction_run_execution_status", "execution_status"),
         Index("ix_residual_model_prediction_run_task9_run_id", "task9_run_id"),
     )
@@ -387,7 +390,7 @@ class ResidualModelPredictionRun(Base):
     feature_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
     feature_schema_hash: Mapped[str] = mapped_column(Text, nullable=False)
     artifact_hashes: Mapped[list[str]] = mapped_column(_JSON_VARIANT, nullable=False)
-    input_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    prediction_input_signature: Mapped[str] = mapped_column(Text, nullable=False)
     prediction_hash: Mapped[str] = mapped_column(Text, nullable=False)
     feature_audit: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
     warnings: Mapped[list[str]] = mapped_column(_JSON_VARIANT, nullable=False)

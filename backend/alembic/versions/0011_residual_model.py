@@ -307,7 +307,7 @@ def upgrade() -> None:
         sa.Column("feature_schema_version", sa.Text(), nullable=False),
         sa.Column("feature_schema_hash", sa.Text(), nullable=False),
         sa.Column("artifact_hashes", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("input_hash", sa.Text(), nullable=False),
+        sa.Column("prediction_input_signature", sa.Text(), nullable=False),
         sa.Column("prediction_hash", sa.Text(), nullable=False),
         sa.Column("feature_audit", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("warnings", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
@@ -351,8 +351,8 @@ def upgrade() -> None:
             name="ck_residual_model_prediction_run_feature_schema_hash",
         ),
         sa.CheckConstraint(
-            _sha256_check_sql("input_hash"),
-            name="ck_residual_model_prediction_run_input_hash",
+            _sha256_check_sql("prediction_input_signature"),
+            name="ck_residual_model_prediction_run_input_signature",
         ),
         sa.CheckConstraint(
             _sha256_check_sql("prediction_hash"),
@@ -369,7 +369,7 @@ def upgrade() -> None:
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("input_hash", name="uq_residual_model_prediction_run_input_hash"),
+        sa.UniqueConstraint("prediction_input_signature", name="uq_residual_model_prediction_run_input_signature"),
     )
     op.create_index(
         "ix_residual_model_prediction_run_execution_status",

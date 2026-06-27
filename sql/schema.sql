@@ -1362,7 +1362,7 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
   task9_result_hash TEXT NOT NULL,
   status TEXT NOT NULL,
   config_hash TEXT NOT NULL,
-  input_hash TEXT NOT NULL,
+  prediction_input_signature TEXT NOT NULL,
   prediction_hash TEXT NOT NULL,
   feature_audit JSONB NOT NULL,
   warnings JSONB NOT NULL,
@@ -1386,7 +1386,7 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
     AND lower(config_hash) = config_hash
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(config_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
-  CONSTRAINT ck_residual_model_prediction_run_input_hash CHECK (
+  CONSTRAINT ck_residual_model_prediction_run_input_signature CHECK (
     length(input_hash) = 64
     AND lower(input_hash) = input_hash
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(input_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
@@ -1402,7 +1402,7 @@ CREATE TABLE IF NOT EXISTS residual_model_prediction_run (
     AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(canonical_payload_hash, '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '') = ''
   ),
   CONSTRAINT fk_residual_model_prediction_run_training_run_id FOREIGN KEY (training_run_id) REFERENCES residual_model_training_run(id) ON DELETE RESTRICT,
-  CONSTRAINT uq_residual_model_prediction_run_input_hash UNIQUE (input_hash)
+  CONSTRAINT uq_residual_model_prediction_run_input_signature UNIQUE (prediction_input_signature)
 );
 
 CREATE INDEX IF NOT EXISTS ix_residual_model_prediction_run_status
