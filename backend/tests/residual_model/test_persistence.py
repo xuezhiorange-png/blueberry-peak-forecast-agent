@@ -18,7 +18,6 @@ from backend.app.models.residual_model import (
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.config import load_residual_model_config
 from backend.app.residual_model.persistence import (
-    ResidualModelHashConflictError,
     ResidualModelPersistenceIntegrityError,
     load_residual_prediction_run_by_id,
     load_residual_training_artifacts,
@@ -76,7 +75,12 @@ def _relaxed_config():
     return replace(config, rules=replace(config.rules, eligibility=eligibility))
 
 
-def _training_row(index: int) -> ResidualTrainingManifestRow:
+def _training_row(
+    index: int,
+    *,
+    season_id: int | None = None,
+    split: str | None = None,
+) -> ResidualTrainingManifestRow:
     rainfall = str(3 + (index % 4))
     feature_values = (
         FeatureValue.model_validate(
@@ -112,7 +116,7 @@ def _training_row(index: int) -> ResidualTrainingManifestRow:
         ),
     )
     return ResidualTrainingManifestRow(
-        season_id=(index % 3) + 1,
+        season_id=season_id if season_id is not None else (index % 3) + 1,
         destination_factory_id=(index % 2) + 1,
         task9_run_id=100 + index,
         task9_result_hash=f"{index + 1:064x}"[-64:],
@@ -143,7 +147,7 @@ def _training_row(index: int) -> ResidualTrainingManifestRow:
             [item.model_dump(mode="json") for item in feature_values]
         ),
         feature_visibility_audit_hash="a" * 64,
-        split="train" if index < 20 else "validation",
+        split=split if split is not None else ("train" if index < 20 else "validation"),
         include=True,
         sample_weight=Decimal("1"),
         source_refs=("task9", "analytics"),
@@ -151,7 +155,14 @@ def _training_row(index: int) -> ResidualTrainingManifestRow:
 
 
 def _eligible_training():
-    rows = [_training_row(index) for index in range(30)]
+    rows = [
+        _training_row(
+            index,
+            season_id=(index % 2) + 1 if index < 20 else 3,
+            split="train" if index < 20 else "validation",
+        )
+        for index in range(30)
+    ]
     result = train_residual_model_from_manifest(rows=rows, config=_relaxed_config())
     assert result.execution_status == "completed"
     assert result.eligibility_status == "eligible"
@@ -198,7 +209,30 @@ async def test_training_signature_idempotency(sqlite_session: AsyncSession) -> N
 
 
 @pytest.mark.asyncio
-async def test_training_signature_conflict(sqlite_session: AsyncSession) -> None:
+async def test_training_signature_idempotency_rejects_corrupted_existing_run(
+    sqlite_session: AsyncSession,
+) -> None:
+    rows, result = _eligible_training()
+
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_manifest_row "
+            "SET observed_effective_receipt_kg = :value "
+            "WHERE training_run_id = :run_id AND row_index = 1"
+        ),
+        {"value": "999.000000", "run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+
+
+@pytest.mark.asyncio
+async def test_training_signature_corrupted_parent_is_rejected_by_integrity_gate(
+    sqlite_session: AsyncSession,
+) -> None:
     rows, result = _eligible_training()
     run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
     await sqlite_session.execute(
@@ -211,7 +245,7 @@ async def test_training_signature_conflict(sqlite_session: AsyncSession) -> None
     )
     await sqlite_session.commit()
 
-    with pytest.raises(ResidualModelHashConflictError):
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
         await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
 
 
@@ -251,6 +285,55 @@ async def test_save_and_load_structural_only_prediction_run(sqlite_session: Asyn
 
 
 @pytest.mark.asyncio
+async def test_prediction_signature_idempotency_rejects_corrupted_existing_run(
+    sqlite_session: AsyncSession,
+) -> None:
+    prediction = structural_only_prediction(
+        model_run_id=None,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash="b" * 64,
+        structural_rows=[
+            {
+                "destination_factory_id": 1,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
+        fallback_reason="model_ineligible",
+    )
+
+    run = await save_residual_prediction_run(
+        sqlite_session,
+        result=prediction,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash="e" * 64,
+        artifact_hashes=[],
+    )
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_prediction_row "
+            "SET feature_vector_hash = :value "
+            "WHERE prediction_run_id = :run_id"
+        ),
+        {"value": "f" * 64, "run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await save_residual_prediction_run(
+            sqlite_session,
+            result=prediction,
+            feature_schema_version="task10-features-v1",
+            feature_schema_hash="e" * 64,
+            artifact_hashes=[],
+        )
+
+
+@pytest.mark.asyncio
 async def test_load_training_run_detects_missing_manifest_row(
     sqlite_session: AsyncSession,
 ) -> None:
@@ -259,6 +342,46 @@ async def test_load_training_run_detects_missing_manifest_row(
     await sqlite_session.execute(
         text(
             "DELETE FROM residual_model_manifest_row "
+            "WHERE training_run_id = :run_id AND row_index = 1"
+        ),
+        {"run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_load_training_run_detects_modified_observed_receipt_column(
+    sqlite_session: AsyncSession,
+) -> None:
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_manifest_row "
+            "SET observed_effective_receipt_kg = :value "
+            "WHERE training_run_id = :run_id AND row_index = 1"
+        ),
+        {"value": "1234.000000", "run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
+async def test_load_training_run_detects_modified_include_flag(
+    sqlite_session: AsyncSession,
+) -> None:
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            "UPDATE residual_model_manifest_row "
+            "SET include = 0 "
             "WHERE training_run_id = :run_id AND row_index = 1"
         ),
         {"run_id": run.id},

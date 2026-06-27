@@ -29,8 +29,10 @@ from backend.app.repositories.residual_model import (
     list_residual_prediction_rows,
 )
 from backend.app.residual_model.canonical import canonical_payload_hash
-from backend.app.residual_model.manifest import manifest_row_payload
+from backend.app.residual_model.manifest import manifest_hash, manifest_row_payload
 from backend.app.residual_model.schemas import (
+    FeatureValue,
+    FeatureVisibilityAudit,
     PersistableResidualArtifact,
     ResidualArtifactMetadata,
     ResidualPredictionExecutionResult,
@@ -54,6 +56,10 @@ class ResidualModelPersistenceIntegrityError(ResidualModelPersistenceError):
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _aware_utc(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
 def _canonical_dump(model: object) -> dict[str, Any]:
@@ -108,6 +114,14 @@ def _training_storage_payload(result: ResidualTrainingExecutionResult) -> dict[s
     return cast(dict[str, Any], canonical_json_value(payload))
 
 
+def training_result_json_payload(result: ResidualTrainingExecutionResult) -> dict[str, Any]:
+    return _training_storage_payload(result)
+
+
+def _training_public_payload(result: ResidualTrainingExecutionResult) -> dict[str, Any]:
+    return training_result_json_payload(result)
+
+
 def _validate_training_result(result: ResidualTrainingExecutionResult) -> None:
     if not is_sha256_hex(result.training_signature):
         raise ResidualModelPersistenceError("training_signature must be canonical SHA-256")
@@ -139,6 +153,67 @@ def _validate_prediction_result(result: ResidualPredictionExecutionResult) -> No
         raise ResidualModelPersistenceError("blocked prediction run must not contain rows")
 
 
+def _manifest_row_from_model(row: ResidualModelManifestRow) -> ResidualTrainingManifestRow:
+    row_payload = row.row_payload
+    feature_values = tuple(
+        FeatureValue.model_validate(item)
+        for item in cast(list[dict[str, Any]], row_payload.get("feature_values", []))
+    )
+    raw_audit = row_payload.get("feature_visibility_audit")
+    feature_visibility_audit = (
+        FeatureVisibilityAudit.model_validate(raw_audit) if raw_audit is not None else None
+    )
+    return ResidualTrainingManifestRow(
+        season_id=row.season_id,
+        destination_factory_id=row.destination_factory_id,
+        task9_run_id=row.task9_run_id,
+        task9_result_hash=row.task9_result_hash,
+        as_of_date=row.as_of_date,
+        target_arrival_local_date=row.target_arrival_local_date,
+        forecast_horizon_days=row.forecast_horizon_days,
+        label_actual_snapshot={
+            "build_run_id": row.label_analytics_build_run_id,
+            "source_max_raw_id": row.label_actual_source_max_raw_id,
+            "aggregation_version": row.label_actual_aggregation_version,
+            "config_hash": row.label_actual_config_hash,
+            "source_cutoff": _aware_utc(row.label_actual_source_cutoff),
+        },
+        feature_actual_snapshot={
+            "build_run_id": row.feature_analytics_build_run_id,
+            "source_max_raw_id": row.feature_actual_source_max_raw_id,
+            "aggregation_version": row.feature_actual_aggregation_version,
+            "config_hash": row.feature_actual_config_hash,
+            "source_cutoff": _aware_utc(row.feature_actual_source_cutoff),
+        },
+        observed_effective_receipt_kg=row.observed_effective_receipt_kg,
+        structural_p50_kg=row.structural_p50_kg,
+        structural_p80_kg=row.structural_p80_kg,
+        structural_p90_kg=row.structural_p90_kg,
+        residual_label_kg=row.residual_label_kg,
+        feature_values=feature_values,
+        feature_visibility_audit=feature_visibility_audit,
+        feature_vector_hash=row.feature_vector_hash,
+        feature_visibility_audit_hash=row.feature_visibility_audit_hash,
+        split=row.split,
+        include=row.include,
+        sample_weight=row.sample_weight,
+        exclusion_reason=row.exclusion_reason,
+        source_refs=tuple(row.source_refs),
+    )
+
+
+def _prediction_rows_payload(
+    rows: Iterable[ResidualPredictionRow],
+) -> list[dict[str, Any]]:
+    return [row.model_dump(mode="json") for row in rows]
+
+
+def _prediction_hash_from_result(result: ResidualPredictionExecutionResult) -> str:
+    payload = _canonical_dump(result)
+    payload["prediction_hash"] = None
+    return canonical_payload_hash(payload)
+
+
 async def save_residual_training_run(
     session: AsyncSession,
     *,
@@ -152,11 +227,19 @@ async def save_residual_training_run(
     )
     payload_hash = _training_payload_hash(result)
     if existing is not None:
-        if existing.canonical_payload_hash != payload_hash:
+        loaded_existing = await load_residual_training_run_by_id(session, run_id=existing.id)
+        if loaded_existing is None:
+            raise ResidualModelPersistenceIntegrityError(
+                "existing training run could not be loaded"
+            )
+        if _training_payload_hash(loaded_existing) != payload_hash:
             raise ResidualModelHashConflictError(
                 "training signature already exists with a different canonical payload"
             )
-        return existing
+        verified = await get_residual_training_run(session, run_id=existing.id)
+        if verified is None:
+            raise ResidualModelPersistenceIntegrityError("existing training run disappeared")
+        return verified
 
     feature_schema_hash = _feature_schema_hash(
         cast(list[str], result.metrics.get("feature_names", []))
@@ -194,13 +277,21 @@ async def save_residual_training_run(
             canonical_json_value(
                 [
                     encoding.model_dump(mode="json")
-                    for artifact in result.artifacts
-                    for encoding in artifact.metadata.category_encodings
+                    for encoding in (
+                        result.artifacts[0].metadata.category_encodings if result.artifacts else []
+                    )
                 ]
             ),
         ),
         training_metrics=cast(dict[str, Any], canonical_json_value(result.metrics)),
-        validation_metrics={},
+        validation_metrics=cast(
+            dict[str, Any],
+            canonical_json_value(
+                cast(dict[str, object], result.metrics.get("validation", {})).get("global", {})
+                if isinstance(result.metrics.get("validation"), dict)
+                else {}
+            ),
+        ),
         eligibility_reasons=cast(list[str], canonical_json_value(list(result.eligibility_reasons))),
         warnings=cast(list[str], canonical_json_value(list(result.warnings))),
         blockers=cast(list[str], canonical_json_value(list(result.blockers))),
@@ -284,8 +375,19 @@ async def save_residual_training_run(
             session,
             training_signature=result.training_signature,
         )
-        if existing is not None and existing.canonical_payload_hash == payload_hash:
-            return existing
+        if existing is not None:
+            loaded_existing = await load_residual_training_run_by_id(session, run_id=existing.id)
+            if loaded_existing is None:
+                raise ResidualModelPersistenceIntegrityError(
+                    "existing training run could not be loaded after conflict"
+                ) from exc
+            if _training_payload_hash(loaded_existing) == payload_hash:
+                verified = await get_residual_training_run(session, run_id=existing.id)
+                if verified is None:
+                    raise ResidualModelPersistenceIntegrityError(
+                        "existing training run disappeared after conflict"
+                    ) from exc
+                return verified
         raise exc
     return run
 
@@ -336,10 +438,23 @@ async def load_residual_training_run_by_id(
         raise ResidualModelPersistenceIntegrityError("manifest row count mismatch")
     if len(artifacts) != run.expected_artifact_count:
         raise ResidualModelPersistenceIntegrityError("artifact count mismatch")
-    normalized_manifest_rows = [row.row_payload for row in manifest_rows]
+    rebuilt_manifest_rows = [_manifest_row_from_model(row) for row in manifest_rows]
+    normalized_manifest_rows = [
+        cast(dict[str, Any], canonical_json_value(manifest_row_payload(row)))
+        for row in rebuilt_manifest_rows
+    ]
+    for rebuilt_row, stored_row in zip(rebuilt_manifest_rows, manifest_rows, strict=True):
+        if (
+            cast(dict[str, Any], canonical_json_value(manifest_row_payload(rebuilt_row)))
+            != stored_row.row_payload
+        ):
+            raise ResidualModelPersistenceIntegrityError("manifest row payload mismatch")
     expected_manifest_rows = run.manifest_snapshot.get("rows")
     if normalized_manifest_rows != expected_manifest_rows:
         raise ResidualModelPersistenceIntegrityError("manifest row payload mismatch")
+    rebuilt_manifest_hash = manifest_hash(rebuilt_manifest_rows)
+    if rebuilt_manifest_hash != run.manifest_hash:
+        raise ResidualModelPersistenceIntegrityError("manifest hash mismatch")
     payload = dict(run.canonical_output)
     payload["artifacts"] = [
         {
@@ -358,6 +473,10 @@ async def load_residual_training_run_by_id(
         raise ResidualModelPersistenceIntegrityError("manifest hash mismatch")
     if loaded.config_hash != run.config_hash:
         raise ResidualModelPersistenceIntegrityError("training config hash mismatch")
+    if _training_storage_payload(loaded).get("input_snapshot") != run.canonical_output.get(
+        "input_snapshot"
+    ):
+        raise ResidualModelPersistenceIntegrityError("training canonical output mismatch")
     return loaded
 
 
@@ -377,11 +496,19 @@ async def save_residual_prediction_run(
     )
     payload_hash = _prediction_payload_hash(result)
     if existing is not None:
-        if existing.canonical_payload_hash != payload_hash:
+        loaded_existing = await load_residual_prediction_run_by_id(session, run_id=existing.id)
+        if loaded_existing is None:
+            raise ResidualModelPersistenceIntegrityError(
+                "existing prediction run could not be loaded"
+            )
+        if _prediction_payload_hash(loaded_existing) != payload_hash:
             raise ResidualModelHashConflictError(
                 "prediction signature already exists with a different canonical payload"
             )
-        return existing
+        verified = await get_residual_prediction_run(session, run_id=existing.id)
+        if verified is None:
+            raise ResidualModelPersistenceIntegrityError("existing prediction run disappeared")
+        return verified
     run = ResidualModelPredictionRun(
         training_run_id=result.model_run_id,
         task9_run_id=cast(int, result.task9_run_id),
@@ -453,8 +580,19 @@ async def save_residual_prediction_run(
             session,
             input_hash=input_hash,
         )
-        if existing is not None and existing.canonical_payload_hash == payload_hash:
-            return existing
+        if existing is not None:
+            loaded_existing = await load_residual_prediction_run_by_id(session, run_id=existing.id)
+            if loaded_existing is None:
+                raise ResidualModelPersistenceIntegrityError(
+                    "existing prediction run could not be loaded after conflict"
+                ) from exc
+            if _prediction_payload_hash(loaded_existing) == payload_hash:
+                verified = await get_residual_prediction_run(session, run_id=existing.id)
+                if verified is None:
+                    raise ResidualModelPersistenceIntegrityError(
+                        "existing prediction run disappeared after conflict"
+                    ) from exc
+                return verified
         raise exc
     return run
 
@@ -521,8 +659,10 @@ async def load_residual_prediction_run_by_id(
     loaded = ResidualPredictionExecutionResult.model_validate(payload)
     if _prediction_payload_hash(loaded) != run.canonical_payload_hash:
         raise ResidualModelPersistenceIntegrityError("prediction canonical payload hash mismatch")
-    if loaded.prediction_hash != run.prediction_hash:
+    if _prediction_hash_from_result(loaded) != run.prediction_hash:
         raise ResidualModelPersistenceIntegrityError("prediction hash mismatch")
+    if loaded.prediction_hash != run.prediction_hash:
+        raise ResidualModelPersistenceIntegrityError("prediction output hash field mismatch")
     return loaded
 
 
@@ -543,6 +683,7 @@ async def load_residual_training_artifacts(
         raise ResidualModelPersistenceIntegrityError("artifact count mismatch")
     seen_quantiles: set[str] = set()
     validated: list[PersistableResidualArtifact] = []
+    reference_category_encodings: list[dict[str, Any]] | None = None
     for item in artifacts:
         if item.quantile_label in seen_quantiles:
             raise ResidualModelPersistenceIntegrityError("duplicate artifact quantile")
@@ -582,6 +723,13 @@ async def load_residual_training_artifacts(
             )
         if metadata.config_hash != run.config_hash:
             raise ResidualModelPersistenceIntegrityError("artifact/run config hash mismatch")
+        encoded_categories = [
+            encoding.model_dump(mode="json") for encoding in metadata.category_encodings
+        ]
+        if reference_category_encodings is None:
+            reference_category_encodings = encoded_categories
+        elif encoded_categories != reference_category_encodings:
+            raise ResidualModelPersistenceIntegrityError("artifact category encoding mismatch")
         validated.append(
             PersistableResidualArtifact(
                 quantile_label=item.quantile_label,
@@ -591,9 +739,11 @@ async def load_residual_training_artifacts(
         )
     if seen_quantiles != {"P50", "P80", "P90"}:
         raise ResidualModelPersistenceIntegrityError("artifact quantiles are incomplete")
-    return tuple(
-        validated
-    )
+    if (reference_category_encodings or []) != run.category_encoding_snapshot:
+        raise ResidualModelPersistenceIntegrityError(
+            "training run category encoding snapshot mismatch"
+        )
+    return tuple(validated)
 
 
 async def load_residual_prediction_rows_by_run_id(

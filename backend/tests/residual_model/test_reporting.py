@@ -46,7 +46,14 @@ def _relaxed_config():
 
 
 def _eligible_training():
-    rows = [_training_row(index) for index in range(30)]
+    rows = [
+        _training_row(
+            index,
+            season_id=(index % 2) + 1 if index < 20 else 3,
+            split="train" if index < 20 else "validation",
+        )
+        for index in range(30)
+    ]
     result = train_residual_model_from_manifest(rows=rows, config=_relaxed_config())
     assert result.execution_status == "completed"
     assert result.eligibility_status == "eligible"
@@ -78,6 +85,7 @@ def test_training_json_report_is_deterministic() -> None:
     payload = json.loads(first)
     assert payload["report_schema_version"] == TRAINING_JSON_REPORT_SCHEMA_VERSION
     assert payload["run"]["training_signature"] == result.training_signature
+    assert "artifact_bytes" not in payload["output"]["artifacts"][0]
 
 
 def test_training_csv_report_is_deterministic() -> None:
@@ -116,6 +124,22 @@ def test_training_csv_report_is_deterministic() -> None:
         parsed_rows = list(DictReader(io.StringIO(manifest_rows)))
         assert parsed_rows[0]["source_refs"] == '["analytics","task9"]'
         assert "['task9', 'analytics']" not in manifest_rows
+
+
+def test_training_json_payload_does_not_attempt_utf8_decode_artifact_bytes() -> None:
+    _rows, result, manifest_snapshot = _eligible_training()
+    created_at = datetime(2026, 6, 26, 12, 0, tzinfo=UTC)
+
+    payload = render_residual_training_json_report(
+        run_id=1,
+        created_at=created_at,
+        output=result,
+        manifest_snapshot=manifest_snapshot,
+    )
+
+    decoded = json.loads(payload)
+    assert decoded["output"]["artifacts"][0]["metadata"]["binary_sha256"]
+    assert "artifact_bytes" not in json.dumps(decoded, ensure_ascii=False)
 
 
 def test_prediction_json_and_csv_reports_are_deterministic() -> None:

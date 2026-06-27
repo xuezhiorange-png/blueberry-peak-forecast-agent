@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import cast
@@ -11,7 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.analytics.peak_metrics import build_analysis_calendar
 from backend.app.harvest_state.persistence import load_harvest_state_output_by_id
 from backend.app.harvest_state.schemas import Task9ACompletedOutput
-from backend.app.models.analytics import AnalyticsBuildRun, FactReceiptDaily
+from backend.app.models.analytics import (
+    AnalyticsBuildRun,
+    FactorySeasonPeakMetric,
+    FactReceiptDaily,
+)
 from backend.app.models.master_data import Season
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.feature_registry import build_feature_registry
@@ -28,6 +33,20 @@ from backend.app.residual_model.visibility import audit_feature_visibility
 
 class ResidualManifestBuildError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class Task3FactoryCoverage:
+    build_run_id: int
+    factory_id: int
+    analysis_start_date: date
+    analysis_end_date: date
+    calendar_day_count: int
+    analysis_months: tuple[int, ...]
+    source_max_raw_id: int
+    build_available_at: datetime
+    coverage_version: str
+    coverage_hash: str
 
 
 def _as_of_cutoff(as_of_date: date) -> datetime:
@@ -131,12 +150,15 @@ async def _load_factory_date_spans(
 
 
 def _snapshot_from_build_run(build_run: AnalyticsBuildRun) -> AnalyticsActualSnapshot:
+    source_cutoff = build_run.finished_at or build_run.started_at
+    if source_cutoff.tzinfo is None:
+        source_cutoff = source_cutoff.replace(tzinfo=UTC)
     return AnalyticsActualSnapshot(
         build_run_id=build_run.id,
         source_max_raw_id=build_run.source_max_raw_id,
         aggregation_version=build_run.aggregation_version,
         config_hash=build_run.config_hash,
-        source_cutoff=build_run.finished_at or build_run.started_at,
+        source_cutoff=source_cutoff,
     )
 
 
@@ -150,13 +172,133 @@ def _analysis_months(build_run: AnalyticsBuildRun) -> tuple[int, ...]:
     return tuple(raw)
 
 
-def _coverage_scope(build_run: AnalyticsBuildRun) -> str:
-    raw = build_run.config_snapshot.get("coverage_scope")
-    if raw not in {"season_calendar_for_observed_factories", "observed_date_span"}:
-        raise ResidualManifestBuildError(
-            f"AnalyticsBuildRun {build_run.id} is missing explicit coverage_scope metadata"
+def _build_available_at(build_run: AnalyticsBuildRun) -> datetime:
+    available_at = build_run.finished_at or build_run.started_at
+    if available_at.tzinfo is None:
+        return available_at.replace(tzinfo=UTC)
+    return available_at
+
+
+def _coverage_hash(
+    *,
+    build_run_id: int,
+    factory_id: int,
+    analysis_start_date: date,
+    analysis_end_date: date,
+    calendar_day_count: int,
+    analysis_months: tuple[int, ...],
+    source_max_raw_id: int,
+    build_available_at: datetime,
+    coverage_version: str,
+) -> str:
+    return canonical_payload_hash(
+        {
+            "build_run_id": build_run_id,
+            "factory_id": factory_id,
+            "analysis_start_date": analysis_start_date,
+            "analysis_end_date": analysis_end_date,
+            "calendar_day_count": calendar_day_count,
+            "analysis_months": analysis_months,
+            "source_max_raw_id": source_max_raw_id,
+            "build_available_at": build_available_at,
+            "coverage_version": coverage_version,
+        }
+    )
+
+
+async def _load_factory_coverages(
+    session: AsyncSession,
+    *,
+    build_run: AnalyticsBuildRun,
+    season: Season,
+    covered_factory_ids: set[int],
+    factory_date_spans: Mapping[int, tuple[date, date]],
+) -> dict[int, Task3FactoryCoverage]:
+    analysis_months = _analysis_months(build_run)
+    build_available_at = _build_available_at(build_run)
+    metric_rows = (
+        await session.execute(
+            select(
+                FactorySeasonPeakMetric.factory_id,
+                FactorySeasonPeakMetric.analysis_start_date,
+                FactorySeasonPeakMetric.analysis_end_date,
+                FactorySeasonPeakMetric.calendar_day_count,
+            ).where(FactorySeasonPeakMetric.build_run_id == build_run.id)
         )
-    return cast(str, raw)
+    ).all()
+    if metric_rows:
+        return {
+            factory_id: Task3FactoryCoverage(
+                build_run_id=build_run.id,
+                factory_id=factory_id,
+                analysis_start_date=analysis_start_date,
+                analysis_end_date=analysis_end_date,
+                calendar_day_count=calendar_day_count,
+                analysis_months=analysis_months,
+                source_max_raw_id=build_run.source_max_raw_id,
+                build_available_at=build_available_at,
+                coverage_version="task3-factory-peak-metric-v1",
+                coverage_hash=_coverage_hash(
+                    build_run_id=build_run.id,
+                    factory_id=factory_id,
+                    analysis_start_date=analysis_start_date,
+                    analysis_end_date=analysis_end_date,
+                    calendar_day_count=calendar_day_count,
+                    analysis_months=analysis_months,
+                    source_max_raw_id=build_run.source_max_raw_id,
+                    build_available_at=build_available_at,
+                    coverage_version="task3-factory-peak-metric-v1",
+                ),
+            )
+            for (
+                factory_id,
+                analysis_start_date,
+                analysis_end_date,
+                calendar_day_count,
+            ) in metric_rows
+        }
+
+    coverages: dict[int, Task3FactoryCoverage] = {}
+    for factory_id in sorted(covered_factory_ids):
+        span = factory_date_spans.get(factory_id)
+        if span is None:
+            continue
+        analysis_start_date = max(season.start_date, span[0])
+        analysis_end_date = min(
+            season.end_date,
+            _snapshot_from_build_run(build_run).source_cutoff.date(),
+            span[1],
+        )
+        calendar_day_count = len(
+            build_analysis_calendar(
+                start_date=analysis_start_date,
+                end_date=analysis_end_date,
+                analysis_months=analysis_months,
+            )
+        )
+        coverages[factory_id] = Task3FactoryCoverage(
+            build_run_id=build_run.id,
+            factory_id=factory_id,
+            analysis_start_date=analysis_start_date,
+            analysis_end_date=analysis_end_date,
+            calendar_day_count=calendar_day_count,
+            analysis_months=analysis_months,
+            source_max_raw_id=build_run.source_max_raw_id,
+            build_available_at=build_available_at,
+            coverage_version="task3-fact-span-v1",
+            coverage_hash=_coverage_hash(
+                build_run_id=build_run.id,
+                factory_id=factory_id,
+                analysis_start_date=analysis_start_date,
+                analysis_end_date=analysis_end_date,
+                calendar_day_count=calendar_day_count,
+                analysis_months=analysis_months,
+                source_max_raw_id=build_run.source_max_raw_id,
+                build_available_at=build_available_at,
+                coverage_version="task3-fact-span-v1",
+            ),
+        )
+    return coverages
 
 
 def _receipt_value(
@@ -166,8 +308,7 @@ def _receipt_value(
     factory_id: int,
     receipt_date: date,
     fact_map: Mapping[tuple[int, date], Decimal],
-    covered_factory_ids: set[int],
-    factory_date_spans: Mapping[int, tuple[date, date]],
+    factory_coverages: Mapping[int, Task3FactoryCoverage],
 ) -> tuple[Decimal | None, str | None]:
     analysis_calendar = set(
         build_analysis_calendar(
@@ -180,16 +321,13 @@ def _receipt_value(
         return None, "date_outside_build_season"
     if receipt_date not in analysis_calendar:
         return None, "date_not_in_analysis_calendar"
-    if factory_id not in covered_factory_ids:
+    coverage = factory_coverages.get(factory_id)
+    if coverage is None:
         return None, "factory_missing_from_build_run"
     if receipt_date > _snapshot_from_build_run(build_run).source_cutoff.date():
         return None, "receipt_date_after_source_cutoff"
-    if _coverage_scope(build_run) == "observed_date_span":
-        span = factory_date_spans.get(factory_id)
-        if span is None:
-            return None, "factory_missing_from_build_run"
-        if receipt_date < span[0] or receipt_date > span[1]:
-            return None, "receipt_date_not_covered_by_build"
+    if receipt_date < coverage.analysis_start_date or receipt_date > coverage.analysis_end_date:
+        return None, "receipt_date_not_covered_by_build"
     value = fact_map.get((factory_id, receipt_date))
     if value is not None:
         return value, None
@@ -344,6 +482,20 @@ async def build_residual_training_manifest(
             session,
             build_run_id=feature_build_run.id,
         )
+        label_factory_coverages = await _load_factory_coverages(
+            session,
+            build_run=label_build_run,
+            season=label_season,
+            covered_factory_ids=label_factory_ids,
+            factory_date_spans=label_factory_spans,
+        )
+        feature_factory_coverages = await _load_factory_coverages(
+            session,
+            build_run=feature_build_run,
+            season=feature_season,
+            covered_factory_ids=feature_factory_ids,
+            factory_date_spans=feature_factory_spans,
+        )
         (
             holiday_calendar_version,
             holiday_calendar_hash,
@@ -369,8 +521,7 @@ async def build_residual_training_manifest(
                 factory_id=destination_factory_id,
                 receipt_date=arrival_local_date,
                 fact_map=label_fact_map,
-                covered_factory_ids=label_factory_ids,
-                factory_date_spans=label_factory_spans,
+                factory_coverages=label_factory_coverages,
             )
             actual_lag_1, feature_lag_1_reason = _receipt_value(
                 build_run=feature_build_run,
@@ -378,8 +529,7 @@ async def build_residual_training_manifest(
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=1),
                 fact_map=feature_fact_map,
-                covered_factory_ids=feature_factory_ids,
-                factory_date_spans=feature_factory_spans,
+                factory_coverages=feature_factory_coverages,
             )
             actual_lag_3, feature_lag_3_reason = _receipt_value(
                 build_run=feature_build_run,
@@ -387,8 +537,7 @@ async def build_residual_training_manifest(
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=3),
                 fact_map=feature_fact_map,
-                covered_factory_ids=feature_factory_ids,
-                factory_date_spans=feature_factory_spans,
+                factory_coverages=feature_factory_coverages,
             )
             actual_lag_7, feature_lag_7_reason = _receipt_value(
                 build_run=feature_build_run,
@@ -396,8 +545,7 @@ async def build_residual_training_manifest(
                 factory_id=destination_factory_id,
                 receipt_date=as_of_date - timedelta(days=7),
                 fact_map=feature_fact_map,
-                covered_factory_ids=feature_factory_ids,
-                factory_date_spans=feature_factory_spans,
+                factory_coverages=feature_factory_coverages,
             )
             if observed_receipt is None:
                 exclusion_reason = label_missing_reason
@@ -419,8 +567,7 @@ async def build_residual_training_manifest(
                     factory_id=destination_factory_id,
                     receipt_date=as_of_date - timedelta(days=offset),
                     fact_map=feature_fact_map,
-                    covered_factory_ids=feature_factory_ids,
-                    factory_date_spans=feature_factory_spans,
+                    factory_coverages=feature_factory_coverages,
                 )
                 if value is None:
                     exclusion_reason = exclusion_reason or reason
@@ -434,8 +581,7 @@ async def build_residual_training_manifest(
                     factory_id=destination_factory_id,
                     receipt_date=as_of_date - timedelta(days=offset),
                     fact_map=feature_fact_map,
-                    covered_factory_ids=feature_factory_ids,
-                    factory_date_spans=feature_factory_spans,
+                    factory_coverages=feature_factory_coverages,
                 )
                 if value is None:
                     exclusion_reason = exclusion_reason or reason
@@ -458,8 +604,7 @@ async def build_residual_training_manifest(
                     factory_id=destination_factory_id,
                     receipt_date=receipt_date,
                     fact_map=feature_fact_map,
-                    covered_factory_ids=feature_factory_ids,
-                    factory_date_spans=feature_factory_spans,
+                    factory_coverages=feature_factory_coverages,
                 )
                 if value is None:
                     exclusion_reason = exclusion_reason or reason

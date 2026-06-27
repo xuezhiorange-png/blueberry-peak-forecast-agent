@@ -31,17 +31,22 @@ def manifest_row_payload(row: ResidualTrainingManifestRow) -> dict[str, Any]:
         "as_of_date": row.as_of_date,
         "target_arrival_local_date": row.target_arrival_local_date,
         "forecast_horizon_days": row.forecast_horizon_days,
-        "label_actual_snapshot": row.label_actual_snapshot.model_dump(mode="python"),
-        "feature_actual_snapshot": row.feature_actual_snapshot.model_dump(mode="python"),
+        "label_actual_snapshot": row.label_actual_snapshot.model_dump(mode="json"),
+        "feature_actual_snapshot": row.feature_actual_snapshot.model_dump(mode="json"),
         "observed_effective_receipt_kg": row.observed_effective_receipt_kg,
         "structural_p50_kg": row.structural_p50_kg,
         "structural_p80_kg": row.structural_p80_kg,
         "structural_p90_kg": row.structural_p90_kg,
         "residual_label_kg": row.residual_label_kg,
         "feature_values": [
-            item.model_dump(mode="python")
+            item.model_dump(mode="json")
             for item in sort_feature_values(row.feature_values)
         ],
+        "feature_visibility_audit": (
+            row.feature_visibility_audit.model_dump(mode="json")
+            if row.feature_visibility_audit is not None
+            else None
+        ),
         "feature_vector_hash": row.feature_vector_hash,
         "feature_visibility_audit_hash": row.feature_visibility_audit_hash,
         "split": row.split.value,

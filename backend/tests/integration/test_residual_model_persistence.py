@@ -23,6 +23,7 @@ from backend.app.residual_model.application import (
 from backend.app.residual_model.persistence import (
     load_residual_prediction_run_by_id,
     load_residual_training_run_by_id,
+    training_result_json_payload,
 )
 from backend.app.residual_model.schemas import (
     ResidualPredictionRequest,
@@ -159,7 +160,12 @@ async def test_postgres_execute_residual_training_completed_eligible_round_trip(
         assert training_result.execution_status == "completed"
         assert training_result.eligibility_status == "eligible"
         assert loaded is not None
-        assert loaded.model_dump(mode="json") == training_result.model_dump(mode="json")
+        assert training_result_json_payload(loaded) == training_result_json_payload(training_result)
+        assert {
+            item.quantile_label: item.artifact_bytes for item in loaded.artifacts
+        } == {
+            item.quantile_label: item.artifact_bytes for item in training_result.artifacts
+        }
         assert (
             await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
         )
