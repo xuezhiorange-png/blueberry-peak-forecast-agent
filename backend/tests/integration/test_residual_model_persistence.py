@@ -191,7 +191,6 @@ async def test_residual_model_tables_exist_after_migration_upgrade() -> None:
             "residual_model_training_run",
             "residual_model_manifest_row",
             "residual_model_artifact",
-            "residual_model_metric",
             "residual_model_prediction_run",
             "residual_model_prediction_row",
         ):

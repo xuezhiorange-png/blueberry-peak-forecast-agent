@@ -117,7 +117,7 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
-          pytest -m integration -vv --tb=long --maxfail=1 \
+          pytest -m integration -vv --tb=long \
             --timeout=120 \
             --timeout-method=thread \
             --junitxml=reports/test-results/integration.xml
@@ -138,6 +138,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Full pytest suite
+        if: success()
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -146,7 +147,18 @@ jobs:
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
           RUN_POSTGRES_INTEGRATION: "1"
-        run: pytest
+        run: |
+          mkdir -p reports/test-results
+          set +e
+          pytest -q --tb=long \
+            --junitxml=reports/test-results/full.xml
+          status=$?
+          if [ "$status" -ne 0 ] && [ -f reports/test-results/full.xml ]; then
+            echo "::group::Full pytest JUnit XML"
+            cat reports/test-results/full.xml
+            echo "::endgroup::"
+          fi
+          exit "$status"
 
       - name: Summarize failed integration tests
         if: failure()

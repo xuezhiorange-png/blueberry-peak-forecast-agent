@@ -71,6 +71,44 @@ class ResidualModelTrainingRun(Base):
             _sha256_check_sql("canonical_payload_hash"),
             name="ck_residual_model_training_run_payload_hash",
         ),
+        CheckConstraint(
+            "sample_count >= 0",
+            name="ck_residual_model_training_run_sample_count",
+        ),
+        CheckConstraint(
+            "distinct_season_count >= 0",
+            name="ck_residual_model_training_run_season_count",
+        ),
+        CheckConstraint(
+            "distinct_factory_count >= 0",
+            name="ck_residual_model_training_run_factory_count",
+        ),
+        CheckConstraint(
+            "manifest_row_count >= 0",
+            name="ck_residual_model_training_run_manifest_row_count",
+        ),
+        CheckConstraint(
+            "expected_artifact_count >= 0",
+            name="ck_residual_model_training_run_expected_artifact_count",
+        ),
+        CheckConstraint(
+            "(execution_status != 'completed' OR eligibility_status != 'eligible' "
+            "OR expected_artifact_count = 3)",
+            name="ck_residual_model_training_run_completed_eligible_artifacts",
+        ),
+        CheckConstraint(
+            "(execution_status != 'completed' OR eligibility_status != 'ineligible' "
+            "OR expected_artifact_count = 0)",
+            name="ck_residual_model_training_run_completed_ineligible_artifacts",
+        ),
+        CheckConstraint(
+            "(execution_status NOT IN ('blocked', 'failed') OR expected_artifact_count = 0)",
+            name="ck_residual_model_training_run_blocked_failed_artifacts",
+        ),
+        CheckConstraint(
+            "(eligibility_status != 'eligible' OR execution_status = 'completed')",
+            name="ck_residual_model_training_run_eligible_only_when_completed",
+        ),
         UniqueConstraint("training_signature", name="uq_residual_model_training_run_signature"),
         Index(
             "ix_residual_model_training_run_execution_status",
@@ -294,6 +332,28 @@ class ResidualModelArtifact(Base):
             name="ck_residual_model_artifact_quantile_label",
         ),
         CheckConstraint(
+            "artifact_format in ('joblib_bundle')",
+            name="ck_residual_model_artifact_format",
+        ),
+        CheckConstraint(
+            "estimator_type in ('HistGradientBoostingRegressor')",
+            name="ck_residual_model_artifact_estimator_type",
+        ),
+        CheckConstraint(
+            "loss_name in ('quantile')",
+            name="ck_residual_model_artifact_loss_name",
+        ),
+        CheckConstraint(
+            "trusted_internal_source = true",
+            name="ck_residual_model_artifact_trusted_source",
+        ),
+        CheckConstraint(
+            "(quantile_label = 'P50' AND quantile_value = 0.5000) OR "
+            "(quantile_label = 'P80' AND quantile_value = 0.8000) OR "
+            "(quantile_label = 'P90' AND quantile_value = 0.9000)",
+            name="ck_residual_model_artifact_quantile_value",
+        ),
+        CheckConstraint(
             _sha256_check_sql("artifact_sha256"),
             name="ck_residual_model_artifact_sha256",
         ),
@@ -389,6 +449,20 @@ class ResidualModelPredictionRun(Base):
         CheckConstraint(
             _sha256_check_sql("canonical_payload_hash"),
             name="ck_residual_model_prediction_run_payload_hash",
+        ),
+        CheckConstraint(
+            "expected_prediction_row_count >= 0",
+            name="ck_residual_model_prediction_run_row_count",
+        ),
+        CheckConstraint(
+            "(execution_status != 'blocked' OR expected_prediction_row_count = 0)",
+            name="ck_residual_model_prediction_run_blocked_zero",
+        ),
+        CheckConstraint(
+            "(execution_status != 'completed' OR "
+            "mode != 'structural_only' OR "
+            "fallback_reason IS NOT NULL)",
+            name="ck_residual_model_prediction_run_structural_fallback",
         ),
         UniqueConstraint(
             "prediction_input_signature",
@@ -489,6 +563,18 @@ class ResidualModelPredictionRow(Base):
                 "raw_residual_p90_kg = 0)"
             ),
             name="ck_residual_model_prediction_row_structural_only",
+        ),
+        CheckConstraint(
+            "mode in ('residual_corrected', 'structural_only', 'blocked')",
+            name="ck_residual_model_prediction_row_mode",
+        ),
+        CheckConstraint(
+            "(mode != 'structural_only' OR fallback_reason IS NOT NULL)",
+            name="ck_residual_model_prediction_row_structural_fallback",
+        ),
+        CheckConstraint(
+            "(mode != 'residual_corrected' OR fallback_reason IS NULL)",
+            name="ck_residual_model_prediction_row_corrected_no_fallback",
         ),
         UniqueConstraint(
             "prediction_run_id",
