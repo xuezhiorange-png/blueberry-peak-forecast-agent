@@ -71,6 +71,10 @@ class ResidualModelPersistenceIntegrityError(ResidualModelPersistenceError):
     pass
 
 
+class ResidualArtifactIntegrityError(ResidualModelPersistenceIntegrityError):
+    pass
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
 
@@ -1514,6 +1518,7 @@ async def load_residual_training_artifacts(
     session: AsyncSession,
     *,
     run_id: int,
+    artifacts_rows: tuple[ResidualModelArtifact, ...] | None = None,
 ) -> tuple[PersistableResidualArtifact, ...]:
     run = await get_residual_training_run(session, run_id=run_id)
     if run is None:
@@ -1522,74 +1527,86 @@ async def load_residual_training_artifacts(
         raise ResidualModelPersistenceIntegrityError(
             "trusted artifacts require a completed eligible training run"
         )
-    artifacts = await list_residual_artifacts(session, training_run_id=run_id)
+    if artifacts_rows is not None:
+        artifacts = list(artifacts_rows)
+    else:
+        artifacts = await list_residual_artifacts(
+            session,
+            training_run_id=run_id,
+        )
     if len(artifacts) != run.expected_artifact_count:
-        raise ResidualModelPersistenceIntegrityError("artifact count mismatch")
+        raise ResidualArtifactIntegrityError("artifact count mismatch")
     seen_quantiles: set[str] = set()
     validated: list[PersistableResidualArtifact] = []
     reference_category_encodings: list[dict[str, Any]] | None = None
     for item in artifacts:
         if item.quantile_label in seen_quantiles:
-            raise ResidualModelPersistenceIntegrityError("duplicate artifact quantile")
+            raise ResidualArtifactIntegrityError("duplicate artifact quantile")
         seen_quantiles.add(item.quantile_label)
         if not item.trusted_internal_source:
-            raise ResidualModelPersistenceIntegrityError("artifact trusted source marker mismatch")
+            raise ResidualArtifactIntegrityError("artifact trusted source marker mismatch")
         if item.artifact_format != "joblib_bundle":
-            raise ResidualModelPersistenceIntegrityError("artifact format mismatch")
+            raise ResidualArtifactIntegrityError("artifact format mismatch")
         if item.estimator_type != "HistGradientBoostingRegressor":
-            raise ResidualModelPersistenceIntegrityError("artifact estimator type mismatch")
+            raise ResidualArtifactIntegrityError("artifact estimator type mismatch")
         if item.loss_name != "quantile":
-            raise ResidualModelPersistenceIntegrityError("artifact loss name mismatch")
+            raise ResidualArtifactIntegrityError("artifact loss name mismatch")
         if str(item.quantile_value) != _expected_quantile_value(item.quantile_label):
-            raise ResidualModelPersistenceIntegrityError("artifact quantile value mismatch")
+            raise ResidualArtifactIntegrityError("artifact quantile value mismatch")
         metadata = ResidualArtifactMetadata.model_validate(item.artifact_metadata_json)
         if hashlib.sha256(item.artifact_bytes).hexdigest() != item.artifact_sha256:
-            raise ResidualModelPersistenceIntegrityError("artifact raw bytes sha mismatch")
+            raise ResidualArtifactIntegrityError("artifact raw bytes sha mismatch")
         if metadata.binary_sha256 != item.artifact_sha256:
-            raise ResidualModelPersistenceIntegrityError("artifact sha mismatch")
+            raise ResidualArtifactIntegrityError("artifact sha mismatch")
         if metadata.binary_format != item.artifact_format:
-            raise ResidualModelPersistenceIntegrityError("artifact metadata format mismatch")
+            raise ResidualArtifactIntegrityError("artifact metadata format mismatch")
         if metadata.artifact_schema_version != item.artifact_schema_version:
-            raise ResidualModelPersistenceIntegrityError("artifact schema version mismatch")
+            raise ResidualArtifactIntegrityError("artifact schema version mismatch")
         if metadata.feature_schema_version != item.feature_schema_version:
-            raise ResidualModelPersistenceIntegrityError("artifact feature schema version mismatch")
+            raise ResidualArtifactIntegrityError("artifact feature schema version mismatch")
         if metadata.feature_schema_hash != item.feature_schema_hash:
-            raise ResidualModelPersistenceIntegrityError("artifact feature schema hash mismatch")
+            raise ResidualArtifactIntegrityError("artifact feature schema hash mismatch")
         if metadata.config_hash != item.config_hash:
-            raise ResidualModelPersistenceIntegrityError("artifact config hash mismatch")
+            raise ResidualArtifactIntegrityError("artifact config hash mismatch")
         if metadata.python_version != item.python_version:
-            raise ResidualModelPersistenceIntegrityError("artifact python version mismatch")
+            raise ResidualArtifactIntegrityError("artifact python version mismatch")
         if metadata.numpy_version != item.numpy_version:
-            raise ResidualModelPersistenceIntegrityError("artifact numpy version mismatch")
+            raise ResidualArtifactIntegrityError("artifact numpy version mismatch")
         if metadata.sklearn_version != item.sklearn_version:
-            raise ResidualModelPersistenceIntegrityError("artifact sklearn version mismatch")
+            raise ResidualArtifactIntegrityError("artifact sklearn version mismatch")
+        if metadata.python_version != run.python_version:
+            raise ResidualArtifactIntegrityError("training run python version mismatch")
+        if metadata.numpy_version != run.numpy_version:
+            raise ResidualArtifactIntegrityError("training run numpy version mismatch")
+        if metadata.sklearn_version != run.sklearn_version:
+            raise ResidualArtifactIntegrityError("training run sklearn version mismatch")
         if metadata.estimator_parameters.get("loss") != item.loss_name:
-            raise ResidualModelPersistenceIntegrityError("artifact metadata loss mismatch")
+            raise ResidualArtifactIntegrityError("artifact metadata loss mismatch")
         if metadata.estimator_parameters.get("quantile") != float(item.quantile_value):
-            raise ResidualModelPersistenceIntegrityError("artifact metadata quantile mismatch")
+            raise ResidualArtifactIntegrityError("artifact metadata quantile mismatch")
         if metadata.training_signature != run.training_signature:
-            raise ResidualModelPersistenceIntegrityError("artifact training signature mismatch")
+            raise ResidualArtifactIntegrityError("artifact training signature mismatch")
         if metadata.manifest_hash != run.manifest_hash:
-            raise ResidualModelPersistenceIntegrityError("artifact manifest hash mismatch")
+            raise ResidualArtifactIntegrityError("artifact manifest hash mismatch")
         if metadata.model_version != run.model_version:
-            raise ResidualModelPersistenceIntegrityError("artifact model version mismatch")
+            raise ResidualArtifactIntegrityError("artifact model version mismatch")
         if metadata.feature_schema_version != run.feature_schema_version:
-            raise ResidualModelPersistenceIntegrityError(
+            raise ResidualArtifactIntegrityError(
                 "artifact/run feature schema version mismatch"
             )
         if metadata.feature_schema_hash != run.feature_schema_hash:
-            raise ResidualModelPersistenceIntegrityError(
+            raise ResidualArtifactIntegrityError(
                 "artifact/run feature schema hash mismatch"
             )
         if metadata.config_hash != run.config_hash:
-            raise ResidualModelPersistenceIntegrityError("artifact/run config hash mismatch")
+            raise ResidualArtifactIntegrityError("artifact/run config hash mismatch")
         encoded_categories = [
             encoding.model_dump(mode="json") for encoding in metadata.category_encodings
         ]
         if reference_category_encodings is None:
             reference_category_encodings = encoded_categories
         elif encoded_categories != reference_category_encodings:
-            raise ResidualModelPersistenceIntegrityError("artifact category encoding mismatch")
+            raise ResidualArtifactIntegrityError("artifact category encoding mismatch")
         validated.append(
             PersistableResidualArtifact(
                 quantile_label=item.quantile_label,
@@ -1598,9 +1615,9 @@ async def load_residual_training_artifacts(
             )
         )
     if seen_quantiles != {"P50", "P80", "P90"}:
-        raise ResidualModelPersistenceIntegrityError("artifact quantiles are incomplete")
+        raise ResidualArtifactIntegrityError("artifact quantiles are incomplete")
     if (reference_category_encodings or []) != run.category_encoding_snapshot:
-        raise ResidualModelPersistenceIntegrityError(
+        raise ResidualArtifactIntegrityError(
             "training run category encoding snapshot mismatch"
         )
     return tuple(validated)

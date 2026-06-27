@@ -429,6 +429,36 @@ async def test_load_training_artifacts_detects_metadata_mismatch(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("column_name", "value", "match"),
+    [
+        ("python_version", "0.0.0", "python version mismatch"),
+        ("numpy_version", "0.0.0", "numpy version mismatch"),
+        ("sklearn_version", "0.0.0", "sklearn version mismatch"),
+    ],
+)
+async def test_load_training_run_detects_parent_dependency_version_mismatch(
+    sqlite_session: AsyncSession,
+    column_name: str,
+    value: str,
+    match: str,
+) -> None:
+    rows, result = _eligible_training()
+    run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
+    await sqlite_session.execute(
+        text(
+            f"UPDATE residual_model_training_run SET {column_name} = :value "
+            "WHERE id = :run_id"
+        ),
+        {"value": value, "run_id": run.id},
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualModelPersistenceIntegrityError, match=match):
+        await load_residual_training_run_by_id(sqlite_session, run_id=run.id)
+
+
+@pytest.mark.asyncio
 async def test_load_training_run_detects_corrupted_artifact_bytes(
     sqlite_session: AsyncSession,
 ) -> None:
