@@ -369,7 +369,10 @@ def upgrade() -> None:
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("prediction_input_signature", name="uq_residual_model_prediction_run_input_signature"),
+        sa.UniqueConstraint(
+            "prediction_input_signature",
+            name="uq_residual_model_prediction_run_input_signature",
+        ),
     )
     op.create_index(
         "ix_residual_model_prediction_run_execution_status",
