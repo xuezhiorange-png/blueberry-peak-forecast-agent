@@ -131,6 +131,7 @@ def _make_node_command(
 ) -> RollingNodePersistenceCommand:
     if identity is None:
         identity = _make_semantic_identity(source_role=audit_role)
+    node = node.model_copy(update={"resolved_upstream_semantic_identities": (identity,)})
     return RollingNodePersistenceCommand(
         node=node,
         resolved_inputs=(ResolvedInputPersistenceCommand(identity=identity),),
@@ -179,8 +180,9 @@ def test_validate_persistence_command_rejects_reordered_nodes() -> None:
 
 def test_validate_persistence_command_rejects_audit_role_mismatch() -> None:
     node = _make_node()
-    config = _make_config(nodes=(node,))
     identity = _make_semantic_identity(source_role="task8_forecast_run")
+    node = node.model_copy(update={"resolved_upstream_semantic_identities": (identity,)})
+    config = _make_config(nodes=(node,))
     command = RollingBacktestPersistenceCommand(
         config=config,
         nodes=(
@@ -208,11 +210,12 @@ def test_validate_persistence_command_rejects_audit_role_mismatch() -> None:
 
 def test_validate_persistence_command_rejects_audit_source_type_mismatch() -> None:
     node = _make_node()
-    config = _make_config(nodes=(node,))
     identity = _make_semantic_identity(
         source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
         source_role="task8_forecast_run",
     )
+    node = node.model_copy(update={"resolved_upstream_semantic_identities": (identity,)})
+    config = _make_config(nodes=(node,))
     command = RollingBacktestPersistenceCommand(
         config=config,
         nodes=(
@@ -240,8 +243,9 @@ def test_validate_persistence_command_rejects_audit_source_type_mismatch() -> No
 
 def test_validate_persistence_command_rejects_missing_resolved_identity() -> None:
     node = _make_node()
-    config = _make_config(nodes=(node,))
     identity = _make_semantic_identity()
+    node = node.model_copy(update={"resolved_upstream_semantic_identities": (identity,)})
+    config = _make_config(nodes=(node,))
     command = RollingBacktestPersistenceCommand(
         config=config,
         nodes=(
@@ -269,8 +273,9 @@ def test_validate_persistence_command_rejects_missing_resolved_identity() -> Non
 
 def test_validate_persistence_command_requires_dag_per_node() -> None:
     node = _make_node()
-    config = _make_config(nodes=(node,))
     identity = _make_semantic_identity()
+    node = node.model_copy(update={"resolved_upstream_semantic_identities": (identity,)})
+    config = _make_config(nodes=(node,))
     command = RollingBacktestPersistenceCommand(
         config=config,
         nodes=(

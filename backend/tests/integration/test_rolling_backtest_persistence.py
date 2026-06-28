@@ -179,8 +179,11 @@ def _make_node_command(
 ) -> RollingNodePersistenceCommand:
     if identity is None:
         identity = _make_semantic_identity()
+    node_with_identity = node.model_copy(
+        update={"resolved_upstream_semantic_identities": (identity,)}
+    )
     return RollingNodePersistenceCommand(
-        node=node,
+        node=node_with_identity,
         resolved_inputs=(ResolvedInputPersistenceCommand(identity=identity),),
         availability_audits=(),
         dag=_make_dag(),
@@ -238,9 +241,15 @@ def _make_persistence_command(
         if with_dag:
             dag = _make_dag()
 
+        node_with_inputs = node.model_copy(
+            update={
+                "resolved_upstream_semantic_identities": tuple(item.identity for item in inputs)
+            }
+        )
+
         node_cmds.append(
             RollingNodePersistenceCommand(
-                node=node,
+                node=node_with_inputs,
                 resolved_inputs=inputs,
                 availability_audits=audits,
                 dag=dag,
@@ -248,7 +257,7 @@ def _make_persistence_command(
         )
 
     return RollingBacktestPersistenceCommand(
-        config=config,
+        config=config.model_copy(update={"nodes": tuple(cmd.node for cmd in node_cmds)}),
         nodes=tuple(node_cmds),
     )
 
@@ -623,6 +632,14 @@ async def test_tamper_delete_node_triggers_child_count_error() -> None:
     # Delete a node
     async with AsyncSessionMaker() as session:
         await session.execute(
+            text(
+                "DELETE FROM rolling_backtest_dag_snapshot WHERE rolling_node_id IN ("
+                "  SELECT id FROM rolling_backtest_node WHERE rolling_run_id = :rid"
+                ")"
+            ),
+            {"rid": run.id},
+        )
+        await session.execute(
             text("DELETE FROM rolling_backtest_node WHERE rolling_run_id = :rid"),
             {"rid": run.id},
         )
@@ -717,7 +734,11 @@ async def test_tamper_node_normalized_date_triggers_parity_error() -> None:
 
     async with AsyncSessionMaker() as session:
         await session.execute(
-            text("UPDATE rolling_backtest_node SET season_id = 9999 WHERE rolling_run_id = :rid"),
+            text(
+                "UPDATE rolling_backtest_node "
+                "SET forecast_end_local_date = DATE '2026-04-01' "
+                "WHERE rolling_run_id = :rid"
+            ),
             {"rid": run.id},
         )
         await session.commit()
@@ -944,15 +965,31 @@ async def test_tamper_dag_payload_triggers_parity_error() -> None:
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
+        node_signature = await session.scalar(
+            select(RollingBacktestNode.node_signature).where(
+                RollingBacktestNode.rolling_run_id == run.id
+            )
+        )
+        assert node_signature is not None
         await session.execute(
             text(
                 "UPDATE rolling_backtest_dag_snapshot "
-                'SET canonical_payload = \'{"nodes": ["x"]}\'::jsonb '
+                "SET canonical_payload = "
+                "jsonb_build_object("
+                "'owner_node_signature', CAST(:node_signature AS text), "
+                "'dag_schema_version', 'task11-dag-v1', "
+                "'dag_policy_version', 'task11-dag-policy-v1', "
+                "'nodes', jsonb_build_array('a', 'b', 'd'), "
+                "'edges', jsonb_build_array("
+                "  jsonb_build_array('a', 'b'), "
+                "  jsonb_build_array('b', 'd')"
+                ")"
+                ") "
                 "WHERE rolling_node_id IN ("
                 "  SELECT id FROM rolling_backtest_node WHERE rolling_run_id = :rid"
                 ")"
             ),
-            {"rid": run.id},
+            {"rid": run.id, "node_signature": node_signature},
         )
         await session.commit()
 
@@ -976,7 +1013,7 @@ async def test_dag_owner_mismatch_fails_closed() -> None:
                 "jsonb_set("
                 "canonical_payload, "
                 "'{owner_node_signature}', "
-                "to_jsonb(:bad_owner::text)"
+                "to_jsonb(CAST(:bad_owner AS text))"
                 ") "
                 "WHERE rolling_node_id IN ("
                 "  SELECT id FROM rolling_backtest_node WHERE rolling_run_id = :rid"
@@ -1009,7 +1046,7 @@ async def test_dag_missing_endpoint_fails_closed() -> None:
                 "UPDATE rolling_backtest_dag_snapshot "
                 "SET canonical_payload = "
                 "jsonb_build_object("
-                "'owner_node_signature', :node_signature, "
+                "'owner_node_signature', CAST(:node_signature AS text), "
                 "'dag_schema_version', 'task11-dag-v1', "
                 "'dag_policy_version', 'task11-dag-policy-v1', "
                 "'nodes', jsonb_build_array('a'), "

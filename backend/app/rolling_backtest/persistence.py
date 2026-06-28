@@ -235,6 +235,13 @@ def validate_persistence_command(command: RollingBacktestPersistenceCommand) -> 
                 f"node {expected_node.node_key.value} is missing required DAG payload"
             )
 
+        command_resolved_identities = tuple(item.identity for item in node_cmd.resolved_inputs)
+        if node_cmd.node.resolved_upstream_semantic_identities != command_resolved_identities:
+            raise RollingBacktestCommandMismatchError(
+                f"node {expected_node.node_key.value} resolved identities do not match "
+                "resolved input commands"
+            )
+
         resolved_by_role = {
             item.identity.source_role: item.identity for item in node_cmd.resolved_inputs
         }
