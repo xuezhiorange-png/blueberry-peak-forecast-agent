@@ -26,6 +26,7 @@ from backend.app.rolling_backtest.persistence import (
     create_execution_attempt,
     create_or_load_logical_run,
     finalize_attempt_status,
+    finalize_attempt_with_snapshot,
     load_logical_run_with_integrity,
 )
 from backend.app.rolling_backtest.resolution import (
@@ -396,7 +397,22 @@ async def orchestrate_node(
     payload_hash = sha256_payload(canonical_json_dumps(outcome_payload))
 
     status_value = "forecast_completed"
-    await _persist(attempt_id, stage.value, status_value)
+    await finalize_attempt_with_snapshot(
+        attempt_id,
+        node_id=logical_node_id if logical_node_id is not None else 0,
+        status=status_value,
+        current_stage=stage.value,
+        snapshot_status=status_value,
+        terminal_stage=stage.value,
+        fallback_mode=(
+            task10_authority.mode
+            if task10_authority and task10_authority.mode == "structural_only"
+            else None
+        ),
+        blocker_code=None,
+        sanitized_diagnostics=_sanitize_diagnostics(_collect_diagnostics(resolutions)),
+        canonical_payload=outcome_payload,
+    )
 
     return NodeOrchestrationOutcome(
         rolling_run_signature=run_signature,
@@ -871,7 +887,25 @@ async def _blocked(
     diag = _collect_diagnostics(resolutions)
     if extra_diag:
         diag.update(extra_diag)
-    await _persist(attempt_id, stage.value, "blocked", blocker_code, diag)
+    await finalize_attempt_with_snapshot(
+        attempt_id,
+        node_id=0,
+        status="blocked",
+        current_stage=stage.value,
+        snapshot_status="blocked",
+        terminal_stage=stage.value,
+        blocker_code=blocker_code,
+        structured_error_code=blocker_code,
+        sanitized_diagnostics=_sanitize_diagnostics(diag),
+        canonical_payload={
+            "run_signature": run_signature,
+            "node_signature": node_sig,
+            "attempt_number": attempt_number,
+            "status": "blocked",
+            "stage": stage.value,
+            "blocker_code": blocker_code,
+        },
+    )
     return NodeOrchestrationOutcome(
         rolling_run_signature=run_signature,
         node_signature=node_sig,

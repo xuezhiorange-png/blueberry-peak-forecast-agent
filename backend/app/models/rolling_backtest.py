@@ -218,14 +218,14 @@ class RollingBacktestAttempt(Base):
         ),
         nullable=False,
     )
-    rolling_node_id: Mapped[int | None] = mapped_column(
+    rolling_node_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey(
             "rolling_backtest_node.id",
             name="fk_rolling_backtest_attempt_node_id",
             ondelete="RESTRICT",
         ),
-        nullable=True,
+        nullable=False,
     )
     attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
     prior_attempt_id: Mapped[int | None] = mapped_column(

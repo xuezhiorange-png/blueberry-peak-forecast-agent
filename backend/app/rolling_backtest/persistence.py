@@ -804,43 +804,83 @@ async def _verify_attempt_chain(session: AsyncSession, run_id: int) -> None:
     result = await session.execute(
         select(RollingBacktestAttempt)
         .where(RollingBacktestAttempt.rolling_run_id == run_id)
-        .order_by(RollingBacktestAttempt.attempt_number)
+        .order_by(RollingBacktestAttempt.rolling_node_id, RollingBacktestAttempt.attempt_number)
     )
     attempts = result.scalars().all()
     if not attempts:
         return
 
-    for index, attempt in enumerate(attempts, start=1):
-        if attempt.attempt_number != index:
-            raise RollingBacktestAttemptConflictError(
-                "attempt numbering gap at "
-                f"run {run_id}: expected {index} "
-                f"found {attempt.attempt_number}"
-            )
+    attempts_by_id = {attempt.id: attempt for attempt in attempts}
+    attempts_by_node: dict[int, list[RollingBacktestAttempt]] = {}
+    for attempt in attempts:
         if attempt.rolling_run_id != run_id:
             raise RollingBacktestAttemptConflictError(
                 f"attempt {attempt.id} belongs to wrong run {attempt.rolling_run_id}"
             )
-        if (attempt.status in ("pending", "running")) != (attempt.finished_at is None):
+        if attempt.rolling_node_id is None:
             raise RollingBacktestAttemptConflictError(
-                f"attempt {attempt.id} status/finished_at mismatch"
+                f"attempt {attempt.id} is missing required rolling_node_id"
             )
-        if index == 1:
-            if attempt.prior_attempt_id is not None:
-                raise RollingBacktestAttemptConflictError(
-                    f"attempt {attempt.id} is first in chain but has prior_attempt_id"
-                )
-            continue
+        attempts_by_node.setdefault(attempt.rolling_node_id, []).append(attempt)
 
-        previous = attempts[index - 2]
-        if attempt.prior_attempt_id != previous.id:
-            raise RollingBacktestAttemptConflictError(
-                f"attempt {attempt.id} does not point to direct predecessor {previous.id}"
+    for node_id, node_attempts in attempts_by_node.items():
+        for index, attempt in enumerate(node_attempts, start=1):
+            if attempt.attempt_number != index:
+                raise RollingBacktestAttemptConflictError(
+                    "attempt numbering gap at "
+                    f"run {run_id} node {node_id}: expected {index} "
+                    f"found {attempt.attempt_number}"
+                )
+            if attempt.rolling_node_id != node_id:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} belongs to wrong node {attempt.rolling_node_id}"
+                )
+            if (attempt.status in ("pending", "running")) != (attempt.finished_at is None):
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} status/finished_at mismatch"
+                )
+
+            snapshot_terminal_stage = await validate_orchestration_snapshot_consistency(
+                session, attempt.id
             )
-        if previous.status not in ("failed", "blocked"):
-            raise RollingBacktestAttemptConflictError(
-                f"attempt {attempt.id} cannot retry from previous status {previous.status}"
+            expected_terminal_stage = snapshot_terminal_stage
+            if expected_terminal_stage is None and attempt.current_stage in _STAGE_ORDINAL:
+                expected_terminal_stage = attempt.current_stage
+            await validate_stage_continuity(
+                session,
+                attempt.id,
+                terminal_stage=expected_terminal_stage,
             )
+
+            if index == 1:
+                if attempt.prior_attempt_id is not None:
+                    raise RollingBacktestAttemptConflictError(
+                        f"attempt {attempt.id} is first in node chain but has prior_attempt_id"
+                    )
+                continue
+
+            previous = node_attempts[index - 2]
+            if attempt.prior_attempt_id != previous.id:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} does not point to direct predecessor {previous.id}"
+                )
+            prior = attempts_by_id.get(attempt.prior_attempt_id)
+            if prior is None:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} prior attempt {attempt.prior_attempt_id} not found"
+                )
+            if prior.rolling_node_id != attempt.rolling_node_id:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} prior attempt crosses node boundary"
+                )
+            if prior.rolling_run_id != attempt.rolling_run_id:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} prior attempt crosses run boundary"
+                )
+            if previous.status not in ("failed", "blocked"):
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} cannot retry from previous status {previous.status}"
+                )
 
 
 # ── Attempt management ──────────────────────────────────────────────────────
@@ -908,6 +948,10 @@ async def create_execution_attempt(
                     raise RollingBacktestAttemptConflictError(
                         f"attempt {attempt.id} prior link crosses node boundary"
                     )
+                if prior_in_chain.rolling_run_id != run_id:
+                    raise RollingBacktestAttemptConflictError(
+                        f"attempt {attempt.id} prior link crosses run boundary"
+                    )
 
         next_number = len(attempts) + 1
         resolved_prior_id = prior_attempt_id
@@ -951,7 +995,8 @@ async def create_execution_attempt(
         return attempt
 
 
-async def finalize_attempt_status(
+async def _finalize_attempt_status_in_session(
+    session: AsyncSession,
     attempt_id: int,
     *,
     status: str,
@@ -959,25 +1004,56 @@ async def finalize_attempt_status(
     structured_error_code: str | None = None,
     sanitized_diagnostics: dict[str, object] | None = None,
 ) -> RollingBacktestAttempt:
-    """Finalize an attempt's status (cannot modify a completed attempt)."""
-    async with AsyncSessionMaker() as session:
-        result = await session.execute(
-            select(RollingBacktestAttempt).where(RollingBacktestAttempt.id == attempt_id)
+    result = await session.execute(
+        select(RollingBacktestAttempt).where(RollingBacktestAttempt.id == attempt_id)
+    )
+    attempt = result.scalar_one_or_none()
+    if attempt is None:
+        raise RollingBacktestAttemptConflictError(f"attempt {attempt_id} not found")
+    if attempt.status == "completed":
+        raise RollingBacktestAttemptConflictError(
+            f"cannot modify completed attempt {attempt_id}"
         )
-        attempt = result.scalar_one_or_none()
-        if attempt is None:
-            raise RollingBacktestAttemptConflictError(f"attempt {attempt_id} not found")
-        if attempt.status == "completed":
-            raise RollingBacktestAttemptConflictError(
-                f"cannot modify completed attempt {attempt_id}"
-            )
 
-        attempt.status = status
-        attempt.current_stage = current_stage
-        attempt.structured_error_code = structured_error_code
-        attempt.sanitized_diagnostics = sanitized_diagnostics
-        attempt.finished_at = datetime.now(UTC)
-        await session.commit()
+    attempt.status = status
+    attempt.current_stage = current_stage
+    attempt.structured_error_code = structured_error_code
+    attempt.sanitized_diagnostics = sanitized_diagnostics
+    attempt.finished_at = None if status in ("pending", "running") else datetime.now(UTC)
+    await session.flush()
+    return attempt
+
+
+async def finalize_attempt_status(
+    attempt_id: int,
+    *,
+    status: str,
+    current_stage: str,
+    structured_error_code: str | None = None,
+    sanitized_diagnostics: dict[str, object] | None = None,
+    session: AsyncSession | None = None,
+) -> RollingBacktestAttempt:
+    """Finalize an attempt's status (cannot modify a completed attempt)."""
+    if session is not None:
+        return await _finalize_attempt_status_in_session(
+            session,
+            attempt_id,
+            status=status,
+            current_stage=current_stage,
+            structured_error_code=structured_error_code,
+            sanitized_diagnostics=sanitized_diagnostics,
+        )
+
+    async with AsyncSessionMaker() as owned_session:
+        attempt = await _finalize_attempt_status_in_session(
+            owned_session,
+            attempt_id,
+            status=status,
+            current_stage=current_stage,
+            structured_error_code=structured_error_code,
+            sanitized_diagnostics=sanitized_diagnostics,
+        )
+        await owned_session.commit()
         return attempt
 
 
@@ -1069,7 +1145,8 @@ async def persist_stage_event(
 # ── Orchestration snapshot persistence ───────────────────────────────────────
 
 
-async def persist_orchestration_snapshot(
+async def _persist_orchestration_snapshot_in_session(
+    session: AsyncSession,
     attempt_id: int,
     node_id: int,
     *,
@@ -1079,56 +1156,136 @@ async def persist_orchestration_snapshot(
     blocker_code: str | None = None,
     canonical_payload: dict[str, Any] | None = None,
 ) -> RollingBacktestOrchestrationSnapshot:
+    result = await session.execute(
+        select(RollingBacktestStageEvent)
+        .where(RollingBacktestStageEvent.attempt_id == attempt_id)
+        .order_by(RollingBacktestStageEvent.sequence_number.desc())
+        .limit(1)
+    )
+    last_event = result.scalar_one_or_none()
+
+    if last_event is not None:
+        derived_terminal = last_event.stage
+        if derived_terminal != terminal_stage:
+            raise RollingBacktestStageIntegrityError(
+                f"terminal_stage drift: snapshot says {terminal_stage}, "
+                f"stage_event says {derived_terminal}"
+            )
+    else:
+        derived_terminal = terminal_stage
+
+    payload = canonical_payload or {}
+    payload_hash = sha256_payload(payload)
+
+    snapshot = RollingBacktestOrchestrationSnapshot(
+        attempt_id=attempt_id,
+        rolling_node_id=node_id,
+        status=status,
+        terminal_stage=derived_terminal,
+        fallback_mode=fallback_mode,
+        blocker_code=blocker_code,
+        canonical_payload=payload,
+        canonical_payload_hash=payload_hash,
+    )
+    session.add(snapshot)
+    await session.flush()
+    return snapshot
+
+
+async def persist_orchestration_snapshot(
+    attempt_id: int,
+    node_id: int,
+    *,
+    status: str,
+    terminal_stage: str,
+    fallback_mode: str | None = None,
+    blocker_code: str | None = None,
+    canonical_payload: dict[str, Any] | None = None,
+    session: AsyncSession | None = None,
+) -> RollingBacktestOrchestrationSnapshot:
     """Persist the terminal orchestration outcome for an attempt.
 
     terminal_stage is derived from the last stage_event for this attempt
     and validated for consistency in the same transaction.
     """
-    async with AsyncSessionMaker() as session:
-        # Derive terminal_stage from stage_event
-        result = await session.execute(
-            select(RollingBacktestStageEvent)
-            .where(RollingBacktestStageEvent.attempt_id == attempt_id)
-            .order_by(RollingBacktestStageEvent.sequence_number.desc())
-            .limit(1)
-        )
-        last_event = result.scalar_one_or_none()
-
-        if last_event is not None:
-            derived_terminal = last_event.stage
-            if derived_terminal != terminal_stage:
-                raise RollingBacktestStageIntegrityError(
-                    f"terminal_stage drift: snapshot says {terminal_stage}, "
-                    f"stage_event says {derived_terminal}"
-                )
-        else:
-            # No stage events exist — terminal_stage must be set explicitly
-            # (e.g., attempt blocked at persistence level before any stage ran)
-            derived_terminal = terminal_stage
-
-        payload = canonical_payload or {}
-        payload_hash = sha256_payload(payload)
-
-        snapshot = RollingBacktestOrchestrationSnapshot(
-            attempt_id=attempt_id,
-            rolling_node_id=node_id,
+    if session is not None:
+        return await _persist_orchestration_snapshot_in_session(
+            session,
+            attempt_id,
+            node_id,
             status=status,
-            terminal_stage=derived_terminal,
+            terminal_stage=terminal_stage,
             fallback_mode=fallback_mode,
             blocker_code=blocker_code,
-            canonical_payload=payload,
-            canonical_payload_hash=payload_hash,
+            canonical_payload=canonical_payload,
         )
-        session.add(snapshot)
+
+    async with AsyncSessionMaker() as owned_session:
         try:
-            await session.commit()
+            snapshot = await _persist_orchestration_snapshot_in_session(
+                owned_session,
+                attempt_id,
+                node_id,
+                status=status,
+                terminal_stage=terminal_stage,
+                fallback_mode=fallback_mode,
+                blocker_code=blocker_code,
+                canonical_payload=canonical_payload,
+            )
+            await owned_session.commit()
         except SAIntegrityError as exc:
-            await session.rollback()
+            await owned_session.rollback()
             raise RollingBacktestAttemptConflictError(
                 f"snapshot already exists for attempt {attempt_id}"
             ) from exc
 
         return snapshot
+
+
+async def finalize_attempt_with_snapshot(
+    attempt_id: int,
+    *,
+    node_id: int,
+    status: str,
+    current_stage: str,
+    snapshot_status: str,
+    terminal_stage: str,
+    fallback_mode: str | None = None,
+    blocker_code: str | None = None,
+    structured_error_code: str | None = None,
+    sanitized_diagnostics: dict[str, object] | None = None,
+    canonical_payload: dict[str, Any] | None = None,
+) -> tuple[RollingBacktestAttempt, RollingBacktestOrchestrationSnapshot]:
+    async with AsyncSessionMaker() as session:
+        try:
+            attempt = await _finalize_attempt_status_in_session(
+                session,
+                attempt_id,
+                status=status,
+                current_stage=current_stage,
+                structured_error_code=structured_error_code,
+                sanitized_diagnostics=sanitized_diagnostics,
+            )
+            snapshot = await _persist_orchestration_snapshot_in_session(
+                session,
+                attempt_id,
+                node_id,
+                status=snapshot_status,
+                terminal_stage=terminal_stage,
+                fallback_mode=fallback_mode,
+                blocker_code=blocker_code,
+                canonical_payload=canonical_payload,
+            )
+            await session.commit()
+            return attempt, snapshot
+        except SAIntegrityError as exc:
+            await session.rollback()
+            raise RollingBacktestAttemptConflictError(
+                f"finalize with snapshot failed for attempt {attempt_id}"
+            ) from exc
+        except Exception:
+            await session.rollback()
+            raise
 
 
 # ── Stage continuity validation (integrity reload) ───────────────────────────
@@ -1206,7 +1363,7 @@ async def validate_stage_continuity(
 async def validate_orchestration_snapshot_consistency(
     session: AsyncSession,
     attempt_id: int,
-) -> None:
+) -> str | None:
     """Cross-table consistency for orchestration_snapshot.
 
     Verifies: snapshot.rolling_node_id == attempt.rolling_node_id.
@@ -1218,16 +1375,30 @@ async def validate_orchestration_snapshot_consistency(
     )
     snapshot = snapshot_result.scalar_one_or_none()
     if snapshot is None:
-        return
+        return None
 
     attempt_result = await session.execute(
-        select(RollingBacktestAttempt.rolling_node_id).where(
-            RollingBacktestAttempt.id == attempt_id
-        )
+        select(RollingBacktestAttempt).where(RollingBacktestAttempt.id == attempt_id)
     )
-    attempt_node_id = attempt_result.scalar_one_or_none()
-    if attempt_node_id is not None and snapshot.rolling_node_id != attempt_node_id:
+    attempt = attempt_result.scalar_one_or_none()
+    if attempt is None:
+        raise RollingBacktestAttemptConflictError(f"attempt {attempt_id} not found")
+    if snapshot.rolling_node_id != attempt.rolling_node_id:
         raise RollingBacktestAuthorityBindingError(
             f"snapshot node_id {snapshot.rolling_node_id} != "
-            f"attempt {attempt_id} node_id {attempt_node_id}"
+            f"attempt {attempt_id} node_id {attempt.rolling_node_id}"
         )
+    if snapshot.status != attempt.status:
+        raise RollingBacktestStageIntegrityError(
+            f"snapshot status {snapshot.status} != attempt status {attempt.status}"
+        )
+    if snapshot.terminal_stage != attempt.current_stage:
+        raise RollingBacktestStageIntegrityError(
+            f"snapshot terminal_stage {snapshot.terminal_stage} != "
+            f"attempt current_stage {attempt.current_stage}"
+        )
+    if attempt.status in ("pending", "running"):
+        raise RollingBacktestStageIntegrityError(
+            f"attempt {attempt_id} has snapshot but non-terminal status {attempt.status}"
+        )
+    return snapshot.terminal_stage
