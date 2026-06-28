@@ -109,6 +109,26 @@ def _make_node(
                 "authority_visibility_identity": "d" * 64,
             },
             "timezone": "Asia/Shanghai",
+            "resolved_upstream_semantic_identities": [
+                {
+                    "source_type": "task3_analytics_build",
+                    "source_role": "task3_analytics",
+                    "role_qualifier": None,
+                    "semantic": {
+                        "schema_version": "v1",
+                        "display_label": "display:task3_analytics",
+                        "semantic_payload_hash": "f" * 64,
+                        "input_signature": "a" * 64,
+                        "config_hash": "b" * 64,
+                        "result_hash": "c" * 64,
+                        "canonical_payload_hash": "d" * 64,
+                        "artifact_payload_hash": None,
+                        "policy_version": "v1",
+                        "business_version": "v1",
+                    },
+                    "persistent_reference": None,
+                }
+            ],
         }
     )
 
@@ -174,19 +194,17 @@ def _make_persistence_command(
 ) -> RollingBacktestPersistenceCommand:
     node_cmds: list[RollingNodePersistenceCommand] = []
     for node in config.nodes:
-        identity = _make_semantic_identity(
-            source_role="task3_analytics",
-            source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
-        )
-        node_with_identity = node.model_copy(
-            update={"resolved_upstream_semantic_identities": (identity,)}
-        )
         inputs: tuple[ResolvedInputPersistenceCommand, ...] = (
-            ResolvedInputPersistenceCommand(identity=identity),
+            ResolvedInputPersistenceCommand(
+                identity=_make_semantic_identity(
+                    source_role="task3_analytics",
+                    source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+                ),
+            ),
         )
         node_cmds.append(
             RollingNodePersistenceCommand(
-                node=node_with_identity,
+                node=node,
                 resolved_inputs=inputs,
                 availability_audits=(),
                 dag=_make_dag(),
