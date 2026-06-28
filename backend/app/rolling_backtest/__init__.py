@@ -1,7 +1,11 @@
 from backend.app.rolling_backtest.availability import (
+    availability_snapshot_audit_hash,
+    availability_snapshot_audit_payload,
     build_availability_authority_registry,
     evaluate_authority_visibility,
     get_availability_authority_spec,
+    parent_authority_audit_hash,
+    parent_authority_semantic_payload,
 )
 from backend.app.rolling_backtest.calendar import resolve_default_node_dates
 from backend.app.rolling_backtest.config import rolling_backtest_config_hash
@@ -70,12 +74,16 @@ __all__ = [
     "Task10PredictionRunAvailabilitySnapshot",
     "Task10TrainingRunAvailabilitySnapshot",
     "UpstreamSelectionMode",
+    "availability_snapshot_audit_hash",
+    "availability_snapshot_audit_payload",
     "build_availability_authority_registry",
     "derive_run_status",
     "evaluate_authority_visibility",
     "get_availability_authority_spec",
     "node_signature_hash",
     "node_signature_payload",
+    "parent_authority_audit_hash",
+    "parent_authority_semantic_payload",
     "resolve_default_node_dates",
     "rolling_backtest_config_hash",
     "run_signature_hash",
