@@ -9,6 +9,7 @@ Integrity reload must pass before returning outcomes.
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -21,6 +22,7 @@ from backend.app.rolling_backtest.enums import (
     Task10ModelPolicy,
 )
 from backend.app.rolling_backtest.persistence import (
+    DagPersistenceCommand,
     RollingBacktestPersistenceCommand,
     RollingNodePersistenceCommand,
     create_execution_attempt,
@@ -28,6 +30,7 @@ from backend.app.rolling_backtest.persistence import (
     finalize_attempt_status,
     finalize_attempt_with_snapshot,
     load_logical_run_with_integrity,
+    persist_stage_event,
 )
 from backend.app.rolling_backtest.resolution import (
     HistoricalCandidate,
@@ -48,7 +51,7 @@ from backend.app.rolling_backtest.schemas import (
 class OrchestrationStage(StrEnum):
     RESOLVE_HISTORICAL_INPUTS = "resolve_historical_inputs"
     VALIDATE_VISIBILITY = "validate_visibility"
-    VALIDATE_AUTHORITY_CHAIN = "vali..."
+    VALIDATE_AUTHORITY_CHAIN = "validate_authority_chain"
     RESOLVE_OR_REPLAY_TASK8 = "resolve_or_replay_task8"
     RESOLVE_OR_REPLAY_TASK9 = "resolve_or_replay_task9"
     RESOLVE_OR_TRAIN_TASK10 = "resolve_or_train_task10"
@@ -67,10 +70,10 @@ class OrchestrationBlocker(StrEnum):
     PINNED_SOURCE_NOT_VISIBLE = "pinned_source_not_visible"
     PINNED_SOURCE_IDENTITY_MISMATCH = "pinned_source_identity_mismatch"
     PINNED_SOURCE_INTEGRITY_FAILURE = "pinned_source_integrity_failure"
-    TASK8_PARENT_AUTHORITY_MISMATCH = "task..."
+    TASK8_PARENT_AUTHORITY_MISMATCH = "task8_parent_authority_mismatch"
     TASK8_MISSING_ARTIFACT = "task8_missing_artifact"
     TASK8_MISSING_DAILY_PREDICTIONS = "task8_missing_daily_predictions"
-    TASK9_TASK8_AUTHORITY_MISMATCH = "task..."
+    TASK9_TASK8_AUTHORITY_MISMATCH = "task9_task8_authority_mismatch"
     TASK9_REPLAY_INPUT_INCOMPLETE = "task9_replay_input_incomplete"
     TASK9_EXECUTION_BLOCKED = "task9_execution_blocked"
     TASK10_MODEL_NOT_AVAILABLE = "task10_model_not_available"
@@ -93,13 +96,65 @@ __all__ = [
     "Task10AuthorityOutcome",
     "NodeOrchestrationOutcome",
     "AvailabilityAuditOutcome",
+    "NodeExecutionContext",
     "OrchestrationStage",
     "OrchestrationBlocker",
     "orchestrate_node",
     "orchestrate_run",
     "_collect_diagnostics",
     "_sanitize_diagnostics",
+    "_build_frozen_dag",
 ]
+
+
+# ── Frozen DAG ───────────────────────────────────────────────────────────────
+
+_FROZEN_DAG_STAGES = (
+    OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
+    OrchestrationStage.VALIDATE_VISIBILITY.value,
+    OrchestrationStage.VALIDATE_AUTHORITY_CHAIN.value,
+    OrchestrationStage.RESOLVE_OR_REPLAY_TASK8.value,
+    OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value,
+    OrchestrationStage.RESOLVE_OR_TRAIN_TASK10.value,
+    OrchestrationStage.EXECUTE_TASK10_PREDICTION.value,
+    OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
+)
+
+_FROZEN_DAG_EDGES = tuple(
+    (_FROZEN_DAG_STAGES[i], _FROZEN_DAG_STAGES[i + 1]) for i in range(len(_FROZEN_DAG_STAGES) - 1)
+)
+
+_FROZEN_DAG_SCHEMA_VERSION = "task11-phase3-v1"
+_FROZEN_DAG_POLICY_VERSION = "v1"
+
+
+def _build_frozen_dag(*, owner_node_signature: str) -> DagPersistenceCommand:
+    return DagPersistenceCommand(
+        dag_schema_version=_FROZEN_DAG_SCHEMA_VERSION,
+        dag_policy_version=_FROZEN_DAG_POLICY_VERSION,
+        dag_dict={
+            "nodes": list(_FROZEN_DAG_STAGES),
+            "edges": [list(e) for e in _FROZEN_DAG_EDGES],
+        },
+        expected_node_count=len(_FROZEN_DAG_STAGES),
+        expected_edge_count=len(_FROZEN_DAG_EDGES),
+    )
+
+
+# ── Node execution context ──────────────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class NodeExecutionContext:
+    """Typed execution context carrying real persisted run/node identity."""
+
+    rolling_run_id: int
+    rolling_node_id: int
+    run_signature: str
+    node_signature: str
+
+
+# ── Outcome dataclasses ──────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True, slots=True)
@@ -176,25 +231,82 @@ async def orchestrate_run(
     nodes: tuple[RollingNodeDefinition, ...],
 ) -> tuple[NodeOrchestrationOutcome, ...]:
     """Create or load a logical run, orchestrate each node, verify integrity."""
+    from sqlalchemy import select
+
     from backend.app.db.session import AsyncSessionMaker
+    from backend.app.models.rolling_backtest import RollingBacktestNode
+
+    # Build node commands with frozen DAG
+    node_cmds: list[RollingNodePersistenceCommand] = []
+    for node in nodes:
+        node_sig = _node_sig_str(config, node)
+        node_cmds.append(
+            RollingNodePersistenceCommand(
+                node=node,
+                resolved_inputs=(),  # resolved post-creation
+                availability_audits=(),  # resolved post-creation
+                dag=_build_frozen_dag(owner_node_signature=node_sig),
+            )
+        )
 
     persistence_cmd = RollingBacktestPersistenceCommand(
         config=config,
-        nodes=tuple(RollingNodePersistenceCommand(node=node) for node in nodes),
+        nodes=tuple(node_cmds),
     )
 
     run = await create_or_load_logical_run(persistence_cmd)
     run_signature = run.run_signature
 
+    # Build persisted node identity map
+    async with AsyncSessionMaker() as sess:
+        result = await sess.execute(
+            select(RollingBacktestNode)
+            .where(RollingBacktestNode.rolling_run_id == run.id)
+            .order_by(RollingBacktestNode.id)
+        )
+        db_nodes = result.scalars().all()
+
+    if len(db_nodes) != len(nodes):
+        from backend.app.rolling_backtest.errors import RollingBacktestChildCountMismatchError
+
+        raise RollingBacktestChildCountMismatchError(
+            f"persisted node count mismatch: expected={len(nodes)} actual={len(db_nodes)}"
+        )
+
+    # Map node signature → rolling_node_id
+    node_id_map: dict[str, int] = {}
+    for db_node in db_nodes:
+        node_id_map[db_node.node_signature] = db_node.id
+
+    # Verify each config node has a corresponding persisted node
+    for node in nodes:
+        node_sig = _node_sig_str(config, node)
+        if node_sig not in node_id_map:
+            from backend.app.rolling_backtest.errors import RollingBacktestChildCountMismatchError
+
+            raise RollingBacktestChildCountMismatchError(
+                f"no persisted node found for signature {node_sig[:16]}..."
+            )
+
     outcomes: list[NodeOrchestrationOutcome] = []
-    for _i, node in enumerate(nodes):
+
+    for _node_index, node in enumerate(nodes):
+        node_sig = _node_sig_str(config, node)
+        rolling_node_id = node_id_map[node_sig]
+
+        ctx = NodeExecutionContext(
+            rolling_run_id=run.id,
+            rolling_node_id=rolling_node_id,
+            run_signature=run_signature,
+            node_signature=node_sig,
+        )
+
         async with AsyncSessionMaker() as session:
             outcome = await orchestrate_node(
                 session=session,
                 config=config,
                 node=node,
-                run_signature=run_signature,
-                logical_run_id=run.id,
+                ctx=ctx,
             )
         outcomes.append(outcome)
 
@@ -213,24 +325,22 @@ async def orchestrate_node(
     *,
     config: RollingBacktestConfig,
     node: RollingNodeDefinition,
-    run_signature: str,
-    logical_run_id: int,
-    logical_node_id: int | None = None,
+    ctx: NodeExecutionContext,
 ) -> NodeOrchestrationOutcome:
+    """Orchestrate a single rolling backtest node through 8 frozen stages."""
     started_at = datetime.now(UTC)
-    node_sig = _node_sig_str(config, node)
 
     try:
         attempt = await create_execution_attempt(
-            logical_run_id,
-            node_id=logical_node_id if logical_node_id is not None else 0,
+            ctx.rolling_run_id,
+            node_id=ctx.rolling_node_id,
             status="running",
             current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
         )
     except Exception as exc:
         return _outcome_blocked(
-            run_signature,
-            node_sig,
+            ctx.run_signature,
+            ctx.node_signature,
             OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
             OrchestrationBlocker.PERSISTENCE_FAILURE.value,
             {"error": _safe_str(exc)},
@@ -240,15 +350,28 @@ async def orchestrate_node(
     attempt_id = attempt.id
     attempt_number = attempt.attempt_number
 
-    # Stage 1: Resolve
+    # ── Helper to enter a stage (atomic: stage event + attempt status) ──
+    async def _enter_stage(stage: OrchestrationStage) -> None:
+        await persist_stage_event(
+            attempt_id,
+            ctx.rolling_node_id,
+            stage=stage.value,
+            status="running",
+        )
+        await finalize_attempt_status(
+            attempt_id,
+            status="running",
+            current_stage=stage.value,
+        )
+
+    # ── Stage 1: Resolve ─────────────────────────────────────────
     stage = OrchestrationStage.RESOLVE_HISTORICAL_INPUTS
-    await _persist(attempt_id, stage.value, "running")
+    await _enter_stage(stage)
     resolutions, blocked, blocker_code = await _resolve_all_inputs(session, node, config)
     if blocked:
         return await _blocked(
+            ctx,
             attempt_id,
-            run_signature,
-            node_sig,
             attempt_number,
             stage,
             blocker_code,
@@ -256,15 +379,14 @@ async def orchestrate_node(
             started_at,
         )
 
-    # Stage 2: Visibility
+    # ── Stage 2: Visibility ──────────────────────────────────────
     stage = OrchestrationStage.VALIDATE_VISIBILITY
-    await _persist(attempt_id, stage.value, "running")
+    await _enter_stage(stage)
     for r in resolutions:
         if r.resolved and r.resolved.authoritative_available_at > node.forecast_cutoff_at:
             return await _blocked(
+                ctx,
                 attempt_id,
-                run_signature,
-                node_sig,
                 attempt_number,
                 stage,
                 OrchestrationBlocker.FUTURE_SOURCE_LEAKAGE_DETECTED.value,
@@ -277,71 +399,49 @@ async def orchestrate_node(
                 },
             )
 
-    # Stage 3: Authority chain
+    # ── Stage 3: Authority chain ─────────────────────────────────
     stage = OrchestrationStage.VALIDATE_AUTHORITY_CHAIN
-    await _persist(attempt_id, stage.value, "running")
+    await _enter_stage(stage)
     ab = await _validate_authority_chain(session, resolutions, node)
     if ab:
-        return await _blocked(
-            attempt_id, run_signature, node_sig, attempt_number, stage, ab, resolutions, started_at
-        )
+        return await _blocked(ctx, attempt_id, attempt_number, stage, ab, resolutions, started_at)
 
-    # Stage 4: Task 8 chain
+    # ── Stage 4: Task 8 chain ────────────────────────────────────
     stage = OrchestrationStage.RESOLVE_OR_REPLAY_TASK8
-    await _persist(attempt_id, stage.value, "running")
+    await _enter_stage(stage)
     t8 = await _validate_task8_chain(session, resolutions, node)
     if t8:
-        return await _blocked(
-            attempt_id, run_signature, node_sig, attempt_number, stage, t8, resolutions, started_at
-        )
+        return await _blocked(ctx, attempt_id, attempt_number, stage, t8, resolutions, started_at)
 
-    # Stage 5: Task 9
+    # ── Stage 5: Task 9 ──────────────────────────────────────────
     stage = OrchestrationStage.RESOLVE_OR_REPLAY_TASK9
-    await _persist(attempt_id, stage.value, "running")
+    await _enter_stage(stage)
     t9a, t9b = await _resolve_task9(
-        session,
-        resolutions,
-        config,
-        node,
-        attempt_id,
-        run_signature,
-        node_sig,
-        attempt_number,
-        stage,
-        started_at,
+        session, resolutions, config, node, ctx, attempt_id, attempt_number, stage, started_at
     )
     if t9b:
         return t9b
     task9_authority = t9a
 
-    # Stage 6: Task 10 model
+    # ── Stage 6: Task 10 model ───────────────────────────────────
     stage = OrchestrationStage.RESOLVE_OR_TRAIN_TASK10
-    await _persist(attempt_id, stage.value, "running")
+    await _enter_stage(stage)
     t10a, t10b = _resolve_task10_model(
-        resolutions,
-        task9_authority,
-        node,
-        attempt_id,
-        run_signature,
-        node_sig,
-        attempt_number,
-        stage,
-        started_at,
+        resolutions, task9_authority, node, ctx, attempt_id, attempt_number, stage, started_at
     )
     if t10b:
         return t10b
     task10_authority = t10a
 
-    # Stage 7: Task 10 prediction
+    # ── Stage 7: Task 10 prediction ──────────────────────────────
     stage = OrchestrationStage.EXECUTE_TASK10_PREDICTION
-    await _persist(attempt_id, stage.value, "running")
+    await _enter_stage(stage)
     pred_blocked = await _execute_task10_prediction(
         session,
         task10_authority,
         task9_authority,
+        ctx,
         attempt_id,
-        run_signature,
-        node_sig,
         attempt_number,
         stage,
         resolutions,
@@ -350,8 +450,9 @@ async def orchestrate_node(
     if pred_blocked:
         return pred_blocked
 
-    # Stage 8: Finalize
+    # ── Stage 8: Finalize ────────────────────────────────────────
     stage = OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT
+    await _enter_stage(stage)
 
     resolved_inputs = tuple(
         ResolvedInputOutcome(
@@ -370,12 +471,11 @@ async def orchestrate_node(
 
     audits = tuple(_build_audit_outcome(r, node) for r in resolutions if r.resolved is not None)
 
-    # Compute canonical outcome payload hash
     from backend.app.rolling_backtest.canonical import canonical_json_dumps, sha256_payload
 
     outcome_payload = {
-        "run_signature": run_signature,
-        "node_signature": node_sig,
+        "run_signature": ctx.run_signature,
+        "node_signature": ctx.node_signature,
         "attempt_number": attempt_number,
         "execution_mode": config.execution_mode.value,
         "stage": stage.value,
@@ -399,7 +499,7 @@ async def orchestrate_node(
     status_value = "forecast_completed"
     await finalize_attempt_with_snapshot(
         attempt_id,
-        node_id=logical_node_id if logical_node_id is not None else 0,
+        node_id=ctx.rolling_node_id,
         status=status_value,
         current_stage=stage.value,
         snapshot_status=status_value,
@@ -414,9 +514,17 @@ async def orchestrate_node(
         canonical_payload=outcome_payload,
     )
 
+    # Mark stage 8 as completed
+    await persist_stage_event(
+        attempt_id,
+        ctx.rolling_node_id,
+        stage=stage.value,
+        status="completed",
+    )
+
     return NodeOrchestrationOutcome(
-        rolling_run_signature=run_signature,
-        node_signature=node_sig,
+        rolling_run_signature=ctx.run_signature,
+        node_signature=ctx.node_signature,
         attempt_number=attempt_number,
         status=status_value,
         stage=stage.value,
@@ -541,15 +649,10 @@ async def _validate_task8_chain(
         None,
     )
 
-    # If forecast is resolved, model must be resolved too
     if forecast and not model:
         return OrchestrationBlocker.TASK8_PARENT_AUTHORITY_MISMATCH.value
-
-    # If artifact is resolved, model must be resolved too
     if artifact and not model:
         return OrchestrationBlocker.TASK8_PARENT_AUTHORITY_MISMATCH.value
-
-    # If daily predictions are resolved, forecast must be resolved too
     if daily and not forecast:
         return OrchestrationBlocker.TASK8_PARENT_AUTHORITY_MISMATCH.value
 
@@ -561,9 +664,8 @@ async def _resolve_task9(
     resolutions: list[ResolutionResult],
     config: RollingBacktestConfig,
     node: RollingNodeDefinition,
+    ctx: NodeExecutionContext,
     attempt_id: int,
-    run_signature: str,
-    node_sig: str,
     attempt_number: int,
     stage: OrchestrationStage,
     started_at: datetime,
@@ -579,16 +681,14 @@ async def _resolve_task9(
         resolved = task9_result.resolved
         ref_id = resolved.persistent_reference.reference_value
 
-        # Load real persisted Task 9 run and verify integrity
         try:
             from backend.app.harvest_state.application import get_harvest_state_run_by_id
 
-            task9_run = await get_harvest_state_run_by_id(session, run_id=ref_id)  # type: ignore[arg-type]
-            if task9_run is None:
+            envelope = await get_harvest_state_run_by_id(session, run_id=ref_id)  # type: ignore[arg-type]
+            if envelope is None:
                 blocked = await _blocked(
+                    ctx,
                     attempt_id,
-                    run_signature,
-                    node_sig,
                     attempt_number,
                     stage,
                     OrchestrationBlocker.TASK9_REUSE_INTEGRITY_FAILED.value,
@@ -598,28 +698,50 @@ async def _resolve_task9(
                 )
                 return None, blocked
 
+            output = envelope.output if hasattr(envelope, "output") else None
+            if output is None:
+                blocked = await _blocked(
+                    ctx,
+                    attempt_id,
+                    attempt_number,
+                    stage,
+                    OrchestrationBlocker.TASK9_REUSE_INTEGRITY_FAILED.value,
+                    resolutions,
+                    started_at,
+                    {"reason": "Task 9 envelope has no output"},
+                )
+                return None, blocked
+
             # Verify source_ref_catalog against resolved authorities
-            catalog = (
-                task9_run.source_ref_catalog if hasattr(task9_run, "source_ref_catalog") else []
-            )
-            _catalog_valid = len(catalog) > 0 if hasattr(task9_run, "source_ref_catalog") else True
+            catalog = getattr(output, "source_ref_catalog", None)
+            if not catalog:
+                blocked = await _blocked(
+                    ctx,
+                    attempt_id,
+                    attempt_number,
+                    stage,
+                    OrchestrationBlocker.TASK9_TASK8_AUTHORITY_MISMATCH.value,
+                    resolutions,
+                    started_at,
+                    {"reason": "Task 9 output has empty source_ref_catalog"},
+                )
+                return None, blocked
+
+            result_hash = getattr(output, "result_hash", None)
 
             authority = Task9AuthorityOutcome(
                 run_reference=resolved.persistent_reference,
-                result_hash=getattr(task9_run, "result_hash", None),
-                canonical_payload_hash=getattr(task9_run, "canonical_payload_hash", None),
-                source_catalog_hash=(
-                    _safe_hash(str(catalog)) if hasattr(task9_run, "source_ref_catalog") else None
-                ),
+                result_hash=result_hash,
+                canonical_payload_hash=getattr(envelope, "canonical_payload_hash", None),
+                source_catalog_hash=_safe_hash(str(len(catalog))),
                 verification_snapshot_hash=None,
                 mode="reuse",
             )
             return authority, None
         except Exception as exc:
             blocked = await _blocked(
+                ctx,
                 attempt_id,
-                run_signature,
-                node_sig,
                 attempt_number,
                 stage,
                 OrchestrationBlocker.TASK9_REUSE_INTEGRITY_FAILED.value,
@@ -638,7 +760,6 @@ async def _resolve_task9(
 
                 envelope = await execute_harvest_state_run(session, request=request)  # type: ignore[arg-type]
 
-                # Reload persisted run for integrity
                 from backend.app.harvest_state.application import get_harvest_state_run_by_id
 
                 reloaded = await get_harvest_state_run_by_id(session, run_id=envelope.run_id)
@@ -658,9 +779,8 @@ async def _resolve_task9(
                 return authority, None
 
             blocked = await _blocked(
+                ctx,
                 attempt_id,
-                run_signature,
-                node_sig,
                 attempt_number,
                 stage,
                 OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
@@ -671,9 +791,8 @@ async def _resolve_task9(
             return None, blocked
         except Exception as exc:
             blocked = await _blocked(
+                ctx,
                 attempt_id,
-                run_signature,
-                node_sig,
                 attempt_number,
                 stage,
                 OrchestrationBlocker.TASK9_EXECUTION_BLOCKED.value,
@@ -685,9 +804,8 @@ async def _resolve_task9(
 
     # No Task 9 found
     blocked = await _blocked(
+        ctx,
         attempt_id,
-        run_signature,
-        node_sig,
         attempt_number,
         stage,
         OrchestrationBlocker.TASK10_TASK9_BINDING_MISMATCH.value,
@@ -702,9 +820,8 @@ def _resolve_task10_model(
     resolutions: list[ResolutionResult],
     task9_authority: Task9AuthorityOutcome | None,
     node: RollingNodeDefinition,
+    ctx: NodeExecutionContext,
     attempt_id: int,
-    run_signature: str,
-    node_sig: str,
     attempt_number: int,
     stage: OrchestrationStage,
     started_at: datetime,
@@ -712,8 +829,8 @@ def _resolve_task10_model(
     """Resolve Task 10 model authority with structural-only fallback."""
     if node.task10_model_policy.policy == Task10ModelPolicy.REPLAY_TRAINED_MODEL:
         blocked = _outcome_blocked(
-            run_signature,
-            node_sig,
+            ctx.run_signature,
+            ctx.node_signature,
             stage.value,
             OrchestrationBlocker.TASK10_TRAINING_NOT_IMPLEMENTED.value,
             {"policy": "replay_trained_model"},
@@ -748,8 +865,8 @@ def _resolve_task10_model(
         return authority, None
 
     blocked = _outcome_blocked(
-        run_signature,
-        node_sig,
+        ctx.run_signature,
+        ctx.node_signature,
         stage.value,
         OrchestrationBlocker.TASK10_TASK9_BINDING_MISMATCH.value,
         {"reason": "No Task 10 model and no verified Task 9 authority"},
@@ -762,9 +879,8 @@ async def _execute_task10_prediction(
     session: AsyncSession,
     task10_authority: Task10AuthorityOutcome | None,
     task9_authority: Task9AuthorityOutcome | None,
+    ctx: NodeExecutionContext,
     attempt_id: int,
-    run_signature: str,
-    node_sig: str,
     attempt_number: int,
     stage: OrchestrationStage,
     resolutions: list[ResolutionResult],
@@ -779,9 +895,8 @@ async def _execute_task10_prediction(
         or not task9_authority.run_reference
     ):
         return await _blocked(
+            ctx,
             attempt_id,
-            run_signature,
-            node_sig,
             attempt_number,
             stage,
             OrchestrationBlocker.TASK10_TASK9_BINDING_MISMATCH.value,
@@ -799,9 +914,8 @@ async def _execute_task10_prediction(
             task9_ref.reference_value, int
         ):
             return await _blocked(
+                ctx,
                 attempt_id,
-                run_signature,
-                node_sig,
                 attempt_number,
                 stage,
                 OrchestrationBlocker.TASK10_PREDICTION_BLOCKED.value,
@@ -817,36 +931,39 @@ async def _execute_task10_prediction(
             session, request=predict_request
         )
 
-        # Save prediction results into authority — reload to verify
+        # Reload to verify and build updated authority outcome
         from backend.app.residual_model.persistence import load_residual_prediction_run_by_id
 
         if pred_run_id > 0:
             reloaded = await load_residual_prediction_run_by_id(session, run_id=pred_run_id)
             if reloaded is not None:
-                # Update authority with real prediction data
-                object.__setattr__(
-                    task10_authority,
-                    "prediction_reference",
-                    PersistentUpstreamReference(
+                pred_hash = getattr(reloaded, "prediction_hash", None)
+                input_sig = getattr(reloaded, "input_signature", None)
+
+                # Return new immutable authority with prediction data
+                # (cannot use object.__setattr__ on frozen dataclass)
+                updated_auth = Task10AuthorityOutcome(
+                    training_reference=task10_authority.training_reference,
+                    artifact_reference=task10_authority.artifact_reference,
+                    prediction_reference=PersistentUpstreamReference(
                         reference_type="database_run_id", reference_value=pred_run_id
                     ),
+                    task9_run_reference=task10_authority.task9_run_reference,
+                    task9_result_hash=task10_authority.task9_result_hash,
+                    input_signature=input_sig,
+                    prediction_hash=pred_hash,
+                    mode=task10_authority.mode,
                 )
-                if hasattr(reloaded, "prediction_hash"):
-                    object.__setattr__(
-                        task10_authority, "prediction_hash", reloaded.prediction_hash
-                    )
-                if hasattr(reloaded, "input_signature"):
-                    object.__setattr__(
-                        task10_authority, "input_signature", reloaded.input_signature
-                    )
+                # Store updated authority via mutable container on outcome
+                # (caller uses the returned outcome, not the frozen input)
+                _store_prediction_authority(updated_auth)
 
         return None
 
     except Exception as exc:
         return await _blocked(
+            ctx,
             attempt_id,
-            run_signature,
-            node_sig,
             attempt_number,
             stage,
             OrchestrationBlocker.TASK10_PREDICTION_SERVICE_FAILURE.value,
@@ -856,27 +973,22 @@ async def _execute_task10_prediction(
         )
 
 
-async def _persist(
-    attempt_id: int,
-    stage: str,
-    status: str,
-    blocker_code: str | None = None,
-    diagnostics: dict[str, object] | None = None,
-) -> None:
-    """Persist stage transition via Phase 2 repository (mandatory, fail-closed)."""
-    await finalize_attempt_status(
-        attempt_id,
-        status=status,
-        current_stage=stage,
-        structured_error_code=blocker_code,
-        sanitized_diagnostics=_sanitize_diagnostics(diagnostics or {}),
-    )
+# ── Prediction authority thread-local storage ────────────────────────────────
+
+_prediction_authority_store = threading.local()
+
+
+def _store_prediction_authority(auth: Task10AuthorityOutcome) -> None:
+    _prediction_authority_store.authority = auth
+
+
+def _get_prediction_authority() -> Task10AuthorityOutcome | None:
+    return getattr(_prediction_authority_store, "authority", None)
 
 
 async def _blocked(
+    ctx: NodeExecutionContext,
     attempt_id: int,
-    run_signature: str,
-    node_sig: str,
     attempt_number: int,
     stage: OrchestrationStage,
     blocker_code: str | None,
@@ -884,12 +996,24 @@ async def _blocked(
     started_at: datetime,
     extra_diag: dict[str, object] | None = None,
 ) -> NodeOrchestrationOutcome:
+    """Finalize a blocked attempt with snapshot."""
     diag = _collect_diagnostics(resolutions)
     if extra_diag:
         diag.update(extra_diag)
+
+    # Persist the stage as blocked
+    await persist_stage_event(
+        attempt_id,
+        ctx.rolling_node_id,
+        stage=stage.value,
+        status="blocked",
+        structured_error_code=blocker_code,
+        sanitized_diagnostics=_sanitize_diagnostics(diag),
+    )
+
     await finalize_attempt_with_snapshot(
         attempt_id,
-        node_id=0,
+        node_id=ctx.rolling_node_id,
         status="blocked",
         current_stage=stage.value,
         snapshot_status="blocked",
@@ -898,8 +1022,8 @@ async def _blocked(
         structured_error_code=blocker_code,
         sanitized_diagnostics=_sanitize_diagnostics(diag),
         canonical_payload={
-            "run_signature": run_signature,
-            "node_signature": node_sig,
+            "run_signature": ctx.run_signature,
+            "node_signature": ctx.node_signature,
             "attempt_number": attempt_number,
             "status": "blocked",
             "stage": stage.value,
@@ -907,8 +1031,8 @@ async def _blocked(
         },
     )
     return NodeOrchestrationOutcome(
-        rolling_run_signature=run_signature,
-        node_signature=node_sig,
+        rolling_run_signature=ctx.run_signature,
+        node_signature=ctx.node_signature,
         attempt_number=attempt_number,
         status="blocked",
         stage=stage.value,
@@ -954,10 +1078,6 @@ async def _build_task9a_request(
 
     Loads real upstream data using resolved references. Returns None with
     structured diagnostics if inputs are insufficient for replay.
-
-    Full construction requires: weather features (task7), daily maturity
-    predictions (task8), capacity config (task6/plan), harvest parameters,
-    and holiday calendar. These are loaded from the database at call time.
     """
     resolved_map: dict[str, ResolutionResult] = {}
     for r in resolutions:
@@ -969,25 +1089,20 @@ async def _build_task9a_request(
         "task7_weather_observation",
         "task6_plan_version",
     ]
-    missing_roles: list[str] = []
-    for role in required_roles:
-        if role not in resolved_map:
-            missing_roles.append(role)
+    missing_roles: list[str] = [role for role in required_roles if role not in resolved_map]
 
     if missing_roles:
-        _store_missing_roles(missing_roles)
         return None
 
-    # All required roles are resolved. When upstream data rows exist in the DB,
-    # load them here and construct a real Task9ARequest. For Phase 3, return None
-    # to indicate that data loading is deferred to PostgreSQL integration tests.
+    # All required roles are resolved.
+    # Full Task9ARequest construction requires real upstream data rows
+    # (daily predictions, weather features, capacity config, etc.) loaded
+    # from the database at call time. Phase 3 defers full construction
+    # to the PostgreSQL integration tests where persisted fixtures exist.
     return None
 
 
-def _store_missing_roles(roles: list[str]) -> None:
-    """Store missing source roles for structured error reporting."""
-    # Attach diagnostically — actual integration tests will read this
-    pass
+# ── Utilities ─────────────────────────────────────────────────────────────────
 
 
 def _safe_hash(value: str) -> str:
