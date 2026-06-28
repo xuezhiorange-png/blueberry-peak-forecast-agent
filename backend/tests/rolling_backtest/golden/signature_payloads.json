@@ -1,29 +1,81 @@
 {
   "historical_node_payload": {
     "as_of_local_date": "2026-03-15",
-    "destination_factory_ids": [
-      101,
-      202
-    ],
+    "cutoff_policy_version": "task11-cutoff-v1",
     "execution_mode": "historical_observed",
-    "forecast_cutoff_at": "2026-03-15T12:00:00Z",
+    "forecast_cutoff_at": "2026-03-15T04:00:00Z",
     "forecast_end_local_date": "2026-03-31",
     "forecast_horizon_policy_version": "task11-horizon-v1",
     "forecast_start_local_date": "2026-03-16",
     "node_key": "march_15",
     "resolved_upstream_semantic_identities": [
       {
-        "payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
-        "semantic_identity": "task10:artifact:P50",
+        "role_qualifier": "p50",
+        "semantic": {
+          "artifact_payload_hash": null,
+          "business_version": null,
+          "canonical_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+          "config_hash": null,
+          "input_signature": null,
+          "policy_version": null,
+          "result_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+          "schema_version": "task11-upstream-identity-v1",
+          "semantic_identity": "task10_artifact_p50",
+          "semantic_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "source_role": "task10_residual_artifact",
         "source_type": "task10_model_artifact"
       },
       {
-        "payload_hash": "1111111111111111111111111111111111111111111111111111111111111111",
-        "semantic_identity": "task9:run:77",
+        "role_qualifier": null,
+        "semantic": {
+          "artifact_payload_hash": null,
+          "business_version": null,
+          "canonical_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "config_hash": null,
+          "input_signature": null,
+          "policy_version": null,
+          "result_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "schema_version": "task11-upstream-identity-v1",
+          "semantic_identity": "task9_result",
+          "semantic_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "source_role": "task9_structural_forecast",
         "source_type": "task9_harvest_state_run"
       }
     ],
+    "scope": {
+      "destination_factory_ids": {
+        "ids": [
+          101,
+          202
+        ],
+        "mode": "include_ids"
+      },
+      "farm_ids": {
+        "ids": [],
+        "mode": "all"
+      },
+      "subfarm_ids": {
+        "ids": [],
+        "mode": "all"
+      },
+      "variety_ids": {
+        "ids": [],
+        "mode": "all"
+      }
+    },
     "season_id": 2026,
+    "task10_model_policy": {
+      "artifact_semantic_identities": [
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      ],
+      "authority_visibility_identity": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "policy": "historically_available_model",
+      "training_run_semantic_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
     "timezone": "Asia/Shanghai",
     "upstream_selection_mode": "historical_resolution"
   },
@@ -31,43 +83,96 @@
     "availability_registry_version": "task11-availability-v1",
     "calendar_phase_policy_version": "task11-calendar-phase-v1",
     "canonical_serialization_version": "task11-canonical-v1",
+    "cutoff_local_time": "12:00:00",
+    "cutoff_policy_version": "task11-cutoff-v1",
+    "cutoff_timezone": "Asia/Shanghai",
+    "execution_mode": "historical_observed",
     "forecast_horizon_policy_version": "task11-horizon-v1",
     "metric_policy_version": "task11-metrics-v1",
     "node_calendar_version": "task11-calendar-v1",
     "nodes": [
       {
         "as_of_local_date": "2026-03-15",
-        "destination_factory_ids": [
-          101,
-          202
-        ],
-        "execution_mode": "historical_observed",
-        "forecast_cutoff_at": "2026-03-15T12:00:00Z",
+        "forecast_cutoff_at": "2026-03-15T04:00:00Z",
         "forecast_end_local_date": "2026-03-31",
         "forecast_horizon_policy_version": "task11-horizon-v1",
         "forecast_start_local_date": "2026-03-16",
         "node_key": "march_15",
         "resolved_upstream_semantic_identities": [
           {
-            "payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
-            "semantic_identity": "task10:artifact:P50",
+            "role_qualifier": "p50",
+            "semantic": {
+              "artifact_payload_hash": null,
+              "business_version": null,
+              "canonical_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+              "config_hash": null,
+              "input_signature": null,
+              "policy_version": null,
+              "result_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+              "schema_version": "task11-upstream-identity-v1",
+              "semantic_identity": "task10_artifact_p50",
+              "semantic_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "source_role": "task10_residual_artifact",
             "source_type": "task10_model_artifact"
           },
           {
-            "payload_hash": "1111111111111111111111111111111111111111111111111111111111111111",
-            "semantic_identity": "task9:run:77",
+            "role_qualifier": null,
+            "semantic": {
+              "artifact_payload_hash": null,
+              "business_version": null,
+              "canonical_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "config_hash": null,
+              "input_signature": null,
+              "policy_version": null,
+              "result_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "schema_version": "task11-upstream-identity-v1",
+              "semantic_identity": "task9_result",
+              "semantic_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "source_role": "task9_structural_forecast",
             "source_type": "task9_harvest_state_run"
           }
         ],
+        "scope": {
+          "destination_factory_ids": {
+            "ids": [
+              101,
+              202
+            ],
+            "mode": "include_ids"
+          },
+          "farm_ids": {
+            "ids": [],
+            "mode": "all"
+          },
+          "subfarm_ids": {
+            "ids": [],
+            "mode": "all"
+          },
+          "variety_ids": {
+            "ids": [],
+            "mode": "all"
+          }
+        },
         "season_id": 2026,
         "timezone": "Asia/Shanghai",
         "upstream_selection_mode": "historical_resolution"
       }
     ],
     "rolling_schema_version": "task11-rolling-v1",
-    "task10_model_policy": "historically_available_model",
+    "task10_model_policy": {
+      "artifact_semantic_identities": [
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      ],
+      "authority_visibility_identity": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "policy": "historically_available_model",
+      "training_run_semantic_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
     "upstream_selection_policy_version": "task11-selection-v1"
   },
-  "historical_node_hash": "4f5175dfe0bf7eb813afaf55e3fb835e28e372ee3c19e3693e556b4282b9698f",
-  "historical_run_hash": "3d8faacc357f9e454198a0dee64edd6750ed83698debc2a5842e57145bc152a8"
+  "historical_node_hash": "0f38e802ee422c6b00184dd471a67ca0480baea6ce69442d9c46e2562a5ced57",
+  "historical_run_hash": "0bd5b9bf3b81f885f8c29b72e0472453d5c6f8e7c0872555503ca4a12fddd74e"
 }
