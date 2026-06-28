@@ -1,6 +1,6 @@
 """Rolling backtest orchestration: attempt ownership, stage history, outcome snapshot.
 
-Revision ID: 0013_rolling_backtest_orchestration
+Revision ID: 0013_rolling_backtest_orch
 Revises: 0012_rolling_backtest
 Create Date: 2026-06-28
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0013_rolling_backtest_orchestration"
+revision: str = "0013_rolling_backtest_orch"
 down_revision: str | None = "0012_rolling_backtest"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -46,7 +46,7 @@ def upgrade() -> None:
     ).scalar_one()
     if legacy_attempt_count:
         raise RuntimeError(
-            "0013_rolling_backtest_orchestration requires an empty "
+            "0013_rolling_backtest_orch requires an empty "
             "rolling_backtest_attempt table; legacy attempt rows cannot be "
             "deterministically backfilled to rolling_node_id"
         )
