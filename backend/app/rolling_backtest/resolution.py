@@ -549,6 +549,216 @@ async def _query_task10_training_candidates(
     return candidates
 
 
+async def _query_task8_artifact_candidates(
+    session: AsyncSession,
+    node: RollingNodeDefinition,
+    execution_mode: ExecutionMode,
+) -> list[HistoricalCandidate]:
+    """Query Task 8 MaturityModelArtifact candidates via parent model run (SQL cutoff)."""
+    _unused = execution_mode
+    from backend.app.models.maturity import MaturityModelArtifact, MaturityModelRun
+
+    query = (
+        select(MaturityModelArtifact, MaturityModelRun)
+        .join(MaturityModelRun, MaturityModelArtifact.run_id == MaturityModelRun.id)
+        .where(MaturityModelRun.status.in_(["completed", "unavailable"]))
+        .where(MaturityModelRun.training_cutoff <= node.as_of_local_date)
+        .where(MaturityModelRun.finished_at <= node.forecast_cutoff_at)
+        .order_by(MaturityModelArtifact.created_at.desc().nullslast())
+        .limit(20)
+    )
+    result = await session.execute(query)
+    rows = result.all()
+    candidates: list[HistoricalCandidate] = []
+    for artifact, model_run in rows:
+        identity = _make_identity(
+            source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+            source_role="task8_model_artifact",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash=artifact.artifact_hash,
+            config_hash=model_run.config_hash,
+            business_version=model_run.model_version,
+            display_label="task8:model_artifact",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id", reference_value=artifact.id
+            ),
+        )
+        candidates.append(
+            HistoricalCandidate(
+                source_role="task8_model_artifact",
+                source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id", reference_value=artifact.id
+                ),
+                semantic_identity=identity,
+                authoritative_available_at=artifact.created_at,
+                business_version=model_run.model_version,
+                canonical_payload_hash=artifact.artifact_hash,
+            )
+        )
+    return candidates
+
+
+async def _query_task8_daily_prediction_candidates(
+    session: AsyncSession,
+    node: RollingNodeDefinition,
+    execution_mode: ExecutionMode,
+) -> list[HistoricalCandidate]:
+    """Query Task 8 MaturityDailyPredictionModel candidates (SQL cutoff)."""
+    _unused = execution_mode
+    from backend.app.models.maturity import (
+        MaturityDailyPredictionModel,
+        MaturityForecastRun,
+    )
+
+    query = (
+        select(MaturityDailyPredictionModel, MaturityForecastRun)
+        .join(
+            MaturityForecastRun,
+            MaturityDailyPredictionModel.forecast_run_id == MaturityForecastRun.id,
+        )
+        .where(MaturityForecastRun.status.in_(["completed", "unavailable"]))
+        .where(MaturityForecastRun.finished_at <= node.forecast_cutoff_at)
+        .where(MaturityDailyPredictionModel.prediction_date >= node.forecast_start_local_date)
+        .where(MaturityDailyPredictionModel.prediction_date <= node.forecast_end_local_date)
+        .order_by(MaturityDailyPredictionModel.created_at.desc().nullslast())
+        .limit(20)
+    )
+    result = await session.execute(query)
+    rows = result.all()
+    candidates: list[HistoricalCandidate] = []
+    for daily, forecast_run in rows:
+        sig = getattr(forecast_run, "source_signature", "")
+        identity = _make_identity(
+            source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+            source_role="task8_daily_prediction",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash=sig,
+            display_label="task8:daily_prediction",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id", reference_value=daily.id
+            ),
+        )
+        candidates.append(
+            HistoricalCandidate(
+                source_role="task8_daily_prediction",
+                source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id", reference_value=daily.id
+                ),
+                semantic_identity=identity,
+                authoritative_available_at=daily.created_at,
+            )
+        )
+    return candidates
+
+
+async def _query_task10_artifact_candidates(
+    session: AsyncSession,
+    node: RollingNodeDefinition,
+    execution_mode: ExecutionMode,
+) -> list[HistoricalCandidate]:
+    """Query Task 10 ResidualModelArtifact candidates (SQL cutoff)."""
+    _unused = execution_mode
+    from backend.app.models.residual_model import ResidualModelArtifact, ResidualModelTrainingRun
+
+    query = (
+        select(ResidualModelArtifact, ResidualModelTrainingRun)
+        .join(
+            ResidualModelTrainingRun,
+            ResidualModelArtifact.training_run_id == ResidualModelTrainingRun.id,
+        )
+        .where(ResidualModelTrainingRun.execution_status == "completed")
+        .where(ResidualModelTrainingRun.finished_at <= node.forecast_cutoff_at)
+        .order_by(ResidualModelArtifact.created_at.desc().nullslast())
+        .limit(20)
+    )
+    result = await session.execute(query)
+    rows = result.all()
+    candidates: list[HistoricalCandidate] = []
+    for artifact, _training_run in rows:
+        identity = _make_identity(
+            source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
+            source_role="task10_model_artifact",
+            schema_version=artifact.feature_schema_version,
+            semantic_payload_hash=artifact.artifact_sha256,
+            config_hash=artifact.config_hash,
+            artifact_payload_hash=artifact.artifact_sha256,
+            business_version=artifact.artifact_schema_version,
+            display_label="task10:model_artifact",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id", reference_value=artifact.id
+            ),
+        )
+        candidates.append(
+            HistoricalCandidate(
+                source_role="task10_model_artifact",
+                source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id", reference_value=artifact.id
+                ),
+                semantic_identity=identity,
+                authoritative_available_at=artifact.created_at,
+                business_version=artifact.artifact_schema_version,
+                canonical_payload_hash=artifact.artifact_sha256,
+            )
+        )
+    return candidates
+
+
+async def _query_task10_prediction_run_candidates(
+    session: AsyncSession,
+    node: RollingNodeDefinition,
+    execution_mode: ExecutionMode,
+) -> list[HistoricalCandidate]:
+    """Query Task 10 ResidualModelPredictionRun candidates (SQL cutoff)."""
+    _unused = execution_mode
+    from backend.app.models.residual_model import ResidualModelPredictionRun
+
+    query = (
+        select(ResidualModelPredictionRun)
+        .where(ResidualModelPredictionRun.execution_status == "completed")
+        .where(ResidualModelPredictionRun.completed_at <= node.forecast_cutoff_at)
+        .order_by(ResidualModelPredictionRun.completed_at.desc().nullslast())
+        .limit(20)
+    )
+    result = await session.execute(query)
+    rows = result.scalars().all()
+    candidates: list[HistoricalCandidate] = []
+    for row in rows:
+        if row.completed_at is None:
+            continue
+        identity = _make_identity(
+            source_type=AvailabilitySourceType.TASK10_PREDICTION_RUN,
+            source_role="task10_prediction_run",
+            schema_version=row.feature_schema_version,
+            semantic_payload_hash=row.prediction_hash,
+            config_hash=row.config_hash,
+            result_hash=row.prediction_hash,
+            canonical_payload_hash=row.prediction_hash,
+            input_signature=row.prediction_input_signature,
+            business_version=row.feature_schema_version,
+            display_label="task10:prediction_run",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id", reference_value=row.id
+            ),
+        )
+        candidates.append(
+            HistoricalCandidate(
+                source_role="task10_prediction_run",
+                source_type=AvailabilitySourceType.TASK10_PREDICTION_RUN,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id", reference_value=row.id
+                ),
+                semantic_identity=identity,
+                authoritative_available_at=row.completed_at,
+                business_version=row.feature_schema_version,
+                canonical_payload_hash=row.prediction_hash,
+            )
+        )
+    return candidates
+
+
 # ── Dispatch map (typed, no Any) ─────────────────────────────────────────────
 
 _SOURCE_QUERY_MAP: dict[AvailabilitySourceType, CandidateQueryAdapter] = {
@@ -556,13 +766,13 @@ _SOURCE_QUERY_MAP: dict[AvailabilitySourceType, CandidateQueryAdapter] = {
     AvailabilitySourceType.TASK6_PLAN_VERSION: _query_task6_candidates,
     AvailabilitySourceType.TASK7_WEATHER_OBSERVATION: _query_task7_candidates,
     AvailabilitySourceType.TASK8_MODEL_RUN: _query_task8_model_run_candidates,
-    AvailabilitySourceType.TASK8_MODEL_ARTIFACT: _query_task8_model_run_candidates,
+    AvailabilitySourceType.TASK8_MODEL_ARTIFACT: _query_task8_artifact_candidates,
     AvailabilitySourceType.TASK8_FORECAST_RUN: _query_task8_forecast_run_candidates,
-    AvailabilitySourceType.TASK8_DAILY_PREDICTION: _query_task8_forecast_run_candidates,
+    AvailabilitySourceType.TASK8_DAILY_PREDICTION: _query_task8_daily_prediction_candidates,
     AvailabilitySourceType.TASK9_HARVEST_STATE_RUN: _query_task9_candidates,
     AvailabilitySourceType.TASK10_TRAINING_RUN: _query_task10_training_candidates,
-    AvailabilitySourceType.TASK10_MODEL_ARTIFACT: _query_task10_training_candidates,
-    AvailabilitySourceType.TASK10_PREDICTION_RUN: _query_task10_training_candidates,
+    AvailabilitySourceType.TASK10_MODEL_ARTIFACT: _query_task10_artifact_candidates,
+    AvailabilitySourceType.TASK10_PREDICTION_RUN: _query_task10_prediction_run_candidates,
 }
 
 
