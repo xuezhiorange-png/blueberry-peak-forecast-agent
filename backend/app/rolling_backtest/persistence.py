@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Awaitable, Callable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
@@ -135,6 +136,34 @@ async def _run_persistence_write_test_hook(
 
 def _json_value(value: object) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(canonical_json_dumps(value)))
+
+
+def _extract_constraint_name(exc: SAIntegrityError) -> str | None:
+    """Extract the PostgreSQL constraint name from an IntegrityError.
+
+    Used to classify constraint violations so only the target UNIQUE key
+    on (attempt_id, stage) triggers the idempotent update path. All other
+    violations (FK, CHECK, NOT NULL, sequence UNIQUE) are re-raised as
+    typed integrity errors.
+    """
+    orig = getattr(exc, "orig", None)
+    if orig is None:
+        return None
+    msg = str(orig)
+    # PostgreSQL format: 'duplicate key value violates unique constraint "uq_name"'
+    if "unique constraint" in msg or "UniqueViolation" in msg:
+        m = re.search(r'"([^"]+)"', msg)
+        if m:
+            return m.group(1)
+    # PostgreSQL CHECK/NOT NULL: 'violates check constraint "ck_name"'
+    if "check constraint" in msg or "CheckViolation" in msg:
+        m = re.search(r'"([^"]+)"', msg)
+        if m:
+            return m.group(1)
+    # FK violation
+    if "foreign key" in msg or "ForeignKeyViolation" in msg:
+        return "foreign_key_violation"
+    return None
 
 
 def _resolved_input_canonical_payload(
@@ -1115,10 +1144,14 @@ async def persist_stage_event(
         try:
             await session.commit()
             return event
-        except SAIntegrityError:
+        except SAIntegrityError as exc:
             await session.rollback()
-            # ── Close this session; open a fresh one for SELECT+UPDATE ──
-            await session.close()
+            # Classify constraint violation: only retry for the target unique key
+            constraint_name = _extract_constraint_name(exc)
+            if constraint_name != "uq_rolling_backtest_stage_event_stage":
+                raise RollingBacktestStageIntegrityError(
+                    f"persist_stage_event constraint violation: {constraint_name or 'unknown'}"
+                ) from exc
 
         # Already exists — update it in a fresh session
         async with AsyncSessionMaker() as update_session:
@@ -1309,7 +1342,17 @@ async def validate_stage_continuity(
     events = list(result.scalars().all())
 
     if not events:
-        # No stage events is acceptable only if the attempt never started
+        # No stage events — check attempt status. Only pending/unstarted
+        # attempts may legitimately have no stage history.
+        attempt_result = await session.execute(
+            select(RollingBacktestAttempt.status).where(RollingBacktestAttempt.id == attempt_id)
+        )
+        attempt_status = attempt_result.scalar_one_or_none()
+        if attempt_status is not None and attempt_status not in ("pending",):
+            raise RollingBacktestStageIntegrityError(
+                f"attempt {attempt_id} has status '{attempt_status}' "
+                f"but no stage events — empty stage history is only valid for pending"
+            )
         return
 
     # Rule 1: sequence must start at 1
@@ -1353,7 +1396,7 @@ async def validate_stage_continuity(
             )
         )
         attempt_node_id = attempt_result.scalar_one_or_none()
-        if attempt_node_id is not None and event.rolling_node_id != attempt_node_id:
+        if attempt_node_id is not None and event.rolling_node_id != int(attempt_node_id):
             raise RollingBacktestAuthorityBindingError(
                 f"stage_event {event.id} node_id {event.rolling_node_id} != "
                 f"attempt {attempt_id} node_id {attempt_node_id}"
