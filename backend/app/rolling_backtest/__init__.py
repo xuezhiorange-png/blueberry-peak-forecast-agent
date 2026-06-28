@@ -19,6 +19,7 @@ from backend.app.rolling_backtest.enums import (
     UpstreamSelectionMode,
 )
 from backend.app.rolling_backtest.orchestration import (
+    AvailabilityAuditOutcome,
     NodeOrchestrationOutcome,
     OrchestrationBlocker,
     OrchestrationStage,
@@ -75,6 +76,7 @@ from backend.app.rolling_backtest.signatures import (
 from backend.app.rolling_backtest.state import derive_run_status
 
 __all__ = [
+    "AvailabilityAuditOutcome",
     "AvailabilityAuditPersistenceCommand",
     "AvailabilityAuthorityEvaluationResult",
     "AvailabilitySnapshot",

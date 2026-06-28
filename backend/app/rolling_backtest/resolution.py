@@ -80,9 +80,15 @@ class HistoricalCandidate:
             id_str = canonical_json_dumps(id_payload)
             object.__setattr__(self, "canonical_identity_hash", sha256_payload(id_str))
 
-        # canonical_payload_hash must be supplied by the adapter from upstream data;
-        # if still empty after __post_init__, the adapter failed to provide it.
-        # We keep it as-is — empty means "not available from upstream".
+        # Validate: if canonical_payload_hash is provided, it must be a valid SHA-256
+        if self.canonical_payload_hash:
+            if len(self.canonical_payload_hash) != 64 or not all(
+                c in "0123456789abcdef" for c in self.canonical_payload_hash.lower()
+            ):
+                raise ValueError(
+                    f"canonical_payload_hash must be a 64-char hex string, "
+                    f"got {self.canonical_payload_hash!r}"
+                )
 
 
 def _build_identity_payload(identity: ResolvedUpstreamSemanticIdentity) -> dict[str, object]:
@@ -265,7 +271,7 @@ async def _query_task6_candidates(
             schema_version="task6-plan-v1",
             semantic_payload_hash=row.file_sha256,
             business_version=row.source_version,
-            display_label=f"task6:plan:{row.id}",
+            display_label="task6:plan_version",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id", reference_value=row.id
             ),
@@ -316,7 +322,7 @@ async def _query_task7_candidates(
             semantic_payload_hash=row.config_hash,
             config_hash=row.config_hash,
             business_version=row.feature_version,
-            display_label=f"task7:weather:{row.id}",
+            display_label="task7:weather",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id", reference_value=row.id
             ),
@@ -367,7 +373,7 @@ async def _query_task8_model_run_candidates(
             semantic_payload_hash=row.config_hash,
             config_hash=row.config_hash,
             business_version=row.model_version,
-            display_label=f"task8:model:{row.id}",
+            display_label="task8:model_run",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id", reference_value=row.id
             ),
@@ -415,7 +421,7 @@ async def _query_task8_forecast_run_candidates(
             source_role="task8_forecast_run",
             schema_version="task8-maturity-v1",
             semantic_payload_hash=row.source_signature if hasattr(row, "source_signature") else "",
-            display_label=f"task8:forecast:{row.id}",
+            display_label="task8:forecast_run",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id", reference_value=row.id
             ),
@@ -466,7 +472,7 @@ async def _query_task9_candidates(
             result_hash=row.result_hash,
             canonical_payload_hash=row.canonical_payload_hash,
             business_version=row.output_schema_version,
-            display_label=f"task9:harvest_state:{row.id}",
+            display_label="task9:harvest_state",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id", reference_value=row.id
             ),
@@ -518,7 +524,7 @@ async def _query_task10_training_candidates(
             result_hash=row.canonical_payload_hash,
             canonical_payload_hash=row.canonical_payload_hash,
             business_version=row.model_version,
-            display_label=f"task10:training:{row.id}",
+            display_label="task10:training_run",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id", reference_value=row.id
             ),
