@@ -5,6 +5,7 @@ Requires PostgreSQL with RUN_POSTGRES_INTEGRATION=1 and APP_ENV=test.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from datetime import UTC, datetime
 
@@ -13,12 +14,14 @@ from sqlalchemy import func, select, text
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.rolling_backtest import (
+    RollingBacktestAttempt,
     RollingBacktestAvailabilityAudit,
     RollingBacktestDagSnapshot,
     RollingBacktestNode,
     RollingBacktestResolvedInput,
     RollingBacktestRun,
 )
+from backend.app.rolling_backtest import persistence as persistence_module
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
     ExecutionMode,
@@ -26,8 +29,10 @@ from backend.app.rolling_backtest.enums import (
 )
 from backend.app.rolling_backtest.errors import (
     RollingBacktestAttemptConflictError,
+    RollingBacktestAuthorityBindingError,
     RollingBacktestCanonicalParityError,
     RollingBacktestChildCountMismatchError,
+    RollingBacktestDagIntegrityError,
     RollingBacktestIdentityConflictError,
     RollingBacktestIntegrityError,
 )
@@ -167,6 +172,21 @@ def _make_dag() -> DagPersistenceCommand:
     )
 
 
+def _make_node_command(
+    node: RollingNodeDefinition,
+    *,
+    identity: ResolvedUpstreamSemanticIdentity | None = None,
+) -> RollingNodePersistenceCommand:
+    if identity is None:
+        identity = _make_semantic_identity()
+    return RollingNodePersistenceCommand(
+        node=node,
+        resolved_inputs=(ResolvedInputPersistenceCommand(identity=identity),),
+        availability_audits=(),
+        dag=_make_dag(),
+    )
+
+
 def _make_persistence_command(
     config: RollingBacktestConfig,
     *,
@@ -198,10 +218,20 @@ def _make_persistence_command(
                 status="completed",
                 authoritative_timestamp=datetime(2025, 3, 14, tzinfo=UTC),
             )
+            identity = _make_semantic_identity(
+                source_role="task8_forecast_run",
+                source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+            )
+            if not inputs:
+                inputs = (ResolvedInputPersistenceCommand(identity=identity),)
+            elif all(item.identity.source_role != identity.source_role for item in inputs):
+                inputs = (*inputs, ResolvedInputPersistenceCommand(identity=identity))
             audits = (
                 AvailabilityAuditPersistenceCommand(
+                    source_role="task8_forecast_run",
                     snapshot=snapshot,
                     forecast_cutoff_at=node.forecast_cutoff_at,
+                    resolved_identity=identity,
                 ),
             )
 
@@ -232,7 +262,7 @@ def _make_persistence_command(
 async def test_create_logical_run_single_node() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
     assert run.id is not None
     assert run.run_signature == run_signature_hash(config)
@@ -248,7 +278,7 @@ async def test_create_logical_run_multi_node() -> None:
         _make_node(season_id=2026),
     )
     config = _make_config(nodes=nodes)
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
     assert run.expected_node_count == 2
 
@@ -275,7 +305,7 @@ async def test_create_with_resolved_inputs_and_audits_and_dag() -> None:
         input_count = await session.scalar(
             select(func.count()).where(RollingBacktestResolvedInput.rolling_node_id == node.id)
         )
-        assert input_count == 1
+        assert input_count == 2
 
         audit_count = await session.scalar(
             select(func.count()).where(RollingBacktestAvailabilityAudit.rolling_node_id == node.id)
@@ -301,7 +331,7 @@ async def test_create_with_resolved_inputs_and_audits_and_dag() -> None:
 async def test_create_same_config_twice_is_idempotent() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run1 = await create_or_load_logical_run(cmd)
     run2 = await create_or_load_logical_run(cmd)
     assert run1.id == run2.id
@@ -323,7 +353,7 @@ async def test_create_same_config_twice_is_idempotent() -> None:
 async def test_same_signature_tampered_canonical_payload_is_rejected() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     await create_or_load_logical_run(cmd)
 
     # Tamper canonical_payload
@@ -343,7 +373,7 @@ async def test_same_signature_tampered_canonical_payload_is_rejected() -> None:
 async def test_same_signature_tampered_canonical_hash_is_rejected() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     await create_or_load_logical_run(cmd)
 
     # Tamper canonical_payload_hash
@@ -362,7 +392,7 @@ async def test_same_signature_tampered_canonical_hash_is_rejected() -> None:
 async def test_same_signature_tampered_config_hash_is_rejected() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     await create_or_load_logical_run(cmd)
 
     # Tamper config_hash
@@ -377,31 +407,97 @@ async def test_same_signature_tampered_config_hash_is_rejected() -> None:
         await create_or_load_logical_run(cmd)
 
 
+@pytest.mark.asyncio
+async def test_same_signature_tampered_run_execution_mode_is_rejected() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
+    await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        await session.execute(
+            text("UPDATE rolling_backtest_run SET execution_mode = 'retrospective_replay'")
+        )
+        await session.commit()
+
+    with pytest.raises(RollingBacktestCanonicalParityError):
+        await create_or_load_logical_run(cmd)
+
+
+@pytest.mark.asyncio
+async def test_same_signature_tampered_cutoff_timezone_is_rejected() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
+    await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        await session.execute(text("UPDATE rolling_backtest_run SET cutoff_timezone = 'UTC'"))
+        await session.commit()
+
+    with pytest.raises(RollingBacktestCanonicalParityError):
+        await create_or_load_logical_run(cmd)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Atomic rollback
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 @pytest.mark.asyncio
-async def test_rollback_on_duplicate_source_role_leaves_no_orphans() -> None:
+async def test_mid_transaction_child_failure_rolls_back_all_tables() -> None:
     _require_postgres()
-    # This test verifies that when we provide a node cmd with invalid data,
-    # the DB unique constraint would catch it — but since our typed commands
-    # generate proper data, we test by tampering after creation.
-    config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=True, with_audits=False, with_dag=False)
-    _ = await create_or_load_logical_run(cmd)
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    config = _make_config(nodes=nodes)
+    duplicate_role = "task9_structural_forecast"
+    duplicate_identity = _make_semantic_identity(
+        source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
+        source_role=duplicate_role,
+    )
+    command = RollingBacktestPersistenceCommand(
+        config=config,
+        nodes=(
+            _make_node_command(
+                nodes[0], identity=_make_semantic_identity(source_role="task3_analytics")
+            ),
+            RollingNodePersistenceCommand(
+                node=nodes[1],
+                resolved_inputs=(
+                    ResolvedInputPersistenceCommand(identity=duplicate_identity),
+                    ResolvedInputPersistenceCommand(identity=duplicate_identity),
+                ),
+                availability_audits=(),
+                dag=_make_dag(),
+            ),
+        ),
+    )
 
-    # Verify no orphans exist
+    with pytest.raises(RollingBacktestIntegrityError) as exc:
+        await create_or_load_logical_run(command)
+
+    assert exc.value.code == "ROLLING_BACKTEST_INTEGRITY_ERROR"
+
     async with AsyncSessionMaker() as session:
         run_count = await session.scalar(select(func.count()).select_from(RollingBacktestRun))
         node_count = await session.scalar(select(func.count()).select_from(RollingBacktestNode))
         input_count = await session.scalar(
             select(func.count()).select_from(RollingBacktestResolvedInput)
         )
-        assert run_count == 1
-        assert node_count == 1
-        assert input_count == 1
+        audit_count = await session.scalar(
+            select(func.count()).select_from(RollingBacktestAvailabilityAudit)
+        )
+        dag_count = await session.scalar(
+            select(func.count()).select_from(RollingBacktestDagSnapshot)
+        )
+        attempt_count = await session.scalar(
+            select(func.count()).select_from(RollingBacktestAttempt)
+        )
+        assert run_count == 0
+        assert node_count == 0
+        assert input_count == 0
+        assert audit_count == 0
+        assert dag_count == 0
+        assert attempt_count == 0
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -413,7 +509,7 @@ async def test_rollback_on_duplicate_source_role_leaves_no_orphans() -> None:
 async def test_attempt_auto_increment_and_chain() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     a1 = await create_execution_attempt(run.id, status="running")
@@ -435,15 +531,23 @@ async def test_attempt_auto_increment_and_chain() -> None:
     assert a2.attempt_number == 2
     assert a2.prior_attempt_id == a1.id
 
+    await finalize_attempt_status(
+        a2.id,
+        status="blocked",
+        current_stage="waiting_for_retry",
+        structured_error_code="TEST_BLOCKED",
+    )
+
     a3 = await create_execution_attempt(run.id, status="running")
     assert a3.attempt_number == 3
+    assert a3.prior_attempt_id == a2.id
 
 
 @pytest.mark.asyncio
 async def test_cannot_modify_completed_attempt() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
     a1 = await create_execution_attempt(run.id, status="running")
     await finalize_attempt_status(a1.id, status="completed", current_stage="done")
@@ -456,11 +560,11 @@ async def test_cannot_modify_completed_attempt() -> None:
 async def test_prior_attempt_must_belong_to_same_run() -> None:
     _require_postgres()
     config1 = _make_config()
-    cmd1 = _make_persistence_command(config1, with_inputs=False, with_dag=False)
+    cmd1 = _make_persistence_command(config1, with_inputs=False, with_dag=True)
     run1 = await create_or_load_logical_run(cmd1)
 
     config2 = _make_config(nodes=(_make_node(season_id=2025),))
-    cmd2 = _make_persistence_command(config2, with_inputs=False, with_dag=False)
+    cmd2 = _make_persistence_command(config2, with_inputs=False, with_dag=True)
     run2 = await create_or_load_logical_run(cmd2)
 
     a1 = await create_execution_attempt(run1.id, status="failed")
@@ -475,6 +579,35 @@ async def test_prior_attempt_must_belong_to_same_run() -> None:
         )
 
 
+@pytest.mark.asyncio
+async def test_retry_after_running_attempt_is_rejected() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+    _ = await create_execution_attempt(run.id, status="running")
+
+    with pytest.raises(RollingBacktestAttemptConflictError) as exc:
+        await create_execution_attempt(run.id, status="running")
+
+    assert exc.value.code == "ROLLING_BACKTEST_ATTEMPT_CONFLICT"
+
+
+@pytest.mark.asyncio
+async def test_retry_after_completed_attempt_is_rejected() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+    attempt = await create_execution_attempt(run.id, status="running")
+    await finalize_attempt_status(attempt.id, status="completed", current_stage="done")
+
+    with pytest.raises(RollingBacktestAttemptConflictError) as exc:
+        await create_execution_attempt(run.id, status="running")
+
+    assert exc.value.code == "ROLLING_BACKTEST_ATTEMPT_CONFLICT"
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Tamper detection matrix
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -484,7 +617,7 @@ async def test_prior_attempt_must_belong_to_same_run() -> None:
 async def test_tamper_delete_node_triggers_child_count_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     # Delete a node
@@ -503,7 +636,7 @@ async def test_tamper_delete_node_triggers_child_count_error() -> None:
 async def test_tamper_insert_extra_node_triggers_child_count_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     # Insert an extra node
@@ -514,12 +647,14 @@ async def test_tamper_insert_extra_node_triggers_child_count_error() -> None:
                 "(rolling_run_id, season_id, node_key, node_signature, "
                 "as_of_local_date, forecast_cutoff_at, forecast_start_local_date, "
                 "forecast_end_local_date, execution_mode, upstream_selection_mode, "
-                "task10_model_policy, canonical_payload, canonical_payload_hash, "
+                "scope, forecast_horizon_policy_version, task10_model_policy, "
+                "cutoff_policy_version, timezone, canonical_payload, canonical_payload_hash, "
                 "expected_resolved_input_count, expected_availability_audit_count) "
                 "VALUES (:rid, 9999, 'extra', :sig, '2025-01-01', "
                 "'2025-01-01T00:00:00Z', '2025-01-02', '2025-01-31', "
                 "'historical_observed', 'historical_resolution', "
-                "'{}'::jsonb, '{}'::jsonb, :hash, 0, 0)"
+                "'{}'::jsonb, 'task11-horizon-v1', '{}'::jsonb, "
+                "'task11-cutoff-v1', 'Asia/Shanghai', '{}'::jsonb, :hash, 0, 0)"
             ),
             {"rid": run.id, "sig": "a" * 64, "hash": "0" * 64},
         )
@@ -533,7 +668,7 @@ async def test_tamper_insert_extra_node_triggers_child_count_error() -> None:
 async def test_tamper_node_canonical_payload_triggers_parity_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
@@ -555,7 +690,7 @@ async def test_tamper_node_canonical_payload_triggers_parity_error() -> None:
 async def test_tamper_node_canonical_hash_triggers_parity_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
@@ -577,7 +712,7 @@ async def test_tamper_node_canonical_hash_triggers_parity_error() -> None:
 async def test_tamper_node_normalized_date_triggers_parity_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
@@ -592,10 +727,28 @@ async def test_tamper_node_normalized_date_triggers_parity_error() -> None:
 
 
 @pytest.mark.asyncio
+async def test_tamper_node_timezone_triggers_parity_error() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        await session.execute(
+            text("UPDATE rolling_backtest_node SET timezone = 'UTC' WHERE rolling_run_id = :rid"),
+            {"rid": run.id},
+        )
+        await session.commit()
+
+    with pytest.raises(RollingBacktestCanonicalParityError):
+        await create_or_load_logical_run(cmd)
+
+
+@pytest.mark.asyncio
 async def test_tamper_delete_resolved_input_triggers_child_count_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=True, with_audits=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=True, with_audits=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
@@ -617,7 +770,7 @@ async def test_tamper_delete_resolved_input_triggers_child_count_error() -> None
 async def test_tamper_resolved_input_semantic_hash_triggers_parity_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=True, with_audits=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=True, with_audits=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
@@ -641,7 +794,7 @@ async def test_tamper_resolved_input_semantic_hash_triggers_parity_error() -> No
 async def test_tamper_persistent_db_id_in_semantic_payload_is_detected() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=True, with_audits=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=True, with_audits=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     # Inject database_id into canonical_payload
@@ -667,7 +820,7 @@ async def test_tamper_persistent_db_id_in_semantic_payload_is_detected() -> None
 async def test_tamper_availability_audit_payload_triggers_parity_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_audits=True, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_audits=True, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
@@ -691,7 +844,7 @@ async def test_tamper_availability_audit_payload_triggers_parity_error() -> None
 async def test_tamper_availability_audit_hash_triggers_parity_error() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_audits=True, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_audits=True, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
@@ -712,8 +865,55 @@ async def test_tamper_availability_audit_hash_triggers_parity_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_dag_absence_does_not_block_reload() -> None:
-    """DAG is optional in Phase 2; deletion does not break integrity reload."""
+async def test_tamper_availability_audit_source_role_triggers_binding_error() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_audits=True, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        await session.execute(
+            text(
+                "UPDATE rolling_backtest_availability_audit "
+                "SET source_role = 'wrong_role' "
+                "WHERE rolling_node_id IN ("
+                "  SELECT id FROM rolling_backtest_node WHERE rolling_run_id = :rid"
+                ")"
+            ),
+            {"rid": run.id},
+        )
+        await session.commit()
+
+    with pytest.raises(RollingBacktestAuthorityBindingError):
+        await create_or_load_logical_run(cmd)
+
+
+@pytest.mark.asyncio
+async def test_tamper_availability_audit_source_type_triggers_binding_error() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_audits=True, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        await session.execute(
+            text(
+                "UPDATE rolling_backtest_availability_audit "
+                "SET source_type = 'task3_analytics_build' "
+                "WHERE rolling_node_id IN ("
+                "  SELECT id FROM rolling_backtest_node WHERE rolling_run_id = :rid"
+                ")"
+            ),
+            {"rid": run.id},
+        )
+        await session.commit()
+
+    with pytest.raises(RollingBacktestAuthorityBindingError):
+        await create_or_load_logical_run(cmd)
+
+
+@pytest.mark.asyncio
+async def test_deleted_dag_fails_closed() -> None:
     _require_postgres()
     config = _make_config()
     cmd = _make_persistence_command(config, with_inputs=False, with_audits=False, with_dag=True)
@@ -730,9 +930,10 @@ async def test_dag_absence_does_not_block_reload() -> None:
         )
         await session.commit()
 
-    # Reload should succeed — DAG absence is acceptable in Phase 2
-    run2 = await create_or_load_logical_run(cmd)
-    assert run2.id == run.id
+    with pytest.raises(RollingBacktestDagIntegrityError) as exc:
+        await create_or_load_logical_run(cmd)
+
+    assert exc.value.code == "ROLLING_BACKTEST_DAG_INTEGRITY_ERROR"
 
 
 @pytest.mark.asyncio
@@ -756,6 +957,73 @@ async def test_tamper_dag_payload_triggers_parity_error() -> None:
         await session.commit()
 
     with pytest.raises(RollingBacktestCanonicalParityError):
+        await create_or_load_logical_run(cmd)
+
+
+@pytest.mark.asyncio
+async def test_dag_owner_mismatch_fails_closed() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_audits=False, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        bad_owner = "b" * 64
+        await session.execute(
+            text(
+                "UPDATE rolling_backtest_dag_snapshot "
+                "SET canonical_payload = "
+                "jsonb_set("
+                "canonical_payload, "
+                "'{owner_node_signature}', "
+                "to_jsonb(:bad_owner::text)"
+                ") "
+                "WHERE rolling_node_id IN ("
+                "  SELECT id FROM rolling_backtest_node WHERE rolling_run_id = :rid"
+                ")"
+            ),
+            {"rid": run.id, "bad_owner": bad_owner},
+        )
+        await session.commit()
+
+    with pytest.raises(RollingBacktestDagIntegrityError):
+        await create_or_load_logical_run(cmd)
+
+
+@pytest.mark.asyncio
+async def test_dag_missing_endpoint_fails_closed() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_audits=False, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        node_signature = await session.scalar(
+            select(RollingBacktestNode.node_signature).where(
+                RollingBacktestNode.rolling_run_id == run.id
+            )
+        )
+        assert node_signature is not None
+        await session.execute(
+            text(
+                "UPDATE rolling_backtest_dag_snapshot "
+                "SET canonical_payload = "
+                "jsonb_build_object("
+                "'owner_node_signature', :node_signature, "
+                "'dag_schema_version', 'task11-dag-v1', "
+                "'dag_policy_version', 'task11-dag-policy-v1', "
+                "'nodes', jsonb_build_array('a'), "
+                "'edges', jsonb_build_array(jsonb_build_array('a', 'missing'))"
+                ") "
+                "WHERE rolling_node_id IN ("
+                "  SELECT id FROM rolling_backtest_node WHERE rolling_run_id = :rid"
+                ")"
+            ),
+            {"rid": run.id, "node_signature": node_signature},
+        )
+        await session.commit()
+
+    with pytest.raises(RollingBacktestDagIntegrityError):
         await create_or_load_logical_run(cmd)
 
 
@@ -787,7 +1055,7 @@ async def test_tamper_dag_expected_count_triggers_mismatch() -> None:
 async def test_tamper_attempt_skip_number_is_detected() -> None:
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     a1 = await create_execution_attempt(run.id, status="failed")
@@ -804,18 +1072,18 @@ async def test_tamper_attempt_skip_number_is_detected() -> None:
         await session.commit()
 
     with pytest.raises(RollingBacktestAttemptConflictError):
-        await create_execution_attempt(run.id, status="running")
+        await create_or_load_logical_run(cmd)
 
 
 @pytest.mark.asyncio
 async def test_tamper_attempt_prior_points_to_other_run_is_detected() -> None:
     _require_postgres()
     config1 = _make_config()
-    cmd1 = _make_persistence_command(config1, with_inputs=False, with_dag=False)
+    cmd1 = _make_persistence_command(config1, with_inputs=False, with_dag=True)
     run1 = await create_or_load_logical_run(cmd1)
 
     config2 = _make_config(nodes=(_make_node(season_id=2025),))
-    cmd2 = _make_persistence_command(config2, with_inputs=False, with_dag=False)
+    cmd2 = _make_persistence_command(config2, with_inputs=False, with_dag=True)
     run2 = await create_or_load_logical_run(cmd2)
 
     a1 = await create_execution_attempt(run1.id, status="failed")
@@ -829,33 +1097,126 @@ async def test_tamper_attempt_prior_points_to_other_run_is_detected() -> None:
         )
         await session.commit()
 
-    # Creating a new attempt should detect the broken chain
     with pytest.raises(RollingBacktestAttemptConflictError):
-        await create_execution_attempt(
-            run1.id,
-            status="running",
-            prior_attempt_id=a1.id,
+        await create_or_load_logical_run(cmd1)
+
+
+@pytest.mark.asyncio
+async def test_tamper_attempt_two_prior_null_is_detected() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+
+    first = await create_execution_attempt(run.id, status="failed")
+    second = await create_execution_attempt(run.id, status="running")
+    assert second.prior_attempt_id == first.id
+
+    async with AsyncSessionMaker() as session:
+        await session.execute(
+            text("UPDATE rolling_backtest_attempt SET prior_attempt_id = NULL WHERE id = :aid"),
+            {"aid": second.id},
         )
+        await session.commit()
+
+    with pytest.raises(RollingBacktestAttemptConflictError):
+        await create_or_load_logical_run(cmd)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Concurrency (best-effort in single process with multiple sessions)
+# Concurrency
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 @pytest.mark.asyncio
 async def test_concurrent_same_run_signature_only_creates_one() -> None:
-    """Two parallel persistence calls for the same signature produce exactly one run."""
     _require_postgres()
     config = _make_config()
-    cmd = _make_persistence_command(config, with_inputs=False, with_dag=False)
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
 
-    # Sequential simulation: first creates, second loads
-    run1 = await create_or_load_logical_run(cmd)
-    run2 = await create_or_load_logical_run(cmd)
+    entered = 0
+    released = asyncio.Event()
+    both_waiting = asyncio.Event()
+
+    async def barrier(phase: str) -> None:
+        nonlocal entered
+        if phase != "after_lookup":
+            return
+        entered += 1
+        if entered == 2:
+            both_waiting.set()
+        await both_waiting.wait()
+        await released.wait()
+
+    persistence_module._CREATE_OR_LOAD_SYNC_HOOK = barrier
+    try:
+        left_task = asyncio.create_task(create_or_load_logical_run(cmd))
+        right_task = asyncio.create_task(create_or_load_logical_run(cmd))
+        await asyncio.wait_for(both_waiting.wait(), timeout=5)
+        released.set()
+        run1, run2 = await asyncio.gather(left_task, right_task)
+    finally:
+        persistence_module._CREATE_OR_LOAD_SYNC_HOOK = None
 
     assert run1.id == run2.id
 
     async with AsyncSessionMaker() as session:
-        count = await session.scalar(select(func.count()).select_from(RollingBacktestRun))
-        assert count == 1
+        run_count = await session.scalar(select(func.count()).select_from(RollingBacktestRun))
+        node_count = await session.scalar(select(func.count()).select_from(RollingBacktestNode))
+        input_count = await session.scalar(
+            select(func.count()).select_from(RollingBacktestResolvedInput)
+        )
+        audit_count = await session.scalar(
+            select(func.count()).select_from(RollingBacktestAvailabilityAudit)
+        )
+        dag_count = await session.scalar(
+            select(func.count()).select_from(RollingBacktestDagSnapshot)
+        )
+        assert run_count == 1
+        assert node_count == 1
+        assert input_count == 0
+        assert audit_count == 0
+        assert dag_count == 1
+
+
+@pytest.mark.asyncio
+async def test_concurrent_attempt_allocation_serializes_numbering() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
+    run = await create_or_load_logical_run(cmd)
+    first = await create_execution_attempt(run.id, status="failed")
+
+    entered = 0
+    release = asyncio.Event()
+    first_has_lock = asyncio.Event()
+
+    async def lock_hook(phase: str) -> None:
+        nonlocal entered
+        if phase != "after_run_lock":
+            return
+        entered += 1
+        if entered == 1:
+            first_has_lock.set()
+            await release.wait()
+
+    persistence_module._ATTEMPT_ALLOCATION_SYNC_HOOK = lock_hook
+    try:
+        left = asyncio.create_task(create_execution_attempt(run.id, status="running"))
+        await asyncio.wait_for(first_has_lock.wait(), timeout=5)
+        right = asyncio.create_task(create_execution_attempt(run.id, status="running"))
+        release.set()
+        second, third = await asyncio.gather(left, right, return_exceptions=True)
+    finally:
+        persistence_module._ATTEMPT_ALLOCATION_SYNC_HOOK = None
+
+    assert first.attempt_number == 1
+    success_results = [item for item in (second, third) if isinstance(item, RollingBacktestAttempt)]
+    conflict_results = [
+        item for item in (second, third) if isinstance(item, RollingBacktestAttemptConflictError)
+    ]
+    assert len(success_results) == 1
+    assert len(conflict_results) == 1
+    assert success_results[0].attempt_number == 2
+    assert success_results[0].prior_attempt_id == first.id
+    assert conflict_results[0].code == "ROLLING_BACKTEST_ATTEMPT_CONFLICT"
