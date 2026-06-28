@@ -521,7 +521,7 @@ async def test_tamper_insert_extra_node_triggers_child_count_error() -> None:
                 "'historical_observed', 'historical_resolution', "
                 "'{}'::jsonb, '{}'::jsonb, :hash, 0, 0)"
             ),
-            {"rid": run.id, "sig": "x" * 64, "hash": "0" * 64},
+            {"rid": run.id, "sig": "a" * 64, "hash": "0" * 64},
         )
         await session.commit()
 
