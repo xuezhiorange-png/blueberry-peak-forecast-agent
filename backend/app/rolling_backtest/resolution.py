@@ -420,8 +420,10 @@ def _build_identity(
 def _reverse_hex(hex_str: str) -> str:
     """Reverse a hex string so that ASC hex order becomes DESC with reverse=True."""
     return "".join(
-        chr(ord("f") - ord(c) + ord("0")) if "0" <= c <= "9"
-        else chr(ord("f") - ord(c) + ord("a")) if "a" <= c <= "f"
+        chr(ord("f") - ord(c) + ord("0"))
+        if "0" <= c <= "9"
+        else chr(ord("f") - ord(c) + ord("a"))
+        if "a" <= c <= "f"
         else c
         for c in hex_str
     )

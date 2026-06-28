@@ -18,6 +18,12 @@ from backend.app.rolling_backtest.enums import (
     RunDerivedStatus,
     UpstreamSelectionMode,
 )
+from backend.app.rolling_backtest.orchestration import (
+    NodeOrchestrationOutcome,
+    OrchestrationBlocker,
+    OrchestrationStage,
+    orchestrate_node,
+)
 from backend.app.rolling_backtest.persistence import (
     AvailabilityAuditPersistenceCommand,
     DagPersistenceCommand,
@@ -76,7 +82,11 @@ __all__ = [
     "ExecutionMode",
     "ForecastStatus",
     "HistoricalCandidate",
+    "NodeOrchestrationOutcome",
     "NodeStateSnapshot",
+    "OrchestrationBlocker",
+    "OrchestrationStage",
+    "orchestrate_node",
     "ParentAuthorityIdentity",
     "ResolvedInputPersistenceCommand",
     "ResolvedUpstreamSemanticIdentity",
