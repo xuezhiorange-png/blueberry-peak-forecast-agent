@@ -1,0 +1,73 @@
+{
+  "historical_node_payload": {
+    "as_of_local_date": "2026-03-15",
+    "destination_factory_ids": [
+      101,
+      202
+    ],
+    "execution_mode": "historical_observed",
+    "forecast_cutoff_at": "2026-03-15T12:00:00Z",
+    "forecast_end_local_date": "2026-03-31",
+    "forecast_horizon_policy_version": "task11-horizon-v1",
+    "forecast_start_local_date": "2026-03-16",
+    "node_key": "march_15",
+    "resolved_upstream_semantic_identities": [
+      {
+        "payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "semantic_identity": "task10:artifact:P50",
+        "source_type": "task10_model_artifact"
+      },
+      {
+        "payload_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "semantic_identity": "task9:run:77",
+        "source_type": "task9_harvest_state_run"
+      }
+    ],
+    "season_id": 2026,
+    "timezone": "Asia/Shanghai",
+    "upstream_selection_mode": "historical_resolution"
+  },
+  "historical_run_payload": {
+    "availability_registry_version": "task11-availability-v1",
+    "calendar_phase_policy_version": "task11-calendar-phase-v1",
+    "canonical_serialization_version": "task11-canonical-v1",
+    "forecast_horizon_policy_version": "task11-horizon-v1",
+    "metric_policy_version": "task11-metrics-v1",
+    "node_calendar_version": "task11-calendar-v1",
+    "nodes": [
+      {
+        "as_of_local_date": "2026-03-15",
+        "destination_factory_ids": [
+          101,
+          202
+        ],
+        "execution_mode": "historical_observed",
+        "forecast_cutoff_at": "2026-03-15T12:00:00Z",
+        "forecast_end_local_date": "2026-03-31",
+        "forecast_horizon_policy_version": "task11-horizon-v1",
+        "forecast_start_local_date": "2026-03-16",
+        "node_key": "march_15",
+        "resolved_upstream_semantic_identities": [
+          {
+            "payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+            "semantic_identity": "task10:artifact:P50",
+            "source_type": "task10_model_artifact"
+          },
+          {
+            "payload_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "semantic_identity": "task9:run:77",
+            "source_type": "task9_harvest_state_run"
+          }
+        ],
+        "season_id": 2026,
+        "timezone": "Asia/Shanghai",
+        "upstream_selection_mode": "historical_resolution"
+      }
+    ],
+    "rolling_schema_version": "task11-rolling-v1",
+    "task10_model_policy": "historically_available_model",
+    "upstream_selection_policy_version": "task11-selection-v1"
+  },
+  "historical_node_hash": "4f5175dfe0bf7eb813afaf55e3fb835e28e372ee3c19e3693e556b4282b9698f",
+  "historical_run_hash": "3d8faacc357f9e454198a0dee64edd6750ed83698debc2a5842e57145bc152a8"
+}
