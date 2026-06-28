@@ -397,11 +397,21 @@ class AvailabilityAuthoritySpec(_BaseModel):
 
 
 class ParentAuthorityIdentity(_BaseModel):
-    """Typed parent-run authority for artifacts and daily predictions."""
+    """Typed parent-run authority with stable semantic binding.
+
+    Status and timestamp alone are insufficient — the child must bind to a
+    stable, auditable parent semantic identity.
+    """
 
     source_type: AvailabilitySourceType
+    authority_schema_version: str = Field(min_length=1)
+    authority_policy_version: str = Field(min_length=1)
     authority_timestamp: datetime
     authority_status: str
+    semantic_input_signature: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    result_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    canonical_payload_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    persistent_reference: PersistentUpstreamReference | None = None
 
     @field_validator("authority_timestamp")
     @classmethod
@@ -409,6 +419,18 @@ class ParentAuthorityIdentity(_BaseModel):
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("authority_timestamp must be timezone-aware")
         return value
+
+    @model_validator(mode="after")
+    def _require_stable_parent_identity(self) -> Self:
+        if not any(
+            (
+                self.semantic_input_signature,
+                self.result_hash,
+                self.canonical_payload_hash,
+            )
+        ):
+            raise ValueError("parent authority identity must include at least one stable hash")
+        return self
 
 
 class _BaseAvailabilitySnapshot(_BaseModel):
@@ -585,37 +607,6 @@ AvailabilitySnapshot = Annotated[
     | Task10PredictionRunAvailabilitySnapshot,
     Field(discriminator="source_type"),
 ]
-
-
-class AvailabilityAuthoritySnapshot(_BaseAvailabilitySnapshot):
-    """Deprecated universal snapshot — retained for backward compatibility in tests.
-
-    Use `AvailabilitySnapshot` (discriminated union) for new code.
-    """
-
-    source_type: AvailabilitySourceType
-    status: str | None = None
-    authoritative_timestamp: datetime | None = None
-    available_on_local_date: date | None = None
-    observation_date: date | None = None
-    source_cutoff_at: datetime | None = None
-    task3_source_visibility: Task3SourceVisibilityIdentity | None = None
-    parent_authority_valid: bool | None = None
-    created_at: datetime | None = None
-    prediction_date: date | None = None
-    parent_authority: ParentAuthorityIdentity | None = None
-
-    @field_validator("authoritative_timestamp", "source_cutoff_at", "created_at")
-    @classmethod
-    def _validate_optional_aware_datetime(
-        cls,
-        value: datetime | None,
-    ) -> datetime | None:
-        if value is None:
-            return None
-        if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("timezone-aware datetime is required")
-        return value
 
 
 class AvailabilityAuthorityEvaluationResult(_BaseModel):

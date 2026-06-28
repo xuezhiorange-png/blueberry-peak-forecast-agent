@@ -278,6 +278,10 @@ def _evaluate_task3(
     if snapshot.status not in spec.required_statuses:
         return _blocked(AvailabilityBlockerCode.STATUS_NOT_ALLOWED)
 
+    expected_policy = spec.source_visibility_policy_version
+    if expected_policy is None:
+        raise ValueError("task3 source visibility rule requires policy version in registry spec")
+
     if execution_mode == ExecutionMode.HISTORICAL_OBSERVED:
         if snapshot.authoritative_timestamp > forecast_cutoff_at:
             return _blocked(AvailabilityBlockerCode.AUTHORITATIVE_TIMESTAMP_AFTER_CUTOFF)
@@ -285,11 +289,8 @@ def _evaluate_task3(
             return _blocked(AvailabilityBlockerCode.SOURCE_VISIBILITY_MISSING)
         if snapshot.task3_source_visibility.visible_through_at > forecast_cutoff_at:
             return _blocked(AvailabilityBlockerCode.SOURCE_CUTOFF_AFTER_FORECAST_CUTOFF)
-        if (
-            snapshot.task3_source_visibility.visibility_policy_version
-            != _TASK3_SOURCE_VISIBILITY_POLICY_VERSION
-        ):
-            return _blocked(AvailabilityBlockerCode.SOURCE_VISIBILITY_MISSING)
+        if snapshot.task3_source_visibility.visibility_policy_version != expected_policy:
+            return _blocked(AvailabilityBlockerCode.SOURCE_VISIBILITY_POLICY_MISMATCH)
         return AvailabilityAuthorityEvaluationResult(allowed=True, blocker_code=None)
 
     if execution_mode == ExecutionMode.RETROSPECTIVE_REPLAY:
@@ -297,11 +298,8 @@ def _evaluate_task3(
             return _blocked(AvailabilityBlockerCode.SOURCE_VISIBILITY_MISSING)
         if snapshot.task3_source_visibility.visible_through_at > forecast_cutoff_at:
             return _blocked(AvailabilityBlockerCode.SOURCE_CUTOFF_AFTER_FORECAST_CUTOFF)
-        if (
-            snapshot.task3_source_visibility.visibility_policy_version
-            != _TASK3_SOURCE_VISIBILITY_POLICY_VERSION
-        ):
-            return _blocked(AvailabilityBlockerCode.SOURCE_VISIBILITY_MISSING)
+        if snapshot.task3_source_visibility.visibility_policy_version != expected_policy:
+            return _blocked(AvailabilityBlockerCode.SOURCE_VISIBILITY_POLICY_MISMATCH)
         return AvailabilityAuthorityEvaluationResult(allowed=True, blocker_code=None)
 
     raise ValueError(f"unsupported execution mode: {execution_mode.value}")
