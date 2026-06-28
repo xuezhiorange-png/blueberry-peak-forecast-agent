@@ -16,6 +16,7 @@ from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.rolling_backtest import (
     RollingBacktestAttempt,
     RollingBacktestNode,
+    RollingBacktestRun,
 )
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
@@ -24,6 +25,7 @@ from backend.app.rolling_backtest.enums import (
 from backend.app.rolling_backtest.errors import (
     RollingBacktestAttemptConflictError,
     RollingBacktestAuthorityBindingError,
+    RollingBacktestCanonicalParityError,
     RollingBacktestStageIntegrityError,
 )
 from backend.app.rolling_backtest.persistence import (
@@ -34,6 +36,8 @@ from backend.app.rolling_backtest.persistence import (
     create_execution_attempt,
     create_or_load_logical_run,
     finalize_attempt_status,
+    finalize_attempt_with_snapshot,
+    load_logical_run_with_integrity,
     persist_orchestration_snapshot,
     persist_stage_event,
     validate_orchestration_snapshot_consistency,
@@ -199,12 +203,12 @@ async def test_0013_attempt_has_node_id_column() -> None:
     async with AsyncSessionMaker() as session:
         result = await session.execute(
             text(
-                "SELECT 1 FROM information_schema.columns "
+                "SELECT is_nullable FROM information_schema.columns "
                 "WHERE table_name = 'rolling_backtest_attempt' "
                 "AND column_name = 'rolling_node_id'"
             )
         )
-        assert result.scalar() == 1, "rolling_node_id column missing"
+        assert result.scalar() == "NO", "rolling_node_id must be NOT NULL"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -258,6 +262,68 @@ async def test_attempt_unique_per_node() -> None:
     a2 = await create_execution_attempt(run.id, nid2, status="running")
     assert a1.attempt_number == 1
     assert a2.attempt_number == 1  # Different nodes => independent counters
+
+
+@pytest.mark.asyncio
+async def test_integrity_reload_allows_attempt_one_per_node() -> None:
+    _require_postgres()
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    config = _make_config(nodes=nodes)
+    cmd = _make_persistence_command(config)
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        result = await session.execute(
+            select(RollingBacktestNode)
+            .where(RollingBacktestNode.rolling_run_id == run.id)
+            .order_by(RollingBacktestNode.id)
+        )
+        db_nodes = result.scalars().all()
+    nid1, nid2 = db_nodes[0].id, db_nodes[1].id
+
+    await create_execution_attempt(run.id, nid1, status="running")
+    await create_execution_attempt(run.id, nid2, status="running")
+
+    async with AsyncSessionMaker() as session:
+        stored_run = await session.get(RollingBacktestRun, run.id)
+        assert stored_run is not None
+        reloaded = await load_logical_run_with_integrity(session, stored_run)
+        assert reloaded.id == run.id
+
+
+@pytest.mark.asyncio
+async def test_integrity_reload_allows_retry_on_one_node_only() -> None:
+    _require_postgres()
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    config = _make_config(nodes=nodes)
+    cmd = _make_persistence_command(config)
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        result = await session.execute(
+            select(RollingBacktestNode)
+            .where(RollingBacktestNode.rolling_run_id == run.id)
+            .order_by(RollingBacktestNode.id)
+        )
+        db_nodes = result.scalars().all()
+    nid1, nid2 = db_nodes[0].id, db_nodes[1].id
+
+    first = await create_execution_attempt(run.id, nid1, status="running")
+    await finalize_attempt_status(
+        first.id,
+        status="failed",
+        current_stage="resolve_historical_inputs",
+    )
+    retry = await create_execution_attempt(run.id, nid1, status="running")
+    other = await create_execution_attempt(run.id, nid2, status="running")
+    assert retry.attempt_number == 2
+    assert other.attempt_number == 1
+
+    async with AsyncSessionMaker() as session:
+        stored_run = await session.get(RollingBacktestRun, run.id)
+        assert stored_run is not None
+        reloaded = await load_logical_run_with_integrity(session, stored_run)
+        assert reloaded.id == run.id
 
 
 @pytest.mark.asyncio
@@ -643,6 +709,96 @@ async def test_snapshot_node_id_tamper_detected() -> None:
     async with AsyncSessionMaker() as session:
         with pytest.raises(RollingBacktestAuthorityBindingError):
             await validate_orchestration_snapshot_consistency(session, attempt.id)
+
+
+@pytest.mark.asyncio
+async def test_finalize_attempt_and_snapshot_share_transaction() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config)
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _first_node_id(run.id)
+    attempt = await create_execution_attempt(run.id, node_id, status="running")
+    await persist_stage_event(
+        attempt.id, node_id, stage="resolve_historical_inputs", status="completed"
+    )
+    await persist_orchestration_snapshot(
+        attempt.id, node_id, status="completed", terminal_stage="resolve_historical_inputs"
+    )
+
+    with pytest.raises(RollingBacktestAttemptConflictError):
+        await finalize_attempt_with_snapshot(
+            attempt.id,
+            node_id=node_id,
+            status="blocked",
+            current_stage="resolve_historical_inputs",
+            snapshot_status="blocked",
+            terminal_stage="resolve_historical_inputs",
+            blocker_code="duplicate_snapshot",
+        )
+
+    async with AsyncSessionMaker() as session:
+        refreshed = await session.get(RollingBacktestAttempt, attempt.id)
+        assert refreshed is not None
+        assert refreshed.status == "running"
+        assert refreshed.current_stage == "initialized"
+        assert refreshed.finished_at is None
+
+
+@pytest.mark.asyncio
+async def test_load_logical_run_with_integrity_detects_stage_gap() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config)
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _first_node_id(run.id)
+    attempt = await create_execution_attempt(run.id, node_id, status="running")
+    await persist_stage_event(
+        attempt.id, node_id, stage="resolve_historical_inputs", status="completed"
+    )
+    await persist_stage_event(
+        attempt.id, node_id, stage="validate_authority_chain", status="completed"
+    )
+
+    async with AsyncSessionMaker() as session:
+        stored_run = await session.get(RollingBacktestRun, run.id)
+        assert stored_run is not None
+        with pytest.raises(RollingBacktestStageIntegrityError):
+            await load_logical_run_with_integrity(session, stored_run)
+
+
+@pytest.mark.asyncio
+async def test_load_logical_run_with_integrity_detects_snapshot_stage_drift() -> None:
+    _require_postgres()
+    config = _make_config()
+    cmd = _make_persistence_command(config)
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _first_node_id(run.id)
+    attempt = await create_execution_attempt(run.id, node_id, status="running")
+    await persist_stage_event(
+        attempt.id, node_id, stage="resolve_historical_inputs", status="completed"
+    )
+    await persist_orchestration_snapshot(
+        attempt.id, node_id, status="completed", terminal_stage="resolve_historical_inputs"
+    )
+
+    async with AsyncSessionMaker() as session:
+        await session.execute(
+            text(
+                "UPDATE rolling_backtest_attempt "
+                "SET current_stage = 'validate_visibility', status = 'completed', "
+                "finished_at = now() "
+                "WHERE id = :attempt_id"
+            ),
+            {"attempt_id": attempt.id},
+        )
+        await session.commit()
+
+    async with AsyncSessionMaker() as session:
+        stored_run = await session.get(RollingBacktestRun, run.id)
+        assert stored_run is not None
+        with pytest.raises(RollingBacktestCanonicalParityError):
+            await load_logical_run_with_integrity(session, stored_run)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -40,10 +40,21 @@ def _sha256_check_sql(column_name: str) -> str:
 
 
 def upgrade() -> None:
+    connection = op.get_bind()
+    legacy_attempt_count = connection.execute(
+        sa.text("SELECT COUNT(*) FROM rolling_backtest_attempt")
+    ).scalar_one()
+    if legacy_attempt_count:
+        raise RuntimeError(
+            "0013_rolling_backtest_orchestration requires an empty "
+            "rolling_backtest_attempt table; legacy attempt rows cannot be "
+            "deterministically backfilled to rolling_node_id"
+        )
+
     # ── 1. Alter rolling_backtest_attempt: add rolling_node_id ──────────────
     op.add_column(
         "rolling_backtest_attempt",
-        sa.Column("rolling_node_id", sa.BigInteger(), nullable=True),
+        sa.Column("rolling_node_id", sa.BigInteger(), nullable=False),
     )
 
     # Drop old run-level unique constraint
@@ -54,12 +65,6 @@ def upgrade() -> None:
     )
     # Drop old run-level index
     op.drop_index("ix_rolling_backtest_attempt_run_id", table_name="rolling_backtest_attempt")
-
-    # NOTE: rolling_node_id is NULLABLE during migration.
-    # Existing rows without node_id will be backfilled or deleted before
-    # the application enforces NOT NULL. The repository layer rejects
-    # inserts with NULL node_id. A future cleanup migration (0013b) can
-    # add the NOT NULL constraint once all rows are migrated.
 
     # Add new node-level unique constraint
     op.create_unique_constraint(
