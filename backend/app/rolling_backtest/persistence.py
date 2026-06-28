@@ -479,6 +479,9 @@ async def _verify_node_children_with_integrity(
         raise RollingBacktestIntegrityError(
             f"node {node.id} has {len(dag_snapshots)} DAG snapshots, expected at most 1"
         )
+    if len(dag_snapshots) == 0:
+        # DAG is optional in Phase 2; skip if absent
+        return
 
     for dag in dag_snapshots:
         # Verify DAG payload hash
