@@ -26,7 +26,6 @@ from backend.app.rolling_backtest.enums import (
 from backend.app.rolling_backtest.errors import (
     RollingBacktestAttemptConflictError,
     RollingBacktestAuthorityBindingError,
-    RollingBacktestCanonicalParityError,
     RollingBacktestStageIntegrityError,
 )
 from backend.app.rolling_backtest.persistence import (
@@ -735,15 +734,40 @@ async def test_snapshot_node_id_cross_check_pass() -> None:
     node_id = await _first_node_id(run.id)
     attempt = await create_execution_attempt(run.id, node_id, status="running")
 
-    await persist_stage_event(
-        attempt.id, node_id, stage="resolve_historical_inputs", status="completed"
+    # Persist all 8 stage events as completed for a valid lifecycle
+    for stage_name in (
+        "resolve_historical_inputs",
+        "validate_visibility",
+        "validate_authority_chain",
+        "resolve_or_replay_task8",
+        "resolve_or_replay_task9",
+        "resolve_or_train_task10",
+        "execute_task10_prediction",
+        "finalize_orchestration_snapshot",
+    ):
+        await persist_stage_event(attempt.id, node_id, stage=stage_name, status="completed")
+
+    # Finalize attempt so status matches the snapshot
+    await finalize_attempt_status(
+        attempt.id,
+        status="completed",
+        current_stage="finalize_orchestration_snapshot",
     )
-    await persist_orchestration_snapshot(
-        attempt.id, node_id, status="completed", terminal_stage="resolve_historical_inputs"
+
+    snapshot = await persist_orchestration_snapshot(
+        attempt.id,
+        node_id,
+        status="completed",
+        terminal_stage="finalize_orchestration_snapshot",
     )
 
     async with AsyncSessionMaker() as session:
-        await validate_orchestration_snapshot_consistency(session, attempt.id)
+        # Integrity reload must pass
+        terminal = await validate_orchestration_snapshot_consistency(session, attempt.id)
+        assert terminal == "finalize_orchestration_snapshot"
+
+        # node_id cross-check
+        assert snapshot.rolling_node_id == attempt.rolling_node_id
 
 
 @pytest.mark.asyncio
@@ -872,7 +896,7 @@ async def test_load_logical_run_with_integrity_detects_snapshot_stage_drift() ->
     async with AsyncSessionMaker() as session:
         stored_run = await session.get(RollingBacktestRun, run.id)
         assert stored_run is not None
-        with pytest.raises(RollingBacktestCanonicalParityError):
+        with pytest.raises(RollingBacktestStageIntegrityError, match="terminal_stage"):
             await load_logical_run_with_integrity(session, stored_run)
 
 
