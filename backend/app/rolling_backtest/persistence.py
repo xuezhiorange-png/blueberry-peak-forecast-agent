@@ -1011,9 +1011,7 @@ async def _finalize_attempt_status_in_session(
     if attempt is None:
         raise RollingBacktestAttemptConflictError(f"attempt {attempt_id} not found")
     if attempt.status == "completed":
-        raise RollingBacktestAttemptConflictError(
-            f"cannot modify completed attempt {attempt_id}"
-        )
+        raise RollingBacktestAttemptConflictError(f"cannot modify completed attempt {attempt_id}")
 
     attempt.status = status
     attempt.current_stage = current_stage
