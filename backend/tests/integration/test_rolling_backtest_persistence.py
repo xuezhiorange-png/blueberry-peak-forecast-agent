@@ -149,8 +149,8 @@ def _make_semantic_identity(
             display_label="test identity",
             semantic_payload_hash="e" * 64,
             input_signature="f" * 64,
-            result_hash="g" * 64,
-            canonical_payload_hash="h" * 64,
+            result_hash="a" * 64,
+            canonical_payload_hash="b" * 64,
             business_version="v1",
             policy_version="p1",
         ),
@@ -354,7 +354,7 @@ async def test_same_signature_tampered_canonical_hash_is_rejected() -> None:
         )
         await session.commit()
 
-    with pytest.raises(RollingBacktestCanonicalParityError):
+    with pytest.raises(RollingBacktestIdentityConflictError):
         await create_or_load_logical_run(cmd)
 
 
@@ -712,25 +712,27 @@ async def test_tamper_availability_audit_hash_triggers_parity_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_tamper_delete_dag_triggers_integrity() -> None:
+async def test_dag_absence_does_not_block_reload() -> None:
+    """DAG is optional in Phase 2; deletion does not break integrity reload."""
     _require_postgres()
     config = _make_config()
     cmd = _make_persistence_command(config, with_inputs=False, with_audits=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
-        node_result = await session.execute(
-            select(RollingBacktestNode).where(RollingBacktestNode.rolling_run_id == run.id)
-        )
-        node = node_result.scalar_one()
         await session.execute(
-            text("DELETE FROM rolling_backtest_dag_snapshot WHERE rolling_node_id = :nid"),
-            {"nid": node.id},
+            text(
+                "DELETE FROM rolling_backtest_dag_snapshot WHERE rolling_node_id IN ("
+                "  SELECT id FROM rolling_backtest_node WHERE rolling_run_id = :rid"
+                ")"
+            ),
+            {"rid": run.id},
         )
         await session.commit()
 
-    with pytest.raises(RollingBacktestCanonicalParityError):
-        await create_or_load_logical_run(cmd)
+    # Reload should succeed — DAG absence is acceptable in Phase 2
+    run2 = await create_or_load_logical_run(cmd)
+    assert run2.id == run.id
 
 
 @pytest.mark.asyncio
