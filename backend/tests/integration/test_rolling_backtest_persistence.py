@@ -1293,7 +1293,7 @@ async def test_concurrent_attempt_allocation_serializes_numbering() -> None:
 
     async def lock_hook(phase: str) -> None:
         nonlocal entered
-        if phase != "after_run_lock":
+        if phase != "after_node_lock":
             return
         entered += 1
         if entered == 1:
