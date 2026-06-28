@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select, text
@@ -67,6 +68,7 @@ def _make_node(
         Task10ModelPolicy,
         UpstreamSelectionMode,
     )
+
     as_of = date.fromisoformat(as_of_local_date)
     node_key = {
         (2, 28): DefaultNodeKey.FEBRUARY_END,
@@ -88,8 +90,8 @@ def _make_node(
                 as_of.day,
                 9,
                 30,
-                tzinfo=UTC,
-            ).isoformat().replace("+00:00", "Z"),
+                tzinfo=ZoneInfo("Asia/Shanghai"),
+            ).isoformat(),
             "forecast_start_local_date": (as_of + timedelta(days=1)).isoformat(),
             "forecast_end_local_date": date(season_id, 5, 31).isoformat(),
             "scope": {
@@ -268,7 +270,7 @@ async def test_attempt_created_with_node_id() -> None:
 @pytest.mark.asyncio
 async def test_attempt_unique_per_node() -> None:
     _require_postgres()
-    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026, as_of_local_date="2026-03-15"))
     config = _make_config(nodes=nodes)
     cmd = _make_persistence_command(config)
     run = await create_or_load_logical_run(cmd)
@@ -293,7 +295,7 @@ async def test_attempt_unique_per_node() -> None:
 @pytest.mark.asyncio
 async def test_integrity_reload_allows_attempt_one_per_node() -> None:
     _require_postgres()
-    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026, as_of_local_date="2026-03-15"))
     config = _make_config(nodes=nodes)
     cmd = _make_persistence_command(config)
     run = await create_or_load_logical_run(cmd)
@@ -320,7 +322,7 @@ async def test_integrity_reload_allows_attempt_one_per_node() -> None:
 @pytest.mark.asyncio
 async def test_integrity_reload_allows_retry_on_one_node_only() -> None:
     _require_postgres()
-    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026, as_of_local_date="2026-03-15"))
     config = _make_config(nodes=nodes)
     cmd = _make_persistence_command(config)
     run = await create_or_load_logical_run(cmd)
@@ -355,7 +357,7 @@ async def test_integrity_reload_allows_retry_on_one_node_only() -> None:
 @pytest.mark.asyncio
 async def test_attempt_cross_node_prior_blocked() -> None:
     _require_postgres()
-    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026, as_of_local_date="2026-03-15"))
     config = _make_config(nodes=nodes)
     cmd = _make_persistence_command(config)
     run = await create_or_load_logical_run(cmd)
@@ -563,7 +565,7 @@ async def test_validate_stage_continuity_beyond_terminal() -> None:
 @pytest.mark.asyncio
 async def test_stage_event_node_id_tamper_detected() -> None:
     _require_postgres()
-    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026, as_of_local_date="2026-03-15"))
     config = _make_config(nodes=nodes)
     cmd = _make_persistence_command(config)
     run = await create_or_load_logical_run(cmd)
@@ -700,7 +702,7 @@ async def test_snapshot_node_id_cross_check_pass() -> None:
 @pytest.mark.asyncio
 async def test_snapshot_node_id_tamper_detected() -> None:
     _require_postgres()
-    nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
+    nodes = (_make_node(season_id=2025), _make_node(season_id=2026, as_of_local_date="2026-03-15"))
     config = _make_config(nodes=nodes)
     cmd = _make_persistence_command(config)
     run = await create_or_load_logical_run(cmd)
