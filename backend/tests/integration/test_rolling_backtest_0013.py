@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import select, text
@@ -60,28 +60,54 @@ def _require_postgres() -> None:
 
 def _make_node(
     season_id: int = 2025,
-    as_of_local_date: str = "2025-03-14",
+    as_of_local_date: str = "2025-03-15",
 ) -> RollingNodeDefinition:
     from backend.app.rolling_backtest.enums import (
+        DefaultNodeKey,
         Task10ModelPolicy,
         UpstreamSelectionMode,
     )
-    from backend.app.rolling_backtest.schemas import DefaultRollingNodeDate
+    as_of = date.fromisoformat(as_of_local_date)
+    node_key = {
+        (2, 28): DefaultNodeKey.FEBRUARY_END,
+        (2, 29): DefaultNodeKey.FEBRUARY_END,
+        (3, 15): DefaultNodeKey.MARCH_15,
+        (3, 31): DefaultNodeKey.MARCH_31,
+        (4, 7): DefaultNodeKey.APRIL_07,
+    }.get((as_of.month, as_of.day))
+    assert node_key is not None, f"unsupported test as_of_local_date {as_of_local_date}"
 
-    return RollingNodeDefinition(
-        season_id=season_id,
-        node_key=DefaultRollingNodeDate(f"2025-03-{10 + season_id % 20:02d}"),
-        as_of_local_date=DefaultRollingNodeDate(as_of_local_date),
-        forecast_cutoff_at=datetime(2025, 3, 14, 9, 30, tzinfo=UTC),
-        forecast_start_local_date=DefaultRollingNodeDate("2025-03-14"),
-        forecast_end_local_date=DefaultRollingNodeDate("2025-05-31"),
-        execution_mode=ExecutionMode.HISTORICAL_OBSERVED,
-        upstream_selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION,
-        scope={"factory_id": 1},
-        forecast_horizon_policy_version="v1",
-        task10_model_policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
-        cutoff_policy_version="v1",
-        timezone="Asia/Shanghai",
+    return RollingNodeDefinition.model_validate(
+        {
+            "season_id": season_id,
+            "node_key": node_key.value,
+            "as_of_local_date": as_of.isoformat(),
+            "forecast_cutoff_at": datetime(
+                as_of.year,
+                as_of.month,
+                as_of.day,
+                9,
+                30,
+                tzinfo=UTC,
+            ).isoformat().replace("+00:00", "Z"),
+            "forecast_start_local_date": (as_of + timedelta(days=1)).isoformat(),
+            "forecast_end_local_date": date(season_id, 5, 31).isoformat(),
+            "scope": {
+                "destination_factory_ids": {"mode": "include_ids", "ids": [1]},
+                "farm_ids": {"mode": "all", "ids": []},
+                "subfarm_ids": {"mode": "all", "ids": []},
+                "variety_ids": {"mode": "all", "ids": []},
+            },
+            "upstream_selection_mode": UpstreamSelectionMode.HISTORICAL_RESOLUTION.value,
+            "forecast_horizon_policy_version": "v1",
+            "task10_model_policy": {
+                "policy": Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL.value,
+                "training_run_semantic_identity": "a" * 64,
+                "artifact_semantic_identities": ["b" * 64, "c" * 64],
+                "authority_visibility_identity": "d" * 64,
+            },
+            "timezone": "Asia/Shanghai",
+        }
     )
 
 
