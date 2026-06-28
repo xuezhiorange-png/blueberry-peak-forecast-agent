@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import replace
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -95,6 +95,19 @@ def _relaxed_config():
     return replace(config, rules=rules)
 
 
+async def _set_build_available_at(
+    session: AsyncSessionMaker,
+    *,
+    build_run_id: int,
+    available_at: datetime,
+) -> None:
+    build = await session.get(AnalyticsBuildRun, build_run_id)
+    assert build is not None
+    build.started_at = available_at
+    build.finished_at = available_at
+    await session.commit()
+
+
 @pytest.mark.integration
 async def test_real_task3_build_residual_model_end_to_end() -> None:
     """End-to-end: raw rows -> real Task 3 builds -> manifest -> training
@@ -109,6 +122,9 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
     _require_postgres()
 
     async with AsyncSessionMaker() as session:
+        feature_available_at = datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
+        label_available_at = datetime(2026, 3, 20, 12, 0, tzinfo=UTC)
+
         # ------------------------------------------------------------------
         # 1. Seed master data — train season + validation season
         # ------------------------------------------------------------------
@@ -173,6 +189,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             f"{limited_feature_build.status!r}"
         )
         limited_feature_build_run_id = limited_feature_build.build_run_id
+        assert limited_feature_build_run_id is not None
+        await _set_build_available_at(
+            session,
+            build_run_id=limited_feature_build_run_id,
+            available_at=feature_available_at,
+        )
 
         # ------------------------------------------------------------------
         # 3. TRAIN SEASON — Main feature build (covers Jan+Feb data)
@@ -228,6 +250,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             f"{main_feature_build.status!r}"
         )
         main_feature_build_run_id = main_feature_build.build_run_id
+        assert main_feature_build_run_id is not None
+        await _set_build_available_at(
+            session,
+            build_run_id=main_feature_build_run_id,
+            available_at=feature_available_at,
+        )
 
         # ------------------------------------------------------------------
         # 4. TRAIN SEASON — Label build (covers Jan+Feb+Mar data)
@@ -274,6 +302,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             f"Label build expected 'completed', got {label_build.status!r}"
         )
         label_build_run_id = label_build.build_run_id
+        assert label_build_run_id is not None
+        await _set_build_available_at(
+            session,
+            build_run_id=label_build_run_id,
+            available_at=label_available_at,
+        )
 
         # ------------------------------------------------------------------
         # 5. TRAIN Task 9 — harvest-state run (standard make_request)
@@ -339,6 +373,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             f"{val_feature_build.status!r}"
         )
         val_feature_build_run_id = val_feature_build.build_run_id
+        assert val_feature_build_run_id is not None
+        await _set_build_available_at(
+            session,
+            build_run_id=val_feature_build_run_id,
+            available_at=feature_available_at,
+        )
 
         # ------------------------------------------------------------------
         # 7. VALIDATION SEASON — Label build
@@ -386,6 +426,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             f"{val_label_build.status!r}"
         )
         val_label_build_run_id = val_label_build.build_run_id
+        assert val_label_build_run_id is not None
+        await _set_build_available_at(
+            session,
+            build_run_id=val_label_build_run_id,
+            available_at=label_available_at,
+        )
 
         # ------------------------------------------------------------------
         # 8. VALIDATION Task 9 — customized payload for disjoint season
@@ -420,14 +466,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
                 f"{label} build expected 'completed', got {build_result.status!r}"
             )
 
-        # A2. All build_run_ids are set
-        assert limited_feature_build_run_id is not None
-        assert main_feature_build_run_id is not None
-        assert label_build_run_id is not None
-        assert val_feature_build_run_id is not None
-        assert val_label_build_run_id is not None
-
-        # Check they are all different
+        # A2. All build_run_ids are set and different
         all_build_ids = [
             limited_feature_build_run_id,
             main_feature_build_run_id,
@@ -477,6 +516,20 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             assert row.aggregation_version == "task3-v1", (
                 f"Build {build_run_id} aggregation_version should be 'task3-v1', "
                 f"got {row.aggregation_version!r}"
+            )
+
+        as_of_cutoff = datetime(2026, 2, 28, 23, 59, 59, 999999, tzinfo=UTC)
+        for build_run_id in (
+            limited_feature_build_run_id,
+            main_feature_build_run_id,
+            val_feature_build_run_id,
+        ):
+            build = await session.get(AnalyticsBuildRun, build_run_id)
+            assert build is not None
+            assert build.finished_at is not None
+            assert build.finished_at <= as_of_cutoff, (
+                f"Feature build {build_run_id} finished_at {build.finished_at} "
+                f"must be <= {as_of_cutoff}"
             )
 
         # A6. Factory coverage sets
@@ -701,6 +754,21 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         assert len(validation_seasons) == 1, (
             f"Expected exactly 1 validation season, got {len(validation_seasons)}"
         )
+        included_rows = [row for row in manifest_for_verification if row.include]
+        assert included_rows, "Expected at least one included manifest row"
+        assert all(
+            row.feature_visibility_audit is not None
+            and row.feature_visibility_audit.status.value == "completed"
+            for row in included_rows
+        ), {
+            row.feature_visibility_audit.audit_hash: [
+                issue.code.value
+                for issue in row.feature_visibility_audit.blockers
+            ]
+            for row in included_rows
+            if row.feature_visibility_audit is not None
+            and row.feature_visibility_audit.status.value != "completed"
+        }
 
         training_result, training_run_id = await execute_residual_training(
             session,
