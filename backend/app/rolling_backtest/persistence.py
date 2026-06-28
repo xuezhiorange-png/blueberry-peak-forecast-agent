@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Awaitable, Callable, Mapping
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -127,6 +128,35 @@ def _resolved_input_canonical_payload(
             "semantic": identity.semantic.model_dump(mode="python", exclude={"display_label"}),
         }
     )
+
+
+def _resolved_input_identity_from_payload(
+    payload: Mapping[str, Any],
+) -> ResolvedUpstreamSemanticIdentity:
+    normalized = deepcopy(dict(payload))
+    semantic = normalized.get("semantic")
+    if isinstance(semantic, dict) and "display_label" not in semantic:
+        semantic["display_label"] = "__canonical__"
+    return _RESOLVED_IDENTITY_ADAPTER.validate_python(normalized)
+
+
+def _config_from_canonical_payload(payload: Mapping[str, Any]) -> RollingBacktestConfig:
+    normalized = deepcopy(dict(payload))
+    raw_nodes = normalized.get("nodes")
+    if isinstance(raw_nodes, list):
+        for node in raw_nodes:
+            if not isinstance(node, dict):
+                continue
+            identities = node.get("resolved_upstream_semantic_identities")
+            if not isinstance(identities, list):
+                continue
+            for identity in identities:
+                if not isinstance(identity, dict):
+                    continue
+                semantic = identity.get("semantic")
+                if isinstance(semantic, dict) and "display_label" not in semantic:
+                    semantic["display_label"] = "__canonical__"
+    return RollingBacktestConfig.model_validate(normalized)
 
 
 def _resolved_input_audit_hash(identity: ResolvedUpstreamSemanticIdentity) -> str:
@@ -491,7 +521,7 @@ async def load_logical_run_with_integrity(
     """Full integrity verification of a loaded logical run."""
 
     try:
-        config = RollingBacktestConfig.model_validate(run.canonical_payload)
+        config = _config_from_canonical_payload(run.canonical_payload)
     except ValidationError as exc:
         raise RollingBacktestCanonicalParityError(
             "run canonical_payload is not a valid config"
@@ -629,7 +659,7 @@ async def _verify_node_with_integrity(
     for row in resolved_rows:
         _assert_no_persistent_reference_fields(row.canonical_payload)
         try:
-            reconstructed = _RESOLVED_IDENTITY_ADAPTER.validate_python(row.canonical_payload)
+            reconstructed = _resolved_input_identity_from_payload(row.canonical_payload)
         except ValidationError as exc:
             raise RollingBacktestCanonicalParityError("resolved input payload is invalid") from exc
         expected_identity = expected_resolved.get(row.source_role)
@@ -637,7 +667,9 @@ async def _verify_node_with_integrity(
             raise RollingBacktestIntegrityError(
                 f"unexpected resolved input role '{row.source_role}' for node {node.id}"
             )
-        if reconstructed.model_dump(mode="python") != expected_identity.model_dump(mode="python"):
+        if _resolved_input_canonical_payload(reconstructed) != _resolved_input_canonical_payload(
+            expected_identity
+        ):
             raise RollingBacktestCanonicalParityError(
                 f"resolved input semantic mismatch for role '{row.source_role}'"
             )

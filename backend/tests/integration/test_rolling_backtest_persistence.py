@@ -457,27 +457,36 @@ async def test_same_signature_tampered_cutoff_timezone_is_rejected() -> None:
 async def test_mid_transaction_child_failure_rolls_back_all_tables() -> None:
     _require_postgres()
     nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
-    config = _make_config(nodes=nodes)
     duplicate_role = "task9_structural_forecast"
     duplicate_identity = _make_semantic_identity(
         source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
         source_role=duplicate_role,
     )
+    first_node_command = _make_node_command(
+        nodes[0], identity=_make_semantic_identity(source_role="task3_analytics")
+    )
+    second_node_command = RollingNodePersistenceCommand(
+        node=nodes[1].model_copy(
+            update={
+                "resolved_upstream_semantic_identities": (
+                    duplicate_identity,
+                    duplicate_identity,
+                )
+            }
+        ),
+        resolved_inputs=(
+            ResolvedInputPersistenceCommand(identity=duplicate_identity),
+            ResolvedInputPersistenceCommand(identity=duplicate_identity),
+        ),
+        availability_audits=(),
+        dag=_make_dag(),
+    )
+    config = _make_config(nodes=(first_node_command.node, second_node_command.node))
     command = RollingBacktestPersistenceCommand(
         config=config,
         nodes=(
-            _make_node_command(
-                nodes[0], identity=_make_semantic_identity(source_role="task3_analytics")
-            ),
-            RollingNodePersistenceCommand(
-                node=nodes[1],
-                resolved_inputs=(
-                    ResolvedInputPersistenceCommand(identity=duplicate_identity),
-                    ResolvedInputPersistenceCommand(identity=duplicate_identity),
-                ),
-                availability_audits=(),
-                dag=_make_dag(),
-            ),
+            first_node_command,
+            second_node_command,
         ),
     )
 
