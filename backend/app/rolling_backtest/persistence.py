@@ -41,6 +41,7 @@ from backend.app.rolling_backtest.errors import (
     RollingBacktestDagIntegrityError,
     RollingBacktestIdentityConflictError,
     RollingBacktestIntegrityError,
+    RollingBacktestPersistenceError,
 )
 from backend.app.rolling_backtest.schemas import (
     AvailabilitySnapshot,
@@ -98,6 +99,10 @@ class RollingBacktestPersistenceCommand:
 _CreateOrLoadHook = Callable[[str], Awaitable[None] | None]
 _CREATE_OR_LOAD_SYNC_HOOK: _CreateOrLoadHook | None = None
 _ATTEMPT_ALLOCATION_SYNC_HOOK: _CreateOrLoadHook | None = None
+_PersistenceWriteTestHook = Callable[
+    [str, AsyncSession, RollingBacktestNode], Awaitable[None] | None
+]
+_PERSISTENCE_WRITE_TEST_HOOK: _PersistenceWriteTestHook | None = None
 
 _RESOLVED_IDENTITY_ADAPTER: TypeAdapter[ResolvedUpstreamSemanticIdentity] = TypeAdapter(
     ResolvedUpstreamSemanticIdentity
@@ -109,6 +114,18 @@ async def _run_sync_hook(hook: _CreateOrLoadHook | None, phase: str) -> None:
     if hook is None:
         return
     result = hook(phase)
+    if isinstance(result, Awaitable):
+        await result
+
+
+async def _run_persistence_write_test_hook(
+    phase: str,
+    session: AsyncSession,
+    node: RollingBacktestNode,
+) -> None:
+    if _PERSISTENCE_WRITE_TEST_HOOK is None:
+        return
+    result = _PERSISTENCE_WRITE_TEST_HOOK(phase, session, node)
     if isinstance(result, Awaitable):
         await result
 
@@ -444,6 +461,13 @@ async def create_or_load_logical_run(
                     )
                     session.add(db_audit)
 
+                await session.flush()
+                await _run_persistence_write_test_hook(
+                    "after_first_node_children_flush",
+                    session,
+                    db_node,
+                )
+
                 dag_cmd = node_cmd.dag
                 if dag_cmd is None:
                     raise RollingBacktestDagIntegrityError(
@@ -480,7 +504,7 @@ async def create_or_load_logical_run(
             if existing is not None:
                 await _verify_or_conflict(existing, config_hash_val, payload_hash, signature)
                 return await load_logical_run_with_integrity(session, existing)
-            raise RollingBacktestIntegrityError(
+            raise RollingBacktestPersistenceError(
                 "logical run persistence failed before aggregate completion"
             ) from exc
 
