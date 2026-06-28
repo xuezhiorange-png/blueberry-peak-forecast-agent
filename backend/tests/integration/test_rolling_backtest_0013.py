@@ -51,6 +51,17 @@ from backend.app.rolling_backtest.schemas import (
     UpstreamSemanticIdentityPayload,
 )
 
+_config_counter = 0
+
+
+pytestmark = pytest.mark.integration
+
+
+def _next_suffix() -> str:
+    global _config_counter
+    _config_counter += 1
+    return f"_{_config_counter}"
+
 
 def _require_postgres() -> None:
     if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
@@ -133,22 +144,29 @@ def _make_node(
     )
 
 
-def _make_config(nodes: tuple[RollingNodeDefinition, ...] | None = None) -> RollingBacktestConfig:
+def _make_config(
+    nodes: tuple[RollingNodeDefinition, ...] | None = None,
+    *,
+    suffix: str | None = None,
+) -> RollingBacktestConfig:
     from backend.app.rolling_backtest.schemas import RollingBacktestConfig
 
+    if suffix is None:
+        suffix = _next_suffix()
+    sv = f"v1{suffix}"
     if nodes is None:
         nodes = (_make_node(),)
     return RollingBacktestConfig(
         execution_mode=ExecutionMode.HISTORICAL_OBSERVED,
-        rolling_schema_version="task11-rolling-v1",
-        canonical_serialization_version="v1",
-        availability_registry_version="v1",
-        node_calendar_version="v1",
-        forecast_horizon_policy_version="v1",
-        upstream_selection_policy_version="v1",
-        metric_policy_version="v1",
-        calendar_phase_policy_version="v1",
-        cutoff_policy_version="v1",
+        rolling_schema_version=f"task11-rolling-{sv}",
+        canonical_serialization_version=sv,
+        availability_registry_version=sv,
+        node_calendar_version=sv,
+        forecast_horizon_policy_version=sv,
+        upstream_selection_policy_version=sv,
+        metric_policy_version=sv,
+        calendar_phase_policy_version=sv,
+        cutoff_policy_version=sv,
         cutoff_timezone="Asia/Shanghai",
         cutoff_local_time="09:30",
         nodes=nodes,
@@ -275,15 +293,17 @@ async def test_attempt_created_with_node_id() -> None:
     assert a1.rolling_node_id == node_id
     assert a1.attempt_number == 1
 
+    # Finalize a1 before creating retry
+    await finalize_attempt_status(a1.id, status="failed", current_stage="test_fail")
     a2 = await create_execution_attempt(run.id, node_id, status="failed")
     assert a2.rolling_node_id == node_id
-    # a1 is "running", so a2 would need it to be terminal. Let's finalize a1 first.
-    # Actually the retry logic checks that previous is failed/blocked.
-    # For this test we just check the basic creation.
-    await finalize_attempt_status(a1.id, status="failed", current_stage="test_fail")
+    assert a2.attempt_number == 2
+
+    # Finalize a2 and create a3
+    await finalize_attempt_status(a2.id, status="failed", current_stage="test_fail")
     a3 = await create_execution_attempt(run.id, node_id, status="running")
-    assert a3.attempt_number == 2
     assert a3.rolling_node_id == node_id
+    assert a3.attempt_number == 3
 
 
 @pytest.mark.asyncio
