@@ -16,7 +16,6 @@ from backend.app.rolling_backtest.enums import (
 )
 from backend.app.rolling_backtest.schemas import (
     AvailabilityAuthorityEvaluationResult,
-    AvailabilityAuthoritySnapshot,
     AvailabilitySnapshot,
     DefaultRollingNodeDate,
     NodeStateSnapshot,
@@ -46,7 +45,6 @@ from backend.app.rolling_backtest.state import derive_run_status
 
 __all__ = [
     "AvailabilityAuthorityEvaluationResult",
-    "AvailabilityAuthoritySnapshot",
     "AvailabilitySnapshot",
     "AvailabilitySourceType",
     "DefaultNodeKey",
