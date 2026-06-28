@@ -28,6 +28,11 @@ from backend.app.harvest_state.reports import (
     render_harvest_state_csv_report,
     render_harvest_state_json_report,
 )
+from backend.app.residual_model.cli_support import (
+    ResidualModelCliError,
+    dispatch_residual_model,
+    register_residual_model_parser,
+)
 
 
 def _input_file_error() -> HarvestStateDeliveryInputError:
@@ -39,7 +44,7 @@ def _output_file_error() -> HarvestStateDeliveryIntegrityError:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Task 9C harvest-state delivery")
+    parser = argparse.ArgumentParser(description="Blueberry forecast internal CLI")
     subparsers = parser.add_subparsers(dest="resource", required=True)
     harvest_state = subparsers.add_parser("harvest-state")
     harvest_state_subparsers = harvest_state.add_subparsers(dest="command", required=True)
@@ -58,6 +63,7 @@ def _parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--run-id", required=True, type=int)
     report_parser.add_argument("--format", required=True, choices=("json", "csv"))
     report_parser.add_argument("--output", required=True)
+    register_residual_model_parser(subparsers)
     return parser
 
 
@@ -179,6 +185,14 @@ async def _dispatch(
     stdout: TextIO,
 ) -> None:
     if args.resource != "harvest-state":
+        if args.resource == "residual-model":
+            await dispatch_residual_model(
+                args,
+                session_factory=session_factory,
+                stdin=stdin,
+                stdout=stdout,
+            )
+            return
         raise HarvestStateDeliveryInputError("Unsupported CLI resource.")
     if args.command == "run":
         await _run_command(args, session_factory=session_factory, stdin=stdin, stdout=stdout)
@@ -234,10 +248,22 @@ def run_cli(
             thread.join()
             if result["error"] is not None:
                 raise result["error"]
-    except (HarvestStateDeliveryError, ValidationError, json.JSONDecodeError) as exc:
+    except (
+        HarvestStateDeliveryError,
+        ResidualModelCliError,
+        ValidationError,
+        json.JSONDecodeError,
+    ) as exc:
         if isinstance(exc, HarvestStateDeliveryError):
             error = exc
-        elif isinstance(exc, ValidationError):
+            stderr.write(f"{error.code}: {error}\n")
+            stderr.flush()
+            return _delivery_error_exit_code(error)
+        if isinstance(exc, ResidualModelCliError):
+            stderr.write(f"{exc.code}: {exc}\n")
+            stderr.flush()
+            return exc.exit_code
+        if isinstance(exc, ValidationError):
             error = HarvestStateDeliveryInputError("Harvest-state request failed validation.")
         else:
             error = HarvestStateDeliveryInputError("Harvest-state request body is not valid JSON.")

@@ -21,3 +21,6 @@ reports/baseline/
 reports/parameter-inference/
 reports/planning/
 reports/weather/
+
+# Local CLI state
+.local/
