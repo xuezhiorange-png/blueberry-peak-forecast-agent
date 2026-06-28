@@ -39,6 +39,10 @@ from backend.app.rolling_backtest.persistence import (
     create_or_load_logical_run,
     finalize_attempt_status,
     load_logical_run_with_integrity,
+    persist_orchestration_snapshot,
+    persist_stage_event,
+    validate_orchestration_snapshot_consistency,
+    validate_stage_continuity,
 )
 from backend.app.rolling_backtest.resolution import (
     HistoricalCandidate,
@@ -132,10 +136,14 @@ __all__ = [
     "node_signature_payload",
     "parent_authority_audit_hash",
     "parent_authority_semantic_payload",
+    "persist_orchestration_snapshot",
+    "persist_stage_event",
     "resolve_default_node_dates",
     "resolve_historical",
     "resolve_pinned",
     "rolling_backtest_config_hash",
     "run_signature_hash",
     "run_signature_payload",
+    "validate_orchestration_snapshot_consistency",
+    "validate_stage_continuity",
 ]

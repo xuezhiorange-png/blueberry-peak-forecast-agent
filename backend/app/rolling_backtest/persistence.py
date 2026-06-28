@@ -20,8 +20,10 @@ from backend.app.models.rolling_backtest import (
     RollingBacktestAvailabilityAudit,
     RollingBacktestDagSnapshot,
     RollingBacktestNode,
+    RollingBacktestOrchestrationSnapshot,
     RollingBacktestResolvedInput,
     RollingBacktestRun,
+    RollingBacktestStageEvent,
 )
 from backend.app.rolling_backtest.availability import (
     availability_snapshot_audit_hash,
@@ -42,6 +44,7 @@ from backend.app.rolling_backtest.errors import (
     RollingBacktestIdentityConflictError,
     RollingBacktestIntegrityError,
     RollingBacktestPersistenceError,
+    RollingBacktestStageIntegrityError,
 )
 from backend.app.rolling_backtest.schemas import (
     AvailabilitySnapshot,
@@ -845,28 +848,43 @@ async def _verify_attempt_chain(session: AsyncSession, run_id: int) -> None:
 
 async def create_execution_attempt(
     run_id: int,
+    node_id: int,
     *,
     status: str = "pending",
     current_stage: str = "initialized",
     prior_attempt_id: int | None = None,
 ) -> RollingBacktestAttempt:
-    """Create a new execution attempt with safe auto-incremented attempt_number.
+    """Create a new execution attempt with per-node attempt_number.
 
-    Uses SELECT ... FOR UPDATE to prevent concurrent duplicate numbers.
+    Uses SELECT ... FOR UPDATE on rolling_backtest_node to serialize
+    concurrent attempt creation for the same node. Different nodes
+    can create attempts in parallel.
+
+    Repository gate: validates that rolling_run_id on the attempt
+    equals the node's rolling_run_id at insert time.
     """
     async with AsyncSessionMaker() as session:
-        run_result = await session.execute(
-            select(RollingBacktestRun).where(RollingBacktestRun.id == run_id).with_for_update()
+        # Lock the node row to serialize attempt creation for this node
+        node_result = await session.execute(
+            select(RollingBacktestNode).where(RollingBacktestNode.id == node_id).with_for_update()
         )
-        existing_run = run_result.scalar_one_or_none()
-        if existing_run is None:
-            raise RollingBacktestIntegrityError(f"run {run_id} not found")
+        node_row = node_result.scalar_one_or_none()
+        if node_row is None:
+            raise RollingBacktestIntegrityError(f"node {node_id} not found")
 
-        await _run_sync_hook(_ATTEMPT_ALLOCATION_SYNC_HOOK, "after_run_lock")
+        # Repository gate: ensure run_id matches node's run_id
+        if node_row.rolling_run_id != run_id:
+            raise RollingBacktestAuthorityBindingError(
+                f"attempt run_id {run_id} does not match node {node_id} "
+                f"run_id {node_row.rolling_run_id}"
+            )
 
+        await _run_sync_hook(_ATTEMPT_ALLOCATION_SYNC_HOOK, "after_node_lock")
+
+        # Query existing attempts for THIS NODE only
         existing_attempts = await session.execute(
             select(RollingBacktestAttempt)
-            .where(RollingBacktestAttempt.rolling_run_id == run_id)
+            .where(RollingBacktestAttempt.rolling_node_id == node_id)
             .order_by(RollingBacktestAttempt.attempt_number)
         )
         attempts = existing_attempts.scalars().all()
@@ -886,9 +904,9 @@ async def create_execution_attempt(
                 )
             if attempt.prior_attempt_id is not None:
                 prior_in_chain = await session.get(RollingBacktestAttempt, attempt.prior_attempt_id)
-                if prior_in_chain is None or prior_in_chain.rolling_run_id != run_id:
+                if prior_in_chain is None or prior_in_chain.rolling_node_id != node_id:
                     raise RollingBacktestAttemptConflictError(
-                        f"attempt {attempt.id} prior link crosses run boundary"
+                        f"attempt {attempt.id} prior link crosses node boundary"
                     )
 
         next_number = len(attempts) + 1
@@ -914,6 +932,7 @@ async def create_execution_attempt(
 
         attempt = RollingBacktestAttempt(
             rolling_run_id=run_id,
+            rolling_node_id=node_id,
             attempt_number=next_number,
             prior_attempt_id=resolved_prior_id,
             status=status,
@@ -927,7 +946,7 @@ async def create_execution_attempt(
         except SAIntegrityError as exc:
             await session.rollback()
             raise RollingBacktestAttemptConflictError(
-                f"attempt_number {next_number} already exists for run {run_id}"
+                f"attempt_number {next_number} already exists for node {node_id}"
             ) from exc
         return attempt
 
@@ -960,3 +979,255 @@ async def finalize_attempt_status(
         attempt.finished_at = datetime.now(UTC)
         await session.commit()
         return attempt
+
+
+# ── Stage ordinal mapping (fixed ordinals, no MAX()+1) ──────────────────────
+
+_STAGE_ORDINAL: dict[str, int] = {
+    "resolve_historical_inputs": 1,
+    "validate_visibility": 2,
+    "validate_authority_chain": 3,
+    "resolve_or_replay_task8": 4,
+    "resolve_or_replay_task9": 5,
+    "resolve_or_train_task10": 6,
+    "execute_task10_prediction": 7,
+    "finalize_orchestration_snapshot": 8,
+}
+
+
+# ── Stage event persistence ──────────────────────────────────────────────────
+
+
+async def persist_stage_event(
+    attempt_id: int,
+    node_id: int,
+    *,
+    stage: str,
+    status: str,
+    structured_error_code: str | None = None,
+    sanitized_diagnostics: dict[str, object] | None = None,
+    entered_at: datetime | None = None,
+    finished_at: datetime | None = None,
+) -> RollingBacktestStageEvent:
+    """Insert or update a stage event for a given attempt and stage.
+
+    Fixed ordinal: sequence_number = _STAGE_ORDINAL[stage] (no MAX()+1).
+    Uses INSERT ... ON CONFLICT (attempt_id, stage) DO NOTHING for idempotency.
+    On entering: status='running', finished_at=NULL.
+    On completion/failure: UPDATE status, finished_at.
+    """
+    ordinal = _STAGE_ORDINAL.get(stage)
+    if ordinal is None:
+        raise RollingBacktestStageIntegrityError(f"unknown stage: {stage}")
+
+    now = datetime.now(UTC)
+    if entered_at is None and status == "running":
+        entered_at = now
+    if finished_at is None and status != "running":
+        finished_at = now
+
+    async with AsyncSessionMaker() as session:
+        # Try insert (idempotent for initial entry)
+        event = RollingBacktestStageEvent(
+            attempt_id=attempt_id,
+            rolling_node_id=node_id,
+            sequence_number=ordinal,
+            stage=stage,
+            status=status,
+            structured_error_code=structured_error_code,
+            sanitized_diagnostics=sanitized_diagnostics,
+            entered_at=entered_at,
+            finished_at=finished_at,
+        )
+        session.add(event)
+        try:
+            await session.commit()
+            return event
+        except SAIntegrityError:
+            await session.rollback()
+            # Already exists — update it
+            result = await session.execute(
+                select(RollingBacktestStageEvent).where(
+                    RollingBacktestStageEvent.attempt_id == attempt_id,
+                    RollingBacktestStageEvent.stage == stage,
+                )
+            )
+            existing = result.scalar_one_or_none()
+            if existing is None:
+                raise RollingBacktestStageIntegrityError(
+                    f"stage event for attempt {attempt_id} stage {stage} disappeared"
+                ) from None
+            existing.status = status
+            existing.structured_error_code = structured_error_code
+            existing.sanitized_diagnostics = sanitized_diagnostics
+            if finished_at is not None:
+                existing.finished_at = finished_at
+            await session.commit()
+            return existing
+
+
+# ── Orchestration snapshot persistence ───────────────────────────────────────
+
+
+async def persist_orchestration_snapshot(
+    attempt_id: int,
+    node_id: int,
+    *,
+    status: str,
+    terminal_stage: str,
+    fallback_mode: str | None = None,
+    blocker_code: str | None = None,
+    canonical_payload: dict[str, Any] | None = None,
+) -> RollingBacktestOrchestrationSnapshot:
+    """Persist the terminal orchestration outcome for an attempt.
+
+    terminal_stage is derived from the last stage_event for this attempt
+    and validated for consistency in the same transaction.
+    """
+    async with AsyncSessionMaker() as session:
+        # Derive terminal_stage from stage_event
+        result = await session.execute(
+            select(RollingBacktestStageEvent)
+            .where(RollingBacktestStageEvent.attempt_id == attempt_id)
+            .order_by(RollingBacktestStageEvent.sequence_number.desc())
+            .limit(1)
+        )
+        last_event = result.scalar_one_or_none()
+
+        if last_event is not None:
+            derived_terminal = last_event.stage
+            if derived_terminal != terminal_stage:
+                raise RollingBacktestStageIntegrityError(
+                    f"terminal_stage drift: snapshot says {terminal_stage}, "
+                    f"stage_event says {derived_terminal}"
+                )
+        else:
+            # No stage events exist — terminal_stage must be set explicitly
+            # (e.g., attempt blocked at persistence level before any stage ran)
+            derived_terminal = terminal_stage
+
+        payload = canonical_payload or {}
+        payload_hash = sha256_payload(payload)
+
+        snapshot = RollingBacktestOrchestrationSnapshot(
+            attempt_id=attempt_id,
+            rolling_node_id=node_id,
+            status=status,
+            terminal_stage=derived_terminal,
+            fallback_mode=fallback_mode,
+            blocker_code=blocker_code,
+            canonical_payload=payload,
+            canonical_payload_hash=payload_hash,
+        )
+        session.add(snapshot)
+        try:
+            await session.commit()
+        except SAIntegrityError as exc:
+            await session.rollback()
+            raise RollingBacktestAttemptConflictError(
+                f"snapshot already exists for attempt {attempt_id}"
+            ) from exc
+
+        return snapshot
+
+
+# ── Stage continuity validation (integrity reload) ───────────────────────────
+
+
+async def validate_stage_continuity(
+    session: AsyncSession,
+    attempt_id: int,
+    terminal_stage: str | None = None,
+) -> None:
+    """Verify no gaps in stage history, consecutive ordinals, terminal consistency.
+
+    Called during integrity reload. Raises RollingBacktestStageIntegrityError
+    on any violation.
+    """
+    result = await session.execute(
+        select(RollingBacktestStageEvent)
+        .where(RollingBacktestStageEvent.attempt_id == attempt_id)
+        .order_by(RollingBacktestStageEvent.sequence_number)
+    )
+    events = list(result.scalars().all())
+
+    if not events:
+        # No stage events is acceptable only if the attempt never started
+        return
+
+    # Rule 1: sequence must start at 1
+    if events[0].sequence_number != 1:
+        raise RollingBacktestStageIntegrityError(
+            f"attempt {attempt_id} first sequence is {events[0].sequence_number}, expected 1"
+        )
+
+    # Rule 2: sequence must be consecutive (1, 2, 3, ..., N)
+    for i, event in enumerate(events):
+        expected = i + 1
+        if event.sequence_number != expected:
+            raise RollingBacktestStageIntegrityError(
+                f"attempt {attempt_id} stage gap: expected seq {expected} "
+                f"got {event.sequence_number}"
+            )
+
+    # Rule 3: if terminal_stage is known, stages before it must be non-running
+    if terminal_stage is not None:
+        terminal_ordinal = _STAGE_ORDINAL.get(terminal_stage)
+        if terminal_ordinal is None:
+            raise RollingBacktestStageIntegrityError(f"unknown terminal_stage: {terminal_stage}")
+        for event in events:
+            if event.sequence_number < terminal_ordinal and event.status == "running":
+                raise RollingBacktestStageIntegrityError(
+                    f"attempt {attempt_id} seq {event.sequence_number} ({event.stage}) "
+                    f"still running but terminal stage is {terminal_stage}"
+                )
+
+        # Rule 4: stages after terminal ordinal must not exist
+        if any(e.sequence_number > terminal_ordinal for e in events):
+            raise RollingBacktestStageIntegrityError(
+                f"attempt {attempt_id} has stages beyond terminal {terminal_stage}"
+            )
+
+    # Rule 5: rolling_node_id consistency with attempt
+    for event in events:
+        attempt_result = await session.execute(
+            select(RollingBacktestAttempt.rolling_node_id).where(
+                RollingBacktestAttempt.id == attempt_id
+            )
+        )
+        attempt_node_id = attempt_result.scalar_one_or_none()
+        if attempt_node_id is not None and event.rolling_node_id != attempt_node_id:
+            raise RollingBacktestAuthorityBindingError(
+                f"stage_event {event.id} node_id {event.rolling_node_id} != "
+                f"attempt {attempt_id} node_id {attempt_node_id}"
+            )
+
+
+async def validate_orchestration_snapshot_consistency(
+    session: AsyncSession,
+    attempt_id: int,
+) -> None:
+    """Cross-table consistency for orchestration_snapshot.
+
+    Verifies: snapshot.rolling_node_id == attempt.rolling_node_id.
+    """
+    snapshot_result = await session.execute(
+        select(RollingBacktestOrchestrationSnapshot)
+        .where(RollingBacktestOrchestrationSnapshot.attempt_id == attempt_id)
+        .limit(1)
+    )
+    snapshot = snapshot_result.scalar_one_or_none()
+    if snapshot is None:
+        return
+
+    attempt_result = await session.execute(
+        select(RollingBacktestAttempt.rolling_node_id).where(
+            RollingBacktestAttempt.id == attempt_id
+        )
+    )
+    attempt_node_id = attempt_result.scalar_one_or_none()
+    if attempt_node_id is not None and snapshot.rolling_node_id != attempt_node_id:
+        raise RollingBacktestAuthorityBindingError(
+            f"snapshot node_id {snapshot.rolling_node_id} != "
+            f"attempt {attempt_id} node_id {attempt_node_id}"
+        )

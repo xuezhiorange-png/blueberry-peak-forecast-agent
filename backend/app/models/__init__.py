@@ -43,8 +43,10 @@ from backend.app.models.rolling_backtest import (
     RollingBacktestAvailabilityAudit,
     RollingBacktestDagSnapshot,
     RollingBacktestNode,
+    RollingBacktestOrchestrationSnapshot,
     RollingBacktestResolvedInput,
     RollingBacktestRun,
+    RollingBacktestStageEvent,
 )
 from backend.app.models.weather import (
     BaseTemperatureSearchRun,

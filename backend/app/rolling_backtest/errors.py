@@ -50,6 +50,12 @@ class RollingBacktestAuthorityBindingError(RollingBacktestPersistenceError):
     code = "ROLLING_BACKTEST_AUTHORITY_BINDING_ERROR"
 
 
+class RollingBacktestStageIntegrityError(RollingBacktestIntegrityError):
+    """Stage event continuity validation failed (gap, non-consecutive, drift)."""
+
+    code = "ROLLING_BACKTEST_STAGE_INTEGRITY_ERROR"
+
+
 class RollingBacktestDagIntegrityError(RollingBacktestIntegrityError):
     """Persisted DAG payload is missing, duplicated, or structurally invalid."""
 

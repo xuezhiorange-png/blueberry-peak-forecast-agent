@@ -7,6 +7,8 @@ from sqlalchemy import text
 from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
 
 _MASTER_DATA_TABLES = (
+    "rolling_backtest_orchestration_snapshot",
+    "rolling_backtest_stage_event",
     "rolling_backtest_dag_snapshot",
     "rolling_backtest_availability_audit",
     "rolling_backtest_resolved_input",

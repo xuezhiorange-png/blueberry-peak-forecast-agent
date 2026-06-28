@@ -187,7 +187,7 @@ class RollingBacktestAttempt(Base):
     __tablename__ = "rolling_backtest_attempt"
     __table_args__ = (
         UniqueConstraint(
-            "rolling_run_id",
+            "rolling_node_id",
             "attempt_number",
             name="uq_rolling_backtest_attempt_number",
         ),
@@ -205,6 +205,7 @@ class RollingBacktestAttempt(Base):
             name="ck_rolling_backtest_attempt_terminal_time",
         ),
         Index("ix_rolling_backtest_attempt_run_id", "rolling_run_id"),
+        Index("ix_rolling_backtest_attempt_node_id", "rolling_node_id"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -216,6 +217,15 @@ class RollingBacktestAttempt(Base):
             ondelete="RESTRICT",
         ),
         nullable=False,
+    )
+    rolling_node_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "rolling_backtest_node.id",
+            name="fk_rolling_backtest_attempt_node_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
     )
     attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
     prior_attempt_id: Mapped[int | None] = mapped_column(
@@ -236,6 +246,142 @@ class RollingBacktestAttempt(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     runtime_environment_identity: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class RollingBacktestStageEvent(Base):
+    __tablename__ = "rolling_backtest_stage_event"
+    __table_args__ = (
+        UniqueConstraint(
+            "attempt_id", "sequence_number",
+            name="uq_rolling_backtest_stage_event_seq",
+        ),
+        UniqueConstraint(
+            "attempt_id", "stage",
+            name="uq_rolling_backtest_stage_event_stage",
+        ),
+        CheckConstraint(
+            "sequence_number >= 1",
+            name="ck_rolling_backtest_stage_event_seq_positive",
+        ),
+        CheckConstraint(
+            "stage in ('resolve_historical_inputs', 'validate_visibility', "
+            "'validate_authority_chain', 'resolve_or_replay_task8', "
+            "'resolve_or_replay_task9', 'resolve_or_train_task10', "
+            "'execute_task10_prediction', 'finalize_orchestration_snapshot')",
+            name="ck_rolling_backtest_stage_event_stage",
+        ),
+        CheckConstraint(
+            "status in ('running', 'completed', 'blocked', 'failed')",
+            name="ck_rolling_backtest_stage_event_status",
+        ),
+        CheckConstraint(
+            "(status = 'running') = (finished_at IS NULL)",
+            name="ck_rolling_backtest_stage_event_terminal_time",
+        ),
+        CheckConstraint(
+            "(status in ('blocked', 'failed')) = (structured_error_code IS NOT NULL)",
+            name="ck_rolling_backtest_stage_event_error_code",
+        ),
+        CheckConstraint(
+            "status != 'running' OR structured_error_code IS NULL",
+            name="ck_rolling_backtest_stage_event_running_no_error",
+        ),
+        Index("ix_rolling_backtest_stage_event_attempt_id", "attempt_id"),
+        Index("ix_rolling_backtest_stage_event_node_id", "rolling_node_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    attempt_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "rolling_backtest_attempt.id",
+            name="fk_rolling_backtest_stage_event_attempt_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    rolling_node_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "rolling_backtest_node.id",
+            name="fk_rolling_backtest_stage_event_node_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    sequence_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    stage: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    structured_error_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sanitized_diagnostics: Mapped[dict[str, Any] | None] = mapped_column(
+        _JSON_VARIANT, nullable=True
+    )
+    entered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class RollingBacktestOrchestrationSnapshot(Base):
+    __tablename__ = "rolling_backtest_orchestration_snapshot"
+    __table_args__ = (
+        UniqueConstraint(
+            "attempt_id",
+            name="uq_rolling_backtest_orchestration_snapshot_attempt_id",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("canonical_payload_hash"),
+            name="ck_rolling_backtest_orch_snap_hash_sha256",
+        ),
+        CheckConstraint(
+            "status in ('forecast_completed', 'partially_completed', "
+            "'completed', 'blocked', 'failed')",
+            name="ck_rolling_backtest_orch_snap_status",
+        ),
+        CheckConstraint(
+            "terminal_stage in ('resolve_historical_inputs', 'validate_visibility', "
+            "'validate_authority_chain', 'resolve_or_replay_task8', "
+            "'resolve_or_replay_task9', 'resolve_or_train_task10', "
+            "'execute_task10_prediction', 'finalize_orchestration_snapshot')",
+            name="ck_rolling_backtest_orch_snap_terminal_stage",
+        ),
+        CheckConstraint(
+            "(status = 'blocked') = (blocker_code IS NOT NULL)",
+            name="ck_rolling_backtest_orch_snap_blocker",
+        ),
+        Index("ix_rolling_backtest_orch_snap_attempt_id", "attempt_id"),
+        Index("ix_rolling_backtest_orch_snap_node_id", "rolling_node_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    attempt_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "rolling_backtest_attempt.id",
+            name="fk_rolling_backtest_orch_snap_attempt_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    rolling_node_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "rolling_backtest_node.id",
+            name="fk_rolling_backtest_orch_snap_node_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    terminal_stage: Mapped[str] = mapped_column(Text, nullable=False)
+    fallback_mode: Mapped[str | None] = mapped_column(Text, nullable=True)
+    blocker_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    canonical_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    canonical_payload_hash: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
