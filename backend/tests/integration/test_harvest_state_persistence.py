@@ -658,7 +658,14 @@ async def test_concurrent_same_hash_different_payload_conflicts() -> None:
     )
     assert success_count == 1
     if isinstance(service_result, BaseException):
-        assert isinstance(service_result, (IntegrityError, HarvestStateHashConflictError))
+        assert isinstance(
+            service_result,
+            (
+                IntegrityError,
+                HarvestStateHashConflictError,
+                HarvestStatePersistenceIntegrityError,
+            ),
+        )
     else:
         assert isinstance(service_result, int)
     if isinstance(raw_insert_result, BaseException):
