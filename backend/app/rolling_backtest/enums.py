@@ -40,6 +40,11 @@ class UpstreamSelectionMode(StrEnum):
     HISTORICAL_RESOLUTION = "historical_resolution"
 
 
+class ScopeMode(StrEnum):
+    ALL = "all"
+    INCLUDE_IDS = "include_ids"
+
+
 class DefaultNodeKey(StrEnum):
     FEBRUARY_END = "february_end"
     MARCH_15 = "march_15"
@@ -69,6 +74,24 @@ class AvailabilityBlockerCode(StrEnum):
     SOURCE_CUTOFF_AFTER_FORECAST_CUTOFF = "SOURCE_CUTOFF_AFTER_FORECAST_CUTOFF"
     OBSERVATION_DATE_AFTER_CUTOFF = "OBSERVATION_DATE_AFTER_CUTOFF"
     PARENT_AUTHORITY_REQUIRED = "PARENT_AUTHORITY_REQUIRED"
+    REQUIRED_FIELD_MISSING = "REQUIRED_FIELD_MISSING"
+    FORBIDDEN_FIELD_PRESENT = "FORBIDDEN_FIELD_PRESENT"
+    SOURCE_VISIBILITY_MISSING = "SOURCE_VISIBILITY_MISSING"
+    AVAILABLE_ON_LOCAL_DATE_AFTER_AS_OF = "AVAILABLE_ON_LOCAL_DATE_AFTER_AS_OF"
+    NODE_LOCAL_DATE_AFTER_AS_OF = "NODE_LOCAL_DATE_AFTER_AS_OF"
+
+
+class AvailabilityRuleKind(StrEnum):
+    AUTHORITATIVE_TIMESTAMP = "authoritative_timestamp"
+    LOCAL_AVAILABLE_DATE = "local_available_date"
+    TASK3_SOURCE_VISIBILITY = "task3_source_visibility"
+    AUTHORITATIVE_WITH_OBSERVATION_DATE = "authoritative_with_observation_date"
+    LOCAL_AVAILABLE_DATE_WITH_OBSERVATION_DATE = "local_available_date_with_observation_date"
+
+
+class Task10ModelPolicy(StrEnum):
+    HISTORICALLY_AVAILABLE_MODEL = "historically_available_model"
+    REPLAY_TRAINED_MODEL = "replay_trained_model"
 
 
 ROLLING_SCHEMA_VERSION = "task11-rolling-v1"
@@ -79,5 +102,4 @@ FORECAST_HORIZON_POLICY_VERSION = "task11-horizon-v1"
 UPSTREAM_SELECTION_POLICY_VERSION = "task11-selection-v1"
 METRIC_POLICY_VERSION = "task11-metrics-v1"
 CALENDAR_PHASE_POLICY_VERSION = "task11-calendar-phase-v1"
-TASK10_MODEL_POLICY_HISTORICALLY_AVAILABLE = "historically_available_model"
-TASK10_MODEL_POLICY_REPLAY_TRAINED = "replay_trained_model"
+CUTOFF_POLICY_VERSION = "task11-cutoff-v1"
