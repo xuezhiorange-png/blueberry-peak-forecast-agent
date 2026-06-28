@@ -16,9 +16,7 @@
   {
     "source_type": "task6_plan_version",
     "rule_kind": "local_available_date",
-    "required_statuses": [
-      "completed"
-    ],
+    "required_statuses": [],
     "authoritative_timestamp_field": null,
     "available_on_local_date_field": "available_at",
     "observation_date_field": null,
@@ -30,9 +28,7 @@
   {
     "source_type": "task7_weather_observation",
     "rule_kind": "local_available_date_with_observation_date",
-    "required_statuses": [
-      "completed"
-    ],
+    "required_statuses": [],
     "authoritative_timestamp_field": null,
     "available_on_local_date_field": "available_at",
     "observation_date_field": "observation_date",
@@ -59,9 +55,7 @@
   {
     "source_type": "task8_model_artifact",
     "rule_kind": "authoritative_timestamp",
-    "required_statuses": [
-      "completed"
-    ],
+    "required_statuses": [],
     "authoritative_timestamp_field": "created_at",
     "available_on_local_date_field": null,
     "observation_date_field": null,
@@ -88,9 +82,7 @@
   {
     "source_type": "task8_daily_prediction",
     "rule_kind": "authoritative_with_observation_date",
-    "required_statuses": [
-      "completed"
-    ],
+    "required_statuses": [],
     "authoritative_timestamp_field": "created_at",
     "available_on_local_date_field": null,
     "observation_date_field": "prediction_date",
@@ -133,9 +125,7 @@
   {
     "source_type": "task10_model_artifact",
     "rule_kind": "authoritative_timestamp",
-    "required_statuses": [
-      "completed"
-    ],
+    "required_statuses": [],
     "authoritative_timestamp_field": "created_at",
     "available_on_local_date_field": null,
     "observation_date_field": null,

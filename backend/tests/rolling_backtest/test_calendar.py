@@ -42,6 +42,12 @@ def _node_payload(
         "upstream_selection_mode": "historical_resolution",
         "forecast_horizon_policy_version": "task11-horizon-v1",
         "timezone": timezone,
+        "task10_model_policy": {
+            "policy": "historically_available_model",
+            "training_run_semantic_identity": "1" * 64,
+            "artifact_semantic_identities": [("2" * 64), ("3" * 64), ("4" * 64)],
+            "authority_visibility_identity": "5" * 64,
+        },
     }
 
 
@@ -59,12 +65,6 @@ def _config_payload(
         "upstream_selection_policy_version": "task11-selection-v1",
         "metric_policy_version": "task11-metrics-v1",
         "execution_mode": execution_mode,
-        "task10_model_policy": {
-            "policy": "historically_available_model",
-            "training_run_semantic_identity": "1" * 64,
-            "artifact_semantic_identities": ("2" * 64, "3" * 64, "4" * 64),
-            "authority_visibility_identity": "5" * 64,
-        },
         "calendar_phase_policy_version": "task11-calendar-phase-v1",
         "cutoff_policy_version": "task11-cutoff-v1",
         "cutoff_timezone": "Asia/Shanghai",

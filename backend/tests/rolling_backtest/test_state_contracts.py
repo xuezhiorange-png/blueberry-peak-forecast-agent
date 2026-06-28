@@ -122,6 +122,24 @@ def test_empty_nodes_are_rejected() -> None:
 
 
 def test_config_hash_is_order_independent_for_nodes() -> None:
+    base_node = {
+        "season_id": 2026,
+        "node_key": "march_15",
+        "as_of_local_date": "2026-03-15",
+        "forecast_cutoff_at": "2026-03-15T04:00:00Z",
+        "forecast_start_local_date": "2026-03-16",
+        "forecast_end_local_date": "2026-03-31",
+        "scope": _scope_payload([101]),
+        "upstream_selection_mode": "historical_resolution",
+        "forecast_horizon_policy_version": "task11-horizon-v1",
+        "timezone": "Asia/Shanghai",
+        "task10_model_policy": {
+            "policy": "historically_available_model",
+            "training_run_semantic_identity": "1" * 64,
+            "artifact_semantic_identities": ["2" * 64, "3" * 64, "4" * 64],
+            "authority_visibility_identity": "5" * 64,
+        },
+    }
     left = RollingBacktestConfig.model_validate(
         {
             "rolling_schema_version": "task11-rolling-v1",
@@ -132,41 +150,21 @@ def test_config_hash_is_order_independent_for_nodes() -> None:
             "upstream_selection_policy_version": "task11-selection-v1",
             "metric_policy_version": "task11-metrics-v1",
             "execution_mode": "historical_observed",
-            "task10_model_policy": {
-                "policy": "historically_available_model",
-                "training_run_semantic_identity": "1" * 64,
-                "artifact_semantic_identities": ["2" * 64, "3" * 64, "4" * 64],
-                "authority_visibility_identity": "5" * 64,
-            },
             "calendar_phase_policy_version": "task11-calendar-phase-v1",
             "cutoff_policy_version": "task11-cutoff-v1",
             "cutoff_timezone": "Asia/Shanghai",
             "cutoff_local_time": "12:00:00",
             "nodes": [
                 {
+                    **base_node,
                     "season_id": 2027,
-                    "node_key": "march_15",
                     "as_of_local_date": "2027-03-15",
                     "forecast_cutoff_at": "2027-03-15T04:00:00Z",
                     "forecast_start_local_date": "2027-03-16",
                     "forecast_end_local_date": "2027-03-31",
                     "scope": _scope_payload([202, 101]),
-                    "upstream_selection_mode": "historical_resolution",
-                    "forecast_horizon_policy_version": "task11-horizon-v1",
-                    "timezone": "Asia/Shanghai",
                 },
-                {
-                    "season_id": 2026,
-                    "node_key": "march_15",
-                    "as_of_local_date": "2026-03-15",
-                    "forecast_cutoff_at": "2026-03-15T04:00:00Z",
-                    "forecast_start_local_date": "2026-03-16",
-                    "forecast_end_local_date": "2026-03-31",
-                    "scope": _scope_payload([101]),
-                    "upstream_selection_mode": "historical_resolution",
-                    "forecast_horizon_policy_version": "task11-horizon-v1",
-                    "timezone": "Asia/Shanghai",
-                },
+                base_node,
             ],
         }
     )

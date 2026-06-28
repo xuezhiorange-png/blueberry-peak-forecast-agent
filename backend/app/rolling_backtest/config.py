@@ -15,7 +15,7 @@ def _semantic_identity_payload(
         "source_type": item.source_type,
         "source_role": item.source_role,
         "role_qualifier": item.role_qualifier,
-        "semantic": item.semantic,
+        "semantic": item.semantic.model_dump(mode="python", exclude={"display_label"}),
     }
 
 
@@ -31,6 +31,7 @@ def _node_semantic_payload(node: RollingNodeDefinition) -> dict[str, object]:
         "upstream_selection_mode": node.upstream_selection_mode,
         "forecast_horizon_policy_version": node.forecast_horizon_policy_version,
         "timezone": node.timezone,
+        "task10_model_policy": node.task10_model_policy,
         "resolved_upstream_semantic_identities": tuple(
             _semantic_identity_payload(item) for item in node.resolved_upstream_semantic_identities
         ),
@@ -47,7 +48,6 @@ def rolling_backtest_config_payload(config: RollingBacktestConfig) -> dict[str, 
         "upstream_selection_policy_version": config.upstream_selection_policy_version,
         "metric_policy_version": config.metric_policy_version,
         "execution_mode": config.execution_mode,
-        "task10_model_policy": config.task10_model_policy,
         "calendar_phase_policy_version": config.calendar_phase_policy_version,
         "cutoff_policy_version": config.cutoff_policy_version,
         "cutoff_timezone": config.cutoff_timezone,

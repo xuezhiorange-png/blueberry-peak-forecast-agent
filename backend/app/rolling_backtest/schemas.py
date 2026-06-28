@@ -82,7 +82,7 @@ class PersistentUpstreamReference(_BaseModel):
 
 class UpstreamSemanticIdentityPayload(_BaseModel):
     schema_version: str = Field(min_length=1)
-    semantic_identity: str = Field(min_length=1)
+    display_label: str = Field(min_length=1)
     semantic_payload_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     input_signature: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     config_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
@@ -180,6 +180,7 @@ class RollingNodeDefinition(_BaseModel):
     upstream_selection_mode: UpstreamSelectionMode
     forecast_horizon_policy_version: str = Field(min_length=1)
     timezone: str = Field(min_length=1)
+    task10_model_policy: ResolvedTask10ModelPolicy
     resolved_upstream_semantic_identities: tuple[ResolvedUpstreamSemanticIdentity, ...] = ()
 
     @field_validator("forecast_cutoff_at")
@@ -217,7 +218,7 @@ class RollingNodeDefinition(_BaseModel):
             if role_owner is not None:
                 if role_owner == item:
                     raise ValueError("exact duplicate semantic identity is not allowed")
-                if role_owner.semantic.semantic_identity == item.semantic.semantic_identity:
+                if role_owner.semantic.display_label == item.semantic.display_label:
                     raise ValueError("conflicting semantic identity is not allowed")
                 raise ValueError("duplicate source role is not allowed")
             role_keys[role_key] = item
@@ -226,7 +227,7 @@ class RollingNodeDefinition(_BaseModel):
                 item.source_type,
                 item.source_role,
                 item.role_qualifier,
-                item.semantic.semantic_identity,
+                item.semantic.display_label,
             )
             semantic_owner = semantic_keys.get(semantic_key)
             if semantic_owner is not None and semantic_owner.semantic != item.semantic:
@@ -253,7 +254,7 @@ class RollingNodeDefinition(_BaseModel):
                     item.source_role,
                     item.role_qualifier or "",
                     item.source_type.value,
-                    item.semantic.semantic_identity,
+                    item.semantic.display_label,
                     item.semantic.semantic_payload_hash,
                 ),
             )
@@ -278,6 +279,19 @@ class RollingNodeDefinition(_BaseModel):
             raise ValueError("node_key must match season_id and as_of_local_date")
         return self
 
+    @model_validator(mode="after")
+    def _validate_task10_policy_cutoff(self) -> Self:
+        if self.task10_model_policy.policy == Task10ModelPolicy.REPLAY_TRAINED_MODEL:
+            from backend.app.rolling_backtest.schemas import ReplayTrainedModelIdentity
+
+            if not isinstance(self.task10_model_policy, ReplayTrainedModelIdentity):
+                raise ValueError("replay_trained_model policy expected ReplayTrainedModelIdentity")
+            if self.task10_model_policy.training_cutoff_at > self.forecast_cutoff_at:
+                raise ValueError(
+                    "replay training_cutoff_at must not be after node forecast_cutoff_at"
+                )
+        return self
+
 
 class RollingBacktestConfig(_BaseModel):
     rolling_schema_version: str = Field(min_length=1)
@@ -288,7 +302,6 @@ class RollingBacktestConfig(_BaseModel):
     upstream_selection_policy_version: str = Field(min_length=1)
     metric_policy_version: str = Field(min_length=1)
     execution_mode: ExecutionMode
-    task10_model_policy: ResolvedTask10ModelPolicy
     calendar_phase_policy_version: str = Field(min_length=1)
     cutoff_policy_version: str = Field(min_length=1)
     cutoff_timezone: str = Field(min_length=1)
@@ -345,6 +358,12 @@ class RollingBacktestConfig(_BaseModel):
                 raise ValueError("forecast_cutoff_at local date must match as_of_local_date")
             if local_cutoff.timetz().replace(tzinfo=None) != self.cutoff_local_time:
                 raise ValueError("forecast_cutoff_at local time must match cutoff_local_time")
+            if (
+                self.execution_mode == ExecutionMode.HISTORICAL_OBSERVED
+                and node.task10_model_policy.policy
+                != Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL
+            ):
+                raise ValueError("historical_observed nodes must use historically_available_model")
         return self
 
 
@@ -377,17 +396,216 @@ class AvailabilityAuthoritySpec(_BaseModel):
     source_visibility_policy_version: str | None = Field(default=None, min_length=1)
 
 
-class AvailabilityAuthoritySnapshot(_BaseModel):
+class ParentAuthorityIdentity(_BaseModel):
+    """Typed parent-run authority for artifacts and daily predictions."""
+
     source_type: AvailabilitySourceType
+    authority_timestamp: datetime
+    authority_status: str
+
+    @field_validator("authority_timestamp")
+    @classmethod
+    def _validate_authority_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("authority_timestamp must be timezone-aware")
+        return value
+
+
+class _BaseAvailabilitySnapshot(_BaseModel):
+    """Base for all source-specific availability snapshots."""
+
+
+class Task3AnalyticsBuildAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK3_ANALYTICS_BUILD]
     status: str
+    authoritative_timestamp: datetime
+    task3_source_visibility: Task3SourceVisibilityIdentity | None = None
+
+    @field_validator("authoritative_timestamp")
+    @classmethod
+    def _validate_authoritative_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("authoritative_timestamp must be timezone-aware")
+        return value
+
+
+class Task6PlanVersionAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK6_PLAN_VERSION]
+    available_at: date
+    effective_interval_version: str = Field(min_length=1)
+
+
+class Task7WeatherObservationAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK7_WEATHER_OBSERVATION]
+    available_at: date
+    observation_date: date
+
+
+class Task8ModelRunAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK8_MODEL_RUN]
+    status: str
+    authoritative_timestamp: datetime
+
+    @field_validator("authoritative_timestamp")
+    @classmethod
+    def _validate_authoritative_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("authoritative_timestamp must be timezone-aware")
+        return value
+
+
+class Task8ModelArtifactAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK8_MODEL_ARTIFACT]
+    created_at: datetime
+    parent_authority: ParentAuthorityIdentity
+
+    @field_validator("created_at")
+    @classmethod
+    def _validate_created_at(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("created_at must be timezone-aware")
+        return value
+
+    @field_validator("parent_authority")
+    @classmethod
+    def _validate_parent_type(cls, value: ParentAuthorityIdentity) -> ParentAuthorityIdentity:
+        if value.source_type != AvailabilitySourceType.TASK8_MODEL_RUN:
+            raise ValueError("Task 8 model artifact parent must be a Task 8 model run authority")
+        return value
+
+
+class Task8ForecastRunAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK8_FORECAST_RUN]
+    status: str
+    authoritative_timestamp: datetime
+
+    @field_validator("authoritative_timestamp")
+    @classmethod
+    def _validate_authoritative_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("authoritative_timestamp must be timezone-aware")
+        return value
+
+
+class Task8DailyPredictionAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK8_DAILY_PREDICTION]
+    prediction_date: date
+    created_at: datetime
+    parent_authority: ParentAuthorityIdentity
+
+    @field_validator("created_at")
+    @classmethod
+    def _validate_created_at(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("created_at must be timezone-aware")
+        return value
+
+    @field_validator("parent_authority")
+    @classmethod
+    def _validate_parent_type(cls, value: ParentAuthorityIdentity) -> ParentAuthorityIdentity:
+        if value.source_type != AvailabilitySourceType.TASK8_FORECAST_RUN:
+            raise ValueError(
+                "Task 8 daily prediction parent must be a Task 8 forecast run authority"
+            )
+        return value
+
+
+class Task9HarvestStateRunAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK9_HARVEST_STATE_RUN]
+    status: str
+    authoritative_timestamp: datetime
+
+    @field_validator("authoritative_timestamp")
+    @classmethod
+    def _validate_authoritative_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("authoritative_timestamp must be timezone-aware")
+        return value
+
+
+class Task10TrainingRunAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK10_TRAINING_RUN]
+    status: str
+    authoritative_timestamp: datetime
+
+    @field_validator("authoritative_timestamp")
+    @classmethod
+    def _validate_authoritative_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("authoritative_timestamp must be timezone-aware")
+        return value
+
+
+class Task10ModelArtifactAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK10_MODEL_ARTIFACT]
+    created_at: datetime
+    parent_authority: ParentAuthorityIdentity
+
+    @field_validator("created_at")
+    @classmethod
+    def _validate_created_at(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("created_at must be timezone-aware")
+        return value
+
+    @field_validator("parent_authority")
+    @classmethod
+    def _validate_parent_type(cls, value: ParentAuthorityIdentity) -> ParentAuthorityIdentity:
+        if value.source_type != AvailabilitySourceType.TASK10_TRAINING_RUN:
+            raise ValueError(
+                "Task 10 model artifact parent must be a Task 10 training run authority"
+            )
+        return value
+
+
+class Task10PredictionRunAvailabilitySnapshot(_BaseAvailabilitySnapshot):
+    source_type: Literal[AvailabilitySourceType.TASK10_PREDICTION_RUN]
+    status: str
+    authoritative_timestamp: datetime
+
+    @field_validator("authoritative_timestamp")
+    @classmethod
+    def _validate_authoritative_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("authoritative_timestamp must be timezone-aware")
+        return value
+
+
+AvailabilitySnapshot = Annotated[
+    Task3AnalyticsBuildAvailabilitySnapshot
+    | Task6PlanVersionAvailabilitySnapshot
+    | Task7WeatherObservationAvailabilitySnapshot
+    | Task8ModelRunAvailabilitySnapshot
+    | Task8ModelArtifactAvailabilitySnapshot
+    | Task8ForecastRunAvailabilitySnapshot
+    | Task8DailyPredictionAvailabilitySnapshot
+    | Task9HarvestStateRunAvailabilitySnapshot
+    | Task10TrainingRunAvailabilitySnapshot
+    | Task10ModelArtifactAvailabilitySnapshot
+    | Task10PredictionRunAvailabilitySnapshot,
+    Field(discriminator="source_type"),
+]
+
+
+class AvailabilityAuthoritySnapshot(_BaseAvailabilitySnapshot):
+    """Deprecated universal snapshot — retained for backward compatibility in tests.
+
+    Use `AvailabilitySnapshot` (discriminated union) for new code.
+    """
+
+    source_type: AvailabilitySourceType
+    status: str | None = None
     authoritative_timestamp: datetime | None = None
     available_on_local_date: date | None = None
     observation_date: date | None = None
     source_cutoff_at: datetime | None = None
     task3_source_visibility: Task3SourceVisibilityIdentity | None = None
     parent_authority_valid: bool | None = None
+    created_at: datetime | None = None
+    prediction_date: date | None = None
+    parent_authority: ParentAuthorityIdentity | None = None
 
-    @field_validator("authoritative_timestamp", "source_cutoff_at")
+    @field_validator("authoritative_timestamp", "source_cutoff_at", "created_at")
     @classmethod
     def _validate_optional_aware_datetime(
         cls,

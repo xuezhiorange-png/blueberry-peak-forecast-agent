@@ -18,7 +18,7 @@ def _semantic_identity_payload(
         "source_type": item.source_type,
         "source_role": item.source_role,
         "role_qualifier": item.role_qualifier,
-        "semantic": item.semantic,
+        "semantic": item.semantic.model_dump(mode="python", exclude={"display_label"}),
     }
 
 
@@ -40,7 +40,7 @@ def node_signature_payload(
                 "execution_mode": config.execution_mode,
                 "upstream_selection_mode": node.upstream_selection_mode,
                 "forecast_horizon_policy_version": node.forecast_horizon_policy_version,
-                "task10_model_policy": config.task10_model_policy,
+                "task10_model_policy": node.task10_model_policy,
                 "cutoff_policy_version": config.cutoff_policy_version,
                 "timezone": node.timezone,
                 "resolved_upstream_semantic_identities": tuple(

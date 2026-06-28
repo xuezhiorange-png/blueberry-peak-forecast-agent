@@ -20,7 +20,6 @@
           "policy_version": null,
           "result_hash": "2222222222222222222222222222222222222222222222222222222222222222",
           "schema_version": "task11-upstream-identity-v1",
-          "semantic_identity": "task10_artifact_p50",
           "semantic_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222"
         },
         "source_role": "task10_residual_artifact",
@@ -37,7 +36,6 @@
           "policy_version": null,
           "result_hash": "1111111111111111111111111111111111111111111111111111111111111111",
           "schema_version": "task11-upstream-identity-v1",
-          "semantic_identity": "task9_result",
           "semantic_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111"
         },
         "source_role": "task9_structural_forecast",
@@ -46,10 +44,7 @@
     ],
     "scope": {
       "destination_factory_ids": {
-        "ids": [
-          101,
-          202
-        ],
+        "ids": [101, 202],
         "mode": "include_ids"
       },
       "farm_ids": {
@@ -110,7 +105,6 @@
               "policy_version": null,
               "result_hash": "2222222222222222222222222222222222222222222222222222222222222222",
               "schema_version": "task11-upstream-identity-v1",
-              "semantic_identity": "task10_artifact_p50",
               "semantic_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222"
             },
             "source_role": "task10_residual_artifact",
@@ -127,7 +121,6 @@
               "policy_version": null,
               "result_hash": "1111111111111111111111111111111111111111111111111111111111111111",
               "schema_version": "task11-upstream-identity-v1",
-              "semantic_identity": "task9_result",
               "semantic_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111"
             },
             "source_role": "task9_structural_forecast",
@@ -136,10 +129,7 @@
         ],
         "scope": {
           "destination_factory_ids": {
-            "ids": [
-              101,
-              202
-            ],
+            "ids": [101, 202],
             "mode": "include_ids"
           },
           "farm_ids": {
@@ -156,23 +146,23 @@
           }
         },
         "season_id": 2026,
+        "task10_model_policy": {
+          "artifact_semantic_identities": [
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          ],
+          "authority_visibility_identity": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "policy": "historically_available_model",
+          "training_run_semantic_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
         "timezone": "Asia/Shanghai",
         "upstream_selection_mode": "historical_resolution"
       }
     ],
     "rolling_schema_version": "task11-rolling-v1",
-    "task10_model_policy": {
-      "artifact_semantic_identities": [
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-      ],
-      "authority_visibility_identity": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-      "policy": "historically_available_model",
-      "training_run_semantic_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    },
     "upstream_selection_policy_version": "task11-selection-v1"
   },
-  "historical_node_hash": "0f38e802ee422c6b00184dd471a67ca0480baea6ce69442d9c46e2562a5ced57",
-  "historical_run_hash": "0bd5b9bf3b81f885f8c29b72e0472453d5c6f8e7c0872555503ca4a12fddd74e"
+  "historical_node_hash": "d8365856893ba78f99d075dcff8261625c19e51b9bc0fb6b01527e851fb6f850",
+  "historical_run_hash": "b50b248190a38ec67ec76ad6e34e7f9448378102ef9ff2ce37c2e70b45218ce8"
 }
