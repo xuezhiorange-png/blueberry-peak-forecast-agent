@@ -18,6 +18,17 @@ from backend.app.rolling_backtest.enums import (
     RunDerivedStatus,
     UpstreamSelectionMode,
 )
+from backend.app.rolling_backtest.persistence import (
+    AvailabilityAuditPersistenceCommand,
+    DagPersistenceCommand,
+    ResolvedInputPersistenceCommand,
+    RollingBacktestPersistenceCommand,
+    RollingNodePersistenceCommand,
+    create_execution_attempt,
+    create_or_load_logical_run,
+    finalize_attempt_status,
+    load_logical_run_with_integrity,
+)
 from backend.app.rolling_backtest.schemas import (
     AvailabilityAuthorityEvaluationResult,
     AvailabilitySnapshot,
@@ -48,9 +59,11 @@ from backend.app.rolling_backtest.signatures import (
 from backend.app.rolling_backtest.state import derive_run_status
 
 __all__ = [
+    "AvailabilityAuditPersistenceCommand",
     "AvailabilityAuthorityEvaluationResult",
     "AvailabilitySnapshot",
     "AvailabilitySourceType",
+    "DagPersistenceCommand",
     "DefaultNodeKey",
     "DefaultRollingNodeDate",
     "EvaluationStatus",
@@ -58,9 +71,12 @@ __all__ = [
     "ForecastStatus",
     "NodeStateSnapshot",
     "ParentAuthorityIdentity",
+    "ResolvedInputPersistenceCommand",
     "ResolvedUpstreamSemanticIdentity",
     "RollingBacktestConfig",
+    "RollingBacktestPersistenceCommand",
     "RollingNodeDefinition",
+    "RollingNodePersistenceCommand",
     "RunDerivedStatus",
     "Task3AnalyticsBuildAvailabilitySnapshot",
     "Task6PlanVersionAvailabilitySnapshot",
@@ -77,9 +93,13 @@ __all__ = [
     "availability_snapshot_audit_hash",
     "availability_snapshot_audit_payload",
     "build_availability_authority_registry",
+    "create_execution_attempt",
+    "create_or_load_logical_run",
     "derive_run_status",
     "evaluate_authority_visibility",
+    "finalize_attempt_status",
     "get_availability_authority_spec",
+    "load_logical_run_with_integrity",
     "node_signature_hash",
     "node_signature_payload",
     "parent_authority_audit_hash",
