@@ -623,9 +623,10 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         )
 
         # B7. Cumulative through "as_of - 1"
-        #     All feature data before Feb 28 = 5 + 17 + 10 + 13 + 11 = 56
-        assert feature_map["actual_receipt_cumulative_to_as_of_kg"] == Decimal("56"), (
-            f"Expected cumulative=56, "
+        #     Primary destination factory data before Feb 28 = 17 + 10 + 13 + 11 = 51
+        #     The secondary factory's 5 kg is excluded from this cumulative feature.
+        assert feature_map["actual_receipt_cumulative_to_as_of_kg"] == Decimal("51"), (
+            f"Expected cumulative=51, "
             f"got {feature_map['actual_receipt_cumulative_to_as_of_kg']}"
         )
 
