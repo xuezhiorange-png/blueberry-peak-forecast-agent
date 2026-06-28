@@ -1,7 +1,7 @@
 """Rolling backtest persistence schema.
 
-Revision ID: 0012
-Revises: None (initial migration)
+Revision ID: 0012_rolling_backtest
+Revises: 0011_residual_model
 Create Date: 2026-06-28
 """
 
@@ -11,10 +11,32 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0012"
-down_revision: str | None = None
+revision: str = "0012_rolling_backtest"
+down_revision: str | None = "0011_residual_model"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+
+
+def _sha256_check_sql(column_name: str) -> str:
+    stripped = column_name
+    for char in "0123456789abcdef":
+        stripped = f"replace({stripped}, '{char}', '')"
+    return (
+        f"length({column_name}) = 64 and lower({column_name}) = {column_name} and {stripped} = ''"
+    )
+
+
+def _nullable_sha256_check_sql(column_name: str) -> str:
+    """SHA-256 check for nullable columns: only validated when non-null."""
+    stripped = column_name
+    for char in "0123456789abcdef":
+        stripped = f"replace({stripped}, '{char}', '')"
+    return (
+        f"({column_name} IS NULL) OR "
+        f"(length({column_name}) = 64 "
+        f"and lower({column_name}) = {column_name} "
+        f"and {stripped} = '')"
+    )
 
 
 def upgrade() -> None:
@@ -55,16 +77,15 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name="pk_rolling_backtest_run"),
         sa.UniqueConstraint("run_signature", name="uq_rolling_backtest_run_signature"),
         sa.CheckConstraint(
-            "length(run_signature) = 64 and lower(run_signature) = run_signature",
+            _sha256_check_sql("run_signature"),
             name="ck_rolling_backtest_run_signature_sha256",
         ),
         sa.CheckConstraint(
-            "length(config_hash) = 64 and lower(config_hash) = config_hash",
+            _sha256_check_sql("config_hash"),
             name="ck_rolling_backtest_run_config_hash_sha256",
         ),
         sa.CheckConstraint(
-            "length(canonical_payload_hash) = 64 "
-            "and lower(canonical_payload_hash) = canonical_payload_hash",
+            _sha256_check_sql("canonical_payload_hash"),
             name="ck_rolling_backtest_run_canonical_payload_hash_sha256",
         ),
         sa.CheckConstraint(
@@ -129,12 +150,11 @@ def upgrade() -> None:
             name="uq_rolling_backtest_node_signature",
         ),
         sa.CheckConstraint(
-            "length(node_signature) = 64 and lower(node_signature) = node_signature",
+            _sha256_check_sql("node_signature"),
             name="ck_rolling_backtest_node_signature_sha256",
         ),
         sa.CheckConstraint(
-            "length(canonical_payload_hash) = 64 "
-            "and lower(canonical_payload_hash) = canonical_payload_hash",
+            _sha256_check_sql("canonical_payload_hash"),
             name="ck_rolling_backtest_node_canonical_payload_hash_sha256",
         ),
         sa.CheckConstraint(
@@ -221,6 +241,10 @@ def upgrade() -> None:
             "attempt_number >= 1",
             name="ck_rolling_backtest_attempt_number_positive",
         ),
+        sa.CheckConstraint(
+            "(status in ('pending', 'running')) = (finished_at IS NULL)",
+            name="ck_rolling_backtest_attempt_terminal_time",
+        ),
     )
     op.create_index(
         "ix_rolling_backtest_attempt_run_id",
@@ -266,8 +290,24 @@ def upgrade() -> None:
             name="uq_rolling_backtest_resolved_input_source_role",
         ),
         sa.CheckConstraint(
-            "length(audit_hash) = 64 and lower(audit_hash) = audit_hash",
+            _sha256_check_sql("audit_hash"),
             name="ck_rolling_backtest_resolved_input_audit_hash_sha256",
+        ),
+        sa.CheckConstraint(
+            _nullable_sha256_check_sql("semantic_input_signature"),
+            name="ck_rolling_backtest_resolved_input_semantic_sig_sha256",
+        ),
+        sa.CheckConstraint(
+            _nullable_sha256_check_sql("result_hash"),
+            name="ck_rolling_backtest_resolved_input_result_hash_sha256",
+        ),
+        sa.CheckConstraint(
+            _nullable_sha256_check_sql("canonical_payload_hash"),
+            name="ck_rolling_backtest_resolved_input_canonical_hash_sha256",
+        ),
+        sa.CheckConstraint(
+            "(persistent_reference_type IS NULL) = (persistent_reference_value IS NULL)",
+            name="ck_rolling_backtest_resolved_input_persistent_ref_pairing",
         ),
     )
     op.create_index(
@@ -309,8 +349,13 @@ def upgrade() -> None:
             name="uq_rolling_backtest_availability_audit_source_role",
         ),
         sa.CheckConstraint(
-            "length(audit_hash) = 64 and lower(audit_hash) = audit_hash",
+            _sha256_check_sql("audit_hash"),
             name="ck_rolling_backtest_availability_audit_hash_sha256",
+        ),
+        sa.CheckConstraint(
+            "(allowed = true AND blocker_code IS NULL) OR "
+            "(allowed = false AND blocker_code IS NOT NULL)",
+            name="ck_rolling_backtest_audit_consistency",
         ),
     )
     op.create_index(
@@ -346,18 +391,21 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id", name="pk_rolling_backtest_dag_snapshot"),
+        sa.UniqueConstraint(
+            "rolling_node_id",
+            name="uq_rolling_backtest_dag_snapshot_node_id",
+        ),
         sa.CheckConstraint(
-            "length(canonical_payload_hash) = 64 "
-            "and lower(canonical_payload_hash) = canonical_payload_hash",
+            _sha256_check_sql("canonical_payload_hash"),
             name="ck_rolling_backtest_dag_snapshot_payload_hash_sha256",
         ),
         sa.CheckConstraint(
             "expected_node_count >= 0",
-            name="ck_rolling_backtest_dag_snapshot_expected_node_count_non_negative",
+            name="ck_rolling_backtest_dag_snapshot_node_count_non_negative",
         ),
         sa.CheckConstraint(
             "expected_edge_count >= 0",
-            name="ck_rolling_backtest_dag_snapshot_expected_edge_count_non_negative",
+            name="ck_rolling_backtest_dag_snapshot_edge_count_non_negative",
         ),
     )
     op.create_index(

@@ -34,6 +34,18 @@ def _sha256_check_sql(column_name: str) -> str:
     )
 
 
+def _nullable_sha256_check_sql(column_name: str) -> str:
+    stripped = column_name
+    for char in "0123456789abcdef":
+        stripped = f"replace({stripped}, '{char}', '')"
+    return (
+        f"({column_name} IS NULL) OR "
+        f"(length({column_name}) = 64 "
+        f"and lower({column_name}) = {column_name} "
+        f"and {stripped} = '')"
+    )
+
+
 class RollingBacktestRun(Base):
     __tablename__ = "rolling_backtest_run"
     __table_args__ = (
@@ -184,6 +196,10 @@ class RollingBacktestAttempt(Base):
             "attempt_number >= 1",
             name="ck_rolling_backtest_attempt_number_positive",
         ),
+        CheckConstraint(
+            "(status in ('pending', 'running')) = (finished_at IS NULL)",
+            name="ck_rolling_backtest_attempt_terminal_time",
+        ),
         Index("ix_rolling_backtest_attempt_run_id", "rolling_run_id"),
     )
 
@@ -233,6 +249,22 @@ class RollingBacktestResolvedInput(Base):
             _sha256_check_sql("audit_hash"),
             name="ck_rolling_backtest_resolved_input_audit_hash_sha256",
         ),
+        CheckConstraint(
+            _nullable_sha256_check_sql("semantic_input_signature"),
+            name="ck_rolling_backtest_resolved_input_semantic_sig_sha256",
+        ),
+        CheckConstraint(
+            _nullable_sha256_check_sql("result_hash"),
+            name="ck_rolling_backtest_resolved_input_result_hash_sha256",
+        ),
+        CheckConstraint(
+            _nullable_sha256_check_sql("canonical_payload_hash"),
+            name="ck_rolling_backtest_resolved_input_canonical_hash_sha256",
+        ),
+        CheckConstraint(
+            "(persistent_reference_type IS NULL) = (persistent_reference_value IS NULL)",
+            name="ck_rolling_backtest_resolved_input_persistent_ref_pairing",
+        ),
         Index("ix_rolling_backtest_resolved_input_node_id", "rolling_node_id"),
     )
 
@@ -274,6 +306,11 @@ class RollingBacktestAvailabilityAudit(Base):
             _sha256_check_sql("audit_hash"),
             name="ck_rolling_backtest_availability_audit_hash_sha256",
         ),
+        CheckConstraint(
+            "(allowed = true AND blocker_code IS NULL) OR "
+            "(allowed = false AND blocker_code IS NOT NULL)",
+            name="ck_rolling_backtest_audit_consistency",
+        ),
         Index("ix_rolling_backtest_availability_audit_node_id", "rolling_node_id"),
     )
 
@@ -301,17 +338,21 @@ class RollingBacktestAvailabilityAudit(Base):
 class RollingBacktestDagSnapshot(Base):
     __tablename__ = "rolling_backtest_dag_snapshot"
     __table_args__ = (
+        UniqueConstraint(
+            "rolling_node_id",
+            name="uq_rolling_backtest_dag_snapshot_node_id",
+        ),
         CheckConstraint(
             _sha256_check_sql("canonical_payload_hash"),
             name="ck_rolling_backtest_dag_snapshot_payload_hash_sha256",
         ),
         CheckConstraint(
             "expected_node_count >= 0",
-            name="ck_rolling_backtest_dag_snapshot_expected_node_count_non_negative",
+            name="ck_rolling_backtest_dag_snapshot_node_count_non_negative",
         ),
         CheckConstraint(
             "expected_edge_count >= 0",
-            name="ck_rolling_backtest_dag_snapshot_expected_edge_count_non_negative",
+            name="ck_rolling_backtest_dag_snapshot_edge_count_non_negative",
         ),
         Index("ix_rolling_backtest_dag_snapshot_node_id", "rolling_node_id"),
     )
