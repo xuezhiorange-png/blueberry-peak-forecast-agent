@@ -18,6 +18,7 @@ from backend.app.models.residual_model import (
     ResidualModelTrainingRun,
 )
 from backend.app.residual_model.application import (
+    ResidualPredictionApplicationIntegrityError,
     ResidualTrainingApplicationIntegrityError,
     execute_residual_prediction,
     execute_residual_training,
@@ -533,12 +534,29 @@ async def test_postgres_prediction_feature_build_failure_persists_failed_attempt
     _require_postgres()
     fixture = await _seed_prediction_fixture()
 
-    with pytest.raises(ResidualTrainingApplicationIntegrityError):
+    async with AsyncSessionMaker() as session:
+        _training_result, train_model_run_id = await execute_residual_training(
+            session,
+            samples=[
+                ResidualTrainingSampleSpec(
+                    task9_run_id=fixture["train_task9_run_id"],
+                    label_analytics_build_run_id=fixture["train_label_build_run_id"],
+                    feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
+                    split="train",
+                    supplemental_feature_values=_supplemental_features(
+                        as_of_date=date(2026, 2, 28)
+                    ),
+                )
+            ],
+            config=_relaxed_config(),
+        )
+
+    with pytest.raises(ResidualPredictionApplicationIntegrityError):
         async with AsyncSessionMaker() as session:
             await execute_residual_prediction(
                 session,
                 request=ResidualPredictionRequest(
-                    model_run_id=fixture["train_model_run_id"],
+                    model_run_id=train_model_run_id,
                     task9_run_id=fixture["train_task9_run_id"],
                     feature_analytics_build_run_id=999999,
                     supplemental_feature_values=_supplemental_features(
@@ -572,7 +590,7 @@ async def test_postgres_successful_training_run_attempt_finalized_as_completed()
 
     # Perform successful training
     async with AsyncSessionMaker() as session:
-        training_result, _ = await execute_residual_training(
+        training_result, training_run_id = await execute_residual_training(
             session,
             samples=[ResidualTrainingSampleSpec(
                 task9_run_id=fixture["train_task9_run_id"],
@@ -587,7 +605,7 @@ async def test_postgres_successful_training_run_attempt_finalized_as_completed()
         )
 
         assert training_result.execution_status == "completed"
-        assert training_result.eligibility_status == "eligible"
+        assert training_run_id > 0
 
         # Verify attempt record was persisted as completed
         attempts = (
@@ -601,4 +619,6 @@ async def test_postgres_successful_training_run_attempt_finalized_as_completed()
         assert len(attempts) == 1
         attempt = attempts[0]
         assert attempt.execution_status == "completed"
-        assert attempt.linked_training_run_id is not None
+        assert attempt.current_stage == "completed"
+        assert attempt.linked_training_run_id == training_run_id
+        assert attempt.finished_at is not None

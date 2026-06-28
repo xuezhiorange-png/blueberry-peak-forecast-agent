@@ -1086,13 +1086,14 @@ async def test_prediction_run_failed_with_rows() -> None:
 async def test_prediction_row_structural_only_residual_not_zero() -> None:
     """structural_only mode requires all raw residual values to be 0."""
     _require_postgres()
+    factory_id = await _seed_factory("Prediction Constraint Factory 1")
+    task9_run_id = await _seed_harvest_state_run(factory_id=factory_id)
     prediction_run_id = await _seed_prediction_run(
         execution_status="completed",
         mode="structural_only",
         fallback_reason="test_fallback",
+        task9_run_id=task9_run_id,
     )
-    task9_run_id = await _seed_harvest_state_run()
-    factory_id = await _seed_factory()
     await _expect_integrity_error(
         """
         INSERT INTO residual_model_prediction_row (
@@ -1138,11 +1139,13 @@ async def test_prediction_row_structural_only_residual_not_zero() -> None:
 async def test_prediction_row_residual_corrected_with_fallback() -> None:
     """residual_corrected mode must have fallback_reason IS NULL."""
     _require_postgres()
+    factory_id = await _seed_factory("Prediction Constraint Factory 2")
+    task9_run_id = await _seed_harvest_state_run(factory_id=factory_id)
     prediction_run_id = await _seed_prediction_run(
-        execution_status="completed", mode="residual_corrected"
+        execution_status="completed",
+        mode="residual_corrected",
+        task9_run_id=task9_run_id,
     )
-    task9_run_id = await _seed_harvest_state_run()
-    factory_id = await _seed_factory()
     await _expect_integrity_error(
         """
         INSERT INTO residual_model_prediction_row (
@@ -1188,9 +1191,9 @@ async def test_prediction_row_residual_corrected_with_fallback() -> None:
 async def test_prediction_row_negative_forecast_horizon() -> None:
     """forecast_horizon_days must be >= 0."""
     _require_postgres()
-    prediction_run_id = await _seed_prediction_run()
-    task9_run_id = await _seed_harvest_state_run()
-    factory_id = await _seed_factory()
+    factory_id = await _seed_factory("Prediction Constraint Factory 3")
+    task9_run_id = await _seed_harvest_state_run(factory_id=factory_id)
+    prediction_run_id = await _seed_prediction_run(task9_run_id=task9_run_id)
     await _expect_integrity_error(
         """
         INSERT INTO residual_model_prediction_row (
@@ -1236,9 +1239,9 @@ async def test_prediction_row_negative_forecast_horizon() -> None:
 async def test_prediction_row_non_monotonic_quantiles() -> None:
     """corrected quantiles must be monotonic: P50 <= P80 <= P90."""
     _require_postgres()
-    prediction_run_id = await _seed_prediction_run()
-    task9_run_id = await _seed_harvest_state_run()
-    factory_id = await _seed_factory()
+    factory_id = await _seed_factory("Prediction Constraint Factory 4")
+    task9_run_id = await _seed_harvest_state_run(factory_id=factory_id)
+    prediction_run_id = await _seed_prediction_run(task9_run_id=task9_run_id)
 
     # P50 > P80
     await _expect_integrity_error(
