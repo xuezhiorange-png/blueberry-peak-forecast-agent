@@ -1,0 +1,142 @@
+[
+  {
+    "source_type": "task3_analytics_build",
+    "required_statuses": [
+      "completed"
+    ],
+    "authoritative_timestamp_field": "finished_at",
+    "parent_authority_required": false,
+    "observation_date_field": null,
+    "source_cutoff_field": "source_cutoff_at",
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "source_cutoff_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task6_plan_version",
+    "required_statuses": [
+      "completed"
+    ],
+    "authoritative_timestamp_field": "available_at",
+    "parent_authority_required": false,
+    "observation_date_field": null,
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task7_weather_observation",
+    "required_statuses": [
+      "completed"
+    ],
+    "authoritative_timestamp_field": "available_at",
+    "parent_authority_required": false,
+    "observation_date_field": "observation_date",
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "observation_date_and_authority_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task8_model_run",
+    "required_statuses": [
+      "completed",
+      "unavailable"
+    ],
+    "authoritative_timestamp_field": "finished_at",
+    "parent_authority_required": false,
+    "observation_date_field": null,
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task8_model_artifact",
+    "required_statuses": [
+      "completed"
+    ],
+    "authoritative_timestamp_field": "created_at",
+    "parent_authority_required": true,
+    "observation_date_field": null,
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task8_forecast_run",
+    "required_statuses": [
+      "completed",
+      "unavailable"
+    ],
+    "authoritative_timestamp_field": "finished_at",
+    "parent_authority_required": false,
+    "observation_date_field": null,
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task8_daily_prediction",
+    "required_statuses": [
+      "completed"
+    ],
+    "authoritative_timestamp_field": "created_at",
+    "parent_authority_required": true,
+    "observation_date_field": "prediction_date",
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task9_harvest_state_run",
+    "required_statuses": [
+      "completed",
+      "blocked"
+    ],
+    "authoritative_timestamp_field": "created_at",
+    "parent_authority_required": false,
+    "observation_date_field": null,
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task10_training_run",
+    "required_statuses": [
+      "completed",
+      "blocked",
+      "failed"
+    ],
+    "authoritative_timestamp_field": "finished_at",
+    "parent_authority_required": false,
+    "observation_date_field": null,
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task10_model_artifact",
+    "required_statuses": [
+      "completed"
+    ],
+    "authoritative_timestamp_field": "created_at",
+    "parent_authority_required": true,
+    "observation_date_field": null,
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_lte_forecast_cutoff"
+  },
+  {
+    "source_type": "task10_prediction_run",
+    "required_statuses": [
+      "completed",
+      "blocked",
+      "failed"
+    ],
+    "authoritative_timestamp_field": "completed_at",
+    "parent_authority_required": false,
+    "observation_date_field": null,
+    "source_cutoff_field": null,
+    "historical_observed_rule": "authoritative_timestamp_lte_forecast_cutoff",
+    "retrospective_replay_rule": "authoritative_timestamp_or_source_visibility_lte_forecast_cutoff"
+  }
+]
+
