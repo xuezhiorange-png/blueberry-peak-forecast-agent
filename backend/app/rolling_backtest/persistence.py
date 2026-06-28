@@ -554,6 +554,21 @@ async def create_execution_attempt(
                     raise RollingBacktestAttemptConflictError(
                         f"attempt chain has gap: expected {i + 1} found {a.attempt_number}"
                     )
+                # Validate prior_attempt_id points to previous attempt
+                if i > 0:
+                    if a.prior_attempt_id != attempts[i - 1].id:
+                        raise RollingBacktestAttemptConflictError(
+                            f"attempt {a.id} prior_attempt_id {a.prior_attempt_id} "
+                            f"does not point to direct predecessor {attempts[i - 1].id}"
+                        )
+                # Validate prior belongs to same run
+                if a.prior_attempt_id is not None:
+                    prior_in_chain = await session.get(RollingBacktestAttempt, a.prior_attempt_id)
+                    if prior_in_chain is not None and prior_in_chain.rolling_run_id != run_id:
+                        raise RollingBacktestAttemptConflictError(
+                            f"attempt {a.id} prior {a.prior_attempt_id} belongs to "
+                            f"run {prior_in_chain.rolling_run_id}, not {run_id}"
+                        )
 
         # Validate prior_attempt_id
         if prior_attempt_id is not None:

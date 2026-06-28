@@ -755,7 +755,7 @@ async def test_tamper_dag_payload_triggers_parity_error() -> None:
         )
         await session.commit()
 
-    with pytest.raises(RollingBacktestChildCountMismatchError):
+    with pytest.raises(RollingBacktestCanonicalParityError):
         await create_or_load_logical_run(cmd)
 
 
