@@ -159,6 +159,11 @@ def _make_config(
     sv = f"v1{suffix}"
     if nodes is None:
         nodes = (_make_node(suffix=suffix),)
+    else:
+        # Ensure all supplied nodes have the same policy version as the config
+        nodes = tuple(
+            node.model_copy(update={"forecast_horizon_policy_version": sv}) for node in nodes
+        )
     return RollingBacktestConfig(
         execution_mode=ExecutionMode.HISTORICAL_OBSERVED,
         rolling_schema_version=f"task11-rolling-{sv}",
