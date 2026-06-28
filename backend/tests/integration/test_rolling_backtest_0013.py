@@ -355,8 +355,16 @@ async def test_integrity_reload_allows_attempt_one_per_node() -> None:
         db_nodes = result.scalars().all()
     nid1, nid2 = db_nodes[0].id, db_nodes[1].id
 
-    await create_execution_attempt(run.id, nid1, status="running")
-    await create_execution_attempt(run.id, nid2, status="running")
+    a1 = await create_execution_attempt(run.id, nid1, status="running")
+    a2 = await create_execution_attempt(run.id, nid2, status="running")
+    await persist_stage_event(a1.id, nid1, stage="resolve_historical_inputs", status="running")
+    await finalize_attempt_status(
+        a1.id, status="running", current_stage="resolve_historical_inputs"
+    )
+    await persist_stage_event(a2.id, nid2, stage="resolve_historical_inputs", status="running")
+    await finalize_attempt_status(
+        a2.id, status="running", current_stage="resolve_historical_inputs"
+    )
 
     async with AsyncSessionMaker() as session:
         stored_run = await session.get(RollingBacktestRun, run.id)
@@ -392,6 +400,14 @@ async def test_integrity_reload_allows_retry_on_one_node_only() -> None:
     other = await create_execution_attempt(run.id, nid2, status="running")
     assert retry.attempt_number == 2
     assert other.attempt_number == 1
+    await persist_stage_event(retry.id, nid1, stage="resolve_historical_inputs", status="running")
+    await finalize_attempt_status(
+        retry.id, status="running", current_stage="resolve_historical_inputs"
+    )
+    await persist_stage_event(other.id, nid2, stage="resolve_historical_inputs", status="running")
+    await finalize_attempt_status(
+        other.id, status="running", current_stage="resolve_historical_inputs"
+    )
 
     async with AsyncSessionMaker() as session:
         stored_run = await session.get(RollingBacktestRun, run.id)

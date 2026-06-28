@@ -12,6 +12,7 @@ from typing import Any, cast
 
 from pydantic import TypeAdapter, ValidationError
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError as SAIntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -1115,9 +1116,12 @@ async def persist_stage_event(
     """Insert or update a stage event for a given attempt and stage.
 
     Fixed ordinal: sequence_number = _STAGE_ORDINAL[stage] (no MAX()+1).
-    Uses INSERT ... ON CONFLICT (attempt_id, stage) DO NOTHING for idempotency.
+    Uses INSERT ... ON CONFLICT ON CONSTRAINT uq_rolling_backtest_stage_event_stage
+    DO UPDATE for atomic insert-or-update in a single round-trip.
     On entering: status='running', finished_at=NULL.
-    On completion/failure: UPDATE status, finished_at.
+    On completion/failure: UPDATE status, finished_at, error fields.
+    entered_at is preserved unchanged on update.
+    FK, CHECK, and other unique constraint violations still raise typed errors.
     """
     ordinal = _STAGE_ORDINAL.get(stage)
     if ordinal is None:
@@ -1127,9 +1131,10 @@ async def persist_stage_event(
     if entered_at is None:
         entered_at = now
 
+    finished_at_value: datetime | None = None if status == "running" else (finished_at or now)
+
     async with AsyncSessionMaker() as session:
-        # Try insert (idempotent for initial entry)
-        event = RollingBacktestStageEvent(
+        stmt = pg_insert(RollingBacktestStageEvent).values(
             attempt_id=attempt_id,
             rolling_node_id=node_id,
             sequence_number=ordinal,
@@ -1138,41 +1143,32 @@ async def persist_stage_event(
             structured_error_code=structured_error_code,
             sanitized_diagnostics=sanitized_diagnostics,
             entered_at=entered_at,
-            finished_at=None if status == "running" else (finished_at or now),
+            finished_at=finished_at_value,
         )
-        session.add(event)
+        returning_stmt = stmt.on_conflict_do_update(
+            constraint="uq_rolling_backtest_stage_event_stage",
+            set_={
+                "status": stmt.excluded.status,
+                "finished_at": stmt.excluded.finished_at,
+                "structured_error_code": stmt.excluded.structured_error_code,
+                "sanitized_diagnostics": stmt.excluded.sanitized_diagnostics,
+            },
+        ).returning(RollingBacktestStageEvent)
+
         try:
+            result = await session.execute(returning_stmt)
+            event: RollingBacktestStageEvent = result.scalar_one()
             await session.commit()
             return event
         except SAIntegrityError as exc:
             await session.rollback()
-            # Classify constraint violation: only retry for the target unique key
+            # ON CONFLICT DO UPDATE handles the target unique constraint.
+            # Any IntegrityError reaching here is a real violation (FK,
+            # CHECK, NOT NULL, or the other unique key on sequence_number).
             constraint_name = _extract_constraint_name(exc)
-            if constraint_name != "uq_rolling_backtest_stage_event_stage":
-                raise RollingBacktestStageIntegrityError(
-                    f"persist_stage_event constraint violation: {constraint_name or 'unknown'}"
-                ) from exc
-
-        # Already exists — update it in a fresh session
-        async with AsyncSessionMaker() as update_session:
-            result = await update_session.execute(
-                select(RollingBacktestStageEvent).where(
-                    RollingBacktestStageEvent.attempt_id == attempt_id,
-                    RollingBacktestStageEvent.stage == stage,
-                )
-            )
-            existing = result.scalar_one_or_none()
-            if existing is None:
-                raise RollingBacktestStageIntegrityError(
-                    f"stage event for attempt {attempt_id} stage {stage} disappeared"
-                ) from None
-            existing.status = status
-            existing.structured_error_code = structured_error_code
-            existing.sanitized_diagnostics = sanitized_diagnostics
-            if status != "running":
-                existing.finished_at = finished_at or now
-            await update_session.commit()
-            return existing
+            raise RollingBacktestStageIntegrityError(
+                f"persist_stage_event constraint violation: {constraint_name or 'unknown'}"
+            ) from exc
 
 
 # ── Orchestration snapshot persistence ───────────────────────────────────────
