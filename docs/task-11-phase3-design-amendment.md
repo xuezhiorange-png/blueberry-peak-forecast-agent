@@ -658,7 +658,7 @@ if sha256_payload(recomputed) != snapshot.canonical_payload_hash:
 | DROP UNIQUE `(rolling_run_id, attempt_number)` | ALTER | `rolling_backtest_attempt` |
 | ADD UNIQUE `(rolling_node_id, attempt_number)` | ALTER | `rolling_backtest_attempt` |
 | ADD FK `rolling_node_id` → `rolling_backtest_node.id` | ALTER | `rolling_backtest_attempt` |
-| ADD CHECK `rolling_run_id` = node's `rolling_run_id` | ALTER | `rolling_backtest_attempt` |
+| ADD repository/integrity validation for `attempt.rolling_run_id` = `node.rolling_run_id` consistency | ALTER | `rolling_backtest_attempt` |
 | ADD INDEX `ix_rolling_backtest_attempt_node_id` | ALTER | `rolling_backtest_attempt` |
 | CREATE TABLE | NEW | `rolling_backtest_stage_event` |
 | CREATE TABLE | NEW | `rolling_backtest_orchestration_snapshot` |
