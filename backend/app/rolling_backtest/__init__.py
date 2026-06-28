@@ -29,6 +29,12 @@ from backend.app.rolling_backtest.persistence import (
     finalize_attempt_status,
     load_logical_run_with_integrity,
 )
+from backend.app.rolling_backtest.resolution import (
+    HistoricalCandidate,
+    ResolutionResult,
+    resolve_historical,
+    resolve_pinned,
+)
 from backend.app.rolling_backtest.schemas import (
     AvailabilityAuthorityEvaluationResult,
     AvailabilitySnapshot,
@@ -69,10 +75,12 @@ __all__ = [
     "EvaluationStatus",
     "ExecutionMode",
     "ForecastStatus",
+    "HistoricalCandidate",
     "NodeStateSnapshot",
     "ParentAuthorityIdentity",
     "ResolvedInputPersistenceCommand",
     "ResolvedUpstreamSemanticIdentity",
+    "ResolutionResult",
     "RollingBacktestConfig",
     "RollingBacktestPersistenceCommand",
     "RollingNodeDefinition",
@@ -105,6 +113,8 @@ __all__ = [
     "parent_authority_audit_hash",
     "parent_authority_semantic_payload",
     "resolve_default_node_dates",
+    "resolve_historical",
+    "resolve_pinned",
     "rolling_backtest_config_hash",
     "run_signature_hash",
     "run_signature_payload",
