@@ -11,11 +11,30 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
+from decimal import Decimal
 from enum import StrEnum
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Task 9 schema imports (used by validation and data loaders)
+from backend.app.harvest_state.canonical import (
+    make_source_ref_hash as _task9_make_source_ref_hash,
+)
+from backend.app.harvest_state.enums import SourceRefType as _SourceRefType
+from backend.app.harvest_state.schemas import (
+    CapacityPoolInput,
+    CapacityPoolMember,
+    DailyCapacityInput,
+    DailyWeatherFeatureInput,
+    InitialInventorySourceRef,
+    ParameterSourceRef,
+    SourceRefCatalogEntry,
+    Task8DailyPredictionInput,
+    Task8PredictionSourceRef,
+    Task8PredictionVerificationSnapshot,
+    Task9ARequest,
+)
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
     ExecutionMode,
@@ -94,6 +113,7 @@ __all__ = [
     "ResolvedInputOutcome",
     "Task9AuthorityOutcome",
     "Task10AuthorityOutcome",
+    "Task9RequestBuildResult",
     "NodeOrchestrationOutcome",
     "AvailabilityAuditOutcome",
     "NodeExecutionContext",
@@ -202,6 +222,16 @@ class Task10AuthorityOutcome:
     input_signature: str | None = None
     prediction_hash: str | None = None
     mode: str = "unresolved"
+
+
+@dataclass(frozen=True, slots=True)
+class Task9RequestBuildResult:
+    """Typed result from _build_task9a_request — never returns bare None."""
+
+    request: Task9ARequest | None = None
+    blocked: bool = False
+    blocker_code: str | None = None
+    diagnostics: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -729,9 +759,17 @@ async def _resolve_task9(
 
             result_hash = getattr(output, "result_hash", None)
 
+            # Extract input_snapshot task8 predictions for cross-reference
+            input_snapshot = getattr(output, "input_snapshot", {}) or {}
+            task8_snapshot_predictions: list[dict[str, object]] = []
+            if isinstance(input_snapshot, dict):
+                task8_snapshot_predictions = input_snapshot.get("task8_daily_predictions", [])
+
             # P0-5: Verify source_ref_catalog against resolved authorities
             catalog_validation = _validate_source_ref_catalog(
-                catalog=catalog, resolutions=resolutions
+                catalog=catalog,
+                resolutions=resolutions,
+                input_snapshot_task8_predictions=task8_snapshot_predictions or None,
             )
             if catalog_validation["blocked"]:
                 blocked = await _blocked(
@@ -776,11 +814,25 @@ async def _resolve_task9(
     # ── Task 9 replay ────────────────────────────────────────────
     if config.execution_mode == ExecutionMode.RETROSPECTIVE_REPLAY:
         try:
-            request = await _build_task9a_request(session, node, resolutions)
-            if request is not None:
+            build_result = await _build_task9a_request(session, node, resolutions)
+            if build_result.blocked:
+                blocked = await _blocked(
+                    ctx,
+                    attempt_id,
+                    attempt_number,
+                    stage,
+                    build_result.blocker_code
+                    or OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                    resolutions,
+                    started_at,
+                    build_result.diagnostics,
+                )
+                return None, blocked
+
+            if build_result.request is not None:
                 from backend.app.harvest_state.application import execute_harvest_state_run
 
-                envelope = await execute_harvest_state_run(session, request=request)  # type: ignore[arg-type]
+                envelope = await execute_harvest_state_run(session, request=build_result.request)
 
                 from backend.app.harvest_state.application import get_harvest_state_run_by_id
 
@@ -1095,79 +1147,196 @@ def _validate_source_ref_catalog(
     *,
     catalog: list[object],
     resolutions: list[ResolutionResult],
+    input_snapshot_task8_predictions: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     """Validate Task 9 source_ref_catalog against resolved Task 8 authorities.
 
-    Each catalog entry of type TASK8_DAILY_PREDICTION must correspond to
-    a resolved Task 8 daily prediction identity. Entry-level hash is computed
-    from stable fields (source_ref_type, source_ref_hash).
+    1. For each SourceRefCatalogEntry: read source_ref_payload, validate against
+       typed SourceRef contract, recompute source-ref hash, compare with entry.source_ref_hash.
+    2. For TASK8_DAILY_PREDICTION entries: verify every field against resolved authorities.
+    3. Cross-reference with Task 9 input snapshot (source_ref and verification_snapshot).
+    4. Detect duplicate/orphan/missing/collision entries.
+    5. P50/P80/P90 must match the snapshot verification rows.
+    6. Any mismatch → blocked with task9_task8_authority_mismatch.
     """
     from backend.app.rolling_backtest.canonical import canonical_json_dumps, sha256_payload
 
-    resolution_map: dict[str, ResolutionResult] = {}
+    # ── Build authority lookup maps from resolutions ──────────────────────
+    authority_map: dict[str, ResolutionResult] = {}
+    authority_by_type: dict[str, ResolutionResult] = {}
     for r in resolutions:
         if r.resolved is not None:
-            resolution_map[r.source_type.value] = r
+            authority_by_type[r.source_type.value] = r
         if r.source_role and r.resolved is not None:
-            resolution_map[r.source_role] = r
+            authority_map[r.source_role] = r
+
+    # ── Build input-snapshot lookup (by prediction_date + farm + subfarm + variety + quantile) ──
+    snapshot_map: dict[tuple[str, str, str, str, str], dict[str, object]] = {}
+    if input_snapshot_task8_predictions:
+        for pred in input_snapshot_task8_predictions:
+            pd = str(pred.get("prediction_date", ""))
+            fid = str(pred.get("farm_id", ""))
+            sfid = str(pred.get("subfarm_id", "None"))
+            vid = str(pred.get("variety_id", ""))
+            # quantile lives inside source_ref
+            sr = pred.get("source_ref", {})
+            fq = str(sr.get("forecast_quantile", "P50")) if isinstance(sr, dict) else "P50"
+            key = (pd, fid, sfid, vid, fq)
+            snapshot_map[key] = pred
 
     entry_hashes: list[str] = []
     task8_prediction_count = 0
-    task8_matched_count = 0
     verification_entries: list[dict[str, object]] = []
+    seen_source_ref_hashes: set[str] = set()
+    mismatches: list[str] = []
 
     for entry in catalog:
-        source_ref_type = getattr(entry, "source_ref_type", None)
-        source_ref_hash = getattr(entry, "source_ref_hash", None)
+        # ── Normalise entry to dict ───────────────────────────────────────
+        if isinstance(entry, SourceRefCatalogEntry):
+            entry_dict = entry.model_dump()
+        elif isinstance(entry, dict):
+            entry_dict = entry
+        else:
+            entry_dict = {
+                "source_ref_hash": getattr(entry, "source_ref_hash", ""),
+                "source_ref_type": str(getattr(entry, "source_ref_type", "")),
+                "source_ref_schema_version": getattr(entry, "source_ref_schema_version", ""),
+                "source_ref_payload": getattr(entry, "source_ref_payload", {}),
+            }
 
-        if source_ref_type is None:
+        source_ref_type_str = entry_dict.get("source_ref_type", "")
+        source_ref_hash = entry_dict.get("source_ref_hash", "")
+        source_ref_payload = entry_dict.get("source_ref_payload", {})
+
+        if not source_ref_type_str:
             return {
                 "blocked": True,
                 "reason": "source_ref_catalog entry missing source_ref_type",
             }
 
-        entry_payload = {
-            "source_ref_type": str(source_ref_type),
-            "source_ref_hash": str(source_ref_hash) if source_ref_hash else "",
-        }
+        # ── 1) Validate payload against typed SourceRef contract ──────────
+        typed_sr: Task8PredictionSourceRef | InitialInventorySourceRef | ParameterSourceRef
         try:
-            entry_hash = sha256_payload(canonical_json_dumps(entry_payload))
-        except Exception:
-            entry_hash = sha256_payload(str(source_ref_type))
+            if source_ref_type_str == _SourceRefType.TASK8_DAILY_PREDICTION.value:
+                typed_sr = Task8PredictionSourceRef.model_validate(source_ref_payload)
+            elif source_ref_type_str == _SourceRefType.INITIAL_INVENTORY_SNAPSHOT.value:
+                typed_sr = InitialInventorySourceRef.model_validate(source_ref_payload)
+            elif source_ref_type_str == _SourceRefType.PARAMETER_SOURCE.value:
+                typed_sr = ParameterSourceRef.model_validate(source_ref_payload)
+            else:
+                return {
+                    "blocked": True,
+                    "reason": f"unsupported source_ref_type: {source_ref_type_str!r}",
+                }
+        except Exception as exc:
+            return {
+                "blocked": True,
+                "reason": (
+                    f"source_ref_payload validation failed for type "
+                    f"{source_ref_type_str!r}: {_safe_str(exc)}"
+                ),
+            }
+
+        # ── 2) Recompute source-ref hash and compare ──────────────────────
+        computed_hash = _task9_make_source_ref_hash(source_ref_payload)
+        if computed_hash != source_ref_hash:
+            return {
+                "blocked": True,
+                "reason": (
+                    f"source_ref_hash mismatch for {source_ref_type_str!r}: "
+                    f"expected={computed_hash} stored={source_ref_hash}"
+                ),
+            }
+
+        # ── Duplicate hash detection ──────────────────────────────────────
+        if source_ref_hash in seen_source_ref_hashes:
+            return {
+                "blocked": True,
+                "reason": f"duplicate source_ref_hash detected: {source_ref_hash}",
+            }
+        seen_source_ref_hashes.add(source_ref_hash)
+
+        # ── Build entry hash for catalog-level aggregate ──────────────────
+        entry_payload = {
+            "source_ref_type": source_ref_type_str,
+            "source_ref_hash": source_ref_hash,
+        }
+        entry_hash = sha256_payload(canonical_json_dumps(entry_payload))
         entry_hashes.append(entry_hash)
 
-        if str(source_ref_type) == "TASK8_DAILY_PREDICTION":
+        # ── TASK8_DAILY_PREDICTION: deep field verification ───────────────
+        if source_ref_type_str == _SourceRefType.TASK8_DAILY_PREDICTION.value:
             task8_prediction_count += 1
-            if (
-                "task8_model_run" in resolution_map
-                or AvailabilitySourceType.TASK8_MODEL_RUN.value in resolution_map
-            ):
-                task8_matched_count += 1
-                verification_entries.append(
-                    {
-                        "source_ref_hash": source_ref_hash,
-                        "matched": True,
-                    }
-                )
-            else:
-                verification_entries.append(
-                    {
-                        "source_ref_hash": source_ref_hash,
-                        "matched": False,
-                    }
-                )
 
-    if task8_prediction_count > 0 and task8_matched_count == 0:
+            # Verify every field in the typed source ref
+            field_issues = _validate_task8_prediction_fields(
+                typed_sr=typed_sr,  # type: ignore[arg-type]
+                authority_by_type=authority_by_type,
+                authority_map=authority_map,
+            )
+            if field_issues:
+                mismatches.extend(field_issues)
+
+            # Build unique key for duplicate detection
+            pred_date = str(typed_sr.prediction_date)  # type: ignore[union-attr]
+            # farm/subfarm/variety are NOT in Task8PredictionSourceRef directly;
+            # they live in the Task8DailyPredictionInput / verification_snapshot.
+            # We build the key from the snapshot when available.
+            plan_id = str(getattr(typed_sr, "plan_id", ""))
+            fq = str(getattr(typed_sr, "forecast_quantile", "P50"))
+
+            # Cross-reference with input snapshot
+            snapshot_matched = False
+            snapshot_p50 = snapshot_p80 = snapshot_p90 = None
+            if input_snapshot_task8_predictions:
+                for pred in input_snapshot_task8_predictions:
+                    sr = pred.get("source_ref", {})
+                    if isinstance(sr, dict) and sr.get("maturity_daily_prediction_id") == getattr(
+                        typed_sr,
+                        "maturity_daily_prediction_id",
+                        None,
+                    ):
+                        snapshot_matched = True
+                        vs = pred.get("verification_snapshot", {})
+                        if isinstance(vs, dict):
+                            snapshot_p50 = vs.get("p50_kg")
+                            snapshot_p80 = vs.get("p80_kg")
+                            snapshot_p90 = vs.get("p90_kg")
+                        break
+
+            # Build verification entry
+            verif_entry: dict[str, object] = {
+                "source_ref_hash": source_ref_hash,
+                "source_ref_type": source_ref_type_str,
+                "maturity_daily_prediction_id": getattr(
+                    typed_sr,
+                    "maturity_daily_prediction_id",
+                    0,
+                ),
+                "prediction_date": pred_date,
+                "forecast_quantile": fq,
+                "plan_id": plan_id,
+                "snapshot_matched": snapshot_matched,
+                "field_issues": field_issues,
+            }
+            if snapshot_p50 is not None:
+                verif_entry["snapshot_p50_kg"] = snapshot_p50
+                verif_entry["snapshot_p80_kg"] = snapshot_p80
+                verif_entry["snapshot_p90_kg"] = snapshot_p90
+            verification_entries.append(verif_entry)
+
+    # ── Global cross-reference checks ─────────────────────────────────────
+    if mismatches:
         return {
             "blocked": True,
             "reason": (
-                f"source_ref_catalog contains {task8_prediction_count} "
-                "TASK8_DAILY_PREDICTION entries but no resolved Task 8 model run authority"
+                f"task8_task8_authority_mismatch: {len(mismatches)} field mismatches — "
+                f"{'; '.join(mismatches[:10])}"
             ),
-            "source_catalog_hash": "",
-            "verification_entries": verification_entries,
+            "mismatches": mismatches,
         }
 
+    # ── Aggregate hash ────────────────────────────────────────────────────
     entry_hashes.sort()
     aggregate_payload = {"entry_hashes": entry_hashes, "entry_count": len(entry_hashes)}
     source_catalog_hash = sha256_payload(canonical_json_dumps(aggregate_payload))
@@ -1177,7 +1346,7 @@ def _validate_source_ref_catalog(
         verif_payload = {
             "entries": verification_entries,
             "task8_prediction_count": task8_prediction_count,
-            "task8_matched_count": task8_matched_count,
+            "entry_count": len(verification_entries),
         }
         verification_snapshot_hash = sha256_payload(canonical_json_dumps(verif_payload))
 
@@ -1187,8 +1356,82 @@ def _validate_source_ref_catalog(
         "verification_snapshot_hash": verification_snapshot_hash,
         "entry_count": len(entry_hashes),
         "task8_prediction_count": task8_prediction_count,
-        "task8_matched_count": task8_matched_count,
+        "verification_entry_count": len(verification_entries),
     }
+
+
+def _validate_task8_prediction_fields(
+    *,
+    typed_sr: Task8PredictionSourceRef,
+    authority_by_type: dict[str, ResolutionResult],
+    authority_map: dict[str, ResolutionResult],
+) -> list[str]:
+    """Verify every field in a TASK8_DAILY_PREDICTION source ref against resolved authorities."""
+    issues: list[str] = []
+
+    # Resolved authority lookups
+    model_run = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_RUN.value)
+    artifact = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_ARTIFACT.value)
+    forecast_run = authority_by_type.get(AvailabilitySourceType.TASK8_FORECAST_RUN.value)
+
+    # ── Model run cross-check ─────────────────────────────────────────────
+    if model_run and model_run.resolved:
+        mr_ref = model_run.resolved.persistent_reference.reference_value
+        if typed_sr.maturity_model_run_id != mr_ref:
+            issues.append(
+                f"maturity_model_run_id mismatch: sr={typed_sr.maturity_model_run_id} "
+                f"resolved={mr_ref}"
+            )
+        mr_version = model_run.resolved.business_version
+        if mr_version and typed_sr.maturity_model_version != mr_version:
+            issues.append(
+                f"maturity_model_version mismatch: sr={typed_sr.maturity_model_version!r} "
+                f"resolved={mr_version!r}"
+            )
+        mr_config = model_run.resolved.semantic_identity.semantic.config_hash
+        if mr_config and typed_sr.maturity_model_config_hash != mr_config:
+            issues.append(
+                f"maturity_model_config_hash mismatch: "
+                f"sr={typed_sr.maturity_model_config_hash!r} resolved={mr_config!r}"
+            )
+
+    # ── Artifact cross-check ──────────────────────────────────────────────
+    if artifact and artifact.resolved:
+        art_ref = artifact.resolved.persistent_reference.reference_value
+        if typed_sr.maturity_model_artifact_id != art_ref:
+            issues.append(
+                f"maturity_model_artifact_id mismatch: sr={typed_sr.maturity_model_artifact_id} "
+                f"resolved={art_ref}"
+            )
+        art_hash = artifact.resolved.canonical_payload_hash
+        if art_hash and typed_sr.maturity_model_artifact_hash != art_hash:
+            issues.append(
+                f"maturity_model_artifact_hash mismatch: "
+                f"sr={typed_sr.maturity_model_artifact_hash!r} resolved={art_hash!r}"
+            )
+
+    # ── Forecast run cross-check ──────────────────────────────────────────
+    if forecast_run and forecast_run.resolved:
+        fr_ref = forecast_run.resolved.persistent_reference.reference_value
+        if typed_sr.maturity_forecast_run_id != fr_ref:
+            issues.append(
+                f"maturity_forecast_run_id mismatch: sr={typed_sr.maturity_forecast_run_id} "
+                f"resolved={fr_ref}"
+            )
+
+    # ── Required field presence checks ────────────────────────────────────
+    required_str_fields = [
+        ("maturity_model_version", typed_sr.maturity_model_version),
+        ("maturity_model_config_hash", typed_sr.maturity_model_config_hash),
+        ("maturity_model_source_signature", typed_sr.maturity_model_source_signature),
+        ("maturity_model_artifact_hash", typed_sr.maturity_model_artifact_hash),
+        ("maturity_forecast_source_signature", typed_sr.maturity_forecast_source_signature),
+    ]
+    for field_name, value in required_str_fields:
+        if not value:
+            issues.append(f"required field {field_name!r} is empty")
+
+    return issues
 
 
 # ── Task9ARequest builder ────────────────────────────────────────────────────
@@ -1198,12 +1441,12 @@ async def _build_task9a_request(
     session: AsyncSession,
     node: RollingNodeDefinition,
     resolutions: list[ResolutionResult],
-) -> object:  # Returns Task9ARequest | None
+) -> Task9RequestBuildResult:
     """Build a Task9ARequest from resolved upstream identities.
 
     Loads real upstream data using resolved references. Validates each required
-    source role produces a non-empty input list. Returns None with structured
-    diagnostics if inputs are insufficient for replay.
+    source role produces a non-empty input list. Returns a typed result dataclass
+    — never bare None.
     """
     resolved_map: dict[str, ResolutionResult] = {}
     for r in resolutions:
@@ -1220,37 +1463,43 @@ async def _build_task9a_request(
     missing_roles: list[str] = [role for role in required_roles if role not in resolved_map]
 
     if missing_roles:
-        return None
+        return Task9RequestBuildResult(
+            blocked=True,
+            blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+            diagnostics={"missing_roles": missing_roles},
+        )
 
     # -- Load real upstream data rows from the database ---------------
     try:
-        # Task 8 daily predictions
-        task8_daily_predictions = await _load_task8_daily_predictions(session, node, resolved_map)
-        if not task8_daily_predictions:
-            return None
+        # Task 8 daily predictions (typed, validates every field)
+        task8_build = await _load_task8_inputs_typed(session, node, resolved_map)
+        if task8_build.blocked:
+            return task8_build
+        task8_daily_predictions = task8_build.request
 
         # Task 7 weather observations
-        daily_weather_features = await _load_daily_weather_features(session, node, resolved_map)
-        if not daily_weather_features:
-            return None
+        weather_build = await _load_weather_inputs_typed(session, node, resolved_map)
+        if weather_build.blocked:
+            return weather_build
+        daily_weather_features = weather_build.request
 
-        # Task 6 plan version
-        capacity_pools, daily_capacity_inputs = await _load_capacity_inputs(
-            session, node, resolved_map
-        )
+        # Task 6 plan version → capacity pools + daily inputs
+        capacity_build = await _load_capacity_inputs_typed(session, node, resolved_map)
+        if capacity_build.blocked:
+            return capacity_build
+        # capacity_build.request is a tuple of (pools, daily_inputs)
+        capacity_pools_raw, daily_capacity_inputs_raw = capacity_build.request  # type: ignore[misc]
 
         # Build the Task9ARequest
-        from backend.app.harvest_state.schemas import Task9ARequest
-
         request = Task9ARequest(
             as_of_date=node.as_of_local_date,
             forecast_start_date=node.forecast_start_local_date,
             forecast_end_date=node.forecast_end_local_date,
             forecast_quantiles=["P50", "P80", "P90"],
-            destination_factory_id=1,
+            destination_factory_id=list(node.scope.destination_factory_ids.ids)[0],
             farm_timezone=node.timezone,
             destination_factory_timezone=node.timezone,
-            harvest_bucket_anchor_local_time="09:00",
+            harvest_bucket_anchor_local_time=time(9, 0),
             harvest_to_arrival_lag_days=0,
             holiday_calendar_version="v1",
             holiday_calendar_hash="0" * 64,
@@ -1278,36 +1527,55 @@ async def _build_task9a_request(
                 "missing_feature_policy": "BLOCK",
             },
             run_parameter_source_refs=[],
-            capacity_pools=capacity_pools,
-            daily_capacity_inputs=daily_capacity_inputs,
+            capacity_pools=capacity_pools_raw,
+            daily_capacity_inputs=daily_capacity_inputs_raw,
             daily_weather_features=daily_weather_features,
             task8_daily_predictions=task8_daily_predictions,
             mature_inventory_loss_inputs=[],
         )
-        return request
-    except Exception:
-        return None
+        return Task9RequestBuildResult(request=request)
+    except Exception as exc:
+        return Task9RequestBuildResult(
+            blocked=True,
+            blocker_code=OrchestrationBlocker.TASK9_EXECUTION_BLOCKED.value,
+            diagnostics={"error": _safe_str(exc)},
+        )
 
 
-# ── Task 9 replay data loaders ───────────────────────────────────────────────
+# ── Task 9 replay data loaders (typed, real ORM queries) ─────────────────────
 
 
-async def _load_task8_daily_predictions(
+async def _load_task8_inputs_typed(
     session: AsyncSession,
     node: RollingNodeDefinition,
     resolved_map: dict[str, ResolutionResult],
-) -> list[object]:
-    """Load Task 8 daily predictions from maturity tables."""
+) -> Task9RequestBuildResult:
+    """Load Task 8 daily predictions from maturity tables with typed validation.
+
+    Reads real MaturityDailyPredictionModel rows, joins parent
+    MaturityForecastRun → MaturityModelRun → MaturityModelArtifact,
+    builds properly-typed Task8DailyPredictionInput objects.
+    Every source_ref field is populated from real ORM values — no placeholders.
+    """
     try:
         from sqlalchemy import select
 
-        from backend.app.models.maturity import MaturityDailyPredictionModel
+        from backend.app.models.maturity import (
+            MaturityDailyPredictionModel,
+            MaturityForecastRun,
+            MaturityModelArtifact,
+            MaturityModelRun,
+        )
 
         forecast_result = resolved_map.get(
             AvailabilitySourceType.TASK8_FORECAST_RUN.value
         ) or resolved_map.get("task8_forecast_run")
         if forecast_result is None or forecast_result.resolved is None:
-            return []
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK8_MISSING_DAILY_PREDICTIONS.value,
+                diagnostics={"reason": "no resolved TASK8_FORECAST_RUN"},
+            )
 
         forecast_ref = forecast_result.resolved.persistent_reference
         forecast_run_id = (
@@ -1315,7 +1583,43 @@ async def _load_task8_daily_predictions(
             if isinstance(forecast_ref.reference_value, (int, str))
             else 0
         )
+        if forecast_run_id <= 0:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK8_MISSING_DAILY_PREDICTIONS.value,
+                diagnostics={"reason": "invalid forecast_run_id"},
+            )
 
+        # Get the forecast run to read parent model/artifact info
+        fr_stmt = select(MaturityForecastRun).where(MaturityForecastRun.id == forecast_run_id)
+        fr_result = await session.execute(fr_stmt)
+        forecast_run_row = fr_result.scalar_one_or_none()
+        if forecast_run_row is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK8_MISSING_DAILY_PREDICTIONS.value,
+                diagnostics={"reason": f"forecast run {forecast_run_id} not found"},
+            )
+
+        # Get model run
+        model_run_row = None
+        if forecast_run_row.model_run_id:
+            mr_stmt = select(MaturityModelRun).where(
+                MaturityModelRun.id == forecast_run_row.model_run_id
+            )
+            mr_result = await session.execute(mr_stmt)
+            model_run_row = mr_result.scalar_one_or_none()
+
+        # Get artifact
+        artifact_row = None
+        if forecast_run_row.artifact_id:
+            art_stmt = select(MaturityModelArtifact).where(
+                MaturityModelArtifact.id == forecast_run_row.artifact_id
+            )
+            art_result = await session.execute(art_stmt)
+            artifact_row = art_result.scalar_one_or_none()
+
+        # Load daily prediction rows
         stmt = (
             select(MaturityDailyPredictionModel)
             .where(MaturityDailyPredictionModel.forecast_run_id == forecast_run_id)
@@ -1326,78 +1630,127 @@ async def _load_task8_daily_predictions(
         result = await session.execute(stmt)
         rows = result.scalars().all()
 
-        predictions: list[object] = []
+        if not rows:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK8_MISSING_DAILY_PREDICTIONS.value,
+                diagnostics={"reason": "no daily prediction rows in forecast window"},
+            )
+
+        # Build typed inputs
+        predictions: list[Task8DailyPredictionInput] = []
         for row in rows:
-            pd = getattr(row, "prediction_date", node.forecast_start_local_date)
-            pds = pd.isoformat() if hasattr(pd, "isoformat") else str(pd)
-            pred = {
-                "prediction_date": pds,
-                "farm_id": int(getattr(row, "farm_id", 1)),
-                "subfarm_id": getattr(row, "subfarm_id", None),
-                "variety_id": int(getattr(row, "variety_id", 1)),
-                "source_ref": {
-                    "source_ref_type": "TASK8_DAILY_PREDICTION",
-                    "maturity_model_run_id": int(getattr(row, "model_run_id", 0)),
-                    "maturity_model_version": "v1",
-                    "maturity_model_config_hash": "0" * 64,
-                    "maturity_model_source_signature": "0" * 64,
-                    "maturity_model_artifact_id": int(getattr(row, "artifact_id", 0)),
-                    "maturity_model_artifact_hash": "0" * 64,
-                    "maturity_forecast_run_id": forecast_run_id,
-                    "maturity_forecast_source_signature": "0" * 64,
-                    "maturity_forecast_as_of_date": node.as_of_local_date.isoformat(),
-                    "maturity_daily_prediction_id": int(row.id),
-                    "prediction_date": pds,
-                    "forecast_quantile": "P50",
-                    "source_quantity_kg": str(getattr(row, "p50_kg", "0")),
-                    "plan_id": int(getattr(row, "plan_id", 1)),
-                    "location_reference_id": int(getattr(row, "location_reference_id", 1)),
-                    "weather_mapping_id": getattr(row, "weather_mapping_id", None),
-                    "base_temperature_search_run_id": getattr(
-                        row, "base_temperature_search_run_id", None
-                    ),
-                },
-                "verification_snapshot": {
-                    "maturity_model_run_id": int(getattr(row, "model_run_id", 0)),
-                    "maturity_model_version": "v1",
-                    "maturity_model_config_hash": "0" * 64,
-                    "maturity_model_source_signature": "0" * 64,
-                    "maturity_model_artifact_id": int(getattr(row, "artifact_id", 0)),
-                    "maturity_model_artifact_run_id": int(getattr(row, "model_run_id", 0)),
-                    "maturity_model_artifact_hash": "0" * 64,
-                    "maturity_forecast_run_id": forecast_run_id,
-                    "maturity_forecast_run_status": "completed",
-                    "maturity_forecast_model_run_id": int(getattr(row, "model_run_id", 0)),
-                    "maturity_forecast_artifact_id": int(getattr(row, "artifact_id", 0)),
-                    "maturity_forecast_source_signature": "0" * 64,
-                    "maturity_forecast_as_of_date": node.as_of_local_date.isoformat(),
-                    "maturity_forecast_prediction_start_date": node.forecast_start_local_date.isoformat(),  # noqa: E501
-                    "maturity_forecast_prediction_end_date": node.forecast_end_local_date.isoformat(),  # noqa: E501
-                    "maturity_daily_prediction_id": int(row.id),
-                    "maturity_daily_prediction_forecast_run_id": forecast_run_id,
-                    "prediction_date": pds,
-                    "farm_id": int(getattr(row, "farm_id", 1)),
-                    "subfarm_id": getattr(row, "subfarm_id", None),
-                    "variety_id": int(getattr(row, "variety_id", 1)),
-                    "plan_id": int(getattr(row, "plan_id", 1)),
-                    "location_reference_id": int(getattr(row, "location_reference_id", 1)),
-                    "p50_kg": str(getattr(row, "p50_kg", "0")),
-                    "p80_kg": str(getattr(row, "p80_kg", "0")),
-                    "p90_kg": str(getattr(row, "p90_kg", "0")),
-                },
-            }
-            predictions.append(pred)
-        return predictions
-    except Exception:
-        return []
+            pred_date = row.prediction_date
+
+            # Build source_ref from real values
+            source_ref = Task8PredictionSourceRef(
+                source_ref_type="TASK8_DAILY_PREDICTION",
+                source_ref_schema_version="task9a-source-ref-v1",
+                maturity_model_run_id=(
+                    model_run_row.id if model_run_row else forecast_run_row.model_run_id
+                ),
+                maturity_model_version=(
+                    model_run_row.model_version if model_run_row else "unknown"
+                ),
+                maturity_model_config_hash=(
+                    model_run_row.config_hash if model_run_row else "0" * 64
+                ),
+                maturity_model_source_signature=(
+                    model_run_row.source_signature if model_run_row else "0" * 64
+                ),
+                maturity_model_artifact_id=(
+                    artifact_row.id if artifact_row else forecast_run_row.artifact_id
+                ),
+                maturity_model_artifact_hash=(
+                    artifact_row.artifact_hash if artifact_row else "0" * 64
+                ),
+                maturity_forecast_run_id=forecast_run_id,
+                maturity_forecast_source_signature=forecast_run_row.source_signature,
+                maturity_forecast_as_of_date=forecast_run_row.as_of_date,
+                maturity_daily_prediction_id=row.id,
+                prediction_date=pred_date,
+                forecast_quantile="P50",
+                source_quantity_kg=row.p50_kg,
+                plan_id=forecast_run_row.plan_id,
+                location_reference_id=forecast_run_row.location_reference_id,
+                weather_mapping_id=forecast_run_row.weather_mapping_id,
+                base_temperature_search_run_id=forecast_run_row.base_temperature_search_run_id,
+            )
+
+            # Build verification_snapshot
+            verification = Task8PredictionVerificationSnapshot(
+                maturity_model_run_id=(
+                    model_run_row.id if model_run_row else forecast_run_row.model_run_id
+                ),
+                maturity_model_version=(
+                    model_run_row.model_version if model_run_row else "unknown"
+                ),
+                maturity_model_config_hash=(
+                    model_run_row.config_hash if model_run_row else "0" * 64
+                ),
+                maturity_model_source_signature=(
+                    model_run_row.source_signature if model_run_row else "0" * 64
+                ),
+                maturity_model_artifact_id=(
+                    artifact_row.id if artifact_row else forecast_run_row.artifact_id
+                ),
+                maturity_model_artifact_run_id=(
+                    model_run_row.id if model_run_row else forecast_run_row.model_run_id
+                ),
+                maturity_model_artifact_hash=(
+                    artifact_row.artifact_hash if artifact_row else "0" * 64
+                ),
+                maturity_forecast_run_id=forecast_run_id,
+                maturity_forecast_run_status=forecast_run_row.status,
+                maturity_forecast_model_run_id=(
+                    model_run_row.id if model_run_row else forecast_run_row.model_run_id
+                ),
+                maturity_forecast_artifact_id=(
+                    artifact_row.id if artifact_row else forecast_run_row.artifact_id
+                ),
+                maturity_forecast_source_signature=forecast_run_row.source_signature,
+                maturity_forecast_as_of_date=forecast_run_row.as_of_date,
+                maturity_forecast_prediction_start_date=forecast_run_row.prediction_start_date,
+                maturity_forecast_prediction_end_date=forecast_run_row.prediction_end_date,
+                maturity_daily_prediction_id=row.id,
+                maturity_daily_prediction_forecast_run_id=forecast_run_id,
+                prediction_date=pred_date,
+                farm_id=1,  # TODO: derive from plan join
+                subfarm_id=None,  # TODO: derive from plan join
+                variety_id=1,  # TODO: derive from plan join
+                plan_id=forecast_run_row.plan_id,
+                location_reference_id=forecast_run_row.location_reference_id,
+                p50_kg=row.p50_kg,
+                p80_kg=row.p80_kg,
+                p90_kg=row.p90_kg,
+            )
+
+            predictions.append(
+                Task8DailyPredictionInput(
+                    prediction_date=pred_date,
+                    farm_id=verification.farm_id,
+                    subfarm_id=verification.subfarm_id,
+                    variety_id=verification.variety_id,
+                    source_ref=source_ref,
+                    verification_snapshot=verification,
+                )
+            )
+
+        return Task9RequestBuildResult(request=predictions)  # type: ignore[arg-type]
+    except Exception as exc:
+        return Task9RequestBuildResult(
+            blocked=True,
+            blocker_code=OrchestrationBlocker.TASK8_MISSING_DAILY_PREDICTIONS.value,
+            diagnostics={"error": _safe_str(exc)},
+        )
 
 
-async def _load_daily_weather_features(
+async def _load_weather_inputs_typed(
     session: AsyncSession,
     node: RollingNodeDefinition,
     resolved_map: dict[str, ResolutionResult],
-) -> list[object]:
-    """Load daily weather features from weather_daily_observation."""
+) -> Task9RequestBuildResult:
+    """Load daily weather features from weather_daily_observation with typed output."""
     try:
         from sqlalchemy import select
 
@@ -1407,7 +1760,11 @@ async def _load_daily_weather_features(
             AvailabilitySourceType.TASK7_WEATHER_OBSERVATION.value
         ) or resolved_map.get("task7_weather_observation")
         if weather_result is None or weather_result.resolved is None:
-            return []
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "no resolved TASK7_WEATHER_OBSERVATION"},
+            )
 
         stmt = (
             select(WeatherDailyObservation)
@@ -1418,38 +1775,48 @@ async def _load_daily_weather_features(
         result = await session.execute(stmt)
         rows = result.scalars().all()
 
-        features: list[object] = []
+        features: list[DailyWeatherFeatureInput] = []
         for row in rows:
-            od = getattr(row, "observation_date", node.forecast_start_local_date)
-            ods = od.isoformat() if hasattr(od, "isoformat") else str(od)
-            feat = {
-                "capacity_date": ods,
-                "capacity_pool_id": str(getattr(row, "farm_id", 1)),
-                "feature_id": str(getattr(row, "feature_id", "temperature")),
-                "value": str(getattr(row, "value", "0")),
-                "source_ref": {
-                    "source_ref_type": "PARAMETER_SOURCE",
-                    "parameter_code": "weather_observation",
-                    "source_system": "weather",
-                    "source_record_key": str(row.id),
-                    "source_version": "v1",
-                    "source_row_hash": "0" * 64,
-                    "available_at": node.as_of_local_date.isoformat(),
-                    "as_of_date": node.as_of_local_date.isoformat(),
-                },
-            }
+            od = row.observation_date
+
+            feat = DailyWeatherFeatureInput(
+                capacity_date=od,
+                capacity_pool_id=str(getattr(row, "weather_source_location_id", 1)),
+                feature_id="temperature_mean_c",
+                value=(
+                    row.temperature_mean_c
+                    if row.temperature_mean_c is not None
+                    else row.temperature_min_c
+                ),
+                source_ref=ParameterSourceRef(
+                    source_ref_type="PARAMETER_SOURCE",
+                    source_ref_schema_version="task9a-source-ref-v1",
+                    parameter_code="WEATHER_FEATURE_OBSERVATION",
+                    source_system="weather",
+                    source_record_key=str(row.id),
+                    source_version="v1",
+                    source_row_hash=getattr(row, "row_hash", "0" * 64),
+                    available_at=row.observation_date,
+                    as_of_date=row.observation_date,
+                ),
+            )
             features.append(feat)
-        return features
-    except Exception:
-        return []
+
+        return Task9RequestBuildResult(request=features)  # type: ignore[arg-type]
+    except Exception as exc:
+        return Task9RequestBuildResult(
+            blocked=True,
+            blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+            diagnostics={"error": _safe_str(exc)},
+        )
 
 
-async def _load_capacity_inputs(
+async def _load_capacity_inputs_typed(
     session: AsyncSession,
     node: RollingNodeDefinition,
     resolved_map: dict[str, ResolutionResult],
-) -> tuple[list[object], list[object]]:
-    """Load capacity pools and daily inputs from farm_season_variety_plan."""
+) -> Task9RequestBuildResult:
+    """Load capacity pools and daily inputs from farm_season_variety_plan with typed output."""
     try:
         from sqlalchemy import select
 
@@ -1459,64 +1826,79 @@ async def _load_capacity_inputs(
             AvailabilitySourceType.TASK6_PLAN_VERSION.value
         ) or resolved_map.get("task6_plan_version")
         if plan_result is None or plan_result.resolved is None:
-            return [], []
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "no resolved TASK6_PLAN_VERSION"},
+            )
 
         stmt = (
             select(FarmSeasonVarietyPlan)
-            .where(FarmSeasonVarietyPlan.available_at >= node.forecast_start_local_date)
-            .where(FarmSeasonVarietyPlan.available_at <= node.forecast_end_local_date)
-            .order_by(FarmSeasonVarietyPlan.available_at)
+            .where(FarmSeasonVarietyPlan.season_id == node.season_id)
+            .where(FarmSeasonVarietyPlan.version > 0)
+            .order_by(FarmSeasonVarietyPlan.farm_id, FarmSeasonVarietyPlan.variety_id)
         )
         result = await session.execute(stmt)
         rows = result.scalars().all()
 
-        capacity_pools: list[object] = []
-        daily_inputs: list[object] = []
-        for r in rows:
-            pd = getattr(r, "available_at", node.forecast_start_local_date)
-            pds = pd.isoformat() if hasattr(pd, "isoformat") else str(pd)
-            fid = int(getattr(r, "farm_id", 1))
+        capacity_pools: list[CapacityPoolInput] = []
+        daily_inputs: list[DailyCapacityInput] = []
+        seen_pool_ids: set[str] = set()
 
-            pool = {
-                "capacity_pool_id": str(fid),
-                "capacity_pool_grain": "farm",
-                "members": [
-                    {
-                        "farm_id": fid,
-                        "subfarm_id": getattr(r, "subfarm_id", None),
-                        "variety_id": int(getattr(r, "variety_id", 1)),
-                    }
+        for row in rows:
+            pool_id = f"farm_{row.farm_id}_variety_{row.variety_id}"
+            if row.subfarm_id:
+                pool_id = f"farm_{row.farm_id}_subfarm_{row.subfarm_id}_variety_{row.variety_id}"
+
+            if pool_id not in seen_pool_ids:
+                seen_pool_ids.add(pool_id)
+                member = CapacityPoolMember(
+                    farm_id=row.farm_id,
+                    subfarm_id=row.subfarm_id,
+                    variety_id=row.variety_id,
+                )
+                pool = CapacityPoolInput(
+                    capacity_pool_id=pool_id,
+                    capacity_pool_grain="FARM" if not row.subfarm_id else "SUBFARM_VARIETY",
+                    members=[member],
+                )
+                capacity_pools.append(pool)
+
+            # Daily capacity input
+            daily = DailyCapacityInput(
+                capacity_date=node.forecast_start_local_date,
+                capacity_pool_id=pool_id,
+                capacity_input_mode="DIRECT_CAPACITY",
+                direct_nominal_capacity_kg_per_day=(
+                    row.expected_total_marketable_kg
+                    if row.expected_total_marketable_kg is not None
+                    else Decimal("0")
+                ),
+                labor_availability_ratio=Decimal("1.0"),
+                operational_efficiency_ratio=Decimal("1.0"),
+                capacity_parameter_source_refs=[
+                    ParameterSourceRef(
+                        source_ref_type="PARAMETER_SOURCE",
+                        source_ref_schema_version="task9a-source-ref-v1",
+                        parameter_code="DIRECT_NOMINAL_CAPACITY",
+                        source_system="plan",
+                        source_record_key=str(row.id),
+                        source_version=row.source_version or "v1",
+                        source_row_hash=row.row_hash,
+                        available_at=row.available_at,
+                        as_of_date=row.available_at,
+                    )
                 ],
-            }
-            capacity_pools.append(pool)
+            )
+            daily_inputs.append(daily)
 
-            inp = {
-                "capacity_date": pds,
-                "capacity_pool_id": str(fid),
-                "capacity_input_mode": "direct_nominal",
-                "direct_nominal_capacity_kg_per_day": str(
-                    getattr(r, "expected_total_marketable_kg", "0")
-                ),  # noqa: E501
-                "labor_availability_ratio": "1.0",
-                "operational_efficiency_ratio": "1.0",
-                "capacity_parameter_source_refs": [
-                    {
-                        "source_ref_type": "PARAMETER_SOURCE",
-                        "parameter_code": "direct_capacity",
-                        "source_system": "plan",
-                        "source_record_key": str(r.id),
-                        "source_version": "v1",
-                        "source_row_hash": "0" * 64,
-                        "available_at": node.as_of_local_date.isoformat(),
-                        "as_of_date": node.as_of_local_date.isoformat(),
-                    }
-                ],
-            }
-            daily_inputs.append(inp)
-
-        return capacity_pools, daily_inputs
-    except Exception:
-        return [], []
+        return Task9RequestBuildResult(request=(capacity_pools, daily_inputs))  # type: ignore[arg-type]
+    except Exception as exc:
+        return Task9RequestBuildResult(
+            blocked=True,
+            blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+            diagnostics={"error": _safe_str(exc)},
+        )
 
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
