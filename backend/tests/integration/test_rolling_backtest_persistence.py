@@ -593,6 +593,7 @@ async def test_attempt_auto_increment_and_chain() -> None:
 
     a2 = await create_execution_attempt(
         run.id,
+        await _first_node_id(run.id),
         status="running",
         prior_attempt_id=a1.id,
     )
@@ -642,6 +643,7 @@ async def test_prior_attempt_must_belong_to_same_run() -> None:
     with pytest.raises(RollingBacktestAttemptConflictError):
         await create_execution_attempt(
             run2.id,
+            await _first_node_id(run2.id),
             status="running",
             prior_attempt_id=a1.id,
         )
