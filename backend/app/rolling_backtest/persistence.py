@@ -569,6 +569,10 @@ async def create_execution_attempt(
                     f"prior_attempt must be attempt {next_number - 1}, got {prior.attempt_number}"
                 )
 
+        finished_at_val = None
+        if status not in ("pending", "running"):
+            finished_at_val = datetime.now(UTC)
+
         attempt = RollingBacktestAttempt(
             rolling_run_id=run_id,
             attempt_number=next_number,
@@ -576,6 +580,7 @@ async def create_execution_attempt(
             status=status,
             current_stage=current_stage,
             started_at=datetime.now(UTC),
+            finished_at=finished_at_val,
         )
         session.add(attempt)
         try:
