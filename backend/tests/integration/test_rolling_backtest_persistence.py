@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.rolling_backtest import (
@@ -35,6 +36,7 @@ from backend.app.rolling_backtest.errors import (
     RollingBacktestDagIntegrityError,
     RollingBacktestIdentityConflictError,
     RollingBacktestIntegrityError,
+    RollingBacktestPersistenceError,
 )
 from backend.app.rolling_backtest.persistence import (
     AvailabilityAuditPersistenceCommand,
@@ -457,43 +459,78 @@ async def test_same_signature_tampered_cutoff_timezone_is_rejected() -> None:
 async def test_mid_transaction_child_failure_rolls_back_all_tables() -> None:
     _require_postgres()
     nodes = (_make_node(season_id=2025), _make_node(season_id=2026))
-    duplicate_role = "task9_structural_forecast"
-    duplicate_identity = _make_semantic_identity(
-        source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
-        source_role=duplicate_role,
-    )
-    first_node_command = _make_node_command(
-        nodes[0], identity=_make_semantic_identity(source_role="task3_analytics")
-    )
-    second_node_command = RollingNodePersistenceCommand(
-        node=nodes[1].model_copy(
-            update={
-                "resolved_upstream_semantic_identities": (
-                    duplicate_identity,
-                    duplicate_identity,
-                )
-            }
-        ),
-        resolved_inputs=(
-            ResolvedInputPersistenceCommand(identity=duplicate_identity),
-            ResolvedInputPersistenceCommand(identity=duplicate_identity),
-        ),
-        availability_audits=(),
-        dag=_make_dag(),
-    )
-    config = _make_config(nodes=(first_node_command.node, second_node_command.node))
-    command = RollingBacktestPersistenceCommand(
-        config=config,
-        nodes=(
-            first_node_command,
-            second_node_command,
-        ),
-    )
+    config = _make_config(nodes=nodes)
+    command = _make_persistence_command(config, with_inputs=True, with_audits=True, with_dag=True)
+    failure_hook_entered = False
 
-    with pytest.raises(RollingBacktestIntegrityError) as exc:
-        await create_or_load_logical_run(command)
+    async def inject_duplicate_resolved_input(
+        phase: str,
+        session: AsyncSession,
+        node: RollingBacktestNode,
+    ) -> None:
+        nonlocal failure_hook_entered
+        if phase != "after_first_node_children_flush":
+            return
+        failure_hook_entered = True
 
-    assert exc.value.code == "ROLLING_BACKTEST_INTEGRITY_ERROR"
+        run_count_in_tx = await session.scalar(select(func.count()).select_from(RollingBacktestRun))
+        node_count_in_tx = await session.scalar(
+            select(func.count()).select_from(RollingBacktestNode)
+        )
+        assert run_count_in_tx is not None and run_count_in_tx >= 1
+        assert node_count_in_tx is not None and node_count_in_tx >= 1
+
+        await session.execute(
+            text(
+                "INSERT INTO rolling_backtest_resolved_input ("
+                "rolling_node_id, source_role, source_type, role_qualifier, "
+                "semantic_input_signature, result_hash, canonical_payload_hash, "
+                "schema_version, policy_version, persistent_reference_type, "
+                "persistent_reference_value, canonical_payload, audit_hash"
+                ") VALUES ("
+                ":rolling_node_id, :source_role, :source_type, NULL, "
+                ":semantic_input_signature, :result_hash, :canonical_payload_hash, "
+                ":schema_version, :policy_version, NULL, NULL, "
+                "CAST(:canonical_payload AS jsonb), :audit_hash"
+                ")"
+            ),
+            {
+                "rolling_node_id": node.id,
+                "source_role": "task3_analytics",
+                "source_type": "task3_analytics_build",
+                "semantic_input_signature": "1" * 64,
+                "result_hash": "2" * 64,
+                "canonical_payload_hash": "3" * 64,
+                "schema_version": "task11-upstream-v1",
+                "policy_version": "p1",
+                "canonical_payload": (
+                    '{"source_role":"task3_analytics",'
+                    '"source_type":"task3_analytics_build",'
+                    '"role_qualifier":null,'
+                    '"semantic":{'
+                    '"schema_version":"task11-upstream-v1",'
+                    '"semantic_payload_hash":"' + ("4" * 64) + '",'
+                    '"input_signature":"' + ("1" * 64) + '",'
+                    '"result_hash":"' + ("2" * 64) + '",'
+                    '"canonical_payload_hash":"' + ("3" * 64) + '",'
+                    '"business_version":"v1",'
+                    '"policy_version":"p1"'
+                    "}}"
+                ),
+                "audit_hash": "5" * 64,
+            },
+        )
+        await session.flush()
+
+    persistence_module._PERSISTENCE_WRITE_TEST_HOOK = inject_duplicate_resolved_input
+    try:
+        with pytest.raises(RollingBacktestPersistenceError) as exc:
+            await create_or_load_logical_run(command)
+    finally:
+        persistence_module._PERSISTENCE_WRITE_TEST_HOOK = None
+
+    assert failure_hook_entered is True
+    assert exc.value.code == "ROLLING_BACKTEST_PERSISTENCE_ERROR"
 
     async with AsyncSessionMaker() as session:
         run_count = await session.scalar(select(func.count()).select_from(RollingBacktestRun))

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import inspect
 from datetime import UTC, datetime
 
 import pytest
 
+from backend.app.rolling_backtest import persistence as persistence_module
 from backend.app.rolling_backtest.enums import AvailabilitySourceType, ExecutionMode
 from backend.app.rolling_backtest.errors import (
     RollingBacktestAuthorityBindingError,
@@ -159,6 +161,26 @@ def test_validate_persistence_command_rejects_missing_node() -> None:
         validate_persistence_command(command)
 
     assert exc.value.code == "ROLLING_BACKTEST_COMMAND_MISMATCH"
+
+
+def test_persistence_write_test_hook_defaults_to_none() -> None:
+    assert persistence_module._PERSISTENCE_WRITE_TEST_HOOK is None
+
+
+def test_persistence_write_test_hook_not_exposed_in_public_api() -> None:
+    parameters = inspect.signature(persistence_module.create_or_load_logical_run).parameters
+    assert "_PERSISTENCE_WRITE_TEST_HOOK" not in parameters
+    assert "failure_injection" not in parameters
+
+
+def test_persistence_write_test_hook_not_in_semantic_payload() -> None:
+    node = _make_node()
+    config = _make_config(nodes=(node,))
+    payload = persistence_module._json_value(  # noqa: SLF001
+        persistence_module.rolling_backtest_config_payload(config)
+    )
+    assert "_PERSISTENCE_WRITE_TEST_HOOK" not in str(payload)
+    assert "failure_injection" not in str(payload)
 
 
 def test_validate_persistence_command_rejects_reordered_nodes() -> None:
