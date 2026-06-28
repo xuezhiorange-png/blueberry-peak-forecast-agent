@@ -214,6 +214,7 @@ async def orchestrate_node(
     node: RollingNodeDefinition,
     run_signature: str,
     logical_run_id: int,
+    logical_node_id: int | None = None,
 ) -> NodeOrchestrationOutcome:
     started_at = datetime.now(UTC)
     node_sig = _node_sig_str(config, node)
@@ -221,6 +222,7 @@ async def orchestrate_node(
     try:
         attempt = await create_execution_attempt(
             logical_run_id,
+            node_id=logical_node_id if logical_node_id is not None else 0,
             status="running",
             current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
         )

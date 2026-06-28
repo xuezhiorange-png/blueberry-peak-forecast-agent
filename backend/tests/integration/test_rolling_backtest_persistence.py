@@ -556,6 +556,19 @@ async def test_mid_transaction_child_failure_rolls_back_all_tables() -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def _first_node_id(run_id: int) -> int:
+    """Load the first node_id for a run (for tests)."""
+    async with AsyncSessionMaker() as session:
+        result = await session.execute(
+            select(RollingBacktestNode).where(RollingBacktestNode.rolling_run_id == run_id).limit(1)
+        )
+        node = result.scalar_one_or_none()
+        assert node is not None, f"no node found for run {run_id}"
+        return node.id
+
+
 # Attempt lifecycle
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -567,7 +580,7 @@ async def test_attempt_auto_increment_and_chain() -> None:
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
-    a1 = await create_execution_attempt(run.id, status="running")
+    a1 = await create_execution_attempt(run.id, _first_node_id(run.id), status="running")
     assert a1.attempt_number == 1
     assert a1.prior_attempt_id is None
 
@@ -593,7 +606,7 @@ async def test_attempt_auto_increment_and_chain() -> None:
         structured_error_code="TEST_BLOCKED",
     )
 
-    a3 = await create_execution_attempt(run.id, status="running")
+    a3 = await create_execution_attempt(run.id, _first_node_id(run.id), status="running")
     assert a3.attempt_number == 3
     assert a3.prior_attempt_id == a2.id
 
@@ -604,7 +617,7 @@ async def test_cannot_modify_completed_attempt() -> None:
     config = _make_config()
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
-    a1 = await create_execution_attempt(run.id, status="running")
+    a1 = await create_execution_attempt(run.id, _first_node_id(run.id), status="running")
     await finalize_attempt_status(a1.id, status="completed", current_stage="done")
 
     with pytest.raises(RollingBacktestAttemptConflictError):
@@ -622,7 +635,7 @@ async def test_prior_attempt_must_belong_to_same_run() -> None:
     cmd2 = _make_persistence_command(config2, with_inputs=False, with_dag=True)
     run2 = await create_or_load_logical_run(cmd2)
 
-    a1 = await create_execution_attempt(run1.id, status="failed")
+    a1 = await create_execution_attempt(run1.id, _first_node_id(run1.id), status="failed")
     await finalize_attempt_status(a1.id, status="failed", current_stage="init")
 
     # Attempt to link prior from run2 to run1's attempt
@@ -640,10 +653,10 @@ async def test_retry_after_running_attempt_is_rejected() -> None:
     config = _make_config()
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
-    _ = await create_execution_attempt(run.id, status="running")
+    _ = await create_execution_attempt(run.id, _first_node_id(run.id), status="running")
 
     with pytest.raises(RollingBacktestAttemptConflictError) as exc:
-        await create_execution_attempt(run.id, status="running")
+        await create_execution_attempt(run.id, _first_node_id(run.id), status="running")
 
     assert exc.value.code == "ROLLING_BACKTEST_ATTEMPT_CONFLICT"
 
@@ -654,11 +667,11 @@ async def test_retry_after_completed_attempt_is_rejected() -> None:
     config = _make_config()
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
-    attempt = await create_execution_attempt(run.id, status="running")
+    attempt = await create_execution_attempt(run.id, _first_node_id(run.id), status="running")
     await finalize_attempt_status(attempt.id, status="completed", current_stage="done")
 
     with pytest.raises(RollingBacktestAttemptConflictError) as exc:
-        await create_execution_attempt(run.id, status="running")
+        await create_execution_attempt(run.id, _first_node_id(run.id), status="running")
 
     assert exc.value.code == "ROLLING_BACKTEST_ATTEMPT_CONFLICT"
 
@@ -1141,9 +1154,11 @@ async def test_tamper_attempt_skip_number_is_detected() -> None:
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
-    a1 = await create_execution_attempt(run.id, status="failed")
+    a1 = await create_execution_attempt(run.id, _first_node_id(run.id), status="failed")
     await finalize_attempt_status(a1.id, status="failed", current_stage="init")
-    a2 = await create_execution_attempt(run.id, status="failed", prior_attempt_id=a1.id)
+    a2 = await create_execution_attempt(
+        run.id, _first_node_id(run.id), status="failed", prior_attempt_id=a1.id
+    )
     await finalize_attempt_status(a2.id, status="failed", current_stage="init")
 
     # Tamper: change attempt 2's number to 3
@@ -1169,8 +1184,8 @@ async def test_tamper_attempt_prior_points_to_other_run_is_detected() -> None:
     cmd2 = _make_persistence_command(config2, with_inputs=False, with_dag=True)
     run2 = await create_or_load_logical_run(cmd2)
 
-    a1 = await create_execution_attempt(run1.id, status="failed")
-    a2 = await create_execution_attempt(run2.id, status="failed")
+    a1 = await create_execution_attempt(run1.id, _first_node_id(run1.id), status="failed")
+    a2 = await create_execution_attempt(run2.id, _first_node_id(run2.id), status="failed")
 
     # Tamper: make a1's prior point to a2 (different run)
     async with AsyncSessionMaker() as session:
@@ -1191,8 +1206,8 @@ async def test_tamper_attempt_two_prior_null_is_detected() -> None:
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
-    first = await create_execution_attempt(run.id, status="failed")
-    second = await create_execution_attempt(run.id, status="running")
+    first = await create_execution_attempt(run.id, _first_node_id(run.id), status="failed")
+    second = await create_execution_attempt(run.id, _first_node_id(run.id), status="running")
     assert second.prior_attempt_id == first.id
 
     async with AsyncSessionMaker() as session:
@@ -1268,7 +1283,7 @@ async def test_concurrent_attempt_allocation_serializes_numbering() -> None:
     config = _make_config()
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
-    first = await create_execution_attempt(run.id, status="failed")
+    first = await create_execution_attempt(run.id, _first_node_id(run.id), status="failed")
 
     entered = 0
     release = asyncio.Event()
@@ -1285,9 +1300,13 @@ async def test_concurrent_attempt_allocation_serializes_numbering() -> None:
 
     persistence_module._ATTEMPT_ALLOCATION_SYNC_HOOK = lock_hook
     try:
-        left = asyncio.create_task(create_execution_attempt(run.id, status="running"))
+        left = asyncio.create_task(
+            create_execution_attempt(run.id, _first_node_id(run.id), status="running")
+        )
         await asyncio.wait_for(first_has_lock.wait(), timeout=5)
-        right = asyncio.create_task(create_execution_attempt(run.id, status="running"))
+        right = asyncio.create_task(
+            create_execution_attempt(run.id, _first_node_id(run.id), status="running")
+        )
         release.set()
         second, third = await asyncio.gather(left, right, return_exceptions=True)
     finally:
