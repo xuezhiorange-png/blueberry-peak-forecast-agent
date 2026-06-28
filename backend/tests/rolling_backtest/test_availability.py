@@ -291,25 +291,32 @@ def test_task10_artifact_requires_training_run_semantic_identity() -> None:
     assert result.allowed is True
 
 
-def test_parent_persistent_reference_does_not_affect_semantic_hash() -> None:
-    """Persistent reference on parent authority must not be checked by evaluator."""
+def test_parent_persistent_reference_does_not_change_authority_audit_hash() -> None:
+    """Parent persistent reference changes must not affect the authority audit hash."""
+    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+
     ref_a = PersistentUpstreamReference(reference_type="database_run_id", reference_value=1)
     ref_b = PersistentUpstreamReference(reference_type="database_run_id", reference_value=2)
 
-    snapshot_a = Task8ModelArtifactAvailabilitySnapshot(
+    parent_a = _parent_run(persistent_ref=ref_a)
+    parent_b = _parent_run(persistent_ref=ref_b)
+
+    assert parent_authority_audit_hash(parent_a) == parent_authority_audit_hash(parent_b)
+
+    # Also verify child audit hash is unaffected
+    from backend.app.rolling_backtest.availability import availability_snapshot_audit_hash
+
+    child_a = Task8ModelArtifactAvailabilitySnapshot(
         source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
         created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
-        parent_authority=_parent_run(persistent_ref=ref_a),
+        parent_authority=parent_a,
     )
-    snapshot_b = Task8ModelArtifactAvailabilitySnapshot(
+    child_b = Task8ModelArtifactAvailabilitySnapshot(
         source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
         created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
-        parent_authority=_parent_run(persistent_ref=ref_b),
+        parent_authority=parent_b,
     )
-    result_a = _evaluate(snapshot_a, mode=ExecutionMode.HISTORICAL_OBSERVED)
-    result_b = _evaluate(snapshot_b, mode=ExecutionMode.HISTORICAL_OBSERVED)
-    assert result_a.allowed is True
-    assert result_b.allowed is True
+    assert availability_snapshot_audit_hash(child_a) == availability_snapshot_audit_hash(child_b)
 
 
 def test_wrong_parent_source_type_is_rejected() -> None:
@@ -339,6 +346,225 @@ def test_parent_authority_timestamp_after_cutoff_is_blocked() -> None:
     result = _evaluate(snapshot, mode=ExecutionMode.HISTORICAL_OBSERVED)
     assert result.allowed is False
     assert result.blocker_code == "PARENT_AUTHORITY_REQUIRED"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P0: Canonical audit hash regression tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_parent_semantic_input_signature_change_changes_authority_audit_hash() -> None:
+    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+
+    left = _parent_run()
+    right = ParentAuthorityIdentity(
+        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+        authority_schema_version="task11-parent-auth-v1",
+        authority_policy_version="task11-parent-auth-policy-v1",
+        authority_timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        authority_status="completed",
+        semantic_input_signature="b" * 64,
+    )
+    assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
+
+
+def test_parent_result_hash_change_changes_authority_audit_hash() -> None:
+    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+
+    left = _parent_run()
+    right = ParentAuthorityIdentity(
+        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+        authority_schema_version="task11-parent-auth-v1",
+        authority_policy_version="task11-parent-auth-policy-v1",
+        authority_timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        authority_status="completed",
+        result_hash="b" * 64,
+    )
+    assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
+
+
+def test_parent_canonical_payload_hash_change_changes_authority_audit_hash() -> None:
+    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+
+    left = _parent_run()
+    right = _parent_run(semantic_hash="b" * 64)
+    assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
+
+
+def test_parent_policy_version_change_changes_authority_audit_hash() -> None:
+    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+
+    left = _parent_run()
+    right = ParentAuthorityIdentity(
+        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+        authority_schema_version="task11-parent-auth-v1",
+        authority_policy_version="task11-parent-auth-policy-v2",
+        authority_timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        authority_status="completed",
+        canonical_payload_hash="a" * 64,
+    )
+    assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
+
+
+def test_parent_schema_version_change_changes_authority_audit_hash() -> None:
+    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+
+    left = _parent_run()
+    right = ParentAuthorityIdentity(
+        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+        authority_schema_version="task11-parent-auth-v2",
+        authority_policy_version="task11-parent-auth-policy-v1",
+        authority_timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        authority_status="completed",
+        canonical_payload_hash="a" * 64,
+    )
+    assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
+
+
+def test_child_artifact_audit_hash_binds_parent_semantic_identity() -> None:
+    from backend.app.rolling_backtest.availability import (
+        availability_snapshot_audit_hash,
+        parent_authority_audit_hash,
+    )
+
+    parent = _parent_run()
+    child = Task8ModelArtifactAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent,
+    )
+    child_hash = availability_snapshot_audit_hash(child)
+
+    parent_mutated = _parent_run(semantic_hash="b" * 64)
+    child_mutated = Task8ModelArtifactAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent_mutated,
+    )
+    child_mutated_hash = availability_snapshot_audit_hash(child_mutated)
+
+    assert parent_authority_audit_hash(parent) != parent_authority_audit_hash(parent_mutated)
+    assert child_hash != child_mutated_hash
+
+
+def test_child_daily_prediction_audit_hash_binds_parent_semantic_identity() -> None:
+    from backend.app.rolling_backtest.availability import availability_snapshot_audit_hash
+
+    parent_a = _parent_run(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        semantic_hash="a" * 64,
+    )
+    child_a = Task8DailyPredictionAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        prediction_date=date(2026, 2, 28),
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent_a,
+    )
+
+    parent_b = _parent_run(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        semantic_hash="b" * 64,
+    )
+    child_b = Task8DailyPredictionAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        prediction_date=date(2026, 2, 28),
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent_b,
+    )
+
+    assert availability_snapshot_audit_hash(child_a) != availability_snapshot_audit_hash(child_b)
+
+
+def test_child_created_at_change_changes_availability_audit_hash() -> None:
+    from backend.app.rolling_backtest.availability import availability_snapshot_audit_hash
+
+    parent = _parent_run()
+    child_a = Task8ModelArtifactAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent,
+    )
+    child_b = Task8ModelArtifactAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+        created_at=datetime(2026, 2, 28, 11, 0, tzinfo=UTC),
+        parent_authority=parent,
+    )
+    assert availability_snapshot_audit_hash(child_a) != availability_snapshot_audit_hash(child_b)
+
+
+def test_child_prediction_date_change_changes_availability_audit_hash() -> None:
+    from backend.app.rolling_backtest.availability import availability_snapshot_audit_hash
+
+    parent = _parent_run(source_type=AvailabilitySourceType.TASK8_FORECAST_RUN)
+    child_a = Task8DailyPredictionAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        prediction_date=date(2026, 2, 28),
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent,
+    )
+    child_b = Task8DailyPredictionAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        prediction_date=date(2026, 2, 27),
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent,
+    )
+    assert availability_snapshot_audit_hash(child_a) != availability_snapshot_audit_hash(child_b)
+
+
+def test_parent_authority_payload_excludes_persistent_reference() -> None:
+    from backend.app.rolling_backtest.availability import parent_authority_semantic_payload
+
+    ref = PersistentUpstreamReference(reference_type="database_run_id", reference_value=77)
+    parent = _parent_run(persistent_ref=ref)
+    payload = parent_authority_semantic_payload(parent)
+    assert "persistent_reference" not in payload
+    assert "database_run_id" not in str(payload)
+    assert "77" not in str(payload)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Golden audit hash tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_parent_authority_audit_golden() -> None:
+    from backend.app.rolling_backtest.availability import (
+        parent_authority_audit_hash,
+        parent_authority_semantic_payload,
+    )
+    from backend.app.rolling_backtest.canonical import canonical_json_dumps
+
+    parent = _parent_run(
+        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+        timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        semantic_hash="a" * 64,
+    )
+    payload = json.loads(canonical_json_dumps(parent_authority_semantic_payload(parent)))
+    golden = json.loads(_golden_path("authority_audit.json").read_text(encoding="utf-8"))
+    assert payload == golden["parent_authority_semantic_payload"]
+    assert parent_authority_audit_hash(parent) == golden["parent_authority_audit_hash"]
+
+
+def test_availability_snapshot_audit_golden() -> None:
+    from backend.app.rolling_backtest.availability import (
+        availability_snapshot_audit_hash,
+        availability_snapshot_audit_payload,
+    )
+    from backend.app.rolling_backtest.canonical import canonical_json_dumps
+
+    parent = _parent_run(
+        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+        semantic_hash="b" * 64,
+    )
+    artifact = Task8ModelArtifactAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent,
+    )
+    payload = json.loads(canonical_json_dumps(availability_snapshot_audit_payload(artifact)))
+    golden = json.loads(_golden_path("authority_audit.json").read_text(encoding="utf-8"))
+    assert payload == golden["artifact_audit_payload"]
+    assert availability_snapshot_audit_hash(artifact) == golden["artifact_audit_hash"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

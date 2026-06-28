@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_payload
 from backend.app.rolling_backtest.enums import (
     AVAILABILITY_REGISTRY_VERSION,
     AvailabilityBlockerCode,
@@ -14,6 +15,7 @@ from backend.app.rolling_backtest.schemas import (
     AvailabilityAuthorityEvaluationResult,
     AvailabilityAuthoritySpec,
     AvailabilitySnapshot,
+    ParentAuthorityIdentity,
     Task3AnalyticsBuildAvailabilitySnapshot,
     Task6PlanVersionAvailabilitySnapshot,
     Task7WeatherObservationAvailabilitySnapshot,
@@ -391,9 +393,117 @@ def _blocked(code: AvailabilityBlockerCode) -> AvailabilityAuthorityEvaluationRe
     return AvailabilityAuthorityEvaluationResult(allowed=False, blocker_code=code.value)
 
 
+# ── Canonical audit payloads (Phase 1 contract — no persistence) ─────────────
+
+
+def parent_authority_semantic_payload(
+    authority: ParentAuthorityIdentity,
+) -> dict[str, object]:
+    """Deterministic semantic payload for a parent-run authority.
+
+    Explicitly includes stable identity fields and excludes persistent_reference,
+    database IDs, UUIDs, and runtime diagnostics.
+    """
+    return {
+        "source_type": authority.source_type,
+        "authority_schema_version": authority.authority_schema_version,
+        "authority_policy_version": authority.authority_policy_version,
+        "authority_timestamp": authority.authority_timestamp,
+        "authority_status": authority.authority_status,
+        "semantic_input_signature": authority.semantic_input_signature,
+        "result_hash": authority.result_hash,
+        "canonical_payload_hash": authority.canonical_payload_hash,
+    }
+
+
+def parent_authority_audit_hash(authority: ParentAuthorityIdentity) -> str:
+    return sha256_payload(canonical_json_value(parent_authority_semantic_payload(authority)))
+
+
+def availability_snapshot_audit_payload(
+    snapshot: AvailabilitySnapshot,
+) -> dict[str, object]:
+    """Construct a source-specific deterministic audit payload for any typed snapshot."""
+    if isinstance(snapshot, Task3AnalyticsBuildAvailabilitySnapshot):
+        vis = snapshot.task3_source_visibility
+        return {
+            "source_type": snapshot.source_type,
+            "status": snapshot.status,
+            "authoritative_timestamp": snapshot.authoritative_timestamp,
+            "task3_source_visibility": (
+                {
+                    "visibility_policy_version": vis.visibility_policy_version,
+                    "source_max_raw_id": vis.source_max_raw_id,
+                    "aggregation_version": vis.aggregation_version,
+                    "config_hash": vis.config_hash,
+                    "visibility_manifest_hash": vis.visibility_manifest_hash,
+                    "visible_through_at": vis.visible_through_at,
+                }
+                if vis is not None
+                else None
+            ),
+        }
+    if isinstance(snapshot, Task6PlanVersionAvailabilitySnapshot):
+        return {
+            "source_type": snapshot.source_type,
+            "available_at": snapshot.available_at,
+            "effective_interval_version": snapshot.effective_interval_version,
+        }
+    if isinstance(snapshot, Task7WeatherObservationAvailabilitySnapshot):
+        return {
+            "source_type": snapshot.source_type,
+            "available_at": snapshot.available_at,
+            "observation_date": snapshot.observation_date,
+        }
+    if isinstance(
+        snapshot,
+        (
+            Task8ModelRunAvailabilitySnapshot,
+            Task8ForecastRunAvailabilitySnapshot,
+            Task9HarvestStateRunAvailabilitySnapshot,
+            Task10TrainingRunAvailabilitySnapshot,
+            Task10PredictionRunAvailabilitySnapshot,
+        ),
+    ):
+        return {
+            "source_type": snapshot.source_type,
+            "status": snapshot.status,
+            "authoritative_timestamp": snapshot.authoritative_timestamp,
+        }
+    if isinstance(snapshot, Task8ModelArtifactAvailabilitySnapshot):
+        return {
+            "source_type": snapshot.source_type,
+            "created_at": snapshot.created_at,
+            "parent_authority": parent_authority_semantic_payload(snapshot.parent_authority),
+        }
+    if isinstance(snapshot, Task8DailyPredictionAvailabilitySnapshot):
+        return {
+            "source_type": snapshot.source_type,
+            "prediction_date": snapshot.prediction_date,
+            "created_at": snapshot.created_at,
+            "parent_authority": parent_authority_semantic_payload(snapshot.parent_authority),
+        }
+    if isinstance(snapshot, Task10ModelArtifactAvailabilitySnapshot):
+        return {
+            "source_type": snapshot.source_type,
+            "created_at": snapshot.created_at,
+            "parent_authority": parent_authority_semantic_payload(snapshot.parent_authority),
+        }
+
+    raise TypeError(f"unsupported availability snapshot type: {type(snapshot).__name__}")
+
+
+def availability_snapshot_audit_hash(snapshot: AvailabilitySnapshot) -> str:
+    return sha256_payload(canonical_json_value(availability_snapshot_audit_payload(snapshot)))
+
+
 __all__ = [
     "AVAILABILITY_REGISTRY_VERSION",
+    "availability_snapshot_audit_hash",
+    "availability_snapshot_audit_payload",
     "build_availability_authority_registry",
     "evaluate_authority_visibility",
     "get_availability_authority_spec",
+    "parent_authority_audit_hash",
+    "parent_authority_semantic_payload",
 ]

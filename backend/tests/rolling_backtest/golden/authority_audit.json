@@ -1,0 +1,28 @@
+{
+  "parent_authority_semantic_payload": {
+    "authority_policy_version": "task11-parent-auth-policy-v1",
+    "authority_schema_version": "task11-parent-auth-v1",
+    "authority_status": "completed",
+    "authority_timestamp": "2026-02-28T10:00:00Z",
+    "canonical_payload_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "result_hash": null,
+    "semantic_input_signature": null,
+    "source_type": "task8_model_run"
+  },
+  "parent_authority_audit_hash": "0e8abfeafd7c6d48f1f1284f4e5ac666c1b47d49920cb8e288ef56592bfef5d6",
+  "artifact_audit_payload": {
+    "created_at": "2026-02-28T10:00:00Z",
+    "parent_authority": {
+      "authority_policy_version": "task11-parent-auth-policy-v1",
+      "authority_schema_version": "task11-parent-auth-v1",
+      "authority_status": "completed",
+      "authority_timestamp": "2026-02-28T10:00:00Z",
+      "canonical_payload_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "result_hash": null,
+      "semantic_input_signature": null,
+      "source_type": "task8_model_run"
+    },
+    "source_type": "task8_model_artifact"
+  },
+  "artifact_audit_hash": "2c395a1963935c592881a1f3a3e347ffc290266d2ae9e571d61495e5649e1813"
+}
