@@ -1097,10 +1097,8 @@ async def persist_stage_event(
         raise RollingBacktestStageIntegrityError(f"unknown stage: {stage}")
 
     now = datetime.now(UTC)
-    if entered_at is None and status == "running":
+    if entered_at is None:
         entered_at = now
-    if finished_at is None and status != "running":
-        finished_at = now
 
     async with AsyncSessionMaker() as session:
         # Try insert (idempotent for initial entry)
@@ -1113,7 +1111,7 @@ async def persist_stage_event(
             structured_error_code=structured_error_code,
             sanitized_diagnostics=sanitized_diagnostics,
             entered_at=entered_at,
-            finished_at=finished_at,
+            finished_at=None if status == "running" else (finished_at or now),
         )
         session.add(event)
         try:
@@ -1121,8 +1119,12 @@ async def persist_stage_event(
             return event
         except SAIntegrityError:
             await session.rollback()
-            # Already exists — update it
-            result = await session.execute(
+            # ── Close this session; open a fresh one for SELECT+UPDATE ──
+            await session.close()
+
+        # Already exists — update it in a fresh session
+        async with AsyncSessionMaker() as update_session:
+            result = await update_session.execute(
                 select(RollingBacktestStageEvent).where(
                     RollingBacktestStageEvent.attempt_id == attempt_id,
                     RollingBacktestStageEvent.stage == stage,
@@ -1136,9 +1138,9 @@ async def persist_stage_event(
             existing.status = status
             existing.structured_error_code = structured_error_code
             existing.sanitized_diagnostics = sanitized_diagnostics
-            if finished_at is not None:
-                existing.finished_at = finished_at
-            await session.commit()
+            if status != "running":
+                existing.finished_at = finished_at or now
+            await update_session.commit()
             return existing
 
 
