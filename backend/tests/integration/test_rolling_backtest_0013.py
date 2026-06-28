@@ -73,6 +73,8 @@ def _require_postgres() -> None:
 def _make_node(
     season_id: int = 2025,
     as_of_local_date: str = "2025-03-15",
+    *,
+    suffix: str = "",
 ) -> RollingNodeDefinition:
     from backend.app.rolling_backtest.enums import (
         DefaultNodeKey,
@@ -80,6 +82,7 @@ def _make_node(
         UpstreamSelectionMode,
     )
 
+    sv = f"v1{suffix}"
     as_of = date.fromisoformat(as_of_local_date)
     node_key = {
         (2, 28): DefaultNodeKey.FEBRUARY_END,
@@ -112,7 +115,7 @@ def _make_node(
                 "variety_ids": {"mode": "all", "ids": []},
             },
             "upstream_selection_mode": UpstreamSelectionMode.HISTORICAL_RESOLUTION.value,
-            "forecast_horizon_policy_version": "v1",
+            "forecast_horizon_policy_version": sv,
             "task10_model_policy": {
                 "policy": Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL.value,
                 "training_run_semantic_identity": "a" * 64,
@@ -155,7 +158,7 @@ def _make_config(
         suffix = _next_suffix()
     sv = f"v1{suffix}"
     if nodes is None:
-        nodes = (_make_node(),)
+        nodes = (_make_node(suffix=suffix),)
     return RollingBacktestConfig(
         execution_mode=ExecutionMode.HISTORICAL_OBSERVED,
         rolling_schema_version=f"task11-rolling-{sv}",
