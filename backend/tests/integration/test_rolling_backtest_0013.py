@@ -183,7 +183,7 @@ def _make_dag() -> DagPersistenceCommand:
     return DagPersistenceCommand(
         dag_schema_version="v1",
         dag_policy_version="v1",
-        dag_dict={"nodes": [{"id": "n1"}], "edges": []},
+        dag_dict={"nodes": ["n1"], "edges": []},
         expected_node_count=1,
         expected_edge_count=0,
     )
