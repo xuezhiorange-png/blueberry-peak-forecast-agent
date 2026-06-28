@@ -5,16 +5,16 @@ Revises: None (initial migration)
 Create Date: 2026-06-28
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0012"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -63,7 +63,8 @@ def upgrade() -> None:
             name="ck_rolling_backtest_run_config_hash_sha256",
         ),
         sa.CheckConstraint(
-            "length(canonical_payload_hash) = 64 and lower(canonical_payload_hash) = canonical_payload_hash",
+            "length(canonical_payload_hash) = 64 "
+            "and lower(canonical_payload_hash) = canonical_payload_hash",
             name="ck_rolling_backtest_run_canonical_payload_hash_sha256",
         ),
         sa.CheckConstraint(
@@ -71,7 +72,8 @@ def upgrade() -> None:
             name="ck_rolling_backtest_run_execution_mode",
         ),
         sa.CheckConstraint(
-            "status in ('pending', 'running', 'forecast_completed', 'partially_completed', 'completed', 'blocked', 'failed')",
+            "status in ('pending', 'running', 'forecast_completed', "
+            "'partially_completed', 'completed', 'blocked', 'failed')",
             name="ck_rolling_backtest_run_status",
         ),
         sa.CheckConstraint(
@@ -131,7 +133,8 @@ def upgrade() -> None:
             name="ck_rolling_backtest_node_signature_sha256",
         ),
         sa.CheckConstraint(
-            "length(canonical_payload_hash) = 64 and lower(canonical_payload_hash) = canonical_payload_hash",
+            "length(canonical_payload_hash) = 64 "
+            "and lower(canonical_payload_hash) = canonical_payload_hash",
             name="ck_rolling_backtest_node_canonical_payload_hash_sha256",
         ),
         sa.CheckConstraint(
@@ -210,7 +213,8 @@ def upgrade() -> None:
             name="uq_rolling_backtest_attempt_number",
         ),
         sa.CheckConstraint(
-            "status in ('pending', 'running', 'forecast_completed', 'partially_completed', 'completed', 'blocked', 'failed')",
+            "status in ('pending', 'running', 'forecast_completed', "
+            "'partially_completed', 'completed', 'blocked', 'failed')",
             name="ck_rolling_backtest_attempt_status",
         ),
         sa.CheckConstraint(
@@ -343,7 +347,8 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name="pk_rolling_backtest_dag_snapshot"),
         sa.CheckConstraint(
-            "length(canonical_payload_hash) = 64 and lower(canonical_payload_hash) = canonical_payload_hash",
+            "length(canonical_payload_hash) = 64 "
+            "and lower(canonical_payload_hash) = canonical_payload_hash",
             name="ck_rolling_backtest_dag_snapshot_payload_hash_sha256",
         ),
         sa.CheckConstraint(
