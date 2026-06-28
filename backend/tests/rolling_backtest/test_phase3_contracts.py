@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-import pytest
+from datetime import UTC, datetime
 
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
-    ExecutionMode,
-    UpstreamSelectionMode,
 )
 from backend.app.rolling_backtest.orchestration import (
     NodeOrchestrationOutcome,
@@ -23,7 +19,6 @@ from backend.app.rolling_backtest.resolution import (
 from backend.app.rolling_backtest.schemas import (
     PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
-    RollingNodeDefinition,
     UpstreamSemanticIdentityPayload,
 )
 
@@ -70,7 +65,7 @@ def _make_candidate(
             reference_type="database_run_id", reference_value=run_id
         ),
         semantic_identity=identity,
-        authoritative_available_at=available_at or datetime(2024, 6, 1, tzinfo=timezone.utc),
+        authoritative_available_at=available_at or datetime(2024, 6, 1, tzinfo=UTC),
         business_version=version,
     )
 
@@ -227,14 +222,14 @@ class TestNodeOrchestrationOutcome:
 class TestCutoffFiltering:
     def test_candidate_after_cutoff_is_filtered(self) -> None:
         """Candidates with available_at > cutoff should be invisible."""
-        cutoff = datetime(2024, 3, 15, tzinfo=timezone.utc)
+        cutoff = datetime(2024, 3, 15, tzinfo=UTC)
         future_candidate = _make_candidate(
             run_id=1,
-            available_at=datetime(2024, 6, 1, tzinfo=timezone.utc),  # after cutoff
+            available_at=datetime(2024, 6, 1, tzinfo=UTC),  # after cutoff
         )
         past_candidate = _make_candidate(
             run_id=2,
-            available_at=datetime(2024, 3, 1, tzinfo=timezone.utc),  # before cutoff
+            available_at=datetime(2024, 3, 1, tzinfo=UTC),  # before cutoff
         )
 
         # Simulate filtering logic from resolution
@@ -248,7 +243,7 @@ class TestCutoffFiltering:
 
     def test_candidate_at_exact_cutoff_is_visible(self) -> None:
         """Candidates with available_at == cutoff should be visible."""
-        cutoff = datetime(2024, 3, 15, tzinfo=timezone.utc)
+        cutoff = datetime(2024, 3, 15, tzinfo=UTC)
         exact_candidate = _make_candidate(
             run_id=1,
             available_at=cutoff,
@@ -262,11 +257,11 @@ class TestCutoffFiltering:
         """Higher database ID should not override a valid historical candidate."""
         c1 = _make_candidate(
             run_id=1,
-            available_at=datetime(2024, 3, 1, tzinfo=timezone.utc),
+            available_at=datetime(2024, 3, 1, tzinfo=UTC),
         )
         c2 = _make_candidate(
             run_id=9999,  # higher DB ID
-            available_at=datetime(2024, 6, 1, tzinfo=timezone.utc),  # after cutoff
+            available_at=datetime(2024, 6, 1, tzinfo=UTC),  # after cutoff
         )
         # Sort by authoritative time DESC, not DB ID
         sorted_candidates = sorted(
@@ -275,7 +270,7 @@ class TestCutoffFiltering:
             reverse=True,
         )
         # c2 is newest but after cutoff — filtering should remove it
-        cutoff = datetime(2024, 3, 15, tzinfo=timezone.utc)
+        cutoff = datetime(2024, 3, 15, tzinfo=UTC)
         visible = [
             c for c in sorted_candidates if c.authoritative_available_at <= cutoff
         ]
@@ -291,17 +286,17 @@ class TestDeterministicSorting:
         """Verify deterministic sort: time DESC, version DESC, hash ASC."""
         c1 = _make_candidate(
             run_id=1,
-            available_at=datetime(2024, 6, 1, tzinfo=timezone.utc),
+            available_at=datetime(2024, 6, 1, tzinfo=UTC),
             version="v2",
         )
         c2 = _make_candidate(
             run_id=2,
-            available_at=datetime(2024, 3, 1, tzinfo=timezone.utc),
+            available_at=datetime(2024, 3, 1, tzinfo=UTC),
             version="v1",
         )
         c3 = _make_candidate(
             run_id=3,
-            available_at=datetime(2024, 6, 1, tzinfo=timezone.utc),  # same time as c1
+            available_at=datetime(2024, 6, 1, tzinfo=UTC),  # same time as c1
             version="v1",  # lower version than c1
         )
 
@@ -327,30 +322,17 @@ class TestAmbiguityDetection:
         """Two candidates with identical sort keys but different identities = conflict."""
         c1 = _make_candidate(
             run_id=1,
-            available_at=datetime(2024, 6, 1, tzinfo=timezone.utc),
+            available_at=datetime(2024, 6, 1, tzinfo=UTC),
             version="v1",
         )
         c2 = _make_candidate(
             run_id=2,
-            available_at=datetime(2024, 6, 1, tzinfo=timezone.utc),
+            available_at=datetime(2024, 6, 1, tzinfo=UTC),
             version="v1",
         )
         # Same sort key, different persistent refs, different hashes
         assert c1.canonical_identity_hash != c2.canonical_identity_hash
 
-        # This should trigger ambiguous_historical_candidate
-        top_key = (
-            c1.authoritative_available_at,
-            c1.business_version,
-            c1.canonical_identity_hash,
-            c1.canonical_payload_hash,
-        )
-        second_key = (
-            c2.authoritative_available_at,
-            c2.business_version,
-            c2.canonical_identity_hash,
-            c2.canonical_payload_hash,
-        )
         # Same time+version, different hashes → ambiguity
         assert c1.authoritative_available_at == c2.authoritative_available_at
         assert c1.business_version == c2.business_version
@@ -360,12 +342,12 @@ class TestAmbiguityDetection:
         """Same canonical identity hash + same sort key = equivalent, allowed."""
         c1 = _make_candidate(
             run_id=1,
-            available_at=datetime(2024, 6, 1, tzinfo=timezone.utc),
+            available_at=datetime(2024, 6, 1, tzinfo=UTC),
             version="v1",
         )
         c2 = _make_candidate(
             run_id=1,  # same run_id → same identity hash
-            available_at=datetime(2024, 6, 1, tzinfo=timezone.utc),
+            available_at=datetime(2024, 6, 1, tzinfo=UTC),
             version="v1",
         )
         assert c1.canonical_identity_hash == c2.canonical_identity_hash
