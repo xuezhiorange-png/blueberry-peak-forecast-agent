@@ -38,6 +38,14 @@ from backend.app.models.residual_model import (
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
 )
+from backend.app.models.rolling_backtest import (
+    RollingBacktestAttempt,
+    RollingBacktestAvailabilityAudit,
+    RollingBacktestDagSnapshot,
+    RollingBacktestNode,
+    RollingBacktestResolvedInput,
+    RollingBacktestRun,
+)
 from backend.app.models.weather import (
     BaseTemperatureSearchRun,
     LocationWeatherMapping,
@@ -85,6 +93,12 @@ __all__ = [
     "ResidualModelPredictionRow",
     "ResidualModelPredictionRun",
     "ResidualModelTrainingRun",
+    "RollingBacktestAttempt",
+    "RollingBacktestAvailabilityAudit",
+    "RollingBacktestDagSnapshot",
+    "RollingBacktestNode",
+    "RollingBacktestResolvedInput",
+    "RollingBacktestRun",
     "Season",
     "Subfarm",
     "Variety",
