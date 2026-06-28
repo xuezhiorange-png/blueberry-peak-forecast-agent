@@ -80,15 +80,19 @@ class HistoricalCandidate:
             id_str = canonical_json_dumps(id_payload)
             object.__setattr__(self, "canonical_identity_hash", sha256_payload(id_str))
 
-        # Validate: if canonical_payload_hash is provided, it must be a valid SHA-256
+        # Validate hashes: if provided, must be valid SHA-256; empty means "not available"
+        # but empty hashes are NOT allowed for production candidates
         if self.canonical_payload_hash:
-            if len(self.canonical_payload_hash) != 64 or not all(
-                c in "0123456789abcdef" for c in self.canonical_payload_hash.lower()
-            ):
+            if not _is_sha256_hex(self.canonical_payload_hash):
                 raise ValueError(
                     f"canonical_payload_hash must be a 64-char hex string, "
                     f"got {self.canonical_payload_hash!r}"
                 )
+
+
+def _is_sha256_hex(value: str) -> bool:
+    """Check if a string is a valid lowercase SHA-256 hex digest."""
+    return len(value) == 64 and all(c in "0123456789abcdef" for c in value)
 
 
 def _build_identity_payload(identity: ResolvedUpstreamSemanticIdentity) -> dict[str, object]:
@@ -552,9 +556,13 @@ _SOURCE_QUERY_MAP: dict[AvailabilitySourceType, CandidateQueryAdapter] = {
     AvailabilitySourceType.TASK6_PLAN_VERSION: _query_task6_candidates,
     AvailabilitySourceType.TASK7_WEATHER_OBSERVATION: _query_task7_candidates,
     AvailabilitySourceType.TASK8_MODEL_RUN: _query_task8_model_run_candidates,
+    AvailabilitySourceType.TASK8_MODEL_ARTIFACT: _query_task8_model_run_candidates,
     AvailabilitySourceType.TASK8_FORECAST_RUN: _query_task8_forecast_run_candidates,
+    AvailabilitySourceType.TASK8_DAILY_PREDICTION: _query_task8_forecast_run_candidates,
     AvailabilitySourceType.TASK9_HARVEST_STATE_RUN: _query_task9_candidates,
     AvailabilitySourceType.TASK10_TRAINING_RUN: _query_task10_training_candidates,
+    AvailabilitySourceType.TASK10_MODEL_ARTIFACT: _query_task10_training_candidates,
+    AvailabilitySourceType.TASK10_PREDICTION_RUN: _query_task10_training_candidates,
 }
 
 
