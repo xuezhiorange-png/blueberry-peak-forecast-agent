@@ -146,16 +146,15 @@ def _make_semantic_identity(
         persistent_reference=None,
         semantic=UpstreamSemanticIdentityPayload(
             schema_version="v1",
-            policy_version="v1",
-            source_role=source_role,
-            role_qualifier=None,
+            display_label=f"display:{source_role}",
+            semantic_payload_hash="f" * 64,
             input_signature="a" * 64,
             config_hash="b" * 64,
             result_hash="c" * 64,
             canonical_payload_hash="d" * 64,
             artifact_payload_hash=None,
+            policy_version="v1",
             business_version="v1",
-            display_label=f"display:{source_role}",
         ),
     )
 
