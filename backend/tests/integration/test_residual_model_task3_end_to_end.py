@@ -479,19 +479,34 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
                 f"got {row.aggregation_version!r}"
             )
 
-        # A6. Factory coverage — main_feature_build covers factory_id
-        fpm_rows = (
+        # A6. Factory coverage sets
+        limited_metrics = (
+            await session.scalars(
+                select(FactorySeasonPeakMetric).where(
+                    FactorySeasonPeakMetric.build_run_id == limited_feature_build_run_id
+                )
+            )
+        ).all()
+        main_metrics = (
             await session.scalars(
                 select(FactorySeasonPeakMetric).where(
                     FactorySeasonPeakMetric.build_run_id == main_feature_build_run_id
                 )
             )
         ).all()
-        assert len(fpm_rows) == 1, (
-            f"Expected 1 FactorySeasonPeakMetric for main_feature build, "
-            f"got {len(fpm_rows)}"
+        limited_factory_ids = {row.factory_id for row in limited_metrics}
+        main_factory_ids = {row.factory_id for row in main_metrics}
+        assert limited_factory_ids == {secondary_factory.id}, (
+            f"Expected limited build factories {{{secondary_factory.id}}}, "
+            f"got {limited_factory_ids}"
         )
-        fpm = fpm_rows[0]
+        assert main_factory_ids == {factory_id, secondary_factory.id}, (
+            f"Expected main build factories {{{factory_id}, {secondary_factory.id}}}, "
+            f"got {main_factory_ids}"
+        )
+        assert factory_id not in limited_factory_ids
+        assert factory_id in main_factory_ids
+        fpm = next(row for row in main_metrics if row.factory_id == factory_id)
         assert fpm.factory_id == factory_id
         assert fpm.analysis_start_date == date(2026, 1, 1), (
             f"Expected analysis_start_date 2026-01-01, got {fpm.analysis_start_date}"
