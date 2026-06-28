@@ -353,70 +353,154 @@ def test_parent_authority_timestamp_after_cutoff_is_blocked() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def test_parent_semantic_input_signature_change_changes_authority_audit_hash() -> None:
-    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+def _fully_identified_parent(
+    *,
+    source_type: AvailabilitySourceType = AvailabilitySourceType.TASK8_MODEL_RUN,
+    semantic_input_signature: str = "1" * 64,
+    result_hash: str = "2" * 64,
+    canonical_payload_hash: str = "3" * 64,
+    authority_schema_version: str = "task11-parent-auth-v1",
+    authority_policy_version: str = "task11-parent-auth-policy-v1",
+    authority_timestamp: datetime = datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+    authority_status: str = "completed",
+) -> ParentAuthorityIdentity:
+    """Construct a parent authority with all three stable hashes populated.
 
-    left = _parent_run()
-    right = ParentAuthorityIdentity(
-        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
-        authority_schema_version="task11-parent-auth-v1",
-        authority_policy_version="task11-parent-auth-policy-v1",
-        authority_timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
-        authority_status="completed",
-        semantic_input_signature="b" * 64,
+    Each mutation test can call this and override a single field to ensure
+    only that field differs between left and right.
+    """
+    return ParentAuthorityIdentity(
+        source_type=source_type,
+        authority_schema_version=authority_schema_version,
+        authority_policy_version=authority_policy_version,
+        authority_timestamp=authority_timestamp,
+        authority_status=authority_status,
+        semantic_input_signature=semantic_input_signature,
+        result_hash=result_hash,
+        canonical_payload_hash=canonical_payload_hash,
+    )
+
+
+def test_parent_semantic_input_signature_change_changes_authority_audit_hash() -> None:
+    from backend.app.rolling_backtest.availability import (
+        parent_authority_audit_hash,
+        parent_authority_semantic_payload,
+    )
+
+    left = _fully_identified_parent()
+    right = _fully_identified_parent(semantic_input_signature="4" * 64)
+
+    left_payload = parent_authority_semantic_payload(left)
+    right_payload = parent_authority_semantic_payload(right)
+    assert left_payload["semantic_input_signature"] == "1" * 64
+    assert right_payload["semantic_input_signature"] == "4" * 64
+    assert left_payload["result_hash"] == right_payload["result_hash"] == "2" * 64
+    assert (
+        left_payload["canonical_payload_hash"]
+        == right_payload["canonical_payload_hash"]
+        == "3" * 64
     )
     assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
 
 
 def test_parent_result_hash_change_changes_authority_audit_hash() -> None:
-    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+    from backend.app.rolling_backtest.availability import (
+        parent_authority_audit_hash,
+        parent_authority_semantic_payload,
+    )
 
-    left = _parent_run()
-    right = ParentAuthorityIdentity(
-        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
-        authority_schema_version="task11-parent-auth-v1",
-        authority_policy_version="task11-parent-auth-policy-v1",
-        authority_timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
-        authority_status="completed",
-        result_hash="b" * 64,
+    left = _fully_identified_parent()
+    right = _fully_identified_parent(result_hash="5" * 64)
+
+    left_payload = parent_authority_semantic_payload(left)
+    right_payload = parent_authority_semantic_payload(right)
+    assert left_payload["result_hash"] == "2" * 64
+    assert right_payload["result_hash"] == "5" * 64
+    assert (
+        left_payload["semantic_input_signature"]
+        == right_payload["semantic_input_signature"]
+        == "1" * 64
+    )
+    assert (
+        left_payload["canonical_payload_hash"]
+        == right_payload["canonical_payload_hash"]
+        == "3" * 64
     )
     assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
 
 
 def test_parent_canonical_payload_hash_change_changes_authority_audit_hash() -> None:
-    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+    from backend.app.rolling_backtest.availability import (
+        parent_authority_audit_hash,
+        parent_authority_semantic_payload,
+    )
 
-    left = _parent_run()
-    right = _parent_run(semantic_hash="b" * 64)
+    left = _fully_identified_parent()
+    right = _fully_identified_parent(canonical_payload_hash="4" * 64)
+
+    left_payload = parent_authority_semantic_payload(left)
+    right_payload = parent_authority_semantic_payload(right)
+    assert left_payload["canonical_payload_hash"] == "3" * 64
+    assert right_payload["canonical_payload_hash"] == "4" * 64
+    assert (
+        left_payload["semantic_input_signature"]
+        == right_payload["semantic_input_signature"]
+        == "1" * 64
+    )
+    assert left_payload["result_hash"] == right_payload["result_hash"] == "2" * 64
     assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
 
 
 def test_parent_policy_version_change_changes_authority_audit_hash() -> None:
-    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+    from backend.app.rolling_backtest.availability import (
+        parent_authority_audit_hash,
+        parent_authority_semantic_payload,
+    )
 
-    left = _parent_run()
-    right = ParentAuthorityIdentity(
-        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
-        authority_schema_version="task11-parent-auth-v1",
-        authority_policy_version="task11-parent-auth-policy-v2",
-        authority_timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
-        authority_status="completed",
-        canonical_payload_hash="a" * 64,
+    left = _fully_identified_parent()
+    right = _fully_identified_parent(authority_policy_version="task11-parent-auth-policy-v2")
+
+    left_payload = parent_authority_semantic_payload(left)
+    right_payload = parent_authority_semantic_payload(right)
+    assert left_payload["authority_policy_version"] == "task11-parent-auth-policy-v1"
+    assert right_payload["authority_policy_version"] == "task11-parent-auth-policy-v2"
+    assert (
+        left_payload["semantic_input_signature"]
+        == right_payload["semantic_input_signature"]
+        == "1" * 64
+    )
+    assert left_payload["result_hash"] == right_payload["result_hash"] == "2" * 64
+    assert (
+        left_payload["canonical_payload_hash"]
+        == right_payload["canonical_payload_hash"]
+        == "3" * 64
     )
     assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
 
 
 def test_parent_schema_version_change_changes_authority_audit_hash() -> None:
-    from backend.app.rolling_backtest.availability import parent_authority_audit_hash
+    from backend.app.rolling_backtest.availability import (
+        parent_authority_audit_hash,
+        parent_authority_semantic_payload,
+    )
 
-    left = _parent_run()
-    right = ParentAuthorityIdentity(
-        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
-        authority_schema_version="task11-parent-auth-v2",
-        authority_policy_version="task11-parent-auth-policy-v1",
-        authority_timestamp=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
-        authority_status="completed",
-        canonical_payload_hash="a" * 64,
+    left = _fully_identified_parent()
+    right = _fully_identified_parent(authority_schema_version="task11-parent-auth-v2")
+
+    left_payload = parent_authority_semantic_payload(left)
+    right_payload = parent_authority_semantic_payload(right)
+    assert left_payload["authority_schema_version"] == "task11-parent-auth-v1"
+    assert right_payload["authority_schema_version"] == "task11-parent-auth-v2"
+    assert (
+        left_payload["semantic_input_signature"]
+        == right_payload["semantic_input_signature"]
+        == "1" * 64
+    )
+    assert left_payload["result_hash"] == right_payload["result_hash"] == "2" * 64
+    assert (
+        left_payload["canonical_payload_hash"]
+        == right_payload["canonical_payload_hash"]
+        == "3" * 64
     )
     assert parent_authority_audit_hash(left) != parent_authority_audit_hash(right)
 
@@ -565,6 +649,72 @@ def test_availability_snapshot_audit_golden() -> None:
     golden = json.loads(_golden_path("authority_audit.json").read_text(encoding="utf-8"))
     assert payload == golden["artifact_audit_payload"]
     assert availability_snapshot_audit_hash(artifact) == golden["artifact_audit_hash"]
+
+
+def test_task8_daily_prediction_audit_golden() -> None:
+    from backend.app.rolling_backtest.availability import (
+        availability_snapshot_audit_hash,
+        availability_snapshot_audit_payload,
+    )
+    from backend.app.rolling_backtest.canonical import canonical_json_dumps
+
+    parent = ParentAuthorityIdentity(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        authority_schema_version="task11-parent-auth-v1",
+        authority_policy_version="task11-parent-auth-policy-v1",
+        authority_timestamp=datetime(2026, 2, 28, 9, 0, tzinfo=UTC),
+        authority_status="completed",
+        semantic_input_signature="1" * 64,
+        result_hash="2" * 64,
+        canonical_payload_hash="3" * 64,
+    )
+    snapshot = Task8DailyPredictionAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        prediction_date=date(2026, 3, 1),
+        created_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        parent_authority=parent,
+    )
+    payload = json.loads(canonical_json_dumps(availability_snapshot_audit_payload(snapshot)))
+    golden = json.loads(_golden_path("authority_audit.json").read_text(encoding="utf-8"))
+    assert payload == golden["daily_prediction_audit_payload"]
+    assert availability_snapshot_audit_hash(snapshot) == golden["daily_prediction_audit_hash"]
+
+
+def test_task10_model_artifact_audit_golden() -> None:
+    from backend.app.rolling_backtest.availability import (
+        availability_snapshot_audit_hash,
+        availability_snapshot_audit_payload,
+    )
+    from backend.app.rolling_backtest.canonical import canonical_json_dumps
+
+    parent = ParentAuthorityIdentity(
+        source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
+        authority_schema_version="task11-parent-auth-v1",
+        authority_policy_version="task11-parent-auth-policy-v1",
+        authority_timestamp=datetime(2026, 2, 28, 8, 0, tzinfo=UTC),
+        authority_status="completed",
+        semantic_input_signature="4" * 64,
+        result_hash="5" * 64,
+        canonical_payload_hash="6" * 64,
+    )
+    snapshot = Task10ModelArtifactAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
+        created_at=datetime(2026, 2, 28, 11, 0, tzinfo=UTC),
+        parent_authority=parent,
+    )
+    payload = json.loads(canonical_json_dumps(availability_snapshot_audit_payload(snapshot)))
+    golden = json.loads(_golden_path("authority_audit.json").read_text(encoding="utf-8"))
+    assert payload == golden["task10_artifact_audit_payload"]
+    assert availability_snapshot_audit_hash(snapshot) == golden["task10_artifact_audit_hash"]
+
+
+def test_authority_audit_golden_excludes_persistent_references() -> None:
+    """Golden file must not contain persistent_reference, database IDs, or UUIDs."""
+    raw = _golden_path("authority_audit.json").read_text(encoding="utf-8")
+    assert "persistent_reference" not in raw
+    assert "database_run_id" not in raw
+    assert "database_artifact_id" not in raw
+    assert "uuid" not in raw.lower()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
