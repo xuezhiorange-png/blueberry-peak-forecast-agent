@@ -42,3 +42,21 @@ class RollingBacktestAttemptConflictError(RollingBacktestPersistenceError):
     """Attempt creation conflict (e.g. duplicate number, overwriting completed)."""
 
     code = "ROLLING_BACKTEST_ATTEMPT_CONFLICT"
+
+
+class RollingBacktestAuthorityBindingError(RollingBacktestPersistenceError):
+    """Availability audit authority does not bind to the expected typed identity."""
+
+    code = "ROLLING_BACKTEST_AUTHORITY_BINDING_ERROR"
+
+
+class RollingBacktestDagIntegrityError(RollingBacktestIntegrityError):
+    """Persisted DAG payload is missing, duplicated, or structurally invalid."""
+
+    code = "ROLLING_BACKTEST_DAG_INTEGRITY_ERROR"
+
+
+class RollingBacktestCommandMismatchError(RollingBacktestPersistenceError):
+    """Persistence command diverges from the frozen logical config."""
+
+    code = "ROLLING_BACKTEST_COMMAND_MISMATCH"
