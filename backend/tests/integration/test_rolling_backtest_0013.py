@@ -174,17 +174,19 @@ def _make_persistence_command(
 ) -> RollingBacktestPersistenceCommand:
     node_cmds: list[RollingNodePersistenceCommand] = []
     for node in config.nodes:
+        identity = _make_semantic_identity(
+            source_role="task3_analytics",
+            source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+        )
+        node_with_identity = node.model_copy(
+            update={"resolved_upstream_semantic_identities": (identity,)}
+        )
         inputs: tuple[ResolvedInputPersistenceCommand, ...] = (
-            ResolvedInputPersistenceCommand(
-                identity=_make_semantic_identity(
-                    source_role="task3_analytics",
-                    source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
-                ),
-            ),
+            ResolvedInputPersistenceCommand(identity=identity),
         )
         node_cmds.append(
             RollingNodePersistenceCommand(
-                node=node,
+                node=node_with_identity,
                 resolved_inputs=inputs,
                 availability_audits=(),
                 dag=_make_dag(),
