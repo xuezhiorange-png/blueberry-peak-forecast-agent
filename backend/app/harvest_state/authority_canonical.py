@@ -263,7 +263,21 @@ def build_run_parameter_package_payload(
     holiday_header: _HolidayInput,
     weather_rule: _WeatherInput,
 ) -> dict[str, object]:
-    """Run-package payload. Dependencies are MANDATORY (P0-2)."""
+    """Run-package payload. Dependencies are MANDATORY (P0-2).
+
+    Validates:
+    - timezone consistency: package.destination_factory_timezone == holiday == weather
+    - scope consistency: package.season_id == holiday.season_id
+    """
+    # Timezone validation (direct builder fail-closed)
+    pkg_tz = row.destination_factory_timezone
+    holiday_tz = holiday_header.lifecycle_timezone_name
+    weather_tz = weather_rule.lifecycle_timezone_name
+    if pkg_tz != holiday_tz or pkg_tz != weather_tz:
+        raise ValueError("RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT")
+    # Scope validation
+    if row.season_id != holiday_header.season_id:
+        raise ValueError("RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT")
     return {
         "season_id": row.season_id,
         "destination_factory_id": row.destination_factory_id,
@@ -500,6 +514,8 @@ def make_authority_row_hash(
     *,
     holiday_header: _HolidayInput | None = None,
     weather_rule: _WeatherInput | None = None,
+    parent_definition: _PoolDefInput | None = None,
+    parent_snapshot: _InvSnapInput | None = None,
 ) -> str:
     # Pool definition bundles
     if isinstance(row, (Task9CapacityPoolDefinitionBundleSchema,
@@ -530,7 +546,13 @@ def make_authority_row_hash(
     if isinstance(row, (Task9DailyCapacityAuthoritySchema,
                         Task9DailyCapacitySemanticInput)):
         return sha256_hex(build_daily_capacity_payload(row))
-    # Run package (dependencies MANDATORY)
+    # Run package (dependencies MANDATORY — keyword or bundle)
+    if isinstance(row, Task9RunParameterPackageBundleSchema):
+        return sha256_hex(
+            build_run_parameter_package_payload(
+                row.package, row.holiday_calendar, row.weather_rule
+            )
+        )
     if isinstance(row, (Task9RunParameterPackageSchema,
                         Task9RunParameterPackageSemanticInput)):
         if holiday_header is None or weather_rule is None:
@@ -540,12 +562,6 @@ def make_authority_row_hash(
         return sha256_hex(
             build_run_parameter_package_payload(row, holiday_header, weather_rule)
         )
-    if isinstance(row, Task9RunParameterPackageBundleSchema):
-        return sha256_hex(
-            build_run_parameter_package_payload(
-                row.package, row.holiday_calendar, row.weather_rule
-            )
-        )
     # Weather rule
     if isinstance(row, (Task9WeatherRuleConfigVersionSchema,
                         Task9WeatherRuleSemanticInput)):
@@ -554,12 +570,16 @@ def make_authority_row_hash(
     if isinstance(row, (Task9MatureInventoryLossAuthoritySchema,
                         Task9MatureLossSemanticInput)):
         return sha256_hex(build_mature_inventory_loss_payload(row))
-    # Member (requires parent)
+    # Member (P0-1: unified entry — requires parent_definition)
     if isinstance(row, Task9CapacityPoolMemberSchema):
-        raise TypeError("capacity pool member hash requires parent_definition keyword")
-    # Cohort (requires parent)
+        if parent_definition is None:
+            raise TypeError("capacity pool member hash requires parent_definition keyword")
+        return sha256_hex(build_capacity_pool_member_payload(row, parent_definition))
+    # Cohort (P0-1: unified entry — requires parent_snapshot)
     if isinstance(row, Task9InitialInventoryCohortSchema):
-        raise TypeError("initial inventory cohort hash requires parent_snapshot keyword")
+        if parent_snapshot is None:
+            raise TypeError("initial inventory cohort hash requires parent_snapshot keyword")
+        return sha256_hex(build_initial_inventory_cohort_payload(row, parent_snapshot))
     raise TypeError(f"unsupported authority row type: {type(row).__name__}")
 
 

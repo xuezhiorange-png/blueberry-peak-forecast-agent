@@ -12,10 +12,8 @@ from pydantic import ValidationError
 
 from backend.app.harvest_state.authority_canonical import (
     build_capacity_pool_definition_payload,
-    build_capacity_pool_member_payload,
     build_daily_capacity_payload,
     build_holiday_calendar_payload,
-    build_initial_inventory_cohort_payload,
     build_initial_inventory_snapshot_payload,
     build_lifecycle_event_payload,
     build_mature_inventory_loss_payload,
@@ -110,6 +108,24 @@ _EXPECTED_LOSS_HASH = "6bf2fdaef145ae6ed959577388c060e34ce50f49fc849305141c39035
 _EXPECTED_LOSS_STABLE = "mature-loss:1:2:POOL-A:2026-02-01:P50"
 
 _EXPECTED_EVENT_HASH = "0d0f1a4cffd8183eafd1f5f7811399f9aaae68875188bab3e342c358144c0ffa"
+
+
+_EXPECTED_EVENT_JSON = (
+    '{"authority_business_version":"v1","authority_family":"daily_capacity",'
+    '"authority_revision":1,'
+    '"authority_stable_key":"daily-capacity:1:2:POOL-A:v1:1:2026-02-01",'
+    '"business_row_hash":"8888888888888888888888888888888888888888888888888888888888888888",'
+    '"event_schema_version":"task9-authority-lifecycle-event-v1",'
+    '"new_consumable_from_local_date":null,"new_consumable_to_local_date":null,'
+    '"new_status":"draft","old_consumable_from_local_date":null,'
+    '"old_consumable_to_local_date":null,"old_status":null,'
+    '"source_record_key":"lifecycle:daily-capacity:1",'
+    '"source_system":"task9_historical_authority",'
+    '"superseded_by_authority_business_version":null,'
+    '"superseded_by_authority_revision":null,'
+    '"superseded_by_authority_stable_key":null,'
+    '"transition_sequence":1,"transitioned_at":"2026-01-01T09:00:00+00:00"}'
+)
 
 
 # ── helpers ────────────────────────────────────────────────────────────
@@ -318,8 +334,8 @@ def test_capacity_pool_member_golden_vector() -> None:
     bundle = _pool_bundle_semantic()
     member = bundle.members[0]
     parent_def = bundle.definition
-    payload = build_capacity_pool_member_payload(member, parent_def)
-    assert sha256_hex(payload) == _EXPECTED_MEMBER_HASH
+    # P0-1: unified entry via make_authority_row_hash with parent_definition
+    assert make_authority_row_hash(member, parent_definition=parent_def) == _EXPECTED_MEMBER_HASH
 
 
 def test_run_parameter_package_golden_vector() -> None:
@@ -369,8 +385,8 @@ def test_cohort_golden_vector() -> None:
         bundle.model_dump(exclude={"cohorts"})
     )
     cohort = bundle.cohorts[0]
-    payload = build_initial_inventory_cohort_payload(cohort, snap_input)
-    assert sha256_hex(payload) == _EXPECTED_COHORT_HASH
+    # P0-1: unified entry via make_authority_row_hash with parent_snapshot
+    assert make_authority_row_hash(cohort, parent_snapshot=snap_input) == _EXPECTED_COHORT_HASH
 
 
 def test_mature_loss_golden_vector() -> None:
@@ -382,9 +398,7 @@ def test_mature_loss_golden_vector() -> None:
 def test_lifecycle_event_golden_vector() -> None:
     evt = _lifecycle_semantic()
     payload = build_lifecycle_event_payload(evt)
-    assert canonical_payload_json(payload) == canonical_payload_json(
-        build_lifecycle_event_payload(evt)
-    )
+    assert canonical_payload_json(payload) == _EXPECTED_EVENT_JSON
     assert make_lifecycle_event_hash(evt) == _EXPECTED_EVENT_HASH
 
 
@@ -442,12 +456,65 @@ def test_run_package_holiday_identity_change_changes_hash() -> None:
 
 
 def test_run_package_weather_identity_change_changes_hash() -> None:
+    """P1-2: two truly different weather semantic identities -> different run-package hash."""
     pkg = _run_pkg_semantic()
     holiday = _holiday_semantic()
-    weather = _weather_semantic()
-    rp = build_run_parameter_package_payload(pkg, holiday, weather)
-    assert rp["weather_rule"]["rule_version"] == "wx-v1"
-    assert rp["weather_rule"]["lifecycle_timezone_name"] == "Asia/Shanghai"
+    weather_v1 = _weather_semantic()  # wx-v1, revision 1
+    weather_v2 = Task9WeatherRuleSemanticInput(
+        rule_code="wx-rule", rule_version="wx-v2", revision=2,
+        lifecycle_timezone_name="Asia/Shanghai",
+        combination_method="MULTIPLY", minimum_ratio="0.7", maximum_ratio="1",
+        required_feature_ids=["rain", "temp"],
+        feature_rules=[
+            WeatherFeatureRule(feature_id="rain", bands=[
+                WeatherFeatureBand(lower_bound="0", lower_inclusive=True,
+                                   upper_bound="10", upper_inclusive=True, multiplier="1")]),
+            WeatherFeatureRule(feature_id="temp", bands=[
+                WeatherFeatureBand(lower_bound="0", lower_inclusive=True,
+                                   upper_bound="30", upper_inclusive=True, multiplier="0.9")]),
+        ],
+        missing_feature_policy="BLOCK",
+        config_hash="1cd2cf84e812d603f18af7800b9b68479a69528f2e285efe759ac7eb68f98d12",
+        available_at_local_date=date(2026, 1, 1),
+        effective_from=date(2026, 1, 1), effective_to=None,
+        consumable_from_local_date=date(2026, 1, 1), consumable_to_local_date=None,
+        status="active", status_changed_at=datetime(2026, 1, 1, 9, 0, tzinfo=UTC),
+        superseded_by_id=None,
+        source_system="task9_historical_authority",
+        source_record_key="weather-rule:wx-rule:Asia/Shanghai:wx-v2:2",
+        source_version="wx-v2",
+    )
+    h1 = make_authority_row_hash(pkg, holiday_header=holiday, weather_rule=weather_v1)
+    h2 = make_authority_row_hash(pkg, holiday_header=holiday, weather_rule=weather_v2)
+    assert h1 != h2
+
+    # P1-2: same semantic weather + different database surrogate ID -> same hash
+    weather_v1_copy = Task9WeatherRuleSemanticInput(
+        rule_code="wx-rule", rule_version="wx-v1", revision=1,
+        lifecycle_timezone_name="Asia/Shanghai",
+        combination_method="MULTIPLY", minimum_ratio="0.7", maximum_ratio="1",
+        required_feature_ids=["rain", "temp"],
+        feature_rules=[
+            WeatherFeatureRule(feature_id="rain", bands=[
+                WeatherFeatureBand(lower_bound="0", lower_inclusive=True,
+                                   upper_bound="10", upper_inclusive=True, multiplier="1")]),
+            WeatherFeatureRule(feature_id="temp", bands=[
+                WeatherFeatureBand(lower_bound="0", lower_inclusive=True,
+                                   upper_bound="30", upper_inclusive=True, multiplier="0.9")]),
+        ],
+        missing_feature_policy="BLOCK",
+        config_hash=_EXPECTED_CONFIG_HASH,
+        available_at_local_date=date(2026, 1, 1),
+        effective_from=date(2026, 1, 1), effective_to=None,
+        consumable_from_local_date=date(2026, 1, 1), consumable_to_local_date=None,
+        status="active", status_changed_at=datetime(2026, 1, 1, 9, 0, tzinfo=UTC),
+        superseded_by_id=None,
+        source_system="task9_historical_authority",
+        source_record_key="weather-rule:wx-rule:Asia/Shanghai:wx-v1:1",  # same key
+        source_version="wx-v1",
+    )
+    h3 = make_authority_row_hash(pkg, holiday_header=holiday, weather_rule=weather_v1_copy)
+    assert h1 == h3
 
 
 def test_run_package_timezone_mismatch_rejected() -> None:
@@ -472,6 +539,97 @@ def test_run_package_timezone_mismatch_rejected() -> None:
         Task9RunParameterPackageBundleSchema(
             package=pkg, holiday_calendar=holiday, weather_rule=weather
         )
+
+
+def test_direct_builder_timezone_mismatch_rejected() -> None:
+    """P0-2: direct builder with timezone mismatch -> ValueError."""
+    pkg = Task9RunParameterPackageSemanticInput(
+        season_id=1, destination_factory_id=2, farm_scope_key="farm-scope:10",
+        farm_timezone="Asia/Shanghai", destination_factory_timezone="US/Eastern",
+        harvest_bucket_anchor_local_time=time(9, 0), harvest_to_arrival_lag_days=1,
+        package_version="pkg-v1", revision=1,
+        effective_from=date(2026, 1, 1), effective_to=None,
+        available_at_local_date=date(2026, 1, 1),
+        consumable_from_local_date=date(2026, 1, 1), consumable_to_local_date=None,
+        status="active", status_changed_at=datetime(2026, 1, 1, 9, 0, tzinfo=UTC),
+        superseded_by_id=None,
+        source_system="task9_historical_authority",
+        source_record_key="run-package:1:2:farm-scope:10:pkg-v1:1",
+        source_version="pkg-v1",
+    )
+    holiday = _holiday_semantic()  # Asia/Shanghai
+    weather = _weather_semantic()  # Asia/Shanghai
+    with pytest.raises(ValueError, match="RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT"):
+        build_run_parameter_package_payload(pkg, holiday, weather)
+
+
+def test_direct_hash_timezone_mismatch_rejected() -> None:
+    """P0-2: direct hash with timezone mismatch -> ValueError."""
+    pkg = Task9RunParameterPackageSemanticInput(
+        season_id=1, destination_factory_id=2, farm_scope_key="farm-scope:10",
+        farm_timezone="Asia/Shanghai", destination_factory_timezone="US/Eastern",
+        harvest_bucket_anchor_local_time=time(9, 0), harvest_to_arrival_lag_days=1,
+        package_version="pkg-v1", revision=1,
+        effective_from=date(2026, 1, 1), effective_to=None,
+        available_at_local_date=date(2026, 1, 1),
+        consumable_from_local_date=date(2026, 1, 1), consumable_to_local_date=None,
+        status="active", status_changed_at=datetime(2026, 1, 1, 9, 0, tzinfo=UTC),
+        superseded_by_id=None,
+        source_system="task9_historical_authority",
+        source_record_key="run-package:1:2:farm-scope:10:pkg-v1:1",
+        source_version="pkg-v1",
+    )
+    holiday = _holiday_semantic()  # Asia/Shanghai
+    weather = _weather_semantic()  # Asia/Shanghai
+    with pytest.raises(ValueError, match="RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT"):
+        make_authority_row_hash(pkg, holiday_header=holiday, weather_rule=weather)
+
+
+def test_package_season_mismatch_rejected() -> None:
+    """P0-3: package season 2026 + holiday season 2025 -> scope conflict."""
+    holiday_2025 = Task9HolidayCalendarSemanticInput(
+        season_id=2025, calendar_code="CN-SH", calendar_version="calendar-v1",
+        revision=1, calendar_hash="a" * 64, region_scope="CN-SH",
+        lifecycle_timezone_name="Asia/Shanghai",
+        available_at_local_date=date(2026, 1, 1),
+        consumable_from_local_date=date(2026, 1, 1), consumable_to_local_date=None,
+        status="active", status_changed_at=datetime(2026, 1, 1, 9, 0, tzinfo=UTC),
+        superseded_by_id=None,
+        source_system="task9_historical_authority",
+        source_record_key="holiday-calendar:2025:CN-SH:Asia/Shanghai:calendar-v1:1",
+        source_version="calendar-v1",
+    )
+    pkg = _run_pkg_semantic()  # season_id=2026
+    weather = _weather_semantic()
+    with pytest.raises(ValueError, match="RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT"):
+        build_run_parameter_package_payload(pkg, holiday_2025, weather)
+
+
+def test_holiday_calendar_hash_mismatch_rejected() -> None:
+    """P0-3: holiday with different calendar_version -> different run-package hash."""
+    # Create holiday with different calendar_version (which IS in semantic identity)
+    holiday_v2 = Task9HolidayCalendarSemanticInput(
+        season_id=1, calendar_code="CN-SH", calendar_version="calendar-v2",
+        revision=2, calendar_hash="f" * 64,
+        region_scope="CN-SH",
+        lifecycle_timezone_name="Asia/Shanghai",
+        available_at_local_date=date(2026, 1, 1),
+        consumable_from_local_date=date(2026, 1, 1), consumable_to_local_date=None,
+        status="active", status_changed_at=datetime(2026, 1, 1, 9, 0, tzinfo=UTC),
+        superseded_by_id=None,
+        source_system="task9_historical_authority",
+        source_record_key="holiday-calendar:1:CN-SH:Asia/Shanghai:calendar-v2:2",
+        source_version="calendar-v2",
+    )
+    pkg = _run_pkg_semantic()
+    weather = _weather_semantic()
+    h_good = make_authority_row_hash(
+        pkg, holiday_header=_holiday_semantic(), weather_rule=weather
+    )
+    h_bad = make_authority_row_hash(
+        pkg, holiday_header=holiday_v2, weather_rule=weather
+    )
+    assert h_good != h_bad
 
 
 # ── P0-3: SUBFARM grain ──────────────────────────────────────────────

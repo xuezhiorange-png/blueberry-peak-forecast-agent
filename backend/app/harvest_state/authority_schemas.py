@@ -1091,3 +1091,9 @@ class Task9RunParameterPackageBundleSchema(_AuthorityBase):
         if pkg_tz != holiday_tz or pkg_tz != weather_tz:
             raise ValueError("RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT")
         return self
+
+    @model_validator(mode="after")
+    def _validate_scope_consistency(self) -> Task9RunParameterPackageBundleSchema:
+        if self.package.season_id != self.holiday_calendar.season_id:
+            raise ValueError("RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT")
+        return self
