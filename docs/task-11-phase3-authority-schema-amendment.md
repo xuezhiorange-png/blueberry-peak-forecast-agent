@@ -5,7 +5,7 @@
 **Date**: 2026-06-29
 **Repository**: `xuezhiorange-png/blueberry-peak-forecast-agent`
 **Branch**: `codex/task-11-rolling-backtest-orchestration`
-**Current baseline HEAD**: `47ea152eb4fc12acadf1a1ebaf12d36d772b1bc2`
+**Current baseline HEAD**: `b0bc11443e78e7d985e34364385ae016409293f5`
 **Related PR / Issue**: PR #22 (Draft), Issue #21
 **Accepted predecessor**: P0-5 review `4589381607`
 
@@ -333,7 +333,7 @@ This remains the minimum set that:
 
 - **Purpose**: normalized opening cohort rows tied to one inventory snapshot
 - **Business grain**:
-  - `initial_inventory_snapshot_id x stable_cohort_key`
+  - `initial_inventory_snapshot_id x stable_cohort_key x forecast_quantile`
 - **Value fields**:
   - `forecast_quantile`
   - `cohort_date`
@@ -618,7 +618,7 @@ Frozen rules:
 | `daily_capacity_inputs` | `task9_daily_capacity_authority` | pool x date x revision | `available_at_local_date` | `capacity_date` | see Section 10 | row hash | `ParameterSourceRef[]` | `CAPACITY_VALUE_AUTHORITY_MISSING` |
 | `daily_weather_features` | existing Task 7 authority | mapping + observation | existing Task 7 visibility | observation date | existing statuses | existing row hashes/signatures | existing `PARAMETER_SOURCE(WEATHER_FEATURE_OBSERVATION)` | existing Task 7 blockers |
 | `task8_daily_predictions` | existing Task 8 authority | daily prediction x quantile | existing Task 8 visibility | prediction date | completed chain | existing signatures / hashes | existing `TASK8_DAILY_PREDICTION` refs | existing Task 8 blockers |
-| `initial_inventory_cohorts` | `task9_initial_inventory_snapshot` + `task9_initial_inventory_cohort` | snapshot x stable cohort key with child `forecast_quantile` | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash + cohort hashes | `INITIAL_INVENTORY_SNAPSHOT` refs | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
+| `initial_inventory_cohorts` | `task9_initial_inventory_snapshot` + `task9_initial_inventory_cohort` | snapshot x stable cohort key x quantile | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash + cohort hashes | `INITIAL_INVENTORY_SNAPSHOT` refs | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
 | `initial_opening_mature_inventory_kg` | `task9_initial_inventory_snapshot` | season x factory x opening_state_date x snapshot_version | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash | `INITIAL_INVENTORY_SNAPSHOT` ref | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
 | `mature_inventory_loss_inputs` | `task9_mature_inventory_loss_authority` | date x pool x quantile x loss_version | `available_at_local_date` | `state_date` | see Section 10 | row hash | `PARAMETER_SOURCE(MATURE_INVENTORY_LOSS)` | `MATURE_INVENTORY_LOSS_AUTHORITY_MISSING` |
 
@@ -816,7 +816,6 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
   - `season_id`
   - `destination_factory_id`
   - `opening_state_date`
-  - `forecast_quantile`
   - `snapshot_version`
   - `revision`
 - Mature inventory loss rows are unique per:
@@ -1282,7 +1281,7 @@ CREATE TABLE task9_initial_inventory_cohort (
     row_hash TEXT NOT NULL
         CONSTRAINT ck_task9_initial_inventory_cohort_row_hash_sha256
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
-    UNIQUE (initial_inventory_snapshot_id, stable_cohort_key)
+    UNIQUE (initial_inventory_snapshot_id, stable_cohort_key, forecast_quantile)
 );
 
 CREATE TABLE task9_mature_inventory_loss_authority (
