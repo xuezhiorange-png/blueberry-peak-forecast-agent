@@ -12,7 +12,46 @@ from backend.app.harvest_state.schemas import (
     Task8PredictionSourceRef,
     Task8PredictionVerificationSnapshot,
 )
+from backend.app.rolling_backtest.enums import (
+    Task10ModelPolicy,
+    UpstreamSelectionMode,
+)
 from backend.app.rolling_backtest.orchestration import _validate_source_ref_catalog
+from backend.app.rolling_backtest.schemas import RollingNodeDefinition
+
+
+def _make_test_node() -> RollingNodeDefinition:
+    """Build a minimal RollingNodeDefinition for catalog validation tests."""
+    from backend.app.rolling_backtest.enums import ScopeMode
+    from backend.app.rolling_backtest.schemas import (
+        HistoricalAvailableModelIdentity,
+        RollingNodeScope,
+        ScopeSelector,
+    )
+
+    return RollingNodeDefinition(
+        season_id=2026,
+        node_key="march_15",
+        as_of_local_date=date(2026, 3, 15),
+        forecast_cutoff_at=datetime(2026, 3, 15, 12, 0, tzinfo=UTC),
+        forecast_start_local_date=date(2026, 3, 16),
+        forecast_end_local_date=date(2026, 3, 31),
+        scope=RollingNodeScope(
+            destination_factory_ids=ScopeSelector(mode=ScopeMode.INCLUDE_IDS, ids=(1,)),
+            farm_ids=ScopeSelector(mode=ScopeMode.ALL),
+            variety_ids=ScopeSelector(mode=ScopeMode.ALL),
+        ),
+        upstream_selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION,
+        forecast_horizon_policy_version="test-v1",
+        timezone="Asia/Shanghai",
+        task10_model_policy=HistoricalAvailableModelIdentity(
+            policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
+            training_run_semantic_identity="1" * 64,
+            artifact_semantic_identities=("2" * 64,),
+            authority_visibility_identity="3" * 64,
+        ),
+        resolved_upstream_semantic_identities=(),
+    )
 
 
 def _task8_source_ref(
@@ -257,6 +296,7 @@ async def test_valid_complete_catalog_passes(monkeypatch: pytest.MonkeyPatch) ->
                 "verification_snapshot": verification.model_dump(mode="python"),
             }
         ],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is False
@@ -286,6 +326,7 @@ async def test_missing_snapshot_match_blocks(monkeypatch: pytest.MonkeyPatch) ->
         catalog=[entry],
         resolutions=[],
         input_snapshot_task8_predictions=[],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True
@@ -323,6 +364,7 @@ async def test_duplicate_snapshot_match_blocks(monkeypatch: pytest.MonkeyPatch) 
         catalog=[entry],
         resolutions=[],
         input_snapshot_task8_predictions=[snapshot_row, snapshot_row],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True
@@ -360,6 +402,7 @@ async def test_source_quantity_mismatch_blocks(monkeypatch: pytest.MonkeyPatch) 
                 "verification_snapshot": verification.model_dump(mode="python"),
             }
         ],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True
@@ -398,6 +441,7 @@ async def test_outer_type_mismatch_blocks(monkeypatch: pytest.MonkeyPatch) -> No
                 "verification_snapshot": verification.model_dump(mode="python"),
             }
         ],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True
@@ -436,6 +480,7 @@ async def test_outer_schema_version_mismatch_blocks(monkeypatch: pytest.MonkeyPa
                 "verification_snapshot": verification.model_dump(mode="python"),
             }
         ],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True
@@ -459,6 +504,7 @@ async def test_payload_discriminator_mismatch_blocks() -> None:
         catalog=[entry],
         resolutions=[],
         input_snapshot_task8_predictions=[],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True
@@ -495,6 +541,7 @@ async def test_valid_type_schema_parity_passes(monkeypatch: pytest.MonkeyPatch) 
                 "verification_snapshot": verification.model_dump(mode="python"),
             }
         ],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is False
@@ -546,6 +593,7 @@ async def test_orm_quantile_mismatch_blocks(
                 "verification_snapshot": verification.model_dump(mode="python"),
             }
         ],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True
@@ -595,6 +643,7 @@ async def test_source_ref_and_verification_mismatch_blocks(
                 "verification_snapshot": verification.model_dump(mode="python"),
             }
         ],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True
@@ -652,6 +701,7 @@ async def test_weather_mapping_and_base_temperature_mismatch_blocks(
                 "verification_snapshot": verification.model_dump(mode="python"),
             }
         ],
+        node=_make_test_node(),
     )
 
     assert result["blocked"] is True

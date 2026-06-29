@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any, cast
+from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -112,6 +113,44 @@ class OrchestrationBlocker(StrEnum):
     PERSISTENCE_FAILURE = "persistence_failure"
     INTEGRITY_RELOAD_FAILED = "rolling_orchestration_integrity_reload_failed"
     TASK9_REUSE_INTEGRITY_FAILED = "task9_reuse_integrity_failed"
+
+
+# ── Date/time authority helpers ───────────────────────────────────────────────
+
+
+def cutoff_local_date(forecast_cutoff_at: datetime, timezone_name: str) -> date:
+    """Convert a UTC-aware forecast_cutoff_at to a local date in the given timezone.
+
+    Raises:
+        ValueError: If forecast_cutoff_at is naive (no tzinfo).
+        ZoneInfoNotFoundError: If timezone_name is invalid.
+    """
+    if forecast_cutoff_at.tzinfo is None:
+        raise ValueError("forecast_cutoff_at must be timezone-aware (UTC)")
+    tz = ZoneInfo(timezone_name)
+    return forecast_cutoff_at.astimezone(tz).date()
+
+
+def assert_date_authority_visible(
+    available_on: date,
+    *,
+    forecast_cutoff_at: datetime,
+    timezone_name: str,
+) -> None:
+    """Raise ValueError if the date authority is not yet visible at cutoff.
+
+    A date authority is visible iff its available_on date is <= the local
+    calendar date derived from forecast_cutoff_at in the node's timezone.
+    """
+    cutoff_date = cutoff_local_date(forecast_cutoff_at, timezone_name)
+    if available_on > cutoff_date:
+        raise ValueError(
+            f"Date authority not visible: "
+            f"available_on={available_on.isoformat()} "
+            f"> cutoff_local_date={cutoff_date.isoformat()} "
+            f"(forecast_cutoff_at={forecast_cutoff_at.isoformat()}, "
+            f"timezone={timezone_name})"
+        )
 
 
 __all__ = [
@@ -427,7 +466,15 @@ async def orchestrate_node(
     stage = OrchestrationStage.VALIDATE_VISIBILITY
     await _enter_stage(stage)
     for r in resolutions:
-        if r.resolved and r.resolved.authoritative_available_at > node.forecast_cutoff_at:
+        if r.resolved and (
+            r.resolved.authoritative_available_at.tzinfo is None
+            or r.resolved.authoritative_available_at > node.forecast_cutoff_at
+        ):
+            reason = (
+                "naive authoritative_available_at"
+                if r.resolved.authoritative_available_at.tzinfo is None
+                else "available_at after forecast_cutoff_at"
+            )
             return await _blocked(
                 ctx,
                 attempt_id,
@@ -440,6 +487,7 @@ async def orchestrate_node(
                     "source_role": r.source_role,
                     "available_at": r.resolved.authoritative_available_at.isoformat(),
                     "cutoff": node.forecast_cutoff_at.isoformat(),
+                    "reason": reason,
                 },
             )
 
@@ -785,6 +833,7 @@ async def _resolve_task9(
                 catalog=catalog,
                 resolutions=resolutions,
                 input_snapshot_task8_predictions=task8_snapshot_predictions or None,
+                node=node,
             )
             if catalog_validation["blocked"]:
                 blocked = await _blocked(
@@ -1144,7 +1193,12 @@ def _build_audit_outcome(
             allowed=False,
             blocker_code=result.blocker_code,
         )
-    allowed = resolved.authoritative_available_at <= node.forecast_cutoff_at
+    allowed = True
+    if resolved.authoritative_available_at.tzinfo is None:
+        # Naive datetime is forbidden — treat as not visible.
+        allowed = False
+    else:
+        allowed = resolved.authoritative_available_at <= node.forecast_cutoff_at
     return AvailabilityAuditOutcome(
         source_role=result.source_role,
         source_type=result.source_type.value,
@@ -1164,6 +1218,7 @@ async def _validate_source_ref_catalog(
     catalog: list[object],
     resolutions: list[ResolutionResult],
     input_snapshot_task8_predictions: list[dict[str, object]] | None = None,
+    node: RollingNodeDefinition,
 ) -> dict[str, object]:
     """Validate Task 9 source_ref_catalog against resolved Task 8 authorities.
 
@@ -1353,6 +1408,8 @@ async def _validate_source_ref_catalog(
                 typed_verification=typed_verification,
                 authority_by_type=authority_by_type,
                 authority_map=authority_map,
+                forecast_cutoff_at=node.forecast_cutoff_at,
+                timezone=node.timezone,
             )
             if field_issues:
                 mismatches.extend(field_issues)
@@ -1507,6 +1564,8 @@ async def _validate_task8_prediction_fields(
     typed_verification: Task8PredictionVerificationSnapshot,
     authority_by_type: dict[str, ResolutionResult],
     authority_map: dict[str, ResolutionResult],
+    forecast_cutoff_at: datetime,
+    timezone: str,
 ) -> list[str]:
     """Verify every field in a TASK8_DAILY_PREDICTION source ref against resolved authorities."""
     issues: list[str] = []
@@ -1751,8 +1810,14 @@ async def _validate_task8_prediction_fields(
                 issues.append("weather mapping location_reference_id does not match forecast run")
             if weather_mapping.location_reference_id != location_row.id:
                 issues.append("weather mapping location_reference_id does not match location row")
-            if weather_mapping.available_at > typed_sr.maturity_forecast_as_of_date:
-                issues.append("weather mapping available_at exceeds forecast as_of_date")
+            # Date authority: weather mapping available_at must be visible at forecast_cutoff_at
+            # (converted to local date via the node timezone).
+            cutoff_date = cutoff_local_date(forecast_cutoff_at, timezone)
+            if weather_mapping.available_at > cutoff_date:
+                issues.append(
+                    f"weather mapping available_at {weather_mapping.available_at} "
+                    f"exceeds cutoff local date {cutoff_date}"
+                )
             if weather_mapping.valid_from > typed_sr.prediction_date:
                 issues.append("weather mapping valid_from does not cover prediction_date")
             if (
@@ -1799,13 +1864,46 @@ async def _validate_task8_prediction_fields(
             if finished_at is None:
                 issues.append("base temperature finished_at missing")
             else:
-                cutoff_at = datetime.combine(
-                    typed_sr.maturity_forecast_as_of_date,
-                    datetime.max.time(),
-                    tzinfo=UTC,
+                # Datetime authority: finished_at must be UTC-aware and <= forecast_cutoff_at.
+                if getattr(finished_at, "tzinfo", None) is None:
+                    issues.append(
+                        "base temperature finished_at is naive (must be UTC-aware)"
+                    )
+                elif finished_at > forecast_cutoff_at:
+                    issues.append(
+                        f"base temperature finished_at {finished_at} "
+                        f"exceeds forecast_cutoff_at {forecast_cutoff_at}"
+                    )
+
+            # Validate feature_version matches the associated WeatherFeatureRun.
+            from sqlalchemy import select as _select
+
+            from backend.app.models.weather import WeatherFeatureRun
+
+            wfr_stmt = (
+                _select(WeatherFeatureRun)
+                .where(
+                    WeatherFeatureRun.base_temperature_search_run_id
+                    == base_temperature.id
                 )
-                if finished_at > cutoff_at:
-                    issues.append("base temperature finished_at exceeds forecast as_of_date")
+                .limit(1)
+            )
+            wfr_result = await session.execute(wfr_stmt)
+            weather_feature_run = wfr_result.scalar_one_or_none()
+            if weather_feature_run is None:
+                issues.append(
+                    "no WeatherFeatureRun references this BaseTemperatureSearchRun"
+                )
+            elif (
+                getattr(base_temperature, "feature_version", None)
+                != weather_feature_run.feature_version
+            ):
+                issues.append(
+                    f"base temperature feature_version "
+                    f"({getattr(base_temperature, 'feature_version', None)}) "
+                    f"does not match WeatherFeatureRun feature_version "
+                    f"({weather_feature_run.feature_version})"
+                )
 
     # ── Required field presence checks ────────────────────────────────────
     required_str_fields = [

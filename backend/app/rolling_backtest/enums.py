@@ -55,6 +55,8 @@ class DefaultNodeKey(StrEnum):
 class AvailabilitySourceType(StrEnum):
     TASK3_ANALYTICS_BUILD = "task3_analytics_build"
     TASK6_PLAN_VERSION = "task6_plan_version"
+    TASK7_WEATHER_FEATURE_RUN = "task7_weather_feature_run"
+    TASK7_LOCATION_WEATHER_MAPPING = "task7_location_weather_mapping"
     TASK7_WEATHER_OBSERVATION = "task7_weather_observation"
     TASK8_MODEL_RUN = "task8_model_run"
     TASK8_MODEL_ARTIFACT = "task8_model_artifact"
