@@ -182,6 +182,14 @@ def _orm_bundle() -> dict[str, object]:
             status="completed",
             config_hash="bt" * 32,
             source_signature="e" * 64,
+            feature_version="bt-v1",
+            finished_at=datetime(2026, 3, 10, 12, 0, tzinfo=UTC),
+        ),
+        "weather_feature_run": SimpleNamespace(
+            id=99,
+            base_temperature_search_run_id=source_ref.base_temperature_search_run_id,
+            status="completed",
+            feature_version="bt-v1",
             finished_at=datetime(2026, 3, 10, 12, 0, tzinfo=UTC),
         ),
     }

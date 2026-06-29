@@ -122,9 +122,17 @@ def cutoff_local_date(forecast_cutoff_at: datetime, timezone_name: str) -> date:
     """Convert a UTC-aware forecast_cutoff_at to a local date in the given timezone.
 
     Raises:
+        TypeError: If forecast_cutoff_at is not a datetime instance (e.g. a plain date).
         ValueError: If forecast_cutoff_at is naive (no tzinfo).
         ZoneInfoNotFoundError: If timezone_name is invalid.
     """
+    # Dispatch order: check datetime BEFORE date (datetime is a subclass of date).
+    if not isinstance(forecast_cutoff_at, datetime):
+        raise TypeError(
+            f"forecast_cutoff_at must be a datetime, got {type(forecast_cutoff_at).__name__}"
+        )
+    if isinstance(forecast_cutoff_at, date) and not isinstance(forecast_cutoff_at, datetime):
+        raise TypeError("forecast_cutoff_at must be a datetime, not a plain date")
     if forecast_cutoff_at.tzinfo is None:
         raise ValueError("forecast_cutoff_at must be timezone-aware (UTC)")
     tz = ZoneInfo(timezone_name)
@@ -1402,14 +1410,16 @@ async def _validate_source_ref_catalog(
 
             # Verify every field in the typed source ref
             task8_source_ref = cast(Task8PredictionSourceRef, typed_sr)
+            # Load the ORM verification bundle (DB access happens here, once per entry).
+            orm_bundle = await _load_task8_verification_bundle(session, task8_source_ref)
             field_issues = await _validate_task8_prediction_fields(
-                session=session,
                 typed_sr=task8_source_ref,
                 typed_verification=typed_verification,
                 authority_by_type=authority_by_type,
                 authority_map=authority_map,
                 forecast_cutoff_at=node.forecast_cutoff_at,
                 timezone=node.timezone,
+                bundle=orm_bundle,
             )
             if field_issues:
                 mismatches.extend(field_issues)
@@ -1503,7 +1513,11 @@ async def _load_task8_verification_bundle(
     )
     from backend.app.models.planning import LocationReference
     from backend.app.models.production_plan import FarmSeasonVarietyPlan
-    from backend.app.models.weather import BaseTemperatureSearchRun, LocationWeatherMapping
+    from backend.app.models.weather import (
+        BaseTemperatureSearchRun,
+        LocationWeatherMapping,
+        WeatherFeatureRun,
+    )
 
     model_run = await session.get(MaturityModelRun, typed_sr.maturity_model_run_id)
     artifact = await session.get(
@@ -1531,6 +1545,25 @@ async def _load_task8_verification_bundle(
         else await session.get(BaseTemperatureSearchRun, typed_sr.base_temperature_search_run_id)
     )
 
+    # Load WeatherFeatureRun that references this BaseTemperatureSearchRun.
+    # Must filter by status: only "completed" or "unavailable" runs are authoritative.
+    # (Checking finished_at alone is not sufficient.)
+    weather_feature_run: WeatherFeatureRun | None = None
+    if typed_sr.base_temperature_search_run_id is not None:
+        from sqlalchemy import select
+
+        result = await session.execute(
+            select(WeatherFeatureRun)
+            .where(
+                WeatherFeatureRun.base_temperature_search_run_id
+                == typed_sr.base_temperature_search_run_id,
+                WeatherFeatureRun.status.in_(["completed", "unavailable"]),
+            )
+            .order_by(WeatherFeatureRun.finished_at.desc().nullslast())
+            .limit(1)
+        )
+        weather_feature_run = result.scalar_one_or_none()
+
     return {
         "model_run": model_run,
         "artifact": artifact,
@@ -1540,6 +1573,7 @@ async def _load_task8_verification_bundle(
         "location_row": location_row,
         "weather_mapping": weather_mapping,
         "base_temperature": base_temperature,
+        "weather_feature_run": weather_feature_run,
     }
 
 
@@ -1559,26 +1593,30 @@ def _task8_quantile_quantity(
 
 async def _validate_task8_prediction_fields(
     *,
-    session: AsyncSession,
     typed_sr: Task8PredictionSourceRef,
     typed_verification: Task8PredictionVerificationSnapshot,
     authority_by_type: dict[str, ResolutionResult],
     authority_map: dict[str, ResolutionResult],
     forecast_cutoff_at: datetime,
     timezone: str,
+    bundle: dict[str, object],
 ) -> list[str]:
-    """Verify every field in a TASK8_DAILY_PREDICTION source ref against resolved authorities."""
+    """Verify every field in a TASK8_DAILY_PREDICTION source ref against resolved authorities.
+
+    PURE function — no DB access.  All ORM objects are provided via *bundle*,
+    which was loaded by _load_task8_verification_bundle() in the caller.
+    """
     issues: list[str] = []
     _unused = authority_map
-    orm_bundle = await _load_task8_verification_bundle(session, typed_sr)
-    model_run = cast(Any, orm_bundle["model_run"])
-    artifact = cast(Any, orm_bundle["artifact"])
-    forecast_run = cast(Any, orm_bundle["forecast_run"])
-    daily_row = cast(Any, orm_bundle["daily_row"])
-    plan_row = cast(Any, orm_bundle["plan_row"])
-    location_row = cast(Any, orm_bundle["location_row"])
-    weather_mapping = cast(Any, orm_bundle["weather_mapping"])
-    base_temperature = cast(Any, orm_bundle["base_temperature"])
+    model_run = cast(Any, bundle["model_run"])
+    artifact = cast(Any, bundle["artifact"])
+    forecast_run = cast(Any, bundle["forecast_run"])
+    daily_row = cast(Any, bundle["daily_row"])
+    plan_row = cast(Any, bundle["plan_row"])
+    location_row = cast(Any, bundle["location_row"])
+    weather_mapping = cast(Any, bundle["weather_mapping"])
+    base_temperature = cast(Any, bundle["base_temperature"])
+    weather_feature_run = cast(Any, bundle.get("weather_feature_run"))
 
     # Resolved authority lookups
     model_run_result = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_RUN.value)
@@ -1866,9 +1904,7 @@ async def _validate_task8_prediction_fields(
             else:
                 # Datetime authority: finished_at must be UTC-aware and <= forecast_cutoff_at.
                 if getattr(finished_at, "tzinfo", None) is None:
-                    issues.append(
-                        "base temperature finished_at is naive (must be UTC-aware)"
-                    )
+                    issues.append("base temperature finished_at is naive (must be UTC-aware)")
                 elif finished_at > forecast_cutoff_at:
                     issues.append(
                         f"base temperature finished_at {finished_at} "
@@ -1876,33 +1912,17 @@ async def _validate_task8_prediction_fields(
                     )
 
             # Validate feature_version matches the associated WeatherFeatureRun.
-            from sqlalchemy import select as _select
-
-            from backend.app.models.weather import WeatherFeatureRun
-
-            wfr_stmt = (
-                _select(WeatherFeatureRun)
-                .where(
-                    WeatherFeatureRun.base_temperature_search_run_id
-                    == base_temperature.id
-                )
-                .limit(1)
-            )
-            wfr_result = await session.execute(wfr_stmt)
-            weather_feature_run = wfr_result.scalar_one_or_none()
+            # weather_feature_run was loaded by _load_task8_verification_bundle.
             if weather_feature_run is None:
-                issues.append(
-                    "no WeatherFeatureRun references this BaseTemperatureSearchRun"
-                )
-            elif (
-                getattr(base_temperature, "feature_version", None)
-                != weather_feature_run.feature_version
+                issues.append("no WeatherFeatureRun references this BaseTemperatureSearchRun")
+            elif getattr(base_temperature, "feature_version", None) != getattr(
+                weather_feature_run, "feature_version", None
             ):
                 issues.append(
                     f"base temperature feature_version "
                     f"({getattr(base_temperature, 'feature_version', None)}) "
                     f"does not match WeatherFeatureRun feature_version "
-                    f"({weather_feature_run.feature_version})"
+                    f"({getattr(weather_feature_run, 'feature_version', None)})"
                 )
 
     # ── Required field presence checks ────────────────────────────────────
