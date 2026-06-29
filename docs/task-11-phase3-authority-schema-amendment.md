@@ -5,9 +5,9 @@
 **Date**: 2026-06-29
 **Repository**: `xuezhiorange-png/blueberry-peak-forecast-agent`
 **Branch**: `codex/task-11-rolling-backtest-orchestration`
-**Current baseline HEAD**: `42bac411e843526ed0f61b21f6538fb43a2b8270`
+**Current baseline HEAD**: `65fe3cea4d0ec3ffdf7db3bf2757ccbddc7e5e3e`
 **Related PR / Issue**: PR #22 (Draft), Issue #21
-**Accepted predecessor**: P0-6 review `4591440544`
+**Accepted predecessor**: P0-6 review `4591867411`
 
 ---
 
@@ -1475,11 +1475,31 @@ Frozen stable-key matrix:
 
 Stable keys exclude:
 
-- business version
-- revision
-- database ID
+- the current authority row's own revision
+- database surrogate ID
+- foreign-key surrogate ID
 - UUID
 - runtime identity
+- repository object identity
+- database-generated identity
+
+For child authorities, an exact upstream parent authority identity may enter the child stable key when it is required to distinguish the child's business scope.
+
+For daily capacity specifically:
+
+- `capacity_pool_version` is an upstream parent identity component
+- `capacity_pool_revision` is an upstream parent identity component
+- both remain in `authority_stable_key`
+- `daily_capacity_revision` is the current daily authority row's own revision
+- `daily_capacity_revision` must not enter `authority_stable_key`
+- `daily_capacity_revision` is carried only by `authority_revision`
+
+The repeated `capacity_pool_version` value in `authority_stable_key` and `authority_business_version` is intentional:
+
+- `authority_stable_key` identifies the exact parent-scoped daily-capacity business stream
+- `authority_business_version` exposes the business version as a first-class field in the uniform lifecycle-event identity schema
+
+Do not remove `capacity_pool_version` from either field as a deduplication step.
 
 Frozen business-version mapping:
 
@@ -1821,6 +1841,8 @@ Frozen blocker set for future implementation:
 - `RUN_PARAMETER_AUTHORITY_AFTER_CUTOFF`
 - `RUN_PARAMETER_SCOPE_CONFLICT`
 - `TIMEZONE_AUTHORITY_INVALID`
+  - timezone name cannot be loaded by `ZoneInfo()`
+  - indicates invalid persisted or submitted timezone authority
 - `HOLIDAY_CALENDAR_AUTHORITY_MISSING`
 - `HOLIDAY_CALENDAR_AUTHORITY_AMBIGUOUS`
 - `HOLIDAY_CALENDAR_REFERENCE_INVALID`
@@ -1842,8 +1864,6 @@ Frozen blocker set for future implementation:
 - `AUTHORITY_CONSUMABILITY_INTERVAL_OVERLAP`
 - `AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT`
 - `AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF`
-- `TIMEZONE_AUTHORITY_INVALID`
-  - timezone name cannot be loaded by `ZoneInfo()` (not a valid IANA timezone)
 - `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT`
   - loaded run package `destination_factory_timezone` does not match the referenced holiday or weather authority `lifecycle_timezone_name`
   - both timezone names are individually valid IANA names but do not match
@@ -3313,6 +3333,7 @@ Frozen decision:
 - [x] Persisted replay binding includes authority family, stable key, version, revision, and event hash (P0-2)
 - [x] Daily-capacity identity includes parent pool revision and child daily revision (P0-1)
 - [x] Daily-capacity `source_record_key` includes parent pool revision in addition to season/factory scope (P0-1)
+- [x] Parent-scoped child stable-key exception frozen without allowing current-row revision into the child stable key (P1)
 - [x] Historical exclusion semantics frozen for active, superseded, and retired rows (P1)
 - [x] Lifecycle event DDL revision/status domain checks frozen (P1)
 - [x] IANA timezone validation three-layer model frozen (P1)
