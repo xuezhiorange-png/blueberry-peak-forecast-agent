@@ -25,6 +25,7 @@ from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.models.weather import (
     BaseTemperatureSearchRun,
     LocationWeatherMapping,
+    WeatherFeatureRun,
     WeatherSourceLocation,
 )
 from backend.app.rolling_backtest.enums import Task10ModelPolicy, UpstreamSelectionMode
@@ -64,6 +65,7 @@ def _make_test_node() -> RollingNodeDefinition:
         ),
         resolved_upstream_semantic_identities=(),
     )
+
 
 pytestmark = pytest.mark.integration
 
@@ -270,6 +272,33 @@ async def _seed_catalog_fixture(
         session.add_all([mapping, base_temp])
         await session.flush()
 
+        wf_run = WeatherFeatureRun(
+            feature_version=base_temp.feature_version,
+            config_hash=base_temp.config_hash,
+            mapping_version=mapping.mapping_version,
+            weather_source_version=weather_source.source_version,
+            base_temperature_search_run_id=base_temp.id,
+            plan_id=plan.id,
+            location_reference_id=location.id,
+            location_weather_mapping_id=mapping.id,
+            weather_source_location_id=weather_source.id,
+            as_of_date=base_temp.finished_at.date()
+            if base_temp.finished_at is not None
+            else date(2026, 3, 10),
+            feature_date=date(2026, 3, 16),
+            source_signature="wf" * 32,
+            status="completed",
+            input_snapshot={},
+            window_features={},
+            timeline_payload={},
+            weather_observation_ids=[],
+            warnings=[],
+            blockers=[],
+            finished_at=base_temp.finished_at,
+        )
+        session.add(wf_run)
+        await session.flush()
+
         model_run = MaturityModelRun(
             model_version="task8-v1",
             config_hash="a" * 64,
@@ -420,6 +449,7 @@ async def test_catalog_authority_valid_orm_chain_passes() -> None:
             catalog=[entry],
             resolutions=_resolved_task8_authorities(),  # type: ignore[arg-type]
             input_snapshot_task8_predictions=[snapshot],
+            node=_make_test_node(),
         )
 
     assert result["blocked"] is False
@@ -435,6 +465,7 @@ async def test_catalog_authority_orm_quantile_mismatch_blocks() -> None:
             catalog=[entry],
             resolutions=_resolved_task8_authorities(),  # type: ignore[arg-type]
             input_snapshot_task8_predictions=[snapshot],
+            node=_make_test_node(),
         )
 
     assert result["blocked"] is True

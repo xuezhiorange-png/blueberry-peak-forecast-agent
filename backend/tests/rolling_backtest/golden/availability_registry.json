@@ -38,6 +38,33 @@
     "source_visibility_policy_version": null
   },
   {
+    "source_type": "task7_weather_feature_run",
+    "rule_kind": "authoritative_timestamp",
+    "required_statuses": [
+      "completed",
+      "unavailable"
+    ],
+    "authoritative_timestamp_field": "finished_at",
+    "available_on_local_date_field": null,
+    "observation_date_field": null,
+    "task3_source_visibility_field": null,
+    "parent_authority_required": false,
+    "local_date_policy_version": null,
+    "source_visibility_policy_version": null
+  },
+  {
+    "source_type": "task7_location_weather_mapping",
+    "rule_kind": "local_available_date",
+    "required_statuses": [],
+    "authoritative_timestamp_field": null,
+    "available_on_local_date_field": "available_at",
+    "observation_date_field": null,
+    "task3_source_visibility_field": null,
+    "parent_authority_required": false,
+    "local_date_policy_version": "task11-local-date-visibility-v1",
+    "source_visibility_policy_version": null
+  },
+  {
     "source_type": "task8_model_run",
     "rule_kind": "authoritative_timestamp",
     "required_statuses": [
