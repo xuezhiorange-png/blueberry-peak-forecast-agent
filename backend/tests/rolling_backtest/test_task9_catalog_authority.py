@@ -16,7 +16,11 @@ from backend.app.rolling_backtest.enums import (
     Task10ModelPolicy,
     UpstreamSelectionMode,
 )
-from backend.app.rolling_backtest.orchestration import _validate_source_ref_catalog
+from backend.app.rolling_backtest.orchestration import (
+    Task8VerificationBundle,
+    _validate_source_ref_catalog,
+    _validate_task8_prediction_fields,
+)
 from backend.app.rolling_backtest.schemas import RollingNodeDefinition
 
 
@@ -125,18 +129,18 @@ def _catalog_entry(source_ref: Task8PredictionSourceRef) -> SourceRefCatalogEntr
     )
 
 
-def _orm_bundle() -> dict[str, object]:
+def _orm_bundle() -> Task8VerificationBundle:
     verification = _verification()
     source_ref = _task8_source_ref()
-    return {
-        "model_run": SimpleNamespace(
+    return Task8VerificationBundle(
+        model_run=SimpleNamespace(
             id=11,
             model_version="task8-v1",
             config_hash="a" * 64,
             source_signature="b" * 64,
         ),
-        "artifact": SimpleNamespace(id=22, run_id=11, artifact_hash="c" * 64),
-        "forecast_run": SimpleNamespace(
+        artifact=SimpleNamespace(id=22, run_id=11, artifact_hash="c" * 64),
+        forecast_run=SimpleNamespace(
             id=33,
             model_run_id=11,
             artifact_id=22,
@@ -150,7 +154,7 @@ def _orm_bundle() -> dict[str, object]:
             weather_mapping_id=77,
             base_temperature_search_run_id=88,
         ),
-        "daily_row": SimpleNamespace(
+        daily_row=SimpleNamespace(
             id=44,
             forecast_run_id=33,
             prediction_date=date(2026, 3, 16),
@@ -158,14 +162,14 @@ def _orm_bundle() -> dict[str, object]:
             p80_kg=Decimal("12"),
             p90_kg=Decimal("14"),
         ),
-        "plan_row": SimpleNamespace(
+        plan_row=SimpleNamespace(
             id=55,
             farm_id=verification.farm_id,
             subfarm_id=verification.subfarm_id,
             variety_id=verification.variety_id,
         ),
-        "location_row": SimpleNamespace(id=source_ref.location_reference_id),
-        "weather_mapping": SimpleNamespace(
+        location_row=SimpleNamespace(id=source_ref.location_reference_id),
+        weather_mapping=SimpleNamespace(
             id=source_ref.weather_mapping_id,
             location_reference_id=source_ref.location_reference_id,
             weather_source_location_id=901,
@@ -175,7 +179,7 @@ def _orm_bundle() -> dict[str, object]:
             mapping_version="map-v1",
             row_hash="m" * 64,
         ),
-        "base_temperature": SimpleNamespace(
+        base_temperature=SimpleNamespace(
             id=source_ref.base_temperature_search_run_id,
             variety_id=verification.variety_id,
             climate_zone_id=707,
@@ -185,14 +189,14 @@ def _orm_bundle() -> dict[str, object]:
             feature_version="bt-v1",
             finished_at=datetime(2026, 3, 10, 12, 0, tzinfo=UTC),
         ),
-        "weather_feature_run": SimpleNamespace(
+        weather_feature_run=SimpleNamespace(
             id=99,
             base_temperature_search_run_id=source_ref.base_temperature_search_run_id,
             status="completed",
             feature_version="bt-v1",
             finished_at=datetime(2026, 3, 10, 12, 0, tzinfo=UTC),
         ),
-    }
+    )
 
 
 def _resolved_task8_authorities() -> list[SimpleNamespace]:
@@ -263,12 +267,20 @@ def _resolved_task8_authorities() -> list[SimpleNamespace]:
             result_hash="7" * 64,
         ),
         _resolved(
-            source_role="task7_weather_observation",
-            source_type="task7_weather_observation",
-            reference_value=99,
+            source_role="task7_location_weather_mapping",
+            source_type="task7_location_weather_mapping",
+            reference_value=77,
             semantic_input_signature="8" * 64,
             result_hash="m" * 64,
             business_version="map-v1",
+        ),
+        _resolved(
+            source_role="task7_weather_feature_run",
+            source_type="task7_weather_feature_run",
+            reference_value=99,
+            semantic_input_signature="9" * 64,
+            result_hash="e" * 64,
+            business_version="bt-v1",
         ),
     ]
 
@@ -282,7 +294,10 @@ async def test_valid_complete_catalog_passes(monkeypatch: pytest.MonkeyPatch) ->
     async def _fake_bundle(
         _session: object,
         _typed_sr: Task8PredictionSourceRef,
-    ) -> dict[str, object]:
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         return _orm_bundle()
 
     monkeypatch.setattr(
@@ -321,7 +336,10 @@ async def test_missing_snapshot_match_blocks(monkeypatch: pytest.MonkeyPatch) ->
     async def _fake_bundle(
         _session: object,
         _typed_sr: Task8PredictionSourceRef,
-    ) -> dict[str, object]:
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         return _orm_bundle()
 
     monkeypatch.setattr(
@@ -350,7 +368,10 @@ async def test_duplicate_snapshot_match_blocks(monkeypatch: pytest.MonkeyPatch) 
     async def _fake_bundle(
         _session: object,
         _typed_sr: Task8PredictionSourceRef,
-    ) -> dict[str, object]:
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         return _orm_bundle()
 
     monkeypatch.setattr(
@@ -388,7 +409,10 @@ async def test_source_quantity_mismatch_blocks(monkeypatch: pytest.MonkeyPatch) 
     async def _fake_bundle(
         _session: object,
         _typed_sr: Task8PredictionSourceRef,
-    ) -> dict[str, object]:
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         return _orm_bundle()
 
     monkeypatch.setattr(
@@ -426,8 +450,12 @@ async def test_outer_type_mismatch_blocks(monkeypatch: pytest.MonkeyPatch) -> No
     )
 
     async def _fake_bundle(
-        _session: object, _typed_sr: Task8PredictionSourceRef
-    ) -> dict[str, object]:
+        _session: object,
+        _typed_sr: Task8PredictionSourceRef,
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         return _orm_bundle()
 
     monkeypatch.setattr(
@@ -465,8 +493,12 @@ async def test_outer_schema_version_mismatch_blocks(monkeypatch: pytest.MonkeyPa
     )
 
     async def _fake_bundle(
-        _session: object, _typed_sr: Task8PredictionSourceRef
-    ) -> dict[str, object]:
+        _session: object,
+        _typed_sr: Task8PredictionSourceRef,
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         return _orm_bundle()
 
     monkeypatch.setattr(
@@ -526,8 +558,12 @@ async def test_valid_type_schema_parity_passes(monkeypatch: pytest.MonkeyPatch) 
     entry = _catalog_entry(source_ref)
 
     async def _fake_bundle(
-        _session: object, _typed_sr: Task8PredictionSourceRef
-    ) -> dict[str, object]:
+        _session: object,
+        _typed_sr: Task8PredictionSourceRef,
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         return _orm_bundle()
 
     monkeypatch.setattr(
@@ -574,12 +610,26 @@ async def test_orm_quantile_mismatch_blocks(
     entry = _catalog_entry(source_ref)
 
     async def _fake_bundle(
-        _session: object, _typed_sr: Task8PredictionSourceRef
-    ) -> dict[str, object]:
+        _session: object,
+        _typed_sr: Task8PredictionSourceRef,
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         bundle = _orm_bundle()
-        payload = dict(bundle["daily_row"].__dict__)
+        payload = dict(bundle.daily_row.__dict__)
         payload[field_name] = tampered_value
-        bundle["daily_row"] = SimpleNamespace(**payload)
+        bundle = Task8VerificationBundle(
+            model_run=bundle.model_run,
+            artifact=bundle.artifact,
+            forecast_run=bundle.forecast_run,
+            daily_row=SimpleNamespace(**payload),
+            plan_row=bundle.plan_row,
+            location_row=bundle.location_row,
+            weather_mapping=bundle.weather_mapping,
+            base_temperature=bundle.base_temperature,
+            weather_feature_run=bundle.weather_feature_run,
+        )
         return bundle
 
     monkeypatch.setattr(
@@ -628,8 +678,12 @@ async def test_source_ref_and_verification_mismatch_blocks(
     entry = _catalog_entry(source_ref)
 
     async def _fake_bundle(
-        _session: object, _typed_sr: Task8PredictionSourceRef
-    ) -> dict[str, object]:
+        _session: object,
+        _typed_sr: Task8PredictionSourceRef,
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         return _orm_bundle()
 
     monkeypatch.setattr(
@@ -681,13 +735,35 @@ async def test_weather_mapping_and_base_temperature_mismatch_blocks(
     entry = _catalog_entry(source_ref)
 
     async def _fake_bundle(
-        _session: object, _typed_sr: Task8PredictionSourceRef
-    ) -> dict[str, object]:
+        _session: object,
+        _typed_sr: Task8PredictionSourceRef,
+        *,
+        forecast_cutoff_at: object = None,
+        timezone: object = None,
+    ) -> Task8VerificationBundle:
         bundle = _orm_bundle()
-        current = bundle[bundle_field]
+        current = getattr(bundle, bundle_field)
         payload = dict(current.__dict__)
         payload.update(override)
-        bundle[bundle_field] = SimpleNamespace(**payload)
+        bundle = Task8VerificationBundle(
+            model_run=bundle.model_run,
+            artifact=bundle.artifact,
+            forecast_run=bundle.forecast_run,
+            daily_row=bundle.daily_row,
+            plan_row=bundle.plan_row,
+            location_row=bundle.location_row,
+            weather_mapping=(
+                SimpleNamespace(**payload)
+                if bundle_field == "weather_mapping"
+                else bundle.weather_mapping
+            ),
+            base_temperature=(
+                SimpleNamespace(**payload)
+                if bundle_field == "base_temperature"
+                else bundle.base_temperature
+            ),
+            weather_feature_run=bundle.weather_feature_run,
+        )
         return bundle
 
     monkeypatch.setattr(
@@ -714,3 +790,252 @@ async def test_weather_mapping_and_base_temperature_mismatch_blocks(
 
     assert result["blocked"] is True
     assert "task9_task8_authority_mismatch" in str(result["reason"])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# P0-5E: Pure-validator tests — direct calls to _validate_task8_prediction_fields
+# without session, without monkeypatch, proving the validator is pure.
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def test_pure_validator_complete_bundle_passes() -> None:
+    """Full typed bundle with all authorities → zero issues."""
+    bundle = _orm_bundle()
+    authorities = _resolved_task8_authorities()
+    authority_by_type = {r.source_type.value: r for r in authorities}
+    authority_map = {r.source_role: r for r in authorities}
+    node = _make_test_node()
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type=authority_by_type,
+        authority_map=authority_map,
+        forecast_cutoff_at=node.forecast_cutoff_at,
+        timezone=node.timezone,
+        bundle=bundle,
+    )
+    assert issues == []
+
+
+def test_pure_validator_missing_model_run_fail_closed() -> None:
+    """model_run=None → fail closed."""
+    bundle = _orm_bundle()
+    bundle = Task8VerificationBundle(
+        model_run=None,
+        artifact=bundle.artifact,
+        forecast_run=bundle.forecast_run,
+        daily_row=bundle.daily_row,
+        plan_row=bundle.plan_row,
+        location_row=bundle.location_row,
+        weather_mapping=bundle.weather_mapping,
+        base_temperature=bundle.base_temperature,
+        weather_feature_run=bundle.weather_feature_run,
+    )
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type={},
+        authority_map={},
+        forecast_cutoff_at=_make_test_node().forecast_cutoff_at,
+        timezone="Asia/Shanghai",
+        bundle=bundle,
+    )
+    assert "maturity_model_run not found" in issues
+
+
+def test_pure_validator_missing_artifact_fail_closed() -> None:
+    """artifact=None → fail closed."""
+    bundle = _orm_bundle()
+    bundle = Task8VerificationBundle(
+        model_run=bundle.model_run,
+        artifact=None,
+        forecast_run=bundle.forecast_run,
+        daily_row=bundle.daily_row,
+        plan_row=bundle.plan_row,
+        location_row=bundle.location_row,
+        weather_mapping=bundle.weather_mapping,
+        base_temperature=bundle.base_temperature,
+        weather_feature_run=bundle.weather_feature_run,
+    )
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type={},
+        authority_map={},
+        forecast_cutoff_at=_make_test_node().forecast_cutoff_at,
+        timezone="Asia/Shanghai",
+        bundle=bundle,
+    )
+    assert "maturity_model_artifact not found" in issues
+
+
+def test_pure_validator_missing_forecast_run_fail_closed() -> None:
+    """forecast_run=None → fail closed."""
+    bundle = _orm_bundle()
+    bundle = Task8VerificationBundle(
+        model_run=bundle.model_run,
+        artifact=bundle.artifact,
+        forecast_run=None,
+        daily_row=bundle.daily_row,
+        plan_row=bundle.plan_row,
+        location_row=bundle.location_row,
+        weather_mapping=bundle.weather_mapping,
+        base_temperature=bundle.base_temperature,
+        weather_feature_run=bundle.weather_feature_run,
+    )
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type={},
+        authority_map={},
+        forecast_cutoff_at=_make_test_node().forecast_cutoff_at,
+        timezone="Asia/Shanghai",
+        bundle=bundle,
+    )
+    assert "maturity_forecast_run not found" in issues
+
+
+def test_pure_validator_missing_daily_prediction_fail_closed() -> None:
+    """daily_row=None → fail closed."""
+    bundle = _orm_bundle()
+    bundle = Task8VerificationBundle(
+        model_run=bundle.model_run,
+        artifact=bundle.artifact,
+        forecast_run=bundle.forecast_run,
+        daily_row=None,
+        plan_row=bundle.plan_row,
+        location_row=bundle.location_row,
+        weather_mapping=bundle.weather_mapping,
+        base_temperature=bundle.base_temperature,
+        weather_feature_run=bundle.weather_feature_run,
+    )
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type={},
+        authority_map={},
+        forecast_cutoff_at=_make_test_node().forecast_cutoff_at,
+        timezone="Asia/Shanghai",
+        bundle=bundle,
+    )
+    assert "maturity_daily_prediction not found" in issues
+
+
+def test_pure_validator_mapping_authority_correct_type_passes() -> None:
+    """TASK7_LOCATION_WEATHER_MAPPING authority validates mapping, not observation."""
+    bundle = _orm_bundle()
+    authorities = _resolved_task8_authorities()
+    authority_by_type = {r.source_type.value: r for r in authorities}
+    authority_map = {r.source_role: r for r in authorities}
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type=authority_by_type,
+        authority_map=authority_map,
+        forecast_cutoff_at=_make_test_node().forecast_cutoff_at,
+        timezone="Asia/Shanghai",
+        bundle=bundle,
+    )
+    assert not any("mapping" in i for i in issues)
+    assert not any("weather mapping" in i for i in issues)
+
+
+def test_pure_validator_cross_model_identity_blocked() -> None:
+    """Feature-run authority must NOT validate mapping fields."""
+    bundle = _orm_bundle()
+    authorities = _resolved_task8_authorities()
+    authority_by_type = {r.source_type.value: r for r in authorities}
+    authority_map = {r.source_role: r for r in authorities}
+
+    authority_by_type.pop("task7_location_weather_mapping", None)
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type=authority_by_type,
+        authority_map=authority_map,
+        forecast_cutoff_at=_make_test_node().forecast_cutoff_at,
+        timezone="Asia/Shanghai",
+        bundle=bundle,
+    )
+    assert not any("mapping version does not match resolved authority" in i for i in issues)
+
+
+def test_pure_validator_feature_run_authority_correct_type_passes() -> None:
+    """TASK7_WEATHER_FEATURE_RUN validates its own type, not mapping."""
+    bundle = _orm_bundle()
+    authorities = _resolved_task8_authorities()
+    authority_by_type = {r.source_type.value: r for r in authorities}
+    authority_map = {r.source_role: r for r in authorities}
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type=authority_by_type,
+        authority_map=authority_map,
+        forecast_cutoff_at=_make_test_node().forecast_cutoff_at,
+        timezone="Asia/Shanghai",
+        bundle=bundle,
+    )
+    assert not any("feature_version" in i for i in issues)
+    assert not any("WeatherFeatureRun" in i for i in issues)
+
+
+def test_pure_validator_feature_version_mismatch_blocks() -> None:
+    """feature_version mismatch → blocked."""
+    bundle = _orm_bundle()
+    tampered_wfr = SimpleNamespace(
+        id=99,
+        base_temperature_search_run_id=_task8_source_ref().base_temperature_search_run_id,
+        status="completed",
+        feature_version="bt-v999",
+        finished_at=datetime(2026, 3, 10, 12, 0, tzinfo=UTC),
+    )
+    bundle = Task8VerificationBundle(
+        model_run=bundle.model_run,
+        artifact=bundle.artifact,
+        forecast_run=bundle.forecast_run,
+        daily_row=bundle.daily_row,
+        plan_row=bundle.plan_row,
+        location_row=bundle.location_row,
+        weather_mapping=bundle.weather_mapping,
+        base_temperature=bundle.base_temperature,
+        weather_feature_run=tampered_wfr,
+    )
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type={},
+        authority_map={},
+        forecast_cutoff_at=_make_test_node().forecast_cutoff_at,
+        timezone="Asia/Shanghai",
+        bundle=bundle,
+    )
+    assert any("feature_version" in i for i in issues)
+
+
+def test_pure_validator_no_session_or_orm_calls() -> None:
+    """Validator accepts only typed bundle — no session, no ORM."""
+    bundle = _orm_bundle()
+    authorities = _resolved_task8_authorities()
+    authority_by_type = {r.source_type.value: r for r in authorities}
+    authority_map = {r.source_role: r for r in authorities}
+    node = _make_test_node()
+
+    issues = _validate_task8_prediction_fields(
+        typed_sr=_task8_source_ref(),
+        typed_verification=_verification(),
+        authority_by_type=authority_by_type,
+        authority_map=authority_map,
+        forecast_cutoff_at=node.forecast_cutoff_at,
+        timezone=node.timezone,
+        bundle=bundle,
+    )
+    assert isinstance(issues, list)
