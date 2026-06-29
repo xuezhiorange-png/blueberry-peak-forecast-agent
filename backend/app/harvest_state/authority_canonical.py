@@ -31,6 +31,9 @@ from backend.app.harvest_state.canonical import (
 TASK9_AUTHORITY_LIFECYCLE_EVENT_SCHEMA_VERSION = "task9-authority-lifecycle-event-v1"
 
 
+# ── sort keys ──────────────────────────────────────────────────────────
+
+
 def _canonical_member_sort_key(member: Task9CapacityPoolMemberSchema) -> tuple[int, int, int]:
     return (
         member.farm_id,
@@ -55,6 +58,9 @@ def _weather_band_payload(band: Any) -> dict[str, object]:
         "upper_inclusive": band.upper_inclusive,
         "multiplier": canonical_decimal_string(band.multiplier),
     }
+
+
+# ── stable keys ────────────────────────────────────────────────────────
 
 
 def build_capacity_pool_definition_stable_key(
@@ -102,17 +108,90 @@ def build_mature_inventory_loss_stable_key(
     )
 
 
+# ── parent semantic identity helpers ───────────────────────────────────
+
+
+def _pool_definition_semantic_identity(
+    definition: Task9CapacityPoolDefinitionSchema,
+) -> dict[str, object]:
+    """Semantic identity of a capacity pool definition (no metadata)."""
+    return {
+        "season_id": definition.season_id,
+        "destination_factory_id": definition.destination_factory_id,
+        "capacity_pool_code": definition.capacity_pool_code,
+        "capacity_pool_grain": definition.capacity_pool_grain.value,
+        "capacity_input_mode": definition.capacity_input_mode.value,
+        "capacity_pool_version": definition.capacity_pool_version,
+        "revision": definition.revision,
+        "effective_from": definition.effective_from.isoformat(),
+        "effective_to": (
+            None if definition.effective_to is None else definition.effective_to.isoformat()
+        ),
+        "available_at_local_date": definition.available_at_local_date.isoformat(),
+        "source_system": definition.source_system,
+        "source_record_key": definition.source_record_key,
+        "source_version": definition.source_version,
+    }
+
+
+def _snapshot_semantic_identity(
+    snapshot: Task9InitialInventorySnapshotSchema,
+) -> dict[str, object]:
+    """Semantic identity of an initial inventory snapshot (no metadata)."""
+    return {
+        "season_id": snapshot.season_id,
+        "destination_factory_id": snapshot.destination_factory_id,
+        "opening_state_date": snapshot.opening_state_date.isoformat(),
+        "snapshot_version": snapshot.snapshot_version,
+        "revision": snapshot.revision,
+        "initial_opening_mature_inventory_kg": canonical_decimal_string(
+            snapshot.initial_opening_mature_inventory_kg
+        ),
+        "available_at_local_date": snapshot.available_at_local_date.isoformat(),
+        "source_system": snapshot.source_system,
+        "source_record_key": snapshot.source_record_key,
+        "source_version": snapshot.source_version,
+    }
+
+
+def _holiday_semantic_identity(
+    header: Task9HolidayCalendarVersionSchema,
+) -> dict[str, object]:
+    """Semantic identity of a holiday calendar version (no metadata)."""
+    return {
+        "season_id": header.season_id,
+        "calendar_code": header.calendar_code,
+        "calendar_version": header.calendar_version,
+        "revision": header.revision,
+        "lifecycle_timezone_name": header.lifecycle_timezone_name,
+    }
+
+
+def _weather_semantic_identity(
+    row: Task9WeatherRuleConfigVersionSchema,
+) -> dict[str, object]:
+    """Semantic identity of a weather rule config version (no metadata)."""
+    return {
+        "rule_code": row.rule_code,
+        "rule_version": row.rule_version,
+        "revision": row.revision,
+        "lifecycle_timezone_name": row.lifecycle_timezone_name,
+    }
+
+
+# ── payload builders (P0-1: exclude row_hash, status, lifecycle, surrogate IDs) ──
+
+
 def build_capacity_pool_member_payload(
     member: Task9CapacityPoolMemberSchema,
+    parent_definition: Task9CapacityPoolDefinitionSchema,
 ) -> dict[str, object]:
+    """Member payload includes parent pool semantic identity."""
     return {
+        "parent_pool_identity": _pool_definition_semantic_identity(parent_definition),
         "farm_id": member.farm_id,
         "subfarm_id": member.subfarm_id,
         "variety_id": member.variety_id,
-        "source_system": member.source_system,
-        "source_record_key": member.source_record_key,
-        "source_version": member.source_version,
-        "row_hash": member.row_hash,
     }
 
 
@@ -136,9 +215,8 @@ def build_capacity_pool_definition_payload(
         "source_system": definition.source_system,
         "source_record_key": definition.source_record_key,
         "source_version": definition.source_version,
-        "row_hash": definition.row_hash,
         "members": [
-            build_capacity_pool_member_payload(item)
+            build_capacity_pool_member_payload(item, definition)
             for item in sorted(members, key=_canonical_member_sort_key)
         ],
     }
@@ -175,14 +253,16 @@ def build_daily_capacity_payload(row: Task9DailyCapacityAuthoritySchema) -> dict
         "source_system": row.source_system,
         "source_record_key": row.source_record_key,
         "source_version": row.source_version,
-        "row_hash": row.row_hash,
     }
 
 
 def build_run_parameter_package_payload(
     row: Task9RunParameterPackageSchema,
+    holiday_header: Task9HolidayCalendarVersionSchema | None = None,
+    weather_rule: Task9WeatherRuleConfigVersionSchema | None = None,
 ) -> dict[str, object]:
-    return {
+    """Run-package payload. P0-2: dependency IDs replaced with expanded semantic identity."""
+    payload: dict[str, object] = {
         "season_id": row.season_id,
         "destination_factory_id": row.destination_factory_id,
         "farm_scope_key": row.farm_scope_key,
@@ -190,8 +270,6 @@ def build_run_parameter_package_payload(
         "destination_factory_timezone": row.destination_factory_timezone,
         "harvest_bucket_anchor_local_time": row.harvest_bucket_anchor_local_time.isoformat(),
         "harvest_to_arrival_lag_days": row.harvest_to_arrival_lag_days,
-        "holiday_calendar_version_id": row.holiday_calendar_version_id,
-        "weather_rule_config_version_id": row.weather_rule_config_version_id,
         "package_version": row.package_version,
         "revision": row.revision,
         "effective_from": row.effective_from.isoformat(),
@@ -200,8 +278,13 @@ def build_run_parameter_package_payload(
         "source_system": row.source_system,
         "source_record_key": row.source_record_key,
         "source_version": row.source_version,
-        "row_hash": row.row_hash,
     }
+    # P0-2: expand dependency semantic identity instead of surrogate IDs
+    if holiday_header is not None:
+        payload["holiday_calendar"] = _holiday_semantic_identity(holiday_header)
+    if weather_rule is not None:
+        payload["weather_rule"] = _weather_semantic_identity(weather_rule)
+    return payload
 
 
 def build_holiday_calendar_payload(
@@ -224,7 +307,6 @@ def build_holiday_calendar_payload(
         "source_system": header.source_system,
         "source_record_key": header.source_record_key,
         "source_version": header.source_version,
-        "row_hash": header.row_hash,
         "dates": [
             {
                 "holiday_date": item.holiday_date.isoformat(),
@@ -280,14 +362,16 @@ def build_weather_rule_config_payload(
         "source_system": row.source_system,
         "source_record_key": row.source_record_key,
         "source_version": row.source_version,
-        "row_hash": row.row_hash,
     }
 
 
 def build_initial_inventory_cohort_payload(
     row: Task9InitialInventoryCohortSchema,
+    parent_snapshot: Task9InitialInventorySnapshotSchema,
 ) -> dict[str, object]:
+    """Cohort payload includes parent snapshot semantic identity."""
     return {
+        "parent_snapshot_identity": _snapshot_semantic_identity(parent_snapshot),
         "stable_cohort_key": row.stable_cohort_key,
         "forecast_quantile": row.forecast_quantile.value,
         "cohort_date": row.cohort_date.isoformat(),
@@ -295,10 +379,6 @@ def build_initial_inventory_cohort_payload(
         "subfarm_id": row.subfarm_id,
         "variety_id": row.variety_id,
         "remaining_quantity_kg": canonical_decimal_string(row.remaining_quantity_kg),
-        "source_system": row.source_system,
-        "source_record_key": row.source_record_key,
-        "source_version": row.source_version,
-        "row_hash": row.row_hash,
     }
 
 
@@ -319,9 +399,8 @@ def build_initial_inventory_snapshot_payload(
         "source_system": row.source_system,
         "source_record_key": row.source_record_key,
         "source_version": row.source_version,
-        "row_hash": row.row_hash,
         "cohorts": [
-            build_initial_inventory_cohort_payload(item)
+            build_initial_inventory_cohort_payload(item, row)
             for item in sorted(cohorts, key=_canonical_cohort_sort_key)
         ],
     }
@@ -345,13 +424,13 @@ def build_mature_inventory_loss_payload(
         "source_system": row.source_system,
         "source_record_key": row.source_record_key,
         "source_version": row.source_version,
-        "row_hash": row.row_hash,
     }
 
 
 def build_lifecycle_event_payload(
     row: Task9AuthorityLifecycleEventSchema,
 ) -> dict[str, object]:
+    """Lifecycle event hash payload. lifecycle_event_hash itself is excluded."""
     return {
         "event_schema_version": TASK9_AUTHORITY_LIFECYCLE_EVENT_SCHEMA_VERSION,
         "authority_family": row.authority_family.value,
@@ -391,7 +470,17 @@ def build_lifecycle_event_payload(
     }
 
 
-def make_authority_row_hash(row: object) -> str:
+# ── hash entry points ─────────────────────────────────────────────────
+
+
+def make_authority_row_hash(
+    row: object,
+    *,
+    parent_definition: Task9CapacityPoolDefinitionSchema | None = None,
+    parent_snapshot: Task9InitialInventorySnapshotSchema | None = None,
+    holiday_header: Task9HolidayCalendarVersionSchema | None = None,
+    weather_rule: Task9WeatherRuleConfigVersionSchema | None = None,
+) -> str:
     if isinstance(row, Task9CapacityPoolDefinitionBundleSchema):
         return sha256_hex(build_capacity_pool_definition_payload(row.definition, row.members))
     if isinstance(row, Task9HolidayCalendarBundleSchema):
@@ -407,15 +496,21 @@ def make_authority_row_hash(row: object) -> str:
     if isinstance(row, Task9DailyCapacityAuthoritySchema):
         return sha256_hex(build_daily_capacity_payload(row))
     if isinstance(row, Task9RunParameterPackageSchema):
-        return sha256_hex(build_run_parameter_package_payload(row))
+        return sha256_hex(
+            build_run_parameter_package_payload(row, holiday_header, weather_rule)
+        )
     if isinstance(row, Task9WeatherRuleConfigVersionSchema):
         return sha256_hex(build_weather_rule_config_payload(row))
     if isinstance(row, Task9MatureInventoryLossAuthoritySchema):
         return sha256_hex(build_mature_inventory_loss_payload(row))
     if isinstance(row, Task9CapacityPoolMemberSchema):
-        return sha256_hex(build_capacity_pool_member_payload(row))
+        if parent_definition is None:
+            raise TypeError("capacity pool member hash requires parent_definition")
+        return sha256_hex(build_capacity_pool_member_payload(row, parent_definition))
     if isinstance(row, Task9InitialInventoryCohortSchema):
-        return sha256_hex(build_initial_inventory_cohort_payload(row))
+        if parent_snapshot is None:
+            raise TypeError("initial inventory cohort hash requires parent_snapshot")
+        return sha256_hex(build_initial_inventory_cohort_payload(row, parent_snapshot))
     raise TypeError(f"unsupported authority row type: {type(row).__name__}")
 
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
+from backend.app.harvest_state.canonical import make_holiday_calendar_hash
+
 
 def _daily_capacity_payload() -> dict[str, object]:
     return {
@@ -37,7 +39,7 @@ def _pool_bundle_payload() -> dict[str, object]:
         "season_id": 1,
         "destination_factory_id": 2,
         "capacity_pool_code": "POOL-A",
-        "capacity_pool_grain": "SUBFARM_VARIETY",
+        "capacity_pool_grain": "FARM",
         "capacity_input_mode": "LABOR_DERIVED",
         "capacity_pool_version": "v1",
         "revision": 1,
@@ -57,31 +59,26 @@ def _pool_bundle_payload() -> dict[str, object]:
                 "farm_id": 11,
                 "subfarm_id": 5,
                 "variety_id": 20,
-                "source_system": "task9_historical_authority",
-                "source_record_key": "m2",
-                "source_version": "v1",
-                "row_hash": "b" * 64,
             },
             {
                 "farm_id": 11,
                 "subfarm_id": None,
                 "variety_id": 10,
-                "source_system": "task9_historical_authority",
-                "source_record_key": "m1",
-                "source_version": "v1",
-                "row_hash": "c" * 64,
             },
         ],
     }
 
 
 def _holiday_payload() -> dict[str, object]:
+    _cal_hash = make_holiday_calendar_hash(
+        holiday_calendar_version="calendar-v1", holiday_dates=[date(2026, 2, 10)]
+    )
     return {
         "season_id": 1,
         "calendar_code": "CN-SH",
         "calendar_version": "calendar-v1",
         "revision": 1,
-        "calendar_hash": "e" * 64,
+        "calendar_hash": _cal_hash,
         "region_scope": "CN-SH",
         "lifecycle_timezone_name": "Asia/Shanghai",
         "available_at_local_date": date(2026, 1, 1),
@@ -136,10 +133,6 @@ def _inventory_payload() -> dict[str, object]:
                 "subfarm_id": None,
                 "variety_id": 20,
                 "remaining_quantity_kg": "10",
-                "source_system": "task9_historical_authority",
-                "source_record_key": "c3",
-                "source_version": "snap-v1",
-                "row_hash": "6" * 64,
             },
             {
                 "stable_cohort_key": "c1",
@@ -149,10 +142,6 @@ def _inventory_payload() -> dict[str, object]:
                 "subfarm_id": None,
                 "variety_id": 20,
                 "remaining_quantity_kg": "10",
-                "source_system": "task9_historical_authority",
-                "source_record_key": "c1",
-                "source_version": "snap-v1",
-                "row_hash": "4" * 64,
             },
             {
                 "stable_cohort_key": "c2",
@@ -162,10 +151,6 @@ def _inventory_payload() -> dict[str, object]:
                 "subfarm_id": None,
                 "variety_id": 20,
                 "remaining_quantity_kg": "10",
-                "source_system": "task9_historical_authority",
-                "source_record_key": "c2",
-                "source_version": "snap-v1",
-                "row_hash": "5" * 64,
             },
         ],
     }
