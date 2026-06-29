@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import UTC, date, datetime
 from typing import Any
@@ -47,13 +48,34 @@ async def _scalar(sql: str, params: dict[str, Any] | None = None) -> Any:
         return result.scalar_one()
 
 
-async def _expect_integrity_error(sql: str, params: dict[str, Any] | None = None) -> None:
+async def _expect_integrity_error(sql: str, params: dict[str, Any] | None = None) -> IntegrityError:
     async with AsyncSessionMaker() as session:
-        with pytest.raises(IntegrityError):
+        with pytest.raises(IntegrityError) as excinfo:
             await session.execute(text(sql), params or {})
             await session.flush()
         await session.rollback()
         await session.execute(text("SELECT 1"))
+        return excinfo.value
+
+
+def _normalize_contype(value: str | bytes) -> str:
+    if isinstance(value, bytes):
+        return value.decode("ascii")
+    return value
+
+
+def _constraint_name(exc: IntegrityError) -> str | None:
+    for candidate in (
+        getattr(exc, "orig", None),
+        getattr(getattr(exc, "orig", None), "orig", None),
+        getattr(getattr(exc, "orig", None), "__cause__", None),
+    ):
+        if candidate is None:
+            continue
+        name = getattr(candidate, "constraint_name", None)
+        if name:
+            return name
+    return None
 
 
 async def _seed_dimensions() -> dict[str, int]:
@@ -459,8 +481,8 @@ async def _insert_weather_rule(*, status: str = "active", revision: int = 1) -> 
                     'MULTIPLY',
                     0.500000,
                     1.000000,
-                    '["tmean"]'::jsonb,
-                    '[{"feature_id":"tmean","bands":[{"min":0,"max":10,"ratio":"0.8"}]}]'::jsonb,
+                    CAST(:required_feature_ids AS jsonb),
+                    CAST(:feature_rules_json AS jsonb),
                     'BLOCK',
                     :config_hash,
                     :available_at,
@@ -481,6 +503,10 @@ async def _insert_weather_rule(*, status: str = "active", revision: int = 1) -> 
             ),
             {
                 "revision": revision,
+                "required_feature_ids": json.dumps(["tmean"]),
+                "feature_rules_json": json.dumps(
+                    [{"feature_id": "tmean", "bands": [{"min": 0, "max": 10, "ratio": "0.8"}]}]
+                ),
                 "config_hash": _sha("f"),
                 "available_at": _date(1),
                 "consumable_from": _date(2) if status == "active" else None,
@@ -996,9 +1022,21 @@ async def test_task9_authority_constraint_catalog_contains_expected_postgres_obj
             )
         )
         rows = {
-            row["conname"]: (row["contype"], row["constraint_def"]) for row in result.mappings()
+            row["conname"]: (
+                _normalize_contype(row["contype"]),
+                row["constraint_def"],
+            )
+            for row in result.mappings()
         }
     assert rows["ex_task9_capacity_pool_definition_combined_overlap"][0] == "x"
+    assert "season_id WITH =" in rows["ex_task9_capacity_pool_definition_combined_overlap"][1]
+    assert (
+        "destination_factory_id WITH ="
+        in rows["ex_task9_capacity_pool_definition_combined_overlap"][1]
+    )
+    assert (
+        "capacity_pool_code WITH =" in rows["ex_task9_capacity_pool_definition_combined_overlap"][1]
+    )
     assert (
         "effective_range WITH &&" in rows["ex_task9_capacity_pool_definition_combined_overlap"][1]
     )
@@ -1006,8 +1044,68 @@ async def test_task9_authority_constraint_catalog_contains_expected_postgres_obj
         "consumability_range WITH &&"
         in rows["ex_task9_capacity_pool_definition_combined_overlap"][1]
     )
+    assert rows["ex_task9_capacity_pool_member_combined_overlap"][0] == "x"
+    assert "farm_id WITH =" in rows["ex_task9_capacity_pool_member_combined_overlap"][1]
+    assert (
+        "normalized_subfarm_id WITH =" in rows["ex_task9_capacity_pool_member_combined_overlap"][1]
+    )
+    assert "variety_id WITH =" in rows["ex_task9_capacity_pool_member_combined_overlap"][1]
+    assert "effective_range WITH &&" in rows["ex_task9_capacity_pool_member_combined_overlap"][1]
+    assert (
+        "consumability_range WITH &&" in rows["ex_task9_capacity_pool_member_combined_overlap"][1]
+    )
+    assert rows["ex_task9_run_parameter_package_combined_overlap"][0] == "x"
+    assert "season_id WITH =" in rows["ex_task9_run_parameter_package_combined_overlap"][1]
+    assert (
+        "destination_factory_id WITH ="
+        in rows["ex_task9_run_parameter_package_combined_overlap"][1]
+    )
+    assert "farm_scope_key WITH =" in rows["ex_task9_run_parameter_package_combined_overlap"][1]
+    assert "effective_range WITH &&" in rows["ex_task9_run_parameter_package_combined_overlap"][1]
+    assert (
+        "consumability_range WITH &&" in rows["ex_task9_run_parameter_package_combined_overlap"][1]
+    )
     assert rows["ex_task9_daily_capacity_consumability_overlap"][0] == "x"
+    assert (
+        "capacity_pool_definition_id WITH ="
+        in rows["ex_task9_daily_capacity_consumability_overlap"][1]
+    )
+    assert "capacity_date WITH =" in rows["ex_task9_daily_capacity_consumability_overlap"][1]
     assert "consumability_range WITH &&" in rows["ex_task9_daily_capacity_consumability_overlap"][1]
+    assert rows["ex_task9_holiday_calendar_consumability_overlap"][0] == "x"
+    assert "season_id WITH =" in rows["ex_task9_holiday_calendar_consumability_overlap"][1]
+    assert "calendar_code WITH =" in rows["ex_task9_holiday_calendar_consumability_overlap"][1]
+    assert (
+        "lifecycle_timezone_name WITH ="
+        in rows["ex_task9_holiday_calendar_consumability_overlap"][1]
+    )
+    assert (
+        "consumability_range WITH &&" in rows["ex_task9_holiday_calendar_consumability_overlap"][1]
+    )
+    assert rows["ex_task9_weather_rule_combined_overlap"][0] == "x"
+    assert "rule_code WITH =" in rows["ex_task9_weather_rule_combined_overlap"][1]
+    assert "lifecycle_timezone_name WITH =" in rows["ex_task9_weather_rule_combined_overlap"][1]
+    assert "effective_range WITH &&" in rows["ex_task9_weather_rule_combined_overlap"][1]
+    assert "consumability_range WITH &&" in rows["ex_task9_weather_rule_combined_overlap"][1]
+    assert rows["ex_task9_initial_inventory_consumability_overlap"][0] == "x"
+    assert "season_id WITH =" in rows["ex_task9_initial_inventory_consumability_overlap"][1]
+    assert (
+        "destination_factory_id WITH ="
+        in rows["ex_task9_initial_inventory_consumability_overlap"][1]
+    )
+    assert (
+        "opening_state_date WITH =" in rows["ex_task9_initial_inventory_consumability_overlap"][1]
+    )
+    assert (
+        "consumability_range WITH &&" in rows["ex_task9_initial_inventory_consumability_overlap"][1]
+    )
+    assert rows["ex_task9_mature_loss_consumability_overlap"][0] == "x"
+    assert "season_id WITH =" in rows["ex_task9_mature_loss_consumability_overlap"][1]
+    assert "destination_factory_id WITH =" in rows["ex_task9_mature_loss_consumability_overlap"][1]
+    assert "capacity_pool_code WITH =" in rows["ex_task9_mature_loss_consumability_overlap"][1]
+    assert "state_date WITH =" in rows["ex_task9_mature_loss_consumability_overlap"][1]
+    assert "forecast_quantile WITH =" in rows["ex_task9_mature_loss_consumability_overlap"][1]
+    assert "consumability_range WITH &&" in rows["ex_task9_mature_loss_consumability_overlap"][1]
     assert rows["uq_task9_authority_lifecycle_event_identity_sequence"][0] == "u"
     assert rows["uq_task9_authority_lifecycle_event_identity_hash"][0] == "u"
 
@@ -1045,7 +1143,7 @@ async def test_duplicate_nullable_member_key_is_rejected() -> None:
         consumable_from_key=_date(2),
         consumable_to_key=_date(20),
     )
-    await _expect_integrity_error(
+    exc = await _expect_integrity_error(
         """
         INSERT INTO task9_capacity_pool_member (
             capacity_pool_definition_id,
@@ -1063,7 +1161,7 @@ async def test_duplicate_nullable_member_key_is_rejected() -> None:
         )
         VALUES (
             :pool_id, :season_id, :factory_id, :farm_id, NULL, :variety_id,
-            :effective_from, NULL, 'active', :consumable_from_key, :consumable_to_key, :row_hash
+            :effective_from, :effective_to, :status, :consumable_from_key, :consumable_to_key, :row_hash
         )
         """,
         {
@@ -1073,11 +1171,14 @@ async def test_duplicate_nullable_member_key_is_rejected() -> None:
             "farm_id": ids["farm_id"],
             "variety_id": ids["variety_id"],
             "effective_from": _date(1),
+            "effective_to": None,
+            "status": "retired",
             "consumable_from_key": _date(2),
-            "consumable_to_key": date.max,
+            "consumable_to_key": _date(20),
             "row_hash": _sha("8"),
         },
     )
+    assert _constraint_name(exc) == "uq_task9_capacity_pool_member_business_key"
 
 
 @pytest.mark.asyncio
@@ -1240,7 +1341,13 @@ async def test_invalid_effective_range_consumability_projection_and_daily_mode_a
         },
     )
 
-    await _expect_integrity_error(
+    pool_id = await _insert_capacity_pool_definition(
+        season_id=ids["season_id"],
+        factory_id=ids["factory_id"],
+        status="active",
+        consumable_from=_date(2),
+    )
+    exc = await _expect_integrity_error(
         """
         INSERT INTO task9_daily_capacity_authority (
             capacity_pool_definition_id, capacity_date, daily_capacity_revision, planned_picker_count,
@@ -1250,25 +1357,21 @@ async def test_invalid_effective_range_consumability_projection_and_daily_mode_a
             source_system, source_record_key, source_version, row_hash
         )
         VALUES (
-            999, :capacity_date, 1, 10.000, 100.000, NULL, 0.800000, 0.900000,
+            :pool_id, :capacity_date, 1, 10.000, 100.000, NULL, 0.800000, 0.900000,
             :available_at, NULL, NULL, 'active', :status_changed_at, NULL,
             'task9_historical_authority', 'bad-projection', 'src-v1', :row_hash
         )
         """,
         {
+            "pool_id": pool_id,
             "capacity_date": _date(3),
             "available_at": _date(1),
             "status_changed_at": _ts(),
             "row_hash": _sha("1"),
         },
     )
+    assert _constraint_name(exc) == "ck_task9_daily_capacity_authority_lifecycle_projection"
 
-    pool_id = await _insert_capacity_pool_definition(
-        season_id=ids["season_id"],
-        factory_id=ids["factory_id"],
-        status="active",
-        consumable_from=_date(2),
-    )
     await _expect_integrity_error(
         """
         INSERT INTO task9_daily_capacity_authority (
@@ -1293,6 +1396,62 @@ async def test_invalid_effective_range_consumability_projection_and_daily_mode_a
             "row_hash": _sha("2"),
         },
     )
+
+    for value, field, expected_constraint, record_key in (
+        (
+            -1,
+            "planned_picker_count",
+            "ck_task9_daily_capacity_picker_count_non_negative",
+            "bad-picker-count",
+        ),
+        (
+            -1,
+            "kg_per_person_per_day",
+            "ck_task9_daily_capacity_productivity_non_negative",
+            "bad-productivity",
+        ),
+        (
+            -1,
+            "direct_nominal_capacity_kg_per_day",
+            "ck_task9_daily_capacity_direct_capacity_non_negative",
+            "bad-direct-capacity",
+        ),
+    ):
+        sql = """
+        INSERT INTO task9_daily_capacity_authority (
+            capacity_pool_definition_id, capacity_date, daily_capacity_revision, planned_picker_count,
+            kg_per_person_per_day, direct_nominal_capacity_kg_per_day, labor_availability_ratio,
+            operational_efficiency_ratio, available_at_local_date, consumable_from_local_date,
+            consumable_to_local_date, status, status_changed_at, superseded_by_id,
+            source_system, source_record_key, source_version, row_hash
+        )
+        VALUES (
+            :pool_id, :capacity_date, :revision, :planned_picker_count, :kg_per_person_per_day,
+            :direct_nominal_capacity_kg_per_day, 0.800000, 0.900000, :available_at,
+            :consumable_from, NULL, 'active', :status_changed_at, NULL,
+            'task9_historical_authority', :source_record_key, 'src-v1', :row_hash
+        )
+        """
+        params = {
+            "pool_id": pool_id,
+            "capacity_date": _date(4),
+            "revision": 2 if field != "direct_nominal_capacity_kg_per_day" else 3,
+            "planned_picker_count": None,
+            "kg_per_person_per_day": None,
+            "direct_nominal_capacity_kg_per_day": None,
+            "available_at": _date(1),
+            "consumable_from": _date(2),
+            "status_changed_at": _ts(),
+            "source_record_key": record_key,
+            "row_hash": _sha(record_key[0]),
+        }
+        if field == "direct_nominal_capacity_kg_per_day":
+            params["direct_nominal_capacity_kg_per_day"] = value
+        else:
+            params["planned_picker_count"] = 10 if field != "planned_picker_count" else value
+            params["kg_per_person_per_day"] = 100 if field != "kg_per_person_per_day" else value
+        exc = await _expect_integrity_error(sql, params)
+        assert _constraint_name(exc) == expected_constraint
 
 
 @pytest.mark.asyncio
@@ -1434,7 +1593,7 @@ async def test_overlapping_effective_and_consumability_intervals_are_rejected_bu
         code="POOL-A",
         version="v1",
         revision=1,
-        status="active",
+        status="retired",
         effective_from=_date(1),
         effective_to=_date(10),
         available_at=_date(1),
@@ -1582,7 +1741,15 @@ async def test_orm_and_migration_parity_for_ordinary_columns() -> None:
         result = await session.execute(
             text(
                 """
-                SELECT table_name, column_name, data_type, is_nullable
+                SELECT
+                    table_name,
+                    column_name,
+                    data_type,
+                    udt_name,
+                    is_nullable,
+                    numeric_precision,
+                    numeric_scale,
+                    column_default
                 FROM information_schema.columns
                 WHERE table_schema = 'public'
                   AND table_name LIKE 'task9_%'
@@ -1592,15 +1759,117 @@ async def test_orm_and_migration_parity_for_ordinary_columns() -> None:
         )
         db_rows = {}
         for row in result:
-            db_rows.setdefault(row.table_name, {})[row.column_name] = (
-                row.data_type,
-                row.is_nullable,
+            db_rows.setdefault(row.table_name, {})[row.column_name] = row
+
+        fk_rows = await session.execute(
+            text(
+                """
+                SELECT
+                    tc.table_name,
+                    kcu.column_name,
+                    ccu.table_name AS foreign_table_name,
+                    ccu.column_name AS foreign_column_name,
+                    rc.update_rule,
+                    rc.delete_rule
+                FROM information_schema.table_constraints AS tc
+                JOIN information_schema.key_column_usage AS kcu
+                  ON tc.constraint_name = kcu.constraint_name
+                 AND tc.table_schema = kcu.table_schema
+                JOIN information_schema.referential_constraints AS rc
+                  ON tc.constraint_name = rc.constraint_name
+                 AND tc.table_schema = rc.constraint_schema
+                JOIN information_schema.constraint_column_usage AS ccu
+                  ON rc.unique_constraint_name = ccu.constraint_name
+                 AND rc.unique_constraint_schema = ccu.constraint_schema
+                WHERE tc.table_schema = 'public'
+                  AND tc.constraint_type = 'FOREIGN KEY'
+                  AND tc.table_name LIKE 'task9_%'
+                ORDER BY tc.table_name, kcu.column_name
+                """
             )
+        )
+        db_fks = {
+            (row.table_name, row.column_name): (
+                row.foreign_table_name,
+                row.foreign_column_name,
+                row.update_rule,
+                row.delete_rule,
+            )
+            for row in fk_rows
+        }
+
+        generated = await session.execute(
+            text(
+                """
+                SELECT table_name, column_name, generation_expression
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND is_generated = 'ALWAYS'
+                  AND table_name LIKE 'task9_%'
+                """
+            )
+        )
+        generated_rows = {
+            (row.table_name, row.column_name): row.generation_expression for row in generated
+        }
 
     for table_name, table in expected.items():
         for column in table.columns:
-            db_data_type, db_nullable = db_rows[table_name][column.name]
             assert column.name in db_rows[table_name]
-            assert column.nullable == (db_nullable == "YES")
+            db_column = db_rows[table_name][column.name]
+            assert column.nullable == (db_column.is_nullable == "YES")
+            if str(column.type).startswith("NUMERIC("):
+                assert db_column.data_type == "numeric"
+                precision, scale = (
+                    str(column.type).removeprefix("NUMERIC(").removesuffix(")").split(", ")
+                )
+                assert db_column.numeric_precision == int(precision)
+                assert db_column.numeric_scale == int(scale)
+            elif str(column.type) == "DATETIME":
+                assert db_column.data_type == "timestamp with time zone"
+            elif str(column.type) == "DATE":
+                assert db_column.data_type == "date"
+            elif str(column.type) == "TIME":
+                assert db_column.data_type == "time without time zone"
+            elif str(column.type) == "JSONB":
+                assert db_column.data_type == "jsonb"
+                assert db_column.udt_name == "jsonb"
+            elif str(column.type) in {"TEXT", "BIGINT", "INTEGER"}:
+                expected_type = {
+                    "TEXT": "text",
+                    "BIGINT": "bigint",
+                    "INTEGER": "integer",
+                }[str(column.type)]
+                assert db_column.data_type == expected_type
+            if column.server_default is not None and column.name == "created_at":
+                assert db_column.column_default is not None
+                assert "now()" in db_column.column_default
+            for foreign_key in column.foreign_keys:
+                target_table, target_column = foreign_key.target_fullname.split(".")
+                assert db_fks[(table_name, column.name)] == (
+                    target_table,
+                    target_column,
+                    foreign_key.onupdate or "NO ACTION",
+                    foreign_key.ondelete or "NO ACTION",
+                )
         extra_columns = set(db_rows[table_name]) - {column.name for column in table.columns}
         assert extra_columns == migration_only_columns.get(table_name, set())
+
+    assert (
+        "COALESCE(subfarm_id, 0)"
+        in generated_rows[("task9_capacity_pool_member", "normalized_subfarm_id")]
+    )
+    assert (
+        "'infinity'::date"
+        in generated_rows[("task9_capacity_pool_definition", "effective_to_exclusive")]
+        or "infinity"
+        in generated_rows[("task9_capacity_pool_definition", "effective_to_exclusive")]
+    )
+    assert (
+        "effective_to + 1"
+        in generated_rows[("task9_capacity_pool_definition", "effective_to_exclusive")]
+    )
+    assert "[)" in generated_rows[("task9_capacity_pool_definition", "effective_range")]
+    assert "[)" in generated_rows[("task9_daily_capacity_authority", "consumability_range")]
+    assert ("task9_capacity_pool_member", "consumable_from_key") not in generated_rows
+    assert ("task9_capacity_pool_member", "consumable_to_key") not in generated_rows
