@@ -5,9 +5,9 @@
 **Date**: 2026-06-29
 **Repository**: `xuezhiorange-png/blueberry-peak-forecast-agent`
 **Branch**: `codex/task-11-rolling-backtest-orchestration`
-**Current baseline HEAD**: `93a69d0cb40c1bb37f2cc6ef33e27e40ad17647b`
+**Current baseline HEAD**: `42bac411e843526ed0f61b21f6538fb43a2b8270`
 **Related PR / Issue**: PR #22 (Draft), Issue #21
-**Accepted predecessor**: P0-6 review `4591304094`
+**Accepted predecessor**: P0-6 review `4591440544`
 
 ---
 
@@ -204,12 +204,18 @@ This remains the minimum set that:
 
 - **Purpose**: historically visible daily capacity values per pool
 - **Business grain**:
-  - `capacity_pool_definition_id x capacity_date x revision`
+  - `season_id x destination_factory_id x capacity_pool_code x capacity_pool_version x capacity_pool_revision x capacity_date x daily_capacity_revision`
 - **Primary key**: surrogate `id`
 - **Business key**:
-  - `(capacity_pool_definition_id, capacity_date, revision)`
+  - `(capacity_pool_definition_id, capacity_date, daily_capacity_revision)`
 - **Scope fields**:
   - `capacity_pool_definition_id`
+  - parent pool identity:
+    - `season_id`
+    - `destination_factory_id`
+    - `capacity_pool_code`
+    - `capacity_pool_version`
+    - `capacity_pool_revision` (logical label for the parent pool definition revision)
   - `capacity_date`
 - **Value fields**:
   - `planned_picker_count`
@@ -223,10 +229,25 @@ This remains the minimum set that:
   - `capacity_date` is the applicable date
 - **Version/status fields**:
   - parent `capacity_pool_version`
-  - `revision`
+  - parent `capacity_pool_revision` (from `task9_capacity_pool_definition.revision`)
+  - `daily_capacity_revision` (the daily-capacity row revision)
   - row `status`
+- **Lifecycle identity**:
+  - `authority_stable_key = daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_pool_revision}:{capacity_date}`
+  - `authority_business_version = capacity_pool_version`
+  - `authority_revision = daily_capacity_revision`
 - **Canonical payload**:
-  - pool identity, date, business version, revision, capacity mode, all typed values, provenance
+  - `season_id`
+  - `destination_factory_id`
+  - `capacity_pool_code`
+  - `capacity_pool_version`
+  - `capacity_pool_revision`
+  - `capacity_date`
+  - `daily_capacity_revision`
+  - `capacity_input_mode`
+  - all typed capacity values
+  - `available_at_local_date`
+  - full source provenance
 - **Row hash**:
   - canonical SHA-256 of full typed payload
 
@@ -462,10 +483,17 @@ Mode rules:
 Revision rules:
 
 - business version string comes from the parent pool definition
-- `revision` is an immutable per-date capacity revision
-- same pool + date + revision + same payload -> idempotent
-- same pool + date + revision + different payload -> `AUTHORITY_VERSION_CONFLICT`
-- same pool + date + newer revision -> new immutable row
+- parent pool immutable identity includes:
+  - `season_id`
+  - `destination_factory_id`
+  - `capacity_pool_code`
+  - `capacity_pool_version`
+  - `capacity_pool_revision`
+- `daily_capacity_revision` is the immutable per-date child revision
+- same exact parent identity + same date + same `daily_capacity_revision` + same payload -> idempotent
+- same exact parent identity + same date + same `daily_capacity_revision` + different payload -> `AUTHORITY_VERSION_CONFLICT`
+- same exact parent identity + same date + newer `daily_capacity_revision` -> new immutable row
+- parent `capacity_pool_revision` and child `daily_capacity_revision` must not be conflated
 
 No defaulting is allowed for missing capacity values.
 
@@ -631,7 +659,7 @@ Frozen rules:
 | `weather_rule_config` | `task9_weather_rule_config_version` | rule code x rule_version | `available_at_local_date` | `effective_from/to` | see Section 10 | config hash + canonical payload hash | `PARAMETER_SOURCE(WEATHER_RULE_CONFIG)` | `WEATHER_RULE_AUTHORITY_MISSING` |
 | `run_parameter_source_refs` | package + holiday + weather rule rows | mixed | mixed | mixed | see Section 10 | source row hashes only | `ParameterSourceRef[]` | `RUN_PARAMETER_AUTHORITY_MISSING` |
 | `capacity_pools` | `task9_capacity_pool_definition` + `task9_capacity_pool_member` | see Sections 4.1-4.2 | parent `available_at_local_date` | `effective_from/to` | see Section 10 | definition + sorted membership hashes | none in field, refs appear in daily capacity | `CAPACITY_POOL_AUTHORITY_MISSING` |
-| `daily_capacity_inputs` | `task9_daily_capacity_authority` | pool x date x revision | `available_at_local_date` | `capacity_date` | see Section 10 | row hash | `ParameterSourceRef[]` | `CAPACITY_VALUE_AUTHORITY_MISSING` |
+| `daily_capacity_inputs` | `task9_daily_capacity_authority` | exact parent pool identity x capacity_date x daily_capacity_revision | `available_at_local_date` | `capacity_date` | see Section 10 | row hash | `ParameterSourceRef[]` | `CAPACITY_VALUE_AUTHORITY_MISSING` |
 | `daily_weather_features` | existing Task 7 authority | mapping + observation | existing Task 7 visibility | observation date | existing statuses | existing row hashes/signatures | existing `PARAMETER_SOURCE(WEATHER_FEATURE_OBSERVATION)` | existing Task 7 blockers |
 | `task8_daily_predictions` | existing Task 8 authority | daily prediction x quantile | existing Task 8 visibility | prediction date | completed chain | existing signatures / hashes | existing `TASK8_DAILY_PREDICTION` refs | existing Task 8 blockers |
 | `initial_inventory_cohorts` | `task9_initial_inventory_snapshot` + `task9_initial_inventory_cohort` | snapshot x stable cohort key | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash + cohort hashes | `INITIAL_INVENTORY_SNAPSHOT` refs | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
@@ -674,10 +702,10 @@ The load step 4 status/lifecycle validation depends on the resolution path:
 - holiday lifecycle covers `node.as_of_local_date`
 - weather rule lifecycle covers `node.as_of_local_date`
 - allows rows that are today superseded/retired but were consumable at the historical cutoff date
-- resolves the highest-revision row whose lifecycle interval covers the as-of date
+- resolves the highest `daily_capacity_revision` row whose lifecycle interval covers the as-of date
 
 **Persisted exact replay:**
-- load exact persistent references (authority type + stable key + business version + revision)
+- load exact persistent references (authority family + stable key + business version + revision)
 - verify row/config hashes match the stored snapshot
 - verify the exact rows' lifecycle intervals covered the original cutoff
 - do **not** require current `status = 'active'`
@@ -706,7 +734,7 @@ They remain valid only for:
 |---|---|---|---|---|---|---:|
 | `task9_capacity_pool_definition` | full typed definition payload hash | none | same | `capacity_pool_version` | yes | No |
 | `task9_capacity_pool_member` | full typed member payload hash | none | same | parent `capacity_pool_version` | inherited | No |
-| `task9_daily_capacity_authority` | full typed capacity row payload hash | none | same | parent `capacity_pool_version` | yes | No |
+| `task9_daily_capacity_authority` | full typed capacity row payload hash including parent pool revision | none | same | parent `capacity_pool_version` | `daily_capacity_revision` | No |
 | `task9_run_parameter_package` | full typed package payload hash | none | same | `package_version` | yes | No |
 | `task9_holiday_calendar_version` | full authority payload hash over header + sorted date rows + provenance | none | same | `calendar_version` | yes | No |
 | `task9_holiday_calendar_version` request contract | exact `calendar_hash` request payload hash | none | n/a | `calendar_version` | n/a | No |
@@ -1095,13 +1123,19 @@ Direct retirement (`active → retired`) must set all fields in **one SQL UPDATE
 Forbidden: separate status update followed by a later lifecycle update. A failure at any step must roll back the entire transaction.
 - replacement is inserted as `draft` first so it:
   - does not participate in active-only unique indexes
-  - does not participate in active-only exclusion constraints
+  - produces an empty consumability range, so it does not overlap until activation
   - already exists as a valid self-FK target for `superseded_by_id`
 - any failure rolls back the entire transaction; no draft orphan, partial supersession, or parent/member divergence is allowed
 - immediate self-FKs are retained; no deferred constraints are introduced
 - repository implementation must lock the current active row before replacement insert/update
 
-Only `active` rows participate in exclusion constraints. `superseded`, `retired`, and `cancelled` rows do not.
+All non-empty historical consumability ranges participate in exclusion constraints:
+
+- `draft`: `consumable_from_local_date` / `consumable_to_local_date` are both `NULL`; generated range is empty
+- `cancelled`: from/to remain `NULL`; generated range is empty
+- `active`: open historical range; participates in overlap protection
+- `superseded`: closed historical range remains stored and continues to participate in overlap protection
+- `retired`: closed historical range remains stored and continues to participate in overlap protection
 
 ### 10.5 Supersession integrity
 
@@ -1165,7 +1199,7 @@ Failure must return:
 | Authority | Visibility predicate | Historical consumability predicate | Effective/applicable predicate | Current operational status | Expected cardinality | Tie-break / ORDER BY | Ambiguity blocker |
 |---|---|---|---|---|---:|---|---|
 | capacity pool definition | scope + available_at ≤ as_of | from ≤ as_of AND (to IS NULL OR as_of < to) | effective interval contains as_of | `active` + `consumable_to IS NULL` | 0..1 per pool code | none; uniqueness/exclusion yields 0..1 | `CAPACITY_POOL_AUTHORITY_AMBIGUOUS` |
-| daily capacity | parent visible/effective + capacity_date in window | from ≤ as_of AND (to IS NULL OR as_of < to) | capacity_date ∈ forecast window | row `active` + row `consumable_to IS NULL` + parent `active` + parent `consumable_to IS NULL` (current) **or** lifecycle covers cutoff for both row and parent (first-time) [^daily-cap-parent] | 0..1 per pool/date after highest revision | `revision DESC, available_at_local_date DESC, row_hash ASC` | `CAPACITY_VALUE_AUTHORITY_AMBIGUOUS` |
+| daily capacity | parent visible/effective + capacity_date in window | from ≤ as_of AND (to IS NULL OR as_of < to) | capacity_date ∈ forecast window | row `active` + row `consumable_to IS NULL` + parent `active` + parent `consumable_to IS NULL` (current) **or** lifecycle covers cutoff for both row and parent (first-time) [^daily-cap-parent] | 0..1 per exact parent pool identity/date after highest child revision | `daily_capacity_revision DESC, available_at_local_date DESC, row_hash ASC` | `CAPACITY_VALUE_AUTHORITY_AMBIGUOUS` |
 | run-parameter package | scope + available_at ≤ as_of | from ≤ as_of AND (to IS NULL OR as_of < to) | effective interval contains as_of | `active` + `consumable_to IS NULL` | 0..1 | none; overlap exclusion yields 0..1 | `RUN_PARAMETER_AUTHORITY_AMBIGUOUS` |
 | holiday calendar | exact FK load from selected run package | from ≤ as_of AND (to IS NULL OR as_of < to) | — | `active` + `consumable_to IS NULL` (current) **or** historically consumable at original cutoff (first-time) | exactly 1 referenced row | none; FK target exact load | `HOLIDAY_CALENDAR_REFERENCE_INVALID` |
 | weather rule config | exact FK load from selected run package | from ≤ as_of AND (to IS NULL OR as_of < to) | — | `active` + `consumable_to IS NULL` (current) **or** historically consumable at original cutoff (first-time) | exactly 1 referenced row | none; FK target exact load | `WEATHER_RULE_REFERENCE_INVALID` |
@@ -1318,6 +1352,10 @@ Constraints:
 - `UNIQUE(authority_family, authority_stable_key, authority_business_version, authority_revision, transition_sequence)` — deterministic ordering per immutable authority row
 - `UNIQUE(authority_family, authority_stable_key, authority_business_version, authority_revision, lifecycle_event_hash)` — idempotency per immutable authority row
 - `CHECK (transition_sequence >= 1)`
+- `CHECK (authority_revision > 0)`
+- `CHECK (superseded_by_authority_revision IS NULL OR superseded_by_authority_revision > 0)`
+- `CHECK (old_status IS NULL OR old_status IN ('draft', 'active', 'superseded', 'retired', 'cancelled'))`
+- `CHECK (new_status IN ('draft', 'active', 'superseded', 'retired', 'cancelled'))`
 - replacement identity all-or-none rule:
   - all three replacement fields NULL
   - or all three replacement fields non-NULL
@@ -1373,6 +1411,23 @@ Chosen contract: **header projection + append-only event chain**
 - database triggers are **not** used; historical authenticity is enforced by the event chain, not by header field immutability alone
 - persisted replay verifies the exact lifecycle event evidence, not just the header's current projection
 
+Responsibility split:
+
+- database / DDL:
+  - positive revision checks
+  - status vocabulary domain checks
+  - replacement identity all-or-none
+  - superseded status vs replacement identity correspondence
+  - SHA-256 format checks
+  - identity / sequence unique constraints
+- repository:
+  - legal transition matrix
+  - sequence continuity
+  - old-event to new-event continuity
+  - header current-projection parity
+  - atomic append-event + update-header transaction
+  - replacement same-scope validation
+
 #### Frozen lifecycle event identity
 
 Every lifecycle stream is keyed by the full immutable authority identity:
@@ -1406,7 +1461,7 @@ Frozen stable-key matrix:
 - capacity pool definition:
   - `capacity-pool:{season_id}:{destination_factory_id}:{capacity_pool_code}`
 - daily capacity:
-  - `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_date}`
+  - `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_pool_revision}:{capacity_date}`
 - run parameter package:
   - `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}`
 - holiday calendar version:
@@ -1460,6 +1515,7 @@ Persisted resolved input must bind:
 - `consumable_from_local_date` (resolved)
 - `consumable_to_local_date` (resolved)
 - original node cutoff
+- `authority_family`
 - `authority_stable_key`
 - `authority_business_version`
 - `authority_revision`
@@ -1468,7 +1524,7 @@ Persisted replay verification:
 
 1. exact business row still exists
 2. `business_row_hash` matches
-3. exact lifecycle event still exists
+3. exact lifecycle event lookup uses `authority_family + authority_stable_key + authority_business_version + authority_revision`
 4. `lifecycle_event_hash` matches
 5. event `authority_family`, `authority_stable_key`, `authority_business_version`, `authority_revision` match the resolved authority
 6. original cutoff lies inside the event-confirmed interval
@@ -1498,6 +1554,9 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
   - `destination_factory_id`
   - `capacity_pool_code`
   - i.e. publication lifecycle overlap alone is insufficient; effective period must also overlap to trigger a conflict
+- All non-empty historical consumability ranges participate in exclusion protection.
+- `draft` and `cancelled` rows generate empty consumability ranges and therefore do not overlap.
+- `active`, `superseded`, and `retired` rows keep non-empty historical ranges and remain protected by the exclusion constraints.
 - Capacity members may not belong to overlapping consumable pools for the same:
   - `season_id`
   - `destination_factory_id`
@@ -1735,6 +1794,12 @@ Revision-inclusive uniqueness is not enough to guarantee a single consumable aut
 - `uq_task9_weather_rule_one_active`
   - `(rule_code, lifecycle_timezone_name)` where `status = 'active'`
 
+Frozen distinction:
+
+- partial one-active indexes protect current operational uniqueness only
+- exclusion constraints protect the full historical interval record
+- these protections are independent and must not be collapsed into one `WHERE status = 'active'` rule
+
 ---
 
 ## 12. Blocker Taxonomy
@@ -1844,7 +1909,12 @@ Authority table:
 
 Source-record-key format:
 
-- `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+- `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_pool_revision}:{capacity_date}:{daily_capacity_revision}`
+
+Frozen revision binding:
+
+- `capacity_pool_revision` comes from the exact parent pool definition
+- `daily_capacity_revision` comes from the daily-capacity row itself
 
 Additional frozen ref fields:
 
@@ -1872,7 +1942,12 @@ Authority table:
 
 Source-record-key format:
 
-- `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+- `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_pool_revision}:{capacity_date}:{daily_capacity_revision}`
+
+Frozen revision binding:
+
+- `capacity_pool_revision` comes from the exact parent pool definition
+- `daily_capacity_revision` comes from the daily-capacity row itself
 
 Capacity refs may share one authority row hash, but each parameter code still requires its own `ParameterSourceRef`.
 
@@ -1891,7 +1966,7 @@ Frozen prefixes:
 - run package:
   - `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}`
 - daily capacity:
-  - `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+  - `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_pool_revision}:{capacity_date}:{daily_capacity_revision}`
 - holiday calendar:
   - `holiday-calendar:{season_id}:{calendar_code}:{lifecycle_timezone_name}:{calendar_version}:{revision}`
 - weather rule:
@@ -2193,7 +2268,7 @@ CREATE TABLE task9_daily_capacity_authority (
     capacity_pool_definition_id BIGINT NOT NULL
         REFERENCES task9_capacity_pool_definition(id) ON DELETE RESTRICT,
     capacity_date DATE NOT NULL,
-    revision INTEGER NOT NULL CHECK (revision > 0),
+    daily_capacity_revision INTEGER NOT NULL CHECK (daily_capacity_revision > 0),
     planned_picker_count NUMERIC(18, 3),
     kg_per_person_per_day NUMERIC(18, 3),
     direct_nominal_capacity_kg_per_day NUMERIC(18, 3),
@@ -2226,7 +2301,7 @@ CREATE TABLE task9_daily_capacity_authority (
         CONSTRAINT ck_task9_daily_capacity_authority_row_hash_sha256
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (capacity_pool_definition_id, capacity_date, revision),
+    UNIQUE (capacity_pool_definition_id, capacity_date, daily_capacity_revision),
     CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
     CHECK (
         (status = 'superseded' AND superseded_by_id IS NOT NULL)
@@ -2775,7 +2850,9 @@ ALTER TABLE task9_run_parameter_package
     );
 
 -- Historical consumability interval exclusion constraints
--- These prevent overlapping consumability intervals for the same business scope.
+-- All non-empty historical consumability ranges participate.
+-- Draft/cancelled rows keep empty ranges; active/superseded/retired rows remain protected.
+-- This protection is independent from the one-active partial indexes.
 
 ALTER TABLE task9_daily_capacity_authority
     ADD CONSTRAINT ex_task9_daily_capacity_consumability_overlap
@@ -2828,20 +2905,24 @@ CREATE TABLE task9_authority_lifecycle_event (
     authority_family TEXT NOT NULL,
     authority_stable_key TEXT NOT NULL,
     authority_business_version TEXT NOT NULL,
-    authority_revision INTEGER NOT NULL,
+    authority_revision INTEGER NOT NULL
+        CHECK (authority_revision > 0),
     business_row_hash TEXT NOT NULL
         CONSTRAINT ck_task9_lifecycle_event_business_row_hash
         CHECK (business_row_hash ~ '^[0-9a-f]{64}$'),
     transition_sequence INTEGER NOT NULL CHECK (transition_sequence >= 1),
-    old_status TEXT,
-    new_status TEXT NOT NULL,
+    old_status TEXT
+        CHECK (old_status IS NULL OR old_status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
+    new_status TEXT NOT NULL
+        CHECK (new_status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     old_consumable_from_local_date DATE,
     old_consumable_to_local_date DATE,
     new_consumable_from_local_date DATE,
     new_consumable_to_local_date DATE,
     superseded_by_authority_stable_key TEXT,
     superseded_by_authority_business_version TEXT,
-    superseded_by_authority_revision INTEGER,
+    superseded_by_authority_revision INTEGER
+        CHECK (superseded_by_authority_revision IS NULL OR superseded_by_authority_revision > 0),
     transitioned_at TIMESTAMPTZ NOT NULL,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
@@ -2966,6 +3047,10 @@ Frozen inventory for `0014`:
   - `UNIQUE(authority_family, authority_stable_key, authority_business_version, authority_revision, transition_sequence)`
   - `UNIQUE(authority_family, authority_stable_key, authority_business_version, authority_revision, lifecycle_event_hash)`
   - `CHECK (transition_sequence >= 1)`
+  - `CHECK (authority_revision > 0)`
+  - `CHECK (superseded_by_authority_revision IS NULL OR superseded_by_authority_revision > 0)`
+  - `CHECK (old_status IS NULL OR old_status IN ('draft', 'active', 'superseded', 'retired', 'cancelled'))`
+  - `CHECK (new_status IN ('draft', 'active', 'superseded', 'retired', 'cancelled'))`
   - replacement identity uses:
     - `superseded_by_authority_stable_key`
     - `superseded_by_authority_business_version`
@@ -3012,6 +3097,10 @@ Frozen inventory for `0014`:
   - no `ON UPDATE CASCADE` foreign key includes a generated member column
   - parent lifecycle change cascades copied member `status`, `consumable_from_key`, and `consumable_to_key` automatically
   - parent effective-field mutation is rejected; immutable effective binding never cascades
+- exclusion semantics:
+  - all non-empty historical consumability ranges participate
+  - draft/cancelled rows rely on empty ranges, not partial exclusion predicates
+- current one-active partial indexes and historical exclusion constraints are independent protections
 - partial unique one-active indexes:
   - `uq_task9_daily_capacity_one_active`
   - `uq_task9_initial_inventory_one_active`
@@ -3221,8 +3310,11 @@ Frozen decision:
 - [x] Lifecycle event table DDL with all columns, constraints, SHA-256 checks (P0-2)
 - [x] Initial draft event (sequence 1) frozen for complete status chain (P0-2)
 - [x] Atomic event + header projection transaction contract frozen (P0-2)
-- [x] Persisted replay binding includes stable key, version, revision, event hash (P0-2)
-- [x] Daily-capacity `source_record_key` includes `season_id` and `destination_factory_id` (P0-3)
+- [x] Persisted replay binding includes authority family, stable key, version, revision, and event hash (P0-2)
+- [x] Daily-capacity identity includes parent pool revision and child daily revision (P0-1)
+- [x] Daily-capacity `source_record_key` includes parent pool revision in addition to season/factory scope (P0-1)
+- [x] Historical exclusion semantics frozen for active, superseded, and retired rows (P1)
+- [x] Lifecycle event DDL revision/status domain checks frozen (P1)
 - [x] IANA timezone validation three-layer model frozen (P1)
 - [x] `TIMEZONE_AUTHORITY_INVALID` vs `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT` separated (P1)
 
