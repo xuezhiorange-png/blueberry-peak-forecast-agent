@@ -29,7 +29,11 @@ from backend.app.models.production_plan import ProductionPlanImportRun
 from backend.app.models.residual_model import (
     ResidualModelTrainingRun,
 )
-from backend.app.models.weather import WeatherFeatureRun
+from backend.app.models.weather import (
+    LocationWeatherMapping,
+    WeatherDailyObservation,
+    WeatherFeatureRun,
+)
 from backend.app.rolling_backtest.canonical import canonical_json_dumps, sha256_payload
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
@@ -296,7 +300,7 @@ async def _query_task6_candidates(
     return candidates
 
 
-async def _query_task7_candidates(
+async def _query_task7_weather_feature_run_candidates(
     session: AsyncSession,
     node: RollingNodeDefinition,
     execution_mode: ExecutionMode,
@@ -320,17 +324,143 @@ async def _query_task7_candidates(
         if row.finished_at is None:
             continue
         identity = _make_identity(
-            source_type=AvailabilitySourceType.TASK7_WEATHER_OBSERVATION,
-            source_role="task7_weather_observation",
+            source_type=AvailabilitySourceType.TASK7_WEATHER_FEATURE_RUN,
+            source_role="task7_weather_feature_run",
             schema_version="task7-weather-v1",
-            semantic_payload_hash=row.config_hash,
+            semantic_payload_hash=row.source_signature,
             config_hash=row.config_hash,
             business_version=row.feature_version,
-            display_label="task7:weather",
+            display_label="task7:weather_feature_run",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id", reference_value=row.id
             ),
         )
+        candidates.append(
+            HistoricalCandidate(
+                source_role="task7_weather_feature_run",
+                source_type=AvailabilitySourceType.TASK7_WEATHER_FEATURE_RUN,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id", reference_value=row.id
+                ),
+                semantic_identity=identity,
+                authoritative_available_at=row.finished_at,
+                business_version=row.feature_version,
+                canonical_payload_hash=row.source_signature,
+            )
+        )
+    return candidates
+
+
+async def _query_task7_location_weather_mapping_candidates(
+    session: AsyncSession,
+    node: RollingNodeDefinition,
+    execution_mode: ExecutionMode,
+) -> list[HistoricalCandidate]:
+    """Query Task 7 LocationWeatherMapping candidates with SQL cutoff filtering.
+
+    Filters by available_at date <= forecast_cutoff_at (converted to local date).
+    Respects valid_from/valid_to date range.
+    """
+    _unused = execution_mode
+
+    from datetime import date as date_cls
+
+    # Convert forecast_cutoff_at (datetime) to local date for available_at comparison
+    cutoff_date: date_cls = node.forecast_cutoff_at.date()
+
+    query = (
+        select(LocationWeatherMapping)
+        .where(LocationWeatherMapping.available_at <= cutoff_date)
+        .order_by(LocationWeatherMapping.available_at.desc().nullslast())
+        .limit(20)
+    )
+
+    # Temporal validity: mapping must be valid for the node's as_of date
+    query = query.where(LocationWeatherMapping.valid_from <= node.as_of_local_date)
+    query = query.where(
+        (LocationWeatherMapping.valid_to.is_(None))
+        | (LocationWeatherMapping.valid_to >= node.as_of_local_date)
+    )
+
+    result = await session.execute(query)
+    rows = result.scalars().all()
+
+    candidates: list[HistoricalCandidate] = []
+    for row in rows:
+        identity = _make_identity(
+            source_type=AvailabilitySourceType.TASK7_LOCATION_WEATHER_MAPPING,
+            source_role="task7_location_weather_mapping",
+            schema_version="task7-weather-v1",
+            semantic_payload_hash=row.row_hash,
+            config_hash=row.config_hash,
+            business_version=row.mapping_version,
+            display_label="task7:location_weather_mapping",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id", reference_value=row.id
+            ),
+        )
+        # Construct timezone-aware datetime from available_at date
+        tz = node.forecast_cutoff_at.tzinfo
+        available_dt = datetime.combine(row.available_at, datetime.min.time().replace(tzinfo=tz))
+        candidates.append(
+            HistoricalCandidate(
+                source_role="task7_location_weather_mapping",
+                source_type=AvailabilitySourceType.TASK7_LOCATION_WEATHER_MAPPING,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id", reference_value=row.id
+                ),
+                semantic_identity=identity,
+                authoritative_available_at=available_dt,
+                business_version=row.mapping_version,
+                canonical_payload_hash=row.row_hash,
+            )
+        )
+    return candidates
+
+
+async def _query_task7_weather_daily_observation_candidates(
+    session: AsyncSession,
+    node: RollingNodeDefinition,
+    execution_mode: ExecutionMode,
+) -> list[HistoricalCandidate]:
+    """Query Task 7 WeatherDailyObservation candidates with SQL cutoff filtering.
+
+    Filters by available_at date <= forecast_cutoff_at (converted to local date)
+    and observation_date within the forecast window.
+    Each candidate carries its own object's identity (provider_code, source_version, row_hash).
+    """
+    _unused = execution_mode
+
+    from datetime import date as date_cls
+
+    cutoff_date: date_cls = node.forecast_cutoff_at.date()
+
+    query = (
+        select(WeatherDailyObservation)
+        .where(WeatherDailyObservation.available_at <= cutoff_date)
+        .where(WeatherDailyObservation.observation_date >= node.forecast_start_local_date)
+        .where(WeatherDailyObservation.observation_date <= node.forecast_end_local_date)
+        .order_by(WeatherDailyObservation.available_at.desc().nullslast())
+        .limit(20)
+    )
+    result = await session.execute(query)
+    rows = result.scalars().all()
+
+    candidates: list[HistoricalCandidate] = []
+    for row in rows:
+        identity = _make_identity(
+            source_type=AvailabilitySourceType.TASK7_WEATHER_OBSERVATION,
+            source_role="task7_weather_observation",
+            schema_version="task7-weather-v1",
+            semantic_payload_hash=row.row_hash,
+            business_version=row.source_version,
+            display_label="task7:weather_observation",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id", reference_value=row.id
+            ),
+        )
+        tz = node.forecast_cutoff_at.tzinfo
+        available_dt = datetime.combine(row.available_at, datetime.min.time().replace(tzinfo=tz))
         candidates.append(
             HistoricalCandidate(
                 source_role="task7_weather_observation",
@@ -339,9 +469,9 @@ async def _query_task7_candidates(
                     reference_type="database_run_id", reference_value=row.id
                 ),
                 semantic_identity=identity,
-                authoritative_available_at=row.finished_at,
-                business_version=row.feature_version,
-                canonical_payload_hash=row.config_hash,
+                authoritative_available_at=available_dt,
+                business_version=row.source_version,
+                canonical_payload_hash=row.row_hash,
             )
         )
     return candidates
@@ -764,7 +894,15 @@ async def _query_task10_prediction_run_candidates(
 _SOURCE_QUERY_MAP: dict[AvailabilitySourceType, CandidateQueryAdapter] = {
     AvailabilitySourceType.TASK3_ANALYTICS_BUILD: _query_task3_candidates,
     AvailabilitySourceType.TASK6_PLAN_VERSION: _query_task6_candidates,
-    AvailabilitySourceType.TASK7_WEATHER_OBSERVATION: _query_task7_candidates,
+    AvailabilitySourceType.TASK7_WEATHER_FEATURE_RUN: (
+        _query_task7_weather_feature_run_candidates
+    ),
+    AvailabilitySourceType.TASK7_LOCATION_WEATHER_MAPPING: (
+        _query_task7_location_weather_mapping_candidates
+    ),
+    AvailabilitySourceType.TASK7_WEATHER_OBSERVATION: (
+        _query_task7_weather_daily_observation_candidates
+    ),
     AvailabilitySourceType.TASK8_MODEL_RUN: _query_task8_model_run_candidates,
     AvailabilitySourceType.TASK8_MODEL_ARTIFACT: _query_task8_artifact_candidates,
     AvailabilitySourceType.TASK8_FORECAST_RUN: _query_task8_forecast_run_candidates,

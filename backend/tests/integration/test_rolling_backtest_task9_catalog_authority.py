@@ -27,7 +27,43 @@ from backend.app.models.weather import (
     LocationWeatherMapping,
     WeatherSourceLocation,
 )
+from backend.app.rolling_backtest.enums import Task10ModelPolicy, UpstreamSelectionMode
 from backend.app.rolling_backtest.orchestration import _validate_source_ref_catalog
+from backend.app.rolling_backtest.schemas import (
+    HistoricalAvailableModelIdentity,
+    RollingNodeDefinition,
+    RollingNodeScope,
+)
+
+
+def _make_test_node() -> RollingNodeDefinition:
+    """Build a minimal RollingNodeDefinition for catalog validation tests."""
+    from backend.app.rolling_backtest.enums import ScopeMode
+    from backend.app.rolling_backtest.schemas import ScopeSelector
+
+    return RollingNodeDefinition(
+        season_id=2026,
+        node_key="march_15",
+        as_of_local_date=date(2026, 3, 15),
+        forecast_cutoff_at=datetime(2026, 3, 15, 12, 0, tzinfo=UTC),
+        forecast_start_local_date=date(2026, 3, 16),
+        forecast_end_local_date=date(2026, 3, 31),
+        scope=RollingNodeScope(
+            destination_factory_ids=ScopeSelector(mode=ScopeMode.INCLUDE_IDS, ids=(1,)),
+            farm_ids=ScopeSelector(mode=ScopeMode.ALL),
+            variety_ids=ScopeSelector(mode=ScopeMode.ALL),
+        ),
+        upstream_selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION,
+        forecast_horizon_policy_version="test-v1",
+        timezone="Asia/Shanghai",
+        task10_model_policy=HistoricalAvailableModelIdentity(
+            policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
+            training_run_semantic_identity="1" * 64,
+            artifact_semantic_identities=("2" * 64,),
+            authority_visibility_identity="3" * 64,
+        ),
+        resolved_upstream_semantic_identities=(),
+    )
 
 pytestmark = pytest.mark.integration
 
