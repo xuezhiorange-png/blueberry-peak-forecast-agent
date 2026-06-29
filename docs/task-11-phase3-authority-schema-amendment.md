@@ -5,7 +5,7 @@
 **Date**: 2026-06-29
 **Repository**: `xuezhiorange-png/blueberry-peak-forecast-agent`
 **Branch**: `codex/task-11-rolling-backtest-orchestration`
-**Current baseline HEAD**: `b0bc11443e78e7d985e34364385ae016409293f5`
+**Current baseline HEAD**: `6ea240edb2f1d7b83df1dcde10c263cc476483b0`
 **Related PR / Issue**: PR #22 (Draft), Issue #21
 **Accepted predecessor**: P0-5 review `4589381607`
 
@@ -707,15 +707,130 @@ Frozen status vocabulary for new authority tables:
 - `retired`
 - `cancelled`
 
-Frozen replay selection rule:
+### 10.0 Historical as-of consumability lifecycle
 
-- resolver selects only `active`
-- `draft` is never consumable
-- `cancelled` is never consumable
-- `retired` is not selected by new resolution
-- `superseded` is not selected by new resolution
+All independent status authority header/value rows must carry:
 
-Historical replay of older selected rows is handled by persisted resolved-input references, not by asking the resolver to reselect superseded rows.
+- `consumable_from_local_date DATE NOT NULL` — the business-local date from which the row becomes visible to historical resolvers
+- `consumable_to_local_date DATE NULL` — the business-local date at which the row ceases to be consumable (NULL while open)
+
+Half-open interval:
+
+- `[consumable_from_local_date, consumable_to_local_date)`
+
+Applicable tables (independent status authorities):
+
+- `task9_capacity_pool_definition`
+- `task9_daily_capacity_authority`
+- `task9_holiday_calendar_version`
+- `task9_weather_rule_config_version`
+- `task9_run_parameter_package`
+- `task9_initial_inventory_snapshot`
+- `task9_mature_inventory_loss_authority`
+
+Child tables inherit parent consumability interval:
+
+- `task9_capacity_pool_member`: inherits parent consumability interval
+- `task9_holiday_calendar_date`: inherits parent consumability interval
+- `task9_initial_inventory_cohort`: inherits parent consumability interval
+
+Children do **not** independently maintain lifecycle intervals.
+
+#### Equality rule
+
+Frozen:
+
+- `node.as_of_local_date == consumable_from_local_date` → visible and consumable
+- `node.as_of_local_date == consumable_to_local_date` → **not** consumable
+
+i.e. `[from, to)`.
+
+#### Activation
+
+When a draft authority is first activated:
+
+- `consumable_from_local_date` must be set
+- Frozen rule: `consumable_from_local_date = the authority activation business-local date`
+- Must satisfy: `consumable_from_local_date >= available_at_local_date`
+- If business allows pre-publish / future-effective, `available_at_local_date` and `consumable_from_local_date` may differ; do not assume they are always equal
+
+#### Supersession
+
+Same business scope: A is replaced by B:
+
+- `A.consumable_to_local_date = B.consumable_from_local_date`
+- Therefore: `date < B.from → A`; `date >= B.from → B`
+- No gap, no overlap, no same-cutoff double selection
+
+#### Retirement and cancellation
+
+Must distinguish semantics. Frozen:
+
+- `active → retired`: close consumability interval at retirement business-local date; no replacement required; `superseded_by_id` remains NULL
+- `draft → cancelled`: never becomes consumable; consumability interval must remain absent/unopened
+- `active → cancelled`: only allowed if cancellation has an explicit effective local date; close consumability interval at that date
+
+If active cancellation is not allowed, remove from transition matrix. Must not retain ambiguous semantics.
+
+#### Lifecycle interval immutability
+
+Frozen:
+
+- `consumable_from_local_date`: immutable after first activation
+- `consumable_to_local_date`: NULL while open; set exactly once when lifecycle closes; immutable after being set
+
+Forbidden:
+
+- move cutoff forward
+- move cutoff backward
+- reopen closed interval
+- rewrite history through interval modification
+
+Any attempt must return: `AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT`
+
+#### Current status vs historical status responsibilities
+
+Frozen:
+
+- `status`: current operational state
+- `consumability interval`: historical as-of selection authority
+
+Current operational queries may use:
+
+```sql
+status = 'active'
+AND consumable_to_local_date IS NULL
+```
+
+Historical resolution must use:
+
+```sql
+node.as_of_local_date ∈ consumability interval
+```
+
+Even if authority is currently `superseded` or `retired`, as long as the historical cutoff falls within its past consumability interval, it must be selectable by first-time historical resolver.
+
+#### Persisted replay vs first-time resolution
+
+Must distinguish:
+
+- **Persisted exact replay**: load exact persistent reference; recompute and verify hash; do not re-resolve
+- **First-time historical resolution**: select authority by visibility + historical consumability + effective applicability
+
+Both paths must fail closed, but semantics differ.
+
+#### Frozen selection rules
+
+**Current operational requirement:**
+
+- `status = 'active'`
+- `consumable_to_local_date IS NULL`
+
+**Historical as-of requirement:**
+
+- `status IN ('active', 'superseded', 'retired')`
+- `consumable_from_local_date <= :node_as_of_local_date`
+- `(:node_as_of_local_date < consumable_to_local_date) OR (consumable_to_local_date IS NULL)`
 
 Status does **not** enter semantic payload hashes. It only participates in SQL selection and consumability validation.
 
@@ -725,16 +840,20 @@ Status does **not** enter semantic payload hashes. It only participates in SQL s
 - `draft -> cancelled`
 - `active -> superseded`
 - `active -> retired`
-- `active -> cancelled`
-- `superseded -> retired`
-- `retired -> no transition`
-- `cancelled -> no transition`
+- `active -> cancelled` (only allowed if cancellation has an explicit effective local date and interval closure is defined)
+- `superseded` → **terminal** (no transition out)
+- `retired` → **terminal** (no transition out)
+- `cancelled` → **terminal** (no transition out)
 
 Forbidden transitions:
 
 - `superseded -> active`
+- `superseded -> retired` — **removed**: superseded is terminal; clearing `superseded_by_id` would lose lineage
+- `superseded -> cancelled`
 - `retired -> active`
+- `retired -> cancelled`
 - `cancelled -> active`
+- `cancelled -> retired`
 
 ### 10.2 Immutable business payload vs mutable metadata
 
@@ -743,6 +862,16 @@ Forbidden transitions:
   - `status`
   - `status_changed_at`
   - `superseded_by_id` on rows that enter `superseded`
+- `superseded_by_id`:
+  - set once during `active → superseded`
+  - never cleared
+  - never changed
+  - superseded permanently retains replacement lineage
+- direct retirement (`active → retired`):
+  - no replacement
+  - `superseded_by_id IS NULL`
+  - sets `consumable_to_local_date`
+  - historical interval is preserved
 
 ### 10.3 Parent/member synchronization
 
@@ -754,6 +883,11 @@ Frozen child-row status rules:
 - child `status` is copied from parent only
 - child does not own independent `status_changed_at`
 - child does not own independent `superseded_by_id`
+- `task9_capacity_pool_member`: has copied parent status; copied status is `draft` through parent binding
+- `task9_holiday_calendar_date`: no independent status
+- `task9_initial_inventory_cohort`: no independent status
+
+Must not assign `draft` status to children that have no status column. Must not invent status for children that do not own it.
 
 Parent/member synchronization is database-driven:
 
@@ -767,7 +901,7 @@ Replacement of one active authority row with a new active row must occur as:
 
 1. lock current active row
 2. insert replacement authority row as `draft`
-3. insert replacement child rows as `draft`, when the authority has child rows
+3. insert immutable child rows under the draft parent, when the authority has child rows
 4. update current active row to:
    - `status = 'superseded'`
    - `superseded_by_id = replacement.id`
@@ -833,17 +967,34 @@ Scope mismatch must fail with blocker:
 
 - `AUTHORITY_SUPERSESSION_SCOPE_CONFLICT`
 
+Supersession interval consistency must be validated:
+
+- `old.superseded_by_id = new.id`
+- `old.consumable_to_local_date = new.consumable_from_local_date`
+- old and new have same frozen business scope
+
+Failure must return:
+
+- `AUTHORITY_SUPERSESSION_SCOPE_CONFLICT` (scope mismatch)
+- `AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT` (interval mismatch)
+
 ### 10.6 Selection matrix
 
-| Authority | SQL WHERE | Consumable statuses | ORDER BY | Expected cardinality | Ambiguity blocker |
-|---|---|---|---|---:|---|
-| capacity pool definition | scope + visible + effective | `active` | none; uniqueness/exclusion must yield 0..1 row | 0..1 per pool code | `CAPACITY_POOL_AUTHORITY_AMBIGUOUS` |
-| daily capacity | parent visible/effective + `capacity_date` in window + visible | `active` | `revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per pool/date after highest revision uniqueness | `CAPACITY_VALUE_AUTHORITY_AMBIGUOUS` |
-| run-parameter package | scope + visible + effective | `active` | none; overlap exclusion must yield 0..1 row | 0..1 | `RUN_PARAMETER_AUTHORITY_AMBIGUOUS` |
-| holiday calendar | exact FK load from selected run package | `active` | none; FK target exact load | exactly 1 referenced row | `HOLIDAY_CALENDAR_REFERENCE_INVALID` |
-| weather rule config | exact FK load from selected run package | `active` | none; FK target exact load | exactly 1 referenced row | `WEATHER_RULE_REFERENCE_INVALID` |
-| initial inventory snapshot | scope + visible + opening_state_date | `active` | `revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per opening state date | `INITIAL_INVENTORY_AUTHORITY_AMBIGUOUS` |
-| mature inventory loss | scope + visible + state_date | `active` | `revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per date/pool/quantile after highest revision uniqueness | `MATURE_INVENTORY_LOSS_AUTHORITY_AMBIGUOUS` |
+| Authority | Visibility predicate | Historical consumability predicate | Effective/applicable predicate | Current operational status | Expected cardinality | Tie-break / ORDER BY | Ambiguity blocker |
+|---|---|---|---|---|---:|---|---|
+| capacity pool definition | scope + available_at ≤ as_of | from ≤ as_of AND (to IS NULL OR as_of < to) | effective interval contains as_of | `active` + `consumable_to IS NULL` | 0..1 per pool code | none; uniqueness/exclusion yields 0..1 | `CAPACITY_POOL_AUTHORITY_AMBIGUOUS` |
+| daily capacity | parent visible/effective + capacity_date in window | from ≤ as_of AND (to IS NULL OR as_of < to) | capacity_date ∈ forecast window | parent `active` + parent `consumable_to IS NULL` | 0..1 per pool/date after highest revision | `revision DESC, available_at_local_date DESC, row_hash ASC` | `CAPACITY_VALUE_AUTHORITY_AMBIGUOUS` |
+| run-parameter package | scope + available_at ≤ as_of | from ≤ as_of AND (to IS NULL OR as_of < to) | effective interval contains as_of | `active` + `consumable_to IS NULL` | 0..1 | none; overlap exclusion yields 0..1 | `RUN_PARAMETER_AUTHORITY_AMBIGUOUS` |
+| holiday calendar | exact FK load from selected run package | from ≤ as_of AND (to IS NULL OR as_of < to) | — | `active` + `consumable_to IS NULL` (current) **or** historically consumable at original cutoff (first-time) | exactly 1 referenced row | none; FK target exact load | `HOLIDAY_CALENDAR_REFERENCE_INVALID` |
+| weather rule config | exact FK load from selected run package | from ≤ as_of AND (to IS NULL OR as_of < to) | — | `active` + `consumable_to IS NULL` (current) **or** historically consumable at original cutoff (first-time) | exactly 1 referenced row | none; FK target exact load | `WEATHER_RULE_REFERENCE_INVALID` |
+| initial inventory snapshot | scope + available_at ≤ as_of + opening_state_date | from ≤ as_of AND (to IS NULL OR as_of < to) | opening_state_date | `active` + `consumable_to IS NULL` | 0..1 per opening state date | `revision DESC, available_at_local_date DESC, row_hash ASC` | `INITIAL_INVENTORY_AUTHORITY_AMBIGUOUS` |
+| mature inventory loss | scope + available_at ≤ as_of + state_date | from ≤ as_of AND (to IS NULL OR as_of < to) | state_date | `active` + `consumable_to IS NULL` | 0..1 per date/pool/quantile | `revision DESC, available_at_local_date DESC, row_hash ASC` | `MATURE_INVENTORY_LOSS_AUTHORITY_AMBIGUOUS` |
+
+Selection logic must distinguish three paths:
+
+- **First-time historical run**: use historical consumability predicate; status may be `active`, `superseded`, or `retired` as long as the historical cutoff falls within the consumability interval
+- **Persisted exact replay**: load exact persistent reference and verify hash; do not re-resolve; verify that the referenced row was historically consumable at the original cutoff
+- **Current resolution**: use current operational status (`active` + open interval)
 
 ---
 
@@ -864,7 +1015,7 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
 
 ### 11.2 Frozen overlap rules
 
-- Capacity pool definitions may not have overlapping consumable effective intervals for the same:
+- Capacity pool definitions may not have overlapping consumability intervals for the same:
   - `season_id`
   - `destination_factory_id`
   - `capacity_pool_code`
@@ -874,7 +1025,7 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
   - `farm_id`
   - `subfarm_id`
   - `variety_id`
-- Run-parameter packages may not have overlapping consumable effective intervals for the same:
+- Run-parameter packages may not have overlapping consumability intervals for the same:
   - `season_id`
   - `destination_factory_id`
   - `farm_scope_key`
@@ -882,12 +1033,19 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
   - `capacity_pool_definition_id`
   - `capacity_date`
   - `revision`
+- Daily capacity rows may not have overlapping consumability intervals for the same:
+  - `capacity_pool_definition_id`
+  - `capacity_date`
 - Initial inventory snapshots are unique per:
   - `season_id`
   - `destination_factory_id`
   - `opening_state_date`
   - `snapshot_version`
   - `revision`
+- Initial inventory snapshots may not have overlapping consumability intervals for the same:
+  - `season_id`
+  - `destination_factory_id`
+  - `opening_state_date`
 - Mature inventory loss rows are unique per:
   - `season_id`
   - `destination_factory_id`
@@ -896,6 +1054,41 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
   - `forecast_quantile`
   - `loss_version`
   - `revision`
+- Mature inventory loss rows may not have overlapping consumability intervals for the same:
+  - `season_id`
+  - `destination_factory_id`
+  - `state_date`
+  - `capacity_pool_code`
+  - `forecast_quantile`
+- Holiday calendar versions may not have overlapping consumability intervals for the same:
+  - `season_id`
+  - `calendar_code`
+- Weather rule config versions may not have overlapping consumability intervals for the same:
+  - `rule_code`
+
+PostgreSQL strategy for consumability non-overlap:
+
+- generated `daterange` over `consumable_from/to`:
+  ```sql
+  consumability_range DATERANGE GENERATED ALWAYS AS (
+      daterange(
+          consumable_from_local_date,
+          CASE
+              WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
+              ELSE consumable_to_local_date
+          END,
+          '[)'
+      )
+  ) STORED
+  ```
+- `EXCLUDE USING gist` for overlapping consumable intervals
+- Generated-column rule continues: no generated column may reference another generated column
+- Same-date replacement: the old row must have at least one consumable date; if same-day creation-and-replacement is allowed, the interval `[date, date+1)` is valid
+
+Current one-active indexes may be retained, but must document:
+
+- current active uniqueness ≠ historical as-of non-overlap
+- both are required; they serve different purposes
 
 ### 11.3 NULL-safe member exclusion
 
@@ -995,8 +1188,19 @@ Frozen blocker set for future implementation:
 - `AUTHORITY_HASH_CONFLICT`
 - `AUTHORITY_VERSION_CONFLICT`
 - `AUTHORITY_STATUS_NOT_CONSUMABLE`
+- `AUTHORITY_CONSUMABILITY_INTERVAL_INVALID`
+- `AUTHORITY_CONSUMABILITY_INTERVAL_OVERLAP`
+- `AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT`
+- `AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF`
 
 These are in addition to existing Task 6 / Task 7 / Task 8 / Task 9 blocker families.
+
+Frozen semantic definitions for new consumability blockers:
+
+- `AUTHORITY_CONSUMABILITY_INTERVAL_INVALID`: from/to format or ordering is invalid
+- `AUTHORITY_CONSUMABILITY_INTERVAL_OVERLAP`: same business scope intervals overlap
+- `AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT`: lifecycle transition attempts to rewrite or inconsistently close history
+- `AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF`: exact referenced row was not consumable at the requested historical cutoff
 
 ---
 
@@ -1133,7 +1337,7 @@ When holiday and/or weather-rule authority changes together with the run package
 2. lock the currently referenced active holiday row
 3. lock the currently referenced active weather-rule row
 4. insert the replacement holiday row as `draft`
-5. insert replacement holiday-date child rows
+5. insert replacement holiday-date child rows (immutable under draft parent)
 6. insert the replacement weather-rule row as `draft`
 7. insert the replacement run package as `draft`, referencing the new draft holiday/weather rows
 8. supersede the old active run package and set `superseded_by_id`
@@ -1143,6 +1347,22 @@ When holiday and/or weather-rule authority changes together with the run package
 12. activate the replacement weather-rule row
 13. activate the replacement run package
 14. commit atomically
+
+Interval actions during replacement:
+
+- old holiday: set `consumable_to_local_date = replacement boundary`
+- old weather-rule: set `consumable_to_local_date = replacement boundary`
+- old run package: set `consumable_to_local_date = replacement boundary`
+- new holiday: set `consumable_from_local_date = replacement boundary`
+- new weather-rule: set `consumable_from_local_date = replacement boundary`
+- new run package: set `consumable_from_local_date = replacement boundary`
+
+Frozen invariant:
+
+- old package and old dependencies close at the same boundary
+- new package and new dependencies open at the same boundary
+- historically: before boundary → old package + old dependencies valid; at/after boundary → new package + new dependencies valid
+- no cross-version combination is possible
 
 Why the old run package is superseded first:
 
@@ -1170,12 +1390,14 @@ Loading an active run package must verify:
 
 - holiday target exists
 - weather target exists
-- holiday target `status = 'active'`
-- weather target `status = 'active'`
-- holiday target visible at node local cutoff
-- weather target visible at node local cutoff
+- holiday target `status = 'active'` (current resolution) **or** historically consumable at node cutoff (first-time historical)
+- weather target `status = 'active'` (current resolution) **or** historically consumable at node cutoff (first-time historical)
+- holiday target consumability interval covers node local cutoff
+- weather target consumability interval covers node local cutoff
 - scope compatibility holds
 - row/config hashes recompute successfully
+
+Persisted exact replay: load exact row and verify that its historical lifecycle proves it was consumable at the original cutoff; does not require it to be currently active.
 
 Exact FK loading remains required. Resolver logic must not repair broken references by independently selecting a "latest" holiday or weather row.
 
@@ -1218,6 +1440,18 @@ CREATE TABLE task9_capacity_pool_definition (
         )
     ) STORED,
     available_at_local_date DATE NOT NULL,
+    consumable_from_local_date DATE,
+    consumable_to_local_date DATE,
+    consumability_range DATERANGE GENERATED ALWAYS AS (
+        daterange(
+            COALESCE(consumable_from_local_date, 'infinity'::date),
+            CASE
+                WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
+                ELSE consumable_to_local_date
+            END,
+            '[)'
+        )
+    ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
@@ -1237,6 +1471,15 @@ CREATE TABLE task9_capacity_pool_definition (
     CHECK (
         (status = 'superseded' AND superseded_by_id IS NOT NULL)
         OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    ),
+    CHECK (
+        (status = 'draft' AND consumable_from_local_date IS NULL)
+        OR (status IN ('active', 'superseded', 'retired') AND consumable_from_local_date IS NOT NULL)
+        OR (status = 'cancelled' AND consumable_from_local_date IS NULL)
+    ),
+    CHECK (
+        consumable_to_local_date IS NULL
+        OR consumable_to_local_date > consumable_from_local_date
     )
 );
 
@@ -1317,6 +1560,18 @@ CREATE TABLE task9_daily_capacity_authority (
     operational_efficiency_ratio NUMERIC(12, 6) NOT NULL
         CHECK (operational_efficiency_ratio >= 0 AND operational_efficiency_ratio <= 1),
     available_at_local_date DATE NOT NULL,
+    consumable_from_local_date DATE,
+    consumable_to_local_date DATE,
+    consumability_range DATERANGE GENERATED ALWAYS AS (
+        daterange(
+            COALESCE(consumable_from_local_date, 'infinity'::date),
+            CASE
+                WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
+                ELSE consumable_to_local_date
+            END,
+            '[)'
+        )
+    ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
@@ -1345,6 +1600,15 @@ CREATE TABLE task9_daily_capacity_authority (
             AND planned_picker_count IS NULL
             AND kg_per_person_per_day IS NULL
         )
+    ),
+    CHECK (
+        (status = 'draft' AND consumable_from_local_date IS NULL)
+        OR (status IN ('active', 'superseded', 'retired') AND consumable_from_local_date IS NOT NULL)
+        OR (status = 'cancelled' AND consumable_from_local_date IS NULL)
+    ),
+    CHECK (
+        consumable_to_local_date IS NULL
+        OR consumable_to_local_date > consumable_from_local_date
     )
 );
 
@@ -1359,6 +1623,18 @@ CREATE TABLE task9_holiday_calendar_version (
         CONSTRAINT ck_task9_holiday_calendar_version_calendar_hash_sha256
         CHECK (calendar_hash ~ '^[0-9a-f]{64}$'),
     available_at_local_date DATE NOT NULL,
+    consumable_from_local_date DATE,
+    consumable_to_local_date DATE,
+    consumability_range DATERANGE GENERATED ALWAYS AS (
+        daterange(
+            COALESCE(consumable_from_local_date, 'infinity'::date),
+            CASE
+                WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
+                ELSE consumable_to_local_date
+            END,
+            '[)'
+        )
+    ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
@@ -1376,6 +1652,15 @@ CREATE TABLE task9_holiday_calendar_version (
     CHECK (
         (status = 'superseded' AND superseded_by_id IS NOT NULL)
         OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    ),
+    CHECK (
+        (status = 'draft' AND consumable_from_local_date IS NULL)
+        OR (status IN ('active', 'superseded', 'retired') AND consumable_from_local_date IS NOT NULL)
+        OR (status = 'cancelled' AND consumable_from_local_date IS NULL)
+    ),
+    CHECK (
+        consumable_to_local_date IS NULL
+        OR consumable_to_local_date > consumable_from_local_date
     )
 );
 
@@ -1404,6 +1689,18 @@ CREATE TABLE task9_weather_rule_config_version (
         CONSTRAINT ck_task9_weather_rule_config_version_config_hash_sha256
         CHECK (config_hash ~ '^[0-9a-f]{64}$'),
     available_at_local_date DATE NOT NULL,
+    consumable_from_local_date DATE,
+    consumable_to_local_date DATE,
+    consumability_range DATERANGE GENERATED ALWAYS AS (
+        daterange(
+            COALESCE(consumable_from_local_date, 'infinity'::date),
+            CASE
+                WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
+                ELSE consumable_to_local_date
+            END,
+            '[)'
+        )
+    ) STORED,
     effective_from DATE NOT NULL,
     effective_to DATE,
     effective_to_exclusive DATE GENERATED ALWAYS AS (
@@ -1441,6 +1738,15 @@ CREATE TABLE task9_weather_rule_config_version (
     CHECK (
         (status = 'superseded' AND superseded_by_id IS NOT NULL)
         OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    ),
+    CHECK (
+        (status = 'draft' AND consumable_from_local_date IS NULL)
+        OR (status IN ('active', 'superseded', 'retired') AND consumable_from_local_date IS NOT NULL)
+        OR (status = 'cancelled' AND consumable_from_local_date IS NULL)
+    ),
+    CHECK (
+        consumable_to_local_date IS NULL
+        OR consumable_to_local_date > consumable_from_local_date
     )
 );
 
@@ -1460,6 +1766,18 @@ CREATE TABLE task9_run_parameter_package (
     weather_rule_config_version_id BIGINT NOT NULL
         REFERENCES task9_weather_rule_config_version(id) ON DELETE RESTRICT,
     available_at_local_date DATE NOT NULL,
+    consumable_from_local_date DATE,
+    consumable_to_local_date DATE,
+    consumability_range DATERANGE GENERATED ALWAYS AS (
+        daterange(
+            COALESCE(consumable_from_local_date, 'infinity'::date),
+            CASE
+                WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
+                ELSE consumable_to_local_date
+            END,
+            '[)'
+        )
+    ) STORED,
     effective_from DATE NOT NULL,
     effective_to DATE,
     effective_to_exclusive DATE GENERATED ALWAYS AS (
@@ -1496,6 +1814,15 @@ CREATE TABLE task9_run_parameter_package (
     CHECK (
         (status = 'superseded' AND superseded_by_id IS NOT NULL)
         OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    ),
+    CHECK (
+        (status = 'draft' AND consumable_from_local_date IS NULL)
+        OR (status IN ('active', 'superseded', 'retired') AND consumable_from_local_date IS NOT NULL)
+        OR (status = 'cancelled' AND consumable_from_local_date IS NULL)
+    ),
+    CHECK (
+        consumable_to_local_date IS NULL
+        OR consumable_to_local_date > consumable_from_local_date
     )
 );
 
@@ -1509,6 +1836,18 @@ CREATE TABLE task9_initial_inventory_snapshot (
     initial_opening_mature_inventory_kg NUMERIC(18, 6) NOT NULL
         CHECK (initial_opening_mature_inventory_kg >= 0),
     available_at_local_date DATE NOT NULL,
+    consumable_from_local_date DATE,
+    consumable_to_local_date DATE,
+    consumability_range DATERANGE GENERATED ALWAYS AS (
+        daterange(
+            COALESCE(consumable_from_local_date, 'infinity'::date),
+            CASE
+                WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
+                ELSE consumable_to_local_date
+            END,
+            '[)'
+        )
+    ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
@@ -1532,6 +1871,15 @@ CREATE TABLE task9_initial_inventory_snapshot (
     CHECK (
         (status = 'superseded' AND superseded_by_id IS NOT NULL)
         OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    ),
+    CHECK (
+        (status = 'draft' AND consumable_from_local_date IS NULL)
+        OR (status IN ('active', 'superseded', 'retired') AND consumable_from_local_date IS NOT NULL)
+        OR (status = 'cancelled' AND consumable_from_local_date IS NULL)
+    ),
+    CHECK (
+        consumable_to_local_date IS NULL
+        OR consumable_to_local_date > consumable_from_local_date
     )
 );
 
@@ -1564,6 +1912,18 @@ CREATE TABLE task9_mature_inventory_loss_authority (
     mature_inventory_loss_quantity_kg NUMERIC(18, 6) NOT NULL
         CHECK (mature_inventory_loss_quantity_kg >= 0),
     available_at_local_date DATE NOT NULL,
+    consumable_from_local_date DATE,
+    consumable_to_local_date DATE,
+    consumability_range DATERANGE GENERATED ALWAYS AS (
+        daterange(
+            COALESCE(consumable_from_local_date, 'infinity'::date),
+            CASE
+                WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
+                ELSE consumable_to_local_date
+            END,
+            '[)'
+        )
+    ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
@@ -1589,6 +1949,15 @@ CREATE TABLE task9_mature_inventory_loss_authority (
     CHECK (
         (status = 'superseded' AND superseded_by_id IS NOT NULL)
         OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    ),
+    CHECK (
+        (status = 'draft' AND consumable_from_local_date IS NULL)
+        OR (status IN ('active', 'superseded', 'retired') AND consumable_from_local_date IS NOT NULL)
+        OR (status = 'cancelled' AND consumable_from_local_date IS NULL)
+    ),
+    CHECK (
+        consumable_to_local_date IS NULL
+        OR consumable_to_local_date > consumable_from_local_date
     )
 );
 
@@ -1660,6 +2029,70 @@ ALTER TABLE task9_run_parameter_package
         effective_range WITH &&
     )
     WHERE (status = 'active');
+
+-- Historical consumability interval exclusion constraints
+-- These prevent overlapping consumability intervals for the same business scope.
+
+ALTER TABLE task9_capacity_pool_definition
+    ADD CONSTRAINT ex_task9_capacity_pool_consumability_overlap
+    EXCLUDE USING gist (
+        season_id WITH =,
+        destination_factory_id WITH =,
+        capacity_pool_code WITH =,
+        consumability_range WITH &&
+    );
+
+ALTER TABLE task9_daily_capacity_authority
+    ADD CONSTRAINT ex_task9_daily_capacity_consumability_overlap
+    EXCLUDE USING gist (
+        capacity_pool_definition_id WITH =,
+        capacity_date WITH =,
+        consumability_range WITH &&
+    );
+
+ALTER TABLE task9_holiday_calendar_version
+    ADD CONSTRAINT ex_task9_holiday_calendar_consumability_overlap
+    EXCLUDE USING gist (
+        season_id WITH =,
+        calendar_code WITH =,
+        consumability_range WITH &&
+    );
+
+ALTER TABLE task9_weather_rule_config_version
+    ADD CONSTRAINT ex_task9_weather_rule_consumability_overlap
+    EXCLUDE USING gist (
+        rule_code WITH =,
+        consumability_range WITH &&
+    );
+
+ALTER TABLE task9_run_parameter_package
+    ADD CONSTRAINT ex_task9_run_parameter_consumability_overlap
+    EXCLUDE USING gist (
+        season_id WITH =,
+        destination_factory_id WITH =,
+        farm_scope_key WITH =,
+        consumability_range WITH &&
+    );
+
+ALTER TABLE task9_initial_inventory_snapshot
+    ADD CONSTRAINT ex_task9_initial_inventory_consumability_overlap
+    EXCLUDE USING gist (
+        season_id WITH =,
+        destination_factory_id WITH =,
+        opening_state_date WITH =,
+        consumability_range WITH &&
+    );
+
+ALTER TABLE task9_mature_inventory_loss_authority
+    ADD CONSTRAINT ex_task9_mature_loss_consumability_overlap
+    EXCLUDE USING gist (
+        season_id WITH =,
+        destination_factory_id WITH =,
+        state_date WITH =,
+        capacity_pool_code WITH =,
+        forecast_quantile WITH =,
+        consumability_range WITH &&
+    );
 ```
 
 ---
@@ -1698,6 +2131,27 @@ Frozen target:
   - `task9_weather_rule_config_version.effective_range`
   - `task9_run_parameter_package.effective_to_exclusive`
   - `task9_run_parameter_package.effective_range`
+- generated consumability range columns:
+  - `task9_capacity_pool_definition.consumability_range`
+  - `task9_daily_capacity_authority.consumability_range`
+  - `task9_holiday_calendar_version.consumability_range`
+  - `task9_weather_rule_config_version.consumability_range`
+  - `task9_run_parameter_package.consumability_range`
+  - `task9_initial_inventory_snapshot.consumability_range`
+  - `task9_mature_inventory_loss_authority.consumability_range`
+- lifecycle CHECK constraints:
+  - status-consumability alignment: `draft`/`cancelled` → NULL from; `active`/`superseded`/`retired` → NOT NULL from
+  - range validity: `consumable_to IS NULL OR consumable_to > consumable_from`
+- historical consumability exclusion constraints:
+  - `ex_task9_daily_capacity_consumability_overlap`
+  - `ex_task9_initial_inventory_consumability_overlap`
+  - `ex_task9_mature_loss_consumability_overlap`
+  - `ex_task9_holiday_calendar_consumability_overlap`
+  - `ex_task9_weather_rule_consumability_overlap`
+  - `ex_task9_capacity_pool_consumability_overlap`
+  - `ex_task9_run_parameter_consumability_overlap`
+- superseded-is-terminal CHECK:
+  - `superseded -> retired` removed from transition matrix
 - generated-column rule:
   - each generated expression references base columns only
   - no generated column may reference another generated column
@@ -1854,6 +2308,23 @@ Frozen decision:
 - [x] Lexical business-version ordering removed from selection
 - [x] ParameterSourceRef matrix frozen
 - [x] Holiday duplicate-date semantics frozen
+- [x] Historical as-of consumability lifecycle fields frozen
+- [x] Half-open interval `[from, to)` equality rules frozen
+- [x] Activation / supersession / retirement / cancellation interval rules frozen
+- [x] Lifecycle immutability frozen (from immutable after activation; to set once)
+- [x] Current operational vs historical as-of selection separated
+- [x] First-time historical resolution vs persisted exact replay distinguished
+- [x] Superseded is terminal; `superseded -> retired` removed
+- [x] `superseded_by_id` set-once / never-cleared / never-changed frozen
+- [x] Direct retirement (`active -> retired` without replacement) frozen
+- [x] Selection matrix revised with historical consumability predicates
+- [x] Child-row wording corrected (immutable under draft parent; no invented draft for children without status)
+- [x] Run-package dependency interval synchronization frozen
+- [x] Historical consumability exclusion constraints added to DDL draft
+- [x] Consumability range generated columns added to DDL draft
+- [x] Lifecycle CHECK constraints added to DDL draft
+- [x] Consumability blocker taxonomy added
+- [x] `Migration 0014` boundary updated for consumability objects
 
 ---
 
