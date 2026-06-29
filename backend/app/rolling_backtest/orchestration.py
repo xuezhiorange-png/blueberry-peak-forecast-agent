@@ -1244,17 +1244,43 @@ async def _validate_source_ref_catalog(
             return {
                 "blocked": True,
                 "reason": (
+                    "task9_task8_authority_mismatch: "
                     f"source_ref_payload validation failed for type "
                     f"{source_ref_type_str!r}: {_safe_str(exc)}"
                 ),
             }
 
+        payload_source_ref_type = str(
+            getattr(typed_sr.source_ref_type, "value", typed_sr.source_ref_type)
+        )
+        if source_ref_type_str != payload_source_ref_type:
+            return {
+                "blocked": True,
+                "reason": (
+                    "task9_task8_authority_mismatch: "
+                    f"outer source_ref_type {source_ref_type_str!r} does not match "
+                    f"payload discriminator {payload_source_ref_type!r}"
+                ),
+            }
+
+        if entry_dict.get("source_ref_schema_version") != typed_sr.source_ref_schema_version:
+            return {
+                "blocked": True,
+                "reason": (
+                    "task9_task8_authority_mismatch: "
+                    f"outer schema version {entry_dict.get('source_ref_schema_version')!r} "
+                    f"does not match payload schema version "
+                    f"{typed_sr.source_ref_schema_version!r}"
+                ),
+            }
+
         # ── 2) Recompute source-ref hash and compare ──────────────────────
-        computed_hash = _task9_make_source_ref_hash(source_ref_payload)
+        computed_hash = _task9_make_source_ref_hash(typed_sr.model_dump(mode="python"))
         if computed_hash != source_ref_hash:
             return {
                 "blocked": True,
                 "reason": (
+                    "task9_task8_authority_mismatch: "
                     f"source_ref_hash mismatch for {source_ref_type_str!r}: "
                     f"expected={computed_hash} stored={source_ref_hash}"
                 ),
@@ -1285,9 +1311,7 @@ async def _validate_source_ref_catalog(
             snapshot_matches = snapshot_map.get(source_ref_hash, [])
             if len(snapshot_matches) != 1:
                 reason = (
-                    "missing"
-                    if not snapshot_matches
-                    else f"duplicate({len(snapshot_matches)})"
+                    "missing" if not snapshot_matches else f"duplicate({len(snapshot_matches)})"
                 )
                 return {
                     "blocked": True,
@@ -1363,7 +1387,7 @@ async def _validate_source_ref_catalog(
         return {
             "blocked": True,
             "reason": (
-                f"task8_task8_authority_mismatch: {len(mismatches)} field mismatches — "
+                f"task9_task8_authority_mismatch: {len(mismatches)} field mismatches — "
                 f"{'; '.join(mismatches[:10])}"
             ),
             "mismatches": mismatches,
@@ -1504,6 +1528,9 @@ async def _validate_task8_prediction_fields(
     daily_prediction_result = authority_by_type.get(
         AvailabilitySourceType.TASK8_DAILY_PREDICTION.value
     )
+    task7_weather_result = authority_by_type.get(
+        AvailabilitySourceType.TASK7_WEATHER_OBSERVATION.value
+    )
 
     if model_run is None:
         issues.append("maturity_model_run not found")
@@ -1558,6 +1585,17 @@ async def _validate_task8_prediction_fields(
         issues.append("maturity_model_config_hash does not match ORM")
     if typed_sr.maturity_model_source_signature != model_run.source_signature:
         issues.append("maturity_model_source_signature does not match ORM")
+    if typed_verification.maturity_model_run_id != typed_sr.maturity_model_run_id:
+        issues.append("verification maturity_model_run_id does not match source ref")
+    if typed_verification.maturity_model_version != typed_sr.maturity_model_version:
+        issues.append("verification maturity_model_version does not match source ref")
+    if typed_verification.maturity_model_config_hash != typed_sr.maturity_model_config_hash:
+        issues.append("verification maturity_model_config_hash does not match source ref")
+    if (
+        typed_verification.maturity_model_source_signature
+        != typed_sr.maturity_model_source_signature
+    ):
+        issues.append("verification maturity_model_source_signature does not match source ref")
 
     # ── Artifact cross-check ──────────────────────────────────────────────
     if artifact_result and artifact_result.resolved:
@@ -1577,6 +1615,10 @@ async def _validate_task8_prediction_fields(
         issues.append("maturity_model_artifact parent run mismatch")
     if typed_sr.maturity_model_artifact_hash != artifact.artifact_hash:
         issues.append("maturity_model_artifact_hash does not match ORM")
+    if typed_verification.maturity_model_artifact_id != typed_sr.maturity_model_artifact_id:
+        issues.append("verification maturity_model_artifact_id does not match source ref")
+    if typed_verification.maturity_model_artifact_hash != typed_sr.maturity_model_artifact_hash:
+        issues.append("verification maturity_model_artifact_hash does not match source ref")
 
     # ── Forecast run cross-check ──────────────────────────────────────────
     if forecast_run_result and forecast_run_result.resolved:
@@ -1603,6 +1645,15 @@ async def _validate_task8_prediction_fields(
         issues.append("maturity_forecast_source_signature does not match ORM")
     if typed_sr.maturity_forecast_as_of_date != forecast_run.as_of_date:
         issues.append("maturity_forecast_as_of_date does not match ORM")
+    if typed_verification.maturity_forecast_run_id != typed_sr.maturity_forecast_run_id:
+        issues.append("verification maturity_forecast_run_id does not match source ref")
+    if (
+        typed_verification.maturity_forecast_source_signature
+        != typed_sr.maturity_forecast_source_signature
+    ):
+        issues.append("verification maturity_forecast_source_signature does not match source ref")
+    if typed_verification.maturity_forecast_as_of_date != typed_sr.maturity_forecast_as_of_date:
+        issues.append("verification maturity_forecast_as_of_date does not match source ref")
     if typed_verification.maturity_forecast_run_status != forecast_run.status:
         issues.append("maturity_forecast_run_status does not match ORM")
     if (
@@ -1610,10 +1661,7 @@ async def _validate_task8_prediction_fields(
         != forecast_run.prediction_start_date
     ):
         issues.append("maturity_forecast_prediction_start_date does not match ORM")
-    if (
-        typed_verification.maturity_forecast_prediction_end_date
-        != forecast_run.prediction_end_date
-    ):
+    if typed_verification.maturity_forecast_prediction_end_date != forecast_run.prediction_end_date:
         issues.append("maturity_forecast_prediction_end_date does not match ORM")
 
     if daily_row.forecast_run_id != forecast_run.id:
@@ -1622,6 +1670,10 @@ async def _validate_task8_prediction_fields(
         issues.append("prediction_date does not match ORM")
     if typed_verification.prediction_date != daily_row.prediction_date:
         issues.append("verification prediction_date does not match ORM")
+    if typed_verification.maturity_daily_prediction_id != typed_sr.maturity_daily_prediction_id:
+        issues.append("verification maturity_daily_prediction_id does not match source ref")
+    if typed_verification.prediction_date != typed_sr.prediction_date:
+        issues.append("verification prediction_date does not match source ref")
 
     if typed_sr.plan_id != forecast_run.plan_id or typed_sr.plan_id != plan_row.id:
         issues.append("plan_id does not match ORM")
@@ -1629,6 +1681,10 @@ async def _validate_task8_prediction_fields(
         issues.append("location_reference_id does not match ORM")
     if typed_verification.location_reference_id != location_row.id:
         issues.append("verification location_reference_id does not match ORM")
+    if typed_verification.plan_id != typed_sr.plan_id:
+        issues.append("verification plan_id does not match source ref")
+    if typed_verification.location_reference_id != typed_sr.location_reference_id:
+        issues.append("verification location_reference_id does not match source ref")
     if typed_sr.weather_mapping_id != forecast_run.weather_mapping_id:
         issues.append("weather_mapping_id does not match ORM")
     if typed_sr.base_temperature_search_run_id != forecast_run.base_temperature_search_run_id:
@@ -1678,6 +1734,78 @@ async def _validate_task8_prediction_fields(
     )
     if typed_sr.source_quantity_kg != expected_quantity:
         issues.append("source_quantity_kg does not match verification snapshot quantile")
+    if typed_verification.p50_kg != daily_row.p50_kg:
+        issues.append("p50_kg does not match ORM")
+    if typed_verification.p80_kg != daily_row.p80_kg:
+        issues.append("p80_kg does not match ORM")
+    if typed_verification.p90_kg != daily_row.p90_kg:
+        issues.append("p90_kg does not match ORM")
+
+    if typed_sr.weather_mapping_id is not None:
+        if weather_mapping is None:
+            issues.append("weather mapping authority missing")
+        else:
+            if weather_mapping.id != typed_sr.weather_mapping_id:
+                issues.append("source_ref weather_mapping_id does not match ORM mapping")
+            if weather_mapping.location_reference_id != forecast_run.location_reference_id:
+                issues.append("weather mapping location_reference_id does not match forecast run")
+            if weather_mapping.location_reference_id != location_row.id:
+                issues.append("weather mapping location_reference_id does not match location row")
+            if weather_mapping.available_at > typed_sr.maturity_forecast_as_of_date:
+                issues.append("weather mapping available_at exceeds forecast as_of_date")
+            if weather_mapping.valid_from > typed_sr.prediction_date:
+                issues.append("weather mapping valid_from does not cover prediction_date")
+            if (
+                weather_mapping.valid_to is not None
+                and typed_sr.prediction_date > weather_mapping.valid_to
+            ):
+                issues.append("weather mapping valid_to does not cover prediction_date")
+            if not weather_mapping.mapping_version:
+                issues.append("weather mapping version missing")
+            if not weather_mapping.row_hash:
+                issues.append("weather mapping row_hash missing")
+            if task7_weather_result and task7_weather_result.resolved:
+                expected_mapping_version = task7_weather_result.resolved.business_version
+                if (
+                    expected_mapping_version is not None
+                    and weather_mapping.mapping_version != expected_mapping_version
+                ):
+                    issues.append("weather mapping version does not match resolved authority")
+                expected_mapping_hash = task7_weather_result.resolved.canonical_payload_hash
+                if expected_mapping_hash and weather_mapping.row_hash != expected_mapping_hash:
+                    issues.append("weather mapping row_hash does not match resolved authority")
+
+    if typed_sr.base_temperature_search_run_id is not None:
+        if base_temperature is None:
+            issues.append("base temperature authority missing")
+        else:
+            if base_temperature.id != typed_sr.base_temperature_search_run_id:
+                issues.append("source_ref base_temperature_search_run_id does not match ORM")
+            if getattr(base_temperature, "status", None) != "completed":
+                issues.append("base temperature run status is not completed")
+            if (
+                getattr(base_temperature, "variety_id", None) is not None
+                and getattr(base_temperature, "variety_id", None) != plan_row.variety_id
+            ):
+                issues.append("base temperature variety scope does not match plan row")
+            climate_zone_id = getattr(location_row, "climate_zone_id", None)
+            if (
+                climate_zone_id is not None
+                and getattr(base_temperature, "climate_zone_id", None) is not None
+                and getattr(base_temperature, "climate_zone_id", None) != climate_zone_id
+            ):
+                issues.append("base temperature climate zone does not match location row")
+            finished_at = getattr(base_temperature, "finished_at", None)
+            if finished_at is None:
+                issues.append("base temperature finished_at missing")
+            else:
+                cutoff_at = datetime.combine(
+                    typed_sr.maturity_forecast_as_of_date,
+                    datetime.max.time(),
+                    tzinfo=UTC,
+                )
+                if finished_at > cutoff_at:
+                    issues.append("base temperature finished_at exceeds forecast as_of_date")
 
     # ── Required field presence checks ────────────────────────────────────
     required_str_fields = [
