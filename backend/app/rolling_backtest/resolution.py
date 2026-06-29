@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, time
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -305,13 +305,17 @@ async def _query_task7_weather_feature_run_candidates(
     node: RollingNodeDefinition,
     execution_mode: ExecutionMode,
 ) -> list[HistoricalCandidate]:
-    """Query Task 7 WeatherFeatureRun candidates with SQL cutoff filtering."""
+    """Query Task 7 WeatherFeatureRun candidates with SQL cutoff filtering.
+
+    Only "completed" runs are consumable; "unavailable", "failed",
+    "cancelled", and "running" are excluded.
+    """
     _unused = execution_mode
 
-    # SQL-level filtering: status, authority time <= cutoff
+    # SQL-level filtering: only "completed" status, authority time <= cutoff
     query = (
         select(WeatherFeatureRun)
-        .where(WeatherFeatureRun.status.in_(["completed", "unavailable"]))
+        .where(WeatherFeatureRun.status == "completed")
         .where(WeatherFeatureRun.finished_at <= node.forecast_cutoff_at)
         .order_by(WeatherFeatureRun.finished_at.desc().nullslast())
         .limit(20)
@@ -358,15 +362,18 @@ async def _query_task7_location_weather_mapping_candidates(
 ) -> list[HistoricalCandidate]:
     """Query Task 7 LocationWeatherMapping candidates with SQL cutoff filtering.
 
-    Filters by available_at date <= forecast_cutoff_at (converted to local date).
+    Filters by available_at date <= forecast_cutoff_at (converted to local date
+    via the node's named timezone — NOT via forecast_cutoff_at.date()).
     Respects valid_from/valid_to date range.
     """
     _unused = execution_mode
 
     from datetime import date as date_cls
+    from zoneinfo import ZoneInfo
 
-    # Convert forecast_cutoff_at (datetime) to local date for available_at comparison
-    cutoff_date: date_cls = node.forecast_cutoff_at.date()
+    # Convert forecast_cutoff_at to local date in the node's timezone
+    node_tz = ZoneInfo(node.timezone)
+    cutoff_date: date_cls = node.forecast_cutoff_at.astimezone(node_tz).date()
 
     query = (
         select(LocationWeatherMapping)
@@ -399,9 +406,8 @@ async def _query_task7_location_weather_mapping_candidates(
                 reference_type="database_run_id", reference_value=row.id
             ),
         )
-        # Construct timezone-aware datetime from available_at date
-        tz = node.forecast_cutoff_at.tzinfo
-        available_dt = datetime.combine(row.available_at, datetime.min.time().replace(tzinfo=tz))
+        # Construct node-local aware datetime from available_at date
+        available_dt = datetime.combine(row.available_at, time.min, tzinfo=node_tz)
         candidates.append(
             HistoricalCandidate(
                 source_role="task7_location_weather_mapping",
@@ -425,15 +431,17 @@ async def _query_task7_weather_daily_observation_candidates(
 ) -> list[HistoricalCandidate]:
     """Query Task 7 WeatherDailyObservation candidates with SQL cutoff filtering.
 
-    Filters by available_at date <= forecast_cutoff_at (converted to local date)
-    and observation_date within the forecast window.
+    Filters by available_at date <= forecast_cutoff_at (converted to local date
+    via the node's named timezone) and observation_date within the forecast window.
     Each candidate carries its own object's identity (provider_code, source_version, row_hash).
     """
     _unused = execution_mode
 
     from datetime import date as date_cls
+    from zoneinfo import ZoneInfo
 
-    cutoff_date: date_cls = node.forecast_cutoff_at.date()
+    node_tz = ZoneInfo(node.timezone)
+    cutoff_date: date_cls = node.forecast_cutoff_at.astimezone(node_tz).date()
 
     query = (
         select(WeatherDailyObservation)
@@ -459,8 +467,8 @@ async def _query_task7_weather_daily_observation_candidates(
                 reference_type="database_run_id", reference_value=row.id
             ),
         )
-        tz = node.forecast_cutoff_at.tzinfo
-        available_dt = datetime.combine(row.available_at, datetime.min.time().replace(tzinfo=tz))
+        # Construct node-local aware datetime from available_at date
+        available_dt = datetime.combine(row.available_at, time.min, tzinfo=node_tz)
         candidates.append(
             HistoricalCandidate(
                 source_role="task7_weather_observation",
