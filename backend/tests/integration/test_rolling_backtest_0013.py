@@ -251,6 +251,31 @@ async def _first_node_id(run_id: int) -> int:
         return node.id
 
 
+async def _mark_attempt_failed(
+    attempt_id: int,
+    node_id: int,
+    *,
+    stage: str = "resolve_historical_inputs",
+) -> None:
+    await persist_stage_event(
+        attempt_id,
+        node_id,
+        stage=stage,
+        status="failed",
+        structured_error_code="TEST_FAILURE",
+    )
+    await finalize_attempt_with_snapshot(
+        attempt_id,
+        node_id=node_id,
+        status="failed",
+        current_stage=stage,
+        snapshot_status="failed",
+        terminal_stage=stage,
+        structured_error_code="TEST_FAILURE",
+        canonical_payload={"test": "failed-attempt"},
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Migration round-trip
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -391,11 +416,7 @@ async def test_integrity_reload_allows_retry_on_one_node_only() -> None:
     nid1, nid2 = db_nodes[0].id, db_nodes[1].id
 
     first = await create_execution_attempt(run.id, nid1, status="running")
-    await finalize_attempt_status(
-        first.id,
-        status="failed",
-        current_stage="resolve_historical_inputs",
-    )
+    await _mark_attempt_failed(first.id, nid1)
     retry = await create_execution_attempt(run.id, nid1, status="running")
     other = await create_execution_attempt(run.id, nid2, status="running")
     assert retry.attempt_number == 2

@@ -47,6 +47,8 @@ from backend.app.rolling_backtest.persistence import (
     create_execution_attempt,
     create_or_load_logical_run,
     finalize_attempt_status,
+    finalize_attempt_with_snapshot,
+    persist_stage_event,
 )
 from backend.app.rolling_backtest.schemas import (
     HistoricalAvailableModelIdentity,
@@ -567,6 +569,50 @@ async def _first_node_id(run_id: int) -> int:
         node = result.scalar_one_or_none()
         assert node is not None, f"no node found for run {run_id}"
         return node.id
+
+
+async def _mark_attempt_failed(
+    attempt_id: int,
+    node_id: int,
+    *,
+    stage: str = "resolve_historical_inputs",
+) -> None:
+    await persist_stage_event(
+        attempt_id,
+        node_id,
+        stage=stage,
+        status="failed",
+        structured_error_code="TEST_FAILURE",
+    )
+    await finalize_attempt_with_snapshot(
+        attempt_id,
+        node_id=node_id,
+        status="failed",
+        current_stage=stage,
+        snapshot_status="failed",
+        terminal_stage=stage,
+        structured_error_code="TEST_FAILURE",
+        canonical_payload={"test": "failed-attempt"},
+    )
+
+
+async def _mark_attempt_running(
+    attempt_id: int,
+    node_id: int,
+    *,
+    stage: str = "resolve_historical_inputs",
+) -> None:
+    await persist_stage_event(
+        attempt_id,
+        node_id,
+        stage=stage,
+        status="running",
+    )
+    await finalize_attempt_status(
+        attempt_id,
+        status="running",
+        current_stage=stage,
+    )
 
 
 # Attempt lifecycle
@@ -1156,12 +1202,13 @@ async def test_tamper_attempt_skip_number_is_detected() -> None:
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
-    a1 = await create_execution_attempt(run.id, await _first_node_id(run.id), status="failed")
-    await finalize_attempt_status(a1.id, status="failed", current_stage="init")
+    node_id = await _first_node_id(run.id)
+    a1 = await create_execution_attempt(run.id, node_id, status="failed")
+    await _mark_attempt_failed(a1.id, node_id)
     a2 = await create_execution_attempt(
-        run.id, await _first_node_id(run.id), status="failed", prior_attempt_id=a1.id
+        run.id, node_id, status="failed", prior_attempt_id=a1.id
     )
-    await finalize_attempt_status(a2.id, status="failed", current_stage="init")
+    await _mark_attempt_failed(a2.id, node_id)
 
     # Tamper: change attempt 2's number to 3
     async with AsyncSessionMaker() as session:
@@ -1186,8 +1233,12 @@ async def test_tamper_attempt_prior_points_to_other_run_is_detected() -> None:
     cmd2 = _make_persistence_command(config2, with_inputs=False, with_dag=True)
     run2 = await create_or_load_logical_run(cmd2)
 
-    a1 = await create_execution_attempt(run1.id, await _first_node_id(run1.id), status="failed")
-    a2 = await create_execution_attempt(run2.id, await _first_node_id(run2.id), status="failed")
+    node1 = await _first_node_id(run1.id)
+    node2 = await _first_node_id(run2.id)
+    a1 = await create_execution_attempt(run1.id, node1, status="failed")
+    a2 = await create_execution_attempt(run2.id, node2, status="failed")
+    await _mark_attempt_failed(a1.id, node1)
+    await _mark_attempt_failed(a2.id, node2)
 
     # Tamper: make a1's prior point to a2 (different run)
     async with AsyncSessionMaker() as session:
@@ -1208,8 +1259,11 @@ async def test_tamper_attempt_two_prior_null_is_detected() -> None:
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)
 
-    first = await create_execution_attempt(run.id, await _first_node_id(run.id), status="failed")
-    second = await create_execution_attempt(run.id, await _first_node_id(run.id), status="running")
+    node_id = await _first_node_id(run.id)
+    first = await create_execution_attempt(run.id, node_id, status="failed")
+    await _mark_attempt_failed(first.id, node_id)
+    second = await create_execution_attempt(run.id, node_id, status="running")
+    await _mark_attempt_running(second.id, node_id)
     assert second.prior_attempt_id == first.id
 
     async with AsyncSessionMaker() as session:
