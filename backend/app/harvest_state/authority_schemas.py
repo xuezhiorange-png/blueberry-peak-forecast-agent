@@ -595,6 +595,7 @@ class Task9InitialInventoryBundleSchema(Task9InitialInventorySnapshotSchema):
 
 class _SemanticSourceBase(_AuthorityBase):
     """Base for semantic inputs that carry source provenance but no row_hash."""
+
     source_system: str = Field(min_length=1)
     source_record_key: str = Field(min_length=1)
     source_version: str = Field(min_length=1)
@@ -607,6 +608,7 @@ class _SemanticSourceBase(_AuthorityBase):
 
 class _SemanticLifecycleBase(_SemanticSourceBase):
     """Semantic lifecycle input: source provenance + lifecycle fields, no row_hash."""
+
     status: AuthorityStatus
     status_changed_at: datetime
     available_at_local_date: date
@@ -778,6 +780,7 @@ class Task9DailyCapacitySemanticInput(_SemanticLifecycleBase):
 
 class Task9RunParameterPackageSemanticInput(_SemanticLifecycleBase):
     """Semantic input for run package. No row_hash, no surrogate FK IDs."""
+
     season_id: int = Field(gt=0)
     destination_factory_id: int = Field(gt=0)
     farm_scope_key: str = Field(min_length=1)
@@ -1015,6 +1018,7 @@ class Task9MatureLossSemanticInput(_SemanticLifecycleBase):
 
 class Task9LifecycleEventSemanticInput(_AuthorityBase):
     """Semantic input for lifecycle event: no lifecycle_event_hash."""
+
     authority_family: AuthorityFamily
     authority_stable_key: str = Field(min_length=1)
     authority_business_version: str = Field(min_length=1)
@@ -1079,9 +1083,10 @@ class Task9LifecycleEventSemanticInput(_AuthorityBase):
 
 class Task9RunParameterPackageBundleSchema(_AuthorityBase):
     """Bundle: run package + mandatory holiday + weather dependencies."""
-    package: Task9RunParameterPackageSemanticInput
-    holiday_calendar: Task9HolidayCalendarSemanticInput
-    weather_rule: Task9WeatherRuleSemanticInput
+
+    package: Task9RunParameterPackageSemanticInput | Task9RunParameterPackageSchema
+    holiday_calendar: Task9HolidayCalendarSemanticBundle | Task9HolidayCalendarBundleSchema
+    weather_rule: Task9WeatherRuleSemanticInput | Task9WeatherRuleConfigVersionSchema
 
     @model_validator(mode="after")
     def _validate_timezone_consistency(self) -> Task9RunParameterPackageBundleSchema:
