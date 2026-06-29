@@ -604,8 +604,17 @@ def upgrade() -> None:
             daily_capacity_revision INTEGER NOT NULL
                 CONSTRAINT ck_task9_daily_capacity_authority_revision CHECK (daily_capacity_revision > 0),
             planned_picker_count NUMERIC(18, 3),
+            CONSTRAINT ck_task9_daily_capacity_picker_count_non_negative
+                CHECK (planned_picker_count IS NULL OR planned_picker_count >= 0),
             kg_per_person_per_day NUMERIC(18, 3),
+            CONSTRAINT ck_task9_daily_capacity_productivity_non_negative
+                CHECK (kg_per_person_per_day IS NULL OR kg_per_person_per_day >= 0),
             direct_nominal_capacity_kg_per_day NUMERIC(18, 3),
+            CONSTRAINT ck_task9_daily_capacity_direct_capacity_non_negative
+                CHECK (
+                    direct_nominal_capacity_kg_per_day IS NULL
+                    OR direct_nominal_capacity_kg_per_day >= 0
+                ),
             labor_availability_ratio NUMERIC(12, 6) NOT NULL
                 CONSTRAINT ck_task9_daily_capacity_authority_labor_ratio
                 CHECK (labor_availability_ratio >= 0 AND labor_availability_ratio <= 1),
