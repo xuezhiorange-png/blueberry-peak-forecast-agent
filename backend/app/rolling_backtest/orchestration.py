@@ -122,17 +122,14 @@ def cutoff_local_date(forecast_cutoff_at: datetime, timezone_name: str) -> date:
     """Convert a UTC-aware forecast_cutoff_at to a local date in the given timezone.
 
     Raises:
-        TypeError: If forecast_cutoff_at is not a datetime instance (e.g. a plain date).
+        TypeError: If forecast_cutoff_at is not a datetime instance.
         ValueError: If forecast_cutoff_at is naive (no tzinfo).
         ZoneInfoNotFoundError: If timezone_name is invalid.
     """
-    # Dispatch order: check datetime BEFORE date (datetime is a subclass of date).
     if not isinstance(forecast_cutoff_at, datetime):
         raise TypeError(
             f"forecast_cutoff_at must be a datetime, got {type(forecast_cutoff_at).__name__}"
         )
-    if isinstance(forecast_cutoff_at, date) and not isinstance(forecast_cutoff_at, datetime):
-        raise TypeError("forecast_cutoff_at must be a datetime, not a plain date")
     if forecast_cutoff_at.tzinfo is None:
         raise ValueError("forecast_cutoff_at must be timezone-aware (UTC)")
     tz = ZoneInfo(timezone_name)
@@ -168,6 +165,7 @@ __all__ = [
     "Task9AuthorityOutcome",
     "Task10AuthorityOutcome",
     "Task9RequestBuildResult",
+    "Task8VerificationBundle",
     "NodeOrchestrationOutcome",
     "AvailabilityAuditOutcome",
     "NodeExecutionContext",
@@ -175,6 +173,8 @@ __all__ = [
     "OrchestrationBlocker",
     "orchestrate_node",
     "orchestrate_run",
+    "cutoff_local_date",
+    "assert_date_authority_visible",
     "_collect_diagnostics",
     "_sanitize_diagnostics",
     "_build_frozen_dag",
@@ -286,6 +286,26 @@ class Task9RequestBuildResult:
     blocked: bool = False
     blocker_code: str | None = None
     diagnostics: dict[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class Task8VerificationBundle:
+    """Immutable typed bundle of ORM objects for Task 8 field validation.
+
+    All ORM objects are pre-loaded by _load_task8_verification_bundle().
+    The validator (_validate_task8_prediction_fields) receives this typed
+    bundle — it never accesses the database directly.
+    """
+
+    model_run: Any  # MaturityModelRun
+    artifact: Any  # MaturityModelArtifact
+    forecast_run: Any  # MaturityForecastRun
+    daily_row: Any  # MaturityDailyPredictionModel
+    plan_row: Any  # FarmSeasonVarietyPlan
+    location_row: Any  # LocationReference
+    weather_mapping: Any  # LocationWeatherMapping
+    base_temperature: Any  # BaseTemperatureSearchRun
+    weather_feature_run: Any  # WeatherFeatureRun
 
 
 @dataclass(frozen=True, slots=True)
@@ -1411,8 +1431,13 @@ async def _validate_source_ref_catalog(
             # Verify every field in the typed source ref
             task8_source_ref = cast(Task8PredictionSourceRef, typed_sr)
             # Load the ORM verification bundle (DB access happens here, once per entry).
-            orm_bundle = await _load_task8_verification_bundle(session, task8_source_ref)
-            field_issues = await _validate_task8_prediction_fields(
+            orm_bundle = await _load_task8_verification_bundle(
+                session,
+                task8_source_ref,
+                forecast_cutoff_at=node.forecast_cutoff_at,
+                timezone=node.timezone,
+            )
+            field_issues = _validate_task8_prediction_fields(
                 typed_sr=task8_source_ref,
                 typed_verification=typed_verification,
                 authority_by_type=authority_by_type,
@@ -1504,7 +1529,21 @@ async def _validate_source_ref_catalog(
 async def _load_task8_verification_bundle(
     session: AsyncSession,
     typed_sr: Task8PredictionSourceRef,
-) -> dict[str, object]:
+    *,
+    forecast_cutoff_at: datetime,
+    timezone: str,
+) -> Task8VerificationBundle:
+    """Load all ORM objects needed for Task 8 prediction field validation.
+
+    Returns a typed, immutable Task8VerificationBundle.  All SQL filtering
+    (status, date cutoff, scope) happens here — the pure validator receives
+    only the pre-loaded bundle and never accesses the database.
+
+    WeatherFeatureRun loader is leakage-safe: filters by plan_id,
+    location_reference_id, weather_mapping_id in addition to
+    base_temperature_search_run_id, status=\"completed\", and
+    finished_at <= forecast_cutoff_at.
+    """
     from backend.app.models.maturity import (
         MaturityDailyPredictionModel,
         MaturityForecastRun,
@@ -1545,36 +1584,70 @@ async def _load_task8_verification_bundle(
         else await session.get(BaseTemperatureSearchRun, typed_sr.base_temperature_search_run_id)
     )
 
-    # Load WeatherFeatureRun that references this BaseTemperatureSearchRun.
-    # Must filter by status: only "completed" or "unavailable" runs are authoritative.
-    # (Checking finished_at alone is not sufficient.)
+    # ── WeatherFeatureRun: leakage-safe SQL filtering ────────────────────
+    # Must filter by: base_temperature id, plan, location, mapping, status,
+    # finished_at, and cutoff.  Only "completed" runs are consumable;
+    # "unavailable" is NOT treated as a successful authority.
     weather_feature_run: WeatherFeatureRun | None = None
     if typed_sr.base_temperature_search_run_id is not None:
         from sqlalchemy import select
 
-        result = await session.execute(
+        # _ = cutoff_local_date(...) — date authority validated below via finished_at datetime
+        query = (
             select(WeatherFeatureRun)
             .where(
                 WeatherFeatureRun.base_temperature_search_run_id
                 == typed_sr.base_temperature_search_run_id,
-                WeatherFeatureRun.status.in_(["completed", "unavailable"]),
+                WeatherFeatureRun.plan_id == typed_sr.plan_id,
+                WeatherFeatureRun.location_reference_id == typed_sr.location_reference_id,
+                WeatherFeatureRun.location_weather_mapping_id == typed_sr.weather_mapping_id,
+                WeatherFeatureRun.status == "completed",
+                WeatherFeatureRun.finished_at.is_not(None),
+                WeatherFeatureRun.finished_at <= forecast_cutoff_at,
             )
             .order_by(WeatherFeatureRun.finished_at.desc().nullslast())
-            .limit(1)
+            .limit(2)  # fetch 2 for ambiguity detection
         )
-        weather_feature_run = result.scalar_one_or_none()
+        result = await session.execute(query)
+        rows = result.scalars().all()
 
-    return {
-        "model_run": model_run,
-        "artifact": artifact,
-        "forecast_run": forecast_run,
-        "daily_row": daily_row,
-        "plan_row": plan_row,
-        "location_row": location_row,
-        "weather_mapping": weather_mapping,
-        "base_temperature": base_temperature,
-        "weather_feature_run": weather_feature_run,
-    }
+        if len(rows) == 1:
+            weather_feature_run = rows[0]
+        elif len(rows) > 1:
+            # ── Deterministic priority: semantic-equivalence tie-break ──
+            # All candidates share the same parent identity.
+            # If semantic fields are identical → pick the most recent.
+            # If key fields differ → raise ambiguity blocker.
+            first = rows[0]
+            all_equivalent = all(
+                getattr(r, "feature_version", None) == first.feature_version
+                and getattr(r, "source_signature", None) == first.source_signature
+                and getattr(r, "config_hash", None) == first.config_hash
+                and getattr(r, "as_of_date", None) == first.as_of_date
+                for r in rows[1:]
+            )
+            if all_equivalent:
+                # Semantically equivalent — deterministic tie-break on finished_at
+                weather_feature_run = first
+            else:
+                # Ambiguous: conflicting semantic identities for the same parent
+                raise ValueError(
+                    "ambiguous_task7_weather_feature_authority: "
+                    f"multiple non-equivalent WeatherFeatureRun rows for "
+                    f"base_temperature_search_run_id={typed_sr.base_temperature_search_run_id}"
+                )
+
+    return Task8VerificationBundle(
+        model_run=model_run,
+        artifact=artifact,
+        forecast_run=forecast_run,
+        daily_row=daily_row,
+        plan_row=plan_row,
+        location_row=location_row,
+        weather_mapping=weather_mapping,
+        base_temperature=base_temperature,
+        weather_feature_run=weather_feature_run,
+    )
 
 
 def _task8_quantile_quantity(
@@ -1591,7 +1664,7 @@ def _task8_quantile_quantity(
     raise ValueError(f"unsupported forecast_quantile {forecast_quantile!r}")
 
 
-async def _validate_task8_prediction_fields(
+def _validate_task8_prediction_fields(
     *,
     typed_sr: Task8PredictionSourceRef,
     typed_verification: Task8PredictionVerificationSnapshot,
@@ -1599,34 +1672,44 @@ async def _validate_task8_prediction_fields(
     authority_map: dict[str, ResolutionResult],
     forecast_cutoff_at: datetime,
     timezone: str,
-    bundle: dict[str, object],
+    bundle: Task8VerificationBundle,
 ) -> list[str]:
     """Verify every field in a TASK8_DAILY_PREDICTION source ref against resolved authorities.
 
-    PURE function — no DB access.  All ORM objects are provided via *bundle*,
-    which was loaded by _load_task8_verification_bundle() in the caller.
+    PURE function — no DB access.  All ORM objects are provided via the typed
+    *bundle*, pre-loaded by _load_task8_verification_bundle().
+
+    Task 7 authorities are independently bound:
+      - TASK7_LOCATION_WEATHER_MAPPING → validates LocationWeatherMapping identity
+      - TASK7_WEATHER_FEATURE_RUN → validates WeatherFeatureRun identity
+      - TASK7_WEATHER_OBSERVATION → validates WeatherDailyObservation identity
+    Cross-model identity composition is blocked.
     """
     issues: list[str] = []
     _unused = authority_map
-    model_run = cast(Any, bundle["model_run"])
-    artifact = cast(Any, bundle["artifact"])
-    forecast_run = cast(Any, bundle["forecast_run"])
-    daily_row = cast(Any, bundle["daily_row"])
-    plan_row = cast(Any, bundle["plan_row"])
-    location_row = cast(Any, bundle["location_row"])
-    weather_mapping = cast(Any, bundle["weather_mapping"])
-    base_temperature = cast(Any, bundle["base_temperature"])
-    weather_feature_run = cast(Any, bundle.get("weather_feature_run"))
+    model_run = bundle.model_run
+    artifact = bundle.artifact
+    forecast_run = bundle.forecast_run
+    daily_row = bundle.daily_row
+    plan_row = bundle.plan_row
+    location_row = bundle.location_row
+    weather_mapping = bundle.weather_mapping
+    base_temperature = bundle.base_temperature
+    weather_feature_run = bundle.weather_feature_run
 
-    # Resolved authority lookups
+    # Resolved authority lookups — one per source type
     model_run_result = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_RUN.value)
     artifact_result = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_ARTIFACT.value)
     forecast_run_result = authority_by_type.get(AvailabilitySourceType.TASK8_FORECAST_RUN.value)
     daily_prediction_result = authority_by_type.get(
         AvailabilitySourceType.TASK8_DAILY_PREDICTION.value
     )
-    task7_weather_result = authority_by_type.get(
-        AvailabilitySourceType.TASK7_WEATHER_OBSERVATION.value
+    # Task 7: three independent authority types — never cross-model
+    task7_mapping_result = authority_by_type.get(
+        AvailabilitySourceType.TASK7_LOCATION_WEATHER_MAPPING.value
+    )
+    task7_feature_run_result = authority_by_type.get(
+        AvailabilitySourceType.TASK7_WEATHER_FEATURE_RUN.value
     )
 
     if model_run is None:
@@ -1838,6 +1921,9 @@ async def _validate_task8_prediction_fields(
     if typed_verification.p90_kg != daily_row.p90_kg:
         issues.append("p90_kg does not match ORM")
 
+    # ── Task 7 authority: LocationWeatherMapping ──────────────────────────
+    # TASK7_LOCATION_WEATHER_MAPPING validates its own identity only.
+    # It must NOT validate WeatherFeatureRun or WeatherDailyObservation fields.
     if typed_sr.weather_mapping_id is not None:
         if weather_mapping is None:
             issues.append("weather mapping authority missing")
@@ -1849,7 +1935,6 @@ async def _validate_task8_prediction_fields(
             if weather_mapping.location_reference_id != location_row.id:
                 issues.append("weather mapping location_reference_id does not match location row")
             # Date authority: weather mapping available_at must be visible at forecast_cutoff_at
-            # (converted to local date via the node timezone).
             cutoff_date = cutoff_local_date(forecast_cutoff_at, timezone)
             if weather_mapping.available_at > cutoff_date:
                 issues.append(
@@ -1867,17 +1952,22 @@ async def _validate_task8_prediction_fields(
                 issues.append("weather mapping version missing")
             if not weather_mapping.row_hash:
                 issues.append("weather mapping row_hash missing")
-            if task7_weather_result and task7_weather_result.resolved:
-                expected_mapping_version = task7_weather_result.resolved.business_version
+            # Cross-check against resolved TASK7_LOCATION_WEATHER_MAPPING authority
+            # (NEVER against TASK7_WEATHER_FEATURE_RUN or TASK7_WEATHER_OBSERVATION)
+            if task7_mapping_result and task7_mapping_result.resolved:
+                expected_mapping_version = task7_mapping_result.resolved.business_version
                 if (
                     expected_mapping_version is not None
                     and weather_mapping.mapping_version != expected_mapping_version
                 ):
                     issues.append("weather mapping version does not match resolved authority")
-                expected_mapping_hash = task7_weather_result.resolved.canonical_payload_hash
+                expected_mapping_hash = task7_mapping_result.resolved.canonical_payload_hash
                 if expected_mapping_hash and weather_mapping.row_hash != expected_mapping_hash:
                     issues.append("weather mapping row_hash does not match resolved authority")
 
+    # ── Task 7 authority: WeatherFeatureRun ───────────────────────────────
+    # TASK7_WEATHER_FEATURE_RUN validates its own identity only.
+    # It must NOT validate mapping or observation fields.
     if typed_sr.base_temperature_search_run_id is not None:
         if base_temperature is None:
             issues.append("base temperature authority missing")
@@ -1902,7 +1992,6 @@ async def _validate_task8_prediction_fields(
             if finished_at is None:
                 issues.append("base temperature finished_at missing")
             else:
-                # Datetime authority: finished_at must be UTC-aware and <= forecast_cutoff_at.
                 if getattr(finished_at, "tzinfo", None) is None:
                     issues.append("base temperature finished_at is naive (must be UTC-aware)")
                 elif finished_at > forecast_cutoff_at:
@@ -1911,8 +2000,29 @@ async def _validate_task8_prediction_fields(
                         f"exceeds forecast_cutoff_at {forecast_cutoff_at}"
                     )
 
-            # Validate feature_version matches the associated WeatherFeatureRun.
-            # weather_feature_run was loaded by _load_task8_verification_bundle.
+            # Cross-check against resolved TASK7_WEATHER_FEATURE_RUN authority
+            if task7_feature_run_result and task7_feature_run_result.resolved:
+                expected_feature_version = task7_feature_run_result.resolved.business_version
+                if (
+                    expected_feature_version is not None
+                    and getattr(base_temperature, "feature_version", None)
+                    != expected_feature_version
+                ):
+                    issues.append(
+                        "base temperature feature_version does not match "
+                        "resolved WeatherFeatureRun authority"
+                    )
+                expected_feature_hash = task7_feature_run_result.resolved.canonical_payload_hash
+                if (
+                    expected_feature_hash
+                    and getattr(base_temperature, "source_signature", None) != expected_feature_hash
+                ):
+                    issues.append(
+                        "base temperature source_signature does not match "
+                        "resolved WeatherFeatureRun authority"
+                    )
+
+            # Verify feature_version consistency with the loaded WeatherFeatureRun ORM
             if weather_feature_run is None:
                 issues.append("no WeatherFeatureRun references this BaseTemperatureSearchRun")
             elif getattr(base_temperature, "feature_version", None) != getattr(

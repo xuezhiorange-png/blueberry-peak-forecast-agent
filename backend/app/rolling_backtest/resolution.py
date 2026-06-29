@@ -894,9 +894,7 @@ async def _query_task10_prediction_run_candidates(
 _SOURCE_QUERY_MAP: dict[AvailabilitySourceType, CandidateQueryAdapter] = {
     AvailabilitySourceType.TASK3_ANALYTICS_BUILD: _query_task3_candidates,
     AvailabilitySourceType.TASK6_PLAN_VERSION: _query_task6_candidates,
-    AvailabilitySourceType.TASK7_WEATHER_FEATURE_RUN: (
-        _query_task7_weather_feature_run_candidates
-    ),
+    AvailabilitySourceType.TASK7_WEATHER_FEATURE_RUN: (_query_task7_weather_feature_run_candidates),
     AvailabilitySourceType.TASK7_LOCATION_WEATHER_MAPPING: (
         _query_task7_location_weather_mapping_candidates
     ),
