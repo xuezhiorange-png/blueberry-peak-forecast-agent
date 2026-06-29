@@ -118,6 +118,7 @@ class Task9CapacityPoolDefinition(Base):
 class Task9CapacityPoolMember(Base):
     __tablename__ = "task9_capacity_pool_member"
     __table_args__ = (
+        # P0-7B: UNIQUE NULLS NOT DISTINCT required; plain UniqueConstraint is a placeholder
         UniqueConstraint(
             "capacity_pool_definition_id",
             "farm_id",
@@ -608,9 +609,6 @@ class Task9InitialInventoryCohort(Base):
         nullable=False,
     )
     remaining_quantity_kg: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
-    source_system: Mapped[str] = mapped_column(Text, nullable=False)
-    source_record_key: Mapped[str] = mapped_column(Text, nullable=False)
-    source_version: Mapped[str] = mapped_column(Text, nullable=False)
     row_hash: Mapped[str] = mapped_column(Text, nullable=False)
 
 

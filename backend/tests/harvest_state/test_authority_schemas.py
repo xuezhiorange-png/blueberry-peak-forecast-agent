@@ -6,6 +6,10 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
+from backend.app.harvest_state.canonical import (
+    make_holiday_calendar_hash,
+    make_weather_rule_config_hash,
+)
 from backend.app.harvest_state.enums import CapacityInputMode, ForecastQuantile
 
 
@@ -41,10 +45,6 @@ def _pool_member_payload() -> dict[str, object]:
         "farm_id": 10,
         "subfarm_id": None,
         "variety_id": 20,
-        "source_system": "task9_historical_authority",
-        "source_record_key": "pool-member:10:20",
-        "source_version": "v1",
-        "row_hash": "b" * 64,
     }
 
 
@@ -106,12 +106,19 @@ def _run_parameter_package_payload() -> dict[str, object]:
 
 
 def _holiday_calendar_payload() -> dict[str, object]:
+    _dates = [
+        {"holiday_date": date(2026, 2, 10), "holiday_code": "CNY", "holiday_name": "A"},
+        {"holiday_date": date(2026, 2, 10), "holiday_code": "LOCAL", "holiday_name": "B"},
+    ]
+    _cal_hash = make_holiday_calendar_hash(
+        holiday_calendar_version="calendar-v1", holiday_dates=[date(2026, 2, 10)]
+    )
     return {
         "season_id": 1,
         "calendar_code": "CN-SH",
         "calendar_version": "calendar-v1",
         "revision": 1,
-        "calendar_hash": "e" * 64,
+        "calendar_hash": _cal_hash,
         "region_scope": "CN-SH",
         "lifecycle_timezone_name": "Asia/Shanghai",
         "available_at_local_date": date(2026, 1, 1),
@@ -124,14 +131,46 @@ def _holiday_calendar_payload() -> dict[str, object]:
         "source_record_key": "holiday-calendar:1:CN-SH:Asia/Shanghai:calendar-v1:1",
         "source_version": "calendar-v1",
         "row_hash": "f" * 64,
-        "dates": [
-            {"holiday_date": date(2026, 2, 10), "holiday_code": "CNY", "holiday_name": "A"},
-            {"holiday_date": date(2026, 2, 10), "holiday_code": "LOCAL", "holiday_name": "B"},
-        ],
+        "dates": _dates,
     }
 
 
 def _weather_rule_payload() -> dict[str, object]:
+    _exact_config = {
+        "version": "wx-v1",
+        "required_feature_ids": ["rain", "temp"],
+        "feature_rules": [
+            {
+                "feature_id": "rain",
+                "bands": [
+                    {
+                        "lower_bound": "0",
+                        "lower_inclusive": True,
+                        "upper_bound": "10",
+                        "upper_inclusive": True,
+                        "multiplier": "1",
+                    }
+                ],
+            },
+            {
+                "feature_id": "temp",
+                "bands": [
+                    {
+                        "lower_bound": "0",
+                        "lower_inclusive": True,
+                        "upper_bound": "30",
+                        "upper_inclusive": True,
+                        "multiplier": "0.9",
+                    }
+                ],
+            },
+        ],
+        "combination_method": "MULTIPLY",
+        "minimum_ratio": "0.7",
+        "maximum_ratio": "1",
+        "missing_feature_policy": "BLOCK",
+    }
+    _cfg_hash = make_weather_rule_config_hash(_exact_config)
     return {
         "rule_code": "wx-rule",
         "rule_version": "wx-v1",
@@ -168,7 +207,7 @@ def _weather_rule_payload() -> dict[str, object]:
             },
         ],
         "missing_feature_policy": "BLOCK",
-        "config_hash": "1" * 64,
+        "config_hash": _cfg_hash,
         "available_at_local_date": date(2026, 1, 1),
         "effective_from": date(2026, 1, 1),
         "effective_to": None,
@@ -211,10 +250,6 @@ def _initial_inventory_payload(total: str = "30") -> dict[str, object]:
                 "subfarm_id": None,
                 "variety_id": 20,
                 "remaining_quantity_kg": "10",
-                "source_system": "task9_historical_authority",
-                "source_record_key": "c1",
-                "source_version": "snap-v1",
-                "row_hash": "4" * 64,
             },
             {
                 "stable_cohort_key": "c2",
@@ -224,10 +259,6 @@ def _initial_inventory_payload(total: str = "30") -> dict[str, object]:
                 "subfarm_id": None,
                 "variety_id": 20,
                 "remaining_quantity_kg": "10",
-                "source_system": "task9_historical_authority",
-                "source_record_key": "c2",
-                "source_version": "snap-v1",
-                "row_hash": "5" * 64,
             },
             {
                 "stable_cohort_key": "c3",
@@ -237,10 +268,6 @@ def _initial_inventory_payload(total: str = "30") -> dict[str, object]:
                 "subfarm_id": None,
                 "variety_id": 20,
                 "remaining_quantity_kg": "10",
-                "source_system": "task9_historical_authority",
-                "source_record_key": "c3",
-                "source_version": "snap-v1",
-                "row_hash": "6" * 64,
             },
         ],
     }

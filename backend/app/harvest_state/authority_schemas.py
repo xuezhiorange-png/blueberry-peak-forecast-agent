@@ -7,7 +7,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from backend.app.harvest_state.canonical import is_sha256_hex
+from backend.app.harvest_state.canonical import (
+    is_sha256_hex,
+    make_holiday_calendar_hash,
+    make_weather_rule_config_hash,
+)
 from backend.app.harvest_state.enums import (
     AuthorityFamily,
     AuthorityStatus,
@@ -19,6 +23,7 @@ from backend.app.harvest_state.enums import (
 from backend.app.harvest_state.schemas import (
     NonNegativeBusinessDecimal,
     RatioDecimal,
+    WeatherFeatureBand,
     WeatherFeatureRule,
 )
 
@@ -46,7 +51,7 @@ def _validate_timezone_name(value: str) -> str:
     _require_non_blank(value, "timezone")
     try:
         ZoneInfo(value)
-    except ZoneInfoNotFoundError as exc:
+    except (ZoneInfoNotFoundError, ValueError) as exc:
         raise ValueError("TIMEZONE_AUTHORITY_INVALID") from exc
     return value
 
@@ -75,6 +80,20 @@ class _LifecycleAuthorityRowBase(_AuthorityRowBase):
     consumable_from_local_date: date | None = None
     consumable_to_local_date: date | None = None
     superseded_by_id: int | None = None
+
+    @field_validator("status_changed_at")
+    @classmethod
+    def _validate_aware_datetime(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("status_changed_at must be timezone-aware")
+        return value
+
+    @field_validator("superseded_by_id")
+    @classmethod
+    def _validate_superseded_by_id(cls, value: int | None) -> int | None:
+        if value is not None and value <= 0:
+            raise ValueError("superseded_by_id must be > 0 when set")
+        return value
 
     @model_validator(mode="after")
     def _validate_lifecycle_projection(self) -> _LifecycleAuthorityRowBase:
@@ -112,7 +131,7 @@ class _LifecycleAuthorityRowBase(_AuthorityRowBase):
         return self
 
 
-class Task9CapacityPoolMemberSchema(_AuthorityRowBase):
+class Task9CapacityPoolMemberSchema(_AuthorityBase):
     farm_id: int = Field(gt=0)
     subfarm_id: int | None = Field(default=None, gt=0)
     variety_id: int = Field(gt=0)
@@ -274,6 +293,52 @@ class Task9WeatherRuleConfigVersionSchema(_LifecycleAuthorityRowBase):
             raise ValueError("feature_rules must exactly cover required_feature_ids")
         return self
 
+    @model_validator(mode="after")
+    def _validate_config_hash_match(self) -> Task9WeatherRuleConfigVersionSchema:
+        from backend.app.harvest_state.canonical import canonical_decimal_string
+
+        def _band_payload(band: WeatherFeatureBand) -> dict[str, object]:
+            return {
+                "lower_bound": canonical_decimal_string(band.lower_bound),
+                "lower_inclusive": band.lower_inclusive,
+                "upper_bound": canonical_decimal_string(band.upper_bound),
+                "upper_inclusive": band.upper_inclusive,
+                "multiplier": canonical_decimal_string(band.multiplier),
+            }
+
+        feature_rules = [
+            {
+                "feature_id": item.feature_id,
+                "bands": [
+                    _band_payload(band)
+                    for band in sorted(
+                        item.bands,
+                        key=lambda b: (
+                            canonical_decimal_string(b.lower_bound),
+                            b.lower_inclusive,
+                            canonical_decimal_string(b.upper_bound),
+                            b.upper_inclusive,
+                            canonical_decimal_string(b.multiplier),
+                        ),
+                    )
+                ],
+            }
+            for item in sorted(self.feature_rules, key=lambda i: i.feature_id)
+        ]
+        exact_config = {
+            "version": self.rule_version,
+            "required_feature_ids": sorted(self.required_feature_ids),
+            "feature_rules": feature_rules,
+            "combination_method": self.combination_method.value,
+            "minimum_ratio": canonical_decimal_string(self.minimum_ratio),
+            "maximum_ratio": canonical_decimal_string(self.maximum_ratio),
+            "missing_feature_policy": self.missing_feature_policy,
+        }
+        expected = make_weather_rule_config_hash(exact_config)
+        if self.config_hash != expected:
+            raise ValueError("WEATHER_RULE_CONFIG_HASH_MISMATCH")
+        return self
+
 
 class Task9RunParameterPackageSchema(_LifecycleAuthorityRowBase):
     season_id: int = Field(gt=0)
@@ -321,7 +386,7 @@ class Task9InitialInventorySnapshotSchema(_LifecycleAuthorityRowBase):
         return _require_non_blank(value, "snapshot_version")
 
 
-class Task9InitialInventoryCohortSchema(_AuthorityRowBase):
+class Task9InitialInventoryCohortSchema(_AuthorityBase):
     stable_cohort_key: str = Field(min_length=1)
     forecast_quantile: ForecastQuantile
     cohort_date: date
@@ -388,6 +453,13 @@ class Task9AuthorityLifecycleEventSchema(_AuthorityBase):
     def _validate_event_hash(cls, value: str) -> str:
         return _validate_sha256(value, "event hash")
 
+    @field_validator("transitioned_at")
+    @classmethod
+    def _validate_aware_transitioned_at(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("transitioned_at must be timezone-aware")
+        return value
+
     @model_validator(mode="after")
     def _validate_replacement_identity(self) -> Task9AuthorityLifecycleEventSchema:
         replacement_values = (
@@ -422,14 +494,30 @@ class Task9CapacityPoolDefinitionBundleSchema(Task9CapacityPoolDefinitionSchema)
     def _validate_members(self) -> Task9CapacityPoolDefinitionBundleSchema:
         member_keys = set()
         farm_ids = set()
+        subfarm_ids = set()
         for member in self.members:
             key = (member.farm_id, member.subfarm_id, member.variety_id)
             if key in member_keys:
                 raise ValueError("member business key must be unique")
             member_keys.add(key)
             farm_ids.add(member.farm_id)
+            subfarm_ids.add(member.subfarm_id)
         if len(farm_ids) > 1:
             raise ValueError("pool must not mix farms")
+        # Pool grain rules (matching existing Task 9 service semantics)
+        if self.capacity_pool_grain is CapacityPoolGrain.SUBFARM_VARIETY:
+            if len(self.members) != 1:
+                raise ValueError("SUBFARM_VARIETY grain requires exactly one member")
+        elif self.capacity_pool_grain is CapacityPoolGrain.SUBFARM:
+            if len(farm_ids) != 1:
+                raise ValueError("SUBFARM grain requires exactly one farm_id")
+            # subfarm_ids may include None; count non-None unique subfarms
+            real_subfarms = {s for s in subfarm_ids if s is not None}
+            if len(real_subfarms) != 1:
+                raise ValueError("SUBFARM grain requires exactly one subfarm_id")
+        elif self.capacity_pool_grain is CapacityPoolGrain.FARM:
+            if len(farm_ids) != 1:
+                raise ValueError("FARM grain requires exactly one farm_id")
         return self
 
     @property
@@ -442,15 +530,6 @@ class Task9CapacityPoolDefinitionBundleSchema(Task9CapacityPoolDefinitionSchema)
 class Task9HolidayCalendarBundleSchema(Task9HolidayCalendarVersionSchema):
     dates: list[Task9HolidayCalendarDateSchema]
 
-    @field_validator("dates")
-    @classmethod
-    def _validate_dates_not_empty(
-        cls, value: list[Task9HolidayCalendarDateSchema]
-    ) -> list[Task9HolidayCalendarDateSchema]:
-        if not value:
-            raise ValueError("holiday dates must not be empty")
-        return value
-
     @model_validator(mode="after")
     def _validate_dates_unique(self) -> Task9HolidayCalendarBundleSchema:
         seen = set()
@@ -459,6 +538,17 @@ class Task9HolidayCalendarBundleSchema(Task9HolidayCalendarVersionSchema):
             if key in seen:
                 raise ValueError("holiday (date, code) must be unique")
             seen.add(key)
+        return self
+
+    @model_validator(mode="after")
+    def _validate_calendar_hash_match(self) -> Task9HolidayCalendarBundleSchema:
+        unique_dates = sorted({item.holiday_date for item in self.dates})
+        expected = make_holiday_calendar_hash(
+            holiday_calendar_version=self.calendar_version,
+            holiday_dates=unique_dates,
+        )
+        if self.calendar_hash != expected:
+            raise ValueError("HOLIDAY_CALENDAR_HASH_MISMATCH")
         return self
 
     @property
@@ -477,11 +567,22 @@ class Task9InitialInventoryBundleSchema(Task9InitialInventorySnapshotSchema):
     def _validate_inventory_reconciliation(self) -> Task9InitialInventoryBundleSchema:
         total = sum((item.remaining_quantity_kg for item in self.cohorts), start=Decimal("0"))
         if self.initial_opening_mature_inventory_kg == 0:
+            if total != 0:
+                raise ValueError("INITIAL_INVENTORY_COHORT_MISMATCH")
             return self
         if not self.cohorts:
             raise ValueError("non-zero opening inventory requires cohorts")
         if total != self.initial_opening_mature_inventory_kg:
             raise ValueError("INITIAL_INVENTORY_COHORT_MISMATCH")
+        return self
+
+    @model_validator(mode="after")
+    def _validate_unique_cohort_keys(self) -> Task9InitialInventoryBundleSchema:
+        seen: set[str] = set()
+        for item in self.cohorts:
+            if item.stable_cohort_key in seen:
+                raise ValueError("DUPLICATE_STABLE_COHORT_KEY")
+            seen.add(item.stable_cohort_key)
         return self
 
     @property
