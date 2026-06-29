@@ -5,9 +5,9 @@
 **Date**: 2026-06-29
 **Repository**: `xuezhiorange-png/blueberry-peak-forecast-agent`
 **Branch**: `codex/task-11-rolling-backtest-orchestration`
-**Current baseline HEAD**: `3c5d153c1ad969a619b7fbb7ef9fc4d43421fee3`
+**Current baseline HEAD**: `c2749b189601a01db49bae6dae925442e9b5c3e0`
 **Related PR / Issue**: PR #22 (Draft), Issue #21
-**Accepted predecessor**: P0-6 review `4590189065`
+**Accepted predecessor**: P0-6 review `4591112533`
 
 ---
 
@@ -927,12 +927,74 @@ Parent/member synchronization is database-driven:
 - child copied `status` follows parent automatically
 - repository must not issue separate parent-status and child-status mutations
 
-Frozen child-row lifecycle rules:
+#### Frozen child-row lifecycle projection rules
 
-- `task9_capacity_pool_member` consumability fields (`consumable_from_local_date`, `consumable_to_local_date`) are NOT independent authority — they must only be copied from the parent `task9_capacity_pool_definition`
-- repository must not separately modify child consumability fields
-- `ON UPDATE CASCADE` on the composite FK propagates parent consumability changes to child rows automatically
-- child `consumability_range` is generated from the copied `consumable_from_local_date` and `consumable_to_local_date` columns
+The member table does **not** store nullable lifecycle base columns (`consumable_from_local_date`, `consumable_to_local_date`). Instead it stores ordinary, non-null, read-only copied projection keys:
+
+```sql
+consumable_from_key DATE NOT NULL,
+consumable_to_key DATE NOT NULL
+```
+
+These are ordinary columns — **not** generated columns. They receive their values exclusively through the composite FK `ON UPDATE CASCADE` from the parent `task9_capacity_pool_definition`.
+
+The member `consumability_range` is generated directly from these ordinary copied keys:
+
+```sql
+consumability_range DATERANGE GENERATED ALWAYS AS (
+    daterange(consumable_from_key, consumable_to_key, '[)')
+) STORED
+```
+
+Frozen binding rules:
+
+- member does **not** own independent lifecycle authority
+- member does **not** store `consumable_from_local_date` or `consumable_to_local_date`
+- member `consumable_from_key` and `consumable_to_key` are populated only via composite FK cascade from parent
+- repository must not separately modify member `consumable_from_key` or `consumable_to_key`
+- publisher must not directly submit member normalized lifecycle keys
+- when the parent lifecycle changes, the composite FK `ON UPDATE CASCADE` propagates the new `consumable_from_key` and `consumable_to_key` values to all member rows automatically
+- to read the original nullable lifecycle dates, join to the parent table; do not reconstruct them from the member
+
+#### Executable transition proofs
+
+**`draft → active`** — parent one UPDATE:
+
+```sql
+UPDATE task9_capacity_pool_definition
+SET status = 'active',
+    consumable_from_local_date = activation_boundary,
+    consumable_to_local_date = NULL,
+    status_changed_at = now()
+WHERE id = :pool_id;
+```
+
+Parent generated normalized keys change automatically. The composite FK `ON UPDATE CASCADE` propagates the new `status`, `consumable_from_key`, and `consumable_to_key` to all member rows. No member generated column is written by the cascade — member keys are ordinary columns.
+
+**`active → superseded`** — parent one UPDATE:
+
+```sql
+UPDATE task9_capacity_pool_definition
+SET status = 'superseded',
+    superseded_by_id = :replacement_id,
+    consumable_to_local_date = replacement_boundary,
+    status_changed_at = now()
+WHERE id = :pool_id;
+```
+
+Member `status` and ordinary normalized lifecycle keys cascade in the same database action. No member generated column is written by the cascade.
+
+**`active → retired`** — parent one UPDATE:
+
+```sql
+UPDATE task9_capacity_pool_definition
+SET status = 'retired',
+    consumable_to_local_date = retirement_boundary,
+    status_changed_at = now()
+WHERE id = :pool_id;
+```
+
+Same cascade semantics as supersession, without `superseded_by_id`.
 
 ### 10.4 Active replacement transaction
 
@@ -1102,6 +1164,38 @@ Validation:
 - `consumable_from_local_date >= available_at_local_date` (enforced by CHECK constraint)
 - all comparisons use `node.as_of_local_date`
 
+### 10.7.1 IANA timezone validation layers
+
+DDL guarantees only `TEXT NOT NULL` and `btrim(value) <> ''`. PostgreSQL DDL does **not** verify IANA timezone membership. Frozen three-layer validation:
+
+**Schema/write validation** (at repository create-or-load):
+
+```python
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+try:
+    ZoneInfo(timezone_name)
+except (ZoneInfoNotFoundError, ValueError):
+    raise AuthorityBlocker("TIMEZONE_AUTHORITY_INVALID")
+```
+
+Validates: `farm_timezone`, `destination_factory_timezone`, `holiday.lifecycle_timezone_name`, `weather.lifecycle_timezone_name`.
+
+**Repository create-or-load** (at insert or idempotent load):
+
+- re-validate: non-empty, loadable by `ZoneInfo`
+- exact same business key + different timezone payload → `AUTHORITY_VERSION_CONFLICT`
+- silent normalization to other timezone names is forbidden
+
+**Integrity reload** (at run-package load time):
+
+- re-validate all persisted timezone names are still loadable by `ZoneInfo`
+- verify: `run_package.destination_factory_timezone == holiday.lifecycle_timezone_name == weather.lifecycle_timezone_name`
+- name illegal → `TIMEZONE_AUTHORITY_INVALID`
+- name legal but dependency mismatch → `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT`
+
+These two blockers must **not** be conflated. An invalid timezone name is a data integrity error; a timezone mismatch between package and dependency is a scope conflict.
+
 ### 10.8 Lifecycle mutation and audit evidence
 
 #### Business row hash scope
@@ -1126,13 +1220,11 @@ Reason: these fields change during legitimate lifecycle transitions. Including t
 | Normalized lifecycle keys | `consumable_from_key`, `consumable_to_key` | generated from base lifecycle columns |
 | Consumability range | `consumability_range` | generated from base lifecycle columns |
 
-#### Future lifecycle event audit model
+#### Lifecycle event audit model
 
-Design boundary: the following table is **not** created in this round. It will be created in a future implementation phase. This section freezes the design contract only.
+The `task9_authority_lifecycle_event` table is created by migration `0014`. It is the authoritative append-only history for all lifecycle transitions.
 
-Future table: `task9_authority_lifecycle_event`
-
-Minimum columns:
+Columns:
 
 | Column | Type | Description |
 |---|---|---|
@@ -1141,8 +1233,9 @@ Minimum columns:
 | `authority_stable_key` | TEXT NOT NULL | deterministic business identity without surrogate IDs |
 | `authority_business_version` | TEXT NOT NULL | business version string |
 | `authority_revision` | INTEGER NOT NULL | business revision |
+| `business_row_hash` | TEXT NOT NULL | SHA-256 of the authority row's business payload at transition time |
 | `transition_sequence` | INTEGER NOT NULL | deterministic ordering per authority identity |
-| `old_status` | TEXT | status before transition |
+| `old_status` | TEXT | status before transition (NULL for initial draft event) |
 | `new_status` | TEXT NOT NULL | status after transition |
 | `old_consumable_from_local_date` | DATE | interval start before transition |
 | `old_consumable_to_local_date` | DATE | interval end before transition |
@@ -1153,15 +1246,43 @@ Minimum columns:
 | `source_system` | TEXT NOT NULL | provenance |
 | `source_record_key` | TEXT NOT NULL | provenance record key |
 | `lifecycle_event_hash` | TEXT NOT NULL | SHA-256 of canonical event payload |
-| `created_at` | TIMESTAMPTZ NOT NULL | row creation time |
+| `created_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | row creation time |
 
-Requirements:
+SHA fields use: `CHECK (hash_column ~ '^[0-9a-f]{64}$')`
 
-- **append-only**: no UPDATE, no DELETE
-- `UNIQUE(authority_stable_key, transition_sequence)` — deterministic ordering
-- `UNIQUE(authority_stable_key, lifecycle_event_hash)` — idempotency
-- `lifecycle_event_hash` covers: authority family, stable identity, business version, revision, transition sequence, old/new status, old/new interval, replacement stable identity, transition timestamp, source provenance
-- surrogate database IDs must **not** enter the hash
+Constraints:
+
+- `UNIQUE(authority_family, authority_stable_key, transition_sequence)` — deterministic ordering
+- `UNIQUE(authority_family, authority_stable_key, lifecycle_event_hash)` — idempotency
+- `CHECK (transition_sequence >= 1)`
+- **append-only**: no UPDATE, no DELETE (enforced at repository level; database triggers are not used)
+
+Hash scope — `lifecycle_event_hash` must cover:
+
+- `authority_family`
+- `authority_stable_key`
+- `authority_business_version`
+- `authority_revision`
+- `business_row_hash`
+- `transition_sequence`
+- `old_status`
+- `new_status`
+- `old_consumable_from_local_date`
+- `old_consumable_to_local_date`
+- `new_consumable_from_local_date`
+- `new_consumable_to_local_date`
+- `superseded_by_stable_key`
+- `transitioned_at`
+- `source_system`
+- `source_record_key`
+- event schema version string (frozen constant)
+
+Must **not** enter hash:
+
+- event surrogate `id`
+- authority table surrogate `id`
+- runtime identity
+- database UUID
 
 #### Set-once enforcement model
 
@@ -1170,31 +1291,55 @@ Chosen contract: **header projection + append-only event chain**
 - authority header rows store current projection lifecycle fields (`status`, `consumable_from/to`, `superseded_by_id`)
 - the append-only `task9_authority_lifecycle_event` table is the authoritative history
 - repository lifecycle transitions must:
-  1. lock authority row
-  2. validate latest lifecycle event
-  3. append next event
-  4. update current projection
-  5. commit atomically
+  1. lock authority header row
+  2. load and validate latest lifecycle event
+  3. calculate next `transition_sequence`
+  4. append lifecycle event row
+  5. update header current projection
+  6. allow FK cascade to update member copied projection where applicable
+  7. commit once
+- any failure must: rollback event insert, rollback header update, rollback child cascade
+- must **not** update header without appending event
 - database triggers are **not** used; historical authenticity is enforced by the event chain, not by header field immutability alone
 - persisted replay verifies the exact lifecycle event evidence, not just the header's current projection
+
+#### Initial draft event
+
+When a new authority row is inserted as `draft`:
+
+- write lifecycle event with `transition_sequence = 1`
+- `old_status = NULL`
+- `new_status = 'draft'`
+- `old_consumable_from_local_date = NULL`
+- `old_consumable_to_local_date = NULL`
+- `new_consumable_from_local_date = NULL`
+- `new_consumable_to_local_date = NULL`
+- `business_row_hash` = hash of the newly inserted row's business payload
+
+This lets replay prove the complete status chain, rather than guessing the initial state from the first activation event. Subsequent activation is `transition_sequence = 2`.
 
 #### Persisted replay binding
 
 Persisted resolved input must bind:
 
-- business row hash
-- lifecycle event hash (when lifecycle event table exists)
-- resolved `consumable_from_local_date`
-- resolved `consumable_to_local_date`
-- original cutoff
+- `business_row_hash`
+- `lifecycle_event_hash`
+- `consumable_from_local_date` (resolved)
+- `consumable_to_local_date` (resolved)
+- original node cutoff
+- `authority_stable_key`
+- `authority_business_version`
+- `authority_revision`
 
 Persisted replay verification:
 
 1. exact business row still exists
-2. business row hash matches
-3. (future) exact lifecycle event still exists and hash matches
-4. original cutoff falls within the interval that was valid at resolution time
-5. do **not** just check the authority's current lifecycle fields — they may have changed since resolution
+2. `business_row_hash` matches
+3. exact lifecycle event still exists
+4. `lifecycle_event_hash` matches
+5. event `authority_stable_key`, `authority_business_version`, `authority_revision` match the resolved authority
+6. original cutoff lies inside the event-confirmed interval
+7. do **not** just check the authority's current lifecycle fields — they may have changed since resolution
 
 ---
 
@@ -1330,18 +1475,15 @@ The member table redundantly stores:
 - `effective_from`
 - `effective_to`
 - `status`
-- `consumable_from_local_date`
-- `consumable_to_local_date`
 
 These are copied solely so PostgreSQL can enforce cross-pool exclusion at child granularity. They must be bound to the parent by database constraint, not by trigger.
 
 #### Normalized lifecycle keys
 
-Because `consumable_from_local_date` and `consumable_to_local_date` are legitimately NULL for `draft` and `cancelled` rows, they cannot reliably participate in composite FK matching. Frozen solution: add non-null normalized generated keys.
-
-Both parent and member add:
+The parent `task9_capacity_pool_definition` stores nullable lifecycle base columns and generates normalized keys:
 
 ```sql
+-- parent: generated from nullable base columns
 consumable_from_key DATE GENERATED ALWAYS AS (
     COALESCE(consumable_from_local_date, 'infinity'::date)
 ) STORED,
@@ -1350,9 +1492,28 @@ consumable_to_key DATE GENERATED ALWAYS AS (
 ) STORED
 ```
 
-These generated expressions must directly reference the base lifecycle fields. No generated-column chaining.
+The member `task9_capacity_pool_member` does **not** store nullable lifecycle base columns. It stores ordinary, non-null, read-only copied projection keys:
 
-Forbidden: publisher-submitted `consumable_from_local_date` or `consumable_to_local_date` must **never** use PostgreSQL `infinity`. Infinity is reserved for normalized keys and generated ranges only.
+```sql
+-- member: ordinary columns, populated via FK cascade
+consumable_from_key DATE NOT NULL,
+consumable_to_key DATE NOT NULL
+```
+
+The composite FK references the parent generated keys. `ON UPDATE CASCADE` propagates new values from the parent to the member ordinary columns.
+
+The member `consumability_range` is generated directly from the ordinary copied keys:
+
+```sql
+-- member: generated from ordinary copied keys
+consumability_range DATERANGE GENERATED ALWAYS AS (
+    daterange(consumable_from_key, consumable_to_key, '[)')
+) STORED
+```
+
+This design avoids the PostgreSQL limitation where `ON UPDATE CASCADE` cannot write directly into generated columns.
+
+Forbidden: publisher-submitted `consumable_from_local_date` or `consumable_to_local_date` must **never** use PostgreSQL `infinity`. Infinity is reserved for parent generated keys and generated ranges only. Member keys receive their infinity values through cascade, not from publisher input.
 
 #### Frozen binding strategy
 
@@ -1363,10 +1524,12 @@ Forbidden: publisher-submitted `consumable_from_local_date` or `consumable_to_lo
   - `effective_range` must not reference `effective_to_exclusive`, because PostgreSQL 16 does not allow generated-column chaining
 - parent gets composite uniqueness on:
   - `(id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_key, consumable_to_key)`
-- child stores copied `effective_from`, nullable `effective_to`, copied `status`, copied `consumable_from_local_date`, copied `consumable_to_local_date`, and generates its own `effective_to_exclusive`, `consumable_from_key`, `consumable_to_key` from the same expressions
+- child stores copied `effective_from`, nullable `effective_to`, copied `status`, and generates its own `effective_to_exclusive` and `effective_range`
+- child stores ordinary `consumable_from_key DATE NOT NULL` and `consumable_to_key DATE NOT NULL` (copied via FK cascade, not generated)
+- child generates `consumability_range` from the ordinary copied keys
 - child gets composite FK on:
   - `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_key, consumable_to_key)`
-- composite FK uses `ON UPDATE CASCADE`
+- composite FK uses `ON UPDATE CASCADE` — this is safe because member keys are ordinary columns, not generated
 - child and parent must reject divergent normalized ends; a child row with different `effective_to` cannot match the parent composite key
 - exclusion constraints continue to use `effective_range` and `consumability_range`, but those ranges must be generated directly from their base columns
 - no triggers
@@ -1434,8 +1597,11 @@ Frozen blocker set for future implementation:
 - `AUTHORITY_CONSUMABILITY_INTERVAL_OVERLAP`
 - `AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT`
 - `AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF`
+- `TIMEZONE_AUTHORITY_INVALID`
+  - timezone name cannot be loaded by `ZoneInfo()` (not a valid IANA timezone)
 - `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT`
   - loaded run package `destination_factory_timezone` does not match the referenced holiday or weather authority `lifecycle_timezone_name`
+  - both timezone names are individually valid IANA names but do not match
 
 These are in addition to existing Task 6 / Task 7 / Task 8 / Task 9 blocker families.
 
@@ -1498,7 +1664,7 @@ Authority table:
 
 Source-record-key format:
 
-- `daily-capacity:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+- `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
 
 Additional frozen ref fields:
 
@@ -1526,7 +1692,7 @@ Authority table:
 
 Source-record-key format:
 
-- `daily-capacity:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+- `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
 
 Capacity refs may share one authority row hash, but each parameter code still requires its own `ParameterSourceRef`.
 
@@ -1545,7 +1711,7 @@ Frozen prefixes:
 - run package:
   - `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}`
 - daily capacity:
-  - `daily-capacity:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+  - `daily-capacity:{season_id}:{destination_factory_id}:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
 - holiday calendar:
   - `holiday-calendar:{season_id}:{calendar_code}:{lifecycle_timezone_name}:{calendar_version}:{revision}`
 - weather rule:
@@ -1791,23 +1957,10 @@ CREATE TABLE task9_capacity_pool_member (
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
-    consumable_from_local_date DATE,
-    consumable_to_local_date DATE,
-    consumable_from_key DATE GENERATED ALWAYS AS (
-        COALESCE(consumable_from_local_date, 'infinity'::date)
-    ) STORED,
-    consumable_to_key DATE GENERATED ALWAYS AS (
-        COALESCE(consumable_to_local_date, 'infinity'::date)
-    ) STORED,
+    consumable_from_key DATE NOT NULL,
+    consumable_to_key DATE NOT NULL,
     consumability_range DATERANGE GENERATED ALWAYS AS (
-        daterange(
-            COALESCE(consumable_from_local_date, 'infinity'::date),
-            CASE
-                WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
-                ELSE consumable_to_local_date
-            END,
-            '[)'
-        )
+        daterange(consumable_from_key, consumable_to_key, '[)')
     ) STORED,
     row_hash TEXT NOT NULL
         CONSTRAINT ck_task9_capacity_pool_member_row_hash_sha256
@@ -2476,6 +2629,34 @@ ALTER TABLE task9_mature_inventory_loss_authority
         forecast_quantile WITH =,
         consumability_range WITH &&
     );
+
+CREATE TABLE task9_authority_lifecycle_event (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    authority_family TEXT NOT NULL,
+    authority_stable_key TEXT NOT NULL,
+    authority_business_version TEXT NOT NULL,
+    authority_revision INTEGER NOT NULL,
+    business_row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_lifecycle_event_business_row_hash
+        CHECK (business_row_hash ~ '^[0-9a-f]{64}$'),
+    transition_sequence INTEGER NOT NULL CHECK (transition_sequence >= 1),
+    old_status TEXT,
+    new_status TEXT NOT NULL,
+    old_consumable_from_local_date DATE,
+    old_consumable_to_local_date DATE,
+    new_consumable_from_local_date DATE,
+    new_consumable_to_local_date DATE,
+    superseded_by_stable_key TEXT,
+    transitioned_at TIMESTAMPTZ NOT NULL,
+    source_system TEXT NOT NULL,
+    source_record_key TEXT NOT NULL,
+    lifecycle_event_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_lifecycle_event_hash
+        CHECK (lifecycle_event_hash ~ '^[0-9a-f]{64}$'),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (authority_family, authority_stable_key, transition_sequence),
+    UNIQUE (authority_family, authority_stable_key, lifecycle_event_hash)
+);
 ```
 
 ---
@@ -2500,6 +2681,7 @@ Frozen target:
 - `task9_initial_inventory_snapshot`
 - `task9_initial_inventory_cohort`
 - `task9_mature_inventory_loss_authority`
+- `task9_authority_lifecycle_event`
 
 ### 14.3 Constraints and indexes to create
 
@@ -2514,11 +2696,12 @@ Frozen target:
   - `task9_weather_rule_config_version.effective_range`
   - `task9_run_parameter_package.effective_to_exclusive`
   - `task9_run_parameter_package.effective_range`
-- generated normalized lifecycle keys:
-  - `task9_capacity_pool_definition.consumable_from_key`
-  - `task9_capacity_pool_definition.consumable_to_key`
-  - `task9_capacity_pool_member.consumable_from_key`
-  - `task9_capacity_pool_member.consumable_to_key`
+- generated normalized lifecycle keys (parent only):
+  - `task9_capacity_pool_definition.consumable_from_key` (GENERATED from `consumable_from_local_date`)
+  - `task9_capacity_pool_definition.consumable_to_key` (GENERATED from `consumable_to_local_date`)
+- ordinary copied lifecycle keys (member only):
+  - `task9_capacity_pool_member.consumable_from_key` (DATE NOT NULL, copied via FK cascade)
+  - `task9_capacity_pool_member.consumable_to_key` (DATE NOT NULL, copied via FK cascade)
 - generated consumability range columns:
   - `task9_capacity_pool_definition.consumability_range`
   - `task9_capacity_pool_member.consumability_range`
@@ -2542,10 +2725,14 @@ Frozen target:
   - `ex_task9_initial_inventory_consumability_overlap`
   - `ex_task9_mature_loss_consumability_overlap`
   - `ex_task9_holiday_calendar_consumability_overlap` (includes `lifecycle_timezone_name`)
-- lifecycle audit future boundary:
-  - `task9_authority_lifecycle_event` table designed but not created in 0014
-  - append-only, no UPDATE/DELETE
-  - lifecycle_event_hash covers all transition fields excluding surrogate IDs
+- lifecycle event audit table:
+  - `task9_authority_lifecycle_event` created by `0014`
+  - append-only (enforced at repository level)
+  - `UNIQUE(authority_family, authority_stable_key, transition_sequence)`
+  - `UNIQUE(authority_family, authority_stable_key, lifecycle_event_hash)`
+  - `CHECK (transition_sequence >= 1)`
+  - SHA-256 regex on `business_row_hash` and `lifecycle_event_hash`
+  - lifecycle_event_hash covers all transition fields, business_row_hash, event schema version; excludes surrogate IDs
 - `holiday_calendar_version.lifecycle_timezone_name`:
   - `TEXT NOT NULL`, IANA timezone
   - enters business grain, UNIQUE, one-active index, exclusion constraint, source_record_key
@@ -2563,8 +2750,9 @@ Frozen target:
 - `UNIQUE NULLS NOT DISTINCT`:
   - `task9_capacity_pool_member(capacity_pool_definition_id, farm_id, subfarm_id, variety_id)`
 - composite parent-child FK uses normalized lifecycle keys:
-  - `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_key, consumable_to_key)`
-  - `ON UPDATE CASCADE`
+  - member `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_key, consumable_to_key)` references parent `(id, ...)`
+  - `ON UPDATE CASCADE` — safe because member `consumable_from_key`/`consumable_to_key` are ordinary columns, not generated
+  - parent lifecycle change cascades `status`, `consumable_from_key`, `consumable_to_key` to member rows automatically
 - partial unique one-active indexes:
   - `uq_task9_daily_capacity_one_active`
   - `uq_task9_initial_inventory_one_active`
@@ -2583,7 +2771,6 @@ Frozen target:
   - active package destination_factory_timezone must match holiday/weather lifecycle_timezone_name
   - dependency replacement is transactional
 - triggers: `NONE`
-- no new rolling_backtest tables
 
 ### 14.4 Existing-table alterations
 
@@ -2603,7 +2790,8 @@ If later implementation proves an existing-table alteration is required, that is
 6. daily capacity table
 7. initial inventory snapshot/cohort tables
 8. mature inventory loss table
-9. indexes and exclusion constraints
+9. `task9_authority_lifecycle_event`
+10. indexes and exclusion constraints
 
 ### 14.6 Downgrade order
 
@@ -2761,6 +2949,18 @@ Frozen decision:
 - [x] Run-package dependency timezone validation blocker added (P0-5)
 - [x] Supersession scope updated for holiday and weather (P0-5)
 - [x] Migration 0014 boundary updated for all new objects
+- [x] Member lifecycle keys are ordinary NOT NULL columns, not generated (P0-1)
+- [x] Member does not store nullable lifecycle base columns (P0-1)
+- [x] Composite FK cascade writes ordinary member columns, not generated (P0-1)
+- [x] Executable transition proofs for draft→active, active→superseded, active→retired (P0-1)
+- [x] `task9_authority_lifecycle_event` included in 0014 migration (P0-2)
+- [x] Lifecycle event table DDL with all columns, constraints, SHA-256 checks (P0-2)
+- [x] Initial draft event (sequence 1) frozen for complete status chain (P0-2)
+- [x] Atomic event + header projection transaction contract frozen (P0-2)
+- [x] Persisted replay binding includes stable key, version, revision, event hash (P0-2)
+- [x] Daily-capacity `source_record_key` includes `season_id` and `destination_factory_id` (P0-3)
+- [x] IANA timezone validation three-layer model frozen (P1)
+- [x] `TIMEZONE_AUTHORITY_INVALID` vs `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT` separated (P1)
 
 ---
 
