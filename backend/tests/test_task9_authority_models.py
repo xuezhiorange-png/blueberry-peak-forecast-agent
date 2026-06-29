@@ -112,3 +112,14 @@ def test_task9_authority_models_compile_without_p0_7b_only_constraints() -> None
         assert "EXCLUDE USING" not in sql
         assert "UNIQUE NULLS NOT DISTINCT" not in sql
         assert "GENERATED ALWAYS AS" not in sql
+
+
+def test_member_table_has_no_plain_unique_constraint() -> None:
+    """P1-1: Plain UniqueConstraint absent; NULLS NOT DISTINCT deferred to P0-7B."""
+    uc_names = [
+        c.name for c in Task9CapacityPoolMember.__table__.constraints
+        if hasattr(c, "name") and c.name == "uq_task9_capacity_pool_member_business_key"
+    ]
+    assert uc_names == [], (
+        "Plain UniqueConstraint must be removed; UNIQUE NULLS NOT DISTINCT goes to P0-7B"
+    )
