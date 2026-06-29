@@ -1765,38 +1765,56 @@ async def test_orm_and_migration_parity_for_ordinary_columns() -> None:
             text(
                 """
                 SELECT
-                    tc.table_name,
-                    kcu.column_name,
-                    ccu.table_name AS foreign_table_name,
-                    ccu.column_name AS foreign_column_name,
-                    rc.update_rule,
-                    rc.delete_rule
-                FROM information_schema.table_constraints AS tc
-                JOIN information_schema.key_column_usage AS kcu
-                  ON tc.constraint_name = kcu.constraint_name
-                 AND tc.table_schema = kcu.table_schema
-                JOIN information_schema.referential_constraints AS rc
-                  ON tc.constraint_name = rc.constraint_name
-                 AND tc.table_schema = rc.constraint_schema
-                JOIN information_schema.constraint_column_usage AS ccu
-                  ON rc.unique_constraint_name = ccu.constraint_name
-                 AND rc.unique_constraint_schema = ccu.constraint_schema
-                WHERE tc.table_schema = 'public'
-                  AND tc.constraint_type = 'FOREIGN KEY'
-                  AND tc.table_name LIKE 'task9_%'
-                ORDER BY tc.table_name, kcu.column_name
+                    rel_t.relname AS table_name,
+                    att_t.attname AS column_name,
+                    rel_f.relname AS foreign_table_name,
+                    att_f.attname AS foreign_column_name,
+                    con.confupdtype AS update_rule,
+                    con.confdeltype AS delete_rule
+                FROM pg_constraint AS con
+                JOIN pg_class AS rel_t
+                  ON rel_t.oid = con.conrelid
+                JOIN pg_namespace AS ns
+                  ON ns.oid = rel_t.relnamespace
+                JOIN pg_class AS rel_f
+                  ON rel_f.oid = con.confrelid
+                JOIN unnest(con.conkey) WITH ORDINALITY AS key_cols(attnum, ordinality)
+                  ON TRUE
+                JOIN unnest(con.confkey) WITH ORDINALITY AS ref_cols(attnum, ordinality)
+                  ON ref_cols.ordinality = key_cols.ordinality
+                JOIN pg_attribute AS att_t
+                  ON att_t.attrelid = rel_t.oid
+                 AND att_t.attnum = key_cols.attnum
+                JOIN pg_attribute AS att_f
+                  ON att_f.attrelid = rel_f.oid
+                 AND att_f.attnum = ref_cols.attnum
+                WHERE con.contype = 'f'
+                  AND ns.nspname = 'public'
+                  AND rel_t.relname LIKE 'task9_%'
+                ORDER BY rel_t.relname, att_t.attname, key_cols.ordinality
                 """
             )
         )
-        db_fks = {
-            (row.table_name, row.column_name): (
-                row.foreign_table_name,
-                row.foreign_column_name,
-                row.update_rule,
-                row.delete_rule,
+
+        def _fk_action(code: str) -> str:
+            return {
+                "a": "NO ACTION",
+                "r": "RESTRICT",
+                "c": "CASCADE",
+                "n": "SET NULL",
+                "d": "SET DEFAULT",
+            }[code]
+
+        db_fks: dict[tuple[str, str], list[tuple[str, str, str, str]]] = {}
+        for row in fk_rows:
+            db_fks.setdefault((row.table_name, row.column_name), []).append(
+                (
+                    row.foreign_table_name,
+                    row.foreign_column_name,
+                    _fk_action(row.update_rule),
+                    _fk_action(row.delete_rule),
+                )
             )
-            for row in fk_rows
-        }
 
         generated = await session.execute(
             text(
@@ -1846,12 +1864,12 @@ async def test_orm_and_migration_parity_for_ordinary_columns() -> None:
                 assert "now()" in db_column.column_default
             for foreign_key in column.foreign_keys:
                 target_table, target_column = foreign_key.target_fullname.split(".")
-                assert db_fks[(table_name, column.name)] == (
+                assert (
                     target_table,
                     target_column,
                     foreign_key.onupdate or "NO ACTION",
                     foreign_key.ondelete or "NO ACTION",
-                )
+                ) in db_fks.get((table_name, column.name), [])
         extra_columns = set(db_rows[table_name]) - {column.name for column in table.columns}
         assert extra_columns == migration_only_columns.get(table_name, set())
 
@@ -1873,3 +1891,15 @@ async def test_orm_and_migration_parity_for_ordinary_columns() -> None:
     assert "[)" in generated_rows[("task9_daily_capacity_authority", "consumability_range")]
     assert ("task9_capacity_pool_member", "consumable_from_key") not in generated_rows
     assert ("task9_capacity_pool_member", "consumable_to_key") not in generated_rows
+    assert (
+        "task9_capacity_pool_definition",
+        "consumable_from_key",
+        "CASCADE",
+        "RESTRICT",
+    ) in db_fks[("task9_capacity_pool_member", "consumable_from_key")]
+    assert (
+        "task9_capacity_pool_definition",
+        "consumable_to_key",
+        "CASCADE",
+        "RESTRICT",
+    ) in db_fks[("task9_capacity_pool_member", "consumable_to_key")]
