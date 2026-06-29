@@ -766,14 +766,29 @@ Parent/member synchronization is database-driven:
 Replacement of one active authority row with a new active row must occur as:
 
 1. lock current active row
-2. transition current row from `active` to `superseded`
-3. let `ON UPDATE CASCADE` propagate copied member status on the old pool
-4. insert or activate replacement row plus replacement members
-5. commit atomically
+2. insert replacement authority row as `draft`
+3. insert replacement child rows as `draft`, when the authority has child rows
+4. update current active row to:
+   - `status = 'superseded'`
+   - `superseded_by_id = replacement.id`
+   - `status_changed_at = transaction timestamp`
+5. let `ON UPDATE CASCADE` propagate copied member status on the old pool
+6. update replacement row to:
+   - `status = 'active'`
+   - `status_changed_at = transaction timestamp`
+7. let `ON UPDATE CASCADE` propagate copied member status on the replacement pool
+8. commit atomically
+- replacement is inserted as `draft` first so it:
+  - does not participate in active-only unique indexes
+  - does not participate in active-only exclusion constraints
+  - already exists as a valid self-FK target for `superseded_by_id`
+- any failure rolls back the entire transaction; no draft orphan, partial supersession, or parent/member divergence is allowed
+- immediate self-FKs are retained; no deferred constraints are introduced
+- repository implementation must lock the current active row before replacement insert/update
 
 Only `active` rows participate in exclusion constraints. `superseded`, `retired`, and `cancelled` rows do not.
 
-### 10.6 Supersession integrity
+### 10.5 Supersession integrity
 
 Independent status authorities support `superseded_by_id` only on header/value rows:
 
@@ -818,7 +833,7 @@ Scope mismatch must fail with blocker:
 
 - `AUTHORITY_SUPERSESSION_SCOPE_CONFLICT`
 
-### 10.5 Selection matrix
+### 10.6 Selection matrix
 
 | Authority | SQL WHERE | Consumable statuses | ORDER BY | Expected cardinality | Ambiguity blocker |
 |---|---|---|---|---:|---|
@@ -908,8 +923,9 @@ Frozen binding strategy:
 
 - parent stores non-null normalized effective end:
   - `effective_to_exclusive DATE GENERATED ALWAYS AS (CASE WHEN effective_to IS NULL THEN 'infinity'::date ELSE effective_to + 1 END) STORED`
-- parent and child both generate `effective_range` from the same normalized bound:
-  - `daterange(effective_from, effective_to_exclusive, '[)')`
+- parent and child both generate `effective_to_exclusive` and `effective_range` independently from the same base columns:
+  - base columns are `effective_from` and `effective_to`
+  - `effective_range` must not reference `effective_to_exclusive`, because PostgreSQL 16 does not allow generated-column chaining
 - parent gets composite uniqueness on:
   - `(id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status)`
 - child stores copied `effective_from`, nullable `effective_to`, copied `status`, and generates its own `effective_to_exclusive` from the same expression
@@ -917,6 +933,7 @@ Frozen binding strategy:
   - `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status)`
 - composite FK uses `ON UPDATE CASCADE`
 - child and parent must reject divergent normalized ends; a child row with different `effective_to` cannot match the parent composite key
+- exclusion constraints continue to use `effective_range`, but that range must be generated directly from `effective_from` and `effective_to`
 - no triggers
 
 Open-ended interval rules:
@@ -1098,6 +1115,72 @@ Prohibited in `source_record_key`:
 
 ---
 
+## 12B. Run-package dependency lifecycle
+
+Frozen invariant:
+
+- an active `task9_run_parameter_package` must always reference:
+  - one active `task9_holiday_calendar_version`
+  - one active `task9_weather_rule_config_version`
+
+This invariant is enforced by repository transaction ordering plus load-time integrity validation. A plain database FK only proves existence, not consumable status.
+
+### 12B.1 Dependency-aware replacement order
+
+When holiday and/or weather-rule authority changes together with the run package, the replacement transaction must occur as:
+
+1. lock the current active run package
+2. lock the currently referenced active holiday row
+3. lock the currently referenced active weather-rule row
+4. insert the replacement holiday row as `draft`
+5. insert replacement holiday-date child rows
+6. insert the replacement weather-rule row as `draft`
+7. insert the replacement run package as `draft`, referencing the new draft holiday/weather rows
+8. supersede the old active run package and set `superseded_by_id`
+9. supersede the old holiday row and set `superseded_by_id`
+10. supersede the old weather-rule row and set `superseded_by_id`
+11. activate the replacement holiday row
+12. activate the replacement weather-rule row
+13. activate the replacement run package
+14. commit atomically
+
+Why the old run package is superseded first:
+
+- an active run package must never point at a superseded holiday row
+- an active run package must never point at a superseded weather-rule row
+- therefore the active package must exit `active` before the old dependencies do
+
+### 12B.2 Standalone dependency supersession
+
+If a caller attempts to supersede, retire, or cancel a holiday or weather-rule row on its own:
+
+1. query active run packages referencing that row
+2. if any active package remains outside the current replacement transaction, reject the transition
+
+Frozen blockers:
+
+- `RUN_PARAMETER_DEPENDENCY_STATUS_CONFLICT`
+  - loaded run package references a dependency whose status is not active
+- `AUTHORITY_STILL_REFERENCED_BY_ACTIVE_PACKAGE`
+  - holiday or weather-rule supersession/retirement/cancellation is attempted while still referenced by an active run package
+
+### 12B.3 Load integrity
+
+Loading an active run package must verify:
+
+- holiday target exists
+- weather target exists
+- holiday target `status = 'active'`
+- weather target `status = 'active'`
+- holiday target visible at node local cutoff
+- weather target visible at node local cutoff
+- scope compatibility holds
+- row/config hashes recompute successfully
+
+Exact FK loading remains required. Resolver logic must not repair broken references by independently selecting a "latest" holiday or weather row.
+
+---
+
 ## 13. DDL Draft
 
 The following SQL is a design draft for `0014`. It is intentionally not applied in this round.
@@ -1125,7 +1208,14 @@ CREATE TABLE task9_capacity_pool_definition (
         END
     ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
-        daterange(effective_from, effective_to_exclusive, '[)')
+        daterange(
+            effective_from,
+            CASE
+                WHEN effective_to IS NULL THEN 'infinity'::date
+                ELSE effective_to + 1
+            END,
+            '[)'
+        )
     ) STORED,
     available_at_local_date DATE NOT NULL,
     status TEXT NOT NULL
@@ -1169,7 +1259,14 @@ CREATE TABLE task9_capacity_pool_member (
         END
     ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
-        daterange(effective_from, effective_to_exclusive, '[)')
+        daterange(
+            effective_from,
+            CASE
+                WHEN effective_to IS NULL THEN 'infinity'::date
+                ELSE effective_to + 1
+            END,
+            '[)'
+        )
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
@@ -1316,7 +1413,14 @@ CREATE TABLE task9_weather_rule_config_version (
         END
     ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
-        daterange(effective_from, effective_to_exclusive, '[)')
+        daterange(
+            effective_from,
+            CASE
+                WHEN effective_to IS NULL THEN 'infinity'::date
+                ELSE effective_to + 1
+            END,
+            '[)'
+        )
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
@@ -1365,7 +1469,14 @@ CREATE TABLE task9_run_parameter_package (
         END
     ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
-        daterange(effective_from, effective_to_exclusive, '[)')
+        daterange(
+            effective_from,
+            CASE
+                WHEN effective_to IS NULL THEN 'infinity'::date
+                ELSE effective_to + 1
+            END,
+            '[)'
+        )
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
@@ -1577,7 +1688,7 @@ Frozen target:
 ### 14.3 Constraints and indexes to create
 
 - `btree_gist` extension: **YES**
-- generated range columns:
+- generated effective-bound and range columns:
   - `task9_capacity_pool_definition.effective_to_exclusive`
   - `task9_capacity_pool_definition.effective_range`
   - `task9_capacity_pool_member.effective_to_exclusive`
@@ -1587,6 +1698,9 @@ Frozen target:
   - `task9_weather_rule_config_version.effective_range`
   - `task9_run_parameter_package.effective_to_exclusive`
   - `task9_run_parameter_package.effective_range`
+- generated-column rule:
+  - each generated expression references base columns only
+  - no generated column may reference another generated column
 - `UNIQUE NULLS NOT DISTINCT`:
   - `task9_capacity_pool_member(capacity_pool_definition_id, farm_id, subfarm_id, variety_id)`
 - partial unique one-active indexes:
@@ -1599,6 +1713,14 @@ Frozen target:
   - `ex_task9_capacity_pool_definition_overlap`
   - `ex_task9_capacity_pool_member_overlap`
   - `ex_task9_run_parameter_package_overlap`
+- draft-first supersession lifecycle:
+  - required
+  - immediate self-FKs retained
+  - no deferred constraints
+- run-package dependency lifecycle:
+  - active package requires active holiday target
+  - active package requires active weather-rule target
+  - dependency replacement is transactional
 - triggers: `NONE`
 - no new rolling_backtest tables
 
