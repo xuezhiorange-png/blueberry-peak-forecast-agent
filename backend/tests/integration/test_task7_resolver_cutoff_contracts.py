@@ -25,12 +25,14 @@ from backend.app.models.weather import (
     WeatherSourceLocation,
 )
 from backend.app.rolling_backtest.enums import (
+    AvailabilitySourceType,
     DefaultNodeKey,
     ExecutionMode,
     Task10ModelPolicy,
     UpstreamSelectionMode,
 )
 from backend.app.rolling_backtest.resolution import (
+    _build_identity_payload,
     _query_task7_location_weather_mapping_candidates,
     _query_task7_weather_daily_observation_candidates,
     _query_task7_weather_feature_run_candidates,
@@ -686,6 +688,26 @@ class TestObservationWindow:
             )
             ids = [c.persistent_reference.reference_value for c in candidates]
             assert obs.id in ids
+
+            candidate = next(
+                item for item in candidates if item.persistent_reference.reference_value == obs.id
+            )
+            semantic = candidate.semantic_identity.semantic
+            payload = _build_identity_payload(candidate.semantic_identity)
+
+            assert candidate.source_type == AvailabilitySourceType.TASK7_WEATHER_OBSERVATION
+            assert candidate.source_role == "task7_weather_observation"
+            assert semantic.semantic_payload_hash == obs.row_hash
+            assert semantic.canonical_payload_hash == obs.row_hash
+            assert semantic.config_hash is None
+            assert semantic.business_version == obs.source_version
+            assert candidate.canonical_payload_hash == obs.row_hash
+            assert candidate.business_version == obs.source_version
+            assert candidate.persistent_reference.reference_type == "database_run_id"
+            assert candidate.persistent_reference.reference_value == obs.id
+            assert payload["semantic_payload_hash"] == obs.row_hash
+            assert payload["canonical_payload_hash"] == obs.row_hash
+            assert "config_hash" not in payload
 
     @pytest.mark.asyncio
     async def test_observation_at_forecast_end_included(self) -> None:
