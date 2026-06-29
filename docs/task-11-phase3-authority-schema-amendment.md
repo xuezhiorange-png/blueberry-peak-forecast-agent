@@ -5,9 +5,9 @@
 **Date**: 2026-06-29
 **Repository**: `xuezhiorange-png/blueberry-peak-forecast-agent`
 **Branch**: `codex/task-11-rolling-backtest-orchestration`
-**Current baseline HEAD**: `666cf06a4b129ee92c8bc3a8df31c6a1a20845cb`
+**Current baseline HEAD**: `3c5d153c1ad969a619b7fbb7ef9fc4d43421fee3`
 **Related PR / Issue**: PR #22 (Draft), Issue #21
-**Accepted predecessor**: P0-5 review `4589381607`
+**Accepted predecessor**: P0-6 review `4590189065`
 
 ---
 
@@ -262,10 +262,11 @@ This remains the minimum set that:
 
 - **Purpose**: immutable holiday package header
 - **Business grain**:
-  - `season_id x calendar_code x calendar_version`
+  - `season_id x calendar_code x lifecycle_timezone_name x calendar_version`
 - **Value fields**:
   - `calendar_hash`
   - `region_scope`
+  - `lifecycle_timezone_name TEXT NOT NULL` — IANA timezone that governs lifecycle DATE semantics
 - **Visibility fields**:
   - `available_at_local_date`
 - **Effective interval**:
@@ -293,7 +294,9 @@ This remains the minimum set that:
 
 - **Purpose**: immutable database authority for `WeatherEfficiencyRuleConfig`
 - **Business grain**:
-  - `rule_code x rule_version`
+  - `rule_code x lifecycle_timezone_name x rule_version`
+- **Value fields (new)**:
+  - `lifecycle_timezone_name TEXT NOT NULL` — IANA timezone that governs lifecycle DATE semantics
 - **Value fields**:
   - `combination_method`
   - `minimum_ratio`
@@ -482,10 +485,12 @@ Rules:
 - no implicit lag
 - no implicit calendar/version/hash
 - package identity uses `package_version TEXT` plus `revision INTEGER`
+- run package `destination_factory_timezone` must match referenced holiday `lifecycle_timezone_name` and weather `lifecycle_timezone_name`; mismatch blocks with `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT`
 
 ### 6.4 Holiday contract
 
 - Holiday replay authority is a versioned package, not `dim_holiday`
+- `lifecycle_timezone_name TEXT NOT NULL` is the authority-owned IANA timezone that governs lifecycle DATE semantics
 - `calendar_version` is the Task 9 business version string
 - `revision` is the immutable authority-row revision and is distinct from `calendar_version`
 - `calendar_hash` is the request business hash only and must be byte-compatible with:
@@ -536,6 +541,10 @@ Replay authority must exactly reconstruct `WeatherEfficiencyRuleConfig`:
 - `minimum_ratio`
 - `maximum_ratio`
 - `missing_feature_policy`
+
+Additional fields:
+
+- `lifecycle_timezone_name TEXT NOT NULL` — authority-owned IANA timezone governing lifecycle DATE semantics
 
 Version rules:
 
@@ -879,10 +888,12 @@ Forbidden transitions:
 ### 10.2 Immutable business payload vs mutable metadata
 
 - business payload columns are immutable after insert
-- mutable metadata is limited to:
+- current projection mutable lifecycle metadata:
   - `status`
   - `status_changed_at`
   - `superseded_by_id` on rows that enter `superseded`
+  - `consumable_from_local_date` — set once from NULL to a value during first activation; immutable after being set
+  - `consumable_to_local_date` — set once from NULL to a value during supersession or retirement; immutable after being set
 - `superseded_by_id`:
   - set once during `active → superseded`
   - never cleared
@@ -925,21 +936,46 @@ Frozen child-row lifecycle rules:
 
 ### 10.4 Active replacement transaction
 
+Frozen replacement boundary definition:
+
+```text
+replacement_boundary = publisher-provided canonical business DATE
+```
+
 Replacement of one active authority row with a new active row must occur as:
 
 1. lock current active row
-2. insert replacement authority row as `draft`
+2. insert replacement authority row as `draft`:
+   - `status = 'draft'`
+   - `consumable_from_local_date = NULL`
+   - `consumable_to_local_date = NULL`
 3. insert immutable child rows under the draft parent, when the authority has child rows
-4. update current active row to:
+4. update current active row in **one SQL UPDATE**:
    - `status = 'superseded'`
    - `superseded_by_id = replacement.id`
+   - `consumable_to_local_date = replacement_boundary`
    - `status_changed_at = transaction timestamp`
-5. let `ON UPDATE CASCADE` propagate copied member status on the old pool
-6. update replacement row to:
+5. let `ON UPDATE CASCADE` propagate copied member status and lifecycle on the old pool
+6. update replacement row in **one SQL UPDATE**:
    - `status = 'active'`
+   - `consumable_from_local_date = replacement_boundary`
+   - `consumable_to_local_date = NULL`
    - `status_changed_at = transaction timestamp`
-7. let `ON UPDATE CASCADE` propagate copied member status on the replacement pool
+7. let `ON UPDATE CASCADE` propagate copied member status and lifecycle on the replacement pool
 8. commit atomically
+
+Frozen interval consistency:
+
+- `old.consumable_to_local_date == replacement.consumable_from_local_date == replacement_boundary`
+- no gap, no overlap at the boundary
+
+Direct retirement (`active → retired`) must set all fields in **one SQL UPDATE**:
+
+- `status = 'retired'`
+- `consumable_to_local_date = retirement_boundary`
+- `status_changed_at = transaction timestamp`
+
+Forbidden: separate status update followed by a later lifecycle update. A failure at any step must roll back the entire transaction.
 - replacement is inserted as `draft` first so it:
   - does not participate in active-only unique indexes
   - does not participate in active-only exclusion constraints
@@ -981,9 +1017,9 @@ Repository integrity rules must also validate same-scope replacement:
 - daily capacity:
   - same `capacity_pool_definition_id + capacity_date`
 - holiday calendar:
-  - same `season_id + calendar_code`
+  - same `season_id + calendar_code + lifecycle_timezone_name`
 - weather rule:
-  - same `rule_code`
+  - same `rule_code + lifecycle_timezone_name`
 - run parameter package:
   - same `season_id + destination_factory_id + farm_scope_key`
 - initial inventory:
@@ -1049,8 +1085,8 @@ Authority timezone binding:
 | `task9_initial_inventory_snapshot` | destination factory timezone from selected Task 9 timezone authority |
 | `task9_mature_inventory_loss_authority` | destination factory timezone from selected Task 9 timezone authority |
 | `task9_run_parameter_package` | its own `destination_factory_timezone` field |
-| `task9_holiday_calendar_version` | the referencing run package `destination_factory_timezone` |
-| `task9_weather_rule_config_version` | the referencing run package `destination_factory_timezone` |
+| `task9_holiday_calendar_version` | its own `lifecycle_timezone_name` field (authority-owned) |
+| `task9_weather_rule_config_version` | its own `lifecycle_timezone_name` field (authority-owned) |
 
 Chosen approach: **publisher-provided canonical business DATE** (lifecycle DATE is not derived from timezone at resolution time).
 
@@ -1065,6 +1101,100 @@ Validation:
 
 - `consumable_from_local_date >= available_at_local_date` (enforced by CHECK constraint)
 - all comparisons use `node.as_of_local_date`
+
+### 10.8 Lifecycle mutation and audit evidence
+
+#### Business row hash scope
+
+Frozen: `row_hash` / `semantic_payload_hash` must **not** include:
+
+- `status`
+- `status_changed_at`
+- `superseded_by_id`
+- `consumable_from_local_date`
+- `consumable_to_local_date`
+- `consumable_from_key` / `consumable_to_key`
+
+Reason: these fields change during legitimate lifecycle transitions. Including them would invalidate the business payload hash when the row's semantic content has not changed.
+
+#### Mutable vs immutable separation
+
+| Category | Columns | Mutability |
+|---|---|---|
+| Business payload | all typed value fields, scope fields, version, revision, source provenance | immutable after insert |
+| Current projection lifecycle | `status`, `status_changed_at`, `superseded_by_id`, `consumable_from_local_date`, `consumable_to_local_date` | mutable via authorized transitions only |
+| Normalized lifecycle keys | `consumable_from_key`, `consumable_to_key` | generated from base lifecycle columns |
+| Consumability range | `consumability_range` | generated from base lifecycle columns |
+
+#### Future lifecycle event audit model
+
+Design boundary: the following table is **not** created in this round. It will be created in a future implementation phase. This section freezes the design contract only.
+
+Future table: `task9_authority_lifecycle_event`
+
+Minimum columns:
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | BIGINT PK | surrogate |
+| `authority_family` | TEXT NOT NULL | e.g. `capacity_pool_definition`, `holiday_calendar_version` |
+| `authority_stable_key` | TEXT NOT NULL | deterministic business identity without surrogate IDs |
+| `authority_business_version` | TEXT NOT NULL | business version string |
+| `authority_revision` | INTEGER NOT NULL | business revision |
+| `transition_sequence` | INTEGER NOT NULL | deterministic ordering per authority identity |
+| `old_status` | TEXT | status before transition |
+| `new_status` | TEXT NOT NULL | status after transition |
+| `old_consumable_from_local_date` | DATE | interval start before transition |
+| `old_consumable_to_local_date` | DATE | interval end before transition |
+| `new_consumable_from_local_date` | DATE | interval start after transition |
+| `new_consumable_to_local_date` | DATE | interval end after transition |
+| `superseded_by_stable_key` | TEXT | stable key of the replacement (if supersession) |
+| `transitioned_at` | TIMESTAMPTZ NOT NULL | transaction timestamp |
+| `source_system` | TEXT NOT NULL | provenance |
+| `source_record_key` | TEXT NOT NULL | provenance record key |
+| `lifecycle_event_hash` | TEXT NOT NULL | SHA-256 of canonical event payload |
+| `created_at` | TIMESTAMPTZ NOT NULL | row creation time |
+
+Requirements:
+
+- **append-only**: no UPDATE, no DELETE
+- `UNIQUE(authority_stable_key, transition_sequence)` — deterministic ordering
+- `UNIQUE(authority_stable_key, lifecycle_event_hash)` — idempotency
+- `lifecycle_event_hash` covers: authority family, stable identity, business version, revision, transition sequence, old/new status, old/new interval, replacement stable identity, transition timestamp, source provenance
+- surrogate database IDs must **not** enter the hash
+
+#### Set-once enforcement model
+
+Chosen contract: **header projection + append-only event chain**
+
+- authority header rows store current projection lifecycle fields (`status`, `consumable_from/to`, `superseded_by_id`)
+- the append-only `task9_authority_lifecycle_event` table is the authoritative history
+- repository lifecycle transitions must:
+  1. lock authority row
+  2. validate latest lifecycle event
+  3. append next event
+  4. update current projection
+  5. commit atomically
+- database triggers are **not** used; historical authenticity is enforced by the event chain, not by header field immutability alone
+- persisted replay verifies the exact lifecycle event evidence, not just the header's current projection
+
+#### Persisted replay binding
+
+Persisted resolved input must bind:
+
+- business row hash
+- lifecycle event hash (when lifecycle event table exists)
+- resolved `consumable_from_local_date`
+- resolved `consumable_to_local_date`
+- original cutoff
+
+Persisted replay verification:
+
+1. exact business row still exists
+2. business row hash matches
+3. (future) exact lifecycle event still exists and hash matches
+4. original cutoff falls within the interval that was valid at resolution time
+5. do **not** just check the authority's current lifecycle fields — they may have changed since resolution
 
 ---
 
@@ -1085,23 +1215,25 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
 
 ### 11.2 Frozen overlap rules
 
-- Capacity pool definitions may not have overlapping consumability intervals for the same:
+- Capacity pool definitions may not have overlapping **both** effective and consumability intervals for the same:
   - `season_id`
   - `destination_factory_id`
   - `capacity_pool_code`
+  - i.e. publication lifecycle overlap alone is insufficient; effective period must also overlap to trigger a conflict
 - Capacity members may not belong to overlapping consumable pools for the same:
   - `season_id`
   - `destination_factory_id`
   - `farm_id`
   - `subfarm_id`
   - `variety_id`
-- Capacity members may not have overlapping consumability intervals for the same:
+- Capacity members may not have overlapping **both** effective and consumability intervals for the same:
   - `season_id`
   - `destination_factory_id`
   - `farm_id`
   - `normalized_subfarm_id`
   - `variety_id`
-- Run-parameter packages may not have overlapping consumability intervals for the same:
+  - i.e. both `effective_range &&` and `consumability_range &&` must hold for a conflict
+- Run-parameter packages may not have overlapping **both** effective and consumability intervals for the same:
   - `season_id`
   - `destination_factory_id`
   - `farm_scope_key`
@@ -1139,16 +1271,18 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
 - Holiday calendar versions may not have overlapping consumability intervals for the same:
   - `season_id`
   - `calendar_code`
-- Weather rule config versions may not have overlapping consumability intervals for the same:
+  - `lifecycle_timezone_name`
+- Weather rule config versions may not have overlapping **both** effective and consumability intervals for the same:
   - `rule_code`
+  - `lifecycle_timezone_name`
 
-PostgreSQL strategy for consumability non-overlap:
+PostgreSQL strategy for consumability and effective non-overlap:
 
 - generated `daterange` over `consumable_from/to`:
   ```sql
   consumability_range DATERANGE GENERATED ALWAYS AS (
       daterange(
-          consumable_from_local_date,
+          COALESCE(consumable_from_local_date, 'infinity'::date),
           CASE
               WHEN consumable_to_local_date IS NULL THEN 'infinity'::date
               ELSE consumable_to_local_date
@@ -1157,9 +1291,20 @@ PostgreSQL strategy for consumability non-overlap:
       )
   ) STORED
   ```
-- `EXCLUDE USING gist` for overlapping consumable intervals
+- normalized lifecycle keys for composite FK binding:
+  ```sql
+  consumable_from_key DATE GENERATED ALWAYS AS (
+      COALESCE(consumable_from_local_date, 'infinity'::date)
+  ) STORED,
+  consumable_to_key DATE GENERATED ALWAYS AS (
+      COALESCE(consumable_to_local_date, 'infinity'::date)
+  ) STORED
+  ```
+- `EXCLUDE USING gist` with **both** `effective_range &&` and `consumability_range &&` for authorities that carry both intervals (capacity pool definition, capacity pool member, weather rule config, run parameter package)
+- `EXCLUDE USING gist` with `consumability_range &&` only for authorities without effective intervals (daily capacity, initial inventory, mature loss, holiday calendar)
 - Generated-column rule continues: no generated column may reference another generated column
 - Same-date replacement: the old row must have at least one consumable date; if same-day creation-and-replacement is allowed, the interval `[date, date+1)` is valid
+- publisher-submitted lifecycle dates must never use PostgreSQL `infinity`; infinity is reserved for normalized keys and generated ranges only
 
 Current one-active indexes may be retained, but must document:
 
@@ -1185,10 +1330,31 @@ The member table redundantly stores:
 - `effective_from`
 - `effective_to`
 - `status`
+- `consumable_from_local_date`
+- `consumable_to_local_date`
 
 These are copied solely so PostgreSQL can enforce cross-pool exclusion at child granularity. They must be bound to the parent by database constraint, not by trigger.
 
-Frozen binding strategy:
+#### Normalized lifecycle keys
+
+Because `consumable_from_local_date` and `consumable_to_local_date` are legitimately NULL for `draft` and `cancelled` rows, they cannot reliably participate in composite FK matching. Frozen solution: add non-null normalized generated keys.
+
+Both parent and member add:
+
+```sql
+consumable_from_key DATE GENERATED ALWAYS AS (
+    COALESCE(consumable_from_local_date, 'infinity'::date)
+) STORED,
+consumable_to_key DATE GENERATED ALWAYS AS (
+    COALESCE(consumable_to_local_date, 'infinity'::date)
+) STORED
+```
+
+These generated expressions must directly reference the base lifecycle fields. No generated-column chaining.
+
+Forbidden: publisher-submitted `consumable_from_local_date` or `consumable_to_local_date` must **never** use PostgreSQL `infinity`. Infinity is reserved for normalized keys and generated ranges only.
+
+#### Frozen binding strategy
 
 - parent stores non-null normalized effective end:
   - `effective_to_exclusive DATE GENERATED ALWAYS AS (CASE WHEN effective_to IS NULL THEN 'infinity'::date ELSE effective_to + 1 END) STORED`
@@ -1196,13 +1362,13 @@ Frozen binding strategy:
   - base columns are `effective_from` and `effective_to`
   - `effective_range` must not reference `effective_to_exclusive`, because PostgreSQL 16 does not allow generated-column chaining
 - parent gets composite uniqueness on:
-  - `(id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status)`
-- child stores copied `effective_from`, nullable `effective_to`, copied `status`, and generates its own `effective_to_exclusive` from the same expression
+  - `(id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_key, consumable_to_key)`
+- child stores copied `effective_from`, nullable `effective_to`, copied `status`, copied `consumable_from_local_date`, copied `consumable_to_local_date`, and generates its own `effective_to_exclusive`, `consumable_from_key`, `consumable_to_key` from the same expressions
 - child gets composite FK on:
-  - `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status)`
+  - `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_key, consumable_to_key)`
 - composite FK uses `ON UPDATE CASCADE`
 - child and parent must reject divergent normalized ends; a child row with different `effective_to` cannot match the parent composite key
-- exclusion constraints continue to use `effective_range`, but that range must be generated directly from `effective_from` and `effective_to`
+- exclusion constraints continue to use `effective_range` and `consumability_range`, but those ranges must be generated directly from their base columns
 - no triggers
 
 Open-ended interval rules:
@@ -1222,9 +1388,9 @@ Revision-inclusive uniqueness is not enough to guarantee a single consumable aut
 - `uq_task9_mature_loss_one_active`
   - `(season_id, destination_factory_id, state_date, capacity_pool_code, forecast_quantile)` where `status = 'active'`
 - `uq_task9_holiday_calendar_one_active`
-  - `(season_id, calendar_code)` where `status = 'active'`
+  - `(season_id, calendar_code, lifecycle_timezone_name)` where `status = 'active'`
 - `uq_task9_weather_rule_one_active`
-  - `(rule_code)` where `status = 'active'`
+  - `(rule_code, lifecycle_timezone_name)` where `status = 'active'`
 
 ---
 
@@ -1268,6 +1434,8 @@ Frozen blocker set for future implementation:
 - `AUTHORITY_CONSUMABILITY_INTERVAL_OVERLAP`
 - `AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT`
 - `AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF`
+- `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT`
+  - loaded run package `destination_factory_timezone` does not match the referenced holiday or weather authority `lifecycle_timezone_name`
 
 These are in addition to existing Task 6 / Task 7 / Task 8 / Task 9 blocker families.
 
@@ -1297,8 +1465,8 @@ Frozen sort order for emitted refs:
 
 | parameter_code | authority table | authority grain | source_system | source_record_key format | source_version | source_row_hash | available_at | as_of_date | shared-row behavior | required mode | forbidden mode | exactly-one rule |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `HOLIDAY_CALENDAR` | `task9_holiday_calendar_version` | season x calendar_version x revision | `task9_historical_authority` | `holiday-calendar:{season_id}:{calendar_code}:{calendar_version}:{revision}` | `calendar_version` | holiday header `row_hash` | holiday `available_at_local_date` | node `as_of_date` | unique holiday header row | all modes | none | exactly one |
-| `WEATHER_RULE_CONFIG` | `task9_weather_rule_config_version` | rule_version x revision | `task9_historical_authority` | `weather-rule:{rule_code}:{rule_version}:{revision}` | `rule_version` | weather-rule `row_hash` | rule `available_at_local_date` | node `as_of_date` | unique weather-rule row | all modes | none | exactly one |
+| `HOLIDAY_CALENDAR` | `task9_holiday_calendar_version` | season x calendar_code x lifecycle_timezone_name x calendar_version x revision | `task9_historical_authority` | `holiday-calendar:{season_id}:{calendar_code}:{lifecycle_timezone_name}:{calendar_version}:{revision}` | `calendar_version` | holiday header `row_hash` | holiday `available_at_local_date` | node `as_of_date` | unique holiday header row | all modes | none | exactly one |
+| `WEATHER_RULE_CONFIG` | `task9_weather_rule_config_version` | rule_code x lifecycle_timezone_name x rule_version x revision | `task9_historical_authority` | `weather-rule:{rule_code}:{lifecycle_timezone_name}:{rule_version}:{revision}` | `rule_version` | weather-rule `row_hash` | rule `available_at_local_date` | node `as_of_date` | unique weather-rule row | all modes | none | exactly one |
 | `HARVEST_TO_ARRIVAL_LAG` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
 | `TIMEZONE_CONFIG` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
 | `HARVEST_BUCKET_ANCHOR_TIME` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
@@ -1379,9 +1547,9 @@ Frozen prefixes:
 - daily capacity:
   - `daily-capacity:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
 - holiday calendar:
-  - `holiday-calendar:{season_id}:{calendar_code}:{calendar_version}:{revision}`
+  - `holiday-calendar:{season_id}:{calendar_code}:{lifecycle_timezone_name}:{calendar_version}:{revision}`
 - weather rule:
-  - `weather-rule:{rule_code}:{rule_version}:{revision}`
+  - `weather-rule:{rule_code}:{lifecycle_timezone_name}:{rule_version}:{revision}`
 - initial inventory snapshot:
   - `initial-inventory:{season_id}:{destination_factory_id}:{opening_state_date}:{snapshot_version}:{revision}`
 - mature loss:
@@ -1470,6 +1638,8 @@ Loading an active run package must verify:
 - weather target `status = 'active'` (current resolution) **or** historically consumable at node cutoff (first-time historical)
 - holiday target consumability interval covers node local cutoff
 - weather target consumability interval covers node local cutoff
+- **holiday `lifecycle_timezone_name == run_package.destination_factory_timezone`** — mismatch blocks with `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT`
+- **weather `lifecycle_timezone_name == run_package.destination_factory_timezone`** — mismatch blocks with `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT`
 - scope compatibility holds
 - row/config hashes recompute successfully
 
@@ -1528,6 +1698,12 @@ CREATE TABLE task9_capacity_pool_definition (
     available_at_local_date DATE NOT NULL,
     consumable_from_local_date DATE,
     consumable_to_local_date DATE,
+    consumable_from_key DATE GENERATED ALWAYS AS (
+        COALESCE(consumable_from_local_date, 'infinity'::date)
+    ) STORED,
+    consumable_to_key DATE GENERATED ALWAYS AS (
+        COALESCE(consumable_to_local_date, 'infinity'::date)
+    ) STORED,
     consumability_range DATERANGE GENERATED ALWAYS AS (
         daterange(
             COALESCE(consumable_from_local_date, 'infinity'::date),
@@ -1551,7 +1727,7 @@ CREATE TABLE task9_capacity_pool_definition (
         REFERENCES task9_capacity_pool_definition(id) ON DELETE RESTRICT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (season_id, destination_factory_id, capacity_pool_code, capacity_pool_version, revision),
-    UNIQUE (id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_local_date, consumable_to_local_date),
+    UNIQUE (id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_key, consumable_to_key),
     CHECK (effective_to IS NULL OR (effective_to >= effective_from AND effective_to < 'infinity'::date)),
     CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
     CHECK (
@@ -1617,6 +1793,12 @@ CREATE TABLE task9_capacity_pool_member (
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     consumable_from_local_date DATE,
     consumable_to_local_date DATE,
+    consumable_from_key DATE GENERATED ALWAYS AS (
+        COALESCE(consumable_from_local_date, 'infinity'::date)
+    ) STORED,
+    consumable_to_key DATE GENERATED ALWAYS AS (
+        COALESCE(consumable_to_local_date, 'infinity'::date)
+    ) STORED,
     consumability_range DATERANGE GENERATED ALWAYS AS (
         daterange(
             COALESCE(consumable_from_local_date, 'infinity'::date),
@@ -1647,8 +1829,8 @@ CREATE TABLE task9_capacity_pool_member (
         effective_from,
         effective_to_exclusive,
         status,
-        consumable_from_local_date,
-        consumable_to_local_date
+        consumable_from_key,
+        consumable_to_key
     )
     REFERENCES task9_capacity_pool_definition (
         id,
@@ -1657,8 +1839,8 @@ CREATE TABLE task9_capacity_pool_member (
         effective_from,
         effective_to_exclusive,
         status,
-        consumable_from_local_date,
-        consumable_to_local_date
+        consumable_from_key,
+        consumable_to_key
     )
     ON DELETE RESTRICT
     ON UPDATE CASCADE
@@ -1750,6 +1932,7 @@ CREATE TABLE task9_holiday_calendar_version (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     season_id BIGINT NOT NULL REFERENCES dim_season(id) ON DELETE RESTRICT,
     calendar_code TEXT NOT NULL,
+    lifecycle_timezone_name TEXT NOT NULL,
     calendar_version TEXT NOT NULL,
     revision INTEGER NOT NULL CHECK (revision > 0),
     region_scope TEXT,
@@ -1781,7 +1964,7 @@ CREATE TABLE task9_holiday_calendar_version (
         CONSTRAINT ck_task9_holiday_calendar_version_row_hash_sha256
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (season_id, calendar_code, calendar_version, revision),
+    UNIQUE (season_id, calendar_code, lifecycle_timezone_name, calendar_version, revision),
     CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
     CHECK (
         (status = 'superseded' AND superseded_by_id IS NOT NULL)
@@ -1827,6 +2010,7 @@ CREATE TABLE task9_holiday_calendar_date (
 CREATE TABLE task9_weather_rule_config_version (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     rule_code TEXT NOT NULL,
+    lifecycle_timezone_name TEXT NOT NULL,
     rule_version TEXT NOT NULL,
     revision INTEGER NOT NULL CHECK (revision > 0),
     combination_method TEXT NOT NULL,
@@ -1881,7 +2065,7 @@ CREATE TABLE task9_weather_rule_config_version (
         CONSTRAINT ck_task9_weather_rule_config_version_row_hash_sha256
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (rule_code, rule_version, revision),
+    UNIQUE (rule_code, lifecycle_timezone_name, rule_version, revision),
     CHECK (maximum_ratio >= minimum_ratio),
     CHECK (effective_to IS NULL OR (effective_to >= effective_from AND effective_to < 'infinity'::date)),
     CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
@@ -2206,66 +2390,46 @@ CREATE UNIQUE INDEX uq_task9_mature_loss_one_active
     )
     WHERE (status = 'active');
 CREATE UNIQUE INDEX uq_task9_holiday_calendar_one_active
-    ON task9_holiday_calendar_version(season_id, calendar_code)
+    ON task9_holiday_calendar_version(season_id, calendar_code, lifecycle_timezone_name)
     WHERE (status = 'active');
 CREATE UNIQUE INDEX uq_task9_weather_rule_one_active
-    ON task9_weather_rule_config_version(rule_code)
+    ON task9_weather_rule_config_version(rule_code, lifecycle_timezone_name)
     WHERE (status = 'active');
 
 ALTER TABLE task9_capacity_pool_definition
-    ADD CONSTRAINT ex_task9_capacity_pool_definition_overlap
+    ADD CONSTRAINT ex_task9_capacity_pool_definition_combined_overlap
     EXCLUDE USING gist (
         season_id WITH =,
         destination_factory_id WITH =,
         capacity_pool_code WITH =,
-        effective_range WITH &&
-    )
-    WHERE (status = 'active');
+        effective_range WITH &&,
+        consumability_range WITH &&
+    );
 
 ALTER TABLE task9_capacity_pool_member
-    ADD CONSTRAINT ex_task9_capacity_pool_member_overlap
+    ADD CONSTRAINT ex_task9_capacity_pool_member_combined_overlap
     EXCLUDE USING gist (
         season_id WITH =,
         destination_factory_id WITH =,
         farm_id WITH =,
         normalized_subfarm_id WITH =,
         variety_id WITH =,
-        effective_range WITH &&
-    )
-    WHERE (status = 'active');
-
-ALTER TABLE task9_capacity_pool_member
-    ADD CONSTRAINT ex_task9_capacity_pool_member_consumability_overlap
-    EXCLUDE USING gist (
-        season_id WITH =,
-        destination_factory_id WITH =,
-        farm_id WITH =,
-        normalized_subfarm_id WITH =,
-        variety_id WITH =,
+        effective_range WITH &&,
         consumability_range WITH &&
     );
 
 ALTER TABLE task9_run_parameter_package
-    ADD CONSTRAINT ex_task9_run_parameter_package_overlap
+    ADD CONSTRAINT ex_task9_run_parameter_package_combined_overlap
     EXCLUDE USING gist (
         season_id WITH =,
         destination_factory_id WITH =,
         farm_scope_key WITH =,
-        effective_range WITH &&
-    )
-    WHERE (status = 'active');
+        effective_range WITH &&,
+        consumability_range WITH &&
+    );
 
 -- Historical consumability interval exclusion constraints
 -- These prevent overlapping consumability intervals for the same business scope.
-
-ALTER TABLE task9_capacity_pool_definition
-    ADD CONSTRAINT ex_task9_capacity_pool_consumability_overlap
-    EXCLUDE USING gist (
-        season_id WITH =,
-        destination_factory_id WITH =,
-        capacity_pool_code WITH =,
-        consumability_range WITH &&
-    );
 
 ALTER TABLE task9_daily_capacity_authority
     ADD CONSTRAINT ex_task9_daily_capacity_consumability_overlap
@@ -2280,22 +2444,16 @@ ALTER TABLE task9_holiday_calendar_version
     EXCLUDE USING gist (
         season_id WITH =,
         calendar_code WITH =,
+        lifecycle_timezone_name WITH =,
         consumability_range WITH &&
     );
 
 ALTER TABLE task9_weather_rule_config_version
-    ADD CONSTRAINT ex_task9_weather_rule_consumability_overlap
+    ADD CONSTRAINT ex_task9_weather_rule_combined_overlap
     EXCLUDE USING gist (
         rule_code WITH =,
-        consumability_range WITH &&
-    );
-
-ALTER TABLE task9_run_parameter_package
-    ADD CONSTRAINT ex_task9_run_parameter_consumability_overlap
-    EXCLUDE USING gist (
-        season_id WITH =,
-        destination_factory_id WITH =,
-        farm_scope_key WITH =,
+        lifecycle_timezone_name WITH =,
+        effective_range WITH &&,
         consumability_range WITH &&
     );
 
@@ -2356,6 +2514,11 @@ Frozen target:
   - `task9_weather_rule_config_version.effective_range`
   - `task9_run_parameter_package.effective_to_exclusive`
   - `task9_run_parameter_package.effective_range`
+- generated normalized lifecycle keys:
+  - `task9_capacity_pool_definition.consumable_from_key`
+  - `task9_capacity_pool_definition.consumable_to_key`
+  - `task9_capacity_pool_member.consumable_from_key`
+  - `task9_capacity_pool_member.consumable_to_key`
 - generated consumability range columns:
   - `task9_capacity_pool_definition.consumability_range`
   - `task9_capacity_pool_member.consumability_range`
@@ -2366,41 +2529,58 @@ Frozen target:
   - `task9_initial_inventory_snapshot.consumability_range`
   - `task9_mature_inventory_loss_authority.consumability_range`
 - lifecycle CHECK constraints:
-  - status-consumability alignment: `draft`/`cancelled` → NULL from; `active`/`superseded`/`retired` → NOT NULL from
+  - status-consumability alignment: `draft`/`cancelled` → NULL from/to; `active` → NOT NULL from, NULL to; `superseded`/`retired` → NOT NULL from/to
   - range validity: `consumable_to IS NULL OR consumable_to > consumable_from`
-- historical consumability exclusion constraints:
+  - from >= available_at (when from is not NULL)
+- combined effective + consumability exclusion constraints:
+  - `ex_task9_capacity_pool_definition_combined_overlap` (effective_range && AND consumability_range &&)
+  - `ex_task9_capacity_pool_member_combined_overlap` (effective_range && AND consumability_range &&)
+  - `ex_task9_run_parameter_package_combined_overlap` (effective_range && AND consumability_range &&)
+  - `ex_task9_weather_rule_combined_overlap` (effective_range && AND consumability_range &&)
+- consumability-only exclusion constraints (no effective interval):
   - `ex_task9_daily_capacity_consumability_overlap`
   - `ex_task9_initial_inventory_consumability_overlap`
   - `ex_task9_mature_loss_consumability_overlap`
-  - `ex_task9_holiday_calendar_consumability_overlap`
-  - `ex_task9_weather_rule_consumability_overlap`
-  - `ex_task9_capacity_pool_consumability_overlap`
-  - `ex_task9_capacity_pool_member_consumability_overlap`
-  - `ex_task9_run_parameter_consumability_overlap`
+  - `ex_task9_holiday_calendar_consumability_overlap` (includes `lifecycle_timezone_name`)
+- lifecycle audit future boundary:
+  - `task9_authority_lifecycle_event` table designed but not created in 0014
+  - append-only, no UPDATE/DELETE
+  - lifecycle_event_hash covers all transition fields excluding surrogate IDs
+- `holiday_calendar_version.lifecycle_timezone_name`:
+  - `TEXT NOT NULL`, IANA timezone
+  - enters business grain, UNIQUE, one-active index, exclusion constraint, source_record_key
+- `weather_rule_config_version.lifecycle_timezone_name`:
+  - `TEXT NOT NULL`, IANA timezone
+  - enters business grain, UNIQUE, one-active index, exclusion constraint, source_record_key
+- run-package dependency timezone validation:
+  - `RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT` blocker when `destination_factory_timezone != lifecycle_timezone_name`
 - superseded-is-terminal CHECK:
   - `superseded -> retired` removed from transition matrix
+- `active -> cancelled` removed from transition matrix
 - generated-column rule:
   - each generated expression references base columns only
   - no generated column may reference another generated column
 - `UNIQUE NULLS NOT DISTINCT`:
   - `task9_capacity_pool_member(capacity_pool_definition_id, farm_id, subfarm_id, variety_id)`
+- composite parent-child FK uses normalized lifecycle keys:
+  - `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status, consumable_from_key, consumable_to_key)`
+  - `ON UPDATE CASCADE`
 - partial unique one-active indexes:
   - `uq_task9_daily_capacity_one_active`
   - `uq_task9_initial_inventory_one_active`
   - `uq_task9_mature_loss_one_active`
-  - `uq_task9_holiday_calendar_one_active`
-  - `uq_task9_weather_rule_one_active`
-- exclusion constraints:
-  - `ex_task9_capacity_pool_definition_overlap`
-  - `ex_task9_capacity_pool_member_overlap`
-  - `ex_task9_run_parameter_package_overlap`
+  - `uq_task9_holiday_calendar_one_active` (includes `lifecycle_timezone_name`)
+  - `uq_task9_weather_rule_one_active` (includes `lifecycle_timezone_name`)
 - draft-first supersession lifecycle:
   - required
   - immediate self-FKs retained
   - no deferred constraints
+  - replacement transaction sets lifecycle fields atomically with status change
+  - direct retirement sets status + lifecycle in one SQL UPDATE
 - run-package dependency lifecycle:
   - active package requires active holiday target
   - active package requires active weather-rule target
+  - active package destination_factory_timezone must match holiday/weather lifecycle_timezone_name
   - dependency replacement is transactional
 - triggers: `NONE`
 - no new rolling_backtest tables
@@ -2564,6 +2744,23 @@ Frozen decision:
 - [x] Lifecycle DATE authority frozen (publisher-provided canonical business DATE)
 - [x] Forbidden lifecycle DATE derivation patterns documented
 - [x] Authority timezone binding frozen
+- [x] Replacement transaction lifecycle fields set atomically (P0-1)
+- [x] Direct retirement single-UPDATE semantics frozen (P0-1)
+- [x] Normalized lifecycle keys (`consumable_from_key`, `consumable_to_key`) added (P0-2)
+- [x] Composite parent-child FK uses normalized keys, not raw nullable columns (P0-2)
+- [x] Infinity prohibited as publisher-submitted lifecycle DATE (P0-2)
+- [x] Business row hash excludes lifecycle metadata fields (P0-3)
+- [x] Lifecycle event audit model designed (`task9_authority_lifecycle_event`) (P0-3)
+- [x] Set-once enforcement model frozen: header projection + append-only event chain (P0-3)
+- [x] Persisted replay binding includes lifecycle evidence (P0-3)
+- [x] Mutable metadata definition includes `consumable_from/to_local_date` (P0-3)
+- [x] Combined effective + consumability exclusions for pool definition, member, weather rule, run package (P0-4)
+- [x] Redundant separate exclusions removed (P0-4)
+- [x] Holiday `lifecycle_timezone_name` added to DDL, grain, UNIQUE, one-active, exclusion, source_record_key (P0-5)
+- [x] Weather `lifecycle_timezone_name` added to DDL, grain, UNIQUE, one-active, exclusion, source_record_key (P0-5)
+- [x] Run-package dependency timezone validation blocker added (P0-5)
+- [x] Supersession scope updated for holiday and weather (P0-5)
+- [x] Migration 0014 boundary updated for all new objects
 
 ---
 
