@@ -1150,7 +1150,7 @@ def downgrade() -> None:
         ("task9_capacity_pool_member", "ex_task9_capacity_pool_member_combined_overlap"),
         ("task9_capacity_pool_definition", "ex_task9_capacity_pool_definition_combined_overlap"),
     ):
-        op.drop_constraint(constraint_name, table_name, type_="exclude")
+        op.execute(f"ALTER TABLE {table_name} DROP CONSTRAINT {constraint_name}")
 
     for index_name, table_name in (
         ("ix_task9_authority_lifecycle_event_source_record", "task9_authority_lifecycle_event"),
