@@ -41,8 +41,7 @@
     "source_type": "task7_weather_feature_run",
     "rule_kind": "authoritative_timestamp",
     "required_statuses": [
-      "completed",
-      "unavailable"
+      "completed"
     ],
     "authoritative_timestamp_field": "finished_at",
     "available_on_local_date_field": null,

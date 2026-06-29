@@ -64,7 +64,7 @@ def build_availability_authority_registry() -> tuple[AvailabilityAuthoritySpec, 
         AvailabilityAuthoritySpec(
             source_type=AvailabilitySourceType.TASK7_WEATHER_FEATURE_RUN,
             rule_kind=AvailabilityRuleKind.AUTHORITATIVE_TIMESTAMP,
-            required_statuses=("completed", "unavailable"),
+            required_statuses=("completed",),
             authoritative_timestamp_field="finished_at",
             parent_authority_required=False,
         ),
