@@ -461,6 +461,7 @@ async def _query_task7_weather_daily_observation_candidates(
             source_role="task7_weather_observation",
             schema_version="task7-weather-v1",
             semantic_payload_hash=row.row_hash,
+            config_hash=row.row_hash,
             business_version=row.source_version,
             display_label="task7:weather_observation",
             persistent_reference=PersistentUpstreamReference(
