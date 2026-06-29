@@ -11,6 +11,7 @@ from backend.app.rolling_backtest.orchestration import (
     _build_task9a_request,
     _load_capacity_inputs_typed,
     _load_task8_inputs_typed,
+    _load_task9_run_parameters_typed,
 )
 from backend.app.rolling_backtest.schemas import PersistentUpstreamReference
 
@@ -165,10 +166,7 @@ async def test_task8_loader_builds_all_quantiles_without_placeholders() -> None:
         Decimal("14"),
     ]
     assert all(item.farm_id == 101 for item in predictions)
-    assert all(
-        item.source_ref.maturity_model_config_hash != "0" * 64
-        for item in predictions
-    )
+    assert all(item.source_ref.maturity_model_config_hash != "0" * 64 for item in predictions)
     assert all(item.source_ref.maturity_model_version != "unknown" for item in predictions)
 
 
@@ -255,3 +253,16 @@ async def test_build_task9_request_propagates_missing_run_parameter_authority(
     assert result.blocked is True
     assert result.blocker_code == "task9_replay_input_incomplete"
     assert "capacity authority" in str(result.diagnostics["reason"])
+
+
+@pytest.mark.asyncio
+async def test_run_parameter_loader_blocks_without_historical_authority() -> None:
+    result = await _load_task9_run_parameters_typed(
+        object(),  # type: ignore[arg-type]
+        _node(),  # type: ignore[arg-type]
+        _resolved_map(),  # type: ignore[arg-type]
+    )
+
+    assert result.blocked is True
+    assert result.blocker_code == "task9_replay_input_incomplete"
+    assert "historical authority sources" in str(result.diagnostics["reason"])
