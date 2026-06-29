@@ -317,7 +317,7 @@ This remains the minimum set that:
 
 - **Purpose**: authoritative opening mature inventory snapshot header
 - **Business grain**:
-  - `season_id x destination_factory_id x opening_state_date x forecast_quantile x snapshot_version`
+  - `season_id x destination_factory_id x opening_state_date x snapshot_version x revision`
 - **Value fields**:
   - `initial_opening_mature_inventory_kg`
 - **Visibility fields**:
@@ -335,6 +335,7 @@ This remains the minimum set that:
 - **Business grain**:
   - `initial_inventory_snapshot_id x stable_cohort_key`
 - **Value fields**:
+  - `forecast_quantile`
   - `cohort_date`
   - `farm_id`
   - `subfarm_id`
@@ -519,7 +520,9 @@ make_holiday_calendar_hash(
   - `row_hash`
   - `canonical_payload_hash`
   - `semantic_payload_hash`
-- Duplicate holiday dates within one package are rejected.
+- Duplicate `(holiday_date, holiday_code)` rows within one package are rejected.
+- Same `holiday_date` with different `holiday_code` is allowed in full authority rows.
+- Task 9 request `holiday_dates` is the sorted unique date set only.
 - Ordering is canonical by `holiday_date`, then `holiday_code`.
 
 ### 6.5 Weather rule contract
@@ -546,9 +549,18 @@ The database authority row must hash the full typed content, not a summary.
 
 - Opening inventory header and cohort rows are separate authorities.
 - Zero opening inventory is represented explicitly as `0`, not by absence.
-- Cohort sum must equal `initial_opening_mature_inventory_kg`.
+- Snapshot header does **not** contain `forecast_quantile`.
+- Cohort child rows must contain `forecast_quantile IN ('P50', 'P80', 'P90')`.
+- Scalar reconciliation is frozen as:
+  - `sum(all cohort.remaining_quantity_kg across P50/P80/P90) == initial_opening_mature_inventory_kg`
 - Missing cohorts when opening total is non-null are blocked.
 - Empty cohorts are allowed only when opening total is exactly zero.
+- Non-zero opening inventory requires non-empty cohort rows.
+- Cross-table reconciliation cannot be enforced by plain `CHECK`; it must be enforced by:
+  - repository write-time integrity validation
+  - load-time integrity validation
+  - blocker `INITIAL_INVENTORY_COHORT_MISMATCH`
+  - atomic header + cohort transaction
 
 ### 6.7 Mature inventory loss contract
 
@@ -606,13 +618,32 @@ Frozen rules:
 | `daily_capacity_inputs` | `task9_daily_capacity_authority` | pool x date x revision | `available_at_local_date` | `capacity_date` | see Section 10 | row hash | `ParameterSourceRef[]` | `CAPACITY_VALUE_AUTHORITY_MISSING` |
 | `daily_weather_features` | existing Task 7 authority | mapping + observation | existing Task 7 visibility | observation date | existing statuses | existing row hashes/signatures | existing `PARAMETER_SOURCE(WEATHER_FEATURE_OBSERVATION)` | existing Task 7 blockers |
 | `task8_daily_predictions` | existing Task 8 authority | daily prediction x quantile | existing Task 8 visibility | prediction date | completed chain | existing signatures / hashes | existing `TASK8_DAILY_PREDICTION` refs | existing Task 8 blockers |
-| `initial_inventory_cohorts` | `task9_initial_inventory_snapshot` + `task9_initial_inventory_cohort` | snapshot x cohort | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash + cohort hashes | `INITIAL_INVENTORY_SNAPSHOT` refs | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
-| `initial_opening_mature_inventory_kg` | `task9_initial_inventory_snapshot` | season x factory x date x quantile x snapshot_version | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash | `INITIAL_INVENTORY_SNAPSHOT` ref | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
+| `initial_inventory_cohorts` | `task9_initial_inventory_snapshot` + `task9_initial_inventory_cohort` | snapshot x stable cohort key with child `forecast_quantile` | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash + cohort hashes | `INITIAL_INVENTORY_SNAPSHOT` refs | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
+| `initial_opening_mature_inventory_kg` | `task9_initial_inventory_snapshot` | season x factory x opening_state_date x snapshot_version | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash | `INITIAL_INVENTORY_SNAPSHOT` ref | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
 | `mature_inventory_loss_inputs` | `task9_mature_inventory_loss_authority` | date x pool x quantile x loss_version | `available_at_local_date` | `state_date` | see Section 10 | row hash | `PARAMETER_SOURCE(MATURE_INVENTORY_LOSS)` | `MATURE_INVENTORY_LOSS_AUTHORITY_MISSING` |
 
 ### Fields without authority
 
 After `0014`, none of the Task9ARequest business fields remain authority-unmapped.
+
+### 8.1 Run-package-first load order
+
+Frozen request reconstruction order:
+
+1. select exactly one consumable `task9_run_parameter_package`
+2. load holiday row by `run_parameter_package.holiday_calendar_version_id`
+3. load weather rule row by `run_parameter_package.weather_rule_config_version_id`
+4. validate both referenced rows:
+   - exists
+   - `status = 'active'`
+   - visible at `node.as_of_local_date`
+   - scope compatible
+   - row hash valid
+   - `calendar_hash` / `config_hash` recomputation valid
+   - business version valid
+5. reconstruct `Task9ARequest`
+
+Holiday and weather rule resolution must not independently select "latest" rows once the run package is chosen.
 
 ### Downstream snapshots excluded
 
@@ -688,17 +719,61 @@ Historical replay of older selected rows is handled by persisted resolved-input 
 
 Status does **not** enter semantic payload hashes. It only participates in SQL selection and consumability validation.
 
-### 10.1 Selection matrix
+### 10.1 Frozen status transition matrix
+
+- `draft -> active`
+- `draft -> cancelled`
+- `active -> superseded`
+- `active -> retired`
+- `active -> cancelled`
+- `superseded -> retired`
+- `retired -> no transition`
+- `cancelled -> no transition`
+
+Forbidden transitions:
+
+- `superseded -> active`
+- `retired -> active`
+- `cancelled -> active`
+
+### 10.2 Immutable business payload vs mutable metadata
+
+- business payload columns are immutable after insert
+- mutable metadata is limited to:
+  - `status`
+  - `status_changed_at`
+  - `superseded_by_id` on rows that enter `superseded`
+
+### 10.3 Parent/member synchronization
+
+When a pool definition status changes, all member assignment rows must be updated in the same repository transaction:
+
+- deterministic row-lock order
+- parent update + child updates in one transaction
+- rollback on any failure
+
+### 10.4 Active replacement transaction
+
+Replacement of one active authority row with a new active row must occur as:
+
+1. lock current active row
+2. transition current row from `active` to `superseded`
+3. insert or activate replacement row
+4. commit atomically
+
+Only `active` rows participate in exclusion constraints. `superseded`, `retired`, and `cancelled` rows do not.
+
+### 10.5 Selection matrix
 
 | Authority | SQL WHERE | Consumable statuses | ORDER BY | Expected cardinality | Ambiguity blocker |
 |---|---|---|---|---:|---|
-| capacity pool definition | scope + visible + effective | `active` | `capacity_pool_version DESC, revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per pool code | `CAPACITY_POOL_AUTHORITY_AMBIGUOUS` |
-| daily capacity | parent visible/effective + `capacity_date` in window + visible | `active` | `revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per pool/date | `CAPACITY_VALUE_AUTHORITY_AMBIGUOUS` |
-| run-parameter package | scope + visible + effective | `active` | `package_version DESC, revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 | `RUN_PARAMETER_AUTHORITY_AMBIGUOUS` |
-| holiday calendar | season scope + visible | `active` | `calendar_version DESC, revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 | `HOLIDAY_CALENDAR_AUTHORITY_AMBIGUOUS` |
-| weather rule config | visible + effective | `active` | `rule_version DESC, revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 | `WEATHER_RULE_AUTHORITY_AMBIGUOUS` |
-| initial inventory snapshot | scope + visible + opening_state_date | `active` | `snapshot_version DESC, revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per date/quantile | `INITIAL_INVENTORY_AUTHORITY_AMBIGUOUS` |
-| mature inventory loss | scope + visible + state_date | `active` | `loss_version DESC, revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per date/pool/quantile | `MATURE_INVENTORY_LOSS_AUTHORITY_AMBIGUOUS` |
+| capacity pool definition | scope + visible + effective | `active` | none; uniqueness/exclusion must yield 0..1 row | 0..1 per pool code | `CAPACITY_POOL_AUTHORITY_AMBIGUOUS` |
+| daily capacity | parent visible/effective + `capacity_date` in window + visible | `active` | `revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per pool/date after highest revision uniqueness | `CAPACITY_VALUE_AUTHORITY_AMBIGUOUS` |
+| run-parameter package | scope + visible + effective | `active` | none; overlap exclusion must yield 0..1 row | 0..1 | `RUN_PARAMETER_AUTHORITY_AMBIGUOUS` |
+| holiday calendar | exact FK load from selected run package | `active` | none; FK target exact load | exactly 1 referenced row | `HOLIDAY_CALENDAR_REFERENCE_INVALID` |
+| weather rule config | exact FK load from selected run package | `active` | none; FK target exact load | exactly 1 referenced row | `WEATHER_RULE_REFERENCE_INVALID` |
+| initial inventory snapshot | scope + visible + opening_state_date | `active` | `revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per opening state date | `INITIAL_INVENTORY_AUTHORITY_AMBIGUOUS` |
+| mature inventory loss | scope + visible + state_date | `active` | `revision DESC, available_at_local_date DESC, row_hash ASC` | 0..1 per date/pool/quantile after highest revision uniqueness | `MATURE_INVENTORY_LOSS_AUTHORITY_AMBIGUOUS` |
 
 ---
 
@@ -711,7 +786,9 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
 - `UNIQUE NULLS NOT DISTINCT` for nullable business keys
 - `CREATE EXTENSION IF NOT EXISTS btree_gist`
 - stored `daterange` columns for effective overlap checks
+- stored `normalized_subfarm_id` for NULL-safe cross-pool exclusion
 - `EXCLUDE USING gist` for overlapping consumable intervals
+- database-enforced parent/child copied-field parity through composite FK
 - transactional create-or-load behavior for exact same payload
 - reject conflicting payload on same business key
 
@@ -751,6 +828,39 @@ Project PostgreSQL version is frozen as 16 for this design round. Therefore the 
   - `loss_version`
   - `revision`
 
+### 11.3 NULL-safe member exclusion
+
+Frozen rule:
+
+- all real dimension IDs are positive
+- `0` is reserved and cannot be a valid `subfarm_id`
+- `subfarm_id IS NULL` is normalized to `normalized_subfarm_id = 0`
+
+This normalized value is used only for exclusion semantics; it is not a business identifier.
+
+### 11.4 Parent-child copied-field binding
+
+The member table redundantly stores:
+
+- `season_id`
+- `destination_factory_id`
+- `effective_from`
+- `effective_to`
+- `status`
+
+These are copied solely so PostgreSQL can enforce cross-pool exclusion at child granularity. They must be bound to the parent by database constraint, not by trigger.
+
+Frozen binding strategy:
+
+- parent stores non-null normalized effective end:
+  - `effective_to_exclusive DATE GENERATED ALWAYS AS (COALESCE(effective_to + 1, DATE '9999-12-31')) STORED`
+- parent gets composite uniqueness on:
+  - `(id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status)`
+- child stores the same normalized field copied from parent
+- child gets composite FK on:
+  - `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status)`
+- no triggers
+
 ---
 
 ## 12. Blocker Taxonomy
@@ -774,9 +884,11 @@ Frozen blocker set for future implementation:
 - `TIMEZONE_AUTHORITY_INVALID`
 - `HOLIDAY_CALENDAR_AUTHORITY_MISSING`
 - `HOLIDAY_CALENDAR_AUTHORITY_AMBIGUOUS`
+- `HOLIDAY_CALENDAR_REFERENCE_INVALID`
 - `HOLIDAY_CALENDAR_HASH_MISMATCH`
 - `WEATHER_RULE_AUTHORITY_MISSING`
 - `WEATHER_RULE_AUTHORITY_AMBIGUOUS`
+- `WEATHER_RULE_REFERENCE_INVALID`
 - `WEATHER_RULE_CONFIG_HASH_MISMATCH`
 - `INITIAL_INVENTORY_AUTHORITY_MISSING`
 - `INITIAL_INVENTORY_AUTHORITY_AMBIGUOUS`
@@ -788,6 +900,96 @@ Frozen blocker set for future implementation:
 - `AUTHORITY_STATUS_NOT_CONSUMABLE`
 
 These are in addition to existing Task 6 / Task 7 / Task 8 / Task 9 blocker families.
+
+---
+
+## 12A. ParameterSourceRef Matrix
+
+All `ParameterSourceRef` rows in Task 9 replay must use deterministic values and must not use database surrogate IDs inside `source_record_key`.
+
+Frozen `source_system`:
+
+- `task9_historical_authority`
+
+Frozen sort order for emitted refs:
+
+- `parameter_code ASC`
+- `source_row_hash ASC`
+
+### 12A.1 Run-parameter codes
+
+| parameter_code | authority table | authority grain | source_system | source_record_key format | source_version | source_row_hash | available_at | as_of_date | shared-row behavior | required mode | forbidden mode | exactly-one rule |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `HOLIDAY_CALENDAR` | `task9_holiday_calendar_version` | season x calendar_version x revision | `task9_historical_authority` | `{season_id}:{calendar_code}:{calendar_version}:{revision}` | `calendar_version` | holiday header `row_hash` | holiday `available_at_local_date` | node `as_of_date` | unique holiday header row | all modes | none | exactly one |
+| `WEATHER_RULE_CONFIG` | `task9_weather_rule_config_version` | rule_version x revision | `task9_historical_authority` | `{rule_code}:{rule_version}:{revision}` | `rule_version` | weather-rule `row_hash` | rule `available_at_local_date` | node `as_of_date` | unique weather-rule row | all modes | none | exactly one |
+| `HARVEST_TO_ARRIVAL_LAG` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
+| `TIMEZONE_CONFIG` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
+| `HARVEST_BUCKET_ANCHOR_TIME` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
+
+The three run-package codes may share:
+
+- `source_record_key`
+- `source_version`
+- `source_row_hash`
+
+But they must still emit three distinct `ParameterSourceRef` rows because `parameter_code` differs.
+
+### 12A.2 `LABOR_DERIVED` capacity mode
+
+Required codes:
+
+- `PLANNED_PICKER_COUNT`
+- `PICKER_PRODUCTIVITY`
+- `LABOR_AVAILABILITY_RATIO`
+- `OPERATIONAL_EFFICIENCY_RATIO`
+
+Forbidden code:
+
+- `DIRECT_NOMINAL_CAPACITY`
+
+Authority table:
+
+- `task9_daily_capacity_authority`
+
+Source-record-key format:
+
+- `{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+
+Additional frozen ref fields:
+
+- `source_system = task9_historical_authority`
+- `source_version = capacity_pool_version`
+- `available_at = daily_capacity.available_at_local_date`
+- `as_of_date = node.as_of_date`
+
+### 12A.3 `DIRECT_CAPACITY` mode
+
+Required codes:
+
+- `DIRECT_NOMINAL_CAPACITY`
+- `LABOR_AVAILABILITY_RATIO`
+- `OPERATIONAL_EFFICIENCY_RATIO`
+
+Forbidden codes:
+
+- `PLANNED_PICKER_COUNT`
+- `PICKER_PRODUCTIVITY`
+
+Authority table:
+
+- `task9_daily_capacity_authority`
+
+Source-record-key format:
+
+- `{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+
+Capacity refs may share one authority row hash, but each parameter code still requires its own `ParameterSourceRef`.
+
+### 12A.4 Mature loss
+
+| parameter_code | authority table | source_system | source_record_key format | source_version | source_row_hash | available_at | as_of_date | exactly-one rule |
+|---|---|---|---|---|---|---|---|---|
+| `MATURE_INVENTORY_LOSS` | `task9_mature_inventory_loss_authority` | `task9_historical_authority` | `{season_id}:{destination_factory_id}:{capacity_pool_code}:{state_date}:{forecast_quantile}:{loss_version}:{revision}` | `loss_version` | mature-loss `row_hash` | mature-loss `available_at_local_date` | node `as_of_date` | exactly one per state_date x pool x quantile |
 
 ---
 
@@ -811,18 +1013,25 @@ CREATE TABLE task9_capacity_pool_definition (
         CHECK (capacity_input_mode IN ('LABOR_DERIVED', 'DIRECT_CAPACITY')),
     effective_from DATE NOT NULL,
     effective_to DATE,
+    effective_to_exclusive DATE GENERATED ALWAYS AS (
+        COALESCE(effective_to + 1, DATE '9999-12-31')
+    ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
         daterange(effective_from, COALESCE(effective_to + 1, NULL), '[)')
     ) STORED,
     available_at_local_date DATE NOT NULL,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
+    status_changed_at TIMESTAMPTZ NOT NULL,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_capacity_pool_definition_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (season_id, destination_factory_id, capacity_pool_code, capacity_pool_version, revision),
+    UNIQUE (id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status),
     CHECK (effective_to IS NULL OR effective_to >= effective_from)
 );
 
@@ -834,21 +1043,47 @@ CREATE TABLE task9_capacity_pool_member (
     destination_factory_id BIGINT NOT NULL REFERENCES dim_factory(id) ON DELETE RESTRICT,
     farm_id BIGINT NOT NULL REFERENCES dim_farm(id) ON DELETE RESTRICT,
     subfarm_id BIGINT REFERENCES dim_subfarm(id) ON DELETE RESTRICT,
+    normalized_subfarm_id BIGINT GENERATED ALWAYS AS (COALESCE(subfarm_id, 0)) STORED,
     variety_id BIGINT NOT NULL REFERENCES dim_variety(id) ON DELETE RESTRICT,
     effective_from DATE NOT NULL,
     effective_to DATE,
+    effective_to_exclusive DATE NOT NULL,
     effective_range DATERANGE GENERATED ALWAYS AS (
         daterange(effective_from, COALESCE(effective_to + 1, NULL), '[)')
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    status_changed_at TIMESTAMPTZ NOT NULL,
+    superseded_by_id BIGINT NULL,
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_capacity_pool_member_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     UNIQUE NULLS NOT DISTINCT (
         capacity_pool_definition_id,
         farm_id,
         subfarm_id,
         variety_id
+    ),
+    CHECK (farm_id > 0),
+    CHECK (variety_id > 0),
+    CHECK (subfarm_id IS NULL OR subfarm_id > 0),
+    FOREIGN KEY (
+        capacity_pool_definition_id,
+        season_id,
+        destination_factory_id,
+        effective_from,
+        effective_to_exclusive,
+        status
     )
+    REFERENCES task9_capacity_pool_definition (
+        id,
+        season_id,
+        destination_factory_id,
+        effective_from,
+        effective_to_exclusive,
+        status
+    )
+    ON DELETE RESTRICT
 );
 
 CREATE TABLE task9_daily_capacity_authority (
@@ -867,10 +1102,14 @@ CREATE TABLE task9_daily_capacity_authority (
     available_at_local_date DATE NOT NULL,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
+    status_changed_at TIMESTAMPTZ NOT NULL,
+    superseded_by_id BIGINT NULL,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_daily_capacity_authority_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (capacity_pool_definition_id, capacity_date, revision),
     CHECK (
@@ -893,14 +1132,20 @@ CREATE TABLE task9_holiday_calendar_version (
     calendar_version TEXT NOT NULL,
     revision INTEGER NOT NULL CHECK (revision > 0),
     region_scope TEXT,
-    calendar_hash TEXT NOT NULL CHECK (length(calendar_hash) = 64),
+    calendar_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_holiday_calendar_version_calendar_hash_sha256
+        CHECK (calendar_hash ~ '^[0-9a-f]{64}$'),
     available_at_local_date DATE NOT NULL,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
+    status_changed_at TIMESTAMPTZ NOT NULL,
+    superseded_by_id BIGINT NULL,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_holiday_calendar_version_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (season_id, calendar_code, calendar_version, revision)
 );
@@ -926,19 +1171,28 @@ CREATE TABLE task9_weather_rule_config_version (
     required_feature_ids JSONB NOT NULL,
     feature_rules_json JSONB NOT NULL,
     missing_feature_policy TEXT NOT NULL CHECK (missing_feature_policy = 'BLOCK'),
-    config_hash TEXT NOT NULL CHECK (length(config_hash) = 64),
+    config_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_weather_rule_config_version_config_hash_sha256
+        CHECK (config_hash ~ '^[0-9a-f]{64}$'),
     available_at_local_date DATE NOT NULL,
     effective_from DATE NOT NULL,
     effective_to DATE,
+    effective_to_exclusive DATE GENERATED ALWAYS AS (
+        COALESCE(effective_to + 1, DATE '9999-12-31')
+    ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
         daterange(effective_from, COALESCE(effective_to + 1, NULL), '[)')
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
+    status_changed_at TIMESTAMPTZ NOT NULL,
+    superseded_by_id BIGINT NULL,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_weather_rule_config_version_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (rule_code, rule_version, revision),
     CHECK (maximum_ratio >= minimum_ratio),
@@ -963,15 +1217,22 @@ CREATE TABLE task9_run_parameter_package (
     available_at_local_date DATE NOT NULL,
     effective_from DATE NOT NULL,
     effective_to DATE,
+    effective_to_exclusive DATE GENERATED ALWAYS AS (
+        COALESCE(effective_to + 1, DATE '9999-12-31')
+    ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
         daterange(effective_from, COALESCE(effective_to + 1, NULL), '[)')
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
+    status_changed_at TIMESTAMPTZ NOT NULL,
+    superseded_by_id BIGINT NULL,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_run_parameter_package_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (season_id, destination_factory_id, farm_scope_key, package_version, revision),
     CHECK (effective_to IS NULL OR effective_to >= effective_from)
@@ -982,7 +1243,6 @@ CREATE TABLE task9_initial_inventory_snapshot (
     season_id BIGINT NOT NULL REFERENCES dim_season(id) ON DELETE RESTRICT,
     destination_factory_id BIGINT NOT NULL REFERENCES dim_factory(id) ON DELETE RESTRICT,
     opening_state_date DATE NOT NULL,
-    forecast_quantile TEXT NOT NULL CHECK (forecast_quantile IN ('P50', 'P80', 'P90')),
     snapshot_version TEXT NOT NULL,
     revision INTEGER NOT NULL CHECK (revision > 0),
     initial_opening_mature_inventory_kg NUMERIC(18, 6) NOT NULL
@@ -990,16 +1250,19 @@ CREATE TABLE task9_initial_inventory_snapshot (
     available_at_local_date DATE NOT NULL,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
+    status_changed_at TIMESTAMPTZ NOT NULL,
+    superseded_by_id BIGINT NULL,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_initial_inventory_snapshot_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (
         season_id,
         destination_factory_id,
         opening_state_date,
-        forecast_quantile,
         snapshot_version,
         revision
     )
@@ -1010,12 +1273,15 @@ CREATE TABLE task9_initial_inventory_cohort (
     initial_inventory_snapshot_id BIGINT NOT NULL
         REFERENCES task9_initial_inventory_snapshot(id) ON DELETE RESTRICT,
     stable_cohort_key TEXT NOT NULL,
+    forecast_quantile TEXT NOT NULL CHECK (forecast_quantile IN ('P50', 'P80', 'P90')),
     cohort_date DATE NOT NULL,
     farm_id BIGINT NOT NULL REFERENCES dim_farm(id) ON DELETE RESTRICT,
     subfarm_id BIGINT REFERENCES dim_subfarm(id) ON DELETE RESTRICT,
     variety_id BIGINT NOT NULL REFERENCES dim_variety(id) ON DELETE RESTRICT,
     remaining_quantity_kg NUMERIC(18, 6) NOT NULL CHECK (remaining_quantity_kg >= 0),
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_initial_inventory_cohort_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     UNIQUE (initial_inventory_snapshot_id, stable_cohort_key)
 );
 
@@ -1033,10 +1299,14 @@ CREATE TABLE task9_mature_inventory_loss_authority (
     available_at_local_date DATE NOT NULL,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
+    status_changed_at TIMESTAMPTZ NOT NULL,
+    superseded_by_id BIGINT NULL,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
-    row_hash TEXT NOT NULL CHECK (length(row_hash) = 64),
+    row_hash TEXT NOT NULL
+        CONSTRAINT ck_task9_mature_inventory_loss_authority_row_hash_sha256
+        CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (
         season_id,
@@ -1080,7 +1350,7 @@ ALTER TABLE task9_capacity_pool_member
         season_id WITH =,
         destination_factory_id WITH =,
         farm_id WITH =,
-        subfarm_id WITH =,
+        normalized_subfarm_id WITH =,
         variety_id WITH =,
         effective_range WITH &&
     )
@@ -1126,6 +1396,7 @@ Frozen target:
 - generated range columns:
   - `task9_capacity_pool_definition.effective_range`
   - `task9_capacity_pool_member.effective_range`
+  - `task9_capacity_pool_member.normalized_subfarm_id`
   - `task9_weather_rule_config_version.effective_range`
   - `task9_run_parameter_package.effective_range`
 - `UNIQUE NULLS NOT DISTINCT`:
@@ -1250,10 +1521,20 @@ Frozen decision:
 - [x] DDL draft included
 - [x] `0014` boundary frozen
 - [x] Downstream snapshots explicitly excluded
+- [x] Initial inventory header quantile removed
+- [x] Initial inventory cohort quantile added
+- [x] SHA-256 regex constraints applied in DDL draft
+- [x] NULL-safe subfarm exclusion frozen
+- [x] Parent-child copied-field binding frozen
+- [x] Status transition matrix frozen
+- [x] Run-package-first holiday/weather FK load frozen
+- [x] Lexical business-version ordering removed from selection
+- [x] ParameterSourceRef matrix frozen
+- [x] Holiday duplicate-date semantics frozen
 
 ---
 
 ## 17. Unresolved Questions
 
-- Awaiting review confirmation that the revised holiday dual-hash contract matches the intended Task 9 request/hash boundary.
-- Awaiting review confirmation that PostgreSQL 16 `UNIQUE NULLS NOT DISTINCT` is the accepted member-key strategy for `0014`.
+- Awaiting review confirmation that the composite FK parent-child binding on nullable `effective_to` is acceptable for `0014`, or whether the final migration should normalize `effective_to` into a non-null stored column before FK binding.
+- Awaiting review confirmation that `status_changed_at` should be mandatory on every authority table in `0014`, rather than introduced in a later status-audit follow-up.
