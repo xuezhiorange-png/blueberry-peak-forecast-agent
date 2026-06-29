@@ -1,0 +1,491 @@
+from __future__ import annotations
+
+from datetime import date, datetime, time
+from decimal import Decimal
+from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from backend.app.harvest_state.canonical import is_sha256_hex
+from backend.app.harvest_state.enums import (
+    AuthorityFamily,
+    AuthorityStatus,
+    CapacityInputMode,
+    CapacityPoolGrain,
+    ForecastQuantile,
+    WeatherCombinationMethod,
+)
+from backend.app.harvest_state.schemas import (
+    NonNegativeBusinessDecimal,
+    RatioDecimal,
+    WeatherFeatureRule,
+)
+
+Task9AuthorityStatus = AuthorityStatus
+Task9AuthorityFamily = AuthorityFamily
+
+
+class _AuthorityBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+def _require_non_blank(value: str, field_name: str) -> str:
+    if value.strip() == "":
+        raise ValueError(f"{field_name} must not be blank")
+    return value
+
+
+def _validate_sha256(value: str, field_name: str) -> str:
+    if not is_sha256_hex(value):
+        raise ValueError(f"{field_name} must be a lower-case SHA-256 hex digest")
+    return value
+
+
+def _validate_timezone_name(value: str) -> str:
+    _require_non_blank(value, "timezone")
+    try:
+        ZoneInfo(value)
+    except ZoneInfoNotFoundError as exc:
+        raise ValueError("TIMEZONE_AUTHORITY_INVALID") from exc
+    return value
+
+
+class _AuthorityRowBase(_AuthorityBase):
+    source_system: str = Field(min_length=1)
+    source_record_key: str = Field(min_length=1)
+    source_version: str = Field(min_length=1)
+    row_hash: str = Field(min_length=64, max_length=64)
+
+    @field_validator("source_system", "source_record_key", "source_version")
+    @classmethod
+    def _validate_non_blank(cls, value: str) -> str:
+        return _require_non_blank(value, "text field")
+
+    @field_validator("row_hash")
+    @classmethod
+    def _validate_row_hash(cls, value: str) -> str:
+        return _validate_sha256(value, "row_hash")
+
+
+class _LifecycleAuthorityRowBase(_AuthorityRowBase):
+    status: AuthorityStatus
+    status_changed_at: datetime
+    available_at_local_date: date
+    consumable_from_local_date: date | None = None
+    consumable_to_local_date: date | None = None
+    superseded_by_id: int | None = None
+
+    @model_validator(mode="after")
+    def _validate_lifecycle_projection(self) -> _LifecycleAuthorityRowBase:
+        if (
+            self.status in {AuthorityStatus.DRAFT, AuthorityStatus.CANCELLED}
+            and self.consumable_from_local_date is not None
+        ):
+            raise ValueError("draft/cancelled rows must not expose consumability")
+        if (
+            self.status in {AuthorityStatus.DRAFT, AuthorityStatus.CANCELLED}
+            and self.consumable_to_local_date is not None
+        ):
+            raise ValueError("draft/cancelled rows must not expose consumability")
+        if self.status is AuthorityStatus.ACTIVE:
+            if self.consumable_from_local_date is None or self.consumable_to_local_date is not None:
+                raise ValueError("active rows require open consumability interval")
+        if self.status in {AuthorityStatus.SUPERSEDED, AuthorityStatus.RETIRED}:
+            if self.consumable_from_local_date is None or self.consumable_to_local_date is None:
+                raise ValueError("terminal lifecycle rows require closed consumability interval")
+        if (
+            self.consumable_from_local_date is not None
+            and self.consumable_from_local_date < self.available_at_local_date
+        ):
+            raise ValueError("consumable_from_local_date must be >= available_at_local_date")
+        if (
+            self.consumable_to_local_date is not None
+            and self.consumable_from_local_date is not None
+            and self.consumable_to_local_date <= self.consumable_from_local_date
+        ):
+            raise ValueError("consumable_to_local_date must be > consumable_from_local_date")
+        if self.status is AuthorityStatus.SUPERSEDED and self.superseded_by_id is None:
+            raise ValueError("superseded rows require superseded_by_id")
+        if self.status is not AuthorityStatus.SUPERSEDED and self.superseded_by_id is not None:
+            raise ValueError("replacement id is only allowed for superseded rows")
+        return self
+
+
+class Task9CapacityPoolMemberSchema(_AuthorityRowBase):
+    farm_id: int = Field(gt=0)
+    subfarm_id: int | None = Field(default=None, gt=0)
+    variety_id: int = Field(gt=0)
+
+
+class Task9CapacityPoolDefinitionSchema(_LifecycleAuthorityRowBase):
+    season_id: int = Field(gt=0)
+    destination_factory_id: int = Field(gt=0)
+    capacity_pool_code: str = Field(min_length=1)
+    capacity_pool_grain: CapacityPoolGrain
+    capacity_input_mode: CapacityInputMode
+    capacity_pool_version: str = Field(min_length=1)
+    revision: int = Field(gt=0)
+    effective_from: date
+    effective_to: date | None = None
+
+    @field_validator("capacity_pool_code", "capacity_pool_version")
+    @classmethod
+    def _validate_identity_text(cls, value: str) -> str:
+        return _require_non_blank(value, "identity text")
+
+    @model_validator(mode="after")
+    def _validate_effective_range(self) -> Task9CapacityPoolDefinitionSchema:
+        if self.effective_to is not None and self.effective_to < self.effective_from:
+            raise ValueError("effective_to must be >= effective_from")
+        return self
+
+
+class Task9DailyCapacityAuthoritySchema(_LifecycleAuthorityRowBase):
+    capacity_pool_definition_id: int = Field(gt=0)
+    season_id: int = Field(gt=0)
+    destination_factory_id: int = Field(gt=0)
+    capacity_pool_code: str = Field(min_length=1)
+    capacity_pool_version: str = Field(min_length=1)
+    capacity_pool_revision: int = Field(gt=0)
+    capacity_date: date
+    daily_capacity_revision: int = Field(gt=0)
+    capacity_input_mode: CapacityInputMode
+    planned_picker_count: NonNegativeBusinessDecimal | None = None
+    kg_per_person_per_day: NonNegativeBusinessDecimal | None = None
+    direct_nominal_capacity_kg_per_day: NonNegativeBusinessDecimal | None = None
+    labor_availability_ratio: RatioDecimal
+    operational_efficiency_ratio: RatioDecimal
+
+    @field_validator("capacity_pool_code", "capacity_pool_version")
+    @classmethod
+    def _validate_daily_identity_text(cls, value: str) -> str:
+        return _require_non_blank(value, "identity text")
+
+    @model_validator(mode="after")
+    def _validate_mode_fields(self) -> Task9DailyCapacityAuthoritySchema:
+        if self.capacity_input_mode is CapacityInputMode.LABOR_DERIVED:
+            if (
+                self.planned_picker_count is None
+                or self.kg_per_person_per_day is None
+                or self.direct_nominal_capacity_kg_per_day is not None
+                or self.labor_availability_ratio is None
+                or self.operational_efficiency_ratio is None
+            ):
+                raise ValueError("LABOR_DERIVED fields are incomplete")
+        if self.capacity_input_mode is CapacityInputMode.DIRECT_CAPACITY:
+            if (
+                self.direct_nominal_capacity_kg_per_day is None
+                or self.planned_picker_count is not None
+                or self.kg_per_person_per_day is not None
+                or self.labor_availability_ratio is None
+                or self.operational_efficiency_ratio is None
+            ):
+                raise ValueError("DIRECT_CAPACITY fields are incomplete")
+        return self
+
+
+class Task9HolidayCalendarDateSchema(_AuthorityBase):
+    holiday_date: date
+    holiday_code: str = Field(min_length=1)
+    holiday_name: str = Field(min_length=1)
+
+    @field_validator("holiday_code", "holiday_name")
+    @classmethod
+    def _validate_holiday_text(cls, value: str) -> str:
+        return _require_non_blank(value, "holiday text")
+
+
+class Task9HolidayCalendarVersionSchema(_LifecycleAuthorityRowBase):
+    season_id: int = Field(gt=0)
+    calendar_code: str = Field(min_length=1)
+    calendar_version: str = Field(min_length=1)
+    revision: int = Field(gt=0)
+    calendar_hash: str = Field(min_length=64, max_length=64)
+    region_scope: str | None = None
+    lifecycle_timezone_name: str = Field(min_length=1)
+
+    @field_validator("calendar_code", "calendar_version")
+    @classmethod
+    def _validate_calendar_text(cls, value: str) -> str:
+        return _require_non_blank(value, "calendar text")
+
+    @field_validator("calendar_hash")
+    @classmethod
+    def _validate_calendar_hash(cls, value: str) -> str:
+        return _validate_sha256(value, "calendar_hash")
+
+    @field_validator("lifecycle_timezone_name")
+    @classmethod
+    def _validate_calendar_timezone(cls, value: str) -> str:
+        return _validate_timezone_name(value)
+
+
+class Task9WeatherRuleConfigVersionSchema(_LifecycleAuthorityRowBase):
+    rule_code: str = Field(min_length=1)
+    rule_version: str = Field(min_length=1)
+    revision: int = Field(gt=0)
+    lifecycle_timezone_name: str = Field(min_length=1)
+    combination_method: WeatherCombinationMethod
+    minimum_ratio: RatioDecimal
+    maximum_ratio: RatioDecimal
+    required_feature_ids: list[str]
+    feature_rules: list[WeatherFeatureRule]
+    missing_feature_policy: Literal["BLOCK"]
+    config_hash: str = Field(min_length=64, max_length=64)
+    effective_from: date
+    effective_to: date | None = None
+
+    @field_validator("rule_code", "rule_version")
+    @classmethod
+    def _validate_weather_text(cls, value: str) -> str:
+        return _require_non_blank(value, "weather text")
+
+    @field_validator("lifecycle_timezone_name")
+    @classmethod
+    def _validate_weather_timezone(cls, value: str) -> str:
+        return _validate_timezone_name(value)
+
+    @field_validator("config_hash")
+    @classmethod
+    def _validate_config_hash(cls, value: str) -> str:
+        return _validate_sha256(value, "config_hash")
+
+    @field_validator("required_feature_ids")
+    @classmethod
+    def _validate_required_features(cls, value: list[str]) -> list[str]:
+        if not value:
+            raise ValueError("required_feature_ids must not be empty")
+        normalized = []
+        for item in value:
+            normalized.append(_require_non_blank(item, "feature id"))
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("required_feature_ids must be unique")
+        return normalized
+
+    @model_validator(mode="after")
+    def _validate_weather_payload(self) -> Task9WeatherRuleConfigVersionSchema:
+        if self.effective_to is not None and self.effective_to < self.effective_from:
+            raise ValueError("effective_to must be >= effective_from")
+        if self.minimum_ratio > self.maximum_ratio:
+            raise ValueError("minimum_ratio must be <= maximum_ratio")
+        feature_ids = [rule.feature_id for rule in self.feature_rules]
+        if sorted(feature_ids) != sorted(self.required_feature_ids):
+            raise ValueError("feature_rules must exactly cover required_feature_ids")
+        return self
+
+
+class Task9RunParameterPackageSchema(_LifecycleAuthorityRowBase):
+    season_id: int = Field(gt=0)
+    destination_factory_id: int = Field(gt=0)
+    farm_scope_key: str = Field(min_length=1)
+    farm_timezone: str = Field(min_length=1)
+    destination_factory_timezone: str = Field(min_length=1)
+    harvest_bucket_anchor_local_time: time
+    harvest_to_arrival_lag_days: int = Field(ge=0)
+    holiday_calendar_version_id: int = Field(gt=0)
+    weather_rule_config_version_id: int = Field(gt=0)
+    package_version: str = Field(min_length=1)
+    revision: int = Field(gt=0)
+    effective_from: date
+    effective_to: date | None = None
+
+    @field_validator("farm_scope_key", "package_version")
+    @classmethod
+    def _validate_package_text(cls, value: str) -> str:
+        return _require_non_blank(value, "package text")
+
+    @field_validator("farm_timezone", "destination_factory_timezone")
+    @classmethod
+    def _validate_package_timezone(cls, value: str) -> str:
+        return _validate_timezone_name(value)
+
+    @model_validator(mode="after")
+    def _validate_package_effective_range(self) -> Task9RunParameterPackageSchema:
+        if self.effective_to is not None and self.effective_to < self.effective_from:
+            raise ValueError("effective_to must be >= effective_from")
+        return self
+
+
+class Task9InitialInventorySnapshotSchema(_LifecycleAuthorityRowBase):
+    season_id: int = Field(gt=0)
+    destination_factory_id: int = Field(gt=0)
+    opening_state_date: date
+    snapshot_version: str = Field(min_length=1)
+    revision: int = Field(gt=0)
+    initial_opening_mature_inventory_kg: NonNegativeBusinessDecimal
+
+    @field_validator("snapshot_version")
+    @classmethod
+    def _validate_snapshot_version(cls, value: str) -> str:
+        return _require_non_blank(value, "snapshot_version")
+
+
+class Task9InitialInventoryCohortSchema(_AuthorityRowBase):
+    stable_cohort_key: str = Field(min_length=1)
+    forecast_quantile: ForecastQuantile
+    cohort_date: date
+    farm_id: int = Field(gt=0)
+    subfarm_id: int | None = Field(default=None, gt=0)
+    variety_id: int = Field(gt=0)
+    remaining_quantity_kg: NonNegativeBusinessDecimal
+
+    @field_validator("stable_cohort_key")
+    @classmethod
+    def _validate_stable_key(cls, value: str) -> str:
+        return _require_non_blank(value, "stable_cohort_key")
+
+
+class Task9MatureInventoryLossAuthoritySchema(_LifecycleAuthorityRowBase):
+    season_id: int = Field(gt=0)
+    destination_factory_id: int = Field(gt=0)
+    state_date: date
+    capacity_pool_code: str = Field(min_length=1)
+    forecast_quantile: ForecastQuantile
+    loss_version: str = Field(min_length=1)
+    revision: int = Field(gt=0)
+    mature_inventory_loss_quantity_kg: NonNegativeBusinessDecimal
+
+    @field_validator("capacity_pool_code", "loss_version")
+    @classmethod
+    def _validate_loss_text(cls, value: str) -> str:
+        return _require_non_blank(value, "loss text")
+
+
+class Task9AuthorityLifecycleEventSchema(_AuthorityBase):
+    authority_family: AuthorityFamily
+    authority_stable_key: str = Field(min_length=1)
+    authority_business_version: str = Field(min_length=1)
+    authority_revision: int = Field(gt=0)
+    business_row_hash: str = Field(min_length=64, max_length=64)
+    transition_sequence: int = Field(ge=1)
+    old_status: AuthorityStatus | None = None
+    new_status: AuthorityStatus
+    old_consumable_from_local_date: date | None = None
+    old_consumable_to_local_date: date | None = None
+    new_consumable_from_local_date: date | None = None
+    new_consumable_to_local_date: date | None = None
+    superseded_by_authority_stable_key: str | None = None
+    superseded_by_authority_business_version: str | None = None
+    superseded_by_authority_revision: int | None = Field(default=None, gt=0)
+    transitioned_at: datetime
+    source_system: str = Field(min_length=1)
+    source_record_key: str = Field(min_length=1)
+    lifecycle_event_hash: str = Field(min_length=64, max_length=64)
+
+    @field_validator(
+        "authority_stable_key",
+        "authority_business_version",
+        "source_system",
+        "source_record_key",
+    )
+    @classmethod
+    def _validate_event_text(cls, value: str) -> str:
+        return _require_non_blank(value, "event text")
+
+    @field_validator("business_row_hash", "lifecycle_event_hash")
+    @classmethod
+    def _validate_event_hash(cls, value: str) -> str:
+        return _validate_sha256(value, "event hash")
+
+    @model_validator(mode="after")
+    def _validate_replacement_identity(self) -> Task9AuthorityLifecycleEventSchema:
+        replacement_values = (
+            self.superseded_by_authority_stable_key,
+            self.superseded_by_authority_business_version,
+            self.superseded_by_authority_revision,
+        )
+        all_null = all(value is None for value in replacement_values)
+        all_present = all(value is not None for value in replacement_values)
+        if not (all_null or all_present):
+            raise ValueError("replacement identity must be all-or-none")
+        if self.new_status is AuthorityStatus.SUPERSEDED and not all_present:
+            raise ValueError("superseded lifecycle event requires replacement identity")
+        if self.new_status is not AuthorityStatus.SUPERSEDED and not all_null:
+            raise ValueError("replacement identity is only allowed for superseded events")
+        return self
+
+
+class Task9CapacityPoolDefinitionBundleSchema(Task9CapacityPoolDefinitionSchema):
+    members: list[Task9CapacityPoolMemberSchema]
+
+    @field_validator("members")
+    @classmethod
+    def _validate_members_not_empty(
+        cls, value: list[Task9CapacityPoolMemberSchema]
+    ) -> list[Task9CapacityPoolMemberSchema]:
+        if not value:
+            raise ValueError("members must not be empty")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_members(self) -> Task9CapacityPoolDefinitionBundleSchema:
+        member_keys = set()
+        farm_ids = set()
+        for member in self.members:
+            key = (member.farm_id, member.subfarm_id, member.variety_id)
+            if key in member_keys:
+                raise ValueError("member business key must be unique")
+            member_keys.add(key)
+            farm_ids.add(member.farm_id)
+        if len(farm_ids) > 1:
+            raise ValueError("pool must not mix farms")
+        return self
+
+    @property
+    def definition(self) -> Task9CapacityPoolDefinitionSchema:
+        return Task9CapacityPoolDefinitionSchema.model_validate(
+            self.model_dump(exclude={"members"})
+        )
+
+
+class Task9HolidayCalendarBundleSchema(Task9HolidayCalendarVersionSchema):
+    dates: list[Task9HolidayCalendarDateSchema]
+
+    @field_validator("dates")
+    @classmethod
+    def _validate_dates_not_empty(
+        cls, value: list[Task9HolidayCalendarDateSchema]
+    ) -> list[Task9HolidayCalendarDateSchema]:
+        if not value:
+            raise ValueError("holiday dates must not be empty")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_dates_unique(self) -> Task9HolidayCalendarBundleSchema:
+        seen = set()
+        for item in self.dates:
+            key = (item.holiday_date, item.holiday_code)
+            if key in seen:
+                raise ValueError("holiday (date, code) must be unique")
+            seen.add(key)
+        return self
+
+    @property
+    def header(self) -> Task9HolidayCalendarVersionSchema:
+        return Task9HolidayCalendarVersionSchema.model_validate(self.model_dump(exclude={"dates"}))
+
+    @property
+    def request_holiday_dates(self) -> list[date]:
+        return sorted({item.holiday_date for item in self.dates})
+
+
+class Task9InitialInventoryBundleSchema(Task9InitialInventorySnapshotSchema):
+    cohorts: list[Task9InitialInventoryCohortSchema]
+
+    @model_validator(mode="after")
+    def _validate_inventory_reconciliation(self) -> Task9InitialInventoryBundleSchema:
+        total = sum((item.remaining_quantity_kg for item in self.cohorts), start=Decimal("0"))
+        if self.initial_opening_mature_inventory_kg == 0:
+            return self
+        if not self.cohorts:
+            raise ValueError("non-zero opening inventory requires cohorts")
+        if total != self.initial_opening_mature_inventory_kg:
+            raise ValueError("INITIAL_INVENTORY_COHORT_MISMATCH")
+        return self
+
+    @property
+    def snapshot(self) -> Task9InitialInventorySnapshotSchema:
+        return Task9InitialInventorySnapshotSchema.model_validate(
+            self.model_dump(exclude={"cohorts"})
+        )
