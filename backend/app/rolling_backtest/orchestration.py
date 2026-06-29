@@ -11,10 +11,13 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
+from typing import Any, cast
 
+from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Task 9 schema imports (used by validation and data loaders)
@@ -25,7 +28,6 @@ from backend.app.harvest_state.enums import SourceRefType as _SourceRefType
 from backend.app.harvest_state.schemas import (
     CapacityPoolInput,
     CapacityPoolMember,
-    DailyCapacityInput,
     DailyWeatherFeatureInput,
     InitialInventorySourceRef,
     ParameterSourceRef,
@@ -39,6 +41,11 @@ from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
     ExecutionMode,
     Task10ModelPolicy,
+)
+from backend.app.rolling_backtest.errors import (
+    RollingBacktestAttemptConflictError,
+    RollingBacktestIntegrityError,
+    RollingBacktestPersistenceError,
 )
 from backend.app.rolling_backtest.persistence import (
     DagPersistenceCommand,
@@ -367,7 +374,14 @@ async def orchestrate_node(
             status="running",
             current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
         )
-    except Exception as exc:
+    except (
+        RollingBacktestAttemptConflictError,
+        RollingBacktestIntegrityError,
+        RollingBacktestPersistenceError,
+        SQLAlchemyError,
+        ValueError,
+        TypeError,
+    ) as exc:
         return _outcome_blocked(
             ctx.run_signature,
             ctx.node_signature,
@@ -766,7 +780,8 @@ async def _resolve_task9(
                 task8_snapshot_predictions = input_snapshot.get("task8_daily_predictions", [])
 
             # P0-5: Verify source_ref_catalog against resolved authorities
-            catalog_validation = _validate_source_ref_catalog(
+            catalog_validation = await _validate_source_ref_catalog(
+                session=session,
                 catalog=catalog,
                 resolutions=resolutions,
                 input_snapshot_task8_predictions=task8_snapshot_predictions or None,
@@ -798,7 +813,7 @@ async def _resolve_task9(
                 mode="reuse",
             )
             return authority, None
-        except Exception as exc:
+        except (LookupError, TypeError, ValueError, ValidationError, SQLAlchemyError) as exc:
             blocked = await _blocked(
                 ctx,
                 attempt_id,
@@ -863,7 +878,7 @@ async def _resolve_task9(
                 {"reason": "Could not construct Task9ARequest — missing source roles"},
             )
             return None, blocked
-        except Exception as exc:
+        except (LookupError, TypeError, ValueError, ValidationError, SQLAlchemyError) as exc:
             blocked = await _blocked(
                 ctx,
                 attempt_id,
@@ -1034,7 +1049,7 @@ async def _execute_task10_prediction(
 
         return None
 
-    except Exception as exc:
+    except (LookupError, TypeError, ValueError, ValidationError, SQLAlchemyError) as exc:
         return await _blocked(
             ctx,
             attempt_id,
@@ -1143,8 +1158,9 @@ def _build_audit_outcome(
 # ── Source ref catalog validation ────────────────────────────────────────────
 
 
-def _validate_source_ref_catalog(
+async def _validate_source_ref_catalog(
     *,
+    session: AsyncSession,
     catalog: list[object],
     resolutions: list[ResolutionResult],
     input_snapshot_task8_predictions: list[dict[str, object]] | None = None,
@@ -1170,24 +1186,20 @@ def _validate_source_ref_catalog(
         if r.source_role and r.resolved is not None:
             authority_map[r.source_role] = r
 
-    # ── Build input-snapshot lookup (by prediction_date + farm + subfarm + variety + quantile) ──
-    snapshot_map: dict[tuple[str, str, str, str, str], dict[str, object]] = {}
+    # ── Build input-snapshot lookup by source_ref_hash ────────────────────
+    snapshot_map: dict[str, list[dict[str, object]]] = {}
     if input_snapshot_task8_predictions:
         for pred in input_snapshot_task8_predictions:
-            pd = str(pred.get("prediction_date", ""))
-            fid = str(pred.get("farm_id", ""))
-            sfid = str(pred.get("subfarm_id", "None"))
-            vid = str(pred.get("variety_id", ""))
-            # quantile lives inside source_ref
-            sr = pred.get("source_ref", {})
-            fq = str(sr.get("forecast_quantile", "P50")) if isinstance(sr, dict) else "P50"
-            key = (pd, fid, sfid, vid, fq)
-            snapshot_map[key] = pred
+            source_ref_hash = pred.get("source_ref_hash")
+            if isinstance(source_ref_hash, str) and source_ref_hash:
+                snapshot_map.setdefault(source_ref_hash, []).append(pred)
 
-    entry_hashes: list[str] = []
+    canonical_entries: list[dict[str, object]] = []
     task8_prediction_count = 0
     verification_entries: list[dict[str, object]] = []
     seen_source_ref_hashes: set[str] = set()
+    seen_task8_keys: set[tuple[object, ...]] = set()
+    task8_catalog_hashes: set[str] = set()
     mismatches: list[str] = []
 
     for entry in catalog:
@@ -1228,7 +1240,7 @@ def _validate_source_ref_catalog(
                     "blocked": True,
                     "reason": f"unsupported source_ref_type: {source_ref_type_str!r}",
                 }
-        except Exception as exc:
+        except ValidationError as exc:
             return {
                 "blocked": True,
                 "reason": (
@@ -1256,74 +1268,95 @@ def _validate_source_ref_catalog(
             }
         seen_source_ref_hashes.add(source_ref_hash)
 
-        # ── Build entry hash for catalog-level aggregate ──────────────────
-        entry_payload = {
-            "source_ref_type": source_ref_type_str,
-            "source_ref_hash": source_ref_hash,
-        }
-        entry_hash = sha256_payload(canonical_json_dumps(entry_payload))
-        entry_hashes.append(entry_hash)
+        canonical_entries.append(
+            {
+                "source_ref_hash": source_ref_hash,
+                "source_ref_type": source_ref_type_str,
+                "source_ref_schema_version": entry_dict.get("source_ref_schema_version"),
+                "source_ref_payload": source_ref_payload,
+            }
+        )
 
         # ── TASK8_DAILY_PREDICTION: deep field verification ───────────────
         if source_ref_type_str == _SourceRefType.TASK8_DAILY_PREDICTION.value:
             task8_prediction_count += 1
+            task8_catalog_hashes.add(source_ref_hash)
+
+            snapshot_matches = snapshot_map.get(source_ref_hash, [])
+            if len(snapshot_matches) != 1:
+                reason = (
+                    "missing"
+                    if not snapshot_matches
+                    else f"duplicate({len(snapshot_matches)})"
+                )
+                return {
+                    "blocked": True,
+                    "reason": (
+                        "task9_task8_authority_mismatch: "
+                        f"source_ref_hash {source_ref_hash} has {reason} input snapshot match"
+                    ),
+                }
+
+            snapshot_row = snapshot_matches[0]
+            verification_payload = snapshot_row.get("verification_snapshot")
+            if not isinstance(verification_payload, dict):
+                return {
+                    "blocked": True,
+                    "reason": (
+                        "task9_task8_authority_mismatch: "
+                        f"source_ref_hash {source_ref_hash} missing verification_snapshot"
+                    ),
+                }
+
+            try:
+                typed_verification = Task8PredictionVerificationSnapshot.model_validate(
+                    verification_payload
+                )
+            except ValidationError as exc:
+                return {
+                    "blocked": True,
+                    "reason": (
+                        "task9_task8_authority_mismatch: "
+                        f"invalid verification_snapshot for {source_ref_hash}: {_safe_str(exc)}"
+                    ),
+                }
 
             # Verify every field in the typed source ref
-            field_issues = _validate_task8_prediction_fields(
-                typed_sr=typed_sr,  # type: ignore[arg-type]
+            task8_source_ref = cast(Task8PredictionSourceRef, typed_sr)
+            field_issues = await _validate_task8_prediction_fields(
+                session=session,
+                typed_sr=task8_source_ref,
+                typed_verification=typed_verification,
                 authority_by_type=authority_by_type,
                 authority_map=authority_map,
             )
             if field_issues:
                 mismatches.extend(field_issues)
 
-            # Build unique key for duplicate detection
-            pred_date = str(typed_sr.prediction_date)  # type: ignore[union-attr]
-            # farm/subfarm/variety are NOT in Task8PredictionSourceRef directly;
-            # they live in the Task8DailyPredictionInput / verification_snapshot.
-            # We build the key from the snapshot when available.
-            plan_id = str(getattr(typed_sr, "plan_id", ""))
-            fq = str(getattr(typed_sr, "forecast_quantile", "P50"))
+            task8_key = (
+                task8_source_ref.maturity_daily_prediction_id,
+                task8_source_ref.prediction_date.isoformat(),
+                typed_verification.farm_id,
+                typed_verification.subfarm_id,
+                typed_verification.variety_id,
+                task8_source_ref.forecast_quantile.value,
+            )
+            if task8_key in seen_task8_keys:
+                return {
+                    "blocked": True,
+                    "reason": (
+                        "task9_task8_authority_mismatch: "
+                        f"duplicate semantic task8 catalog entry {task8_key}"
+                    ),
+                }
+            seen_task8_keys.add(task8_key)
 
-            # Cross-reference with input snapshot
-            snapshot_matched = False
-            snapshot_p50 = snapshot_p80 = snapshot_p90 = None
-            if input_snapshot_task8_predictions:
-                for pred in input_snapshot_task8_predictions:
-                    sr = pred.get("source_ref", {})
-                    if isinstance(sr, dict) and sr.get("maturity_daily_prediction_id") == getattr(
-                        typed_sr,
-                        "maturity_daily_prediction_id",
-                        None,
-                    ):
-                        snapshot_matched = True
-                        vs = pred.get("verification_snapshot", {})
-                        if isinstance(vs, dict):
-                            snapshot_p50 = vs.get("p50_kg")
-                            snapshot_p80 = vs.get("p80_kg")
-                            snapshot_p90 = vs.get("p90_kg")
-                        break
-
-            # Build verification entry
-            verif_entry: dict[str, object] = {
-                "source_ref_hash": source_ref_hash,
-                "source_ref_type": source_ref_type_str,
-                "maturity_daily_prediction_id": getattr(
-                    typed_sr,
-                    "maturity_daily_prediction_id",
-                    0,
-                ),
-                "prediction_date": pred_date,
-                "forecast_quantile": fq,
-                "plan_id": plan_id,
-                "snapshot_matched": snapshot_matched,
-                "field_issues": field_issues,
-            }
-            if snapshot_p50 is not None:
-                verif_entry["snapshot_p50_kg"] = snapshot_p50
-                verif_entry["snapshot_p80_kg"] = snapshot_p80
-                verif_entry["snapshot_p90_kg"] = snapshot_p90
-            verification_entries.append(verif_entry)
+            verification_entries.append(
+                {
+                    "source_ref_hash": source_ref_hash,
+                    "verification_snapshot": typed_verification.model_dump(mode="python"),
+                }
+            )
 
     # ── Global cross-reference checks ─────────────────────────────────────
     if mismatches:
@@ -1336,15 +1369,32 @@ def _validate_source_ref_catalog(
             "mismatches": mismatches,
         }
 
+    input_snapshot_hashes = set(snapshot_map)
+    if task8_catalog_hashes != input_snapshot_hashes:
+        missing = sorted(input_snapshot_hashes - task8_catalog_hashes)
+        orphan = sorted(task8_catalog_hashes - input_snapshot_hashes)
+        return {
+            "blocked": True,
+            "reason": (
+                "task9_task8_authority_mismatch: "
+                f"catalog/input snapshot mismatch missing={missing} orphan={orphan}"
+            ),
+        }
+
     # ── Aggregate hash ────────────────────────────────────────────────────
-    entry_hashes.sort()
-    aggregate_payload = {"entry_hashes": entry_hashes, "entry_count": len(entry_hashes)}
+    aggregate_payload = {
+        "entries": sorted(canonical_entries, key=lambda item: str(item["source_ref_hash"])),
+        "entry_count": len(canonical_entries),
+    }
     source_catalog_hash = sha256_payload(canonical_json_dumps(aggregate_payload))
 
     verification_snapshot_hash = None
     if verification_entries:
         verif_payload = {
-            "entries": verification_entries,
+            "entries": sorted(
+                verification_entries,
+                key=lambda item: str(item["source_ref_hash"]),
+            ),
             "task8_prediction_count": task8_prediction_count,
             "entry_count": len(verification_entries),
         }
@@ -1354,70 +1404,280 @@ def _validate_source_ref_catalog(
         "blocked": False,
         "source_catalog_hash": source_catalog_hash,
         "verification_snapshot_hash": verification_snapshot_hash,
-        "entry_count": len(entry_hashes),
+        "entry_count": len(canonical_entries),
         "task8_prediction_count": task8_prediction_count,
         "verification_entry_count": len(verification_entries),
     }
 
 
-def _validate_task8_prediction_fields(
-    *,
+async def _load_task8_verification_bundle(
+    session: AsyncSession,
     typed_sr: Task8PredictionSourceRef,
+) -> dict[str, object]:
+    from backend.app.models.maturity import (
+        MaturityDailyPredictionModel,
+        MaturityForecastRun,
+        MaturityModelArtifact,
+        MaturityModelRun,
+    )
+    from backend.app.models.planning import LocationReference
+    from backend.app.models.production_plan import FarmSeasonVarietyPlan
+    from backend.app.models.weather import BaseTemperatureSearchRun, LocationWeatherMapping
+
+    model_run = await session.get(MaturityModelRun, typed_sr.maturity_model_run_id)
+    artifact = await session.get(
+        MaturityModelArtifact,
+        typed_sr.maturity_model_artifact_id,
+    )
+    forecast_run = await session.get(
+        MaturityForecastRun,
+        typed_sr.maturity_forecast_run_id,
+    )
+    daily_row = await session.get(
+        MaturityDailyPredictionModel,
+        typed_sr.maturity_daily_prediction_id,
+    )
+    plan_row = await session.get(FarmSeasonVarietyPlan, typed_sr.plan_id)
+    location_row = await session.get(LocationReference, typed_sr.location_reference_id)
+    weather_mapping = (
+        None
+        if typed_sr.weather_mapping_id is None
+        else await session.get(LocationWeatherMapping, typed_sr.weather_mapping_id)
+    )
+    base_temperature = (
+        None
+        if typed_sr.base_temperature_search_run_id is None
+        else await session.get(BaseTemperatureSearchRun, typed_sr.base_temperature_search_run_id)
+    )
+
+    return {
+        "model_run": model_run,
+        "artifact": artifact,
+        "forecast_run": forecast_run,
+        "daily_row": daily_row,
+        "plan_row": plan_row,
+        "location_row": location_row,
+        "weather_mapping": weather_mapping,
+        "base_temperature": base_temperature,
+    }
+
+
+def _task8_quantile_quantity(
+    *,
+    typed_verification: Task8PredictionVerificationSnapshot,
+    forecast_quantile: str,
+) -> Decimal:
+    if forecast_quantile == "P50":
+        return typed_verification.p50_kg
+    if forecast_quantile == "P80":
+        return typed_verification.p80_kg
+    if forecast_quantile == "P90":
+        return typed_verification.p90_kg
+    raise ValueError(f"unsupported forecast_quantile {forecast_quantile!r}")
+
+
+async def _validate_task8_prediction_fields(
+    *,
+    session: AsyncSession,
+    typed_sr: Task8PredictionSourceRef,
+    typed_verification: Task8PredictionVerificationSnapshot,
     authority_by_type: dict[str, ResolutionResult],
     authority_map: dict[str, ResolutionResult],
 ) -> list[str]:
     """Verify every field in a TASK8_DAILY_PREDICTION source ref against resolved authorities."""
     issues: list[str] = []
+    _unused = authority_map
+    orm_bundle = await _load_task8_verification_bundle(session, typed_sr)
+    model_run = cast(Any, orm_bundle["model_run"])
+    artifact = cast(Any, orm_bundle["artifact"])
+    forecast_run = cast(Any, orm_bundle["forecast_run"])
+    daily_row = cast(Any, orm_bundle["daily_row"])
+    plan_row = cast(Any, orm_bundle["plan_row"])
+    location_row = cast(Any, orm_bundle["location_row"])
+    weather_mapping = cast(Any, orm_bundle["weather_mapping"])
+    base_temperature = cast(Any, orm_bundle["base_temperature"])
 
     # Resolved authority lookups
-    model_run = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_RUN.value)
-    artifact = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_ARTIFACT.value)
-    forecast_run = authority_by_type.get(AvailabilitySourceType.TASK8_FORECAST_RUN.value)
+    model_run_result = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_RUN.value)
+    artifact_result = authority_by_type.get(AvailabilitySourceType.TASK8_MODEL_ARTIFACT.value)
+    forecast_run_result = authority_by_type.get(AvailabilitySourceType.TASK8_FORECAST_RUN.value)
+    daily_prediction_result = authority_by_type.get(
+        AvailabilitySourceType.TASK8_DAILY_PREDICTION.value
+    )
+
+    if model_run is None:
+        issues.append("maturity_model_run not found")
+    if artifact is None:
+        issues.append("maturity_model_artifact not found")
+    if forecast_run is None:
+        issues.append("maturity_forecast_run not found")
+    if daily_row is None:
+        issues.append("maturity_daily_prediction not found")
+    if plan_row is None:
+        issues.append("plan row not found")
+    if location_row is None:
+        issues.append("location reference not found")
+    if typed_sr.weather_mapping_id is not None and weather_mapping is None:
+        issues.append("weather mapping not found")
+    if typed_sr.base_temperature_search_run_id is not None and base_temperature is None:
+        issues.append("base temperature authority not found")
+
+    if issues:
+        return issues
+
+    assert model_run is not None
+    assert artifact is not None
+    assert forecast_run is not None
+    assert daily_row is not None
+    assert plan_row is not None
+    assert location_row is not None
 
     # ── Model run cross-check ─────────────────────────────────────────────
-    if model_run and model_run.resolved:
-        mr_ref = model_run.resolved.persistent_reference.reference_value
+    if model_run_result and model_run_result.resolved:
+        mr_ref = model_run_result.resolved.persistent_reference.reference_value
         if typed_sr.maturity_model_run_id != mr_ref:
             issues.append(
                 f"maturity_model_run_id mismatch: sr={typed_sr.maturity_model_run_id} "
                 f"resolved={mr_ref}"
             )
-        mr_version = model_run.resolved.business_version
+        mr_version = model_run_result.resolved.business_version
         if mr_version and typed_sr.maturity_model_version != mr_version:
             issues.append(
                 f"maturity_model_version mismatch: sr={typed_sr.maturity_model_version!r} "
                 f"resolved={mr_version!r}"
             )
-        mr_config = model_run.resolved.semantic_identity.semantic.config_hash
+        mr_config = model_run_result.resolved.semantic_identity.semantic.config_hash
         if mr_config and typed_sr.maturity_model_config_hash != mr_config:
             issues.append(
                 f"maturity_model_config_hash mismatch: "
                 f"sr={typed_sr.maturity_model_config_hash!r} resolved={mr_config!r}"
             )
+    if typed_sr.maturity_model_version != model_run.model_version:
+        issues.append("maturity_model_version does not match ORM")
+    if typed_sr.maturity_model_config_hash != model_run.config_hash:
+        issues.append("maturity_model_config_hash does not match ORM")
+    if typed_sr.maturity_model_source_signature != model_run.source_signature:
+        issues.append("maturity_model_source_signature does not match ORM")
 
     # ── Artifact cross-check ──────────────────────────────────────────────
-    if artifact and artifact.resolved:
-        art_ref = artifact.resolved.persistent_reference.reference_value
+    if artifact_result and artifact_result.resolved:
+        art_ref = artifact_result.resolved.persistent_reference.reference_value
         if typed_sr.maturity_model_artifact_id != art_ref:
             issues.append(
                 f"maturity_model_artifact_id mismatch: sr={typed_sr.maturity_model_artifact_id} "
                 f"resolved={art_ref}"
             )
-        art_hash = artifact.resolved.canonical_payload_hash
+        art_hash = artifact_result.resolved.canonical_payload_hash
         if art_hash and typed_sr.maturity_model_artifact_hash != art_hash:
             issues.append(
                 f"maturity_model_artifact_hash mismatch: "
                 f"sr={typed_sr.maturity_model_artifact_hash!r} resolved={art_hash!r}"
             )
+    if artifact.run_id != model_run.id:
+        issues.append("maturity_model_artifact parent run mismatch")
+    if typed_sr.maturity_model_artifact_hash != artifact.artifact_hash:
+        issues.append("maturity_model_artifact_hash does not match ORM")
 
     # ── Forecast run cross-check ──────────────────────────────────────────
-    if forecast_run and forecast_run.resolved:
-        fr_ref = forecast_run.resolved.persistent_reference.reference_value
+    if forecast_run_result and forecast_run_result.resolved:
+        fr_ref = forecast_run_result.resolved.persistent_reference.reference_value
         if typed_sr.maturity_forecast_run_id != fr_ref:
             issues.append(
                 f"maturity_forecast_run_id mismatch: sr={typed_sr.maturity_forecast_run_id} "
                 f"resolved={fr_ref}"
             )
+    if daily_prediction_result and daily_prediction_result.resolved:
+        daily_ref = daily_prediction_result.resolved.persistent_reference.reference_value
+        if typed_sr.maturity_daily_prediction_id != daily_ref:
+            issues.append(
+                f"maturity_daily_prediction_id mismatch: "
+                f"sr={typed_sr.maturity_daily_prediction_id} "
+                f"resolved={daily_ref}"
+            )
+
+    if forecast_run.model_run_id != model_run.id:
+        issues.append("maturity_forecast_run parent model mismatch")
+    if forecast_run.artifact_id != artifact.id:
+        issues.append("maturity_forecast_run parent artifact mismatch")
+    if typed_sr.maturity_forecast_source_signature != forecast_run.source_signature:
+        issues.append("maturity_forecast_source_signature does not match ORM")
+    if typed_sr.maturity_forecast_as_of_date != forecast_run.as_of_date:
+        issues.append("maturity_forecast_as_of_date does not match ORM")
+    if typed_verification.maturity_forecast_run_status != forecast_run.status:
+        issues.append("maturity_forecast_run_status does not match ORM")
+    if (
+        typed_verification.maturity_forecast_prediction_start_date
+        != forecast_run.prediction_start_date
+    ):
+        issues.append("maturity_forecast_prediction_start_date does not match ORM")
+    if (
+        typed_verification.maturity_forecast_prediction_end_date
+        != forecast_run.prediction_end_date
+    ):
+        issues.append("maturity_forecast_prediction_end_date does not match ORM")
+
+    if daily_row.forecast_run_id != forecast_run.id:
+        issues.append("maturity_daily_prediction parent forecast mismatch")
+    if typed_sr.prediction_date != daily_row.prediction_date:
+        issues.append("prediction_date does not match ORM")
+    if typed_verification.prediction_date != daily_row.prediction_date:
+        issues.append("verification prediction_date does not match ORM")
+
+    if typed_sr.plan_id != forecast_run.plan_id or typed_sr.plan_id != plan_row.id:
+        issues.append("plan_id does not match ORM")
+    if typed_sr.location_reference_id != forecast_run.location_reference_id:
+        issues.append("location_reference_id does not match ORM")
+    if typed_verification.location_reference_id != location_row.id:
+        issues.append("verification location_reference_id does not match ORM")
+    if typed_sr.weather_mapping_id != forecast_run.weather_mapping_id:
+        issues.append("weather_mapping_id does not match ORM")
+    if typed_sr.base_temperature_search_run_id != forecast_run.base_temperature_search_run_id:
+        issues.append("base_temperature_search_run_id does not match ORM")
+
+    if typed_verification.farm_id != plan_row.farm_id:
+        issues.append("farm_id does not match plan ORM")
+    if typed_verification.subfarm_id != plan_row.subfarm_id:
+        issues.append("subfarm_id does not match plan ORM")
+    if typed_verification.variety_id != plan_row.variety_id:
+        issues.append("variety_id does not match plan ORM")
+    if typed_verification.plan_id != plan_row.id:
+        issues.append("verification plan_id does not match ORM")
+
+    if typed_verification.maturity_model_run_id != model_run.id:
+        issues.append("verification maturity_model_run_id does not match ORM")
+    if typed_verification.maturity_model_version != model_run.model_version:
+        issues.append("verification maturity_model_version does not match ORM")
+    if typed_verification.maturity_model_config_hash != model_run.config_hash:
+        issues.append("verification maturity_model_config_hash does not match ORM")
+    if typed_verification.maturity_model_source_signature != model_run.source_signature:
+        issues.append("verification maturity_model_source_signature does not match ORM")
+    if typed_verification.maturity_model_artifact_id != artifact.id:
+        issues.append("verification maturity_model_artifact_id does not match ORM")
+    if typed_verification.maturity_model_artifact_run_id != artifact.run_id:
+        issues.append("verification maturity_model_artifact_run_id does not match ORM")
+    if typed_verification.maturity_model_artifact_hash != artifact.artifact_hash:
+        issues.append("verification maturity_model_artifact_hash does not match ORM")
+    if typed_verification.maturity_forecast_run_id != forecast_run.id:
+        issues.append("verification maturity_forecast_run_id does not match ORM")
+    if typed_verification.maturity_forecast_model_run_id != forecast_run.model_run_id:
+        issues.append("verification maturity_forecast_model_run_id does not match ORM")
+    if typed_verification.maturity_forecast_artifact_id != forecast_run.artifact_id:
+        issues.append("verification maturity_forecast_artifact_id does not match ORM")
+    if typed_verification.maturity_forecast_source_signature != forecast_run.source_signature:
+        issues.append("verification maturity_forecast_source_signature does not match ORM")
+    if typed_verification.maturity_forecast_as_of_date != forecast_run.as_of_date:
+        issues.append("verification maturity_forecast_as_of_date does not match ORM")
+    if typed_verification.maturity_daily_prediction_id != daily_row.id:
+        issues.append("verification maturity_daily_prediction_id does not match ORM")
+    if typed_verification.maturity_daily_prediction_forecast_run_id != daily_row.forecast_run_id:
+        issues.append("verification maturity_daily_prediction_forecast_run_id does not match ORM")
+
+    expected_quantity = _task8_quantile_quantity(
+        typed_verification=typed_verification,
+        forecast_quantile=typed_sr.forecast_quantile.value,
+    )
+    if typed_sr.source_quantity_kg != expected_quantity:
+        issues.append("source_quantity_kg does not match verification snapshot quantile")
 
     # ── Required field presence checks ────────────────────────────────────
     required_str_fields = [
@@ -1469,72 +1729,56 @@ async def _build_task9a_request(
             diagnostics={"missing_roles": missing_roles},
         )
 
-    # -- Load real upstream data rows from the database ---------------
     try:
-        # Task 8 daily predictions (typed, validates every field)
         task8_build = await _load_task8_inputs_typed(session, node, resolved_map)
         if task8_build.blocked:
             return task8_build
         task8_daily_predictions = task8_build.request
 
-        # Task 7 weather observations
         weather_build = await _load_weather_inputs_typed(session, node, resolved_map)
         if weather_build.blocked:
             return weather_build
         daily_weather_features = weather_build.request
 
-        # Task 6 plan version → capacity pools + daily inputs
         capacity_build = await _load_capacity_inputs_typed(session, node, resolved_map)
         if capacity_build.blocked:
             return capacity_build
-        # capacity_build.request is a tuple of (pools, daily_inputs)
         capacity_pools_raw, daily_capacity_inputs_raw = capacity_build.request  # type: ignore[misc]
 
-        # Build the Task9ARequest
+        run_params_build = await _load_task9_run_parameters_typed(session, node, resolved_map)
+        if run_params_build.blocked:
+            return run_params_build
+        run_parameters = run_params_build.request
+        if not isinstance(run_parameters, dict):
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "task9 run parameters were not constructed"},
+            )
+
         request = Task9ARequest(
             as_of_date=node.as_of_local_date,
             forecast_start_date=node.forecast_start_local_date,
             forecast_end_date=node.forecast_end_local_date,
             forecast_quantiles=["P50", "P80", "P90"],
-            destination_factory_id=list(node.scope.destination_factory_ids.ids)[0],
-            farm_timezone=node.timezone,
-            destination_factory_timezone=node.timezone,
-            harvest_bucket_anchor_local_time=time(9, 0),
-            harvest_to_arrival_lag_days=0,
-            holiday_calendar_version="v1",
-            holiday_calendar_hash="0" * 64,
-            holiday_dates=[],
-            weather_rule_config={
-                "version": "v1",
-                "required_feature_ids": ["temperature"],
-                "feature_rules": [
-                    {
-                        "feature_id": "temperature",
-                        "bands": [
-                            {
-                                "lower_bound": "0",
-                                "lower_inclusive": True,
-                                "upper_bound": "35",
-                                "upper_inclusive": True,
-                                "multiplier": "1.0",
-                            }
-                        ],
-                    }
-                ],
-                "combination_method": "minimum",
-                "minimum_ratio": "0.5",
-                "maximum_ratio": "1.0",
-                "missing_feature_policy": "BLOCK",
-            },
-            run_parameter_source_refs=[],
+            destination_factory_id=run_parameters["destination_factory_id"],
+            farm_timezone=run_parameters["farm_timezone"],
+            destination_factory_timezone=run_parameters["destination_factory_timezone"],
+            harvest_bucket_anchor_local_time=run_parameters["harvest_bucket_anchor_local_time"],
+            harvest_to_arrival_lag_days=run_parameters["harvest_to_arrival_lag_days"],
+            holiday_calendar_version=run_parameters["holiday_calendar_version"],
+            holiday_calendar_hash=run_parameters["holiday_calendar_hash"],
+            holiday_dates=run_parameters["holiday_dates"],
+            weather_rule_config=run_parameters["weather_rule_config"],
+            run_parameter_source_refs=run_parameters["run_parameter_source_refs"],
             capacity_pools=capacity_pools_raw,
             daily_capacity_inputs=daily_capacity_inputs_raw,
             daily_weather_features=daily_weather_features,
             task8_daily_predictions=task8_daily_predictions,
-            mature_inventory_loss_inputs=[],
+            mature_inventory_loss_inputs=run_parameters["mature_inventory_loss_inputs"],
         )
         return Task9RequestBuildResult(request=request)
-    except Exception as exc:
+    except (LookupError, TypeError, ValueError, ValidationError, SQLAlchemyError) as exc:
         return Task9RequestBuildResult(
             blocked=True,
             blocker_code=OrchestrationBlocker.TASK9_EXECUTION_BLOCKED.value,
@@ -1566,6 +1810,9 @@ async def _load_task8_inputs_typed(
             MaturityModelArtifact,
             MaturityModelRun,
         )
+        from backend.app.models.planning import LocationReference
+        from backend.app.models.production_plan import FarmSeasonVarietyPlan
+        from backend.app.models.weather import BaseTemperatureSearchRun, LocationWeatherMapping
 
         forecast_result = resolved_map.get(
             AvailabilitySourceType.TASK8_FORECAST_RUN.value
@@ -1590,7 +1837,6 @@ async def _load_task8_inputs_typed(
                 diagnostics={"reason": "invalid forecast_run_id"},
             )
 
-        # Get the forecast run to read parent model/artifact info
         fr_stmt = select(MaturityForecastRun).where(MaturityForecastRun.id == forecast_run_id)
         fr_result = await session.execute(fr_stmt)
         forecast_run_row = fr_result.scalar_one_or_none()
@@ -1601,25 +1847,90 @@ async def _load_task8_inputs_typed(
                 diagnostics={"reason": f"forecast run {forecast_run_id} not found"},
             )
 
-        # Get model run
-        model_run_row = None
-        if forecast_run_row.model_run_id:
-            mr_stmt = select(MaturityModelRun).where(
-                MaturityModelRun.id == forecast_run_row.model_run_id
+        mr_stmt = select(MaturityModelRun).where(
+            MaturityModelRun.id == forecast_run_row.model_run_id
+        )
+        mr_result = await session.execute(mr_stmt)
+        model_run_row = mr_result.scalar_one_or_none()
+        if model_run_row is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK8_MISSING_DAILY_PREDICTIONS.value,
+                diagnostics={"reason": "maturity model run missing"},
             )
-            mr_result = await session.execute(mr_stmt)
-            model_run_row = mr_result.scalar_one_or_none()
 
-        # Get artifact
-        artifact_row = None
-        if forecast_run_row.artifact_id:
-            art_stmt = select(MaturityModelArtifact).where(
-                MaturityModelArtifact.id == forecast_run_row.artifact_id
+        art_stmt = select(MaturityModelArtifact).where(
+            MaturityModelArtifact.id == forecast_run_row.artifact_id
+        )
+        art_result = await session.execute(art_stmt)
+        artifact_row = art_result.scalar_one_or_none()
+        if artifact_row is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK8_MISSING_ARTIFACT.value,
+                diagnostics={"reason": "maturity model artifact missing"},
             )
-            art_result = await session.execute(art_stmt)
-            artifact_row = art_result.scalar_one_or_none()
 
-        # Load daily prediction rows
+        plan_stmt = select(FarmSeasonVarietyPlan).where(
+            FarmSeasonVarietyPlan.id == forecast_run_row.plan_id
+        )
+        plan_result = await session.execute(plan_stmt)
+        plan_row = plan_result.scalar_one_or_none()
+        if plan_row is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "forecast plan row missing"},
+            )
+
+        location_stmt = select(LocationReference).where(
+            LocationReference.id == forecast_run_row.location_reference_id
+        )
+        location_result = await session.execute(location_stmt)
+        location_row = location_result.scalar_one_or_none()
+        if location_row is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "forecast location reference missing"},
+            )
+
+        if forecast_run_row.weather_mapping_id is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "forecast weather mapping authority missing"},
+            )
+        mapping_stmt = select(LocationWeatherMapping).where(
+            LocationWeatherMapping.id == forecast_run_row.weather_mapping_id
+        )
+        mapping_result = await session.execute(mapping_stmt)
+        mapping_row = mapping_result.scalar_one_or_none()
+        if mapping_row is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "forecast weather mapping row missing"},
+            )
+
+        if forecast_run_row.base_temperature_search_run_id is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "forecast base temperature authority missing"},
+            )
+        base_temp_stmt = select(BaseTemperatureSearchRun).where(
+            BaseTemperatureSearchRun.id == forecast_run_row.base_temperature_search_run_id
+        )
+        base_temp_result = await session.execute(base_temp_stmt)
+        base_temp_row = base_temp_result.scalar_one_or_none()
+        if base_temp_row is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "forecast base temperature row missing"},
+            )
+
         stmt = (
             select(MaturityDailyPredictionModel)
             .where(MaturityDailyPredictionModel.forecast_run_id == forecast_run_id)
@@ -1637,87 +1948,30 @@ async def _load_task8_inputs_typed(
                 diagnostics={"reason": "no daily prediction rows in forecast window"},
             )
 
-        # Build typed inputs
         predictions: list[Task8DailyPredictionInput] = []
         for row in rows:
-            pred_date = row.prediction_date
-
-            # Build source_ref from real values
-            source_ref = Task8PredictionSourceRef(
-                source_ref_type="TASK8_DAILY_PREDICTION",
-                source_ref_schema_version="task9a-source-ref-v1",
-                maturity_model_run_id=(
-                    model_run_row.id if model_run_row else forecast_run_row.model_run_id
-                ),
-                maturity_model_version=(
-                    model_run_row.model_version if model_run_row else "unknown"
-                ),
-                maturity_model_config_hash=(
-                    model_run_row.config_hash if model_run_row else "0" * 64
-                ),
-                maturity_model_source_signature=(
-                    model_run_row.source_signature if model_run_row else "0" * 64
-                ),
-                maturity_model_artifact_id=(
-                    artifact_row.id if artifact_row else forecast_run_row.artifact_id
-                ),
-                maturity_model_artifact_hash=(
-                    artifact_row.artifact_hash if artifact_row else "0" * 64
-                ),
-                maturity_forecast_run_id=forecast_run_id,
-                maturity_forecast_source_signature=forecast_run_row.source_signature,
-                maturity_forecast_as_of_date=forecast_run_row.as_of_date,
-                maturity_daily_prediction_id=row.id,
-                prediction_date=pred_date,
-                forecast_quantile="P50",
-                source_quantity_kg=row.p50_kg,
-                plan_id=forecast_run_row.plan_id,
-                location_reference_id=forecast_run_row.location_reference_id,
-                weather_mapping_id=forecast_run_row.weather_mapping_id,
-                base_temperature_search_run_id=forecast_run_row.base_temperature_search_run_id,
-            )
-
-            # Build verification_snapshot
             verification = Task8PredictionVerificationSnapshot(
-                maturity_model_run_id=(
-                    model_run_row.id if model_run_row else forecast_run_row.model_run_id
-                ),
-                maturity_model_version=(
-                    model_run_row.model_version if model_run_row else "unknown"
-                ),
-                maturity_model_config_hash=(
-                    model_run_row.config_hash if model_run_row else "0" * 64
-                ),
-                maturity_model_source_signature=(
-                    model_run_row.source_signature if model_run_row else "0" * 64
-                ),
-                maturity_model_artifact_id=(
-                    artifact_row.id if artifact_row else forecast_run_row.artifact_id
-                ),
-                maturity_model_artifact_run_id=(
-                    model_run_row.id if model_run_row else forecast_run_row.model_run_id
-                ),
-                maturity_model_artifact_hash=(
-                    artifact_row.artifact_hash if artifact_row else "0" * 64
-                ),
+                maturity_model_run_id=model_run_row.id,
+                maturity_model_version=model_run_row.model_version,
+                maturity_model_config_hash=model_run_row.config_hash,
+                maturity_model_source_signature=model_run_row.source_signature,
+                maturity_model_artifact_id=artifact_row.id,
+                maturity_model_artifact_run_id=artifact_row.run_id,
+                maturity_model_artifact_hash=artifact_row.artifact_hash,
                 maturity_forecast_run_id=forecast_run_id,
                 maturity_forecast_run_status=forecast_run_row.status,
-                maturity_forecast_model_run_id=(
-                    model_run_row.id if model_run_row else forecast_run_row.model_run_id
-                ),
-                maturity_forecast_artifact_id=(
-                    artifact_row.id if artifact_row else forecast_run_row.artifact_id
-                ),
+                maturity_forecast_model_run_id=model_run_row.id,
+                maturity_forecast_artifact_id=artifact_row.id,
                 maturity_forecast_source_signature=forecast_run_row.source_signature,
                 maturity_forecast_as_of_date=forecast_run_row.as_of_date,
                 maturity_forecast_prediction_start_date=forecast_run_row.prediction_start_date,
                 maturity_forecast_prediction_end_date=forecast_run_row.prediction_end_date,
                 maturity_daily_prediction_id=row.id,
                 maturity_daily_prediction_forecast_run_id=forecast_run_id,
-                prediction_date=pred_date,
-                farm_id=1,  # TODO: derive from plan join
-                subfarm_id=None,  # TODO: derive from plan join
-                variety_id=1,  # TODO: derive from plan join
+                prediction_date=row.prediction_date,
+                farm_id=plan_row.farm_id,
+                subfarm_id=plan_row.subfarm_id,
+                variety_id=plan_row.variety_id,
                 plan_id=forecast_run_row.plan_id,
                 location_reference_id=forecast_run_row.location_reference_id,
                 p50_kg=row.p50_kg,
@@ -1725,19 +1979,43 @@ async def _load_task8_inputs_typed(
                 p90_kg=row.p90_kg,
             )
 
-            predictions.append(
-                Task8DailyPredictionInput(
-                    prediction_date=pred_date,
-                    farm_id=verification.farm_id,
-                    subfarm_id=verification.subfarm_id,
-                    variety_id=verification.variety_id,
-                    source_ref=source_ref,
-                    verification_snapshot=verification,
-                )
+            quantile_rows = (
+                ("P50", row.p50_kg),
+                ("P80", row.p80_kg),
+                ("P90", row.p90_kg),
             )
+            for forecast_quantile, source_quantity_kg in quantile_rows:
+                predictions.append(
+                    Task8DailyPredictionInput(
+                        prediction_date=row.prediction_date,
+                        farm_id=verification.farm_id,
+                        subfarm_id=verification.subfarm_id,
+                        variety_id=verification.variety_id,
+                        source_ref=Task8PredictionSourceRef(
+                            maturity_model_run_id=model_run_row.id,
+                            maturity_model_version=model_run_row.model_version,
+                            maturity_model_config_hash=model_run_row.config_hash,
+                            maturity_model_source_signature=model_run_row.source_signature,
+                            maturity_model_artifact_id=artifact_row.id,
+                            maturity_model_artifact_hash=artifact_row.artifact_hash,
+                            maturity_forecast_run_id=forecast_run_id,
+                            maturity_forecast_source_signature=forecast_run_row.source_signature,
+                            maturity_forecast_as_of_date=forecast_run_row.as_of_date,
+                            maturity_daily_prediction_id=row.id,
+                            prediction_date=row.prediction_date,
+                            forecast_quantile=forecast_quantile,
+                            source_quantity_kg=source_quantity_kg,
+                            plan_id=forecast_run_row.plan_id,
+                            location_reference_id=location_row.id,
+                            weather_mapping_id=mapping_row.id,
+                            base_temperature_search_run_id=base_temp_row.id,
+                        ),
+                        verification_snapshot=verification,
+                    )
+                )
 
         return Task9RequestBuildResult(request=predictions)  # type: ignore[arg-type]
-    except Exception as exc:
+    except (LookupError, TypeError, ValueError, ValidationError, SQLAlchemyError) as exc:
         return Task9RequestBuildResult(
             blocked=True,
             blocker_code=OrchestrationBlocker.TASK8_MISSING_DAILY_PREDICTIONS.value,
@@ -1750,11 +2028,12 @@ async def _load_weather_inputs_typed(
     node: RollingNodeDefinition,
     resolved_map: dict[str, ResolutionResult],
 ) -> Task9RequestBuildResult:
-    """Load daily weather features from weather_daily_observation with typed output."""
+    """Load visible weather observations with real mapping and provenance."""
     try:
         from sqlalchemy import select
 
-        from backend.app.models.weather import WeatherDailyObservation
+        from backend.app.models.maturity import MaturityForecastRun
+        from backend.app.models.weather import LocationWeatherMapping, WeatherDailyObservation
 
         weather_result = resolved_map.get(
             AvailabilitySourceType.TASK7_WEATHER_OBSERVATION.value
@@ -1766,10 +2045,46 @@ async def _load_weather_inputs_typed(
                 diagnostics={"reason": "no resolved TASK7_WEATHER_OBSERVATION"},
             )
 
+        forecast_result = resolved_map.get(
+            AvailabilitySourceType.TASK8_FORECAST_RUN.value
+        ) or resolved_map.get("task8_forecast_run")
+        if forecast_result is None or forecast_result.resolved is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "no resolved TASK8_FORECAST_RUN for weather binding"},
+            )
+
+        forecast_run_id = int(forecast_result.resolved.persistent_reference.reference_value)
+        forecast_stmt = select(MaturityForecastRun).where(MaturityForecastRun.id == forecast_run_id)
+        forecast_row = (await session.execute(forecast_stmt)).scalar_one_or_none()
+        if forecast_row is None or forecast_row.weather_mapping_id is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "forecast weather mapping authority missing"},
+            )
+
+        mapping_stmt = select(LocationWeatherMapping).where(
+            LocationWeatherMapping.id == forecast_row.weather_mapping_id
+        )
+        mapping_row = (await session.execute(mapping_stmt)).scalar_one_or_none()
+        if mapping_row is None:
+            return Task9RequestBuildResult(
+                blocked=True,
+                blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+                diagnostics={"reason": "weather mapping row missing"},
+            )
+
         stmt = (
             select(WeatherDailyObservation)
+            .where(
+                WeatherDailyObservation.weather_source_location_id
+                == mapping_row.weather_source_location_id
+            )
             .where(WeatherDailyObservation.observation_date >= node.forecast_start_local_date)
             .where(WeatherDailyObservation.observation_date <= node.forecast_end_local_date)
+            .where(WeatherDailyObservation.available_at <= node.as_of_local_date)
             .order_by(WeatherDailyObservation.observation_date)
         )
         result = await session.execute(stmt)
@@ -1777,11 +2092,9 @@ async def _load_weather_inputs_typed(
 
         features: list[DailyWeatherFeatureInput] = []
         for row in rows:
-            od = row.observation_date
-
             feat = DailyWeatherFeatureInput(
-                capacity_date=od,
-                capacity_pool_id=str(getattr(row, "weather_source_location_id", 1)),
+                capacity_date=row.observation_date,
+                capacity_pool_id=f"location_{mapping_row.location_reference_id}",
                 feature_id="temperature_mean_c",
                 value=(
                     row.temperature_mean_c
@@ -1794,16 +2107,16 @@ async def _load_weather_inputs_typed(
                     parameter_code="WEATHER_FEATURE_OBSERVATION",
                     source_system="weather",
                     source_record_key=str(row.id),
-                    source_version="v1",
-                    source_row_hash=getattr(row, "row_hash", "0" * 64),
-                    available_at=row.observation_date,
-                    as_of_date=row.observation_date,
+                    source_version=row.source_version,
+                    source_row_hash=row.row_hash,
+                    available_at=row.available_at,
+                    as_of_date=node.as_of_local_date,
                 ),
             )
             features.append(feat)
 
         return Task9RequestBuildResult(request=features)  # type: ignore[arg-type]
-    except Exception as exc:
+    except (LookupError, TypeError, ValueError, ValidationError, SQLAlchemyError) as exc:
         return Task9RequestBuildResult(
             blocked=True,
             blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
@@ -1816,7 +2129,7 @@ async def _load_capacity_inputs_typed(
     node: RollingNodeDefinition,
     resolved_map: dict[str, ResolutionResult],
 ) -> Task9RequestBuildResult:
-    """Load capacity pools and daily inputs from farm_season_variety_plan with typed output."""
+    """Phase 3A does not invent capacity semantics from production-plan totals."""
     try:
         from sqlalchemy import select
 
@@ -1842,63 +2155,63 @@ async def _load_capacity_inputs_typed(
         rows = result.scalars().all()
 
         capacity_pools: list[CapacityPoolInput] = []
-        daily_inputs: list[DailyCapacityInput] = []
-        seen_pool_ids: set[str] = set()
-
         for row in rows:
             pool_id = f"farm_{row.farm_id}_variety_{row.variety_id}"
-            if row.subfarm_id:
+            if row.subfarm_id is not None:
                 pool_id = f"farm_{row.farm_id}_subfarm_{row.subfarm_id}_variety_{row.variety_id}"
-
-            if pool_id not in seen_pool_ids:
-                seen_pool_ids.add(pool_id)
-                member = CapacityPoolMember(
-                    farm_id=row.farm_id,
-                    subfarm_id=row.subfarm_id,
-                    variety_id=row.variety_id,
-                )
-                pool = CapacityPoolInput(
+            capacity_pools.append(
+                CapacityPoolInput(
                     capacity_pool_id=pool_id,
-                    capacity_pool_grain="FARM" if not row.subfarm_id else "SUBFARM_VARIETY",
-                    members=[member],
+                    capacity_pool_grain="FARM" if row.subfarm_id is None else "SUBFARM_VARIETY",
+                    members=[
+                        CapacityPoolMember(
+                            farm_id=row.farm_id,
+                            subfarm_id=row.subfarm_id,
+                            variety_id=row.variety_id,
+                        )
+                    ],
                 )
-                capacity_pools.append(pool)
-
-            # Daily capacity input
-            daily = DailyCapacityInput(
-                capacity_date=node.forecast_start_local_date,
-                capacity_pool_id=pool_id,
-                capacity_input_mode="DIRECT_CAPACITY",
-                direct_nominal_capacity_kg_per_day=(
-                    row.expected_total_marketable_kg
-                    if row.expected_total_marketable_kg is not None
-                    else Decimal("0")
-                ),
-                labor_availability_ratio=Decimal("1.0"),
-                operational_efficiency_ratio=Decimal("1.0"),
-                capacity_parameter_source_refs=[
-                    ParameterSourceRef(
-                        source_ref_type="PARAMETER_SOURCE",
-                        source_ref_schema_version="task9a-source-ref-v1",
-                        parameter_code="DIRECT_NOMINAL_CAPACITY",
-                        source_system="plan",
-                        source_record_key=str(row.id),
-                        source_version=row.source_version or "v1",
-                        source_row_hash=row.row_hash,
-                        available_at=row.available_at,
-                        as_of_date=row.available_at,
-                    )
-                ],
             )
-            daily_inputs.append(daily)
 
-        return Task9RequestBuildResult(request=(capacity_pools, daily_inputs))  # type: ignore[arg-type]
-    except Exception as exc:
+        return Task9RequestBuildResult(
+            blocked=True,
+            blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+            diagnostics={
+                "reason": (
+                    "real capacity authority sources are not yet wired; "
+                    "Task 11 Phase 3A will not substitute production-plan marketable totals "
+                    "for direct nominal capacity"
+                ),
+                "capacity_pool_count": len(capacity_pools),
+            },
+        )
+    except (LookupError, TypeError, ValueError, ValidationError, SQLAlchemyError) as exc:
         return Task9RequestBuildResult(
             blocked=True,
             blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
             diagnostics={"error": _safe_str(exc)},
         )
+
+
+async def _load_task9_run_parameters_typed(
+    session: AsyncSession,
+    node: RollingNodeDefinition,
+    resolved_map: dict[str, ResolutionResult],
+) -> Task9RequestBuildResult:
+    """Fail closed until replay has real historical Task 9 parameter authorities."""
+    _unused = (session, node, resolved_map)
+    return Task9RequestBuildResult(
+        blocked=True,
+        blocker_code=OrchestrationBlocker.TASK9_REPLAY_INPUT_INCOMPLETE.value,
+        diagnostics={
+            "reason": (
+                "task9 replay run parameters remain blocked until historical authority "
+                "sources are wired for harvest bucket anchor, arrival lag, holiday calendar "
+                "version/hash, weather rule config, run parameter source refs, and mature "
+                "inventory loss inputs"
+            )
+        },
+    )
 
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
@@ -1920,7 +2233,7 @@ def _collect_diagnostics(resolutions: list[ResolutionResult]) -> dict[str, objec
     diag: dict[str, object] = {"resolution_count": len(resolutions)}
     for r in resolutions:
         if r.blocked:
-            diag[f"{r.source_role}_blocked"] = r.blocker_code or "unknown"
+            diag[f"{r.source_role}_blocked"] = r.blocker_code or "missing_blocker_code"
         elif r.resolved:
             diag[f"{r.source_role}_resolved"] = r.resolved.persistent_reference.reference_value
     return diag
