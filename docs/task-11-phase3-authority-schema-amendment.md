@@ -187,7 +187,7 @@ This remains the minimum set that:
 - **Value fields**: none
 - **Visibility fields**: inherited from parent definition
 - **Effective interval**: inherited from parent definition, but copied into child columns for exclusion enforcement
-- **Version/status fields**: inherited from parent definition, but copied into child columns for exclusion enforcement
+- **Version/status fields**: inherited from parent definition, but copied into child columns for exclusion enforcement only
 - **Canonical payload**:
   - parent semantic identity plus member scope
 - **Row hash**:
@@ -333,7 +333,7 @@ This remains the minimum set that:
 
 - **Purpose**: normalized opening cohort rows tied to one inventory snapshot
 - **Business grain**:
-  - `initial_inventory_snapshot_id x stable_cohort_key x forecast_quantile`
+  - `initial_inventory_snapshot_id x stable_cohort_key`
 - **Value fields**:
   - `forecast_quantile`
   - `cohort_date`
@@ -618,7 +618,7 @@ Frozen rules:
 | `daily_capacity_inputs` | `task9_daily_capacity_authority` | pool x date x revision | `available_at_local_date` | `capacity_date` | see Section 10 | row hash | `ParameterSourceRef[]` | `CAPACITY_VALUE_AUTHORITY_MISSING` |
 | `daily_weather_features` | existing Task 7 authority | mapping + observation | existing Task 7 visibility | observation date | existing statuses | existing row hashes/signatures | existing `PARAMETER_SOURCE(WEATHER_FEATURE_OBSERVATION)` | existing Task 7 blockers |
 | `task8_daily_predictions` | existing Task 8 authority | daily prediction x quantile | existing Task 8 visibility | prediction date | completed chain | existing signatures / hashes | existing `TASK8_DAILY_PREDICTION` refs | existing Task 8 blockers |
-| `initial_inventory_cohorts` | `task9_initial_inventory_snapshot` + `task9_initial_inventory_cohort` | snapshot x stable cohort key x quantile | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash + cohort hashes | `INITIAL_INVENTORY_SNAPSHOT` refs | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
+| `initial_inventory_cohorts` | `task9_initial_inventory_snapshot` + `task9_initial_inventory_cohort` | snapshot x stable cohort key | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash + cohort hashes | `INITIAL_INVENTORY_SNAPSHOT` refs | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
 | `initial_opening_mature_inventory_kg` | `task9_initial_inventory_snapshot` | season x factory x opening_state_date x snapshot_version | `available_at_local_date` | `opening_state_date` | see Section 10 | snapshot hash | `INITIAL_INVENTORY_SNAPSHOT` ref | `INITIAL_INVENTORY_AUTHORITY_MISSING` |
 | `mature_inventory_loss_inputs` | `task9_mature_inventory_loss_authority` | date x pool x quantile x loss_version | `available_at_local_date` | `state_date` | see Section 10 | row hash | `PARAMETER_SOURCE(MATURE_INVENTORY_LOSS)` | `MATURE_INVENTORY_LOSS_AUTHORITY_MISSING` |
 
@@ -746,11 +746,20 @@ Forbidden transitions:
 
 ### 10.3 Parent/member synchronization
 
-When a pool definition status changes, all member assignment rows must be updated in the same repository transaction:
+`task9_capacity_pool_member` is not an independent status authority.
 
-- deterministic row-lock order
-- parent update + child updates in one transaction
-- rollback on any failure
+Frozen child-row status rules:
+
+- child `status` exists only because exclusion and composite-FK enforcement need copied parent fields
+- child `status` is copied from parent only
+- child does not own independent `status_changed_at`
+- child does not own independent `superseded_by_id`
+
+Parent/member synchronization is database-driven:
+
+- parent status update uses composite FK with `ON UPDATE CASCADE`
+- child copied `status` follows parent automatically
+- repository must not issue separate parent-status and child-status mutations
 
 ### 10.4 Active replacement transaction
 
@@ -758,10 +767,56 @@ Replacement of one active authority row with a new active row must occur as:
 
 1. lock current active row
 2. transition current row from `active` to `superseded`
-3. insert or activate replacement row
-4. commit atomically
+3. let `ON UPDATE CASCADE` propagate copied member status on the old pool
+4. insert or activate replacement row plus replacement members
+5. commit atomically
 
 Only `active` rows participate in exclusion constraints. `superseded`, `retired`, and `cancelled` rows do not.
+
+### 10.6 Supersession integrity
+
+Independent status authorities support `superseded_by_id` only on header/value rows:
+
+- `task9_capacity_pool_definition`
+- `task9_daily_capacity_authority`
+- `task9_holiday_calendar_version`
+- `task9_weather_rule_config_version`
+- `task9_run_parameter_package`
+- `task9_initial_inventory_snapshot`
+- `task9_mature_inventory_loss_authority`
+
+Child tables do not support independent supersession metadata:
+
+- `task9_capacity_pool_member`
+- `task9_holiday_calendar_date`
+- `task9_initial_inventory_cohort`
+
+Database rules:
+
+- self-FK on `superseded_by_id`
+- `superseded_by_id <> id`
+- `status = 'superseded'` iff `superseded_by_id IS NOT NULL`
+
+Repository integrity rules must also validate same-scope replacement:
+
+- capacity pool definition:
+  - same `season_id + destination_factory_id + capacity_pool_code`
+- daily capacity:
+  - same `capacity_pool_definition_id + capacity_date`
+- holiday calendar:
+  - same `season_id + calendar_code`
+- weather rule:
+  - same `rule_code`
+- run parameter package:
+  - same `season_id + destination_factory_id + farm_scope_key`
+- initial inventory:
+  - same `season_id + destination_factory_id + opening_state_date`
+- mature loss:
+  - same `season_id + destination_factory_id + state_date + capacity_pool_code + forecast_quantile`
+
+Scope mismatch must fail with blocker:
+
+- `AUTHORITY_SUPERSESSION_SCOPE_CONFLICT`
 
 ### 10.5 Selection matrix
 
@@ -852,13 +907,38 @@ These are copied solely so PostgreSQL can enforce cross-pool exclusion at child 
 Frozen binding strategy:
 
 - parent stores non-null normalized effective end:
-  - `effective_to_exclusive DATE GENERATED ALWAYS AS (COALESCE(effective_to + 1, DATE '9999-12-31')) STORED`
+  - `effective_to_exclusive DATE GENERATED ALWAYS AS (CASE WHEN effective_to IS NULL THEN 'infinity'::date ELSE effective_to + 1 END) STORED`
+- parent and child both generate `effective_range` from the same normalized bound:
+  - `daterange(effective_from, effective_to_exclusive, '[)')`
 - parent gets composite uniqueness on:
   - `(id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status)`
-- child stores the same normalized field copied from parent
+- child stores copied `effective_from`, nullable `effective_to`, copied `status`, and generates its own `effective_to_exclusive` from the same expression
 - child gets composite FK on:
   - `(capacity_pool_definition_id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status)`
+- composite FK uses `ON UPDATE CASCADE`
+- child and parent must reject divergent normalized ends; a child row with different `effective_to` cannot match the parent composite key
 - no triggers
+
+Open-ended interval rules:
+
+- open-ended rows use PostgreSQL `infinity` date, not a finite sentinel such as `9999-12-31`
+- both parent and child must enforce:
+  - `effective_to IS NULL OR (effective_to >= effective_from AND effective_to < 'infinity'::date)`
+
+### 11.5 One-active invariants
+
+Revision-inclusive uniqueness is not enough to guarantee a single consumable authority row. The design freezes partial unique indexes for all independently versioned value/header tables that can be resolver-selected:
+
+- `uq_task9_daily_capacity_one_active`
+  - `(capacity_pool_definition_id, capacity_date)` where `status = 'active'`
+- `uq_task9_initial_inventory_one_active`
+  - `(season_id, destination_factory_id, opening_state_date)` where `status = 'active'`
+- `uq_task9_mature_loss_one_active`
+  - `(season_id, destination_factory_id, state_date, capacity_pool_code, forecast_quantile)` where `status = 'active'`
+- `uq_task9_holiday_calendar_one_active`
+  - `(season_id, calendar_code)` where `status = 'active'`
+- `uq_task9_weather_rule_one_active`
+  - `(rule_code)` where `status = 'active'`
 
 ---
 
@@ -894,6 +974,7 @@ Frozen blocker set for future implementation:
 - `INITIAL_INVENTORY_COHORT_MISMATCH`
 - `MATURE_INVENTORY_LOSS_AUTHORITY_MISSING`
 - `MATURE_INVENTORY_LOSS_AUTHORITY_AMBIGUOUS`
+- `AUTHORITY_SUPERSESSION_SCOPE_CONFLICT`
 - `AUTHORITY_HASH_CONFLICT`
 - `AUTHORITY_VERSION_CONFLICT`
 - `AUTHORITY_STATUS_NOT_CONSUMABLE`
@@ -919,11 +1000,11 @@ Frozen sort order for emitted refs:
 
 | parameter_code | authority table | authority grain | source_system | source_record_key format | source_version | source_row_hash | available_at | as_of_date | shared-row behavior | required mode | forbidden mode | exactly-one rule |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `HOLIDAY_CALENDAR` | `task9_holiday_calendar_version` | season x calendar_version x revision | `task9_historical_authority` | `{season_id}:{calendar_code}:{calendar_version}:{revision}` | `calendar_version` | holiday header `row_hash` | holiday `available_at_local_date` | node `as_of_date` | unique holiday header row | all modes | none | exactly one |
-| `WEATHER_RULE_CONFIG` | `task9_weather_rule_config_version` | rule_version x revision | `task9_historical_authority` | `{rule_code}:{rule_version}:{revision}` | `rule_version` | weather-rule `row_hash` | rule `available_at_local_date` | node `as_of_date` | unique weather-rule row | all modes | none | exactly one |
-| `HARVEST_TO_ARRIVAL_LAG` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
-| `TIMEZONE_CONFIG` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
-| `HARVEST_BUCKET_ANCHOR_TIME` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
+| `HOLIDAY_CALENDAR` | `task9_holiday_calendar_version` | season x calendar_version x revision | `task9_historical_authority` | `holiday-calendar:{season_id}:{calendar_code}:{calendar_version}:{revision}` | `calendar_version` | holiday header `row_hash` | holiday `available_at_local_date` | node `as_of_date` | unique holiday header row | all modes | none | exactly one |
+| `WEATHER_RULE_CONFIG` | `task9_weather_rule_config_version` | rule_version x revision | `task9_historical_authority` | `weather-rule:{rule_code}:{rule_version}:{revision}` | `rule_version` | weather-rule `row_hash` | rule `available_at_local_date` | node `as_of_date` | unique weather-rule row | all modes | none | exactly one |
+| `HARVEST_TO_ARRIVAL_LAG` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
+| `TIMEZONE_CONFIG` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
+| `HARVEST_BUCKET_ANCHOR_TIME` | `task9_run_parameter_package` | run package row | `task9_historical_authority` | `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}` | `package_version` | run-package `row_hash` | package `available_at_local_date` | node `as_of_date` | shared run-package row | all modes | none | exactly one |
 
 The three run-package codes may share:
 
@@ -952,7 +1033,7 @@ Authority table:
 
 Source-record-key format:
 
-- `{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+- `daily-capacity:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
 
 Additional frozen ref fields:
 
@@ -980,7 +1061,7 @@ Authority table:
 
 Source-record-key format:
 
-- `{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+- `daily-capacity:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
 
 Capacity refs may share one authority row hash, but each parameter code still requires its own `ParameterSourceRef`.
 
@@ -988,7 +1069,32 @@ Capacity refs may share one authority row hash, but each parameter code still re
 
 | parameter_code | authority table | source_system | source_record_key format | source_version | source_row_hash | available_at | as_of_date | exactly-one rule |
 |---|---|---|---|---|---|---|---|---|
-| `MATURE_INVENTORY_LOSS` | `task9_mature_inventory_loss_authority` | `task9_historical_authority` | `{season_id}:{destination_factory_id}:{capacity_pool_code}:{state_date}:{forecast_quantile}:{loss_version}:{revision}` | `loss_version` | mature-loss `row_hash` | mature-loss `available_at_local_date` | node `as_of_date` | exactly one per state_date x pool x quantile |
+| `MATURE_INVENTORY_LOSS` | `task9_mature_inventory_loss_authority` | `task9_historical_authority` | `mature-loss:{season_id}:{destination_factory_id}:{capacity_pool_code}:{state_date}:{forecast_quantile}:{loss_version}:{revision}` | `loss_version` | mature-loss `row_hash` | mature-loss `available_at_local_date` | node `as_of_date` | exactly one per state_date x pool x quantile |
+
+### 12A.5 Frozen authority-family prefixes
+
+Every new Task 9 historical authority row must use a globally unambiguous `source_record_key` under the shared `source_system = task9_historical_authority`.
+
+Frozen prefixes:
+
+- run package:
+  - `run-package:{season_id}:{destination_factory_id}:{farm_scope_key}:{package_version}:{revision}`
+- daily capacity:
+  - `daily-capacity:{capacity_pool_code}:{capacity_pool_version}:{capacity_date}:{revision}`
+- holiday calendar:
+  - `holiday-calendar:{season_id}:{calendar_code}:{calendar_version}:{revision}`
+- weather rule:
+  - `weather-rule:{rule_code}:{rule_version}:{revision}`
+- initial inventory snapshot:
+  - `initial-inventory:{season_id}:{destination_factory_id}:{opening_state_date}:{snapshot_version}:{revision}`
+- mature loss:
+  - `mature-loss:{season_id}:{destination_factory_id}:{capacity_pool_code}:{state_date}:{forecast_quantile}:{loss_version}:{revision}`
+
+Prohibited in `source_record_key`:
+
+- table row IDs
+- UUIDs
+- repository/runtime identities
 
 ---
 
@@ -1013,10 +1119,13 @@ CREATE TABLE task9_capacity_pool_definition (
     effective_from DATE NOT NULL,
     effective_to DATE,
     effective_to_exclusive DATE GENERATED ALWAYS AS (
-        COALESCE(effective_to + 1, DATE '9999-12-31')
+        CASE
+            WHEN effective_to IS NULL THEN 'infinity'::date
+            ELSE effective_to + 1
+        END
     ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
-        daterange(effective_from, COALESCE(effective_to + 1, NULL), '[)')
+        daterange(effective_from, effective_to_exclusive, '[)')
     ) STORED,
     available_at_local_date DATE NOT NULL,
     status TEXT NOT NULL
@@ -1028,10 +1137,17 @@ CREATE TABLE task9_capacity_pool_definition (
     row_hash TEXT NOT NULL
         CONSTRAINT ck_task9_capacity_pool_definition_row_hash_sha256
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
+    superseded_by_id BIGINT NULL
+        REFERENCES task9_capacity_pool_definition(id) ON DELETE RESTRICT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (season_id, destination_factory_id, capacity_pool_code, capacity_pool_version, revision),
     UNIQUE (id, season_id, destination_factory_id, effective_from, effective_to_exclusive, status),
-    CHECK (effective_to IS NULL OR effective_to >= effective_from)
+    CHECK (effective_to IS NULL OR (effective_to >= effective_from AND effective_to < 'infinity'::date)),
+    CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
+    CHECK (
+        (status = 'superseded' AND superseded_by_id IS NOT NULL)
+        OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    )
 );
 
 CREATE TABLE task9_capacity_pool_member (
@@ -1046,14 +1162,17 @@ CREATE TABLE task9_capacity_pool_member (
     variety_id BIGINT NOT NULL REFERENCES dim_variety(id) ON DELETE RESTRICT,
     effective_from DATE NOT NULL,
     effective_to DATE,
-    effective_to_exclusive DATE NOT NULL,
+    effective_to_exclusive DATE GENERATED ALWAYS AS (
+        CASE
+            WHEN effective_to IS NULL THEN 'infinity'::date
+            ELSE effective_to + 1
+        END
+    ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
-        daterange(effective_from, COALESCE(effective_to + 1, NULL), '[)')
+        daterange(effective_from, effective_to_exclusive, '[)')
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
-    status_changed_at TIMESTAMPTZ NOT NULL,
-    superseded_by_id BIGINT NULL,
     row_hash TEXT NOT NULL
         CONSTRAINT ck_task9_capacity_pool_member_row_hash_sha256
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
@@ -1066,6 +1185,7 @@ CREATE TABLE task9_capacity_pool_member (
     CHECK (farm_id > 0),
     CHECK (variety_id > 0),
     CHECK (subfarm_id IS NULL OR subfarm_id > 0),
+    CHECK (effective_to IS NULL OR (effective_to >= effective_from AND effective_to < 'infinity'::date)),
     FOREIGN KEY (
         capacity_pool_definition_id,
         season_id,
@@ -1083,6 +1203,7 @@ CREATE TABLE task9_capacity_pool_member (
         status
     )
     ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE task9_daily_capacity_authority (
@@ -1102,7 +1223,8 @@ CREATE TABLE task9_daily_capacity_authority (
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
-    superseded_by_id BIGINT NULL,
+    superseded_by_id BIGINT NULL
+        REFERENCES task9_daily_capacity_authority(id) ON DELETE RESTRICT,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
@@ -1111,6 +1233,11 @@ CREATE TABLE task9_daily_capacity_authority (
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (capacity_pool_definition_id, capacity_date, revision),
+    CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
+    CHECK (
+        (status = 'superseded' AND superseded_by_id IS NOT NULL)
+        OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    ),
     CHECK (
         (
             planned_picker_count IS NOT NULL
@@ -1138,7 +1265,8 @@ CREATE TABLE task9_holiday_calendar_version (
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
-    superseded_by_id BIGINT NULL,
+    superseded_by_id BIGINT NULL
+        REFERENCES task9_holiday_calendar_version(id) ON DELETE RESTRICT,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
@@ -1146,7 +1274,12 @@ CREATE TABLE task9_holiday_calendar_version (
         CONSTRAINT ck_task9_holiday_calendar_version_row_hash_sha256
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (season_id, calendar_code, calendar_version, revision)
+    UNIQUE (season_id, calendar_code, calendar_version, revision),
+    CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
+    CHECK (
+        (status = 'superseded' AND superseded_by_id IS NOT NULL)
+        OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    )
 );
 
 CREATE TABLE task9_holiday_calendar_date (
@@ -1177,15 +1310,19 @@ CREATE TABLE task9_weather_rule_config_version (
     effective_from DATE NOT NULL,
     effective_to DATE,
     effective_to_exclusive DATE GENERATED ALWAYS AS (
-        COALESCE(effective_to + 1, DATE '9999-12-31')
+        CASE
+            WHEN effective_to IS NULL THEN 'infinity'::date
+            ELSE effective_to + 1
+        END
     ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
-        daterange(effective_from, COALESCE(effective_to + 1, NULL), '[)')
+        daterange(effective_from, effective_to_exclusive, '[)')
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
-    superseded_by_id BIGINT NULL,
+    superseded_by_id BIGINT NULL
+        REFERENCES task9_weather_rule_config_version(id) ON DELETE RESTRICT,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
@@ -1195,7 +1332,12 @@ CREATE TABLE task9_weather_rule_config_version (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (rule_code, rule_version, revision),
     CHECK (maximum_ratio >= minimum_ratio),
-    CHECK (effective_to IS NULL OR effective_to >= effective_from)
+    CHECK (effective_to IS NULL OR (effective_to >= effective_from AND effective_to < 'infinity'::date)),
+    CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
+    CHECK (
+        (status = 'superseded' AND superseded_by_id IS NOT NULL)
+        OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    )
 );
 
 CREATE TABLE task9_run_parameter_package (
@@ -1217,15 +1359,19 @@ CREATE TABLE task9_run_parameter_package (
     effective_from DATE NOT NULL,
     effective_to DATE,
     effective_to_exclusive DATE GENERATED ALWAYS AS (
-        COALESCE(effective_to + 1, DATE '9999-12-31')
+        CASE
+            WHEN effective_to IS NULL THEN 'infinity'::date
+            ELSE effective_to + 1
+        END
     ) STORED,
     effective_range DATERANGE GENERATED ALWAYS AS (
-        daterange(effective_from, COALESCE(effective_to + 1, NULL), '[)')
+        daterange(effective_from, effective_to_exclusive, '[)')
     ) STORED,
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
-    superseded_by_id BIGINT NULL,
+    superseded_by_id BIGINT NULL
+        REFERENCES task9_run_parameter_package(id) ON DELETE RESTRICT,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
@@ -1234,7 +1380,12 @@ CREATE TABLE task9_run_parameter_package (
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (season_id, destination_factory_id, farm_scope_key, package_version, revision),
-    CHECK (effective_to IS NULL OR effective_to >= effective_from)
+    CHECK (effective_to IS NULL OR (effective_to >= effective_from AND effective_to < 'infinity'::date)),
+    CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
+    CHECK (
+        (status = 'superseded' AND superseded_by_id IS NOT NULL)
+        OR (status <> 'superseded' AND superseded_by_id IS NULL)
+    )
 );
 
 CREATE TABLE task9_initial_inventory_snapshot (
@@ -1250,7 +1401,8 @@ CREATE TABLE task9_initial_inventory_snapshot (
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
-    superseded_by_id BIGINT NULL,
+    superseded_by_id BIGINT NULL
+        REFERENCES task9_initial_inventory_snapshot(id) ON DELETE RESTRICT,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
@@ -1264,6 +1416,11 @@ CREATE TABLE task9_initial_inventory_snapshot (
         opening_state_date,
         snapshot_version,
         revision
+    ),
+    CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
+    CHECK (
+        (status = 'superseded' AND superseded_by_id IS NOT NULL)
+        OR (status <> 'superseded' AND superseded_by_id IS NULL)
     )
 );
 
@@ -1281,7 +1438,7 @@ CREATE TABLE task9_initial_inventory_cohort (
     row_hash TEXT NOT NULL
         CONSTRAINT ck_task9_initial_inventory_cohort_row_hash_sha256
         CHECK (row_hash ~ '^[0-9a-f]{64}$'),
-    UNIQUE (initial_inventory_snapshot_id, stable_cohort_key, forecast_quantile)
+    UNIQUE (initial_inventory_snapshot_id, stable_cohort_key)
 );
 
 CREATE TABLE task9_mature_inventory_loss_authority (
@@ -1299,7 +1456,8 @@ CREATE TABLE task9_mature_inventory_loss_authority (
     status TEXT NOT NULL
         CHECK (status IN ('draft', 'active', 'superseded', 'retired', 'cancelled')),
     status_changed_at TIMESTAMPTZ NOT NULL,
-    superseded_by_id BIGINT NULL,
+    superseded_by_id BIGINT NULL
+        REFERENCES task9_mature_inventory_loss_authority(id) ON DELETE RESTRICT,
     source_system TEXT NOT NULL,
     source_record_key TEXT NOT NULL,
     source_version TEXT NOT NULL,
@@ -1315,6 +1473,11 @@ CREATE TABLE task9_mature_inventory_loss_authority (
         forecast_quantile,
         loss_version,
         revision
+    ),
+    CHECK (superseded_by_id IS NULL OR superseded_by_id <> id),
+    CHECK (
+        (status = 'superseded' AND superseded_by_id IS NOT NULL)
+        OR (status <> 'superseded' AND superseded_by_id IS NULL)
     )
 );
 
@@ -1332,6 +1495,28 @@ CREATE INDEX ix_task9_initial_inventory_available
     ON task9_initial_inventory_snapshot(available_at_local_date);
 CREATE INDEX ix_task9_mature_loss_available
     ON task9_mature_inventory_loss_authority(available_at_local_date);
+
+CREATE UNIQUE INDEX uq_task9_daily_capacity_one_active
+    ON task9_daily_capacity_authority(capacity_pool_definition_id, capacity_date)
+    WHERE (status = 'active');
+CREATE UNIQUE INDEX uq_task9_initial_inventory_one_active
+    ON task9_initial_inventory_snapshot(season_id, destination_factory_id, opening_state_date)
+    WHERE (status = 'active');
+CREATE UNIQUE INDEX uq_task9_mature_loss_one_active
+    ON task9_mature_inventory_loss_authority(
+        season_id,
+        destination_factory_id,
+        state_date,
+        capacity_pool_code,
+        forecast_quantile
+    )
+    WHERE (status = 'active');
+CREATE UNIQUE INDEX uq_task9_holiday_calendar_one_active
+    ON task9_holiday_calendar_version(season_id, calendar_code)
+    WHERE (status = 'active');
+CREATE UNIQUE INDEX uq_task9_weather_rule_one_active
+    ON task9_weather_rule_config_version(rule_code)
+    WHERE (status = 'active');
 
 ALTER TABLE task9_capacity_pool_definition
     ADD CONSTRAINT ex_task9_capacity_pool_definition_overlap
@@ -1393,13 +1578,23 @@ Frozen target:
 
 - `btree_gist` extension: **YES**
 - generated range columns:
+  - `task9_capacity_pool_definition.effective_to_exclusive`
   - `task9_capacity_pool_definition.effective_range`
+  - `task9_capacity_pool_member.effective_to_exclusive`
   - `task9_capacity_pool_member.effective_range`
   - `task9_capacity_pool_member.normalized_subfarm_id`
+  - `task9_weather_rule_config_version.effective_to_exclusive`
   - `task9_weather_rule_config_version.effective_range`
+  - `task9_run_parameter_package.effective_to_exclusive`
   - `task9_run_parameter_package.effective_range`
 - `UNIQUE NULLS NOT DISTINCT`:
   - `task9_capacity_pool_member(capacity_pool_definition_id, farm_id, subfarm_id, variety_id)`
+- partial unique one-active indexes:
+  - `uq_task9_daily_capacity_one_active`
+  - `uq_task9_initial_inventory_one_active`
+  - `uq_task9_mature_loss_one_active`
+  - `uq_task9_holiday_calendar_one_active`
+  - `uq_task9_weather_rule_one_active`
 - exclusion constraints:
   - `ex_task9_capacity_pool_definition_overlap`
   - `ex_task9_capacity_pool_member_overlap`
@@ -1526,6 +1721,13 @@ Frozen decision:
 - [x] NULL-safe subfarm exclusion frozen
 - [x] Parent-child copied-field binding frozen
 - [x] Status transition matrix frozen
+- [x] Composite FK update path made executable with `ON UPDATE CASCADE`
+- [x] Parent/child normalized effective-end expression unified
+- [x] Stable cohort key uniqueness restored without redundant quantile suffix
+- [x] Supersession self-FKs and same-scope integrity rules frozen
+- [x] One-active partial unique indexes frozen
+- [x] `status_changed_at` frozen as mandatory on all independent status authorities
+- [x] Authority-family `source_record_key` prefixes frozen
 - [x] Run-package-first holiday/weather FK load frozen
 - [x] Lexical business-version ordering removed from selection
 - [x] ParameterSourceRef matrix frozen
@@ -1535,5 +1737,4 @@ Frozen decision:
 
 ## 17. Unresolved Questions
 
-- Awaiting review confirmation that the composite FK parent-child binding on nullable `effective_to` is acceptable for `0014`, or whether the final migration should normalize `effective_to` into a non-null stored column before FK binding.
-- Awaiting review confirmation that `status_changed_at` should be mandatory on every authority table in `0014`, rather than introduced in a later status-audit follow-up.
+NONE
