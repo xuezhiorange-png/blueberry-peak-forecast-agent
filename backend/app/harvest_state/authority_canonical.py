@@ -46,7 +46,9 @@ TASK9_AUTHORITY_LIFECYCLE_EVENT_SCHEMA_VERSION = "task9-authority-lifecycle-even
 _PoolDefInput = Task9CapacityPoolDefinitionSchema | Task9CapacityPoolDefinitionSemanticInput
 _DailyInput = Task9DailyCapacityAuthoritySchema | Task9DailyCapacitySemanticInput
 _HolidayInput = Task9HolidayCalendarVersionSchema | Task9HolidayCalendarSemanticInput
+_VerifiedHolidayInput = Task9HolidayCalendarBundleSchema | Task9HolidayCalendarSemanticBundle
 _WeatherInput = Task9WeatherRuleConfigVersionSchema | Task9WeatherRuleSemanticInput
+_VerifiedWeatherInput = Task9WeatherRuleConfigVersionSchema | Task9WeatherRuleSemanticInput
 _RunPkgInput = Task9RunParameterPackageSchema | Task9RunParameterPackageSemanticInput
 _InvSnapInput = Task9InitialInventorySnapshotSchema | Task9InitialInventorySemanticInput
 _MatureLossInput = Task9MatureInventoryLossAuthoritySchema | Task9MatureLossSemanticInput
@@ -166,22 +168,37 @@ def _snapshot_semantic_identity(snapshot: _InvSnapInput) -> dict[str, object]:
     }
 
 
-def _holiday_semantic_identity(header: _HolidayInput) -> dict[str, object]:
+def _verified_holiday_semantic_identity(bundle: _VerifiedHolidayInput) -> dict[str, object]:
+    header, dates = _resolve_holiday_bundle(bundle)
+    payload = build_holiday_calendar_payload(header, dates)
+    recomputed_row_hash = sha256_hex(payload)
+    if (
+        isinstance(bundle, Task9HolidayCalendarBundleSchema)
+        and bundle.row_hash != recomputed_row_hash
+    ):
+        raise ValueError("HOLIDAY_CALENDAR_ROW_HASH_MISMATCH")
     return {
-        "season_id": header.season_id,
-        "calendar_code": header.calendar_code,
-        "calendar_version": header.calendar_version,
+        "authority_stable_key": build_holiday_calendar_stable_key(header),
+        "business_version": header.calendar_version,
         "revision": header.revision,
+        "calendar_hash": payload["calendar_hash"],
         "lifecycle_timezone_name": header.lifecycle_timezone_name,
+        "business_row_hash": recomputed_row_hash,
     }
 
 
-def _weather_semantic_identity(row: _WeatherInput) -> dict[str, object]:
+def _verified_weather_semantic_identity(row: _VerifiedWeatherInput) -> dict[str, object]:
+    payload = build_weather_rule_config_payload(row)
+    recomputed_row_hash = sha256_hex(payload)
+    if isinstance(row, Task9WeatherRuleConfigVersionSchema) and row.row_hash != recomputed_row_hash:
+        raise ValueError("WEATHER_RULE_ROW_HASH_MISMATCH")
     return {
-        "rule_code": row.rule_code,
-        "rule_version": row.rule_version,
+        "authority_stable_key": build_weather_rule_stable_key(row),
+        "business_version": row.rule_version,
         "revision": row.revision,
+        "config_hash": payload["config_hash"],
         "lifecycle_timezone_name": row.lifecycle_timezone_name,
+        "business_row_hash": recomputed_row_hash,
     }
 
 
@@ -238,15 +255,18 @@ def build_daily_capacity_payload(row: _DailyInput) -> dict[str, object]:
         "daily_capacity_revision": row.daily_capacity_revision,
         "capacity_input_mode": row.capacity_input_mode.value,
         "planned_picker_count": (
-            None if row.planned_picker_count is None
+            None
+            if row.planned_picker_count is None
             else canonical_decimal_string(row.planned_picker_count)
         ),
         "kg_per_person_per_day": (
-            None if row.kg_per_person_per_day is None
+            None
+            if row.kg_per_person_per_day is None
             else canonical_decimal_string(row.kg_per_person_per_day)
         ),
         "direct_nominal_capacity_kg_per_day": (
-            None if row.direct_nominal_capacity_kg_per_day is None
+            None
+            if row.direct_nominal_capacity_kg_per_day is None
             else canonical_decimal_string(row.direct_nominal_capacity_kg_per_day)
         ),
         "labor_availability_ratio": canonical_decimal_string(row.labor_availability_ratio),
@@ -260,8 +280,8 @@ def build_daily_capacity_payload(row: _DailyInput) -> dict[str, object]:
 
 def build_run_parameter_package_payload(
     row: _RunPkgInput,
-    holiday_header: _HolidayInput,
-    weather_rule: _WeatherInput,
+    holiday_calendar: _VerifiedHolidayInput,
+    weather_rule: _VerifiedWeatherInput,
 ) -> dict[str, object]:
     """Run-package payload. Dependencies are MANDATORY (P0-2).
 
@@ -269,6 +289,7 @@ def build_run_parameter_package_payload(
     - timezone consistency: package.destination_factory_timezone == holiday == weather
     - scope consistency: package.season_id == holiday.season_id
     """
+    holiday_header, _holiday_dates = _resolve_holiday_bundle(holiday_calendar)
     # Timezone validation (direct builder fail-closed)
     pkg_tz = row.destination_factory_timezone
     holiday_tz = holiday_header.lifecycle_timezone_name
@@ -294,8 +315,8 @@ def build_run_parameter_package_payload(
         "source_system": row.source_system,
         "source_record_key": row.source_record_key,
         "source_version": row.source_version,
-        "holiday_calendar": _holiday_semantic_identity(holiday_header),
-        "weather_rule": _weather_semantic_identity(weather_rule),
+        "holiday_calendar": _verified_holiday_semantic_identity(holiday_calendar),
+        "weather_rule": _verified_weather_semantic_identity(weather_rule),
     }
 
 
@@ -446,19 +467,23 @@ def build_lifecycle_event_payload(row: _LifecycleInput) -> dict[str, object]:
         "old_status": None if row.old_status is None else row.old_status.value,
         "new_status": row.new_status.value,
         "old_consumable_from_local_date": (
-            None if row.old_consumable_from_local_date is None
+            None
+            if row.old_consumable_from_local_date is None
             else row.old_consumable_from_local_date.isoformat()
         ),
         "old_consumable_to_local_date": (
-            None if row.old_consumable_to_local_date is None
+            None
+            if row.old_consumable_to_local_date is None
             else row.old_consumable_to_local_date.isoformat()
         ),
         "new_consumable_from_local_date": (
-            None if row.new_consumable_from_local_date is None
+            None
+            if row.new_consumable_from_local_date is None
             else row.new_consumable_from_local_date.isoformat()
         ),
         "new_consumable_to_local_date": (
-            None if row.new_consumable_to_local_date is None
+            None
+            if row.new_consumable_to_local_date is None
             else row.new_consumable_to_local_date.isoformat()
         ),
         "superseded_by_authority_stable_key": row.superseded_by_authority_stable_key,
@@ -489,9 +514,7 @@ def _resolve_holiday_bundle(
     if isinstance(row, Task9HolidayCalendarBundleSchema):
         return row.header, row.dates
     if isinstance(row, Task9HolidayCalendarSemanticBundle):
-        header = Task9HolidayCalendarSemanticInput.model_validate(
-            row.model_dump(exclude={"dates"})
-        )
+        header = Task9HolidayCalendarSemanticInput.model_validate(row.model_dump(exclude={"dates"}))
         return header, row.dates
     raise TypeError("holiday calendar hash requires a bundle with dates")
 
@@ -512,63 +535,53 @@ def _resolve_inventory_bundle(
 def make_authority_row_hash(
     row: object,
     *,
-    holiday_header: _HolidayInput | None = None,
-    weather_rule: _WeatherInput | None = None,
+    holiday_calendar: _VerifiedHolidayInput | None = None,
+    weather_rule: _VerifiedWeatherInput | None = None,
     parent_definition: _PoolDefInput | None = None,
     parent_snapshot: _InvSnapInput | None = None,
 ) -> str:
     # Pool definition bundles
-    if isinstance(row, (Task9CapacityPoolDefinitionBundleSchema,
-                        Task9CapacityPoolDefinitionSemanticBundle)):
+    if isinstance(
+        row, (Task9CapacityPoolDefinitionBundleSchema, Task9CapacityPoolDefinitionSemanticBundle)
+    ):
         definition, members = _resolve_pool_bundle(row)
         return sha256_hex(build_capacity_pool_definition_payload(definition, members))
     # Holiday bundles
-    if isinstance(row, (Task9HolidayCalendarBundleSchema,
-                        Task9HolidayCalendarSemanticBundle)):
+    if isinstance(row, (Task9HolidayCalendarBundleSchema, Task9HolidayCalendarSemanticBundle)):
         header, dates = _resolve_holiday_bundle(row)
         return sha256_hex(build_holiday_calendar_payload(header, dates))
     # Inventory bundles
-    if isinstance(row, (Task9InitialInventoryBundleSchema,
-                        Task9InitialInventorySemanticBundle)):
+    if isinstance(row, (Task9InitialInventoryBundleSchema, Task9InitialInventorySemanticBundle)):
         snapshot, cohorts = _resolve_inventory_bundle(row)
         return sha256_hex(build_initial_inventory_snapshot_payload(snapshot, cohorts))
     # Bare definitions (require bundle)
-    if isinstance(row, (Task9CapacityPoolDefinitionSchema,
-                        Task9CapacityPoolDefinitionSemanticInput)):
+    if isinstance(
+        row, (Task9CapacityPoolDefinitionSchema, Task9CapacityPoolDefinitionSemanticInput)
+    ):
         raise TypeError("capacity pool definition hash requires members")
-    if isinstance(row, (Task9HolidayCalendarVersionSchema,
-                        Task9HolidayCalendarSemanticInput)):
+    if isinstance(row, (Task9HolidayCalendarVersionSchema, Task9HolidayCalendarSemanticInput)):
         raise TypeError("holiday calendar hash requires child dates")
-    if isinstance(row, (Task9InitialInventorySnapshotSchema,
-                        Task9InitialInventorySemanticInput)):
+    if isinstance(row, (Task9InitialInventorySnapshotSchema, Task9InitialInventorySemanticInput)):
         raise TypeError("inventory snapshot hash requires cohorts")
     # Daily capacity
-    if isinstance(row, (Task9DailyCapacityAuthoritySchema,
-                        Task9DailyCapacitySemanticInput)):
+    if isinstance(row, (Task9DailyCapacityAuthoritySchema, Task9DailyCapacitySemanticInput)):
         return sha256_hex(build_daily_capacity_payload(row))
     # Run package (dependencies MANDATORY — keyword or bundle)
     if isinstance(row, Task9RunParameterPackageBundleSchema):
         return sha256_hex(
-            build_run_parameter_package_payload(
-                row.package, row.holiday_calendar, row.weather_rule
-            )
+            build_run_parameter_package_payload(row.package, row.holiday_calendar, row.weather_rule)
         )
-    if isinstance(row, (Task9RunParameterPackageSchema,
-                        Task9RunParameterPackageSemanticInput)):
-        if holiday_header is None or weather_rule is None:
+    if isinstance(row, (Task9RunParameterPackageSchema, Task9RunParameterPackageSemanticInput)):
+        if holiday_calendar is None or weather_rule is None:
             raise TypeError(
-                "run package hash requires both holiday_header and weather_rule"
+                "run package hash requires both verified holiday_calendar and weather_rule"
             )
-        return sha256_hex(
-            build_run_parameter_package_payload(row, holiday_header, weather_rule)
-        )
+        return sha256_hex(build_run_parameter_package_payload(row, holiday_calendar, weather_rule))
     # Weather rule
-    if isinstance(row, (Task9WeatherRuleConfigVersionSchema,
-                        Task9WeatherRuleSemanticInput)):
+    if isinstance(row, (Task9WeatherRuleConfigVersionSchema, Task9WeatherRuleSemanticInput)):
         return sha256_hex(build_weather_rule_config_payload(row))
     # Mature loss
-    if isinstance(row, (Task9MatureInventoryLossAuthoritySchema,
-                        Task9MatureLossSemanticInput)):
+    if isinstance(row, (Task9MatureInventoryLossAuthoritySchema, Task9MatureLossSemanticInput)):
         return sha256_hex(build_mature_inventory_loss_payload(row))
     # Member (P0-1: unified entry — requires parent_definition)
     if isinstance(row, Task9CapacityPoolMemberSchema):
