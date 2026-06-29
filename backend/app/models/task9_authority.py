@@ -118,14 +118,8 @@ class Task9CapacityPoolDefinition(Base):
 class Task9CapacityPoolMember(Base):
     __tablename__ = "task9_capacity_pool_member"
     __table_args__ = (
-        # P0-7B: UNIQUE NULLS NOT DISTINCT required; plain UniqueConstraint is a placeholder
-        UniqueConstraint(
-            "capacity_pool_definition_id",
-            "farm_id",
-            "subfarm_id",
-            "variety_id",
-            name="uq_task9_capacity_pool_member_business_key",
-        ),
+        # P0-7B: UNIQUE NULLS NOT DISTINCT will be added in migration 0014.
+        # Plain UniqueConstraint removed — it silently accepts (NULL, NULL) duplicates.
         CheckConstraint("farm_id > 0", name="ck_task9_capacity_pool_member_farm_positive"),
         CheckConstraint(
             "subfarm_id is null or subfarm_id > 0",
