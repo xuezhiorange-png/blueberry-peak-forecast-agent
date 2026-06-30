@@ -17,8 +17,9 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, NoReturn
 
+from pydantic import ValidationError
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,6 +36,7 @@ from backend.app.harvest_state.authority_canonical import (
     make_lifecycle_event_hash,
 )
 from backend.app.harvest_state.authority_repository_errors import (
+    AuthorityConsumabilityIntervalConflictError,
     AuthorityHashConflictError,
     AuthorityNotFoundError,
     AuthorityStillReferencedByActivePackageError,
@@ -139,6 +141,45 @@ def _decimal_to_json_safe(obj: Any) -> Any:
 
 def _family_value(family: AuthorityFamily | str) -> str:
     return family.value if isinstance(family, AuthorityFamily) else family
+
+
+def _raise_persisted_validation_conflict(
+    *,
+    family: AuthorityFamily,
+    stable_key: str,
+    component: str,
+    exc: ValidationError,
+) -> NoReturn:
+    raise AuthorityHashConflictError(
+        authority_family=family,
+        authority_stable_key=stable_key,
+        expected_hash="valid_persisted_semantic_payload",
+        actual_hash="invalid_persisted_semantic_payload",
+        details={
+            "reason": "persisted_bundle_validation_failed",
+            "component": component,
+            "validation_errors": exc.errors(),
+        },
+    ) from exc
+
+
+def _build_persisted_schema(
+    schema_cls: type[object],
+    *,
+    family: AuthorityFamily,
+    stable_key: str,
+    component: str,
+    **kwargs: Any,
+) -> Any:
+    try:
+        return schema_cls(**kwargs)
+    except ValidationError as exc:
+        _raise_persisted_validation_conflict(
+            family=family,
+            stable_key=stable_key,
+            component=component,
+            exc=exc,
+        )
 
 
 # ── Family-specific scope extraction (for supersession scope check) ───
@@ -437,11 +478,15 @@ async def _verify_lifecycle_chain(
     business_version: str,
     revision: int,
     business_row_hash: str,
+    authority_status: str,
+    authority_consumable_from: date | None,
+    authority_consumable_to: date | None,
+    authority_superseded_by_id: int | None,
 ) -> list[Task9AuthorityLifecycleEvent]:
     """Load lifecycle events for an authority and verify chain integrity.
 
-    Returns the ordered list of events.  Raises on sequence gaps or hash
-    mismatches.
+    Returns the ordered list of events. Raises typed repository errors on any
+    persisted transition, hash, projection, or replacement-binding mismatch.
     """
     stmt = (
         select(Task9AuthorityLifecycleEvent)
@@ -460,26 +505,46 @@ async def _verify_lifecycle_chain(
             authority_family=family,
             lookup_key=f"lifecycle:{stable_key}:{business_version}:{revision}",
         )
-    # Verify sequence continuity
+    previous: Task9AuthorityLifecycleEvent | None = None
     for idx, event in enumerate(events):
         expected_seq = idx + 1
         if event.transition_sequence != expected_seq:
-            raise AuthorityNotFoundError(
+            raise LifecycleTransitionInvalidError(
                 authority_family=family,
-                lookup_key=f"lifecycle_seq_gap:{stable_key}:{expected_seq}",
+                authority_stable_key=stable_key,
+                current_status=previous.new_status if previous is not None else "missing",
+                target_status=event.new_status,
+                details={
+                    "reason": "transition_sequence_gap",
+                    "expected_transition_sequence": expected_seq,
+                    "actual_transition_sequence": event.transition_sequence,
+                },
             )
-        # Verify lifecycle event hash
-        old_st = None if event.old_status is None else AuthorityStatus(event.old_status)
-        new_st = AuthorityStatus(event.new_status)
-        sem = Task9LifecycleEventSemanticInput(
+        if event.business_row_hash != business_row_hash:
+            raise AuthorityHashConflictError(
+                authority_family=family,
+                authority_stable_key=stable_key,
+                expected_hash=business_row_hash,
+                actual_hash=event.business_row_hash,
+                details={
+                    "reason": "lifecycle_business_row_hash_mismatch",
+                    "transition_sequence": event.transition_sequence,
+                },
+            )
+
+        sem = _build_persisted_schema(
+            Task9LifecycleEventSemanticInput,
+            family=family,
+            stable_key=stable_key,
+            component="lifecycle_event",
             authority_family=family,
             authority_stable_key=event.authority_stable_key,
             authority_business_version=event.authority_business_version,
             authority_revision=event.authority_revision,
             business_row_hash=event.business_row_hash,
             transition_sequence=event.transition_sequence,
-            old_status=old_st,
-            new_status=new_st,
+            old_status=None if event.old_status is None else AuthorityStatus(event.old_status),
+            new_status=AuthorityStatus(event.new_status),
             old_consumable_from_local_date=event.old_consumable_from_local_date,
             old_consumable_to_local_date=event.old_consumable_to_local_date,
             new_consumable_from_local_date=event.new_consumable_from_local_date,
@@ -490,13 +555,206 @@ async def _verify_lifecycle_chain(
             transitioned_at=event.transitioned_at,
             source_system=event.source_system,
             source_record_key=event.source_record_key,
+            lifecycle_event_hash=event.lifecycle_event_hash,
         )
         expected_hash = make_lifecycle_event_hash(sem)
         if event.lifecycle_event_hash != expected_hash:
-            raise AuthorityNotFoundError(
+            raise AuthorityHashConflictError(
                 authority_family=family,
-                lookup_key=f"lifecycle_hash_mismatch:{stable_key}:{event.transition_sequence}",
+                authority_stable_key=stable_key,
+                expected_hash=expected_hash,
+                actual_hash=event.lifecycle_event_hash,
+                details={
+                    "reason": "lifecycle_event_hash_mismatch",
+                    "transition_sequence": event.transition_sequence,
+                },
             )
+
+        if expected_seq == 1:
+            if (
+                event.old_status is not None
+                or event.new_status != AuthorityStatus.DRAFT
+                or event.old_consumable_from_local_date is not None
+                or event.old_consumable_to_local_date is not None
+                or event.new_consumable_from_local_date is not None
+                or event.new_consumable_to_local_date is not None
+                or event.superseded_by_authority_stable_key is not None
+                or event.superseded_by_authority_business_version is not None
+                or event.superseded_by_authority_revision is not None
+            ):
+                raise LifecycleTransitionInvalidError(
+                    authority_family=family,
+                    authority_stable_key=stable_key,
+                    current_status="NULL",
+                    target_status=event.new_status,
+                    details={
+                        "reason": "initial_transition_must_be_null_to_draft",
+                        "transition_sequence": event.transition_sequence,
+                    },
+                )
+        else:
+            if previous is None:
+                raise LifecycleTransitionInvalidError(
+                    authority_family=family,
+                    authority_stable_key=stable_key,
+                    current_status="missing",
+                    target_status=event.new_status,
+                    details={"reason": "previous_transition_missing"},
+                )
+            allowed = _ALLOWED_TRANSITIONS.get(previous.new_status, set())
+            if event.new_status not in allowed:
+                raise LifecycleTransitionInvalidError(
+                    authority_family=family,
+                    authority_stable_key=stable_key,
+                    current_status=event.old_status or "NULL",
+                    target_status=event.new_status,
+                    details={
+                        "reason": "transition_not_allowed",
+                        "transition_sequence": event.transition_sequence,
+                        "old_status": event.old_status,
+                        "new_status": event.new_status,
+                    },
+                )
+            if event.old_status != previous.new_status:
+                raise LifecycleTransitionInvalidError(
+                    authority_family=family,
+                    authority_stable_key=stable_key,
+                    current_status=event.old_status or "NULL",
+                    target_status=event.new_status,
+                    details={
+                        "reason": "old_status_not_contiguous_with_previous_new_status",
+                        "transition_sequence": event.transition_sequence,
+                        "previous_new_status": previous.new_status,
+                        "old_status": event.old_status,
+                    },
+                )
+            if event.old_consumable_from_local_date != previous.new_consumable_from_local_date:
+                raise AuthorityConsumabilityIntervalConflictError(
+                    details={
+                        "reason": "old_consumable_from_not_contiguous",
+                        "transition_sequence": event.transition_sequence,
+                        "previous_new_consumable_from_local_date": (
+                            previous.new_consumable_from_local_date
+                        ),
+                        "old_consumable_from_local_date": event.old_consumable_from_local_date,
+                    }
+                )
+            if event.old_consumable_to_local_date != previous.new_consumable_to_local_date:
+                raise AuthorityConsumabilityIntervalConflictError(
+                    details={
+                        "reason": "old_consumable_to_not_contiguous",
+                        "transition_sequence": event.transition_sequence,
+                        "previous_new_consumable_to_local_date": (
+                            previous.new_consumable_to_local_date
+                        ),
+                        "old_consumable_to_local_date": event.old_consumable_to_local_date,
+                    }
+                )
+        previous = event
+
+    final = events[-1]
+    if final.new_status != authority_status:
+        raise LifecycleTransitionInvalidError(
+            authority_family=family,
+            authority_stable_key=stable_key,
+            current_status=final.new_status,
+            target_status=authority_status,
+            details={"reason": "final_status_projection_mismatch"},
+        )
+    if final.new_consumable_from_local_date != authority_consumable_from:
+        raise AuthorityConsumabilityIntervalConflictError(
+            details={
+                "reason": "final_consumable_from_projection_mismatch",
+                "event_consumable_from_local_date": final.new_consumable_from_local_date,
+                "authority_consumable_from_local_date": authority_consumable_from,
+            }
+        )
+    if final.new_consumable_to_local_date != authority_consumable_to:
+        raise AuthorityConsumabilityIntervalConflictError(
+            details={
+                "reason": "final_consumable_to_projection_mismatch",
+                "event_consumable_to_local_date": final.new_consumable_to_local_date,
+                "authority_consumable_to_local_date": authority_consumable_to,
+            }
+        )
+
+    if authority_status != AuthorityStatus.SUPERSEDED:
+        if authority_superseded_by_id is not None:
+            raise AuthorityHashConflictError(
+                authority_family=family,
+                authority_stable_key=stable_key,
+                expected_hash="null_superseded_by_id",
+                actual_hash=str(authority_superseded_by_id),
+                details={"reason": "non_superseded_authority_has_superseded_by_id"},
+            )
+        for event in events:
+            if (
+                event.superseded_by_authority_stable_key is not None
+                or event.superseded_by_authority_business_version is not None
+                or event.superseded_by_authority_revision is not None
+            ):
+                raise LifecycleTransitionInvalidError(
+                    authority_family=family,
+                    authority_stable_key=stable_key,
+                    current_status=event.old_status or "NULL",
+                    target_status=event.new_status,
+                    details={
+                        "reason": "non_superseded_authority_has_replacement_identity",
+                        "transition_sequence": event.transition_sequence,
+                    },
+                )
+        return events
+
+    if authority_superseded_by_id is None:
+        raise AuthorityHashConflictError(
+            authority_family=family,
+            authority_stable_key=stable_key,
+            expected_hash="non_null_superseded_by_id",
+            actual_hash="null",
+            details={"reason": "superseded_authority_missing_superseded_by_id"},
+        )
+    replacement_model_cls = _FAMILY_MODEL_MAP[family]
+    replacement_stmt = select(replacement_model_cls).where(
+        replacement_model_cls.id == authority_superseded_by_id  # type: ignore[attr-defined]
+    )
+    replacement_result = await session.execute(replacement_stmt)
+    replacement_row = replacement_result.scalar_one_or_none()
+    if replacement_row is None:
+        raise AuthorityHashConflictError(
+            authority_family=family,
+            authority_stable_key=stable_key,
+            expected_hash="existing_replacement_authority_row",
+            actual_hash="missing",
+            details={
+                "reason": "superseded_by_row_missing",
+                "superseded_by_id": authority_superseded_by_id,
+            },
+        )
+
+    (
+        replacement_stable_key,
+        replacement_version,
+        replacement_revision,
+    ) = await _resolve_stable_key_and_version(family, replacement_row)
+    if (
+        final.superseded_by_authority_stable_key != replacement_stable_key
+        or final.superseded_by_authority_business_version != replacement_version
+        or final.superseded_by_authority_revision != replacement_revision
+    ):
+        raise AuthorityHashConflictError(
+            authority_family=family,
+            authority_stable_key=stable_key,
+            expected_hash=f"{replacement_stable_key}:{replacement_version}:{replacement_revision}",
+            actual_hash=(
+                f"{final.superseded_by_authority_stable_key}:"
+                f"{final.superseded_by_authority_business_version}:"
+                f"{final.superseded_by_authority_revision}"
+            ),
+            details={
+                "reason": "superseded_by_identity_mismatch",
+                "superseded_by_id": authority_superseded_by_id,
+            },
+        )
     return events
 
 
@@ -632,7 +890,11 @@ async def create_or_load_capacity_pool_definition(
         member_result = await session.execute(member_stmt)
         persisted_members = list(member_result.scalars().all())
         member_schemas = [
-            Task9CapacityPoolMemberSchema(
+            _build_persisted_schema(
+                Task9CapacityPoolMemberSchema,
+                family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+                stable_key=stable_key,
+                component="capacity_pool_member",
                 farm_id=m.farm_id,
                 subfarm_id=m.subfarm_id,
                 variety_id=m.variety_id,
@@ -644,7 +906,11 @@ async def create_or_load_capacity_pool_definition(
             Task9CapacityPoolDefinitionSemanticBundle as Bundle,
         )
 
-        reconstructed = Bundle(
+        reconstructed = _build_persisted_schema(
+            Bundle,
+            family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            stable_key=stable_key,
+            component="capacity_pool_definition_bundle",
             season_id=existing.season_id,
             destination_factory_id=existing.destination_factory_id,
             capacity_pool_code=existing.capacity_pool_code,
@@ -725,42 +991,66 @@ async def create_or_load_capacity_pool_definition(
         ),
     ):
         member_hash = make_authority_row_hash(member, parent_definition=definition)
-        child_row = Task9CapacityPoolMember(
-            capacity_pool_definition_id=parent_row.id,
-            season_id=definition.season_id,
-            destination_factory_id=definition.destination_factory_id,
-            farm_id=member.farm_id,
-            subfarm_id=member.subfarm_id,
-            variety_id=member.variety_id,
-            effective_from=definition.effective_from,
-            effective_to=definition.effective_to,
-            status=AuthorityStatus.DRAFT,
-            consumable_from_key=(
-                definition.consumable_from_local_date
-                if definition.consumable_from_local_date is not None
-                else date(9999, 12, 31)
+        insert_result = await session.execute(
+            text(
+                """
+                INSERT INTO task9_capacity_pool_member (
+                    capacity_pool_definition_id,
+                    season_id,
+                    destination_factory_id,
+                    farm_id,
+                    subfarm_id,
+                    variety_id,
+                    effective_from,
+                    effective_to,
+                    status,
+                    consumable_from_key,
+                    consumable_to_key,
+                    row_hash
+                )
+                SELECT
+                    p.id,
+                    p.season_id,
+                    p.destination_factory_id,
+                    :farm_id,
+                    :subfarm_id,
+                    :variety_id,
+                    p.effective_from,
+                    p.effective_to,
+                    p.status,
+                    p.consumable_from_key,
+                    p.consumable_to_key,
+                    :row_hash
+                FROM task9_capacity_pool_definition AS p
+                WHERE p.id = :capacity_pool_definition_id
+                RETURNING id
+                """
             ),
-            consumable_to_key=(
-                definition.consumable_to_local_date
-                if definition.consumable_to_local_date is not None
-                else date(9999, 12, 31)
-            ),
-            row_hash=member_hash,
+            {
+                "capacity_pool_definition_id": parent_row.id,
+                "farm_id": member.farm_id,
+                "subfarm_id": member.subfarm_id,
+                "variety_id": member.variety_id,
+                "row_hash": member_hash,
+            },
         )
-        session.add(child_row)
-    await session.flush()
-    # Reload children to get their IDs
-    child_stmt = (
-        select(Task9CapacityPoolMember)
-        .where(Task9CapacityPoolMember.capacity_pool_definition_id == parent_row.id)
-        .order_by(
-            Task9CapacityPoolMember.farm_id,
-            Task9CapacityPoolMember.subfarm_id,
-            Task9CapacityPoolMember.variety_id,
-        )
-    )
-    child_result = await session.execute(child_stmt)
-    child_ids = [c.id for c in child_result.scalars().all()]
+        inserted_id = insert_result.scalar_one_or_none()
+        if inserted_id is None:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+                authority_stable_key=stable_key,
+                expected_hash="one_parent_projected_child_row",
+                actual_hash="zero_rows",
+                details={
+                    "reason": "parent_projection_insert_cardinality_mismatch",
+                    "farm_id": member.farm_id,
+                    "subfarm_id": member.subfarm_id,
+                    "variety_id": member.variety_id,
+                    "expected_rows": 1,
+                    "actual_rows": 0,
+                },
+            )
+        child_ids.append(inserted_id)
 
     # Initial lifecycle event (seq=1, draft→draft)
     event = await _create_initial_draft_event(
@@ -819,7 +1109,11 @@ async def load_capacity_pool_definition_by_id(
 
     # Reconstruct semantic bundle and recompute hash
     member_schemas = [
-        Task9CapacityPoolMemberSchema(
+        _build_persisted_schema(
+            Task9CapacityPoolMemberSchema,
+            family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            stable_key=_stable_key_from_orm_capacity_pool(row),
+            component="capacity_pool_member",
             farm_id=m.farm_id,
             subfarm_id=m.subfarm_id,
             variety_id=m.variety_id,
@@ -830,7 +1124,12 @@ async def load_capacity_pool_definition_by_id(
         Task9CapacityPoolDefinitionSemanticBundle as Bundle,
     )
 
-    reconstructed = Bundle(
+    stable_key = _stable_key_from_orm_capacity_pool(row)
+    reconstructed = _build_persisted_schema(
+        Bundle,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        stable_key=stable_key,
+        component="capacity_pool_definition_bundle",
         season_id=row.season_id,
         destination_factory_id=row.destination_factory_id,
         capacity_pool_code=row.capacity_pool_code,
@@ -853,9 +1152,15 @@ async def load_capacity_pool_definition_by_id(
     )
     recomputed_hash = make_authority_row_hash(reconstructed)
     if recomputed_hash != row.row_hash:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-            lookup_key=f"hash_mismatch:{authority_id}",
+            authority_stable_key=stable_key,
+            expected_hash=recomputed_hash,
+            actual_hash=row.row_hash,
+            details={
+                "reason": "capacity_pool_definition_row_hash_mismatch",
+                "authority_id": authority_id,
+            },
         )
 
     # Verify child hashes
@@ -865,10 +1170,59 @@ async def load_capacity_pool_definition_by_id(
             parent_definition=reconstructed,
         )
         if m.row_hash != expected_child_hash:
-            raise AuthorityNotFoundError(
+            raise AuthorityHashConflictError(
                 authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-                lookup_key=f"child_hash_mismatch:{m.id}",
+                authority_stable_key=stable_key,
+                expected_hash=expected_child_hash,
+                actual_hash=m.row_hash,
+                details={"reason": "capacity_pool_member_row_hash_mismatch", "member_id": m.id},
             )
+
+    parent_projection = (
+        (
+            await session.execute(
+                text(
+                    """
+                SELECT
+                    season_id,
+                    destination_factory_id,
+                    effective_from,
+                    effective_to,
+                    status,
+                    consumable_from_key,
+                    consumable_to_key
+                FROM task9_capacity_pool_definition
+                WHERE id = :authority_id
+                """
+                ),
+                {"authority_id": row.id},
+            )
+        )
+        .mappings()
+        .one()
+    )
+    for member in members:
+        for field_name in (
+            "season_id",
+            "destination_factory_id",
+            "effective_from",
+            "effective_to",
+            "status",
+            "consumable_from_key",
+            "consumable_to_key",
+        ):
+            if getattr(member, field_name) != parent_projection[field_name]:
+                raise AuthorityHashConflictError(
+                    authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+                    authority_stable_key=stable_key,
+                    expected_hash=str(parent_projection[field_name]),
+                    actual_hash=str(getattr(member, field_name)),
+                    details={
+                        "reason": "capacity_pool_member_parent_projection_mismatch",
+                        "member_id": member.id,
+                        "field": field_name,
+                    },
+                )
 
     # Verify lifecycle chain
     stable_key = _stable_key_from_orm_capacity_pool(row)
@@ -879,6 +1233,10 @@ async def load_capacity_pool_definition_by_id(
         business_version=row.capacity_pool_version,
         revision=row.revision,
         business_row_hash=row.row_hash,
+        authority_status=row.status,
+        authority_consumable_from=row.consumable_from_local_date,
+        authority_consumable_to=row.consumable_to_local_date,
+        authority_superseded_by_id=row.superseded_by_id,
     )
 
     return AuthorityBundleLoadResult(
@@ -951,7 +1309,11 @@ async def create_or_load_daily_capacity(
             Task9DailyCapacitySemanticInput as DSI,
         )
 
-        reconstructed = DSI(
+        reconstructed = _build_persisted_schema(
+            DSI,
+            family=AuthorityFamily.DAILY_CAPACITY,
+            stable_key=stable_key,
+            component="daily_capacity",
             season_id=pool_def.season_id,
             destination_factory_id=pool_def.destination_factory_id,
             capacity_pool_code=pool_def.capacity_pool_code,
@@ -1066,9 +1428,12 @@ async def load_daily_capacity_by_id(
     pool_result = await session.execute(pool_stmt)
     pool_def = pool_result.scalar_one_or_none()
     if pool_def is None:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.DAILY_CAPACITY,
-            lookup_key=f"pool_not_found:{row.capacity_pool_definition_id}",
+            authority_stable_key=f"daily-capacity-parent:{row.capacity_pool_definition_id}",
+            expected_hash="existing_parent_capacity_pool_definition",
+            actual_hash="missing",
+            details={"reason": "referenced_parent_missing"},
         )
 
     # Reconstruct and verify hash
@@ -1076,7 +1441,16 @@ async def load_daily_capacity_by_id(
         Task9DailyCapacitySemanticInput as DSI,
     )
 
-    reconstructed = DSI(
+    stable_key = (
+        f"daily-capacity:{pool_def.season_id}:{pool_def.destination_factory_id}:"
+        f"{pool_def.capacity_pool_code}:{pool_def.capacity_pool_version}:"
+        f"{pool_def.revision}:{row.capacity_date.isoformat()}"
+    )
+    reconstructed = _build_persisted_schema(
+        DSI,
+        family=AuthorityFamily.DAILY_CAPACITY,
+        stable_key=stable_key,
+        component="daily_capacity",
         season_id=pool_def.season_id,
         destination_factory_id=pool_def.destination_factory_id,
         capacity_pool_code=pool_def.capacity_pool_code,
@@ -1102,13 +1476,15 @@ async def load_daily_capacity_by_id(
     )
     recomputed = make_authority_row_hash(reconstructed)
     if recomputed != row.row_hash:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.DAILY_CAPACITY,
-            lookup_key=f"hash_mismatch:{authority_id}",
+            authority_stable_key=stable_key,
+            expected_hash=recomputed,
+            actual_hash=row.row_hash,
+            details={"reason": "daily_capacity_row_hash_mismatch", "authority_id": authority_id},
         )
 
     # Verify lifecycle chain
-    stable_key = _stable_key_from_orm_daily_capacity(row)
     await _verify_lifecycle_chain(
         session,
         family=AuthorityFamily.DAILY_CAPACITY,
@@ -1116,6 +1492,10 @@ async def load_daily_capacity_by_id(
         business_version=pool_def.capacity_pool_version,
         revision=row.daily_capacity_revision,
         business_row_hash=row.row_hash,
+        authority_status=row.status,
+        authority_consumable_from=row.consumable_from_local_date,
+        authority_consumable_to=row.consumable_to_local_date,
+        authority_superseded_by_id=row.superseded_by_id,
     )
 
     return AuthorityLoadResult(
@@ -1179,7 +1559,11 @@ async def create_or_load_holiday_calendar(
         date_result = await session.execute(date_stmt)
         persisted_dates = list(date_result.scalars().all())
         date_schemas = [
-            Task9HolidayCalendarDateSchema(
+            _build_persisted_schema(
+                Task9HolidayCalendarDateSchema,
+                family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+                stable_key=stable_key,
+                component="holiday_calendar_date",
                 holiday_date=d.holiday_date,
                 holiday_code=d.holiday_code,
                 holiday_name=d.holiday_name,
@@ -1191,7 +1575,11 @@ async def create_or_load_holiday_calendar(
             Task9HolidayCalendarSemanticBundle as HBundle,
         )
 
-        recon_bundle = HBundle(
+        recon_bundle = _build_persisted_schema(
+            HBundle,
+            family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            stable_key=stable_key,
+            component="holiday_calendar_bundle",
             season_id=existing.season_id,
             calendar_code=existing.calendar_code,
             calendar_version=existing.calendar_version,
@@ -1259,27 +1647,49 @@ async def create_or_load_holiday_calendar(
     await session.flush()
 
     # INSERT children via SQL text for parent-projection pattern
+    child_ids: list[int] = []
     for d in sorted(dates, key=lambda x: (x.holiday_date, x.holiday_code)):
-        child = Task9HolidayCalendarDate(
-            holiday_calendar_version_id=parent_row.id,
-            holiday_date=d.holiday_date,
-            holiday_code=d.holiday_code,
-            holiday_name=d.holiday_name,
+        insert_result = await session.execute(
+            text(
+                """
+                INSERT INTO task9_holiday_calendar_date (
+                    holiday_calendar_version_id,
+                    holiday_date,
+                    holiday_code,
+                    holiday_name
+                )
+                VALUES (
+                    :holiday_calendar_version_id,
+                    :holiday_date,
+                    :holiday_code,
+                    :holiday_name
+                )
+                RETURNING id
+                """
+            ),
+            {
+                "holiday_calendar_version_id": parent_row.id,
+                "holiday_date": d.holiday_date,
+                "holiday_code": d.holiday_code,
+                "holiday_name": d.holiday_name,
+            },
         )
-        session.add(child)
-    await session.flush()
-
-    # Reload children for IDs
-    child_stmt = (
-        select(Task9HolidayCalendarDate)
-        .where(Task9HolidayCalendarDate.holiday_calendar_version_id == parent_row.id)
-        .order_by(
-            Task9HolidayCalendarDate.holiday_date,
-            Task9HolidayCalendarDate.holiday_code,
-        )
-    )
-    child_result = await session.execute(child_stmt)
-    child_ids = [c.id for c in child_result.scalars().all()]
+        inserted_id = insert_result.scalar_one_or_none()
+        if inserted_id is None:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+                authority_stable_key=stable_key,
+                expected_hash="one_child_row",
+                actual_hash="zero_rows",
+                details={
+                    "reason": "holiday_date_insert_cardinality_mismatch",
+                    "holiday_date": d.holiday_date.isoformat(),
+                    "holiday_code": d.holiday_code,
+                    "expected_rows": 1,
+                    "actual_rows": 0,
+                },
+            )
+        child_ids.append(inserted_id)
 
     event = await _create_initial_draft_event(
         session,
@@ -1332,8 +1742,13 @@ async def load_holiday_calendar_by_id(
     )
     date_result = await session.execute(date_stmt)
     persisted_dates = list(date_result.scalars().all())
+    stable_key = _stable_key_from_orm_holiday(row)
     date_schemas = [
-        Task9HolidayCalendarDateSchema(
+        _build_persisted_schema(
+            Task9HolidayCalendarDateSchema,
+            family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            stable_key=stable_key,
+            component="holiday_calendar_date",
             holiday_date=d.holiday_date,
             holiday_code=d.holiday_code,
             holiday_name=d.holiday_name,
@@ -1345,47 +1760,37 @@ async def load_holiday_calendar_by_id(
         Task9HolidayCalendarSemanticBundle as HBundle,
     )
 
-    try:
-        recon_bundle = HBundle(
-            season_id=row.season_id,
-            calendar_code=row.calendar_code,
-            calendar_version=row.calendar_version,
-            revision=row.revision,
-            calendar_hash=row.calendar_hash,
-            region_scope=row.region_scope,
-            lifecycle_timezone_name=row.lifecycle_timezone_name,
-            available_at_local_date=row.available_at_local_date,
-            consumable_from_local_date=row.consumable_from_local_date,
-            consumable_to_local_date=row.consumable_to_local_date,
-            superseded_by_id=row.superseded_by_id,
-            status=row.status,
-            status_changed_at=row.status_changed_at,
-            source_system=row.source_system,
-            source_record_key=row.source_record_key,
-            source_version=row.source_version,
-            dates=date_schemas,
-        )
-    except ValueError as exc:
-        if "HOLIDAY_CALENDAR_HASH_MISMATCH" in str(exc):
-            unique_holiday_dates = sorted({d.holiday_date for d in date_schemas})
-            from backend.app.harvest_state.canonical import (
-                make_holiday_calendar_hash,
-            )
-
-            expected_cal_hash = make_holiday_calendar_hash(
-                holiday_calendar_version=row.calendar_version,
-                holiday_dates=unique_holiday_dates,
-            )
-            raise HolidayCalendarHashMismatchError(
-                expected_hash=expected_cal_hash,
-                actual_hash=row.calendar_hash,
-            ) from exc
-        raise
+    recon_bundle = _build_persisted_schema(
+        HBundle,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        stable_key=stable_key,
+        component="holiday_calendar_bundle",
+        season_id=row.season_id,
+        calendar_code=row.calendar_code,
+        calendar_version=row.calendar_version,
+        revision=row.revision,
+        calendar_hash=row.calendar_hash,
+        region_scope=row.region_scope,
+        lifecycle_timezone_name=row.lifecycle_timezone_name,
+        available_at_local_date=row.available_at_local_date,
+        consumable_from_local_date=row.consumable_from_local_date,
+        consumable_to_local_date=row.consumable_to_local_date,
+        superseded_by_id=row.superseded_by_id,
+        status=row.status,
+        status_changed_at=row.status_changed_at,
+        source_system=row.source_system,
+        source_record_key=row.source_record_key,
+        source_version=row.source_version,
+        dates=date_schemas,
+    )
     recomputed = make_authority_row_hash(recon_bundle)
     if recomputed != row.row_hash:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
-            lookup_key=f"hash_mismatch:{authority_id}",
+            authority_stable_key=stable_key,
+            expected_hash=recomputed,
+            actual_hash=row.row_hash,
+            details={"reason": "holiday_calendar_row_hash_mismatch", "authority_id": authority_id},
         )
 
     # Also verify calendar_hash
@@ -1402,7 +1807,6 @@ async def load_holiday_calendar_by_id(
             actual_hash=row.calendar_hash,
         )
 
-    stable_key = _stable_key_from_orm_holiday(row)
     await _verify_lifecycle_chain(
         session,
         family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
@@ -1410,6 +1814,10 @@ async def load_holiday_calendar_by_id(
         business_version=row.calendar_version,
         revision=row.revision,
         business_row_hash=row.row_hash,
+        authority_status=row.status,
+        authority_consumable_from=row.consumable_from_local_date,
+        authority_consumable_to=row.consumable_to_local_date,
+        authority_superseded_by_id=row.superseded_by_id,
     )
 
     return AuthorityBundleLoadResult(
@@ -1464,7 +1872,11 @@ async def create_or_load_weather_rule(
             Task9WeatherRuleSemanticInput as WSI,
         )
 
-        reconstructed = WSI(
+        reconstructed = _build_persisted_schema(
+            WSI,
+            family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            stable_key=stable_key,
+            component="weather_rule",
             rule_code=existing.rule_code,
             rule_version=existing.rule_version,
             revision=existing.revision,
@@ -1589,43 +2001,43 @@ async def load_weather_rule_by_id(
     # Pydantic models for the semantic input.  The canonical builder handles
     # raw dicts as well since it just accesses .feature_id, .bands etc.
     # For hash verification we pass the raw JSON back through the schema.
-    try:
-        reconstructed = WSI(
-            rule_code=row.rule_code,
-            rule_version=row.rule_version,
-            revision=row.revision,
-            lifecycle_timezone_name=row.lifecycle_timezone_name,
-            combination_method=row.combination_method,
-            minimum_ratio=row.minimum_ratio,
-            maximum_ratio=row.maximum_ratio,
-            required_feature_ids=row.required_feature_ids,
-            feature_rules=row.feature_rules_json,
-            missing_feature_policy=row.missing_feature_policy,
-            config_hash=row.config_hash,
-            effective_from=row.effective_from,
-            effective_to=row.effective_to,
-            available_at_local_date=row.available_at_local_date,
-            consumable_from_local_date=row.consumable_from_local_date,
-            consumable_to_local_date=row.consumable_to_local_date,
-            superseded_by_id=row.superseded_by_id,
-            status=row.status,
-            status_changed_at=row.status_changed_at,
-            source_system=row.source_system,
-            source_record_key=row.source_record_key,
-            source_version=row.source_version,
-        )
-    except ValueError as exc:
-        if "WEATHER_RULE_CONFIG_HASH_MISMATCH" in str(exc):
-            raise WeatherRuleConfigHashMismatchError(
-                expected_hash="recomputed",
-                actual_hash=row.config_hash,
-            ) from exc
-        raise
+    stable_key = _stable_key_from_orm_weather(row)
+    reconstructed = _build_persisted_schema(
+        WSI,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        stable_key=stable_key,
+        component="weather_rule",
+        rule_code=row.rule_code,
+        rule_version=row.rule_version,
+        revision=row.revision,
+        lifecycle_timezone_name=row.lifecycle_timezone_name,
+        combination_method=row.combination_method,
+        minimum_ratio=row.minimum_ratio,
+        maximum_ratio=row.maximum_ratio,
+        required_feature_ids=row.required_feature_ids,
+        feature_rules=row.feature_rules_json,
+        missing_feature_policy=row.missing_feature_policy,
+        config_hash=row.config_hash,
+        effective_from=row.effective_from,
+        effective_to=row.effective_to,
+        available_at_local_date=row.available_at_local_date,
+        consumable_from_local_date=row.consumable_from_local_date,
+        consumable_to_local_date=row.consumable_to_local_date,
+        superseded_by_id=row.superseded_by_id,
+        status=row.status,
+        status_changed_at=row.status_changed_at,
+        source_system=row.source_system,
+        source_record_key=row.source_record_key,
+        source_version=row.source_version,
+    )
     recomputed = make_authority_row_hash(reconstructed)
     if recomputed != row.row_hash:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-            lookup_key=f"hash_mismatch:{authority_id}",
+            authority_stable_key=stable_key,
+            expected_hash=recomputed,
+            actual_hash=row.row_hash,
+            details={"reason": "weather_rule_row_hash_mismatch", "authority_id": authority_id},
         )
 
     # Verify config_hash
@@ -1635,7 +2047,6 @@ async def load_weather_rule_by_id(
             actual_hash=row.config_hash,
         )
 
-    stable_key = _stable_key_from_orm_weather(row)
     await _verify_lifecycle_chain(
         session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
@@ -1643,6 +2054,10 @@ async def load_weather_rule_by_id(
         business_version=row.rule_version,
         revision=row.revision,
         business_row_hash=row.row_hash,
+        authority_status=row.status,
+        authority_consumable_from=row.consumable_from_local_date,
+        authority_consumable_to=row.consumable_to_local_date,
+        authority_superseded_by_id=row.superseded_by_id,
     )
 
     return AuthorityLoadResult(
@@ -1790,7 +2205,12 @@ async def create_or_load_run_parameter_package(
     )
     date_result = await session.execute(date_stmt)
     persisted_dates = list(date_result.scalars().all())
-    verified_holiday = HBundle(
+    stable_key = build_run_parameter_package_stable_key(package_input)
+    verified_holiday = _build_persisted_schema(
+        HBundle,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        stable_key=stable_key,
+        component="run_package_holiday_bundle",
         season_id=holiday_row.season_id,
         calendar_code=holiday_row.calendar_code,
         calendar_version=holiday_row.calendar_version,
@@ -1822,7 +2242,6 @@ async def create_or_load_run_parameter_package(
         holiday_calendar=verified_holiday,
         weather_rule=weather_rule,
     )
-    stable_key = build_run_parameter_package_stable_key(package_input)
 
     lock_key = _advisory_lock_key(
         AuthorityFamily.RUN_PARAMETER_PACKAGE,
@@ -1851,9 +2270,12 @@ async def create_or_load_run_parameter_package(
         existing_holiday_result = await session.execute(existing_holiday_stmt)
         existing_holiday = existing_holiday_result.scalar_one_or_none()
         if existing_holiday is None:
-            raise AuthorityNotFoundError(
+            raise AuthorityHashConflictError(
                 authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-                lookup_key=f"holiday_missing:{existing.id}",
+                authority_stable_key=stable_key,
+                expected_hash="existing_holiday_dependency",
+                actual_hash="missing",
+                details={"reason": "persisted_dependency_missing", "component": "holiday"},
             )
 
         existing_weather_stmt = select(Task9WeatherRuleConfigVersion).where(
@@ -1862,9 +2284,12 @@ async def create_or_load_run_parameter_package(
         existing_weather_result = await session.execute(existing_weather_stmt)
         existing_weather = existing_weather_result.scalar_one_or_none()
         if existing_weather is None:
-            raise AuthorityNotFoundError(
+            raise AuthorityHashConflictError(
                 authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-                lookup_key=f"weather_missing:{existing.id}",
+                authority_stable_key=stable_key,
+                expected_hash="existing_weather_dependency",
+                actual_hash="missing",
+                details={"reason": "persisted_dependency_missing", "component": "weather"},
             )
 
         from backend.app.harvest_state.authority_schemas import (
@@ -1882,7 +2307,11 @@ async def create_or_load_run_parameter_package(
         )
         existing_date_result = await session.execute(existing_date_stmt)
         existing_persisted_dates = list(existing_date_result.scalars().all())
-        verified_existing_holiday = HBundle(
+        verified_existing_holiday = _build_persisted_schema(
+            HBundle,
+            family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            stable_key=stable_key,
+            component="run_package_holiday_bundle",
             season_id=existing_holiday.season_id,
             calendar_code=existing_holiday.calendar_code,
             calendar_version=existing_holiday.calendar_version,
@@ -1900,7 +2329,11 @@ async def create_or_load_run_parameter_package(
             source_record_key=existing_holiday.source_record_key,
             source_version=existing_holiday.source_version,
             dates=[
-                Task9HolidayCalendarDateSchema(
+                _build_persisted_schema(
+                    Task9HolidayCalendarDateSchema,
+                    family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                    stable_key=stable_key,
+                    component="run_package_holiday_date",
                     holiday_date=d.holiday_date,
                     holiday_code=d.holiday_code,
                     holiday_name=d.holiday_name,
@@ -1909,7 +2342,11 @@ async def create_or_load_run_parameter_package(
             ],
         )
 
-        verified_existing_weather = WSI(
+        verified_existing_weather = _build_persisted_schema(
+            WSI,
+            family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            stable_key=stable_key,
+            component="run_package_weather_rule",
             rule_code=existing_weather.rule_code,
             rule_version=existing_weather.rule_version,
             revision=existing_weather.revision,
@@ -1938,7 +2375,11 @@ async def create_or_load_run_parameter_package(
             Task9RunParameterPackageSemanticInput as RPSI,
         )
 
-        recon_pkg = RPSI(
+        recon_pkg = _build_persisted_schema(
+            RPSI,
+            family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            stable_key=stable_key,
+            component="run_parameter_package",
             season_id=existing.season_id,
             destination_factory_id=existing.destination_factory_id,
             farm_scope_key=existing.farm_scope_key,
@@ -2060,9 +2501,12 @@ async def load_run_parameter_package_by_id(
     holiday_result = await session.execute(holiday_stmt)
     holiday_row = holiday_result.scalar_one_or_none()
     if holiday_row is None:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            lookup_key=f"holiday_missing:{row.id}",
+            authority_stable_key=_stable_key_from_orm_run_package(row),
+            expected_hash="existing_holiday_dependency",
+            actual_hash="missing",
+            details={"reason": "persisted_dependency_missing", "component": "holiday"},
         )
 
     weather_stmt = select(Task9WeatherRuleConfigVersion).where(
@@ -2071,9 +2515,12 @@ async def load_run_parameter_package_by_id(
     weather_result = await session.execute(weather_stmt)
     weather_row = weather_result.scalar_one_or_none()
     if weather_row is None:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            lookup_key=f"weather_missing:{row.id}",
+            authority_stable_key=_stable_key_from_orm_run_package(row),
+            expected_hash="existing_weather_dependency",
+            actual_hash="missing",
+            details={"reason": "persisted_dependency_missing", "component": "weather"},
         )
 
     from backend.app.harvest_state.authority_schemas import (
@@ -2097,7 +2544,12 @@ async def load_run_parameter_package_by_id(
     )
     date_result = await session.execute(date_stmt)
     persisted_dates = list(date_result.scalars().all())
-    verified_holiday = HBundle(
+    stable_key = _stable_key_from_orm_run_package(row)
+    verified_holiday = _build_persisted_schema(
+        HBundle,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        stable_key=stable_key,
+        component="run_package_holiday_bundle",
         season_id=holiday_row.season_id,
         calendar_code=holiday_row.calendar_code,
         calendar_version=holiday_row.calendar_version,
@@ -2115,7 +2567,11 @@ async def load_run_parameter_package_by_id(
         source_record_key=holiday_row.source_record_key,
         source_version=holiday_row.source_version,
         dates=[
-            Task9HolidayCalendarDateSchema(
+            _build_persisted_schema(
+                Task9HolidayCalendarDateSchema,
+                family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                stable_key=stable_key,
+                component="run_package_holiday_date",
                 holiday_date=d.holiday_date,
                 holiday_code=d.holiday_code,
                 holiday_name=d.holiday_name,
@@ -2124,7 +2580,11 @@ async def load_run_parameter_package_by_id(
         ],
     )
 
-    verified_weather = WSI(
+    verified_weather = _build_persisted_schema(
+        WSI,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        stable_key=stable_key,
+        component="run_package_weather_rule",
         rule_code=weather_row.rule_code,
         rule_version=weather_row.rule_version,
         revision=weather_row.revision,
@@ -2149,7 +2609,11 @@ async def load_run_parameter_package_by_id(
         source_version=weather_row.source_version,
     )
 
-    recon_pkg = RPSI(
+    recon_pkg = _build_persisted_schema(
+        RPSI,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        stable_key=stable_key,
+        component="run_parameter_package",
         season_id=row.season_id,
         destination_factory_id=row.destination_factory_id,
         farm_scope_key=row.farm_scope_key,
@@ -2177,12 +2641,17 @@ async def load_run_parameter_package_by_id(
         weather_rule=verified_weather,
     )
     if recomputed != row.row_hash:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            lookup_key=f"hash_mismatch:{authority_id}",
+            authority_stable_key=stable_key,
+            expected_hash=recomputed,
+            actual_hash=row.row_hash,
+            details={
+                "reason": "run_parameter_package_row_hash_mismatch",
+                "authority_id": authority_id,
+            },
         )
 
-    stable_key = _stable_key_from_orm_run_package(row)
     await _verify_lifecycle_chain(
         session,
         family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
@@ -2190,6 +2659,10 @@ async def load_run_parameter_package_by_id(
         business_version=row.package_version,
         revision=row.revision,
         business_row_hash=row.row_hash,
+        authority_status=row.status,
+        authority_consumable_from=row.consumable_from_local_date,
+        authority_consumable_to=row.consumable_to_local_date,
+        authority_superseded_by_id=row.superseded_by_id,
     )
 
     return AuthorityLoadResult(
@@ -2250,7 +2723,11 @@ async def create_or_load_initial_inventory(
         cohort_result = await session.execute(cohort_stmt)
         persisted_cohorts = list(cohort_result.scalars().all())
         cohort_schemas = [
-            Task9InitialInventoryCohortSchema(
+            _build_persisted_schema(
+                Task9InitialInventoryCohortSchema,
+                family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+                stable_key=stable_key,
+                component="initial_inventory_cohort",
                 stable_cohort_key=c.stable_cohort_key,
                 forecast_quantile=c.forecast_quantile,
                 cohort_date=c.cohort_date,
@@ -2265,7 +2742,11 @@ async def create_or_load_initial_inventory(
             Task9InitialInventorySemanticBundle as IBundle,
         )
 
-        recon_bundle = IBundle(
+        recon_bundle = _build_persisted_schema(
+            IBundle,
+            family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            stable_key=stable_key,
+            component="initial_inventory_bundle",
             season_id=existing.season_id,
             destination_factory_id=existing.destination_factory_id,
             opening_state_date=existing.opening_state_date,
@@ -2331,29 +2812,64 @@ async def create_or_load_initial_inventory(
     await session.flush()
 
     # INSERT children
+    child_ids: list[int] = []
     for c in sorted(cohorts, key=lambda x: x.stable_cohort_key):
         child_hash = make_authority_row_hash(c, parent_snapshot=snapshot)
-        child = Task9InitialInventoryCohort(
-            initial_inventory_snapshot_id=parent_row.id,
-            stable_cohort_key=c.stable_cohort_key,
-            forecast_quantile=c.forecast_quantile.value,
-            cohort_date=c.cohort_date,
-            farm_id=c.farm_id,
-            subfarm_id=c.subfarm_id,
-            variety_id=c.variety_id,
-            remaining_quantity_kg=c.remaining_quantity_kg,
-            row_hash=child_hash,
+        insert_result = await session.execute(
+            text(
+                """
+                INSERT INTO task9_initial_inventory_cohort (
+                    initial_inventory_snapshot_id,
+                    stable_cohort_key,
+                    forecast_quantile,
+                    cohort_date,
+                    farm_id,
+                    subfarm_id,
+                    variety_id,
+                    remaining_quantity_kg,
+                    row_hash
+                )
+                VALUES (
+                    :initial_inventory_snapshot_id,
+                    :stable_cohort_key,
+                    :forecast_quantile,
+                    :cohort_date,
+                    :farm_id,
+                    :subfarm_id,
+                    :variety_id,
+                    :remaining_quantity_kg,
+                    :row_hash
+                )
+                RETURNING id
+                """
+            ),
+            {
+                "initial_inventory_snapshot_id": parent_row.id,
+                "stable_cohort_key": c.stable_cohort_key,
+                "forecast_quantile": c.forecast_quantile.value,
+                "cohort_date": c.cohort_date,
+                "farm_id": c.farm_id,
+                "subfarm_id": c.subfarm_id,
+                "variety_id": c.variety_id,
+                "remaining_quantity_kg": c.remaining_quantity_kg,
+                "row_hash": child_hash,
+            },
         )
-        session.add(child)
-    await session.flush()
-
-    child_stmt = (
-        select(Task9InitialInventoryCohort)
-        .where(Task9InitialInventoryCohort.initial_inventory_snapshot_id == parent_row.id)
-        .order_by(Task9InitialInventoryCohort.stable_cohort_key)
-    )
-    child_result = await session.execute(child_stmt)
-    child_ids = [c.id for c in child_result.scalars().all()]
+        inserted_id = insert_result.scalar_one_or_none()
+        if inserted_id is None:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+                authority_stable_key=stable_key,
+                expected_hash="one_child_row",
+                actual_hash="zero_rows",
+                details={
+                    "reason": "inventory_cohort_insert_cardinality_mismatch",
+                    "stable_cohort_key": c.stable_cohort_key,
+                    "expected_rows": 1,
+                    "actual_rows": 0,
+                },
+            )
+        child_ids.append(inserted_id)
 
     event = await _create_initial_draft_event(
         session,
@@ -2405,8 +2921,13 @@ async def load_initial_inventory_by_id(
     )
     cohort_result = await session.execute(cohort_stmt)
     persisted_cohorts = list(cohort_result.scalars().all())
+    stable_key = _stable_key_from_orm_initial_inventory(row)
     cohort_schemas = [
-        Task9InitialInventoryCohortSchema(
+        _build_persisted_schema(
+            Task9InitialInventoryCohortSchema,
+            family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            stable_key=stable_key,
+            component="initial_inventory_cohort",
             stable_cohort_key=c.stable_cohort_key,
             forecast_quantile=c.forecast_quantile,
             cohort_date=c.cohort_date,
@@ -2422,7 +2943,11 @@ async def load_initial_inventory_by_id(
         Task9InitialInventorySemanticBundle as IBundle,
     )
 
-    recon_bundle = IBundle(
+    recon_bundle = _build_persisted_schema(
+        IBundle,
+        family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+        stable_key=stable_key,
+        component="initial_inventory_bundle",
         season_id=row.season_id,
         destination_factory_id=row.destination_factory_id,
         opening_state_date=row.opening_state_date,
@@ -2442,13 +2967,20 @@ async def load_initial_inventory_by_id(
     )
     recomputed = make_authority_row_hash(recon_bundle)
     if recomputed != row.row_hash:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
-            lookup_key=f"hash_mismatch:{authority_id}",
+            authority_stable_key=stable_key,
+            expected_hash=recomputed,
+            actual_hash=row.row_hash,
+            details={"reason": "initial_inventory_row_hash_mismatch", "authority_id": authority_id},
         )
 
     # Verify cohort hashes
-    snapshot_input = Task9InitialInventorySemanticInput(
+    snapshot_input = _build_persisted_schema(
+        Task9InitialInventorySemanticInput,
+        family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+        stable_key=stable_key,
+        component="initial_inventory_snapshot",
         season_id=row.season_id,
         destination_factory_id=row.destination_factory_id,
         opening_state_date=row.opening_state_date,
@@ -2468,12 +3000,14 @@ async def load_initial_inventory_by_id(
     for c, cs in zip(persisted_cohorts, cohort_schemas, strict=True):
         expected_hash = make_authority_row_hash(cs, parent_snapshot=snapshot_input)
         if c.row_hash != expected_hash:
-            raise AuthorityNotFoundError(
+            raise AuthorityHashConflictError(
                 authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
-                lookup_key=f"cohort_hash_mismatch:{c.id}",
+                authority_stable_key=stable_key,
+                expected_hash=expected_hash,
+                actual_hash=c.row_hash,
+                details={"reason": "initial_inventory_cohort_row_hash_mismatch", "cohort_id": c.id},
             )
 
-    stable_key = _stable_key_from_orm_initial_inventory(row)
     await _verify_lifecycle_chain(
         session,
         family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
@@ -2481,6 +3015,10 @@ async def load_initial_inventory_by_id(
         business_version=row.snapshot_version,
         revision=row.revision,
         business_row_hash=row.row_hash,
+        authority_status=row.status,
+        authority_consumable_from=row.consumable_from_local_date,
+        authority_consumable_to=row.consumable_to_local_date,
+        authority_superseded_by_id=row.superseded_by_id,
     )
 
     return AuthorityBundleLoadResult(
@@ -2537,7 +3075,11 @@ async def create_or_load_mature_loss(
             Task9MatureLossSemanticInput as MLSI,
         )
 
-        reconstructed = MLSI(
+        reconstructed = _build_persisted_schema(
+            MLSI,
+            family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            stable_key=stable_key,
+            component="mature_inventory_loss",
             season_id=existing.season_id,
             destination_factory_id=existing.destination_factory_id,
             state_date=existing.state_date,
@@ -2646,7 +3188,12 @@ async def load_mature_loss_by_id(
         Task9MatureLossSemanticInput as MLSI,
     )
 
-    reconstructed = MLSI(
+    stable_key = _stable_key_from_orm_mature_loss(row)
+    reconstructed = _build_persisted_schema(
+        MLSI,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        stable_key=stable_key,
+        component="mature_inventory_loss",
         season_id=row.season_id,
         destination_factory_id=row.destination_factory_id,
         state_date=row.state_date,
@@ -2667,12 +3214,17 @@ async def load_mature_loss_by_id(
     )
     recomputed = make_authority_row_hash(reconstructed)
     if recomputed != row.row_hash:
-        raise AuthorityNotFoundError(
+        raise AuthorityHashConflictError(
             authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
-            lookup_key=f"hash_mismatch:{authority_id}",
+            authority_stable_key=stable_key,
+            expected_hash=recomputed,
+            actual_hash=row.row_hash,
+            details={
+                "reason": "mature_inventory_loss_row_hash_mismatch",
+                "authority_id": authority_id,
+            },
         )
 
-    stable_key = _stable_key_from_orm_mature_loss(row)
     await _verify_lifecycle_chain(
         session,
         family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
@@ -2680,6 +3232,10 @@ async def load_mature_loss_by_id(
         business_version=row.loss_version,
         revision=row.revision,
         business_row_hash=row.row_hash,
+        authority_status=row.status,
+        authority_consumable_from=row.consumable_from_local_date,
+        authority_consumable_to=row.consumable_to_local_date,
+        authority_superseded_by_id=row.superseded_by_id,
     )
 
     return AuthorityLoadResult(
