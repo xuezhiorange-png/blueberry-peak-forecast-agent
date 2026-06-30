@@ -1790,13 +1790,13 @@ async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSessi
     """Tamper member status → repository detects parent projection mismatch."""
     inp = _pool_input()
     created = await create_or_load_capacity_pool_definition(db_session, definition_input=inp)
-    # Tamper: change member status (no FK, no exclusion constraint)
-    # to a value different from the parent's status.
+    # Tamper: change member consumable_from_key (no FK, no CHECK constraint)
+    # to a value different from the parent's projection.
     await db_session.execute(
         text(
             """
             UPDATE task9_capacity_pool_member
-            SET effective_from = '1900-01-01'
+            SET consumable_from_key = '1900-01-01'
             WHERE capacity_pool_definition_id = :authority_id
             """
         ),
@@ -1810,7 +1810,7 @@ async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSessi
         )
     assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
     assert exc_info.value.details["reason"] == "capacity_pool_member_parent_projection_mismatch"
-    assert exc_info.value.details["field"] == "effective_from"
+    assert exc_info.value.details["field"] == "consumable_from_key"
 
 
 @pytest.mark.asyncio
