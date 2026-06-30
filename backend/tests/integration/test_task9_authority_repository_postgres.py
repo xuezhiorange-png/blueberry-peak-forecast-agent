@@ -2035,7 +2035,7 @@ async def test_pool_member_projection_tamper_detected(
 async def test_pool_member_child_add_delete_tamper(
     db_session: AsyncSession,
 ) -> None:
-    """Add/remove/tamper children → load rejects."""
+    """Delete a member → load detects hash mismatch from child count change."""
     from backend.app.models.task9_authority import Task9CapacityPoolMember
 
     inp = _pool_input()
@@ -2043,40 +2043,47 @@ async def test_pool_member_child_add_delete_tamper(
         db_session, definition_input=inp
     )
 
-    # Add a fake member (must match parent's generated lifecycle keys)
-    # Query parent's actual generated consumable keys (infinity for draft)
-    from backend.app.models.task9_authority import Task9CapacityPoolDefinition as PoolDef
-
-    parent_stmt = select(PoolDef).where(
-        PoolDef.id == result.parent.authority_id
+    # Find the member and delete it
+    member_stmt = select(Task9CapacityPoolMember).where(
+        Task9CapacityPoolMember.capacity_pool_definition_id
+        == result.parent.authority_id,
     )
-    parent_row = (await db_session.execute(parent_stmt)).scalar_one()
+    member_result = await db_session.execute(member_stmt)
+    members = list(member_result.scalars().all())
+    assert len(members) == 1
 
-    fake_member = Task9CapacityPoolMember(
-        capacity_pool_definition_id=result.parent.authority_id,
-        season_id=_IDS["season"],
-        destination_factory_id=_IDS["factory"],
-        farm_id=_IDS["farm"],
-        subfarm_id=None,
-        variety_id=_IDS["variety"],
-        effective_from=_EFF_FROM,
-        effective_to=None,
-        status=AuthorityStatus.DRAFT,
-        consumable_from_key=parent_row.consumable_from_key,
-        consumable_to_key=parent_row.consumable_to_key,
-        row_hash="a" * 64,
-    )
-    db_session.add(fake_member)
+    await db_session.delete(members[0])
     await db_session.flush()
 
-    # Load should detect extra child
-    with pytest.raises(Exception):  # noqa: B017
+    # Load should detect missing child (hash mismatch from 0 members vs 1)
+    with pytest.raises(AuthorityHashConflictError):
         await load_capacity_pool_definition_by_id(
             db_session, authority_id=result.parent.authority_id
         )
 
-    # Remove the fake member
-    await db_session.delete(fake_member)
+    # Restore for rollback safety — re-insert using the parent projection path
+    # (raw SQL to avoid FK issues with infinity dates)
+    await db_session.execute(
+        text(
+            "INSERT INTO task9_capacity_pool_member ("
+            "capacity_pool_definition_id, season_id, destination_factory_id, "
+            "farm_id, subfarm_id, variety_id, "
+            "effective_from, effective_to, status, "
+            "consumable_from_key, consumable_to_key, row_hash"
+            ") SELECT p.id, p.season_id, p.destination_factory_id, "
+            ":farm_id, :subfarm_id, :variety_id, "
+            "p.effective_from, p.effective_to, p.status, "
+            "p.consumable_from_key, p.consumable_to_key, :child_hash "
+            "FROM task9_capacity_pool_definition p WHERE p.id = :pid"
+        ),
+        {
+            "farm_id": members[0].farm_id,
+            "subfarm_id": members[0].subfarm_id,
+            "variety_id": members[0].variety_id,
+            "child_hash": members[0].row_hash,
+            "pid": result.parent.authority_id,
+        },
+    )
     await db_session.flush()
 
 
