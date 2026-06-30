@@ -90,6 +90,7 @@ async def db_session():
     dim_subfarm, dim_variety) before yielding so authority inserts don't fail
     on FK constraints.
     """
+    global _SEASON_ID, _FACTORY_ID, _FARM_ID, _SUBFARM_ID, _VARIETY_ID
     async with AsyncSessionMaker() as session:
         async with session.begin():
             # Seed dimension tables required by FK constraints
@@ -151,13 +152,11 @@ async def db_session():
                 text("SELECT id FROM dim_variety WHERE code = 'test-var'")
             )
             # Override module-level constants with real IDs
-            import backend.tests.integration.test_task9_authority_repository_postgres as mod
-
-            mod._SEASON_ID = season_row.scalar_one()
-            mod._FACTORY_ID = factory_row.scalar_one()
-            mod._FARM_ID = farm_id
-            mod._SUBFARM_ID = subfarm_row.scalar_one()
-            mod._VARIETY_ID = variety_row.scalar_one()
+            _SEASON_ID = season_row.scalar_one()
+            _FACTORY_ID = factory_row.scalar_one()
+            _FARM_ID = farm_id
+            _SUBFARM_ID = subfarm_row.scalar_one()
+            _VARIETY_ID = variety_row.scalar_one()
             yield session
             # rollback on exit for test isolation
 
