@@ -90,7 +90,6 @@ async def db_session():
     dim_subfarm, dim_variety) before yielding so authority inserts don't fail
     on FK constraints.
     """
-    global _SEASON_ID, _FACTORY_ID, _FARM_ID, _SUBFARM_ID, _VARIETY_ID
     async with AsyncSessionMaker() as session:
         async with session.begin():
             # Seed dimension tables required by FK constraints
@@ -152,11 +151,11 @@ async def db_session():
                 text("SELECT id FROM dim_variety WHERE code = 'test-var'")
             )
             # Override module-level constants with real IDs
-            _SEASON_ID = season_row.scalar_one()
-            _FACTORY_ID = factory_row.scalar_one()
-            _FARM_ID = farm_id
-            _SUBFARM_ID = subfarm_row.scalar_one()
-            _VARIETY_ID = variety_row.scalar_one()
+            _IDS["season"] = season_row.scalar_one()
+            _IDS["factory"] = factory_row.scalar_one()
+            _IDS["farm"] = farm_id
+            _IDS["subfarm"] = subfarm_row.scalar_one()
+            _IDS["variety"] = variety_row.scalar_one()
             yield session
             # rollback on exit for test isolation
 
@@ -164,11 +163,13 @@ async def db_session():
 # ── Deterministic test data helpers ──────────────────────────────────────
 
 # Shared constants to keep helpers DRY.
-_SEASON_ID = 1
-_FACTORY_ID = 2
-_FARM_ID = 10
-_SUBFARM_ID = 20
-_VARIETY_ID = 30
+_IDS: dict[str, int] = {
+    "season": 1,
+    "factory": 2,
+    "farm": 10,
+    "subfarm": 20,
+    "variety": 30,
+}
 _TZ = "Asia/Shanghai"
 _AVAILABLE = date(2026, 1, 1)
 _EFF_FROM = date(2026, 1, 1)
@@ -182,8 +183,8 @@ def _pool_input(
 ) -> Task9CapacityPoolDefinitionSemanticBundle:
     """Build a valid pool-definition semantic bundle with one FARM-grain member."""
     return Task9CapacityPoolDefinitionSemanticBundle(
-        season_id=_SEASON_ID,
-        destination_factory_id=_FACTORY_ID,
+        season_id=_IDS["season"],
+        destination_factory_id=_IDS["factory"],
         capacity_pool_code=code,
         capacity_pool_grain=CapacityPoolGrain.FARM,
         capacity_input_mode=CapacityInputMode.LABOR_DERIVED,
@@ -202,7 +203,7 @@ def _pool_input(
         source_version="v1",
         members=[
             Task9CapacityPoolMemberSchema(
-                farm_id=_FARM_ID, subfarm_id=None, variety_id=_VARIETY_ID,
+                farm_id=_IDS["farm"], subfarm_id=None, variety_id=_IDS["variety"],
             ),
         ],
     )
@@ -218,8 +219,8 @@ def _daily_input(
 ) -> Task9DailyCapacitySemanticInput:
     """Build a valid daily-capacity semantic input (LABOR_DERIVED)."""
     return Task9DailyCapacitySemanticInput(
-        season_id=_SEASON_ID,
-        destination_factory_id=_FACTORY_ID,
+        season_id=_IDS["season"],
+        destination_factory_id=_IDS["factory"],
         capacity_pool_code=pool_code,
         capacity_pool_version=pool_version,
         capacity_pool_revision=pool_revision,
@@ -273,7 +274,7 @@ def _holiday_input(
         holiday_dates=unique_dates,
     )
     return Task9HolidayCalendarSemanticBundle(
-        season_id=_SEASON_ID,
+        season_id=_IDS["season"],
         calendar_code="CN",
         calendar_version=version,
         revision=revision,
@@ -374,8 +375,8 @@ def _run_package_input(
 ) -> Task9RunParameterPackageSemanticInput:
     """Build a valid run-parameter-package semantic input."""
     return Task9RunParameterPackageSemanticInput(
-        season_id=_SEASON_ID,
-        destination_factory_id=_FACTORY_ID,
+        season_id=_IDS["season"],
+        destination_factory_id=_IDS["factory"],
         farm_scope_key="farm-10",
         farm_timezone=_TZ,
         destination_factory_timezone=_TZ,
@@ -404,8 +405,8 @@ def _inventory_input(
 ) -> Task9InitialInventorySemanticBundle:
     """Build a valid initial-inventory semantic bundle with two cohorts."""
     return Task9InitialInventorySemanticBundle(
-        season_id=_SEASON_ID,
-        destination_factory_id=_FACTORY_ID,
+        season_id=_IDS["season"],
+        destination_factory_id=_IDS["factory"],
         opening_state_date=date(2026, 1, 1),
         snapshot_version=version,
         revision=revision,
@@ -424,18 +425,18 @@ def _inventory_input(
                 stable_cohort_key="cohort-a",
                 forecast_quantile=ForecastQuantile.P50,
                 cohort_date=date(2026, 1, 1),
-                farm_id=_FARM_ID,
-                subfarm_id=_SUBFARM_ID,
-                variety_id=_VARIETY_ID,
+                farm_id=_IDS["farm"],
+                subfarm_id=_IDS["subfarm"],
+                variety_id=_IDS["variety"],
                 remaining_quantity_kg=Decimal("200.00"),
             ),
             Task9InitialInventoryCohortSchema(
                 stable_cohort_key="cohort-b",
                 forecast_quantile=ForecastQuantile.P50,
                 cohort_date=date(2026, 1, 1),
-                farm_id=_FARM_ID,
-                subfarm_id=_SUBFARM_ID,
-                variety_id=_VARIETY_ID + 1,
+                farm_id=_IDS["farm"],
+                subfarm_id=_IDS["subfarm"],
+                variety_id=_IDS["variety"] + 1,
                 remaining_quantity_kg=Decimal("100.00"),
             ),
         ],
@@ -449,8 +450,8 @@ def _mature_loss_input(
 ) -> Task9MatureLossSemanticInput:
     """Build a valid mature-inventory-loss semantic input."""
     return Task9MatureLossSemanticInput(
-        season_id=_SEASON_ID,
-        destination_factory_id=_FACTORY_ID,
+        season_id=_IDS["season"],
+        destination_factory_id=_IDS["factory"],
         state_date=date(2026, 6, 15),
         capacity_pool_code="TEST-POOL",
         forecast_quantile=ForecastQuantile.P50,
@@ -1144,7 +1145,7 @@ async def test_dependency_protection_holiday(db_session: AsyncSession) -> None:
     from backend.app.models.task9_authority import Task9HolidayCalendarVersion
 
     hol_stmt = select(Task9HolidayCalendarVersion).where(
-        Task9HolidayCalendarVersion.season_id == _SEASON_ID,
+        Task9HolidayCalendarVersion.season_id == _IDS["season"],
         Task9HolidayCalendarVersion.calendar_code == "CN",
         Task9HolidayCalendarVersion.calendar_version == "v1",
         Task9HolidayCalendarVersion.revision == 1,
