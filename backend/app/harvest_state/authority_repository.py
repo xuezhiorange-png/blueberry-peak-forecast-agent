@@ -555,7 +555,6 @@ async def _verify_lifecycle_chain(
             transitioned_at=event.transitioned_at,
             source_system=event.source_system,
             source_record_key=event.source_record_key,
-            lifecycle_event_hash=event.lifecycle_event_hash,
         )
         expected_hash = make_lifecycle_event_hash(sem)
         if event.lifecycle_event_hash != expected_hash:
