@@ -1693,28 +1693,14 @@ async def _insert_lifecycle_event(
     new_consumable_from_local_date: date | None = None,
     new_consumable_to_local_date: date | None = None,
 ) -> None:
-    """Insert a raw lifecycle event via SQL with a valid hash."""
-    semantic = Task9LifecycleEventSemanticInput(
-        authority_family=family,
-        authority_stable_key=authority_stable_key,
-        authority_business_version=business_version,
-        authority_revision=revision,
-        business_row_hash=business_row_hash,
-        transition_sequence=transition_sequence,
-        old_status=old_status,
-        new_status=new_status,
-        old_consumable_from_local_date=old_consumable_from_local_date,
-        old_consumable_to_local_date=old_consumable_to_local_date,
-        new_consumable_from_local_date=new_consumable_from_local_date,
-        new_consumable_to_local_date=new_consumable_to_local_date,
-        superseded_by_authority_stable_key=None,
-        superseded_by_authority_business_version=None,
-        superseded_by_authority_revision=None,
-        transitioned_at=datetime.now(UTC),
-        source_system="test-tamper",
-        source_record_key=f"tamper-{uuid4().hex[:8]}",
-    )
-    event_hash = make_lifecycle_event_hash(semantic)
+    """Insert a raw lifecycle event via SQL with a correct hash.
+
+    Inserts with a dummy hash first, reads the row back from DB (to get the
+    exact ``transitioned_at`` value PostgreSQL stored), recomputes the hash
+    from the DB values, and updates the row.
+    """
+    new_status_str = new_status.value if hasattr(new_status, "value") else new_status
+    old_status_str = old_status
     await session.execute(
         text(
             """
@@ -1731,9 +1717,6 @@ async def _insert_lifecycle_event(
                 old_consumable_to_local_date,
                 new_consumable_from_local_date,
                 new_consumable_to_local_date,
-                superseded_by_authority_stable_key,
-                superseded_by_authority_business_version,
-                superseded_by_authority_revision,
                 transitioned_at,
                 source_system,
                 source_record_key,
@@ -1751,13 +1734,10 @@ async def _insert_lifecycle_event(
                 :old_consumable_to_local_date,
                 :new_consumable_from_local_date,
                 :new_consumable_to_local_date,
-                :superseded_by_authority_stable_key,
-                :superseded_by_authority_business_version,
-                :superseded_by_authority_revision,
-                :transitioned_at,
+                NOW(),
                 :source_system,
                 :source_record_key,
-                :lifecycle_event_hash
+                :dummy_hash
             )
             """
         ),
@@ -1768,20 +1748,42 @@ async def _insert_lifecycle_event(
             "authority_revision": revision,
             "business_row_hash": business_row_hash,
             "transition_sequence": transition_sequence,
-            "old_status": old_status,
-            "new_status": new_status.value if hasattr(new_status, "value") else new_status,
+            "old_status": old_status_str,
+            "new_status": new_status_str,
             "old_consumable_from_local_date": old_consumable_from_local_date,
             "old_consumable_to_local_date": old_consumable_to_local_date,
             "new_consumable_from_local_date": new_consumable_from_local_date,
             "new_consumable_to_local_date": new_consumable_to_local_date,
-            "superseded_by_authority_stable_key": None,
-            "superseded_by_authority_business_version": None,
-            "superseded_by_authority_revision": None,
-            "transitioned_at": datetime.now(UTC),
             "source_system": "test-tamper",
-            "source_record_key": semantic.source_record_key,
-            "lifecycle_event_hash": event_hash,
+            "source_record_key": f"tamper-{uuid4().hex[:8]}",
+            "dummy_hash": "0" * 64,
         },
+    )
+    # Read back to get DB-stored transitioned_at, then recompute hash
+    await _rewrite_lifecycle_event(
+        session,
+        event_id=(
+            await session.execute(
+                text(
+                    """
+                    SELECT id FROM task9_authority_lifecycle_event
+                    WHERE authority_family = :family
+                      AND authority_stable_key = :key
+                      AND authority_business_version = :ver
+                      AND authority_revision = :rev
+                      AND transition_sequence = :seq
+                    """
+                ),
+                {
+                    "family": family.value,
+                    "key": authority_stable_key,
+                    "ver": business_version,
+                    "rev": revision,
+                    "seq": transition_sequence,
+                },
+            )
+        ).scalar_one(),
+        family=family,
     )
 
 
