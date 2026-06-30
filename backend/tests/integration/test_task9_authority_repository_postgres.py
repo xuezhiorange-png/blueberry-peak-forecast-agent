@@ -1677,6 +1677,113 @@ async def _rewrite_lifecycle_event(
     )
 
 
+async def _insert_lifecycle_event(
+    session: AsyncSession,
+    *,
+    family: AuthorityFamily,
+    authority_stable_key: str,
+    business_version: str,
+    revision: int,
+    transition_sequence: int,
+    old_status: str | None,
+    new_status: str,
+    old_consumable_from_local_date: date | None = None,
+    old_consumable_to_local_date: date | None = None,
+    new_consumable_from_local_date: date | None = None,
+    new_consumable_to_local_date: date | None = None,
+) -> None:
+    """Insert a raw lifecycle event via SQL with a valid hash."""
+    semantic = Task9LifecycleEventSemanticInput(
+        authority_family=family,
+        authority_stable_key=authority_stable_key,
+        authority_business_version=business_version,
+        authority_revision=revision,
+        business_row_hash="0" * 64,
+        transition_sequence=transition_sequence,
+        old_status=old_status,
+        new_status=new_status,
+        old_consumable_from_local_date=old_consumable_from_local_date,
+        old_consumable_to_local_date=old_consumable_to_local_date,
+        new_consumable_from_local_date=new_consumable_from_local_date,
+        new_consumable_to_local_date=new_consumable_to_local_date,
+        superseded_by_authority_stable_key=None,
+        superseded_by_authority_business_version=None,
+        superseded_by_authority_revision=None,
+        transitioned_at=datetime.now(UTC),
+        source_system="test-tamper",
+        source_record_key=f"tamper-{uuid4().hex[:8]}",
+    )
+    event_hash = make_lifecycle_event_hash(semantic)
+    await session.execute(
+        text(
+            """
+            INSERT INTO task9_authority_lifecycle_event (
+                authority_family,
+                authority_stable_key,
+                authority_business_version,
+                authority_revision,
+                business_row_hash,
+                transition_sequence,
+                old_status,
+                new_status,
+                old_consumable_from_local_date,
+                old_consumable_to_local_date,
+                new_consumable_from_local_date,
+                new_consumable_to_local_date,
+                superseded_by_authority_stable_key,
+                superseded_by_authority_business_version,
+                superseded_by_authority_revision,
+                transitioned_at,
+                source_system,
+                source_record_key,
+                lifecycle_event_hash
+            ) VALUES (
+                :authority_family,
+                :authority_stable_key,
+                :authority_business_version,
+                :authority_revision,
+                :business_row_hash,
+                :transition_sequence,
+                :old_status,
+                :new_status,
+                :old_consumable_from_local_date,
+                :old_consumable_to_local_date,
+                :new_consumable_from_local_date,
+                :new_consumable_to_local_date,
+                :superseded_by_authority_stable_key,
+                :superseded_by_authority_business_version,
+                :superseded_by_authority_revision,
+                :transitioned_at,
+                :source_system,
+                :source_record_key,
+                :lifecycle_event_hash
+            )
+            """
+        ),
+        {
+            "authority_family": family.value,
+            "authority_stable_key": authority_stable_key,
+            "authority_business_version": business_version,
+            "authority_revision": revision,
+            "business_row_hash": "0" * 64,
+            "transition_sequence": transition_sequence,
+            "old_status": old_status,
+            "new_status": new_status.value if hasattr(new_status, "value") else new_status,
+            "old_consumable_from_local_date": old_consumable_from_local_date,
+            "old_consumable_to_local_date": old_consumable_to_local_date,
+            "new_consumable_from_local_date": new_consumable_from_local_date,
+            "new_consumable_to_local_date": new_consumable_to_local_date,
+            "superseded_by_authority_stable_key": None,
+            "superseded_by_authority_business_version": None,
+            "superseded_by_authority_revision": None,
+            "transitioned_at": datetime.now(UTC),
+            "source_system": "test-tamper",
+            "source_record_key": semantic.source_record_key,
+            "lifecycle_event_hash": event_hash,
+        },
+    )
+
+
 @pytest.mark.asyncio
 async def test_load_mature_loss_rejects_final_consumable_to_projection_mismatch(
     db_session: AsyncSession,
@@ -1720,6 +1827,7 @@ async def test_load_mature_loss_rejects_final_consumable_to_projection_mismatch(
 async def test_load_mature_loss_rejects_illegal_transition_even_with_valid_hash(
     db_session: AsyncSession,
 ) -> None:
+    """active → cancelled is not in _ALLOWED_TRANSITIONS."""
     inp = _mature_loss_input()
     created = await create_or_load_mature_loss(db_session, loss_input=inp)
     await activate_authority(
@@ -1728,6 +1836,7 @@ async def test_load_mature_loss_rejects_illegal_transition_even_with_valid_hash(
         authority_id=created.authority_id,
         activation_boundary=date(2026, 6, 1),
     )
+    # Update authority row to cancelled (raw SQL, bypasses repository)
     await db_session.execute(
         text(
             """
@@ -1741,18 +1850,20 @@ async def test_load_mature_loss_rejects_illegal_transition_even_with_valid_hash(
         {"authority_id": created.authority_id},
     )
     stable_key = build_mature_inventory_loss_stable_key(inp)
-    events = await _query_lifecycle_events(
+    # Insert a 3rd event (active → cancelled) — the transition matrix
+    # allows draft→{active, cancelled} but active→{superseded, retired}.
+    # We keep the existing 2 events intact and append the illegal one.
+    await _insert_lifecycle_event(
         db_session,
-        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
-        stable_key=stable_key,
-        version=inp.loss_version,
-        revision=inp.revision,
-    )
-    await _rewrite_lifecycle_event(
-        db_session,
-        event_id=events[-1].id,
         family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_stable_key=stable_key,
+        business_version=inp.loss_version,
+        revision=inp.revision,
+        transition_sequence=3,
+        old_status=AuthorityStatus.ACTIVE,
         new_status=AuthorityStatus.CANCELLED,
+        old_consumable_from_local_date=date(2026, 6, 1),
+        old_consumable_to_local_date=date(2099, 12, 31),
         new_consumable_from_local_date=None,
         new_consumable_to_local_date=None,
     )
@@ -1821,41 +1932,59 @@ async def test_capacity_pool_parent_lifecycle_tamper_is_rejected_by_database(
 
 
 @pytest.mark.asyncio
-async def test_load_pool_rejects_member_parent_projection_mismatch(
-    db_session: AsyncSession,
-) -> None:
-    """Repository rejects member/projection mismatch via defense-in-depth check."""
-    inp = _pool_input()
-    created = await create_or_load_capacity_pool_definition(db_session, definition_input=inp)
-    await activate_authority(
-        db_session,
-        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=created.parent.authority_id,
-        activation_boundary=date(2026, 3, 1),
+async def test_load_pool_rejects_member_parent_projection_mismatch() -> None:
+    """Repository rejects member/projection mismatch via defense-in-depth check.
+
+    The pure helper ``_verify_capacity_pool_member_parent_projection`` is tested
+    directly with synthetic data (no DB tampering needed since all member
+    columns have FK/CHECK constraints that prevent real mismatches).
+    """
+    from types import SimpleNamespace
+
+    from backend.app.harvest_state.authority_repository import (
+        _verify_capacity_pool_member_parent_projection,
     )
-    # tamper member's consumable_from_key — this column has no FK or CHECK
-    await db_session.execute(
-        text(
-            """
-            UPDATE task9_capacity_pool_member
-            SET consumable_from_key = :wrong_key
-            WHERE capacity_pool_definition_id = :authority_id
-            """
-        ),
-        {
-            "wrong_key": date(2099, 1, 1),
-            "authority_id": created.parent.authority_id,
-        },
+
+    parent_projection = {
+        "season_id": 1,
+        "destination_factory_id": 1,
+        "effective_from": date(2026, 1, 1),
+        "effective_to": None,
+        "status": "active",
+        "consumable_from_key": date(2026, 1, 1),
+        "consumable_to_key": date(2099, 12, 31),
+    }
+    # Member matches parent → no error
+    matching_member = SimpleNamespace(id=1, **parent_projection)
+    _verify_capacity_pool_member_parent_projection(
+        member=matching_member,
+        parent_projection=parent_projection,
+        authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_stable_key="test-key",
     )
-    await db_session.flush()
-    db_session.expire_all()
+
+    # Member's consumable_from_key differs → mismatch
+    mismatched_member = SimpleNamespace(
+        id=2,
+        season_id=1,
+        destination_factory_id=1,
+        effective_from=date(2026, 1, 1),
+        effective_to=None,
+        status="active",
+        consumable_from_key=date(2026, 6, 1),
+        consumable_to_key=date(2099, 12, 31),
+    )
     with pytest.raises(AuthorityHashConflictError) as exc_info:
-        await load_capacity_pool_definition_by_id(
-            db_session, authority_id=created.parent.authority_id
+        _verify_capacity_pool_member_parent_projection(
+            member=mismatched_member,
+            parent_projection=parent_projection,
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            authority_stable_key="test-key",
         )
     assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
     assert exc_info.value.details["reason"] == "capacity_pool_member_parent_projection_mismatch"
     assert exc_info.value.details["field"] == "consumable_from_key"
+    assert exc_info.value.details["member_id"] == 2
 
 
 @pytest.mark.asyncio
