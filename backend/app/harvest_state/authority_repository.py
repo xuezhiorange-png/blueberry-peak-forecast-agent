@@ -245,10 +245,11 @@ def _stable_key_from_orm_capacity_pool(row: Task9CapacityPoolDefinition) -> str:
 
 
 def _stable_key_from_orm_daily_capacity(row: Any) -> str:
+    pool = row.capacity_pool_definition
     return (
-        f"daily-capacity:{row.season_id}:{row.destination_factory_id}:"
-        f"{row.capacity_pool_code}:{row.capacity_pool_version}:"
-        f"{row.capacity_pool_revision}:{row.capacity_date.isoformat()}"
+        f"daily-capacity:{pool.season_id}:{pool.destination_factory_id}:"
+        f"{pool.capacity_pool_code}:{pool.capacity_pool_version}:{pool.revision}:"
+        f"{row.capacity_date.isoformat()}"
     )
 
 
@@ -303,7 +304,7 @@ def _business_version_from_orm(family: AuthorityFamily, row: Any) -> str:
         result: str = row.capacity_pool_version
         return result
     if family == AuthorityFamily.DAILY_CAPACITY:
-        result = str(row.capacity_pool_version)
+        result = str(row.capacity_pool_definition.capacity_pool_version)
         return result
     if family == AuthorityFamily.HOLIDAY_CALENDAR_VERSION:
         result = str(row.calendar_version)
@@ -4171,16 +4172,31 @@ async def load_authority_by_business_key(
     hash verification and lifecycle chain validation.
     """
     model_cls = _FAMILY_MODEL_MAP[family]
-    version_col_name = _FAMILY_VERSION_COLUMN_NAME[family]
     revision_col_name = _FAMILY_REVISION_COLUMN_NAME[family]
-
-    version_col = getattr(model_cls, version_col_name)
     revision_col = getattr(model_cls, revision_col_name)
 
-    stmt = select(model_cls).where(
-        version_col == business_version,
-        revision_col == revision,
-    )
+    if family == AuthorityFamily.DAILY_CAPACITY:
+        # Daily capacity's "business version" is the pool definition's
+        # capacity_pool_version, which lives on a joined table.
+        stmt = (
+            select(model_cls)
+            .join(
+                Task9CapacityPoolDefinition,
+                Task9DailyCapacityAuthority.capacity_pool_definition_id
+                == Task9CapacityPoolDefinition.id,
+            )
+            .where(
+                Task9CapacityPoolDefinition.capacity_pool_version == business_version,
+                revision_col == revision,
+            )
+        )
+    else:
+        version_col_name = _FAMILY_VERSION_COLUMN_NAME[family]
+        version_col = getattr(model_cls, version_col_name)
+        stmt = select(model_cls).where(
+            version_col == business_version,
+            revision_col == revision,
+        )
     result = await session.execute(stmt)
     rows = list(result.scalars().all())
 

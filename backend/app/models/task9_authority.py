@@ -19,7 +19,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base
 
@@ -248,6 +248,11 @@ class Task9DailyCapacityAuthority(Base):
     row_hash: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    capacity_pool_definition: Mapped[Task9CapacityPoolDefinition] = relationship(
+        "Task9CapacityPoolDefinition",
+        lazy="selectin",
     )
 
 
