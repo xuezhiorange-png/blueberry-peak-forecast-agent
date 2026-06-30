@@ -15,6 +15,15 @@ from types import SimpleNamespace
 
 import pytest
 
+from backend.app.harvest_state.authority_canonical import (
+    build_capacity_pool_definition_stable_key,
+    build_daily_capacity_stable_key,
+    build_holiday_calendar_stable_key,
+    build_initial_inventory_stable_key,
+    build_mature_inventory_loss_stable_key,
+    build_run_parameter_package_stable_key,
+    build_weather_rule_stable_key,
+)
 from backend.app.harvest_state.authority_repository import (
     _ALLOWED_TRANSITIONS,
     _advisory_lock_key,
@@ -744,3 +753,218 @@ class TestResultTypes:
         bundle = AuthorityBundleLoadResult(parent=parent, child_hashes=[])
         with pytest.raises(AttributeError):
             bundle.child_hashes = ["x"]  # type: ignore[misc]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 6. Lifecycle boundary validation error codes
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestBoundaryValidationErrors:
+    """Error codes returned by P0-5 boundary validation."""
+
+    def test_activation_boundary_before_available_at(self):
+        """activate_authority with boundary < available_at → INTERVAL_INVALID."""
+        err = AuthorityConsumabilityIntervalInvalidError(
+            details={
+                "reason": "activation_boundary_before_available_at",
+                "activation_boundary": "2025-12-31",
+                "available_at_local_date": "2026-01-01",
+            },
+        )
+        assert err.code == "AUTHORITY_CONSUMABILITY_INTERVAL_INVALID"
+        assert err.details["reason"] == "activation_boundary_before_available_at"
+
+    def test_retirement_boundary_not_after_consumable_from(self):
+        """retire_authority with boundary <= consumable_from → INTERVAL_INVALID."""
+        err = AuthorityConsumabilityIntervalInvalidError(
+            details={
+                "reason": "retirement_boundary_not_after_consumable_from",
+                "retirement_boundary": "2026-06-01",
+                "consumable_from": "2026-06-01",
+            },
+        )
+        assert err.code == "AUTHORITY_CONSUMABILITY_INTERVAL_INVALID"
+        assert err.details["reason"] == "retirement_boundary_not_after_consumable_from"
+
+    def test_supersede_boundary_not_after_consumable_from(self):
+        """supersede_authority with boundary <= consumable_from → INTERVAL_INVALID."""
+        err = AuthorityConsumabilityIntervalInvalidError(
+            details={
+                "reason": "replacement_boundary_not_after_consumable_from",
+                "replacement_boundary": "2026-06-01",
+                "consumable_from": "2026-06-01",
+            },
+        )
+        assert err.code == "AUTHORITY_CONSUMABILITY_INTERVAL_INVALID"
+        assert err.details["reason"] == "replacement_boundary_not_after_consumable_from"
+
+    def test_retire_requires_consumable_from(self):
+        """retire_authority on active with no consumable_from → INTERVAL_INVALID."""
+        err = AuthorityConsumabilityIntervalInvalidError(
+            details={
+                "reason": "retire_requires_consumable_from",
+                "family": "mature_inventory_loss_authority",
+                "stable_key": "mature-loss:1:10:BLUE:2026-06-15:P50",
+            },
+        )
+        assert err.code == "AUTHORITY_CONSUMABILITY_INTERVAL_INVALID"
+        assert err.details["reason"] == "retire_requires_consumable_from"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 7. Stable key builder determinism (P0-7 exact-load functions)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestStableKeyBuilders:
+    """Stable key builders used by load_authority_by_* exact-load functions."""
+
+    def test_mature_loss_stable_key_deterministic(self):
+        row = SimpleNamespace(
+            season_id=2026,
+            destination_factory_id=10,
+            capacity_pool_code="BLUE",
+            state_date=date(2026, 6, 15),
+            forecast_quantile=SimpleNamespace(value="P50"),
+        )
+        key_a = build_mature_inventory_loss_stable_key(row)
+        key_b = build_mature_inventory_loss_stable_key(row)
+        assert key_a == key_b
+        assert "mature-loss:" in key_a
+        assert "2026" in key_a
+        assert "BLUE" in key_a
+
+    def test_daily_capacity_stable_key_deterministic(self):
+        row = SimpleNamespace(
+            season_id=2026,
+            destination_factory_id=10,
+            capacity_pool_code="TEST-POOL",
+            capacity_pool_version="v1",
+            capacity_pool_revision=1,
+            capacity_date=date(2026, 6, 15),
+        )
+        key_a = build_daily_capacity_stable_key(row)
+        key_b = build_daily_capacity_stable_key(row)
+        assert key_a == key_b
+        assert "daily-capacity:" in key_a
+
+    def test_pool_stable_key_deterministic(self):
+        row = SimpleNamespace(
+            season_id=2026,
+            destination_factory_id=10,
+            capacity_pool_code="BLUE",
+        )
+        key_a = build_capacity_pool_definition_stable_key(row)
+        key_b = build_capacity_pool_definition_stable_key(row)
+        assert key_a == key_b
+        assert "capacity-pool:" in key_a
+
+    def test_holiday_stable_key_deterministic(self):
+        row = SimpleNamespace(
+            season_id=2026,
+            calendar_code="CN",
+            lifecycle_timezone_name="Asia/Shanghai",
+        )
+        key_a = build_holiday_calendar_stable_key(row)
+        key_b = build_holiday_calendar_stable_key(row)
+        assert key_a == key_b
+
+    def test_weather_stable_key_deterministic(self):
+        row = SimpleNamespace(
+            rule_code="HEAT",
+            lifecycle_timezone_name="Asia/Shanghai",
+        )
+        key_a = build_weather_rule_stable_key(row)
+        key_b = build_weather_rule_stable_key(row)
+        assert key_a == key_b
+
+    def test_run_package_stable_key_deterministic(self):
+        row = SimpleNamespace(
+            season_id=2026,
+            destination_factory_id=10,
+            farm_scope_key="farm-a",
+        )
+        key_a = build_run_parameter_package_stable_key(row)
+        key_b = build_run_parameter_package_stable_key(row)
+        assert key_a == key_b
+
+    def test_initial_inventory_stable_key_deterministic(self):
+        row = SimpleNamespace(
+            season_id=2026,
+            destination_factory_id=10,
+            opening_state_date=date(2026, 1, 1),
+        )
+        key_a = build_initial_inventory_stable_key(row)
+        key_b = build_initial_inventory_stable_key(row)
+        assert key_a == key_b
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 9. Lifecycle chain violation error codes
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestLifecycleChainErrorCodes:
+    """Error codes used by _verify_lifecycle_chain for tamper detection."""
+
+    def test_chain_hash_mismatch_uses_hash_conflict(self):
+        """P0-2: Hash mismatch on lifecycle chain → AUTHORITY_HASH_CONFLICT."""
+        err = AuthorityHashConflictError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            authority_stable_key="mature-loss:2026:10:BLUE:2026-06-15:P50",
+            expected_hash="aaa",
+            actual_hash="bbb",
+        )
+        assert err.code == "AUTHORITY_HASH_CONFLICT"
+        assert err.authority_family == AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY
+
+    def test_chain_sequence_gap_uses_lifecycle_transition_invalid(self):
+        """P0-2: Sequence gap → LIFECYCLE_TRANSITION_INVALID."""
+        err = LifecycleTransitionInvalidError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            authority_stable_key="dc:1",
+            current_status="seq_gap_at_3",
+            target_status="5",
+        )
+        assert err.code == "LIFECYCLE_TRANSITION_INVALID"
+        assert "seq_gap_at" in err.details["current_status"]
+
+    def test_chain_initial_draft_violation_uses_lifecycle_transition_invalid(self):
+        """P0-2: First event not draft → LIFECYCLE_TRANSITION_INVALID."""
+        err = LifecycleTransitionInvalidError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            authority_stable_key="dc:1",
+            current_status="initial_draft",
+            target_status="old_status=active, expected draft",
+        )
+        assert err.code == "LIFECYCLE_TRANSITION_INVALID"
+        assert err.details["current_status"] == "initial_draft"
+
+    def test_chain_projection_mismatch_uses_consumability_interval_conflict(self):
+        """P0-2: Final event mismatch → AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT."""
+        err = AuthorityConsumabilityIntervalConflictError(
+            details={
+                "reason": "final_event_projection_mismatch",
+                "family": "mature_inventory_loss_authority",
+                "stable_key": "mature-loss:1",
+                "errors": ["status: event=active, authority=retired"],
+            },
+        )
+        assert err.code == "AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT"
+        assert err.details["reason"] == "final_event_projection_mismatch"
+
+    def test_supersession_missing_fields_uses_scope_conflict(self):
+        """P0-2: Incomplete replacement identity → AUTHORITY_SUPERSESSION_SCOPE_CONFLICT."""
+        err = AuthoritySupersessionScopeConflictError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            details={
+                "missing_fields": [
+                    "superseded_by_authority_stable_key",
+                    "superseded_by_authority_business_version",
+                ],
+                "sequence": 3,
+            },
+        )
+        assert err.code == "AUTHORITY_SUPERSESSION_SCOPE_CONFLICT"
+        assert "missing_fields" in err.details
