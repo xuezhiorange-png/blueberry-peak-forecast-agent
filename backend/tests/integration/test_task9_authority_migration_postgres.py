@@ -32,8 +32,6 @@ from backend.app.models import (
     Variety,
 )
 
-pytestmark = pytest.mark.integration
-
 
 def _require_postgres() -> None:
     if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
@@ -58,10 +56,21 @@ async def _expect_integrity_error(sql: str, params: dict[str, Any] | None = None
         return excinfo.value
 
 
-def _normalize_contype(value: str | bytes) -> str:
+def _normalize_pg_char(value: str | bytes) -> str:
     if isinstance(value, bytes):
         return value.decode("ascii")
     return value
+
+
+def _fk_action(code: str | bytes) -> str:
+    normalized = _normalize_pg_char(code)
+    return {
+        "a": "NO ACTION",
+        "r": "RESTRICT",
+        "c": "CASCADE",
+        "n": "SET NULL",
+        "d": "SET DEFAULT",
+    }[normalized]
 
 
 def _constraint_name(exc: IntegrityError) -> str | None:
@@ -76,6 +85,25 @@ def _constraint_name(exc: IntegrityError) -> str | None:
         if name:
             return name
     return None
+
+
+def test_postgres_catalog_code_normalization_and_fk_actions() -> None:
+    assert _normalize_pg_char("a") == "a"
+    assert _normalize_pg_char(b"a") == "a"
+    assert _normalize_pg_char("x") == "x"
+    assert _normalize_pg_char(b"x") == "x"
+
+    assert _fk_action("a") == "NO ACTION"
+    assert _fk_action(b"a") == "NO ACTION"
+    assert _fk_action("r") == "RESTRICT"
+    assert _fk_action(b"r") == "RESTRICT"
+    assert _fk_action("c") == "CASCADE"
+    assert _fk_action(b"c") == "CASCADE"
+
+    with pytest.raises(KeyError):
+        _fk_action("x")
+    with pytest.raises(KeyError):
+        _fk_action(b"x")
 
 
 async def _seed_dimensions() -> dict[str, int]:
@@ -918,6 +946,7 @@ async def _insert_valid_bundle() -> dict[str, int]:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_task9_authority_tables_exist_with_expected_columns() -> None:
     _require_postgres()
     expected_tables = {
@@ -948,6 +977,7 @@ async def test_task9_authority_tables_exist_with_expected_columns() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_task9_authority_extension_generated_columns_and_indexes_exist() -> None:
     _require_postgres()
     extension = await _scalar("SELECT extname FROM pg_extension WHERE extname = 'btree_gist'")
@@ -997,6 +1027,7 @@ async def test_task9_authority_extension_generated_columns_and_indexes_exist() -
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_task9_authority_constraint_catalog_contains_expected_postgres_objects() -> None:
     _require_postgres()
     async with AsyncSessionMaker() as session:
@@ -1023,7 +1054,7 @@ async def test_task9_authority_constraint_catalog_contains_expected_postgres_obj
         )
         rows = {
             row["conname"]: (
-                _normalize_contype(row["contype"]),
+                _normalize_pg_char(row["contype"]),
                 row["constraint_def"],
             )
             for row in result.mappings()
@@ -1111,6 +1142,7 @@ async def test_task9_authority_constraint_catalog_contains_expected_postgres_obj
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_task9_authority_valid_insert_bundle_succeeds() -> None:
     _require_postgres()
     inserted = await _insert_valid_bundle()
@@ -1122,6 +1154,7 @@ async def test_task9_authority_valid_insert_bundle_succeeds() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_duplicate_nullable_member_key_is_rejected() -> None:
     _require_postgres()
     ids = await _seed_dimensions()
@@ -1182,6 +1215,7 @@ async def test_duplicate_nullable_member_key_is_rejected() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_invalid_status_invalid_sha_revision_ratio_and_negative_quantity_are_rejected() -> (
     None
 ):
@@ -1309,6 +1343,7 @@ async def test_invalid_status_invalid_sha_revision_ratio_and_negative_quantity_a
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_invalid_effective_range_consumability_projection_and_daily_mode_are_rejected() -> (
     None
 ):
@@ -1455,6 +1490,7 @@ async def test_invalid_effective_range_consumability_projection_and_daily_mode_a
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_invalid_superseded_and_lifecycle_event_replacement_identity_are_rejected() -> None:
     _require_postgres()
     ids = await _seed_dimensions()
@@ -1512,6 +1548,7 @@ async def test_invalid_superseded_and_lifecycle_event_replacement_identity_are_r
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_duplicate_holiday_date_and_duplicate_cohort_key_are_rejected() -> None:
     _require_postgres()
     ids = await _insert_valid_bundle()
@@ -1549,6 +1586,7 @@ async def test_duplicate_holiday_date_and_duplicate_cohort_key_are_rejected() ->
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_duplicate_lifecycle_transition_sequence_is_rejected() -> None:
     _require_postgres()
     await _insert_lifecycle_event()
@@ -1581,6 +1619,7 @@ async def test_duplicate_lifecycle_transition_sequence_is_rejected() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_overlapping_effective_and_consumability_intervals_are_rejected_but_adjacent_allowed() -> (
     None
 ):
@@ -1647,6 +1686,7 @@ async def test_overlapping_effective_and_consumability_intervals_are_rejected_bu
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_open_ended_consumability_blocks_future_overlap() -> None:
     _require_postgres()
     ids = await _seed_dimensions()
@@ -1692,6 +1732,7 @@ async def test_open_ended_consumability_blocks_future_overlap() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_orm_and_migration_parity_for_ordinary_columns() -> None:
     _require_postgres()
     expected = {
@@ -1795,15 +1836,6 @@ async def test_orm_and_migration_parity_for_ordinary_columns() -> None:
                 """
             )
         )
-
-        def _fk_action(code: str) -> str:
-            return {
-                "a": "NO ACTION",
-                "r": "RESTRICT",
-                "c": "CASCADE",
-                "n": "SET NULL",
-                "d": "SET DEFAULT",
-            }[code]
 
         db_fks: dict[tuple[str, str], list[tuple[str, str, str, str]]] = {}
         for row in fk_rows:
