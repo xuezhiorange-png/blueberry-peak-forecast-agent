@@ -35,6 +35,7 @@ from backend.app.harvest_state.authority_canonical import (
     make_lifecycle_event_hash,
 )
 from backend.app.harvest_state.authority_repository_errors import (
+    AuthorityHashConflictError,
     AuthorityNotFoundError,
     AuthorityStillReferencedByActivePackageError,
     AuthoritySupersessionScopeConflictError,
@@ -985,6 +986,13 @@ async def create_or_load_daily_capacity(
         )
         recomputed = make_authority_row_hash(reconstructed)
         if recomputed != existing.row_hash:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                authority_stable_key=stable_key,
+                expected_hash=recomputed,
+                actual_hash=existing.row_hash,
+            )
+        if row_hash != existing.row_hash:
             raise AuthorityVersionConflictError(
                 authority_family=AuthorityFamily.DAILY_CAPACITY,
                 authority_stable_key=stable_key,
@@ -1218,6 +1226,13 @@ async def create_or_load_holiday_calendar(
         )
         recomputed = make_authority_row_hash(recon_bundle)
         if recomputed != existing.row_hash:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+                authority_stable_key=stable_key,
+                expected_hash=recomputed,
+                actual_hash=existing.row_hash,
+            )
+        if row_hash != existing.row_hash:
             raise AuthorityVersionConflictError(
                 authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
                 authority_stable_key=stable_key,
@@ -1350,25 +1365,44 @@ async def load_holiday_calendar_by_id(
         Task9HolidayCalendarSemanticBundle as HBundle,
     )
 
-    recon_bundle = HBundle(
-        season_id=row.season_id,
-        calendar_code=row.calendar_code,
-        calendar_version=row.calendar_version,
-        revision=row.revision,
-        calendar_hash=row.calendar_hash,
-        region_scope=row.region_scope,
-        lifecycle_timezone_name=row.lifecycle_timezone_name,
-        available_at_local_date=row.available_at_local_date,
-        consumable_from_local_date=row.consumable_from_local_date,
-        consumable_to_local_date=row.consumable_to_local_date,
-        superseded_by_id=row.superseded_by_id,
-        status=row.status,
-        status_changed_at=row.status_changed_at,
-        source_system=row.source_system,
-        source_record_key=row.source_record_key,
-        source_version=row.source_version,
-        dates=date_schemas,
-    )
+    try:
+        recon_bundle = HBundle(
+            season_id=row.season_id,
+            calendar_code=row.calendar_code,
+            calendar_version=row.calendar_version,
+            revision=row.revision,
+            calendar_hash=row.calendar_hash,
+            region_scope=row.region_scope,
+            lifecycle_timezone_name=row.lifecycle_timezone_name,
+            available_at_local_date=row.available_at_local_date,
+            consumable_from_local_date=row.consumable_from_local_date,
+            consumable_to_local_date=row.consumable_to_local_date,
+            superseded_by_id=row.superseded_by_id,
+            status=row.status,
+            status_changed_at=row.status_changed_at,
+            source_system=row.source_system,
+            source_record_key=row.source_record_key,
+            source_version=row.source_version,
+            dates=date_schemas,
+        )
+    except ValueError as exc:
+        if "HOLIDAY_CALENDAR_HASH_MISMATCH" in str(exc):
+            unique_holiday_dates = sorted(
+                {d.holiday_date for d in date_schemas}
+            )
+            from backend.app.harvest_state.canonical import (
+                make_holiday_calendar_hash,
+            )
+
+            expected_cal_hash = make_holiday_calendar_hash(
+                holiday_calendar_version=row.calendar_version,
+                holiday_dates=unique_holiday_dates,
+            )
+            raise HolidayCalendarHashMismatchError(
+                expected_hash=expected_cal_hash,
+                actual_hash=row.calendar_hash,
+            ) from exc
+        raise
     recomputed = make_authority_row_hash(recon_bundle)
     if recomputed != row.row_hash:
         raise AuthorityNotFoundError(
@@ -1478,6 +1512,13 @@ async def create_or_load_weather_rule(
         )
         recomputed = make_authority_row_hash(reconstructed)
         if recomputed != existing.row_hash:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+                authority_stable_key=stable_key,
+                expected_hash=recomputed,
+                actual_hash=existing.row_hash,
+            )
+        if row_hash != existing.row_hash:
             raise AuthorityVersionConflictError(
                 authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
                 authority_stable_key=stable_key,
@@ -1570,30 +1611,38 @@ async def load_weather_rule_by_id(
     # Pydantic models for the semantic input.  The canonical builder handles
     # raw dicts as well since it just accesses .feature_id, .bands etc.
     # For hash verification we pass the raw JSON back through the schema.
-    reconstructed = WSI(
-        rule_code=row.rule_code,
-        rule_version=row.rule_version,
-        revision=row.revision,
-        lifecycle_timezone_name=row.lifecycle_timezone_name,
-        combination_method=row.combination_method,
-        minimum_ratio=row.minimum_ratio,
-        maximum_ratio=row.maximum_ratio,
-        required_feature_ids=row.required_feature_ids,
-        feature_rules=row.feature_rules_json,
-        missing_feature_policy=row.missing_feature_policy,
-        config_hash=row.config_hash,
-        effective_from=row.effective_from,
-        effective_to=row.effective_to,
-        available_at_local_date=row.available_at_local_date,
-        consumable_from_local_date=row.consumable_from_local_date,
-        consumable_to_local_date=row.consumable_to_local_date,
-        superseded_by_id=row.superseded_by_id,
-        status=row.status,
-        status_changed_at=row.status_changed_at,
-        source_system=row.source_system,
-        source_record_key=row.source_record_key,
-        source_version=row.source_version,
-    )
+    try:
+        reconstructed = WSI(
+            rule_code=row.rule_code,
+            rule_version=row.rule_version,
+            revision=row.revision,
+            lifecycle_timezone_name=row.lifecycle_timezone_name,
+            combination_method=row.combination_method,
+            minimum_ratio=row.minimum_ratio,
+            maximum_ratio=row.maximum_ratio,
+            required_feature_ids=row.required_feature_ids,
+            feature_rules=row.feature_rules_json,
+            missing_feature_policy=row.missing_feature_policy,
+            config_hash=row.config_hash,
+            effective_from=row.effective_from,
+            effective_to=row.effective_to,
+            available_at_local_date=row.available_at_local_date,
+            consumable_from_local_date=row.consumable_from_local_date,
+            consumable_to_local_date=row.consumable_to_local_date,
+            superseded_by_id=row.superseded_by_id,
+            status=row.status,
+            status_changed_at=row.status_changed_at,
+            source_system=row.source_system,
+            source_record_key=row.source_record_key,
+            source_version=row.source_version,
+        )
+    except ValueError as exc:
+        if "WEATHER_RULE_CONFIG_HASH_MISMATCH" in str(exc):
+            raise WeatherRuleConfigHashMismatchError(
+                expected_hash="recomputed",
+                actual_hash=row.config_hash,
+            ) from exc
+        raise
     recomputed = make_authority_row_hash(reconstructed)
     if recomputed != row.row_hash:
         raise AuthorityNotFoundError(
@@ -1948,6 +1997,13 @@ async def create_or_load_run_parameter_package(
             weather_rule=verified_existing_weather,
         )
         if recomputed != existing.row_hash:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                authority_stable_key=stable_key,
+                expected_hash=recomputed,
+                actual_hash=existing.row_hash,
+            )
+        if row_hash != existing.row_hash:
             raise AuthorityVersionConflictError(
                 authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
                 authority_stable_key=stable_key,
@@ -2270,6 +2326,13 @@ async def create_or_load_initial_inventory(
         )
         recomputed = make_authority_row_hash(recon_bundle)
         if recomputed != existing.row_hash:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+                authority_stable_key=stable_key,
+                expected_hash=recomputed,
+                actual_hash=existing.row_hash,
+            )
+        if row_hash != existing.row_hash:
             raise AuthorityVersionConflictError(
                 authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
                 authority_stable_key=stable_key,
@@ -2543,6 +2606,13 @@ async def create_or_load_mature_loss(
         )
         recomputed = make_authority_row_hash(reconstructed)
         if recomputed != existing.row_hash:
+            raise AuthorityHashConflictError(
+                authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+                authority_stable_key=stable_key,
+                expected_hash=recomputed,
+                actual_hash=existing.row_hash,
+            )
+        if row_hash != existing.row_hash:
             raise AuthorityVersionConflictError(
                 authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
                 authority_stable_key=stable_key,

@@ -305,7 +305,7 @@ def _weather_config_hash(version: str = "v1") -> str:
                     "lower_inclusive": True,
                     "upper_bound": "30",
                     "upper_inclusive": False,
-                    "multiplier": "1.0",
+                    "multiplier": "1",
                 },
             ],
         },
@@ -315,8 +315,8 @@ def _weather_config_hash(version: str = "v1") -> str:
         "required_feature_ids": ["TEMP"],
         "feature_rules": feature_rules_payload,
         "combination_method": "MULTIPLY",
-        "minimum_ratio": "0.0",
-        "maximum_ratio": "1.0",
+        "minimum_ratio": "0",
+        "maximum_ratio": "1",
         "missing_feature_policy": "BLOCK",
     }
     return make_weather_rule_config_hash(exact_config)
