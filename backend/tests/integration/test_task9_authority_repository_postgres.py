@@ -1717,21 +1717,56 @@ async def test_lifecycle_first_event_not_draft(db_session: AsyncSession) -> None
     await db_session.flush()
 
     # Insert a fake event with old_status=active (not NULL→draft)
-    fake_event = Task9AuthorityLifecycleEvent(
-        authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
-        authority_stable_key=build_mature_inventory_loss_stable_key(inp),
+    # Use raw SQL to avoid ORM quirks with server_default columns
+    # Also compute valid lifecycle_event_hash so hash check passes
+    from backend.app.harvest_state.authority_canonical import make_lifecycle_event_hash
+    from backend.app.harvest_state.authority_schemas import Task9LifecycleEventSemanticInput
+
+    fake_stable_key = build_mature_inventory_loss_stable_key(inp)
+    fake_sem = Task9LifecycleEventSemanticInput(
+        authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_stable_key=fake_stable_key,
         authority_business_version=inp.loss_version,
         authority_revision=inp.revision,
         business_row_hash=result.row_hash,
         transition_sequence=1,
-        old_status="active",
-        new_status="draft",
-        lifecycle_event_hash="c" * 64,
+        old_status=AuthorityStatus.ACTIVE,
+        new_status=AuthorityStatus.DRAFT,
+        old_consumable_from_local_date=None,
+        old_consumable_to_local_date=None,
+        new_consumable_from_local_date=None,
+        new_consumable_to_local_date=None,
+        superseded_by_authority_stable_key=None,
+        superseded_by_authority_business_version=None,
+        superseded_by_authority_revision=None,
+        transitioned_at=datetime(2026, 1, 1, tzinfo=UTC),
         source_system="tamper",
         source_record_key="tamper:fake",
-        transitioned_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
-    db_session.add(fake_event)
+    fake_event_hash = make_lifecycle_event_hash(fake_sem)
+    await db_session.execute(
+        text(
+            "INSERT INTO task9_authority_lifecycle_event ("
+            "authority_family, authority_stable_key, authority_business_version, "
+            "authority_revision, business_row_hash, transition_sequence, "
+            "old_status, new_status, lifecycle_event_hash, "
+            "transitioned_at, source_system, source_record_key"
+            ") VALUES ("
+            ":family, :stable_key, :version, :revision, :row_hash, 1, "
+            "'active', 'draft', :event_hash, "
+            ":transitioned_at, 'tamper', 'tamper:fake'"
+            ")"
+        ),
+        {
+            "family": AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+            "stable_key": fake_stable_key,
+            "version": inp.loss_version,
+            "revision": inp.revision,
+            "row_hash": result.row_hash,
+            "event_hash": fake_event_hash,
+            "transitioned_at": datetime(2026, 1, 1, tzinfo=UTC),
+        },
+    )
     await db_session.flush()
 
     with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
@@ -2008,7 +2043,15 @@ async def test_pool_member_child_add_delete_tamper(
         db_session, definition_input=inp
     )
 
-    # Add a fake member
+    # Add a fake member (must match parent's generated lifecycle keys)
+    # Query parent's actual generated consumable keys (infinity for draft)
+    from backend.app.models.task9_authority import Task9CapacityPoolDefinition as PoolDef
+
+    parent_stmt = select(PoolDef).where(
+        PoolDef.id == result.parent.authority_id
+    )
+    parent_row = (await db_session.execute(parent_stmt)).scalar_one()
+
     fake_member = Task9CapacityPoolMember(
         capacity_pool_definition_id=result.parent.authority_id,
         season_id=_IDS["season"],
@@ -2019,8 +2062,8 @@ async def test_pool_member_child_add_delete_tamper(
         effective_from=_EFF_FROM,
         effective_to=None,
         status=AuthorityStatus.DRAFT,
-        consumable_from_key=_EFF_FROM,
-        consumable_to_key=date(2099, 12, 31),
+        consumable_from_key=parent_row.consumable_from_key,
+        consumable_to_key=parent_row.consumable_to_key,
         row_hash="a" * 64,
     )
     db_session.add(fake_member)
