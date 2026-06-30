@@ -1684,6 +1684,7 @@ async def _insert_lifecycle_event(
     authority_stable_key: str,
     business_version: str,
     revision: int,
+    business_row_hash: str = "0" * 64,
     transition_sequence: int,
     old_status: str | None,
     new_status: str,
@@ -1698,7 +1699,7 @@ async def _insert_lifecycle_event(
         authority_stable_key=authority_stable_key,
         authority_business_version=business_version,
         authority_revision=revision,
-        business_row_hash="0" * 64,
+        business_row_hash=business_row_hash,
         transition_sequence=transition_sequence,
         old_status=old_status,
         new_status=new_status,
@@ -1765,7 +1766,7 @@ async def _insert_lifecycle_event(
             "authority_stable_key": authority_stable_key,
             "authority_business_version": business_version,
             "authority_revision": revision,
-            "business_row_hash": "0" * 64,
+            "business_row_hash": business_row_hash,
             "transition_sequence": transition_sequence,
             "old_status": old_status,
             "new_status": new_status.value if hasattr(new_status, "value") else new_status,
@@ -1850,6 +1851,12 @@ async def test_load_mature_loss_rejects_illegal_transition_even_with_valid_hash(
         {"authority_id": created.authority_id},
     )
     stable_key = build_mature_inventory_loss_stable_key(inp)
+    # Get the actual business_row_hash from the authority row
+    row_result = await db_session.execute(
+        text("SELECT row_hash FROM task9_mature_inventory_loss_authority WHERE id = :id"),
+        {"id": created.authority_id},
+    )
+    business_row_hash = row_result.scalar_one()
     # Insert a 3rd event (active → cancelled) — the transition matrix
     # allows draft→{active, cancelled} but active→{superseded, retired}.
     # We keep the existing 2 events intact and append the illegal one.
@@ -1859,6 +1866,7 @@ async def test_load_mature_loss_rejects_illegal_transition_even_with_valid_hash(
         authority_stable_key=stable_key,
         business_version=inp.loss_version,
         revision=inp.revision,
+        business_row_hash=business_row_hash,
         transition_sequence=3,
         old_status=AuthorityStatus.ACTIVE,
         new_status=AuthorityStatus.CANCELLED,
