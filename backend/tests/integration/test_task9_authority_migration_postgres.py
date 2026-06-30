@@ -1905,9 +1905,12 @@ async def test_orm_and_migration_parity_for_ordinary_columns() -> None:
         extra_columns = set(db_rows[table_name]) - {column.name for column in table.columns}
         assert extra_columns == migration_only_columns.get(table_name, set())
 
+    normalized_subfarm_expression = generated_rows[
+        ("task9_capacity_pool_member", "normalized_subfarm_id")
+    ]
     assert (
-        "COALESCE(subfarm_id, 0)"
-        in generated_rows[("task9_capacity_pool_member", "normalized_subfarm_id")]
+        "COALESCE(subfarm_id, 0)" in normalized_subfarm_expression
+        or "COALESCE(subfarm_id, (0)::bigint)" in normalized_subfarm_expression
     )
     assert (
         "'infinity'::date"
