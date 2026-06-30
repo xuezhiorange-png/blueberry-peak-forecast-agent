@@ -18,6 +18,7 @@ import pytest
 from backend.app.harvest_state.authority_repository import (
     _ALLOWED_TRANSITIONS,
     _advisory_lock_key,
+    _build_persisted_schema,
     _extract_scope,
 )
 from backend.app.harvest_state.authority_repository_errors import (
@@ -47,6 +48,7 @@ from backend.app.harvest_state.authority_repository_types import (
     LifecycleTransitionResult,
     SupersessionResult,
 )
+from backend.app.harvest_state.authority_schemas import Task9HolidayCalendarDateSchema
 from backend.app.harvest_state.enums import AuthorityFamily, AuthorityStatus
 
 # ── Constants ──────────────────────────────────────────────────────────
@@ -511,6 +513,27 @@ class TestErrorCodes:
         ]
         codes = [e.code for e in instances]
         assert len(codes) == len(set(codes)), f"Duplicate codes found: {codes}"
+
+    def test_build_persisted_schema_converts_validation_error_to_typed_conflict(self):
+        with pytest.raises(AuthorityHashConflictError) as exc_info:
+            _build_persisted_schema(
+                Task9HolidayCalendarDateSchema,
+                family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+                stable_key="holiday-calendar:2026:CN:Asia/Shanghai",
+                component="holiday_calendar_date",
+                holiday_date=date(2026, 2, 1),
+                holiday_code="",
+                holiday_name="Bad",
+            )
+
+        err = exc_info.value
+        assert err.code == "AUTHORITY_HASH_CONFLICT"
+        assert err.authority_family == AuthorityFamily.HOLIDAY_CALENDAR_VERSION
+        assert err.authority_stable_key == "holiday-calendar:2026:CN:Asia/Shanghai"
+        assert err.details["reason"] == "persisted_bundle_validation_failed"
+        assert err.details["component"] == "holiday_calendar_date"
+        assert err.details["expected_hash"] == "valid_persisted_semantic_payload"
+        assert err.details["actual_hash"] == "invalid_persisted_semantic_payload"
 
 
 # ═══════════════════════════════════════════════════════════════════════

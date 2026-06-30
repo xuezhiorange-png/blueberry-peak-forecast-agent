@@ -8,27 +8,29 @@ that wrap each test in a rolled-back transaction for isolation.
 
 from __future__ import annotations
 
+import asyncio
 import os
-
-import pytest
-
-if not os.environ.get("RUN_POSTGRES_INTEGRATION"):
-    pytest.skip("RUN_POSTGRES_INTEGRATION not set", allow_module_level=True)
-
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+if not os.environ.get("RUN_POSTGRES_INTEGRATION"):
+    pytest.skip("RUN_POSTGRES_INTEGRATION not set", allow_module_level=True)
+
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.authority_canonical import (
+    build_mature_inventory_loss_stable_key,
     make_authority_row_hash,
     make_holiday_calendar_hash,
+    make_lifecycle_event_hash,
     make_weather_rule_config_hash,
 )
 from backend.app.harvest_state.authority_repository import (
+    _advisory_lock_key,
     activate_authority,
     cancel_authority,
     create_or_load_capacity_pool_definition,
@@ -47,6 +49,7 @@ from backend.app.harvest_state.authority_repository import (
     supersede_authority,
 )
 from backend.app.harvest_state.authority_repository_errors import (
+    AuthorityConsumabilityIntervalConflictError,
     AuthorityHashConflictError,
     AuthorityStillReferencedByActivePackageError,
     AuthorityVersionConflictError,
@@ -60,6 +63,7 @@ from backend.app.harvest_state.authority_schemas import (
     Task9HolidayCalendarSemanticBundle,
     Task9InitialInventoryCohortSchema,
     Task9InitialInventorySemanticBundle,
+    Task9LifecycleEventSemanticInput,
     Task9MatureLossSemanticInput,
     Task9RunParameterPackageSemanticInput,
     Task9WeatherRuleSemanticInput,
@@ -73,9 +77,7 @@ from backend.app.harvest_state.enums import (
     WeatherCombinationMethod,
 )
 from backend.app.harvest_state.schemas import WeatherFeatureBand, WeatherFeatureRule
-from backend.app.models.task9_authority import (
-    Task9AuthorityLifecycleEvent,
-)
+from backend.app.models.task9_authority import Task9AuthorityLifecycleEvent
 
 pytestmark = pytest.mark.integration
 
@@ -1541,3 +1543,466 @@ async def test_inventory_hash_roundtrip(db_session: AsyncSession) -> None:
 async def session_execute(session: AsyncSession, stmt):  # type: ignore[no-untyped-def]
     """Thin wrapper to keep test lines short."""
     return await session.execute(stmt)
+
+
+async def _seed_dimensions_committed() -> None:
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.execute(
+                text(
+                    "INSERT INTO dim_season (code, start_date, end_date) "
+                    "VALUES ('test-season', '2026-01-01', '2026-12-31') "
+                    "ON CONFLICT DO NOTHING"
+                )
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO dim_factory (code, name) "
+                    "VALUES ('test-factory', 'Test Factory') "
+                    "ON CONFLICT DO NOTHING"
+                )
+            )
+            await session.execute(
+                text("INSERT INTO dim_farm (name) VALUES ('Test Farm') ON CONFLICT DO NOTHING")
+            )
+            farm_row = await session.execute(
+                text("SELECT id FROM dim_farm WHERE name = 'Test Farm'")
+            )
+            farm_id = farm_row.scalar_one()
+            await session.execute(
+                text(
+                    "INSERT INTO dim_subfarm (farm_id, name) "
+                    "VALUES (:farm_id, 'Test Subfarm') "
+                    "ON CONFLICT DO NOTHING"
+                ),
+                {"farm_id": farm_id},
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO dim_variety (code, name) "
+                    "VALUES ('test-var', 'Test Variety') "
+                    "ON CONFLICT DO NOTHING"
+                )
+            )
+            season_row = await session.execute(
+                text("SELECT id FROM dim_season WHERE code = 'test-season'")
+            )
+            factory_row = await session.execute(
+                text("SELECT id FROM dim_factory WHERE code = 'test-factory'")
+            )
+            subfarm_row = await session.execute(
+                text(
+                    "SELECT id FROM dim_subfarm WHERE farm_id = :farm_id AND name = 'Test Subfarm'"
+                ),
+                {"farm_id": farm_id},
+            )
+            variety_row = await session.execute(
+                text("SELECT id FROM dim_variety WHERE code = 'test-var'")
+            )
+            _IDS["season"] = season_row.scalar_one()
+            _IDS["factory"] = factory_row.scalar_one()
+            _IDS["farm"] = farm_id
+            _IDS["subfarm"] = subfarm_row.scalar_one()
+            _IDS["variety"] = variety_row.scalar_one()
+
+
+async def _rewrite_lifecycle_event(
+    session: AsyncSession,
+    *,
+    event_id: int,
+    family: AuthorityFamily,
+    **updates: object,
+) -> None:
+    event_stmt = select(Task9AuthorityLifecycleEvent).where(
+        Task9AuthorityLifecycleEvent.id == event_id
+    )
+    event = (await session.execute(event_stmt)).scalar_one()
+    payload = {
+        "authority_family": family,
+        "authority_stable_key": event.authority_stable_key,
+        "authority_business_version": event.authority_business_version,
+        "authority_revision": event.authority_revision,
+        "business_row_hash": event.business_row_hash,
+        "transition_sequence": event.transition_sequence,
+        "old_status": event.old_status,
+        "new_status": event.new_status,
+        "old_consumable_from_local_date": event.old_consumable_from_local_date,
+        "old_consumable_to_local_date": event.old_consumable_to_local_date,
+        "new_consumable_from_local_date": event.new_consumable_from_local_date,
+        "new_consumable_to_local_date": event.new_consumable_to_local_date,
+        "superseded_by_authority_stable_key": event.superseded_by_authority_stable_key,
+        "superseded_by_authority_business_version": event.superseded_by_authority_business_version,
+        "superseded_by_authority_revision": event.superseded_by_authority_revision,
+        "transitioned_at": event.transitioned_at,
+        "source_system": event.source_system,
+        "source_record_key": event.source_record_key,
+        "lifecycle_event_hash": event.lifecycle_event_hash,
+    }
+    payload.update(updates)
+    semantic = Task9LifecycleEventSemanticInput(**payload)
+    payload["lifecycle_event_hash"] = make_lifecycle_event_hash(semantic)
+    await session.execute(
+        text(
+            """
+            UPDATE task9_authority_lifecycle_event
+            SET old_status = :old_status,
+                new_status = :new_status,
+                old_consumable_from_local_date = :old_consumable_from_local_date,
+                old_consumable_to_local_date = :old_consumable_to_local_date,
+                new_consumable_from_local_date = :new_consumable_from_local_date,
+                new_consumable_to_local_date = :new_consumable_to_local_date,
+                superseded_by_authority_stable_key = :superseded_by_authority_stable_key,
+                superseded_by_authority_business_version = :superseded_by_authority_business_version,
+                superseded_by_authority_revision = :superseded_by_authority_revision,
+                lifecycle_event_hash = :lifecycle_event_hash
+            WHERE id = :event_id
+            """
+        ),
+        {
+            "event_id": event_id,
+            "old_status": payload["old_status"],
+            "new_status": payload["new_status"],
+            "old_consumable_from_local_date": payload["old_consumable_from_local_date"],
+            "old_consumable_to_local_date": payload["old_consumable_to_local_date"],
+            "new_consumable_from_local_date": payload["new_consumable_from_local_date"],
+            "new_consumable_to_local_date": payload["new_consumable_to_local_date"],
+            "superseded_by_authority_stable_key": payload["superseded_by_authority_stable_key"],
+            "superseded_by_authority_business_version": payload[
+                "superseded_by_authority_business_version"
+            ],
+            "superseded_by_authority_revision": payload["superseded_by_authority_revision"],
+            "lifecycle_event_hash": payload["lifecycle_event_hash"],
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_load_mature_loss_rejects_final_consumable_to_projection_mismatch(
+    db_session: AsyncSession,
+) -> None:
+    inp = _mature_loss_input()
+    created = await create_or_load_mature_loss(db_session, loss_input=inp)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=created.authority_id,
+        activation_boundary=date(2026, 6, 1),
+    )
+    await retire_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=created.authority_id,
+        retirement_boundary=date(2026, 12, 31),
+    )
+    stable_key = build_mature_inventory_loss_stable_key(inp)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=stable_key,
+        version=inp.loss_version,
+        revision=inp.revision,
+    )
+    await _rewrite_lifecycle_event(
+        db_session,
+        event_id=events[-1].id,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        new_consumable_to_local_date=date(2026, 12, 30),
+    )
+    with pytest.raises(AuthorityConsumabilityIntervalConflictError) as exc_info:
+        await load_mature_loss_by_id(db_session, authority_id=created.authority_id)
+    assert exc_info.value.code == "AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT"
+    assert exc_info.value.details["reason"] == "final_consumable_to_projection_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_load_mature_loss_rejects_illegal_transition_even_with_valid_hash(
+    db_session: AsyncSession,
+) -> None:
+    inp = _mature_loss_input()
+    created = await create_or_load_mature_loss(db_session, loss_input=inp)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=created.authority_id,
+        activation_boundary=date(2026, 6, 1),
+    )
+    await db_session.execute(
+        text(
+            """
+            UPDATE task9_mature_inventory_loss_authority
+            SET status = 'cancelled',
+                consumable_from_local_date = NULL,
+                consumable_to_local_date = NULL
+            WHERE id = :authority_id
+            """
+        ),
+        {"authority_id": created.authority_id},
+    )
+    stable_key = build_mature_inventory_loss_stable_key(inp)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=stable_key,
+        version=inp.loss_version,
+        revision=inp.revision,
+    )
+    await _rewrite_lifecycle_event(
+        db_session,
+        event_id=events[-1].id,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        new_status=AuthorityStatus.CANCELLED,
+        new_consumable_from_local_date=None,
+        new_consumable_to_local_date=None,
+    )
+    with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
+        await load_mature_loss_by_id(db_session, authority_id=created.authority_id)
+    assert exc_info.value.code == "LIFECYCLE_TRANSITION_INVALID"
+    assert exc_info.value.details["reason"] == "transition_not_allowed"
+
+
+@pytest.mark.asyncio
+async def test_load_holiday_tampered_child_validation_becomes_typed_hash_conflict(
+    db_session: AsyncSession,
+) -> None:
+    inp = _holiday_input()
+    created = await create_or_load_holiday_calendar(db_session, calendar_input=inp)
+    await db_session.execute(
+        text(
+            """
+            UPDATE task9_holiday_calendar_date
+            SET holiday_code = ''
+            WHERE holiday_calendar_version_id = :authority_id
+              AND holiday_code = 'CNY'
+            """
+        ),
+        {"authority_id": created.parent.authority_id},
+    )
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
+        await load_holiday_calendar_by_id(db_session, authority_id=created.parent.authority_id)
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+    assert exc_info.value.details["reason"] == "persisted_bundle_validation_failed"
+    assert exc_info.value.details["component"] == "holiday_calendar_date"
+
+
+@pytest.mark.asyncio
+async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSession) -> None:
+    inp = _pool_input()
+    created = await create_or_load_capacity_pool_definition(db_session, definition_input=inp)
+    await db_session.execute(
+        text(
+            "INSERT INTO dim_season (code, start_date, end_date) "
+            "VALUES ('tamper-season', '2027-01-01', '2027-12-31') "
+            "ON CONFLICT DO NOTHING"
+        )
+    )
+    season_id = (
+        await db_session.execute(text("SELECT id FROM dim_season WHERE code = 'tamper-season'"))
+    ).scalar_one()
+    await db_session.execute(
+        text(
+            """
+            UPDATE task9_capacity_pool_member
+            SET season_id = :season_id
+            WHERE capacity_pool_definition_id = :authority_id
+            """
+        ),
+        {"season_id": season_id, "authority_id": created.parent.authority_id},
+    )
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
+        await load_capacity_pool_definition_by_id(
+            db_session, authority_id=created.parent.authority_id
+        )
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+    assert exc_info.value.details["reason"] == "capacity_pool_member_parent_projection_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_pool_create_same_payload_blocks_then_reuses_row() -> None:
+    await _seed_dimensions_committed()
+    pool = _pool_input(code=f"POOL-{uuid4().hex[:8]}")
+    stable_key = (
+        f"capacity-pool:{pool.season_id}:{pool.destination_factory_id}:{pool.capacity_pool_code}"
+    )
+    lock_key = _advisory_lock_key(
+        AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        stable_key,
+        pool.capacity_pool_version,
+        pool.revision,
+    )
+    session2_started = asyncio.Event()
+    async with AsyncSessionMaker() as session1:
+        tx1 = await session1.begin()
+        try:
+            await session1.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+            result1 = await create_or_load_capacity_pool_definition(session1, definition_input=pool)
+
+            async def _runner() -> object:
+                async with AsyncSessionMaker() as session2:
+                    async with session2.begin():
+                        session2_started.set()
+                        return await create_or_load_capacity_pool_definition(
+                            session2,
+                            definition_input=pool,
+                        )
+
+            task = asyncio.create_task(_runner())
+            await session2_started.wait()
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(asyncio.shield(task), timeout=0.2)
+            await tx1.commit()
+            result2 = await asyncio.wait_for(task, timeout=15)
+        finally:
+            if tx1.is_active:
+                await tx1.rollback()
+
+    assert result1.parent.created is True
+    assert result2.parent.created is False
+    assert result1.parent.authority_id == result2.parent.authority_id
+    assert result1.parent.row_hash == result2.parent.row_hash
+
+    async with AsyncSessionMaker() as verify_session:
+        row_count = (
+            await verify_session.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM task9_capacity_pool_definition
+                    WHERE season_id = :season_id
+                      AND destination_factory_id = :factory_id
+                      AND capacity_pool_code = :capacity_pool_code
+                      AND capacity_pool_version = :capacity_pool_version
+                      AND revision = :revision
+                    """
+                ),
+                {
+                    "season_id": pool.season_id,
+                    "factory_id": pool.destination_factory_id,
+                    "capacity_pool_code": pool.capacity_pool_code,
+                    "capacity_pool_version": pool.capacity_pool_version,
+                    "revision": pool.revision,
+                },
+            )
+        ).scalar_one()
+        event_count = (
+            await verify_session.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM task9_authority_lifecycle_event
+                    WHERE authority_family = :family
+                      AND authority_stable_key = :stable_key
+                      AND authority_business_version = :version
+                      AND authority_revision = :revision
+                    """
+                ),
+                {
+                    "family": AuthorityFamily.CAPACITY_POOL_DEFINITION.value,
+                    "stable_key": stable_key,
+                    "version": pool.capacity_pool_version,
+                    "revision": pool.revision,
+                },
+            )
+        ).scalar_one()
+    assert row_count == 1
+    assert event_count == 1
+
+
+@pytest.mark.asyncio
+async def test_concurrent_pool_create_conflicting_payload_returns_typed_conflict() -> None:
+    await _seed_dimensions_committed()
+    pool_a = _pool_input(code=f"POOL-{uuid4().hex[:8]}")
+    pool_b = pool_a.model_copy(
+        update={
+            "source_record_key": f"{pool_a.source_record_key}:other",
+            "members": [
+                Task9CapacityPoolMemberSchema(
+                    farm_id=_IDS["farm"],
+                    subfarm_id=_IDS["subfarm"],
+                    variety_id=_IDS["variety"],
+                )
+            ],
+        }
+    )
+    stable_key = f"capacity-pool:{pool_a.season_id}:{pool_a.destination_factory_id}:{pool_a.capacity_pool_code}"
+    lock_key = _advisory_lock_key(
+        AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        stable_key,
+        pool_a.capacity_pool_version,
+        pool_a.revision,
+    )
+    session2_started = asyncio.Event()
+    async with AsyncSessionMaker() as session1:
+        tx1 = await session1.begin()
+        try:
+            await session1.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+            result1 = await create_or_load_capacity_pool_definition(
+                session1, definition_input=pool_a
+            )
+
+            async def _runner_conflict() -> object:
+                async with AsyncSessionMaker() as session2:
+                    async with session2.begin():
+                        session2_started.set()
+                        return await create_or_load_capacity_pool_definition(
+                            session2,
+                            definition_input=pool_b,
+                        )
+
+            task = asyncio.create_task(_runner_conflict())
+            await session2_started.wait()
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(asyncio.shield(task), timeout=0.2)
+            await tx1.commit()
+            with pytest.raises(AuthorityVersionConflictError) as exc_info:
+                await asyncio.wait_for(task, timeout=15)
+        finally:
+            if tx1.is_active:
+                await tx1.rollback()
+
+    assert result1.parent.created is True
+    assert exc_info.value.code == "AUTHORITY_VERSION_CONFLICT"
+    async with AsyncSessionMaker() as verify_session:
+        row_count = (
+            await verify_session.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM task9_capacity_pool_definition
+                    WHERE season_id = :season_id
+                      AND destination_factory_id = :factory_id
+                      AND capacity_pool_code = :capacity_pool_code
+                      AND capacity_pool_version = :capacity_pool_version
+                      AND revision = :revision
+                    """
+                ),
+                {
+                    "season_id": pool_a.season_id,
+                    "factory_id": pool_a.destination_factory_id,
+                    "capacity_pool_code": pool_a.capacity_pool_code,
+                    "capacity_pool_version": pool_a.capacity_pool_version,
+                    "revision": pool_a.revision,
+                },
+            )
+        ).scalar_one()
+        event_count = (
+            await verify_session.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM task9_authority_lifecycle_event
+                    WHERE authority_family = :family
+                      AND authority_stable_key = :stable_key
+                      AND authority_business_version = :version
+                      AND authority_revision = :revision
+                    """
+                ),
+                {
+                    "family": AuthorityFamily.CAPACITY_POOL_DEFINITION.value,
+                    "stable_key": stable_key,
+                    "version": pool_a.capacity_pool_version,
+                    "revision": pool_a.revision,
+                },
+            )
+        ).scalar_one()
+    assert row_count == 1
+    assert event_count == 1
