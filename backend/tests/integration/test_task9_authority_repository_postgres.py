@@ -1790,7 +1790,8 @@ async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSessi
     """Tamper member status → repository detects parent projection mismatch."""
     inp = _pool_input()
     created = await create_or_load_capacity_pool_definition(db_session, definition_input=inp)
-    # Tamper: change parent's consumable_from_local_date so that the
+    # Tamper: change parent's consumable_from_local_date to a valid date
+    # (>= available_at_local_date, passes CHECK constraint) so that the
     # parent projection computes a different consumable_from_key than
     # what the member row stores.  The member row itself is untouched,
     # so no member-level FK or CHECK constraint is violated.
@@ -1798,7 +1799,7 @@ async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSessi
         text(
             """
             UPDATE task9_capacity_pool_definition
-            SET consumable_from_local_date = '1900-01-01'
+            SET consumable_from_local_date = '2026-06-01'
             WHERE id = :authority_id
             """
         ),
