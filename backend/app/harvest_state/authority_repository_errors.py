@@ -66,12 +66,19 @@ class AuthorityHashConflictError(Task9AuthorityRepositoryError):
         authority_stable_key: str | None = None,
         expected_hash: str,
         actual_hash: str,
+        details: dict[str, object] | None = None,
     ) -> None:
+        payload: dict[str, object] = {
+            "expected_hash": expected_hash,
+            "actual_hash": actual_hash,
+        }
+        if details:
+            payload.update(details)
         super().__init__(
             code=_AUTHORITY_HASH_CONFLICT,
             authority_family=authority_family,
             authority_stable_key=authority_stable_key,
-            details={"expected_hash": expected_hash, "actual_hash": actual_hash},
+            details=payload,
         )
 
 
@@ -263,12 +270,19 @@ class LifecycleTransitionInvalidError(Task9AuthorityRepositoryError):
         authority_stable_key: str | None = None,
         current_status: str,
         target_status: str,
+        details: dict[str, object] | None = None,
     ) -> None:
+        payload: dict[str, object] = {
+            "current_status": current_status,
+            "target_status": target_status,
+        }
+        if details:
+            payload.update(details)
         super().__init__(
             code=_LIFECYCLE_TRANSITION_INVALID,
             authority_family=authority_family,
             authority_stable_key=authority_stable_key,
-            details={"current_status": current_status, "target_status": target_status},
+            details=payload,
         )
 
 
