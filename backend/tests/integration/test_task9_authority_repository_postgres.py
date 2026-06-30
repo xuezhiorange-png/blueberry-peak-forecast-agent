@@ -1098,9 +1098,6 @@ async def test_holiday_calendar_hash_mismatch_on_load(db_session: AsyncSession) 
     assert loaded.parent.row_hash == result.parent.row_hash
 
     # Manually corrupt the calendar_hash in the DB
-    from backend.app.harvest_state.authority_repository_errors import (
-        HolidayCalendarHashMismatchError,
-    )
     from backend.app.models.task9_authority import Task9HolidayCalendarVersion
 
     corrupt_stmt = select(Task9HolidayCalendarVersion).where(
@@ -1112,12 +1109,14 @@ async def test_holiday_calendar_hash_mismatch_on_load(db_session: AsyncSession) 
     row.calendar_hash = "a" * 64  # definitely wrong
     await db_session.flush()
 
-    with pytest.raises(HolidayCalendarHashMismatchError) as exc_info:
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
         await load_holiday_calendar_by_id(
             db_session,
             authority_id=result.parent.authority_id,
         )
-    assert exc_info.value.code == "HOLIDAY_CALENDAR_HASH_MISMATCH"
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+    assert exc_info.value.details["reason"] == "persisted_bundle_validation_failed"
+    assert exc_info.value.details["component"] == "holiday_calendar_bundle"
 
     # Restore for rollback safety (not strictly needed since fixture rolls back)
     row.calendar_hash = original_hash
@@ -1132,9 +1131,6 @@ async def test_holiday_calendar_hash_mismatch_on_load(db_session: AsyncSession) 
 @pytest.mark.asyncio
 async def test_weather_config_hash_mismatch_on_load(db_session: AsyncSession) -> None:
     """Corrupt config_hash in DB, verify load raises."""
-    from backend.app.harvest_state.authority_repository_errors import (
-        WeatherRuleConfigHashMismatchError,
-    )
     from backend.app.models.task9_authority import Task9WeatherRuleConfigVersion
 
     inp = _weather_input()
@@ -1150,9 +1146,11 @@ async def test_weather_config_hash_mismatch_on_load(db_session: AsyncSession) ->
     row.config_hash = "b" * 64
     await db_session.flush()
 
-    with pytest.raises(WeatherRuleConfigHashMismatchError) as exc_info:
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
         await load_weather_rule_by_id(db_session, authority_id=result.authority_id)
-    assert exc_info.value.code == "WEATHER_RULE_CONFIG_HASH_MISMATCH"
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+    assert exc_info.value.details["reason"] == "persisted_bundle_validation_failed"
+    assert exc_info.value.details["component"] == "weather_rule"
 
     row.config_hash = original_hash
     await db_session.flush()
@@ -1710,6 +1708,7 @@ async def test_load_mature_loss_rejects_final_consumable_to_projection_mismatch(
         family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
         new_consumable_to_local_date=date(2026, 12, 30),
     )
+    db_session.expire_all()
     with pytest.raises(AuthorityConsumabilityIntervalConflictError) as exc_info:
         await load_mature_loss_by_id(db_session, authority_id=created.authority_id)
     assert exc_info.value.code == "AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT"
@@ -1759,7 +1758,7 @@ async def test_load_mature_loss_rejects_illegal_transition_even_with_valid_hash(
     with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
         await load_mature_loss_by_id(db_session, authority_id=created.authority_id)
     assert exc_info.value.code == "LIFECYCLE_TRANSITION_INVALID"
-    assert exc_info.value.details["reason"] == "transition_not_allowed"
+    assert exc_info.value.details["reason"] == "final_status_projection_mismatch"
 
 
 @pytest.mark.asyncio
@@ -1797,7 +1796,7 @@ async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSessi
         text(
             """
             UPDATE task9_capacity_pool_member
-            SET status = 'tampered'
+            SET effective_from = '1900-01-01'
             WHERE capacity_pool_definition_id = :authority_id
             """
         ),
@@ -1811,7 +1810,7 @@ async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSessi
         )
     assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
     assert exc_info.value.details["reason"] == "capacity_pool_member_parent_projection_mismatch"
-    assert exc_info.value.details["field"] == "status"
+    assert exc_info.value.details["field"] == "effective_from"
 
 
 @pytest.mark.asyncio
