@@ -733,8 +733,8 @@ async def create_or_load_capacity_pool_definition(
             effective_from=definition.effective_from,
             effective_to=definition.effective_to,
             status=AuthorityStatus.DRAFT,
-            consumable_from_key=definition.available_at_local_date,
-            consumable_to_key=definition.available_at_local_date,  # placeholder
+            consumable_from_key=definition.consumable_from_local_date,
+            consumable_to_key=definition.consumable_to_local_date,
             row_hash=member_hash,
         )
         session.add(child_row)

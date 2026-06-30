@@ -436,7 +436,7 @@ def _inventory_input(
                 cohort_date=date(2026, 1, 1),
                 farm_id=_IDS["farm"],
                 subfarm_id=_IDS["subfarm"],
-                variety_id=_IDS["variety"] + 1,
+                variety_id=_IDS["variety"],
                 remaining_quantity_kg=Decimal("100.00"),
             ),
         ],
