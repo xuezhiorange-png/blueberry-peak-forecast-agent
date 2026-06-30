@@ -136,6 +136,46 @@ def _decimal_to_json_safe(obj: Any) -> Any:
     return obj
 
 
+# ── Capacity pool member-parent projection integrity ─────────────────
+
+_POOL_MEMBER_PROJECTION_FIELDS: tuple[str, ...] = (
+    "season_id",
+    "destination_factory_id",
+    "effective_from",
+    "effective_to",
+    "status",
+    "consumable_from_key",
+    "consumable_to_key",
+)
+
+
+def _verify_capacity_pool_member_parent_projection(
+    *,
+    member: Any,
+    parent_projection: Any,
+    authority_family: AuthorityFamily,
+    authority_stable_key: str,
+) -> None:
+    """Verify that a member's copied projection fields match the parent.
+
+    This is a pure comparison that does not touch the database, so it can
+    be unit-tested directly with synthetic data.
+    """
+    for field_name in _POOL_MEMBER_PROJECTION_FIELDS:
+        if getattr(member, field_name) != parent_projection[field_name]:
+            raise AuthorityHashConflictError(
+                authority_family=authority_family,
+                authority_stable_key=authority_stable_key,
+                expected_hash=str(parent_projection[field_name]),
+                actual_hash=str(getattr(member, field_name)),
+                details={
+                    "reason": "capacity_pool_member_parent_projection_mismatch",
+                    "member_id": member.id,
+                    "field": field_name,
+                },
+            )
+
+
 # ── Family enum → value ────────────────────────────────────────────────
 
 
@@ -1201,27 +1241,12 @@ async def load_capacity_pool_definition_by_id(
         .one()
     )
     for member in members:
-        for field_name in (
-            "season_id",
-            "destination_factory_id",
-            "effective_from",
-            "effective_to",
-            "status",
-            "consumable_from_key",
-            "consumable_to_key",
-        ):
-            if getattr(member, field_name) != parent_projection[field_name]:
-                raise AuthorityHashConflictError(
-                    authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-                    authority_stable_key=stable_key,
-                    expected_hash=str(parent_projection[field_name]),
-                    actual_hash=str(getattr(member, field_name)),
-                    details={
-                        "reason": "capacity_pool_member_parent_projection_mismatch",
-                        "member_id": member.id,
-                        "field": field_name,
-                    },
-                )
+        _verify_capacity_pool_member_parent_projection(
+            member=member,
+            parent_projection=parent_projection,
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            authority_stable_key=stable_key,
+        )
 
     # Verify lifecycle chain
     stable_key = _stable_key_from_orm_capacity_pool(row)
