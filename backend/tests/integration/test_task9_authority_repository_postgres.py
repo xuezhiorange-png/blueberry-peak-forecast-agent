@@ -2052,16 +2052,23 @@ async def test_pool_member_child_add_delete_tamper(
     members = list(member_result.scalars().all())
     assert len(members) == 1
 
+    # Save member attrs BEFORE deletion — ORM expires them after flush
+    _saved_farm_id = members[0].farm_id
+    _saved_subfarm_id = members[0].subfarm_id
+    _saved_variety_id = members[0].variety_id
+    _saved_row_hash = members[0].row_hash
+    _saved_parent_id = result.parent.authority_id
+
     await db_session.delete(members[0])
     await db_session.flush()
 
     # Load should detect missing child (hash mismatch from 0 members vs 1)
     with pytest.raises(AuthorityHashConflictError):
         await load_capacity_pool_definition_by_id(
-            db_session, authority_id=result.parent.authority_id
+            db_session, authority_id=_saved_parent_id
         )
 
-    # Restore for rollback safety — re-insert using the parent projection path
+    # Restore for rollback safety — re-insert using saved attrs
     # (raw SQL to avoid FK issues with infinity dates)
     await db_session.execute(
         text(
@@ -2077,11 +2084,11 @@ async def test_pool_member_child_add_delete_tamper(
             "FROM task9_capacity_pool_definition p WHERE p.id = :pid"
         ),
         {
-            "farm_id": members[0].farm_id,
-            "subfarm_id": members[0].subfarm_id,
-            "variety_id": members[0].variety_id,
-            "child_hash": members[0].row_hash,
-            "pid": result.parent.authority_id,
+            "farm_id": _saved_farm_id,
+            "subfarm_id": _saved_subfarm_id,
+            "variety_id": _saved_variety_id,
+            "child_hash": _saved_row_hash,
+            "pid": _saved_parent_id,
         },
     )
     await db_session.flush()
@@ -2521,33 +2528,45 @@ async def test_load_by_nonexistent_identity(db_session: AsyncSession) -> None:
 
 
 async def _concurrent_create(session_factory, create_fn, *args):  # type: ignore[no-untyped-def]
-    """Run two concurrent create_or_load operations."""
-    async with session_factory() as s1:
-        async with session_factory() as s2:
-            barrier = asyncio.Event()
+    """Run two concurrent create_or_load operations.
 
-            async def task1():
+    Each session runs inside ``session.begin()`` so that session 1 commits
+    before session 2's advisory-lock wait times out.  Without an explicit
+    commit the transaction-scoped advisory lock is never released and the
+    second session blocks forever.
+    """
+    barrier = asyncio.Event()
+    r1_holder: list = []
+    r2_holder: list = []
+
+    async def task1() -> None:
+        async with session_factory() as s:
+            async with s.begin():
                 barrier.set()
-                return await create_fn(s1, *args)
+                r1_holder.append(await create_fn(s, *args))
 
-            async def task2():
-                await barrier.wait()
-                return await create_fn(s2, *args)
+    async def task2() -> None:
+        async with session_factory() as s:
+            await barrier.wait()
+            async with s.begin():
+                r2_holder.append(await create_fn(s, *args))
 
-            results = await asyncio.gather(task1(), task2(), return_exceptions=True)
-            return results
+    await asyncio.gather(task1(), task2(), return_exceptions=False)
+    return [*r1_holder, *r2_holder]
 
 
 @pytest.mark.asyncio
 async def test_concurrent_same_payload(db_session: AsyncSession) -> None:
     """Two async sessions create same authority: exactly one created=True, both get same id/hash."""
-    # Seed required dimension data
     inp = _mature_loss_input()
 
+    # Pre-seed dimension data in a committed session so concurrent sessions
+    # don't deadlock on row-level INSERT locks for dim tables.
+    async with AsyncSessionMaker() as seed_session:
+        async with seed_session.begin():
+            await _seed_dimensions(seed_session)
+
     async def create_fn(session, loss_input):  # type: ignore[no-untyped-def]
-        # Each concurrent session must seed its own dimension data
-        # because the db_session fixture's data is in a rolled-back transaction
-        await _seed_dimensions(session)
         return await create_or_load_mature_loss(session, loss_input=loss_input)
 
     results = await _concurrent_create(AsyncSessionMaker, create_fn, inp)
