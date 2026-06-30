@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import struct
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import select, text
@@ -115,6 +116,25 @@ _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     AuthorityStatus.RETIRED: set(),
     AuthorityStatus.CANCELLED: set(),
 }
+
+
+# ── JSON-safe Decimal conversion for JSONB columns ─────────────────────
+
+
+def _decimal_to_json_safe(obj: Any) -> Any:
+    """Recursively convert ``Decimal`` to ``str`` for JSONB serialisation.
+
+    asyncpg's default JSON encoder rejects ``Decimal``; PostgreSQL JSONB
+    stores numeric values as strings internally anyway, so converting to
+    ``str`` preserves full precision without rounding.
+    """
+    if isinstance(obj, Decimal):
+        return str(obj)
+    if isinstance(obj, list):
+        return [_decimal_to_json_safe(item) for item in obj]
+    if isinstance(obj, dict):
+        return {k: _decimal_to_json_safe(v) for k, v in obj.items()}
+    return obj
 
 # ── Family enum → value ────────────────────────────────────────────────
 
@@ -1542,9 +1562,9 @@ async def create_or_load_weather_rule(
         minimum_ratio=weather_input.minimum_ratio,
         maximum_ratio=weather_input.maximum_ratio,
         required_feature_ids=weather_input.required_feature_ids,
-        feature_rules_json=[
+        feature_rules_json=_decimal_to_json_safe([
             fr.model_dump() for fr in weather_input.feature_rules
-        ],
+        ]),
         missing_feature_policy=weather_input.missing_feature_policy,
         config_hash=weather_input.config_hash,
         available_at_local_date=weather_input.available_at_local_date,
