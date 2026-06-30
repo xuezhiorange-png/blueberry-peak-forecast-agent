@@ -2548,15 +2548,16 @@ async def _concurrent_create(session_factory, create_fn, *args):  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_concurrent_same_payload(db_session: AsyncSession) -> None:
+async def test_concurrent_same_payload() -> None:
     """Two sequential sessions create same authority: exactly one created=True, both get same id/hash.
 
-    Uses sequential execution to avoid asyncio.gather + pg_advisory_xact_lock
-    interaction issues in CI while still exercising the advisory lock path.
+    Does NOT use the db_session fixture — seeds its own dimension data in a
+    committed session to avoid row-level lock conflicts with the fixture's
+    uncommitted transaction.
     """
     inp = _mature_loss_input()
 
-    # Pre-seed dimension data in a committed session
+    # Seed dimension data in a committed session (independent of db_session fixture)
     async with AsyncSessionMaker() as seed_session:
         async with seed_session.begin():
             await _seed_dimensions(seed_session)
