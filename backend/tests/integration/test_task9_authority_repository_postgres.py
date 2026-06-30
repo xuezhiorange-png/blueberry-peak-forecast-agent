@@ -19,7 +19,7 @@ from datetime import UTC, date, datetime, time
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import AsyncSessionMaker
@@ -86,11 +86,78 @@ pytestmark = pytest.mark.integration
 async def db_session():
     """Yield an AsyncSession wrapped in a transaction that rolls back on exit.
 
-    This gives each test a fresh state while preventing any data from leaking.
-    Advisory locks and FOR UPDATE work within the single transaction.
+    Seeds required FK dimension tables (dim_season, dim_factory, dim_farm,
+    dim_subfarm, dim_variety) before yielding so authority inserts don't fail
+    on FK constraints.
     """
     async with AsyncSessionMaker() as session:
         async with session.begin():
+            # Seed dimension tables required by FK constraints
+            await session.execute(
+                text(
+                    "INSERT INTO dim_season (code, start_date, end_date) "
+                    "VALUES ('test-season', '2026-01-01', '2026-12-31') "
+                    "ON CONFLICT DO NOTHING"
+                )
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO dim_factory (code, name) "
+                    "VALUES ('test-factory', 'Test Factory') "
+                    "ON CONFLICT DO NOTHING"
+                )
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO dim_farm (name) VALUES ('Test Farm') "
+                    "ON CONFLICT DO NOTHING"
+                )
+            )
+            # Get farm_id for subfarm FK
+            farm_row = await session.execute(
+                text("SELECT id FROM dim_farm WHERE name = 'Test Farm'")
+            )
+            farm_id = farm_row.scalar_one()
+            await session.execute(
+                text(
+                    "INSERT INTO dim_subfarm (farm_id, name) "
+                    "VALUES (:farm_id, 'Test Subfarm') "
+                    "ON CONFLICT DO NOTHING"
+                ),
+                {"farm_id": farm_id},
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO dim_variety (code, name) "
+                    "VALUES ('test-var', 'Test Variety') "
+                    "ON CONFLICT DO NOTHING"
+                )
+            )
+            # Get actual IDs for test constants
+            season_row = await session.execute(
+                text("SELECT id FROM dim_season WHERE code = 'test-season'")
+            )
+            factory_row = await session.execute(
+                text("SELECT id FROM dim_factory WHERE code = 'test-factory'")
+            )
+            subfarm_row = await session.execute(
+                text(
+                    "SELECT id FROM dim_subfarm "
+                    "WHERE farm_id = :farm_id AND name = 'Test Subfarm'"
+                ),
+                {"farm_id": farm_id},
+            )
+            variety_row = await session.execute(
+                text("SELECT id FROM dim_variety WHERE code = 'test-var'")
+            )
+            # Override module-level constants with real IDs
+            import backend.tests.integration.test_task9_authority_repository_postgres as mod
+
+            mod._SEASON_ID = season_row.scalar_one()
+            mod._FACTORY_ID = factory_row.scalar_one()
+            mod._FARM_ID = farm_id
+            mod._SUBFARM_ID = subfarm_row.scalar_one()
+            mod._VARIETY_ID = variety_row.scalar_one()
             yield session
             # rollback on exit for test isolation
 
