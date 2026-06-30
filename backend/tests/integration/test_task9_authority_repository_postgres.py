@@ -1756,10 +1756,13 @@ async def test_load_mature_loss_rejects_illegal_transition_even_with_valid_hash(
         new_consumable_from_local_date=None,
         new_consumable_to_local_date=None,
     )
+    db_session.expire_all()
     with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
         await load_mature_loss_by_id(db_session, authority_id=created.authority_id)
     assert exc_info.value.code == "LIFECYCLE_TRANSITION_INVALID"
-    assert exc_info.value.details["reason"] == "final_status_projection_mismatch"
+    assert exc_info.value.details["reason"] == "transition_not_allowed"
+    assert exc_info.value.details["old_status"] == "active"
+    assert exc_info.value.details["new_status"] == "cancelled"
 
 
 @pytest.mark.asyncio
@@ -1787,38 +1790,72 @@ async def test_load_holiday_tampered_child_validation_becomes_typed_hash_conflic
 
 
 @pytest.mark.asyncio
-async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSession) -> None:
-    """Verify that parent-projection integrity is enforced.
-
-    The frozen schema uses composite FKs (lifecycle_binding, effective_binding)
-    and GENERATED columns that make it impossible to create a member/projection
-    mismatch without violating DB constraints.  This test verifies that the DB
-    constraint correctly rejects the tampering attempt.  The repository's
-    ``capacity_pool_member_parent_projection_mismatch`` check is defense-in-depth
-    that would fire if the DB constraints were ever relaxed.
-    """
+async def test_capacity_pool_parent_lifecycle_tamper_is_rejected_by_database(
+    db_session: AsyncSession,
+) -> None:
+    """DB constraint rejects parent projection tampering before loader runs."""
     inp = _pool_input()
     created = await create_or_load_capacity_pool_definition(db_session, definition_input=inp)
-    # Attempt to tamper parent's consumable_from_local_date.
-    # This violates ck_task9_capacity_pool_definition_lifecycle_projection
-    # (draft status requires NULL consumable_from) OR the generated column
-    # cascades that keep member in sync with parent.
-    with pytest.raises((AuthorityHashConflictError, IntegrityError)):
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=created.parent.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+    with pytest.raises(IntegrityError) as exc_info:
         await db_session.execute(
             text(
                 """
                 UPDATE task9_capacity_pool_definition
-                SET consumable_from_local_date = '2026-06-01'
+                SET consumable_from_local_date = NULL
                 WHERE id = :authority_id
                 """
             ),
             {"authority_id": created.parent.authority_id},
         )
         await db_session.flush()
-        db_session.expire_all()
+    assert "ck_task9_capacity_pool_definition_lifecycle_projection" in str(
+        exc_info.value.orig
+    )
+    await db_session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_load_pool_rejects_member_parent_projection_mismatch(
+    db_session: AsyncSession,
+) -> None:
+    """Repository rejects member/projection mismatch via defense-in-depth check."""
+    inp = _pool_input()
+    created = await create_or_load_capacity_pool_definition(db_session, definition_input=inp)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=created.parent.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+    # tamper member's consumable_from_key — this column has no FK or CHECK
+    await db_session.execute(
+        text(
+            """
+            UPDATE task9_capacity_pool_member
+            SET consumable_from_key = :wrong_key
+            WHERE capacity_pool_definition_id = :authority_id
+            """
+        ),
+        {
+            "wrong_key": date(2099, 1, 1),
+            "authority_id": created.parent.authority_id,
+        },
+    )
+    await db_session.flush()
+    db_session.expire_all()
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
         await load_capacity_pool_definition_by_id(
             db_session, authority_id=created.parent.authority_id
         )
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+    assert exc_info.value.details["reason"] == "capacity_pool_member_parent_projection_mismatch"
+    assert exc_info.value.details["field"] == "consumable_from_key"
 
 
 @pytest.mark.asyncio
