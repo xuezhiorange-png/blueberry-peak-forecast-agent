@@ -8,6 +8,7 @@ that wrap each test in a rolled-back transaction for isolation.
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 import pytest
@@ -24,6 +25,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.authority_canonical import (
+    build_daily_capacity_stable_key,
+    build_mature_inventory_loss_stable_key,
     make_authority_row_hash,
     make_holiday_calendar_hash,
     make_weather_rule_config_hash,
@@ -38,17 +41,25 @@ from backend.app.harvest_state.authority_repository import (
     create_or_load_mature_loss,
     create_or_load_run_parameter_package,
     create_or_load_weather_rule,
+    load_authority_by_business_key,
+    load_authority_by_persistent_identity,
+    load_authority_by_row_hash,
     load_capacity_pool_definition_by_id,
     load_holiday_calendar_by_id,
     load_initial_inventory_by_id,
     load_mature_loss_by_id,
     load_weather_rule_by_id,
+    replace_run_package_with_dependencies,
     retire_authority,
     supersede_authority,
 )
 from backend.app.harvest_state.authority_repository_errors import (
+    AuthorityConsumabilityIntervalConflictError,
+    AuthorityConsumabilityIntervalInvalidError,
     AuthorityHashConflictError,
+    AuthorityNotFoundError,
     AuthorityStillReferencedByActivePackageError,
+    AuthoritySupersessionScopeConflictError,
     AuthorityVersionConflictError,
     LifecycleTransitionInvalidError,
 )
@@ -1541,3 +1552,837 @@ async def test_inventory_hash_roundtrip(db_session: AsyncSession) -> None:
 async def session_execute(session: AsyncSession, stmt):  # type: ignore[no-untyped-def]
     """Thin wrapper to keep test lines short."""
     return await session.execute(stmt)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  P0-2 LIFECYCLE CHAIN TAMPER TESTS
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_event_sequence_gap(db_session: AsyncSession) -> None:
+    """Create authority, manually tamper event sequence → chain verification fails."""
+    inp = _mature_loss_input()
+    result = await create_or_load_mature_loss(db_session, loss_input=inp)
+    assert result.created is True
+
+    # Tamper: change sequence 1 to sequence 5 (creating a gap)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=build_mature_inventory_loss_stable_key(inp),
+        version=inp.loss_version,
+        revision=inp.revision,
+    )
+    assert len(events) == 1
+    events[0].transition_sequence = 5
+    await db_session.flush()
+
+    with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
+        await activate_authority(
+            db_session,
+            family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            authority_id=result.authority_id,
+            activation_boundary=date(2026, 6, 1),
+        )
+    assert exc_info.value.code == "LIFECYCLE_TRANSITION_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_event_self_hash_tamper(db_session: AsyncSession) -> None:
+    """Tamper lifecycle_event_hash → load rejects."""
+    inp = _mature_loss_input()
+    result = await create_or_load_mature_loss(db_session, loss_input=inp)
+
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=build_mature_inventory_loss_stable_key(inp),
+        version=inp.loss_version,
+        revision=inp.revision,
+    )
+    assert len(events) == 1
+    events[0].lifecycle_event_hash = "a" * 64
+    await db_session.flush()
+
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
+        await load_mature_loss_by_id(db_session, authority_id=result.authority_id)
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_event_business_row_hash_tamper(
+    db_session: AsyncSession,
+) -> None:
+    """Tamper business_row_hash on event → load rejects."""
+    inp = _mature_loss_input()
+    result = await create_or_load_mature_loss(db_session, loss_input=inp)
+
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=build_mature_inventory_loss_stable_key(inp),
+        version=inp.loss_version,
+        revision=inp.revision,
+    )
+    assert len(events) == 1
+    events[0].business_row_hash = "b" * 64
+    await db_session.flush()
+
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
+        await load_mature_loss_by_id(db_session, authority_id=result.authority_id)
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_first_event_not_draft(db_session: AsyncSession) -> None:
+    """Delete initial event, replace with wrong transition → chain rejects."""
+    inp = _mature_loss_input()
+    result = await create_or_load_mature_loss(db_session, loss_input=inp)
+
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=build_mature_inventory_loss_stable_key(inp),
+        version=inp.loss_version,
+        revision=inp.revision,
+    )
+    assert len(events) == 1
+
+    # Delete the initial event and replace with wrong transition
+    await db_session.delete(events[0])
+    await db_session.flush()
+
+    # Insert a fake event with old_status=active (not NULL→draft)
+    fake_event = Task9AuthorityLifecycleEvent(
+        authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        authority_stable_key=build_mature_inventory_loss_stable_key(inp),
+        authority_business_version=inp.loss_version,
+        authority_revision=inp.revision,
+        business_row_hash=result.row_hash,
+        transition_sequence=1,
+        old_status="active",
+        new_status="draft",
+        lifecycle_event_hash="c" * 64,
+        source_system="tamper",
+        source_record_key="tamper:fake",
+    )
+    db_session.add(fake_event)
+    await db_session.flush()
+
+    with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
+        await load_mature_loss_by_id(db_session, authority_id=result.authority_id)
+    assert exc_info.value.code == "LIFECYCLE_TRANSITION_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_chain_projection_discontinuity(
+    db_session: AsyncSession,
+) -> None:
+    """Tamper old/new status to break continuity → chain rejects."""
+    inp = _mature_loss_input()
+    result = await create_or_load_mature_loss(db_session, loss_input=inp)
+    auth_id = result.authority_id
+
+    # Activate, then retire to get 3 events
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=auth_id,
+        activation_boundary=date(2026, 6, 1),
+    )
+    await retire_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=auth_id,
+        retirement_boundary=date(2026, 12, 31),
+    )
+
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=build_mature_inventory_loss_stable_key(inp),
+        version=inp.loss_version,
+        revision=inp.revision,
+    )
+    assert len(events) == 3
+
+    # Tamper event 2's old_status to break chain continuity
+    # Event 2 (draft→active): change old_status from "draft" to "cancelled"
+    events[1].old_status = "cancelled"
+    await db_session.flush()
+
+    with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
+        await load_mature_loss_by_id(db_session, authority_id=auth_id)
+    assert exc_info.value.code == "LIFECYCLE_TRANSITION_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_incomplete_replacement_identity(
+    db_session: AsyncSession,
+) -> None:
+    """Create supersession event with partial replacement fields → load rejects."""
+    inp1 = _mature_loss_input(version="v1", revision=1)
+    r1 = await create_or_load_mature_loss(db_session, loss_input=inp1)
+
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=r1.authority_id,
+        activation_boundary=date(2026, 6, 1),
+    )
+
+    inp2 = _mature_loss_input(version="v2", revision=1)
+    _sup = await supersede_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        old_id=r1.authority_id,
+        new_input=inp2,
+        replacement_boundary=date(2026, 9, 1),
+    )
+
+    # Find the supersession event on old and tamper it
+    stable_key_old = build_mature_inventory_loss_stable_key(inp1)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=stable_key_old,
+        version=inp1.loss_version,
+        revision=inp1.revision,
+    )
+    assert len(events) == 3
+    # The third event is the supersession event
+    sup_event = events[2]
+    assert sup_event.new_status == "superseded"
+
+    # Clear one of the superseded_by fields to simulate incomplete identity
+    sup_event.superseded_by_authority_stable_key = None
+    await db_session.flush()
+
+    with pytest.raises(AuthoritySupersessionScopeConflictError) as exc_info:
+        await load_mature_loss_by_id(
+            db_session, authority_id=r1.authority_id
+        )
+    assert exc_info.value.code == "AUTHORITY_SUPERSESSION_SCOPE_CONFLICT"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_final_event_mismatch(db_session: AsyncSession) -> None:
+    """Modify final event to disagree with authority state → load rejects."""
+    inp = _mature_loss_input()
+    result = await create_or_load_mature_loss(db_session, loss_input=inp)
+
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY.value,
+        stable_key=build_mature_inventory_loss_stable_key(inp),
+        version=inp.loss_version,
+        revision=inp.revision,
+    )
+    assert len(events) == 1
+
+    # The authority is "draft", tamper the event's new_status to "active"
+    events[0].new_status = "active"
+    await db_session.flush()
+
+    with pytest.raises(AuthorityConsumabilityIntervalConflictError) as exc_info:
+        await load_mature_loss_by_id(db_session, authority_id=result.authority_id)
+    assert exc_info.value.code == "AUTHORITY_CONSUMABILITY_INTERVAL_CONFLICT"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  P0-3 MEMBER PROJECTION TESTS
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_pool_member_cannot_fake_parent_fields(
+    db_session: AsyncSession,
+) -> None:
+    """Verify member inherits from DB parent, not publisher input."""
+    inp = _pool_input()
+    result = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=inp
+    )
+    assert result.parent.created is True
+
+    # Load succeeds — members inherited correct fields from parent
+    loaded = await load_capacity_pool_definition_by_id(
+        db_session, authority_id=result.parent.authority_id
+    )
+    assert len(loaded.child_hashes) == 1
+    assert loaded.parent.row_hash == result.parent.row_hash
+
+
+@pytest.mark.asyncio
+async def test_pool_member_projection_tamper_detected(
+    db_session: AsyncSession,
+) -> None:
+    """Modify member's inherited fields → load rejects."""
+    from backend.app.models.task9_authority import Task9CapacityPoolMember
+
+    inp = _pool_input()
+    result = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=inp
+    )
+
+    # Find the member row and tamper it
+    member_stmt = select(Task9CapacityPoolMember).where(
+        Task9CapacityPoolMember.capacity_pool_definition_id
+        == result.parent.authority_id,
+    )
+    member_result = await session_execute(db_session, member_stmt)
+    members = list(member_result.scalars().all())
+    assert len(members) == 1
+
+    # Tamper the member's row_hash
+    original_hash = members[0].row_hash
+    members[0].row_hash = "f" * 64
+    await db_session.flush()
+
+    # Load should detect the tamper
+    with pytest.raises(Exception):  # noqa: B017
+        await load_capacity_pool_definition_by_id(
+            db_session, authority_id=result.parent.authority_id
+        )
+
+    # Restore for rollback safety
+    members[0].row_hash = original_hash
+    await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_pool_member_child_add_delete_tamper(
+    db_session: AsyncSession,
+) -> None:
+    """Add/remove/tamper children → load rejects."""
+    from backend.app.models.task9_authority import Task9CapacityPoolMember
+
+    inp = _pool_input()
+    result = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=inp
+    )
+
+    # Add a fake member
+    fake_member = Task9CapacityPoolMember(
+        capacity_pool_definition_id=result.parent.authority_id,
+        farm_id=_IDS["farm"],
+        subfarm_id=None,
+        variety_id=_IDS["variety"],
+        row_hash="a" * 64,
+    )
+    db_session.add(fake_member)
+    await db_session.flush()
+
+    # Load should detect extra child
+    with pytest.raises(Exception):  # noqa: B017
+        await load_capacity_pool_definition_by_id(
+            db_session, authority_id=result.parent.authority_id
+        )
+
+    # Remove the fake member
+    await db_session.delete(fake_member)
+    await db_session.flush()
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  P0-5 BOUNDARY VALIDATION TESTS
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_activation_boundary_before_available_at(
+    db_session: AsyncSession,
+) -> None:
+    """activation_boundary < available_at → AUTHORITY_CONSUMABILITY_INTERVAL_INVALID."""
+    # Use a pool with available_at=2026-01-01
+    inp = _pool_input()
+    await create_or_load_capacity_pool_definition(
+        db_session, definition_input=inp
+    )
+
+    daily = _daily_input()
+    r = await create_or_load_daily_capacity(db_session, daily_input=daily)
+
+    # Try to activate with boundary before available_at (2026-01-01)
+    with pytest.raises(AuthorityConsumabilityIntervalInvalidError) as exc_info:
+        await activate_authority(
+            db_session,
+            family=AuthorityFamily.DAILY_CAPACITY,
+            authority_id=r.authority_id,
+            activation_boundary=date(2025, 12, 1),
+        )
+    assert exc_info.value.code == "AUTHORITY_CONSUMABILITY_INTERVAL_INVALID"
+    assert exc_info.value.details["reason"] == "activation_boundary_before_available_at"
+
+
+@pytest.mark.asyncio
+async def test_activation_boundary_equals_available_at(
+    db_session: AsyncSession,
+) -> None:
+    """activation_boundary == available_at → should succeed."""
+    inp = _pool_input()
+    await create_or_load_capacity_pool_definition(
+        db_session, definition_input=inp
+    )
+
+    daily = _daily_input()
+    r = await create_or_load_daily_capacity(db_session, daily_input=daily)
+
+    # available_at = 2026-01-01, activation_boundary = 2026-01-01 → OK
+    act = await activate_authority(
+        db_session,
+        family=AuthorityFamily.DAILY_CAPACITY,
+        authority_id=r.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    assert act.new_status == AuthorityStatus.ACTIVE
+    assert act.new_consumable_from == date(2026, 1, 1)
+
+
+@pytest.mark.asyncio
+async def test_retirement_equals_consumable_from(
+    db_session: AsyncSession,
+) -> None:
+    """retirement_boundary == consumable_from → AUTHORITY_CONSUMABILITY_INTERVAL_INVALID."""
+    inp = _mature_loss_input()
+    r = await create_or_load_mature_loss(db_session, loss_input=inp)
+
+    boundary = date(2026, 6, 1)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=r.authority_id,
+        activation_boundary=boundary,
+    )
+
+    # retirement_boundary == consumable_from → must be strictly after
+    with pytest.raises(AuthorityConsumabilityIntervalInvalidError) as exc_info:
+        await retire_authority(
+            db_session,
+            family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            authority_id=r.authority_id,
+            retirement_boundary=boundary,
+        )
+    assert exc_info.value.code == "AUTHORITY_CONSUMABILITY_INTERVAL_INVALID"
+    assert (
+        exc_info.value.details["reason"]
+        == "retirement_boundary_not_after_consumable_from"
+    )
+
+
+@pytest.mark.asyncio
+async def test_retirement_before_consumable_from(
+    db_session: AsyncSession,
+) -> None:
+    """retirement_boundary < consumable_from → AUTHORITY_CONSUMABILITY_INTERVAL_INVALID."""
+    inp = _mature_loss_input()
+    r = await create_or_load_mature_loss(db_session, loss_input=inp)
+
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=r.authority_id,
+        activation_boundary=date(2026, 6, 1),
+    )
+
+    with pytest.raises(AuthorityConsumabilityIntervalInvalidError) as exc_info:
+        await retire_authority(
+            db_session,
+            family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            authority_id=r.authority_id,
+            retirement_boundary=date(2026, 5, 1),
+        )
+    assert exc_info.value.code == "AUTHORITY_CONSUMABILITY_INTERVAL_INVALID"
+    assert (
+        exc_info.value.details["reason"]
+        == "retirement_boundary_not_after_consumable_from"
+    )
+
+
+@pytest.mark.asyncio
+async def test_retirement_after_consumable_from(
+    db_session: AsyncSession,
+) -> None:
+    """retirement_boundary > consumable_from → should succeed."""
+    inp = _mature_loss_input()
+    r = await create_or_load_mature_loss(db_session, loss_input=inp)
+
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=r.authority_id,
+        activation_boundary=date(2026, 6, 1),
+    )
+
+    ret = await retire_authority(
+        db_session,
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        authority_id=r.authority_id,
+        retirement_boundary=date(2026, 12, 31),
+    )
+    assert ret.new_status == AuthorityStatus.RETIRED
+    assert ret.new_consumable_to == date(2026, 12, 31)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  P0-4 DEPENDENCY REPLACEMENT TESTS
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_trio_replacement_atomic(db_session: AsyncSession) -> None:
+    """Full trio replacement test via replace_run_package_with_dependencies."""
+    # Create old trio
+    holiday = _holiday_input()
+    await create_or_load_holiday_calendar(db_session, calendar_input=holiday)
+
+    weather = _weather_input()
+    await create_or_load_weather_rule(db_session, weather_input=weather)
+
+    pkg = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg,
+        holiday_calendar=holiday,
+        weather_rule=weather,
+    )
+
+    # Activate old package (and its dependencies)
+    hol_id = await _get_holiday_id_async(db_session, holiday)
+    wx_id = await _get_weather_id_async(db_session, weather)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=hol_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=wx_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Create new trio inputs
+    new_holiday = _holiday_input(version="v2", revision=1)
+    new_weather = _weather_input(version="v2", revision=1)
+    new_pkg = _run_package_input(version="v2", revision=1)
+
+    boundary = date(2026, 7, 1)
+    sup_result = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=new_pkg,
+        new_holiday_input=new_holiday,
+        new_weather_input=new_weather,
+        replacement_boundary=boundary,
+    )
+
+    # Verify old package is superseded
+    assert sup_result.old.new_status == AuthorityStatus.SUPERSEDED
+    assert sup_result.old.new_consumable_to == boundary
+
+    # Verify new package is active
+    assert sup_result.new_activation.new_status == AuthorityStatus.ACTIVE
+    assert sup_result.new_activation.new_consumable_from == boundary
+
+
+@pytest.mark.asyncio
+async def test_trio_replacement_interval_consistency(
+    db_session: AsyncSession,
+) -> None:
+    """All 6 authorities use same boundary after replacement."""
+    # Create old trio
+    holiday = _holiday_input()
+    await create_or_load_holiday_calendar(db_session, calendar_input=holiday)
+
+    weather = _weather_input()
+    await create_or_load_weather_rule(db_session, weather_input=weather)
+
+    pkg = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg,
+        holiday_calendar=holiday,
+        weather_rule=weather,
+    )
+
+    # Activate all
+    hol_id = await _get_holiday_id_async(db_session, holiday)
+    wx_id = await _get_weather_id_async(db_session, weather)
+
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=hol_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=wx_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Replace
+    new_holiday = _holiday_input(version="v2", revision=1)
+    new_weather = _weather_input(version="v2", revision=1)
+    new_pkg = _run_package_input(version="v2", revision=1)
+
+    boundary = date(2026, 7, 1)
+    await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=new_pkg,
+        new_holiday_input=new_holiday,
+        new_weather_input=new_weather,
+        replacement_boundary=boundary,
+    )
+
+    # Verify old trio consumable_to == boundary
+    from backend.app.models.task9_authority import (
+        Task9HolidayCalendarVersion,
+        Task9RunParameterPackage,
+        Task9WeatherRuleConfigVersion,
+    )
+
+    old_pkg_stmt = select(Task9RunParameterPackage).where(
+        Task9RunParameterPackage.id == pkg_result.authority_id,
+    )
+    old_pkg_row = (await session_execute(db_session, old_pkg_stmt)).scalar_one()
+    assert old_pkg_row.consumable_to_local_date == boundary
+
+    old_hol_stmt = select(Task9HolidayCalendarVersion).where(
+        Task9HolidayCalendarVersion.id == hol_id,
+    )
+    old_hol_row = (await session_execute(db_session, old_hol_stmt)).scalar_one()
+    assert old_hol_row.consumable_to_local_date == boundary
+
+    old_wx_stmt = select(Task9WeatherRuleConfigVersion).where(
+        Task9WeatherRuleConfigVersion.id == wx_id,
+    )
+    old_wx_row = (await session_execute(db_session, old_wx_stmt)).scalar_one()
+    assert old_wx_row.consumable_to_local_date == boundary
+
+
+async def _get_holiday_id_async(session: AsyncSession, inp) -> int:  # type: ignore[no-untyped-def]
+    from backend.app.models.task9_authority import Task9HolidayCalendarVersion
+
+    stmt = select(Task9HolidayCalendarVersion).where(
+        Task9HolidayCalendarVersion.season_id == inp.season_id,
+        Task9HolidayCalendarVersion.calendar_code == inp.calendar_code,
+        Task9HolidayCalendarVersion.calendar_version == inp.calendar_version,
+        Task9HolidayCalendarVersion.revision == inp.revision,
+    )
+    result = await session_execute(session, stmt)
+    return result.scalar_one().id
+
+
+async def _get_weather_id_async(session: AsyncSession, inp) -> int:  # type: ignore[no-untyped-def]
+    from backend.app.models.task9_authority import Task9WeatherRuleConfigVersion
+
+    stmt = select(Task9WeatherRuleConfigVersion).where(
+        Task9WeatherRuleConfigVersion.rule_code == inp.rule_code,
+        Task9WeatherRuleConfigVersion.rule_version == inp.rule_version,
+        Task9WeatherRuleConfigVersion.revision == inp.revision,
+    )
+    result = await session_execute(session, stmt)
+    return result.scalar_one().id
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  P0-7 EXACT LOAD TESTS
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_load_by_business_key(db_session: AsyncSession) -> None:
+    """Load daily capacity by business key."""
+    inp = _pool_input()
+    await create_or_load_capacity_pool_definition(
+        db_session, definition_input=inp
+    )
+
+    daily = _daily_input()
+    create_result = await create_or_load_daily_capacity(
+        db_session, daily_input=daily
+    )
+
+    stable_key = build_daily_capacity_stable_key(daily)
+    loaded = await load_authority_by_business_key(
+        db_session,
+        family=AuthorityFamily.DAILY_CAPACITY,
+        stable_key=stable_key,
+        business_version=daily.capacity_pool_version,
+        revision=daily.daily_capacity_revision,
+    )
+    assert loaded.authority_id == create_result.authority_id
+    assert loaded.row_hash == create_result.row_hash
+
+
+@pytest.mark.asyncio
+async def test_load_by_persistent_identity(db_session: AsyncSession) -> None:
+    """Load daily capacity by persistent identity (business key + row_hash)."""
+    inp = _pool_input()
+    await create_or_load_capacity_pool_definition(
+        db_session, definition_input=inp
+    )
+
+    daily = _daily_input()
+    create_result = await create_or_load_daily_capacity(
+        db_session, daily_input=daily
+    )
+
+    stable_key = build_daily_capacity_stable_key(daily)
+    loaded = await load_authority_by_persistent_identity(
+        db_session,
+        family=AuthorityFamily.DAILY_CAPACITY,
+        stable_key=stable_key,
+        business_version=daily.capacity_pool_version,
+        revision=daily.daily_capacity_revision,
+        row_hash=create_result.row_hash,
+    )
+    assert loaded.authority_id == create_result.authority_id
+
+
+@pytest.mark.asyncio
+async def test_load_by_wrong_row_hash(db_session: AsyncSession) -> None:
+    """Load with wrong row_hash → AUTHORITY_HASH_CONFLICT."""
+    inp = _pool_input()
+    await create_or_load_capacity_pool_definition(
+        db_session, definition_input=inp
+    )
+
+    daily = _daily_input()
+    await create_or_load_daily_capacity(db_session, daily_input=daily)
+
+    stable_key = build_daily_capacity_stable_key(daily)
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
+        await load_authority_by_persistent_identity(
+            db_session,
+            family=AuthorityFamily.DAILY_CAPACITY,
+            stable_key=stable_key,
+            business_version=daily.capacity_pool_version,
+            revision=daily.daily_capacity_revision,
+            row_hash="a" * 64,
+        )
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+
+
+@pytest.mark.asyncio
+async def test_load_by_row_hash(db_session: AsyncSession) -> None:
+    """Load weather by row hash."""
+    inp = _weather_input()
+    create_result = await create_or_load_weather_rule(
+        db_session, weather_input=inp
+    )
+
+    loaded = await load_authority_by_row_hash(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        row_hash=create_result.row_hash,
+    )
+    assert loaded.authority_id == create_result.authority_id
+    assert loaded.row_hash == create_result.row_hash
+
+
+@pytest.mark.asyncio
+async def test_load_by_nonexistent_identity(db_session: AsyncSession) -> None:
+    """Load by nonexistent business key → AUTHORITY_NOT_FOUND."""
+    with pytest.raises(AuthorityNotFoundError) as exc_info:
+        await load_authority_by_business_key(
+            db_session,
+            family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            stable_key="mature-loss:999:999:NONE:2099-01-01:P50",
+            business_version="nonexistent",
+            revision=999,
+        )
+    assert exc_info.value.code == "AUTHORITY_NOT_FOUND"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  P1-1 CONCURRENCY TESTS
+# ══════════════════════════════════════════════════════════════════════════
+
+
+async def _concurrent_create(session_factory, create_fn, *args):  # type: ignore[no-untyped-def]
+    """Run two concurrent create_or_load operations."""
+    async with session_factory() as s1:
+        async with session_factory() as s2:
+            barrier = asyncio.Event()
+
+            async def task1():
+                barrier.set()
+                return await create_fn(s1, *args)
+
+            async def task2():
+                await barrier.wait()
+                return await create_fn(s2, *args)
+
+            results = await asyncio.gather(task1(), task2(), return_exceptions=True)
+            return results
+
+
+@pytest.mark.asyncio
+async def test_concurrent_same_payload(db_session: AsyncSession) -> None:
+    """Two async sessions create same authority: exactly one created=True, both get same id/hash."""
+    # Seed required dimension data
+    inp = _mature_loss_input()
+
+    async def create_fn(session, loss_input):  # type: ignore[no-untyped-def]
+        return await create_or_load_mature_loss(session, loss_input=loss_input)
+
+    results = await _concurrent_create(AsyncSessionMaker, create_fn, inp)
+
+    # Both should succeed (no exceptions)
+    assert all(not isinstance(r, Exception) for r in results), (
+        f"Unexpected exceptions: {[r for r in results if isinstance(r, Exception)]}"
+    )
+
+    r1, r2 = results
+    # Exactly one should have created=True
+    created_count = sum(1 for r in [r1, r2] if r.created)
+    assert created_count == 1, f"Expected 1 created, got {created_count}"
+
+    # Both should have same authority_id and row_hash
+    assert r1.authority_id == r2.authority_id
+    assert r1.row_hash == r2.row_hash
+
+
+@pytest.mark.asyncio
+async def test_concurrent_conflicting_payload(
+    db_session: AsyncSession,
+) -> None:
+    """Two async sessions create same key different payload: one succeeds, one gets VERSION_CONFLICT."""
+    inp1 = _mature_loss_input(version="v1", revision=1)
+    inp2 = _mature_loss_input(version="v1", revision=1)
+    inp2 = inp2.model_copy(
+        update={
+            "mature_inventory_loss_quantity_kg": Decimal("999.00"),
+            "source_record_key": "test:mature:v1:1:conflict",
+        }
+    )
+
+    async def create_fn(session, loss_input):  # type: ignore[no-untyped-def]
+        return await create_or_load_mature_loss(session, loss_input=loss_input)
+
+    # First create succeeds
+    r1 = await create_fn(db_session, inp1)
+    assert r1.created is True
+
+    # Second with different payload should fail
+    with pytest.raises(AuthorityVersionConflictError):
+        await create_fn(db_session, inp2)
