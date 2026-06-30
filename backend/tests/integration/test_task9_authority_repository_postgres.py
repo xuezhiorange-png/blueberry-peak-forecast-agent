@@ -2035,63 +2035,52 @@ async def test_pool_member_projection_tamper_detected(
 async def test_pool_member_child_add_delete_tamper(
     db_session: AsyncSession,
 ) -> None:
-    """Delete a member → load detects hash mismatch from child count change."""
-    from backend.app.models.task9_authority import Task9CapacityPoolMember
-
+    """Delete a member via raw SQL → load detects hash mismatch from child count change."""
     inp = _pool_input()
     result = await create_or_load_capacity_pool_definition(
         db_session, definition_input=inp
     )
+    parent_id = result.parent.authority_id
 
-    # Find the member and delete it
-    member_stmt = select(Task9CapacityPoolMember).where(
-        Task9CapacityPoolMember.capacity_pool_definition_id
-        == result.parent.authority_id,
+    # Count members before
+    count_before = await db_session.execute(
+        text(
+            "SELECT count(*) FROM task9_capacity_pool_member "
+            "WHERE capacity_pool_definition_id = :pid"
+        ),
+        {"pid": parent_id},
     )
-    member_result = await db_session.execute(member_stmt)
-    members = list(member_result.scalars().all())
-    assert len(members) == 1
+    assert count_before.scalar_one() == 1
 
-    # Save member attrs BEFORE deletion — ORM expires them after flush
-    _saved_farm_id = members[0].farm_id
-    _saved_subfarm_id = members[0].subfarm_id
-    _saved_variety_id = members[0].variety_id
-    _saved_row_hash = members[0].row_hash
-    _saved_parent_id = result.parent.authority_id
-
-    await db_session.delete(members[0])
+    # Delete the member via raw SQL (bypasses SQLAlchemy identity-map caching)
+    await db_session.execute(
+        text(
+            "DELETE FROM task9_capacity_pool_member "
+            "WHERE capacity_pool_definition_id = :pid"
+        ),
+        {"pid": parent_id},
+    )
     await db_session.flush()
+
+    # Confirm raw SQL delete took effect
+    count_after = await db_session.execute(
+        text(
+            "SELECT count(*) FROM task9_capacity_pool_member "
+            "WHERE capacity_pool_definition_id = :pid"
+        ),
+        {"pid": parent_id},
+    )
+    assert count_after.scalar_one() == 0, "Raw SQL delete should have removed the member"
+
+    # Expire all ORM state so the next SELECT hits the DB, not the identity map
+    db_session.expire_all()
 
     # Load should detect missing child (hash mismatch from 0 members vs 1)
     with pytest.raises(AuthorityHashConflictError):
         await load_capacity_pool_definition_by_id(
-            db_session, authority_id=_saved_parent_id
+            db_session, authority_id=parent_id
         )
-
-    # Restore for rollback safety — re-insert using saved attrs
-    # (raw SQL to avoid FK issues with infinity dates)
-    await db_session.execute(
-        text(
-            "INSERT INTO task9_capacity_pool_member ("
-            "capacity_pool_definition_id, season_id, destination_factory_id, "
-            "farm_id, subfarm_id, variety_id, "
-            "effective_from, effective_to, status, "
-            "consumable_from_key, consumable_to_key, row_hash"
-            ") SELECT p.id, p.season_id, p.destination_factory_id, "
-            ":farm_id, :subfarm_id, :variety_id, "
-            "p.effective_from, p.effective_to, p.status, "
-            "p.consumable_from_key, p.consumable_to_key, :child_hash "
-            "FROM task9_capacity_pool_definition p WHERE p.id = :pid"
-        ),
-        {
-            "farm_id": _saved_farm_id,
-            "subfarm_id": _saved_subfarm_id,
-            "variety_id": _saved_variety_id,
-            "child_hash": _saved_row_hash,
-            "pid": _saved_parent_id,
-        },
-    )
-    await db_session.flush()
+    # Fixture rollback handles cleanup — no manual restore needed
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -2530,10 +2519,9 @@ async def test_load_by_nonexistent_identity(db_session: AsyncSession) -> None:
 async def _concurrent_create(session_factory, create_fn, *args):  # type: ignore[no-untyped-def]
     """Run two concurrent create_or_load operations.
 
-    Each session runs inside ``session.begin()`` so that session 1 commits
-    before session 2's advisory-lock wait times out.  Without an explicit
-    commit the transaction-scoped advisory lock is never released and the
-    second session blocks forever.
+    Each task gets its own session, runs create_fn, then explicitly commits.
+    The barrier ensures task1 starts first; task2's advisory-lock acquire
+    blocks at the DB level until task1's commit releases the lock.
     """
     barrier = asyncio.Event()
     r1_holder: list = []
@@ -2541,17 +2529,17 @@ async def _concurrent_create(session_factory, create_fn, *args):  # type: ignore
 
     async def task1() -> None:
         async with session_factory() as s:
-            async with s.begin():
-                barrier.set()
-                r1_holder.append(await create_fn(s, *args))
+            barrier.set()
+            r1_holder.append(await create_fn(s, *args))
+            await s.commit()
 
     async def task2() -> None:
         async with session_factory() as s:
             await barrier.wait()
-            async with s.begin():
-                r2_holder.append(await create_fn(s, *args))
+            r2_holder.append(await create_fn(s, *args))
+            await s.commit()
 
-    await asyncio.gather(task1(), task2(), return_exceptions=False)
+    await asyncio.gather(task1(), task2())
     return [*r1_holder, *r2_holder]
 
 
