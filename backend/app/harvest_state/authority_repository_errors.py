@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from backend.app.harvest_state.enums import AuthorityFamily
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class Task9AuthorityRepositoryError(Exception):
     """Base repository error with stable code and structured details."""
 

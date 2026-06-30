@@ -1636,10 +1636,12 @@ async def _rewrite_lifecycle_event(
         "transitioned_at": event.transitioned_at,
         "source_system": event.source_system,
         "source_record_key": event.source_record_key,
-        "lifecycle_event_hash": event.lifecycle_event_hash,
     }
     payload.update(updates)
-    semantic = Task9LifecycleEventSemanticInput(**payload)
+    # Remove lifecycle_event_hash before constructing semantic input
+    # (Task9LifecycleEventSemanticInput has extra="forbid")
+    semantic_payload = {k: v for k, v in payload.items() if k != "lifecycle_event_hash"}
+    semantic = Task9LifecycleEventSemanticInput(**semantic_payload)
     payload["lifecycle_event_hash"] = make_lifecycle_event_hash(semantic)
     await session.execute(
         text(
@@ -1786,34 +1788,30 @@ async def test_load_holiday_tampered_child_validation_becomes_typed_hash_conflic
 
 @pytest.mark.asyncio
 async def test_load_pool_rejects_parent_projection_tamper(db_session: AsyncSession) -> None:
+    """Tamper member status → repository detects parent projection mismatch."""
     inp = _pool_input()
     created = await create_or_load_capacity_pool_definition(db_session, definition_input=inp)
-    await db_session.execute(
-        text(
-            "INSERT INTO dim_season (code, start_date, end_date) "
-            "VALUES ('tamper-season', '2027-01-01', '2027-12-31') "
-            "ON CONFLICT DO NOTHING"
-        )
-    )
-    season_id = (
-        await db_session.execute(text("SELECT id FROM dim_season WHERE code = 'tamper-season'"))
-    ).scalar_one()
+    # Tamper: change member status (no FK, no exclusion constraint)
+    # to a value different from the parent's status.
     await db_session.execute(
         text(
             """
             UPDATE task9_capacity_pool_member
-            SET season_id = :season_id
+            SET status = 'tampered'
             WHERE capacity_pool_definition_id = :authority_id
             """
         ),
-        {"season_id": season_id, "authority_id": created.parent.authority_id},
+        {"authority_id": created.parent.authority_id},
     )
+    await db_session.flush()
+    db_session.expire_all()
     with pytest.raises(AuthorityHashConflictError) as exc_info:
         await load_capacity_pool_definition_by_id(
             db_session, authority_id=created.parent.authority_id
         )
     assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
     assert exc_info.value.details["reason"] == "capacity_pool_member_parent_projection_mismatch"
+    assert exc_info.value.details["field"] == "status"
 
 
 @pytest.mark.asyncio
