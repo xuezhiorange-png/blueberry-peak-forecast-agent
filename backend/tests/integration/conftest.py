@@ -1,10 +1,10 @@
-"""Integration test configuration: database safety guard and isolation fixtures.
+"""Integration test configuration: marker-aware isolation and safety guards.
 
 Provides:
-- assert_safe_postgres_test_configuration(): typed, testable safety check
-- assert_connected_to_safe_test_database(): actual DB identity verification
-- Transactional isolation fixture for postgres_transactional tests
-- Cleanup fixture for postgres_real_commit / postgres_concurrency tests
+- pytest_collection_modifyitems: enforces one isolation marker per integration test
+- isolate_postgres_integration_test: marker-aware autouse fixture
+- assert_connected_to_safe_test_database: DB identity verification
+- _truncate_master_data: destructive cleanup with full guard
 """
 
 from __future__ import annotations
@@ -14,14 +14,23 @@ from collections.abc import AsyncIterator
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from backend.app.core.config import get_settings
+# ── Isolation marker names ───────────────────────────────────────────────────
 
-# ── Safety constants ─────────────────────────────────────────────────────────
+_ISOLATION_MARKERS = (
+    "postgres_transactional",
+    "postgres_real_commit",
+    "postgres_migration",
+    "postgres_concurrency",
+)
 
-ALLOWED_TEST_DATABASES = {"blueberry_peak_test"}
-FORBIDDEN_DATABASES = {"blueberry_peak", "postgres", "template0", "template1"}
+_SPECIAL_MARKERS = frozenset({
+    "postgres_real_commit",
+    "postgres_migration",
+    "postgres_concurrency",
+})
+
+# ── Master data tables for cleanup ───────────────────────────────────────────
 
 _MASTER_DATA_TABLES = (
     "task9_authority_lifecycle_event",
@@ -91,87 +100,68 @@ _MASTER_DATA_TABLES = (
 )
 
 
-# ── Safety guard functions ───────────────────────────────────────────────────
+# ── Collection validation ────────────────────────────────────────────────────
 
 
-def assert_safe_postgres_test_configuration() -> None:
-    """Validate environment variables before any destructive DB operation.
+def pytest_collection_modifyitems(
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    """Enforce marker partition: each integration test gets exactly one isolation marker."""
+    for item in items:
+        marker_names = {m.name for m in item.iter_markers() if m.name in _ISOLATION_MARKERS}
 
-    Raises RuntimeError with a clear message if any condition fails.
-    Never includes passwords in error messages.
-    """
-    app_env = os.getenv("APP_ENV")
-    if app_env != "test":
-        raise RuntimeError(f"Refusing to run: APP_ENV={app_env!r} (expected 'test')")
+        is_integration = item.get_closest_marker("integration") is not None
 
-    db_name = os.getenv("POSTGRES_DB")
-    if not db_name:
-        raise RuntimeError("Refusing to run: POSTGRES_DB is not set")
+        if not is_integration:
+            # Non-integration tests must not have special markers
+            invalid = marker_names & _SPECIAL_MARKERS
+            if invalid:
+                raise pytest.UsageError(
+                    f"Non-integration test {item.nodeid} has special marker(s): "
+                    f"{', '.join(sorted(invalid))}. "
+                    f"Special markers are only for integration tests."
+                )
+            continue
 
-    if db_name in FORBIDDEN_DATABASES:
-        raise RuntimeError(f"Refusing to run: POSTGRES_DB={db_name!r} is a protected database name")
+        # Integration test with no isolation marker → add default
+        if not marker_names:
+            item.add_marker(pytest.mark.postgres_transactional)
+            marker_names = {"postgres_transactional"}
 
-    if db_name not in ALLOWED_TEST_DATABASES:
-        raise RuntimeError(
-            f"Refusing to run: POSTGRES_DB={db_name!r} is not in allowed test databases"
-        )
-
-
-async def assert_connected_to_safe_test_database() -> None:
-    """Verify the actual database connection matches expected test configuration.
-
-    Checks:
-    1. APP_ENV == "test"
-    2. POSTGRES_DB == "blueberry_peak_test"
-    3. SELECT current_database() returns "blueberry_peak_test"
-    4. All three sources agree
-
-    Raises RuntimeError if any check fails.
-    """
-    assert_safe_postgres_test_configuration()
-
-    settings = get_settings()
-    configured_db = settings.postgres_db
-
-    env_db = os.getenv("POSTGRES_DB", "")
-
-    engine = create_async_engine(settings.async_database_url)
-    try:
-        async with engine.connect() as conn:
-            actual_db = await conn.execute(text("SELECT current_database()"))
-            actual_db_name = actual_db.scalar_one()
-    finally:
-        await engine.dispose()
-
-    if configured_db != env_db:
-        raise RuntimeError(
-            f"Database mismatch: configured URL has {configured_db!r}, env has {env_db!r}"
-        )
-
-    if configured_db != actual_db_name:
-        raise RuntimeError(
-            f"Database mismatch: configured {configured_db!r}, "
-            f"actual connected to {actual_db_name!r}"
-        )
-
-    if actual_db_name not in ALLOWED_TEST_DATABASES:
-        raise RuntimeError(f"Connected to {actual_db_name!r} which is not an allowed test database")
+        # Must have exactly one isolation marker
+        if len(marker_names) > 1:
+            raise pytest.UsageError(
+                f"Integration test {item.nodeid} has multiple isolation markers: "
+                f"{', '.join(sorted(marker_names))}. "
+                f"Each test must have exactly one."
+            )
 
 
-# ── Fixtures ─────────────────────────────────────────────────────────────────
+# ── Helper functions ─────────────────────────────────────────────────────────
 
 
 def _postgres_integration_enabled() -> bool:
     return os.getenv("RUN_POSTGRES_INTEGRATION") == "1"
 
 
-def _ensure_test_database() -> None:
-    if os.getenv("APP_ENV") != "test":
-        raise RuntimeError("PostgreSQL integration cleanup requires APP_ENV=test")
+def _get_marker_name(item: pytest.Item) -> str | None:
+    """Return the isolation marker name for a test item, or None."""
+    for m in item.iter_markers():
+        if m.name in _ISOLATION_MARKERS:
+            return m.name
+    return None
 
 
 async def _truncate_master_data() -> None:
-    _ensure_test_database()
+    """Destructive cleanup: TRUNCATE all master data tables.
+
+    Calls full identity guard before any destructive operation.
+    """
+    from backend.tests.postgres_test_support import assert_connected_to_safe_test_database
+
+    await assert_connected_to_safe_test_database()
+
     from backend.app.db.session import AsyncSessionMaker
 
     async with AsyncSessionMaker() as session:
@@ -179,6 +169,9 @@ async def _truncate_master_data() -> None:
             text(f"TRUNCATE {', '.join(_MASTER_DATA_TABLES)} RESTART IDENTITY CASCADE")
         )
         await session.commit()
+
+
+# ── Fixtures ─────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -191,48 +184,33 @@ async def dispose_engine_after_integration_tests() -> AsyncIterator[None]:
 
 
 @pytest.fixture(autouse=True)
-async def verify_test_database_identity() -> None:
-    """Fail-closed: verify we are connected to the safe test database."""
+async def isolate_postgres_integration_test(request: pytest.FixtureRequest) -> AsyncIterator[None]:
+    """Marker-aware autouse fixture for all integration tests.
+
+    - non-integration: no-op
+    - postgres_transactional: transaction isolation (no TRUNCATE)
+    - postgres_real_commit / postgres_concurrency / postgres_migration: TRUNCATE cleanup
+    """
     if not _postgres_integration_enabled():
+        yield
         return
+
+    marker_name = _get_marker_name(request.node)
+
+    # Verify database identity for all integration tests
+    from backend.tests.postgres_test_support import assert_connected_to_safe_test_database
+
     await assert_connected_to_safe_test_database()
 
+    if marker_name == "postgres_transactional":
+        from backend.tests.postgres_test_support import postgres_transactional_isolation
 
-@pytest.fixture(autouse=True)
-async def isolate_master_data_tables() -> AsyncIterator[None]:
-    """Clean up test data before and after each integration test.
-
-    Used for postgres_real_commit and postgres_concurrency tests where
-    transaction rollback isolation is not possible.
-    """
-    if not _postgres_integration_enabled():
-        yield
-        return
-
-    await _truncate_master_data()
-    try:
-        yield
-    finally:
+        async with postgres_transactional_isolation():
+            yield
+    else:
+        # Special tests: truncate before and after
         await _truncate_master_data()
-
-
-@pytest.fixture
-async def transactional_session() -> AsyncIterator[AsyncSession]:
-    """Provide a session isolated by an outer transaction/savepoint.
-
-    The outer transaction is never committed — it is rolled back on teardown,
-    ensuring no test data escapes to the database.
-
-    Application code calling session.commit() will create a savepoint instead,
-    so data is visible within the test but not outside.
-    """
-    from backend.app.db.session import engine
-
-    async with engine.connect() as conn:
-        txn = await conn.begin()
-        session = AsyncSession(bind=conn, expire_on_commit=False)
         try:
-            yield session
+            yield
         finally:
-            await session.close()
-            await txn.rollback()
+            await _truncate_master_data()

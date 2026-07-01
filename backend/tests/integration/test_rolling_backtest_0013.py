@@ -53,7 +53,7 @@ from backend.app.rolling_backtest.schemas import (
 _config_counter = 0
 
 
-pytestmark = [pytest.mark.integration, pytest.mark.postgres_concurrency]
+pytestmark = [pytest.mark.integration]
 
 
 def _next_suffix() -> str:

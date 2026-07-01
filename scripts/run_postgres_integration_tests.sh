@@ -11,7 +11,6 @@ set -Eeuo pipefail
 
 COMPOSE_FILE="docker-compose.test.yml"
 PROJECT_NAME="blueberry-peak-test"
-NETWORK="${PROJECT_NAME}_default"
 
 export APP_ENV=test
 export POSTGRES_HOST=127.0.0.1
@@ -22,6 +21,8 @@ export POSTGRES_PASSWORD=blueberry-test-only
 export RUN_POSTGRES_INTEGRATION=1
 
 EXTRA_PYTEST_ARGS=("$@")
+
+mkdir -p reports/test-results
 
 cleanup() {
   echo "::group::Teardown"
@@ -56,7 +57,7 @@ for i in $(seq 1 60); do
 done
 
 echo "=== Verifying database identity ==="
-python3 -c "
+uv run python -c "
 import asyncio, os, asyncpg
 
 async def main():
@@ -81,25 +82,38 @@ uv run alembic -c backend/alembic.ini upgrade head
 
 if [ ${#EXTRA_PYTEST_ARGS[@]} -gt 0 ]; then
   echo "=== Running specified tests ==="
+  status=0
   uv run pytest "${EXTRA_PYTEST_ARGS[@]}" -vv --tb=long \
-    --timeout=120 --timeout-method=thread
-  exit_code=$?
-  echo "=== Tests finished with exit code $exit_code ==="
-  exit "$exit_code"
+    --timeout=120 --timeout-method=thread || status=$?
+  echo "=== Tests finished with exit code $status ==="
+  exit "$status"
 fi
 
 echo "=== Running transactional integration tests ==="
+transactional_status=0
 uv run pytest \
-  -m "integration and not postgres_real_commit and not postgres_migration and not postgres_concurrency" \
+  -m "integration and postgres_transactional" \
   -vv --tb=long \
   --timeout=120 --timeout-method=thread \
-  --junitxml=reports/test-results/postgres-transactional.xml
+  --junitxml=reports/test-results/postgres-transactional.xml || transactional_status=$?
 
 echo "=== Running special integration tests ==="
+special_status=0
 uv run pytest \
-  -m "postgres_real_commit or postgres_migration or postgres_concurrency" \
+  -m "integration and (postgres_real_commit or postgres_migration or postgres_concurrency)" \
   -vv --tb=long \
   --timeout=120 --timeout-method=thread \
-  --junitxml=reports/test-results/postgres-special.xml
+  --junitxml=reports/test-results/postgres-special.xml || special_status=$?
+
+echo "=== Results: transactional=$transactional_status special=$special_status ==="
+
+if [ "$transactional_status" -ne 0 ]; then
+  echo "=== Transactional tests FAILED (exit $transactional_status) ==="
+  exit "$transactional_status"
+fi
+if [ "$special_status" -ne 0 ]; then
+  echo "=== Special tests FAILED (exit $special_status) ==="
+  exit "$special_status"
+fi
 
 echo "=== All integration tests passed ==="

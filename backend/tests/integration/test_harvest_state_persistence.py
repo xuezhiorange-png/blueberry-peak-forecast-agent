@@ -29,7 +29,7 @@ from backend.app.models.harvest_state import (
 )
 from backend.tests.harvest_state.conftest import make_request
 
-pytestmark = [pytest.mark.integration, pytest.mark.postgres_concurrency]
+pytestmark = [pytest.mark.integration]
 
 
 def _require_postgres() -> None:

@@ -80,7 +80,7 @@ from backend.app.harvest_state.enums import (
 from backend.app.harvest_state.schemas import WeatherFeatureBand, WeatherFeatureRule
 from backend.app.models.task9_authority import Task9AuthorityLifecycleEvent
 
-pytestmark = [pytest.mark.integration, pytest.mark.postgres_concurrency]
+pytestmark = [pytest.mark.integration]
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
