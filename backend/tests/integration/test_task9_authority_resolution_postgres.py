@@ -2,13 +2,18 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 import pytest
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.authority_canonical import (
+    build_daily_capacity_stable_key,
+)
 from backend.app.harvest_state.authority_repository import (
+    _write_lifecycle_event,
     activate_authority,
     create_or_load_capacity_pool_definition,
     create_or_load_daily_capacity,
@@ -42,7 +47,7 @@ from backend.app.harvest_state.authority_resolution_errors import (
     AuthorityEffectiveIntervalMismatchError,
     AuthorityNotConsumableAtCutoffError,
 )
-from backend.app.harvest_state.enums import AuthorityFamily
+from backend.app.harvest_state.enums import AuthorityFamily, AuthorityStatus
 from backend.app.models.task9_authority import (
     Task9CapacityPoolDefinition,
     Task9DailyCapacityAuthority,
@@ -136,6 +141,35 @@ async def _row_by_id(
     return result.scalar_one()
 
 
+async def _activate_daily_capacity_for_test(
+    session: AsyncSession,
+    *,
+    authority_id: int,
+    daily_input: Any,
+    activation_boundary: date,
+) -> None:
+    row = await _row_by_id(session, Task9DailyCapacityAuthority, authority_id)
+    row.status = AuthorityStatus.ACTIVE.value
+    row.consumable_from_local_date = activation_boundary
+    row.consumable_to_local_date = None
+    await session.flush()
+    await _write_lifecycle_event(
+        session,
+        family=AuthorityFamily.DAILY_CAPACITY,
+        stable_key=build_daily_capacity_stable_key(daily_input),
+        business_version=daily_input.capacity_pool_version,
+        revision=daily_input.daily_capacity_revision,
+        business_row_hash=row.row_hash,
+        transition_sequence=2,
+        old_status=AuthorityStatus.DRAFT,
+        new_status=AuthorityStatus.ACTIVE,
+        old_consumable_from=None,
+        old_consumable_to=None,
+        new_consumable_from=activation_boundary,
+        new_consumable_to=None,
+    )
+
+
 def _exact_reference(
     *,
     authority_id: int,
@@ -172,9 +206,10 @@ async def test_resolve_capacity_pool_current_historical_and_exact_reference(
     supersession = await supersede_authority(
         db_session,
         family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=old_created.parent.authority_id,
+        old_id=old_created.parent.authority_id,
         new_input=new_input,
-        supersession_boundary=date(2026, 6, 1),
+        new_members=list(new_input.members),
+        replacement_boundary=date(2026, 6, 1),
     )
 
     current = await resolve_capacity_pool_definition(
@@ -258,19 +293,22 @@ async def test_resolve_holiday_and_weather_historical_superseded_rows(
         activation_boundary=date(2026, 3, 1),
     )
 
+    holiday_v2 = _holiday_input(version="v2", revision=1)
+    weather_v2 = _weather_input(version="v2", revision=1)
     await supersede_authority(
         db_session,
         family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
-        authority_id=old_holiday_created.parent.authority_id,
-        new_input=_holiday_input(version="v2", revision=1),
-        supersession_boundary=date(2026, 6, 1),
+        old_id=old_holiday_created.parent.authority_id,
+        new_input=holiday_v2,
+        new_dates=list(holiday_v2.dates),
+        replacement_boundary=date(2026, 6, 1),
     )
     await supersede_authority(
         db_session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-        authority_id=old_weather_created.authority_id,
-        new_input=_weather_input(version="v2", revision=1),
-        supersession_boundary=date(2026, 6, 1),
+        old_id=old_weather_created.authority_id,
+        new_input=weather_v2,
+        replacement_boundary=date(2026, 6, 1),
     )
 
     holiday = await resolve_holiday_calendar(
@@ -315,11 +353,11 @@ async def test_resolve_daily_capacity_rejects_parent_not_consumable_and_effectiv
     )
     daily_input = _daily_input(pool_version="v1", pool_revision=1)
     daily_created = await create_or_load_daily_capacity(db_session, daily_input=daily_input)
-    await activate_authority(
+    await _activate_daily_capacity_for_test(
         db_session,
-        family=AuthorityFamily.DAILY_CAPACITY,
         authority_id=daily_created.authority_id,
         activation_boundary=date(2026, 3, 1),
+        daily_input=daily_input,
     )
 
     await retire_authority(
@@ -421,19 +459,22 @@ async def test_resolve_run_package_uses_exact_fk_dependencies(
         activation_boundary=date(2026, 3, 1),
     )
 
+    holiday_v2 = _holiday_input(version="v2", revision=1)
+    weather_v2 = _weather_input(version="v2", revision=1)
     await supersede_authority(
         db_session,
         family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
-        authority_id=holiday_created.parent.authority_id,
-        new_input=_holiday_input(version="v2", revision=1),
-        supersession_boundary=date(2026, 6, 1),
+        old_id=holiday_created.parent.authority_id,
+        new_input=holiday_v2,
+        new_dates=list(holiday_v2.dates),
+        replacement_boundary=date(2026, 6, 1),
     )
     await supersede_authority(
         db_session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-        authority_id=weather_created.authority_id,
-        new_input=_weather_input(version="v2", revision=1),
-        supersession_boundary=date(2026, 6, 1),
+        old_id=weather_created.authority_id,
+        new_input=weather_v2,
+        replacement_boundary=date(2026, 6, 1),
     )
 
     resolved = await resolve_run_parameter_package(
