@@ -1,3 +1,8 @@
+> **Status: ARCHIVED HISTORICAL DESIGN CHECKPOINT**
+> Non-normative
+> Original reviewed head: 68fe416...
+> Superseded by frozen Foundation contracts and subsequent P0-6/P0-7A–P0-7E reviews
+
 # Task 11 Phase 3 Design Amendment — Review 4587546667
 
 ## Baseline

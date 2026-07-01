@@ -26,8 +26,6 @@ from backend.app.rolling_backtest.orchestration import (
     ResolvedInputOutcome,
     Task9AuthorityOutcome,
     Task10AuthorityOutcome,
-    orchestrate_node,
-    orchestrate_run,
 )
 from backend.app.rolling_backtest.persistence import (
     AvailabilityAuditPersistenceCommand,
@@ -96,8 +94,6 @@ __all__ = [
     "NodeStateSnapshot",
     "OrchestrationBlocker",
     "OrchestrationStage",
-    "orchestrate_node",
-    "orchestrate_run",
     "ParentAuthorityIdentity",
     "ResolvedInputPersistenceCommand",
     "ResolvedInputOutcome",
