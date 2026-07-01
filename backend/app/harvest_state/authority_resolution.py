@@ -318,6 +318,24 @@ def _assert_exact_reference_match(
         )
 
 
+def _raise_dependency_from_canonical_error(exc: ValueError) -> None:
+    """Convert canonical builder ValueError to typed AuthorityDependencyMismatchError."""
+    msg = str(exc)
+    if "RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT" in msg:
+        raise AuthorityDependencyMismatchError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key="unknown",
+            details={"reason": "holiday_season_mismatch"},
+        ) from exc
+    if "RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT" in msg:
+        raise AuthorityDependencyMismatchError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key="unknown",
+            details={"reason": "dependency_timezone_mismatch"},
+        ) from exc
+    raise
+
+
 def _assert_scope(
     *,
     authority_family: AuthorityFamily,
@@ -760,23 +778,7 @@ async def _resolved_run_package_by_id(
     authority_id: int,
     mode: AuthorityResolutionMode,
 ) -> ResolvedRunParameterPackageAuthority:
-    try:
-        load_result = await load_run_parameter_package_by_id(session, authority_id=authority_id)
-    except ValueError as exc:
-        msg = str(exc)
-        if "RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT" in msg:
-            raise AuthorityDependencyMismatchError(
-                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-                authority_stable_key="unknown",
-                details={"reason": "holiday_season_mismatch"},
-            ) from exc
-        if "RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT" in msg:
-            raise AuthorityDependencyMismatchError(
-                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-                authority_stable_key="unknown",
-                details={"reason": "dependency_timezone_mismatch"},
-            ) from exc
-        raise
+    load_result = await load_run_parameter_package_by_id(session, authority_id=authority_id)
     row = (
         await session.execute(
             select(Task9RunParameterPackage).where(Task9RunParameterPackage.id == authority_id)
@@ -1524,9 +1526,12 @@ async def resolve_run_parameter_package(
     _validate_timezone_name(request.timezone_name)
     if request.mode == AuthorityResolutionMode.EXACT_REFERENCE:
         assert request.exact_reference is not None
-        resolved = await _resolved_run_package_by_id(
-            session, authority_id=request.exact_reference.authority_id, mode=request.mode
-        )
+        try:
+            resolved = await _resolved_run_package_by_id(
+                session, authority_id=request.exact_reference.authority_id, mode=request.mode
+            )
+        except ValueError as exc:
+            _raise_dependency_from_canonical_error(exc)
         _assert_exact_reference_match(resolved=resolved, exact_reference=request.exact_reference)
     else:
         filters = [
@@ -1585,11 +1590,14 @@ async def resolve_run_parameter_package(
             as_of_local_date=request.as_of_local_date,
             reason="same_priority_conflict",
         )
-        resolved = await _resolved_run_package_by_id(
-            session,
-            authority_id=snapshot.authority_id,
-            mode=request.mode,
-        )
+        try:
+            resolved = await _resolved_run_package_by_id(
+                session,
+                authority_id=snapshot.authority_id,
+                mode=request.mode,
+            )
+        except ValueError as exc:
+            _raise_dependency_from_canonical_error(exc)
 
     _assert_scope(
         authority_family=resolved.authority_family,
