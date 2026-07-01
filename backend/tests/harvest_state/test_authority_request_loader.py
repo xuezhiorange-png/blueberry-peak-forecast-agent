@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from types import MappingProxyType
 
@@ -1840,20 +1840,6 @@ def _inventory_with_consumability(
     )
 
 
-def _consumable_to_context(
-    consumable_to: date | None,
-) -> Task9AuthorityAssemblyContext:
-    """Build context whose as_of_date equals the consumable_to boundary."""
-    return _context(as_of_date=date(2026, 6, 15))
-
-
-def _consumable_from_context(
-    consumable_from: date,
-) -> Task9AuthorityAssemblyContext:
-    """Build context whose as_of_date is before consumable_from."""
-    return _context(as_of_date=consumable_from - __import__("datetime").timedelta(days=1))
-
-
 @pytest.mark.parametrize(
     ("mode",),
     [
@@ -1908,7 +1894,7 @@ def test_consumability_boundary_as_of_before_consumable_to_passes(
     mode: AuthorityResolutionMode,
 ) -> None:
     """as_of == consumable_to - 1 → PASS."""
-    consumable_to = AS_OF + __import__("datetime").timedelta(days=1)
+    consumable_to = AS_OF + timedelta(days=1)
     ctx = _context(mode=mode, as_of_date=AS_OF)
     pool = replace(
         _pool(),
@@ -2048,9 +2034,9 @@ def test_consumability_boundary_as_of_before_consumable_from_fails(
     pool = replace(
         _pool(),
         mode=mode,
-        consumable_from_local_date=AS_OF + __import__("datetime").timedelta(days=1),
+        consumable_from_local_date=AS_OF + timedelta(days=1),
         semantic_bundle=_pool().semantic_bundle.model_copy(
-            update={"consumable_from_local_date": AS_OF + __import__("datetime").timedelta(days=1)}
+            update={"consumable_from_local_date": AS_OF + timedelta(days=1)}
         ),
     )
     daily = replace(_daily(pool), mode=mode, parent_pool=pool)
@@ -2117,23 +2103,33 @@ def test_consumability_boundary_consumable_from_none_fails(
     assert exc_info.value.details["field"] == "consumability_interval"
 
 
-def test_consumability_daily_parent_pool_check() -> None:
-    """Daily capacity's parent_pool consumability is checked independently."""
-    pool = _pool()
-    daily = _daily(pool)
-    # Set daily consumable ok but parent_pool consumable_to expired.
-    parent_pool = replace(
-        pool,
+def test_daily_parent_consumability_is_checked_independently_of_selected_pool() -> None:
+    """Daily capacity's parent_pool consumability is checked independently.
+
+    The selected pool (valid_pool) is fully consumable, so pool-level
+    consumability passes.  The daily's *parent_pool* (expired_parent) has
+    the same semantic identity but an expired consumability window, so the
+    daily-parent-specific path must catch it.
+    """
+    valid_pool = _pool()
+    expired_parent = replace(
+        valid_pool,
         consumable_from_local_date=date(2026, 1, 1),
-        consumable_to_local_date=date(2026, 1, 2),
+        consumable_to_local_date=AS_OF,
+        semantic_bundle=valid_pool.semantic_bundle.model_copy(
+            update={
+                "consumable_from_local_date": date(2026, 1, 1),
+                "consumable_to_local_date": AS_OF,
+            }
+        ),
     )
-    expired_daily = replace(daily, parent_pool=parent_pool)
-    ctx = _context(as_of_date=date(2026, 6, 1))
+    daily_with_expired_parent = replace(_daily(valid_pool), parent_pool=expired_parent)
+    ctx = _context(as_of_date=AS_OF)
     with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
         assemble_task9_request_from_resolved_authorities(
             context=ctx,
-            capacity_pools=(parent_pool,),
-            daily_capacities=(expired_daily,),
+            capacity_pools=(valid_pool,),
+            daily_capacities=(daily_with_expired_parent,),
             run_package=_run_package(_holiday(), _weather()),
             initial_inventory=_initial_inventory(),
             mature_losses=_losses(),
@@ -2142,6 +2138,61 @@ def test_consumability_daily_parent_pool_check() -> None:
         )
     assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
     assert exc_info.value.details["field"] == "consumability_interval"
+    assert exc_info.value.authority_family == AuthorityFamily.CAPACITY_POOL_DEFINITION
+    assert exc_info.value.authority_stable_key == expired_parent.authority_stable_key
+
+
+@pytest.mark.parametrize(
+    ("scenario",),
+    [
+        ("expired",),
+        ("future",),
+    ],
+)
+def test_daily_capacity_consumability_is_checked_independently(
+    scenario: str,
+) -> None:
+    """Daily authority consumability is checked independently of pool/parent.
+
+    Scenario 'expired': daily.consumable_to == AS_OF (expired).
+    Scenario 'future':  daily.consumable_from > AS_OF (not yet consumable).
+    """
+    valid_pool = _pool()
+    base_daily = _daily(valid_pool)
+    if scenario == "expired":
+        bad_daily = replace(
+            base_daily,
+            consumable_to_local_date=AS_OF,
+            semantic_input=base_daily.semantic_input.model_copy(
+                update={"consumable_to_local_date": AS_OF}
+            ),
+        )
+    else:  # future
+        bad_daily = replace(
+            base_daily,
+            consumable_from_local_date=AS_OF + timedelta(days=1),
+            semantic_input=base_daily.semantic_input.model_copy(
+                update={"consumable_from_local_date": AS_OF + timedelta(days=1)}
+            ),
+        )
+    # parent_pool is valid (same identity as valid_pool)
+    daily_with_bad_consumability = replace(bad_daily, parent_pool=valid_pool)
+    ctx = _context(as_of_date=AS_OF)
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(valid_pool,),
+            daily_capacities=(daily_with_bad_consumability,),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+    assert exc_info.value.authority_family == AuthorityFamily.DAILY_CAPACITY
+    assert exc_info.value.authority_stable_key == bad_daily.authority_stable_key
 
 
 def test_consumability_mature_loss_check() -> None:
