@@ -1309,41 +1309,61 @@ async def test_capacity_pool_retired_current_operational_rejects(
 async def test_sentinel_future_candidates_do_not_consume_limit(
     db_session: AsyncSession,
 ) -> None:
-    """Future candidate is rejected by SQL predicates before LIMIT (exclusion constraint
-    prevents >1 same-scope row with overlapping effective_range)."""
-    SENTINEL_CODE = "SENTINEL-POOL"
+    """SQL-before-LIMIT proof: 3 draft sentinels + 1 activated valid candidate.
+    Draft rows have consumable_from=NULL → consumability_range=empty → exclusion OK.
+    In wrong impl (ORDER BY + LIMIT 2 then Python filter): sentinels hide valid.
+    In correct impl (WHERE filters first): only valid passes, returned correctly.
+    """
+    SENTINEL_CODE = "SENTINEL-LIMIT"
+    PRODUCTION_LIMIT = 2
 
-    # Create 1 pool with future consumable_from
-    pool = _pool_input(code=SENTINEL_CODE, version="v1", revision=1)
-    pool_created = await create_or_load_capacity_pool_definition(db_session, definition_input=pool)
+    # Create 4 draft rows with same code and same effective range.
+    created_list = []
+    for i in range(1, 5):
+        pool = _pool_input(code=SENTINEL_CODE, version=f"v{i}", revision=1)
+        created = await create_or_load_capacity_pool_definition(db_session, definition_input=pool)
+        created_list.append(created)
+
+    # Read all row_hashes and sort
+    hash_pairs = []
+    for c in created_list:
+        row = await _row_by_id(db_session, Task9CapacityPoolDefinition, c.parent.authority_id)
+        hash_pairs.append((row.row_hash, row, c))
+    hash_pairs.sort(key=lambda x: x[0])
+
+    # Activate the one with HIGHEST row_hash; the rest stay draft
+    valid_hash, valid_row, valid_created = hash_pairs[-1]
+    sentinel_hashes = [h for h, _, _ in hash_pairs[:-1]]
+    sentinel_count = len(sentinel_hashes)
+
+    # Assertions on test construction
+    assert sentinel_count >= PRODUCTION_LIMIT
+    assert all(h < valid_hash for h in sentinel_hashes)
+
     await activate_authority(
         db_session,
         family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=pool_created.parent.authority_id,
-        activation_boundary=date(2026, 9, 1),  # far future
+        authority_id=valid_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
     )
 
-    # Resolve CURRENT_OPERATIONAL with as_of=2026-06-15
-    # Pool has future consumable_from (2026-09-01) → SQL predicate filters it out
-    with pytest.raises(AuthorityNotConsumableAtCutoffError) as exc_info:
-        await resolve_capacity_pool_definition(
-            db_session,
-            request=CapacityPoolResolutionRequest(
-                mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
-                as_of_local_date=date(2026, 6, 15),
-                timezone_name="Asia/Shanghai",
-                season_id=_IDS["season"],
-                destination_factory_id=_IDS["factory"],
-                capacity_pool_code=SENTINEL_CODE,
-                effective_local_date=date(2026, 6, 15),
-            ),
-        )
-    assert exc_info.value.code == "AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF"
-    # Verify it's the lifecycle-not-consumable path, not "no scope"
-    assert exc_info.value.details.get("reason") in (
-        "authority_lifecycle_not_consumable_at_cutoff",
-        "authority_not_available_at_cutoff",
+    # Resolve CURRENT_OPERATIONAL — draft sentinels filtered by SQL WHERE
+    resolved = await resolve_capacity_pool_definition(
+        db_session,
+        request=CapacityPoolResolutionRequest(
+            mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+            as_of_local_date=date(2026, 6, 15),
+            timezone_name="Asia/Shanghai",
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            capacity_pool_code=SENTINEL_CODE,
+            effective_local_date=date(2026, 6, 15),
+        ),
     )
+    assert resolved.authority_id == valid_row.id
+    assert resolved.business_version == valid_row.capacity_pool_version
+    assert resolved.revision == valid_row.revision
+    assert resolved.row_hash == valid_hash
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1512,5 +1532,230 @@ async def test_run_package_dependency_timezone_mismatch_with_context(
     assert err.details.get("dependency_authority_stable_key") is not None
     assert err.details.get("expected_timezone") == "Asia/Shanghai"
     assert err.details.get("actual_timezone") == "UTC"
+    assert err.authority_stable_key is not None
+    assert err.authority_stable_key != "unknown"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# P1-2: Holiday-only timezone mismatch (precedence = holiday first)
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_holiday_only_timezone_mismatch(
+    db_session: AsyncSession,
+) -> None:
+    """Package tz=Asia/Shanghai, holiday tz=UTC, weather tz=Asia/Shanghai.
+    Precedence: holiday mismatch reported first."""
+    holiday_sh = _holiday_input(version="v1", revision=1)
+    holiday_sh_created = await create_or_load_holiday_calendar(
+        db_session, calendar_input=holiday_sh
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_sh_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    weather_input = _weather_input(version="v1", revision=1)
+    weather_created = await create_or_load_weather_rule(db_session, weather_input=weather_input)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Create package with matching tz (canonical OK)
+    pkg_input = _run_package_input(version="v1", revision=1)
+    pkg_created = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_input,
+        holiday_calendar=holiday_sh,
+        weather_rule=weather_input,
+    )
+
+    # Create holiday with UTC, swap FK
+    holiday_utc = _holiday_input(version="v2", revision=1).model_copy(
+        update={"lifecycle_timezone_name": "UTC"}
+    )
+    holiday_utc_created = await create_or_load_holiday_calendar(
+        db_session, calendar_input=holiday_utc
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_utc_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await db_session.execute(
+        text(
+            "UPDATE task9_run_parameter_package "
+            "SET holiday_calendar_version_id = :hid "
+            "WHERE id = :pid"
+        ),
+        {"hid": holiday_utc_created.parent.authority_id, "pid": pkg_created.authority_id},
+    )
+    await db_session.flush()
+    db_session.expire_all()
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    pkg_row = await _row_by_id(db_session, Task9RunParameterPackage, pkg_created.authority_id)
+    with pytest.raises(AuthorityDependencyMismatchError) as exc_info:
+        await resolve_run_parameter_package(
+            db_session,
+            request=RunParameterPackageResolutionRequest(
+                mode=AuthorityResolutionMode.EXACT_REFERENCE,
+                as_of_local_date=date(2026, 6, 15),
+                timezone_name="Asia/Shanghai",
+                season_id=_IDS["season"],
+                destination_factory_id=_IDS["factory"],
+                farm_scope_key="farm-10",
+                effective_local_date=date(2026, 6, 15),
+                exact_reference=_exact_reference(
+                    authority_id=pkg_created.authority_id,
+                    stable_key=f"run-package:{_IDS['season']}:{_IDS['factory']}:farm-10",
+                    version="v1",
+                    revision=1,
+                    row_hash=pkg_row.row_hash,
+                ),
+            ),
+        )
+    err = exc_info.value
+    assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
+    assert err.details.get("reason") == "dependency_timezone_mismatch"
+    assert err.details.get("dependency_family") == "holiday_calendar_version"
+    assert err.details.get("dependency_authority_stable_key") is not None
+    assert err.details.get("expected_timezone") == "Asia/Shanghai"
+    assert err.details.get("actual_timezone") == "UTC"
+    assert err.authority_stable_key is not None
+    assert err.authority_stable_key != "unknown"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# P1-2: Package-versus-both timezone mismatch (precedence = holiday first)
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_package_versus_both_timezone_mismatch(
+    db_session: AsyncSession,
+) -> None:
+    """Package tz=Asia/Shanghai, holiday tz=Asia/Tokyo, weather tz=Asia/Tokyo.
+    Precedence: holiday mismatch reported first. expected != actual."""
+    holiday_sh = _holiday_input(version="v1", revision=1)
+    holiday_sh_created = await create_or_load_holiday_calendar(
+        db_session, calendar_input=holiday_sh
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_sh_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    weather_sh = _weather_input(version="v1", revision=1)
+    weather_sh_created = await create_or_load_weather_rule(db_session, weather_input=weather_sh)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_sh_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Create package with matching tz
+    pkg_input = _run_package_input(version="v1", revision=1)
+    pkg_created = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_input,
+        holiday_calendar=holiday_sh,
+        weather_rule=weather_sh,
+    )
+
+    # Create holiday with Asia/Tokyo, swap FK
+    holiday_tokyo = _holiday_input(version="v2", revision=1).model_copy(
+        update={"lifecycle_timezone_name": "Asia/Tokyo"}
+    )
+    holiday_tokyo_created = await create_or_load_holiday_calendar(
+        db_session, calendar_input=holiday_tokyo
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_tokyo_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Create weather with Asia/Tokyo, swap FK
+    weather_tokyo = _weather_input(version="v2", revision=1).model_copy(
+        update={"lifecycle_timezone_name": "Asia/Tokyo"}
+    )
+    weather_tokyo_created = await create_or_load_weather_rule(
+        db_session, weather_input=weather_tokyo
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_tokyo_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Swap both FKs
+    await db_session.execute(
+        text(
+            "UPDATE task9_run_parameter_package "
+            "SET holiday_calendar_version_id = :hid, "
+            "    weather_rule_config_version_id = :wid "
+            "WHERE id = :pid"
+        ),
+        {
+            "hid": holiday_tokyo_created.parent.authority_id,
+            "wid": weather_tokyo_created.authority_id,
+            "pid": pkg_created.authority_id,
+        },
+    )
+    await db_session.flush()
+    db_session.expire_all()
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    pkg_row = await _row_by_id(db_session, Task9RunParameterPackage, pkg_created.authority_id)
+    with pytest.raises(AuthorityDependencyMismatchError) as exc_info:
+        await resolve_run_parameter_package(
+            db_session,
+            request=RunParameterPackageResolutionRequest(
+                mode=AuthorityResolutionMode.EXACT_REFERENCE,
+                as_of_local_date=date(2026, 6, 15),
+                timezone_name="Asia/Shanghai",
+                season_id=_IDS["season"],
+                destination_factory_id=_IDS["factory"],
+                farm_scope_key="farm-10",
+                effective_local_date=date(2026, 6, 15),
+                exact_reference=_exact_reference(
+                    authority_id=pkg_created.authority_id,
+                    stable_key=f"run-package:{_IDS['season']}:{_IDS['factory']}:farm-10",
+                    version="v1",
+                    revision=1,
+                    row_hash=pkg_row.row_hash,
+                ),
+            ),
+        )
+    err = exc_info.value
+    assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
+    assert err.details.get("reason") == "dependency_timezone_mismatch"
+    # Precedence: holiday first
+    assert err.details.get("dependency_family") == "holiday_calendar_version"
+    assert err.details.get("dependency_authority_stable_key") is not None
+    assert err.details.get("expected_timezone") == "Asia/Shanghai"
+    assert err.details.get("actual_timezone") == "Asia/Tokyo"
+    assert err.details.get("expected_timezone") != err.details.get("actual_timezone")
     assert err.authority_stable_key is not None
     assert err.authority_stable_key != "unknown"

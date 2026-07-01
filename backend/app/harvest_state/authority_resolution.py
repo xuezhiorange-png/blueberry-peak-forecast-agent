@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -320,38 +321,59 @@ def _assert_exact_reference_match(
 def _raise_dependency_from_canonical_error(
     exc: ValueError,
     *,
-    package_stable_key: str = "unknown",
-    package_season_id: int = 0,
-    holiday_stable_key: str = "unknown",
-    holiday_season_id: int = 0,
-    holiday_timezone: str = "unknown",
-    weather_stable_key: str = "unknown",
-    weather_timezone: str = "unknown",
+    ctx: RunPackageDependencyErrorContext,
 ) -> None:
     """Convert canonical builder ValueError to typed AuthorityDependencyMismatchError."""
     msg = str(exc)
     if "RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT" in msg:
         raise AuthorityDependencyMismatchError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            authority_stable_key=package_stable_key,
+            authority_stable_key=ctx.package_stable_key,
             details={
                 "reason": "holiday_season_mismatch",
                 "dependency_family": "holiday_calendar_version",
-                "dependency_authority_stable_key": holiday_stable_key,
-                "expected_season_id": package_season_id,
-                "actual_season_id": holiday_season_id,
+                "dependency_authority_stable_key": ctx.holiday_stable_key,
+                "expected_season_id": ctx.package_season_id,
+                "actual_season_id": ctx.holiday_season_id,
             },
         ) from exc
     if "RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT" in msg:
+        # Deterministic precedence: holiday first, then weather.
+        if ctx.package_destination_timezone != ctx.holiday_timezone:
+            raise AuthorityDependencyMismatchError(
+                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                authority_stable_key=ctx.package_stable_key,
+                details={
+                    "reason": "dependency_timezone_mismatch",
+                    "dependency_family": "holiday_calendar_version",
+                    "dependency_authority_stable_key": ctx.holiday_stable_key,
+                    "expected_timezone": ctx.package_destination_timezone,
+                    "actual_timezone": ctx.holiday_timezone,
+                },
+            ) from exc
+        if ctx.package_destination_timezone != ctx.weather_timezone:
+            raise AuthorityDependencyMismatchError(
+                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                authority_stable_key=ctx.package_stable_key,
+                details={
+                    "reason": "dependency_timezone_mismatch",
+                    "dependency_family": "weather_rule_config_version",
+                    "dependency_authority_stable_key": ctx.weather_stable_key,
+                    "expected_timezone": ctx.package_destination_timezone,
+                    "actual_timezone": ctx.weather_timezone,
+                },
+            ) from exc
+        # Canonical builder reported timezone conflict but full context shows
+        # no difference — fail closed as internal canonical parity error.
         raise AuthorityDependencyMismatchError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            authority_stable_key=package_stable_key,
+            authority_stable_key=ctx.package_stable_key,
             details={
                 "reason": "dependency_timezone_mismatch",
-                "dependency_family": "weather_rule_config_version",
-                "dependency_authority_stable_key": weather_stable_key,
-                "expected_timezone": holiday_timezone,
-                "actual_timezone": weather_timezone,
+                "dependency_family": "internal_canonical_parity_error",
+                "dependency_authority_stable_key": "",
+                "expected_timezone": ctx.package_destination_timezone,
+                "actual_timezone": "internal_parity_error",
             },
         ) from exc
     raise
@@ -846,13 +868,16 @@ async def _resolved_run_package_by_id(
     except ValueError as exc:
         _raise_dependency_from_canonical_error(
             exc,
-            package_stable_key=pkg_stable_key,
-            package_season_id=row.season_id,
-            holiday_stable_key=holiday.authority_stable_key,
-            holiday_season_id=holiday.semantic_bundle.season_id,
-            holiday_timezone=holiday.semantic_bundle.lifecycle_timezone_name,
-            weather_stable_key=weather.authority_stable_key,
-            weather_timezone=weather.semantic_input.lifecycle_timezone_name,
+            ctx=RunPackageDependencyErrorContext(
+                package_stable_key=pkg_stable_key,
+                package_season_id=row.season_id,
+                package_destination_timezone=row.destination_factory_timezone,
+                holiday_stable_key=holiday.authority_stable_key,
+                holiday_season_id=holiday.semantic_bundle.season_id,
+                holiday_timezone=holiday.semantic_bundle.lifecycle_timezone_name,
+                weather_stable_key=weather.authority_stable_key,
+                weather_timezone=weather.semantic_input.lifecycle_timezone_name,
+            ),
         )
     return ResolvedRunParameterPackageAuthority(
         mode=mode,
@@ -1546,11 +1571,25 @@ async def resolve_mature_inventory_loss(
     )
 
 
+@dataclass(frozen=True)
+class RunPackageDependencyErrorContext:
+    """All fields required for deterministic dependency error attribution."""
+
+    package_stable_key: str
+    package_season_id: int
+    package_destination_timezone: str
+    holiday_stable_key: str
+    holiday_season_id: int
+    holiday_timezone: str
+    weather_stable_key: str
+    weather_timezone: str
+
+
 async def _load_dependency_context_for_error(
     session: AsyncSession,
     *,
     authority_id: int,
-) -> dict[str, object]:
+) -> RunPackageDependencyErrorContext:
     """Load package + dependency info for typed error context."""
     row = (
         await session.execute(
@@ -1572,15 +1611,16 @@ async def _load_dependency_context_for_error(
             )
         )
     ).scalar_one()
-    return {
-        "package_stable_key": pkg_stable_key,
-        "package_season_id": row.season_id,
-        "holiday_stable_key": _stable_key_from_orm_holiday(holiday_row),
-        "holiday_season_id": holiday_row.season_id,
-        "holiday_timezone": holiday_row.lifecycle_timezone_name,
-        "weather_stable_key": _stable_key_from_orm_weather(weather_row),
-        "weather_timezone": weather_row.lifecycle_timezone_name,
-    }
+    return RunPackageDependencyErrorContext(
+        package_stable_key=pkg_stable_key,
+        package_season_id=row.season_id,
+        package_destination_timezone=row.destination_factory_timezone,
+        holiday_stable_key=_stable_key_from_orm_holiday(holiday_row),
+        holiday_season_id=holiday_row.season_id,
+        holiday_timezone=holiday_row.lifecycle_timezone_name,
+        weather_stable_key=_stable_key_from_orm_weather(weather_row),
+        weather_timezone=weather_row.lifecycle_timezone_name,
+    )
 
 
 async def resolve_run_parameter_package(
@@ -1599,7 +1639,7 @@ async def resolve_run_parameter_package(
             ctx = await _load_dependency_context_for_error(
                 session, authority_id=request.exact_reference.authority_id
             )
-            _raise_dependency_from_canonical_error(exc, **ctx)  # type: ignore[arg-type]
+            _raise_dependency_from_canonical_error(exc, ctx=ctx)
         _assert_exact_reference_match(resolved=resolved, exact_reference=request.exact_reference)
     else:
         filters = [
@@ -1668,7 +1708,7 @@ async def resolve_run_parameter_package(
             ctx = await _load_dependency_context_for_error(
                 session, authority_id=snapshot.authority_id
             )
-            _raise_dependency_from_canonical_error(exc, **ctx)  # type: ignore[arg-type]
+            _raise_dependency_from_canonical_error(exc, ctx=ctx)
 
     _assert_scope(
         authority_family=resolved.authority_family,
