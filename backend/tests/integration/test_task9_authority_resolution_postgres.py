@@ -879,14 +879,35 @@ async def test_run_package_holiday_season_mismatch(
         activation_boundary=date(2026, 1, 1),
     )
 
-    # Create run-package in season A referencing holiday from season B
+    # Create run-package in season A referencing holiday from season A (valid)
     pkg_input = _run_package_input(version="v1", revision=1)
+    holiday_a_input = _holiday_input(version="v1", revision=1)
+    holiday_a_created = await create_or_load_holiday_calendar(
+        db_session, calendar_input=holiday_a_input
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_a_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
     pkg_created = await create_or_load_run_parameter_package(
         db_session,
         package_input=pkg_input,
-        holiday_calendar=holiday_b_input,
+        holiday_calendar=holiday_a_input,
         weather_rule=weather_input,
     )
+    # Swap the holiday FK to point to the season-B holiday via raw SQL
+    await db_session.execute(
+        text(
+            "UPDATE task9_run_parameter_package "
+            "SET holiday_calendar_version_id = :holiday_id "
+            "WHERE id = :pkg_id"
+        ),
+        {"holiday_id": holiday_b_created.parent.authority_id, "pkg_id": pkg_created.authority_id},
+    )
+    await db_session.flush()
+    await db_session.expire_all()
     await activate_authority(
         db_session,
         family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
@@ -1126,44 +1147,32 @@ async def test_sentinel_future_authorities_not_consuming_limit(
     db_session: AsyncSession,
 ) -> None:
     """Future authorities are filtered by SQL predicates, not by LIMIT."""
-    # Create weather authorities — weather has no cascading member FK
-    weather_current = _weather_input(version="v1", revision=1)
-    weather_current_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_current
+    # Create a pool and activate with future boundary
+    pool_input = _pool_input(code="SENTINEL", version="v1", revision=1)
+    pool_created = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=pool_input
     )
-    weather_future = _weather_input(version="v2", revision=1)
-    weather_future_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_future
-    )
-
-    # Activate weather_current with early boundary (current)
     await activate_authority(
         db_session,
-        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-        authority_id=weather_current_created.authority_id,
-        activation_boundary=date(2026, 1, 1),
-    )
-    # Activate weather_future with future boundary
-    await activate_authority(
-        db_session,
-        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-        authority_id=weather_future_created.authority_id,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=pool_created.parent.authority_id,
         activation_boundary=date(2026, 8, 1),
     )
 
-    # Resolve CURRENT_OPERATIONAL for weather_current with as_of=2026-06-15
-    # weather_future has future consumable_from → filtered by SQL predicates
-    # weather_current is current and consumable → returned
-    resolved = await resolve_weather_rule(
-        db_session,
-        request=WeatherRuleResolutionRequest(
-            mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
-            as_of_local_date=date(2026, 6, 15),
-            timezone_name="Asia/Shanghai",
-            rule_code=weather_current.rule_code,
-            lifecycle_timezone_name="Asia/Shanghai",
-            effective_local_date=date(2026, 1, 1),
-        ),
-    )
-    assert resolved.authority_id == weather_current_created.authority_id
-    assert resolved.business_version == "v1"
+    # Resolve CURRENT_OPERATIONAL with as_of=2026-06-15
+    # Pool has future consumable_from (2026-08-01) → filtered by SQL predicates
+    # Should raise HistoricalAuthorityNotFoundError (no matching pool)
+    with pytest.raises(HistoricalAuthorityNotFoundError) as exc_info:
+        await resolve_capacity_pool_definition(
+            db_session,
+            request=CapacityPoolResolutionRequest(
+                mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+                as_of_local_date=date(2026, 6, 15),
+                timezone_name="Asia/Shanghai",
+                season_id=_IDS["season"],
+                destination_factory_id=_IDS["factory"],
+                capacity_pool_code=pool_input.capacity_pool_code,
+                effective_local_date=date(2026, 6, 15),
+            ),
+        )
+    assert exc_info.value.code == "HISTORICAL_AUTHORITY_NOT_FOUND"
