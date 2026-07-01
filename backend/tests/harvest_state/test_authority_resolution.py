@@ -159,7 +159,7 @@ def test_exact_reference_is_typed() -> None:
 
 
 def test_current_operational_requires_consumable_from_before_as_of() -> None:
-    """Boundary: consumable_from == as_of counts as visible; before also works; before boundary fails."""
+    """Boundary: consumable_from <= as_of is accepted."""
     snap = _snapshot(
         consumable_from_local_date=date(2026, 6, 15),
         available_at_local_date=date(2026, 1, 1),
