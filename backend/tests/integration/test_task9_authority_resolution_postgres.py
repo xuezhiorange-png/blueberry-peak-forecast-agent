@@ -47,6 +47,7 @@ from backend.app.harvest_state.authority_resolution_errors import (
     AuthorityEffectiveIntervalMismatchError,
     AuthorityNotConsumableAtCutoffError,
 )
+from backend.app.harvest_state.authority_schemas import Task9CapacityPoolMemberSchema
 from backend.app.harvest_state.enums import AuthorityFamily, AuthorityStatus
 from backend.app.models.task9_authority import (
     Task9CapacityPoolDefinition,
@@ -382,8 +383,24 @@ async def test_resolve_daily_capacity_rejects_parent_not_consumable_and_effectiv
         )
     assert exc_info.value.code == "AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF"
 
+    await db_session.execute(
+        text("INSERT INTO dim_farm (name) VALUES ('Finite Pool Farm') ON CONFLICT DO NOTHING")
+    )
+    finite_farm_row = await db_session.execute(
+        text("SELECT id FROM dim_farm WHERE name = 'Finite Pool Farm'")
+    )
+    finite_farm_id = finite_farm_row.scalar_one()
     finite_pool_input = _pool_input(code="FINITE-POOL", version="v1", revision=1).model_copy(
-        update={"effective_to": date(2026, 5, 31)}
+        update={
+            "effective_to": date(2026, 5, 31),
+            "members": [
+                Task9CapacityPoolMemberSchema(
+                    farm_id=finite_farm_id,
+                    subfarm_id=None,
+                    variety_id=_IDS["variety"],
+                )
+            ],
+        }
     )
     finite_pool_created = await create_or_load_capacity_pool_definition(
         db_session, definition_input=finite_pool_input
