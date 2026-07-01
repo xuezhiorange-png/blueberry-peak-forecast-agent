@@ -1100,11 +1100,12 @@ async def test_selected_authority_integrity_tamper(
     )
     original_hash = weather_row.row_hash
 
-    # Corrupt business field via raw SQL without updating hash
+    # Corrupt config_hash via raw SQL without updating row_hash
+    # (config_hash is in the hash but NOT in the scope check)
     await db_session.execute(
         text(
             "UPDATE task9_weather_rule_config_version "
-            "SET rule_code = 'CORRUPTED' "
+            "SET config_hash = '0' * 64 "
             "WHERE id = :rid"
         ),
         {"rid": weather_created.authority_id},
@@ -1118,7 +1119,7 @@ async def test_selected_authority_integrity_tamper(
                 mode=AuthorityResolutionMode.EXACT_REFERENCE,
                 as_of_local_date=date(2026, 6, 15),
                 timezone_name="Asia/Shanghai",
-                rule_code="CORRUPTED",
+                rule_code=weather_input.rule_code,
                 lifecycle_timezone_name="Asia/Shanghai",
                 effective_local_date=date(2026, 1, 1),
                 exact_reference=_exact_reference(
@@ -1138,56 +1139,55 @@ async def test_sentinel_future_authorities_not_consuming_limit(
     db_session: AsyncSession,
 ) -> None:
     """Future authorities are filtered by SQL predicates, not by LIMIT."""
-    # Create 3 pools with different codes
-    pool_a = _pool_input(code="SENT-A", version="v1", revision=1)
-    pool_a_created = await create_or_load_capacity_pool_definition(
-        db_session, definition_input=pool_a
+    # Create weather authorities — weather has no cascading member FK
+    weather_a = _weather_input(version="v1", revision=1)
+    weather_a_created = await create_or_load_weather_rule(
+        db_session, weather_input=weather_a
     )
-    pool_b = _pool_input(code="SENT-B", version="v1", revision=1)
-    pool_b_created = await create_or_load_capacity_pool_definition(
-        db_session, definition_input=pool_b
+    weather_b = _weather_input(version="v2", revision=1)
+    weather_b_created = await create_or_load_weather_rule(
+        db_session, weather_input=weather_b
     )
-    pool_c = _pool_input(code="SENT-C", version="v1", revision=1)
-    pool_c_created = await create_or_load_capacity_pool_definition(
-        db_session, definition_input=pool_c
+    weather_c = _weather_input(version="v3", revision=1)
+    weather_c_created = await create_or_load_weather_rule(
+        db_session, weather_input=weather_c
     )
 
-    # Activate pool_a with early boundary (current)
+    # Activate weather_a with early boundary (current)
     await activate_authority(
         db_session,
-        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=pool_a_created.parent.authority_id,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_a_created.authority_id,
         activation_boundary=date(2026, 1, 1),
     )
-    # Activate pool_b with future boundary
+    # Activate weather_b with future boundary
     await activate_authority(
         db_session,
-        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=pool_b_created.parent.authority_id,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_b_created.authority_id,
         activation_boundary=date(2026, 8, 1),
     )
-    # Activate pool_c with future boundary
+    # Activate weather_c with future boundary
     await activate_authority(
         db_session,
-        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=pool_c_created.parent.authority_id,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_c_created.authority_id,
         activation_boundary=date(2026, 9, 1),
     )
 
-    # Resolve CURRENT_OPERATIONAL for pool_a with as_of=2026-06-15
-    # pool_b and pool_c have future consumable_from → filtered by SQL predicates
-    # pool_a is current and consumable → returned
-    resolved = await resolve_capacity_pool_definition(
+    # Resolve CURRENT_OPERATIONAL for weather_a with as_of=2026-06-15
+    # weather_b and weather_c have future consumable_from → filtered by SQL predicates
+    # weather_a is current and consumable → returned
+    resolved = await resolve_weather_rule(
         db_session,
-        request=CapacityPoolResolutionRequest(
+        request=WeatherRuleResolutionRequest(
             mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
             as_of_local_date=date(2026, 6, 15),
             timezone_name="Asia/Shanghai",
-            season_id=_IDS["season"],
-            destination_factory_id=_IDS["factory"],
-            capacity_pool_code=pool_a.capacity_pool_code,
-            effective_local_date=date(2026, 6, 15),
+            rule_code=weather_a.rule_code,
+            lifecycle_timezone_name="Asia/Shanghai",
+            effective_local_date=date(2026, 1, 1),
         ),
     )
-    assert resolved.authority_id == pool_a_created.parent.authority_id
+    assert resolved.authority_id == weather_a_created.authority_id
     assert resolved.business_version == "v1"

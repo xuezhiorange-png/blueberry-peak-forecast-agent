@@ -760,7 +760,23 @@ async def _resolved_run_package_by_id(
     authority_id: int,
     mode: AuthorityResolutionMode,
 ) -> ResolvedRunParameterPackageAuthority:
-    load_result = await load_run_parameter_package_by_id(session, authority_id=authority_id)
+    try:
+        load_result = await load_run_parameter_package_by_id(session, authority_id=authority_id)
+    except ValueError as exc:
+        msg = str(exc)
+        if "RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT" in msg:
+            raise AuthorityDependencyMismatchError(
+                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                authority_stable_key="unknown",
+                details={"reason": "holiday_season_mismatch"},
+            ) from exc
+        if "RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT" in msg:
+            raise AuthorityDependencyMismatchError(
+                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                authority_stable_key="unknown",
+                details={"reason": "dependency_timezone_mismatch"},
+            ) from exc
+        raise
     row = (
         await session.execute(
             select(Task9RunParameterPackage).where(Task9RunParameterPackage.id == authority_id)
@@ -776,22 +792,21 @@ async def _resolved_run_package_by_id(
         authority_id=row.weather_rule_config_version_id,
         mode=mode,
     )
-    try:
-        semantic_input = _build_persisted_schema(
-            Task9RunParameterPackageSemanticInput,
-            family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            stable_key=_stable_key_from_orm_run_package(row),
-            component="resolution_run_package",
-            season_id=row.season_id,
-            destination_factory_id=row.destination_factory_id,
-            farm_scope_key=row.farm_scope_key,
-            farm_timezone=row.farm_timezone,
-            destination_factory_timezone=row.destination_factory_timezone,
-            harvest_bucket_anchor_local_time=row.harvest_bucket_anchor_local_time,
-            harvest_to_lag_days=row.harvest_to_arrival_lag_days,
-            package_version=row.package_version,
-            revision=row.revision,
-            effective_from=row.effective_from,
+    semantic_input = _build_persisted_schema(
+        Task9RunParameterPackageSemanticInput,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        stable_key=_stable_key_from_orm_run_package(row),
+        component="resolution_run_package",
+        season_id=row.season_id,
+        destination_factory_id=row.destination_factory_id,
+        farm_scope_key=row.farm_scope_key,
+        farm_timezone=row.farm_timezone,
+        destination_factory_timezone=row.destination_factory_timezone,
+        harvest_bucket_anchor_local_time=row.harvest_bucket_anchor_local_time,
+        harvest_to_arrival_lag_days=row.harvest_to_arrival_lag_days,
+        package_version=row.package_version,
+        revision=row.revision,
+        effective_from=row.effective_from,
         effective_to=row.effective_to,
         available_at_local_date=row.available_at_local_date,
         consumable_from_local_date=row.consumable_from_local_date,
@@ -802,31 +817,7 @@ async def _resolved_run_package_by_id(
         source_system=row.source_system,
         source_record_key=row.source_record_key,
         source_version=row.source_version,
-        )
-    except ValueError as exc:
-        msg = str(exc)
-        if "RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT" in msg:
-            raise AuthorityDependencyMismatchError(
-                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-                authority_stable_key=_stable_key_from_orm_run_package(row),
-                details={
-                    "reason": "holiday_season_mismatch",
-                    "dependency_family": "holiday_calendar_version",
-                    "expected_season_id": row.season_id,
-                    "actual_season_id": holiday.semantic_bundle.season_id,
-                    "dependency_authority_stable_key": holiday.authority_stable_key,
-                },
-            ) from exc
-        if "RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT" in msg:
-            raise AuthorityDependencyMismatchError(
-                authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-                authority_stable_key=_stable_key_from_orm_run_package(row),
-                details={
-                    "reason": "dependency_timezone_mismatch",
-                    "dependency_family": "holiday_calendar_version",
-                },
-            ) from exc
-        raise
+    )
     return ResolvedRunParameterPackageAuthority(
         mode=mode,
         authority_id=row.id,
