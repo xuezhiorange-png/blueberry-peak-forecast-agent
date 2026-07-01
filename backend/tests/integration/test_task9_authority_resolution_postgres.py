@@ -1123,7 +1123,7 @@ async def test_selected_authority_integrity_tamper(
                 effective_local_date=date(2026, 1, 1),
                 exact_reference=_exact_reference(
                     authority_id=weather_created.authority_id,
-                    stable_key="weather-rule:CORRUPTED:Asia/Shanghai",
+                    stable_key="weather-rule:WEATHER-STD:Asia/Shanghai",
                     version=weather_input.rule_version,
                     revision=weather_input.revision,
                     row_hash=original_hash,
@@ -1139,12 +1139,7 @@ async def test_sentinel_future_authorities_not_consuming_limit(
 ) -> None:
     """Future authorities are filtered by SQL predicates, not by LIMIT."""
     # pool3: current, active, consumable
-    pool3_input = _pool_input(version="v1", revision=1).model_copy(
-        update={
-            "available_at_local_date": date(2026, 1, 1),
-            "effective_from": date(2026, 1, 1),
-        }
-    )
+    pool3_input = _pool_input(code="SENTINEL-3", version="v1", revision=1)
     pool3_created = await create_or_load_capacity_pool_definition(
         db_session, definition_input=pool3_input
     )
@@ -1156,11 +1151,9 @@ async def test_sentinel_future_authorities_not_consuming_limit(
     )
 
     # pool1: future available_at
-    pool1_input = _pool_input(version="v2", revision=1).model_copy(
-        update={
-            "available_at_local_date": date(2026, 8, 1),
-            "effective_from": date(2026, 1, 1),
-        }
+    pool1_input = _pool_input(code="SENTINEL-1", version="v1", revision=1)
+    pool1_input = pool1_input.model_copy(
+        update={"available_at_local_date": date(2026, 8, 1)}
     )
     pool1_created = await create_or_load_capacity_pool_definition(
         db_session, definition_input=pool1_input
@@ -1173,11 +1166,9 @@ async def test_sentinel_future_authorities_not_consuming_limit(
     )
 
     # pool2: future available_at
-    pool2_input = _pool_input(version="v3", revision=1).model_copy(
-        update={
-            "available_at_local_date": date(2026, 9, 1),
-            "effective_from": date(2026, 1, 1),
-        }
+    pool2_input = _pool_input(code="SENTINEL-2", version="v1", revision=1)
+    pool2_input = pool2_input.model_copy(
+        update={"available_at_local_date": date(2026, 9, 1)}
     )
     pool2_created = await create_or_load_capacity_pool_definition(
         db_session, definition_input=pool2_input
