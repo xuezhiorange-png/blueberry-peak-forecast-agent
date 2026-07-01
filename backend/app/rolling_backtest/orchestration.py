@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Any
 from zoneinfo import ZoneInfo
 
 from backend.app.rolling_backtest.enums import (
@@ -119,8 +118,6 @@ __all__ = [
     "ResolvedInputOutcome",
     "Task9AuthorityOutcome",
     "Task10AuthorityOutcome",
-    "Task9RequestBuildResult",
-    "Task8VerificationBundle",
     "NodeOrchestrationOutcome",
     "AvailabilityAuditOutcome",
     "NodeExecutionContext",
@@ -128,7 +125,6 @@ __all__ = [
     "OrchestrationBlocker",
     "cutoff_local_date",
     "assert_date_authority_visible",
-    "_collect_diagnostics",
     "_sanitize_diagnostics",
     "_build_frozen_dag",
 ]
@@ -232,36 +228,6 @@ class Task10AuthorityOutcome:
 
 
 @dataclass(frozen=True, slots=True)
-class Task9RequestBuildResult:
-    """Typed result from a Task 9 request build operation — never returns bare None."""
-
-    request: Any = None
-    blocked: bool = False
-    blocker_code: str | None = None
-    diagnostics: dict[str, object] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class Task8VerificationBundle:
-    """Immutable typed bundle of ORM objects for Task 8 field validation.
-
-    All ORM objects are pre-loaded by _load_task8_verification_bundle().
-    The validator (_validate_task8_prediction_fields) receives this typed
-    bundle — it never accesses the database directly.
-    """
-
-    model_run: Any  # MaturityModelRun
-    artifact: Any  # MaturityModelArtifact
-    forecast_run: Any  # MaturityForecastRun
-    daily_row: Any  # MaturityDailyPredictionModel
-    plan_row: Any  # FarmSeasonVarietyPlan
-    location_row: Any  # LocationReference
-    weather_mapping: Any  # LocationWeatherMapping
-    base_temperature: Any  # BaseTemperatureSearchRun
-    weather_feature_run: Any  # WeatherFeatureRun
-
-
-@dataclass(frozen=True, slots=True)
 class NodeOrchestrationOutcome:
     rolling_run_signature: str
     node_signature: str
@@ -281,16 +247,6 @@ class NodeOrchestrationOutcome:
 
 
 # ── Diagnostics helpers ──────────────────────────────────────────────────────
-
-
-def _collect_diagnostics(resolutions: list[ResolutionResult]) -> dict[str, object]:
-    diag: dict[str, object] = {"resolution_count": len(resolutions)}
-    for r in resolutions:
-        if r.blocked:
-            diag[f"{r.source_role}_blocked"] = r.blocker_code or "missing_blocker_code"
-        elif r.resolved:
-            diag[f"{r.source_role}_resolved"] = r.resolved.persistent_reference.reference_value
-    return diag
 
 
 def _sanitize_diagnostics(raw: dict[str, object]) -> dict[str, object]:
