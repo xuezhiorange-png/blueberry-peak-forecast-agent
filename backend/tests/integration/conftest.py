@@ -5,6 +5,12 @@ Provides:
 - isolate_postgres_integration_test: marker-aware autouse fixture
 - assert_connected_to_safe_test_database: DB identity verification
 - _truncate_master_data: destructive cleanup with full guard
+
+Known limitation: Transaction isolation via AsyncSessionMaker.configure()
+does not propagate join_transaction_mode to session.begin() in existing
+test patterns. All integration tests currently use TRUNCATE cleanup.
+The postgres_transactional_isolation context manager and transactional_session
+fixture are available for future tests that can use them.
 """
 
 from __future__ import annotations
@@ -185,32 +191,25 @@ async def dispose_engine_after_integration_tests() -> AsyncIterator[None]:
 
 @pytest.fixture(autouse=True)
 async def isolate_postgres_integration_test(request: pytest.FixtureRequest) -> AsyncIterator[None]:
-    """Marker-aware autouse fixture for all integration tests.
+    """Autouse fixture for all integration tests.
 
-    - non-integration: no-op
-    - postgres_transactional: transaction isolation (no TRUNCATE)
-    - postgres_real_commit / postgres_concurrency / postgres_migration: TRUNCATE cleanup
+    All integration tests use TRUNCATE cleanup (known limitation:
+    transaction isolation via AsyncSessionMaker.configure() does not
+    propagate join_transaction_mode to session.begin() in existing
+    test patterns).
     """
     if not _postgres_integration_enabled():
         yield
         return
-
-    marker_name = _get_marker_name(request.node)
 
     # Verify database identity for all integration tests
     from backend.tests.postgres_test_support import assert_connected_to_safe_test_database
 
     await assert_connected_to_safe_test_database()
 
-    if marker_name == "postgres_transactional":
-        from backend.tests.postgres_test_support import postgres_transactional_isolation
-
-        async with postgres_transactional_isolation():
-            yield
-    else:
-        # Special tests: truncate before and after
+    # All tests: truncate before and after
+    await _truncate_master_data()
+    try:
+        yield
+    finally:
         await _truncate_master_data()
-        try:
-            yield
-        finally:
-            await _truncate_master_data()
