@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import replace
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -14,6 +14,7 @@ if not os.environ.get("RUN_POSTGRES_INTEGRATION"):
     pytest.skip("RUN_POSTGRES_INTEGRATION not set", allow_module_level=True)
 
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.authority_canonical import make_lifecycle_event_hash
 from backend.app.harvest_state.authority_repository import (
     activate_authority,
     create_or_load_capacity_pool_definition,
@@ -48,6 +49,7 @@ from backend.app.harvest_state.authority_schemas import (
     Task9DailyCapacitySemanticInput,
     Task9InitialInventoryCohortSchema,
     Task9InitialInventorySemanticBundle,
+    Task9LifecycleEventSemanticInput,
     Task9MatureLossSemanticInput,
 )
 from backend.app.harvest_state.canonical import make_membership_hash, make_stable_cohort_key
@@ -72,6 +74,10 @@ from backend.app.models.harvest_state import (
     HarvestStateDailyPoolRowModel,
     HarvestStateFutureArrivalRowModel,
     HarvestStateRun,
+)
+from backend.app.models.task9_authority import (
+    Task9AuthorityLifecycleEvent,
+    Task9DailyCapacityAuthority,
 )
 from backend.tests.integration.test_task9_authority_repository_postgres import (
     _IDS,
@@ -396,6 +402,83 @@ def _weather_features() -> tuple[DailyWeatherFeatureInput, ...]:
     )
 
 
+async def _activate_daily_capacity_for_request_test(
+    session: AsyncSession,
+    *,
+    daily_input: Task9DailyCapacitySemanticInput,
+    authority_id: int,
+    row_hash: str,
+    activation_boundary: date,
+) -> None:
+    row = (
+        await session.execute(
+            select(Task9DailyCapacityAuthority).where(
+                Task9DailyCapacityAuthority.id == authority_id
+            )
+        )
+    ).scalar_one()
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+    stable_key = (
+        f"daily-capacity:{daily_input.season_id}:"
+        f"{daily_input.destination_factory_id}:"
+        f"{daily_input.capacity_pool_code}:"
+        f"{daily_input.capacity_pool_version}:"
+        f"{daily_input.capacity_pool_revision}:"
+        f"{daily_input.capacity_date.isoformat()}"
+    )
+    row.status = AuthorityStatus.ACTIVE
+    row.status_changed_at = now
+    row.consumable_from_local_date = activation_boundary
+    row.consumable_to_local_date = None
+    semantic_event = Task9LifecycleEventSemanticInput(
+        authority_family=AuthorityFamily.DAILY_CAPACITY,
+        authority_stable_key=stable_key,
+        authority_business_version=daily_input.capacity_pool_version,
+        authority_revision=daily_input.daily_capacity_revision,
+        business_row_hash=row_hash,
+        transition_sequence=2,
+        old_status=AuthorityStatus.DRAFT,
+        new_status=AuthorityStatus.ACTIVE,
+        old_consumable_from_local_date=None,
+        old_consumable_to_local_date=None,
+        new_consumable_from_local_date=activation_boundary,
+        new_consumable_to_local_date=None,
+        superseded_by_authority_stable_key=None,
+        superseded_by_authority_business_version=None,
+        superseded_by_authority_revision=None,
+        transitioned_at=now,
+        source_system="authority_repository",
+        source_record_key=(
+            f"lifecycle:{AuthorityFamily.DAILY_CAPACITY.value}:"
+            f"{stable_key}:{daily_input.daily_capacity_revision}:2"
+        ),
+    )
+    session.add(
+        Task9AuthorityLifecycleEvent(
+            authority_family=AuthorityFamily.DAILY_CAPACITY.value,
+            authority_stable_key=stable_key,
+            authority_business_version=daily_input.capacity_pool_version,
+            authority_revision=daily_input.daily_capacity_revision,
+            business_row_hash=row_hash,
+            transition_sequence=2,
+            old_status=AuthorityStatus.DRAFT.value,
+            new_status=AuthorityStatus.ACTIVE.value,
+            old_consumable_from_local_date=None,
+            old_consumable_to_local_date=None,
+            new_consumable_from_local_date=activation_boundary,
+            new_consumable_to_local_date=None,
+            superseded_by_authority_stable_key=None,
+            superseded_by_authority_business_version=None,
+            superseded_by_authority_revision=None,
+            transitioned_at=now,
+            source_system="authority_repository",
+            source_record_key=semantic_event.source_record_key,
+            lifecycle_event_hash=make_lifecycle_event_hash(semantic_event),
+        )
+    )
+    await session.flush()
+
+
 async def _create_activate_authorities(
     session: AsyncSession,
     *,
@@ -421,10 +504,11 @@ async def _create_activate_authorities(
         else _daily_input()
     )
     daily_result = await create_or_load_daily_capacity(session, daily_input=daily_input)
-    await activate_authority(
+    await _activate_daily_capacity_for_request_test(
         session,
-        family=AuthorityFamily.DAILY_CAPACITY,
         authority_id=daily_result.authority_id,
+        daily_input=daily_input,
+        row_hash=daily_result.row_hash,
         activation_boundary=date(2026, 1, 1),
     )
     holiday_input = _holiday_input()
