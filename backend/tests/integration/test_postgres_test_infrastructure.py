@@ -18,9 +18,9 @@ from sqlalchemy import text
 
 from backend.app.db.session import AsyncSessionMaker
 
-pytestmark = [pytest.mark.integration, pytest.mark.postgres_real_commit]
-
 RUN_PG = os.getenv("RUN_POSTGRES_INTEGRATION") == "1"
+
+pytestmark = [pytest.mark.integration, pytest.mark.postgres_real_commit]
 
 
 @pytest.fixture(autouse=True)
@@ -39,7 +39,11 @@ class TestDatabaseIdentity:
 
 
 class TestTransactionIsolation:
-    """Prove that transaction isolation works correctly."""
+    """Prove that transaction isolation works correctly.
+
+    These tests use the postgres_transactional_isolation context manager
+    directly and create sessions via the global AsyncSessionMaker.
+    """
 
     async def test_application_session_commit_contained(self) -> None:
         """Insert + commit in one session, visible in second session within context."""
@@ -50,7 +54,8 @@ class TestTransactionIsolation:
             async with AsyncSessionMaker() as session:
                 await session.execute(
                     text(
-                        "INSERT INTO dim_season (season_year) VALUES (9999) "
+                        "INSERT INTO dim_factory (code, name, active) "
+                        "VALUES ('__test_factory_iso__', '__test__', true) "
                         "ON CONFLICT DO NOTHING"
                     )
                 )
@@ -59,7 +64,10 @@ class TestTransactionIsolation:
             # Read via second application session — must be visible
             async with AsyncSessionMaker() as session:
                 result = await session.execute(
-                    text("SELECT COUNT(*) FROM dim_season WHERE season_year = 9999")
+                    text(
+                        "SELECT COUNT(*) FROM dim_factory "
+                        "WHERE code = '__test_factory_iso__'"
+                    )
                 )
                 count = result.scalar_one()
                 assert count == 1, f"Expected 1, got {count}"
@@ -72,7 +80,8 @@ class TestTransactionIsolation:
             async with AsyncSessionMaker() as session:
                 await session.execute(
                     text(
-                        "INSERT INTO dim_season (season_year) VALUES (9998) "
+                        "INSERT INTO dim_factory (code, name, active) "
+                        "VALUES ('__test_rollback__', '__test__', true) "
                         "ON CONFLICT DO NOTHING"
                     )
                 )
@@ -83,7 +92,10 @@ class TestTransactionIsolation:
 
         async with engine.connect() as conn:
             result = await conn.execute(
-                text("SELECT COUNT(*) FROM dim_season WHERE season_year = 9998")
+                text(
+                    "SELECT COUNT(*) FROM dim_factory "
+                    "WHERE code = '__test_rollback__'"
+                )
             )
             count = result.scalar_one()
             assert count == 0, f"Expected 0 after rollback, got {count}"
@@ -128,7 +140,8 @@ class TestTransactionIsolation:
                 async with AsyncSessionMaker() as session:
                     await session.execute(
                         text(
-                            "INSERT INTO dim_season (season_year) VALUES (9997) "
+                            "INSERT INTO dim_factory (code, name, active) "
+                            "VALUES ('__test_consecutive__', '__test__', true) "
                             "ON CONFLICT DO NOTHING"
                         )
                     )
@@ -139,7 +152,10 @@ class TestTransactionIsolation:
 
         async with engine.connect() as conn:
             result = await conn.execute(
-                text("SELECT COUNT(*) FROM dim_season WHERE season_year = 9997")
+                text(
+                    "SELECT COUNT(*) FROM dim_factory "
+                    "WHERE code = '__test_consecutive__'"
+                )
             )
             count = result.scalar_one()
             assert count == 0, f"Expected 0 after two contexts, got {count}"
