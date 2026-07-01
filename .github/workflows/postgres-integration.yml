@@ -81,7 +81,7 @@ jobs:
           POSTGRES_PASSWORD: blueberry-test-only
           RUN_POSTGRES_INTEGRATION: "1"
         run: |
-          uv run python -c "
+          python -c "
           import asyncio, os, asyncpg
 
           async def main():
