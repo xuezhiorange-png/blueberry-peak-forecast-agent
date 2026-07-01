@@ -20,6 +20,24 @@ class ForecastQuantile(StrEnum):
     P90 = "P90"
 
 
+class AuthorityStatus(StrEnum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    SUPERSEDED = "superseded"
+    RETIRED = "retired"
+    CANCELLED = "cancelled"
+
+
+class AuthorityFamily(StrEnum):
+    CAPACITY_POOL_DEFINITION = "capacity_pool_definition"
+    DAILY_CAPACITY = "daily_capacity"
+    RUN_PARAMETER_PACKAGE = "run_parameter_package"
+    HOLIDAY_CALENDAR_VERSION = "holiday_calendar_version"
+    WEATHER_RULE_CONFIG_VERSION = "weather_rule_config_version"
+    INITIAL_INVENTORY_SNAPSHOT = "initial_inventory_snapshot"
+    MATURE_INVENTORY_LOSS_AUTHORITY = "mature_inventory_loss_authority"
+
+
 class Task9AStatus(StrEnum):
     COMPLETED = "completed"
     BLOCKED = "blocked"

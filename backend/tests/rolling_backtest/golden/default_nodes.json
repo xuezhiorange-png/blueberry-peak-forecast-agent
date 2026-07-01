@@ -1,0 +1,47 @@
+{
+  "season_2026": [
+    {
+      "node_key": "february_end",
+      "as_of_local_date": "2026-02-28",
+      "forecast_start_local_date": "2026-03-01"
+    },
+    {
+      "node_key": "march_15",
+      "as_of_local_date": "2026-03-15",
+      "forecast_start_local_date": "2026-03-16"
+    },
+    {
+      "node_key": "march_31",
+      "as_of_local_date": "2026-03-31",
+      "forecast_start_local_date": "2026-04-01"
+    },
+    {
+      "node_key": "april_07",
+      "as_of_local_date": "2026-04-07",
+      "forecast_start_local_date": "2026-04-08"
+    }
+  ],
+  "season_2028": [
+    {
+      "node_key": "february_end",
+      "as_of_local_date": "2028-02-29",
+      "forecast_start_local_date": "2028-03-01"
+    },
+    {
+      "node_key": "march_15",
+      "as_of_local_date": "2028-03-15",
+      "forecast_start_local_date": "2028-03-16"
+    },
+    {
+      "node_key": "march_31",
+      "as_of_local_date": "2028-03-31",
+      "forecast_start_local_date": "2028-04-01"
+    },
+    {
+      "node_key": "april_07",
+      "as_of_local_date": "2028-04-07",
+      "forecast_start_local_date": "2028-04-08"
+    }
+  ]
+}
+

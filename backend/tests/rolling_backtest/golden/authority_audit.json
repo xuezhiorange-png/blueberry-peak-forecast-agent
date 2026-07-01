@@ -1,0 +1,59 @@
+{
+  "parent_authority_semantic_payload": {
+    "authority_policy_version": "task11-parent-auth-policy-v1",
+    "authority_schema_version": "task11-parent-auth-v1",
+    "authority_status": "completed",
+    "authority_timestamp": "2026-02-28T10:00:00Z",
+    "canonical_payload_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "result_hash": null,
+    "semantic_input_signature": null,
+    "source_type": "task8_model_run"
+  },
+  "parent_authority_audit_hash": "0e8abfeafd7c6d48f1f1284f4e5ac666c1b47d49920cb8e288ef56592bfef5d6",
+  "artifact_audit_payload": {
+    "created_at": "2026-02-28T10:00:00Z",
+    "parent_authority": {
+      "authority_policy_version": "task11-parent-auth-policy-v1",
+      "authority_schema_version": "task11-parent-auth-v1",
+      "authority_status": "completed",
+      "authority_timestamp": "2026-02-28T10:00:00Z",
+      "canonical_payload_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "result_hash": null,
+      "semantic_input_signature": null,
+      "source_type": "task8_model_run"
+    },
+    "source_type": "task8_model_artifact"
+  },
+  "artifact_audit_hash": "2c395a1963935c592881a1f3a3e347ffc290266d2ae9e571d61495e5649e1813",
+  "daily_prediction_audit_payload": {
+    "created_at": "2026-02-28T10:00:00Z",
+    "parent_authority": {
+      "authority_policy_version": "task11-parent-auth-policy-v1",
+      "authority_schema_version": "task11-parent-auth-v1",
+      "authority_status": "completed",
+      "authority_timestamp": "2026-02-28T09:00:00Z",
+      "canonical_payload_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "result_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+      "semantic_input_signature": "1111111111111111111111111111111111111111111111111111111111111111",
+      "source_type": "task8_forecast_run"
+    },
+    "prediction_date": "2026-03-01",
+    "source_type": "task8_daily_prediction"
+  },
+  "daily_prediction_audit_hash": "4a8023acd3976ce32e84dbaf6e295ffffc59044a46558bfee3f453f8e079cdd0",
+  "task10_artifact_audit_payload": {
+    "created_at": "2026-02-28T11:00:00Z",
+    "parent_authority": {
+      "authority_policy_version": "task11-parent-auth-policy-v1",
+      "authority_schema_version": "task11-parent-auth-v1",
+      "authority_status": "completed",
+      "authority_timestamp": "2026-02-28T08:00:00Z",
+      "canonical_payload_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+      "result_hash": "5555555555555555555555555555555555555555555555555555555555555555",
+      "semantic_input_signature": "4444444444444444444444444444444444444444444444444444444444444444",
+      "source_type": "task10_training_run"
+    },
+    "source_type": "task10_model_artifact"
+  },
+  "task10_artifact_audit_hash": "e7b901a03d15a28a3fe7669559e6e16b256285d8fefb44171e31948a60835e36"
+}
