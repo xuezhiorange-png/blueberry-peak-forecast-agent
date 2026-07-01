@@ -967,7 +967,7 @@ def test_missing_member_prediction_fails_closed() -> None:
 
 
 def test_pool_outside_member_fails_closed() -> None:
-    """Prediction for member not in pool → must reject."""
+    """Prediction for member not in pool → must reject at global level."""
     outside_preds = _task8_predictions(farm_id=999, subfarm_id=None, variety_id=888)
     with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
         assemble_task9_request_from_resolved_authorities(
@@ -980,7 +980,7 @@ def test_pool_outside_member_fails_closed() -> None:
             task8_daily_predictions=outside_preds,
             daily_weather_features=_weather_features(),
         )
-    assert exc_info.value.details["reason"] == "authority_member_coverage_incomplete"
+    assert exc_info.value.details["reason"] == "authority_unknown_task8_member_reference"
 
 
 def test_different_members_same_date_quantile_not_treated_as_duplicates() -> None:
@@ -1565,12 +1565,14 @@ def test_error_reasons_are_precise_and_stable() -> None:
         "authority_duplicate_mature_loss",
         "authority_duplicate_weather_feature",
         "authority_unknown_pool_reference",
+        "authority_unknown_task8_member_reference",
         "authority_pool_membership_conflict",
         "authority_assembly_canonical_parity_error",
         "authority_inventory_member_unassigned",
         "authority_inventory_member_ambiguous",
         "authority_inventory_cohort_duplicate",
         "authority_inventory_total_mismatch",
+        "authority_inventory_cohort_key_mismatch",
         "authority_visibility_after_cutoff",
         "authority_context_cutoff_mismatch",
         "authority_request_schema_rejected",
@@ -1690,3 +1692,1012 @@ def test_assembly_context_dataclass_is_frozen() -> None:
     ctx = _context()
     with pytest.raises(AttributeError):
         ctx.mode = AuthorityResolutionMode.FIRST_TIME_HISTORICAL  # type: ignore[misc]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Finding 1: Consumability interval boundary tests
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def _pool_with_consumability(
+    *,
+    consumable_from: date | None = date(2026, 1, 1),
+    consumable_to: date | None = None,
+    authority_id: int = 1,
+) -> ResolvedCapacityPoolAuthority:
+    base = _pool(authority_id=authority_id)
+    return replace(
+        base,
+        consumable_from_local_date=consumable_from,
+        consumable_to_local_date=consumable_to,
+        semantic_bundle=base.semantic_bundle.model_copy(
+            update={
+                "consumable_from_local_date": consumable_from,
+                "consumable_to_local_date": consumable_to,
+            }
+        ),
+    )
+
+
+def _daily_with_consumability(
+    pool: ResolvedCapacityPoolAuthority,
+    *,
+    consumable_from: date | None = date(2026, 1, 1),
+    consumable_to: date | None = None,
+) -> ResolvedDailyCapacityAuthority:
+    base = _daily(pool)
+    return replace(
+        base,
+        consumable_from_local_date=consumable_from,
+        consumable_to_local_date=consumable_to,
+        semantic_input=base.semantic_input.model_copy(
+            update={
+                "consumable_from_local_date": consumable_from,
+                "consumable_to_local_date": consumable_to,
+            }
+        ),
+    )
+
+
+def _loss_with_consumability(
+    *,
+    pool_code: str = "POOL-A",
+    consumable_from: date | None = date(2026, 1, 1),
+    consumable_to: date | None = None,
+) -> tuple[ResolvedMatureLossAuthority, ...]:
+    base_losses = _losses(pool_code)
+    return tuple(
+        replace(
+            loss,
+            consumable_from_local_date=consumable_from,
+            consumable_to_local_date=consumable_to,
+            semantic_input=loss.semantic_input.model_copy(
+                update={
+                    "consumable_from_local_date": consumable_from,
+                    "consumable_to_local_date": consumable_to,
+                }
+            ),
+        )
+        for loss in base_losses
+    )
+
+
+def _holiday_with_consumability(
+    *,
+    consumable_from: date | None = date(2026, 1, 1),
+    consumable_to: date | None = None,
+) -> ResolvedHolidayCalendarAuthority:
+    base = _holiday()
+    return replace(
+        base,
+        consumable_from_local_date=consumable_from,
+        consumable_to_local_date=consumable_to,
+        semantic_bundle=base.semantic_bundle.model_copy(
+            update={
+                "consumable_from_local_date": consumable_from,
+                "consumable_to_local_date": consumable_to,
+            }
+        ),
+    )
+
+
+def _weather_with_consumability(
+    *,
+    consumable_from: date | None = date(2026, 1, 1),
+    consumable_to: date | None = None,
+) -> ResolvedWeatherRuleAuthority:
+    base = _weather()
+    return replace(
+        base,
+        consumable_from_local_date=consumable_from,
+        consumable_to_local_date=consumable_to,
+        semantic_input=base.semantic_input.model_copy(
+            update={
+                "consumable_from_local_date": consumable_from,
+                "consumable_to_local_date": consumable_to,
+            }
+        ),
+    )
+
+
+def _run_package_with_consumability(
+    holiday: ResolvedHolidayCalendarAuthority,
+    weather: ResolvedWeatherRuleAuthority,
+    *,
+    consumable_from: date | None = date(2026, 1, 1),
+    consumable_to: date | None = None,
+) -> ResolvedRunParameterPackageAuthority:
+    base = _run_package(holiday, weather)
+    return replace(
+        base,
+        consumable_from_local_date=consumable_from,
+        consumable_to_local_date=consumable_to,
+        semantic_input=base.semantic_input.model_copy(
+            update={
+                "consumable_from_local_date": consumable_from,
+                "consumable_to_local_date": consumable_to,
+            }
+        ),
+    )
+
+
+def _inventory_with_consumability(
+    *,
+    consumable_from: date | None = date(2026, 1, 1),
+    consumable_to: date | None = None,
+) -> ResolvedInitialInventoryAuthority:
+    base = _initial_inventory()
+    return replace(
+        base,
+        consumable_from_local_date=consumable_from,
+        consumable_to_local_date=consumable_to,
+        semantic_bundle=base.semantic_bundle.model_copy(
+            update={
+                "consumable_from_local_date": consumable_from,
+                "consumable_to_local_date": consumable_to,
+            }
+        ),
+    )
+
+
+def _consumable_to_context(
+    consumable_to: date | None,
+) -> Task9AuthorityAssemblyContext:
+    """Build context whose as_of_date equals the consumable_to boundary."""
+    return _context(as_of_date=date(2026, 6, 15))
+
+
+def _consumable_from_context(
+    consumable_from: date,
+) -> Task9AuthorityAssemblyContext:
+    """Build context whose as_of_date is before consumable_from."""
+    return _context(as_of_date=consumable_from - __import__("datetime").timedelta(days=1))
+
+
+@pytest.mark.parametrize(
+    ("mode",),
+    [
+        (AuthorityResolutionMode.CURRENT_OPERATIONAL,),
+        (AuthorityResolutionMode.FIRST_TIME_HISTORICAL,),
+        (AuthorityResolutionMode.EXACT_REFERENCE,),
+    ],
+)
+def test_consumability_boundary_as_of_equals_consumable_from_passes(
+    mode: AuthorityResolutionMode,
+) -> None:
+    """as_of == consumable_from → PASS."""
+    # consumable_from must match AS_OF so source refs align with service validation.
+    ctx = _context(mode=mode, as_of_date=AS_OF)
+    pool = replace(
+        _pool(),
+        mode=mode,
+        consumable_from_local_date=AS_OF,
+        consumable_to_local_date=None,
+        semantic_bundle=_pool().semantic_bundle.model_copy(
+            update={"consumable_from_local_date": AS_OF, "consumable_to_local_date": None}
+        ),
+    )
+    daily = replace(_daily(pool), mode=mode, parent_pool=pool)
+    inv = replace(_initial_inventory(), mode=mode)
+    losses = tuple(replace(loss, mode=mode) for loss in _losses())
+    holiday = replace(_holiday(), mode=mode)
+    weather = replace(_weather(), mode=mode)
+    pkg = replace(_run_package(holiday, weather), mode=mode)
+    assembled = assemble_task9_request_from_resolved_authorities(
+        context=ctx,
+        capacity_pools=(pool,),
+        daily_capacities=(daily,),
+        run_package=pkg,
+        initial_inventory=inv,
+        mature_losses=losses,
+        task8_daily_predictions=_task8_predictions(),
+        daily_weather_features=_weather_features(),
+    )
+    assert assembled.request is not None
+
+
+@pytest.mark.parametrize(
+    ("mode",),
+    [
+        (AuthorityResolutionMode.CURRENT_OPERATIONAL,),
+        (AuthorityResolutionMode.FIRST_TIME_HISTORICAL,),
+        (AuthorityResolutionMode.EXACT_REFERENCE,),
+    ],
+)
+def test_consumability_boundary_as_of_before_consumable_to_passes(
+    mode: AuthorityResolutionMode,
+) -> None:
+    """as_of == consumable_to - 1 → PASS."""
+    consumable_to = AS_OF + __import__("datetime").timedelta(days=1)
+    ctx = _context(mode=mode, as_of_date=AS_OF)
+    pool = replace(
+        _pool(),
+        mode=mode,
+        consumable_from_local_date=date(2026, 1, 1),
+        consumable_to_local_date=consumable_to,
+        semantic_bundle=_pool().semantic_bundle.model_copy(
+            update={
+                "consumable_from_local_date": date(2026, 1, 1),
+                "consumable_to_local_date": consumable_to,
+            }
+        ),
+    )
+    daily = replace(_daily(pool), mode=mode, parent_pool=pool)
+    inv = replace(_initial_inventory(), mode=mode)
+    losses = tuple(replace(loss, mode=mode) for loss in _losses())
+    holiday = replace(_holiday(), mode=mode)
+    weather = replace(_weather(), mode=mode)
+    pkg = replace(_run_package(holiday, weather), mode=mode)
+    assembled = assemble_task9_request_from_resolved_authorities(
+        context=ctx,
+        capacity_pools=(pool,),
+        daily_capacities=(daily,),
+        run_package=pkg,
+        initial_inventory=inv,
+        mature_losses=losses,
+        task8_daily_predictions=_task8_predictions(),
+        daily_weather_features=_weather_features(),
+    )
+    assert assembled.request is not None
+
+
+@pytest.mark.parametrize(
+    ("mode",),
+    [
+        (AuthorityResolutionMode.CURRENT_OPERATIONAL,),
+        (AuthorityResolutionMode.FIRST_TIME_HISTORICAL,),
+        (AuthorityResolutionMode.EXACT_REFERENCE,),
+    ],
+)
+def test_consumability_boundary_as_of_equals_consumable_to_fails(
+    mode: AuthorityResolutionMode,
+) -> None:
+    """as_of == consumable_to → FAIL."""
+    pool = replace(
+        _pool(),
+        mode=mode,
+        consumable_from_local_date=date(2026, 1, 1),
+        consumable_to_local_date=AS_OF,
+        semantic_bundle=_pool().semantic_bundle.model_copy(
+            update={
+                "consumable_from_local_date": date(2026, 1, 1),
+                "consumable_to_local_date": AS_OF,
+            }
+        ),
+    )
+    daily = replace(_daily(pool), mode=mode, parent_pool=pool)
+    inv = replace(_initial_inventory(), mode=mode)
+    losses = tuple(replace(loss, mode=mode) for loss in _losses())
+    holiday = replace(_holiday(), mode=mode)
+    weather = replace(_weather(), mode=mode)
+    pkg = replace(_run_package(holiday, weather), mode=mode)
+    ctx = _context(mode=mode, as_of_date=AS_OF)
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(daily,),
+            run_package=pkg,
+            initial_inventory=inv,
+            mature_losses=losses,
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+@pytest.mark.parametrize(
+    ("mode",),
+    [
+        (AuthorityResolutionMode.CURRENT_OPERATIONAL,),
+        (AuthorityResolutionMode.FIRST_TIME_HISTORICAL,),
+        (AuthorityResolutionMode.EXACT_REFERENCE,),
+    ],
+)
+def test_consumability_boundary_as_of_after_consumable_to_fails(
+    mode: AuthorityResolutionMode,
+) -> None:
+    """as_of > consumable_to → FAIL."""
+    pool = replace(
+        _pool(),
+        mode=mode,
+        consumable_from_local_date=date(2026, 1, 1),
+        consumable_to_local_date=date(2026, 5, 30),
+        semantic_bundle=_pool().semantic_bundle.model_copy(
+            update={
+                "consumable_from_local_date": date(2026, 1, 1),
+                "consumable_to_local_date": date(2026, 5, 30),
+            }
+        ),
+    )
+    daily = replace(_daily(pool), mode=mode, parent_pool=pool)
+    inv = replace(_initial_inventory(), mode=mode)
+    losses = tuple(replace(loss, mode=mode) for loss in _losses())
+    holiday = replace(_holiday(), mode=mode)
+    weather = replace(_weather(), mode=mode)
+    pkg = replace(_run_package(holiday, weather), mode=mode)
+    ctx = _context(mode=mode, as_of_date=AS_OF)
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(daily,),
+            run_package=pkg,
+            initial_inventory=inv,
+            mature_losses=losses,
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+@pytest.mark.parametrize(
+    ("mode",),
+    [
+        (AuthorityResolutionMode.CURRENT_OPERATIONAL,),
+        (AuthorityResolutionMode.FIRST_TIME_HISTORICAL,),
+        (AuthorityResolutionMode.EXACT_REFERENCE,),
+    ],
+)
+def test_consumability_boundary_as_of_before_consumable_from_fails(
+    mode: AuthorityResolutionMode,
+) -> None:
+    """as_of < consumable_from → FAIL."""
+    pool = replace(
+        _pool(),
+        mode=mode,
+        consumable_from_local_date=AS_OF + __import__("datetime").timedelta(days=1),
+        semantic_bundle=_pool().semantic_bundle.model_copy(
+            update={"consumable_from_local_date": AS_OF + __import__("datetime").timedelta(days=1)}
+        ),
+    )
+    daily = replace(_daily(pool), mode=mode, parent_pool=pool)
+    inv = replace(_initial_inventory(), mode=mode)
+    losses = tuple(replace(loss, mode=mode) for loss in _losses())
+    holiday = replace(_holiday(), mode=mode)
+    weather = replace(_weather(), mode=mode)
+    pkg = replace(_run_package(holiday, weather), mode=mode)
+    ctx = _context(mode=mode, as_of_date=AS_OF)
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(daily,),
+            run_package=pkg,
+            initial_inventory=inv,
+            mature_losses=losses,
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+@pytest.mark.parametrize(
+    ("mode",),
+    [
+        (AuthorityResolutionMode.CURRENT_OPERATIONAL,),
+        (AuthorityResolutionMode.FIRST_TIME_HISTORICAL,),
+        (AuthorityResolutionMode.EXACT_REFERENCE,),
+    ],
+)
+def test_consumability_boundary_consumable_from_none_fails(
+    mode: AuthorityResolutionMode,
+) -> None:
+    """consumable_from is None → FAIL."""
+    pool = replace(
+        _pool(),
+        mode=mode,
+        consumable_from_local_date=None,
+        semantic_bundle=_pool().semantic_bundle.model_copy(
+            update={"consumable_from_local_date": None}
+        ),
+    )
+    daily = replace(_daily(pool), mode=mode, parent_pool=pool)
+    inv = replace(_initial_inventory(), mode=mode)
+    losses = tuple(replace(loss, mode=mode) for loss in _losses())
+    holiday = replace(_holiday(), mode=mode)
+    weather = replace(_weather(), mode=mode)
+    pkg = replace(_run_package(holiday, weather), mode=mode)
+    ctx = _context(mode=mode, as_of_date=AS_OF)
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(daily,),
+            run_package=pkg,
+            initial_inventory=inv,
+            mature_losses=losses,
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+def test_consumability_daily_parent_pool_check() -> None:
+    """Daily capacity's parent_pool consumability is checked independently."""
+    pool = _pool()
+    daily = _daily(pool)
+    # Set daily consumable ok but parent_pool consumable_to expired.
+    parent_pool = replace(
+        pool,
+        consumable_from_local_date=date(2026, 1, 1),
+        consumable_to_local_date=date(2026, 1, 2),
+    )
+    expired_daily = replace(daily, parent_pool=parent_pool)
+    ctx = _context(as_of_date=date(2026, 6, 1))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(parent_pool,),
+            daily_capacities=(expired_daily,),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+def test_consumability_mature_loss_check() -> None:
+    """Mature loss consumability is checked."""
+    pool = _pool()
+    losses = tuple(
+        replace(
+            loss,
+            consumable_from_local_date=date(2026, 6, 2),
+            semantic_input=loss.semantic_input.model_copy(
+                update={"consumable_from_local_date": date(2026, 6, 2)}
+            ),
+        )
+        for loss in _losses()
+    )
+    ctx = _context(as_of_date=date(2026, 6, 1))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=_initial_inventory(),
+            mature_losses=losses,
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+def test_consumability_run_package_check() -> None:
+    """Run package consumability is checked."""
+    pool = _pool()
+    pkg = replace(
+        _run_package(_holiday(), _weather()),
+        consumable_from_local_date=date(2026, 6, 2),
+        semantic_input=_run_package(_holiday(), _weather()).semantic_input.model_copy(
+            update={"consumable_from_local_date": date(2026, 6, 2)}
+        ),
+    )
+    ctx = _context(as_of_date=date(2026, 6, 1))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=pkg,
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+def test_consumability_holiday_check() -> None:
+    """Holiday calendar consumability is checked."""
+    pool = _pool()
+    holiday = replace(
+        _holiday(),
+        consumable_from_local_date=date(2026, 6, 2),
+        semantic_bundle=_holiday().semantic_bundle.model_copy(
+            update={"consumable_from_local_date": date(2026, 6, 2)}
+        ),
+    )
+    pkg = _run_package(holiday, _weather())
+    ctx = _context(as_of_date=date(2026, 6, 1))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=pkg,
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+def test_consumability_weather_check() -> None:
+    """Weather rule consumability is checked."""
+    pool = _pool()
+    weather = replace(
+        _weather(),
+        consumable_from_local_date=date(2026, 6, 2),
+        semantic_input=_weather().semantic_input.model_copy(
+            update={"consumable_from_local_date": date(2026, 6, 2)}
+        ),
+    )
+    pkg = _run_package(_holiday(), weather)
+    ctx = _context(as_of_date=date(2026, 6, 1))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=pkg,
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+def test_consumability_initial_inventory_check() -> None:
+    """Initial inventory consumability is checked."""
+    pool = _pool()
+    inv = replace(
+        _initial_inventory(),
+        consumable_from_local_date=date(2026, 6, 2),
+        semantic_bundle=_initial_inventory().semantic_bundle.model_copy(
+            update={"consumable_from_local_date": date(2026, 6, 2)}
+        ),
+    )
+    ctx = _context(as_of_date=date(2026, 6, 1))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=inv,
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "consumability_interval"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Finding 2: Weather rule effective interval tests
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def test_weather_effective_from_after_start_fails() -> None:
+    """Weather effective_from after forecast_start_date → FAIL."""
+    pool = _pool()
+    weather = replace(
+        _weather(),
+        semantic_input=_weather().semantic_input.model_copy(
+            update={"effective_from": date(2026, 6, 16)}
+        ),
+    )
+    pkg = _run_package(_holiday(), weather)
+    ctx = _context(forecast_start=date(2026, 6, 15), forecast_end=date(2026, 6, 15))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=pkg,
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "weather_rule_effective_interval"
+
+
+def test_weather_effective_to_before_end_fails() -> None:
+    """Weather effective_to before forecast_end_date → FAIL."""
+    pool = _pool()
+    weather = replace(
+        _weather(),
+        semantic_input=_weather().semantic_input.model_copy(
+            update={"effective_to": date(2026, 6, 14)}
+        ),
+    )
+    pkg = _run_package(_holiday(), weather)
+    ctx = _context(forecast_start=date(2026, 6, 15), forecast_end=date(2026, 6, 15))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=ctx,
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=pkg,
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_context_cutoff_mismatch"
+    assert exc_info.value.details["field"] == "weather_rule_effective_interval"
+
+
+def test_weather_effective_exact_boundary_passes() -> None:
+    """Weather effective_from == start, effective_to == end → PASS."""
+    pool = _pool()
+    weather = replace(
+        _weather(),
+        semantic_input=_weather().semantic_input.model_copy(
+            update={
+                "effective_from": date(2026, 6, 15),
+                "effective_to": date(2026, 6, 15),
+            }
+        ),
+    )
+    pkg = _run_package(_holiday(), weather)
+    ctx = _context(forecast_start=date(2026, 6, 15), forecast_end=date(2026, 6, 15))
+    assembled = assemble_task9_request_from_resolved_authorities(
+        context=ctx,
+        capacity_pools=(pool,),
+        daily_capacities=(_daily(pool),),
+        run_package=pkg,
+        initial_inventory=_initial_inventory(),
+        mature_losses=_losses(),
+        task8_daily_predictions=_task8_predictions(),
+        daily_weather_features=_weather_features(),
+    )
+    assert assembled.request is not None
+
+
+def test_weather_effective_open_ended_passes() -> None:
+    """Weather effective_to is None (open-ended) → PASS."""
+    pool = _pool()
+    # _weather() already has effective_to=None, effective_from=date(2026, 1, 1)
+    pkg = _run_package(_holiday(), _weather())
+    ctx = _context(forecast_start=date(2026, 6, 15), forecast_end=date(2026, 6, 15))
+    assembled = assemble_task9_request_from_resolved_authorities(
+        context=ctx,
+        capacity_pools=(pool,),
+        daily_capacities=(_daily(pool),),
+        run_package=pkg,
+        initial_inventory=_initial_inventory(),
+        mature_losses=_losses(),
+        task8_daily_predictions=_task8_predictions(),
+        daily_weather_features=_weather_features(),
+    )
+    assert assembled.request is not None
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Finding 3: Extra unknown Task 8 member
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def test_extra_unknown_task8_member_fails() -> None:
+    """Valid set + one extra unknown member → FAIL with authority_unknown_task8_member_reference."""
+    valid_preds = _task8_predictions()
+    unknown_pred = _task8_predictions(
+        farm_id=999, subfarm_id=None, variety_id=888, daily_prediction_id=999
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=_context(),
+            capacity_pools=(_pool(),),
+            daily_capacities=(_daily(_pool()),),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=(*valid_preds, *unknown_pred),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_unknown_task8_member_reference"
+    assert exc_info.value.details["farm_id"] == 999
+    assert exc_info.value.details["subfarm_id"] is None
+    assert exc_info.value.details["variety_id"] == 888
+
+
+def test_unknown_member_preserves_existing_errors() -> None:
+    """Verify existing errors still fire when unknown member is not the issue."""
+    # Missing coverage → authority_member_coverage_incomplete
+    preds = _task8_predictions()[:2]  # Missing P90
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=_context(),
+            capacity_pools=(_pool(),),
+            daily_capacities=(_daily(_pool()),),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=preds,
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_member_coverage_incomplete"
+
+    # Duplicate → authority_duplicate_task8_prediction
+    preds = _task8_predictions()
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=_context(),
+            capacity_pools=(_pool(),),
+            daily_capacities=(_daily(_pool()),),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=_initial_inventory(),
+            mature_losses=_losses(),
+            task8_daily_predictions=(*preds, preds[0]),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_duplicate_task8_prediction"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Finding 4: Complete DB-ID independence proof
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def test_db_id_independence_proof() -> None:
+    """Mutate ALL persistent IDs across both pools simultaneously.
+
+    Semantic fields unchanged → canonical payload equality,
+    assembly hash equality. Manifest object identity may differ
+    (because it preserves authority_id). Request may differ in
+    source_ref DB IDs.
+    """
+    pool_a = _pool(authority_id=1)
+    pool_b = _pool(authority_id=2, pool_code="POOL-B", members=((10, 3, 40),))
+    daily_a = _daily(pool_a)
+    daily_b = _daily(pool_b)
+    losses_a = _losses("POOL-A")
+    losses_b = _losses("POOL-B")
+    task8_a = _task8_predictions(farm_id=10, subfarm_id=None, variety_id=20, daily_prediction_id=4)
+    task8_b = _task8_predictions(farm_id=10, subfarm_id=3, variety_id=40, daily_prediction_id=104)
+    weather_a = _weather_features("POOL-A")
+    weather_b = _weather_features("POOL-B")
+    holiday = _holiday()
+    weather = _weather()
+    pkg = _run_package(holiday, weather)
+    inv = _initial_inventory_multi_pool()
+
+    baseline = assemble_task9_request_from_resolved_authorities(
+        context=_context(),
+        capacity_pools=(pool_a, pool_b),
+        daily_capacities=(daily_a, daily_b),
+        run_package=pkg,
+        initial_inventory=inv,
+        mature_losses=(*losses_a, *losses_b),
+        task8_daily_predictions=(*task8_a, *task8_b),
+        daily_weather_features=(*weather_a, *weather_b),
+    )
+
+    # Now mutate ALL persistent IDs across both pools simultaneously.
+    mut_pool_a = replace(pool_a, authority_id=9001)
+    mut_pool_b = replace(pool_b, authority_id=9002)
+    mut_daily_a = replace(daily_a, authority_id=9011, parent_pool=mut_pool_a)
+    mut_daily_b = replace(daily_b, authority_id=9012, parent_pool=mut_pool_b)
+    mut_losses_a = tuple(replace(loss, authority_id=9060 + i) for i, loss in enumerate(losses_a))
+    mut_losses_b = tuple(replace(loss, authority_id=9070 + i) for i, loss in enumerate(losses_b))
+    mut_pkg = replace(pkg, authority_id=9041)
+    mut_holiday = replace(holiday, authority_id=9021)
+    mut_weather = replace(weather, authority_id=9031)
+    mut_pkg = replace(mut_pkg, holiday_calendar=mut_holiday, weather_rule=mut_weather)
+    mut_inv = replace(inv, authority_id=9051)
+
+    # Mutate Task8 source_ref DB IDs
+    mut_task8_a = tuple(
+        Task8DailyPredictionInput(
+            prediction_date=p.prediction_date,
+            farm_id=p.farm_id,
+            subfarm_id=p.subfarm_id,
+            variety_id=p.variety_id,
+            source_ref=Task8PredictionSourceRef(
+                maturity_model_run_id=p.source_ref.maturity_model_run_id + 9000,
+                maturity_model_version=p.source_ref.maturity_model_version,
+                maturity_model_config_hash=p.source_ref.maturity_model_config_hash,
+                maturity_model_source_signature=p.source_ref.maturity_model_source_signature,
+                maturity_model_artifact_id=p.source_ref.maturity_model_artifact_id + 9000,
+                maturity_model_artifact_hash=p.source_ref.maturity_model_artifact_hash,
+                maturity_forecast_run_id=p.source_ref.maturity_forecast_run_id + 9000,
+                maturity_forecast_source_signature=p.source_ref.maturity_forecast_source_signature,
+                maturity_forecast_as_of_date=p.source_ref.maturity_forecast_as_of_date,
+                maturity_daily_prediction_id=p.source_ref.maturity_daily_prediction_id + 9000,
+                prediction_date=p.source_ref.prediction_date,
+                forecast_quantile=p.source_ref.forecast_quantile,
+                source_quantity_kg=p.source_ref.source_quantity_kg,
+                plan_id=p.source_ref.plan_id + 9000,
+                location_reference_id=p.source_ref.location_reference_id + 9000,
+                weather_mapping_id=(p.source_ref.weather_mapping_id or 0) + 9000,
+                base_temperature_search_run_id=(p.source_ref.base_temperature_search_run_id or 0)
+                + 9000,
+            ),
+            verification_snapshot=Task8PredictionVerificationSnapshot(
+                maturity_model_run_id=p.verification_snapshot.maturity_model_run_id + 9000,
+                maturity_model_version=p.verification_snapshot.maturity_model_version,
+                maturity_model_config_hash=p.verification_snapshot.maturity_model_config_hash,
+                maturity_model_source_signature=p.verification_snapshot.maturity_model_source_signature,
+                maturity_model_artifact_id=p.verification_snapshot.maturity_model_artifact_id
+                + 9000,
+                maturity_model_artifact_run_id=p.verification_snapshot.maturity_model_artifact_run_id
+                + 9000,
+                maturity_model_artifact_hash=p.verification_snapshot.maturity_model_artifact_hash,
+                maturity_forecast_run_id=p.verification_snapshot.maturity_forecast_run_id + 9000,
+                maturity_forecast_run_status=p.verification_snapshot.maturity_forecast_run_status,
+                maturity_forecast_model_run_id=p.verification_snapshot.maturity_forecast_model_run_id
+                + 9000,
+                maturity_forecast_artifact_id=p.verification_snapshot.maturity_forecast_artifact_id
+                + 9000,
+                maturity_forecast_source_signature=p.verification_snapshot.maturity_forecast_source_signature,
+                maturity_forecast_as_of_date=p.verification_snapshot.maturity_forecast_as_of_date,
+                maturity_forecast_prediction_start_date=p.verification_snapshot.maturity_forecast_prediction_start_date,
+                maturity_forecast_prediction_end_date=p.verification_snapshot.maturity_forecast_prediction_end_date,
+                maturity_daily_prediction_id=p.verification_snapshot.maturity_daily_prediction_id
+                + 9000,
+                maturity_daily_prediction_forecast_run_id=p.verification_snapshot.maturity_daily_prediction_forecast_run_id
+                + 9000,
+                prediction_date=p.verification_snapshot.prediction_date,
+                farm_id=p.verification_snapshot.farm_id,
+                subfarm_id=p.verification_snapshot.subfarm_id,
+                variety_id=p.verification_snapshot.variety_id,
+                plan_id=p.verification_snapshot.plan_id + 9000,
+                location_reference_id=p.verification_snapshot.location_reference_id + 9000,
+                p50_kg=p.verification_snapshot.p50_kg,
+                p80_kg=p.verification_snapshot.p80_kg,
+                p90_kg=p.verification_snapshot.p90_kg,
+            ),
+        )
+        for p in task8_a
+    )
+    mut_task8_b = tuple(
+        Task8DailyPredictionInput(
+            prediction_date=p.prediction_date,
+            farm_id=p.farm_id,
+            subfarm_id=p.subfarm_id,
+            variety_id=p.variety_id,
+            source_ref=Task8PredictionSourceRef(
+                maturity_model_run_id=p.source_ref.maturity_model_run_id + 9000,
+                maturity_model_version=p.source_ref.maturity_model_version,
+                maturity_model_config_hash=p.source_ref.maturity_model_config_hash,
+                maturity_model_source_signature=p.source_ref.maturity_model_source_signature,
+                maturity_model_artifact_id=p.source_ref.maturity_model_artifact_id + 9000,
+                maturity_model_artifact_hash=p.source_ref.maturity_model_artifact_hash,
+                maturity_forecast_run_id=p.source_ref.maturity_forecast_run_id + 9000,
+                maturity_forecast_source_signature=p.source_ref.maturity_forecast_source_signature,
+                maturity_forecast_as_of_date=p.source_ref.maturity_forecast_as_of_date,
+                maturity_daily_prediction_id=p.source_ref.maturity_daily_prediction_id + 9000,
+                prediction_date=p.source_ref.prediction_date,
+                forecast_quantile=p.source_ref.forecast_quantile,
+                source_quantity_kg=p.source_ref.source_quantity_kg,
+                plan_id=p.source_ref.plan_id + 9000,
+                location_reference_id=p.source_ref.location_reference_id + 9000,
+                weather_mapping_id=(p.source_ref.weather_mapping_id or 0) + 9000,
+                base_temperature_search_run_id=(p.source_ref.base_temperature_search_run_id or 0)
+                + 9000,
+            ),
+            verification_snapshot=Task8PredictionVerificationSnapshot(
+                maturity_model_run_id=p.verification_snapshot.maturity_model_run_id + 9000,
+                maturity_model_version=p.verification_snapshot.maturity_model_version,
+                maturity_model_config_hash=p.verification_snapshot.maturity_model_config_hash,
+                maturity_model_source_signature=p.verification_snapshot.maturity_model_source_signature,
+                maturity_model_artifact_id=p.verification_snapshot.maturity_model_artifact_id
+                + 9000,
+                maturity_model_artifact_run_id=p.verification_snapshot.maturity_model_artifact_run_id
+                + 9000,
+                maturity_model_artifact_hash=p.verification_snapshot.maturity_model_artifact_hash,
+                maturity_forecast_run_id=p.verification_snapshot.maturity_forecast_run_id + 9000,
+                maturity_forecast_run_status=p.verification_snapshot.maturity_forecast_run_status,
+                maturity_forecast_model_run_id=p.verification_snapshot.maturity_forecast_model_run_id
+                + 9000,
+                maturity_forecast_artifact_id=p.verification_snapshot.maturity_forecast_artifact_id
+                + 9000,
+                maturity_forecast_source_signature=p.verification_snapshot.maturity_forecast_source_signature,
+                maturity_forecast_as_of_date=p.verification_snapshot.maturity_forecast_as_of_date,
+                maturity_forecast_prediction_start_date=p.verification_snapshot.maturity_forecast_prediction_start_date,
+                maturity_forecast_prediction_end_date=p.verification_snapshot.maturity_forecast_prediction_end_date,
+                maturity_daily_prediction_id=p.verification_snapshot.maturity_daily_prediction_id
+                + 9000,
+                maturity_daily_prediction_forecast_run_id=p.verification_snapshot.maturity_daily_prediction_forecast_run_id
+                + 9000,
+                prediction_date=p.verification_snapshot.prediction_date,
+                farm_id=p.verification_snapshot.farm_id,
+                subfarm_id=p.verification_snapshot.subfarm_id,
+                variety_id=p.verification_snapshot.variety_id,
+                plan_id=p.verification_snapshot.plan_id + 9000,
+                location_reference_id=p.verification_snapshot.location_reference_id + 9000,
+                p50_kg=p.verification_snapshot.p50_kg,
+                p80_kg=p.verification_snapshot.p80_kg,
+                p90_kg=p.verification_snapshot.p90_kg,
+            ),
+        )
+        for p in task8_b
+    )
+
+    mutated = assemble_task9_request_from_resolved_authorities(
+        context=_context(),
+        capacity_pools=(mut_pool_a, mut_pool_b),
+        daily_capacities=(mut_daily_a, mut_daily_b),
+        run_package=mut_pkg,
+        initial_inventory=mut_inv,
+        mature_losses=(*mut_losses_a, *mut_losses_b),
+        task8_daily_predictions=(*mut_task8_a, *mut_task8_b),
+        daily_weather_features=(*weather_a, *weather_b),
+    )
+
+    # request equality may differ because source_ref preserves DB IDs
+    # but canonical payload and assembly hash must be identical.
+    assert _immutable_to_plain(baseline.canonical_payload) == _immutable_to_plain(
+        mutated.canonical_payload
+    )
+    assert baseline.assembly_hash == mutated.assembly_hash
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Finding 5: Cohort key mismatch vs total mismatch
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def test_tampered_stable_cohort_key_fails() -> None:
+    """Tampered stable_cohort_key → authority_inventory_cohort_key_mismatch."""
+    pool = _pool()
+    inv = _initial_inventory()
+    # Tamper with the first cohort's stable_cohort_key
+    tampered_cohort = inv.semantic_bundle.cohorts[0].model_copy(
+        update={"stable_cohort_key": "tampered-key"}
+    )
+    tampered_inv = replace(
+        inv,
+        semantic_bundle=inv.semantic_bundle.model_copy(
+            update={"cohorts": [tampered_cohort, *inv.semantic_bundle.cohorts[1:]]}
+        ),
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=_context(),
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=tampered_inv,
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_inventory_cohort_key_mismatch"
+    assert "expected_stable_cohort_key" in exc_info.value.details
+    assert "actual_stable_cohort_key" in exc_info.value.details
+    assert exc_info.value.details["farm_id"] == 10
+    assert exc_info.value.details["variety_id"] == 20
+
+
+def test_correct_keys_wrong_total_fails() -> None:
+    """Correct keys but wrong scalar total → authority_inventory_total_mismatch."""
+    pool = _pool()
+    inv = _initial_inventory()
+    wrong_total_inv = replace(
+        inv,
+        semantic_bundle=inv.semantic_bundle.model_copy(
+            update={"initial_opening_mature_inventory_kg": Decimal("999")}
+        ),
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        assemble_task9_request_from_resolved_authorities(
+            context=_context(),
+            capacity_pools=(pool,),
+            daily_capacities=(_daily(pool),),
+            run_package=_run_package(_holiday(), _weather()),
+            initial_inventory=wrong_total_inv,
+            mature_losses=_losses(),
+            task8_daily_predictions=_task8_predictions(),
+            daily_weather_features=_weather_features(),
+        )
+    assert exc_info.value.details["reason"] == "authority_inventory_total_mismatch"

@@ -112,6 +112,12 @@ class _ResolvedAuthorityLike(Protocol):
     @property
     def row_hash(self) -> str: ...
 
+    @property
+    def consumable_from_local_date(self) -> date | None: ...
+
+    @property
+    def consumable_to_local_date(self) -> date | None: ...
+
 
 def _date_range(start: date, end: date) -> tuple[date, ...]:
     return tuple(start.fromordinal(day) for day in range(start.toordinal(), end.toordinal() + 1))
@@ -612,10 +618,18 @@ def _initial_inventory_inputs(
         )
         if cohort.stable_cohort_key != expected_key:
             _raise(
-                "authority_inventory_total_mismatch",
+                "authority_inventory_cohort_key_mismatch",
                 authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
                 authority_stable_key=authority.authority_stable_key,
-                details={"field": "stable_cohort_key"},
+                details={
+                    "expected_stable_cohort_key": expected_key,
+                    "actual_stable_cohort_key": cohort.stable_cohort_key,
+                    "farm_id": cohort.farm_id,
+                    "subfarm_id": cohort.subfarm_id,
+                    "variety_id": cohort.variety_id,
+                    "forecast_quantile": cohort.forecast_quantile.value,
+                    "cohort_date": cohort.cohort_date,
+                },
             )
         dedupe_key = (
             cohort.cohort_date,
@@ -847,6 +861,59 @@ def _validate_scope(
             )
 
 
+def _validate_authority_consumable_at(
+    authority: _ResolvedAuthorityLike,
+    *,
+    as_of_date: date,
+) -> None:
+    """Validate the full consumability interval for a resolved authority.
+
+    Rules:
+    - consumable_from_local_date must be non-None
+    - consumable_from_local_date <= as_of_date
+    - consumable_to_local_date is None OR as_of_date < consumable_to_local_date
+    """
+    if authority.consumable_from_local_date is None:
+        _raise(
+            "authority_context_cutoff_mismatch",
+            authority_family=authority.authority_family,
+            authority_stable_key=authority.authority_stable_key,
+            details={
+                "field": "consumability_interval",
+                "as_of_date": as_of_date,
+                "consumable_from_local_date": None,
+                "consumable_to_local_date": authority.consumable_to_local_date,
+            },
+        )
+    if authority.consumable_from_local_date > as_of_date:
+        _raise(
+            "authority_context_cutoff_mismatch",
+            authority_family=authority.authority_family,
+            authority_stable_key=authority.authority_stable_key,
+            details={
+                "field": "consumability_interval",
+                "as_of_date": as_of_date,
+                "consumable_from_local_date": authority.consumable_from_local_date,
+                "consumable_to_local_date": authority.consumable_to_local_date,
+            },
+        )
+    if (
+        authority.consumable_to_local_date is not None
+        and as_of_date >= authority.consumable_to_local_date
+    ):
+        _raise(
+            "authority_context_cutoff_mismatch",
+            authority_family=authority.authority_family,
+            authority_stable_key=authority.authority_stable_key,
+            details={
+                "field": "consumability_interval",
+                "as_of_date": as_of_date,
+                "consumable_from_local_date": authority.consumable_from_local_date,
+                "consumable_to_local_date": authority.consumable_to_local_date,
+            },
+        )
+
+
 def _validate_authority_visibility(
     *,
     context: Task9AuthorityAssemblyContext,
@@ -878,6 +945,38 @@ def _validate_authority_visibility(
                     "cutoff": cutoff,
                 },
             )
+
+    # Finding 1: Consumability interval validation for all selected authorities.
+    for authority in (
+        *capacity_pools,
+        *daily_capacities,
+        *mature_losses,
+        run_package,
+        run_package.holiday_calendar,
+        run_package.weather_rule,
+        initial_inventory,
+    ):
+        _validate_authority_consumable_at(authority, as_of_date=cutoff)
+    # Also validate each daily capacity's parent_pool consumability interval.
+    for daily_auth in daily_capacities:
+        _validate_authority_consumable_at(daily_auth.parent_pool, as_of_date=cutoff)
+
+    # Finding 2: Weather rule effective interval must cover the full forecast window.
+    weather = run_package.weather_rule.semantic_input
+    if weather.effective_from > context.forecast_start_date:
+        _raise(
+            "authority_context_cutoff_mismatch",
+            authority_family=run_package.weather_rule.authority_family,
+            authority_stable_key=run_package.weather_rule.authority_stable_key,
+            details={"field": "weather_rule_effective_interval"},
+        )
+    if weather.effective_to is not None and weather.effective_to < context.forecast_end_date:
+        _raise(
+            "authority_context_cutoff_mismatch",
+            authority_family=run_package.weather_rule.authority_family,
+            authority_stable_key=run_package.weather_rule.authority_stable_key,
+            details={"field": "weather_rule_effective_interval"},
+        )
 
     for pool in capacity_pools:
         bundle = pool.semantic_bundle
@@ -939,6 +1038,12 @@ def _validate_global_pool_references(
     daily_weather_features: tuple[DailyWeatherFeatureInput, ...],
 ) -> None:
     selected_pool_codes = {pool.semantic_bundle.capacity_pool_code for pool in capacity_pools}
+
+    # Finding 3: Build member domain from ALL selected pools.
+    selected_member_domain: set[tuple[int, int | None, int]] = set()
+    for pool in capacity_pools:
+        for member in pool.semantic_bundle.members:
+            selected_member_domain.add((member.farm_id, member.subfarm_id, member.variety_id))
 
     seen_daily: set[tuple[str, date]] = set()
     for daily_authority in daily_capacities:
@@ -1010,6 +1115,19 @@ def _validate_global_pool_references(
 
     seen_task8: set[tuple[date, ForecastQuantile, int, int | None, int]] = set()
     for prediction in task8_daily_predictions:
+        member_key = (prediction.farm_id, prediction.subfarm_id, prediction.variety_id)
+        # Finding 3: Reject unknown Task 8 member references.
+        if member_key not in selected_member_domain:
+            _raise(
+                "authority_unknown_task8_member_reference",
+                details={
+                    "farm_id": prediction.farm_id,
+                    "subfarm_id": prediction.subfarm_id,
+                    "variety_id": prediction.variety_id,
+                    "prediction_date": prediction.prediction_date,
+                    "forecast_quantile": prediction.source_ref.forecast_quantile.value,
+                },
+            )
         task8_key = (
             prediction.prediction_date,
             prediction.source_ref.forecast_quantile,
