@@ -28,6 +28,7 @@ from backend.app.harvest_state.authority_repository import (
 )
 from backend.app.harvest_state.authority_request_errors import Task9AuthorityRequestAssemblyError
 from backend.app.harvest_state.authority_request_loader import (
+    TASK9_HISTORICAL_SOURCE_SYSTEM,
     _immutable_to_plain,
     assemble_task9_request_from_resolved_authorities,
 )
@@ -217,16 +218,18 @@ def _pool_input_b() -> object:
 
 
 def _inventory_input_two_pool_request() -> Task9InitialInventorySemanticBundle:
-    source_record_key = "test:inventory:request:v1:1"
     source_version = "v1"
-    source_row_hash = "7" * 64
-    source_system = "test"
+    authority_source_system = "test"
+    authority_source_record_key = "test:inventory:request:v1:1"
     available_at = date(2026, 1, 1)
+    stable_key = f"initial-inventory:{_IDS['season']}:{_IDS['factory']}:{FORECAST_DATE}"
 
     def cohort_key(
         *,
         pool_code: str,
         members: list[Task9CapacityPoolMemberSchema],
+        source_record_key: str,
+        source_row_hash: str,
         farm_id: int,
         subfarm_id: int | None,
         variety_id: int,
@@ -247,7 +250,7 @@ def _inventory_input_two_pool_request() -> Task9InitialInventorySemanticBundle:
             {
                 "schema_version": "task9a-cohort-key-v1",
                 "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT",
-                "source_system": source_system,
+                "source_system": TASK9_HISTORICAL_SOURCE_SYSTEM,
                 "source_record_key": source_record_key,
                 "source_version": source_version,
                 "source_row_hash": source_row_hash,
@@ -269,6 +272,14 @@ def _inventory_input_two_pool_request() -> Task9InitialInventorySemanticBundle:
         ForecastQuantile.P80: (Decimal("12"), Decimal("6")),
         ForecastQuantile.P90: (Decimal("14"), Decimal("7")),
     }
+    source_row_hash = sha256_hex(
+        {
+            "source_system": authority_source_system,
+            "source_record_key": authority_source_record_key,
+            "source_version": source_version,
+        }
+    )
+    source_record_key = f"{stable_key}:{source_version}:1"
     cohorts: list[Task9InitialInventoryCohortSchema] = []
     for quantile, (qty_a, qty_b) in quantities.items():
         cohorts.append(
@@ -276,6 +287,8 @@ def _inventory_input_two_pool_request() -> Task9InitialInventorySemanticBundle:
                 stable_cohort_key=cohort_key(
                     pool_code="TEST-POOL",
                     members=pool_a_members,
+                    source_record_key=source_record_key,
+                    source_row_hash=source_row_hash,
                     farm_id=_IDS["farm"],
                     subfarm_id=None,
                     variety_id=_IDS["variety"],
@@ -294,6 +307,8 @@ def _inventory_input_two_pool_request() -> Task9InitialInventorySemanticBundle:
                 stable_cohort_key=cohort_key(
                     pool_code="TEST-POOL-B",
                     members=pool_b_members,
+                    source_record_key=source_record_key,
+                    source_row_hash=source_row_hash,
                     farm_id=_IDS["farm"],
                     subfarm_id=_IDS["subfarm"],
                     variety_id=_IDS["variety"],
@@ -321,8 +336,8 @@ def _inventory_input_two_pool_request() -> Task9InitialInventorySemanticBundle:
         status=AuthorityStatus.DRAFT,
         status_changed_at=_pool_input().status_changed_at,
         superseded_by_id=None,
-        source_system=source_system,
-        source_record_key=source_record_key,
+        source_system=authority_source_system,
+        source_record_key=authority_source_record_key,
         source_version=source_version,
         cohorts=cohorts,
     )

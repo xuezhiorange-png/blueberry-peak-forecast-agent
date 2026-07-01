@@ -513,7 +513,13 @@ def _initial_inventory_source_ref(
         source_system=TASK9_HISTORICAL_SOURCE_SYSTEM,
         source_record_key=source_key,
         source_version=bundle.snapshot_version,
-        source_row_hash=authority.row_hash,
+        source_row_hash=sha256_hex(
+            {
+                "source_system": bundle.source_system,
+                "source_record_key": bundle.source_record_key,
+                "source_version": bundle.source_version,
+            }
+        ),
         available_at=bundle.available_at_local_date,
         as_of_date=as_of_date,
     )
