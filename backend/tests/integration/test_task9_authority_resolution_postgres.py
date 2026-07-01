@@ -382,17 +382,34 @@ async def test_resolve_daily_capacity_rejects_parent_not_consumable_and_effectiv
         )
     assert exc_info.value.code == "AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF"
 
-    await db_session.execute(
-        text(
-            """
-            UPDATE task9_capacity_pool_definition
-            SET effective_to = DATE '2026-05-31'
-            WHERE id = :authority_id
-            """
-        ),
-        {"authority_id": pool_created.parent.authority_id},
+    finite_pool_input = _pool_input(code="FINITE-POOL", version="v1", revision=1).model_copy(
+        update={"effective_to": date(2026, 5, 31)}
     )
-    await db_session.flush()
+    finite_pool_created = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=finite_pool_input
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=finite_pool_created.parent.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+    mismatched_daily_input = _daily_input(
+        pool_code="FINITE-POOL",
+        pool_version="v1",
+        pool_revision=1,
+        cap_date=date(2026, 6, 15),
+    )
+    mismatched_daily_created = await create_or_load_daily_capacity(
+        db_session,
+        daily_input=mismatched_daily_input,
+    )
+    await _activate_daily_capacity_for_test(
+        db_session,
+        authority_id=mismatched_daily_created.authority_id,
+        activation_boundary=date(2026, 3, 1),
+        daily_input=mismatched_daily_input,
+    )
 
     with pytest.raises(AuthorityEffectiveIntervalMismatchError) as interval_exc:
         await resolve_daily_capacity(
@@ -403,20 +420,24 @@ async def test_resolve_daily_capacity_rejects_parent_not_consumable_and_effectiv
                 timezone_name="Asia/Shanghai",
                 season_id=_IDS["season"],
                 destination_factory_id=_IDS["factory"],
-                capacity_pool_code=pool_input.capacity_pool_code,
-                capacity_date=daily_input.capacity_date,
+                capacity_pool_code=finite_pool_input.capacity_pool_code,
+                capacity_date=mismatched_daily_input.capacity_date,
                 exact_reference=_exact_reference(
-                    authority_id=daily_created.authority_id,
+                    authority_id=mismatched_daily_created.authority_id,
                     stable_key=(
                         f"daily-capacity:{_IDS['season']}:{_IDS['factory']}:"
-                        f"{pool_input.capacity_pool_code}:{pool_input.capacity_pool_version}:"
-                        f"{pool_input.revision}:{daily_input.capacity_date.isoformat()}"
+                        f"{finite_pool_input.capacity_pool_code}:"
+                        f"{finite_pool_input.capacity_pool_version}:"
+                        f"{finite_pool_input.revision}:"
+                        f"{mismatched_daily_input.capacity_date.isoformat()}"
                     ),
-                    version=pool_input.capacity_pool_version,
-                    revision=daily_input.daily_capacity_revision,
+                    version=finite_pool_input.capacity_pool_version,
+                    revision=mismatched_daily_input.daily_capacity_revision,
                     row_hash=(
                         await _row_by_id(
-                            db_session, Task9DailyCapacityAuthority, daily_created.authority_id
+                            db_session,
+                            Task9DailyCapacityAuthority,
+                            mismatched_daily_created.authority_id,
                         )
                     ).row_hash,
                 ),
@@ -457,6 +478,12 @@ async def test_resolve_run_package_uses_exact_fk_dependencies(
         family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
         authority_id=pkg_created.authority_id,
         activation_boundary=date(2026, 3, 1),
+    )
+    await retire_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_created.authority_id,
+        retirement_boundary=date(2026, 6, 1),
     )
 
     holiday_v2 = _holiday_input(version="v2", revision=1)
