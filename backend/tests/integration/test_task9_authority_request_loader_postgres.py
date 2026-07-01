@@ -47,12 +47,10 @@ from backend.app.harvest_state.authority_resolution import (
 )
 from backend.app.harvest_state.authority_schemas import (
     Task9DailyCapacitySemanticInput,
-    Task9InitialInventoryCohortSchema,
     Task9InitialInventorySemanticBundle,
     Task9LifecycleEventSemanticInput,
     Task9MatureLossSemanticInput,
 )
-from backend.app.harvest_state.canonical import make_membership_hash, make_stable_cohort_key
 from backend.app.harvest_state.enums import (
     AuthorityFamily,
     AuthorityStatus,
@@ -62,7 +60,6 @@ from backend.app.harvest_state.enums import (
 )
 from backend.app.harvest_state.schemas import (
     DailyWeatherFeatureInput,
-    InitialInventorySourceRef,
     ParameterSourceRef,
     Task8DailyPredictionInput,
     Task8PredictionSourceRef,
@@ -171,66 +168,14 @@ def _inventory_stable_key() -> str:
     return f"initial-inventory:{_IDS['season']}:{_IDS['factory']}:{FORECAST_DATE}"
 
 
-def _inventory_source_ref() -> InitialInventorySourceRef:
-    return InitialInventorySourceRef(
-        source_system="test",
-        source_record_key=_authority_source_record_key(
-            AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
-            _inventory_stable_key(),
-            "v1",
-            1,
-        ),
-        source_version="v1",
-        source_row_hash="7" * 64,
-        available_at=date(2026, 1, 1),
-        as_of_date=AS_OF,
-    )
-
-
 def _inventory_input_for_request() -> Task9InitialInventorySemanticBundle:
-    source_ref = _inventory_source_ref()
-    membership_hash = make_membership_hash(
-        "FARM",
-        [{"farm_id": _IDS["farm"], "subfarm_id": None, "variety_id": _IDS["variety"]}],
-    )
-    cohorts: list[Task9InitialInventoryCohortSchema] = []
-    for quantile in ForecastQuantile:
-        stable_key = make_stable_cohort_key(
-            {
-                "schema_version": "task9a-cohort-key-v1",
-                "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT",
-                "source_system": source_ref.source_system,
-                "source_record_key": source_ref.source_record_key,
-                "source_version": source_ref.source_version,
-                "source_row_hash": source_ref.source_row_hash,
-                "cohort_date": FORECAST_DATE,
-                "forecast_quantile": quantile,
-                "farm_id": _IDS["farm"],
-                "subfarm_id": None,
-                "variety_id": _IDS["variety"],
-                "capacity_pool_id": "TEST-POOL",
-                "capacity_pool_membership_hash": membership_hash,
-                "destination_factory_id": _IDS["factory"],
-            }
-        )
-        cohorts.append(
-            Task9InitialInventoryCohortSchema(
-                stable_cohort_key=stable_key,
-                forecast_quantile=quantile,
-                cohort_date=FORECAST_DATE,
-                farm_id=_IDS["farm"],
-                subfarm_id=None,
-                variety_id=_IDS["variety"],
-                remaining_quantity_kg=Decimal("10"),
-            )
-        )
     return Task9InitialInventorySemanticBundle(
         season_id=_IDS["season"],
         destination_factory_id=_IDS["factory"],
         opening_state_date=FORECAST_DATE,
         snapshot_version="v1",
         revision=1,
-        initial_opening_mature_inventory_kg=Decimal("30"),
+        initial_opening_mature_inventory_kg=Decimal("0"),
         available_at_local_date=date(2026, 1, 1),
         consumable_from_local_date=None,
         consumable_to_local_date=None,
@@ -240,7 +185,7 @@ def _inventory_input_for_request() -> Task9InitialInventorySemanticBundle:
         source_system="test",
         source_record_key="test:inventory:request:v1:1",
         source_version="v1",
-        cohorts=cohorts,
+        cohorts=[],
     )
 
 
