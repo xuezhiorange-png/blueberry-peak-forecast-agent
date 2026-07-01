@@ -1,8 +1,7 @@
 """Unit tests for Task 11 Phase 3 resolution and orchestration contracts.
 
 Tests verify typed contracts, stable blocker codes, deterministic ordering,
-ambiguity detection, and source type discrimination. Database integration is
-covered by test_rolling_backtest_orchestration.py.
+ambiguity detection, and source type discrimination.
 """
 
 from __future__ import annotations
@@ -360,10 +359,6 @@ class TestOrchestrationBlocker:
             == "task9_replay_input_incomplete"
         )
         assert OrchestrationBlocker.TASK9_EXECUTION_BLOCKED.value == "task9_execution_blocked"
-        assert (
-            OrchestrationBlocker.TASK10_TRAINING_NOT_IMPLEMENTED.value
-            == "task10_training_not_implemented"
-        )
         assert (
             OrchestrationBlocker.TASK10_TASK9_BINDING_MISMATCH.value
             == "task10_task9_binding_mismatch"
