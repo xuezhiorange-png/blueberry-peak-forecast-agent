@@ -1138,51 +1138,45 @@ async def test_sentinel_future_authorities_not_consuming_limit(
     db_session: AsyncSession,
 ) -> None:
     """Future authorities are filtered by SQL predicates, not by LIMIT."""
-    # pool3: current, active, consumable
-    pool3_input = _pool_input(code="SENTINEL-3", version="v1", revision=1)
-    pool3_created = await create_or_load_capacity_pool_definition(
-        db_session, definition_input=pool3_input
+    # Create 3 pools with different codes
+    pool_a = _pool_input(code="SENT-A", version="v1", revision=1)
+    pool_a_created = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=pool_a
     )
+    pool_b = _pool_input(code="SENT-B", version="v1", revision=1)
+    pool_b_created = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=pool_b
+    )
+    pool_c = _pool_input(code="SENT-C", version="v1", revision=1)
+    pool_c_created = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=pool_c
+    )
+
+    # Activate pool_a with early boundary (current)
     await activate_authority(
         db_session,
         family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=pool3_created.parent.authority_id,
+        authority_id=pool_a_created.parent.authority_id,
         activation_boundary=date(2026, 1, 1),
     )
-
-    # pool1: future available_at
-    pool1_input = _pool_input(code="SENTINEL-1", version="v1", revision=1)
-    pool1_input = pool1_input.model_copy(
-        update={"available_at_local_date": date(2026, 8, 1)}
-    )
-    pool1_created = await create_or_load_capacity_pool_definition(
-        db_session, definition_input=pool1_input
-    )
+    # Activate pool_b with future boundary
     await activate_authority(
         db_session,
         family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=pool1_created.parent.authority_id,
+        authority_id=pool_b_created.parent.authority_id,
         activation_boundary=date(2026, 8, 1),
     )
-
-    # pool2: future available_at
-    pool2_input = _pool_input(code="SENTINEL-2", version="v1", revision=1)
-    pool2_input = pool2_input.model_copy(
-        update={"available_at_local_date": date(2026, 9, 1)}
-    )
-    pool2_created = await create_or_load_capacity_pool_definition(
-        db_session, definition_input=pool2_input
-    )
+    # Activate pool_c with future boundary
     await activate_authority(
         db_session,
         family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-        authority_id=pool2_created.parent.authority_id,
+        authority_id=pool_c_created.parent.authority_id,
         activation_boundary=date(2026, 9, 1),
     )
 
-    # Resolve CURRENT_OPERATIONAL with as_of=2026-06-15
-    # pool1 and pool2 have future available_at → filtered by SQL predicates
-    # pool3 is current and consumable → returned
+    # Resolve CURRENT_OPERATIONAL for pool_a with as_of=2026-06-15
+    # pool_b and pool_c have future consumable_from → filtered by SQL predicates
+    # pool_a is current and consumable → returned
     resolved = await resolve_capacity_pool_definition(
         db_session,
         request=CapacityPoolResolutionRequest(
@@ -1191,9 +1185,9 @@ async def test_sentinel_future_authorities_not_consuming_limit(
             timezone_name="Asia/Shanghai",
             season_id=_IDS["season"],
             destination_factory_id=_IDS["factory"],
-            capacity_pool_code=pool3_input.capacity_pool_code,
+            capacity_pool_code=pool_a.capacity_pool_code,
             effective_local_date=date(2026, 6, 15),
         ),
     )
-    assert resolved.authority_id == pool3_created.parent.authority_id
+    assert resolved.authority_id == pool_a_created.parent.authority_id
     assert resolved.business_version == "v1"
