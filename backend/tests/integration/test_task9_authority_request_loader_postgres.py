@@ -5,6 +5,7 @@ import os
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from types import MappingProxyType
 
 import pytest
 from sqlalchemy import func, select, text
@@ -29,6 +30,7 @@ from backend.app.harvest_state.authority_request_errors import Task9AuthorityReq
 from backend.app.harvest_state.authority_request_loader import (
     assemble_task9_request_from_resolved_authorities,
 )
+from backend.app.harvest_state.authority_request_types import Task9AuthorityAssemblyContext
 from backend.app.harvest_state.authority_resolution import (
     AuthorityExactReference,
     AuthorityResolutionMode,
@@ -155,13 +157,16 @@ async def db_session() -> AsyncSession:
             yield session
 
 
-def _authority_source_record_key(
-    family: AuthorityFamily,
-    stable_key: str,
-    business_version: str,
-    revision: int,
-) -> str:
-    return f"{family.value}:{stable_key}:{business_version}:{revision}"
+def _assembly_context(
+    *,
+    mode: AuthorityResolutionMode = AuthorityResolutionMode.CURRENT_OPERATIONAL,
+) -> Task9AuthorityAssemblyContext:
+    return Task9AuthorityAssemblyContext(
+        mode=mode,
+        as_of_date=AS_OF,
+        forecast_start_date=FORECAST_DATE,
+        forecast_end_date=FORECAST_DATE,
+    )
 
 
 def _inventory_stable_key() -> str:
@@ -684,10 +689,8 @@ async def test_assemble_task9_request_from_resolved_postgres_authorities(
     )
 
     assembled = assemble_task9_request_from_resolved_authorities(
-        as_of_date=AS_OF,
-        forecast_start_date=FORECAST_DATE,
-        forecast_end_date=FORECAST_DATE,
-        capacity_pool=pool,
+        context=_assembly_context(mode=mode),
+        capacity_pools=(pool,),
         daily_capacities=(daily,),
         run_package=run_package,
         initial_inventory=inventory,
@@ -702,6 +705,7 @@ async def test_assemble_task9_request_from_resolved_postgres_authorities(
         loss.forecast_quantile for loss in assembled.request.mature_inventory_loss_inputs
     } == set(ForecastQuantile)
     assert assembled.assembly_hash
+    assert isinstance(assembled.canonical_payload, MappingProxyType)
     assert await _harvest_state_row_count(db_session) == 0
 
 
@@ -727,10 +731,8 @@ async def test_assemble_rejects_cross_factory_resolved_authority(
 
     with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
         assemble_task9_request_from_resolved_authorities(
-            as_of_date=AS_OF,
-            forecast_start_date=FORECAST_DATE,
-            forecast_end_date=FORECAST_DATE,
-            capacity_pool=pool,
+            context=_assembly_context(),
+            capacity_pools=(pool,),
             daily_capacities=(daily,),
             run_package=run_package,
             initial_inventory=wrong_inventory,
@@ -759,10 +761,8 @@ async def test_assemble_rejects_missing_mature_loss_quantile(
 
     with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
         assemble_task9_request_from_resolved_authorities(
-            as_of_date=AS_OF,
-            forecast_start_date=FORECAST_DATE,
-            forecast_end_date=FORECAST_DATE,
-            capacity_pool=pool,
+            context=_assembly_context(),
+            capacity_pools=(pool,),
             daily_capacities=(daily,),
             run_package=run_package,
             initial_inventory=inventory,
