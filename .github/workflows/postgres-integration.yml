@@ -116,7 +116,6 @@ jobs:
 
       - name: Transactional integration tests
         id: transactional
-        continue-on-error: true
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -201,13 +200,3 @@ jobs:
               sys.exit(1)
           PY
 
-      - name: Final outcome gate
-        if: always()
-        run: |
-          echo "Transactional outcome: ${{ steps.transactional.outcome }}"
-          echo "Special outcome: ${{ steps.special.outcome }}"
-          if [ "${{ steps.transactional.outcome }}" != "success" ] || [ "${{ steps.special.outcome }}" != "success" ]; then
-            echo "One or more test groups failed"
-            exit 1
-          fi
-          echo "All test groups passed"
