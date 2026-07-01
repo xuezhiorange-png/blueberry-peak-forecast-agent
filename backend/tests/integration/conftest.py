@@ -63,7 +63,7 @@ async def assert_connected_to_safe_test_database() -> None:
     assert_safe_postgres_test_configuration()
 
     settings = get_settings()
-    configured_db = settings.database_url.split("/")[-1].split("?")[0]
+    configured_db = settings.postgres_db
 
     env_db = os.getenv("POSTGRES_DB", "")
 
