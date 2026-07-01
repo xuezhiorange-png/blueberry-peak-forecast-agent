@@ -369,11 +369,13 @@ def _raise_dependency_from_canonical_error(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
             authority_stable_key=ctx.package_stable_key,
             details={
-                "reason": "dependency_timezone_mismatch",
-                "dependency_family": "internal_canonical_parity_error",
-                "dependency_authority_stable_key": "",
-                "expected_timezone": ctx.package_destination_timezone,
-                "actual_timezone": "internal_parity_error",
+                "reason": "canonical_dependency_context_parity_error",
+                "package_authority_stable_key": ctx.package_stable_key,
+                "holiday_dependency_authority_stable_key": ctx.holiday_stable_key,
+                "weather_dependency_authority_stable_key": ctx.weather_stable_key,
+                "package_destination_timezone": ctx.package_destination_timezone,
+                "holiday_timezone": ctx.holiday_timezone,
+                "weather_timezone": ctx.weather_timezone,
             },
         ) from exc
     raise
