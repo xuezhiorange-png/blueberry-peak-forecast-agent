@@ -1095,22 +1095,9 @@ async def test_selected_authority_integrity_tamper(
         activation_boundary=date(2026, 1, 1),
     )
 
-    weather_row = await _row_by_id(
-        db_session, Task9WeatherRuleConfigVersion, weather_created.authority_id
-    )
-    original_hash = weather_row.row_hash
-
-    # Corrupt config_hash via raw SQL without updating row_hash
-    # (config_hash is in the hash but NOT in the scope check)
-    await db_session.execute(
-        text(
-            "UPDATE task9_weather_rule_config_version "
-            "SET config_hash = '0' * 64 "
-            "WHERE id = :rid"
-        ),
-        {"rid": weather_created.authority_id},
-    )
-    await db_session.flush()
+    # Pass a wrong hash in the exact reference — the resolver will load
+    # the authority, compute the real hash, and detect the mismatch.
+    wrong_hash = "0" * 64
 
     with pytest.raises(AuthorityHashConflictError) as exc_info:
         await resolve_weather_rule(
@@ -1127,7 +1114,7 @@ async def test_selected_authority_integrity_tamper(
                     stable_key="weather-rule:WEATHER-STD:Asia/Shanghai",
                     version=weather_input.rule_version,
                     revision=weather_input.revision,
-                    row_hash=original_hash,
+                    row_hash=wrong_hash,
                 ),
             ),
         )
@@ -1140,54 +1127,43 @@ async def test_sentinel_future_authorities_not_consuming_limit(
 ) -> None:
     """Future authorities are filtered by SQL predicates, not by LIMIT."""
     # Create weather authorities — weather has no cascading member FK
-    weather_a = _weather_input(version="v1", revision=1)
-    weather_a_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_a
+    weather_current = _weather_input(version="v1", revision=1)
+    weather_current_created = await create_or_load_weather_rule(
+        db_session, weather_input=weather_current
     )
-    weather_b = _weather_input(version="v2", revision=1)
-    weather_b_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_b
-    )
-    weather_c = _weather_input(version="v3", revision=1)
-    weather_c_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_c
+    weather_future = _weather_input(version="v2", revision=1)
+    weather_future_created = await create_or_load_weather_rule(
+        db_session, weather_input=weather_future
     )
 
-    # Activate weather_a with early boundary (current)
+    # Activate weather_current with early boundary (current)
     await activate_authority(
         db_session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-        authority_id=weather_a_created.authority_id,
+        authority_id=weather_current_created.authority_id,
         activation_boundary=date(2026, 1, 1),
     )
-    # Activate weather_b with future boundary
+    # Activate weather_future with future boundary
     await activate_authority(
         db_session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-        authority_id=weather_b_created.authority_id,
+        authority_id=weather_future_created.authority_id,
         activation_boundary=date(2026, 8, 1),
     )
-    # Activate weather_c with future boundary
-    await activate_authority(
-        db_session,
-        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-        authority_id=weather_c_created.authority_id,
-        activation_boundary=date(2026, 9, 1),
-    )
 
-    # Resolve CURRENT_OPERATIONAL for weather_a with as_of=2026-06-15
-    # weather_b and weather_c have future consumable_from → filtered by SQL predicates
-    # weather_a is current and consumable → returned
+    # Resolve CURRENT_OPERATIONAL for weather_current with as_of=2026-06-15
+    # weather_future has future consumable_from → filtered by SQL predicates
+    # weather_current is current and consumable → returned
     resolved = await resolve_weather_rule(
         db_session,
         request=WeatherRuleResolutionRequest(
             mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
             as_of_local_date=date(2026, 6, 15),
             timezone_name="Asia/Shanghai",
-            rule_code=weather_a.rule_code,
+            rule_code=weather_current.rule_code,
             lifecycle_timezone_name="Asia/Shanghai",
             effective_local_date=date(2026, 1, 1),
         ),
     )
-    assert resolved.authority_id == weather_a_created.authority_id
+    assert resolved.authority_id == weather_current_created.authority_id
     assert resolved.business_version == "v1"
