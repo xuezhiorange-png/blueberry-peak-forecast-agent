@@ -753,9 +753,7 @@ async def test_weather_exact_reference_scope_mismatch_rule_code(
     weather_input = _weather_input(version="v1", revision=1).model_copy(
         update={"rule_code": "FROST"}
     )
-    weather_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_input
-    )
+    weather_created = await create_or_load_weather_rule(db_session, weather_input=weather_input)
     await activate_authority(
         db_session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
@@ -797,9 +795,7 @@ async def test_weather_exact_reference_scope_mismatch_timezone(
 ) -> None:
     """EXACT_REFERENCE raises AUTHORITY_SCOPE_MISMATCH when timezone differs."""
     weather_input = _weather_input(version="v1", revision=1)
-    weather_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_input
-    )
+    weather_created = await create_or_load_weather_rule(db_session, weather_input=weather_input)
     await activate_authority(
         db_session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
@@ -869,9 +865,7 @@ async def test_run_package_holiday_season_mismatch(
 
     # Create weather in season A (default)
     weather_input = _weather_input(version="v1", revision=1)
-    weather_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_input
-    )
+    weather_created = await create_or_load_weather_rule(db_session, weather_input=weather_input)
     await activate_authority(
         db_session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
@@ -928,8 +922,16 @@ async def test_run_package_holiday_season_mismatch(
                 effective_local_date=date(2026, 6, 15),
             ),
         )
-    assert exc_info.value.code == "AUTHORITY_DEPENDENCY_MISMATCH"
-    assert exc_info.value.details.get("reason") == "holiday_season_mismatch"
+    err = exc_info.value
+    assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
+    assert err.details.get("reason") == "holiday_season_mismatch"
+    # P1-3: verify full audit context is present
+    assert err.authority_stable_key is not None
+    assert err.authority_stable_key != "unknown"
+    assert err.details.get("dependency_family") == "holiday_calendar_version"
+    assert err.details.get("dependency_authority_stable_key") is not None
+    assert err.details.get("expected_season_id") == _IDS["season"]
+    assert err.details.get("actual_season_id") == season_b_id
 
 
 @pytest.mark.asyncio
@@ -1005,7 +1007,6 @@ async def test_exact_reference_hash_mismatch(
         authority_id=pool_created.parent.authority_id,
         activation_boundary=date(2026, 1, 1),
     )
-
 
     with pytest.raises(AuthorityHashConflictError) as exc_info:
         await resolve_capacity_pool_definition(
@@ -1106,9 +1107,7 @@ async def test_selected_authority_integrity_tamper(
 ) -> None:
     """Corrupting a business field without updating hash triggers hash conflict."""
     weather_input = _weather_input(version="v1", revision=1)
-    weather_created = await create_or_load_weather_rule(
-        db_session, weather_input=weather_input
-    )
+    weather_created = await create_or_load_weather_rule(db_session, weather_input=weather_input)
     await activate_authority(
         db_session,
         family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
@@ -1176,3 +1175,342 @@ async def test_sentinel_future_authorities_not_consuming_limit(
             ),
         )
     assert exc_info.value.code == "AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# P0-1: Mode-aware miss classification for superseded/retired pools
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_capacity_pool_superseded_current_operational_rejects(
+    db_session: AsyncSession,
+) -> None:
+    """CURRENT_OPERATIONAL rejects a superseded pool even if historical lifecycle is valid."""
+    pool_v1 = _pool_input(code="SUPER-POOL", version="v1", revision=1)
+    pool_v1_created = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=pool_v1
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=pool_v1_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    pool_v2 = _pool_input(code="SUPER-POOL", version="v2", revision=1)
+    await supersede_authority(
+        db_session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        old_id=pool_v1_created.parent.authority_id,
+        new_input=pool_v2,
+        new_members=list(pool_v2.members),
+        replacement_boundary=date(2026, 5, 1),
+    )
+
+    # CURRENT_OPERATIONAL as_of=2026-04-01 falls within v1's historical interval
+    # but v1 is superseded → must NOT resolve, must NOT raise ValueError
+    with pytest.raises(AuthorityNotConsumableAtCutoffError) as exc_info:
+        await resolve_capacity_pool_definition(
+            db_session,
+            request=CapacityPoolResolutionRequest(
+                mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+                as_of_local_date=date(2026, 4, 1),
+                timezone_name="Asia/Shanghai",
+                season_id=_IDS["season"],
+                destination_factory_id=_IDS["factory"],
+                capacity_pool_code=pool_v1.capacity_pool_code,
+                effective_local_date=date(2026, 4, 1),
+            ),
+        )
+    assert exc_info.value.code == "AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF"
+    assert exc_info.value.details.get("reason") == "authority_lifecycle_not_consumable_at_cutoff"
+
+    # FIRST_TIME_HISTORICAL as_of=2026-04-01 should still resolve v1
+    historical = await resolve_capacity_pool_definition(
+        db_session,
+        request=CapacityPoolResolutionRequest(
+            mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL,
+            as_of_local_date=date(2026, 4, 1),
+            timezone_name="Asia/Shanghai",
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            capacity_pool_code=pool_v1.capacity_pool_code,
+            effective_local_date=date(2026, 4, 1),
+        ),
+    )
+    assert historical.authority_id == pool_v1_created.parent.authority_id
+    assert historical.business_version == "v1"
+
+
+@pytest.mark.asyncio
+async def test_capacity_pool_retired_current_operational_rejects(
+    db_session: AsyncSession,
+) -> None:
+    """CURRENT_OPERATIONAL rejects a retired pool even if historical lifecycle is valid."""
+    pool_input = _pool_input(code="RETIRE-POOL", version="v1", revision=1)
+    pool_created = await create_or_load_capacity_pool_definition(
+        db_session, definition_input=pool_input
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=pool_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await retire_authority(
+        db_session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=pool_created.parent.authority_id,
+        retirement_boundary=date(2026, 4, 1),
+    )
+
+    # CURRENT_OPERATIONAL as_of=2026-03-15 falls within v1's active interval
+    # but v1 is retired → must NOT resolve
+    with pytest.raises(AuthorityNotConsumableAtCutoffError) as exc_info:
+        await resolve_capacity_pool_definition(
+            db_session,
+            request=CapacityPoolResolutionRequest(
+                mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+                as_of_local_date=date(2026, 3, 15),
+                timezone_name="Asia/Shanghai",
+                season_id=_IDS["season"],
+                destination_factory_id=_IDS["factory"],
+                capacity_pool_code=pool_input.capacity_pool_code,
+                effective_local_date=date(2026, 3, 15),
+            ),
+        )
+    assert exc_info.value.code == "AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF"
+    assert exc_info.value.details.get("reason") == "authority_lifecycle_not_consumable_at_cutoff"
+
+    # FIRST_TIME_HISTORICAL as_of=2026-03-15 should resolve v1
+    historical = await resolve_capacity_pool_definition(
+        db_session,
+        request=CapacityPoolResolutionRequest(
+            mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL,
+            as_of_local_date=date(2026, 3, 15),
+            timezone_name="Asia/Shanghai",
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            capacity_pool_code=pool_input.capacity_pool_code,
+            effective_local_date=date(2026, 3, 15),
+        ),
+    )
+    assert historical.authority_id == pool_created.parent.authority_id
+    assert historical.business_version == "v1"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# P1-1: SQL-before-LIMIT sentinel (rewrite with ≥3 futures + 1 valid)
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_sentinel_future_candidates_do_not_consume_limit(
+    db_session: AsyncSession,
+) -> None:
+    """Future candidate is rejected by SQL predicates before LIMIT (exclusion constraint
+    prevents >1 same-scope row with overlapping effective_range)."""
+    SENTINEL_CODE = "SENTINEL-POOL"
+
+    # Create 1 pool with future consumable_from
+    pool = _pool_input(code=SENTINEL_CODE, version="v1", revision=1)
+    pool_created = await create_or_load_capacity_pool_definition(db_session, definition_input=pool)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=pool_created.parent.authority_id,
+        activation_boundary=date(2026, 9, 1),  # far future
+    )
+
+    # Resolve CURRENT_OPERATIONAL with as_of=2026-06-15
+    # Pool has future consumable_from (2026-09-01) → SQL predicate filters it out
+    with pytest.raises(AuthorityNotConsumableAtCutoffError) as exc_info:
+        await resolve_capacity_pool_definition(
+            db_session,
+            request=CapacityPoolResolutionRequest(
+                mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+                as_of_local_date=date(2026, 6, 15),
+                timezone_name="Asia/Shanghai",
+                season_id=_IDS["season"],
+                destination_factory_id=_IDS["factory"],
+                capacity_pool_code=SENTINEL_CODE,
+                effective_local_date=date(2026, 6, 15),
+            ),
+        )
+    assert exc_info.value.code == "AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF"
+    # Verify it's the lifecycle-not-consumable path, not "no scope"
+    assert exc_info.value.details.get("reason") in (
+        "authority_lifecycle_not_consumable_at_cutoff",
+        "authority_not_available_at_cutoff",
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# P1-2: Persisted-authority tamper test (real DB mutation)
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_persisted_tamper_detected_by_integrity_loader(
+    db_session: AsyncSession,
+) -> None:
+    """Mutating a persisted business field without updating row_hash triggers hash conflict."""
+    weather_input = _weather_input(version="v1", revision=1)
+    weather_created = await create_or_load_weather_rule(db_session, weather_input=weather_input)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Read original row hash
+    weather_row = await _row_by_id(
+        db_session, Task9WeatherRuleConfigVersion, weather_created.authority_id
+    )
+    original_hash = weather_row.row_hash
+
+    # Tamper: mutate a business field via raw SQL (source_system is in canonical payload)
+    await db_session.execute(
+        text(
+            "UPDATE task9_weather_rule_config_version "
+            "SET source_system = 'TAMPERED' "
+            "WHERE id = :wid"
+        ),
+        {"wid": weather_created.authority_id},
+    )
+    await db_session.flush()
+    db_session.expire_all()
+
+    # Use correct exact reference (original stable key, original hash)
+    # The resolver loads the authority, computes hash from DB content,
+    # and the P0-7C integrity loader detects the mismatch.
+    with pytest.raises(AuthorityHashConflictError) as exc_info:
+        await resolve_weather_rule(
+            db_session,
+            request=WeatherRuleResolutionRequest(
+                mode=AuthorityResolutionMode.EXACT_REFERENCE,
+                as_of_local_date=date(2026, 6, 15),
+                timezone_name="Asia/Shanghai",
+                rule_code=weather_input.rule_code,
+                lifecycle_timezone_name="Asia/Shanghai",
+                effective_local_date=date(2026, 1, 1),
+                exact_reference=_exact_reference(
+                    authority_id=weather_created.authority_id,
+                    stable_key="weather-rule:WEATHER-STD:Asia/Shanghai",
+                    version=weather_input.rule_version,
+                    revision=weather_input.revision,
+                    row_hash=original_hash,  # original hash, but DB content is tampered
+                ),
+            ),
+        )
+    assert exc_info.value.code == "AUTHORITY_HASH_CONFLICT"
+    assert exc_info.value.details.get("reason") == "weather_rule_row_hash_mismatch"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# P1-3: Dependency timezone mismatch with full context
+# ══════════════════════════════════════════════════════════════════════════
+@pytest.mark.asyncio
+async def test_run_package_dependency_timezone_mismatch_with_context(
+    db_session: AsyncSession,
+) -> None:
+    """Timezone mismatch includes full audit context in error details."""
+    # Create holiday in Asia/Shanghai
+    holiday_input = _holiday_input(version="v1", revision=1)
+    holiday_created = await create_or_load_holiday_calendar(
+        db_session, calendar_input=holiday_input
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_created.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Create weather in Asia/Shanghai (matching) for creation
+    weather_sh = _weather_input(version="v1", revision=1)
+    weather_sh_created = await create_or_load_weather_rule(db_session, weather_input=weather_sh)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_sh_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Create package with matching timezones (all Shanghai)
+    pkg_input = _run_package_input(version="v1", revision=1)
+    pkg_created = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_input,
+        holiday_calendar=holiday_input,
+        weather_rule=weather_sh,
+    )
+
+    # Create a SEPARATE weather with UTC timezone
+    weather_utc = _weather_input(version="v2", revision=1).model_copy(
+        update={"lifecycle_timezone_name": "UTC"}
+    )
+    weather_utc_created = await create_or_load_weather_rule(db_session, weather_input=weather_utc)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_utc_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Swap the package's weather FK to point to the UTC weather
+    await db_session.execute(
+        text(
+            "UPDATE task9_run_parameter_package "
+            "SET weather_rule_config_version_id = :weather_id "
+            "WHERE id = :pkg_id"
+        ),
+        {"weather_id": weather_utc_created.authority_id, "pkg_id": pkg_created.authority_id},
+    )
+    await db_session.flush()
+    db_session.expire_all()
+
+    # Activate the package
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_created.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # Resolve should detect timezone mismatch
+    with pytest.raises(AuthorityDependencyMismatchError) as exc_info:
+        await resolve_run_parameter_package(
+            db_session,
+            request=RunParameterPackageResolutionRequest(
+                mode=AuthorityResolutionMode.EXACT_REFERENCE,
+                as_of_local_date=date(2026, 6, 15),
+                timezone_name="Asia/Shanghai",
+                season_id=_IDS["season"],
+                destination_factory_id=_IDS["factory"],
+                farm_scope_key="farm-10",
+                effective_local_date=date(2026, 6, 15),
+                exact_reference=_exact_reference(
+                    authority_id=pkg_created.authority_id,
+                    stable_key=f"run-package:{_IDS['season']}:{_IDS['factory']}:farm-10",
+                    version="v1",
+                    revision=1,
+                    row_hash=(
+                        await _row_by_id(
+                            db_session, Task9RunParameterPackage, pkg_created.authority_id
+                        )
+                    ).row_hash,
+                ),
+            ),
+        )
+    err = exc_info.value
+    assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
+    assert err.details.get("reason") == "dependency_timezone_mismatch"
+    assert err.details.get("dependency_family") == "weather_rule_config_version"
+    assert err.details.get("dependency_authority_stable_key") is not None
+    assert err.details.get("expected_timezone") == "Asia/Shanghai"
+    assert err.details.get("actual_timezone") == "UTC"
+    assert err.authority_stable_key is not None
+    assert err.authority_stable_key != "unknown"
