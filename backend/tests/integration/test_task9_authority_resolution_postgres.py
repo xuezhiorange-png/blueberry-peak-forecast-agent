@@ -907,7 +907,7 @@ async def test_run_package_holiday_season_mismatch(
         {"holiday_id": holiday_b_created.parent.authority_id, "pkg_id": pkg_created.authority_id},
     )
     await db_session.flush()
-    await db_session.expire_all()
+    db_session.expire_all()
     await activate_authority(
         db_session,
         family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
@@ -1160,9 +1160,9 @@ async def test_sentinel_future_authorities_not_consuming_limit(
     )
 
     # Resolve CURRENT_OPERATIONAL with as_of=2026-06-15
-    # Pool has future consumable_from (2026-08-01) → filtered by SQL predicates
-    # Should raise HistoricalAuthorityNotFoundError (no matching pool)
-    with pytest.raises(HistoricalAuthorityNotFoundError) as exc_info:
+    # Pool has future consumable_from (2026-08-01) → lifecycle not consumable
+    # Should raise AuthorityNotConsumableAtCutoffError
+    with pytest.raises(AuthorityNotConsumableAtCutoffError) as exc_info:
         await resolve_capacity_pool_definition(
             db_session,
             request=CapacityPoolResolutionRequest(
@@ -1175,4 +1175,4 @@ async def test_sentinel_future_authorities_not_consuming_limit(
                 effective_local_date=date(2026, 6, 15),
             ),
         )
-    assert exc_info.value.code == "HISTORICAL_AUTHORITY_NOT_FOUND"
+    assert exc_info.value.code == "AUTHORITY_NOT_CONSUMABLE_AT_CUTOFF"
