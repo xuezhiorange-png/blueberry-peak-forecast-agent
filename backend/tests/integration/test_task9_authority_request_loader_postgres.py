@@ -28,6 +28,7 @@ from backend.app.harvest_state.authority_repository import (
 )
 from backend.app.harvest_state.authority_request_errors import Task9AuthorityRequestAssemblyError
 from backend.app.harvest_state.authority_request_loader import (
+    _immutable_to_plain,
     assemble_task9_request_from_resolved_authorities,
 )
 from backend.app.harvest_state.authority_request_types import Task9AuthorityAssemblyContext
@@ -48,10 +49,17 @@ from backend.app.harvest_state.authority_resolution import (
     resolve_run_parameter_package,
 )
 from backend.app.harvest_state.authority_schemas import (
+    Task9CapacityPoolMemberSchema,
     Task9DailyCapacitySemanticInput,
+    Task9InitialInventoryCohortSchema,
     Task9InitialInventorySemanticBundle,
     Task9LifecycleEventSemanticInput,
     Task9MatureLossSemanticInput,
+)
+from backend.app.harvest_state.canonical import (
+    make_membership_hash,
+    make_stable_cohort_key,
+    sha256_hex,
 )
 from backend.app.harvest_state.enums import (
     AuthorityFamily,
@@ -194,6 +202,132 @@ def _inventory_input_for_request() -> Task9InitialInventorySemanticBundle:
     )
 
 
+def _pool_input_b() -> object:
+    return _pool_input(code="TEST-POOL-B").model_copy(
+        update={
+            "members": [
+                Task9CapacityPoolMemberSchema(
+                    farm_id=_IDS["farm"],
+                    subfarm_id=_IDS["subfarm"],
+                    variety_id=_IDS["variety"],
+                )
+            ]
+        }
+    )
+
+
+def _inventory_input_two_pool_request() -> Task9InitialInventorySemanticBundle:
+    source_record_key = "test:inventory:request:v1:1"
+    source_version = "v1"
+    source_row_hash = "7" * 64
+    source_system = "test"
+    available_at = date(2026, 1, 1)
+
+    def cohort_key(
+        *,
+        pool_code: str,
+        members: list[Task9CapacityPoolMemberSchema],
+        farm_id: int,
+        subfarm_id: int | None,
+        variety_id: int,
+        quantile: ForecastQuantile,
+    ) -> str:
+        membership_hash = make_membership_hash(
+            "FARM",
+            [
+                {
+                    "farm_id": item.farm_id,
+                    "subfarm_id": item.subfarm_id,
+                    "variety_id": item.variety_id,
+                }
+                for item in members
+            ],
+        )
+        return make_stable_cohort_key(
+            {
+                "schema_version": "task9a-cohort-key-v1",
+                "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT",
+                "source_system": source_system,
+                "source_record_key": source_record_key,
+                "source_version": source_version,
+                "source_row_hash": source_row_hash,
+                "cohort_date": FORECAST_DATE,
+                "forecast_quantile": quantile,
+                "farm_id": farm_id,
+                "subfarm_id": subfarm_id,
+                "variety_id": variety_id,
+                "capacity_pool_id": pool_code,
+                "capacity_pool_membership_hash": membership_hash,
+                "destination_factory_id": _IDS["factory"],
+            }
+        )
+
+    pool_a_members = _pool_input().members
+    pool_b_members = _pool_input_b().members
+    quantities = {
+        ForecastQuantile.P50: (Decimal("10"), Decimal("5")),
+        ForecastQuantile.P80: (Decimal("12"), Decimal("6")),
+        ForecastQuantile.P90: (Decimal("14"), Decimal("7")),
+    }
+    cohorts: list[Task9InitialInventoryCohortSchema] = []
+    for quantile, (qty_a, qty_b) in quantities.items():
+        cohorts.append(
+            Task9InitialInventoryCohortSchema(
+                stable_cohort_key=cohort_key(
+                    pool_code="TEST-POOL",
+                    members=pool_a_members,
+                    farm_id=_IDS["farm"],
+                    subfarm_id=None,
+                    variety_id=_IDS["variety"],
+                    quantile=quantile,
+                ),
+                forecast_quantile=quantile,
+                cohort_date=FORECAST_DATE,
+                farm_id=_IDS["farm"],
+                subfarm_id=None,
+                variety_id=_IDS["variety"],
+                remaining_quantity_kg=qty_a,
+            )
+        )
+        cohorts.append(
+            Task9InitialInventoryCohortSchema(
+                stable_cohort_key=cohort_key(
+                    pool_code="TEST-POOL-B",
+                    members=pool_b_members,
+                    farm_id=_IDS["farm"],
+                    subfarm_id=_IDS["subfarm"],
+                    variety_id=_IDS["variety"],
+                    quantile=quantile,
+                ),
+                forecast_quantile=quantile,
+                cohort_date=FORECAST_DATE,
+                farm_id=_IDS["farm"],
+                subfarm_id=_IDS["subfarm"],
+                variety_id=_IDS["variety"],
+                remaining_quantity_kg=qty_b,
+            )
+        )
+
+    return Task9InitialInventorySemanticBundle(
+        season_id=_IDS["season"],
+        destination_factory_id=_IDS["factory"],
+        opening_state_date=FORECAST_DATE,
+        snapshot_version="v1",
+        revision=1,
+        initial_opening_mature_inventory_kg=Decimal("54"),
+        available_at_local_date=available_at,
+        consumable_from_local_date=None,
+        consumable_to_local_date=None,
+        status=AuthorityStatus.DRAFT,
+        status_changed_at=_pool_input().status_changed_at,
+        superseded_by_id=None,
+        source_system=source_system,
+        source_record_key=source_record_key,
+        source_version=source_version,
+        cohorts=cohorts,
+    )
+
+
 def _mature_loss_input_for_quantile(quantile: ForecastQuantile) -> Task9MatureLossSemanticInput:
     base = _mature_loss_base()
     return Task9MatureLossSemanticInput(
@@ -267,7 +401,13 @@ def _created_reference(
     )
 
 
-def _task8_predictions() -> tuple[Task8DailyPredictionInput, ...]:
+def _task8_predictions(
+    *,
+    farm_id: int | None = None,
+    subfarm_id: int | None = None,
+    variety_id: int | None = None,
+    daily_prediction_id: int = 4,
+) -> tuple[Task8DailyPredictionInput, ...]:
     verification = Task8PredictionVerificationSnapshot(
         maturity_model_run_id=1,
         maturity_model_version="maturity-v1",
@@ -284,12 +424,12 @@ def _task8_predictions() -> tuple[Task8DailyPredictionInput, ...]:
         maturity_forecast_as_of_date=AS_OF,
         maturity_forecast_prediction_start_date=FORECAST_DATE,
         maturity_forecast_prediction_end_date=FORECAST_DATE,
-        maturity_daily_prediction_id=4,
+        maturity_daily_prediction_id=daily_prediction_id,
         maturity_daily_prediction_forecast_run_id=3,
         prediction_date=FORECAST_DATE,
-        farm_id=_IDS["farm"],
-        subfarm_id=None,
-        variety_id=_IDS["variety"],
+        farm_id=_IDS["farm"] if farm_id is None else farm_id,
+        subfarm_id=subfarm_id,
+        variety_id=_IDS["variety"] if variety_id is None else variety_id,
         plan_id=5,
         location_reference_id=6,
         p50_kg=Decimal("10"),
@@ -304,9 +444,9 @@ def _task8_predictions() -> tuple[Task8DailyPredictionInput, ...]:
     return tuple(
         Task8DailyPredictionInput(
             prediction_date=FORECAST_DATE,
-            farm_id=_IDS["farm"],
-            subfarm_id=None,
-            variety_id=_IDS["variety"],
+            farm_id=_IDS["farm"] if farm_id is None else farm_id,
+            subfarm_id=subfarm_id,
+            variety_id=_IDS["variety"] if variety_id is None else variety_id,
             source_ref=Task8PredictionSourceRef(
                 maturity_model_run_id=1,
                 maturity_model_version="maturity-v1",
@@ -317,7 +457,7 @@ def _task8_predictions() -> tuple[Task8DailyPredictionInput, ...]:
                 maturity_forecast_run_id=3,
                 maturity_forecast_source_signature="forecast-source",
                 maturity_forecast_as_of_date=AS_OF,
-                maturity_daily_prediction_id=4,
+                maturity_daily_prediction_id=daily_prediction_id,
                 prediction_date=FORECAST_DATE,
                 forecast_quantile=quantile,
                 source_quantity_kg=quantity,
@@ -332,11 +472,11 @@ def _task8_predictions() -> tuple[Task8DailyPredictionInput, ...]:
     )
 
 
-def _weather_features() -> tuple[DailyWeatherFeatureInput, ...]:
+def _weather_features(pool_code: str = "TEST-POOL") -> tuple[DailyWeatherFeatureInput, ...]:
     return (
         DailyWeatherFeatureInput(
             capacity_date=FORECAST_DATE,
-            capacity_pool_id="TEST-POOL",
+            capacity_pool_id=pool_code,
             feature_id="TEMP",
             value=Decimal("20"),
             source_ref=ParameterSourceRef(
@@ -523,6 +663,119 @@ async def _create_activate_authorities(
     }
 
 
+async def _create_activate_authorities_two_pool(
+    session: AsyncSession,
+) -> dict[str, object]:
+    pool_a_input = _pool_input()
+    pool_b_input = _pool_input_b()
+    pool_a_result = await create_or_load_capacity_pool_definition(
+        session, definition_input=pool_a_input
+    )
+    pool_b_result = await create_or_load_capacity_pool_definition(
+        session, definition_input=pool_b_input
+    )
+    await activate_authority(
+        session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=pool_a_result.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await activate_authority(
+        session,
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        authority_id=pool_b_result.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    daily_a_input = _daily_input()
+    daily_b_input = _daily_input(pool_code="TEST-POOL-B")
+    daily_a_result = await create_or_load_daily_capacity(session, daily_input=daily_a_input)
+    daily_b_result = await create_or_load_daily_capacity(session, daily_input=daily_b_input)
+    await _activate_daily_capacity_for_request_test(
+        session,
+        authority_id=daily_a_result.authority_id,
+        daily_input=daily_a_input,
+        row_hash=daily_a_result.row_hash,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await _activate_daily_capacity_for_request_test(
+        session,
+        authority_id=daily_b_result.authority_id,
+        daily_input=daily_b_input,
+        row_hash=daily_b_result.row_hash,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    holiday_input = _holiday_input()
+    holiday_result = await create_or_load_holiday_calendar(session, calendar_input=holiday_input)
+    await activate_authority(
+        session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_result.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    weather_input = _weather_input()
+    weather_result = await create_or_load_weather_rule(session, weather_input=weather_input)
+    await activate_authority(
+        session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_result.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    package_input = _run_package_input()
+    package_result = await create_or_load_run_parameter_package(
+        session,
+        package_input=package_input,
+        holiday_calendar=holiday_input,
+        weather_rule=weather_input,
+    )
+    await activate_authority(
+        session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=package_result.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    inventory_input = _inventory_input_two_pool_request()
+    inventory_result = await create_or_load_initial_inventory(
+        session,
+        inventory_input=inventory_input,
+    )
+    await activate_authority(
+        session,
+        family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+        authority_id=inventory_result.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    losses: dict[str, dict[ForecastQuantile, object]] = {"TEST-POOL": {}, "TEST-POOL-B": {}}
+    for pool_code in ("TEST-POOL", "TEST-POOL-B"):
+        for quantile in ForecastQuantile:
+            loss_input = _mature_loss_input_for_quantile(quantile).model_copy(
+                update={
+                    "capacity_pool_code": pool_code,
+                    "source_record_key": f"test:mature:{pool_code}:{quantile.value}:v1:1",
+                }
+            )
+            loss_result = await create_or_load_mature_loss(session, loss_input=loss_input)
+            await activate_authority(
+                session,
+                family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+                authority_id=loss_result.authority_id,
+                activation_boundary=date(2026, 1, 1),
+            )
+            losses[pool_code][quantile] = loss_result
+    return {
+        "pool_a": pool_a_result,
+        "pool_b": pool_b_result,
+        "daily_a": daily_a_result,
+        "daily_b": daily_b_result,
+        "holiday": holiday_result,
+        "weather": weather_result,
+        "package": package_result,
+        "inventory": inventory_result,
+        "losses": losses,
+    }
+
+
 async def _resolved_set(
     session: AsyncSession,
     *,
@@ -654,6 +907,109 @@ async def _resolved_set(
     return pool, daily, run_package, inventory, tuple(losses)
 
 
+async def _resolved_two_pool_set(
+    session: AsyncSession,
+    *,
+    created: dict[str, object],
+) -> tuple[
+    object,
+    object,
+    object,
+    object,
+    object,
+]:
+    pool_a = await resolve_capacity_pool_definition(
+        session,
+        request=CapacityPoolResolutionRequest(
+            mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+            as_of_local_date=AS_OF,
+            timezone_name=TZ,
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            capacity_pool_code="TEST-POOL",
+            effective_local_date=FORECAST_DATE,
+        ),
+    )
+    pool_b = await resolve_capacity_pool_definition(
+        session,
+        request=CapacityPoolResolutionRequest(
+            mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+            as_of_local_date=AS_OF,
+            timezone_name=TZ,
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            capacity_pool_code="TEST-POOL-B",
+            effective_local_date=FORECAST_DATE,
+        ),
+    )
+    daily_a = await resolve_daily_capacity(
+        session,
+        request=DailyCapacityResolutionRequest(
+            mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+            as_of_local_date=AS_OF,
+            timezone_name=TZ,
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            capacity_pool_code="TEST-POOL",
+            capacity_date=FORECAST_DATE,
+        ),
+    )
+    daily_b = await resolve_daily_capacity(
+        session,
+        request=DailyCapacityResolutionRequest(
+            mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+            as_of_local_date=AS_OF,
+            timezone_name=TZ,
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            capacity_pool_code="TEST-POOL-B",
+            capacity_date=FORECAST_DATE,
+        ),
+    )
+    run_package = await resolve_run_parameter_package(
+        session,
+        request=RunParameterPackageResolutionRequest(
+            mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+            as_of_local_date=AS_OF,
+            timezone_name=TZ,
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            farm_scope_key="farm-10",
+            effective_local_date=FORECAST_DATE,
+        ),
+    )
+    inventory = await resolve_initial_inventory(
+        session,
+        request=InitialInventoryResolutionRequest(
+            mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+            as_of_local_date=AS_OF,
+            timezone_name=TZ,
+            season_id=_IDS["season"],
+            destination_factory_id=_IDS["factory"],
+            opening_state_date=FORECAST_DATE,
+        ),
+    )
+    losses: list[object] = []
+    for pool_code in ("TEST-POOL", "TEST-POOL-B"):
+        for quantile in ForecastQuantile:
+            losses.append(
+                await resolve_mature_inventory_loss(
+                    session,
+                    request=MatureLossResolutionRequest(
+                        mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+                        as_of_local_date=AS_OF,
+                        timezone_name=TZ,
+                        season_id=_IDS["season"],
+                        destination_factory_id=_IDS["factory"],
+                        capacity_pool_code=pool_code,
+                        state_date=FORECAST_DATE,
+                        forecast_quantile=quantile,
+                    ),
+                )
+            )
+    return (pool_a, pool_b), (daily_a, daily_b), run_package, inventory, tuple(losses)
+
+
 async def _harvest_state_row_count(session: AsyncSession) -> int:
     total = 0
     for model in (
@@ -773,3 +1129,48 @@ async def test_assemble_rejects_missing_mature_loss_quantile(
 
     assert exc_info.value.code == "TASK9_AUTHORITY_REQUEST_ASSEMBLY_ERROR"
     assert exc_info.value.details["reason"] == "authority_quantile_coverage_incomplete"
+
+
+@pytest.mark.asyncio
+async def test_assemble_two_pool_non_zero_inventory_postgres_authorities(
+    db_session: AsyncSession,
+) -> None:
+    created = await _create_activate_authorities_two_pool(db_session)
+    pools, daily_capacities, run_package, inventory, losses = await _resolved_two_pool_set(
+        db_session,
+        created=created,
+    )
+
+    assembled = assemble_task9_request_from_resolved_authorities(
+        context=_assembly_context(),
+        capacity_pools=pools,
+        daily_capacities=daily_capacities,
+        run_package=run_package,
+        initial_inventory=inventory,
+        mature_losses=losses,
+        task8_daily_predictions=(
+            *_task8_predictions(
+                farm_id=_IDS["farm"],
+                subfarm_id=None,
+                variety_id=_IDS["variety"],
+                daily_prediction_id=4,
+            ),
+            *_task8_predictions(
+                farm_id=_IDS["farm"],
+                subfarm_id=_IDS["subfarm"],
+                variety_id=_IDS["variety"],
+                daily_prediction_id=104,
+            ),
+        ),
+        daily_weather_features=(
+            *_weather_features("TEST-POOL"),
+            *_weather_features("TEST-POOL-B"),
+        ),
+    )
+
+    assert len(assembled.request.capacity_pools) == 2
+    assert len(assembled.request.initial_inventory_cohorts or []) == 6
+    assert assembled.request.initial_opening_mature_inventory_kg == Decimal("54")
+    assert len(assembled.parameter_source_refs) >= 16
+    assert assembled.assembly_hash == sha256_hex(_immutable_to_plain(assembled.canonical_payload))
+    assert await _harvest_state_row_count(db_session) == 0

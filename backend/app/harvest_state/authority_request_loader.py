@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import date
 from decimal import Decimal
 from types import MappingProxyType
-from typing import Protocol
+from typing import NoReturn, Protocol, cast
 
 from pydantic import ValidationError
 
 from backend.app.harvest_state.authority_request_errors import (
+    Task9AuthorityAssemblyCanonicalParityError,
     Task9AuthorityRequestAssemblyError,
 )
 from backend.app.harvest_state.authority_request_types import (
+    ImmutableJsonValue,
     ResolvedAuthorityBinding,
     Task9AuthorityAssemblyContext,
     Task9AuthorityRequestAssembly,
@@ -121,13 +123,20 @@ def _raise(
     authority_family: AuthorityFamily | None = None,
     authority_stable_key: str | None = None,
     details: dict[str, object] | None = None,
-) -> None:
+) -> NoReturn:
     raise Task9AuthorityRequestAssemblyError(
         reason=reason,
         authority_family=authority_family,
         authority_stable_key=authority_stable_key,
         details=details,
     )
+
+
+def _raise_canonical_parity(
+    *,
+    details: dict[str, object] | None = None,
+) -> NoReturn:
+    raise Task9AuthorityAssemblyCanonicalParityError(details=details)
 
 
 def _binding(authority: _ResolvedAuthorityLike) -> ResolvedAuthorityBinding:
@@ -296,30 +305,94 @@ def _validate_daily_capacity_parent(
     *,
     pools: tuple[ResolvedCapacityPoolAuthority, ...],
 ) -> None:
-    """Verify daily capacity's parent pool identity against each pool in the assembly."""
+    """Verify daily capacity's exact parent pool identity against selected pools."""
     daily = authority.semantic_input
-    found = False
+    matched_pool: ResolvedCapacityPoolAuthority | None = None
     for pool_auth in pools:
         parent = pool_auth.semantic_bundle
         if daily.capacity_pool_code != parent.capacity_pool_code:
             continue
-        if (
-            daily.capacity_pool_version != parent.capacity_pool_version
-            or daily.capacity_pool_revision != parent.revision
-        ):
-            _raise(
-                "authority_parent_pool_mismatch",
-                authority_family=AuthorityFamily.DAILY_CAPACITY,
-                authority_stable_key=authority.authority_stable_key,
-            )
-        found = True
+        matched_pool = pool_auth
         break
-    if not found:
+    if matched_pool is None:
         _raise(
             "authority_parent_pool_mismatch",
             authority_family=AuthorityFamily.DAILY_CAPACITY,
             authority_stable_key=authority.authority_stable_key,
+            details={"field": "capacity_pool_code"},
         )
+
+    selected_parent = matched_pool
+    if selected_parent is None:
+        _raise(
+            "authority_parent_pool_mismatch",
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            authority_stable_key=authority.authority_stable_key,
+            details={"field": "capacity_pool_code"},
+        )
+    resolved_parent = authority.parent_pool
+    exact_identity_fields: tuple[tuple[str, object, object], ...] = (
+        ("authority_family", resolved_parent.authority_family, selected_parent.authority_family),
+        (
+            "authority_stable_key",
+            resolved_parent.authority_stable_key,
+            selected_parent.authority_stable_key,
+        ),
+        ("business_version", resolved_parent.business_version, selected_parent.business_version),
+        ("revision", resolved_parent.revision, selected_parent.revision),
+        ("row_hash", resolved_parent.row_hash, selected_parent.row_hash),
+        (
+            "season_id",
+            resolved_parent.semantic_bundle.season_id,
+            selected_parent.semantic_bundle.season_id,
+        ),
+        (
+            "destination_factory_id",
+            resolved_parent.semantic_bundle.destination_factory_id,
+            selected_parent.semantic_bundle.destination_factory_id,
+        ),
+        (
+            "capacity_pool_code",
+            resolved_parent.semantic_bundle.capacity_pool_code,
+            selected_parent.semantic_bundle.capacity_pool_code,
+        ),
+    )
+    for field, actual, expected in exact_identity_fields:
+        if actual != expected:
+            _raise(
+                "authority_parent_pool_mismatch",
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                authority_stable_key=authority.authority_stable_key,
+                details={"field": field, "expected": expected, "actual": actual},
+            )
+
+    copied_fields: tuple[tuple[str, object, object], ...] = (
+        (
+            "capacity_pool_code",
+            daily.capacity_pool_code,
+            selected_parent.semantic_bundle.capacity_pool_code,
+        ),
+        (
+            "capacity_pool_version",
+            daily.capacity_pool_version,
+            selected_parent.semantic_bundle.capacity_pool_version,
+        ),
+        ("capacity_pool_revision", daily.capacity_pool_revision, selected_parent.revision),
+        ("season_id", daily.season_id, selected_parent.semantic_bundle.season_id),
+        (
+            "destination_factory_id",
+            daily.destination_factory_id,
+            selected_parent.semantic_bundle.destination_factory_id,
+        ),
+    )
+    for field, actual, expected in copied_fields:
+        if actual != expected:
+            _raise(
+                "authority_parent_pool_mismatch",
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                authority_stable_key=authority.authority_stable_key,
+                details={"field": field, "expected": expected, "actual": actual},
+            )
 
 
 def _daily_capacity_input(
@@ -470,12 +543,15 @@ def _membership_hash(pool: ResolvedCapacityPoolAuthority) -> str:
 def _initial_inventory_inputs(
     authority: ResolvedInitialInventoryAuthority,
     *,
-    pool: ResolvedCapacityPoolAuthority,
+    member_to_pools: Mapping[
+        tuple[int, int | None, int], tuple[ResolvedCapacityPoolAuthority, ...]
+    ],
     as_of_date: date,
 ) -> list[InitialInventoryCohortInput]:
     source_ref = _initial_inventory_source_ref(authority, as_of_date=as_of_date)
-    membership_hash = _membership_hash(pool)
     out: list[InitialInventoryCohortInput] = []
+    seen_rows: set[tuple[date, int, int | None, int, ForecastQuantile]] = set()
+    seen_stable_keys: set[str] = set()
     for cohort in sorted(
         authority.semantic_bundle.cohorts,
         key=lambda item: (
@@ -487,6 +563,29 @@ def _initial_inventory_inputs(
             item.stable_cohort_key,
         ),
     ):
+        member_key = (cohort.farm_id, cohort.subfarm_id, cohort.variety_id)
+        pools = member_to_pools.get(member_key, ())
+        if not pools:
+            _raise(
+                "authority_inventory_member_unassigned",
+                authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+                authority_stable_key=authority.authority_stable_key,
+                details={"member": list(member_key)},
+            )
+        if len(pools) != 1:
+            _raise(
+                "authority_inventory_member_ambiguous",
+                authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+                authority_stable_key=authority.authority_stable_key,
+                details={
+                    "member": list(member_key),
+                    "capacity_pool_codes": [
+                        item.semantic_bundle.capacity_pool_code for item in pools
+                    ],
+                },
+            )
+        pool = pools[0]
+        membership_hash = _membership_hash(pool)
         expected_key = make_stable_cohort_key(
             {
                 "schema_version": "task9a-cohort-key-v1",
@@ -507,11 +606,34 @@ def _initial_inventory_inputs(
         )
         if cohort.stable_cohort_key != expected_key:
             _raise(
-                "authority_initial_inventory_total_mismatch",
+                "authority_inventory_total_mismatch",
                 authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
                 authority_stable_key=authority.authority_stable_key,
                 details={"field": "stable_cohort_key"},
             )
+        dedupe_key = (
+            cohort.cohort_date,
+            cohort.farm_id,
+            cohort.subfarm_id,
+            cohort.variety_id,
+            cohort.forecast_quantile,
+        )
+        if dedupe_key in seen_rows or cohort.stable_cohort_key in seen_stable_keys:
+            _raise(
+                "authority_inventory_cohort_duplicate",
+                authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+                authority_stable_key=authority.authority_stable_key,
+                details={
+                    "cohort_date": cohort.cohort_date,
+                    "farm_id": cohort.farm_id,
+                    "subfarm_id": cohort.subfarm_id,
+                    "variety_id": cohort.variety_id,
+                    "forecast_quantile": cohort.forecast_quantile.value,
+                    "stable_cohort_key": cohort.stable_cohort_key,
+                },
+            )
+        seen_rows.add(dedupe_key)
+        seen_stable_keys.add(cohort.stable_cohort_key)
         out.append(
             InitialInventoryCohortInput(
                 cohort_date=cohort.cohort_date,
@@ -570,7 +692,7 @@ def _manifest(
 
 def _validate_pool_constraints(
     capacity_pools: tuple[ResolvedCapacityPoolAuthority, ...],
-) -> None:
+) -> dict[tuple[int, int | None, int], tuple[ResolvedCapacityPoolAuthority, ...]]:
     """Validate multi-pool constraints: unique codes, no shared members, same season/factory."""
     if len(capacity_pools) < 1:
         _raise("authority_scope_mismatch", details={"error": "at least one pool required"})
@@ -592,36 +714,41 @@ def _validate_pool_constraints(
                 authority_stable_key=pool.authority_stable_key,
                 details={"error": "cross-factory pool"},
             )
-    member_to_pool: dict[tuple[int, int | None, int], str] = {}
+    member_to_pools: dict[tuple[int, int | None, int], list[ResolvedCapacityPoolAuthority]] = {}
     for pool in capacity_pools:
         bundle = pool.semantic_bundle
         for member in bundle.members:
             key = (member.farm_id, member.subfarm_id, member.variety_id)
-            if key in member_to_pool:
+            if key in member_to_pools:
                 _raise(
                     "authority_pool_membership_conflict",
                     authority_stable_key=pool.authority_stable_key,
                     details={
                         "error": "member in multiple pools",
                         "member": list(key),
-                        "first_pool": member_to_pool[key],
+                        "first_pool": member_to_pools[key][0].semantic_bundle.capacity_pool_code,
                         "second_pool": bundle.capacity_pool_code,
                     },
                 )
-            member_to_pool[key] = bundle.capacity_pool_code
+            member_to_pools.setdefault(key, []).append(pool)
+    return {key: tuple(value) for key, value in member_to_pools.items()}
 
 
 def _validate_scope(
     *,
     capacity_pools: tuple[ResolvedCapacityPoolAuthority, ...],
+    daily_capacities: tuple[ResolvedDailyCapacityAuthority, ...],
     run_package: ResolvedRunParameterPackageAuthority,
     initial_inventory: ResolvedInitialInventoryAuthority,
+    mature_losses: tuple[ResolvedMatureLossAuthority, ...],
     context: Task9AuthorityAssemblyContext,
 ) -> None:
     """Validate scope consistency across all pools, run package, and inventory."""
     pool = capacity_pools[0].semantic_bundle
     package = run_package.semantic_input
     inventory = initial_inventory.semantic_bundle
+    holiday = run_package.holiday_calendar.semantic_bundle
+    weather = run_package.weather_rule.semantic_input
 
     # Season / factory scope must match across all pools.
     for pool_auth in capacity_pools:
@@ -633,6 +760,28 @@ def _validate_scope(
             _raise(
                 "authority_scope_mismatch",
                 authority_stable_key=pool_auth.authority_stable_key,
+            )
+    for daily_auth in daily_capacities:
+        daily = daily_auth.semantic_input
+        if (
+            daily.season_id != pool.season_id
+            or daily.destination_factory_id != pool.destination_factory_id
+        ):
+            _raise(
+                "authority_scope_mismatch",
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                authority_stable_key=daily_auth.authority_stable_key,
+            )
+    for loss_auth in mature_losses:
+        loss = loss_auth.semantic_input
+        if (
+            loss.season_id != pool.season_id
+            or loss.destination_factory_id != pool.destination_factory_id
+        ):
+            _raise(
+                "authority_scope_mismatch",
+                authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+                authority_stable_key=loss_auth.authority_stable_key,
             )
 
     if pool.season_id != package.season_id or pool.season_id != inventory.season_id:
@@ -648,22 +797,23 @@ def _validate_scope(
             "authority_scope_mismatch",
             authority_stable_key=capacity_pools[0].authority_stable_key,
         )
+    if package.season_id != holiday.season_id:
+        _raise(
+            "authority_scope_mismatch",
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key=run_package.authority_stable_key,
+            details={"error": "holiday season mismatch"},
+        )
 
     # Timezone match between run package and its dependencies.
-    if (
-        package.destination_factory_timezone
-        != run_package.holiday_calendar.semantic_bundle.lifecycle_timezone_name
-    ):
+    if package.destination_factory_timezone != holiday.lifecycle_timezone_name:
         _raise(
             "authority_scope_mismatch",
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
             authority_stable_key=run_package.authority_stable_key,
             details={"error": "holiday timezone mismatch"},
         )
-    if (
-        package.destination_factory_timezone
-        != run_package.weather_rule.semantic_input.lifecycle_timezone_name
-    ):
+    if package.destination_factory_timezone != weather.lifecycle_timezone_name:
         _raise(
             "authority_scope_mismatch",
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
@@ -673,25 +823,206 @@ def _validate_scope(
 
     # Assembly context mode must match all authorities.
     expected_mode = context.mode
-    for pool_auth in capacity_pools:
-        if pool_auth.mode != expected_mode:
+    for authority in (
+        *capacity_pools,
+        *daily_capacities,
+        *mature_losses,
+        run_package,
+        run_package.holiday_calendar,
+        run_package.weather_rule,
+        initial_inventory,
+    ):
+        actual_mode = authority.mode
+        if actual_mode != expected_mode:
             _raise(
                 "authority_resolution_mode_mismatch",
-                authority_stable_key=pool_auth.authority_stable_key,
-                details={"expected": expected_mode.value, "actual": pool_auth.mode.value},
+                authority_stable_key=authority.authority_stable_key,
+                details={"expected": expected_mode.value, "actual": actual_mode.value},
             )
-    if run_package.mode != expected_mode:
+
+
+def _validate_authority_visibility(
+    *,
+    context: Task9AuthorityAssemblyContext,
+    capacity_pools: tuple[ResolvedCapacityPoolAuthority, ...],
+    daily_capacities: tuple[ResolvedDailyCapacityAuthority, ...],
+    run_package: ResolvedRunParameterPackageAuthority,
+    initial_inventory: ResolvedInitialInventoryAuthority,
+    mature_losses: tuple[ResolvedMatureLossAuthority, ...],
+) -> None:
+    cutoff = context.as_of_date
+    forecast_dates = _date_range(context.forecast_start_date, context.forecast_end_date)
+
+    for authority in (
+        *capacity_pools,
+        *daily_capacities,
+        *mature_losses,
+        run_package,
+        run_package.holiday_calendar,
+        run_package.weather_rule,
+        initial_inventory,
+    ):
+        if authority.available_at_local_date > cutoff:
+            _raise(
+                "authority_visibility_after_cutoff",
+                authority_family=authority.authority_family,
+                authority_stable_key=authority.authority_stable_key,
+                details={
+                    "available_at": authority.available_at_local_date,
+                    "cutoff": cutoff,
+                },
+            )
+
+    for pool in capacity_pools:
+        bundle = pool.semantic_bundle
+        for day in forecast_dates:
+            if day < bundle.effective_from or (
+                bundle.effective_to is not None and bundle.effective_to < day
+            ):
+                _raise(
+                    "authority_context_cutoff_mismatch",
+                    authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+                    authority_stable_key=pool.authority_stable_key,
+                    details={"field": "effective_interval", "target_date": day},
+                )
+
+    for daily in daily_capacities:
+        if daily.semantic_input.capacity_date not in forecast_dates:
+            _raise(
+                "authority_context_cutoff_mismatch",
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                authority_stable_key=daily.authority_stable_key,
+                details={"field": "capacity_date"},
+            )
+
+    package = run_package.semantic_input
+    if package.effective_from > context.forecast_start_date or (
+        package.effective_to is not None and package.effective_to < context.forecast_end_date
+    ):
         _raise(
-            "authority_resolution_mode_mismatch",
+            "authority_context_cutoff_mismatch",
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
             authority_stable_key=run_package.authority_stable_key,
-            details={"expected": expected_mode.value, "actual": run_package.mode.value},
+            details={"field": "effective_interval"},
         )
-    if initial_inventory.mode != expected_mode:
+
+    if initial_inventory.semantic_bundle.opening_state_date != context.forecast_start_date:
         _raise(
-            "authority_resolution_mode_mismatch",
+            "authority_context_cutoff_mismatch",
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
             authority_stable_key=initial_inventory.authority_stable_key,
-            details={"expected": expected_mode.value, "actual": initial_inventory.mode.value},
+            details={"field": "opening_state_date"},
         )
+
+    for loss in mature_losses:
+        if loss.semantic_input.state_date not in forecast_dates:
+            _raise(
+                "authority_context_cutoff_mismatch",
+                authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+                authority_stable_key=loss.authority_stable_key,
+                details={"field": "state_date"},
+            )
+
+
+def _validate_global_pool_references(
+    *,
+    capacity_pools: tuple[ResolvedCapacityPoolAuthority, ...],
+    daily_capacities: tuple[ResolvedDailyCapacityAuthority, ...],
+    mature_losses: tuple[ResolvedMatureLossAuthority, ...],
+    task8_daily_predictions: tuple[Task8DailyPredictionInput, ...],
+    daily_weather_features: tuple[DailyWeatherFeatureInput, ...],
+) -> None:
+    selected_pool_codes = {pool.semantic_bundle.capacity_pool_code for pool in capacity_pools}
+
+    seen_daily: set[tuple[str, date]] = set()
+    for daily_authority in daily_capacities:
+        daily_key = (
+            daily_authority.semantic_input.capacity_pool_code,
+            daily_authority.semantic_input.capacity_date,
+        )
+        if daily_key[0] not in selected_pool_codes:
+            _raise(
+                "authority_unknown_pool_reference",
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                authority_stable_key=daily_authority.authority_stable_key,
+                details={"capacity_pool_code": daily_key[0]},
+            )
+        if daily_key in seen_daily:
+            _raise(
+                "authority_duplicate_daily_capacity",
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                authority_stable_key=daily_authority.authority_stable_key,
+                details={"capacity_pool_code": daily_key[0], "capacity_date": daily_key[1]},
+            )
+        seen_daily.add(daily_key)
+
+    seen_losses: set[tuple[str, date, ForecastQuantile]] = set()
+    for loss_authority in mature_losses:
+        loss_key = (
+            loss_authority.semantic_input.capacity_pool_code,
+            loss_authority.semantic_input.state_date,
+            loss_authority.semantic_input.forecast_quantile,
+        )
+        if loss_key[0] not in selected_pool_codes:
+            _raise(
+                "authority_unknown_pool_reference",
+                authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+                authority_stable_key=loss_authority.authority_stable_key,
+                details={"capacity_pool_code": loss_key[0]},
+            )
+        if loss_key in seen_losses:
+            _raise(
+                "authority_duplicate_mature_loss",
+                authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+                authority_stable_key=loss_authority.authority_stable_key,
+                details={
+                    "capacity_pool_code": loss_key[0],
+                    "state_date": loss_key[1],
+                    "forecast_quantile": loss_key[2].value,
+                },
+            )
+        seen_losses.add(loss_key)
+
+    seen_weather: set[tuple[str, date, str]] = set()
+    for feature in daily_weather_features:
+        weather_key = (feature.capacity_pool_id, feature.capacity_date, feature.feature_id)
+        if feature.capacity_pool_id not in selected_pool_codes:
+            _raise(
+                "authority_unknown_pool_reference",
+                details={"capacity_pool_code": feature.capacity_pool_id},
+            )
+        if weather_key in seen_weather:
+            _raise(
+                "authority_duplicate_weather_feature",
+                details={
+                    "capacity_pool_code": feature.capacity_pool_id,
+                    "capacity_date": feature.capacity_date,
+                    "feature_id": feature.feature_id,
+                },
+            )
+        seen_weather.add(weather_key)
+
+    seen_task8: set[tuple[date, ForecastQuantile, int, int | None, int]] = set()
+    for prediction in task8_daily_predictions:
+        task8_key = (
+            prediction.prediction_date,
+            prediction.source_ref.forecast_quantile,
+            prediction.farm_id,
+            prediction.subfarm_id,
+            prediction.variety_id,
+        )
+        if task8_key in seen_task8:
+            _raise(
+                "authority_duplicate_task8_prediction",
+                details={
+                    "prediction_date": prediction.prediction_date,
+                    "forecast_quantile": prediction.source_ref.forecast_quantile.value,
+                    "farm_id": prediction.farm_id,
+                    "subfarm_id": prediction.subfarm_id,
+                    "variety_id": prediction.variety_id,
+                },
+            )
+        seen_task8.add(task8_key)
 
 
 def _validate_coverage(
@@ -717,12 +1048,6 @@ def _validate_coverage(
         )
         for daily_authority in daily_capacities
     ]
-    if len(set(daily_keys)) != len(daily_keys):
-        _raise(
-            "authority_date_coverage_incomplete",
-            authority_stable_key=capacity_pool.authority_stable_key,
-            details={"error": "duplicate daily capacity"},
-        )
     for daily_authority in daily_capacities:
         daily = daily_authority.semantic_input
         if (
@@ -751,12 +1076,6 @@ def _validate_coverage(
         )
         for loss_authority in mature_losses
     ]
-    if len(set(loss_keys)) != len(loss_keys):
-        _raise(
-            "authority_quantile_coverage_incomplete",
-            authority_stable_key=capacity_pool.authority_stable_key,
-            details={"error": "duplicate mature loss"},
-        )
     for loss_authority in mature_losses:
         loss = loss_authority.semantic_input
         if (
@@ -786,11 +1105,6 @@ def _validate_coverage(
         )
         for prediction in task8_daily_predictions
     ]
-    if len(set(task8_keys)) != len(task8_keys):
-        _raise(
-            "authority_duplicate_task8_prediction",
-            authority_stable_key=capacity_pool.authority_stable_key,
-        )
     for prediction in task8_daily_predictions:
         if (prediction.farm_id, prediction.subfarm_id, prediction.variety_id) not in member_keys:
             _raise(
@@ -1048,11 +1362,31 @@ def _common_source_ref_hash(
     )
 
 
+def _deep_freeze_json(value: JsonValue) -> ImmutableJsonValue:
+    if isinstance(value, dict):
+        frozen = {key: _deep_freeze_json(item) for key, item in value.items()}
+        return cast(ImmutableJsonValue, MappingProxyType(frozen))
+    if isinstance(value, list):
+        return tuple(_deep_freeze_json(item) for item in value)
+    return cast(ImmutableJsonValue, value)
+
+
+def _immutable_to_plain(value: ImmutableJsonValue) -> JsonValue:
+    if isinstance(value, Mapping):
+        return {
+            str(key): _immutable_to_plain(item)
+            for key, item in sorted(value.items(), key=lambda item: item[0])
+        }
+    if isinstance(value, tuple):
+        return [_immutable_to_plain(item) for item in value]
+    return cast(JsonValue, value)
+
+
 def _canonical_payload(
     *,
     request: Task9ARequest,
     manifest: tuple[ResolvedAuthorityBinding, ...],
-) -> MappingProxyType[str, JsonValue]:
+) -> Mapping[str, ImmutableJsonValue]:
     """Build an immutable canonical payload excluding DB identity fields."""
     manifest_payload: list[JsonValue] = [_semantic_binding_payload(item) for item in manifest]
     raw: dict[str, object] = {
@@ -1061,8 +1395,9 @@ def _canonical_payload(
         "authority_manifest": manifest_payload,
     }
     canonical = canonical_json_value(raw)
-    assert isinstance(canonical, dict)
-    return MappingProxyType(canonical)
+    if not isinstance(canonical, dict):
+        _raise_canonical_parity(details={"error": "canonical_payload_not_mapping"})
+    return cast(Mapping[str, ImmutableJsonValue], _deep_freeze_json(canonical))
 
 
 def _member_in_pool(
@@ -1093,14 +1428,31 @@ def assemble_task9_request_from_resolved_authorities(
     quantiles = CANONICAL_FORECAST_QUANTILES
 
     # ── Multi-pool constraints (Finding 4) ───────────────────────────
-    _validate_pool_constraints(capacity_pools)
+    member_to_pools = _validate_pool_constraints(capacity_pools)
 
     # ── Scope validation (Finding 5: context mode) ──────────────────
     _validate_scope(
         capacity_pools=capacity_pools,
+        daily_capacities=daily_capacities,
         run_package=run_package,
         initial_inventory=initial_inventory,
+        mature_losses=mature_losses,
         context=context,
+    )
+    _validate_global_pool_references(
+        capacity_pools=capacity_pools,
+        daily_capacities=daily_capacities,
+        mature_losses=mature_losses,
+        task8_daily_predictions=task8_daily_predictions,
+        daily_weather_features=daily_weather_features,
+    )
+    _validate_authority_visibility(
+        context=context,
+        capacity_pools=capacity_pools,
+        daily_capacities=daily_capacities,
+        run_package=run_package,
+        initial_inventory=initial_inventory,
+        mature_losses=mature_losses,
     )
 
     # ── Daily capacity parent verification ──────────────────────────
@@ -1146,13 +1498,11 @@ def assemble_task9_request_from_resolved_authorities(
     ]
     run_refs = _run_parameter_refs(run_package, as_of_date=as_of_date)
 
-    # Build initial inventory cohorts for all pools combined.
-    all_initial_cohorts: list[InitialInventoryCohortInput] = []
-    for pool in capacity_pools:
-        pool_cohorts = _initial_inventory_inputs(
-            initial_inventory, pool=pool, as_of_date=as_of_date
-        )
-        all_initial_cohorts.extend(pool_cohorts)
+    all_initial_cohorts = _initial_inventory_inputs(
+        initial_inventory,
+        member_to_pools=member_to_pools,
+        as_of_date=as_of_date,
+    )
 
     # Validate total opening inventory across all pools.
     total = sum(
@@ -1161,7 +1511,7 @@ def assemble_task9_request_from_resolved_authorities(
     )
     if total != initial_inventory.semantic_bundle.initial_opening_mature_inventory_kg:
         _raise(
-            "authority_initial_inventory_total_mismatch",
+            "authority_inventory_total_mismatch",
             authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
             authority_stable_key=initial_inventory.authority_stable_key,
         )
@@ -1256,7 +1606,17 @@ def assemble_task9_request_from_resolved_authorities(
 
     # ── Immutable canonical payload (Finding 6) ─────────────────────
     payload = _canonical_payload(request=request, manifest=manifest)
-    assembly_hash = sha256_hex(dict(payload))
+    first_json = sha256_hex(_immutable_to_plain(payload))
+    second_json = sha256_hex(_immutable_to_plain(payload))
+    if first_json != second_json:
+        _raise_canonical_parity(
+            details={
+                "error": "canonical_payload_rehash_mismatch",
+                "first_hash": first_json,
+                "second_hash": second_json,
+            }
+        )
+    assembly_hash = first_json
 
     return Task9AuthorityRequestAssembly(
         request=request,

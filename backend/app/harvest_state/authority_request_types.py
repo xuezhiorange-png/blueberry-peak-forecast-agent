@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
-from types import MappingProxyType
 
 from backend.app.harvest_state.authority_resolution_types import AuthorityResolutionMode
-from backend.app.harvest_state.canonical import JsonValue
 from backend.app.harvest_state.enums import AuthorityFamily
 from backend.app.harvest_state.schemas import ParameterSourceRef, Task9ARequest
+
+type ImmutableJsonScalar = None | str | bool | int | float
+type ImmutableJsonValue = (
+    ImmutableJsonScalar | tuple["ImmutableJsonValue", ...] | Mapping[str, "ImmutableJsonValue"]
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,7 +37,7 @@ class Task9AuthorityRequestAssembly:
     request: Task9ARequest
     authority_manifest: tuple[ResolvedAuthorityBinding, ...]
     parameter_source_refs: tuple[ParameterSourceRef, ...]
-    canonical_payload: MappingProxyType[str, JsonValue]
+    canonical_payload: Mapping[str, ImmutableJsonValue]
     assembly_hash: str
 
 
