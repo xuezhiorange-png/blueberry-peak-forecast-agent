@@ -1,0 +1,19 @@
+services:
+  postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: blueberry_peak_test
+      POSTGRES_USER: blueberry_test
+      POSTGRES_PASSWORD: blueberry-test-only
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blueberry_test -d blueberry_peak_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-test-data:

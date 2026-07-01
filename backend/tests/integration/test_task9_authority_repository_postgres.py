@@ -80,7 +80,7 @@ from backend.app.harvest_state.enums import (
 from backend.app.harvest_state.schemas import WeatherFeatureBand, WeatherFeatureRule
 from backend.app.models.task9_authority import Task9AuthorityLifecycleEvent
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.postgres_concurrency]
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
@@ -1998,6 +1998,7 @@ async def test_load_pool_rejects_member_parent_projection_mismatch() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.postgres_concurrency
 async def test_concurrent_pool_create_same_payload_blocks_then_reuses_row() -> None:
     await _seed_dimensions_committed()
     pool = _pool_input(code=f"POOL-{uuid4().hex[:8]}")
@@ -2089,6 +2090,7 @@ async def test_concurrent_pool_create_same_payload_blocks_then_reuses_row() -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.postgres_concurrency
 async def test_concurrent_pool_create_conflicting_payload_returns_typed_conflict() -> None:
     await _seed_dimensions_committed()
     pool_a = _pool_input(code=f"POOL-{uuid4().hex[:8]}")

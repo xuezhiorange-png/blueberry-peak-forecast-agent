@@ -96,7 +96,7 @@ from backend.tests.integration.test_task9_authority_repository_postgres import (
     _weather_input,
 )
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.postgres_transactional]
 
 AS_OF = date(2026, 6, 1)
 FORECAST_DATE = date(2026, 6, 15)
