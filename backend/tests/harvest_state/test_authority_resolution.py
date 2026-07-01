@@ -151,3 +151,71 @@ def test_exact_reference_is_typed() -> None:
     )
     assert reference.authority_id == 11
     assert reference.authority_stable_key.endswith("POOL-A")
+
+
+# ---------------------------------------------------------------------------
+# P1-1 boundary coverage & P0-7D unit tests
+# ---------------------------------------------------------------------------
+
+
+def test_current_operational_requires_consumable_from_before_as_of() -> None:
+    """Boundary: consumable_from == as_of counts as visible; before also works; before boundary fails."""
+    snap = _snapshot(
+        consumable_from_local_date=date(2026, 6, 15),
+        available_at_local_date=date(2026, 1, 1),
+    )
+    # as_of is before consumable_from → not yet consumable
+    assert _candidate_is_current_operational(snap, as_of_local_date=date(2026, 6, 10)) is False
+    # as_of == consumable_from → inclusive lower bound
+    assert _candidate_is_current_operational(snap, as_of_local_date=date(2026, 6, 15)) is True
+    # as_of is after consumable_from → clearly consumable
+    assert _candidate_is_current_operational(snap, as_of_local_date=date(2026, 6, 20)) is True
+
+
+def test_current_operational_rejects_future_consumable_from() -> None:
+    """consumable_from in the future relative to as_of must be rejected."""
+    snap = _snapshot(
+        consumable_from_local_date=date(2026, 7, 1),
+        available_at_local_date=date(2026, 1, 1),
+    )
+    assert _candidate_is_current_operational(snap, as_of_local_date=date(2026, 6, 1)) is False
+
+
+def test_current_operational_rejects_draft_status() -> None:
+    """Draft status must not be considered current operational."""
+    snap = _snapshot(status=AuthorityStatus.DRAFT)
+    assert _candidate_is_current_operational(snap, as_of_local_date=date(2026, 6, 1)) is False
+
+
+def test_current_operational_rejects_consumable_to_set() -> None:
+    """Setting consumable_to_local_date means the authority is no longer current operational."""
+    snap = _snapshot(consumable_to_local_date=date(2099, 12, 31))
+    assert _candidate_is_current_operational(snap, as_of_local_date=date(2026, 6, 1)) is False
+
+
+def test_validate_timezone_name_accepts_valid_name() -> None:
+    """Valid IANA timezone names must not raise."""
+    assert _validate_timezone_name("Asia/Shanghai") == "Asia/Shanghai"
+    assert _validate_timezone_name("UTC") == "UTC"
+
+
+def test_historical_consumable_accepts_superseded() -> None:
+    """Superseded status is accepted by the historical consumable predicate when in range."""
+    snap = _snapshot(
+        status=AuthorityStatus.SUPERSEDED,
+        consumable_from_local_date=date(2026, 1, 1),
+        consumable_to_local_date=date(2026, 6, 30),
+        available_at_local_date=date(2026, 1, 1),
+    )
+    assert _candidate_is_consumable_at_as_of(snap, as_of_local_date=date(2026, 6, 15)) is True
+
+
+def test_historical_consumable_rejects_draft() -> None:
+    """Draft status is not consumable at any as_of date."""
+    snap = _snapshot(
+        status=AuthorityStatus.DRAFT,
+        consumable_from_local_date=date(2026, 1, 1),
+        consumable_to_local_date=date(2026, 6, 30),
+        available_at_local_date=date(2026, 1, 1),
+    )
+    assert _candidate_is_consumable_at_as_of(snap, as_of_local_date=date(2026, 6, 15)) is False

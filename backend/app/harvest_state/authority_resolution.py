@@ -101,6 +101,7 @@ def _candidate_is_current_operational(
         snapshot.status == AuthorityStatus.ACTIVE
         and snapshot.available_at_local_date <= as_of_local_date
         and snapshot.consumable_from_local_date is not None
+        and snapshot.consumable_from_local_date <= as_of_local_date
         and snapshot.consumable_to_local_date is None
     )
 
@@ -187,6 +188,7 @@ def _current_predicates(
         model.status == AuthorityStatus.ACTIVE,
         model.available_at_local_date <= as_of_local_date,
         model.consumable_from_local_date.is_not(None),
+        model.consumable_from_local_date <= as_of_local_date,
         model.consumable_to_local_date.is_(None),
     )
 
@@ -903,6 +905,7 @@ async def resolve_capacity_pool_definition(
         business_key = (
             f"{request.season_id}:{request.destination_factory_id}:{request.capacity_pool_code}"
         )
+        # Level 1: No scope row at all
         any_scope_rows = list(
             (
                 await session.execute(
@@ -918,17 +921,116 @@ async def resolve_capacity_pool_definition(
                 )
             ).scalars()
         )
-        if any_scope_rows:
+        if not any_scope_rows:
+            raise HistoricalAuthorityNotFoundError(
+                authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+                as_of_local_date=request.as_of_local_date,
+                business_key=business_key,
+            )
+        # Level 2: Scope row exists but no effective interval covers target
+        effective_rows = list(
+            (
+                await session.execute(
+                    select(Task9CapacityPoolDefinition)
+                    .where(
+                        Task9CapacityPoolDefinition.season_id == request.season_id,
+                        Task9CapacityPoolDefinition.destination_factory_id
+                        == request.destination_factory_id,
+                        Task9CapacityPoolDefinition.capacity_pool_code
+                        == request.capacity_pool_code,
+                        Task9CapacityPoolDefinition.effective_from
+                        <= request.effective_local_date,
+                        or_(
+                            Task9CapacityPoolDefinition.effective_to.is_(None),
+                            request.effective_local_date
+                            <= Task9CapacityPoolDefinition.effective_to,
+                        ),
+                    )
+                    .limit(1)
+                )
+            ).scalars()
+        )
+        if not effective_rows:
             raise AuthorityEffectiveIntervalMismatchError(
                 authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
                 authority_stable_key=request.capacity_pool_code,
                 target_local_date=request.effective_local_date,
             )
-        raise HistoricalAuthorityNotFoundError(
-            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
-            as_of_local_date=request.as_of_local_date,
-            business_key=business_key,
+        # Level 3: Scope+effective row exists but all future available_at
+        visible_rows = list(
+            (
+                await session.execute(
+                    select(Task9CapacityPoolDefinition)
+                    .where(
+                        Task9CapacityPoolDefinition.season_id == request.season_id,
+                        Task9CapacityPoolDefinition.destination_factory_id
+                        == request.destination_factory_id,
+                        Task9CapacityPoolDefinition.capacity_pool_code
+                        == request.capacity_pool_code,
+                        Task9CapacityPoolDefinition.effective_from
+                        <= request.effective_local_date,
+                        or_(
+                            Task9CapacityPoolDefinition.effective_to.is_(None),
+                            request.effective_local_date
+                            <= Task9CapacityPoolDefinition.effective_to,
+                        ),
+                        Task9CapacityPoolDefinition.available_at_local_date
+                        <= request.as_of_local_date,
+                    )
+                    .limit(1)
+                )
+            ).scalars()
         )
+        if not visible_rows:
+            raise AuthorityNotConsumableAtCutoffError(
+                authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+                authority_stable_key=request.capacity_pool_code,
+                as_of_local_date=request.as_of_local_date,
+                details={"reason": "authority_not_available_at_cutoff"},
+            )
+        # Level 4: Scope+effective+visible row exists but lifecycle not consumable
+        consumable_rows = list(
+            (
+                await session.execute(
+                    select(Task9CapacityPoolDefinition)
+                    .where(
+                        Task9CapacityPoolDefinition.season_id == request.season_id,
+                        Task9CapacityPoolDefinition.destination_factory_id
+                        == request.destination_factory_id,
+                        Task9CapacityPoolDefinition.capacity_pool_code
+                        == request.capacity_pool_code,
+                        Task9CapacityPoolDefinition.effective_from
+                        <= request.effective_local_date,
+                        or_(
+                            Task9CapacityPoolDefinition.effective_to.is_(None),
+                            request.effective_local_date
+                            <= Task9CapacityPoolDefinition.effective_to,
+                        ),
+                        Task9CapacityPoolDefinition.available_at_local_date
+                        <= request.as_of_local_date,
+                        Task9CapacityPoolDefinition.consumable_from_local_date
+                        .is_not(None),
+                        Task9CapacityPoolDefinition.consumable_from_local_date
+                        <= request.as_of_local_date,
+                        or_(
+                            Task9CapacityPoolDefinition.consumable_to_local_date
+                            .is_(None),
+                            request.as_of_local_date
+                            < Task9CapacityPoolDefinition.consumable_to_local_date,
+                        ),
+                    )
+                    .limit(1)
+                )
+            ).scalars()
+        )
+        if not consumable_rows:
+            raise AuthorityNotConsumableAtCutoffError(
+                authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+                authority_stable_key=request.capacity_pool_code,
+                as_of_local_date=request.as_of_local_date,
+                details={"reason": "authority_lifecycle_not_consumable_at_cutoff"},
+            )
+        # Level 5: All conditions met — fall through to proceed
     snapshot = _choose_candidate_snapshot(
         [
             _build_candidate_snapshot(
@@ -1075,6 +1177,18 @@ async def resolve_weather_rule(
             session, authority_id=request.exact_reference.authority_id, mode=request.mode
         )
         _assert_exact_reference_match(resolved=resolved, exact_reference=request.exact_reference)
+        _assert_scope(
+            expected={
+                "rule_code": request.rule_code,
+                "lifecycle_timezone_name": request.lifecycle_timezone_name,
+            },
+            actual={
+                "rule_code": resolved.semantic_input.rule_code,
+                "lifecycle_timezone_name": resolved.semantic_input.lifecycle_timezone_name,
+            },
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            authority_stable_key=resolved.authority_stable_key,
+        )
         if not _effective_interval_contains(
             effective_from=resolved.semantic_input.effective_from,
             effective_to=resolved.semantic_input.effective_to,
@@ -1516,6 +1630,18 @@ async def resolve_run_parameter_package(
                 "reason": "dependency_timezone_mismatch",
                 "dependency_family": AuthorityFamily.WEATHER_RULE_CONFIG_VERSION.value,
             }
+        )
+    if resolved.holiday_calendar.semantic_bundle.season_id != resolved.semantic_input.season_id:
+        raise AuthorityDependencyMismatchError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key=resolved.authority_stable_key,
+            details={
+                "reason": "holiday_season_mismatch",
+                "dependency_family": "holiday_calendar_version",
+                "expected_season_id": resolved.semantic_input.season_id,
+                "actual_season_id": resolved.holiday_calendar.semantic_bundle.season_id,
+                "dependency_authority_stable_key": resolved.holiday_calendar.authority_stable_key,
+            },
         )
     for dep in (resolved.holiday_calendar, resolved.weather_rule):
         snapshot = _build_candidate_snapshot(
