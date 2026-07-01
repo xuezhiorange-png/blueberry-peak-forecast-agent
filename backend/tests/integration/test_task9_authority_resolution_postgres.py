@@ -925,11 +925,15 @@ async def test_run_package_holiday_season_mismatch(
     err = exc_info.value
     assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
     assert err.details.get("reason") == "holiday_season_mismatch"
-    # P1-3: verify full audit context is present
-    assert err.authority_stable_key is not None
-    assert err.authority_stable_key != "unknown"
+    expected_package_stable_key = f"run-package:{_IDS['season']}:{_IDS['factory']}:farm-10"
+    expected_holiday_stable_key = (
+        f"holiday-calendar:{season_b_id}:"
+        f"{holiday_b_input.calendar_code}:"
+        f"{holiday_b_input.lifecycle_timezone_name}"
+    )
+    assert err.authority_stable_key == expected_package_stable_key
     assert err.details.get("dependency_family") == "holiday_calendar_version"
-    assert err.details.get("dependency_authority_stable_key") is not None
+    assert err.details.get("dependency_authority_stable_key") == expected_holiday_stable_key
     assert err.details.get("expected_season_id") == _IDS["season"]
     assert err.details.get("actual_season_id") == season_b_id
 
@@ -1337,7 +1341,9 @@ async def test_sentinel_future_candidates_do_not_consume_limit(
     sentinel_count = len(sentinel_hashes)
 
     # Assertions on test construction
-    assert sentinel_count >= PRODUCTION_LIMIT
+    assert PRODUCTION_LIMIT == 2
+    assert sentinel_count == 3
+    assert sentinel_count > PRODUCTION_LIMIT
     assert all(h < valid_hash for h in sentinel_hashes)
 
     await activate_authority(
@@ -1528,12 +1534,13 @@ async def test_run_package_dependency_timezone_mismatch_with_context(
     err = exc_info.value
     assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
     assert err.details.get("reason") == "dependency_timezone_mismatch"
+    expected_package_stable_key = f"run-package:{_IDS['season']}:{_IDS['factory']}:farm-10"
+    expected_weather_stable_key = f"weather-rule:{weather_utc.rule_code}:UTC"
+    assert err.authority_stable_key == expected_package_stable_key
     assert err.details.get("dependency_family") == "weather_rule_config_version"
-    assert err.details.get("dependency_authority_stable_key") is not None
+    assert err.details.get("dependency_authority_stable_key") == expected_weather_stable_key
     assert err.details.get("expected_timezone") == "Asia/Shanghai"
     assert err.details.get("actual_timezone") == "UTC"
-    assert err.authority_stable_key is not None
-    assert err.authority_stable_key != "unknown"
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1629,12 +1636,15 @@ async def test_holiday_only_timezone_mismatch(
     err = exc_info.value
     assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
     assert err.details.get("reason") == "dependency_timezone_mismatch"
+    expected_package_stable_key = f"run-package:{_IDS['season']}:{_IDS['factory']}:farm-10"
+    expected_holiday_stable_key = (
+        f"holiday-calendar:{_IDS['season']}:{holiday_utc.calendar_code}:UTC"
+    )
+    assert err.authority_stable_key == expected_package_stable_key
     assert err.details.get("dependency_family") == "holiday_calendar_version"
-    assert err.details.get("dependency_authority_stable_key") is not None
+    assert err.details.get("dependency_authority_stable_key") == expected_holiday_stable_key
     assert err.details.get("expected_timezone") == "Asia/Shanghai"
     assert err.details.get("actual_timezone") == "UTC"
-    assert err.authority_stable_key is not None
-    assert err.authority_stable_key != "unknown"
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1752,10 +1762,13 @@ async def test_package_versus_both_timezone_mismatch(
     assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
     assert err.details.get("reason") == "dependency_timezone_mismatch"
     # Precedence: holiday first
+    expected_package_stable_key = f"run-package:{_IDS['season']}:{_IDS['factory']}:farm-10"
+    expected_holiday_stable_key = (
+        f"holiday-calendar:{_IDS['season']}:{holiday_tokyo.calendar_code}:Asia/Tokyo"
+    )
+    assert err.authority_stable_key == expected_package_stable_key
     assert err.details.get("dependency_family") == "holiday_calendar_version"
-    assert err.details.get("dependency_authority_stable_key") is not None
+    assert err.details.get("dependency_authority_stable_key") == expected_holiday_stable_key
     assert err.details.get("expected_timezone") == "Asia/Shanghai"
     assert err.details.get("actual_timezone") == "Asia/Tokyo"
     assert err.details.get("expected_timezone") != err.details.get("actual_timezone")
-    assert err.authority_stable_key is not None
-    assert err.authority_stable_key != "unknown"

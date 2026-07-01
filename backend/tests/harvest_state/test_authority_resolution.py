@@ -8,13 +8,16 @@ import pytest
 from backend.app.harvest_state.authority_resolution import (
     AuthorityCandidateSnapshot,
     AuthorityExactReference,
+    RunPackageDependencyErrorContext,
     _candidate_is_consumable_at_as_of,
     _candidate_is_current_operational,
     _choose_candidate_snapshot,
+    _raise_dependency_from_canonical_error,
     _validate_timezone_name,
 )
 from backend.app.harvest_state.authority_resolution_errors import (
     AmbiguousHistoricalAuthorityError,
+    AuthorityDependencyMismatchError,
     TimezoneAuthorityInvalidError,
 )
 from backend.app.harvest_state.enums import AuthorityFamily, AuthorityStatus
@@ -151,6 +154,55 @@ def test_exact_reference_is_typed() -> None:
     )
     assert reference.authority_id == 11
     assert reference.authority_stable_key.endswith("POOL-A")
+
+
+def test_canonical_timezone_conflict_with_matching_context_reports_parity_error() -> None:
+    ctx = RunPackageDependencyErrorContext(
+        package_stable_key="run-package:1:2:farm-10",
+        package_season_id=1,
+        package_destination_timezone="Asia/Shanghai",
+        holiday_stable_key="holiday-calendar:1:HOLIDAY-CN:Asia/Shanghai",
+        holiday_season_id=1,
+        holiday_timezone="Asia/Shanghai",
+        weather_stable_key="weather-rule:WEATHER-STD:Asia/Shanghai",
+        weather_timezone="Asia/Shanghai",
+    )
+
+    with pytest.raises(AuthorityDependencyMismatchError) as exc_info:
+        _raise_dependency_from_canonical_error(
+            ValueError("RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT"),
+            ctx=ctx,
+        )
+
+    err = exc_info.value
+    assert err.code == "AUTHORITY_DEPENDENCY_MISMATCH"
+    assert err.authority_stable_key == "run-package:1:2:farm-10"
+    assert err.details["reason"] == "canonical_dependency_context_parity_error"
+    assert err.details["package_authority_stable_key"] == "run-package:1:2:farm-10"
+    assert (
+        err.details["holiday_dependency_authority_stable_key"]
+        == "holiday-calendar:1:HOLIDAY-CN:Asia/Shanghai"
+    )
+    assert (
+        err.details["weather_dependency_authority_stable_key"]
+        == "weather-rule:WEATHER-STD:Asia/Shanghai"
+    )
+    assert err.details["package_destination_timezone"] == "Asia/Shanghai"
+    assert err.details["holiday_timezone"] == "Asia/Shanghai"
+    assert err.details["weather_timezone"] == "Asia/Shanghai"
+    assert all(
+        value
+        for value in (
+            err.authority_stable_key,
+            err.details["package_authority_stable_key"],
+            err.details["holiday_dependency_authority_stable_key"],
+            err.details["weather_dependency_authority_stable_key"],
+        )
+    )
+    assert "dependency_authority_stable_key" not in err.details
+    assert "expected_timezone" not in err.details
+    assert "actual_timezone" not in err.details
+    assert "dependency_family" not in err.details
 
 
 # ---------------------------------------------------------------------------
