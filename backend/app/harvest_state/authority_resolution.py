@@ -25,7 +25,6 @@ from backend.app.harvest_state.authority_repository import (
 )
 from backend.app.harvest_state.authority_repository_errors import (
     AuthorityHashConflictError,
-    RunParameterDependencyTimezoneConflictError,
 )
 from backend.app.harvest_state.authority_resolution_errors import (
     AmbiguousHistoricalAuthorityError,
@@ -318,20 +317,42 @@ def _assert_exact_reference_match(
         )
 
 
-def _raise_dependency_from_canonical_error(exc: ValueError) -> None:
+def _raise_dependency_from_canonical_error(
+    exc: ValueError,
+    *,
+    package_stable_key: str = "unknown",
+    package_season_id: int = 0,
+    holiday_stable_key: str = "unknown",
+    holiday_season_id: int = 0,
+    holiday_timezone: str = "unknown",
+    weather_stable_key: str = "unknown",
+    weather_timezone: str = "unknown",
+) -> None:
     """Convert canonical builder ValueError to typed AuthorityDependencyMismatchError."""
     msg = str(exc)
     if "RUN_PARAMETER_DEPENDENCY_SCOPE_CONFLICT" in msg:
         raise AuthorityDependencyMismatchError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            authority_stable_key="unknown",
-            details={"reason": "holiday_season_mismatch"},
+            authority_stable_key=package_stable_key,
+            details={
+                "reason": "holiday_season_mismatch",
+                "dependency_family": "holiday_calendar_version",
+                "dependency_authority_stable_key": holiday_stable_key,
+                "expected_season_id": package_season_id,
+                "actual_season_id": holiday_season_id,
+            },
         ) from exc
     if "RUN_PARAMETER_DEPENDENCY_TIMEZONE_CONFLICT" in msg:
         raise AuthorityDependencyMismatchError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            authority_stable_key="unknown",
-            details={"reason": "dependency_timezone_mismatch"},
+            authority_stable_key=package_stable_key,
+            details={
+                "reason": "dependency_timezone_mismatch",
+                "dependency_family": "weather_rule_config_version",
+                "dependency_authority_stable_key": weather_stable_key,
+                "expected_timezone": holiday_timezone,
+                "actual_timezone": weather_timezone,
+            },
         ) from exc
     raise
 
@@ -794,32 +815,45 @@ async def _resolved_run_package_by_id(
         authority_id=row.weather_rule_config_version_id,
         mode=mode,
     )
-    semantic_input = _build_persisted_schema(
-        Task9RunParameterPackageSemanticInput,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        stable_key=_stable_key_from_orm_run_package(row),
-        component="resolution_run_package",
-        season_id=row.season_id,
-        destination_factory_id=row.destination_factory_id,
-        farm_scope_key=row.farm_scope_key,
-        farm_timezone=row.farm_timezone,
-        destination_factory_timezone=row.destination_factory_timezone,
-        harvest_bucket_anchor_local_time=row.harvest_bucket_anchor_local_time,
-        harvest_to_arrival_lag_days=row.harvest_to_arrival_lag_days,
-        package_version=row.package_version,
-        revision=row.revision,
-        effective_from=row.effective_from,
-        effective_to=row.effective_to,
-        available_at_local_date=row.available_at_local_date,
-        consumable_from_local_date=row.consumable_from_local_date,
-        consumable_to_local_date=row.consumable_to_local_date,
-        superseded_by_id=row.superseded_by_id,
-        status=row.status,
-        status_changed_at=row.status_changed_at,
-        source_system=row.source_system,
-        source_record_key=row.source_record_key,
-        source_version=row.source_version,
-    )
+    pkg_stable_key = _stable_key_from_orm_run_package(row)
+    try:
+        semantic_input = _build_persisted_schema(
+            Task9RunParameterPackageSemanticInput,
+            family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            stable_key=pkg_stable_key,
+            component="resolution_run_package",
+            season_id=row.season_id,
+            destination_factory_id=row.destination_factory_id,
+            farm_scope_key=row.farm_scope_key,
+            farm_timezone=row.farm_timezone,
+            destination_factory_timezone=row.destination_factory_timezone,
+            harvest_bucket_anchor_local_time=row.harvest_bucket_anchor_local_time,
+            harvest_to_arrival_lag_days=row.harvest_to_arrival_lag_days,
+            package_version=row.package_version,
+            revision=row.revision,
+            effective_from=row.effective_from,
+            effective_to=row.effective_to,
+            available_at_local_date=row.available_at_local_date,
+            consumable_from_local_date=row.consumable_from_local_date,
+            consumable_to_local_date=row.consumable_to_local_date,
+            superseded_by_id=row.superseded_by_id,
+            status=row.status,
+            status_changed_at=row.status_changed_at,
+            source_system=row.source_system,
+            source_record_key=row.source_record_key,
+            source_version=row.source_version,
+        )
+    except ValueError as exc:
+        _raise_dependency_from_canonical_error(
+            exc,
+            package_stable_key=pkg_stable_key,
+            package_season_id=row.season_id,
+            holiday_stable_key=holiday.authority_stable_key,
+            holiday_season_id=holiday.semantic_bundle.season_id,
+            holiday_timezone=holiday.semantic_bundle.lifecycle_timezone_name,
+            weather_stable_key=weather.authority_stable_key,
+            weather_timezone=weather.semantic_input.lifecycle_timezone_name,
+        )
     return ResolvedRunParameterPackageAuthority(
         mode=mode,
         authority_id=row.id,
@@ -956,8 +990,7 @@ async def resolve_capacity_pool_definition(
                         == request.destination_factory_id,
                         Task9CapacityPoolDefinition.capacity_pool_code
                         == request.capacity_pool_code,
-                        Task9CapacityPoolDefinition.effective_from
-                        <= request.effective_local_date,
+                        Task9CapacityPoolDefinition.effective_from <= request.effective_local_date,
                         or_(
                             Task9CapacityPoolDefinition.effective_to.is_(None),
                             request.effective_local_date
@@ -985,8 +1018,7 @@ async def resolve_capacity_pool_definition(
                         == request.destination_factory_id,
                         Task9CapacityPoolDefinition.capacity_pool_code
                         == request.capacity_pool_code,
-                        Task9CapacityPoolDefinition.effective_from
-                        <= request.effective_local_date,
+                        Task9CapacityPoolDefinition.effective_from <= request.effective_local_date,
                         or_(
                             Task9CapacityPoolDefinition.effective_to.is_(None),
                             request.effective_local_date
@@ -1007,6 +1039,8 @@ async def resolve_capacity_pool_definition(
                 details={"reason": "authority_not_available_at_cutoff"},
             )
         # Level 4: Scope+effective+visible row exists but lifecycle not consumable
+        # Use _predicates_for_mode() to get mode-specific lifecycle predicates
+        # that are consistent with the main query.
         consumable_rows = list(
             (
                 await session.execute(
@@ -1017,8 +1051,7 @@ async def resolve_capacity_pool_definition(
                         == request.destination_factory_id,
                         Task9CapacityPoolDefinition.capacity_pool_code
                         == request.capacity_pool_code,
-                        Task9CapacityPoolDefinition.effective_from
-                        <= request.effective_local_date,
+                        Task9CapacityPoolDefinition.effective_from <= request.effective_local_date,
                         or_(
                             Task9CapacityPoolDefinition.effective_to.is_(None),
                             request.effective_local_date
@@ -1026,15 +1059,10 @@ async def resolve_capacity_pool_definition(
                         ),
                         Task9CapacityPoolDefinition.available_at_local_date
                         <= request.as_of_local_date,
-                        Task9CapacityPoolDefinition.consumable_from_local_date
-                        .is_not(None),
-                        Task9CapacityPoolDefinition.consumable_from_local_date
-                        <= request.as_of_local_date,
-                        or_(
-                            Task9CapacityPoolDefinition.consumable_to_local_date
-                            .is_(None),
-                            request.as_of_local_date
-                            < Task9CapacityPoolDefinition.consumable_to_local_date,
+                        *_predicates_for_mode(
+                            Task9CapacityPoolDefinition,
+                            mode=request.mode,
+                            as_of_local_date=request.as_of_local_date,
                         ),
                     )
                     .limit(1)
@@ -1518,6 +1546,43 @@ async def resolve_mature_inventory_loss(
     )
 
 
+async def _load_dependency_context_for_error(
+    session: AsyncSession,
+    *,
+    authority_id: int,
+) -> dict[str, object]:
+    """Load package + dependency info for typed error context."""
+    row = (
+        await session.execute(
+            select(Task9RunParameterPackage).where(Task9RunParameterPackage.id == authority_id)
+        )
+    ).scalar_one()
+    pkg_stable_key = _stable_key_from_orm_run_package(row)
+    holiday_row = (
+        await session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == row.holiday_calendar_version_id
+            )
+        )
+    ).scalar_one()
+    weather_row = (
+        await session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == row.weather_rule_config_version_id
+            )
+        )
+    ).scalar_one()
+    return {
+        "package_stable_key": pkg_stable_key,
+        "package_season_id": row.season_id,
+        "holiday_stable_key": _stable_key_from_orm_holiday(holiday_row),
+        "holiday_season_id": holiday_row.season_id,
+        "holiday_timezone": holiday_row.lifecycle_timezone_name,
+        "weather_stable_key": _stable_key_from_orm_weather(weather_row),
+        "weather_timezone": weather_row.lifecycle_timezone_name,
+    }
+
+
 async def resolve_run_parameter_package(
     session: AsyncSession,
     *,
@@ -1531,7 +1596,10 @@ async def resolve_run_parameter_package(
                 session, authority_id=request.exact_reference.authority_id, mode=request.mode
             )
         except ValueError as exc:
-            _raise_dependency_from_canonical_error(exc)
+            ctx = await _load_dependency_context_for_error(
+                session, authority_id=request.exact_reference.authority_id
+            )
+            _raise_dependency_from_canonical_error(exc, **ctx)  # type: ignore[arg-type]
         _assert_exact_reference_match(resolved=resolved, exact_reference=request.exact_reference)
     else:
         filters = [
@@ -1597,7 +1665,10 @@ async def resolve_run_parameter_package(
                 mode=request.mode,
             )
         except ValueError as exc:
-            _raise_dependency_from_canonical_error(exc)
+            ctx = await _load_dependency_context_for_error(
+                session, authority_id=snapshot.authority_id
+            )
+            _raise_dependency_from_canonical_error(exc, **ctx)  # type: ignore[arg-type]
 
     _assert_scope(
         authority_family=resolved.authority_family,
@@ -1641,19 +1712,29 @@ async def resolve_run_parameter_package(
     )
     holiday_timezone = resolved.holiday_calendar.semantic_bundle.lifecycle_timezone_name
     if resolved.semantic_input.destination_factory_timezone != holiday_timezone:
-        raise RunParameterDependencyTimezoneConflictError(
+        raise AuthorityDependencyMismatchError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key=resolved.authority_stable_key,
             details={
                 "reason": "dependency_timezone_mismatch",
                 "dependency_family": AuthorityFamily.HOLIDAY_CALENDAR_VERSION.value,
-            }
+                "dependency_authority_stable_key": resolved.holiday_calendar.authority_stable_key,
+                "expected_timezone": resolved.semantic_input.destination_factory_timezone,
+                "actual_timezone": holiday_timezone,
+            },
         )
     weather_timezone = resolved.weather_rule.semantic_input.lifecycle_timezone_name
     if resolved.semantic_input.destination_factory_timezone != weather_timezone:
-        raise RunParameterDependencyTimezoneConflictError(
+        raise AuthorityDependencyMismatchError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key=resolved.authority_stable_key,
             details={
                 "reason": "dependency_timezone_mismatch",
                 "dependency_family": AuthorityFamily.WEATHER_RULE_CONFIG_VERSION.value,
-            }
+                "dependency_authority_stable_key": resolved.weather_rule.authority_stable_key,
+                "expected_timezone": resolved.semantic_input.destination_factory_timezone,
+                "actual_timezone": weather_timezone,
+            },
         )
     if resolved.holiday_calendar.semantic_bundle.season_id != resolved.semantic_input.season_id:
         raise AuthorityDependencyMismatchError(
