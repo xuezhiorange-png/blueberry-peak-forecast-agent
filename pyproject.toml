@@ -59,6 +59,10 @@ asyncio_default_test_loop_scope = "session"
 asyncio_default_fixture_loop_scope = "session"
 markers = [
     "integration: tests that require external services such as PostgreSQL",
+    "postgres_transactional: PostgreSQL test isolated by an outer transaction/savepoint",
+    "postgres_real_commit: test requires commit visibility outside the current session",
+    "postgres_migration: test owns Alembic/schema lifecycle",
+    "postgres_concurrency: test requires independent concurrent database connections",
 ]
 
 [tool.ruff]

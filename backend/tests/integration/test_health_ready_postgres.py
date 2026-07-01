@@ -5,7 +5,7 @@ from httpx import ASGITransport, AsyncClient
 
 from backend.app.main import create_app
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.postgres_transactional]
 
 
 @pytest.mark.skipif(

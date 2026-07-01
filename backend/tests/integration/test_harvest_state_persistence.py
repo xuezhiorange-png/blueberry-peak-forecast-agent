@@ -29,7 +29,7 @@ from backend.app.models.harvest_state import (
 )
 from backend.tests.harvest_state.conftest import make_request
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.postgres_concurrency]
 
 
 def _require_postgres() -> None:
@@ -499,6 +499,7 @@ async def test_first_save_rejects_mismatched_result_hash() -> None:
 
 
 @pytest.mark.integration
+@pytest.mark.postgres_concurrency
 async def test_concurrent_same_payload_save_creates_one_run() -> None:
     _require_postgres()
     output = _completed_output()
@@ -540,6 +541,7 @@ async def test_concurrent_same_payload_save_creates_one_run() -> None:
 
 
 @pytest.mark.integration
+@pytest.mark.postgres_concurrency
 async def test_concurrent_same_hash_different_payload_conflicts() -> None:
     _require_postgres()
     output = _completed_output()
