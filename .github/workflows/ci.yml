@@ -10,20 +10,6 @@ jobs:
   backend:
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -39,56 +25,6 @@ jobs:
       - name: Docker Compose config
         run: docker compose config
 
-      - name: Wait for PostgreSQL service
-        env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
-        run: |
-          python - <<'PY'
-          import asyncio
-          import os
-
-          import asyncpg
-
-          async def main() -> None:
-              last_error: Exception | None = None
-              for _ in range(30):
-                  try:
-                      conn = await asyncpg.connect(
-                          host=os.environ["POSTGRES_HOST"],
-                          port=int(os.environ["POSTGRES_PORT"]),
-                          database=os.environ["POSTGRES_DB"],
-                          user=os.environ["POSTGRES_USER"],
-                          password=os.environ["POSTGRES_PASSWORD"],
-                      )
-                      value = await conn.fetchval("SELECT 1")
-                      await conn.close()
-                      if value == 1:
-                          return
-                  except Exception as exc:
-                      last_error = exc
-                      await asyncio.sleep(1)
-              raise SystemExit(f"PostgreSQL service was not ready: {last_error}")
-
-          asyncio.run(main())
-          PY
-
-      - name: Alembic harvest-state persistence migration round trip
-        env:
-          APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
-        run: |
-          alembic -c backend/alembic.ini upgrade head
-          alembic -c backend/alembic.ini downgrade 0010_harvest_state_persistence
-          alembic -c backend/alembic.ini upgrade head
-
       - name: Ruff
         run: ruff check .
 
@@ -98,16 +34,7 @@ jobs:
       - name: Unit tests
         env:
           APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
         run: pytest -m "not integration"
-
-      - name: PostgreSQL integration tests
-        if: false
-        run: echo "Moved to .github/workflows/postgres-integration.yml"
 
   compose-smoke:
     runs-on: ubuntu-latest

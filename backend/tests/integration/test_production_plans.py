@@ -30,7 +30,7 @@ from backend.app.planning.plan_service import (
     get_effective_plan,
 )
 
-pytestmark = [pytest.mark.integration, pytest.mark.postgres_concurrency]
+pytestmark = [pytest.mark.integration]
 
 
 def _require_postgres() -> None:

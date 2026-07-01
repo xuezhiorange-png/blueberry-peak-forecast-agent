@@ -81,7 +81,7 @@ jobs:
           POSTGRES_PASSWORD: blueberry-test-only
           RUN_POSTGRES_INTEGRATION: "1"
         run: |
-          python -c "
+          uv run python -c "
           import asyncio, os, asyncpg
 
           async def main():
@@ -115,6 +115,8 @@ jobs:
           alembic -c backend/alembic.ini upgrade head
 
       - name: Transactional integration tests
+        id: transactional
+        continue-on-error: true
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -126,12 +128,15 @@ jobs:
         run: |
           mkdir -p reports/test-results
           pytest \
-            -m "integration and not postgres_real_commit and not postgres_migration and not postgres_concurrency" \
+            -m "integration and postgres_transactional" \
             -vv --tb=long \
             --timeout=120 --timeout-method=thread \
             --junitxml=reports/test-results/postgres-transactional.xml
 
       - name: Special integration tests
+        id: special
+        if: always()
+        continue-on-error: true
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
@@ -143,7 +148,7 @@ jobs:
         run: |
           mkdir -p reports/test-results
           pytest \
-            -m "postgres_real_commit or postgres_migration or postgres_concurrency" \
+            -m "integration and (postgres_real_commit or postgres_migration or postgres_concurrency)" \
             -vv --tb=long \
             --timeout=120 --timeout-method=thread \
             --junitxml=reports/test-results/postgres-special.xml
@@ -159,13 +164,14 @@ jobs:
           if-no-files-found: warn
 
       - name: Summarize failed tests
-        if: failure()
+        if: always()
         run: |
           python - <<'PY'
           from pathlib import Path
           import sys
           import xml.etree.ElementTree as ET
 
+          has_failure = False
           for xml_name in ["postgres-transactional.xml", "postgres-special.xml"]:
               xml_path = Path(f"reports/test-results/{xml_name}")
               if not xml_path.exists():
@@ -183,10 +189,25 @@ jobs:
                   first = next((l.strip() for l in msg.splitlines() if l.strip()), "")
                   failures.append({"cls": tc.get("classname",""), "name": tc.get("name",""), "msg": first})
               if failures:
+                  has_failure = True
                   print(f"\nFailing in {xml_name}:")
                   for f in failures:
                       print(f"- {f['cls']}::{f['name']}")
                       print(f"  {f['msg']}")
               else:
                   print(f"\n{xml_name}: no failures")
+
+          if has_failure:
+              sys.exit(1)
           PY
+
+      - name: Final outcome gate
+        if: always()
+        run: |
+          echo "Transactional outcome: ${{ steps.transactional.outcome }}"
+          echo "Special outcome: ${{ steps.special.outcome }}"
+          if [ "${{ steps.transactional.outcome }}" != "success" ] || [ "${{ steps.special.outcome }}" != "success" ]; then
+            echo "One or more test groups failed"
+            exit 1
+          fi
+          echo "All test groups passed"
