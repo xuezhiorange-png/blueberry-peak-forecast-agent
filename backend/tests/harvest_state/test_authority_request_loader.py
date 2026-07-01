@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from __future__ import annotations
 
 from dataclasses import replace
@@ -9,6 +10,7 @@ import pytest
 
 from backend.app.harvest_state.authority_request_errors import Task9AuthorityRequestAssemblyError
 from backend.app.harvest_state.authority_request_loader import (
+    _immutable_to_plain,
     assemble_task9_request_from_resolved_authorities,
 )
 from backend.app.harvest_state.authority_request_types import (
@@ -38,10 +40,12 @@ from backend.app.harvest_state.authority_schemas import (
     Task9WeatherRuleSemanticInput,
 )
 from backend.app.harvest_state.canonical import (
+    canonical_json_dumps,
     make_holiday_calendar_hash,
     make_membership_hash,
     make_stable_cohort_key,
     make_weather_rule_config_hash,
+    sha256_hex,
 )
 from backend.app.harvest_state.enums import (
     AuthorityFamily,
@@ -372,55 +376,95 @@ def _run_package(
     )
 
 
-def _membership_hash_for(pool_code: str = "POOL-A") -> str:
-    return make_membership_hash("FARM", [{"farm_id": 10, "subfarm_id": None, "variety_id": 20}])
+def _membership_hash_for(
+    members: tuple[tuple[int, int | None, int], ...],
+) -> str:
+    return make_membership_hash(
+        "FARM",
+        [
+            {"farm_id": farm_id, "subfarm_id": subfarm_id, "variety_id": variety_id}
+            for farm_id, subfarm_id, variety_id in sorted(
+                members,
+                key=lambda item: (item[0], -1 if item[1] is None else item[1], item[2]),
+            )
+        ],
+    )
+
+
+def _inventory_source_ref(row_hash: str = "7" * 64) -> InitialInventorySourceRef:
+    stable_key = "initial-inventory:1:2:2026-06-15"
+    source_key = _initial_inventory_source_key(stable_key, "inv-v1", 1)
+    return InitialInventorySourceRef(
+        source_system="task9_historical_authority",
+        source_record_key=source_key,
+        source_version="inv-v1",
+        source_row_hash=row_hash,
+        available_at=date(2026, 1, 1),
+        as_of_date=AS_OF,
+    )
+
+
+def _inventory_cohort(
+    *,
+    source_ref: InitialInventorySourceRef,
+    pool_code: str,
+    pool_members: tuple[tuple[int, int | None, int], ...],
+    farm_id: int,
+    subfarm_id: int | None,
+    variety_id: int,
+    forecast_quantile: ForecastQuantile,
+    remaining_quantity_kg: Decimal,
+    destination_factory_id: int = 2,
+) -> Task9InitialInventoryCohortSchema:
+    key = make_stable_cohort_key(
+        {
+            "schema_version": "task9a-cohort-key-v1",
+            "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT",
+            "source_system": source_ref.source_system,
+            "source_record_key": source_ref.source_record_key,
+            "source_version": source_ref.source_version,
+            "source_row_hash": source_ref.source_row_hash,
+            "cohort_date": FORECAST_DATE,
+            "forecast_quantile": forecast_quantile,
+            "farm_id": farm_id,
+            "subfarm_id": subfarm_id,
+            "variety_id": variety_id,
+            "capacity_pool_id": pool_code,
+            "capacity_pool_membership_hash": _membership_hash_for(pool_members),
+            "destination_factory_id": destination_factory_id,
+        }
+    )
+    return Task9InitialInventoryCohortSchema(
+        stable_cohort_key=key,
+        forecast_quantile=forecast_quantile,
+        cohort_date=FORECAST_DATE,
+        farm_id=farm_id,
+        subfarm_id=subfarm_id,
+        variety_id=variety_id,
+        remaining_quantity_kg=remaining_quantity_kg,
+    )
 
 
 def _initial_inventory(
     *, authority_id: int = 51, total: Decimal = Decimal("30")
 ) -> ResolvedInitialInventoryAuthority:
     stable_key = "initial-inventory:1:2:2026-06-15"
-    source_key = _initial_inventory_source_key(stable_key, "inv-v1", 1)
-    source = InitialInventorySourceRef(
-        source_system="task9_historical_authority",
-        source_record_key=source_key,
-        source_version="inv-v1",
-        source_row_hash="7" * 64,
-        available_at=date(2026, 1, 1),
-        as_of_date=AS_OF,
-    )
+    source = _inventory_source_ref()
     cohorts = []
     for quantile, qty in [
         (ForecastQuantile.P50, Decimal("10")),
         (ForecastQuantile.P80, Decimal("10")),
         (ForecastQuantile.P90, Decimal("10")),
     ]:
-        key = make_stable_cohort_key(
-            {
-                "schema_version": "task9a-cohort-key-v1",
-                "source_ref_type": "INITIAL_INVENTORY_SNAPSHOT",
-                "source_system": source.source_system,
-                "source_record_key": source.source_record_key,
-                "source_version": source.source_version,
-                "source_row_hash": source.source_row_hash,
-                "cohort_date": FORECAST_DATE,
-                "forecast_quantile": quantile,
-                "farm_id": 10,
-                "subfarm_id": None,
-                "variety_id": 20,
-                "capacity_pool_id": "POOL-A",
-                "capacity_pool_membership_hash": _membership_hash_for("POOL-A"),
-                "destination_factory_id": 2,
-            }
-        )
         cohorts.append(
-            Task9InitialInventoryCohortSchema(
-                stable_cohort_key=key,
-                forecast_quantile=quantile,
-                cohort_date=FORECAST_DATE,
+            _inventory_cohort(
+                source_ref=source,
+                pool_code="POOL-A",
+                pool_members=((10, None, 20),),
                 farm_id=10,
                 subfarm_id=None,
                 variety_id=20,
+                forecast_quantile=quantile,
                 remaining_quantity_kg=qty,
             )
         )
@@ -508,6 +552,8 @@ def _task8_predictions(
     farm_id: int = 10,
     subfarm_id: int | None = None,
     variety_id: int = 20,
+    *,
+    daily_prediction_id: int = 4,
 ) -> tuple[Task8DailyPredictionInput, ...]:
     verification = Task8PredictionVerificationSnapshot(
         maturity_model_run_id=1,
@@ -525,7 +571,7 @@ def _task8_predictions(
         maturity_forecast_as_of_date=AS_OF,
         maturity_forecast_prediction_start_date=FORECAST_DATE,
         maturity_forecast_prediction_end_date=FORECAST_DATE,
-        maturity_daily_prediction_id=4,
+        maturity_daily_prediction_id=daily_prediction_id,
         maturity_daily_prediction_forecast_run_id=3,
         prediction_date=FORECAST_DATE,
         farm_id=farm_id,
@@ -558,7 +604,7 @@ def _task8_predictions(
                 maturity_forecast_run_id=3,
                 maturity_forecast_source_signature="forecast-source",
                 maturity_forecast_as_of_date=AS_OF,
-                maturity_daily_prediction_id=4,
+                maturity_daily_prediction_id=daily_prediction_id,
                 prediction_date=FORECAST_DATE,
                 forecast_quantile=q,
                 source_quantity_kg=qty,
@@ -612,8 +658,11 @@ def _assembly(
     *,
     mode: CapacityInputMode = CapacityInputMode.LABOR_DERIVED,
     pool_id: int = 1,
+    context: Task9AuthorityAssemblyContext | None = None,
     capacity_pools: tuple[ResolvedCapacityPoolAuthority, ...] | None = None,
     daily_capacities: tuple[ResolvedDailyCapacityAuthority, ...] | None = None,
+    run_package: ResolvedRunParameterPackageAuthority | None = None,
+    initial_inventory: ResolvedInitialInventoryAuthority | None = None,
     mature_losses: tuple[ResolvedMatureLossAuthority, ...] | None = None,
     task8_predictions: tuple[Task8DailyPredictionInput, ...] | None = None,
     weather_features: tuple[DailyWeatherFeatureInput, ...] | None = None,
@@ -621,15 +670,15 @@ def _assembly(
     pool = _pool(authority_id=pool_id, mode=mode) if capacity_pools is None else capacity_pools[0]
     holiday = _holiday()
     weather = _weather()
-    pkg = _run_package(holiday, weather)
-    inv = _initial_inventory()
+    pkg = _run_package(holiday, weather) if run_package is None else run_package
+    inv = _initial_inventory() if initial_inventory is None else initial_inventory
     pools = (pool,) if capacity_pools is None else capacity_pools
     daily = (_daily(pool),) if daily_capacities is None else daily_capacities
     losses = _losses() if mature_losses is None else mature_losses
     task8 = _task8_predictions() if task8_predictions is None else task8_predictions
     weather_feats = _weather_features() if weather_features is None else weather_features
     return assemble_task9_request_from_resolved_authorities(
-        context=_context(),
+        context=_context() if context is None else context,
         capacity_pools=pools,
         daily_capacities=daily,
         run_package=pkg,
@@ -848,23 +897,23 @@ def test_assembly_hash_changes_when_business_signature_changes() -> None:
 def test_multi_member_pool_task8_coverage() -> None:
     """2+ members, each with P50/P80/P90 — must succeed at loader level."""
     pool = _pool(members=((10, 1, 20), (10, 2, 30)))
-    member1_task8 = _task8_predictions(farm_id=10, subfarm_id=1, variety_id=20)
-    member2_task8 = _task8_predictions(farm_id=10, subfarm_id=2, variety_id=30)
-    # Service validation may reject multi-member task8 coverage
-    try:
-        assembled = assemble_task9_request_from_resolved_authorities(
-            context=_context(),
-            capacity_pools=(pool,),
-            daily_capacities=(_daily(pool),),
-            run_package=_run_package(_holiday(), _weather()),
-            initial_inventory=_initial_inventory_multi_pool(),
-            mature_losses=_losses(),
-            task8_daily_predictions=(*member1_task8, *member2_task8),
-            daily_weather_features=_weather_features(),
-        )
-        assert len(assembled.request.task8_daily_predictions) == 6
-    except Task9AuthorityRequestAssemblyError as exc:
-        assert exc.details.get("reason") == "authority_request_schema_rejected"
+    member1_task8 = _task8_predictions(
+        farm_id=10, subfarm_id=1, variety_id=20, daily_prediction_id=4
+    )
+    member2_task8 = _task8_predictions(
+        farm_id=10, subfarm_id=2, variety_id=30, daily_prediction_id=104
+    )
+    assembled = assemble_task9_request_from_resolved_authorities(
+        context=_context(),
+        capacity_pools=(pool,),
+        daily_capacities=(_daily(pool),),
+        run_package=_run_package(_holiday(), _weather()),
+        initial_inventory=_initial_inventory_multi_member_pool(),
+        mature_losses=_losses(),
+        task8_daily_predictions=(*member1_task8, *member2_task8),
+        daily_weather_features=_weather_features(),
+    )
+    assert len(assembled.request.task8_daily_predictions) == 6
 
 
 def test_duplicate_member_prediction_fails_closed() -> None:
@@ -924,24 +973,19 @@ def test_pool_outside_member_fails_closed() -> None:
 def test_different_members_same_date_quantile_not_treated_as_duplicates() -> None:
     """Two different members on same date/quantile must NOT be treated as duplicates."""
     pool = _pool(members=((10, 1, 20), (10, 2, 30)))
-    member1 = _task8_predictions(farm_id=10, subfarm_id=1, variety_id=20)
-    member2 = _task8_predictions(farm_id=10, subfarm_id=2, variety_id=30)
-    # Both have P50 on same date — should succeed, not fail as duplicate
-    try:
-        assembled = assemble_task9_request_from_resolved_authorities(
-            context=_context(),
-            capacity_pools=(pool,),
-            daily_capacities=(_daily(pool),),
-            run_package=_run_package(_holiday(), _weather()),
-            initial_inventory=_initial_inventory_multi_pool(),
-            mature_losses=_losses(),
-            task8_daily_predictions=(*member1, *member2),
-            daily_weather_features=_weather_features(),
-        )
-        assert len(assembled.request.task8_daily_predictions) == 6
-    except Task9AuthorityRequestAssemblyError as exc:
-        # Service validation may reject multi-member task8 coverage
-        assert exc.details.get("reason") == "authority_request_schema_rejected"
+    member1 = _task8_predictions(farm_id=10, subfarm_id=1, variety_id=20, daily_prediction_id=4)
+    member2 = _task8_predictions(farm_id=10, subfarm_id=2, variety_id=30, daily_prediction_id=104)
+    assembled = assemble_task9_request_from_resolved_authorities(
+        context=_context(),
+        capacity_pools=(pool,),
+        daily_capacities=(_daily(pool),),
+        run_package=_run_package(_holiday(), _weather()),
+        initial_inventory=_initial_inventory_multi_member_pool(),
+        mature_losses=_losses(),
+        task8_daily_predictions=(*member1, *member2),
+        daily_weather_features=_weather_features(),
+    )
+    assert len(assembled.request.task8_daily_predictions) == 6
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -958,15 +1002,47 @@ def _pool_b() -> ResolvedCapacityPoolAuthority:
 
 
 def _initial_inventory_multi_pool() -> ResolvedInitialInventoryAuthority:
-    """Initial inventory with total=0, compatible with any pool."""
+    """Factory-level non-zero inventory split across two selected pools."""
     stable_key = "initial-inventory:1:2:2026-06-15"
+    source = _inventory_source_ref()
+    cohorts = []
+    quantities = {
+        ForecastQuantile.P50: (Decimal("10"), Decimal("5")),
+        ForecastQuantile.P80: (Decimal("12"), Decimal("6")),
+        ForecastQuantile.P90: (Decimal("14"), Decimal("7")),
+    }
+    for quantile, (pool_a_qty, pool_b_qty) in quantities.items():
+        cohorts.append(
+            _inventory_cohort(
+                source_ref=source,
+                pool_code="POOL-A",
+                pool_members=((10, None, 20),),
+                farm_id=10,
+                subfarm_id=None,
+                variety_id=20,
+                forecast_quantile=quantile,
+                remaining_quantity_kg=pool_a_qty,
+            )
+        )
+        cohorts.append(
+            _inventory_cohort(
+                source_ref=source,
+                pool_code="POOL-B",
+                pool_members=((10, 3, 40),),
+                farm_id=10,
+                subfarm_id=3,
+                variety_id=40,
+                forecast_quantile=quantile,
+                remaining_quantity_kg=pool_b_qty,
+            )
+        )
     bundle = Task9InitialInventorySemanticBundle(
         season_id=1,
         destination_factory_id=2,
         opening_state_date=FORECAST_DATE,
         snapshot_version="inv-v1",
         revision=1,
-        initial_opening_mature_inventory_kg=Decimal("0"),
+        initial_opening_mature_inventory_kg=Decimal("54"),
         available_at_local_date=date(2026, 1, 1),
         status=AuthorityStatus.ACTIVE,
         status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -976,7 +1052,7 @@ def _initial_inventory_multi_pool() -> ResolvedInitialInventoryAuthority:
         source_system="task9_authority",
         source_record_key="initial-inventory:1:2:2026-06-15:inv-v1:1",
         source_version="inv-v1",
-        cohorts=[],
+        cohorts=cohorts,
     )
     return ResolvedInitialInventoryAuthority(
         mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
@@ -991,7 +1067,70 @@ def _initial_inventory_multi_pool() -> ResolvedInitialInventoryAuthority:
         consumable_from_local_date=bundle.consumable_from_local_date,
         consumable_to_local_date=bundle.consumable_to_local_date,
         semantic_bundle=bundle,
-        child_row_hashes=(),
+        child_row_hashes=tuple(str(index) * 64 for index in range(1, len(cohorts) + 1)),
+    )
+
+
+def _initial_inventory_multi_member_pool() -> ResolvedInitialInventoryAuthority:
+    source = _inventory_source_ref()
+    cohorts = []
+    for quantile in (ForecastQuantile.P50, ForecastQuantile.P80, ForecastQuantile.P90):
+        cohorts.append(
+            _inventory_cohort(
+                source_ref=source,
+                pool_code="POOL-A",
+                pool_members=((10, 1, 20), (10, 2, 30)),
+                farm_id=10,
+                subfarm_id=1,
+                variety_id=20,
+                forecast_quantile=quantile,
+                remaining_quantity_kg=Decimal("5"),
+            )
+        )
+        cohorts.append(
+            _inventory_cohort(
+                source_ref=source,
+                pool_code="POOL-A",
+                pool_members=((10, 1, 20), (10, 2, 30)),
+                farm_id=10,
+                subfarm_id=2,
+                variety_id=30,
+                forecast_quantile=quantile,
+                remaining_quantity_kg=Decimal("5"),
+            )
+        )
+    bundle = Task9InitialInventorySemanticBundle(
+        season_id=1,
+        destination_factory_id=2,
+        opening_state_date=FORECAST_DATE,
+        snapshot_version="inv-v1",
+        revision=1,
+        initial_opening_mature_inventory_kg=Decimal("30"),
+        available_at_local_date=date(2026, 1, 1),
+        status=AuthorityStatus.ACTIVE,
+        status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        consumable_from_local_date=date(2026, 1, 1),
+        consumable_to_local_date=None,
+        superseded_by_id=None,
+        source_system="task9_authority",
+        source_record_key="initial-inventory:1:2:2026-06-15:inv-v1:1",
+        source_version="inv-v1",
+        cohorts=cohorts,
+    )
+    return ResolvedInitialInventoryAuthority(
+        mode=AuthorityResolutionMode.CURRENT_OPERATIONAL,
+        authority_id=52,
+        authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+        authority_stable_key="initial-inventory:1:2:2026-06-15",
+        business_version="inv-v1",
+        revision=1,
+        row_hash="7" * 64,
+        status=AuthorityStatus.ACTIVE,
+        available_at_local_date=bundle.available_at_local_date,
+        consumable_from_local_date=bundle.consumable_from_local_date,
+        consumable_to_local_date=bundle.consumable_to_local_date,
+        semantic_bundle=bundle,
+        child_row_hashes=tuple("c" * 64 for _ in cohorts),
     )
 
 
@@ -1003,30 +1142,54 @@ def test_multi_pool_request() -> None:
     daily_b = _daily(pool_b)
     losses_a = _losses("POOL-A")
     losses_b = _losses("POOL-B")
-    task8_a = _task8_predictions(farm_id=10, subfarm_id=None, variety_id=20)
-    task8_b = _task8_predictions(farm_id=10, subfarm_id=3, variety_id=40)
+    task8_a = _task8_predictions(farm_id=10, subfarm_id=None, variety_id=20, daily_prediction_id=4)
+    task8_b = _task8_predictions(farm_id=10, subfarm_id=3, variety_id=40, daily_prediction_id=104)
     weather_a = _weather_features("POOL-A")
     weather_b = _weather_features("POOL-B")
 
-    # Multi-pool assembly: loader builds correctly, service validation may reject.
-    # Service-level validation (frozen) may not fully support multi-pool yet.
-    try:
-        assembled = assemble_task9_request_from_resolved_authorities(
-            context=_context(),
-            capacity_pools=(pool_a, pool_b),
-            daily_capacities=(daily_a, daily_b),
-            run_package=_run_package(_holiday(), _weather()),
-            initial_inventory=_initial_inventory_multi_pool(),
-            mature_losses=(*losses_a, *losses_b),
-            task8_daily_predictions=(*task8_a, *task8_b),
-            daily_weather_features=(*weather_a, *weather_b),
-        )
-        assert len(assembled.request.capacity_pools) == 2
-        pool_ids = {p.capacity_pool_id for p in assembled.request.capacity_pools}
-        assert pool_ids == {"POOL-A", "POOL-B"}
-    except Task9AuthorityRequestAssemblyError as exc:
-        # Service validation may reject multi-pool Task8 coverage
-        assert exc.details.get("reason") == "authority_request_schema_rejected"
+    assembled = assemble_task9_request_from_resolved_authorities(
+        context=_context(),
+        capacity_pools=(pool_a, pool_b),
+        daily_capacities=(daily_a, daily_b),
+        run_package=_run_package(_holiday(), _weather()),
+        initial_inventory=_initial_inventory_multi_pool(),
+        mature_losses=(*losses_a, *losses_b),
+        task8_daily_predictions=(*task8_a, *task8_b),
+        daily_weather_features=(*weather_a, *weather_b),
+    )
+    assert len(assembled.request.capacity_pools) == 2
+    assert len(assembled.request.initial_inventory_cohorts or []) == 6
+    assert assembled.request.initial_opening_mature_inventory_kg == Decimal("54")
+    pool_ids = {p.capacity_pool_id for p in assembled.request.capacity_pools}
+    assert pool_ids == {"POOL-A", "POOL-B"}
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        AuthorityResolutionMode.CURRENT_OPERATIONAL,
+        AuthorityResolutionMode.FIRST_TIME_HISTORICAL,
+        AuthorityResolutionMode.EXACT_REFERENCE,
+    ],
+)
+def test_assembly_succeeds_for_each_resolution_mode(mode: AuthorityResolutionMode) -> None:
+    holiday = replace(_holiday(), mode=mode)
+    weather = replace(_weather(), mode=mode)
+    run_package = replace(_run_package(holiday, weather), mode=mode)
+    inventory = replace(_initial_inventory(), mode=mode)
+    pool = replace(_pool(), mode=mode)
+    daily = replace(_daily(pool), mode=mode, parent_pool=pool)
+    losses = tuple(replace(item, mode=mode) for item in _losses())
+
+    assembled = _assembly(
+        context=_context(mode=mode),
+        capacity_pools=(pool,),
+        daily_capacities=(daily,),
+        run_package=run_package,
+        initial_inventory=inventory,
+        mature_losses=losses,
+    )
+    assert assembled.request.capacity_pools[0].capacity_pool_id == "POOL-A"
 
 
 def test_duplicate_pool_code_fails_closed() -> None:
@@ -1088,13 +1251,82 @@ def test_mixed_resolution_mode_fails_closed() -> None:
     assert exc_info.value.details["reason"] == "authority_resolution_mode_mismatch"
 
 
+@pytest.mark.parametrize(
+    ("replace_kwargs",),
+    [
+        (
+            {
+                "daily_capacities": (
+                    replace(_daily(_pool()), mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL),
+                )
+            },
+        ),
+        (
+            {
+                "mature_losses": tuple(
+                    replace(item, mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL)
+                    for item in _losses()
+                )
+            },
+        ),
+        (
+            {
+                "run_package": replace(
+                    _run_package(_holiday(), _weather()),
+                    mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL,
+                )
+            },
+        ),
+        (
+            {
+                "run_package": replace(
+                    _run_package(
+                        replace(_holiday(), mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL),
+                        _weather(),
+                    ),
+                    holiday_calendar=replace(
+                        _holiday(), mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL
+                    ),
+                )
+            },
+        ),
+        (
+            {
+                "run_package": replace(
+                    _run_package(
+                        _holiday(),
+                        replace(_weather(), mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL),
+                    ),
+                    weather_rule=replace(
+                        _weather(), mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL
+                    ),
+                )
+            },
+        ),
+        (
+            {
+                "initial_inventory": replace(
+                    _initial_inventory(), mode=AuthorityResolutionMode.FIRST_TIME_HISTORICAL
+                )
+            },
+        ),
+    ],
+)
+def test_mixed_resolution_modes_fail_closed(replace_kwargs: dict[str, object]) -> None:
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(
+            context=_context(mode=AuthorityResolutionMode.CURRENT_OPERATIONAL),
+            **replace_kwargs,
+        )
+    assert exc_info.value.details["reason"] == "authority_resolution_mode_mismatch"
+
+
 def test_wrong_daily_parent_stable_key_fails_closed() -> None:
     """Daily capacity with wrong parent pool stable_key → must reject."""
     pool = _pool()
     daily = _daily(pool)
-    # Create a daily with mismatched parent (different pool_code in semantic_input)
-    wrong_daily_input = daily.semantic_input.model_copy(update={"capacity_pool_code": "WRONG-POOL"})
-    wrong_daily = replace(daily, semantic_input=wrong_daily_input)
+    wrong_parent = replace(daily.parent_pool, authority_stable_key="capacity-pool:1:2:WRONG-POOL")
+    wrong_daily = replace(daily, parent_pool=wrong_parent)
     with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
         assemble_task9_request_from_resolved_authorities(
             context=_context(),
@@ -1107,6 +1339,51 @@ def test_wrong_daily_parent_stable_key_fails_closed() -> None:
             daily_weather_features=_weather_features(),
         )
     assert exc_info.value.details["reason"] == "authority_parent_pool_mismatch"
+    assert exc_info.value.details["field"] == "authority_stable_key"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("business_version", "pool-v2"),
+        ("revision", 2),
+        ("row_hash", "f" * 64),
+    ],
+)
+def test_wrong_daily_parent_identity_field_fails_closed(field: str, value: object) -> None:
+    pool = _pool()
+    daily = _daily(pool)
+    wrong_parent = replace(daily.parent_pool, **{field: value})
+    wrong_daily = replace(daily, parent_pool=wrong_parent)
+
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(capacity_pools=(pool,), daily_capacities=(wrong_daily,))
+
+    assert exc_info.value.details["reason"] == "authority_parent_pool_mismatch"
+    assert exc_info.value.details["field"] == field
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("season_id", 99),
+        ("destination_factory_id", 99),
+    ],
+)
+def test_wrong_daily_parent_scope_field_fails_closed(field: str, value: int) -> None:
+    pool = _pool()
+    daily = _daily(pool)
+    wrong_parent = replace(
+        daily.parent_pool,
+        semantic_bundle=daily.parent_pool.semantic_bundle.model_copy(update={field: value}),
+    )
+    wrong_daily = replace(daily, parent_pool=wrong_parent)
+
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(capacity_pools=(pool,), daily_capacities=(wrong_daily,))
+
+    assert exc_info.value.details["reason"] == "authority_parent_pool_mismatch"
+    assert exc_info.value.details["field"] == field
 
 
 def test_cross_season_holiday_fails_closed() -> None:
@@ -1114,20 +1391,18 @@ def test_cross_season_holiday_fails_closed() -> None:
     pool = _pool()
     holiday = _holiday()
     weather = _weather()
-    pkg = _run_package(holiday, weather)
-    # Modify inventory to different season
-    inv = _initial_inventory()
-    wrong_inv = replace(
-        inv,
-        semantic_bundle=inv.semantic_bundle.model_copy(update={"season_id": 999}),
+    wrong_holiday = replace(
+        holiday,
+        semantic_bundle=holiday.semantic_bundle.model_copy(update={"season_id": 999}),
     )
+    pkg = _run_package(wrong_holiday, weather)
     with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
         assemble_task9_request_from_resolved_authorities(
             context=_context(),
             capacity_pools=(pool,),
             daily_capacities=(_daily(pool),),
             run_package=pkg,
-            initial_inventory=wrong_inv,
+            initial_inventory=_initial_inventory(),
             mature_losses=_losses(),
             task8_daily_predictions=_task8_predictions(),
             daily_weather_features=_weather_features(),
@@ -1153,6 +1428,81 @@ def test_cross_factory_pool_fails_closed() -> None:
     assert exc_info.value.details["reason"] == "authority_scope_mismatch"
 
 
+def test_authority_available_after_cutoff_fails_closed() -> None:
+    pool = replace(
+        _pool(),
+        available_at_local_date=date(2026, 6, 2),
+        semantic_bundle=_pool().semantic_bundle.model_copy(
+            update={"available_at_local_date": date(2026, 6, 2)}
+        ),
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(capacity_pools=(pool,), daily_capacities=(_daily(pool),))
+    assert exc_info.value.details["reason"] == "authority_visibility_after_cutoff"
+
+
+def test_unknown_daily_pool_reference_fails_closed() -> None:
+    pool = _pool()
+    unknown_daily = _daily(_pool(pool_code="POOL-B"))
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(capacity_pools=(pool,), daily_capacities=(unknown_daily,))
+    assert exc_info.value.details["reason"] == "authority_unknown_pool_reference"
+
+
+def test_duplicate_weather_feature_fails_closed() -> None:
+    feature = _weather_features()[0]
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(weather_features=(feature, feature))
+    assert exc_info.value.details["reason"] == "authority_duplicate_weather_feature"
+
+
+def test_initial_inventory_member_unassigned_fails_closed() -> None:
+    inventory = _initial_inventory_multi_pool()
+    bad_cohort = _inventory_cohort(
+        source_ref=_inventory_source_ref(),
+        pool_code="POOL-Z",
+        pool_members=((11, None, 99),),
+        farm_id=11,
+        subfarm_id=None,
+        variety_id=99,
+        forecast_quantile=ForecastQuantile.P50,
+        remaining_quantity_kg=Decimal("1"),
+    )
+    invalid_inventory = replace(
+        inventory,
+        semantic_bundle=inventory.semantic_bundle.model_copy(
+            update={"cohorts": [*inventory.semantic_bundle.cohorts, bad_cohort]}
+        ),
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(
+            capacity_pools=(_pool(), _pool_b()),
+            daily_capacities=(_daily(_pool()), _daily(_pool_b())),
+            initial_inventory=invalid_inventory,
+            mature_losses=(*_losses("POOL-A"), *_losses("POOL-B")),
+            task8_predictions=(
+                *_task8_predictions(farm_id=10, subfarm_id=None, variety_id=20),
+                *_task8_predictions(farm_id=10, subfarm_id=3, variety_id=40),
+            ),
+            weather_features=(*_weather_features("POOL-A"), *_weather_features("POOL-B")),
+        )
+    assert exc_info.value.details["reason"] == "authority_inventory_member_unassigned"
+
+
+def test_initial_inventory_duplicate_cohort_fails_closed() -> None:
+    inventory = _initial_inventory()
+    duplicate = inventory.semantic_bundle.cohorts[0]
+    invalid_inventory = replace(
+        inventory,
+        semantic_bundle=inventory.semantic_bundle.model_copy(
+            update={"cohorts": [*inventory.semantic_bundle.cohorts, duplicate]}
+        ),
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(initial_inventory=invalid_inventory)
+    assert exc_info.value.details["reason"] == "authority_inventory_cohort_duplicate"
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # Finding 6: Immutable Canonical Payload
 # ══════════════════════════════════════════════════════════════════════════
@@ -1163,6 +1513,12 @@ def test_canonical_payload_is_immutable_mapping_proxy() -> None:
     assert isinstance(assembled.canonical_payload, MappingProxyType)
     with pytest.raises(TypeError):
         assembled.canonical_payload["new_key"] = "value"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        assembled.canonical_payload["request"]["capacity_pools"] = ()  # type: ignore[index]
+    with pytest.raises(TypeError):
+        assembled.canonical_payload["authority_manifest"][0]["row_hash"] = "x"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        assembled.canonical_payload["request"]["capacity_pools"][0]["members"][0] = {}  # type: ignore[index]
 
 
 def test_canonical_payload_preserves_content() -> None:
@@ -1173,6 +1529,8 @@ def test_canonical_payload_preserves_content() -> None:
     )
     assert "request" in assembled.canonical_payload
     assert "authority_manifest" in assembled.canonical_payload
+
+    assert assembled.assembly_hash == sha256_hex(_immutable_to_plain(assembled.canonical_payload))
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1191,9 +1549,17 @@ def test_error_reasons_are_precise_and_stable() -> None:
         "authority_date_coverage_incomplete",
         "authority_quantile_coverage_incomplete",
         "authority_duplicate_task8_prediction",
+        "authority_duplicate_mature_loss",
+        "authority_duplicate_weather_feature",
+        "authority_unknown_pool_reference",
         "authority_pool_membership_conflict",
         "authority_assembly_canonical_parity_error",
-        "authority_initial_inventory_total_mismatch",
+        "authority_inventory_member_unassigned",
+        "authority_inventory_member_ambiguous",
+        "authority_inventory_cohort_duplicate",
+        "authority_inventory_total_mismatch",
+        "authority_visibility_after_cutoff",
+        "authority_context_cutoff_mismatch",
         "authority_request_schema_rejected",
         "authority_duplicate_daily_capacity",
     }
@@ -1271,28 +1637,14 @@ def test_assemble_direct_capacity_uses_direct_mode_source_refs() -> None:
 
 
 def test_assembly_golden_hash() -> None:
-    """Golden hash — must match after all changes."""
+    """Golden canonical JSON and hash must remain fixed."""
     assembled = _assembly()
-    assert assembled.assembly_hash
-    # Verify structure
+    expected_json = """{"assembly_schema_version":"task9-authority-request-assembly-v1","authority_manifest":[{"authority_family":"capacity_pool_definition","authority_stable_key":"capacity-pool:1:2:POOL-A","business_version":"pool-v1","revision":1,"row_hash":"1111111111111111111111111111111111111111111111111111111111111111"},{"authority_family":"daily_capacity","authority_stable_key":"daily-capacity:1:2:POOL-A:pool-v1:1:2026-06-15","business_version":"pool-v1","revision":1,"row_hash":"3333333333333333333333333333333333333333333333333333333333333333"},{"authority_family":"holiday_calendar_version","authority_stable_key":"holiday-calendar:1:CN:Asia/Shanghai","business_version":"cal-v1","revision":1,"row_hash":"4444444444444444444444444444444444444444444444444444444444444444"},{"authority_family":"initial_inventory_snapshot","authority_stable_key":"initial-inventory:1:2:2026-06-15","business_version":"inv-v1","revision":1,"row_hash":"7777777777777777777777777777777777777777777777777777777777777777"},{"authority_family":"mature_inventory_loss_authority","authority_stable_key":"mature-loss:1:2:POOL-A:2026-06-15:P50","business_version":"loss-v1","revision":1,"row_hash":"1111111111111111111111111111111111111111111111111111111111111111"},{"authority_family":"mature_inventory_loss_authority","authority_stable_key":"mature-loss:1:2:POOL-A:2026-06-15:P80","business_version":"loss-v1","revision":1,"row_hash":"2222222222222222222222222222222222222222222222222222222222222222"},{"authority_family":"mature_inventory_loss_authority","authority_stable_key":"mature-loss:1:2:POOL-A:2026-06-15:P90","business_version":"loss-v1","revision":1,"row_hash":"3333333333333333333333333333333333333333333333333333333333333333"},{"authority_family":"run_parameter_package","authority_stable_key":"run-package:1:2:farm-10","business_version":"pkg-v1","revision":1,"row_hash":"6666666666666666666666666666666666666666666666666666666666666666"},{"authority_family":"weather_rule_config_version","authority_stable_key":"weather-rule:WEATHER-STD:Asia/Shanghai","business_version":"weather-v1","revision":1,"row_hash":"5555555555555555555555555555555555555555555555555555555555555555"}],"request":{"as_of_date":"2026-06-01","capacity_pools":[{"capacity_pool_grain":"FARM","capacity_pool_id":"POOL-A","members":[{"farm_id":10,"subfarm_id":null,"variety_id":20}]}],"daily_capacity_inputs":[{"capacity_date":"2026-06-15","capacity_input_mode":"LABOR_DERIVED","capacity_parameter_source_ref_hashes":["6b81f9a37e531b480b07007ef821d0ffe7539e76ee737d2781db79389e6de07e","6b81f9a37e531b480b07007ef821d0ffe7539e76ee737d2781db79389e6de07e","6b81f9a37e531b480b07007ef821d0ffe7539e76ee737d2781db79389e6de07e","6b81f9a37e531b480b07007ef821d0ffe7539e76ee737d2781db79389e6de07e"],"capacity_pool_id":"POOL-A","direct_nominal_capacity_kg_per_day":null,"kg_per_person_per_day":"20","labor_availability_ratio":"0.8","operational_efficiency_ratio":"0.9","planned_picker_count":"10"}],"daily_weather_features":[{"capacity_date":"2026-06-15","capacity_pool_id":"POOL-A","feature_id":"TEMP","source_ref_hash":"63880fe0a010634b3fa0c4dc5e9769440ec122b01a2750c3d090b0e8c5ffc15a","value":"20"}],"destination_factory_id":2,"destination_factory_timezone":"Asia/Shanghai","farm_timezone":"Asia/Shanghai","forecast_end_date":"2026-06-15","forecast_quantiles":["P50","P80","P90"],"forecast_start_date":"2026-06-15","harvest_bucket_anchor_local_time":"06:00:00","harvest_to_arrival_lag_days":1,"holiday_calendar_hash":"1f2e6a1246f2d042e4e818d11aa85244d6d635a2696c2578dc30914e82808cd1","holiday_calendar_version":"cal-v1","holiday_dates":["2026-01-01"],"initial_inventory_cohorts":[{"cohort_date":"2026-06-15","farm_id":10,"forecast_quantile":"P50","remaining_quantity_kg":"10","source_ref_hash":"a2ce044c1c4c51c770d766f11827dcef24c72a930d7bd7193bb36ad9fbcaf4a8","stable_cohort_key":"a0610d1d918ceccf04f169e5b846e8f6a8c7598a01df255cc2c3e0559371fb98","stable_cohort_key_schema_version":"task9a-cohort-key-v1","subfarm_id":null,"variety_id":20},{"cohort_date":"2026-06-15","farm_id":10,"forecast_quantile":"P80","remaining_quantity_kg":"10","source_ref_hash":"a2ce044c1c4c51c770d766f11827dcef24c72a930d7bd7193bb36ad9fbcaf4a8","stable_cohort_key":"28d8c4b721126262342d2c7faac7bde05ae12840f85c1b6d4eb997626aeb757a","stable_cohort_key_schema_version":"task9a-cohort-key-v1","subfarm_id":null,"variety_id":20},{"cohort_date":"2026-06-15","farm_id":10,"forecast_quantile":"P90","remaining_quantity_kg":"10","source_ref_hash":"a2ce044c1c4c51c770d766f11827dcef24c72a930d7bd7193bb36ad9fbcaf4a8","stable_cohort_key":"e01525bda12f4bf9c102c1932ef1b7193310067170e3a16f08842b5c42aa9545","stable_cohort_key_schema_version":"task9a-cohort-key-v1","subfarm_id":null,"variety_id":20}],"initial_opening_mature_inventory_kg":"30","mature_inventory_loss_inputs":[{"capacity_pool_id":"POOL-A","forecast_quantile":"P50","mature_inventory_loss_quantity_kg":"1","source_ref_hash":"e3ade1cc73f572fe3acdde4642a28be59015d8b80330db8c48f260ea636e10e5","state_date":"2026-06-15"},{"capacity_pool_id":"POOL-A","forecast_quantile":"P80","mature_inventory_loss_quantity_kg":"1","source_ref_hash":"95b0d0d1832f009adf366fb7ffc1137f37ff67ff36f80e0f24996e256555f3ae","state_date":"2026-06-15"},{"capacity_pool_id":"POOL-A","forecast_quantile":"P90","mature_inventory_loss_quantity_kg":"1","source_ref_hash":"d8f9e2852e36dc86c4e28cd754f5d3eab87442a1c158350a5e83ac2124f01bb2","state_date":"2026-06-15"}],"run_parameter_source_ref_hashes":["13d21fa892290f676407cfd76f0e4b7061b0f90da12de7de89412a7705934a76","84af8ad69852b40cc80147fb26acc1c14b8370ded823b04ba4ed559eb237ba35","906b1995ec6e6b5ec14b40dc6ceb7ba3fefd3f92d4615b6eb01eda817a8ef1b0","906b1995ec6e6b5ec14b40dc6ceb7ba3fefd3f92d4615b6eb01eda817a8ef1b0","906b1995ec6e6b5ec14b40dc6ceb7ba3fefd3f92d4615b6eb01eda817a8ef1b0"],"task8_daily_predictions":[{"farm_id":10,"prediction_date":"2026-06-15","source_ref_hash":"4c78349c2c520aad796aa8d2a3a68bf9980593a76c78f9cceace31a1c7f60228","subfarm_id":null,"variety_id":20,"verification_snapshot":{"farm_id":10,"maturity_forecast_as_of_date":"2026-06-01","maturity_forecast_prediction_end_date":"2026-06-15","maturity_forecast_prediction_start_date":"2026-06-15","maturity_forecast_run_status":"completed","maturity_forecast_source_signature":"forecast-source","maturity_model_artifact_hash":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","maturity_model_config_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","maturity_model_source_signature":"model-source","maturity_model_version":"maturity-v1","p50_kg":"10","p80_kg":"20","p90_kg":"30","prediction_date":"2026-06-15","subfarm_id":null,"variety_id":20},"verification_snapshot_hash":"a18c047a062c3c9bb458fab3694dc54ef3b521dcaa580cf8ffba832d1c8b127a"},{"farm_id":10,"prediction_date":"2026-06-15","source_ref_hash":"928c9c9d79bfd31324c5b22072d9681dd47fbd52d653a8b8daa7544676558205","subfarm_id":null,"variety_id":20,"verification_snapshot":{"farm_id":10,"maturity_forecast_as_of_date":"2026-06-01","maturity_forecast_prediction_end_date":"2026-06-15","maturity_forecast_prediction_start_date":"2026-06-15","maturity_forecast_run_status":"completed","maturity_forecast_source_signature":"forecast-source","maturity_model_artifact_hash":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","maturity_model_config_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","maturity_model_source_signature":"model-source","maturity_model_version":"maturity-v1","p50_kg":"10","p80_kg":"20","p90_kg":"30","prediction_date":"2026-06-15","subfarm_id":null,"variety_id":20},"verification_snapshot_hash":"a18c047a062c3c9bb458fab3694dc54ef3b521dcaa580cf8ffba832d1c8b127a"},{"farm_id":10,"prediction_date":"2026-06-15","source_ref_hash":"4a896cdd28b60de576b39079d10bfc7df5fa2ca2649672d9f90f523e7d5130f7","subfarm_id":null,"variety_id":20,"verification_snapshot":{"farm_id":10,"maturity_forecast_as_of_date":"2026-06-01","maturity_forecast_prediction_end_date":"2026-06-15","maturity_forecast_prediction_start_date":"2026-06-15","maturity_forecast_run_status":"completed","maturity_forecast_source_signature":"forecast-source","maturity_model_artifact_hash":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","maturity_model_config_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","maturity_model_source_signature":"model-source","maturity_model_version":"maturity-v1","p50_kg":"10","p80_kg":"20","p90_kg":"30","prediction_date":"2026-06-15","subfarm_id":null,"variety_id":20},"verification_snapshot_hash":"a18c047a062c3c9bb458fab3694dc54ef3b521dcaa580cf8ffba832d1c8b127a"}],"weather_rule_config":{"combination_method":"MULTIPLY","feature_rules":[{"bands":[{"lower_bound":"0","lower_inclusive":true,"multiplier":"1","upper_bound":"30","upper_inclusive":false}],"feature_id":"TEMP"}],"maximum_ratio":"1","minimum_ratio":"0","missing_feature_policy":"BLOCK","required_feature_ids":["TEMP"],"version":"weather-v1"}}}"""
+    assert canonical_json_dumps(_immutable_to_plain(assembled.canonical_payload)) == expected_json
     assert (
-        assembled.canonical_payload["assembly_schema_version"]
-        == "task9-authority-request-assembly-v1"
+        assembled.assembly_hash
+        == "73b79be0856fc513e84c97355dfd63e96457afd0124fd7c5d5d88ea2fa80f4cb"
     )
-    families = [
-        item["authority_family"] for item in assembled.canonical_payload["authority_manifest"]
-    ]
-    assert families == [
-        "capacity_pool_definition",
-        "daily_capacity",
-        "holiday_calendar_version",
-        "initial_inventory_snapshot",
-        "mature_inventory_loss_authority",
-        "mature_inventory_loss_authority",
-        "mature_inventory_loss_authority",
-        "run_parameter_package",
-        "weather_rule_config_version",
-    ]
 
 
 def test_initial_inventory_total_mismatch_fails_closed() -> None:
@@ -1318,7 +1670,7 @@ def test_initial_inventory_total_mismatch_fails_closed() -> None:
             daily_weather_features=_weather_features(),
         )
     assert exc_info.value.code == "TASK9_AUTHORITY_REQUEST_ASSEMBLY_ERROR"
-    assert exc_info.value.details["reason"] == "authority_initial_inventory_total_mismatch"
+    assert exc_info.value.details["reason"] == "authority_inventory_total_mismatch"
 
 
 def test_assembly_context_dataclass_is_frozen() -> None:
