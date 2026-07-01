@@ -1,0 +1,68 @@
+"""Task 11 rolling backtest persistence errors."""
+
+from __future__ import annotations
+
+
+class RollingBacktestPersistenceError(Exception):
+    """Base exception for rolling backtest persistence failures."""
+
+    code: str = "ROLLING_BACKTEST_PERSISTENCE_ERROR"
+
+    def __init__(self, message: str, *, code: str | None = None) -> None:
+        super().__init__(message)
+        if code is not None:
+            self.code = code
+
+
+class RollingBacktestIntegrityError(RollingBacktestPersistenceError):
+    """Integrity verification failed during reload."""
+
+    code = "ROLLING_BACKTEST_INTEGRITY_ERROR"
+
+
+class RollingBacktestIdentityConflictError(RollingBacktestPersistenceError):
+    """Same run_signature with different payload/hash."""
+
+    code = "ROLLING_BACKTEST_IDENTITY_CONFLICT"
+
+
+class RollingBacktestChildCountMismatchError(RollingBacktestIntegrityError):
+    """Expected child count does not match actual."""
+
+    code = "ROLLING_BACKTEST_CHILD_COUNT_MISMATCH"
+
+
+class RollingBacktestCanonicalParityError(RollingBacktestIntegrityError):
+    """Normalized columns do not match canonical payload."""
+
+    code = "ROLLING_BACKTEST_CANONICAL_PARITY_ERROR"
+
+
+class RollingBacktestAttemptConflictError(RollingBacktestPersistenceError):
+    """Attempt creation conflict (e.g. duplicate number, overwriting completed)."""
+
+    code = "ROLLING_BACKTEST_ATTEMPT_CONFLICT"
+
+
+class RollingBacktestAuthorityBindingError(RollingBacktestPersistenceError):
+    """Availability audit authority does not bind to the expected typed identity."""
+
+    code = "ROLLING_BACKTEST_AUTHORITY_BINDING_ERROR"
+
+
+class RollingBacktestStageIntegrityError(RollingBacktestIntegrityError):
+    """Stage event continuity validation failed (gap, non-consecutive, drift)."""
+
+    code = "ROLLING_BACKTEST_STAGE_INTEGRITY_ERROR"
+
+
+class RollingBacktestDagIntegrityError(RollingBacktestIntegrityError):
+    """Persisted DAG payload is missing, duplicated, or structurally invalid."""
+
+    code = "ROLLING_BACKTEST_DAG_INTEGRITY_ERROR"
+
+
+class RollingBacktestCommandMismatchError(RollingBacktestPersistenceError):
+    """Persistence command diverges from the frozen logical config."""
+
+    code = "ROLLING_BACKTEST_COMMAND_MISMATCH"

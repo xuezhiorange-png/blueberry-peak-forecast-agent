@@ -1,0 +1,168 @@
+{
+  "historical_node_payload": {
+    "as_of_local_date": "2026-03-15",
+    "cutoff_policy_version": "task11-cutoff-v1",
+    "execution_mode": "historical_observed",
+    "forecast_cutoff_at": "2026-03-15T04:00:00Z",
+    "forecast_end_local_date": "2026-03-31",
+    "forecast_horizon_policy_version": "task11-horizon-v1",
+    "forecast_start_local_date": "2026-03-16",
+    "node_key": "march_15",
+    "resolved_upstream_semantic_identities": [
+      {
+        "role_qualifier": "p50",
+        "semantic": {
+          "artifact_payload_hash": null,
+          "business_version": null,
+          "canonical_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+          "config_hash": null,
+          "input_signature": null,
+          "policy_version": null,
+          "result_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+          "schema_version": "task11-upstream-identity-v1",
+          "semantic_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "source_role": "task10_residual_artifact",
+        "source_type": "task10_model_artifact"
+      },
+      {
+        "role_qualifier": null,
+        "semantic": {
+          "artifact_payload_hash": null,
+          "business_version": null,
+          "canonical_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "config_hash": null,
+          "input_signature": null,
+          "policy_version": null,
+          "result_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "schema_version": "task11-upstream-identity-v1",
+          "semantic_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "source_role": "task9_structural_forecast",
+        "source_type": "task9_harvest_state_run"
+      }
+    ],
+    "scope": {
+      "destination_factory_ids": {
+        "ids": [101, 202],
+        "mode": "include_ids"
+      },
+      "farm_ids": {
+        "ids": [],
+        "mode": "all"
+      },
+      "subfarm_ids": {
+        "ids": [],
+        "mode": "all"
+      },
+      "variety_ids": {
+        "ids": [],
+        "mode": "all"
+      }
+    },
+    "season_id": 2026,
+    "task10_model_policy": {
+      "artifact_semantic_identities": [
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      ],
+      "authority_visibility_identity": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "policy": "historically_available_model",
+      "training_run_semantic_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "timezone": "Asia/Shanghai",
+    "upstream_selection_mode": "historical_resolution"
+  },
+  "historical_run_payload": {
+    "availability_registry_version": "task11-availability-v1",
+    "calendar_phase_policy_version": "task11-calendar-phase-v1",
+    "canonical_serialization_version": "task11-canonical-v1",
+    "cutoff_local_time": "12:00:00",
+    "cutoff_policy_version": "task11-cutoff-v1",
+    "cutoff_timezone": "Asia/Shanghai",
+    "execution_mode": "historical_observed",
+    "forecast_horizon_policy_version": "task11-horizon-v1",
+    "metric_policy_version": "task11-metrics-v1",
+    "node_calendar_version": "task11-calendar-v1",
+    "nodes": [
+      {
+        "as_of_local_date": "2026-03-15",
+        "forecast_cutoff_at": "2026-03-15T04:00:00Z",
+        "forecast_end_local_date": "2026-03-31",
+        "forecast_horizon_policy_version": "task11-horizon-v1",
+        "forecast_start_local_date": "2026-03-16",
+        "node_key": "march_15",
+        "resolved_upstream_semantic_identities": [
+          {
+            "role_qualifier": "p50",
+            "semantic": {
+              "artifact_payload_hash": null,
+              "business_version": null,
+              "canonical_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+              "config_hash": null,
+              "input_signature": null,
+              "policy_version": null,
+              "result_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+              "schema_version": "task11-upstream-identity-v1",
+              "semantic_payload_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "source_role": "task10_residual_artifact",
+            "source_type": "task10_model_artifact"
+          },
+          {
+            "role_qualifier": null,
+            "semantic": {
+              "artifact_payload_hash": null,
+              "business_version": null,
+              "canonical_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "config_hash": null,
+              "input_signature": null,
+              "policy_version": null,
+              "result_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "schema_version": "task11-upstream-identity-v1",
+              "semantic_payload_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "source_role": "task9_structural_forecast",
+            "source_type": "task9_harvest_state_run"
+          }
+        ],
+        "scope": {
+          "destination_factory_ids": {
+            "ids": [101, 202],
+            "mode": "include_ids"
+          },
+          "farm_ids": {
+            "ids": [],
+            "mode": "all"
+          },
+          "subfarm_ids": {
+            "ids": [],
+            "mode": "all"
+          },
+          "variety_ids": {
+            "ids": [],
+            "mode": "all"
+          }
+        },
+        "season_id": 2026,
+        "task10_model_policy": {
+          "artifact_semantic_identities": [
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          ],
+          "authority_visibility_identity": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "policy": "historically_available_model",
+          "training_run_semantic_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "timezone": "Asia/Shanghai",
+        "upstream_selection_mode": "historical_resolution"
+      }
+    ],
+    "rolling_schema_version": "task11-rolling-v1",
+    "upstream_selection_policy_version": "task11-selection-v1"
+  },
+  "historical_node_hash": "d8365856893ba78f99d075dcff8261625c19e51b9bc0fb6b01527e851fb6f850",
+  "historical_run_hash": "b50b248190a38ec67ec76ad6e34e7f9448378102ef9ff2ce37c2e70b45218ce8"
+}
