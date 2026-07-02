@@ -789,7 +789,7 @@ async def _stage_resolve_historical_inputs(  # noqa: ARG001
             source_type=identity.source_type,
             semantic_identity=identity,
             persistent_reference=identity.persistent_reference
-            or PersistentUpstreamReference(reference_type="database_run_id", reference_value=0),
+            or PersistentUpstreamReference(reference_type="database_run_id", reference_value=1),
             authoritative_available_at=datetime.now(UTC),
             canonical_identity_hash=sha256_payload(
                 canonical_json_dumps(_resolved_input_canonical_payload(identity))
