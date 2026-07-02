@@ -221,12 +221,16 @@ class AuthorityStillReferencedByActivePackageError(Task9AuthorityRepositoryError
         authority_family: AuthorityFamily | None = None,
         authority_stable_key: str | None = None,
         referencing_package_ids: list[int],
+        details: dict[str, object] | None = None,
     ) -> None:
+        payload: dict[str, object] = {"referencing_package_ids": referencing_package_ids}
+        if details:
+            payload.update(details)
         super().__init__(
             code=_AUTHORITY_STILL_REFERENCED_BY_ACTIVE_PACKAGE,
             authority_family=authority_family,
             authority_stable_key=authority_stable_key,
-            details={"referencing_package_ids": referencing_package_ids},
+            details=payload,
         )
 
 

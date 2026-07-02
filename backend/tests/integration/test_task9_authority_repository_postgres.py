@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 """PostgreSQL integration tests for the Task 9 authority repository.
 
 These tests REQUIRE a real PostgreSQL database.  They are gated by the
@@ -24,7 +23,10 @@ if not os.environ.get("RUN_POSTGRES_INTEGRATION"):
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.authority_canonical import (
+    build_holiday_calendar_stable_key,
     build_mature_inventory_loss_stable_key,
+    build_run_parameter_package_stable_key,
+    build_weather_rule_stable_key,
     make_authority_row_hash,
     make_holiday_calendar_hash,
     make_lifecycle_event_hash,
@@ -41,17 +43,22 @@ from backend.app.harvest_state.authority_repository import (
     create_or_load_mature_loss,
     create_or_load_run_parameter_package,
     create_or_load_weather_rule,
+    load_capacity_pool_definition_by_business_key,
     load_capacity_pool_definition_by_id,
+    load_capacity_pool_definition_by_row_hash,
     load_holiday_calendar_by_id,
     load_initial_inventory_by_id,
     load_mature_loss_by_id,
+    load_run_parameter_package_by_id,
     load_weather_rule_by_id,
+    replace_run_package_with_dependencies,
     retire_authority,
     supersede_authority,
 )
 from backend.app.harvest_state.authority_repository_errors import (
     AuthorityConsumabilityIntervalConflictError,
     AuthorityHashConflictError,
+    AuthorityNotFoundError,
     AuthorityStillReferencedByActivePackageError,
     AuthorityVersionConflictError,
     LifecycleTransitionInvalidError,
@@ -267,6 +274,7 @@ def _holiday_input(
     revision: int = 1,
     cal_hash: str | None = None,
     dates: list[Task9HolidayCalendarDateSchema] | None = None,
+    code: str = "CN",
 ) -> Task9HolidayCalendarSemanticBundle:
     """Build a valid holiday-calendar semantic bundle."""
     effective_dates = dates or _make_holiday_dates()
@@ -277,7 +285,7 @@ def _holiday_input(
     )
     return Task9HolidayCalendarSemanticBundle(
         season_id=_IDS["season"],
-        calendar_code="CN",
+        calendar_code=code,
         calendar_version=version,
         revision=revision,
         calendar_hash=computed_hash,
@@ -329,10 +337,11 @@ def _weather_input(
     version: str = "v1",
     revision: int = 1,
     config_hash: str | None = None,
+    code: str = "WEATHER-STD",
 ) -> Task9WeatherRuleSemanticInput:
     """Build a valid weather-rule semantic input."""
     return Task9WeatherRuleSemanticInput(
-        rule_code="WEATHER-STD",
+        rule_code=code,
         rule_version=version,
         revision=revision,
         lifecycle_timezone_name=_TZ,
@@ -495,6 +504,38 @@ async def _query_lifecycle_events(
     )
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
+# ── Trio activation helper ────────────────────────────────────────
+
+
+async def _activate_full_trio(
+    session: AsyncSession,
+    *,
+    holiday_id: int,
+    weather_id: int,
+    package_id: int,
+    activation_boundary: date,
+) -> None:
+    """Activate holiday, weather, and package in the correct order."""
+    await activate_authority(
+        session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_id,
+        activation_boundary=activation_boundary,
+    )
+    await activate_authority(
+        session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_id,
+        activation_boundary=activation_boundary,
+    )
+    await activate_authority(
+        session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=package_id,
+        activation_boundary=activation_boundary,
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1168,10 +1209,10 @@ async def test_dependency_protection_holiday(db_session: AsyncSession) -> None:
     """Retiring a holiday still referenced by an active package must fail."""
     # Create holiday + weather + package
     holiday = _holiday_input()
-    await create_or_load_holiday_calendar(db_session, calendar_input=holiday)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=holiday)
 
     weather = _weather_input()
-    await create_or_load_weather_rule(db_session, weather_input=weather)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=weather)
 
     pkg = _run_package_input()
     pkg_result = await create_or_load_run_parameter_package(
@@ -1179,6 +1220,19 @@ async def test_dependency_protection_holiday(db_session: AsyncSession) -> None:
         package_input=pkg,
         holiday_calendar=holiday,
         weather_rule=weather,
+    )
+    # Activate holiday and weather first (required for package activation)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=hol_result.parent.authority_id,
+        activation_boundary=date(2026, 6, 1),
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=wth_result.authority_id,
+        activation_boundary=date(2026, 6, 1),
     )
     # Activate the package
     await activate_authority(
@@ -1188,31 +1242,11 @@ async def test_dependency_protection_holiday(db_session: AsyncSession) -> None:
         activation_boundary=date(2026, 6, 1),
     )
 
-    # Now we need the holiday's ID.  Query it.
-    from backend.app.models.task9_authority import Task9HolidayCalendarVersion
-
-    hol_stmt = select(Task9HolidayCalendarVersion).where(
-        Task9HolidayCalendarVersion.season_id == _IDS["season"],
-        Task9HolidayCalendarVersion.calendar_code == "CN",
-        Task9HolidayCalendarVersion.calendar_version == "v1",
-        Task9HolidayCalendarVersion.revision == 1,
-    )
-    hol_result = await session_execute(db_session, hol_stmt)
-    holiday_row = hol_result.scalar_one()
-
-    # Activate the holiday so we can try to retire it
-    await activate_authority(
-        db_session,
-        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
-        authority_id=holiday_row.id,
-        activation_boundary=date(2026, 6, 1),
-    )
-
     with pytest.raises(AuthorityStillReferencedByActivePackageError) as exc_info:
         await retire_authority(
             db_session,
             family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
-            authority_id=holiday_row.id,
+            authority_id=hol_result.parent.authority_id,
             retirement_boundary=date(2026, 12, 31),
         )
     assert exc_info.value.code == "AUTHORITY_STILL_REFERENCED_BY_ACTIVE_PACKAGE"
@@ -1653,7 +1687,8 @@ async def _rewrite_lifecycle_event(
                 new_consumable_from_local_date = :new_consumable_from_local_date,
                 new_consumable_to_local_date = :new_consumable_to_local_date,
                 superseded_by_authority_stable_key = :superseded_by_authority_stable_key,
-                superseded_by_authority_business_version = :superseded_by_authority_business_version,
+                superseded_by_authority_business_version =
+                    :superseded_by_authority_business_version,
                 superseded_by_authority_revision = :superseded_by_authority_revision,
                 lifecycle_event_hash = :lifecycle_event_hash
             WHERE id = :event_id
@@ -1935,9 +1970,7 @@ async def test_capacity_pool_parent_lifecycle_tamper_is_rejected_by_database(
             {"authority_id": created.parent.authority_id},
         )
         await db_session.flush()
-    assert "ck_task9_capacity_pool_definition_lifecycle_projection" in str(
-        exc_info.value.orig
-    )
+    assert "ck_task9_capacity_pool_definition_lifecycle_projection" in str(exc_info.value.orig)
     await db_session.rollback()
 
 
@@ -2104,7 +2137,11 @@ async def test_concurrent_pool_create_conflicting_payload_returns_typed_conflict
             ],
         }
     )
-    stable_key = f"capacity-pool:{pool_a.season_id}:{pool_a.destination_factory_id}:{pool_a.capacity_pool_code}"
+    stable_key = (
+        f"capacity-pool:{pool_a.season_id}"
+        f":{pool_a.destination_factory_id}"
+        f":{pool_a.capacity_pool_code}"
+    )
     lock_key = _advisory_lock_key(
         AuthorityFamily.CAPACITY_POOL_DEFINITION,
         stable_key,
@@ -2187,3 +2224,2422 @@ async def test_concurrent_pool_create_conflicting_payload_returns_typed_conflict
         ).scalar_one()
     assert row_count == 1
     assert event_count == 1
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  BARRIER-BASED CONCURRENCY TESTS — proper dual-session isolation
+# ══════════════════════════════════════════════════════════════════════════
+#
+# These tests use an asyncio.Barrier(2) so both independent sessions
+# reach the create_or_load call concurrently — no advisory lock priming,
+# no sleep, no broad exception catch, no pre-determined winner.
+
+
+@pytest.mark.asyncio
+@pytest.mark.postgres_concurrency
+async def test_barrier_same_payload_exact_load_integrity() -> None:
+    """Two concurrent create_or_load calls with an identical payload.
+
+    Uses an asyncio.Barrier(2) so both callers race on equal
+    footing.  Exactly one should create the row; the other reuses it.
+    Post-concurrency exact-load integrity must pass.
+    """
+    await _seed_dimensions_committed()
+    pool = _pool_input(code=f"POOL-{uuid4().hex[:8]}")
+    stable_key = (
+        f"capacity-pool:{pool.season_id}:{pool.destination_factory_id}:{pool.capacity_pool_code}"
+    )
+
+    barrier = asyncio.Barrier(2)
+
+    async def _caller() -> object:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await asyncio.wait_for(barrier.wait(), timeout=5)
+                return await create_or_load_capacity_pool_definition(
+                    session,
+                    definition_input=pool,
+                )
+
+    task_a = asyncio.create_task(_caller())
+    task_b = asyncio.create_task(_caller())
+    results = await asyncio.wait_for(asyncio.gather(task_a, task_b), timeout=15)
+
+    result_a, result_b = results
+
+    # ── one created, one reused ───────────────────────────────────────
+    created_flags = {result_a.parent.created, result_b.parent.created}
+    assert created_flags == {True, False}, (
+        f"Expected one created=True and one created=False, got {created_flags}"
+    )
+
+    # ── same authority id and row_hash from both callers ──────────────
+    assert result_a.parent.authority_id == result_b.parent.authority_id
+    assert result_a.parent.row_hash == result_b.parent.row_hash
+
+    # ── database integrity checks ─────────────────────────────────────
+    async with AsyncSessionMaker() as verify:
+        row_count = (
+            await verify.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM task9_capacity_pool_definition
+                    WHERE season_id = :sid
+                      AND destination_factory_id = :fid
+                      AND capacity_pool_code = :code
+                      AND capacity_pool_version = :ver
+                      AND revision = :rev
+                    """
+                ),
+                {
+                    "sid": pool.season_id,
+                    "fid": pool.destination_factory_id,
+                    "code": pool.capacity_pool_code,
+                    "ver": pool.capacity_pool_version,
+                    "rev": pool.revision,
+                },
+            )
+        ).scalar_one()
+
+        member_count = (
+            await verify.execute(
+                text(
+                    "SELECT count(*) FROM task9_capacity_pool_member"
+                    " WHERE capacity_pool_definition_id = :id"
+                ),
+                {"id": result_a.parent.authority_id},
+            )
+        ).scalar_one()
+
+        event_count = (
+            await verify.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM task9_authority_lifecycle_event
+                    WHERE authority_family = :family
+                      AND authority_stable_key = :skey
+                      AND authority_business_version = :ver
+                      AND authority_revision = :rev
+                    """
+                ),
+                {
+                    "family": AuthorityFamily.CAPACITY_POOL_DEFINITION.value,
+                    "skey": stable_key,
+                    "ver": pool.capacity_pool_version,
+                    "rev": pool.revision,
+                },
+            )
+        ).scalar_one()
+
+    assert row_count == 1, f"expected 1 parent row, got {row_count}"
+    assert member_count == len(pool.members), (
+        f"expected {len(pool.members)} member rows, got {member_count}"
+    )
+    assert event_count == 1, f"expected 1 lifecycle event, got {event_count}"
+
+    # ── final exact-load integrity ────────────────────────────────────
+    async with AsyncSessionMaker() as verify:
+        loaded_bk = await load_capacity_pool_definition_by_business_key(
+            verify,
+            stable_key=stable_key,
+            business_version=pool.capacity_pool_version,
+            revision=pool.revision,
+        )
+    assert loaded_bk.parent.authority_id == result_a.parent.authority_id
+    assert loaded_bk.parent.row_hash == result_a.parent.row_hash
+    assert loaded_bk.parent.status == "draft"
+    assert len(loaded_bk.child_hashes) == len(pool.members)
+    async with AsyncSessionMaker() as verify:
+        loaded_rh = await load_capacity_pool_definition_by_row_hash(
+            verify,
+            row_hash=result_a.parent.row_hash,
+        )
+    assert loaded_rh.parent.authority_id == result_a.parent.authority_id
+    assert loaded_rh.parent.row_hash == result_a.parent.row_hash
+
+
+@pytest.mark.asyncio
+@pytest.mark.postgres_concurrency
+async def test_barrier_conflicting_payload_version_conflict() -> None:
+    """Two concurrent create_or_load calls with same business key but
+    different canonical payload (different source_record_key ⇒ different
+    row_hash).
+
+    Uses an asyncio.Barrier(2).  Exactly one caller should
+    succeed; the other must receive AUTHORITY_VERSION_CONFLICT.
+    Post-concurrency exact-load integrity must pass.
+    """
+    await _seed_dimensions_committed()
+    pool_a = _pool_input(code=f"POOL-{uuid4().hex[:8]}")
+    pool_b = pool_a.model_copy(
+        update={
+            "source_record_key": f"{pool_a.source_record_key}:other",
+            "members": [
+                Task9CapacityPoolMemberSchema(
+                    farm_id=_IDS["farm"],
+                    subfarm_id=_IDS["subfarm"],
+                    variety_id=_IDS["variety"],
+                ),
+            ],
+        }
+    )
+    stable_key = (
+        f"capacity-pool:{pool_a.season_id}:{pool_a.destination_factory_id}"
+        f":{pool_a.capacity_pool_code}"
+    )
+
+    # Verify the two payloads actually produce different hashes
+    assert make_authority_row_hash(pool_a) != make_authority_row_hash(pool_b), (
+        "conflicting payloads must differ in row_hash"
+    )
+
+    barrier = asyncio.Barrier(2)
+
+    async def _caller_a() -> object:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await asyncio.wait_for(barrier.wait(), timeout=5)
+                return await create_or_load_capacity_pool_definition(
+                    session,
+                    definition_input=pool_a,
+                )
+
+    async def _caller_b() -> object:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await asyncio.wait_for(barrier.wait(), timeout=5)
+                return await create_or_load_capacity_pool_definition(
+                    session,
+                    definition_input=pool_b,
+                )
+
+    gathered = await asyncio.wait_for(
+        asyncio.gather(
+            asyncio.create_task(_caller_a()),
+            asyncio.create_task(_caller_b()),
+            return_exceptions=True,
+        ),
+        timeout=15,
+    )
+
+    successes = [r for r in gathered if not isinstance(r, BaseException)]
+    conflicts = [r for r in gathered if isinstance(r, AuthorityVersionConflictError)]
+
+    assert len(successes) == 1, f"expected exactly 1 success, got {len(successes)}"
+    assert len(conflicts) == 1, (
+        f"expected exactly 1 AUTHORITY_VERSION_CONFLICT, got {len(conflicts)}"
+    )
+    assert conflicts[0].code == "AUTHORITY_VERSION_CONFLICT"
+
+    success = successes[0]
+    assert success.parent.created is True
+
+    # ── database integrity checks ─────────────────────────────────────
+    async with AsyncSessionMaker() as verify:
+        row_count = (
+            await verify.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM task9_capacity_pool_definition
+                    WHERE season_id = :sid
+                      AND destination_factory_id = :fid
+                      AND capacity_pool_code = :code
+                      AND capacity_pool_version = :ver
+                      AND revision = :rev
+                    """
+                ),
+                {
+                    "sid": pool_a.season_id,
+                    "fid": pool_a.destination_factory_id,
+                    "code": pool_a.capacity_pool_code,
+                    "ver": pool_a.capacity_pool_version,
+                    "rev": pool_a.revision,
+                },
+            )
+        ).scalar_one()
+
+        event_count = (
+            await verify.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM task9_authority_lifecycle_event
+                    WHERE authority_family = :family
+                      AND authority_stable_key = :skey
+                      AND authority_business_version = :ver
+                      AND authority_revision = :rev
+                    """
+                ),
+                {
+                    "family": AuthorityFamily.CAPACITY_POOL_DEFINITION.value,
+                    "skey": stable_key,
+                    "ver": pool_a.capacity_pool_version,
+                    "rev": pool_a.revision,
+                },
+            )
+        ).scalar_one()
+
+    assert row_count == 1, f"expected 1 persisted authority, got {row_count}"
+    assert event_count == 1, f"expected 1 lifecycle event, got {event_count}"
+
+    # ── final exact-load integrity ────────────────────────────────────
+    async with AsyncSessionMaker() as verify:
+        loaded_bk = await load_capacity_pool_definition_by_business_key(
+            verify,
+            stable_key=stable_key,
+            business_version=pool_a.capacity_pool_version,
+            revision=pool_a.revision,
+        )
+    assert loaded_bk.parent.authority_id == success.parent.authority_id
+    assert loaded_bk.parent.row_hash == success.parent.row_hash
+    assert loaded_bk.parent.status == "draft"
+    assert len(loaded_bk.child_hashes) == len(pool_a.members)
+    async with AsyncSessionMaker() as verify:
+        loaded_rh = await load_capacity_pool_definition_by_row_hash(
+            verify,
+            row_hash=success.parent.row_hash,
+        )
+    assert loaded_rh.parent.authority_id == success.parent.authority_id
+    assert loaded_rh.parent.row_hash == success.parent.row_hash
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package_with_dependencies: happy-path trio replacement
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_happy_path(db_session: AsyncSession) -> None:
+    """Create an initial trio, replace it, verify old→superseded, new→active."""
+    from backend.app.models.task9_authority import (
+        Task9HolidayCalendarVersion,
+        Task9RunParameterPackage,
+        Task9WeatherRuleConfigVersion,
+    )
+
+    # Build initial trio inputs
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+    assert pkg_result.created is True
+
+    # Activate all trio members (required before replacement)
+    act_boundary = date(2026, 3, 1)
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+
+    # Build replacement trio inputs (different version)
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+
+    replacement_boundary = date(2026, 7, 1)
+    sup_result = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=replacement_boundary,
+    )
+
+    # The returned SupersessionResult describes the package-level supersession
+    assert sup_result.old.new_status == AuthorityStatus.SUPERSEDED
+    assert sup_result.old.authority_id == pkg_result.authority_id
+    assert sup_result.old.new_consumable_to == replacement_boundary
+
+    assert sup_result.new_activation.new_status == AuthorityStatus.ACTIVE
+    assert sup_result.new_activation.new_consumable_from == replacement_boundary
+    assert sup_result.new_activation.new_consumable_to is None
+
+    # Verify old package row in DB
+    old_pkg_row = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_result.authority_id,
+            )
+        )
+    ).scalar_one()
+    assert old_pkg_row.status == "superseded"
+    assert old_pkg_row.superseded_by_id == sup_result.new.authority_id
+    assert old_pkg_row.consumable_to_local_date == replacement_boundary
+
+    # Verify new package row in DB
+    new_pkg_row = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == sup_result.new.authority_id,
+            )
+        )
+    ).scalar_one()
+    assert new_pkg_row.status == "active"
+    assert new_pkg_row.consumable_from_local_date == replacement_boundary
+    assert new_pkg_row.consumable_to_local_date is None
+
+    # Verify old holiday is superseded
+    old_hol_row = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == old_pkg_row.holiday_calendar_version_id,
+            )
+        )
+    ).scalar_one()
+    assert old_hol_row.status == "superseded"
+    assert old_hol_row.superseded_by_id is not None
+
+    # Verify new holiday is active
+    new_hol_row = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == new_pkg_row.holiday_calendar_version_id,
+            )
+        )
+    ).scalar_one()
+    assert new_hol_row.status == "active"
+    assert new_hol_row.consumable_from_local_date == replacement_boundary
+
+    # Verify old weather is superseded
+    old_wth_row = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == old_pkg_row.weather_rule_config_version_id,
+            )
+        )
+    ).scalar_one()
+    assert old_wth_row.status == "superseded"
+    assert old_wth_row.superseded_by_id is not None
+
+    # Verify new weather is active
+    new_wth_row = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == new_pkg_row.weather_rule_config_version_id,
+            )
+        )
+    ).scalar_one()
+    assert new_wth_row.status == "active"
+    assert new_wth_row.consumable_from_local_date == replacement_boundary
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: non-active package raises
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_rejects_non_active(db_session: AsyncSession) -> None:
+    """Replacing a non-active (draft) package must raise LifecycleTransitionInvalidError.
+
+    Holiday and weather are NOT activated — only the package must be active.
+    """
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+    # Package is in DRAFT state — do NOT activate it
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+
+    with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
+        await replace_run_package_with_dependencies(
+            db_session,
+            old_package_id=pkg_result.authority_id,
+            new_package_input=pkg_v2,
+            new_holiday_input=hol_v2,
+            new_weather_input=wth_v2,
+            replacement_boundary=date(2026, 7, 1),
+        )
+    assert exc_info.value.code == "LIFECYCLE_TRANSITION_INVALID"
+    assert exc_info.value.details["current_status"] == "draft"
+    assert exc_info.value.details["target_status"] == "superseded"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: non-existent package raises
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_non_existent_raises(db_session: AsyncSession) -> None:
+    """Replacing a non-existent package must raise AuthorityNotFoundError."""
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+
+    with pytest.raises(AuthorityNotFoundError) as exc_info:
+        await replace_run_package_with_dependencies(
+            db_session,
+            old_package_id=999_999,
+            new_package_input=pkg_v2,
+            new_holiday_input=hol_v2,
+            new_weather_input=wth_v2,
+            replacement_boundary=date(2026, 7, 1),
+        )
+    assert exc_info.value.code == "AUTHORITY_NOT_FOUND"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: boundary consistency
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_boundary_consistency(db_session: AsyncSession) -> None:
+    """Old package consumable_to must equal new package
+    consumable_from (the replacement boundary).
+    """
+    from backend.app.models.task9_authority import Task9RunParameterPackage
+
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+
+    boundary = date(2026, 8, 15)
+    sup = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=boundary,
+    )
+
+    # Load old and new packages from DB
+    old_pkg = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_result.authority_id,
+            )
+        )
+    ).scalar_one()
+    new_pkg = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == sup.new.authority_id,
+            )
+        )
+    ).scalar_one()
+
+    # Boundary consistency: old consumable_to == new consumable_from == boundary
+    assert old_pkg.consumable_to_local_date == boundary
+    assert new_pkg.consumable_from_local_date == boundary
+    assert old_pkg.consumable_to_local_date == new_pkg.consumable_from_local_date
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: lifecycle events on old package
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_lifecycle_events_old(db_session: AsyncSession) -> None:
+    """Old package lifecycle events: draft → active → superseded."""
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    stable_key = build_run_parameter_package_stable_key(pkg_v1)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE.value,
+        stable_key=stable_key,
+        version=pkg_v1.package_version,
+        revision=pkg_v1.revision,
+    )
+    assert len(events) == 3
+    assert [e.new_status for e in events] == ["draft", "active", "superseded"]
+    assert [e.transition_sequence for e in events] == [1, 2, 3]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: lifecycle events on new package
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_lifecycle_events_new(db_session: AsyncSession) -> None:
+    """New package lifecycle events: draft → active."""
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    stable_key = build_run_parameter_package_stable_key(pkg_v2)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE.value,
+        stable_key=stable_key,
+        version=pkg_v2.package_version,
+        revision=pkg_v2.revision,
+    )
+    assert len(events) == 2
+    assert [e.new_status for e in events] == ["draft", "active"]
+    assert [e.transition_sequence for e in events] == [1, 2]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: lifecycle events on old holiday
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_lifecycle_events_old_holiday(
+    db_session: AsyncSession,
+) -> None:
+    """Old holiday lifecycle events after trio replacement: draft → active → superseded."""
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    stable_key = build_holiday_calendar_stable_key(hol_v1)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION.value,
+        stable_key=stable_key,
+        version=hol_v1.calendar_version,
+        revision=hol_v1.revision,
+    )
+    assert len(events) == 3
+    assert [e.new_status for e in events] == ["draft", "active", "superseded"]
+    assert [e.transition_sequence for e in events] == [1, 2, 3]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: lifecycle events on old weather
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_lifecycle_events_old_weather(
+    db_session: AsyncSession,
+) -> None:
+    """Old weather lifecycle events after trio replacement: draft → active → superseded."""
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    stable_key = build_weather_rule_stable_key(wth_v1)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION.value,
+        stable_key=stable_key,
+        version=wth_v1.rule_version,
+        revision=wth_v1.revision,
+    )
+    assert len(events) == 3
+    assert [e.new_status for e in events] == ["draft", "active", "superseded"]
+    assert [e.transition_sequence for e in events] == [1, 2, 3]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: lifecycle events on new holiday
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_lifecycle_events_new_holiday(
+    db_session: AsyncSession,
+) -> None:
+    """New holiday lifecycle events after trio replacement: draft → active."""
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    stable_key = build_holiday_calendar_stable_key(hol_v2)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION.value,
+        stable_key=stable_key,
+        version=hol_v2.calendar_version,
+        revision=hol_v2.revision,
+    )
+    assert len(events) == 2
+    assert [e.new_status for e in events] == ["draft", "active"]
+    assert [e.transition_sequence for e in events] == [1, 2]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: lifecycle events on new weather
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_lifecycle_events_new_weather(
+    db_session: AsyncSession,
+) -> None:
+    """New weather lifecycle events after trio replacement: draft → active."""
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    stable_key = build_weather_rule_stable_key(wth_v2)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION.value,
+        stable_key=stable_key,
+        version=wth_v2.rule_version,
+        revision=wth_v2.revision,
+    )
+    assert len(events) == 2
+    assert [e.new_status for e in events] == ["draft", "active"]
+    assert [e.transition_sequence for e in events] == [1, 2]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: duplicate call rejection (not idempotency)
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_duplicate_call_rejected_without_side_effects(
+    db_session: AsyncSession,
+) -> None:
+    """Calling replace twice with the same old_package_id is
+    rejected.  Not idempotent.  The second call raises
+    LifecycleTransitionInvalidError because the old package
+    is already superseded.
+    """
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    boundary = date(2026, 7, 1)
+
+    # First replacement
+    await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=boundary,
+    )
+
+    # Second replacement — same old_package_id which is now superseded
+    with pytest.raises(LifecycleTransitionInvalidError) as exc_info:
+        await replace_run_package_with_dependencies(
+            db_session,
+            old_package_id=pkg_result.authority_id,
+            new_package_input=pkg_v2,
+            new_holiday_input=hol_v2,
+            new_weather_input=wth_v2,
+            replacement_boundary=boundary,
+        )
+    assert exc_info.value.code == "LIFECYCLE_TRANSITION_INVALID"
+    assert exc_info.value.details["current_status"] == "superseded"
+
+    # Verify no duplicate authorities were created for the new package
+    pkg_count = (
+        await db_session.execute(
+            text(
+                """
+                SELECT count(*) FROM task9_run_parameter_package
+                WHERE season_id = :sid
+                  AND destination_factory_id = :fid
+                  AND farm_scope_key = :fkey
+                  AND package_version = :ver
+                """
+            ),
+            {
+                "sid": _IDS["season"],
+                "fid": _IDS["factory"],
+                "fkey": "farm-10",
+                "ver": "v2",
+            },
+        )
+    ).scalar_one()
+    assert pkg_count == 1
+
+    # Verify lifecycle events for the new package are still just 2 (draft→active)
+    stable_key = build_run_parameter_package_stable_key(pkg_v2)
+    events = await _query_lifecycle_events(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE.value,
+        stable_key=stable_key,
+        version=pkg_v2.package_version,
+        revision=pkg_v2.revision,
+    )
+    assert len(events) == 2
+    assert [e.new_status for e in events] == ["draft", "active"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: new trio loadable via load_run_parameter_package_by_id
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_new_trio_loadable(db_session: AsyncSession) -> None:
+    """After replacement, the new package and its dependencies must be loadable."""
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    sup = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    # New package should be loadable (hash + lifecycle verification passes)
+    loaded = await load_run_parameter_package_by_id(
+        db_session,
+        authority_id=sup.new.authority_id,
+    )
+    assert loaded.authority_id == sup.new.authority_id
+    assert loaded.status == "active"
+    assert loaded.consumable_from_local_date == date(2026, 7, 1)
+    assert loaded.consumable_to_local_date is None
+    assert loaded.superseded_by_id is None
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: old trio shows superseded
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_old_trio_superseded(db_session: AsyncSession) -> None:
+    """After replacement, the old package shows superseded status."""
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    sup = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    # Old package should show superseded in loaded result
+    loaded = await load_run_parameter_package_by_id(
+        db_session,
+        authority_id=pkg_result.authority_id,
+    )
+    assert loaded.authority_id == pkg_result.authority_id
+    assert loaded.status == "superseded"
+    assert loaded.consumable_to_local_date == date(2026, 7, 1)
+    assert loaded.superseded_by_id == sup.new.authority_id
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: superseded_by_id links for all trio members
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_superseded_links(db_session: AsyncSession) -> None:
+    """All old trio members must have superseded_by_id pointing to their new counterparts."""
+    from backend.app.models.task9_authority import (
+        Task9HolidayCalendarVersion,
+        Task9RunParameterPackage,
+        Task9WeatherRuleConfigVersion,
+    )
+
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=date(2026, 3, 1),
+    )
+
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    sup = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 7, 1),
+    )
+
+    # Old package links to new package
+    old_pkg = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_result.authority_id,
+            )
+        )
+    ).scalar_one()
+    new_pkg = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == sup.new.authority_id,
+            )
+        )
+    ).scalar_one()
+    assert old_pkg.superseded_by_id == new_pkg.id
+
+    # Old holiday links to new holiday
+    old_hol = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == old_pkg.holiday_calendar_version_id,
+            )
+        )
+    ).scalar_one()
+    new_hol = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == new_pkg.holiday_calendar_version_id,
+            )
+        )
+    ).scalar_one()
+    assert old_hol.superseded_by_id == new_hol.id
+
+    # Old weather links to new weather
+    old_wth = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == old_pkg.weather_rule_config_version_id,
+            )
+        )
+    ).scalar_one()
+    new_wth = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == new_pkg.weather_rule_config_version_id,
+            )
+        )
+    ).scalar_one()
+    assert old_wth.superseded_by_id == new_wth.id
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  TEST – replace_run_package: chained replacements (v1→v2→v3)
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_replace_run_package_chained_replacements(db_session: AsyncSession) -> None:
+    """Chain two replacements: v1→v2→v3. Verify each link."""
+    from backend.app.models.task9_authority import Task9RunParameterPackage
+
+    # Initial trio v1
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    r1 = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=r1.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+
+    # First replacement: v1 → v2
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    sup2 = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=r1.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=date(2026, 4, 1),
+    )
+
+    # Second replacement: v2 → v3
+    hol_v3 = _holiday_input(version="v3", revision=1)
+    wth_v3 = _weather_input(version="v3", revision=1)
+    pkg_v3 = _run_package_input(version="v3", revision=1)
+    sup3 = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=sup2.new.authority_id,
+        new_package_input=pkg_v3,
+        new_holiday_input=hol_v3,
+        new_weather_input=wth_v3,
+        replacement_boundary=date(2026, 8, 1),
+    )
+
+    # v1 → superseded, consumable_to = 2026-04-01
+    pkg1 = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == r1.authority_id,
+            )
+        )
+    ).scalar_one()
+    assert pkg1.status == "superseded"
+    assert pkg1.superseded_by_id == sup2.new.authority_id
+    assert pkg1.consumable_to_local_date == date(2026, 4, 1)
+
+    # v2 → superseded, consumable_to = 2026-08-01
+    pkg2 = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == sup2.new.authority_id,
+            )
+        )
+    ).scalar_one()
+    assert pkg2.status == "superseded"
+    assert pkg2.superseded_by_id == sup3.new.authority_id
+    assert pkg2.consumable_to_local_date == date(2026, 8, 1)
+
+    # v3 → active, consumable_from = 2026-08-01
+    pkg3 = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == sup3.new.authority_id,
+            )
+        )
+    ).scalar_one()
+    assert pkg3.status == "active"
+    assert pkg3.superseded_by_id is None
+    assert pkg3.consumable_from_local_date == date(2026, 8, 1)
+    assert pkg3.consumable_to_local_date is None
+
+    # Boundary consistency for each link
+    assert pkg1.consumable_to_local_date == pkg2.consumable_from_local_date
+    assert pkg2.consumable_to_local_date == pkg3.consumable_from_local_date
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  SHARED DEPENDENCY REJECTION TESTS
+# ══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_shared_holiday_rejection(db_session: AsyncSession) -> None:
+    """Package A and B share holiday H; replacement of A must be rejected."""
+    from backend.app.models.task9_authority import (
+        Task9HolidayCalendarVersion,
+        Task9RunParameterPackage,
+        Task9WeatherRuleConfigVersion,
+    )
+
+    # Shared holiday H
+    hol = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol)
+
+    # Weather W1 for package A (unique code per active constraint)
+    wth_a = _weather_input(version="v1", revision=1, code="WEATHER-A")
+    wth_a_result = await create_or_load_weather_rule(db_session, weather_input=wth_a)
+
+    # Weather W2 for package B (different code to satisfy unique constraint)
+    wth_b = _weather_input(version="v1", revision=1, code="WEATHER-B")
+    wth_b_result = await create_or_load_weather_rule(db_session, weather_input=wth_b)
+
+    # Package A → holiday H + weather W1
+    pkg_a_input = _run_package_input(version="v1", revision=1).model_copy(
+        update={"farm_scope_key": "farm-A"}
+    )
+    pkg_a_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_a_input,
+        holiday_calendar=hol,
+        weather_rule=wth_a,
+    )
+    assert pkg_a_result.created is True
+
+    # Package B → holiday H + weather W2 (same holiday!)
+    pkg_b_input = _run_package_input(version="v2", revision=1).model_copy(
+        update={"farm_scope_key": "farm-B"}
+    )
+    pkg_b_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_b_input,
+        holiday_calendar=hol,
+        weather_rule=wth_b,
+    )
+    assert pkg_b_result.created is True
+
+    # Activate all trios
+    act_boundary = date(2026, 3, 1)
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_a_result.authority_id,
+        package_id=pkg_a_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=wth_b_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_b_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+
+    # Record lifecycle event count before replacement attempt
+    count_before = (
+        await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
+    ).scalar_one()
+
+    # ── Record old trio state before replacement attempt ─────────────
+    old_pkg_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_from = (
+        await db_session.execute(
+            text(
+                "SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_to = (
+        await db_session.execute(
+            text("SELECT consumable_to_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_hol_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_wth_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_a_result.authority_id},
+        )
+    ).scalar_one()
+
+    # Attempt replacement of A → must fail because holiday H is shared with B
+    hol_v3 = _holiday_input(version="v3", revision=1)
+    wth_v3 = _weather_input(version="v3", revision=1)
+    pkg_v3 = _run_package_input(version="v3", revision=1).model_copy(
+        update={"farm_scope_key": "farm-A"}
+    )
+    with pytest.raises(AuthorityStillReferencedByActivePackageError) as exc_info:
+        await replace_run_package_with_dependencies(
+            db_session,
+            old_package_id=pkg_a_result.authority_id,
+            new_package_input=pkg_v3,
+            new_holiday_input=hol_v3,
+            new_weather_input=wth_v3,
+            replacement_boundary=date(2026, 7, 1),
+        )
+    assert exc_info.value.code == "AUTHORITY_STILL_REFERENCED_BY_ACTIVE_PACKAGE"
+
+    # A remains active
+    pkg_a = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_a_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert pkg_a.status == "active"
+
+    # B remains active
+    pkg_b = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_b_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert pkg_b.status == "active"
+
+    # H remains active
+    hol_row = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == hol_result.parent.authority_id
+            )
+        )
+    ).scalar_one()
+    assert hol_row.status == "active"
+
+    # W1 remains active
+    wth_row = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == wth_a_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert wth_row.status == "active"
+
+    # ── Raw-SQL atomicity evidence ──────────────────────────────────
+    # No new holiday rows with v3 code
+    new_hol_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_holiday_calendar_version "
+                "WHERE calendar_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
+
+    # No new weather rows with v3 code
+    new_wth_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_weather_rule_config_version "
+                "WHERE rule_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
+
+    # No new package rows with v3 version
+    new_pkg_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_run_parameter_package "
+                "WHERE package_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
+
+    # Old trio unchanged — raw SQL verification
+    old_pkg_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id, "
+                "consumable_from_local_date, consumable_to_local_date "
+                "FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).one()
+    assert old_pkg_fresh.status == old_pkg_status
+    assert old_pkg_fresh.row_hash == old_pkg_hash
+    assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
+    assert str(old_pkg_fresh[3]) == str(old_pkg_from)
+    assert str(old_pkg_fresh[4]) == str(old_pkg_to)
+
+    # Old holiday unchanged
+    old_hol_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_holiday_calendar_version WHERE id = :id"
+            ),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).one()
+    assert old_hol_fresh.status == old_hol_status
+    assert old_hol_fresh.row_hash == old_hol_hash
+    assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
+
+    # Old weather unchanged
+    old_wth_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_weather_rule_config_version WHERE id = :id"
+            ),
+            {"id": wth_a_result.authority_id},
+        )
+    ).one()
+    assert old_wth_fresh.status == old_wth_status
+    assert old_wth_fresh.row_hash == old_wth_hash
+    assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
+
+    # No new trio rows created
+    count_after = (
+        await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
+    ).scalar_one()
+    assert count_after == count_before, "no lifecycle events should be added on rejection"
+
+
+@pytest.mark.asyncio
+async def test_shared_weather_rejection(db_session: AsyncSession) -> None:
+    """Package A and B share weather W; replacement of A must be rejected."""
+    from backend.app.models.task9_authority import (
+        Task9HolidayCalendarVersion,
+        Task9RunParameterPackage,
+        Task9WeatherRuleConfigVersion,
+    )
+
+    # Shared weather W
+    wth = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth)
+
+    # Holiday H1 for package A (unique code per active constraint)
+    hol_a = _holiday_input(version="v1", revision=1, code="CAL-A")
+    hol_a_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_a)
+
+    # Holiday H2 for package B (different code to satisfy unique constraint)
+    hol_b = _holiday_input(version="v1", revision=1, code="CAL-B")
+    hol_b_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_b)
+
+    # Package A → holiday H1 + weather W
+    pkg_a_input = _run_package_input(version="v1", revision=1).model_copy(
+        update={"farm_scope_key": "farm-A"}
+    )
+    pkg_a_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_a_input,
+        holiday_calendar=hol_a,
+        weather_rule=wth,
+    )
+
+    # Package B → holiday H2 + weather W (same weather!)
+    pkg_b_input = _run_package_input(version="v2", revision=1).model_copy(
+        update={"farm_scope_key": "farm-B"}
+    )
+    pkg_b_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_b_input,
+        holiday_calendar=hol_b,
+        weather_rule=wth,
+    )
+
+    # Activate all trios
+    act_boundary = date(2026, 3, 1)
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_a_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_a_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=hol_b_result.parent.authority_id,
+        activation_boundary=act_boundary,
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_b_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+
+    count_before = (
+        await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
+    ).scalar_one()
+
+    # ── Record old trio state before replacement attempt ─────────────
+    old_pkg_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_from = (
+        await db_session.execute(
+            text(
+                "SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_to = (
+        await db_session.execute(
+            text("SELECT consumable_to_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_hol_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_a_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_a_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_a_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_wth_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
+
+    # Attempt replacement of A → must fail because weather W is shared with B
+    hol_v3 = _holiday_input(version="v3", revision=1)
+    wth_v3 = _weather_input(version="v3", revision=1)
+    pkg_v3 = _run_package_input(version="v3", revision=1).model_copy(
+        update={"farm_scope_key": "farm-A"}
+    )
+    with pytest.raises(AuthorityStillReferencedByActivePackageError) as exc_info:
+        await replace_run_package_with_dependencies(
+            db_session,
+            old_package_id=pkg_a_result.authority_id,
+            new_package_input=pkg_v3,
+            new_holiday_input=hol_v3,
+            new_weather_input=wth_v3,
+            replacement_boundary=date(2026, 7, 1),
+        )
+    assert exc_info.value.code == "AUTHORITY_STILL_REFERENCED_BY_ACTIVE_PACKAGE"
+
+    # A remains active
+    pkg_a = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_a_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert pkg_a.status == "active"
+
+    # B remains active
+    pkg_b = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_b_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert pkg_b.status == "active"
+
+    # H1 remains active
+    hol_row = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == hol_a_result.parent.authority_id
+            )
+        )
+    ).scalar_one()
+    assert hol_row.status == "active"
+
+    # W remains active
+    wth_row = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == wth_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert wth_row.status == "active"
+
+    # ── Raw-SQL atomicity evidence ──────────────────────────────────
+    # No new holiday rows with v3 code
+    new_hol_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_holiday_calendar_version "
+                "WHERE calendar_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
+
+    # No new weather rows with v3 code
+    new_wth_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_weather_rule_config_version "
+                "WHERE rule_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
+
+    # No new package rows with v3 version
+    new_pkg_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_run_parameter_package "
+                "WHERE package_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
+
+    # Old trio unchanged — raw SQL verification
+    old_pkg_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id, "
+                "consumable_from_local_date, consumable_to_local_date "
+                "FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).one()
+    assert old_pkg_fresh.status == old_pkg_status
+    assert old_pkg_fresh.row_hash == old_pkg_hash
+    assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
+    assert str(old_pkg_fresh[3]) == str(old_pkg_from)
+    assert str(old_pkg_fresh[4]) == str(old_pkg_to)
+
+    # Old holiday unchanged
+    old_hol_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_holiday_calendar_version WHERE id = :id"
+            ),
+            {"id": hol_a_result.parent.authority_id},
+        )
+    ).one()
+    assert old_hol_fresh.status == old_hol_status
+    assert old_hol_fresh.row_hash == old_hol_hash
+    assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
+
+    # Old weather unchanged
+    old_wth_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_weather_rule_config_version WHERE id = :id"
+            ),
+            {"id": wth_result.authority_id},
+        )
+    ).one()
+    assert old_wth_fresh.status == old_wth_status
+    assert old_wth_fresh.row_hash == old_wth_hash
+    assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
+
+    # No new lifecycle events
+    count_after = (
+        await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
+    ).scalar_one()
+    assert count_after == count_before
+
+
+@pytest.mark.asyncio
+async def test_shared_both_rejection_deterministic(db_session: AsyncSession) -> None:
+    """Package A and B share both holiday H and weather W; rejection is deterministic."""
+    from backend.app.models.task9_authority import (
+        Task9HolidayCalendarVersion,
+        Task9RunParameterPackage,
+        Task9WeatherRuleConfigVersion,
+    )
+
+    # Shared holiday H and weather W
+    hol = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol)
+    wth = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth)
+
+    # Package A → holiday H + weather W
+    pkg_a_input = _run_package_input(version="v1", revision=1).model_copy(
+        update={"farm_scope_key": "farm-A"}
+    )
+    pkg_a_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_a_input,
+        holiday_calendar=hol,
+        weather_rule=wth,
+    )
+
+    # Package B → holiday H + weather W (same shared deps!)
+    pkg_b_input = _run_package_input(version="v2", revision=1).model_copy(
+        update={"farm_scope_key": "farm-B"}
+    )
+    pkg_b_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_b_input,
+        holiday_calendar=hol,
+        weather_rule=wth,
+    )
+
+    # Activate all
+    act_boundary = date(2026, 3, 1)
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_a_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=pkg_b_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+
+    count_before = (
+        await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
+    ).scalar_one()
+
+    # ── Record old trio state before replacement attempt ─────────────
+    old_pkg_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_from = (
+        await db_session.execute(
+            text(
+                "SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_to = (
+        await db_session.execute(
+            text("SELECT consumable_to_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_hol_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_wth_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
+
+    # Attempt replacement of A → must fail (holiday check fails first)
+    hol_v3 = _holiday_input(version="v3", revision=1)
+    wth_v3 = _weather_input(version="v3", revision=1)
+    pkg_v3 = _run_package_input(version="v3", revision=1).model_copy(
+        update={"farm_scope_key": "farm-A"}
+    )
+    with pytest.raises(AuthorityStillReferencedByActivePackageError):
+        await replace_run_package_with_dependencies(
+            db_session,
+            old_package_id=pkg_a_result.authority_id,
+            new_package_input=pkg_v3,
+            new_holiday_input=hol_v3,
+            new_weather_input=wth_v3,
+            replacement_boundary=date(2026, 7, 1),
+        )
+
+    # Verify deterministic error — repeat once more
+    with pytest.raises(AuthorityStillReferencedByActivePackageError):
+        await replace_run_package_with_dependencies(
+            db_session,
+            old_package_id=pkg_a_result.authority_id,
+            new_package_input=pkg_v3,
+            new_holiday_input=hol_v3,
+            new_weather_input=wth_v3,
+            replacement_boundary=date(2026, 7, 1),
+        )
+
+    # Both packages still active
+    pkg_a = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_a_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert pkg_a.status == "active"
+
+    pkg_b = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_b_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert pkg_b.status == "active"
+
+    # Holiday and weather still active
+    hol_row = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == hol_result.parent.authority_id
+            )
+        )
+    ).scalar_one()
+    assert hol_row.status == "active"
+
+    wth_row = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == wth_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert wth_row.status == "active"
+
+    # ── Raw-SQL atomicity evidence ──────────────────────────────────
+    # No new holiday rows with v3 code
+    new_hol_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_holiday_calendar_version "
+                "WHERE calendar_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
+
+    # No new weather rows with v3 code
+    new_wth_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_weather_rule_config_version "
+                "WHERE rule_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
+
+    # No new package rows with v3 version
+    new_pkg_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_run_parameter_package "
+                "WHERE package_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
+
+    # Old trio unchanged — raw SQL verification
+    old_pkg_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id, "
+                "consumable_from_local_date, consumable_to_local_date "
+                "FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).one()
+    assert old_pkg_fresh.status == old_pkg_status
+    assert old_pkg_fresh.row_hash == old_pkg_hash
+    assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
+    assert str(old_pkg_fresh[3]) == str(old_pkg_from)
+    assert str(old_pkg_fresh[4]) == str(old_pkg_to)
+
+    # Old holiday unchanged
+    old_hol_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_holiday_calendar_version WHERE id = :id"
+            ),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).one()
+    assert old_hol_fresh.status == old_hol_status
+    assert old_hol_fresh.row_hash == old_hol_hash
+    assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
+
+    # Old weather unchanged
+    old_wth_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_weather_rule_config_version WHERE id = :id"
+            ),
+            {"id": wth_result.authority_id},
+        )
+    ).one()
+    assert old_wth_fresh.status == old_wth_status
+    assert old_wth_fresh.row_hash == old_wth_hash
+    assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
+
+    # No extra lifecycle events
+    count_after = (
+        await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
+    ).scalar_one()
+    assert count_after == count_before
+
+
+@pytest.mark.asyncio
+async def test_replacement_atomic_rollback_on_mid_failure() -> None:
+    """When replacement fails mid-way (weather shared), the transaction rolls back cleanly.
+
+    Uses committed data + a separate session to verify isolation:
+    - Initial trio v1 is committed.
+    - Weather is shared with a second package B.
+    - A replacement attempt in a fresh session fails at the weather pre-check.
+    - A verification session confirms old trio unchanged, new trio absent.
+    """
+    await _seed_dimensions_committed()
+
+    from backend.app.models.task9_authority import (
+        Task9HolidayCalendarVersion,
+        Task9RunParameterPackage,
+        Task9WeatherRuleConfigVersion,
+    )
+
+    # Create initial trio v1 in a committed session
+    async with AsyncSessionMaker() as setup:
+        async with setup.begin():
+            hol_v1 = _holiday_input(version="v1", revision=1)
+            hol_result = await create_or_load_holiday_calendar(setup, calendar_input=hol_v1)
+
+            wth_v1 = _weather_input(version="v1", revision=1)
+            wth_result = await create_or_load_weather_rule(setup, weather_input=wth_v1)
+
+            # Shared weather: also used by package B
+            pkg_a_input = _run_package_input(version="v1", revision=1).model_copy(
+                update={"farm_scope_key": "farm-A"}
+            )
+            pkg_a_result = await create_or_load_run_parameter_package(
+                setup,
+                package_input=pkg_a_input,
+                holiday_calendar=hol_v1,
+                weather_rule=wth_v1,
+            )
+
+            # Package B → different holiday (unique code), same weather
+            hol_b = _holiday_input(version="v1", revision=1, code="CAL-B")
+            hol_b_result = await create_or_load_holiday_calendar(setup, calendar_input=hol_b)
+            pkg_b_input = _run_package_input(version="v1", revision=2).model_copy(
+                update={"farm_scope_key": "farm-B"}
+            )
+            pkg_b_result = await create_or_load_run_parameter_package(
+                setup,
+                package_input=pkg_b_input,
+                holiday_calendar=hol_b,
+                weather_rule=wth_v1,
+            )
+
+            # Activate both trios
+            act_boundary = date(2026, 3, 1)
+            await _activate_full_trio(
+                setup,
+                holiday_id=hol_result.parent.authority_id,
+                weather_id=wth_result.authority_id,
+                package_id=pkg_a_result.authority_id,
+                activation_boundary=act_boundary,
+            )
+            await activate_authority(
+                setup,
+                family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+                authority_id=hol_b_result.parent.authority_id,
+                activation_boundary=act_boundary,
+            )
+            await activate_authority(
+                setup,
+                family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                authority_id=pkg_b_result.authority_id,
+                activation_boundary=act_boundary,
+            )
+
+    pkg_a_id = pkg_a_result.authority_id
+    pkg_b_id = pkg_b_result.authority_id
+    hol_id = hol_result.parent.authority_id
+    wth_id = wth_result.authority_id
+
+    # Count lifecycle events before replacement attempt
+    async with AsyncSessionMaker() as count_session:
+        events_before = (
+            await count_session.execute(
+                text("SELECT count(*) FROM task9_authority_lifecycle_event")
+            )
+        ).scalar_one()
+
+    # Attempt replacement in a fresh session → fails (weather shared with B)
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1).model_copy(
+        update={"farm_scope_key": "farm-A"}
+    )
+    with pytest.raises(AuthorityStillReferencedByActivePackageError):
+        async with AsyncSessionMaker() as fail_session:
+            async with fail_session.begin():
+                await replace_run_package_with_dependencies(
+                    fail_session,
+                    old_package_id=pkg_a_id,
+                    new_package_input=pkg_v2,
+                    new_holiday_input=hol_v2,
+                    new_weather_input=wth_v2,
+                    replacement_boundary=date(2026, 7, 1),
+                )
+
+    # Verify via a verification session: old trio unchanged, new trio absent
+    async with AsyncSessionMaker() as verify:
+        # Old package still active
+        old_pkg = (
+            await verify.execute(
+                select(Task9RunParameterPackage).where(Task9RunParameterPackage.id == pkg_a_id)
+            )
+        ).scalar_one()
+        assert old_pkg.status == "active"
+        assert old_pkg.superseded_by_id is None
+
+        # Package B still active
+        b_pkg = (
+            await verify.execute(
+                select(Task9RunParameterPackage).where(Task9RunParameterPackage.id == pkg_b_id)
+            )
+        ).scalar_one()
+        assert b_pkg.status == "active"
+
+        # Holiday still active
+        old_hol = (
+            await verify.execute(
+                select(Task9HolidayCalendarVersion).where(Task9HolidayCalendarVersion.id == hol_id)
+            )
+        ).scalar_one()
+        assert old_hol.status == "active"
+        assert old_hol.superseded_by_id is None
+
+        # Weather still active
+        old_wth = (
+            await verify.execute(
+                select(Task9WeatherRuleConfigVersion).where(
+                    Task9WeatherRuleConfigVersion.id == wth_id
+                )
+            )
+        ).scalar_one()
+        assert old_wth.status == "active"
+        assert old_wth.superseded_by_id is None
+
+        # No new package rows created for the replacement
+        new_pkg_count = (
+            (
+                await verify.execute(
+                    select(Task9RunParameterPackage).where(
+                        Task9RunParameterPackage.season_id == _IDS["season"],
+                        Task9RunParameterPackage.destination_factory_id == _IDS["factory"],
+                        Task9RunParameterPackage.farm_scope_key == "farm-A",
+                        Task9RunParameterPackage.package_version == "v2",
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(new_pkg_count) == 0, "no new package should exist after failed replacement"
+
+        # Lifecycle event count unchanged
+        events_after = (
+            await verify.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
+        ).scalar_one()
+        assert events_after == events_before, "no lifecycle events should be added on failure"
+
+
+@pytest.mark.asyncio
+async def test_shared_dep_check_passes_for_sole_owner(db_session: AsyncSession) -> None:
+    """Single-owner package A → replacement succeeds, verifying the shared dep check passes."""
+    from backend.app.models.task9_authority import (
+        Task9HolidayCalendarVersion,
+        Task9RunParameterPackage,
+        Task9WeatherRuleConfigVersion,
+    )
+
+    # Sole owner: package A → holiday H + weather W (no other packages reference them)
+    hol_v1 = _holiday_input(version="v1", revision=1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    wth_v1 = _weather_input(version="v1", revision=1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    pkg_v1 = _run_package_input(version="v1", revision=1)
+    pkg_result = await create_or_load_run_parameter_package(
+        db_session,
+        package_input=pkg_v1,
+        holiday_calendar=hol_v1,
+        weather_rule=wth_v1,
+    )
+    assert pkg_result.created is True
+
+    # Activate trio
+    act_boundary = date(2026, 3, 1)
+    await _activate_full_trio(
+        db_session,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
+        activation_boundary=act_boundary,
+    )
+
+    # Replacement succeeds — sole owner means shared dep check passes
+    hol_v2 = _holiday_input(version="v2", revision=1)
+    wth_v2 = _weather_input(version="v2", revision=1)
+    pkg_v2 = _run_package_input(version="v2", revision=1)
+    replacement_boundary = date(2026, 7, 1)
+
+    sup_result = await replace_run_package_with_dependencies(
+        db_session,
+        old_package_id=pkg_result.authority_id,
+        new_package_input=pkg_v2,
+        new_holiday_input=hol_v2,
+        new_weather_input=wth_v2,
+        replacement_boundary=replacement_boundary,
+    )
+
+    # Old package superseded
+    assert sup_result.old.new_status == AuthorityStatus.SUPERSEDED
+    assert sup_result.old.authority_id == pkg_result.authority_id
+
+    # New package active
+    assert sup_result.new_activation.new_status == AuthorityStatus.ACTIVE
+    assert sup_result.new_activation.new_consumable_from == replacement_boundary
+
+    # Old package row: superseded with link
+    old_pkg_row = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == pkg_result.authority_id
+            )
+        )
+    ).scalar_one()
+    assert old_pkg_row.status == "superseded"
+    assert old_pkg_row.superseded_by_id == sup_result.new.authority_id
+
+    # New package row: active
+    new_pkg_row = (
+        await db_session.execute(
+            select(Task9RunParameterPackage).where(
+                Task9RunParameterPackage.id == sup_result.new.authority_id
+            )
+        )
+    ).scalar_one()
+    assert new_pkg_row.status == "active"
+    assert new_pkg_row.superseded_by_id is None
+
+    # Old holiday superseded, linked to new
+    old_hol_row = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == old_pkg_row.holiday_calendar_version_id
+            )
+        )
+    ).scalar_one()
+    assert old_hol_row.status == "superseded"
+    assert old_hol_row.superseded_by_id is not None
+
+    new_hol_row = (
+        await db_session.execute(
+            select(Task9HolidayCalendarVersion).where(
+                Task9HolidayCalendarVersion.id == new_pkg_row.holiday_calendar_version_id
+            )
+        )
+    ).scalar_one()
+    assert new_hol_row.status == "active"
+
+    # Old weather superseded, linked to new
+    old_wth_row = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == old_pkg_row.weather_rule_config_version_id
+            )
+        )
+    ).scalar_one()
+    assert old_wth_row.status == "superseded"
+    assert old_wth_row.superseded_by_id is not None
+
+    new_wth_row = (
+        await db_session.execute(
+            select(Task9WeatherRuleConfigVersion).where(
+                Task9WeatherRuleConfigVersion.id == new_pkg_row.weather_rule_config_version_id
+            )
+        )
+    ).scalar_one()
+    assert new_wth_row.status == "active"
+
+    # Supersession links are complete
+    assert old_pkg_row.superseded_by_id == new_pkg_row.id
+    assert old_hol_row.superseded_by_id == new_hol_row.id
+    assert old_wth_row.superseded_by_id == new_wth_row.id
