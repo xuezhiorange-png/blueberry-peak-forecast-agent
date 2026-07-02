@@ -28,56 +28,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.rolling_backtest import (
     RollingBacktestAttempt,
+    RollingBacktestAvailabilityAudit,
     RollingBacktestNode,
     RollingBacktestRun,
-    RollingBacktestResolvedInput,
-    RollingBacktestAvailabilityAudit,
-    RollingBacktestOrchestrationSnapshot,
 )
 from backend.app.rolling_backtest.availability import (
     availability_snapshot_audit_hash,
-    availability_snapshot_audit_payload,
     evaluate_authority_visibility,
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps, sha256_payload
 from backend.app.rolling_backtest.enums import (
-    AvailabilityBlockerCode,
     ExecutionMode,
     UpstreamSelectionMode,
 )
 from backend.app.rolling_backtest.errors import (
-    RollingBacktestAttemptConflictError,
     RollingBacktestAuthorityBindingError,
-    RollingBacktestCanonicalParityError,
-    RollingBacktestDagIntegrityError,
     RollingBacktestIntegrityError,
     RollingBacktestPersistenceError,
-    RollingBacktestStageIntegrityError,
 )
 from backend.app.rolling_backtest.orchestration import (
-    NodeExecutionContext,
+    AvailabilityAuditOutcome,
     NodeOrchestrationOutcome,
-    OrchestrationBlocker,
     OrchestrationStage,
     ResolvedInputOutcome,
-    AvailabilityAuditOutcome,
     Task9AuthorityOutcome,
     Task10AuthorityOutcome,
-    _build_frozen_dag,
     _sanitize_diagnostics,
 )
 from backend.app.rolling_backtest.persistence import (
-    _STAGE_ORDINAL,
     _resolved_input_canonical_payload,
-    _resolved_input_audit_hash,
     create_execution_attempt,
-    finalize_attempt_status,
     finalize_attempt_with_snapshot,
     load_logical_run_with_integrity,
     persist_orchestration_snapshot,
     persist_stage_event,
     update_run_status_from_attempts,
-    validate_persistence_command,
 )
 from backend.app.rolling_backtest.schemas import (
     AvailabilitySnapshot,
@@ -86,7 +71,6 @@ from backend.app.rolling_backtest.schemas import (
     RollingBacktestConfig,
     RollingNodeDefinition,
 )
-
 
 # ── Error types ──────────────────────────────────────────────────────────────
 
@@ -224,12 +208,10 @@ async def _verify_pinned_source(
     )
     if not eval_result.allowed:
         raise PinnedSourceNotVisibleError(
-            f"pinned source role={identity.source_role} "
-            f"blocked by {eval_result.blocker_code}"
+            f"pinned source role={identity.source_role} blocked by {eval_result.blocker_code}"
         )
 
     available_at = _extract_authoritative_available_at(snapshot)
-    audit_hash = availability_snapshot_audit_hash(snapshot)
 
     return ResolvedInputOutcome(
         source_role=identity.source_role,
@@ -238,9 +220,7 @@ async def _verify_pinned_source(
         persistent_reference=persistent_ref,
         authoritative_available_at=available_at,
         canonical_identity_hash=sha256_payload(
-            canonical_json_dumps(
-                _resolved_input_canonical_payload(identity)
-            )
+            canonical_json_dumps(_resolved_input_canonical_payload(identity))
         ),
         canonical_payload_hash=identity.semantic.canonical_payload_hash or "",
     )
@@ -253,14 +233,16 @@ def _extract_authoritative_available_at(
     if hasattr(snapshot, "authoritative_timestamp"):
         return snapshot.authoritative_timestamp
     if hasattr(snapshot, "available_at"):
-        from datetime import datetime as _dt, timezone as _tz
+        from datetime import datetime as _dt
 
         avail_date = snapshot.available_at
         if isinstance(avail_date, datetime):
             return avail_date
         return _dt(
-            avail_date.year, avail_date.month, avail_date.day,
-            tzinfo=_tz.utc,
+            avail_date.year,
+            avail_date.month,
+            avail_date.day,
+            tzinfo=UTC,
         )
     if hasattr(snapshot, "created_at"):
         return snapshot.created_at
@@ -292,13 +274,11 @@ async def _resolve_task8_reuse(
         return  # No Task 8 inputs required
 
     # Verify parent authority chain for Task 8 artifacts
-    for role, outcome in task8_inputs.items():
+    for _role, outcome in task8_inputs.items():
         if outcome.source_type.value == "task8_model_artifact":
             # Verify the artifact's parent (model run) is in resolved inputs
             model_run_inputs = {
-                r: o
-                for r, o in task8_inputs.items()
-                if o.source_type.value == "task8_model_run"
+                r: o for r, o in task8_inputs.items() if o.source_type.value == "task8_model_run"
             }
             if not model_run_inputs:
                 raise Task8ParentAuthorityMismatchError(
@@ -383,7 +363,9 @@ async def _resolve_task10_reuse(
         prediction_reference=prediction.persistent_reference if prediction else None,
         task9_run_reference=ctx.task9_authority.run_reference if ctx.task9_authority else None,
         task9_result_hash=ctx.task9_authority.result_hash if ctx.task9_authority else None,
-        input_signature=prediction.semantic_identity.semantic.input_signature if prediction else None,
+        input_signature=(
+            prediction.semantic_identity.semantic.input_signature if prediction else None
+        ),
         prediction_hash=prediction.semantic_identity.semantic.result_hash if prediction else None,
         mode="reuse",
     )
@@ -495,24 +477,18 @@ async def orchestrate_node(
     """
     # ── Load and validate ─────────────────────────────────────────────────
     run_result = await session.execute(
-        select(RollingBacktestRun)
-        .where(RollingBacktestRun.id == rolling_run_id)
+        select(RollingBacktestRun).where(RollingBacktestRun.id == rolling_run_id)
     )
     run = run_result.scalar_one_or_none()
     if run is None:
-        raise RollingBacktestIntegrityError(
-            f"rolling run {rolling_run_id} not found"
-        )
+        raise RollingBacktestIntegrityError(f"rolling run {rolling_run_id} not found")
 
     node_result = await session.execute(
-        select(RollingBacktestNode)
-        .where(RollingBacktestNode.id == rolling_node_id)
+        select(RollingBacktestNode).where(RollingBacktestNode.id == rolling_node_id)
     )
     node = node_result.scalar_one_or_none()
     if node is None:
-        raise RollingBacktestIntegrityError(
-            f"rolling node {rolling_node_id} not found"
-        )
+        raise RollingBacktestIntegrityError(f"rolling node {rolling_node_id} not found")
     if node.rolling_run_id != rolling_run_id:
         raise RollingBacktestAuthorityBindingError(
             f"node {rolling_node_id} does not belong to run {rolling_run_id}"
@@ -524,8 +500,7 @@ async def orchestrate_node(
     # ── Validate execution and selection modes ────────────────────────────
     if config.execution_mode != ExecutionMode.HISTORICAL_OBSERVED:
         raise UnsupportedExecutionModeError(
-            f"execution_mode={config.execution_mode.value} "
-            f"is not supported in this phase"
+            f"execution_mode={config.execution_mode.value} is not supported in this phase"
         )
     if node.upstream_selection_mode != UpstreamSelectionMode.PINNED:
         raise UnsupportedSelectionModeError(
@@ -535,9 +510,7 @@ async def orchestrate_node(
 
     # ── Prevent overwrite of successfully completed node ──────────────────
     if node.status == "completed":
-        raise NodeAlreadyFinalizedError(
-            f"node {rolling_node_id} is already completed"
-        )
+        raise NodeAlreadyFinalizedError(f"node {rolling_node_id} is already completed")
 
     # ── Create execution attempt ──────────────────────────────────────────
     attempt = await create_execution_attempt(
@@ -554,9 +527,6 @@ async def orchestrate_node(
         resolved_inputs={},
         availability_audits={},
     )
-
-    now = datetime.now(UTC)
-    stages = list(OrchestrationStage)
 
     try:
         # ── Stage 1: resolve_historical_inputs ───────────────────────────
@@ -708,7 +678,10 @@ async def orchestrate_node(
             run=run,
             attempt=attempt,
             status="blocked",
-            stage=ctx.diagnostics.get("last_completed_stage", OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value),
+            stage=ctx.diagnostics.get(
+                "last_completed_stage",
+                OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
+            ),
             blocker_code=blocker_code,
             diagnostics={"error": str(exc)},
         )
@@ -732,7 +705,10 @@ async def orchestrate_node(
             run=run,
             attempt=attempt,
             status="failed",
-            stage=ctx.diagnostics.get("last_completed_stage", OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value),
+            stage=ctx.diagnostics.get(
+                "last_completed_stage",
+                OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
+            ),
             blocker_code="PERSISTENCE_FAILURE",
             diagnostics={"error": str(exc)},
         )
@@ -806,9 +782,7 @@ async def _stage_resolve_historical_inputs(  # noqa: ARG001
             persistent_reference=identity.persistent_reference,
             authoritative_available_at=datetime.now(UTC),
             canonical_identity_hash=sha256_payload(
-                canonical_json_dumps(
-                    _resolved_input_canonical_payload(identity)
-                )
+                canonical_json_dumps(_resolved_input_canonical_payload(identity))
             ),
             canonical_payload_hash=identity.semantic.canonical_payload_hash or "",
             business_version=identity.semantic.business_version,
@@ -824,15 +798,15 @@ async def _stage_validate_visibility(
     node: RollingNodeDefinition,
 ) -> _StageContext:
     """Stage 2: Validate availability visibility for all resolved inputs."""
-    from backend.app.models.rolling_backtest import RollingBacktestAvailabilityAudit
     from backend.app.rolling_backtest.schemas import AvailabilitySnapshot
 
     snapshot_adapter = __import__("pydantic").TypeAdapter(AvailabilitySnapshot)
 
     # Load persisted availability audits
     audit_result = await ctx._get_session().execute(
-        select(RollingBacktestAvailabilityAudit)
-        .where(RollingBacktestAvailabilityAudit.rolling_node_id == ctx.node_id)
+        select(RollingBacktestAvailabilityAudit).where(
+            RollingBacktestAvailabilityAudit.rolling_node_id == ctx.node_id
+        )
     )
     audit_rows = audit_result.scalars().all()
     audit_by_role = {a.source_role: a for a in audit_rows}
@@ -899,9 +873,7 @@ async def _stage_resolve_task8(  # noqa: ARG001
     For historical_observed + pinned: reuse persisted Task 8.
     Verify parent authority chain.
     """
-    await _resolve_task8_reuse(
-        ctx, config, node, resolved_inputs=ctx.resolved_inputs
-    )
+    await _resolve_task8_reuse(ctx, config, node, resolved_inputs=ctx.resolved_inputs)
     return ctx
 
 
@@ -916,9 +888,7 @@ async def _stage_resolve_task9(  # noqa: ARG001
     For historical_observed + pinned: reuse persisted Task 9.
     Verify frozen Task 8 identity matches.
     """
-    await _resolve_task9_reuse(
-        ctx, config, node, resolved_inputs=ctx.resolved_inputs
-    )
+    await _resolve_task9_reuse(ctx, config, node, resolved_inputs=ctx.resolved_inputs)
     return ctx
 
 
@@ -933,9 +903,7 @@ async def _stage_resolve_task10(  # noqa: ARG001
     For historical_observed + pinned: reuse persisted Task 10.
     Verify training run completed, prediction run completed.
     """
-    await _resolve_task10_reuse(
-        ctx, config, node, resolved_inputs=ctx.resolved_inputs
-    )
+    await _resolve_task10_reuse(ctx, config, node, resolved_inputs=ctx.resolved_inputs)
     return ctx
 
 
@@ -964,8 +932,8 @@ async def _stage_finalize_snapshot(
     Atomic persistence of immutable snapshot.
     """
     from backend.app.rolling_backtest.signatures import (
-        run_signature_hash,
         node_signature_hash,
+        run_signature_hash,
     )
 
     run_sig = run_signature_hash(config)
@@ -1054,10 +1022,6 @@ def _build_outcome(
     diagnostics: dict[str, Any] | None = None,
 ) -> NodeOrchestrationOutcome:
     """Build the final orchestration outcome."""
-    from backend.app.rolling_backtest.signatures import (
-        run_signature_hash,
-        node_signature_hash,
-    )
 
     return NodeOrchestrationOutcome(
         rolling_run_signature=run.run_signature,
@@ -1083,6 +1047,7 @@ def _build_outcome(
 def _config_from_payload(payload: dict[str, Any]) -> RollingBacktestConfig:
     """Reconstruct config from canonical payload."""
     from pydantic import TypeAdapter
+
     adapter = TypeAdapter(RollingBacktestConfig)
     return adapter.validate_python(payload)
 
@@ -1093,13 +1058,11 @@ def _node_def_from_payload(
 ) -> RollingNodeDefinition:
     """Reconstruct node definition from canonical payload."""
     from pydantic import TypeAdapter
+
     adapter = TypeAdapter(RollingNodeDefinition)
     node_def = adapter.validate_python(payload)
     # Populate resolved identities from config's node matching
     for cfg_node in config.nodes:
-        if (
-            cfg_node.season_id == node_def.season_id
-            and cfg_node.node_key == node_def.node_key
-        ):
+        if cfg_node.season_id == node_def.season_id and cfg_node.node_key == node_def.node_key:
             return cfg_node
     return node_def
