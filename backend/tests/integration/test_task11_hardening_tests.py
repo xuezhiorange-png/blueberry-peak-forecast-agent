@@ -1324,20 +1324,37 @@ async def test_lifecycle_tamper_mature(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_child_tamper_pool_member(db_session: AsyncSession) -> None:
-    """capacity_pool_member: tamper farm_id → parent hash mismatch on reload."""
+    """capacity_pool_member: tamper variety_id → parent hash mismatch on reload.
+
+    Creates a second variety row, updates one member to reference it,
+    and verifies the parent hash mismatches on reload.
+    """
     inp = _pool_input()
     create_result = await create_or_load_capacity_pool_definition(db_session, definition_input=inp)
     pool_id = create_result.parent.authority_id
     stable_key = build_capacity_pool_definition_stable_key(inp)
 
-    # Tamper the member row
+    # Create a second variety to use as tamper target (avoids FK violation)
+    await db_session.execute(
+        text(
+            "INSERT INTO dim_variety (code, name) "
+            "VALUES ('test-var-tamper', 'Tamper Variety') "
+            "ON CONFLICT DO NOTHING"
+        ),
+    )
+    new_var_row = await db_session.execute(
+        text("SELECT id FROM dim_variety WHERE code = 'test-var-tamper'"),
+    )
+    new_var_id = new_var_row.scalar_one()
+
+    # Tamper the member row by changing variety_id (hash-covered, now valid FK)
     await db_session.execute(
         text(
             "UPDATE task9_capacity_pool_member "
-            "SET farm_id = :new_farm "
+            "SET variety_id = :new_var "
             "WHERE capacity_pool_definition_id = :pool_id"
         ),
-        {"new_farm": _IDS["farm"] + 999, "pool_id": pool_id},
+        {"new_var": new_var_id, "pool_id": pool_id},
     )
     db_session.expire_all()
 
