@@ -4905,7 +4905,7 @@ async def replace_run_package_with_dependencies(
         old_pkg.holiday_calendar_version_id != old_holiday_id
         or old_pkg.weather_rule_config_version_id != old_weather_id
     ):
-        raise AuthorityVersionConflictError(
+        raise AuthoritySupersessionScopeConflictError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
             details={
                 "reason": "dependency_id_drift",
