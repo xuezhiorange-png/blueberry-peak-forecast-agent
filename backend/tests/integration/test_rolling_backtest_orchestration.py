@@ -50,6 +50,7 @@ from backend.app.rolling_backtest.persistence import (
 )
 from backend.app.rolling_backtest.schemas import (
     HistoricalAvailableModelIdentity,
+    PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
     RollingBacktestConfig,
     RollingNodeDefinition,
@@ -165,6 +166,9 @@ def _make_semantic_identity(
         source_type=source_type,
         source_role=source_role,
         role_qualifier=role_qualifier,
+        persistent_reference=PersistentUpstreamReference(
+            reference_type="database_run_id", reference_value=1
+        ),
         semantic=UpstreamSemanticIdentityPayload(
             schema_version="task11-v1",
             display_label="test identity",
@@ -365,10 +369,8 @@ async def test_single_node_successful_orchestration() -> None:
         )
         await session.commit()
 
-    assert outcome.status == "completed", (
-        f"Orchestration failed: status={outcome.status}, "
-        f"blocker={outcome.blocker_code}, diagnostics={outcome.diagnostics}"
-    )
+    assert outcome.status == "completed"
+    assert outcome.stage == "finalize_orchestration_snapshot"
 
     # Verify attempt was created
     async with AsyncSessionMaker() as session:
