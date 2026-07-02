@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 """PostgreSQL integration tests for the Task 9 authority repository.
 
 These tests REQUIRE a real PostgreSQL database.  They are gated by the
@@ -1688,7 +1687,8 @@ async def _rewrite_lifecycle_event(
                 new_consumable_from_local_date = :new_consumable_from_local_date,
                 new_consumable_to_local_date = :new_consumable_to_local_date,
                 superseded_by_authority_stable_key = :superseded_by_authority_stable_key,
-                superseded_by_authority_business_version = :superseded_by_authority_business_version,
+                superseded_by_authority_business_version =
+                    :superseded_by_authority_business_version,
                 superseded_by_authority_revision = :superseded_by_authority_revision,
                 lifecycle_event_hash = :lifecycle_event_hash
             WHERE id = :event_id
@@ -2137,7 +2137,11 @@ async def test_concurrent_pool_create_conflicting_payload_returns_typed_conflict
             ],
         }
     )
-    stable_key = f"capacity-pool:{pool_a.season_id}:{pool_a.destination_factory_id}:{pool_a.capacity_pool_code}"
+    stable_key = (
+        f"capacity-pool:{pool_a.season_id}"
+        f":{pool_a.destination_factory_id}"
+        f":{pool_a.capacity_pool_code}"
+    )
     lock_key = _advisory_lock_key(
         AuthorityFamily.CAPACITY_POOL_DEFINITION,
         stable_key,
@@ -2708,7 +2712,9 @@ async def test_replace_run_package_non_existent_raises(db_session: AsyncSession)
 
 @pytest.mark.asyncio
 async def test_replace_run_package_boundary_consistency(db_session: AsyncSession) -> None:
-    """Old package consumable_to must equal new package consumable_from (the replacement boundary)."""
+    """Old package consumable_to must equal new package
+    consumable_from (the replacement boundary).
+    """
     from backend.app.models.task9_authority import Task9RunParameterPackage
 
     hol_v1 = _holiday_input(version="v1", revision=1)
@@ -3102,7 +3108,11 @@ async def test_replace_run_package_lifecycle_events_new_weather(
 async def test_replace_run_package_duplicate_call_rejected_without_side_effects(
     db_session: AsyncSession,
 ) -> None:
-    """Calling replace twice with the same old_package_id is rejected (not idempotent). The second call raises LifecycleTransitionInvalidError because the old package is already superseded."""
+    """Calling replace twice with the same old_package_id is
+    rejected.  Not idempotent.  The second call raises
+    LifecycleTransitionInvalidError because the old package
+    is already superseded.
+    """
     hol_v1 = _holiday_input(version="v1", revision=1)
     hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
