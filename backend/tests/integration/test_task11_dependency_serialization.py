@@ -1313,7 +1313,23 @@ async def test_activation_refreshes_preloaded_dependency_identity_map() -> None:
                 activation_boundary=date(2026, 3, 1),
             )
 
-    # First, remove package A reference to h1 by retiring it
+    # Create package v2 referencing h1 WHILE h1 is still ACTIVE
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            pkg_v2 = _run_package_input(
+                version="v2",
+                revision=1,
+                farm_scope_key="farm-10-v2",
+            )
+            pkg_v2_result = await create_or_load_run_parameter_package(
+                session,
+                package_input=pkg_v2,
+                holiday_calendar=_holiday_input(version="v1", revision=1),
+                weather_rule=_weather_input(version="v1", revision=1),
+            )
+            pkg_v2_id = pkg_v2_result.authority_id
+
+    # Retire pkg_a and supersede h1 → h2 (committed)
     async with AsyncSessionMaker() as session:
         async with session.begin():
             await retire_authority(
@@ -1322,8 +1338,6 @@ async def test_activation_refreshes_preloaded_dependency_identity_map() -> None:
                 authority_id=pkg_result.authority_id,
                 retirement_boundary=date(2026, 6, 1),
             )
-
-    # Now supersede holiday in a separate session (committed)
     async with AsyncSessionMaker() as session:
         async with session.begin():
             hol_v2 = _holiday_input(version="v2", revision=1)
@@ -1336,20 +1350,8 @@ async def test_activation_refreshes_preloaded_dependency_identity_map() -> None:
                 new_dates=hol_v2.dates,
             )
 
-    # Now try to activate a NEW package referencing the superseded h1.
-    # First create a draft package.
-    async with AsyncSessionMaker() as session:
-        async with session.begin():
-            pkg_v2 = _run_package_input(version="v2", revision=1, farm_scope_key="farm-10-v2")
-            pkg_v2_result = await create_or_load_run_parameter_package(
-                session,
-                package_input=pkg_v2,
-                holiday_calendar=_holiday_input(version="v1", revision=1),
-                weather_rule=_weather_input(version="v1", revision=1),
-            )
-            pkg_v2_id = pkg_v2_result.authority_id
-
     # Activation must reject because h1 is now superseded
+    # (fresh DB read catches stale identity map)
     async with AsyncSessionMaker() as session:
         async with session.begin():
             with pytest.raises(RunParameterDependencyStatusConflictError):
