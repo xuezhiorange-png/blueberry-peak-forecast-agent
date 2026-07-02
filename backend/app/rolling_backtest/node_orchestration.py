@@ -1079,8 +1079,17 @@ def _node_def_from_payload(
     """Reconstruct node definition from canonical payload."""
     from pydantic import TypeAdapter
 
+    # Node canonical payload may include run-level fields that
+    # RollingNodeDefinition rejects (extra="forbid"). Strip them.
+    _NODE_STRIP_KEYS = {"execution_mode", "cutoff_policy_version"}
+    cleaned = {k: v for k, v in payload.items() if k not in _NODE_STRIP_KEYS}
+    # Restore display_label for semantic identities
+    for ident in cleaned.get("resolved_upstream_semantic_identities", []):
+        sem = ident.get("semantic") if isinstance(ident, dict) else None
+        if isinstance(sem, dict) and "display_label" not in sem:
+            sem["display_label"] = "__canonical__"
     adapter = TypeAdapter(RollingNodeDefinition)
-    node_def = adapter.validate_python(payload)
+    node_def = adapter.validate_python(cleaned)
     # Populate resolved identities from config's node matching
     for cfg_node in config.nodes:
         if cfg_node.season_id == node_def.season_id and cfg_node.node_key == node_def.node_key:
