@@ -44,7 +44,9 @@ from backend.app.harvest_state.authority_repository import (
     create_or_load_mature_loss,
     create_or_load_run_parameter_package,
     create_or_load_weather_rule,
+    load_capacity_pool_definition_by_business_key,
     load_capacity_pool_definition_by_id,
+    load_capacity_pool_definition_by_row_hash,
     load_holiday_calendar_by_id,
     load_initial_inventory_by_id,
     load_mature_loss_by_id,
@@ -2342,14 +2344,23 @@ async def test_barrier_same_payload_exact_load_integrity() -> None:
 
     # ── final exact-load integrity ────────────────────────────────────
     async with AsyncSessionMaker() as verify:
-        loaded = await load_capacity_pool_definition_by_id(
+        loaded_bk = await load_capacity_pool_definition_by_business_key(
             verify,
-            authority_id=result_a.parent.authority_id,
+            stable_key=stable_key,
+            business_version=pool.capacity_pool_version,
+            revision=pool.revision,
         )
-    assert loaded.parent.authority_id == result_a.parent.authority_id
-    assert loaded.parent.row_hash == result_a.parent.row_hash
-    assert loaded.parent.status == "draft"
-    assert len(loaded.child_hashes) == len(pool.members)
+    assert loaded_bk.parent.authority_id == result_a.parent.authority_id
+    assert loaded_bk.parent.row_hash == result_a.parent.row_hash
+    assert loaded_bk.parent.status == "draft"
+    assert len(loaded_bk.child_hashes) == len(pool.members)
+    async with AsyncSessionMaker() as verify:
+        loaded_rh = await load_capacity_pool_definition_by_row_hash(
+            verify,
+            row_hash=result_a.parent.row_hash,
+        )
+    assert loaded_rh.parent.authority_id == result_a.parent.authority_id
+    assert loaded_rh.parent.row_hash == result_a.parent.row_hash
 
 
 @pytest.mark.asyncio
@@ -2479,14 +2490,23 @@ async def test_barrier_conflicting_payload_version_conflict() -> None:
 
     # ── final exact-load integrity ────────────────────────────────────
     async with AsyncSessionMaker() as verify:
-        loaded = await load_capacity_pool_definition_by_id(
+        loaded_bk = await load_capacity_pool_definition_by_business_key(
             verify,
-            authority_id=success.parent.authority_id,
+            stable_key=stable_key,
+            business_version=pool_a.capacity_pool_version,
+            revision=pool_a.revision,
         )
-    assert loaded.parent.authority_id == success.parent.authority_id
-    assert loaded.parent.row_hash == success.parent.row_hash
-    assert loaded.parent.status == "draft"
-    assert len(loaded.child_hashes) == len(pool_a.members)
+    assert loaded_bk.parent.authority_id == success.parent.authority_id
+    assert loaded_bk.parent.row_hash == success.parent.row_hash
+    assert loaded_bk.parent.status == "draft"
+    assert len(loaded_bk.child_hashes) == len(pool_a.members)
+    async with AsyncSessionMaker() as verify:
+        loaded_rh = await load_capacity_pool_definition_by_row_hash(
+            verify,
+            row_hash=success.parent.row_hash,
+        )
+    assert loaded_rh.parent.authority_id == success.parent.authority_id
+    assert loaded_rh.parent.row_hash == success.parent.row_hash
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -3086,7 +3106,9 @@ async def test_replace_run_package_lifecycle_events_new_weather(
 
 
 @pytest.mark.asyncio
-async def test_replace_run_package_duplicate_call_rejected_without_side_effects(db_session: AsyncSession) -> None:
+async def test_replace_run_package_duplicate_call_rejected_without_side_effects(
+    db_session: AsyncSession,
+) -> None:
     """Calling replace twice with the same old_package_id is rejected (not idempotent). The second call raises LifecycleTransitionInvalidError because the old package is already superseded."""
     hol_v1 = _holiday_input(version="v1", revision=1)
     hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
@@ -3982,9 +4004,7 @@ async def test_replacement_atomic_rollback_on_mid_failure() -> None:
         # Old package still active
         old_pkg = (
             await verify.execute(
-                select(Task9RunParameterPackage).where(
-                    Task9RunParameterPackage.id == pkg_a_id
-                )
+                select(Task9RunParameterPackage).where(Task9RunParameterPackage.id == pkg_a_id)
             )
         ).scalar_one()
         assert old_pkg.status == "active"
@@ -3993,9 +4013,7 @@ async def test_replacement_atomic_rollback_on_mid_failure() -> None:
         # Package B still active
         b_pkg = (
             await verify.execute(
-                select(Task9RunParameterPackage).where(
-                    Task9RunParameterPackage.id == pkg_b_id
-                )
+                select(Task9RunParameterPackage).where(Task9RunParameterPackage.id == pkg_b_id)
             )
         ).scalar_one()
         assert b_pkg.status == "active"
@@ -4003,9 +4021,7 @@ async def test_replacement_atomic_rollback_on_mid_failure() -> None:
         # Holiday still active
         old_hol = (
             await verify.execute(
-                select(Task9HolidayCalendarVersion).where(
-                    Task9HolidayCalendarVersion.id == hol_id
-                )
+                select(Task9HolidayCalendarVersion).where(Task9HolidayCalendarVersion.id == hol_id)
             )
         ).scalar_one()
         assert old_hol.status == "active"
@@ -4024,22 +4040,24 @@ async def test_replacement_atomic_rollback_on_mid_failure() -> None:
 
         # No new package rows created for the replacement
         new_pkg_count = (
-            await verify.execute(
-                select(Task9RunParameterPackage).where(
-                    Task9RunParameterPackage.season_id == _IDS["season"],
-                    Task9RunParameterPackage.destination_factory_id == _IDS["factory"],
-                    Task9RunParameterPackage.farm_scope_key == "farm-A",
-                    Task9RunParameterPackage.package_version == "v2",
+            (
+                await verify.execute(
+                    select(Task9RunParameterPackage).where(
+                        Task9RunParameterPackage.season_id == _IDS["season"],
+                        Task9RunParameterPackage.destination_factory_id == _IDS["factory"],
+                        Task9RunParameterPackage.farm_scope_key == "farm-A",
+                        Task9RunParameterPackage.package_version == "v2",
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(new_pkg_count) == 0, "no new package should exist after failed replacement"
 
         # Lifecycle event count unchanged
         events_after = (
-            await verify.execute(
-                text("SELECT count(*) FROM task9_authority_lifecycle_event")
-            )
+            await verify.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
         ).scalar_one()
         assert events_after == events_before, "no lifecycle events should be added on failure"
 

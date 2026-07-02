@@ -4263,7 +4263,10 @@ async def activate_authority(
             )
         if _dep_pkg_ref.weather_rule_config_version_id is not None:
             dep_ids.append(
-                (AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, _dep_pkg_ref.weather_rule_config_version_id)
+                (
+                    AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+                    _dep_pkg_ref.weather_rule_config_version_id,
+                )
             )
         if dep_ids:
             await _acquire_dependency_locks(session, dependencies=dep_ids)
@@ -4300,8 +4303,16 @@ async def activate_authority(
                         "dependency_status": dep_row.status,
                         "superseded_by_id": dep_row.superseded_by_id,
                         "activation_boundary": str(activation_boundary),
-                        "consumable_from": str(dep_row.consumable_from_local_date) if dep_row.consumable_from_local_date else None,
-                        "consumable_to": str(dep_row.consumable_to_local_date) if dep_row.consumable_to_local_date else None,
+                        "consumable_from": (
+                            str(dep_row.consumable_from_local_date)
+                            if dep_row.consumable_from_local_date
+                            else None
+                        ),
+                        "consumable_to": (
+                            str(dep_row.consumable_to_local_date)
+                            if dep_row.consumable_to_local_date
+                            else None
+                        ),
                     },
                 )
             if dep_row.superseded_by_id is not None:
@@ -4312,8 +4323,16 @@ async def activate_authority(
                         "dependency_status": dep_row.status,
                         "superseded_by_id": dep_row.superseded_by_id,
                         "activation_boundary": str(activation_boundary),
-                        "consumable_from": str(dep_row.consumable_from_local_date) if dep_row.consumable_from_local_date else None,
-                        "consumable_to": str(dep_row.consumable_to_local_date) if dep_row.consumable_to_local_date else None,
+                        "consumable_from": (
+                            str(dep_row.consumable_from_local_date)
+                            if dep_row.consumable_from_local_date
+                            else None
+                        ),
+                        "consumable_to": (
+                            str(dep_row.consumable_to_local_date)
+                            if dep_row.consumable_to_local_date
+                            else None
+                        ),
                     },
                 )
             # Consumability boundary check.
@@ -4327,7 +4346,11 @@ async def activate_authority(
                             "superseded_by_id": dep_row.superseded_by_id,
                             "activation_boundary": str(activation_boundary),
                             "consumable_from": str(dep_row.consumable_from_local_date),
-                            "consumable_to": str(dep_row.consumable_to_local_date) if dep_row.consumable_to_local_date else None,
+                            "consumable_to": (
+                                str(dep_row.consumable_to_local_date)
+                                if dep_row.consumable_to_local_date
+                                else None
+                            ),
                         },
                     )
             if dep_row.consumable_to_local_date is not None:
@@ -4339,7 +4362,11 @@ async def activate_authority(
                             "dependency_status": dep_row.status,
                             "superseded_by_id": dep_row.superseded_by_id,
                             "activation_boundary": str(activation_boundary),
-                            "consumable_from": str(dep_row.consumable_from_local_date) if dep_row.consumable_from_local_date else None,
+                            "consumable_from": (
+                                str(dep_row.consumable_from_local_date)
+                                if dep_row.consumable_from_local_date
+                                else None
+                            ),
                             "consumable_to": str(dep_row.consumable_to_local_date),
                         },
                     )
@@ -4808,9 +4835,8 @@ async def replace_run_package_with_dependencies(
     # (0) Resolve dependency IDs for advisory locking.
     # Light SELECT (no FOR UPDATE) to find the dependency IDs so we can
     # acquire advisory locks in global lock order.
-    _pkg_lookup = (
-        select(Task9RunParameterPackage)
-        .where(Task9RunParameterPackage.id == old_package_id)
+    _pkg_lookup = select(Task9RunParameterPackage).where(
+        Task9RunParameterPackage.id == old_package_id
     )
     _pkg_ref = (await session.execute(_pkg_lookup)).scalar_one_or_none()
     if _pkg_ref is None:
