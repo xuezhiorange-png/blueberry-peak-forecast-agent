@@ -540,6 +540,7 @@ async def orchestrate_node(
             status="running",
             current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
         )
+        ctx.attempt_id = attempt.id
 
         # ── Stage 1: resolve_historical_inputs ───────────────────────────
         ctx = await _run_stage(
