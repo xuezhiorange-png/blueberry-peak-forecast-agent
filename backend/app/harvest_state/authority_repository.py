@@ -15,6 +15,7 @@ CRITICAL INVARIANTS
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any, NoReturn
@@ -93,6 +94,18 @@ from backend.app.models.task9_authority import (
 # ── Advisory lock key computation ──────────────────────────────────────
 
 
+_dependency_serialization_test_hook: Callable[[str], Awaitable[None]] | None = None
+"""Test-only hook for deterministic synchronization during dependency-race tests.
+
+Set to a coroutine function before a test, restore to ``None`` afterwards.
+Default ``None`` → production code has zero overhead.  Call sites:
+
+    ``"after_dependency_locks_acquired"``
+    ``"after_shared_reference_precheck"``
+    ``"before_mutation"``
+"""
+
+
 def _advisory_lock_key(family: str, business_key: str, version: str, revision: int) -> int:
     """Deterministic signed-bigint lock key from SHA-256.
 
@@ -103,6 +116,46 @@ def _advisory_lock_key(family: str, business_key: str, version: str, revision: i
     raw = f"{family}:{business_key}:{version}:{revision}"
     digest = hashlib.sha256(raw.encode()).digest()
     return int.from_bytes(digest[:8], byteorder="big", signed=True)
+
+
+def _dependency_advisory_lock_key(
+    *,
+    dependency_family: AuthorityFamily,
+    dependency_id: int,
+) -> int:
+    """Deterministic signed-bigint lock key for dependency serialization.
+
+    Same family + ID always produces the same PostgreSQL bigint.
+    Holiday ID 1 and weather ID 1 never collide because the family
+    enum value is part of the hash input.
+    """
+    raw = f"dep_lock:{dependency_family.value}:{dependency_id}"
+    digest = hashlib.sha256(raw.encode()).digest()
+    return int.from_bytes(digest[:8], byteorder="big", signed=True)
+
+
+async def _acquire_dependency_locks(
+    session: AsyncSession,
+    *,
+    dependencies: list[tuple[AuthorityFamily, int]],
+) -> None:
+    """Acquire transaction-scoped advisory locks for dependency serialization.
+
+    Locks are deduplicated and ordered deterministically by
+    (family.value, dependency_id) to prevent deadlocks.  Each lock
+    is held until the current transaction commits or rolls back.
+    """
+    seen: set[tuple[str, int]] = set()
+    ordered: list[tuple[AuthorityFamily, int]] = []
+    for fam, dep_id in dependencies:
+        key = (fam.value, dep_id)
+        if key not in seen:
+            seen.add(key)
+            ordered.append((fam, dep_id))
+    ordered.sort(key=lambda x: (x[0].value, x[1]))
+    for fam, dep_id in ordered:
+        lock_key = _dependency_advisory_lock_key(dependency_family=fam, dependency_id=dep_id)
+        await session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
 
 
 # ── Allowed lifecycle transitions ──────────────────────────────────────
@@ -371,6 +424,215 @@ _STABLE_KEY_BUILDERS: dict[str, Any] = {
 def _stable_key_from_orm(family: AuthorityFamily, row: Any) -> str:
     result: str = _STABLE_KEY_BUILDERS[family](row)
     return result
+
+
+# ── Stable key parsers (for by_business_key lookups) ──────────────────
+
+
+def _parse_capacity_pool_stable_key(stable_key: str) -> tuple[int, int, str]:
+    """Parse ``capacity-pool:{season_id}:{factory_id}:{code}``.
+
+    The trailing ``code`` segment may contain colons; we use split-then-join
+    to absorb them safely.
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 4 or parts[0] != "capacity-pool":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            lookup_key=stable_key,
+        )
+    try:
+        return int(parts[1]), int(parts[2]), ":".join(parts[3:])
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_daily_capacity_stable_key(
+    stable_key: str,
+    *,
+    business_version: str,
+) -> tuple[int, int, str, str, int, date]:
+    """Parse ``daily-capacity:{season_id}:{factory_id}:{code}:{pool_version}:{pool_rev}:{date}``.
+
+    Both ``code`` and ``pool_version`` may contain colons.  We use the
+    caller-supplied *business_version* (= pool_version) as a known
+    authoritative suffix to resolve the boundary unambiguously.
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 7 or parts[0] != "daily-capacity":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=stable_key,
+        )
+    try:
+        capacity_date = date.fromisoformat(parts[-1])
+        pool_rev = int(parts[-2])
+        suffix = f":{business_version}:{pool_rev}:{capacity_date.isoformat()}"
+        if not stable_key.endswith(suffix):
+            raise AuthorityNotFoundError(
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                lookup_key=stable_key,
+            )
+        prefix_plus_code = stable_key[: -len(suffix)]
+        prefix_parts = prefix_plus_code.split(":")
+        if len(prefix_parts) < 3 or prefix_parts[0] != "daily-capacity":
+            raise AuthorityNotFoundError(
+                authority_family=AuthorityFamily.DAILY_CAPACITY,
+                lookup_key=stable_key,
+            )
+        season_id = int(prefix_parts[1])
+        dest_factory_id = int(prefix_parts[2])
+        pool_code = ":".join(prefix_parts[3:])
+        if not pool_code:
+            raise ValueError("empty pool_code")
+        if not business_version:
+            raise ValueError("empty business_version")
+        return (
+            season_id,
+            dest_factory_id,
+            pool_code,
+            business_version,
+            pool_rev,
+            capacity_date,
+        )
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_holiday_stable_key(stable_key: str) -> tuple[int, str, str]:
+    """Parse ``holiday-calendar:{season_id}:{code}:{timezone}``.
+
+    The ``code`` segment may contain colons; timezone is IANA (no colons).
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 4 or parts[0] != "holiday-calendar":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            lookup_key=stable_key,
+        )
+    try:
+        # From right: timezone (IANA, no colons)
+        tz_name = parts[-1]
+        # From left: season_id (int)
+        season_id = int(parts[1])
+        # Middle: calendar_code (may contain colons)
+        calendar_code = ":".join(parts[2:-1])
+        return season_id, calendar_code, tz_name
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_weather_stable_key(stable_key: str) -> tuple[str, str]:
+    """Parse ``weather-rule:{code}:{timezone}``.
+
+    The ``code`` segment may contain colons; timezone is IANA (no colons).
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 3 or parts[0] != "weather-rule":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            lookup_key=stable_key,
+        )
+    # From right: timezone (IANA, no colons)
+    tz_name = parts[-1]
+    # Everything between prefix and timezone: rule_code (may contain colons)
+    rule_code = ":".join(parts[1:-1])
+    return rule_code, tz_name
+
+
+def _parse_run_package_stable_key(stable_key: str) -> tuple[int, int, str]:
+    """Parse ``run-package:{season_id}:{factory_id}:{scope_key}``.
+
+    The trailing ``scope_key`` segment may contain colons.
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 4 or parts[0] != "run-package":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            lookup_key=stable_key,
+        )
+    try:
+        return int(parts[1]), int(parts[2]), ":".join(parts[3:])
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_initial_inventory_stable_key(stable_key: str) -> tuple[int, int, date]:
+    """Parse ``initial-inventory:{season_id}:{factory_id}:{date}``.
+
+    The trailing date is ISO format (no colons); the colon-safe split is
+    used for consistency with other parsers.
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 4 or parts[0] != "initial-inventory":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            lookup_key=stable_key,
+        )
+    try:
+        return int(parts[1]), int(parts[2]), date.fromisoformat(parts[-1])
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_mature_loss_stable_key(
+    stable_key: str,
+) -> tuple[int, int, str, date, str]:
+    """Parse ``mature-loss:{season_id}:{factory_id}:{code}:{date}:{quantile}``.
+
+    Both ``code`` and ``quantile`` may contain colons; date is ISO (no colons).
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 6 or parts[0] != "mature-loss":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            lookup_key=stable_key,
+        )
+    try:
+        # From right: quantile (string, may have colons), date (ISO)
+        quantile = parts[-1]
+        capacity_date = date.fromisoformat(parts[-2])
+        # From left: season_id, dest_factory_id (ints)
+        season_id = int(parts[1])
+        dest_factory_id = int(parts[2])
+        # Middle: capacity_pool_code (may contain colons)
+        pool_code = ":".join(parts[3:-2])
+        return season_id, dest_factory_id, pool_code, capacity_date, quantile
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _require_canonical_stable_key(
+    *,
+    family: AuthorityFamily,
+    supplied: str,
+    rebuilt: str,
+) -> None:
+    """Raise ``AuthorityNotFoundError`` if the rebuilt canonical key does not
+    match the supplied stable key byte-for-byte."""
+    if rebuilt != supplied:
+        raise AuthorityNotFoundError(
+            authority_family=family,
+            lookup_key=supplied,
+        )
 
 
 def _business_version_from_orm(family: AuthorityFamily, row: Any) -> str:
@@ -864,6 +1126,62 @@ async def _check_dependency_references(
         )
 
 
+async def _assert_dependency_replaceable_for_package(
+    session: AsyncSession,
+    *,
+    dependency_family: AuthorityFamily,
+    dependency_id: int,
+    replacing_package_id: int,
+) -> None:
+    """Verify that *dependency_id* may be superseded during a trio replacement.
+
+    The dependency is replaceable **only** if every active package that
+    references it is the *replacing_package_id* itself.  Any other active
+    reference triggers a fail-closed rejection.
+
+    Lock order (deadlock prevention):
+      1. old package (already locked by caller)
+      2. old holiday / old weather (by family, then id — fixed order)
+      3. other active referencing packages (id ascending)
+    """
+    if dependency_family == AuthorityFamily.HOLIDAY_CALENDAR_VERSION:
+        stmt = (
+            select(Task9RunParameterPackage.id)
+            .where(
+                Task9RunParameterPackage.holiday_calendar_version_id == dependency_id,
+                Task9RunParameterPackage.status == AuthorityStatus.ACTIVE,
+                Task9RunParameterPackage.id != replacing_package_id,
+            )
+            .order_by(Task9RunParameterPackage.id)
+        )
+    elif dependency_family == AuthorityFamily.WEATHER_RULE_CONFIG_VERSION:
+        stmt = (
+            select(Task9RunParameterPackage.id)
+            .where(
+                Task9RunParameterPackage.weather_rule_config_version_id == dependency_id,
+                Task9RunParameterPackage.status == AuthorityStatus.ACTIVE,
+                Task9RunParameterPackage.id != replacing_package_id,
+            )
+            .order_by(Task9RunParameterPackage.id)
+        )
+    else:
+        return  # Not a dependency family — no check needed
+
+    result = await session.execute(stmt)
+    conflicting_ids = list(result.scalars().all())
+    if conflicting_ids:
+        raise AuthorityStillReferencedByActivePackageError(
+            authority_family=dependency_family,
+            referencing_package_ids=[replacing_package_id, *conflicting_ids],
+            details={
+                "dependency_id": dependency_id,
+                "replacing_package_id": replacing_package_id,
+                "conflicting_package_ids": conflicting_ids,
+                "reason": "shared_dependency_still_referenced",
+            },
+        )
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Capacity Pool Definition (bundle)
 # ══════════════════════════════════════════════════════════════════════
@@ -1277,6 +1595,79 @@ async def load_capacity_pool_definition_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Capacity Pool Definition (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_capacity_pool_definition_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityBundleLoadResult:
+    """Load a capacity-pool definition by business key (stable_key + version + revision)."""
+    season_id, dest_factory_id, pool_code = _parse_capacity_pool_stable_key(stable_key)
+    # Canonical rebuild
+    rebuilt_key = f"capacity-pool:{season_id}:{dest_factory_id}:{pool_code}"
+    _require_canonical_stable_key(
+        family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+        supplied=stable_key,
+        rebuilt=rebuilt_key,
+    )
+    stmt = select(Task9CapacityPoolDefinition).where(
+        Task9CapacityPoolDefinition.season_id == season_id,
+        Task9CapacityPoolDefinition.destination_factory_id == dest_factory_id,
+        Task9CapacityPoolDefinition.capacity_pool_code == pool_code,
+        Task9CapacityPoolDefinition.capacity_pool_version == business_version,
+        Task9CapacityPoolDefinition.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_capacity_pool_definition_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Capacity Pool Definition (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_capacity_pool_definition_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityBundleLoadResult:
+    """Load a capacity-pool definition by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9CapacityPoolDefinition).where(
+        Task9CapacityPoolDefinition.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_capacity_pool_definition_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Daily Capacity
 # ══════════════════════════════════════════════════════════════════════
 
@@ -1530,6 +1921,110 @@ async def load_daily_capacity_by_id(
         consumable_to_local_date=row.consumable_to_local_date,
         superseded_by_id=row.superseded_by_id,
     )
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Daily Capacity
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_daily_capacity_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityLoadResult:
+    """Load a daily-capacity authority by business key.
+
+    ``stable_key`` encodes the parent pool identity and capacity_date.
+    ``business_version`` is the pool version (must match what is in the key).
+    ``revision`` is the daily_capacity_revision.
+    """
+    (
+        season_id,
+        dest_factory_id,
+        pool_code,
+        pool_version,
+        pool_rev,
+        capacity_date,
+    ) = _parse_daily_capacity_stable_key(stable_key, business_version=business_version)
+
+    # Canonical rebuild: verify supplied key matches rebuilt key
+    rebuilt_key = (
+        f"daily-capacity:{season_id}:{dest_factory_id}:{pool_code}:"
+        f"{pool_version}:{pool_rev}:{capacity_date.isoformat()}"
+    )
+    _require_canonical_stable_key(
+        family=AuthorityFamily.DAILY_CAPACITY,
+        supplied=stable_key,
+        rebuilt=rebuilt_key,
+    )
+
+    # Resolve pool definition FK
+    pool_stmt = select(Task9CapacityPoolDefinition).where(
+        Task9CapacityPoolDefinition.season_id == season_id,
+        Task9CapacityPoolDefinition.destination_factory_id == dest_factory_id,
+        Task9CapacityPoolDefinition.capacity_pool_code == pool_code,
+        Task9CapacityPoolDefinition.capacity_pool_version == pool_version,
+        Task9CapacityPoolDefinition.revision == pool_rev,
+    )
+    pool_result = await session.execute(pool_stmt)
+    pool_def = pool_result.scalar_one_or_none()
+    if pool_def is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+
+    stmt = select(Task9DailyCapacityAuthority).where(
+        Task9DailyCapacityAuthority.capacity_pool_definition_id == pool_def.id,
+        Task9DailyCapacityAuthority.capacity_date == capacity_date,
+        Task9DailyCapacityAuthority.daily_capacity_revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_daily_capacity_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Daily Capacity
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_daily_capacity_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityLoadResult:
+    """Load a daily-capacity authority by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9DailyCapacityAuthority).where(
+        Task9DailyCapacityAuthority.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_daily_capacity_by_id(session, authority_id=rows[0].id)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1858,6 +2353,79 @@ async def load_holiday_calendar_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Holiday Calendar Version (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_holiday_calendar_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityBundleLoadResult:
+    """Load a holiday calendar by business key (stable_key + version + revision)."""
+    season_id, calendar_code, timezone_name = _parse_holiday_stable_key(stable_key)
+    # Canonical rebuild
+    rebuilt_key = f"holiday-calendar:{season_id}:{calendar_code}:{timezone_name}"
+    _require_canonical_stable_key(
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        supplied=stable_key,
+        rebuilt=rebuilt_key,
+    )
+    stmt = select(Task9HolidayCalendarVersion).where(
+        Task9HolidayCalendarVersion.season_id == season_id,
+        Task9HolidayCalendarVersion.calendar_code == calendar_code,
+        Task9HolidayCalendarVersion.lifecycle_timezone_name == timezone_name,
+        Task9HolidayCalendarVersion.calendar_version == business_version,
+        Task9HolidayCalendarVersion.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_holiday_calendar_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Holiday Calendar Version (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_holiday_calendar_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityBundleLoadResult:
+    """Load a holiday calendar by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9HolidayCalendarVersion).where(
+        Task9HolidayCalendarVersion.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_holiday_calendar_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Weather Rule Config Version
 # ══════════════════════════════════════════════════════════════════════
 
@@ -2095,6 +2663,78 @@ async def load_weather_rule_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Weather Rule Config Version
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_weather_rule_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityLoadResult:
+    """Load a weather rule config by business key (stable_key + version + revision)."""
+    rule_code, timezone_name = _parse_weather_stable_key(stable_key)
+    # Canonical rebuild
+    rebuilt_key = f"weather-rule:{rule_code}:{timezone_name}"
+    _require_canonical_stable_key(
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        supplied=stable_key,
+        rebuilt=rebuilt_key,
+    )
+    stmt = select(Task9WeatherRuleConfigVersion).where(
+        Task9WeatherRuleConfigVersion.rule_code == rule_code,
+        Task9WeatherRuleConfigVersion.lifecycle_timezone_name == timezone_name,
+        Task9WeatherRuleConfigVersion.rule_version == business_version,
+        Task9WeatherRuleConfigVersion.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_weather_rule_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Weather Rule Config Version
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_weather_rule_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityLoadResult:
+    """Load a weather rule config by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9WeatherRuleConfigVersion).where(
+        Task9WeatherRuleConfigVersion.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_weather_rule_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Run Parameter Package
 # ══════════════════════════════════════════════════════════════════════
 
@@ -2108,10 +2748,41 @@ async def create_or_load_run_parameter_package(
 ) -> AuthorityCreateResult:
     """Create or load a run-parameter package with mandatory dependencies.
 
-    Before inserting, exact-loads holiday + weather dependencies and verifies:
+    Acquires dependency advisory locks, then exact-loads holiday + weather
+    dependencies and verifies:
     - Dependency hashes and status (active or draft within same transaction).
     - Timezone/scope consistency.
     """
+    # Resolve dependency IDs for locking
+    _hol_header = Task9HolidayCalendarSemanticInput(
+        **holiday_calendar.model_dump(exclude={"dates"}),
+    )
+    _hol_dep_stmt = select(Task9HolidayCalendarVersion.id).where(
+        Task9HolidayCalendarVersion.season_id == _hol_header.season_id,
+        Task9HolidayCalendarVersion.calendar_code == _hol_header.calendar_code,
+        Task9HolidayCalendarVersion.lifecycle_timezone_name == _hol_header.lifecycle_timezone_name,
+        Task9HolidayCalendarVersion.calendar_version == _hol_header.calendar_version,
+        Task9HolidayCalendarVersion.revision == _hol_header.revision,
+    )
+    _hol_dep_id = (await session.execute(_hol_dep_stmt)).scalar_one_or_none()
+
+    _wth_dep_stmt = select(Task9WeatherRuleConfigVersion.id).where(
+        Task9WeatherRuleConfigVersion.rule_code == weather_rule.rule_code,
+        Task9WeatherRuleConfigVersion.lifecycle_timezone_name
+        == weather_rule.lifecycle_timezone_name,
+        Task9WeatherRuleConfigVersion.rule_version == weather_rule.rule_version,
+        Task9WeatherRuleConfigVersion.revision == weather_rule.revision,
+    )
+    _wth_dep_id = (await session.execute(_wth_dep_stmt)).scalar_one_or_none()
+
+    _dep_locks: list[tuple[AuthorityFamily, int]] = []
+    if _hol_dep_id is not None:
+        _dep_locks.append((AuthorityFamily.HOLIDAY_CALENDAR_VERSION, _hol_dep_id))
+    if _wth_dep_id is not None:
+        _dep_locks.append((AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, _wth_dep_id))
+    if _dep_locks:
+        await _acquire_dependency_locks(session, dependencies=_dep_locks)
+
     # Exact-load dependencies
     holiday_hash = make_authority_row_hash(holiday_calendar)
     weather_hash = make_authority_row_hash(weather_rule)
@@ -2700,6 +3371,79 @@ async def load_run_parameter_package_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Run Parameter Package
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_run_parameter_package_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityLoadResult:
+    """Load a run-parameter package by business key (stable_key + version + revision)."""
+    season_id, dest_factory_id, farm_scope_key = _parse_run_package_stable_key(stable_key)
+    # Canonical rebuild
+    rebuilt_key = f"run-package:{season_id}:{dest_factory_id}:{farm_scope_key}"
+    _require_canonical_stable_key(
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        supplied=stable_key,
+        rebuilt=rebuilt_key,
+    )
+    stmt = select(Task9RunParameterPackage).where(
+        Task9RunParameterPackage.season_id == season_id,
+        Task9RunParameterPackage.destination_factory_id == dest_factory_id,
+        Task9RunParameterPackage.farm_scope_key == farm_scope_key,
+        Task9RunParameterPackage.package_version == business_version,
+        Task9RunParameterPackage.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_run_parameter_package_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Run Parameter Package
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_run_parameter_package_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityLoadResult:
+    """Load a run-parameter package by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9RunParameterPackage).where(
+        Task9RunParameterPackage.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_run_parameter_package_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Initial Inventory Snapshot (bundle)
 # ══════════════════════════════════════════════════════════════════════
 
@@ -3059,6 +3803,83 @@ async def load_initial_inventory_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Initial Inventory Snapshot (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_initial_inventory_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityBundleLoadResult:
+    """Load an initial inventory snapshot by business key (stable_key + version + revision)."""
+    season_id, dest_factory_id, opening_state_date = _parse_initial_inventory_stable_key(
+        stable_key,
+    )
+    # Canonical rebuild
+    rebuilt_key = (
+        f"initial-inventory:{season_id}:{dest_factory_id}:{opening_state_date.isoformat()}"
+    )
+    _require_canonical_stable_key(
+        family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+        supplied=stable_key,
+        rebuilt=rebuilt_key,
+    )
+    stmt = select(Task9InitialInventorySnapshot).where(
+        Task9InitialInventorySnapshot.season_id == season_id,
+        Task9InitialInventorySnapshot.destination_factory_id == dest_factory_id,
+        Task9InitialInventorySnapshot.opening_state_date == opening_state_date,
+        Task9InitialInventorySnapshot.snapshot_version == business_version,
+        Task9InitialInventorySnapshot.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_initial_inventory_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Initial Inventory Snapshot (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_initial_inventory_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityBundleLoadResult:
+    """Load an initial inventory snapshot by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9InitialInventorySnapshot).where(
+        Task9InitialInventorySnapshot.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_initial_inventory_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Mature Inventory Loss Authority
 # ══════════════════════════════════════════════════════════════════════
 
@@ -3273,6 +4094,85 @@ async def load_mature_loss_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Mature Inventory Loss Authority
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_mature_loss_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityLoadResult:
+    """Load a mature inventory loss authority by business key (stable_key + version + revision)."""
+    season_id, dest_factory_id, pool_code, state_date, quantile = _parse_mature_loss_stable_key(
+        stable_key
+    )
+    # Canonical rebuild
+    rebuilt_key = (
+        f"mature-loss:{season_id}:{dest_factory_id}:{pool_code}:{state_date.isoformat()}:{quantile}"
+    )
+    _require_canonical_stable_key(
+        family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+        supplied=stable_key,
+        rebuilt=rebuilt_key,
+    )
+    stmt = select(Task9MatureInventoryLossAuthority).where(
+        Task9MatureInventoryLossAuthority.season_id == season_id,
+        Task9MatureInventoryLossAuthority.destination_factory_id == dest_factory_id,
+        Task9MatureInventoryLossAuthority.capacity_pool_code == pool_code,
+        Task9MatureInventoryLossAuthority.state_date == state_date,
+        Task9MatureInventoryLossAuthority.forecast_quantile == quantile,
+        Task9MatureInventoryLossAuthority.loss_version == business_version,
+        Task9MatureInventoryLossAuthority.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_mature_loss_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Mature Inventory Loss Authority
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_mature_loss_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityLoadResult:
+    """Load a mature inventory loss authority by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9MatureInventoryLossAuthority).where(
+        Task9MatureInventoryLossAuthority.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_mature_loss_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  LIFECYCLE TRANSITIONS
 # ══════════════════════════════════════════════════════════════════════
 
@@ -3294,12 +4194,13 @@ async def _load_for_update(
     family: AuthorityFamily,
     authority_id: int,
 ) -> Any:
-    """SELECT ... FOR UPDATE on the authority row."""
+    """SELECT … FOR UPDATE with populate_existing to guarantee fresh state."""
     model_cls = _FAMILY_MODEL_MAP[family]
     stmt = (
         select(model_cls)
         .where(model_cls.id == authority_id)  # type: ignore[attr-defined]
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     result = await session.execute(stmt)
     row = result.scalar_one_or_none()
@@ -3348,15 +4249,204 @@ async def activate_authority(
 ) -> LifecycleTransitionResult:
     """Activate a draft authority.
 
-    1. SELECT ... FOR UPDATE
-    2. Validate current status = draft
-    3. UPDATE status=active, consumable_from=boundary, status_changed_at=now
-    4. Create lifecycle event
+    1. For RUN_PARAMETER_PACKAGE: acquire dependency advisory locks FIRST.
+    2. SELECT ... FOR UPDATE (after advisory locks).
+    3. For RUN_PARAMETER_PACKAGE: re-read dependencies under lock.
+    4. Validate current status = draft.
+    5. Validate dependency state under lock.
+    6. UPDATE status=active, consumable_from=boundary, status_changed_at=now.
+    7. Create lifecycle event.
     """
+    # For run packages, acquire dependency locks BEFORE row lock (global lock order).
+    dep_ids: list[tuple[AuthorityFamily, int]] = []
+    _dep_holiday_id: int | None = None
+    _dep_weather_id: int | None = None
+    if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
+        # Scalar-only light lookup — avoid loading ORM entity into identity map.
+        _dep_stmt = select(
+            Task9RunParameterPackage.holiday_calendar_version_id,
+            Task9RunParameterPackage.weather_rule_config_version_id,
+        ).where(Task9RunParameterPackage.id == authority_id)
+        _dep_row = (await session.execute(_dep_stmt)).one_or_none()
+        if _dep_row is None:
+            raise AuthorityNotFoundError(
+                authority_family=family,
+                lookup_key=str(authority_id),
+            )
+        _dep_holiday_id = _dep_row[0]
+        _dep_weather_id = _dep_row[1]
+        if _dep_holiday_id is not None:
+            dep_ids.append((AuthorityFamily.HOLIDAY_CALENDAR_VERSION, _dep_holiday_id))
+        if _dep_weather_id is not None:
+            dep_ids.append((AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, _dep_weather_id))
+        if dep_ids:
+            await _acquire_dependency_locks(session, dependencies=dep_ids)
+        if _dependency_serialization_test_hook is not None:
+            await _dependency_serialization_test_hook("after_dependency_locks_acquired")
+
     row = await _load_for_update(session, family=family, authority_id=authority_id)
     stable_key, version, revision = await _resolve_stable_key_and_version(family, row)
 
+    # For run packages: re-validate dependency IDs and dependencies under lock.
+    if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
+        # ── P0-1: Dependency-ID drift check after lock ──────────────────
+        # The row has been refreshed via populate_existing=True.  Compare
+        # its actual dependency FKs against the scalar lookup taken before
+        # advisory locks.  A mismatch means another transaction mutated the
+        # package between our light SELECT and the FOR UPDATE.
+        if (
+            row.holiday_calendar_version_id != _dep_holiday_id
+            or row.weather_rule_config_version_id != _dep_weather_id
+        ):
+            raise AuthoritySupersessionScopeConflictError(
+                authority_family=family,
+                details={
+                    "reason": "dependency_id_drift",
+                    "expected_holiday_id": _dep_holiday_id,
+                    "expected_weather_id": _dep_weather_id,
+                    "actual_holiday_id": row.holiday_calendar_version_id,
+                    "actual_weather_id": row.weather_rule_config_version_id,
+                    "operation": "activate_authority",
+                    "package_id": authority_id,
+                },
+            )
+
+        # Re-read dependencies with populate_existing=True to force fresh
+        # state (never return Session identity-map cached objects).
+        for dep_fam, dep_id in dep_ids:
+            dep_row_any: Task9HolidayCalendarVersion | Task9WeatherRuleConfigVersion | None = None
+            if dep_fam == AuthorityFamily.HOLIDAY_CALENDAR_VERSION:
+                _h_stmt = (
+                    select(Task9HolidayCalendarVersion)
+                    .where(Task9HolidayCalendarVersion.id == dep_id)
+                    .execution_options(populate_existing=True)
+                )
+                dep_row_any = (await session.execute(_h_stmt)).scalar_one_or_none()
+            else:
+                _w_stmt = (
+                    select(Task9WeatherRuleConfigVersion)
+                    .where(Task9WeatherRuleConfigVersion.id == dep_id)
+                    .execution_options(populate_existing=True)
+                )
+                dep_row_any = (await session.execute(_w_stmt)).scalar_one_or_none()
+            dep_row = dep_row_any
+            if dep_row is None:
+                raise RunParameterDependencyStatusConflictError(
+                    details={
+                        "dependency_family": dep_fam.value,
+                        "dependency_id": dep_id,
+                        "dependency_status": "missing",
+                        "superseded_by_id": None,
+                        "activation_boundary": str(activation_boundary),
+                        "consumable_from": None,
+                        "consumable_to": None,
+                    },
+                )
+            if dep_row.status != AuthorityStatus.ACTIVE:
+                raise RunParameterDependencyStatusConflictError(
+                    details={
+                        "dependency_family": dep_fam.value,
+                        "dependency_id": dep_id,
+                        "dependency_status": dep_row.status,
+                        "superseded_by_id": dep_row.superseded_by_id,
+                        "activation_boundary": str(activation_boundary),
+                        "consumable_from": (
+                            str(dep_row.consumable_from_local_date)
+                            if dep_row.consumable_from_local_date
+                            else None
+                        ),
+                        "consumable_to": (
+                            str(dep_row.consumable_to_local_date)
+                            if dep_row.consumable_to_local_date
+                            else None
+                        ),
+                    },
+                )
+            if dep_row.superseded_by_id is not None:
+                raise RunParameterDependencyStatusConflictError(
+                    details={
+                        "dependency_family": dep_fam.value,
+                        "dependency_id": dep_id,
+                        "dependency_status": dep_row.status,
+                        "superseded_by_id": dep_row.superseded_by_id,
+                        "activation_boundary": str(activation_boundary),
+                        "consumable_from": (
+                            str(dep_row.consumable_from_local_date)
+                            if dep_row.consumable_from_local_date
+                            else None
+                        ),
+                        "consumable_to": (
+                            str(dep_row.consumable_to_local_date)
+                            if dep_row.consumable_to_local_date
+                            else None
+                        ),
+                    },
+                )
+            # Consumability boundary check.
+            if dep_row.consumable_from_local_date is not None:
+                if dep_row.consumable_from_local_date > activation_boundary:
+                    raise RunParameterDependencyStatusConflictError(
+                        details={
+                            "dependency_family": dep_fam.value,
+                            "dependency_id": dep_id,
+                            "dependency_status": dep_row.status,
+                            "superseded_by_id": dep_row.superseded_by_id,
+                            "activation_boundary": str(activation_boundary),
+                            "consumable_from": str(dep_row.consumable_from_local_date),
+                            "consumable_to": (
+                                str(dep_row.consumable_to_local_date)
+                                if dep_row.consumable_to_local_date
+                                else None
+                            ),
+                        },
+                    )
+            if dep_row.consumable_to_local_date is not None:
+                if activation_boundary >= dep_row.consumable_to_local_date:
+                    raise RunParameterDependencyStatusConflictError(
+                        details={
+                            "dependency_family": dep_fam.value,
+                            "dependency_id": dep_id,
+                            "dependency_status": dep_row.status,
+                            "superseded_by_id": dep_row.superseded_by_id,
+                            "activation_boundary": str(activation_boundary),
+                            "consumable_from": (
+                                str(dep_row.consumable_from_local_date)
+                                if dep_row.consumable_from_local_date
+                                else None
+                            ),
+                            "consumable_to": str(dep_row.consumable_to_local_date),
+                        },
+                    )
+
     await _validate_transition(row.status, AuthorityStatus.ACTIVE, family, stable_key)
+
+    # ── P0-1: Explicit package self-invariant checks ───────────────
+    # After lock + refresh, the package must still satisfy activation
+    # invariants.  Fail closed with structured errors — never bare
+    # AssertionError.
+    if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
+        if row.superseded_by_id is not None:
+            raise LifecycleTransitionInvalidError(
+                authority_family=family,
+                authority_stable_key=stable_key,
+                current_status=row.status,
+                target_status=AuthorityStatus.ACTIVE,
+                details={
+                    "reason": "package_already_superseded",
+                    "superseded_by_id": row.superseded_by_id,
+                },
+            )
+        if row.consumable_to_local_date is not None:
+            raise LifecycleTransitionInvalidError(
+                authority_family=family,
+                authority_stable_key=stable_key,
+                current_status=row.status,
+                target_status=AuthorityStatus.ACTIVE,
+                details={
+                    "reason": "package_consumable_to_not_none",
+                    "consumable_to_local_date": str(row.consumable_to_local_date),
+                },
+            )
 
     old_consumable_from = row.consumable_from_local_date
     old_consumable_to = row.consumable_to_local_date
@@ -3553,18 +4643,37 @@ async def supersede_authority(
     new_cohorts: list[Task9InitialInventoryCohortSchema] | None = None,
     holiday_calendar: Task9HolidayCalendarSemanticBundle | None = None,
     weather_rule: Task9WeatherRuleSemanticInput | None = None,
+    # Internal-only: when True, skips dependency protection in step 3.
+    # MUST only be used by replace_run_package_with_dependencies AFTER
+    # pre-mutation validation via _assert_dependency_replaceable_for_package.
+    # Public callers must never pass this parameter.
+    _skip_dependency_protection: bool = False,
 ) -> SupersessionResult:
     """Supersede an active authority with a new draft.
 
     1. Lock old row (FOR UPDATE).
     2. Verify scope match.
-    3. Dependency protection for holiday/weather.
+    3. Dependency protection for holiday/weather (always enforced;
+       internal callers may bypass after pre-mutation validation).
     4. Create new draft + children + initial event.
     5. UPDATE old: status=superseded, superseded_by_id=new.id, consumable_to=boundary.
     6. UPDATE new: status=active, consumable_from=boundary.
     7. Write events for old supersession + new activation.
     """
-    # (1) Lock old
+    # (0) Dependency advisory locks BEFORE row locks (global lock order).
+    # When _skip_dependency_protection is False, the caller does NOT already
+    # hold these locks; we acquire them here.  When True, the caller
+    # (replace_run_package_with_dependencies) already holds matching locks.
+    if not _skip_dependency_protection and family in (
+        AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+    ):
+        await _acquire_dependency_locks(
+            session,
+            dependencies=[(family, old_id)],
+        )
+
+    # (1) Lock old row (FOR UPDATE) — always after advisory locks.
     old_row = await _load_for_update(session, family=family, authority_id=old_id)
     old_stable_key, old_version, old_revision = await _resolve_stable_key_and_version(
         family, old_row
@@ -3576,8 +4685,10 @@ async def supersede_authority(
     old_consumable_from = old_row.consumable_from_local_date
     old_consumable_to = old_row.consumable_to_local_date
 
-    # (3) Dependency protection
-    if family in (
+    # (3) Dependency protection — enforced unless internal bypass after pre-mutation validation.
+    # Under the dependency advisory lock, no other transaction can activate
+    # a package referencing this dependency, so the check is serialized.
+    if not _skip_dependency_protection and family in (
         AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
         AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
     ):
@@ -3796,19 +4907,45 @@ async def replace_run_package_with_dependencies(
     4. Supersede old weather → activate new weather.
     5. Supersede old package → activate new package.
     """
-    # (1) Lock old package
-    old_pkg_stmt = (
-        select(Task9RunParameterPackage)
-        .where(Task9RunParameterPackage.id == old_package_id)
-        .with_for_update()
-    )
-    old_pkg_result = await session.execute(old_pkg_stmt)
-    old_pkg = old_pkg_result.scalar_one_or_none()
-    if old_pkg is None:
+    # (0) Resolve dependency IDs for advisory locking.
+    # Scalar-only light SELECT (no FOR UPDATE, no ORM entity) to find the
+    # dependency IDs so we can acquire advisory locks in global lock order.
+    _dep_stmt = select(
+        Task9RunParameterPackage.holiday_calendar_version_id,
+        Task9RunParameterPackage.weather_rule_config_version_id,
+    ).where(Task9RunParameterPackage.id == old_package_id)
+    _dep_row = (await session.execute(_dep_stmt)).one_or_none()
+    if _dep_row is None:
         raise AuthorityNotFoundError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
             lookup_key=str(old_package_id),
         )
+
+    old_holiday_id = _dep_row[0]
+    old_weather_id = _dep_row[1]
+
+    # (1) Advisory dependency locks FIRST (global lock order: advisory → row).
+    await _acquire_dependency_locks(
+        session,
+        dependencies=[
+            (AuthorityFamily.HOLIDAY_CALENDAR_VERSION, old_holiday_id),
+            (AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, old_weather_id),
+        ],
+    )
+    if _dependency_serialization_test_hook is not None:
+        await _dependency_serialization_test_hook("after_dependency_locks_acquired")
+
+    # (2) Lock old package row FOR UPDATE (after advisory locks).
+    # Status validation happens here — not before locks.
+    old_pkg_stmt = (
+        select(Task9RunParameterPackage)
+        .where(Task9RunParameterPackage.id == old_package_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    old_pkg_result = await session.execute(old_pkg_stmt)
+    old_pkg = old_pkg_result.scalar_one_or_none()
+    assert old_pkg is not None  # verified above
 
     if old_pkg.status != AuthorityStatus.ACTIVE:
         raise LifecycleTransitionInvalidError(
@@ -3818,8 +4955,39 @@ async def replace_run_package_with_dependencies(
             target_status=AuthorityStatus.SUPERSEDED,
         )
 
-    old_holiday_id = old_pkg.holiday_calendar_version_id
-    old_weather_id = old_pkg.weather_rule_config_version_id
+    # Re-validate dependency IDs after lock (may have changed).
+    if (
+        old_pkg.holiday_calendar_version_id != old_holiday_id
+        or old_pkg.weather_rule_config_version_id != old_weather_id
+    ):
+        raise AuthoritySupersessionScopeConflictError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            details={
+                "reason": "dependency_id_drift",
+                "expected_holiday_id": old_holiday_id,
+                "expected_weather_id": old_weather_id,
+                "actual_holiday_id": old_pkg.holiday_calendar_version_id,
+                "actual_weather_id": old_pkg.weather_rule_config_version_id,
+            },
+        )
+
+    # (1c) Pre-mutation shared dependency validation (under lock)
+    await _assert_dependency_replaceable_for_package(
+        session,
+        dependency_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        dependency_id=old_holiday_id,
+        replacing_package_id=old_package_id,
+    )
+    await _assert_dependency_replaceable_for_package(
+        session,
+        dependency_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        dependency_id=old_weather_id,
+        replacing_package_id=old_package_id,
+    )
+    if _dependency_serialization_test_hook is not None:
+        await _dependency_serialization_test_hook("after_shared_reference_precheck")
+    if _dependency_serialization_test_hook is not None:
+        await _dependency_serialization_test_hook("before_mutation")
 
     # (2) Create new trio as drafts first
     _new_holiday = await create_or_load_holiday_calendar(session, calendar_input=new_holiday_input)
@@ -3832,6 +5000,7 @@ async def replace_run_package_with_dependencies(
     )
 
     # (3) Supersede old holiday → activate new holiday
+    # Pre-mutation validation already confirmed shared dependency safety.
     _holiday_supersession = await supersede_authority(
         session,
         family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
@@ -3839,6 +5008,7 @@ async def replace_run_package_with_dependencies(
         new_input=new_holiday_input,
         replacement_boundary=replacement_boundary,
         new_dates=new_holiday_input.dates,
+        _skip_dependency_protection=True,
     )
 
     # (4) Supersede old weather → activate new weather
@@ -3848,6 +5018,7 @@ async def replace_run_package_with_dependencies(
         old_id=old_weather_id,
         new_input=new_weather_input,
         replacement_boundary=replacement_boundary,
+        _skip_dependency_protection=True,
     )
 
     # (5) Supersede old package → activate new package

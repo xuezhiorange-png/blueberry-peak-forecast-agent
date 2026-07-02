@@ -59,6 +59,7 @@ asyncio_default_test_loop_scope = "session"
 asyncio_default_fixture_loop_scope = "session"
 markers = [
     "integration: tests that require external services such as PostgreSQL",
+    "postgres_concurrency: PostgreSQL integration tests requiring independent concurrent transactions",
 ]
 
 [tool.ruff]
