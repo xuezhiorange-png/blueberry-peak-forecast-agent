@@ -105,6 +105,46 @@ def _advisory_lock_key(family: str, business_key: str, version: str, revision: i
     return int.from_bytes(digest[:8], byteorder="big", signed=True)
 
 
+def _dependency_advisory_lock_key(
+    *,
+    dependency_family: AuthorityFamily,
+    dependency_id: int,
+) -> int:
+    """Deterministic signed-bigint lock key for dependency serialization.
+
+    Same family + ID always produces the same PostgreSQL bigint.
+    Holiday ID 1 and weather ID 1 never collide because the family
+    enum value is part of the hash input.
+    """
+    raw = f"dep_lock:{dependency_family.value}:{dependency_id}"
+    digest = hashlib.sha256(raw.encode()).digest()
+    return int.from_bytes(digest[:8], byteorder="big", signed=True)
+
+
+async def _acquire_dependency_locks(
+    session: AsyncSession,
+    *,
+    dependencies: list[tuple[AuthorityFamily, int]],
+) -> None:
+    """Acquire transaction-scoped advisory locks for dependency serialization.
+
+    Locks are deduplicated and ordered deterministically by
+    (family.value, dependency_id) to prevent deadlocks.  Each lock
+    is held until the current transaction commits or rolls back.
+    """
+    seen: set[tuple[str, int]] = set()
+    ordered: list[tuple[AuthorityFamily, int]] = []
+    for fam, dep_id in dependencies:
+        key = (fam.value, dep_id)
+        if key not in seen:
+            seen.add(key)
+            ordered.append((fam, dep_id))
+    ordered.sort(key=lambda x: (x[0].value, x[1]))
+    for fam, dep_id in ordered:
+        lock_key = _dependency_advisory_lock_key(dependency_family=fam, dependency_id=dep_id)
+        await session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+
+
 # ── Allowed lifecycle transitions ──────────────────────────────────────
 
 _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
@@ -2695,10 +2735,41 @@ async def create_or_load_run_parameter_package(
 ) -> AuthorityCreateResult:
     """Create or load a run-parameter package with mandatory dependencies.
 
-    Before inserting, exact-loads holiday + weather dependencies and verifies:
+    Acquires dependency advisory locks, then exact-loads holiday + weather
+    dependencies and verifies:
     - Dependency hashes and status (active or draft within same transaction).
     - Timezone/scope consistency.
     """
+    # Resolve dependency IDs for locking
+    _hol_header = Task9HolidayCalendarSemanticInput(
+        **holiday_calendar.model_dump(exclude={"dates"}),
+    )
+    _hol_dep_stmt = select(Task9HolidayCalendarVersion.id).where(
+        Task9HolidayCalendarVersion.season_id == _hol_header.season_id,
+        Task9HolidayCalendarVersion.calendar_code == _hol_header.calendar_code,
+        Task9HolidayCalendarVersion.lifecycle_timezone_name == _hol_header.lifecycle_timezone_name,
+        Task9HolidayCalendarVersion.calendar_version == _hol_header.calendar_version,
+        Task9HolidayCalendarVersion.revision == _hol_header.revision,
+    )
+    _hol_dep_id = (await session.execute(_hol_dep_stmt)).scalar_one_or_none()
+
+    _wth_dep_stmt = select(Task9WeatherRuleConfigVersion.id).where(
+        Task9WeatherRuleConfigVersion.rule_code == weather_rule.rule_code,
+        Task9WeatherRuleConfigVersion.lifecycle_timezone_name
+        == weather_rule.lifecycle_timezone_name,
+        Task9WeatherRuleConfigVersion.rule_version == weather_rule.rule_version,
+        Task9WeatherRuleConfigVersion.revision == weather_rule.revision,
+    )
+    _wth_dep_id = (await session.execute(_wth_dep_stmt)).scalar_one_or_none()
+
+    _dep_locks: list[tuple[AuthorityFamily, int]] = []
+    if _hol_dep_id is not None:
+        _dep_locks.append((AuthorityFamily.HOLIDAY_CALENDAR_VERSION, _hol_dep_id))
+    if _wth_dep_id is not None:
+        _dep_locks.append((AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, _wth_dep_id))
+    if _dep_locks:
+        await _acquire_dependency_locks(session, dependencies=_dep_locks)
+
     # Exact-load dependencies
     holiday_hash = make_authority_row_hash(holiday_calendar)
     weather_hash = make_authority_row_hash(weather_rule)
@@ -4165,12 +4236,27 @@ async def activate_authority(
     """Activate a draft authority.
 
     1. SELECT ... FOR UPDATE
-    2. Validate current status = draft
-    3. UPDATE status=active, consumable_from=boundary, status_changed_at=now
-    4. Create lifecycle event
+    2. For RUN_PARAMETER_PACKAGE: acquire dependency locks
+    3. Validate current status = draft
+    4. UPDATE status=active, consumable_from=boundary, status_changed_at=now
+    5. Create lifecycle event
     """
     row = await _load_for_update(session, family=family, authority_id=authority_id)
     stable_key, version, revision = await _resolve_stable_key_and_version(family, row)
+
+    # For run packages, acquire dependency locks before activation
+    if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
+        dep_locks: list[tuple[AuthorityFamily, int]] = []
+        if row.holiday_calendar_version_id is not None:
+            dep_locks.append(
+                (AuthorityFamily.HOLIDAY_CALENDAR_VERSION, row.holiday_calendar_version_id)
+            )
+        if row.weather_rule_config_version_id is not None:
+            dep_locks.append(
+                (AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, row.weather_rule_config_version_id)
+            )
+        if dep_locks:
+            await _acquire_dependency_locks(session, dependencies=dep_locks)
 
     await _validate_transition(row.status, AuthorityStatus.ACTIVE, family, stable_key)
 
@@ -4403,6 +4489,11 @@ async def supersede_authority(
         AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
         AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
     ):
+        # Acquire dependency lock to serialize with package create/activation
+        await _acquire_dependency_locks(
+            session,
+            dependencies=[(family, old_row.id)],
+        )
         await _check_dependency_references(
             session,
             dependency_family=family,
@@ -4643,9 +4734,18 @@ async def replace_run_package_with_dependencies(
     old_holiday_id = old_pkg.holiday_calendar_version_id
     old_weather_id = old_pkg.weather_rule_config_version_id
 
-    # (1b) Pre-mutation shared dependency validation
-    # Before creating any new drafts, verify that old holiday/weather
-    # are not shared with other active packages.
+    # (1b) Acquire dependency advisory locks BEFORE precheck
+    # Prevents phantom-reference race: another transaction inserting
+    # a new package reference between precheck and draft creation.
+    await _acquire_dependency_locks(
+        session,
+        dependencies=[
+            (AuthorityFamily.HOLIDAY_CALENDAR_VERSION, old_holiday_id),
+            (AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, old_weather_id),
+        ],
+    )
+
+    # (1c) Pre-mutation shared dependency validation (under lock)
     await _assert_dependency_replaceable_for_package(
         session,
         dependency_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
