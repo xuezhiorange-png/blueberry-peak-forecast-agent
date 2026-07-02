@@ -222,8 +222,7 @@ def _run_package_input(
 
 
 async def _seed_dimensions_committed() -> None:
-    """Insert dim_season, dim_factory, dim_farm, dim_subfarm, dim_variety
-    using committed sessions (not rolled back)."""
+    """Insert dim rows using committed sessions."""
     async with AsyncSessionMaker() as session:
         async with session.begin():
             await session.execute(
@@ -262,7 +261,6 @@ async def _seed_dimensions_committed() -> None:
                     "ON CONFLICT DO NOTHING"
                 )
             )
-            # Fetch real IDs and update module-level _IDS
             season_row = await session.execute(
                 text("SELECT id FROM dim_season WHERE code = 'test-season'")
             )
@@ -317,7 +315,7 @@ async def _activate_full_trio(
     )
 
 
-# ── Setup helper: create and activate initial trio ──────────────────────
+# ── Setup helper ────────────────────────────────────────────────────────
 
 
 async def _setup_initial_trio() -> tuple[
@@ -327,7 +325,7 @@ async def _setup_initial_trio() -> tuple[
     Any,
     Any,
 ]:
-    """Create and activate an initial trio, returning inputs and results."""
+    """Create and activate an initial trio."""
     async with AsyncSessionMaker() as session:
         async with session.begin():
             hol_v1 = _holiday_input(version="v1", revision=1)
@@ -353,22 +351,25 @@ async def _setup_initial_trio() -> tuple[
     return hol_v1, wth_v1, pkg_result, hol_result, wth_result
 
 
-# ── Assertion helpers ───────────────────────────────────────────────────
+# ── Hook helper for deterministic post-lock synchronization ──────────────
 
 
-def _assert_only_expected_error(
-    result: object,
-    expected_type: type[Exception],
-) -> None:
-    """Assert that result is either the expected error type or a success.
+class _LockSignal:
+    """Tracks when Transaction A has acquired dependency advisory locks.
 
-    Raises AssertionError for any unexpected exception type.
+    Used to ensure A holds the lock BEFORE B starts, making the race
+    deterministic without sleep.
     """
-    if isinstance(result, BaseException):
-        if not isinstance(result, expected_type):
-            raise AssertionError(
-                f"expected {expected_type.__name__}, got {type(result).__name__}: {result}"
-            )
+
+    def __init__(self) -> None:
+        self._a_has_locks = asyncio.Event()
+
+    async def hook(self, phase: str) -> None:
+        if phase == "after_dependency_locks_acquired":
+            self._a_has_locks.set()
+
+    async def wait_a_has_locks(self) -> None:
+        await asyncio.wait_for(self._a_has_locks.wait(), timeout=5)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -382,12 +383,9 @@ async def test_replacement_race_vs_package_activation() -> None:
     """Concurrent replacement (Transaction A) vs activating a draft package
     referencing the same dependencies (Transaction B).
 
-    Frozen outcome:
-      - A succeeds (replacement)
-      - B fails with RunParameterDependencyStatusConflictError
-
-    Uses _dependency_serialization_test_hook for deterministic
-    post-lock synchronization and fresh-session for final verification.
+    Deterministic: A starts first, acquires advisory locks, then B starts.
+    B blocks on advisory lock.  A commits.  B re-reads deps, finds them
+    superseded, raises RunParameterDependencyStatusConflictError.
     """
     await _seed_dimensions_committed()
 
@@ -412,53 +410,47 @@ async def test_replacement_race_vs_package_activation() -> None:
     pkg_v2 = _run_package_input(version="v2", revision=1)
     replacement_boundary = date(2026, 7, 1)
 
-    # ── Hook-based synchronization ───────────────────────────────────
-    a_precheck_done = asyncio.Event()
-
-    async def _test_hook(phase: str) -> None:
-        if phase == "after_shared_reference_precheck":
-            a_precheck_done.set()
-
+    # ── Deterministic synchronization via hook ───────────────────────
+    signal = _LockSignal()
     import backend.app.harvest_state.authority_repository as _repo
 
     original_hook = _repo._dependency_serialization_test_hook
-    _repo._dependency_serialization_test_hook = _test_hook
-
-    barrier = asyncio.Barrier(2)
-
-    async def _txn_replace() -> Any:
-        """Transaction A: replace_run_package_with_dependencies."""
-        async with AsyncSessionMaker() as session:
-            async with session.begin():
-                await asyncio.wait_for(barrier.wait(), timeout=5)
-                return await replace_run_package_with_dependencies(
-                    session,
-                    old_package_id=pkg_result.authority_id,
-                    new_package_input=pkg_v2,
-                    new_holiday_input=hol_v2,
-                    new_weather_input=wth_v2,
-                    replacement_boundary=replacement_boundary,
-                )
-
-    async def _txn_activate_b() -> Any:
-        """Transaction B: activate draft package B."""
-        async with AsyncSessionMaker() as session:
-            async with session.begin():
-                await asyncio.wait_for(barrier.wait(), timeout=5)
-                return await activate_authority(
-                    session,
-                    family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-                    authority_id=pkg_v2_b_id,
-                    activation_boundary=date(2026, 7, 1),
-                )
+    _repo._dependency_serialization_test_hook = signal.hook
 
     try:
+        # Start A (replacement) first
+        async def _txn_replace() -> Any:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    return await replace_run_package_with_dependencies(
+                        session,
+                        old_package_id=pkg_result.authority_id,
+                        new_package_input=pkg_v2,
+                        new_holiday_input=hol_v2,
+                        new_weather_input=wth_v2,
+                        replacement_boundary=replacement_boundary,
+                    )
+
+        task_a = asyncio.create_task(_txn_replace())
+
+        # Wait for A to acquire advisory locks
+        await signal.wait_a_has_locks()
+
+        # Now start B (activation) — B will block on advisory lock
+        async def _txn_activate_b() -> Any:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    return await activate_authority(
+                        session,
+                        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                        authority_id=pkg_v2_b_id,
+                        activation_boundary=date(2026, 7, 1),
+                    )
+
+        task_b = asyncio.create_task(_txn_activate_b())
+
         gathered = await asyncio.wait_for(
-            asyncio.gather(
-                asyncio.create_task(_txn_replace()),
-                asyncio.create_task(_txn_activate_b()),
-                return_exceptions=True,
-            ),
+            asyncio.gather(task_a, task_b, return_exceptions=True),
             timeout=15,
         )
     finally:
@@ -478,13 +470,11 @@ async def test_replacement_race_vs_package_activation() -> None:
         f"got {len(dep_conflicts)}: gathered={gathered}"
     )
 
-    # ── Verify replacement result ───────────────────────────────────
     replacement_result = successes[0]
     assert replacement_result.new_activation is not None
 
     # ── Fresh session final verification ────────────────────────────
     async with AsyncSessionMaker() as verify:
-        # Old package should be superseded
         old_pkg = (
             await verify.execute(
                 text(
@@ -496,7 +486,6 @@ async def test_replacement_race_vs_package_activation() -> None:
         ).one()
         assert old_pkg.status == "superseded"
 
-        # Draft package B should still be draft (activation failed)
         draft_pkg = (
             await verify.execute(
                 text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
@@ -505,7 +494,6 @@ async def test_replacement_race_vs_package_activation() -> None:
         ).scalar_one()
         assert draft_pkg == "draft"
 
-        # New package v2 should be active
         new_pkg = (
             await verify.execute(
                 text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
@@ -514,7 +502,6 @@ async def test_replacement_race_vs_package_activation() -> None:
         ).scalar_one()
         assert new_pkg == "active"
 
-        # No active package references a superseded dependency
         stale_refs = (
             await verify.execute(
                 text(
@@ -526,7 +513,7 @@ async def test_replacement_race_vs_package_activation() -> None:
                 )
             )
         ).scalar_one()
-        assert stale_refs == 0, f"active package references superseded holiday: {stale_refs}"
+        assert stale_refs == 0
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -537,64 +524,64 @@ async def test_replacement_race_vs_package_activation() -> None:
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
 async def test_replacement_race_vs_package_create() -> None:
-    """Concurrent replacement (Transaction A) vs creating a new package
-    referencing the same dependencies (Transaction B).
+    """Concurrent replacement (A) vs creating a new package (B) referencing
+    the same dependencies.
 
-    Frozen outcome:
-      - A succeeds (replacement)
-      - B fails with RunParameterDependencyStatusConflictError
-      - proposed package B row does NOT exist in fresh session
+    Deterministic: A starts first, acquires locks, then B starts.
+    B blocks, then re-reads superseded deps, raises typed error.
+    Proposed package B row does NOT exist.
     """
     await _seed_dimensions_committed()
 
-    # ── Setup: create and activate initial trio ──────────────────────
     hol_v1, wth_v1, pkg_result, _, _ = await _setup_initial_trio()
 
-    # ── Build inputs for concurrent operations ──────────────────────
     hol_v2 = _holiday_input(version="v2", revision=1)
     wth_v2 = _weather_input(version="v2", revision=1)
     pkg_v2 = _run_package_input(version="v2", revision=1)
     replacement_boundary = date(2026, 7, 1)
-
-    # Transaction B: create a new package referencing same deps
     pkg_create_input = _run_package_input(version="create", revision=1)
 
-    barrier = asyncio.Barrier(2)
+    signal = _LockSignal()
+    import backend.app.harvest_state.authority_repository as _repo
 
-    async def _txn_replace() -> Any:
-        """Transaction A: replace_run_package_with_dependencies."""
-        async with AsyncSessionMaker() as session:
-            async with session.begin():
-                await asyncio.wait_for(barrier.wait(), timeout=5)
-                return await replace_run_package_with_dependencies(
-                    session,
-                    old_package_id=pkg_result.authority_id,
-                    new_package_input=pkg_v2,
-                    new_holiday_input=hol_v2,
-                    new_weather_input=wth_v2,
-                    replacement_boundary=replacement_boundary,
-                )
+    original_hook = _repo._dependency_serialization_test_hook
+    _repo._dependency_serialization_test_hook = signal.hook
 
-    async def _txn_create_b() -> Any:
-        """Transaction B: create_or_load_run_parameter_package."""
-        async with AsyncSessionMaker() as session:
-            async with session.begin():
-                await asyncio.wait_for(barrier.wait(), timeout=5)
-                return await create_or_load_run_parameter_package(
-                    session,
-                    package_input=pkg_create_input,
-                    holiday_calendar=hol_v1,
-                    weather_rule=wth_v1,
-                )
+    try:
 
-    gathered = await asyncio.wait_for(
-        asyncio.gather(
-            asyncio.create_task(_txn_replace()),
-            asyncio.create_task(_txn_create_b()),
-            return_exceptions=True,
-        ),
-        timeout=15,
-    )
+        async def _txn_replace() -> Any:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    return await replace_run_package_with_dependencies(
+                        session,
+                        old_package_id=pkg_result.authority_id,
+                        new_package_input=pkg_v2,
+                        new_holiday_input=hol_v2,
+                        new_weather_input=wth_v2,
+                        replacement_boundary=replacement_boundary,
+                    )
+
+        task_a = asyncio.create_task(_txn_replace())
+        await signal.wait_a_has_locks()
+
+        async def _txn_create_b() -> Any:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    return await create_or_load_run_parameter_package(
+                        session,
+                        package_input=pkg_create_input,
+                        holiday_calendar=hol_v1,
+                        weather_rule=wth_v1,
+                    )
+
+        task_b = asyncio.create_task(_txn_create_b())
+
+        gathered = await asyncio.wait_for(
+            asyncio.gather(task_a, task_b, return_exceptions=True),
+            timeout=15,
+        )
+    finally:
+        _repo._dependency_serialization_test_hook = original_hook
 
     # ── Verify frozen outcome ───────────────────────────────────────
     successes = [r for r in gathered if not isinstance(r, BaseException)]
@@ -611,15 +598,13 @@ async def test_replacement_race_vs_package_create() -> None:
 
     # ── Fresh session: no proposed package row ───────────────────────
     async with AsyncSessionMaker() as verify:
-        # Active count should be exactly 1 (new replacement only)
         active_count = (
             await verify.execute(
                 text("SELECT count(*) FROM task9_run_parameter_package WHERE status = 'active'")
             )
         ).scalar_one()
-        assert active_count == 1, f"expected exactly 1 active package, got {active_count}"
+        assert active_count == 1
 
-        # Old package should be superseded
         old_pkg_status = (
             await verify.execute(
                 text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
@@ -628,7 +613,6 @@ async def test_replacement_race_vs_package_create() -> None:
         ).scalar_one()
         assert old_pkg_status == "superseded"
 
-        # Proposed B package should NOT exist
         proposed_count = (
             await verify.execute(
                 text(
@@ -649,9 +633,8 @@ async def test_replacement_race_vs_package_create() -> None:
                 },
             )
         ).scalar_one()
-        assert proposed_count == 0, f"proposed B package row exists: {proposed_count}"
+        assert proposed_count == 0
 
-        # No active package references superseded dependency
         stale_refs = (
             await verify.execute(
                 text(
@@ -674,109 +657,105 @@ async def test_replacement_race_vs_package_create() -> None:
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
 async def test_trio_replacement_vs_direct_dependency_supersession_no_deadlock() -> None:
-    """Concurrent trio replacement (Transaction A) vs directly superseding
-    holiday H1 with a different new holiday (Transaction B).
+    """Concurrent trio replacement (A) vs directly superseding holiday H1
+    with a different new holiday (B).
 
-    Frozen outcome:
-      - One operation succeeds
-      - The other raises a typed lifecycle/reference conflict
-      - No deadlock, no partial state
+    Deterministic: A starts first, acquires locks on H1/W1, then B starts.
+    B blocks on H1 advisory lock.  A commits.  B re-reads H1, finds it
+    superseded, raises LifecycleTransitionInvalidError.
     """
     await _seed_dimensions_committed()
 
-    # ── Setup: create and activate initial trio ──────────────────────
     _, _, pkg_result, hol_result, _ = await _setup_initial_trio()
     h1_id = hol_result.parent.authority_id
 
-    # ── Build replacement inputs ────────────────────────────────────
     hol_v2 = _holiday_input(version="v2", revision=1)
     wth_v2 = _weather_input(version="v2", revision=1)
     pkg_v2 = _run_package_input(version="v2", revision=1)
     replacement_boundary = date(2026, 7, 1)
 
-    # Direct supersession of H1 with a different new holiday
     direct_holiday_v2 = _holiday_input(version="direct-v2", revision=1)
 
-    barrier = asyncio.Barrier(2)
+    signal = _LockSignal()
+    import backend.app.harvest_state.authority_repository as _repo
 
-    async def _txn_replace() -> Any:
-        """Transaction A: replace_run_package_with_dependencies."""
-        async with AsyncSessionMaker() as session:
-            async with session.begin():
-                await asyncio.wait_for(barrier.wait(), timeout=5)
-                return await replace_run_package_with_dependencies(
-                    session,
-                    old_package_id=pkg_result.authority_id,
-                    new_package_input=pkg_v2,
-                    new_holiday_input=hol_v2,
-                    new_weather_input=wth_v2,
-                    replacement_boundary=replacement_boundary,
-                )
+    original_hook = _repo._dependency_serialization_test_hook
+    _repo._dependency_serialization_test_hook = signal.hook
 
-    async def _txn_supersede_h1() -> Any:
-        """Transaction B: directly supersede holiday H1."""
-        async with AsyncSessionMaker() as session:
-            async with session.begin():
-                await asyncio.wait_for(barrier.wait(), timeout=5)
-                return await supersede_authority(
-                    session,
-                    family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
-                    old_id=h1_id,
-                    new_input=direct_holiday_v2,
-                    replacement_boundary=date(2026, 7, 1),
-                    new_dates=direct_holiday_v2.dates,
-                )
+    try:
 
-    gathered = await asyncio.wait_for(
-        asyncio.gather(
-            asyncio.create_task(_txn_replace()),
-            asyncio.create_task(_txn_supersede_h1()),
-            return_exceptions=True,
-        ),
-        timeout=15,
-    )
+        async def _txn_replace() -> Any:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    return await replace_run_package_with_dependencies(
+                        session,
+                        old_package_id=pkg_result.authority_id,
+                        new_package_input=pkg_v2,
+                        new_holiday_input=hol_v2,
+                        new_weather_input=wth_v2,
+                        replacement_boundary=replacement_boundary,
+                    )
+
+        task_a = asyncio.create_task(_txn_replace())
+        await signal.wait_a_has_locks()
+
+        async def _txn_supersede_h1() -> Any:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    return await supersede_authority(
+                        session,
+                        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+                        old_id=h1_id,
+                        new_input=direct_holiday_v2,
+                        replacement_boundary=date(2026, 7, 1),
+                        new_dates=direct_holiday_v2.dates,
+                    )
+
+        task_b = asyncio.create_task(_txn_supersede_h1())
+
+        gathered = await asyncio.wait_for(
+            asyncio.gather(task_a, task_b, return_exceptions=True),
+            timeout=15,
+        )
+    finally:
+        _repo._dependency_serialization_test_hook = original_hook
 
     # ── Verify no deadlock: both completed ──────────────────────────
     errors = [r for r in gathered if isinstance(r, BaseException)]
     successes = [r for r in gathered if not isinstance(r, BaseException)]
 
-    assert len(gathered) == 2, f"expected 2 results, got {len(gathered)}"
+    assert len(gathered) == 2
     assert len(successes) >= 1, (
         f"expected at least 1 success (no deadlock), got {len(successes)} errors: {errors}"
     )
 
-    # Exactly one typed error allowed
     for err in errors:
         assert isinstance(
             err,
-            (LifecycleTransitionInvalidError, RunParameterDependencyStatusConflictError),
+            (
+                LifecycleTransitionInvalidError,
+                RunParameterDependencyStatusConflictError,
+            ),
         ), f"unexpected error type: {type(err).__name__}: {err}"
 
     # ── Fresh session: no partial state ─────────────────────────────
     async with AsyncSessionMaker() as verify:
-        # Package should be in a consistent state
         pkg_status = (
             await verify.execute(
                 text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
                 {"id": pkg_result.authority_id},
             )
         ).scalar_one()
-        assert pkg_status in ("superseded", "active"), (
-            f"package in inconsistent state: {pkg_status}"
-        )
+        assert pkg_status in ("superseded", "active")
 
-        # Holiday should be in a consistent state
         hol_status = (
             await verify.execute(
                 text("SELECT status FROM task9_holiday_calendar_version WHERE id = :id"),
                 {"id": h1_id},
             )
         ).scalar_one()
-        assert hol_status in ("superseded", "active"), (
-            f"holiday in inconsistent state: {hol_status}"
-        )
+        assert hol_status in ("superseded", "active")
 
-        # No active package references a superseded dependency
         stale_refs = (
             await verify.execute(
                 text(
@@ -788,21 +767,7 @@ async def test_trio_replacement_vs_direct_dependency_supersession_no_deadlock() 
                 )
             )
         ).scalar_one()
-        assert stale_refs == 0, f"active package references superseded holiday: {stale_refs}"
-
-        # Exactly one valid holiday replacement chain
-        active_holidays = (
-            await verify.execute(
-                text(
-                    "SELECT count(*) "
-                    "FROM task9_holiday_calendar_version "
-                    "WHERE status = 'active' "
-                    "AND season_id = :sid"
-                ),
-                {"sid": _IDS["season"]},
-            )
-        ).scalar_one()
-        assert active_holidays >= 1
+        assert stale_refs == 0
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -839,7 +804,6 @@ async def test_concurrent_package_activation_uses_locked_fresh_state() -> None:
             )
             assert pkg_result.created is True
 
-            # Activate holiday and weather (package stays draft)
             act_boundary = date(2026, 3, 1)
             await activate_authority(
                 session,
@@ -854,7 +818,6 @@ async def test_concurrent_package_activation_uses_locked_fresh_state() -> None:
                 activation_boundary=act_boundary,
             )
 
-    # Record lifecycle event count
     async with AsyncSessionMaker() as session:
         count_before = (
             await session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
@@ -895,7 +858,6 @@ async def test_concurrent_package_activation_uses_locked_fresh_state() -> None:
         f"got {len(lifecycle_errors)}: gathered={gathered}"
     )
 
-    # ── Fresh session verification ──────────────────────────────────
     async with AsyncSessionMaker() as verify:
         pkg_status = (
             await verify.execute(
@@ -908,9 +870,7 @@ async def test_concurrent_package_activation_uses_locked_fresh_state() -> None:
         count_after = (
             await verify.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
         ).scalar_one()
-        assert count_after == count_before + 1, (
-            f"expected +1 lifecycle event, before={count_before}, after={count_after}"
-        )
+        assert count_after == count_before + 1
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -927,12 +887,11 @@ async def test_concurrent_trio_replacement_uses_locked_fresh_state() -> None:
     Frozen outcome:
       - Exactly one replacement succeeds
       - Exactly one typed lifecycle/version conflict
-      - Old package has exactly one superseded_by_id
+      - Old package superseded exactly once
       - Only one new active replacement package
     """
     await _seed_dimensions_committed()
 
-    # ── Setup: create and activate initial trio ──────────────────────
     _, _, pkg_result, _, _ = await _setup_initial_trio()
 
     barrier = asyncio.Barrier(2)
@@ -986,7 +945,6 @@ async def test_concurrent_trio_replacement_uses_locked_fresh_state() -> None:
     )
     assert len(errors) == 1, f"expected exactly 1 error, got {len(errors)}: gathered={gathered}"
 
-    # The loser should get a typed error
     for err in errors:
         assert isinstance(
             err,
@@ -996,9 +954,7 @@ async def test_concurrent_trio_replacement_uses_locked_fresh_state() -> None:
             ),
         ), f"unexpected error type: {type(err).__name__}: {err}"
 
-    # ── Fresh session verification ──────────────────────────────────
     async with AsyncSessionMaker() as verify:
-        # Old package superseded exactly once
         old_pkg = (
             await verify.execute(
                 text(
@@ -1011,15 +967,13 @@ async def test_concurrent_trio_replacement_uses_locked_fresh_state() -> None:
         assert old_pkg.status == "superseded"
         assert old_pkg.superseded_by_id is not None
 
-        # Exactly one new active package (the winner)
         active_count = (
             await verify.execute(
                 text("SELECT count(*) FROM task9_run_parameter_package WHERE status = 'active'")
             )
         ).scalar_one()
-        assert active_count == 1, f"expected exactly 1 active package, got {active_count}"
+        assert active_count == 1
 
-        # Holiday replacement chain has exactly one winner
         active_holidays = (
             await verify.execute(
                 text(
@@ -1033,7 +987,6 @@ async def test_concurrent_trio_replacement_uses_locked_fresh_state() -> None:
         ).scalar_one()
         assert active_holidays >= 1
 
-        # Weather replacement chain has exactly one winner
         active_weather = (
             await verify.execute(
                 text(

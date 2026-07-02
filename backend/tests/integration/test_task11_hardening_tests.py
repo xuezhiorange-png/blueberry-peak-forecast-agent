@@ -1152,10 +1152,7 @@ async def test_lifecycle_tamper_daily(db_session: AsyncSession) -> None:
 
     # Tamper old_status on the initial event (seq=1: initial creation)
     await db_session.execute(
-        text(
-            "UPDATE task9_authority_lifecycle_event "
-            "SET old_status = 'active' WHERE id = :id"
-        ),
+        text("UPDATE task9_authority_lifecycle_event SET old_status = 'active' WHERE id = :id"),
         {"id": event_id},
     )
     db_session.expire_all()
@@ -1237,8 +1234,8 @@ async def test_lifecycle_tamper_weather(db_session: AsyncSession) -> None:
 @pytest.mark.asyncio
 async def test_lifecycle_tamper_run_package(db_session: AsyncSession) -> None:
     """Activate run package, tamper lifecycle event old_status."""
-    await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
-    await create_or_load_weather_rule(db_session, weather_input=_weather_input())
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=_weather_input())
     inp = _run_package_input()
     create_result = await create_or_load_run_parameter_package(
         db_session,
@@ -1248,6 +1245,20 @@ async def test_lifecycle_tamper_run_package(db_session: AsyncSession) -> None:
     )
     authority_id = create_result.authority_id
     stable_key = build_run_parameter_package_stable_key(inp)
+
+    # Activate holiday and weather first (required for package activation)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=hol_result.parent.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=wth_result.authority_id,
+        activation_boundary=date(2026, 1, 1),
+    )
 
     activate_result = await activate_authority(
         db_session,
