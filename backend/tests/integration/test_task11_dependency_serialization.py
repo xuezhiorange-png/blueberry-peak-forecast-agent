@@ -425,7 +425,7 @@ async def test_replacement_race_vs_package_activation() -> None:
 
     hol_v2 = _holiday_input(version="v2", revision=1)
     wth_v2 = _weather_input(version="v2", revision=1)
-    pkg_v2 = _run_package_input(version="v2", revision=1, farm_scope_key="farm-10-v2")
+    pkg_v2 = _run_package_input(version="v2", revision=1)
     replacement_boundary = date(2026, 7, 1)
 
     control = _DependencyRaceControl()
@@ -561,7 +561,7 @@ async def test_replacement_race_vs_package_create() -> None:
 
     hol_v2 = _holiday_input(version="v2", revision=1)
     wth_v2 = _weather_input(version="v2", revision=1)
-    pkg_v2 = _run_package_input(version="v2", revision=1, farm_scope_key="farm-10-v2")
+    pkg_v2 = _run_package_input(version="v2", revision=1)
     replacement_boundary = date(2026, 7, 1)
     pkg_create_input = _run_package_input(version="create", revision=1)
 
@@ -731,7 +731,7 @@ async def test_trio_replacement_vs_direct_dependency_supersession_no_deadlock() 
 
     hol_v2 = _holiday_input(version="v2", revision=1)
     wth_v2 = _weather_input(version="v2", revision=1)
-    pkg_v2 = _run_package_input(version="v2", revision=1, farm_scope_key="farm-10-v2")
+    pkg_v2 = _run_package_input(version="v2", revision=1)
     replacement_boundary = date(2026, 7, 1)
 
     direct_holiday_v2 = _holiday_input(version="direct-v2", revision=1)
