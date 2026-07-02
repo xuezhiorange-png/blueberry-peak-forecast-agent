@@ -504,12 +504,21 @@ async def orchestrate_node(
         )
     if node.upstream_selection_mode != UpstreamSelectionMode.PINNED:
         raise UnsupportedSelectionModeError(
-            f"upstream_selection_mode={node.upstream_selection_mode.value} "
-            f"is not supported in this phase"
+            f"upstream_selection_mode={node.upstream_selection_mode} is not supported in this phase"
         )
 
     # ── Prevent overwrite of successfully completed node ──────────────────
-    if node.status == "completed":
+    latest_attempt_result = await session.execute(
+        select(RollingBacktestAttempt)
+        .where(
+            RollingBacktestAttempt.rolling_node_id == rolling_node_id,
+            RollingBacktestAttempt.rolling_run_id == rolling_run_id,
+        )
+        .order_by(RollingBacktestAttempt.attempt_number.desc())
+        .limit(1)
+    )
+    latest_attempt = latest_attempt_result.scalar_one_or_none()
+    if latest_attempt is not None and latest_attempt.status == "completed":
         raise NodeAlreadyFinalizedError(f"node {rolling_node_id} is already completed")
 
     # ── Create execution attempt ──────────────────────────────────────────
@@ -779,7 +788,8 @@ async def _stage_resolve_historical_inputs(  # noqa: ARG001
             source_role=identity.source_role,
             source_type=identity.source_type,
             semantic_identity=identity,
-            persistent_reference=identity.persistent_reference,
+            persistent_reference=identity.persistent_reference
+            or PersistentUpstreamReference(reference_type="database_run_id", reference_value=0),
             authoritative_available_at=datetime.now(UTC),
             canonical_identity_hash=sha256_payload(
                 canonical_json_dumps(_resolved_input_canonical_payload(identity))
@@ -803,7 +813,7 @@ async def _stage_validate_visibility(
     snapshot_adapter = __import__("pydantic").TypeAdapter(AvailabilitySnapshot)
 
     # Load persisted availability audits
-    audit_result = await ctx._get_session().execute(
+    audit_result = await session.execute(
         select(RollingBacktestAvailabilityAudit).where(
             RollingBacktestAvailabilityAudit.rolling_node_id == ctx.node_id
         )
