@@ -4235,28 +4235,114 @@ async def activate_authority(
 ) -> LifecycleTransitionResult:
     """Activate a draft authority.
 
-    1. SELECT ... FOR UPDATE
-    2. For RUN_PARAMETER_PACKAGE: acquire dependency locks
-    3. Validate current status = draft
-    4. UPDATE status=active, consumable_from=boundary, status_changed_at=now
-    5. Create lifecycle event
+    1. For RUN_PARAMETER_PACKAGE: acquire dependency advisory locks FIRST.
+    2. SELECT ... FOR UPDATE (after advisory locks).
+    3. For RUN_PARAMETER_PACKAGE: re-read dependencies under lock.
+    4. Validate current status = draft.
+    5. Validate dependency state under lock.
+    6. UPDATE status=active, consumable_from=boundary, status_changed_at=now.
+    7. Create lifecycle event.
     """
+    # For run packages, acquire dependency locks BEFORE row lock (global lock order).
+    dep_ids: list[tuple[AuthorityFamily, int]] = []
+    _dep_pkg_ref = None
+    if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
+        # Light lookup to find dependency IDs for advisory locking.
+        _pkg_ref_stmt = select(Task9RunParameterPackage).where(
+            Task9RunParameterPackage.id == authority_id
+        )
+        _dep_pkg_ref = (await session.execute(_pkg_ref_stmt)).scalar_one_or_none()
+        if _dep_pkg_ref is None:
+            raise AuthorityNotFoundError(
+                authority_family=family,
+                lookup_key=str(authority_id),
+            )
+        if _dep_pkg_ref.holiday_calendar_version_id is not None:
+            dep_ids.append(
+                (AuthorityFamily.HOLIDAY_CALENDAR_VERSION, _dep_pkg_ref.holiday_calendar_version_id)
+            )
+        if _dep_pkg_ref.weather_rule_config_version_id is not None:
+            dep_ids.append(
+                (AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, _dep_pkg_ref.weather_rule_config_version_id)
+            )
+        if dep_ids:
+            await _acquire_dependency_locks(session, dependencies=dep_ids)
+
     row = await _load_for_update(session, family=family, authority_id=authority_id)
     stable_key, version, revision = await _resolve_stable_key_and_version(family, row)
 
-    # For run packages, acquire dependency locks before activation
+    # For run packages: re-validate dependencies under lock.
     if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
-        dep_locks: list[tuple[AuthorityFamily, int]] = []
-        if row.holiday_calendar_version_id is not None:
-            dep_locks.append(
-                (AuthorityFamily.HOLIDAY_CALENDAR_VERSION, row.holiday_calendar_version_id)
-            )
-        if row.weather_rule_config_version_id is not None:
-            dep_locks.append(
-                (AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, row.weather_rule_config_version_id)
-            )
-        if dep_locks:
-            await _acquire_dependency_locks(session, dependencies=dep_locks)
+        # Re-read dependencies to detect superseded/deactivated state.
+        for dep_fam, dep_id in dep_ids:
+            dep_model = {
+                AuthorityFamily.HOLIDAY_CALENDAR_VERSION: Task9HolidayCalendarVersion,
+                AuthorityFamily.WEATHER_RULE_CONFIG_VERSION: Task9WeatherRuleConfigVersion,
+            }[dep_fam]
+            dep_row = await session.get(dep_model, dep_id)
+            if dep_row is None:
+                raise RunParameterDependencyStatusConflictError(
+                    details={
+                        "dependency_family": dep_fam.value,
+                        "dependency_id": dep_id,
+                        "dependency_status": "missing",
+                        "superseded_by_id": None,
+                        "activation_boundary": str(activation_boundary),
+                        "consumable_from": None,
+                        "consumable_to": None,
+                    },
+                )
+            if dep_row.status not in (AuthorityStatus.ACTIVE, AuthorityStatus.DRAFT):
+                raise RunParameterDependencyStatusConflictError(
+                    details={
+                        "dependency_family": dep_fam.value,
+                        "dependency_id": dep_id,
+                        "dependency_status": dep_row.status,
+                        "superseded_by_id": dep_row.superseded_by_id,
+                        "activation_boundary": str(activation_boundary),
+                        "consumable_from": str(dep_row.consumable_from_local_date) if dep_row.consumable_from_local_date else None,
+                        "consumable_to": str(dep_row.consumable_to_local_date) if dep_row.consumable_to_local_date else None,
+                    },
+                )
+            if dep_row.superseded_by_id is not None:
+                raise RunParameterDependencyStatusConflictError(
+                    details={
+                        "dependency_family": dep_fam.value,
+                        "dependency_id": dep_id,
+                        "dependency_status": dep_row.status,
+                        "superseded_by_id": dep_row.superseded_by_id,
+                        "activation_boundary": str(activation_boundary),
+                        "consumable_from": str(dep_row.consumable_from_local_date) if dep_row.consumable_from_local_date else None,
+                        "consumable_to": str(dep_row.consumable_to_local_date) if dep_row.consumable_to_local_date else None,
+                    },
+                )
+            # Consumability boundary check.
+            if dep_row.consumable_from_local_date is not None:
+                if dep_row.consumable_from_local_date > activation_boundary:
+                    raise RunParameterDependencyStatusConflictError(
+                        details={
+                            "dependency_family": dep_fam.value,
+                            "dependency_id": dep_id,
+                            "dependency_status": dep_row.status,
+                            "superseded_by_id": dep_row.superseded_by_id,
+                            "activation_boundary": str(activation_boundary),
+                            "consumable_from": str(dep_row.consumable_from_local_date),
+                            "consumable_to": str(dep_row.consumable_to_local_date) if dep_row.consumable_to_local_date else None,
+                        },
+                    )
+            if dep_row.consumable_to_local_date is not None:
+                if activation_boundary >= dep_row.consumable_to_local_date:
+                    raise RunParameterDependencyStatusConflictError(
+                        details={
+                            "dependency_family": dep_fam.value,
+                            "dependency_id": dep_id,
+                            "dependency_status": dep_row.status,
+                            "superseded_by_id": dep_row.superseded_by_id,
+                            "activation_boundary": str(activation_boundary),
+                            "consumable_from": str(dep_row.consumable_from_local_date) if dep_row.consumable_from_local_date else None,
+                            "consumable_to": str(dep_row.consumable_to_local_date),
+                        },
+                    )
 
     await _validate_transition(row.status, AuthorityStatus.ACTIVE, family, stable_key)
 
@@ -4472,7 +4558,20 @@ async def supersede_authority(
     6. UPDATE new: status=active, consumable_from=boundary.
     7. Write events for old supersession + new activation.
     """
-    # (1) Lock old
+    # (0) Dependency advisory locks BEFORE row locks (global lock order).
+    # When _skip_dependency_protection is False, the caller does NOT already
+    # hold these locks; we acquire them here.  When True, the caller
+    # (replace_run_package_with_dependencies) already holds matching locks.
+    if not _skip_dependency_protection and family in (
+        AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+    ):
+        await _acquire_dependency_locks(
+            session,
+            dependencies=[(family, old_id)],
+        )
+
+    # (1) Lock old row (FOR UPDATE) — always after advisory locks.
     old_row = await _load_for_update(session, family=family, authority_id=old_id)
     old_stable_key, old_version, old_revision = await _resolve_stable_key_and_version(
         family, old_row
@@ -4484,16 +4583,13 @@ async def supersede_authority(
     old_consumable_from = old_row.consumable_from_local_date
     old_consumable_to = old_row.consumable_to_local_date
 
-    # (3) Dependency protection — enforced unless internal bypass after pre-mutation validation
+    # (3) Dependency protection — enforced unless internal bypass after pre-mutation validation.
+    # Under the dependency advisory lock, no other transaction can activate
+    # a package referencing this dependency, so the check is serialized.
     if not _skip_dependency_protection and family in (
         AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
         AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
     ):
-        # Acquire dependency lock to serialize with package create/activation
-        await _acquire_dependency_locks(
-            session,
-            dependencies=[(family, old_row.id)],
-        )
         await _check_dependency_references(
             session,
             dependency_family=family,
@@ -4709,34 +4805,31 @@ async def replace_run_package_with_dependencies(
     4. Supersede old weather → activate new weather.
     5. Supersede old package → activate new package.
     """
-    # (1) Lock old package
-    old_pkg_stmt = (
+    # (0) Resolve dependency IDs for advisory locking.
+    # Light SELECT (no FOR UPDATE) to find the dependency IDs so we can
+    # acquire advisory locks in global lock order.
+    _pkg_lookup = (
         select(Task9RunParameterPackage)
         .where(Task9RunParameterPackage.id == old_package_id)
-        .with_for_update()
     )
-    old_pkg_result = await session.execute(old_pkg_stmt)
-    old_pkg = old_pkg_result.scalar_one_or_none()
-    if old_pkg is None:
+    _pkg_ref = (await session.execute(_pkg_lookup)).scalar_one_or_none()
+    if _pkg_ref is None:
         raise AuthorityNotFoundError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
             lookup_key=str(old_package_id),
         )
-
-    if old_pkg.status != AuthorityStatus.ACTIVE:
+    if _pkg_ref.status != AuthorityStatus.ACTIVE:
         raise LifecycleTransitionInvalidError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            authority_stable_key=_stable_key_from_orm_run_package(old_pkg),
-            current_status=old_pkg.status,
+            authority_stable_key=_stable_key_from_orm_run_package(_pkg_ref),
+            current_status=_pkg_ref.status,
             target_status=AuthorityStatus.SUPERSEDED,
         )
 
-    old_holiday_id = old_pkg.holiday_calendar_version_id
-    old_weather_id = old_pkg.weather_rule_config_version_id
+    old_holiday_id = _pkg_ref.holiday_calendar_version_id
+    old_weather_id = _pkg_ref.weather_rule_config_version_id
 
-    # (1b) Acquire dependency advisory locks BEFORE precheck
-    # Prevents phantom-reference race: another transaction inserting
-    # a new package reference between precheck and draft creation.
+    # (1) Advisory dependency locks FIRST (global lock order: advisory → row).
     await _acquire_dependency_locks(
         session,
         dependencies=[
@@ -4744,6 +4837,16 @@ async def replace_run_package_with_dependencies(
             (AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, old_weather_id),
         ],
     )
+
+    # (2) Lock old package row FOR UPDATE (after advisory locks).
+    old_pkg_stmt = (
+        select(Task9RunParameterPackage)
+        .where(Task9RunParameterPackage.id == old_package_id)
+        .with_for_update()
+    )
+    old_pkg_result = await session.execute(old_pkg_stmt)
+    old_pkg = old_pkg_result.scalar_one_or_none()
+    assert old_pkg is not None  # verified above
 
     # (1c) Pre-mutation shared dependency validation (under lock)
     await _assert_dependency_replaceable_for_package(
