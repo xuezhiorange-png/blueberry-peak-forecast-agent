@@ -42,6 +42,7 @@ from backend.app.rolling_backtest.enums import (
     UpstreamSelectionMode,
 )
 from backend.app.rolling_backtest.errors import (
+    RollingBacktestAttemptConflictError,
     RollingBacktestAuthorityBindingError,
     RollingBacktestIntegrityError,
     RollingBacktestPersistenceError,
@@ -501,12 +502,21 @@ async def orchestrate_node(
     # ── Validate execution and selection modes ────────────────────────────
     if config.execution_mode != ExecutionMode.HISTORICAL_OBSERVED:
         raise UnsupportedExecutionModeError(
-            f"execution_mode={config.execution_mode.value} is not supported in this phase"
+            f"execution_mode={config.execution_mode.value} is not supported"
         )
     if node.upstream_selection_mode != UpstreamSelectionMode.PINNED:
         raise UnsupportedSelectionModeError(
-            f"upstream_selection_mode={node.upstream_selection_mode} is not supported in this phase"
+            f"upstream_selection_mode={node.upstream_selection_mode} not supported"
         )
+
+    ctx = _StageContext(
+        attempt_id=0,
+        node_id=rolling_node_id,
+        run_id=rolling_run_id,
+        resolved_inputs={},
+        availability_audits={},
+    )
+    attempt = None
 
     # ── Prevent overwrite of successfully completed node ──────────────────
     latest_attempt_result = await session.execute(
@@ -522,23 +532,15 @@ async def orchestrate_node(
     if latest_attempt is not None and latest_attempt.status == "completed":
         raise NodeAlreadyFinalizedError(f"node {rolling_node_id} is already completed")
 
-    # ── Create execution attempt ──────────────────────────────────────────
-    attempt = await create_execution_attempt(
-        rolling_run_id,
-        rolling_node_id,
-        status="running",
-        current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
-    )
-
-    ctx = _StageContext(
-        attempt_id=attempt.id,
-        node_id=rolling_node_id,
-        run_id=rolling_run_id,
-        resolved_inputs={},
-        availability_audits={},
-    )
-
     try:
+        # ── Create execution attempt ──────────────────────────────────────────
+        attempt = await create_execution_attempt(
+            rolling_run_id,
+            rolling_node_id,
+            status="running",
+            current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
+        )
+
         # ── Stage 1: resolve_historical_inputs ───────────────────────────
         ctx = await _run_stage(
             session,
@@ -658,6 +660,7 @@ async def orchestrate_node(
         UnsupportedExecutionModeError,
         UnsupportedSelectionModeError,
         NodeAlreadyFinalizedError,
+        RollingBacktestAttemptConflictError,
         PinnedSourceNotFoundError,
         PinnedSourceIdentityMismatchError,
         PinnedSourceNotVisibleError,
@@ -669,16 +672,17 @@ async def orchestrate_node(
     ) as exc:
         # Known typed errors → blocked
         blocker_code = getattr(exc, "code", "PERSISTENCE_FAILURE")
-        await _finalize_blocked(
-            session,
-            ctx,
-            config,
-            node_def,
-            run,
-            attempt,
-            blocker_code=blocker_code,
-            error=exc,
-        )
+        if attempt is not None:
+            await _finalize_blocked(
+                session,
+                ctx,
+                config,
+                node_def,
+                run,
+                attempt,
+                blocker_code=blocker_code,
+                error=exc,
+            )
         return _build_outcome(
             ctx=ctx,
             config=config,
@@ -696,16 +700,17 @@ async def orchestrate_node(
 
     except Exception as exc:
         # Unexpected errors → failed
-        await _finalize_blocked(
-            session,
-            ctx,
-            config,
-            node_def,
-            run,
-            attempt,
-            blocker_code="PERSISTENCE_FAILURE",
-            error=exc,
-        )
+        if attempt is not None:
+            await _finalize_blocked(
+                session,
+                ctx,
+                config,
+                node_def,
+                run,
+                attempt,
+                blocker_code="PERSISTENCE_FAILURE",
+                error=exc,
+            )
         return _build_outcome(
             ctx=ctx,
             config=config,
@@ -1035,7 +1040,7 @@ def _build_outcome(
     return NodeOrchestrationOutcome(
         rolling_run_signature=run.run_signature,
         node_signature=node.node_signature if hasattr(node, "node_signature") else "",
-        attempt_number=attempt.attempt_number,
+        attempt_number=attempt.attempt_number if attempt is not None else 0,
         status=status,
         stage=stage,
         resolved_inputs=tuple(ctx.resolved_inputs.values()),
@@ -1045,8 +1050,8 @@ def _build_outcome(
         fallback_mode=ctx.fallback_mode,
         blocker_code=blocker_code,
         diagnostics=diagnostics or {},
-        started_at=attempt.started_at,
-        finished_at=attempt.finished_at,
+        started_at=attempt.started_at if attempt is not None else None,
+        finished_at=attempt.finished_at if attempt is not None else None,
     )
 
 

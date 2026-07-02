@@ -964,9 +964,9 @@ async def test_cross_node_prior_attempt_rejected(mock_session):
     patches["create_execution_attempt"] = _create_attempt_conflict
 
     with patch.multiple(_MOD, **patches):
-        with pytest.raises(RollingBacktestAttemptConflictError) as exc_info:
-            await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
-    assert "crosses node boundary" in str(exc_info.value)
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "blocked"
+    assert "crosses node boundary" in str(outcome.diagnostics.get("error", ""))
 
 
 # ── 16. Successful node cannot be overwritten ────────────────────────────────
