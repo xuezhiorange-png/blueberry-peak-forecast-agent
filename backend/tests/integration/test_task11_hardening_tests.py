@@ -1,16 +1,228 @@
-# ══════════════════════════════════════════════════════════════════════════
-# ADD TO TOP-OF-FILE IMPORTS (if not already present):
-#   from sqlalchemy import text
-#   from backend.app.harvest_state.enums import AuthorityFamily
-#   from backend.app.harvest_state.authority_repository import activate_authority
-#   from backend.app.harvest_state.authority_repository_errors import AuthorityHashConflictError
-# ══════════════════════════════════════════════════════════════════════════
+# ruff: noqa: E501
+"""Hardening tests for Task 9 authority repository:
+wrong-revision, ambiguous row-hash, row/lifecycle/child tamper, canonical alias."""
 
+from __future__ import annotations
+
+from datetime import UTC, date, datetime, time
+from decimal import Decimal
+
+import pytest
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.authority_canonical import (
+    build_capacity_pool_definition_stable_key,
+    build_daily_capacity_stable_key,
+    build_holiday_calendar_stable_key,
+    build_initial_inventory_stable_key,
+    build_mature_inventory_loss_stable_key,
+    build_run_parameter_package_stable_key,
+    build_weather_rule_stable_key,
+    make_holiday_calendar_hash,
+    make_weather_rule_config_hash,
+)
+from backend.app.harvest_state.authority_repository import (
+    activate_authority,
+    create_or_load_capacity_pool_definition,
+    create_or_load_daily_capacity,
+    create_or_load_holiday_calendar,
+    create_or_load_initial_inventory,
+    create_or_load_mature_loss,
+    create_or_load_run_parameter_package,
+    create_or_load_weather_rule,
+    load_capacity_pool_definition_by_business_key,
+    load_capacity_pool_definition_by_row_hash,
+    load_daily_capacity_by_business_key,
+    load_daily_capacity_by_row_hash,
+    load_holiday_calendar_by_business_key,
+    load_holiday_calendar_by_row_hash,
+    load_initial_inventory_by_business_key,
+    load_initial_inventory_by_row_hash,
+    load_mature_loss_by_business_key,
+    load_mature_loss_by_row_hash,
+    load_run_parameter_package_by_business_key,
+    load_run_parameter_package_by_row_hash,
+    load_weather_rule_by_business_key,
+    load_weather_rule_by_row_hash,
+)
+from backend.app.harvest_state.authority_repository_errors import (
+    AuthorityHashConflictError,
+    AuthorityNotFoundError,
+)
+from backend.app.harvest_state.authority_schemas import (
+    Task9CapacityPoolDefinitionSemanticBundle,
+    Task9CapacityPoolMemberSchema,
+    Task9DailyCapacitySemanticInput,
+    Task9HolidayCalendarDateSchema,
+    Task9HolidayCalendarSemanticBundle,
+    Task9InitialInventoryCohortSchema,
+    Task9InitialInventorySemanticBundle,
+    Task9MatureLossSemanticInput,
+    Task9RunParameterPackageSemanticInput,
+    Task9WeatherRuleSemanticInput,
+)
+from backend.app.harvest_state.enums import (
+    AuthorityFamily,
+    AuthorityStatus,
+    CapacityInputMode,
+    CapacityPoolGrain,
+    ForecastQuantile,
+    WeatherCombinationMethod,
+)
+from backend.app.harvest_state.schemas import WeatherFeatureBand, WeatherFeatureRule
+
+pytestmark = pytest.mark.integration
 
 # ── Deterministic fake SHA-256 that passes the row_hash CHECK constraint ──
 _FAKE_HASH_A = "a" * 64
 _FAKE_HASH_B = "b" * 64
 
+_IDS: dict[str, int] = {"season": 1, "factory": 2, "farm": 10, "subfarm": 20, "variety": 30}
+_TZ = "Asia/Shanghai"
+_AVAILABLE = date(2026, 1, 1)
+_EFF_FROM = date(2026, 1, 1)
+
+
+async def _ensure_dims() -> None:
+    """Ensure dimension rows exist (idempotent)."""
+    async with AsyncSessionMaker() as s:
+        async with s.begin():
+            await s.execute(text("INSERT INTO dim_season (code, start_date, end_date) VALUES ('test-season', '2026-01-01', '2026-12-31') ON CONFLICT DO NOTHING"))
+            await s.execute(text("INSERT INTO dim_factory (code, name) VALUES ('test-factory', 'Test Factory') ON CONFLICT DO NOTHING"))
+            await s.execute(text("INSERT INTO dim_farm (name) VALUES ('Test Farm') ON CONFLICT DO NOTHING"))
+            r = await s.execute(text("SELECT id FROM dim_farm WHERE name = 'Test Farm'"))
+            fid = r.scalar_one()
+            await s.execute(text("INSERT INTO dim_subfarm (farm_id, name) VALUES (:f, 'Test Subfarm') ON CONFLICT DO NOTHING"), {"f": fid})
+            await s.execute(text("INSERT INTO dim_variety (code, name) VALUES ('test-var', 'Test Variety') ON CONFLICT DO NOTHING"))
+            for tbl, code, col in [("dim_season", "test-season", "code"), ("dim_factory", "test-factory", "code"), ("dim_variety", "test-var", "code")]:
+                r = await s.execute(text(f"SELECT id FROM {tbl} WHERE {col} = :c"), {"c": code})
+                _IDS[tbl.split("_")[1]] = r.scalar_one()
+            r = await s.execute(text("SELECT id FROM dim_subfarm WHERE farm_id = :f AND name = 'Test Subfarm'"), {"f": fid})
+            _IDS["subfarm"] = r.scalar_one()
+            _IDS["farm"] = fid
+
+
+
+
+
+def _pool_input(*, code: str = "TEST-POOL", version: str = "v1", revision: int = 1) -> Task9CapacityPoolDefinitionSemanticBundle:
+    return Task9CapacityPoolDefinitionSemanticBundle(
+        season_id=_IDS["season"], destination_factory_id=_IDS["factory"],
+        capacity_pool_code=code, capacity_pool_grain=CapacityPoolGrain.FARM,
+        capacity_input_mode=CapacityInputMode.LABOR_DERIVED,
+        capacity_pool_version=version, revision=revision,
+        effective_from=_EFF_FROM, effective_to=None, available_at_local_date=_AVAILABLE,
+        consumable_from_local_date=None, consumable_to_local_date=None,
+        status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        superseded_by_id=None, source_system="test",
+        source_record_key=f"test:pool:{code}:{version}:{revision}", source_version="v1",
+        members=[Task9CapacityPoolMemberSchema(farm_id=_IDS["farm"], subfarm_id=None, variety_id=_IDS["variety"])],
+    )
+
+
+async def _ensure_pool_for_daily(session: AsyncSession) -> None:
+    pool = _pool_input()
+    await create_or_load_capacity_pool_definition(session, definition_input=pool)
+
+
+def _daily_input(*, version: str = "v1", revision: int = 1) -> Task9DailyCapacitySemanticInput:
+    pool = _pool_input()
+    return Task9DailyCapacitySemanticInput(
+        season_id=_IDS["season"], destination_factory_id=_IDS["factory"],
+        capacity_pool_code=pool.capacity_pool_code,
+        capacity_pool_version=version, capacity_pool_revision=revision,
+        capacity_date=date(2026, 4, 1), capacity_quantity_kg=Decimal("1000"),
+        effective_from=_EFF_FROM, effective_to=None, available_at_local_date=_AVAILABLE,
+        consumable_from_local_date=None, consumable_to_local_date=None,
+        status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        superseded_by_id=None, source_system="test",
+        source_record_key=f"test:daily:{version}:{revision}", source_version="v1",
+    )
+
+
+def _make_holiday_dates() -> list[Task9HolidayCalendarDateSchema]:
+    return [
+        Task9HolidayCalendarDateSchema(holiday_date=date(2026, 1, 1), holiday_code="NEW_YEAR", holiday_name="New Year"),
+        Task9HolidayCalendarDateSchema(holiday_date=date(2026, 1, 29), holiday_code="CNY", holiday_name="Chinese New Year"),
+    ]
+
+
+def _holiday_input(*, version: str = "v1", revision: int = 1, code: str = "CN") -> Task9HolidayCalendarSemanticBundle:
+    dates = _make_holiday_dates()
+    unique_dates = sorted({d.holiday_date for d in dates})
+    ch = make_holiday_calendar_hash(holiday_calendar_version=version, holiday_dates=unique_dates)
+    return Task9HolidayCalendarSemanticBundle(
+        season_id=_IDS["season"], calendar_code=code, calendar_version=version, revision=revision,
+        calendar_hash=ch, region_scope=None, lifecycle_timezone_name=_TZ,
+        available_at_local_date=_AVAILABLE, consumable_from_local_date=None, consumable_to_local_date=None,
+        status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        superseded_by_id=None, source_system="test",
+        source_record_key=f"test:holiday:{version}:{revision}:{code}", source_version="v1", dates=dates,
+    )
+
+
+def _weather_config_hash(version: str = "v1") -> str:
+    return make_weather_rule_config_hash({"version": version, "required_feature_ids": ["TEMP"],
+        "feature_rules": [{"feature_id": "TEMP", "bands": [{"lower_bound": "0", "lower_inclusive": True, "upper_bound": "30", "upper_inclusive": False, "multiplier": "1"}]}],
+        "combination_method": "MULTIPLY", "minimum_ratio": "0", "maximum_ratio": "1", "missing_feature_policy": "BLOCK"})
+
+
+def _weather_input(*, version: str = "v1", revision: int = 1, code: str = "WEATHER-STD") -> Task9WeatherRuleSemanticInput:
+    return Task9WeatherRuleSemanticInput(
+        rule_code=code, rule_version=version, revision=revision, lifecycle_timezone_name=_TZ,
+        combination_method=WeatherCombinationMethod.MULTIPLY, minimum_ratio=Decimal("0.0"), maximum_ratio=Decimal("1.0"),
+        required_feature_ids=["TEMP"], feature_rules=[WeatherFeatureRule(feature_id="TEMP", bands=[WeatherFeatureBand(lower_bound=Decimal("0"), lower_inclusive=True, upper_bound=Decimal("30"), upper_inclusive=False, multiplier=Decimal("1.0"))])],
+        missing_feature_policy="BLOCK", config_hash=_weather_config_hash(version),
+        effective_from=_EFF_FROM, effective_to=None, available_at_local_date=_AVAILABLE,
+        consumable_from_local_date=None, consumable_to_local_date=None,
+        status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        superseded_by_id=None, source_system="test",
+        source_record_key=f"test:weather:{version}:{revision}:{code}", source_version="v1",
+    )
+
+
+def _run_package_input(*, version: str = "v1", revision: int = 1, farm_scope: str = "farm-10") -> Task9RunParameterPackageSemanticInput:
+    return Task9RunParameterPackageSemanticInput(
+        season_id=_IDS["season"], destination_factory_id=_IDS["factory"], farm_scope_key=farm_scope,
+        farm_timezone=_TZ, destination_factory_timezone=_TZ,
+        harvest_bucket_anchor_local_time=time(6, 0), harvest_to_arrival_lag_days=1,
+        package_version=version, revision=revision, effective_from=_EFF_FROM, effective_to=None,
+        available_at_local_date=_AVAILABLE, consumable_from_local_date=None, consumable_to_local_date=None,
+        status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        superseded_by_id=None, source_system="test",
+        source_record_key=f"test:runpkg:{version}:{revision}:{farm_scope}", source_version="v1",
+    )
+
+
+def _inventory_input(*, version: str = "v1", revision: int = 1) -> Task9InitialInventorySemanticBundle:
+    cohorts = [Task9InitialInventoryCohortSchema(variety_id=_IDS["variety"], remaining_quantity_kg=Decimal("500"))]
+    return Task9InitialInventorySemanticBundle(
+        season_id=_IDS["season"], destination_factory_id=_IDS["factory"],
+        opening_state_date=date(2026, 3, 1), snapshot_version=version, revision=revision,
+        initial_opening_mature_inventory_kg=Decimal("500"),
+        effective_from=_EFF_FROM, effective_to=None, available_at_local_date=_AVAILABLE,
+        consumable_from_local_date=None, consumable_to_local_date=None,
+        status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        superseded_by_id=None, source_system="test",
+        source_record_key=f"test:inventory:{version}:{revision}", source_version="v1", cohorts=cohorts,
+    )
+
+
+def _mature_loss_input(*, version: str = "v1", revision: int = 1) -> Task9MatureLossSemanticInput:
+    pool = _pool_input()
+    return Task9MatureLossSemanticInput(
+        season_id=_IDS["season"], destination_factory_id=_IDS["factory"],
+        capacity_pool_code=pool.capacity_pool_code, capacity_pool_version=version,
+        state_date=date(2026, 4, 1), forecast_quantile=ForecastQuantile.P50,
+        mature_loss_quantity_kg=Decimal("100"),
+        effective_from=_EFF_FROM, effective_to=None, available_at_local_date=_AVAILABLE,
+        consumable_from_local_date=None, consumable_to_local_date=None,
+        status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        superseded_by_id=None, source_system="test",
+        source_record_key=f"test:mature:{version}:{revision}", source_version="v1",
+    )
 
 # ══════════════════════════════════════════════════════════════════════════
 #  SECTION I – Wrong revision (7 families)
