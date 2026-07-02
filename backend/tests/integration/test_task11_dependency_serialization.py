@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 """Task 11 dependency-race serialization tests.
 
 These tests verify that concurrent operations on the same dependency graph
@@ -430,14 +429,14 @@ async def test_replacement_race_vs_package_activation() -> None:
         r for r in gathered if isinstance(r, RunParameterDependencyStatusConflictError)
     ]
     other_errors = [
-        r for r in gathered
+        r
+        for r in gathered
         if isinstance(r, BaseException)
         and not isinstance(r, RunParameterDependencyStatusConflictError)
     ]
 
     assert len(successes) >= 1, (
-        f"expected at least 1 success from replacement, got {len(successes)}: "
-        f"gathered={gathered}"
+        f"expected at least 1 success from replacement, got {len(successes)}: gathered={gathered}"
     )
     # Either B fails with typed dep conflict, exclusion violation, or both succeed
     if dep_conflicts:

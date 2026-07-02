@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 """Exact-load API direct coverage tests and daily-capacity colon matrix tests.
 
 14 loaders imported (7 by_business_key + 7 by_row_hash):
@@ -132,16 +131,28 @@ async def db_session():
                 {"farm_id": farm_id},
             )
             await session.execute(
-                text("INSERT INTO dim_variety (code, name) VALUES ('test-var', 'Test Variety') ON CONFLICT DO NOTHING")
+                text(
+                    "INSERT INTO dim_variety (code, name) "
+                    "VALUES ('test-var', 'Test Variety') "
+                    "ON CONFLICT DO NOTHING"
+                )
             )
             # Get actual IDs for test constants
-            season_row = await session.execute(text("SELECT id FROM dim_season WHERE code = 'test-season'"))
-            factory_row = await session.execute(text("SELECT id FROM dim_factory WHERE code = 'test-factory'"))
+            season_row = await session.execute(
+                text("SELECT id FROM dim_season WHERE code = 'test-season'")
+            )
+            factory_row = await session.execute(
+                text("SELECT id FROM dim_factory WHERE code = 'test-factory'")
+            )
             subfarm_row = await session.execute(
-                text("SELECT id FROM dim_subfarm WHERE farm_id = :farm_id AND name = 'Test Subfarm'"),
+                text(
+                    "SELECT id FROM dim_subfarm WHERE farm_id = :farm_id AND name = 'Test Subfarm'"
+                ),
                 {"farm_id": farm_id},
             )
-            variety_row = await session.execute(text("SELECT id FROM dim_variety WHERE code = 'test-var'"))
+            variety_row = await session.execute(
+                text("SELECT id FROM dim_variety WHERE code = 'test-var'")
+            )
             _IDS["season"] = season_row.scalar_one()
             _IDS["factory"] = factory_row.scalar_one()
             _IDS["farm"] = farm_id
@@ -798,7 +809,9 @@ async def test_exact_load_weather_by_business_key_wrong_version(db_session: Asyn
 
 
 @pytest.mark.asyncio
-async def test_exact_load_run_package_by_business_key_wrong_version(db_session: AsyncSession) -> None:
+async def test_exact_load_run_package_by_business_key_wrong_version(
+    db_session: AsyncSession,
+) -> None:
     """Correct stable_key but wrong business_version → AuthorityNotFoundError."""
     await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
     await create_or_load_weather_rule(db_session, weather_input=_weather_input())
@@ -837,7 +850,9 @@ async def test_exact_load_inventory_by_business_key_wrong_version(db_session: As
 
 
 @pytest.mark.asyncio
-async def test_exact_load_mature_loss_by_business_key_wrong_version(db_session: AsyncSession) -> None:
+async def test_exact_load_mature_loss_by_business_key_wrong_version(
+    db_session: AsyncSession,
+) -> None:
     """Correct stable_key but wrong business_version → AuthorityNotFoundError."""
     inp = _mature_loss_input()
     await create_or_load_mature_loss(db_session, loss_input=inp)
@@ -889,7 +904,9 @@ async def test_exact_load_daily_by_business_key_malformed_prefix(db_session: Asy
 
 
 @pytest.mark.asyncio
-async def test_exact_load_holiday_by_business_key_malformed_prefix(db_session: AsyncSession) -> None:
+async def test_exact_load_holiday_by_business_key_malformed_prefix(
+    db_session: AsyncSession,
+) -> None:
     """Key with wrong prefix → AuthorityNotFoundError."""
     inp = _holiday_input()
     await create_or_load_holiday_calendar(db_session, calendar_input=inp)
@@ -904,7 +921,9 @@ async def test_exact_load_holiday_by_business_key_malformed_prefix(db_session: A
 
 
 @pytest.mark.asyncio
-async def test_exact_load_weather_by_business_key_malformed_prefix(db_session: AsyncSession) -> None:
+async def test_exact_load_weather_by_business_key_malformed_prefix(
+    db_session: AsyncSession,
+) -> None:
     """Key with wrong prefix → AuthorityNotFoundError."""
     inp = _weather_input()
     await create_or_load_weather_rule(db_session, weather_input=inp)
@@ -919,7 +938,9 @@ async def test_exact_load_weather_by_business_key_malformed_prefix(db_session: A
 
 
 @pytest.mark.asyncio
-async def test_exact_load_run_package_by_business_key_malformed_prefix(db_session: AsyncSession) -> None:
+async def test_exact_load_run_package_by_business_key_malformed_prefix(
+    db_session: AsyncSession,
+) -> None:
     """Key with wrong prefix → AuthorityNotFoundError."""
     await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
     await create_or_load_weather_rule(db_session, weather_input=_weather_input())
@@ -941,7 +962,9 @@ async def test_exact_load_run_package_by_business_key_malformed_prefix(db_sessio
 
 
 @pytest.mark.asyncio
-async def test_exact_load_inventory_by_business_key_malformed_prefix(db_session: AsyncSession) -> None:
+async def test_exact_load_inventory_by_business_key_malformed_prefix(
+    db_session: AsyncSession,
+) -> None:
     """Key with wrong prefix → AuthorityNotFoundError."""
     inp = _inventory_input()
     await create_or_load_initial_inventory(db_session, inventory_input=inp)
@@ -956,7 +979,9 @@ async def test_exact_load_inventory_by_business_key_malformed_prefix(db_session:
 
 
 @pytest.mark.asyncio
-async def test_exact_load_mature_loss_by_business_key_malformed_prefix(db_session: AsyncSession) -> None:
+async def test_exact_load_mature_loss_by_business_key_malformed_prefix(
+    db_session: AsyncSession,
+) -> None:
     """Key with wrong prefix → AuthorityNotFoundError."""
     inp = _mature_loss_input()
     await create_or_load_mature_loss(db_session, loss_input=inp)
