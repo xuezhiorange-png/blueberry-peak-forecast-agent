@@ -1,6 +1,6 @@
 # Task 11 Infrastructure — PostgreSQL Test Environment and CI Plan
 
-Status: **IMPLEMENTATION PLANNING / DRAFT PR**  
+Status: **IMPLEMENTED / UNDER ENGINEERING RE-REVIEW**  
 Issue: **#23**  
 Base: `main@36791884768473c976b7e7a12a5bb3587501c4ec`  
 Branch: `codex/issue-23-postgres-test-infra`
