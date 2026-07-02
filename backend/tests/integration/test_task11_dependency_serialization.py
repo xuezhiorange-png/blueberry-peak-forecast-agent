@@ -46,7 +46,7 @@ from backend.app.harvest_state.enums import (
     AuthorityStatus,
     WeatherCombinationMethod,
 )
-from backend.app.harvest_state.schemas import Task9WeatherFeatureBand, Task9WeatherFeatureRule
+from backend.app.harvest_state.schemas import WeatherFeatureBand, WeatherFeatureRule
 
 pytestmark = pytest.mark.integration
 
@@ -157,10 +157,10 @@ def _weather_input(
         maximum_ratio=Decimal("1.0"),
         required_feature_ids=["TEMP"],
         feature_rules=[
-            Task9WeatherFeatureRule(
+            WeatherFeatureRule(
                 feature_id="TEMP",
                 bands=[
-                    Task9WeatherFeatureBand(
+                    WeatherFeatureBand(
                         lower_bound=Decimal("0"),
                         lower_inclusive=True,
                         upper_bound=Decimal("30"),
