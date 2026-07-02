@@ -15,6 +15,7 @@ CRITICAL INVARIANTS
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any, NoReturn
@@ -91,6 +92,18 @@ from backend.app.models.task9_authority import (
 )
 
 # ── Advisory lock key computation ──────────────────────────────────────
+
+
+_dependency_serialization_test_hook: Callable[[str], Awaitable[None]] | None = None
+"""Test-only hook for deterministic synchronization during dependency-race tests.
+
+Set to a coroutine function before a test, restore to ``None`` afterwards.
+Default ``None`` → production code has zero overhead.  Call sites:
+
+    ``"after_dependency_locks_acquired"``
+    ``"after_shared_reference_precheck"``
+    ``"before_mutation"``
+"""
 
 
 def _advisory_lock_key(family: str, business_key: str, version: str, revision: int) -> int:
@@ -4181,12 +4194,13 @@ async def _load_for_update(
     family: AuthorityFamily,
     authority_id: int,
 ) -> Any:
-    """SELECT ... FOR UPDATE on the authority row."""
+    """SELECT … FOR UPDATE with populate_existing to guarantee fresh state."""
     model_cls = _FAMILY_MODEL_MAP[family]
     stmt = (
         select(model_cls)
         .where(model_cls.id == authority_id)  # type: ignore[attr-defined]
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     result = await session.execute(stmt)
     row = result.scalar_one_or_none()
@@ -4245,31 +4259,30 @@ async def activate_authority(
     """
     # For run packages, acquire dependency locks BEFORE row lock (global lock order).
     dep_ids: list[tuple[AuthorityFamily, int]] = []
-    _dep_pkg_ref = None
+    _dep_holiday_id: int | None = None
+    _dep_weather_id: int | None = None
     if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
-        # Light lookup to find dependency IDs for advisory locking.
-        _pkg_ref_stmt = select(Task9RunParameterPackage).where(
-            Task9RunParameterPackage.id == authority_id
-        )
-        _dep_pkg_ref = (await session.execute(_pkg_ref_stmt)).scalar_one_or_none()
-        if _dep_pkg_ref is None:
+        # Scalar-only light lookup — avoid loading ORM entity into identity map.
+        _dep_stmt = select(
+            Task9RunParameterPackage.holiday_calendar_version_id,
+            Task9RunParameterPackage.weather_rule_config_version_id,
+        ).where(Task9RunParameterPackage.id == authority_id)
+        _dep_row = (await session.execute(_dep_stmt)).one_or_none()
+        if _dep_row is None:
             raise AuthorityNotFoundError(
                 authority_family=family,
                 lookup_key=str(authority_id),
             )
-        if _dep_pkg_ref.holiday_calendar_version_id is not None:
-            dep_ids.append(
-                (AuthorityFamily.HOLIDAY_CALENDAR_VERSION, _dep_pkg_ref.holiday_calendar_version_id)
-            )
-        if _dep_pkg_ref.weather_rule_config_version_id is not None:
-            dep_ids.append(
-                (
-                    AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
-                    _dep_pkg_ref.weather_rule_config_version_id,
-                )
-            )
+        _dep_holiday_id = _dep_row[0]
+        _dep_weather_id = _dep_row[1]
+        if _dep_holiday_id is not None:
+            dep_ids.append((AuthorityFamily.HOLIDAY_CALENDAR_VERSION, _dep_holiday_id))
+        if _dep_weather_id is not None:
+            dep_ids.append((AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, _dep_weather_id))
         if dep_ids:
             await _acquire_dependency_locks(session, dependencies=dep_ids)
+        if _dependency_serialization_test_hook is not None:
+            await _dependency_serialization_test_hook("after_dependency_locks_acquired")
 
     row = await _load_for_update(session, family=family, authority_id=authority_id)
     stable_key, version, revision = await _resolve_stable_key_and_version(family, row)
@@ -4302,7 +4315,7 @@ async def activate_authority(
                         "consumable_to": None,
                     },
                 )
-            if dep_row.status not in (AuthorityStatus.ACTIVE, AuthorityStatus.DRAFT):
+            if dep_row.status != AuthorityStatus.ACTIVE:
                 raise RunParameterDependencyStatusConflictError(
                     details={
                         "dependency_family": dep_fam.value,
@@ -4840,27 +4853,21 @@ async def replace_run_package_with_dependencies(
     5. Supersede old package → activate new package.
     """
     # (0) Resolve dependency IDs for advisory locking.
-    # Light SELECT (no FOR UPDATE) to find the dependency IDs so we can
-    # acquire advisory locks in global lock order.
-    _pkg_lookup = select(Task9RunParameterPackage).where(
-        Task9RunParameterPackage.id == old_package_id
-    )
-    _pkg_ref = (await session.execute(_pkg_lookup)).scalar_one_or_none()
-    if _pkg_ref is None:
+    # Scalar-only light SELECT (no FOR UPDATE, no ORM entity) to find the
+    # dependency IDs so we can acquire advisory locks in global lock order.
+    _dep_stmt = select(
+        Task9RunParameterPackage.holiday_calendar_version_id,
+        Task9RunParameterPackage.weather_rule_config_version_id,
+    ).where(Task9RunParameterPackage.id == old_package_id)
+    _dep_row = (await session.execute(_dep_stmt)).one_or_none()
+    if _dep_row is None:
         raise AuthorityNotFoundError(
             authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
             lookup_key=str(old_package_id),
         )
-    if _pkg_ref.status != AuthorityStatus.ACTIVE:
-        raise LifecycleTransitionInvalidError(
-            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-            authority_stable_key=_stable_key_from_orm_run_package(_pkg_ref),
-            current_status=_pkg_ref.status,
-            target_status=AuthorityStatus.SUPERSEDED,
-        )
 
-    old_holiday_id = _pkg_ref.holiday_calendar_version_id
-    old_weather_id = _pkg_ref.weather_rule_config_version_id
+    old_holiday_id = _dep_row[0]
+    old_weather_id = _dep_row[1]
 
     # (1) Advisory dependency locks FIRST (global lock order: advisory → row).
     await _acquire_dependency_locks(
@@ -4870,16 +4877,44 @@ async def replace_run_package_with_dependencies(
             (AuthorityFamily.WEATHER_RULE_CONFIG_VERSION, old_weather_id),
         ],
     )
+    if _dependency_serialization_test_hook is not None:
+        await _dependency_serialization_test_hook("after_dependency_locks_acquired")
 
     # (2) Lock old package row FOR UPDATE (after advisory locks).
+    # Status validation happens here — not before locks.
     old_pkg_stmt = (
         select(Task9RunParameterPackage)
         .where(Task9RunParameterPackage.id == old_package_id)
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     old_pkg_result = await session.execute(old_pkg_stmt)
     old_pkg = old_pkg_result.scalar_one_or_none()
     assert old_pkg is not None  # verified above
+
+    if old_pkg.status != AuthorityStatus.ACTIVE:
+        raise LifecycleTransitionInvalidError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key=_stable_key_from_orm_run_package(old_pkg),
+            current_status=old_pkg.status,
+            target_status=AuthorityStatus.SUPERSEDED,
+        )
+
+    # Re-validate dependency IDs after lock (may have changed).
+    if (
+        old_pkg.holiday_calendar_version_id != old_holiday_id
+        or old_pkg.weather_rule_config_version_id != old_weather_id
+    ):
+        raise AuthorityVersionConflictError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            details={
+                "reason": "dependency_id_drift",
+                "expected_holiday_id": old_holiday_id,
+                "expected_weather_id": old_weather_id,
+                "actual_holiday_id": old_pkg.holiday_calendar_version_id,
+                "actual_weather_id": old_pkg.weather_rule_config_version_id,
+            },
+        )
 
     # (1c) Pre-mutation shared dependency validation (under lock)
     await _assert_dependency_replaceable_for_package(
@@ -4894,6 +4929,10 @@ async def replace_run_package_with_dependencies(
         dependency_id=old_weather_id,
         replacing_package_id=old_package_id,
     )
+    if _dependency_serialization_test_hook is not None:
+        await _dependency_serialization_test_hook("after_shared_reference_precheck")
+    if _dependency_serialization_test_hook is not None:
+        await _dependency_serialization_test_hook("before_mutation")
 
     # (2) Create new trio as drafts first
     _new_holiday = await create_or_load_holiday_calendar(session, calendar_input=new_holiday_input)
