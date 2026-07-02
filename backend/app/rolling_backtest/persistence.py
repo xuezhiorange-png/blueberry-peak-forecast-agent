@@ -1284,7 +1284,33 @@ async def finalize_attempt_with_snapshot(
     structured_error_code: str | None = None,
     sanitized_diagnostics: dict[str, object] | None = None,
     canonical_payload: dict[str, Any] | None = None,
+    session: AsyncSession | None = None,
 ) -> tuple[RollingBacktestAttempt, RollingBacktestOrchestrationSnapshot]:
+    if session is not None:
+        try:
+            attempt = await _finalize_attempt_status_in_session(
+                session,
+                attempt_id,
+                status=status,
+                current_stage=current_stage,
+                structured_error_code=structured_error_code,
+                sanitized_diagnostics=sanitized_diagnostics,
+            )
+            snapshot = await _persist_orchestration_snapshot_in_session(
+                session,
+                attempt_id,
+                node_id,
+                status=snapshot_status,
+                terminal_stage=terminal_stage,
+                fallback_mode=fallback_mode,
+                blocker_code=blocker_code,
+                canonical_payload=canonical_payload,
+            )
+            return attempt, snapshot
+        except SAIntegrityError as exc:
+            raise RollingBacktestAttemptConflictError(
+                f"finalize with snapshot failed for attempt {attempt_id}"
+            ) from exc
     async with AsyncSessionMaker() as session:
         try:
             attempt = await _finalize_attempt_status_in_session(
