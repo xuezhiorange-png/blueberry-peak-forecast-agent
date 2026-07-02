@@ -289,6 +289,7 @@ def _make_orchestration_persistence_command(
     execution_mode: ExecutionMode = ExecutionMode.HISTORICAL_OBSERVED,
     identity_role: str = "task8_forecast_run",
     identity_source_type: AvailabilitySourceType = AvailabilitySourceType.TASK8_FORECAST_RUN,
+    season_id: int = 2026,
 ) -> RollingBacktestPersistenceCommand:
     """Build a persistence command suitable for orchestrate_node integration tests.
 
@@ -301,7 +302,7 @@ def _make_orchestration_persistence_command(
         source_type=identity_source_type,
     )
     node = _make_pinned_node(
-        season_id=2026,
+        season_id=season_id,
         node_key="march_15",
         resolved_identities=(identity,),
     )
@@ -368,6 +369,8 @@ async def test_single_node_successful_orchestration() -> None:
         )
         await session.commit()
 
+    if outcome.status != "completed":
+        print(f"DIAGNOSTICS: {outcome.diagnostics}")
     if outcome.status != "completed":
         print(f"DIAGNOSTICS: {outcome.diagnostics}")
     assert outcome.status == "completed"
@@ -459,7 +462,10 @@ async def test_independent_session_committed_reload() -> None:
 async def test_existing_finalized_result_integrity_reload() -> None:
     """Orchestrate once (success), try again → NodeAlreadyFinalizedError, verify original intact."""
     _require_postgres()
-    cmd = _make_orchestration_persistence_command()
+    cmd = _make_orchestration_persistence_command(
+        season_id=2027,
+        identity_role="task8_forecast_run_reload",
+    )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
 
