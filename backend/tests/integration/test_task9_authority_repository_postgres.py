@@ -273,6 +273,7 @@ def _holiday_input(
     revision: int = 1,
     cal_hash: str | None = None,
     dates: list[Task9HolidayCalendarDateSchema] | None = None,
+    code: str = "CN",
 ) -> Task9HolidayCalendarSemanticBundle:
     """Build a valid holiday-calendar semantic bundle."""
     effective_dates = dates or _make_holiday_dates()
@@ -283,7 +284,7 @@ def _holiday_input(
     )
     return Task9HolidayCalendarSemanticBundle(
         season_id=_IDS["season"],
-        calendar_code="CN",
+        calendar_code=code,
         calendar_version=version,
         revision=revision,
         calendar_hash=computed_hash,
@@ -335,10 +336,11 @@ def _weather_input(
     version: str = "v1",
     revision: int = 1,
     config_hash: str | None = None,
+    code: str = "WEATHER-STD",
 ) -> Task9WeatherRuleSemanticInput:
     """Build a valid weather-rule semantic input."""
     return Task9WeatherRuleSemanticInput(
-        rule_code="WEATHER-STD",
+        rule_code=code,
         rule_version=version,
         revision=revision,
         lifecycle_timezone_name=_TZ,
@@ -3486,12 +3488,12 @@ async def test_shared_holiday_rejection(db_session: AsyncSession) -> None:
     hol = _holiday_input(version="v1", revision=1)
     hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol)
 
-    # Weather W1 for package A
-    wth_a = _weather_input(version="v1", revision=1)
+    # Weather W1 for package A (unique code per active constraint)
+    wth_a = _weather_input(version="v1", revision=1, code="WEATHER-A")
     wth_a_result = await create_or_load_weather_rule(db_session, weather_input=wth_a)
 
-    # Weather W2 for package B (different weather)
-    wth_b = _weather_input(version="v2", revision=1)
+    # Weather W2 for package B (different code to satisfy unique constraint)
+    wth_b = _weather_input(version="v1", revision=1, code="WEATHER-B")
     wth_b_result = await create_or_load_weather_rule(db_session, weather_input=wth_b)
 
     # Package A → holiday H + weather W1
@@ -3622,12 +3624,12 @@ async def test_shared_weather_rejection(db_session: AsyncSession) -> None:
     wth = _weather_input(version="v1", revision=1)
     wth_result = await create_or_load_weather_rule(db_session, weather_input=wth)
 
-    # Holiday H1 for package A
-    hol_a = _holiday_input(version="v1", revision=1)
+    # Holiday H1 for package A (unique code per active constraint)
+    hol_a = _holiday_input(version="v1", revision=1, code="CAL-A")
     hol_a_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_a)
 
-    # Holiday H2 for package B (different holiday)
-    hol_b = _holiday_input(version="v2", revision=1)
+    # Holiday H2 for package B (different code to satisfy unique constraint)
+    hol_b = _holiday_input(version="v1", revision=1, code="CAL-B")
     hol_b_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_b)
 
     # Package A → holiday H1 + weather W
@@ -3909,8 +3911,8 @@ async def test_replacement_atomic_rollback_on_mid_failure() -> None:
                 weather_rule=wth_v1,
             )
 
-            # Package B → different holiday, same weather
-            hol_b = _holiday_input(version="v1", revision=2)
+            # Package B → different holiday (unique code), same weather
+            hol_b = _holiday_input(version="v1", revision=1, code="CAL-B")
             hol_b_result = await create_or_load_holiday_calendar(setup, calendar_input=hol_b)
             pkg_b_input = _run_package_input(version="v1", revision=2).model_copy(
                 update={"farm_scope_key": "farm-B"}
