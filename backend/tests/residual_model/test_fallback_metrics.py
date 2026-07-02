@@ -39,6 +39,7 @@ def _config():
 def _fallback_config():
     """Config with structural_only_fallback unknown policy and relaxed eligibility."""
     from backend.app.residual_model.config import load_residual_model_config_from_snapshot
+
     base = _config()
     snapshot = dict(base.snapshot)
     snapshot["categorical_encoding"] = {
@@ -65,136 +66,168 @@ def _all_feature_values(
     to avoid missing_policy='block' fallbacks in _row_decision.
     """
     return (
-        FeatureValue.model_validate({
-            "feature_name": "structural_arrival_p50_kg",
-            "value": "100",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"task9": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "structural_arrival_p80_kg",
-            "value": "110",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"task9": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "structural_arrival_p90_kg",
-            "value": "120",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"task9": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "forecast_horizon_days",
-            "value": "1",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"task9": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "actual_receipt_lag_1d_kg",
-            "value": "50",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"analytics": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "actual_receipt_lag_3d_kg",
-            "value": "150",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"analytics": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "actual_receipt_lag_7d_kg",
-            "value": "350",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"analytics": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "actual_receipt_rolling_3d_mean_kg",
-            "value": "100",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"analytics": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "actual_receipt_rolling_7d_mean_kg",
-            "value": "100",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"analytics": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "actual_receipt_cumulative_to_as_of_kg",
-            "value": "1000",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"analytics": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "structural_cumulative_to_as_of_kg",
-            "value": "900",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"task9": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "realized_cumulative_residual_to_as_of_kg",
-            "value": "100",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"analytics": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "weather_7d_rainfall",
-            "value": rainfall,
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"weather": rainfall},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "observation_date": date(2026, 2, 28),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "weather_7d_gdd",
-            "value": "150",
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"weather": "150"},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "observation_date": date(2026, 2, 28),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "destination_factory_category",
-            "value": factory_category,
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"plan": 1},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
-        FeatureValue.model_validate({
-            "feature_name": "spring_festival_window_flag",
-            "value": False,
-            "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-            "source_ref": {"calendar": "v1"},
-            "source_version": "v1",
-            "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
-        }),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "structural_arrival_p50_kg",
+                "value": "100",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"task9": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "structural_arrival_p80_kg",
+                "value": "110",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"task9": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "structural_arrival_p90_kg",
+                "value": "120",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"task9": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "forecast_horizon_days",
+                "value": "1",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"task9": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "actual_receipt_lag_1d_kg",
+                "value": "50",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"analytics": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "actual_receipt_lag_3d_kg",
+                "value": "150",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"analytics": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "actual_receipt_lag_7d_kg",
+                "value": "350",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"analytics": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "actual_receipt_rolling_3d_mean_kg",
+                "value": "100",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"analytics": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "actual_receipt_rolling_7d_mean_kg",
+                "value": "100",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"analytics": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "actual_receipt_cumulative_to_as_of_kg",
+                "value": "1000",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"analytics": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "structural_cumulative_to_as_of_kg",
+                "value": "900",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"task9": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "realized_cumulative_residual_to_as_of_kg",
+                "value": "100",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"analytics": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "weather_7d_rainfall",
+                "value": rainfall,
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"weather": rainfall},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "observation_date": date(2026, 2, 28),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "weather_7d_gdd",
+                "value": "150",
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"weather": "150"},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "observation_date": date(2026, 2, 28),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "destination_factory_category",
+                "value": factory_category,
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"plan": 1},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
+        FeatureValue.model_validate(
+            {
+                "feature_name": "spring_festival_window_flag",
+                "value": False,
+                "known_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+                "source_ref": {"calendar": "v1"},
+                "source_version": "v1",
+                "source_available_at": datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+            }
+        ),
     )
 
 
@@ -346,7 +379,10 @@ def test_fallback_metrics_all_fallback() -> None:
 
     rows = [
         _manifest_row(
-            index=i, season_id=1, factory_id=1, factory_category="unknown-zone",
+            index=i,
+            season_id=1,
+            factory_id=1,
+            factory_category="unknown-zone",
         )
         for i in range(5)
     ]
@@ -390,7 +426,9 @@ def test_fallback_metrics_partial_fallback() -> None:
 
     rows = [
         _manifest_row(
-            index=i, season_id=1, factory_id=1,
+            index=i,
+            season_id=1,
+            factory_id=1,
             factory_category="north" if i < 3 else "unknown-zone",
         )
         for i in range(5)
@@ -433,12 +471,13 @@ def test_fallback_metrics_per_season_mixed() -> None:
     feature_names = _feature_names()
     category_encodings = _category_encodings()
 
-    rows = (
-        [_manifest_row(index=i, season_id=1, factory_id=1, factory_category="north")
-         for i in range(3)]
-        + [_manifest_row(index=i + 3, season_id=2, factory_id=1, factory_category="unknown")
-           for i in range(3)]
-    )
+    rows = [
+        _manifest_row(index=i, season_id=1, factory_id=1, factory_category="north")
+        for i in range(3)
+    ] + [
+        _manifest_row(index=i + 3, season_id=2, factory_id=1, factory_category="unknown")
+        for i in range(3)
+    ]
     feature_rows = [row.feature_values for row in rows]
     feature_audits = [None for _ in rows]
 
@@ -479,12 +518,13 @@ def test_fallback_metrics_per_factory_mixed() -> None:
     feature_names = _feature_names()
     category_encodings = _category_encodings()
 
-    rows = (
-        [_manifest_row(index=i, season_id=1, factory_id=1, factory_category="north")
-         for i in range(3)]
-        + [_manifest_row(index=i + 3, season_id=1, factory_id=2, factory_category="unknown")
-           for i in range(3)]
-    )
+    rows = [
+        _manifest_row(index=i, season_id=1, factory_id=1, factory_category="north")
+        for i in range(3)
+    ] + [
+        _manifest_row(index=i + 3, season_id=1, factory_id=2, factory_category="unknown")
+        for i in range(3)
+    ]
     feature_rows = [row.feature_values for row in rows]
     feature_audits = [None for _ in rows]
 
@@ -589,6 +629,7 @@ def test_fallback_metrics_mixed_reasons() -> None:
 def _simple_split_config():
     """Config that uses simple_split to avoid validation-season requirements."""
     from backend.app.residual_model.config import load_residual_model_config_from_snapshot
+
     base = _fallback_config()
     snapshot = dict(base.snapshot)
     snapshot["split"] = {

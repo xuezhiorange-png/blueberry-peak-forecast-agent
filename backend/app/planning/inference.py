@@ -60,14 +60,14 @@ def _group_candidates(
     grouped: dict[str, list[RankedObservation]] = defaultdict(list)
     for candidate in candidates:
         grouped[candidate.source_level].append(
-                RankedObservation(
-                    observation_id=candidate.observation_id,
-                    source_level=candidate.source_level,
-                    similarity_score=Decimal("0"),
-                    distance_km=None,
-                    altitude_difference_m=None,
-                    candidate=candidate,
-                )
+            RankedObservation(
+                observation_id=candidate.observation_id,
+                source_level=candidate.source_level,
+                similarity_score=Decimal("0"),
+                distance_km=None,
+                altitude_difference_m=None,
+                candidate=candidate,
+            )
         )
     return dict(grouped)
 
@@ -136,10 +136,7 @@ def _choose_level(
 
 
 def _fallback_rule_map(rules: ParameterInferenceRules) -> dict[str, Any]:
-    return {
-        level: getattr(rules.fallback, level)
-        for level in fallback_order()
-    }
+    return {level: getattr(rules.fallback, level) for level in fallback_order()}
 
 
 def _select_candidates(

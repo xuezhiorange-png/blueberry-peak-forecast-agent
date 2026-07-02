@@ -134,9 +134,7 @@ class BaselineBacktestResult(Base):
     fold_key: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False)
     actual_stable_peak_kg: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
-    predicted_stable_peak_kg: Mapped[Decimal | None] = mapped_column(
-        Numeric(18, 6), nullable=True
-    )
+    predicted_stable_peak_kg: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
     absolute_error_kg: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
     signed_error_kg: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
     ape: Mapped[Decimal | None] = mapped_column(Numeric(12, 10), nullable=True)

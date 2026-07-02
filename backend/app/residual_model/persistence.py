@@ -195,9 +195,7 @@ def _validate_prediction_result(result: ResidualPredictionExecutionResult) -> No
     if not is_sha256_hex(result.config_hash):
         raise ResidualModelPersistenceError("prediction config_hash must be canonical SHA-256")
     if not is_sha256_hex(result.prediction_input_signature):
-        raise ResidualModelPersistenceError(
-            "prediction_input_signature must be canonical SHA-256"
-        )
+        raise ResidualModelPersistenceError("prediction_input_signature must be canonical SHA-256")
     if not is_sha256_hex(result.prediction_hash):
         raise ResidualModelPersistenceError("prediction_hash must be canonical SHA-256")
     if result.execution_status == "blocked" and result.rows:
@@ -248,15 +246,11 @@ async def _verify_task3_authority(
 
     build_run_id = feature_actual_snapshot.get("build_run_id")
     if not isinstance(build_run_id, int):
-        raise ResidualModelPersistenceError(
-            "Task 3 authority binding: invalid build_run_id"
-        )
+        raise ResidualModelPersistenceError("Task 3 authority binding: invalid build_run_id")
 
     build_run = await session.get(AnalyticsBuildRun, build_run_id)
     if build_run is None:
-        raise ResidualModelPersistenceError(
-            f"AnalyticsBuildRun {build_run_id} was not found"
-        )
+        raise ResidualModelPersistenceError(f"AnalyticsBuildRun {build_run_id} was not found")
     if build_run.status != "completed":
         raise ResidualModelPersistenceError(
             f"AnalyticsBuildRun {build_run_id} must be completed, got {build_run.status}"
@@ -264,9 +258,7 @@ async def _verify_task3_authority(
 
     # 2. season_id — verify the build's season_id is valid
     if not isinstance(build_run.season_id, int) or build_run.season_id <= 0:
-        raise ResidualModelPersistenceError(
-            "AnalyticsBuildRun has invalid season_id"
-        )
+        raise ResidualModelPersistenceError("AnalyticsBuildRun has invalid season_id")
 
     # 3. source_max_raw_id, aggregation_version, config_hash
     if feature_actual_snapshot.get("source_max_raw_id") != build_run.source_max_raw_id:
@@ -278,9 +270,7 @@ async def _verify_task3_authority(
             "AnalyticsBuildRun aggregation_version authority mismatch"
         )
     if feature_actual_snapshot.get("config_hash") != build_run.config_hash:
-        raise ResidualModelPersistenceError(
-            "AnalyticsBuildRun config_hash authority mismatch"
-        )
+        raise ResidualModelPersistenceError("AnalyticsBuildRun config_hash authority mismatch")
 
     # 4. source_cutoff — derive from build_run.finished_at
     expected_cutoff = _build_source_cutoff(build_run)
@@ -327,12 +317,16 @@ async def _verify_task3_authority(
 
     # 5 + 6: Load frozen coverage (FactorySeasonPeakMetric) — do NOT touch Factory master
     peak_metrics = (
-        await session.execute(
-            select(FactorySeasonPeakMetric).where(
-                FactorySeasonPeakMetric.build_run_id == build_run.id
+        (
+            await session.execute(
+                select(FactorySeasonPeakMetric).where(
+                    FactorySeasonPeakMetric.build_run_id == build_run.id
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     if not peak_metrics:
         raise ResidualModelPersistenceError(
@@ -412,10 +406,7 @@ async def _verify_task3_authority(
                 raise ResidualModelPersistenceError(
                     "Task 3 authority binding: invalid observation_date payload"
                 ) from exc
-            if (
-                observation_date < analysis_start_date
-                or observation_date > analysis_end_date
-            ):
+            if observation_date < analysis_start_date or observation_date > analysis_end_date:
                 raise ResidualModelPersistenceError(
                     "AnalyticsBuildRun observation date is outside frozen factory coverage"
                 )
@@ -793,9 +784,7 @@ async def load_residual_training_run_by_id(
     artifacts: tuple[PersistableResidualArtifact, ...]
     if run.execution_status == "completed" and run.eligibility_status == "eligible":
         try:
-            artifacts = await load_and_validate_trusted_residual_artifacts(
-                session, run_id=run_id
-            )
+            artifacts = await load_and_validate_trusted_residual_artifacts(session, run_id=run_id)
         except ResidualArtifactIntegrityError as exc:
             raise ResidualModelPersistenceIntegrityError(str(exc)) from exc
     else:
@@ -839,11 +828,7 @@ async def load_residual_training_run_by_id(
         "distinct_factory_count": len({r.destination_factory_id for r in included_rows}),
         "split_counts": dict(sorted(split_counts.items())),
         "feature_names": sorted(
-            {
-                feature.feature_name
-                for row in included_rows
-                for feature in row.feature_values
-            }
+            {feature.feature_name for row in included_rows for feature in row.feature_values}
         ),
     }
     stored_summary = run.manifest_snapshot.get("summary", {})
@@ -1028,9 +1013,7 @@ async def save_residual_prediction_run(
     # 7.1: Re-read training run from DB and verify
     training_run_row = None
     if result.model_run_id is not None:
-        training_run_row = await get_residual_training_run(
-            session, run_id=result.model_run_id
-        )
+        training_run_row = await get_residual_training_run(session, run_id=result.model_run_id)
         if training_run_row is None:
             raise ResidualModelPersistenceError(
                 "training run referenced by prediction was not found"
@@ -1038,9 +1021,7 @@ async def save_residual_prediction_run(
         # Verify training_signature
         snapshot_ts = cast(str, result.input_snapshot.get("training_signature"))
         if training_run_row.training_signature != snapshot_ts:
-            raise ResidualModelPersistenceError(
-                "training_signature authority mismatch"
-            )
+            raise ResidualModelPersistenceError("training_signature authority mismatch")
         # Verify config_hash
         if training_run_row.config_hash != result.config_hash:
             raise ResidualModelPersistenceError("config_hash authority mismatch")
@@ -1079,21 +1060,15 @@ async def save_residual_prediction_run(
 
     # 7.3: Read Task 9 via integrity loader and verify task9_result_hash
     if result.task9_run_id is not None:
-        task9_output = await load_harvest_state_output_by_id(
-            session, run_id=result.task9_run_id
-        )
+        task9_output = await load_harvest_state_output_by_id(session, run_id=result.task9_run_id)
         if task9_output is None:
-            raise ResidualModelPersistenceError(
-                f"Task 9 run {result.task9_run_id} was not found"
-            )
+            raise ResidualModelPersistenceError(f"Task 9 run {result.task9_run_id} was not found")
         if task9_output.status != "completed":
             raise ResidualModelPersistenceError(
                 f"Task 9 run {result.task9_run_id} must be completed"
             )
         if task9_output.result_hash != result.task9_result_hash:
-            raise ResidualModelPersistenceError(
-                "task9_result_hash authority mismatch"
-            )
+            raise ResidualModelPersistenceError("task9_result_hash authority mismatch")
 
     # 7.4: Full Task 3 authority binding (Section 9)
     feature_build_run_id = cast(
@@ -1107,22 +1082,16 @@ async def save_residual_prediction_run(
         )
 
     # 7.5: Force equivalence: input_snapshot.artifact_hashes == parent artifact_hashes == training
-    snapshot_artifact_hashes = cast(
-        list[str], result.input_snapshot.get("artifact_hashes", [])
-    )
+    snapshot_artifact_hashes = cast(list[str], result.input_snapshot.get("artifact_hashes", []))
     if sorted(snapshot_artifact_hashes) != sorted(resolved_artifact_hashes):
-        raise ResidualModelPersistenceError(
-            "input_snapshot artifact_hashes authority mismatch"
-        )
+        raise ResidualModelPersistenceError("input_snapshot artifact_hashes authority mismatch")
     if training_run_row is not None and training_run_row.eligibility_status == "eligible":
         training_artifacts = await list_residual_artifacts(
             session, training_run_id=cast(int, result.model_run_id)
         )
         training_artifact_hashes = [a.artifact_sha256 for a in training_artifacts]
         if sorted(training_artifact_hashes) != sorted(resolved_artifact_hashes):
-            raise ResidualModelPersistenceError(
-                "training artifact_hashes authority mismatch"
-            )
+            raise ResidualModelPersistenceError("training artifact_hashes authority mismatch")
 
     # Recompute and verify input signature
     recomputed = prediction_input_signature_hash(
@@ -1313,9 +1282,7 @@ async def load_residual_prediction_run_by_id(
                 "prediction row nonnegative contract failed"
             )
         if not (row.corrected_p50_kg <= row.corrected_p80_kg <= row.corrected_p90_kg):
-            raise ResidualModelPersistenceIntegrityError(
-                "prediction row monotonic contract failed"
-            )
+            raise ResidualModelPersistenceIntegrityError("prediction row monotonic contract failed")
         row_payload = {
             "model_run_id": row.model_run_id or 0,
             "prediction_run_id": 0,
@@ -1357,13 +1324,9 @@ async def load_residual_prediction_run_by_id(
 
     # SECTION 7.2: Verify training identity against referenced training run
     if run.training_run_id is not None:
-        training_run = await get_residual_training_run(
-            session, run_id=run.training_run_id
-        )
+        training_run = await get_residual_training_run(session, run_id=run.training_run_id)
         if training_run is None:
-            raise ResidualModelPersistenceIntegrityError(
-                "referenced training run was not found"
-            )
+            raise ResidualModelPersistenceIntegrityError("referenced training run was not found")
         if training_run.training_signature != cast(
             str, run.input_snapshot.get("training_signature")
         ):
@@ -1396,9 +1359,7 @@ async def load_residual_prediction_run_by_id(
 
     # SECTION 7.3: Verify Task 9 identity against referenced Task 9 run
     if run.task9_run_id is not None:
-        task9_output = await load_harvest_state_output_by_id(
-            session, run_id=run.task9_run_id
-        )
+        task9_output = await load_harvest_state_output_by_id(session, run_id=run.task9_run_id)
         if task9_output is None:
             raise ResidualModelPersistenceIntegrityError(
                 f"referenced Task 9 run {run.task9_run_id} was not found"
@@ -1470,9 +1431,8 @@ async def load_residual_prediction_run_by_id(
             loaded.input_snapshot.get("feature_schema_hash", run.feature_schema_hash),
         )
         rebuilt_artifact_hashes: list[str] = [
-            a.artifact_sha256 for a in await list_residual_artifacts(
-                session, training_run_id=run.training_run_id
-            )
+            a.artifact_sha256
+            for a in await list_residual_artifacts(session, training_run_id=run.training_run_id)
         ]
     else:
         # structural_only: columns are the only authority
@@ -1527,9 +1487,7 @@ async def load_residual_prediction_run_by_id(
                 "prediction feature schema version mismatch"
             )
         if run.feature_schema_hash != loaded_fsh:
-            raise ResidualModelPersistenceIntegrityError(
-                "prediction feature schema hash mismatch"
-            )
+            raise ResidualModelPersistenceIntegrityError("prediction feature schema hash mismatch")
     # else: structural_only - snapshot has placeholder values, skip
 
     # SECTION 7.4: Full Task 3 authority binding (Section 9)
@@ -1629,13 +1587,9 @@ async def load_residual_training_artifacts(
         if metadata.model_version != run.model_version:
             raise ResidualArtifactIntegrityError("artifact model version mismatch")
         if metadata.feature_schema_version != run.feature_schema_version:
-            raise ResidualArtifactIntegrityError(
-                "artifact/run feature schema version mismatch"
-            )
+            raise ResidualArtifactIntegrityError("artifact/run feature schema version mismatch")
         if metadata.feature_schema_hash != run.feature_schema_hash:
-            raise ResidualArtifactIntegrityError(
-                "artifact/run feature schema hash mismatch"
-            )
+            raise ResidualArtifactIntegrityError("artifact/run feature schema hash mismatch")
         if metadata.config_hash != run.config_hash:
             raise ResidualArtifactIntegrityError("artifact/run config hash mismatch")
         encoded_categories = [
@@ -1655,9 +1609,7 @@ async def load_residual_training_artifacts(
     if seen_quantiles != {"P50", "P80", "P90"}:
         raise ResidualArtifactIntegrityError("artifact quantiles are incomplete")
     if (reference_category_encodings or []) != run.category_encoding_snapshot:
-        raise ResidualArtifactIntegrityError(
-            "training run category encoding snapshot mismatch"
-        )
+        raise ResidualArtifactIntegrityError("training run category encoding snapshot mismatch")
     return tuple(validated)
 
 
@@ -1749,13 +1701,9 @@ async def load_and_validate_trusted_residual_artifacts(
         if metadata.feature_schema_hash != item.feature_schema_hash:
             raise ResidualArtifactIntegrityError("artifact feature schema hash mismatch")
         if metadata.feature_schema_version != run.feature_schema_version:
-            raise ResidualArtifactIntegrityError(
-                "artifact/run feature schema version mismatch"
-            )
+            raise ResidualArtifactIntegrityError("artifact/run feature schema version mismatch")
         if metadata.feature_schema_hash != run.feature_schema_hash:
-            raise ResidualArtifactIntegrityError(
-                "artifact/run feature schema hash mismatch"
-            )
+            raise ResidualArtifactIntegrityError("artifact/run feature schema hash mismatch")
 
         # Config hash
         if metadata.config_hash != item.config_hash:
@@ -1866,9 +1814,7 @@ async def load_and_validate_trusted_residual_artifacts(
 
     # 4. Parent parity: category encodings match parent snapshot
     if (reference_category_encodings or []) != run.category_encoding_snapshot:
-        raise ResidualArtifactIntegrityError(
-            "training run category encoding snapshot mismatch"
-        )
+        raise ResidualArtifactIntegrityError("training run category encoding snapshot mismatch")
 
     # 4. Parent parity: dependency versions match parent
     if validated and run.python_version != validated[0].metadata.python_version:

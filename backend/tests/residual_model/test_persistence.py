@@ -244,8 +244,7 @@ async def test_training_signature_idempotency(sqlite_session: AsyncSession) -> N
 
     assert first.id == second.id
     assert (
-        await sqlite_session.scalar(select(func.count()).select_from(ResidualModelTrainingRun))
-        == 1
+        await sqlite_session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
     )
 
 
@@ -471,10 +470,7 @@ async def test_load_training_run_detects_parent_dependency_version_mismatch(
     rows, result = _eligible_training()
     run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
     await sqlite_session.execute(
-        text(
-            f"UPDATE residual_model_training_run SET {column_name} = :value "
-            "WHERE id = :run_id"
-        ),
+        text(f"UPDATE residual_model_training_run SET {column_name} = :value WHERE id = :run_id"),
         {"value": value, "run_id": run.id},
     )
     await sqlite_session.commit()
@@ -535,10 +531,7 @@ async def test_load_prediction_run_detects_deleted_child_row(
         artifact_hashes=[],
     )
     await sqlite_session.execute(
-        text(
-            "DELETE FROM residual_model_prediction_row "
-            "WHERE prediction_run_id = :run_id"
-        ),
+        text("DELETE FROM residual_model_prediction_row WHERE prediction_run_id = :run_id"),
         {"run_id": run.id},
     )
     await sqlite_session.commit()
@@ -1262,9 +1255,7 @@ async def test_training_independent_derivation_rejects_corrupted_python_version(
     run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
     await sqlite_session.execute(
         text(
-            "UPDATE residual_model_training_run "
-            "SET python_version = 'corrupted' "
-            "WHERE id = :run_id"
+            "UPDATE residual_model_training_run SET python_version = 'corrupted' WHERE id = :run_id"
         ),
         {"run_id": run.id},
     )
@@ -1282,9 +1273,7 @@ async def test_training_independent_derivation_rejects_corrupted_numpy_version(
     run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
     await sqlite_session.execute(
         text(
-            "UPDATE residual_model_training_run "
-            "SET numpy_version = 'corrupted' "
-            "WHERE id = :run_id"
+            "UPDATE residual_model_training_run SET numpy_version = 'corrupted' WHERE id = :run_id"
         ),
         {"run_id": run.id},
     )
@@ -1341,11 +1330,7 @@ async def test_training_independent_derivation_rejects_corrupted_manifest_row_co
     rows, result = _eligible_training()
     run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
     await sqlite_session.execute(
-        text(
-            "UPDATE residual_model_training_run "
-            "SET manifest_row_count = 9999 "
-            "WHERE id = :run_id"
-        ),
+        text("UPDATE residual_model_training_run SET manifest_row_count = 9999 WHERE id = :run_id"),
         {"run_id": run.id},
     )
     await sqlite_session.commit()
@@ -1361,11 +1346,7 @@ async def test_training_independent_derivation_rejects_corrupted_sample_count(
     rows, result = _eligible_training()
     run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
     await sqlite_session.execute(
-        text(
-            "UPDATE residual_model_training_run "
-            "SET sample_count = 9999 "
-            "WHERE id = :run_id"
-        ),
+        text("UPDATE residual_model_training_run SET sample_count = 9999 WHERE id = :run_id"),
         {"run_id": run.id},
     )
     await sqlite_session.commit()
@@ -1382,9 +1363,7 @@ async def test_training_independent_derivation_rejects_corrupted_distinct_season
     run = await save_residual_training_run(sqlite_session, result=result, manifest_rows=rows)
     await sqlite_session.execute(
         text(
-            "UPDATE residual_model_training_run "
-            "SET distinct_season_count = 9999 "
-            "WHERE id = :run_id"
+            "UPDATE residual_model_training_run SET distinct_season_count = 9999 WHERE id = :run_id"
         ),
         {"run_id": run.id},
     )
@@ -1451,7 +1430,7 @@ async def test_training_independent_derivation_rejects_coordinated_config_and_ma
         text(
             "UPDATE residual_model_training_run "
             "SET config_snapshot = json('{\"corrupted\": true}'), "
-            "    manifest_snapshot = json('{\"rows\": [], \"summary\": {}}') "
+            '    manifest_snapshot = json(\'{"rows": [], "summary": {}}\') '
             "WHERE id = :run_id"
         ),
         {"run_id": run.id},

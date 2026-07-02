@@ -28,4 +28,3 @@ def encode_category(value: str | None, *, encoding: CategoryEncoding) -> int:
         return encoding.ordered_known_categories.index(value)
     except ValueError:
         return encoding.unknown_bucket_code
-

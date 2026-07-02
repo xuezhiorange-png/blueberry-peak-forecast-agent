@@ -199,8 +199,6 @@ def _write_zone_csv(path: Path) -> None:
     )
 
 
-
-
 def _write_ambiguous_location_csv(path: Path) -> None:
     with path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(
@@ -248,6 +246,7 @@ def _write_ambiguous_location_csv(path: Path) -> None:
                     "valid_to": "",
                 }
             )
+
 
 def _write_parameter_csv(path: Path, *, location_reference_id: int | None = None) -> None:
     with path.open("w", encoding="utf-8", newline="") as file:
@@ -300,9 +299,7 @@ def _write_parameter_csv(path: Path, *, location_reference_id: int | None = None
                     "farm_name": "农场A",
                     "subfarm_name": "",
                     "location_reference_id": (
-                        str(location_reference_id)
-                        if location_reference_id is not None
-                        else ""
+                        str(location_reference_id) if location_reference_id is not None else ""
                     ),
                     "climate_zone_code": "zone-a",
                     "season_code": "2024-2025",
@@ -430,10 +427,7 @@ async def test_create_minimal_planning_task_dry_run_is_zero_write_and_excludes_f
             effective_from=date(2024, 1, 1),
         )
         before_tasks = int(
-            await session.scalar(
-                select(func.count()).select_from(MinimalForecastTask)
-            )
-            or 0
+            await session.scalar(select(func.count()).select_from(MinimalForecastTask)) or 0
         )
         result = await create_minimal_planning_task(
             session,
@@ -446,10 +440,7 @@ async def test_create_minimal_planning_task_dry_run_is_zero_write_and_excludes_f
             dry_run=True,
         )
         after_tasks = int(
-            await session.scalar(
-                select(func.count()).select_from(MinimalForecastTask)
-            )
-            or 0
+            await session.scalar(select(func.count()).select_from(MinimalForecastTask)) or 0
         )
 
     assert result.status == "dry_run"
@@ -540,22 +531,13 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
             dry_run=False,
         )
         task_count = int(
-            await session.scalar(
-                select(func.count()).select_from(MinimalForecastTask)
-            )
-            or 0
+            await session.scalar(select(func.count()).select_from(MinimalForecastTask)) or 0
         )
         run_count = int(
-            await session.scalar(
-                select(func.count()).select_from(ParameterInferenceRun)
-            )
-            or 0
+            await session.scalar(select(func.count()).select_from(ParameterInferenceRun)) or 0
         )
         result_count = int(
-            await session.scalar(
-                select(func.count()).select_from(ParameterInferenceResult)
-            )
-            or 0
+            await session.scalar(select(func.count()).select_from(ParameterInferenceResult)) or 0
         )
 
     assert first.status == "completed"
@@ -603,7 +585,6 @@ async def test_create_minimal_planning_task_completed_then_skipped_and_api_loads
     assert get_payload["library_version"] == "lib-v1"
     assert get_payload["resolved_location"] == first.resolved_location
     assert get_payload["variety_parameters"] == first.variety_parameters
-
 
 
 @pytest.mark.asyncio
@@ -1587,10 +1568,7 @@ async def test_minimal_planning_task_fails_for_bad_reference_zones_and_no_run(
                 dry_run=False,
             )
             run_count = int(
-                await session.scalar(
-                    select(func.count()).select_from(ParameterInferenceRun)
-                )
-                or 0
+                await session.scalar(select(func.count()).select_from(ParameterInferenceRun)) or 0
             )
             assert result.status == "failed"
             assert result.run_id is None

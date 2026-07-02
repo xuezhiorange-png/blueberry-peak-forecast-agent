@@ -110,14 +110,10 @@ async def _normalize_payload(
             session,
             variety_id=int(item["variety_id"]) if item.get("variety_id") is not None else None,
             variety_code=(
-                str(item["variety_code"])
-                if item.get("variety_code") is not None
-                else None
+                str(item["variety_code"]) if item.get("variety_code") is not None else None
             ),
             variety_name=(
-                str(item["variety_name"])
-                if item.get("variety_name") is not None
-                else None
+                str(item["variety_name"]) if item.get("variety_name") is not None else None
             ),
         )
         if variety is None:
@@ -141,8 +137,7 @@ async def _normalize_payload(
         ]
     )
     area_by_variety_id = {
-        int(item["variety_id"]): Decimal(str(item["planted_area_mu"]))
-        for item in deduped
+        int(item["variety_id"]): Decimal(str(item["planted_area_mu"])) for item in deduped
     }
     normalized_input = {
         "location": normalized_location,
@@ -220,9 +215,7 @@ async def _load_candidates(
         row.id: row
         for row in (
             await session.scalars(
-                select(LocationReference).where(
-                    LocationReference.id.in_(location_reference_ids)
-                )
+                select(LocationReference).where(LocationReference.id.in_(location_reference_ids))
             )
         ).all()
     }
@@ -326,10 +319,7 @@ async def _load_candidates(
             and candidate_climate_zone_id == resolved_zone_id
         ):
             source_level = "same_county_climate_zone_variety"
-        elif (
-            resolved_province is not None
-            and candidate_province == resolved_province
-        ):
+        elif resolved_province is not None and candidate_province == resolved_province:
             source_level = "same_province_variety"
 
         candidate = CandidateObservation(
@@ -437,11 +427,7 @@ def _parameter_row(
 
 
 def _public_parameter_payload(row: dict[str, Any]) -> dict[str, Any]:
-    return {
-        key: value
-        for key, value in row.items()
-        if key not in {"variety_id", "parameter_type"}
-    }
+    return {key: value for key, value in row.items() if key not in {"variety_id", "parameter_type"}}
 
 
 def _decimal_payload(value: Decimal | None) -> str | None:
@@ -469,9 +455,7 @@ def _effective_volume_summary(
 ) -> dict[str, Any]:
     if yield_row["status"] != "available" or rate_row["status"] != "available":
         return {"status": "unavailable"}
-    p50_value = cast(Decimal, yield_row["p50_value"]) * cast(
-        Decimal, rate_row["p50_value"]
-    )
+    p50_value = cast(Decimal, yield_row["p50_value"]) * cast(Decimal, rate_row["p50_value"])
     lower = cast(Decimal, yield_row["p80_lower"]) * cast(Decimal, rate_row["p80_lower"])
     upper = cast(Decimal, yield_row["p80_upper"]) * cast(Decimal, rate_row["p80_upper"])
     return {
@@ -618,9 +602,7 @@ async def _rehydrate_existing(
             "source_version": source_metadata.get("source_version"),
             "source_versions": source_metadata.get("source_versions", []),
             "distance_range_km": source_metadata.get("distance_range_km"),
-            "altitude_difference_range_m": source_metadata.get(
-                "altitude_difference_range_m"
-            ),
+            "altitude_difference_range_m": source_metadata.get("altitude_difference_range_m"),
             "historical_mape": source_metadata.get("historical_mape"),
             "date_mae_days": source_metadata.get("date_mae_days"),
             "p90_coverage": source_metadata.get("p90_coverage"),

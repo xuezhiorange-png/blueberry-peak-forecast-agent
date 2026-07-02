@@ -96,4 +96,3 @@ class ProductionPlanRead(ProductionPlanBaseModel):
 class ProductionPlanList(ProductionPlanBaseModel):
     items: list[ProductionPlanRead]
     total: int
-

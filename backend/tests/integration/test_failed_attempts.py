@@ -166,9 +166,7 @@ async def test_prediction_task9_failure_persists_failed_attempt() -> None:
                     label_analytics_build_run_id=label_build.id,
                     feature_analytics_build_run_id=feature_build.id,
                     split="train",
-                    supplemental_feature_values=_supplemental_features(
-                        as_of_date=as_of_date
-                    ),
+                    supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
                 )
             ],
             config=_relaxed_config(),
@@ -189,7 +187,8 @@ async def test_prediction_task9_failure_persists_failed_attempt() -> None:
             pass  # expected
 
         count = await session.scalar(
-            select(func.count()).select_from(ResidualModelExecutionAttempt)
+            select(func.count())
+            .select_from(ResidualModelExecutionAttempt)
             .where(ResidualModelExecutionAttempt.attempt_type == "prediction")
             .where(ResidualModelExecutionAttempt.execution_status == "failed")
         )
@@ -275,9 +274,7 @@ async def test_prediction_feature_failure_persists_failed_attempt() -> None:
                     model_run_id=training_run_id,
                     task9_run_id=task9_run_id,
                     feature_analytics_build_run_id=99999,
-                    supplemental_feature_values=_supplemental_features(
-                        as_of_date=as_of_date
-                    ),
+                    supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
                 ),
             )
 
@@ -366,9 +363,7 @@ async def test_persistence_rollback_on_failure(monkeypatch: pytest.MonkeyPatch) 
                         label_analytics_build_run_id=label_build.id,
                         feature_analytics_build_run_id=feature_build.id,
                         split="train",
-                        supplemental_feature_values=_supplemental_features(
-                            as_of_date=as_of_date
-                        ),
+                        supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
                     )
                 ],
                 config=_relaxed_config(),
@@ -453,9 +448,7 @@ async def test_successful_completion_finalizes_attempt() -> None:
                     label_analytics_build_run_id=label_build.id,
                     feature_analytics_build_run_id=feature_build.id,
                     split="train",
-                    supplemental_feature_values=_supplemental_features(
-                        as_of_date=as_of_date
-                    ),
+                    supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
                 )
             ],
             config=_relaxed_config(),

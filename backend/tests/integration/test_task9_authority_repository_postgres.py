@@ -1935,9 +1935,7 @@ async def test_capacity_pool_parent_lifecycle_tamper_is_rejected_by_database(
             {"authority_id": created.parent.authority_id},
         )
         await db_session.flush()
-    assert "ck_task9_capacity_pool_definition_lifecycle_projection" in str(
-        exc_info.value.orig
-    )
+    assert "ck_task9_capacity_pool_definition_lifecycle_projection" in str(exc_info.value.orig)
     await db_session.rollback()
 
 

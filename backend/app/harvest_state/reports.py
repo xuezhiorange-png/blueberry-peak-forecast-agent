@@ -86,10 +86,7 @@ def _blockers_csv_bytes(values: list[str]) -> bytes:
 def _row_csv_bytes(
     fieldnames: Sequence[str],
     rows: Sequence[
-        DailyPoolStateRow
-        | DailyMemberStateRow
-        | CohortTransitionRow
-        | FutureArrivalScheduleRow
+        DailyPoolStateRow | DailyMemberStateRow | CohortTransitionRow | FutureArrivalScheduleRow
     ],
 ) -> bytes:
     return _csv_bytes(fieldnames, [row.model_dump(mode="json") for row in rows])

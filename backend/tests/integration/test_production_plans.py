@@ -205,9 +205,7 @@ async def test_effective_plan_respects_available_at_and_effective_from(client: A
 
 async def test_replace_plan_closes_old_version_and_preserves_history(client: AsyncClient) -> None:
     ids = await _seed_master_data()
-    first = (
-        await client.post("/planning/production-plans", json=_payload(ids))
-    ).json()
+    first = (await client.post("/planning/production-plans", json=_payload(ids))).json()
 
     replace_response = await client.post(
         f"/planning/production-plans/{first['plan_id']}/replace",

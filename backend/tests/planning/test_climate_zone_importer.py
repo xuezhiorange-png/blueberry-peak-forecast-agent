@@ -39,25 +39,28 @@ def _zone_row(
     source_name: str = "synthetic",
     source_version: str = "src-v1",
 ) -> str:
-    return ",".join(
-        [
-            code,
-            name,
-            country,
-            province,
-            prefecture,
-            county,
-            latitude,
-            longitude,
-            min_altitude,
-            max_altitude,
-            zone_version,
-            valid_from,
-            valid_to,
-            source_name,
-            source_version,
-        ]
-    ) + "\n"
+    return (
+        ",".join(
+            [
+                code,
+                name,
+                country,
+                province,
+                prefecture,
+                county,
+                latitude,
+                longitude,
+                min_altitude,
+                max_altitude,
+                zone_version,
+                valid_from,
+                valid_to,
+                source_name,
+                source_version,
+            ]
+        )
+        + "\n"
+    )
 
 
 def _write_csv(path: Path, rows: list[str], *, encoding: str = "utf-8") -> None:
@@ -94,9 +97,7 @@ def test_build_climate_zone_file_sha256_is_stable(tmp_path: Path) -> None:
     file_path = tmp_path / "agro_climate_zones.csv"
     _write_csv(file_path, [_zone_row()])
 
-    assert build_climate_zone_file_sha256(file_path) == build_climate_zone_file_sha256(
-        file_path
-    )
+    assert build_climate_zone_file_sha256(file_path) == build_climate_zone_file_sha256(file_path)
 
 
 def test_prepare_climate_zone_import_accepts_valid_csv(tmp_path: Path) -> None:
