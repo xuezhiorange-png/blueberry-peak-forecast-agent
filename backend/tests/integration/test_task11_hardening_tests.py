@@ -1386,12 +1386,16 @@ async def test_child_tamper_inventory_cohort(db_session: AsyncSession) -> None:
     inv_id = create_result.parent.authority_id
     stable_key = build_initial_inventory_stable_key(inp)
 
-    # Tamper the cohort row
+    # Tamper ONE cohort row (must not update both to avoid unique constraint)
     await db_session.execute(
         text(
             "UPDATE task9_initial_inventory_cohort "
             "SET stable_cohort_key = 'TAMPERED' "
-            "WHERE initial_inventory_snapshot_id = :inv_id"
+            "WHERE id = ("
+            "  SELECT id FROM task9_initial_inventory_cohort "
+            "  WHERE initial_inventory_snapshot_id = :inv_id "
+            "  LIMIT 1"
+            ")"
         ),
         {"inv_id": inv_id},
     )
