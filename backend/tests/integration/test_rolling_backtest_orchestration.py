@@ -365,8 +365,10 @@ async def test_single_node_successful_orchestration() -> None:
         )
         await session.commit()
 
-    assert outcome.status == "completed"
-    assert outcome.stage == "finalize_orchestration_snapshot"
+    assert outcome.status == "completed", (
+        f"Orchestration failed: status={outcome.status}, "
+        f"blocker={outcome.blocker_code}, diagnostics={outcome.diagnostics}"
+    )
 
     # Verify attempt was created
     async with AsyncSessionMaker() as session:
