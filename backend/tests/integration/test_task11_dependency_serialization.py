@@ -27,11 +27,11 @@ from backend.app.harvest_state.authority_canonical import (
 )
 from backend.app.harvest_state.authority_repository import (
     activate_authority,
-    cancel_authority,
     create_or_load_holiday_calendar,
     create_or_load_run_parameter_package,
     create_or_load_weather_rule,
     replace_run_package_with_dependencies,
+    retire_authority,
     supersede_authority,
 )
 from backend.app.harvest_state.authority_repository_errors import (
@@ -195,12 +195,13 @@ def _run_package_input(
     *,
     version: str = "v1",
     revision: int = 1,
+    farm_scope_key: str = "farm-10",
 ) -> Task9RunParameterPackageSemanticInput:
     """Build a valid run-parameter-package semantic input."""
     return Task9RunParameterPackageSemanticInput(
         season_id=_IDS["season"],
         destination_factory_id=_IDS["factory"],
-        farm_scope_key="farm-10",
+        farm_scope_key=farm_scope_key,
         farm_timezone=_TZ,
         destination_factory_timezone=_TZ,
         harvest_bucket_anchor_local_time=time(6, 0),
@@ -1188,13 +1189,14 @@ async def test_activation_rejects_dependency_id_drift_after_lock() -> None:
                 activation_boundary=date(2026, 3, 1),
             )
 
-    # Cancel the current package so we can re-create and try activation
+    # Retire the current package so we can re-create and try activation
     async with AsyncSessionMaker() as session:
         async with session.begin():
-            await cancel_authority(
+            await retire_authority(
                 session,
                 family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
                 authority_id=pkg_result.authority_id,
+                retirement_boundary=date(2026, 6, 1),
             )
 
     # Re-create package v1b referencing same deps
@@ -1311,13 +1313,14 @@ async def test_activation_refreshes_preloaded_dependency_identity_map() -> None:
                 activation_boundary=date(2026, 3, 1),
             )
 
-    # First, remove package A's reference to h1 by cancelling it
+    # First, remove package A reference to h1 by retiring it
     async with AsyncSessionMaker() as session:
         async with session.begin():
-            await cancel_authority(
+            await retire_authority(
                 session,
                 family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
                 authority_id=pkg_result.authority_id,
+                retirement_boundary=date(2026, 6, 1),
             )
 
     # Now supersede holiday in a separate session (committed)
@@ -1452,7 +1455,7 @@ async def test_shared_rejection_fresh_session_committed_state() -> None:
                 authority_id=w1b_id,
                 activation_boundary=date(2026, 3, 1),
             )
-            pkg_b_input = _run_package_input(version="b", revision=1)
+            pkg_b_input = _run_package_input(version="b", revision=1, farm_scope_key="farm-10-b")
             pkg_b_result = await create_or_load_run_parameter_package(
                 s1,
                 package_input=pkg_b_input,
