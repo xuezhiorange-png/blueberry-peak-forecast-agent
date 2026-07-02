@@ -730,7 +730,11 @@ async def test_ambiguous_row_hash_weather(db_session: AsyncSession) -> None:
             "ch": inp.config_hash,
             "rh": row_hash,
             "feat_ids": '["TEMP"]',
-            "feat_rules": '[{"feature_id":"TEMP","bands":[{"lower_bound":"0","lower_inclusive":true,"upper_bound":"30","upper_inclusive":false,"multiplier":"1"}]}]',
+            "feat_rules": (
+                '[{"feature_id":"TEMP","bands":[{"lower_bound":"0",'
+                '"lower_inclusive":true,"upper_bound":"30",'
+                '"upper_inclusive":false,"multiplier":"1"}]}]'
+            ),
         },
     )
 
@@ -1124,8 +1128,7 @@ async def test_lifecycle_tamper_daily(db_session: AsyncSession) -> None:
     pool = _pool_input()
     await create_or_load_capacity_pool_definition(db_session, definition_input=pool)
     inp = _daily_input()
-    create_result = await create_or_load_daily_capacity(db_session, daily_input=inp)
-    authority_id = create_result.authority_id
+    _create_result = await create_or_load_daily_capacity(db_session, daily_input=inp)
     stable_key = build_daily_capacity_stable_key(inp)
 
     # Find the initial lifecycle event for this daily capacity
