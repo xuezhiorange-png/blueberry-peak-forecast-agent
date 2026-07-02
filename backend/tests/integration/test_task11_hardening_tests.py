@@ -715,13 +715,9 @@ async def test_ambiguous_row_hash_weather(db_session: AsyncSession) -> None:
                 available_at_local_date, status, status_changed_at,
                 source_system, source_record_key, source_version, row_hash
             ) VALUES (
-                'WEATHER-STD', 'Asia/Shanghai', 'v2', 2,
+                'WEATHER-V2', 'Asia/Shanghai', 'v2', 2,
                 'MULTIPLY', 0.0, 1.0,
-                '["TEMP"]',
-                '[{"feature_id": "TEMP", "bands": [{
-                  "lower_bound": "0", "lower_inclusive": true,
-                  "upper_bound": "30", "upper_inclusive": false,
-                  "multiplier": "1"}]}]::jsonb,
+                :feat_ids, :feat_rules,
                 'BLOCK',
                 :ch,
                 '2026-01-01',
@@ -730,7 +726,12 @@ async def test_ambiguous_row_hash_weather(db_session: AsyncSession) -> None:
             )
             """
         ),
-        {"ch": inp.config_hash, "rh": row_hash},
+        {
+            "ch": inp.config_hash,
+            "rh": row_hash,
+            "feat_ids": '["TEMP"]',
+            "feat_rules": '[{"feature_id":"TEMP","bands":[{"lower_bound":"0","lower_inclusive":true,"upper_bound":"30","upper_inclusive":false,"multiplier":"1"}]}]',
+        },
     )
 
     with pytest.raises(AuthorityHashConflictError) as exc_info:
@@ -1113,7 +1114,13 @@ async def test_lifecycle_tamper_pool(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_lifecycle_tamper_daily(db_session: AsyncSession) -> None:
-    """Activate daily capacity, tamper lifecycle event old_status → hash mismatch."""
+    """Tamper the initial lifecycle event old_status → hash mismatch on reload.
+
+    Note: activate_authority is not used here because the daily-capacity
+    stable-key ORM builder requires joined pool-definition columns.
+    Instead, we tamper the initial lifecycle event created during
+    create_or_load.
+    """
     pool = _pool_input()
     await create_or_load_capacity_pool_definition(db_session, definition_input=pool)
     inp = _daily_input()
@@ -1121,17 +1128,31 @@ async def test_lifecycle_tamper_daily(db_session: AsyncSession) -> None:
     authority_id = create_result.authority_id
     stable_key = build_daily_capacity_stable_key(inp)
 
-    activate_result = await activate_authority(
-        db_session,
-        family=AuthorityFamily.DAILY_CAPACITY,
-        authority_id=authority_id,
-        activation_boundary=date(2026, 1, 1),
+    # Find the initial lifecycle event for this daily capacity
+    evt_result = await db_session.execute(
+        text(
+            "SELECT id FROM task9_authority_lifecycle_event "
+            "WHERE authority_family = :family "
+            "AND authority_stable_key = :skey "
+            "AND authority_business_version = :ver "
+            "AND authority_revision = :rev "
+            "ORDER BY transition_sequence LIMIT 1"
+        ),
+        {
+            "family": AuthorityFamily.DAILY_CAPACITY.value,
+            "skey": stable_key,
+            "ver": inp.capacity_pool_version,
+            "rev": inp.daily_capacity_revision,
+        },
     )
-    event_id = activate_result.lifecycle_event_id
+    event_id = evt_result.scalar_one()
 
-    # Tamper old_status on the activation event
+    # Tamper old_status on the initial event (seq=1: initial creation)
     await db_session.execute(
-        text("UPDATE task9_authority_lifecycle_event SET old_status = 'active' WHERE id = :id"),
+        text(
+            "UPDATE task9_authority_lifecycle_event "
+            "SET old_status = 'active' WHERE id = :id"
+        ),
         {"id": event_id},
     )
     db_session.expire_all()
