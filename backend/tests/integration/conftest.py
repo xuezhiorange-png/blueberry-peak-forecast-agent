@@ -3,14 +3,8 @@
 Provides:
 - pytest_collection_modifyitems: enforces one isolation marker per integration test
 - isolate_postgres_integration_test: marker-aware autouse fixture
-- assert_connected_to_safe_test_database: DB identity verification
-- _truncate_master_data: destructive cleanup with full guard
-
-Known limitation: Transaction isolation via AsyncSessionMaker.configure()
-does not propagate join_transaction_mode to session.begin() in existing
-test patterns. All integration tests currently use TRUNCATE cleanup.
-The postgres_transactional_isolation context manager and transactional_session
-fixture are available for future tests that can use them.
+  - postgres_transactional: uses transaction/savepoint isolation (no TRUNCATE)
+  - postgres_real_commit / postgres_concurrency / postgres_migration: TRUNCATE cleanup
 """
 
 from __future__ import annotations
@@ -30,11 +24,13 @@ _ISOLATION_MARKERS = (
     "postgres_concurrency",
 )
 
-_SPECIAL_MARKERS = frozenset({
-    "postgres_real_commit",
-    "postgres_migration",
-    "postgres_concurrency",
-})
+_SPECIAL_MARKERS = frozenset(
+    {
+        "postgres_real_commit",
+        "postgres_migration",
+        "postgres_concurrency",
+    }
+)
 
 # ── Master data tables for cleanup ───────────────────────────────────────────
 
@@ -191,14 +187,16 @@ async def dispose_engine_after_integration_tests() -> AsyncIterator[None]:
 
 @pytest.fixture(autouse=True)
 async def isolate_postgres_integration_test(request: pytest.FixtureRequest) -> AsyncIterator[None]:
-    """Autouse fixture for all integration tests.
+    """Autouse fixture: marker-aware isolation for all integration tests.
 
-    All integration tests use TRUNCATE cleanup (known limitation:
-    transaction isolation via AsyncSessionMaker.configure() does not
-    propagate join_transaction_mode to session.begin() in existing
-    test patterns).
+    - postgres_transactional: outer transaction + savepoint (no TRUNCATE)
+    - postgres_real_commit / postgres_concurrency / postgres_migration: TRUNCATE cleanup
+    - non-integration: no-op
     """
     if not _postgres_integration_enabled():
+        # Skip integration tests when postgres not available
+        if request.node.get_closest_marker("integration"):
+            pytest.skip("RUN_POSTGRES_INTEGRATION not set")
         yield
         return
 
@@ -207,9 +205,20 @@ async def isolate_postgres_integration_test(request: pytest.FixtureRequest) -> A
 
     await assert_connected_to_safe_test_database()
 
-    # All tests: truncate before and after
-    await _truncate_master_data()
-    try:
-        yield
-    finally:
+    marker = _get_marker_name(request.node)
+
+    if marker == "postgres_transactional":
+        # Transactional isolation: outer transaction + savepoint
+        from backend.tests.postgres_test_support import postgres_transactional_isolation
+
+        async with postgres_transactional_isolation():
+            yield
+    elif marker in _SPECIAL_MARKERS:
+        # Special tests: TRUNCATE before and after
         await _truncate_master_data()
+        try:
+            yield
+        finally:
+            await _truncate_master_data()
+    else:
+        yield
