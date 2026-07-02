@@ -2519,8 +2519,8 @@ async def test_replace_run_package_happy_path(db_session: AsyncSession) -> None:
     act_boundary = date(2026, 3, 1)
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=act_boundary,
     )
@@ -2708,8 +2708,8 @@ async def test_replace_run_package_boundary_consistency(db_session: AsyncSession
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -2772,8 +2772,8 @@ async def test_replace_run_package_lifecycle_events_old(db_session: AsyncSession
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -2825,8 +2825,8 @@ async def test_replace_run_package_lifecycle_events_new(db_session: AsyncSession
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -2880,8 +2880,8 @@ async def test_replace_run_package_lifecycle_events_old_holiday(
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -2935,8 +2935,8 @@ async def test_replace_run_package_lifecycle_events_old_weather(
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -2990,8 +2990,8 @@ async def test_replace_run_package_lifecycle_events_new_holiday(
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -3045,8 +3045,8 @@ async def test_replace_run_package_lifecycle_events_new_weather(
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -3099,8 +3099,8 @@ async def test_replace_run_package_idempotent(db_session: AsyncSession) -> None:
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -3190,8 +3190,8 @@ async def test_replace_run_package_new_trio_loadable(db_session: AsyncSession) -
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -3242,8 +3242,8 @@ async def test_replace_run_package_old_trio_superseded(db_session: AsyncSession)
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -3299,8 +3299,8 @@ async def test_replace_run_package_superseded_links(db_session: AsyncSession) ->
 
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
@@ -3393,8 +3393,8 @@ async def test_replace_run_package_chained_replacements(db_session: AsyncSession
     )
     await _activate_full_trio(
         db_session,
-        holiday_id=hol_result.authority_id,
-        weather_id=wth_result.authority_id,
+        holiday_id=hol_result.parent.authority_id,
+        weather_id=wth_result.parent.authority_id,
         package_id=r1.authority_id,
         activation_boundary=date(2026, 1, 1),
     )
