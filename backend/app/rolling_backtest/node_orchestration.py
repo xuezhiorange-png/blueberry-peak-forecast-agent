@@ -643,6 +643,7 @@ async def orchestrate_node(
             terminal_stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
             fallback_mode=ctx.fallback_mode,
             canonical_payload=ctx.diagnostics,
+            session=session,
         )
 
         # ── Update node and run status ───────────────────────────────────
