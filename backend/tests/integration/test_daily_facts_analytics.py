@@ -657,6 +657,7 @@ async def test_build_daily_facts_returns_empty_running_summary_without_committed
     assert result.factory_summaries == ()
 
 
+@pytest.mark.postgres_real_commit
 @pytest.mark.asyncio
 async def test_build_daily_facts_handles_initial_build_run_insert_conflict(
     tmp_path: Path,

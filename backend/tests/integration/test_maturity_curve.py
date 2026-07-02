@@ -626,6 +626,7 @@ async def test_train_and_forecast_maturity_curve_are_idempotent(client: AsyncCli
         assert total_p50 == Decimal("96000.000000")
 
 
+@pytest.mark.postgres_real_commit
 async def test_task8_clis_dry_run_do_not_write_rows(
     client: AsyncClient,
     tmp_path: Path,
