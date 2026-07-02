@@ -104,6 +104,7 @@ async def test_training_manifest_failure_persists_failed_attempt() -> None:
 # ── 2. Prediction Task 9 failure persists failed attempt ─────────────────
 
 
+@pytest.mark.postgres_real_commit
 @pytest.mark.asyncio
 async def test_prediction_task9_failure_persists_failed_attempt() -> None:
     """When prediction's Task 9 lookup fails, attempt is 'failed'."""
@@ -198,6 +199,7 @@ async def test_prediction_task9_failure_persists_failed_attempt() -> None:
 # ── 3. Prediction feature failure persists failed attempt ────────────────
 
 
+@pytest.mark.postgres_real_commit
 @pytest.mark.asyncio
 async def test_prediction_feature_failure_persists_failed_attempt() -> None:
     """When prediction feature building fails, the attempt is 'failed'."""
