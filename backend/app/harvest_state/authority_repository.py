@@ -4237,6 +4237,7 @@ async def supersede_authority(
     new_cohorts: list[Task9InitialInventoryCohortSchema] | None = None,
     holiday_calendar: Task9HolidayCalendarSemanticBundle | None = None,
     weather_rule: Task9WeatherRuleSemanticInput | None = None,
+    skip_dependency_protection: bool = False,
 ) -> SupersessionResult:
     """Supersede an active authority with a new draft.
 
@@ -4261,7 +4262,7 @@ async def supersede_authority(
     old_consumable_to = old_row.consumable_to_local_date
 
     # (3) Dependency protection
-    if family in (
+    if not skip_dependency_protection and family in (
         AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
         AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
     ):
@@ -4523,6 +4524,7 @@ async def replace_run_package_with_dependencies(
         new_input=new_holiday_input,
         replacement_boundary=replacement_boundary,
         new_dates=new_holiday_input.dates,
+        skip_dependency_protection=True,
     )
 
     # (4) Supersede old weather → activate new weather
@@ -4532,6 +4534,7 @@ async def replace_run_package_with_dependencies(
         old_id=old_weather_id,
         new_input=new_weather_input,
         replacement_boundary=replacement_boundary,
+        skip_dependency_protection=True,
     )
 
     # (5) Supersede old package → activate new package
