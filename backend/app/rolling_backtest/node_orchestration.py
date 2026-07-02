@@ -1057,7 +1057,9 @@ def _build_outcome(
 def _config_from_payload(payload: dict[str, Any]) -> RollingBacktestConfig:
     """Reconstruct config from canonical payload."""
     from copy import deepcopy
+
     from pydantic import TypeAdapter
+
     # Canonical payloads strip display_label — restore it for validation
     normalized = deepcopy(payload)
     for node in normalized.get("nodes", []):
