@@ -54,7 +54,6 @@ from backend.app.rolling_backtest.schemas import (
     ResolvedUpstreamSemanticIdentity,
     RollingBacktestConfig,
     RollingNodeDefinition,
-    Task3AnalyticsBuildAvailabilitySnapshot,
     Task8ForecastRunAvailabilitySnapshot,
     UpstreamSemanticIdentityPayload,
 )
@@ -288,8 +287,8 @@ def _make_persistence_command(
 def _make_orchestration_persistence_command(
     *,
     execution_mode: ExecutionMode = ExecutionMode.HISTORICAL_OBSERVED,
-    identity_role: str = "task3_analytics",
-    identity_source_type: AvailabilitySourceType = AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+    identity_role: str = "task8_forecast_run",
+    identity_source_type: AvailabilitySourceType = AvailabilitySourceType.TASK8_FORECAST_RUN,
 ) -> RollingBacktestPersistenceCommand:
     """Build a persistence command suitable for orchestrate_node integration tests.
 
@@ -309,9 +308,9 @@ def _make_orchestration_persistence_command(
     config = _make_config(execution_mode=execution_mode, nodes=(node,))
 
     # Build availability snapshot that passes the visibility check.
-    # For TASK3_ANALYTICS_BUILD: status="completed", authoritative_timestamp before cutoff.
-    snapshot = Task3AnalyticsBuildAvailabilitySnapshot(
-        source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+    # For TASK8_FORECAST_RUN: status="completed", authoritative_timestamp before cutoff.
+    snapshot = Task8ForecastRunAvailabilitySnapshot(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
         status="completed",
         authoritative_timestamp=datetime(2025, 3, 14, tzinfo=UTC),
     )
