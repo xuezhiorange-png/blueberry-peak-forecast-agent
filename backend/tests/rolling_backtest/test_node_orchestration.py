@@ -309,6 +309,7 @@ def _orchestration_patches(
         "persist_stage_event": AsyncMock(),
         "persist_orchestration_snapshot": AsyncMock(),
         "load_logical_run_with_integrity": AsyncMock(return_value=mock_run),
+        "finalize_attempt_status": AsyncMock(return_value=attempt_inst),
         "finalize_attempt_with_snapshot": AsyncMock(return_value=(attempt_inst, MagicMock())),
         "update_run_status_from_attempts": AsyncMock(),
         "_stage_validate_visibility": stage_validate_visibility,
