@@ -4444,9 +4444,7 @@ async def activate_authority(
                 target_status=AuthorityStatus.ACTIVE,
                 details={
                     "reason": "package_consumable_to_not_none",
-                    "consumable_to_local_date": str(
-                        row.consumable_to_local_date
-                    ),
+                    "consumable_to_local_date": str(row.consumable_to_local_date),
                 },
             )
 
