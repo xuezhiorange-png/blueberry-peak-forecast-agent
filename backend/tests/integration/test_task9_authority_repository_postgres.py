@@ -1210,10 +1210,10 @@ async def test_dependency_protection_holiday(db_session: AsyncSession) -> None:
     """Retiring a holiday still referenced by an active package must fail."""
     # Create holiday + weather + package
     holiday = _holiday_input()
-    await create_or_load_holiday_calendar(db_session, calendar_input=holiday)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=holiday)
 
     weather = _weather_input()
-    await create_or_load_weather_rule(db_session, weather_input=weather)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=weather)
 
     pkg = _run_package_input()
     pkg_result = await create_or_load_run_parameter_package(
@@ -1221,6 +1221,19 @@ async def test_dependency_protection_holiday(db_session: AsyncSession) -> None:
         package_input=pkg,
         holiday_calendar=holiday,
         weather_rule=weather,
+    )
+    # Activate holiday and weather first (required for package activation)
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=hol_result.parent.authority_id,
+        activation_boundary=date(2026, 6, 1),
+    )
+    await activate_authority(
+        db_session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=wth_result.authority_id,
+        activation_boundary=date(2026, 6, 1),
     )
     # Activate the package
     await activate_authority(
@@ -1230,31 +1243,11 @@ async def test_dependency_protection_holiday(db_session: AsyncSession) -> None:
         activation_boundary=date(2026, 6, 1),
     )
 
-    # Now we need the holiday's ID.  Query it.
-    from backend.app.models.task9_authority import Task9HolidayCalendarVersion
-
-    hol_stmt = select(Task9HolidayCalendarVersion).where(
-        Task9HolidayCalendarVersion.season_id == _IDS["season"],
-        Task9HolidayCalendarVersion.calendar_code == "CN",
-        Task9HolidayCalendarVersion.calendar_version == "v1",
-        Task9HolidayCalendarVersion.revision == 1,
-    )
-    hol_result = await session_execute(db_session, hol_stmt)
-    holiday_row = hol_result.scalar_one()
-
-    # Activate the holiday so we can try to retire it
-    await activate_authority(
-        db_session,
-        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
-        authority_id=holiday_row.id,
-        activation_boundary=date(2026, 6, 1),
-    )
-
     with pytest.raises(AuthorityStillReferencedByActivePackageError) as exc_info:
         await retire_authority(
             db_session,
             family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
-            authority_id=holiday_row.id,
+            authority_id=hol_result.parent.authority_id,
             retirement_boundary=date(2026, 12, 31),
         )
     assert exc_info.value.code == "AUTHORITY_STILL_REFERENCED_BY_ACTIVE_PACKAGE"
@@ -3590,7 +3583,9 @@ async def test_shared_holiday_rejection(db_session: AsyncSession) -> None:
     ).scalar_one()
     old_pkg_from = (
         await db_session.execute(
-            text("SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            text(
+                "SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"
+            ),
             {"id": pkg_a_result.authority_id},
         )
     ).scalar_one()
@@ -3873,7 +3868,9 @@ async def test_shared_weather_rejection(db_session: AsyncSession) -> None:
     ).scalar_one()
     old_pkg_from = (
         await db_session.execute(
-            text("SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            text(
+                "SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"
+            ),
             {"id": pkg_a_result.authority_id},
         )
     ).scalar_one()
@@ -4144,7 +4141,9 @@ async def test_shared_both_rejection_deterministic(db_session: AsyncSession) -> 
     ).scalar_one()
     old_pkg_from = (
         await db_session.execute(
-            text("SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            text(
+                "SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"
+            ),
             {"id": pkg_a_result.authority_id},
         )
     ).scalar_one()
