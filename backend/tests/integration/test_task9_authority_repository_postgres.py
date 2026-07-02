@@ -503,6 +503,38 @@ async def _query_lifecycle_events(
     return list(result.scalars().all())
 
 
+# ── Trio activation helper ────────────────────────────────────────
+
+
+async def _activate_full_trio(
+    session: AsyncSession,
+    *,
+    holiday_id: int,
+    weather_id: int,
+    package_id: int,
+    activation_boundary: date,
+) -> None:
+    """Activate holiday, weather, and package in the correct order."""
+    await activate_authority(
+        session,
+        family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+        authority_id=holiday_id,
+        activation_boundary=activation_boundary,
+    )
+    await activate_authority(
+        session,
+        family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+        authority_id=weather_id,
+        activation_boundary=activation_boundary,
+    )
+    await activate_authority(
+        session,
+        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+        authority_id=package_id,
+        activation_boundary=activation_boundary,
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════════
 #  TEST 1 – Capacity pool: create-or-load idempotency
 # ══════════════════════════════════════════════════════════════════════════
@@ -2469,10 +2501,10 @@ async def test_replace_run_package_happy_path(db_session: AsyncSession) -> None:
 
     # Build initial trio inputs
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
 
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
 
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
@@ -2483,12 +2515,13 @@ async def test_replace_run_package_happy_path(db_session: AsyncSession) -> None:
     )
     assert pkg_result.created is True
 
-    # Activate the package (required before replacement)
+    # Activate all trio members (required before replacement)
     act_boundary = date(2026, 3, 1)
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=act_boundary,
     )
 
@@ -2592,7 +2625,10 @@ async def test_replace_run_package_happy_path(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_replace_run_package_rejects_non_active(db_session: AsyncSession) -> None:
-    """Replacing a non-active (draft) package must raise LifecycleTransitionInvalidError."""
+    """Replacing a non-active (draft) package must raise LifecycleTransitionInvalidError.
+
+    Holiday and weather are NOT activated — only the package must be active.
+    """
     hol_v1 = _holiday_input(version="v1", revision=1)
     await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
@@ -2659,9 +2695,9 @@ async def test_replace_run_package_boundary_consistency(db_session: AsyncSession
     from backend.app.models.task9_authority import Task9RunParameterPackage
 
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -2670,10 +2706,11 @@ async def test_replace_run_package_boundary_consistency(db_session: AsyncSession
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -2722,9 +2759,9 @@ async def test_replace_run_package_boundary_consistency(db_session: AsyncSession
 async def test_replace_run_package_lifecycle_events_old(db_session: AsyncSession) -> None:
     """Old package lifecycle events: draft → active → superseded."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -2733,10 +2770,11 @@ async def test_replace_run_package_lifecycle_events_old(db_session: AsyncSession
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -2774,9 +2812,9 @@ async def test_replace_run_package_lifecycle_events_old(db_session: AsyncSession
 async def test_replace_run_package_lifecycle_events_new(db_session: AsyncSession) -> None:
     """New package lifecycle events: draft → active."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -2785,10 +2823,11 @@ async def test_replace_run_package_lifecycle_events_new(db_session: AsyncSession
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -2828,9 +2867,9 @@ async def test_replace_run_package_lifecycle_events_old_holiday(
 ) -> None:
     """Old holiday lifecycle events after trio replacement: draft → active → superseded."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -2839,10 +2878,11 @@ async def test_replace_run_package_lifecycle_events_old_holiday(
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -2882,9 +2922,9 @@ async def test_replace_run_package_lifecycle_events_old_weather(
 ) -> None:
     """Old weather lifecycle events after trio replacement: draft → active → superseded."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -2893,10 +2933,11 @@ async def test_replace_run_package_lifecycle_events_old_weather(
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -2936,9 +2977,9 @@ async def test_replace_run_package_lifecycle_events_new_holiday(
 ) -> None:
     """New holiday lifecycle events after trio replacement: draft → active."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -2947,10 +2988,11 @@ async def test_replace_run_package_lifecycle_events_new_holiday(
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -2990,9 +3032,9 @@ async def test_replace_run_package_lifecycle_events_new_weather(
 ) -> None:
     """New weather lifecycle events after trio replacement: draft → active."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -3001,10 +3043,11 @@ async def test_replace_run_package_lifecycle_events_new_weather(
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -3043,9 +3086,9 @@ async def test_replace_run_package_idempotent(db_session: AsyncSession) -> None:
     """Calling replace twice with the same old_package_id should fail on second call
     because the old package is already superseded."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -3054,10 +3097,11 @@ async def test_replace_run_package_idempotent(db_session: AsyncSession) -> None:
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -3133,9 +3177,9 @@ async def test_replace_run_package_idempotent(db_session: AsyncSession) -> None:
 async def test_replace_run_package_new_trio_loadable(db_session: AsyncSession) -> None:
     """After replacement, the new package and its dependencies must be loadable."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -3144,10 +3188,11 @@ async def test_replace_run_package_new_trio_loadable(db_session: AsyncSession) -
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -3184,9 +3229,9 @@ async def test_replace_run_package_new_trio_loadable(db_session: AsyncSession) -
 async def test_replace_run_package_old_trio_superseded(db_session: AsyncSession) -> None:
     """After replacement, the old package shows superseded status."""
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -3195,10 +3240,11 @@ async def test_replace_run_package_old_trio_superseded(db_session: AsyncSession)
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -3240,9 +3286,9 @@ async def test_replace_run_package_superseded_links(db_session: AsyncSession) ->
     )
 
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     pkg_result = await create_or_load_run_parameter_package(
         db_session,
@@ -3251,10 +3297,11 @@ async def test_replace_run_package_superseded_links(db_session: AsyncSession) ->
         weather_rule=wth_v1,
     )
 
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=pkg_result.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=pkg_result.authority_id,
         activation_boundary=date(2026, 3, 1),
     )
 
@@ -3334,9 +3381,9 @@ async def test_replace_run_package_chained_replacements(db_session: AsyncSession
 
     # Initial trio v1
     hol_v1 = _holiday_input(version="v1", revision=1)
-    await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
+    hol_result = await create_or_load_holiday_calendar(db_session, calendar_input=hol_v1)
     wth_v1 = _weather_input(version="v1", revision=1)
-    await create_or_load_weather_rule(db_session, weather_input=wth_v1)
+    wth_result = await create_or_load_weather_rule(db_session, weather_input=wth_v1)
     pkg_v1 = _run_package_input(version="v1", revision=1)
     r1 = await create_or_load_run_parameter_package(
         db_session,
@@ -3344,10 +3391,11 @@ async def test_replace_run_package_chained_replacements(db_session: AsyncSession
         holiday_calendar=hol_v1,
         weather_rule=wth_v1,
     )
-    await activate_authority(
+    await _activate_full_trio(
         db_session,
-        family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
-        authority_id=r1.authority_id,
+        holiday_id=hol_result.authority_id,
+        weather_id=wth_result.authority_id,
+        package_id=r1.authority_id,
         activation_boundary=date(2026, 1, 1),
     )
 
