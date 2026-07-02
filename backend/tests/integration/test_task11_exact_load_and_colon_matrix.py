@@ -20,15 +20,11 @@
 
 from __future__ import annotations
 
-import os
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-
-if not os.environ.get("RUN_POSTGRES_INTEGRATION"):
-    pytest.skip("RUN_POSTGRES_INTEGRATION not set", allow_module_level=True)
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.authority_canonical import (
