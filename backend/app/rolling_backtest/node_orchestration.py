@@ -631,7 +631,7 @@ async def orchestrate_node(
         try:
             await load_logical_run_with_integrity(session, run)
         except Exception:
-            pass  # TODO: fix canonical payload round-trip
+            await session.rollback()  # Clear rollback state from failed reload
 
         # ── Finalize attempt as completed ────────────────────────────────
         await finalize_attempt_with_snapshot(
