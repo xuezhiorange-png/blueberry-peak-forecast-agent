@@ -4369,12 +4369,18 @@ async def supersede_authority(
     new_cohorts: list[Task9InitialInventoryCohortSchema] | None = None,
     holiday_calendar: Task9HolidayCalendarSemanticBundle | None = None,
     weather_rule: Task9WeatherRuleSemanticInput | None = None,
+    # Internal-only: when True, skips dependency protection in step 3.
+    # MUST only be used by replace_run_package_with_dependencies AFTER
+    # pre-mutation validation via _assert_dependency_replaceable_for_package.
+    # Public callers must never pass this parameter.
+    _skip_dependency_protection: bool = False,
 ) -> SupersessionResult:
     """Supersede an active authority with a new draft.
 
     1. Lock old row (FOR UPDATE).
     2. Verify scope match.
-    3. Dependency protection for holiday/weather (always enforced).
+    3. Dependency protection for holiday/weather (always enforced;
+       internal callers may bypass after pre-mutation validation).
     4. Create new draft + children + initial event.
     5. UPDATE old: status=superseded, superseded_by_id=new.id, consumable_to=boundary.
     6. UPDATE new: status=active, consumable_from=boundary.
@@ -4392,8 +4398,8 @@ async def supersede_authority(
     old_consumable_from = old_row.consumable_from_local_date
     old_consumable_to = old_row.consumable_to_local_date
 
-    # (3) Dependency protection — always enforced
-    if family in (
+    # (3) Dependency protection — enforced unless internal bypass after pre-mutation validation
+    if not _skip_dependency_protection and family in (
         AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
         AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
     ):
@@ -4664,6 +4670,7 @@ async def replace_run_package_with_dependencies(
     )
 
     # (3) Supersede old holiday → activate new holiday
+    # Pre-mutation validation already confirmed shared dependency safety.
     _holiday_supersession = await supersede_authority(
         session,
         family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
@@ -4671,6 +4678,7 @@ async def replace_run_package_with_dependencies(
         new_input=new_holiday_input,
         replacement_boundary=replacement_boundary,
         new_dates=new_holiday_input.dates,
+        _skip_dependency_protection=True,
     )
 
     # (4) Supersede old weather → activate new weather
@@ -4680,6 +4688,7 @@ async def replace_run_package_with_dependencies(
         old_id=old_weather_id,
         new_input=new_weather_input,
         replacement_boundary=replacement_boundary,
+        _skip_dependency_protection=True,
     )
 
     # (5) Supersede old package → activate new package
