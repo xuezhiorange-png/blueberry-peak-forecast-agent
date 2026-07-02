@@ -4287,19 +4287,46 @@ async def activate_authority(
     row = await _load_for_update(session, family=family, authority_id=authority_id)
     stable_key, version, revision = await _resolve_stable_key_and_version(family, row)
 
-    # For run packages: re-validate dependencies under lock.
+    # For run packages: re-validate dependency IDs and dependencies under lock.
     if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
-        # Re-read dependencies to detect superseded/deactivated state.
+        # ── P0-1: Dependency-ID drift check after lock ──────────────────
+        # The row has been refreshed via populate_existing=True.  Compare
+        # its actual dependency FKs against the scalar lookup taken before
+        # advisory locks.  A mismatch means another transaction mutated the
+        # package between our light SELECT and the FOR UPDATE.
+        if (
+            row.holiday_calendar_version_id != _dep_holiday_id
+            or row.weather_rule_config_version_id != _dep_weather_id
+        ):
+            raise AuthoritySupersessionScopeConflictError(
+                authority_family=family,
+                details={
+                    "reason": "dependency_id_drift",
+                    "expected_holiday_id": _dep_holiday_id,
+                    "expected_weather_id": _dep_weather_id,
+                    "actual_holiday_id": row.holiday_calendar_version_id,
+                    "actual_weather_id": row.weather_rule_config_version_id,
+                    "operation": "activate_authority",
+                    "package_id": authority_id,
+                },
+            )
+
+        # Re-read dependencies with populate_existing=True to force fresh
+        # state (never return Session identity-map cached objects).
         for dep_fam, dep_id in dep_ids:
             dep_row_any: Task9HolidayCalendarVersion | Task9WeatherRuleConfigVersion | None = None
             if dep_fam == AuthorityFamily.HOLIDAY_CALENDAR_VERSION:
-                _h_stmt = select(Task9HolidayCalendarVersion).where(
-                    Task9HolidayCalendarVersion.id == dep_id,
+                _h_stmt = (
+                    select(Task9HolidayCalendarVersion)
+                    .where(Task9HolidayCalendarVersion.id == dep_id)
+                    .execution_options(populate_existing=True)
                 )
                 dep_row_any = (await session.execute(_h_stmt)).scalar_one_or_none()
             else:
-                _w_stmt = select(Task9WeatherRuleConfigVersion).where(
-                    Task9WeatherRuleConfigVersion.id == dep_id,
+                _w_stmt = (
+                    select(Task9WeatherRuleConfigVersion)
+                    .where(Task9WeatherRuleConfigVersion.id == dep_id)
+                    .execution_options(populate_existing=True)
                 )
                 dep_row_any = (await session.execute(_w_stmt)).scalar_one_or_none()
             dep_row = dep_row_any
@@ -4392,6 +4419,36 @@ async def activate_authority(
                     )
 
     await _validate_transition(row.status, AuthorityStatus.ACTIVE, family, stable_key)
+
+    # ── P0-1: Explicit package self-invariant checks ───────────────
+    # After lock + refresh, the package must still satisfy activation
+    # invariants.  Fail closed with structured errors — never bare
+    # AssertionError.
+    if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
+        if row.superseded_by_id is not None:
+            raise LifecycleTransitionInvalidError(
+                authority_family=family,
+                authority_stable_key=stable_key,
+                current_status=row.status,
+                target_status=AuthorityStatus.ACTIVE,
+                details={
+                    "reason": "package_already_superseded",
+                    "superseded_by_id": row.superseded_by_id,
+                },
+            )
+        if row.consumable_to_local_date is not None:
+            raise LifecycleTransitionInvalidError(
+                authority_family=family,
+                authority_stable_key=stable_key,
+                current_status=row.status,
+                target_status=AuthorityStatus.ACTIVE,
+                details={
+                    "reason": "package_consumable_to_not_none",
+                    "consumable_to_local_date": str(
+                        row.consumable_to_local_date
+                    ),
+                },
+            )
 
     old_consumable_from = row.consumable_from_local_date
     old_consumable_to = row.consumable_to_local_date
