@@ -369,6 +369,8 @@ async def test_single_node_successful_orchestration() -> None:
         )
         await session.commit()
 
+    if outcome.status != "completed":
+        print(f"DIAGNOSTICS: {outcome.diagnostics}")
     assert outcome.status == "completed"
     assert outcome.stage == "finalize_orchestration_snapshot"
 
