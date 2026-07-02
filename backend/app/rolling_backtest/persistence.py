@@ -1451,24 +1451,9 @@ async def derive_run_status_from_attempts(
     run_id: int,
 ) -> str:
     """Derive run-level status from the latest attempt per node."""
-    from sqlalchemy import func as sa_func
 
-    # Get the latest attempt status per node
-    subq = (
-        select(
-            RollingBacktestAttempt.rolling_node_id,
-            RollingBacktestAttempt.status,
-        )
-        .where(RollingBacktestAttempt.rolling_run_id == run_id)
-        .order_by(
-            RollingBacktestAttempt.rolling_node_id,
-            RollingBacktestAttempt.attempt_number.desc(),
-        )
-    )
-    # Use a window function approach or just iterate
     node_result = await session.execute(
-        select(RollingBacktestNode.id)
-        .where(RollingBacktestNode.rolling_run_id == run_id)
+        select(RollingBacktestNode.id).where(RollingBacktestNode.rolling_run_id == run_id)
     )
     node_ids = [row[0] for row in node_result.all()]
     statuses: list[str] = []
@@ -1516,9 +1501,7 @@ async def update_run_status_from_attempts(
     """Aggregate latest attempt statuses and update the run status. Returns the new status."""
     derived = await derive_run_status_from_attempts(session, run_id)
     result = await session.execute(
-        select(RollingBacktestRun)
-        .where(RollingBacktestRun.id == run_id)
-        .with_for_update()
+        select(RollingBacktestRun).where(RollingBacktestRun.id == run_id).with_for_update()
     )
     run = result.scalar_one_or_none()
     if run is None:
