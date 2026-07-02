@@ -76,7 +76,6 @@ async def assert_connected_to_safe_test_database() -> None:
     from backend.app.core.config import get_settings
 
     settings = get_settings()
-
     engine = create_async_engine(settings.async_database_url)
     try:
         async with engine.connect() as conn:
@@ -106,7 +105,9 @@ async def postgres_transactional_isolation() -> AsyncIterator[None]:
             # in the outer transaction. session.commit() creates savepoints.
             ...
 
-    On exit: rolls back outer transaction, restores original maker config.
+    On exit:
+        1. Restores original maker config
+        2. Rolls back outer transaction (all data disappears)
     """
     from backend.app.db.session import AsyncSessionMaker, engine
 
@@ -128,10 +129,10 @@ async def postgres_transactional_isolation() -> AsyncIterator[None]:
         try:
             yield
         finally:
-            # Ensure any lingering sessions are closed
             # Restore original configuration
             AsyncSessionMaker.configure(
                 bind=original_bind,
                 join_transaction_mode=original_join_mode,
             )
+            # Rollback outer transaction — all data disappears
             await outer_transaction.rollback()

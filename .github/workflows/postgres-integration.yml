@@ -135,7 +135,6 @@ jobs:
       - name: Special integration tests
         id: special
         if: always()
-        continue-on-error: true
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
