@@ -3569,35 +3569,73 @@ async def test_shared_holiday_rejection(db_session: AsyncSession) -> None:
         await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
     ).scalar_one()
 
-    # ── Record old trio state before replacement attempt ────────────────
-    old_pkg_status, old_pkg_hash, old_pkg_superseded_by, old_pkg_from, old_pkg_to = (
+    # ── Record old trio state before replacement attempt ─────────────
+    old_pkg_status = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id, "
-                "consumable_from_local_date, consumable_to_local_date "
-                "FROM task9_run_parameter_package WHERE id = :id"
-            ),
+            text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
             {"id": pkg_a_result.authority_id},
         )
-    ).one()
-    old_hol_status, old_hol_hash, old_hol_superseded_by = (
+    ).scalar_one()
+    old_pkg_hash = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id "
-                "FROM task9_holiday_calendar_version WHERE id = :id"
-            ),
+            text("SELECT row_hash FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_from = (
+        await db_session.execute(
+            text("SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_to = (
+        await db_session.execute(
+            text("SELECT consumable_to_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_hol_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_holiday_calendar_version WHERE id = :id"),
             {"id": hol_result.parent.authority_id},
         )
-    ).one()
-    old_wth_status, old_wth_hash, old_wth_superseded_by = (
+    ).scalar_one()
+    old_hol_hash = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id "
-                "FROM task9_weather_rule_config_version WHERE id = :id"
-            ),
+            text("SELECT row_hash FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_wth_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_weather_rule_config_version WHERE id = :id"),
             {"id": wth_a_result.authority_id},
         )
-    ).one()
+    ).scalar_one()
+    old_wth_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_a_result.authority_id},
+        )
+    ).scalar_one()
 
     # Attempt replacement of A → must fail because holiday H is shared with B
     hol_v3 = _holiday_input(version="v3", revision=1)
@@ -3656,88 +3694,87 @@ async def test_shared_holiday_rejection(db_session: AsyncSession) -> None:
     ).scalar_one()
     assert wth_row.status == "active"
 
-    # ── Fresh-session atomicity evidence ─────────────────────────────
-    async with AsyncSessionMaker() as fresh:
-        # No new holiday rows with v3 code
-        new_hol_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_holiday_calendar_version "
-                    "WHERE calendar_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
+    # ── Raw-SQL atomicity evidence ──────────────────────────────────
+    # No new holiday rows with v3 code
+    new_hol_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_holiday_calendar_version "
+                "WHERE calendar_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
 
-        # No new weather rows with v3 code
-        new_wth_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_weather_rule_config_version "
-                    "WHERE rule_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
+    # No new weather rows with v3 code
+    new_wth_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_weather_rule_config_version "
+                "WHERE rule_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
 
-        # No new package rows with v3 version
-        new_pkg_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_run_parameter_package "
-                    "WHERE package_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
+    # No new package rows with v3 version
+    new_pkg_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_run_parameter_package "
+                "WHERE package_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
 
-        # Old trio unchanged — verify via fresh session
-        old_pkg_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id, "
-                    "consumable_from_local_date, consumable_to_local_date "
-                    "FROM task9_run_parameter_package WHERE id = :id"
-                ),
-                {"id": pkg_a_result.authority_id},
-            )
-        ).one()
-        assert old_pkg_fresh.status == old_pkg_status
-        assert old_pkg_fresh.row_hash == old_pkg_hash
-        assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
-        assert str(old_pkg_fresh[3]) == str(old_pkg_from)
-        assert str(old_pkg_fresh[4]) == str(old_pkg_to)
+    # Old trio unchanged — raw SQL verification
+    old_pkg_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id, "
+                "consumable_from_local_date, consumable_to_local_date "
+                "FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).one()
+    assert old_pkg_fresh.status == old_pkg_status
+    assert old_pkg_fresh.row_hash == old_pkg_hash
+    assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
+    assert str(old_pkg_fresh[3]) == str(old_pkg_from)
+    assert str(old_pkg_fresh[4]) == str(old_pkg_to)
 
-        # Old holiday unchanged
-        old_hol_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id "
-                    "FROM task9_holiday_calendar_version WHERE id = :id"
-                ),
-                {"id": hol_result.parent.authority_id},
-            )
-        ).one()
-        assert old_hol_fresh.status == old_hol_status
-        assert old_hol_fresh.row_hash == old_hol_hash
-        assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
+    # Old holiday unchanged
+    old_hol_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_holiday_calendar_version WHERE id = :id"
+            ),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).one()
+    assert old_hol_fresh.status == old_hol_status
+    assert old_hol_fresh.row_hash == old_hol_hash
+    assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
 
-        # Old weather unchanged
-        old_wth_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id "
-                    "FROM task9_weather_rule_config_version WHERE id = :id"
-                ),
-                {"id": wth_a_result.authority_id},
-            )
-        ).one()
-        assert old_wth_fresh.status == old_wth_status
-        assert old_wth_fresh.row_hash == old_wth_hash
-        assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
+    # Old weather unchanged
+    old_wth_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_weather_rule_config_version WHERE id = :id"
+            ),
+            {"id": wth_a_result.authority_id},
+        )
+    ).one()
+    assert old_wth_fresh.status == old_wth_status
+    assert old_wth_fresh.row_hash == old_wth_hash
+    assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
 
     # No new trio rows created
     count_after = (
@@ -3815,35 +3852,73 @@ async def test_shared_weather_rejection(db_session: AsyncSession) -> None:
         await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
     ).scalar_one()
 
-    # ── Record old trio state before replacement attempt ────────────────
-    old_pkg_status, old_pkg_hash, old_pkg_superseded_by, old_pkg_from, old_pkg_to = (
+    # ── Record old trio state before replacement attempt ─────────────
+    old_pkg_status = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id, "
-                "consumable_from_local_date, consumable_to_local_date "
-                "FROM task9_run_parameter_package WHERE id = :id"
-            ),
+            text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
             {"id": pkg_a_result.authority_id},
         )
-    ).one()
-    old_hol_status, old_hol_hash, old_hol_superseded_by = (
+    ).scalar_one()
+    old_pkg_hash = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id "
-                "FROM task9_holiday_calendar_version WHERE id = :id"
-            ),
+            text("SELECT row_hash FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_from = (
+        await db_session.execute(
+            text("SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_to = (
+        await db_session.execute(
+            text("SELECT consumable_to_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_hol_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_holiday_calendar_version WHERE id = :id"),
             {"id": hol_a_result.parent.authority_id},
         )
-    ).one()
-    old_wth_status, old_wth_hash, old_wth_superseded_by = (
+    ).scalar_one()
+    old_hol_hash = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id "
-                "FROM task9_weather_rule_config_version WHERE id = :id"
-            ),
+            text("SELECT row_hash FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_a_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_a_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_wth_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_weather_rule_config_version WHERE id = :id"),
             {"id": wth_result.authority_id},
         )
-    ).one()
+    ).scalar_one()
+    old_wth_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
 
     # Attempt replacement of A → must fail because weather W is shared with B
     hol_v3 = _holiday_input(version="v3", revision=1)
@@ -3902,88 +3977,87 @@ async def test_shared_weather_rejection(db_session: AsyncSession) -> None:
     ).scalar_one()
     assert wth_row.status == "active"
 
-    # ── Fresh-session atomicity evidence ─────────────────────────────
-    async with AsyncSessionMaker() as fresh:
-        # No new holiday rows with v3 code
-        new_hol_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_holiday_calendar_version "
-                    "WHERE calendar_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
+    # ── Raw-SQL atomicity evidence ──────────────────────────────────
+    # No new holiday rows with v3 code
+    new_hol_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_holiday_calendar_version "
+                "WHERE calendar_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
 
-        # No new weather rows with v3 code
-        new_wth_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_weather_rule_config_version "
-                    "WHERE rule_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
+    # No new weather rows with v3 code
+    new_wth_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_weather_rule_config_version "
+                "WHERE rule_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
 
-        # No new package rows with v3 version
-        new_pkg_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_run_parameter_package "
-                    "WHERE package_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
+    # No new package rows with v3 version
+    new_pkg_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_run_parameter_package "
+                "WHERE package_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
 
-        # Old trio unchanged — verify via fresh session
-        old_pkg_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id, "
-                    "consumable_from_local_date, consumable_to_local_date "
-                    "FROM task9_run_parameter_package WHERE id = :id"
-                ),
-                {"id": pkg_a_result.authority_id},
-            )
-        ).one()
-        assert old_pkg_fresh.status == old_pkg_status
-        assert old_pkg_fresh.row_hash == old_pkg_hash
-        assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
-        assert str(old_pkg_fresh[3]) == str(old_pkg_from)
-        assert str(old_pkg_fresh[4]) == str(old_pkg_to)
+    # Old trio unchanged — raw SQL verification
+    old_pkg_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id, "
+                "consumable_from_local_date, consumable_to_local_date "
+                "FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).one()
+    assert old_pkg_fresh.status == old_pkg_status
+    assert old_pkg_fresh.row_hash == old_pkg_hash
+    assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
+    assert str(old_pkg_fresh[3]) == str(old_pkg_from)
+    assert str(old_pkg_fresh[4]) == str(old_pkg_to)
 
-        # Old holiday unchanged
-        old_hol_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id "
-                    "FROM task9_holiday_calendar_version WHERE id = :id"
-                ),
-                {"id": hol_a_result.parent.authority_id},
-            )
-        ).one()
-        assert old_hol_fresh.status == old_hol_status
-        assert old_hol_fresh.row_hash == old_hol_hash
-        assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
+    # Old holiday unchanged
+    old_hol_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_holiday_calendar_version WHERE id = :id"
+            ),
+            {"id": hol_a_result.parent.authority_id},
+        )
+    ).one()
+    assert old_hol_fresh.status == old_hol_status
+    assert old_hol_fresh.row_hash == old_hol_hash
+    assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
 
-        # Old weather unchanged
-        old_wth_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id "
-                    "FROM task9_weather_rule_config_version WHERE id = :id"
-                ),
-                {"id": wth_result.authority_id},
-            )
-        ).one()
-        assert old_wth_fresh.status == old_wth_status
-        assert old_wth_fresh.row_hash == old_wth_hash
-        assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
+    # Old weather unchanged
+    old_wth_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_weather_rule_config_version WHERE id = :id"
+            ),
+            {"id": wth_result.authority_id},
+        )
+    ).one()
+    assert old_wth_fresh.status == old_wth_status
+    assert old_wth_fresh.row_hash == old_wth_hash
+    assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
 
     # No new lifecycle events
     count_after = (
@@ -4049,35 +4123,73 @@ async def test_shared_both_rejection_deterministic(db_session: AsyncSession) -> 
         await db_session.execute(text("SELECT count(*) FROM task9_authority_lifecycle_event"))
     ).scalar_one()
 
-    # ── Record old trio state before replacement attempt ────────────────
-    old_pkg_status, old_pkg_hash, old_pkg_superseded_by, old_pkg_from, old_pkg_to = (
+    # ── Record old trio state before replacement attempt ─────────────
+    old_pkg_status = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id, "
-                "consumable_from_local_date, consumable_to_local_date "
-                "FROM task9_run_parameter_package WHERE id = :id"
-            ),
+            text("SELECT status FROM task9_run_parameter_package WHERE id = :id"),
             {"id": pkg_a_result.authority_id},
         )
-    ).one()
-    old_hol_status, old_hol_hash, old_hol_superseded_by = (
+    ).scalar_one()
+    old_pkg_hash = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id "
-                "FROM task9_holiday_calendar_version WHERE id = :id"
-            ),
+            text("SELECT row_hash FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_from = (
+        await db_session.execute(
+            text("SELECT consumable_from_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_pkg_to = (
+        await db_session.execute(
+            text("SELECT consumable_to_local_date FROM task9_run_parameter_package WHERE id = :id"),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).scalar_one()
+    old_hol_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_holiday_calendar_version WHERE id = :id"),
             {"id": hol_result.parent.authority_id},
         )
-    ).one()
-    old_wth_status, old_wth_hash, old_wth_superseded_by = (
+    ).scalar_one()
+    old_hol_hash = (
         await db_session.execute(
-            text(
-                "SELECT status, row_hash, superseded_by_id "
-                "FROM task9_weather_rule_config_version WHERE id = :id"
-            ),
+            text("SELECT row_hash FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_hol_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_holiday_calendar_version WHERE id = :id"),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).scalar_one()
+    old_wth_status = (
+        await db_session.execute(
+            text("SELECT status FROM task9_weather_rule_config_version WHERE id = :id"),
             {"id": wth_result.authority_id},
         )
-    ).one()
+    ).scalar_one()
+    old_wth_hash = (
+        await db_session.execute(
+            text("SELECT row_hash FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
+    old_wth_superseded_by = (
+        await db_session.execute(
+            text("SELECT superseded_by_id FROM task9_weather_rule_config_version WHERE id = :id"),
+            {"id": wth_result.authority_id},
+        )
+    ).scalar_one()
 
     # Attempt replacement of A → must fail (holiday check fails first)
     hol_v3 = _holiday_input(version="v3", revision=1)
@@ -4144,88 +4256,87 @@ async def test_shared_both_rejection_deterministic(db_session: AsyncSession) -> 
     ).scalar_one()
     assert wth_row.status == "active"
 
-    # ── Fresh-session atomicity evidence ─────────────────────────────
-    async with AsyncSessionMaker() as fresh:
-        # No new holiday rows with v3 code
-        new_hol_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_holiday_calendar_version "
-                    "WHERE calendar_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
+    # ── Raw-SQL atomicity evidence ──────────────────────────────────
+    # No new holiday rows with v3 code
+    new_hol_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_holiday_calendar_version "
+                "WHERE calendar_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_hol_count == 0, f"proposed new holiday rows: {new_hol_count}"
 
-        # No new weather rows with v3 code
-        new_wth_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_weather_rule_config_version "
-                    "WHERE rule_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
+    # No new weather rows with v3 code
+    new_wth_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_weather_rule_config_version "
+                "WHERE rule_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_wth_count == 0, f"proposed new weather rows: {new_wth_count}"
 
-        # No new package rows with v3 version
-        new_pkg_count = (
-            await fresh.execute(
-                text(
-                    "SELECT count(*) FROM task9_run_parameter_package "
-                    "WHERE package_version = :ver AND status = 'draft'"
-                ),
-                {"ver": "v3"},
-            )
-        ).scalar_one()
-        assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
+    # No new package rows with v3 version
+    new_pkg_count = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FROM task9_run_parameter_package "
+                "WHERE package_version = :ver AND status = 'draft'"
+            ),
+            {"ver": "v3"},
+        )
+    ).scalar_one()
+    assert new_pkg_count == 0, f"proposed new package rows: {new_pkg_count}"
 
-        # Old trio unchanged — verify via fresh session
-        old_pkg_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id, "
-                    "consumable_from_local_date, consumable_to_local_date "
-                    "FROM task9_run_parameter_package WHERE id = :id"
-                ),
-                {"id": pkg_a_result.authority_id},
-            )
-        ).one()
-        assert old_pkg_fresh.status == old_pkg_status
-        assert old_pkg_fresh.row_hash == old_pkg_hash
-        assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
-        assert str(old_pkg_fresh[3]) == str(old_pkg_from)
-        assert str(old_pkg_fresh[4]) == str(old_pkg_to)
+    # Old trio unchanged — raw SQL verification
+    old_pkg_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id, "
+                "consumable_from_local_date, consumable_to_local_date "
+                "FROM task9_run_parameter_package WHERE id = :id"
+            ),
+            {"id": pkg_a_result.authority_id},
+        )
+    ).one()
+    assert old_pkg_fresh.status == old_pkg_status
+    assert old_pkg_fresh.row_hash == old_pkg_hash
+    assert old_pkg_fresh.superseded_by_id == old_pkg_superseded_by
+    assert str(old_pkg_fresh[3]) == str(old_pkg_from)
+    assert str(old_pkg_fresh[4]) == str(old_pkg_to)
 
-        # Old holiday unchanged
-        old_hol_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id "
-                    "FROM task9_holiday_calendar_version WHERE id = :id"
-                ),
-                {"id": hol_result.parent.authority_id},
-            )
-        ).one()
-        assert old_hol_fresh.status == old_hol_status
-        assert old_hol_fresh.row_hash == old_hol_hash
-        assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
+    # Old holiday unchanged
+    old_hol_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_holiday_calendar_version WHERE id = :id"
+            ),
+            {"id": hol_result.parent.authority_id},
+        )
+    ).one()
+    assert old_hol_fresh.status == old_hol_status
+    assert old_hol_fresh.row_hash == old_hol_hash
+    assert old_hol_fresh.superseded_by_id == old_hol_superseded_by
 
-        # Old weather unchanged
-        old_wth_fresh = (
-            await fresh.execute(
-                text(
-                    "SELECT status, row_hash, superseded_by_id "
-                    "FROM task9_weather_rule_config_version WHERE id = :id"
-                ),
-                {"id": wth_result.authority_id},
-            )
-        ).one()
-        assert old_wth_fresh.status == old_wth_status
-        assert old_wth_fresh.row_hash == old_wth_hash
-        assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
+    # Old weather unchanged
+    old_wth_fresh = (
+        await db_session.execute(
+            text(
+                "SELECT status, row_hash, superseded_by_id "
+                "FROM task9_weather_rule_config_version WHERE id = :id"
+            ),
+            {"id": wth_result.authority_id},
+        )
+    ).one()
+    assert old_wth_fresh.status == old_wth_status
+    assert old_wth_fresh.row_hash == old_wth_hash
+    assert old_wth_fresh.superseded_by_id == old_wth_superseded_by
 
     # No extra lifecycle events
     count_after = (
