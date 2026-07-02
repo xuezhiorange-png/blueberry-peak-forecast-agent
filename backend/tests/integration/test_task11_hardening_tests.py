@@ -107,6 +107,33 @@ async def _ensure_dims() -> None:
 
 
 
+
+
+
+@pytest.fixture
+async def db_session():
+    """Yield an AsyncSession wrapped in a transaction that rolls back on exit."""
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.execute(text("INSERT INTO dim_season (code, start_date, end_date) VALUES ('test-season', '2026-01-01', '2026-12-31') ON CONFLICT DO NOTHING"))
+            await session.execute(text("INSERT INTO dim_factory (code, name) VALUES ('test-factory', 'Test Factory') ON CONFLICT DO NOTHING"))
+            await session.execute(text("INSERT INTO dim_farm (name) VALUES ('Test Farm') ON CONFLICT DO NOTHING"))
+            farm_row = await session.execute(text("SELECT id FROM dim_farm WHERE name = 'Test Farm'"))
+            farm_id = farm_row.scalar_one()
+            await session.execute(text("INSERT INTO dim_subfarm (farm_id, name) VALUES (:farm_id, 'Test Subfarm') ON CONFLICT DO NOTHING"), {"farm_id": farm_id})
+            await session.execute(text("INSERT INTO dim_variety (code, name) VALUES ('test-var', 'Test Variety') ON CONFLICT DO NOTHING"))
+            season_row = await session.execute(text("SELECT id FROM dim_season WHERE code = 'test-season'"))
+            factory_row = await session.execute(text("SELECT id FROM dim_factory WHERE code = 'test-factory'"))
+            subfarm_row = await session.execute(text("SELECT id FROM dim_subfarm WHERE farm_id = :farm_id AND name = 'Test Subfarm'"), {"farm_id": farm_id})
+            variety_row = await session.execute(text("SELECT id FROM dim_variety WHERE code = 'test-var'"))
+            _IDS["season"] = season_row.scalar_one()
+            _IDS["factory"] = factory_row.scalar_one()
+            _IDS["farm"] = farm_id
+            _IDS["subfarm"] = subfarm_row.scalar_one()
+            _IDS["variety"] = variety_row.scalar_one()
+            yield session
+
+
 def _pool_input(*, code: str = "TEST-POOL", version: str = "v1", revision: int = 1) -> Task9CapacityPoolDefinitionSemanticBundle:
     return Task9CapacityPoolDefinitionSemanticBundle(
         season_id=_IDS["season"], destination_factory_id=_IDS["factory"],
