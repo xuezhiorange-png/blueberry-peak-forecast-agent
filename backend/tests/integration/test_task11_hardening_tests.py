@@ -159,8 +159,12 @@ def _daily_input(*, version: str = "v1", revision: int = 1) -> Task9DailyCapacit
     return Task9DailyCapacitySemanticInput(
         season_id=_IDS["season"], destination_factory_id=_IDS["factory"],
         capacity_pool_code=pool.capacity_pool_code,
-        capacity_pool_version=version, capacity_pool_revision=revision,
-        capacity_date=date(2026, 4, 1), capacity_quantity_kg=Decimal("1000"),
+        capacity_pool_version=version, capacity_pool_revision=pool.revision,
+        capacity_date=date(2026, 6, 15), daily_capacity_revision=revision,
+        capacity_input_mode=CapacityInputMode.LABOR_DERIVED,
+        planned_picker_count=Decimal("100"), kg_per_person_per_day=Decimal("50.5"),
+        direct_nominal_capacity_kg_per_day=None,
+        labor_availability_ratio=Decimal("0.9"), operational_efficiency_ratio=Decimal("0.85"),
         effective_from=_EFF_FROM, effective_to=None, available_at_local_date=_AVAILABLE,
         consumable_from_local_date=None, consumable_to_local_date=None,
         status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -224,12 +228,18 @@ def _run_package_input(*, version: str = "v1", revision: int = 1, farm_scope: st
 
 
 def _inventory_input(*, version: str = "v1", revision: int = 1) -> Task9InitialInventorySemanticBundle:
-    cohorts = [Task9InitialInventoryCohortSchema(variety_id=_IDS["variety"], remaining_quantity_kg=Decimal("500"))]
+    cohorts = [
+        Task9InitialInventoryCohortSchema(
+            stable_cohort_key="cohort-a", forecast_quantile=ForecastQuantile.P50,
+            variety_id=_IDS["variety"], opening_mature_quantity_kg=Decimal("300"),
+            remaining_quantity_kg=Decimal("300"),
+        ),
+    ]
     return Task9InitialInventorySemanticBundle(
         season_id=_IDS["season"], destination_factory_id=_IDS["factory"],
-        opening_state_date=date(2026, 3, 1), snapshot_version=version, revision=revision,
-        initial_opening_mature_inventory_kg=Decimal("500"),
-        effective_from=_EFF_FROM, effective_to=None, available_at_local_date=_AVAILABLE,
+        opening_state_date=date(2026, 1, 1), snapshot_version=version, revision=revision,
+        initial_opening_mature_inventory_kg=Decimal("300"),
+        available_at_local_date=_AVAILABLE,
         consumable_from_local_date=None, consumable_to_local_date=None,
         status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
         superseded_by_id=None, source_system="test",
@@ -238,13 +248,13 @@ def _inventory_input(*, version: str = "v1", revision: int = 1) -> Task9InitialI
 
 
 def _mature_loss_input(*, version: str = "v1", revision: int = 1) -> Task9MatureLossSemanticInput:
-    pool = _pool_input()
     return Task9MatureLossSemanticInput(
         season_id=_IDS["season"], destination_factory_id=_IDS["factory"],
-        capacity_pool_code=pool.capacity_pool_code, capacity_pool_version=version,
-        state_date=date(2026, 4, 1), forecast_quantile=ForecastQuantile.P50,
-        mature_loss_quantity_kg=Decimal("100"),
-        effective_from=_EFF_FROM, effective_to=None, available_at_local_date=_AVAILABLE,
+        capacity_pool_code="TEST-POOL", state_date=date(2026, 6, 15),
+        forecast_quantile=ForecastQuantile.P50,
+        loss_version=version, revision=revision,
+        mature_inventory_loss_quantity_kg=Decimal("25.50"),
+        available_at_local_date=_AVAILABLE,
         consumable_from_local_date=None, consumable_to_local_date=None,
         status=AuthorityStatus.DRAFT, status_changed_at=datetime(2026, 1, 1, tzinfo=UTC),
         superseded_by_id=None, source_system="test",
