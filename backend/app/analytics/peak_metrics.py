@@ -121,8 +121,7 @@ def _median(values: list[Decimal]) -> Decimal:
 
 def _is_consecutive_window(window: list[DailySeriesPoint]) -> bool:
     return all(
-        current.date == previous.date + timedelta(days=1)
-        for previous, current in pairwise(window)
+        current.date == previous.date + timedelta(days=1) for previous, current in pairwise(window)
     )
 
 

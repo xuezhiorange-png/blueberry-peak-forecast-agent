@@ -365,9 +365,7 @@ def _task9_holiday_snapshot(
             "Task 9 completed output is missing holiday_calendar_version"
         )
     if not isinstance(hash_value, str) or not hash_value:
-        raise ResidualManifestBuildError(
-            "Task 9 completed output is missing holiday_calendar_hash"
-        )
+        raise ResidualManifestBuildError("Task 9 completed output is missing holiday_calendar_hash")
     if not isinstance(raw_dates, list):
         raise ResidualManifestBuildError("Task 9 completed output holiday_dates is invalid")
     parsed_dates: set[date] = set()
@@ -439,9 +437,7 @@ async def build_residual_training_manifest(
     ):
         output = await load_harvest_state_output_by_id(session, run_id=sample.task9_run_id)
         if output is None:
-            raise ResidualManifestBuildError(
-                f"HarvestStateRun {sample.task9_run_id} was not found"
-            )
+            raise ResidualManifestBuildError(f"HarvestStateRun {sample.task9_run_id} was not found")
         if output.status != "completed":
             raise ResidualManifestBuildError(
                 f"HarvestStateRun {sample.task9_run_id} must be completed for Task 10"

@@ -83,14 +83,11 @@ _PHASE_COORDINATE_FORMULA_VERSION = "observed_weather_phase_adjusted_day_v1"
 
 def _code_version() -> str:
     try:
-        return (
-            subprocess.check_output(
-                ["git", "rev-parse", "HEAD"],
-                cwd=Path(__file__).resolve().parents[3],
-                text=True,
-            )
-            .strip()
-        )
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[3],
+            text=True,
+        ).strip()
     except Exception:
         return "unknown"
 
@@ -186,9 +183,7 @@ _LEAKAGE_CHECK_REASON_MAP: dict[str, tuple[str, ...]] = {
         "analytics_build_run_missing_finished_at",
         "analytics_build_run_not_visible_at_cutoff",
     ),
-    "season_complete_by_cutoff": (
-        "season_not_complete_by_training_cutoff",
-    ),
+    "season_complete_by_cutoff": ("season_not_complete_by_training_cutoff",),
     "fact_visibility": (
         "future_fact_rows_not_visible_at_cutoff",
         "fact_rows_not_visible_at_cutoff",
@@ -205,9 +200,7 @@ _LEAKAGE_CHECK_REASON_MAP: dict[str, tuple[str, ...]] = {
         "mapping_unavailable",
     ),
     "weather_observation_visibility": (),
-    "base_temperature_cutoff": (
-        "base_temperature_run_not_visible_at_cutoff",
-    ),
+    "base_temperature_cutoff": ("base_temperature_run_not_visible_at_cutoff",),
     "future_revision_exclusion": (
         "analytics_build_run_missing_finished_at",
         "analytics_build_run_not_visible_at_cutoff",
@@ -303,9 +296,9 @@ def _leakage_checks(
             entry = _manifest_row_ref(row, index)
             entry["invisible_selected_observation_count"] = invisible_count
             weather_visibility_rows.append(entry)
-            weather_reason_breakdown[
-                "selected_weather_observations_not_visible_at_cutoff"
-            ] += invisible_count
+            weather_reason_breakdown["selected_weather_observations_not_visible_at_cutoff"] += (
+                invisible_count
+            )
 
         revision_count = int(audit.get("candidate_observation_count", 0) or 0)
         future_excluded_count = int(audit.get("future_excluded_observation_count", 0) or 0)
@@ -319,9 +312,9 @@ def _leakage_checks(
                 audit.get("future_excluded_observation_dates", []),
             )
             future_revision_rows.append(entry)
-            future_revision_reason_breakdown[
-                "future_weather_revisions_excluded_at_cutoff"
-            ] += future_excluded_count
+            future_revision_reason_breakdown["future_weather_revisions_excluded_at_cutoff"] += (
+                future_excluded_count
+            )
 
     weather_status = _leakage_check_status(
         affected_count=len(weather_visibility_rows),
@@ -379,11 +372,7 @@ def _sorted_manifest_rows(
         cast(
             dict[str, Any],
             canonical_json_value(
-                {
-                    key: value
-                    for key, value in item.items()
-                    if key != "weather_observation_audit"
-                }
+                {key: value for key, value in item.items() if key != "weather_observation_audit"}
             ),
         )
         for item in manifest_rows
@@ -995,9 +984,7 @@ async def _resolve_training_sample(
         "selected_observation_count": len(observation_fingerprint),
         "visible_observation_count": selected_visible_count,
         "candidate_observation_count": len(all_observation_rows),
-        "future_excluded_observation_count": len(
-            future_excluded_observation_rows
-        ),
+        "future_excluded_observation_count": len(future_excluded_observation_rows),
         "future_excluded_observation_dates": sorted(
             {item.observation_date.isoformat() for item in future_excluded_observation_rows}
         ),
@@ -1148,9 +1135,9 @@ def _reference_phase_rate_payload(
     if used_samples == 0:
         return None
     return {
-        "effective_temperature_per_day": (
-            weighted_sum / Decimal(used_samples)
-        ).quantize(Decimal("0.000001")),
+        "effective_temperature_per_day": (weighted_sum / Decimal(used_samples)).quantize(
+            Decimal("0.000001")
+        ),
         "sample_count": used_samples,
     }
 
@@ -1165,8 +1152,12 @@ def _build_group_curves(
     province_grouped: dict[str, list[ResolvedTrainingSample]] = defaultdict(list)
     variety_grouped: dict[str, list[ResolvedTrainingSample]] = defaultdict(list)
     for sample in resolved_samples:
-        grouped[f"zone:{sample.climate_zone_id}|variety:{sample.manifest_row.variety_id}"].append(sample)
-        province_grouped[f"province:{sample.province}|variety:{sample.manifest_row.variety_id}"].append(sample)
+        grouped[f"zone:{sample.climate_zone_id}|variety:{sample.manifest_row.variety_id}"].append(
+            sample
+        )
+        province_grouped[
+            f"province:{sample.province}|variety:{sample.manifest_row.variety_id}"
+        ].append(sample)
         variety_grouped[f"variety:{sample.manifest_row.variety_id}"].append(sample)
 
     def fit_for_samples(samples: list[ResolvedTrainingSample]) -> tuple[Decimal, ...]:
@@ -1181,10 +1172,13 @@ def _build_group_curves(
         weights: list[Decimal] = []
         for rel_day in sorted(point_map):
             total_weight = sum((item[1] for item in point_map[rel_day]), Decimal("0"))
-            weighted_share = sum(
-                (item[0] * item[1] for item in point_map[rel_day]),
-                Decimal("0"),
-            ) / total_weight
+            weighted_share = (
+                sum(
+                    (item[0] * item[1] for item in point_map[rel_day]),
+                    Decimal("0"),
+                )
+                / total_weight
+            )
             rel_days.append(rel_day)
             shares.append(weighted_share.quantize(Decimal("0.000001")))
             weights.append(total_weight.quantize(Decimal("0.000001")))
@@ -1292,8 +1286,7 @@ def _build_group_curves(
     for group_key, samples in grouped.items():
         counts = _group_counts(samples)
         province_key = (
-            f"province:{samples[0].province}|"
-            f"variety:{samples[0].manifest_row.variety_id}"
+            f"province:{samples[0].province}|variety:{samples[0].manifest_row.variety_id}"
         )
         parent_key = (
             province_key
@@ -1475,9 +1468,7 @@ def _build_shift_model(
         )
 
     for name in numeric_features:
-        observed = [
-            feature_numeric(sample, name) for sample, _, _ in eligible_shift_samples
-        ]
+        observed = [feature_numeric(sample, name) for sample, _, _ in eligible_shift_samples]
         present = [item for item in observed if item is not None]
         if present:
             center = (sum(present, Decimal("0")) / Decimal(len(present))).quantize(
@@ -1500,9 +1491,7 @@ def _build_shift_model(
 
     feature_order = list(numeric_features)
     facility_feature_names = [
-        f"facility_type={name}"
-        for name in facility_types
-        if name != reference_facility
+        f"facility_type={name}" for name in facility_types if name != reference_facility
     ]
     feature_order.extend(facility_feature_names)
 
@@ -1578,8 +1567,7 @@ def _predict_shift_days(
     total = shift_model.intercept_days
     facility_input = cast(
         str | None,
-        feature_values.get("facility_type_raw")
-        or feature_values.get("facility_type"),
+        feature_values.get("facility_type_raw") or feature_values.get("facility_type"),
     )
     _, facility_value = _normalize_facility_type(
         facility_input,
@@ -1656,9 +1644,7 @@ def _calibration_payload(
     covered_p90 = 0
 
     for held_out_season in seasons:
-        train_samples = [
-            item for item in resolved_samples if item.season_code != held_out_season
-        ]
+        train_samples = [item for item in resolved_samples if item.season_code != held_out_season]
         held_out_samples = [
             item for item in resolved_samples if item.season_code == held_out_season
         ]
@@ -1689,8 +1675,7 @@ def _calibration_payload(
                 shift_days=shift_days,
             )
             predicted_map = {
-                rel_day: share
-                for rel_day, share in zip(support_days, shifted_density, strict=True)
+                rel_day: share for rel_day, share in zip(support_days, shifted_density, strict=True)
             }
             actual_map = {point.relative_day: point.proxy_share for point in sample.training_points}
             for rel_day, actual_share in actual_map.items():
@@ -1778,9 +1763,9 @@ def _calibration_payload(
         "cumulative_share_error": (
             None
             if not cumulative_errors
-            else (
-                sum(cumulative_errors, Decimal("0")) / Decimal(len(cumulative_errors))
-            ).quantize(Decimal("0.000001"))
+            else (sum(cumulative_errors, Decimal("0")) / Decimal(len(cumulative_errors))).quantize(
+                Decimal("0.000001")
+            )
         ),
         "warnings": warnings,
     }
@@ -2009,10 +1994,7 @@ async def train_maturity_curve(
         resolved_snapshots.append(snapshot)
         if resolved is not None:
             resolved_samples.append(resolved)
-    anchor_events = {
-        row.manifest_row.anchor_event
-        for row in resolved_samples
-    }
+    anchor_events = {row.manifest_row.anchor_event for row in resolved_samples}
     if len(anchor_events) > 1:
         raise ValueError("all included samples must share one anchor_event in Task 8")
     anchor_event = next(iter(anchor_events)) if anchor_events else manifest_rows[0].anchor_event
@@ -2164,9 +2146,7 @@ async def train_maturity_curve(
     warnings.extend(cast(list[str], calibration.get("warnings", [])))
     base_temperature_context: dict[str, Any] = {}
     for sample in resolved_samples:
-        context_key = (
-            f"zone:{sample.climate_zone_id}|variety:{sample.manifest_row.variety_id}"
-        )
+        context_key = f"zone:{sample.climate_zone_id}|variety:{sample.manifest_row.variety_id}"
         row_payload = {
             "run_id": sample.manifest_row.base_temperature_search_run_id,
             "source_signature": sample.base_temperature_source_signature,
@@ -2701,9 +2681,7 @@ async def forecast_natural_maturity(
         shift_days=shift_days,
     )
     prediction_dates = date_range(prediction_start_date, prediction_end_date)
-    observations_by_date = {
-        item.observation_date: item for item in observations
-    }
+    observations_by_date = {item.observation_date: item for item in observations}
     selected_base_temperature = base_temp_run.selected_base_temperature
     if selected_base_temperature is None:
         raise ValueError("base temperature search run missing selected base temperature")
@@ -2779,8 +2757,7 @@ async def forecast_natural_maturity(
     slice_shares: list[Decimal] = []
     slice_coords: list[Decimal] = []
     density_map = {
-        rel_day: share
-        for rel_day, share in zip(support_days, shifted_density, strict=True)
+        rel_day: share for rel_day, share in zip(support_days, shifted_density, strict=True)
     }
     for day in prediction_dates:
         rel_day = axis_coordinates[day]
@@ -2791,8 +2768,7 @@ async def forecast_natural_maturity(
     if total_slice_share <= 0:
         raise ValueError("forecast support has zero probability mass")
     normalized_slice = tuple(
-        (share / total_slice_share).quantize(Decimal("0.000001"))
-        for share in slice_shares
+        (share / total_slice_share).quantize(Decimal("0.000001")) for share in slice_shares
     )
     p50_values = reconcile_p50_mass(expected_total_kg=effective_total, density=normalized_slice)
     calibration = cast(dict[str, Any], artifact_row.artifact_payload.get("calibration", {}))

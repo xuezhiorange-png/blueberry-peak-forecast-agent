@@ -42,10 +42,7 @@ def write_climate_zone_reports(
                 f"- inserted_rows: {result.inserted_rows}",
                 f"- skipped_rows: {result.skipped_rows}",
                 f"- conflict_rows: {result.conflict_rows}",
-                (
-                    "- warnings: "
-                    f"{', '.join(result.warnings) if result.warnings else '(none)'}"
-                ),
+                (f"- warnings: {', '.join(result.warnings) if result.warnings else '(none)'}"),
                 f"- error_message: {result.error_message or '(none)'}",
             ]
         ),

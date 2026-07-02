@@ -41,9 +41,7 @@ from backend.app.maturity.service import (
 
 def _config():
     repo_root = Path(__file__).resolve().parents[3]
-    return load_maturity_curve_config(
-        repo_root / "configs/maturity_curve.yaml"
-    )
+    return load_maturity_curve_config(repo_root / "configs/maturity_curve.yaml")
 
 
 def _sample(
@@ -145,9 +143,7 @@ def _sample(
             },
         ),
         holiday_summary={},
-        density_points=tuple(
-            (item.relative_day, item.proxy_share) for item in training_points
-        ),
+        density_points=tuple((item.relative_day, item.proxy_share) for item in training_points),
         training_points=tuple(training_points),
         feature_values={
             "altitude_m": altitude_m,
@@ -230,8 +226,9 @@ def test_training_source_signature_changes_when_provenance_changes() -> None:
     assert signature_a != signature_b
 
 
-def test_training_source_signature_is_order_invariant_for_tied_rows_with_different_provenance(
-) -> None:
+def test_training_source_signature_is_order_invariant_for_tied_rows_with_different_provenance() -> (
+    None
+):
     row_a = {
         "season_id": 1,
         "production_plan_id": 201,
@@ -1058,13 +1055,11 @@ def test_build_group_curves_marks_sparse_variety_global_unavailable() -> None:
     assert "variety:2" not in artifacts
     assert metrics["group_levels"]["variety:2"]["available"] is False
     assert (
-        metrics["group_levels"]["variety:2"]["fallback_reason"]
-        == "insufficient_training_samples"
+        metrics["group_levels"]["variety:2"]["fallback_reason"] == "insufficient_training_samples"
     )
     assert "zone:1|variety:2" not in artifacts
     assert (
-        metrics["group_levels"]["zone:1|variety:2"]["fallback_reason"]
-        == "parent_group_unavailable"
+        metrics["group_levels"]["zone:1|variety:2"]["fallback_reason"] == "parent_group_unavailable"
     )
 
 
@@ -1085,9 +1080,7 @@ def test_leakage_checks_warn_for_mixed_visible_and_excluded_rows() -> None:
     assert fact_visibility["status"] == "warn"
     assert fact_visibility["excluded_row_count"] == 1
     assert fact_visibility["failed_row_count"] == 0
-    assert fact_visibility["reason_code_breakdown"] == {
-        "fact_rows_not_visible_at_cutoff": 1
-    }
+    assert fact_visibility["reason_code_breakdown"] == {"fact_rows_not_visible_at_cutoff": 1}
 
 
 def test_leakage_checks_fail_when_excluded_rows_make_training_unavailable() -> None:
@@ -1155,9 +1148,10 @@ def test_leakage_checks_track_weather_visibility_and_future_revision_exclusion()
     assert future_revisions["reason_code_breakdown"] == {
         "future_weather_revisions_excluded_at_cutoff": 2
     }
-    assert future_revisions["affected_manifest_rows"][0][
-        "future_excluded_observation_dates"
-    ] == ["2026-02-02", "2026-02-03"]
+    assert future_revisions["affected_manifest_rows"][0]["future_excluded_observation_dates"] == [
+        "2026-02-02",
+        "2026-02-03",
+    ]
 
 
 def test_leakage_checks_warn_for_invisible_selected_weather_observations() -> None:
@@ -1184,9 +1178,9 @@ def test_leakage_checks_warn_for_invisible_selected_weather_observations() -> No
     assert weather_visibility["reason_code_breakdown"] == {
         "selected_weather_observations_not_visible_at_cutoff": 1
     }
-    assert weather_visibility["affected_manifest_rows"][0][
-        "invisible_selected_observation_count"
-    ] == 1
+    assert (
+        weather_visibility["affected_manifest_rows"][0]["invisible_selected_observation_count"] == 1
+    )
 
 
 @pytest.mark.asyncio

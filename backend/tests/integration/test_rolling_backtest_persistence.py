@@ -1205,9 +1205,7 @@ async def test_tamper_attempt_skip_number_is_detected() -> None:
     node_id = await _first_node_id(run.id)
     a1 = await create_execution_attempt(run.id, node_id, status="failed")
     await _mark_attempt_failed(a1.id, node_id)
-    a2 = await create_execution_attempt(
-        run.id, node_id, status="failed", prior_attempt_id=a1.id
-    )
+    a2 = await create_execution_attempt(run.id, node_id, status="failed", prior_attempt_id=a1.id)
     await _mark_attempt_failed(a2.id, node_id)
 
     # Tamper: change attempt 2's number to 3

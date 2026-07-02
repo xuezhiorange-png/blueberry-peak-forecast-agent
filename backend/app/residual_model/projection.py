@@ -55,4 +55,3 @@ def project_corrected_quantiles(
         quantile_projection_applied=monotonic_applied,
         projection_reasons=reasons,
     )
-

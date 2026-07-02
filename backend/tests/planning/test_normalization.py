@@ -55,4 +55,3 @@ def test_validate_coordinate_pair_accepts_valid_ranges(
 def test_validate_coordinate_pair_rejects_out_of_range(latitude: int, longitude: int) -> None:
     with pytest.raises(ValueError):
         validate_coordinate_pair(latitude, longitude)
-

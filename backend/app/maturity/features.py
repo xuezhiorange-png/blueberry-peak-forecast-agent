@@ -10,16 +10,13 @@ def date_range(start_date: date, end_date: date) -> list[date]:
     if end_date < start_date:
         return []
     return [
-        start_date + timedelta(days=offset)
-        for offset in range((end_date - start_date).days + 1)
+        start_date + timedelta(days=offset) for offset in range((end_date - start_date).days + 1)
     ]
 
 
 def analysis_dates(season: Season) -> list[date]:
     return [
-        day
-        for day in date_range(season.start_date, season.end_date)
-        if day.month in {1, 2, 3, 4}
+        day for day in date_range(season.start_date, season.end_date) if day.month in {1, 2, 3, 4}
     ]
 
 
@@ -30,8 +27,6 @@ def smooth_series(values: list[Decimal]) -> list[Decimal]:
         end = min(len(values), index + 2)
         window = values[start:end]
         smoothed.append(
-            (sum(window, Decimal("0")) / Decimal(len(window))).quantize(
-                Decimal("0.000001")
-            )
+            (sum(window, Decimal("0")) / Decimal(len(window))).quantize(Decimal("0.000001"))
         )
     return smoothed
