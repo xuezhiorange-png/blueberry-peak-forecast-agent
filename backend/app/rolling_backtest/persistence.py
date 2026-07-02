@@ -1441,3 +1441,88 @@ async def validate_orchestration_snapshot_consistency(
             f"attempt {attempt_id} has snapshot but non-terminal status {attempt.status}"
         )
     return snapshot.terminal_stage
+
+
+# ── Node and run status management ───────────────────────────────────────────
+
+
+async def derive_run_status_from_attempts(
+    session: AsyncSession,
+    run_id: int,
+) -> str:
+    """Derive run-level status from the latest attempt per node."""
+    from sqlalchemy import func as sa_func
+
+    # Get the latest attempt status per node
+    subq = (
+        select(
+            RollingBacktestAttempt.rolling_node_id,
+            RollingBacktestAttempt.status,
+        )
+        .where(RollingBacktestAttempt.rolling_run_id == run_id)
+        .order_by(
+            RollingBacktestAttempt.rolling_node_id,
+            RollingBacktestAttempt.attempt_number.desc(),
+        )
+    )
+    # Use a window function approach or just iterate
+    node_result = await session.execute(
+        select(RollingBacktestNode.id)
+        .where(RollingBacktestNode.rolling_run_id == run_id)
+    )
+    node_ids = [row[0] for row in node_result.all()]
+    statuses: list[str] = []
+    for nid in node_ids:
+        latest_result = await session.execute(
+            select(RollingBacktestAttempt.status)
+            .where(
+                RollingBacktestAttempt.rolling_node_id == nid,
+                RollingBacktestAttempt.rolling_run_id == run_id,
+            )
+            .order_by(RollingBacktestAttempt.attempt_number.desc())
+            .limit(1)
+        )
+        latest = latest_result.scalar_one_or_none()
+        if latest is not None:
+            statuses.append(latest)
+    if not statuses:
+        return "pending"
+    all_pending = all(s == "pending" for s in statuses)
+    all_completed = all(s == "completed" for s in statuses)
+    any_running = any(s == "running" for s in statuses)
+    any_blocked = any(s == "blocked" for s in statuses)
+    any_failed = any(s == "failed" for s in statuses)
+    any_completed = any(s == "completed" for s in statuses)
+
+    if all_pending:
+        return "pending"
+    if any_running:
+        return "running"
+    if any_failed:
+        return "failed"
+    if all_completed:
+        return "forecast_completed"
+    if any_completed and any_blocked:
+        return "partially_completed"
+    if any_blocked and not any_completed:
+        return "blocked"
+    return "pending"
+
+
+async def update_run_status_from_attempts(
+    session: AsyncSession,
+    run_id: int,
+) -> str:
+    """Aggregate latest attempt statuses and update the run status. Returns the new status."""
+    derived = await derive_run_status_from_attempts(session, run_id)
+    result = await session.execute(
+        select(RollingBacktestRun)
+        .where(RollingBacktestRun.id == run_id)
+        .with_for_update()
+    )
+    run = result.scalar_one_or_none()
+    if run is None:
+        raise RollingBacktestIntegrityError(f"run {run_id} not found")
+    run.status = derived
+    await session.flush()
+    return derived
