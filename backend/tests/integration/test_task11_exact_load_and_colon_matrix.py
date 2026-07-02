@@ -558,6 +558,8 @@ async def test_exact_load_weather_by_business_key_happy(db_session: AsyncSession
 @pytest.mark.asyncio
 async def test_exact_load_run_package_by_business_key_happy(db_session: AsyncSession) -> None:
     """Create a run-package, then load by business_key, verify same authority_id."""
+    await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
+    await create_or_load_weather_rule(db_session, weather_input=_weather_input())
     inp = _run_package_input()
     create_result = await create_or_load_run_parameter_package(
         db_session,
@@ -680,6 +682,8 @@ async def test_exact_load_weather_by_business_key_wrong_key(db_session: AsyncSes
 @pytest.mark.asyncio
 async def test_exact_load_run_package_by_business_key_wrong_key(db_session: AsyncSession) -> None:
     """Wrong stable_key must raise AuthorityNotFoundError."""
+    await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
+    await create_or_load_weather_rule(db_session, weather_input=_weather_input())
     inp = _run_package_input()
     await create_or_load_run_parameter_package(
         db_session,
@@ -800,6 +804,8 @@ async def test_exact_load_weather_by_business_key_wrong_version(db_session: Asyn
 @pytest.mark.asyncio
 async def test_exact_load_run_package_by_business_key_wrong_version(db_session: AsyncSession) -> None:
     """Correct stable_key but wrong business_version → AuthorityNotFoundError."""
+    await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
+    await create_or_load_weather_rule(db_session, weather_input=_weather_input())
     inp = _run_package_input()
     await create_or_load_run_parameter_package(
         db_session,
@@ -919,6 +925,8 @@ async def test_exact_load_weather_by_business_key_malformed_prefix(db_session: A
 @pytest.mark.asyncio
 async def test_exact_load_run_package_by_business_key_malformed_prefix(db_session: AsyncSession) -> None:
     """Key with wrong prefix → AuthorityNotFoundError."""
+    await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
+    await create_or_load_weather_rule(db_session, weather_input=_weather_input())
     inp = _run_package_input()
     await create_or_load_run_parameter_package(
         db_session,
@@ -1023,6 +1031,8 @@ async def test_exact_load_weather_by_row_hash_happy(db_session: AsyncSession) ->
 @pytest.mark.asyncio
 async def test_exact_load_run_package_by_row_hash_happy(db_session: AsyncSession) -> None:
     """Create a run-package, then load by row_hash, verify same authority_id."""
+    await create_or_load_holiday_calendar(db_session, calendar_input=_holiday_input())
+    await create_or_load_weather_rule(db_session, weather_input=_weather_input())
     inp = _run_package_input()
     create_result = await create_or_load_run_parameter_package(
         db_session,
