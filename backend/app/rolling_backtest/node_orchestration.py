@@ -1056,9 +1056,17 @@ def _build_outcome(
 
 def _config_from_payload(payload: dict[str, Any]) -> RollingBacktestConfig:
     """Reconstruct config from canonical payload."""
+    from copy import deepcopy
     from pydantic import TypeAdapter
-
+    # Canonical payloads strip display_label — restore it for validation
+    normalized = deepcopy(payload)
+    for node in normalized.get("nodes", []):
+        for ident in node.get("resolved_upstream_semantic_identities", []):
+            sem = ident.get("semantic")
+            if isinstance(sem, dict) and "display_label" not in sem:
+                sem["display_label"] = "__canonical__"
     adapter = TypeAdapter(RollingBacktestConfig)
+    return adapter.validate_python(normalized)
     return adapter.validate_python(payload)
 
 
