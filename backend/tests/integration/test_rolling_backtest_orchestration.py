@@ -2,25 +2,22 @@
 
 Requires PostgreSQL with RUN_POSTGRES_INTEGRATION=1 and APP_ENV=test.
 """
+
 from __future__ import annotations
 
 import asyncio
 import os
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import func, select, text
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError as SAIntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.rolling_backtest import (
     RollingBacktestAttempt,
-    RollingBacktestAvailabilityAudit,
-    RollingBacktestDagSnapshot,
     RollingBacktestNode,
     RollingBacktestOrchestrationSnapshot,
-    RollingBacktestResolvedInput,
     RollingBacktestRun,
     RollingBacktestStageEvent,
 )
@@ -30,13 +27,10 @@ from backend.app.rolling_backtest.enums import (
     UpstreamSelectionMode,
 )
 from backend.app.rolling_backtest.errors import (
-    RollingBacktestAuthorityBindingError,
     RollingBacktestAttemptConflictError,
-    RollingBacktestIntegrityError,
     RollingBacktestStageIntegrityError,
 )
 from backend.app.rolling_backtest.node_orchestration import (
-    NodeAlreadyFinalizedError,
     orchestrate_node,
 )
 from backend.app.rolling_backtest.persistence import (
@@ -45,12 +39,10 @@ from backend.app.rolling_backtest.persistence import (
     ResolvedInputPersistenceCommand,
     RollingBacktestPersistenceCommand,
     RollingNodePersistenceCommand,
-    _STAGE_ORDINAL,
     create_execution_attempt,
     create_or_load_logical_run,
     derive_run_status_from_attempts,
     finalize_attempt_status,
-    finalize_attempt_with_snapshot,
     load_logical_run_with_integrity,
     persist_stage_event,
     update_run_status_from_attempts,
@@ -65,7 +57,6 @@ from backend.app.rolling_backtest.schemas import (
     Task8ForecastRunAvailabilitySnapshot,
     UpstreamSemanticIdentityPayload,
 )
-from backend.app.rolling_backtest.signatures import run_signature_hash
 
 pytestmark = pytest.mark.integration
 
@@ -346,9 +337,7 @@ async def _get_node_id_for_run(run_id: int) -> int:
     """Helper to fetch the single node ID for a run."""
     async with AsyncSessionMaker() as session:
         result = await session.execute(
-            select(RollingBacktestNode.id).where(
-                RollingBacktestNode.rolling_run_id == run_id
-            )
+            select(RollingBacktestNode.id).where(RollingBacktestNode.rolling_run_id == run_id)
         )
         return result.scalar_one()
 
@@ -525,9 +514,7 @@ async def test_same_node_concurrent_attempt_allocation() -> None:
 
     async def _create_attempt() -> None:
         await barrier.wait()
-        attempt = await create_execution_attempt(
-            run.id, node_id, status="blocked"
-        )
+        attempt = await create_execution_attempt(run.id, node_id, status="blocked")
         results.append(attempt)
 
     await asyncio.gather(_create_attempt(), _create_attempt())
@@ -605,12 +592,14 @@ async def test_stage_gap_tamper_rejected() -> None:
     # Persist stage 1 (resolve_historical_inputs) and stage 3 (validate_authority_chain)
     # skipping stage 2 (validate_visibility)
     await persist_stage_event(
-        attempt.id, node_id,
+        attempt.id,
+        node_id,
         stage="resolve_historical_inputs",
         status="completed",
     )
     await persist_stage_event(
-        attempt.id, node_id,
+        attempt.id,
+        node_id,
         stage="validate_authority_chain",
         status="completed",
     )
@@ -639,7 +628,8 @@ async def test_stage_duplicate_rejected() -> None:
 
     # First insert succeeds via persist_stage_event
     await persist_stage_event(
-        attempt.id, node_id,
+        attempt.id,
+        node_id,
         stage="resolve_historical_inputs",
         status="completed",
     )
@@ -697,9 +687,7 @@ async def test_cross_node_prior_attempt_rejected() -> None:
 
     # Try to create attempt for node2 with node1's attempt as prior → should fail
     with pytest.raises(RollingBacktestAttemptConflictError):
-        await create_execution_attempt(
-            run.id, node2_id, prior_attempt_id=attempt1.id
-        )
+        await create_execution_attempt(run.id, node2_id, prior_attempt_id=attempt1.id)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -22,10 +22,10 @@ from backend.app.rolling_backtest.node_orchestration import (
     NodeAlreadyFinalizedError,
     PinnedSourceNotFoundError,
     PinnedSourceNotVisibleError,
-    Task10Task9BindingMismatchError,
-    Task10PredictionNotCompletedError,
     Task8ParentAuthorityMismatchError,
     Task9Task8AuthorityMismatchError,
+    Task10PredictionNotCompletedError,
+    Task10Task9BindingMismatchError,
     UnsupportedExecutionModeError,
     UnsupportedSelectionModeError,
     orchestrate_node,
@@ -49,6 +49,7 @@ _MOD = "backend.app.rolling_backtest.node_orchestration"
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def _make_semantic_payload(
     *,
@@ -176,6 +177,7 @@ def _make_config(
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def mock_session():
     """Mock AsyncSession for database calls."""
@@ -274,6 +276,7 @@ async def _mock_stage_validate_visibility_happy(session, ctx, config, node):
 
 # ── Common mock patches for orchestrate_node ─────────────────────────────────
 
+
 def _make_attempt_mock(attempt_fixture):
     """Build a clean MagicMock for an attempt from fixture data."""
     m = MagicMock()
@@ -302,9 +305,7 @@ def _orchestration_patches(
         "persist_stage_event": AsyncMock(),
         "persist_orchestration_snapshot": AsyncMock(),
         "load_logical_run_with_integrity": AsyncMock(return_value=mock_run),
-        "finalize_attempt_with_snapshot": AsyncMock(
-            return_value=(attempt_inst, MagicMock())
-        ),
+        "finalize_attempt_with_snapshot": AsyncMock(return_value=(attempt_inst, MagicMock())),
         "update_run_status_from_attempts": AsyncMock(),
         "_stage_validate_visibility": stage_validate_visibility,
     }
@@ -319,13 +320,9 @@ def _orchestration_patches(
 
 
 @pytest.mark.asyncio
-async def test_historical_observed_pinned_success(
-    mock_session, mock_run, mock_node, mock_attempt
-):
+async def test_historical_observed_pinned_success(mock_session, mock_run, mock_node, mock_attempt):
     """Full eight-stage happy path for historical_observed + pinned."""
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
     patches = _orchestration_patches(
         mock_run=mock_run, mock_node=mock_node, mock_attempt=mock_attempt
     )
@@ -365,14 +362,10 @@ async def test_retrospective_replay_unsupported(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = retro_config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     with pytest.raises(UnsupportedExecutionModeError) as exc_info:
-        await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert exc_info.value.code == "UNSUPPORTED_EXECUTION_MODE"
 
 
@@ -403,14 +396,10 @@ async def test_historical_resolution_unsupported(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = retro_config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     with pytest.raises(UnsupportedExecutionModeError) as exc_info:
-        await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert exc_info.value.code == "UNSUPPORTED_EXECUTION_MODE"
 
 
@@ -434,14 +423,10 @@ async def test_node_already_finalized(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
-        await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert exc_info.value.code == "NODE_ALREADY_FINALIZED"
 
 
@@ -465,9 +450,7 @@ async def test_pinned_source_not_found(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     async def _stage2_not_found(session, ctx, config, node):
         raise PinnedSourceNotFoundError(
@@ -488,9 +471,7 @@ async def test_pinned_source_not_found(mock_session):
     )
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "PINNED_SOURCE_NOT_FOUND"
@@ -516,9 +497,7 @@ async def test_pinned_source_not_visible(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     async def _stage2_not_visible(session, ctx, config, node):
         raise PinnedSourceNotVisibleError(
@@ -539,9 +518,7 @@ async def test_pinned_source_not_visible(mock_session):
     )
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "PINNED_SOURCE_NOT_VISIBLE"
@@ -573,9 +550,7 @@ async def test_task8_parent_authority_mismatch(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     mock_attempt = MagicMock()
     mock_attempt.id = 100
@@ -588,9 +563,7 @@ async def test_task8_parent_authority_mismatch(mock_session):
     )
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "TASK8_PARENT_AUTHORITY_MISMATCH"
@@ -616,9 +589,7 @@ async def test_task9_task8_mismatch(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     async def _stage5_task9_mismatch(session, ctx, config, node):
         raise Task9Task8AuthorityMismatchError(
@@ -637,9 +608,7 @@ async def test_task9_task8_mismatch(mock_session):
     patches["_stage_resolve_task9"] = _stage5_task9_mismatch
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "TASK9_TASK8_AUTHORITY_MISMATCH"
@@ -665,14 +634,10 @@ async def test_task10_task9_mismatch(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     async def _stage6_task10_mismatch(session, ctx, config, node):
-        raise Task10Task9BindingMismatchError(
-            "Task 10 binding does not match Task 9 identity"
-        )
+        raise Task10Task9BindingMismatchError("Task 10 binding does not match Task 9 identity")
 
     mock_attempt = MagicMock()
     mock_attempt.id = 100
@@ -686,9 +651,7 @@ async def test_task10_task9_mismatch(mock_session):
     patches["_stage_resolve_task10"] = _stage6_task10_mismatch
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "TASK10_TASK9_BINDING_MISMATCH"
@@ -714,9 +677,7 @@ async def test_task10_prediction_not_completed(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     async def _stage7_no_prediction(session, ctx, config, node):
         raise Task10PredictionNotCompletedError(
@@ -735,9 +696,7 @@ async def test_task10_prediction_not_completed(mock_session):
     patches["_stage_execute_task10_prediction"] = _stage7_no_prediction
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "TASK10_PREDICTION_NOT_COMPLETED"
@@ -763,9 +722,7 @@ async def test_sanitized_diagnostics(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     async def _stage2_sanitized(session, ctx, config, node):
         raise PinnedSourceNotVisibleError(
@@ -790,9 +747,7 @@ async def test_sanitized_diagnostics(mock_session):
     patches["finalize_attempt_with_snapshot"] = finalize_mock
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "PINNED_SOURCE_NOT_VISIBLE"
@@ -811,13 +766,9 @@ async def test_sanitized_diagnostics(mock_session):
 
 
 @pytest.mark.asyncio
-async def test_full_eight_stage_completed_chain(
-    mock_session, mock_run, mock_node, mock_attempt
-):
+async def test_full_eight_stage_completed_chain(mock_session, mock_run, mock_node, mock_attempt):
     """Verify all 8 stage events are created for a completed node."""
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
     patches = _orchestration_patches(
         mock_run=mock_run, mock_node=mock_node, mock_attempt=mock_attempt
     )
@@ -865,9 +816,7 @@ async def test_blocked_stage_has_no_later_events(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     async def _stage2_blocked(session, ctx, config, node):
         raise PinnedSourceNotVisibleError("blocked at stage 2")
@@ -886,9 +835,7 @@ async def test_blocked_stage_has_no_later_events(mock_session):
     )
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "blocked"
 
@@ -936,9 +883,7 @@ async def test_retry_creates_new_attempt(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     second_attempt = MagicMock()
     second_attempt.id = 101
@@ -954,9 +899,7 @@ async def test_retry_creates_new_attempt(mock_session):
     patches["create_execution_attempt"] = create_fn
 
     with patch.multiple(_MOD, **patches):
-        outcome = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
 
     assert outcome.status == "completed"
     assert outcome.attempt_number == 2
@@ -992,14 +935,10 @@ async def test_cross_node_prior_attempt_rejected(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     async def _create_attempt_conflict(*args, **kwargs):
-        raise RollingBacktestAttemptConflictError(
-            "attempt 101 prior link crosses node boundary"
-        )
+        raise RollingBacktestAttemptConflictError("attempt 101 prior link crosses node boundary")
 
     mock_attempt = MagicMock()
     mock_attempt.id = 100
@@ -1014,9 +953,7 @@ async def test_cross_node_prior_attempt_rejected(mock_session):
 
     with patch.multiple(_MOD, **patches):
         with pytest.raises(RollingBacktestAttemptConflictError) as exc_info:
-            await orchestrate_node(
-                mock_session, rolling_run_id=1, rolling_node_id=10
-            )
+            await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert "crosses node boundary" in str(exc_info.value)
 
 
@@ -1040,14 +977,10 @@ async def test_successful_node_cannot_be_overwritten(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
-        await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert exc_info.value.code == "NODE_ALREADY_FINALIZED"
 
 
@@ -1072,14 +1005,10 @@ async def test_mixed_node_status_aggregation(mock_session):
     mock_node_a.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node_a.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node_a)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node_a))
 
     with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
-        await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert exc_info.value.code == "NODE_ALREADY_FINALIZED"
 
     # Node B: pending → success
@@ -1097,18 +1026,14 @@ async def test_mixed_node_status_aggregation(mock_session):
     mock_attempt_b.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
     mock_attempt_b.finished_at = None
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node_b)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node_b))
 
     patches = _orchestration_patches(
         mock_run=mock_run, mock_node=mock_node_b, mock_attempt=mock_attempt_b
     )
 
     with patch.multiple(_MOD, **patches):
-        outcome_b = await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=20
-        )
+        outcome_b = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=20)
 
     assert outcome_b.status == "completed"
 
@@ -1117,9 +1042,7 @@ async def test_mixed_node_status_aggregation(mock_session):
 
 
 @pytest.mark.asyncio
-async def test_deterministic_final_snapshot_hash(
-    mock_session, mock_run, mock_node, mock_attempt
-):
+async def test_deterministic_final_snapshot_hash(mock_session, mock_run, mock_node, mock_attempt):
     """Same inputs → same hash in the orchestration snapshot."""
     captured_snapshots = []
 
@@ -1131,32 +1054,28 @@ async def test_deterministic_final_snapshot_hash(
         return MagicMock()
 
     # Run 1
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
     patches1 = _orchestration_patches(
         mock_run=mock_run, mock_node=mock_node, mock_attempt=mock_attempt
     )
     patches1["persist_orchestration_snapshot"] = _capture_snapshot
 
     with patch.multiple(_MOD, **patches1):
-        outcome1 = await orchestrate_node(
+        await orchestrate_node(
             mock_session,
             rolling_run_id=mock_run.id,
             rolling_node_id=mock_node.id,
         )
 
     # Run 2
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
     patches2 = _orchestration_patches(
         mock_run=mock_run, mock_node=mock_node, mock_attempt=mock_attempt
     )
     patches2["persist_orchestration_snapshot"] = _capture_snapshot
 
     with patch.multiple(_MOD, **patches2):
-        outcome2 = await orchestrate_node(
+        await orchestrate_node(
             mock_session,
             rolling_run_id=mock_run.id,
             rolling_node_id=mock_node.id,
@@ -1196,14 +1115,10 @@ async def test_unsupported_mode_returns_typed_error(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = retro_config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     with pytest.raises(UnsupportedExecutionModeError) as exc_info:
-        await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert exc_info.value.code == "UNSUPPORTED_EXECUTION_MODE"
     # Verify it's a typed error, not NotImplementedError
     assert not isinstance(exc_info.value, NotImplementedError)
@@ -1239,9 +1154,7 @@ async def test_node_not_found(mock_session):
     config = _make_config()
     mock_run.canonical_payload = config.model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=[_run_result_for(mock_run), _run_result_for(None)]
-    )
+    mock_session.execute = AsyncMock(side_effect=[_run_result_for(mock_run), _run_result_for(None)])
 
     from backend.app.rolling_backtest.errors import RollingBacktestIntegrityError
 
@@ -1332,9 +1245,7 @@ def test_blocker_codes_are_unique():
 def test_stage_ordinal_mapping_complete():
     """All orchestration stages have ordinals."""
     for stage in OrchestrationStage:
-        assert stage.value in _STAGE_ORDINAL, (
-            f"Stage {stage.value} missing from _STAGE_ORDINAL"
-        )
+        assert stage.value in _STAGE_ORDINAL, f"Stage {stage.value} missing from _STAGE_ORDINAL"
 
 
 def test_stage_ordinals_are_sequential():
@@ -1364,12 +1275,8 @@ async def test_unsupported_selection_mode(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.HISTORICAL_RESOLUTION
     mock_node.canonical_payload = node_def.model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(
-        side_effect=_build_session_side_effect(mock_run, mock_node)
-    )
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
     with pytest.raises(UnsupportedSelectionModeError) as exc_info:
-        await orchestrate_node(
-            mock_session, rolling_run_id=1, rolling_node_id=10
-        )
+        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert exc_info.value.code == "UNSUPPORTED_SELECTION_MODE"
