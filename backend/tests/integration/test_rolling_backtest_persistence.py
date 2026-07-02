@@ -1205,9 +1205,7 @@ async def test_tamper_attempt_skip_number_is_detected() -> None:
     node_id = await _first_node_id(run.id)
     a1 = await create_execution_attempt(run.id, node_id, status="failed")
     await _mark_attempt_failed(a1.id, node_id)
-    a2 = await create_execution_attempt(
-        run.id, node_id, status="failed", prior_attempt_id=a1.id
-    )
+    a2 = await create_execution_attempt(run.id, node_id, status="failed", prior_attempt_id=a1.id)
     await _mark_attempt_failed(a2.id, node_id)
 
     # Tamper: change attempt 2's number to 3
@@ -1282,9 +1280,9 @@ async def test_tamper_attempt_two_prior_null_is_detected() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.postgres_concurrency
 @pytest.mark.asyncio
 async def test_concurrent_same_run_signature_only_creates_one() -> None:
-    _require_postgres()
     config = _make_config()
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
 
@@ -1333,9 +1331,9 @@ async def test_concurrent_same_run_signature_only_creates_one() -> None:
         assert dag_count == 1
 
 
+@pytest.mark.postgres_concurrency
 @pytest.mark.asyncio
 async def test_concurrent_attempt_allocation_serializes_numbering() -> None:
-    _require_postgres()
     config = _make_config()
     cmd = _make_persistence_command(config, with_inputs=False, with_dag=True)
     run = await create_or_load_logical_run(cmd)

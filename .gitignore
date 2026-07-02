@@ -24,3 +24,6 @@ reports/weather/
 
 # Local CLI state
 .local/
+
+# GitHub CLI config
+.config/gh/

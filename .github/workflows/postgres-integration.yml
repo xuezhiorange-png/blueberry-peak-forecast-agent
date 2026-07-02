@@ -1,0 +1,201 @@
+name: PostgreSQL Integration Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "23 3 * * *"  # Daily at 03:23 UTC
+  workflow_dispatch:
+
+jobs:
+  postgres-integration:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: blueberry_peak_test
+          POSTGRES_USER: blueberry_test
+          POSTGRES_PASSWORD: blueberry-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U blueberry_test -d blueberry_peak_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade --quiet pip
+          pip install --disable-pip-version-check --quiet -e ".[dev]"
+
+      - name: Wait for PostgreSQL
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak_test
+          POSTGRES_USER: blueberry_test
+          POSTGRES_PASSWORD: blueberry-test-only
+        run: |
+          python - <<'PY'
+          import asyncio, os, asyncpg
+
+          async def main():
+              for _ in range(30):
+                  try:
+                      conn = await asyncpg.connect(
+                          host=os.environ["POSTGRES_HOST"],
+                          port=int(os.environ["POSTGRES_PORT"]),
+                          database=os.environ["POSTGRES_DB"],
+                          user=os.environ["POSTGRES_USER"],
+                          password=os.environ["POSTGRES_PASSWORD"],
+                      )
+                      val = await conn.fetchval("SELECT 1")
+                      await conn.close()
+                      if val == 1:
+                          return
+                  except Exception:
+                      await asyncio.sleep(1)
+              raise SystemExit("PostgreSQL not ready")
+
+          asyncio.run(main())
+          PY
+
+      - name: Verify safe test database identity
+        env:
+          APP_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak_test
+          POSTGRES_USER: blueberry_test
+          POSTGRES_PASSWORD: blueberry-test-only
+          RUN_POSTGRES_INTEGRATION: "1"
+        run: |
+          python -c "
+          import asyncio, os, asyncpg
+
+          async def main():
+              conn = await asyncpg.connect(
+                  host=os.environ['POSTGRES_HOST'],
+                  port=int(os.environ['POSTGRES_PORT']),
+                  database=os.environ['POSTGRES_DB'],
+                  user=os.environ['POSTGRES_USER'],
+                  password=os.environ['POSTGRES_PASSWORD'],
+              )
+              db = await conn.fetchval('SELECT current_database()')
+              await conn.close()
+              expected = 'blueberry_peak_test'
+              assert db == expected, f'Expected {expected}, got {db}'
+              print(f'Database identity verified: {db}')
+
+          asyncio.run(main())
+          "
+
+      - name: Alembic migration round trip
+        env:
+          APP_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak_test
+          POSTGRES_USER: blueberry_test
+          POSTGRES_PASSWORD: blueberry-test-only
+        run: |
+          alembic -c backend/alembic.ini upgrade head
+          alembic -c backend/alembic.ini downgrade 0010_harvest_state_persistence
+          alembic -c backend/alembic.ini upgrade head
+
+      - name: Transactional integration tests
+        id: transactional
+        env:
+          APP_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak_test
+          POSTGRES_USER: blueberry_test
+          POSTGRES_PASSWORD: blueberry-test-only
+          RUN_POSTGRES_INTEGRATION: "1"
+        run: |
+          mkdir -p reports/test-results
+          pytest \
+            -m "integration and postgres_transactional" \
+            -vv --tb=long \
+            --timeout=120 --timeout-method=thread \
+            --junitxml=reports/test-results/postgres-transactional.xml
+
+      - name: Special integration tests
+        id: special
+        if: always()
+        env:
+          APP_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: blueberry_peak_test
+          POSTGRES_USER: blueberry_test
+          POSTGRES_PASSWORD: blueberry-test-only
+          RUN_POSTGRES_INTEGRATION: "1"
+        run: |
+          mkdir -p reports/test-results
+          pytest \
+            -m "integration and (postgres_real_commit or postgres_migration or postgres_concurrency)" \
+            -vv --tb=long \
+            --timeout=120 --timeout-method=thread \
+            --junitxml=reports/test-results/postgres-special.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-integration-results
+          path: |
+            reports/test-results/postgres-transactional.xml
+            reports/test-results/postgres-special.xml
+          if-no-files-found: warn
+
+      - name: Summarize failed tests
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          import xml.etree.ElementTree as ET
+
+          has_failure = False
+          for xml_name in ["postgres-transactional.xml", "postgres-special.xml"]:
+              xml_path = Path(f"reports/test-results/{xml_name}")
+              if not xml_path.exists():
+                  print(f"{xml_name} not found")
+                  continue
+              root = ET.parse(xml_path).getroot()
+              failures = []
+              for tc in root.iter("testcase"):
+                  fail = tc.find("failure")
+                  err = tc.find("error")
+                  node = fail if fail is not None else err
+                  if node is None:
+                      continue
+                  msg = (node.get("message") or (node.text or "")).strip()
+                  first = next((l.strip() for l in msg.splitlines() if l.strip()), "")
+                  failures.append({"cls": tc.get("classname",""), "name": tc.get("name",""), "msg": first})
+              if failures:
+                  has_failure = True
+                  print(f"\nFailing in {xml_name}:")
+                  for f in failures:
+                      print(f"- {f['cls']}::{f['name']}")
+                      print(f"  {f['msg']}")
+              else:
+                  print(f"\n{xml_name}: no failures")
+
+          if has_failure:
+              sys.exit(1)
+          PY
+

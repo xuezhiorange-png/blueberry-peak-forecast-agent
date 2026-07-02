@@ -223,9 +223,7 @@ async def build_prediction_feature_rows(
                 cumulative_value += value
             actual_cumulative = None if cumulative_missing else cumulative_value
             realized_cumulative_residual = (
-                None
-                if actual_cumulative is None
-                else actual_cumulative - structural_cumulative
+                None if actual_cumulative is None else actual_cumulative - structural_cumulative
             )
 
         resolved_features: list[FeatureValue] = []

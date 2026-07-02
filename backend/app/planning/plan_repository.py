@@ -23,9 +23,7 @@ def production_plan_business_lock_key(
     variety_id: int,
 ) -> int:
     subfarm_component = subfarm_id if subfarm_id is not None else -1
-    payload = (
-        f"farm:{farm_id}|subfarm:{subfarm_component}|season:{season_id}|variety:{variety_id}"
-    )
+    payload = f"farm:{farm_id}|subfarm:{subfarm_component}|season:{season_id}|variety:{variety_id}"
     digest = hashlib.sha256(payload.encode("utf-8")).digest()
     return int.from_bytes(digest[:8], byteorder="big", signed=True)
 

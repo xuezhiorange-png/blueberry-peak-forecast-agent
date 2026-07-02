@@ -53,4 +53,3 @@ def clipped_interval(
     clipped_lower = max(lower, floor)
     clipped_upper = upper if ceiling is None else min(upper, ceiling)
     return clipped_lower, clipped_upper
-

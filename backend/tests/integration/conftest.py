@@ -1,10 +1,38 @@
+"""Integration test configuration: marker-aware isolation and safety guards.
+
+Provides:
+- pytest_collection_modifyitems: enforces one isolation marker per integration test
+- isolate_postgres_integration_test: marker-aware autouse fixture
+  - postgres_transactional: uses transaction/savepoint isolation (no TRUNCATE)
+  - postgres_real_commit / postgres_concurrency / postgres_migration: TRUNCATE cleanup
+"""
+
+from __future__ import annotations
+
 import os
 from collections.abc import AsyncIterator
 
 import pytest
 from sqlalchemy import text
 
-from backend.app.db.session import AsyncSessionMaker, dispose_db_engine
+# ── Isolation marker names ───────────────────────────────────────────────────
+
+_ISOLATION_MARKERS = (
+    "postgres_transactional",
+    "postgres_real_commit",
+    "postgres_migration",
+    "postgres_concurrency",
+)
+
+_SPECIAL_MARKERS = frozenset(
+    {
+        "postgres_real_commit",
+        "postgres_migration",
+        "postgres_concurrency",
+    }
+)
+
+# ── Master data tables for cleanup ───────────────────────────────────────────
 
 _MASTER_DATA_TABLES = (
     "task9_authority_lifecycle_event",
@@ -74,17 +102,70 @@ _MASTER_DATA_TABLES = (
 )
 
 
+# ── Collection validation ────────────────────────────────────────────────────
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    """Enforce marker partition: each integration test gets exactly one isolation marker."""
+    for item in items:
+        marker_names = {m.name for m in item.iter_markers() if m.name in _ISOLATION_MARKERS}
+
+        is_integration = item.get_closest_marker("integration") is not None
+
+        if not is_integration:
+            # Non-integration tests must not have special markers
+            invalid = marker_names & _SPECIAL_MARKERS
+            if invalid:
+                raise pytest.UsageError(
+                    f"Non-integration test {item.nodeid} has special marker(s): "
+                    f"{', '.join(sorted(invalid))}. "
+                    f"Special markers are only for integration tests."
+                )
+            continue
+
+        # Integration test with no isolation marker → add default
+        if not marker_names:
+            item.add_marker(pytest.mark.postgres_transactional)
+            marker_names = {"postgres_transactional"}
+
+        # Must have exactly one isolation marker
+        if len(marker_names) > 1:
+            raise pytest.UsageError(
+                f"Integration test {item.nodeid} has multiple isolation markers: "
+                f"{', '.join(sorted(marker_names))}. "
+                f"Each test must have exactly one."
+            )
+
+
+# ── Helper functions ─────────────────────────────────────────────────────────
+
+
 def _postgres_integration_enabled() -> bool:
     return os.getenv("RUN_POSTGRES_INTEGRATION") == "1"
 
 
-def _ensure_test_database() -> None:
-    if os.getenv("APP_ENV") != "test":
-        raise RuntimeError("PostgreSQL integration cleanup requires APP_ENV=test")
+def _get_marker_name(item: pytest.Item) -> str | None:
+    """Return the isolation marker name for a test item, or None."""
+    for m in item.iter_markers():
+        if m.name in _ISOLATION_MARKERS:
+            return m.name
+    return None
 
 
 async def _truncate_master_data() -> None:
-    _ensure_test_database()
+    """Destructive cleanup: TRUNCATE all master data tables.
+
+    Calls full identity guard before any destructive operation.
+    """
+    from backend.tests.postgres_test_support import assert_connected_to_safe_test_database
+
+    await assert_connected_to_safe_test_database()
+
+    from backend.app.db.session import AsyncSessionMaker
+
     async with AsyncSessionMaker() as session:
         await session.execute(
             text(f"TRUNCATE {', '.join(_MASTER_DATA_TABLES)} RESTART IDENTITY CASCADE")
@@ -92,21 +173,52 @@ async def _truncate_master_data() -> None:
         await session.commit()
 
 
+# ── Fixtures ─────────────────────────────────────────────────────────────────
+
+
 @pytest.fixture(scope="session", autouse=True)
 async def dispose_engine_after_integration_tests() -> AsyncIterator[None]:
     yield
     if _postgres_integration_enabled():
+        from backend.app.db.session import dispose_db_engine
+
         await dispose_db_engine()
 
 
 @pytest.fixture(autouse=True)
-async def isolate_master_data_tables() -> AsyncIterator[None]:
+async def isolate_postgres_integration_test(request: pytest.FixtureRequest) -> AsyncIterator[None]:
+    """Autouse fixture: marker-aware isolation for all integration tests.
+
+    - postgres_transactional: outer transaction + savepoint (no TRUNCATE)
+    - postgres_real_commit / postgres_concurrency / postgres_migration: TRUNCATE cleanup
+    - non-integration: no-op
+    """
     if not _postgres_integration_enabled():
+        # Skip integration tests when postgres not available
+        if request.node.get_closest_marker("integration"):
+            pytest.skip("RUN_POSTGRES_INTEGRATION not set")
         yield
         return
 
-    await _truncate_master_data()
-    try:
-        yield
-    finally:
+    # Verify database identity for all integration tests
+    from backend.tests.postgres_test_support import assert_connected_to_safe_test_database
+
+    await assert_connected_to_safe_test_database()
+
+    marker = _get_marker_name(request.node)
+
+    if marker == "postgres_transactional":
+        # Transactional isolation: outer transaction + savepoint
+        from backend.tests.postgres_test_support import postgres_transactional_isolation
+
+        async with postgres_transactional_isolation():
+            yield
+    elif marker in _SPECIAL_MARKERS:
+        # Special tests: TRUNCATE before and after
         await _truncate_master_data()
+        try:
+            yield
+        finally:
+            await _truncate_master_data()
+    else:
+        yield

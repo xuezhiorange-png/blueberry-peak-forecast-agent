@@ -234,11 +234,7 @@ def _normalize_row(
         raise ValueError("centroid_latitude")
     if longitude < Decimal("-180") or longitude > Decimal("180"):
         raise ValueError("centroid_longitude")
-    if (
-        min_altitude is not None
-        and max_altitude is not None
-        and min_altitude > max_altitude
-    ):
+    if min_altitude is not None and max_altitude is not None and min_altitude > max_altitude:
         raise ValueError("altitude_range")
     if valid_to is not None and valid_to < valid_from:
         raise ValueError("valid_to")
@@ -265,14 +261,10 @@ def _normalize_row(
     quantized_latitude = latitude.quantize(Decimal("0.000001"))
     quantized_longitude = longitude.quantize(Decimal("0.000001"))
     quantized_min_altitude = (
-        min_altitude.quantize(Decimal("0.01"))
-        if min_altitude is not None
-        else None
+        min_altitude.quantize(Decimal("0.01")) if min_altitude is not None else None
     )
     quantized_max_altitude = (
-        max_altitude.quantize(Decimal("0.01"))
-        if max_altitude is not None
-        else None
+        max_altitude.quantize(Decimal("0.01")) if max_altitude is not None else None
     )
     zone_version = zone_version_override or csv_zone_version or ""
     source_name = source_name_override or csv_source_name or ""
@@ -329,9 +321,7 @@ def prepare_climate_zone_import(
         reader = csv.DictReader(file)
         if reader.fieldnames is None:
             raise ValueError("CSV header is missing")
-        missing_headers = [
-            field for field in _EXPECTED_HEADERS if field not in reader.fieldnames
-        ]
+        missing_headers = [field for field in _EXPECTED_HEADERS if field not in reader.fieldnames]
         if missing_headers:
             raise ValueError(f"missing headers: {', '.join(missing_headers)}")
         raw_rows = list(reader)
@@ -368,10 +358,7 @@ def prepare_climate_zone_import(
     for climate_row in valid_rows:
         business_key = (climate_row.code, climate_row.zone_version)
         existing_row = by_business_key.get(business_key)
-        if (
-            existing_row is not None
-            and existing_row.source_row_hash != climate_row.source_row_hash
-        ):
+        if existing_row is not None and existing_row.source_row_hash != climate_row.source_row_hash:
             raise ClimateZoneImportConflictError(
                 "conflicting rows for code="
                 f"{climate_row.code} zone_version={climate_row.zone_version}"
@@ -384,9 +371,7 @@ def prepare_climate_zone_import(
         unique_rows.append(climate_row)
 
     zone_versions = {row.zone_version for row in unique_rows}
-    zone_version = zone_version_override or (
-        sorted(zone_versions)[0] if zone_versions else ""
-    )
+    zone_version = zone_version_override or (sorted(zone_versions)[0] if zone_versions else "")
     if len(zone_versions) > 1 and zone_version_override is None:
         warnings.append("multiple_zone_versions_present")
 
@@ -449,12 +434,8 @@ async def import_agro_climate_zones_csv(
         source_name_override=source_name_override,
         source_version_override=source_version_override,
     )
-    source_name = (
-        prepared.rows[0].source_name if prepared.rows else source_name_override
-    )
-    source_version = (
-        prepared.rows[0].source_version if prepared.rows else source_version_override
-    )
+    source_name = prepared.rows[0].source_name if prepared.rows else source_name_override
+    source_version = prepared.rows[0].source_version if prepared.rows else source_version_override
 
     business_keys = [(row.code, row.zone_version) for row in prepared.rows]
     existing_rows = await load_existing_climate_zones(
@@ -550,9 +531,7 @@ async def import_agro_climate_zones_csv(
             skipped_count=prepared_with_db.skipped_rows,
             conflict_count=conflict_rows,
             report_json=report_payload,
-            error_message=(
-                "validation_failed" if prepared_with_db.invalid_rows else "conflict"
-            ),
+            error_message=("validation_failed" if prepared_with_db.invalid_rows else "conflict"),
         )
         return _result_from_prepared(
             prepared_with_db,
@@ -562,9 +541,7 @@ async def import_agro_climate_zones_csv(
             skipped_rows=prepared_with_db.skipped_rows,
             conflict_rows=conflict_rows,
             audit_run_id=audit.id,
-            error_message=(
-                "validation_failed" if prepared_with_db.invalid_rows else "conflict"
-            ),
+            error_message=("validation_failed" if prepared_with_db.invalid_rows else "conflict"),
         )
 
     audit = await create_climate_zone_import_run(

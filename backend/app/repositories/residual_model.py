@@ -102,8 +102,7 @@ async def get_residual_prediction_run_by_input_signature(
         await session.scalar(
             select(ResidualModelPredictionRun)
             .where(
-                ResidualModelPredictionRun.prediction_input_signature
-                == prediction_input_signature
+                ResidualModelPredictionRun.prediction_input_signature == prediction_input_signature
             )
             .execution_options(populate_existing=True)
         ),

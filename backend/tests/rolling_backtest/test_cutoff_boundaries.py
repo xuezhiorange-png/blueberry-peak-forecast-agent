@@ -243,7 +243,7 @@ class TestWeatherFeatureRunResolverContract:
         assert callable(_query_task7_weather_feature_run_candidates)
 
     def test_resolver_rejects_unavailable_status(self) -> None:
-        """"unavailable" is NOT treated as consumable in the resolver."""
+        """ "unavailable" is NOT treated as consumable in the resolver."""
         # The production query uses status == "completed", excluding "unavailable".
         # This is established by Item 1 of the contract fix.
         from backend.app.rolling_backtest.resolution import (

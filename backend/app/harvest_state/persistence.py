@@ -113,8 +113,7 @@ def _extract_task8_identity(
         return _Task8Identity(None, None, None, None, None, None, None, None, None)
 
     catalog_by_hash = {
-        entry.source_ref_hash: entry.source_ref_payload
-        for entry in output.source_ref_catalog
+        entry.source_ref_hash: entry.source_ref_payload for entry in output.source_ref_catalog
     }
     first = task8_inputs[0]
     source_ref_hash = cast(str | None, first.get("source_ref_hash"))
@@ -507,33 +506,33 @@ async def _actual_row_counts(
 ) -> tuple[int, int, int, int]:
     pool_count = int(
         await session.scalar(
-            select(func.count()).select_from(HarvestStateDailyPoolRowModel).where(
-                HarvestStateDailyPoolRowModel.harvest_state_run_id == run_id
-            )
+            select(func.count())
+            .select_from(HarvestStateDailyPoolRowModel)
+            .where(HarvestStateDailyPoolRowModel.harvest_state_run_id == run_id)
         )
         or 0
     )
     member_count = int(
         await session.scalar(
-            select(func.count()).select_from(HarvestStateDailyMemberRowModel).where(
-                HarvestStateDailyMemberRowModel.harvest_state_run_id == run_id
-            )
+            select(func.count())
+            .select_from(HarvestStateDailyMemberRowModel)
+            .where(HarvestStateDailyMemberRowModel.harvest_state_run_id == run_id)
         )
         or 0
     )
     cohort_count = int(
         await session.scalar(
-            select(func.count()).select_from(HarvestStateCohortTransitionRowModel).where(
-                HarvestStateCohortTransitionRowModel.harvest_state_run_id == run_id
-            )
+            select(func.count())
+            .select_from(HarvestStateCohortTransitionRowModel)
+            .where(HarvestStateCohortTransitionRowModel.harvest_state_run_id == run_id)
         )
         or 0
     )
     future_count = int(
         await session.scalar(
-            select(func.count()).select_from(HarvestStateFutureArrivalRowModel).where(
-                HarvestStateFutureArrivalRowModel.harvest_state_run_id == run_id
-            )
+            select(func.count())
+            .select_from(HarvestStateFutureArrivalRowModel)
+            .where(HarvestStateFutureArrivalRowModel.harvest_state_run_id == run_id)
         )
         or 0
     )
@@ -629,8 +628,7 @@ async def load_harvest_state_output_by_id(
         ]
 
         actual_pool = [
-            item.model_dump(mode="python")
-            for item in sorted(pool_rows, key=_pool_row_sort_key)
+            item.model_dump(mode="python") for item in sorted(pool_rows, key=_pool_row_sort_key)
         ]
         actual_member = [
             item.model_dump(mode="python") for item in sorted(member_rows, key=_member_row_sort_key)

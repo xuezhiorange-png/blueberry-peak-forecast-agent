@@ -10,20 +10,6 @@ jobs:
   backend:
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -39,58 +25,11 @@ jobs:
       - name: Docker Compose config
         run: docker compose config
 
-      - name: Wait for PostgreSQL service
-        env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
-        run: |
-          python - <<'PY'
-          import asyncio
-          import os
-
-          import asyncpg
-
-          async def main() -> None:
-              last_error: Exception | None = None
-              for _ in range(30):
-                  try:
-                      conn = await asyncpg.connect(
-                          host=os.environ["POSTGRES_HOST"],
-                          port=int(os.environ["POSTGRES_PORT"]),
-                          database=os.environ["POSTGRES_DB"],
-                          user=os.environ["POSTGRES_USER"],
-                          password=os.environ["POSTGRES_PASSWORD"],
-                      )
-                      value = await conn.fetchval("SELECT 1")
-                      await conn.close()
-                      if value == 1:
-                          return
-                  except Exception as exc:
-                      last_error = exc
-                      await asyncio.sleep(1)
-              raise SystemExit(f"PostgreSQL service was not ready: {last_error}")
-
-          asyncio.run(main())
-          PY
-
-      - name: Alembic harvest-state persistence migration round trip
-        env:
-          APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
-        run: |
-          alembic -c backend/alembic.ini upgrade head
-          alembic -c backend/alembic.ini downgrade 0010_harvest_state_persistence
-          alembic -c backend/alembic.ini upgrade head
-
       - name: Ruff
         run: ruff check .
+
+      - name: Ruff format
+        run: ruff format --check .
 
       - name: Mypy
         run: mypy backend/app
@@ -98,108 +37,7 @@ jobs:
       - name: Unit tests
         env:
           APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
         run: pytest -m "not integration"
-
-      - name: PostgreSQL integration tests
-        env:
-          APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
-          RUN_POSTGRES_INTEGRATION: "1"
-        run: |
-          mkdir -p reports/test-results
-          set +e
-          pytest -m integration -vv --tb=long \
-            --timeout=120 \
-            --timeout-method=thread \
-            --junitxml=reports/test-results/integration.xml
-          status=$?
-          if [ "$status" -ne 0 ] && [ -f reports/test-results/integration.xml ]; then
-            echo "::group::PostgreSQL integration JUnit XML"
-            cat reports/test-results/integration.xml
-            echo "::endgroup::"
-          fi
-          exit "$status"
-
-      - name: Upload integration test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: postgres-integration-results
-          path: reports/test-results/integration.xml
-          if-no-files-found: warn
-
-      - name: Full pytest suite
-        if: success()
-        env:
-          APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
-          RUN_POSTGRES_INTEGRATION: "1"
-        run: |
-          mkdir -p reports/test-results
-          set +e
-          pytest -q --tb=long \
-            --junitxml=reports/test-results/full.xml
-          status=$?
-          if [ "$status" -ne 0 ] && [ -f reports/test-results/full.xml ]; then
-            echo "::group::Full pytest JUnit XML"
-            cat reports/test-results/full.xml
-            echo "::endgroup::"
-          fi
-          exit "$status"
-
-      - name: Summarize failed integration tests
-        if: failure()
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import sys
-          import xml.etree.ElementTree as ET
-
-          xml_path = Path("reports/test-results/integration.xml")
-          if not xml_path.exists():
-              print("integration.xml not found")
-              sys.exit(0)
-
-          root = ET.parse(xml_path).getroot()
-          failures = []
-          for testcase in root.iter("testcase"):
-              failure = testcase.find("failure")
-              error = testcase.find("error")
-              node = failure if failure is not None else error
-              if node is None:
-                  continue
-              message = (node.get("message") or (node.text or "")).strip()
-              first_line = next((line.strip() for line in message.splitlines() if line.strip()), "")
-              failures.append(
-                  {
-                      "classname": testcase.get("classname", ""),
-                      "name": testcase.get("name", ""),
-                      "message": first_line,
-                  }
-              )
-
-          if not failures:
-              print("No failing testcases recorded in integration.xml")
-              sys.exit(0)
-
-          print("Failing integration testcases:")
-          for item in failures:
-              print(f"- {item['classname']}::{item['name']}")
-              print(f"  {item['message']}")
-          PY
 
   compose-smoke:
     runs-on: ubuntu-latest

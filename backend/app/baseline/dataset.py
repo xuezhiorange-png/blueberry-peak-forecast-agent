@@ -64,9 +64,7 @@ def select_source_build_runs(
 
     selected: list[SelectedBuildRun] = []
     missing = [
-        season_code
-        for season_code in target_seasons
-        if season_code not in available_by_season
+        season_code for season_code in target_seasons if season_code not in available_by_season
     ]
     if missing:
         raise ValueError(f"Missing completed Task 3 build runs for seasons: {', '.join(missing)}")

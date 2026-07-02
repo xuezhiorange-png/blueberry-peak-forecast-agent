@@ -30,7 +30,7 @@ from backend.app.planning.plan_service import (
     get_effective_plan,
 )
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration]
 
 
 def _require_postgres() -> None:
@@ -205,9 +205,7 @@ async def test_effective_plan_respects_available_at_and_effective_from(client: A
 
 async def test_replace_plan_closes_old_version_and_preserves_history(client: AsyncClient) -> None:
     ids = await _seed_master_data()
-    first = (
-        await client.post("/planning/production-plans", json=_payload(ids))
-    ).json()
+    first = (await client.post("/planning/production-plans", json=_payload(ids))).json()
 
     replace_response = await client.post(
         f"/planning/production-plans/{first['plan_id']}/replace",
@@ -382,6 +380,7 @@ async def test_importer_dry_run_and_idempotent_reimport(tmp_path: Path) -> None:
     assert count_after_import == 1
 
 
+@pytest.mark.postgres_concurrency
 async def test_concurrent_create_overlapping_versions_serializes_by_business_key() -> None:
     _require_postgres()
     ids = await _seed_master_data()
@@ -441,6 +440,7 @@ async def test_concurrent_create_overlapping_versions_serializes_by_business_key
     assert effective.id == success_ids[0]
 
 
+@pytest.mark.postgres_concurrency
 async def test_concurrent_replace_same_current_plan_conflicts_without_overlap_history() -> None:
     _require_postgres()
     ids = await _seed_master_data()

@@ -58,10 +58,7 @@ def _holiday_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
             int(row["holiday_summary"].get("excluded_day_count", 0)) for row in included
         ),
         "raw_proxy_weight": sum(
-            (
-                Decimal(str(row["holiday_summary"].get("raw_proxy_weight", "0")))
-                for row in included
-            ),
+            (Decimal(str(row["holiday_summary"].get("raw_proxy_weight", "0"))) for row in included),
             Decimal("0"),
         ),
         "effective_training_weight": sum(
@@ -90,17 +87,11 @@ def _manifest_audit(result: MaturityModelExecutionResult) -> dict[str, Any]:
             season_code: {
                 "row_count": sum(1 for row in rows if row.get("season_code") == season_code),
                 "included_row_count": sum(
-                    1
-                    for row in included
-                    if row.get("season_code") == season_code
+                    1 for row in included if row.get("season_code") == season_code
                 ),
             }
             for season_code in sorted(
-                {
-                    str(row.get("season_code"))
-                    for row in rows
-                    if row.get("season_code") is not None
-                }
+                {str(row.get("season_code")) for row in rows if row.get("season_code") is not None}
             )
         },
     }
@@ -285,9 +276,7 @@ def _model_markdown(result: MaturityModelExecutionResult) -> str:
     include_false_rows = cast(list[dict[str, Any]], manifest_audit["include_false_rows"])
     if include_false_rows:
         for row in include_false_rows:
-            exclusion_reason = (
-                row.get("resolved_exclusion_reason") or row.get("exclusion_reason")
-            )
+            exclusion_reason = row.get("resolved_exclusion_reason") or row.get("exclusion_reason")
             lines.append(
                 f"- season={row.get('season_code')}, "
                 f"include={row.get('include')}, "

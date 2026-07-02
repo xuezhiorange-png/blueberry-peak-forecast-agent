@@ -29,7 +29,7 @@ from backend.app.models.harvest_state import (
 )
 from backend.tests.harvest_state.conftest import make_request
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration]
 
 
 def _require_postgres() -> None:
@@ -91,28 +91,18 @@ async def test_persist_and_load_completed_harvest_state_output_round_trip() -> N
         assert loaded.status == "completed"
         assert _canonical_output_json(loaded) == _canonical_output_json(output)
         assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 1
-        assert (
-            await session.scalar(select(func.count()).select_from(HarvestStateDailyPoolRowModel))
-            == len(output.daily_pool_state_rows)
-        )
-        assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateDailyMemberRowModel)
-            )
-            == len(output.daily_member_state_rows)
-        )
-        assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateCohortTransitionRowModel)
-            )
-            == len(output.cohort_transition_rows)
-        )
-        assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateFutureArrivalRowModel)
-            )
-            == len(output.future_arrival_schedule)
-        )
+        assert await session.scalar(
+            select(func.count()).select_from(HarvestStateDailyPoolRowModel)
+        ) == len(output.daily_pool_state_rows)
+        assert await session.scalar(
+            select(func.count()).select_from(HarvestStateDailyMemberRowModel)
+        ) == len(output.daily_member_state_rows)
+        assert await session.scalar(
+            select(func.count()).select_from(HarvestStateCohortTransitionRowModel)
+        ) == len(output.cohort_transition_rows)
+        assert await session.scalar(
+            select(func.count()).select_from(HarvestStateFutureArrivalRowModel)
+        ) == len(output.future_arrival_schedule)
 
 
 @pytest.mark.integration
@@ -133,9 +123,7 @@ async def test_persist_and_load_blocked_harvest_state_output_round_trip() -> Non
             == 0
         )
         assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateDailyMemberRowModel)
-            )
+            await session.scalar(select(func.count()).select_from(HarvestStateDailyMemberRowModel))
             == 0
         )
         assert (
@@ -183,9 +171,7 @@ async def test_harvest_state_same_hash_different_payload_raises_conflict() -> No
             ),
             {
                 "value": canonical_json_dumps(
-                    output.model_copy(update={"warnings": ["pg-conflict"]}).model_dump(
-                        mode="json"
-                    )
+                    output.model_copy(update={"warnings": ["pg-conflict"]}).model_dump(mode="json")
                 ),
                 "payload_hash": "d" * 64,
                 "run_id": run.id,
@@ -240,8 +226,7 @@ async def test_harvest_state_jsonb_numeric_and_timezone_round_trip() -> None:
         completed = loaded
         cohort_rows = completed.cohort_transition_rows  # type: ignore[attr-defined]
         assert any(
-            row.arrival_at is not None and row.arrival_at.tzinfo is not None
-            for row in cohort_rows
+            row.arrival_at is not None and row.arrival_at.tzinfo is not None for row in cohort_rows
         )
         assert isinstance(cohort_rows[0].opening_quantity_kg, Decimal)
         stored_hash = await session.scalar(
@@ -350,11 +335,11 @@ async def test_postgres_round_trip_preserves_original_datetime_offsets() -> None
         loaded = await load_harvest_state_output_by_id(session, run_id=run.id)
 
         assert loaded is not None
-        original_rows = [
-            row for row in output.cohort_transition_rows if row.arrival_at is not None
-        ]
+        original_rows = [row for row in output.cohort_transition_rows if row.arrival_at is not None]
         loaded_rows = [
-            row for row in loaded.cohort_transition_rows if row.arrival_at is not None  # type: ignore[attr-defined]
+            row
+            for row in loaded.cohort_transition_rows
+            if row.arrival_at is not None  # type: ignore[attr-defined]
         ]
         assert original_rows
         assert loaded_rows
@@ -499,6 +484,7 @@ async def test_first_save_rejects_mismatched_result_hash() -> None:
 
 
 @pytest.mark.integration
+@pytest.mark.postgres_concurrency
 async def test_concurrent_same_payload_save_creates_one_run() -> None:
     _require_postgres()
     output = _completed_output()
@@ -515,31 +501,22 @@ async def test_concurrent_same_payload_save_creates_one_run() -> None:
         run = await session.scalar(select(HarvestStateRun))
         assert run is not None
         assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 1
-        assert (
-            await session.scalar(select(func.count()).select_from(HarvestStateDailyPoolRowModel))
-            == len(output.daily_pool_state_rows)
-        )
-        assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateDailyMemberRowModel)
-            )
-            == len(output.daily_member_state_rows)
-        )
-        assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateCohortTransitionRowModel)
-            )
-            == len(output.cohort_transition_rows)
-        )
-        assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateFutureArrivalRowModel)
-            )
-            == len(output.future_arrival_schedule)
-        )
+        assert await session.scalar(
+            select(func.count()).select_from(HarvestStateDailyPoolRowModel)
+        ) == len(output.daily_pool_state_rows)
+        assert await session.scalar(
+            select(func.count()).select_from(HarvestStateDailyMemberRowModel)
+        ) == len(output.daily_member_state_rows)
+        assert await session.scalar(
+            select(func.count()).select_from(HarvestStateCohortTransitionRowModel)
+        ) == len(output.cohort_transition_rows)
+        assert await session.scalar(
+            select(func.count()).select_from(HarvestStateFutureArrivalRowModel)
+        ) == len(output.future_arrival_schedule)
 
 
 @pytest.mark.integration
+@pytest.mark.postgres_concurrency
 async def test_concurrent_same_hash_different_payload_conflicts() -> None:
     _require_postgres()
     output = _completed_output()
@@ -653,8 +630,7 @@ async def test_concurrent_same_hash_different_payload_conflicts() -> None:
     )
 
     success_count = sum(
-        not isinstance(item, BaseException)
-        for item in (service_result, raw_insert_result)
+        not isinstance(item, BaseException) for item in (service_result, raw_insert_result)
     )
     assert success_count == 1
     if isinstance(service_result, BaseException):
@@ -682,9 +658,7 @@ async def test_concurrent_same_hash_different_payload_conflicts() -> None:
             or 0
         )
         member_count = int(
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateDailyMemberRowModel)
-            )
+            await session.scalar(select(func.count()).select_from(HarvestStateDailyMemberRowModel))
             or 0
         )
         cohort_count = int(

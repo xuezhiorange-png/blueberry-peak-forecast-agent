@@ -661,6 +661,7 @@ async def test_baseline_backtest_report_run_id_regenerates_reports(
     assert _all_paths_exist(regenerated.report_paths)
 
 
+@pytest.mark.postgres_real_commit
 @pytest.mark.asyncio
 async def test_baseline_backtest_running_conflict_returns_existing_without_duplicates(
     tmp_path: Path,
@@ -695,11 +696,7 @@ async def test_baseline_backtest_running_conflict_returns_existing_without_dupli
         async def commit_with_conflict() -> None:
             nonlocal injected_conflict
             pending = next(
-                (
-                    obj
-                    for obj in session.new
-                    if isinstance(obj, BaselineBacktestRun)
-                ),
+                (obj for obj in session.new if isinstance(obj, BaselineBacktestRun)),
                 None,
             )
             if not injected_conflict and pending is not None:

@@ -1332,9 +1332,7 @@ def _display_reconciliation_blockers(
         )
         bucket = member_sums.get(member_display_key, zero_member_bucket)
         for field_name in member_fields:
-            if not _within_display_tolerance(
-                getattr(member_row, field_name), bucket[field_name]
-            ):
+            if not _within_display_tolerance(getattr(member_row, field_name), bucket[field_name]):
                 blockers.append(
                     f"{BlockerCode.POOL_COHORT_SUM_MISMATCH}:{member_row.capacity_pool_id}:{member_row.state_date}:{member_row.forecast_quantile}:{member_row.farm_id}:{member_row.subfarm_id}:{member_row.variety_id}"
                 )
@@ -1370,16 +1368,13 @@ def _display_reconciliation_blockers(
         bucket["opening_mature_inventory_kg"] += member_row.opening_mature_inventory_kg
         bucket["natural_maturity_supply_kg"] += member_row.natural_maturity_supply_kg
         bucket["available_mature_quantity_kg"] += member_row.available_mature_quantity_kg
-        bucket["mature_inventory_loss_quantity_kg"] += (
-            member_row.mature_inventory_loss_quantity_kg
-        )
+        bucket["mature_inventory_loss_quantity_kg"] += member_row.mature_inventory_loss_quantity_kg
         bucket["harvestable_mature_quantity_kg"] += member_row.harvestable_mature_quantity_kg
         bucket["harvested_quantity_kg"] += member_row.harvested_quantity_kg
         bucket["closing_mature_inventory_kg"] += member_row.closing_mature_inventory_kg
         bucket["unharvested_backlog_kg"] += member_row.unharvested_backlog_kg
         pool_arrival_sums[pool_display_key] = (
-            pool_arrival_sums.get(pool_display_key, Decimal("0"))
-            + member_row.arrival_quantity_kg
+            pool_arrival_sums.get(pool_display_key, Decimal("0")) + member_row.arrival_quantity_kg
         )
 
     zero_pool_bucket = {
@@ -1486,9 +1481,7 @@ def run_harvest_state_model(
                 weather_harvest_efficiency_ratio=quantize_ratio(
                     params.weather_harvest_efficiency_ratio
                 ),
-                operational_efficiency_ratio=quantize_ratio(
-                    params.operational_efficiency_ratio
-                ),
+                operational_efficiency_ratio=quantize_ratio(params.operational_efficiency_ratio),
                 resolved_effective_capacity_kg_per_day=quantize_quantity(
                     params.resolved_effective_capacity_kg_per_day
                 ),
@@ -2102,9 +2095,7 @@ def run_harvest_state_model(
                 weather_harvest_efficiency_ratio=quantize_ratio(
                     row["weather_harvest_efficiency_ratio"]
                 ),
-                operational_efficiency_ratio=quantize_ratio(
-                    row["operational_efficiency_ratio"]
-                ),
+                operational_efficiency_ratio=quantize_ratio(row["operational_efficiency_ratio"]),
                 effective_harvest_capacity_kg_per_day=quantize_quantity(
                     row["effective_harvest_capacity_kg_per_day"]
                 ),

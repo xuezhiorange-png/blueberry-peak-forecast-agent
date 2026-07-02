@@ -175,9 +175,7 @@ async def test_execute_residual_prediction_persists_and_reloads(
     assert prediction_result.mode == "residual_corrected"
     assert prediction_result.task9_run_id == task9_run_id
     assert prediction_result.rows
-    assert any(
-        row.corrected_raw_p50_kg != row.structural_p50_kg for row in prediction_result.rows
-    )
+    assert any(row.corrected_raw_p50_kg != row.structural_p50_kg for row in prediction_result.rows)
 
 
 async def test_execute_residual_prediction_falls_back_for_ineligible_model(
@@ -376,10 +374,7 @@ async def test_execute_residual_prediction_falls_back_for_dependency_version_mis
         config=_relaxed_config(),
     )
     await sqlite_session.execute(
-        text(
-            f"UPDATE residual_model_training_run SET {column_name} = :value "
-            "WHERE id = :run_id"
-        ),
+        text(f"UPDATE residual_model_training_run SET {column_name} = :value WHERE id = :run_id"),
         {"value": value, "run_id": training_run_id},
     )
     await sqlite_session.commit()
