@@ -373,6 +373,189 @@ def _stable_key_from_orm(family: AuthorityFamily, row: Any) -> str:
     return result
 
 
+# ── Stable key parsers (for by_business_key lookups) ──────────────────
+
+
+def _parse_capacity_pool_stable_key(stable_key: str) -> tuple[int, int, str]:
+    """Parse ``capacity-pool:{season_id}:{factory_id}:{code}``.
+
+    The trailing ``code`` segment may contain colons; we use split-then-join
+    to absorb them safely.
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 4 or parts[0] != "capacity-pool":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            lookup_key=stable_key,
+        )
+    try:
+        return int(parts[1]), int(parts[2]), ":".join(parts[3:])
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_daily_capacity_stable_key(
+    stable_key: str,
+) -> tuple[int, int, str, str, int, date]:
+    """Parse ``daily-capacity:{season_id}:{factory_id}:{code}:{pool_version}:{pool_rev}:{date}``.
+
+    Both ``code`` and ``pool_version`` may contain colons.  We parse the
+    safe trailing fields (date, pool_rev) from the right and the safe
+    leading ints (season_id, dest_factory_id) from the left, then join
+    the remaining middle segments as the code.
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 7 or parts[0] != "daily-capacity":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=stable_key,
+        )
+    try:
+        # From right: date (ISO, no colons), pool_rev (int, no colons),
+        # pool_version (string, may contain colons)
+        capacity_date = date.fromisoformat(parts[-1])
+        pool_rev = int(parts[-2])
+        pool_version = parts[-3]
+        # From left: season_id, dest_factory_id (ints)
+        season_id = int(parts[1])
+        dest_factory_id = int(parts[2])
+        # Middle segments: pool_code (may contain colons)
+        pool_code = ":".join(parts[3:-3])
+        if not pool_code:
+            raise ValueError("empty pool_code")
+        return (
+            season_id,
+            dest_factory_id,
+            pool_code,
+            pool_version,
+            pool_rev,
+            capacity_date,
+        )
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_holiday_stable_key(stable_key: str) -> tuple[int, str, str]:
+    """Parse ``holiday-calendar:{season_id}:{code}:{timezone}``.
+
+    The ``code`` segment may contain colons; timezone is IANA (no colons).
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 4 or parts[0] != "holiday-calendar":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            lookup_key=stable_key,
+        )
+    try:
+        # From right: timezone (IANA, no colons)
+        tz_name = parts[-1]
+        # From left: season_id (int)
+        season_id = int(parts[1])
+        # Middle: calendar_code (may contain colons)
+        calendar_code = ":".join(parts[2:-1])
+        return season_id, calendar_code, tz_name
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_weather_stable_key(stable_key: str) -> tuple[str, str]:
+    """Parse ``weather-rule:{code}:{timezone}``.
+
+    The ``code`` segment may contain colons; timezone is IANA (no colons).
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 3 or parts[0] != "weather-rule":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            lookup_key=stable_key,
+        )
+    # From right: timezone (IANA, no colons)
+    tz_name = parts[-1]
+    # Everything between prefix and timezone: rule_code (may contain colons)
+    rule_code = ":".join(parts[1:-1])
+    return rule_code, tz_name
+
+
+def _parse_run_package_stable_key(stable_key: str) -> tuple[int, int, str]:
+    """Parse ``run-package:{season_id}:{factory_id}:{scope_key}``.
+
+    The trailing ``scope_key`` segment may contain colons.
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 4 or parts[0] != "run-package":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            lookup_key=stable_key,
+        )
+    try:
+        return int(parts[1]), int(parts[2]), ":".join(parts[3:])
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_initial_inventory_stable_key(stable_key: str) -> tuple[int, int, date]:
+    """Parse ``initial-inventory:{season_id}:{factory_id}:{date}``.
+
+    The trailing date is ISO format (no colons); the colon-safe split is
+    used for consistency with other parsers.
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 4 or parts[0] != "initial-inventory":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            lookup_key=stable_key,
+        )
+    try:
+        return int(parts[1]), int(parts[2]), date.fromisoformat(parts[-1])
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            lookup_key=stable_key,
+        ) from exc
+
+
+def _parse_mature_loss_stable_key(
+    stable_key: str,
+) -> tuple[int, int, str, date, str]:
+    """Parse ``mature-loss:{season_id}:{factory_id}:{code}:{date}:{quantile}``.
+
+    Both ``code`` and ``quantile`` may contain colons; date is ISO (no colons).
+    """
+    parts = stable_key.split(":")
+    if len(parts) < 6 or parts[0] != "mature-loss":
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            lookup_key=stable_key,
+        )
+    try:
+        # From right: quantile (string, may have colons), date (ISO)
+        quantile = parts[-1]
+        capacity_date = date.fromisoformat(parts[-2])
+        # From left: season_id, dest_factory_id (ints)
+        season_id = int(parts[1])
+        dest_factory_id = int(parts[2])
+        # Middle: capacity_pool_code (may contain colons)
+        pool_code = ":".join(parts[3:-2])
+        return season_id, dest_factory_id, pool_code, capacity_date, quantile
+    except (ValueError, IndexError) as exc:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            lookup_key=stable_key,
+        ) from exc
+
+
 def _business_version_from_orm(family: AuthorityFamily, row: Any) -> str:
     """Return the business version string for a given ORM row."""
     if family == AuthorityFamily.CAPACITY_POOL_DEFINITION:
@@ -1277,6 +1460,72 @@ async def load_capacity_pool_definition_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Capacity Pool Definition (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_capacity_pool_definition_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityBundleLoadResult:
+    """Load a capacity-pool definition by business key (stable_key + version + revision)."""
+    season_id, dest_factory_id, pool_code = _parse_capacity_pool_stable_key(stable_key)
+    stmt = select(Task9CapacityPoolDefinition).where(
+        Task9CapacityPoolDefinition.season_id == season_id,
+        Task9CapacityPoolDefinition.destination_factory_id == dest_factory_id,
+        Task9CapacityPoolDefinition.capacity_pool_code == pool_code,
+        Task9CapacityPoolDefinition.capacity_pool_version == business_version,
+        Task9CapacityPoolDefinition.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_capacity_pool_definition_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Capacity Pool Definition (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_capacity_pool_definition_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityBundleLoadResult:
+    """Load a capacity-pool definition by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9CapacityPoolDefinition).where(
+        Task9CapacityPoolDefinition.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_capacity_pool_definition_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Daily Capacity
 # ══════════════════════════════════════════════════════════════════════
 
@@ -1530,6 +1779,106 @@ async def load_daily_capacity_by_id(
         consumable_to_local_date=row.consumable_to_local_date,
         superseded_by_id=row.superseded_by_id,
     )
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Daily Capacity
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_daily_capacity_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityLoadResult:
+    """Load a daily-capacity authority by business key.
+
+    ``stable_key`` encodes the parent pool identity and capacity_date.
+    ``business_version`` is the pool version (must match what is in the key).
+    ``revision`` is the daily_capacity_revision.
+    """
+    (
+        season_id,
+        dest_factory_id,
+        pool_code,
+        pool_version,
+        pool_rev,
+        capacity_date,
+    ) = _parse_daily_capacity_stable_key(stable_key)
+
+    # Cross-validate: business_version must match pool_version from the key
+    if business_version != pool_version:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+
+    # Resolve pool definition FK
+    pool_stmt = select(Task9CapacityPoolDefinition).where(
+        Task9CapacityPoolDefinition.season_id == season_id,
+        Task9CapacityPoolDefinition.destination_factory_id == dest_factory_id,
+        Task9CapacityPoolDefinition.capacity_pool_code == pool_code,
+        Task9CapacityPoolDefinition.capacity_pool_version == pool_version,
+        Task9CapacityPoolDefinition.revision == pool_rev,
+    )
+    pool_result = await session.execute(pool_stmt)
+    pool_def = pool_result.scalar_one_or_none()
+    if pool_def is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+
+    stmt = select(Task9DailyCapacityAuthority).where(
+        Task9DailyCapacityAuthority.capacity_pool_definition_id == pool_def.id,
+        Task9DailyCapacityAuthority.capacity_date == capacity_date,
+        Task9DailyCapacityAuthority.daily_capacity_revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_daily_capacity_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Daily Capacity
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_daily_capacity_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityLoadResult:
+    """Load a daily-capacity authority by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9DailyCapacityAuthority).where(
+        Task9DailyCapacityAuthority.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.DAILY_CAPACITY,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_daily_capacity_by_id(session, authority_id=rows[0].id)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1858,6 +2207,72 @@ async def load_holiday_calendar_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Holiday Calendar Version (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_holiday_calendar_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityBundleLoadResult:
+    """Load a holiday calendar by business key (stable_key + version + revision)."""
+    season_id, calendar_code, timezone_name = _parse_holiday_stable_key(stable_key)
+    stmt = select(Task9HolidayCalendarVersion).where(
+        Task9HolidayCalendarVersion.season_id == season_id,
+        Task9HolidayCalendarVersion.calendar_code == calendar_code,
+        Task9HolidayCalendarVersion.lifecycle_timezone_name == timezone_name,
+        Task9HolidayCalendarVersion.calendar_version == business_version,
+        Task9HolidayCalendarVersion.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_holiday_calendar_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Holiday Calendar Version (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_holiday_calendar_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityBundleLoadResult:
+    """Load a holiday calendar by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9HolidayCalendarVersion).where(
+        Task9HolidayCalendarVersion.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.HOLIDAY_CALENDAR_VERSION,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_holiday_calendar_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Weather Rule Config Version
 # ══════════════════════════════════════════════════════════════════════
 
@@ -2092,6 +2507,71 @@ async def load_weather_rule_by_id(
         consumable_to_local_date=row.consumable_to_local_date,
         superseded_by_id=row.superseded_by_id,
     )
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Weather Rule Config Version
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_weather_rule_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityLoadResult:
+    """Load a weather rule config by business key (stable_key + version + revision)."""
+    rule_code, timezone_name = _parse_weather_stable_key(stable_key)
+    stmt = select(Task9WeatherRuleConfigVersion).where(
+        Task9WeatherRuleConfigVersion.rule_code == rule_code,
+        Task9WeatherRuleConfigVersion.lifecycle_timezone_name == timezone_name,
+        Task9WeatherRuleConfigVersion.rule_version == business_version,
+        Task9WeatherRuleConfigVersion.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_weather_rule_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Weather Rule Config Version
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_weather_rule_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityLoadResult:
+    """Load a weather rule config by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9WeatherRuleConfigVersion).where(
+        Task9WeatherRuleConfigVersion.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.WEATHER_RULE_CONFIG_VERSION,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_weather_rule_by_id(session, authority_id=rows[0].id)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -2700,6 +3180,72 @@ async def load_run_parameter_package_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Run Parameter Package
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_run_parameter_package_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityLoadResult:
+    """Load a run-parameter package by business key (stable_key + version + revision)."""
+    season_id, dest_factory_id, farm_scope_key = _parse_run_package_stable_key(stable_key)
+    stmt = select(Task9RunParameterPackage).where(
+        Task9RunParameterPackage.season_id == season_id,
+        Task9RunParameterPackage.destination_factory_id == dest_factory_id,
+        Task9RunParameterPackage.farm_scope_key == farm_scope_key,
+        Task9RunParameterPackage.package_version == business_version,
+        Task9RunParameterPackage.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_run_parameter_package_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Run Parameter Package
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_run_parameter_package_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityLoadResult:
+    """Load a run-parameter package by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9RunParameterPackage).where(
+        Task9RunParameterPackage.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_run_parameter_package_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Initial Inventory Snapshot (bundle)
 # ══════════════════════════════════════════════════════════════════════
 
@@ -3059,6 +3605,74 @@ async def load_initial_inventory_by_id(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Initial Inventory Snapshot (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_initial_inventory_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityBundleLoadResult:
+    """Load an initial inventory snapshot by business key (stable_key + version + revision)."""
+    season_id, dest_factory_id, opening_state_date = _parse_initial_inventory_stable_key(
+        stable_key,
+    )
+    stmt = select(Task9InitialInventorySnapshot).where(
+        Task9InitialInventorySnapshot.season_id == season_id,
+        Task9InitialInventorySnapshot.destination_factory_id == dest_factory_id,
+        Task9InitialInventorySnapshot.opening_state_date == opening_state_date,
+        Task9InitialInventorySnapshot.snapshot_version == business_version,
+        Task9InitialInventorySnapshot.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_initial_inventory_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Initial Inventory Snapshot (bundle)
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_initial_inventory_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityBundleLoadResult:
+    """Load an initial inventory snapshot by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9InitialInventorySnapshot).where(
+        Task9InitialInventorySnapshot.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_initial_inventory_by_id(session, authority_id=rows[0].id)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  CREATE-OR-LOAD: Mature Inventory Loss Authority
 # ══════════════════════════════════════════════════════════════════════
 
@@ -3270,6 +3884,76 @@ async def load_mature_loss_by_id(
         consumable_to_local_date=row.consumable_to_local_date,
         superseded_by_id=row.superseded_by_id,
     )
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY BUSINESS KEY: Mature Inventory Loss Authority
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_mature_loss_by_business_key(
+    session: AsyncSession,
+    *,
+    stable_key: str,
+    business_version: str,
+    revision: int,
+) -> AuthorityLoadResult:
+    """Load a mature inventory loss authority by business key (stable_key + version + revision)."""
+    season_id, dest_factory_id, pool_code, state_date, quantile = _parse_mature_loss_stable_key(
+        stable_key
+    )
+    stmt = select(Task9MatureInventoryLossAuthority).where(
+        Task9MatureInventoryLossAuthority.season_id == season_id,
+        Task9MatureInventoryLossAuthority.destination_factory_id == dest_factory_id,
+        Task9MatureInventoryLossAuthority.capacity_pool_code == pool_code,
+        Task9MatureInventoryLossAuthority.state_date == state_date,
+        Task9MatureInventoryLossAuthority.forecast_quantile == quantile,
+        Task9MatureInventoryLossAuthority.loss_version == business_version,
+        Task9MatureInventoryLossAuthority.revision == revision,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            lookup_key=f"{stable_key}:{business_version}:{revision}",
+        )
+    return await load_mature_loss_by_id(session, authority_id=row.id)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  EXACT LOAD BY ROW HASH: Mature Inventory Loss Authority
+# ══════════════════════════════════════════════════════════════════════
+
+
+async def load_mature_loss_by_row_hash(
+    session: AsyncSession,
+    *,
+    row_hash: str,
+) -> AuthorityLoadResult:
+    """Load a mature inventory loss authority by exact row hash.
+
+    Fails closed on hash mismatch and raises on ambiguous matches.
+    """
+    stmt = select(Task9MatureInventoryLossAuthority).where(
+        Task9MatureInventoryLossAuthority.row_hash == row_hash,
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    if not rows:
+        raise AuthorityNotFoundError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            lookup_key=f"row_hash:{row_hash}",
+        )
+    if len(rows) > 1:
+        raise AuthorityHashConflictError(
+            authority_family=AuthorityFamily.MATURE_INVENTORY_LOSS_AUTHORITY,
+            authority_stable_key=f"row_hash:{row_hash}",
+            expected_hash="unique_match",
+            actual_hash=f"{len(rows)}_matches",
+            details={"reason": "ambiguous_row_hash_lookup", "match_count": len(rows)},
+        )
+    return await load_mature_loss_by_id(session, authority_id=rows[0].id)
 
 
 # ══════════════════════════════════════════════════════════════════════
