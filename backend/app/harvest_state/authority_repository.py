@@ -4278,11 +4278,18 @@ async def activate_authority(
     if family == AuthorityFamily.RUN_PARAMETER_PACKAGE:
         # Re-read dependencies to detect superseded/deactivated state.
         for dep_fam, dep_id in dep_ids:
-            dep_model = {
-                AuthorityFamily.HOLIDAY_CALENDAR_VERSION: Task9HolidayCalendarVersion,
-                AuthorityFamily.WEATHER_RULE_CONFIG_VERSION: Task9WeatherRuleConfigVersion,
-            }[dep_fam]
-            dep_row = await session.get(dep_model, dep_id)
+            dep_row_any: Task9HolidayCalendarVersion | Task9WeatherRuleConfigVersion | None = None
+            if dep_fam == AuthorityFamily.HOLIDAY_CALENDAR_VERSION:
+                _h_stmt = select(Task9HolidayCalendarVersion).where(
+                    Task9HolidayCalendarVersion.id == dep_id,
+                )
+                dep_row_any = (await session.execute(_h_stmt)).scalar_one_or_none()
+            else:
+                _w_stmt = select(Task9WeatherRuleConfigVersion).where(
+                    Task9WeatherRuleConfigVersion.id == dep_id,
+                )
+                dep_row_any = (await session.execute(_w_stmt)).scalar_one_or_none()
+            dep_row = dep_row_any
             if dep_row is None:
                 raise RunParameterDependencyStatusConflictError(
                     details={
