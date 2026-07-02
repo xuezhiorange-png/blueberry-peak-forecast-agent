@@ -1170,7 +1170,11 @@ async def test_activation_rejects_dependency_id_drift_after_lock() -> None:
     # Create a second holiday to drift the FK to
     async with AsyncSessionMaker() as session:
         async with session.begin():
-            hol_drift = _holiday_input(version="drift", revision=1)
+            hol_drift = _holiday_input(
+                version="drift",
+                revision=1,
+                code="CN-DRIFT",
+            )
             drift_result = await create_or_load_holiday_calendar(
                 session,
                 calendar_input=hol_drift,
@@ -1307,6 +1311,15 @@ async def test_activation_refreshes_preloaded_dependency_identity_map() -> None:
                 activation_boundary=date(2026, 3, 1),
             )
 
+    # First, remove package A's reference to h1 by cancelling it
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await cancel_authority(
+                session,
+                family=AuthorityFamily.RUN_PARAMETER_PACKAGE,
+                authority_id=pkg_result.authority_id,
+            )
+
     # Now supersede holiday in a separate session (committed)
     async with AsyncSessionMaker() as session:
         async with session.begin():
@@ -1423,7 +1436,11 @@ async def test_shared_rejection_fresh_session_committed_state() -> None:
             )
 
             # Package B → same holiday h1, different weather
-            wth_v1b = _weather_input(version="w1b", revision=1)
+            wth_v1b = _weather_input(
+                version="w1b",
+                revision=1,
+                code="WEATHER-ALT",
+            )
             wth_v1b_result = await create_or_load_weather_rule(
                 s1,
                 weather_input=wth_v1b,
