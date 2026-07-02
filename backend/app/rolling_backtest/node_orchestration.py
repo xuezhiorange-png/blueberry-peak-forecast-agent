@@ -58,6 +58,7 @@ from backend.app.rolling_backtest.orchestration import (
 from backend.app.rolling_backtest.persistence import (
     _resolved_input_canonical_payload,
     create_execution_attempt,
+    finalize_attempt_status,
     finalize_attempt_with_snapshot,
     load_logical_run_with_integrity,
     persist_orchestration_snapshot,
@@ -634,15 +635,10 @@ async def orchestrate_node(
             await session.rollback()  # Clear rollback state from failed reload
 
         # ── Finalize attempt as completed ────────────────────────────────
-        await finalize_attempt_with_snapshot(
+        await finalize_attempt_status(
             attempt.id,
-            node_id=rolling_node_id,
             status="completed",
             current_stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
-            snapshot_status="completed",
-            terminal_stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
-            fallback_mode=ctx.fallback_mode,
-            canonical_payload=ctx.diagnostics,
         )
 
         # ── Update node and run status ───────────────────────────────────
