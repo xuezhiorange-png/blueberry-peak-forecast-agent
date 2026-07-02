@@ -1029,7 +1029,7 @@ def _build_outcome(
     config: RollingBacktestConfig,
     node: RollingNodeDefinition,
     run: RollingBacktestRun,
-    attempt: RollingBacktestAttempt,
+    attempt: RollingBacktestAttempt | None,
     status: str,
     stage: str,
     blocker_code: str | None = None,
