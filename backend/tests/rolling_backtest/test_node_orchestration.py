@@ -243,7 +243,7 @@ def _empty_audit_result():
     return result
 
 
-def _build_session_side_effect(run, node):
+def _build_session_side_effect(run, node, completed_attempt=None):
     """Build a side_effect for session.execute that routes by model type."""
 
     def _execute(stmt, *args, **kwargs):
@@ -252,6 +252,10 @@ def _build_session_side_effect(run, node):
             return _run_result_for(run)
         elif "RollingBacktestNode" in stmt_str or "rolling_backtest_node" in stmt_str:
             return _run_result_for(node)
+        elif "RollingBacktestAttempt" in stmt_str or "rolling_backtest_attempt" in stmt_str:
+            if completed_attempt is not None:
+                return _run_result_for(completed_attempt)
+            return _empty_audit_result()
         else:
             return _empty_audit_result()
 
@@ -423,7 +427,14 @@ async def test_node_already_finalized(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+    completed_attempt = MagicMock()
+    completed_attempt.id = 100
+    completed_attempt.status = "completed"
+    mock_session.execute = AsyncMock(
+        side_effect=_build_session_side_effect(
+            mock_run, mock_node, completed_attempt=completed_attempt
+        )
+    )
 
     with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
         await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
@@ -977,7 +988,14 @@ async def test_successful_node_cannot_be_overwritten(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+    completed_attempt = MagicMock()
+    completed_attempt.id = 200
+    completed_attempt.status = "completed"
+    mock_session.execute = AsyncMock(
+        side_effect=_build_session_side_effect(
+            mock_run, mock_node, completed_attempt=completed_attempt
+        )
+    )
 
     with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
         await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
@@ -1005,7 +1023,14 @@ async def test_mixed_node_status_aggregation(mock_session):
     mock_node_a.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node_a.canonical_payload = config.nodes[0].model_dump(mode="python")
 
-    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node_a))
+    completed_attempt_a = MagicMock()
+    completed_attempt_a.id = 300
+    completed_attempt_a.status = "completed"
+    mock_session.execute = AsyncMock(
+        side_effect=_build_session_side_effect(
+            mock_run, mock_node_a, completed_attempt=completed_attempt_a
+        )
+    )
 
     with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
         await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
