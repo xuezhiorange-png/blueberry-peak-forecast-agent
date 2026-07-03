@@ -7,13 +7,33 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError as SAIntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.persistence import save_harvest_state_output
+from backend.app.harvest_state.service import run_harvest_state_model
+from backend.app.models.analytics import AnalyticsBuildRun
+from backend.app.models.harvest_state import HarvestStateRun
+from backend.app.models.master_data import Farm, Variety
+from backend.app.models.maturity import (
+    MaturityDailyPredictionModel,
+    MaturityForecastRun,
+    MaturityModelArtifact,
+    MaturityModelRun,
+)
+from backend.app.models.planning import AgroClimateZone, LocationReference
+from backend.app.models.production_plan import FarmSeasonVarietyPlan
+from backend.app.models.residual_model import (
+    ResidualModelArtifact,
+    ResidualModelPredictionRun,
+    ResidualModelTrainingRun,
+)
 from backend.app.models.rolling_backtest import (
     RollingBacktestAttempt,
     RollingBacktestNode,
@@ -21,6 +41,16 @@ from backend.app.models.rolling_backtest import (
     RollingBacktestRun,
     RollingBacktestStageEvent,
 )
+from backend.app.models.weather import (
+    BaseTemperatureSearchRun,
+    LocationWeatherMapping,
+    WeatherSourceLocation,
+)
+from backend.app.residual_model.application import (
+    execute_residual_prediction,
+    execute_residual_training,
+)
+from backend.app.residual_model.schemas import ResidualPredictionRequest
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
     ExecutionMode,
@@ -48,14 +78,32 @@ from backend.app.rolling_backtest.persistence import (
     update_run_status_from_attempts,
     validate_stage_continuity,
 )
+from backend.app.rolling_backtest.resolution import _make_identity
 from backend.app.rolling_backtest.schemas import (
     HistoricalAvailableModelIdentity,
+    ParentAuthorityIdentity,
     PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
     RollingBacktestConfig,
     RollingNodeDefinition,
+    Task3AnalyticsBuildAvailabilitySnapshot,
     Task8ForecastRunAvailabilitySnapshot,
+    Task8ModelArtifactAvailabilitySnapshot,
+    Task8ModelRunAvailabilitySnapshot,
+    Task9HarvestStateRunAvailabilitySnapshot,
+    Task10ModelArtifactAvailabilitySnapshot,
+    Task10PredictionRunAvailabilitySnapshot,
+    Task10TrainingRunAvailabilitySnapshot,
     UpstreamSemanticIdentityPayload,
+)
+from backend.tests.harvest_state.conftest import make_request
+from backend.tests.integration.test_residual_model_persistence import _seed_prediction_fixture
+from backend.tests.residual_model.test_training_manifest import (
+    _config as _residual_config,
+)
+from backend.tests.residual_model.test_training_manifest import (
+    _diverse_training_samples,
+    _supplemental_features,
 )
 
 pytestmark = pytest.mark.integration
@@ -344,6 +392,635 @@ async def _get_node_id_for_run(run_id: int) -> int:
             select(RollingBacktestNode.id).where(RollingBacktestNode.rolling_run_id == run_id)
         )
         return result.scalar_one()
+
+
+def _relaxed_residual_config():
+    config = _residual_config()
+    eligibility = config.rules.eligibility.model_copy(
+        update={
+            "min_training_rows": 1,
+            "min_seasons": 1,
+            "min_factories": 1,
+        }
+    )
+    return config.model_copy(
+        update={
+            "rules": config.rules.model_copy(
+                update={"eligibility": eligibility},
+            )
+        }
+    )
+
+
+async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
+    request = make_request()
+    forecast_rows = request["task8_daily_predictions"]
+    daily_ids: dict[tuple[date, int], int] = {}
+    for item in forecast_rows:
+        key = (item["prediction_date"], item["variety_id"])
+        daily_ids.setdefault(key, item["source_ref"]["maturity_daily_prediction_id"])
+
+    async with AsyncSessionMaker() as session:
+        session.add(
+            Farm(
+                id=1,
+                name="Farm A",
+                latitude=Decimal("24.100000"),
+                longitude=Decimal("102.100000"),
+                altitude_m=Decimal("1800.00"),
+            )
+        )
+        session.add(Variety(id=102, code="DX-ALT", name="Dx Alt"))
+        session.add(
+            AgroClimateZone(
+                id=301,
+                code="ZONE-A",
+                name="Zone A",
+                country="CN",
+                province="Yunnan",
+                prefecture="Honghe",
+                county="Mile",
+                centroid_latitude=Decimal("24.000000"),
+                centroid_longitude=Decimal("102.000000"),
+                min_altitude_m=Decimal("1700"),
+                max_altitude_m=Decimal("1900"),
+                zone_version="zone-v1",
+                valid_from=date(2024, 1, 1),
+                valid_to=None,
+                source_name="synthetic",
+                source_version="zone-v1",
+            )
+        )
+        session.add(
+            LocationReference(
+                id=601,
+                farm_id=1,
+                subfarm_id=None,
+                farm_code="FARM-A",
+                farm_name="Farm A",
+                subfarm_name=None,
+                address_raw="Farm A",
+                address_normalized="farm a",
+                province="Yunnan",
+                prefecture="Honghe",
+                county="Mile",
+                township="Xisan",
+                village=None,
+                latitude=Decimal("24.100000"),
+                longitude=Decimal("102.100000"),
+                altitude_m=Decimal("1800.00"),
+                climate_zone_id=301,
+                location_source="synthetic",
+                source_version="loc-v1",
+                valid_from=date(2024, 1, 1),
+                valid_to=None,
+                source_row_hash="loc-a",
+            )
+        )
+        session.add(
+            WeatherSourceLocation(
+                id=7011,
+                provider_code="synthetic_station",
+                external_location_id="station-1",
+                location_type="station",
+                name="Station 1",
+                latitude=Decimal("24.110000"),
+                longitude=Decimal("102.110000"),
+                altitude_m=Decimal("1810.00"),
+                timezone_name="Asia/Shanghai",
+                grid_resolution=None,
+                source_version="dataset-v1",
+                valid_from=date(2024, 1, 1),
+                valid_to=None,
+                row_hash="src-a",
+            )
+        )
+        session.add(
+            FarmSeasonVarietyPlan(
+                id=501,
+                farm_id=1,
+                subfarm_id=None,
+                season_id=season_id,
+                variety_id=101,
+                planted_area_mu=Decimal("100"),
+                expected_yield_kg_per_mu=Decimal("1200"),
+                marketable_rate=Decimal("0.8"),
+                tree_age_years=Decimal("3"),
+                pruning_date=date(2026, 1, 1),
+                flowering_start_date=date(2026, 2, 1),
+                flowering_peak_date=date(2026, 2, 6),
+                flowering_end_date=date(2026, 2, 10),
+                first_pick_date=date(2026, 3, 5),
+                expected_total_marketable_kg=Decimal("96000"),
+                version=1,
+                effective_from=date(2026, 1, 1),
+                effective_to=None,
+                available_at=date(2025, 12, 15),
+                source_type="manual",
+                source_name="planner",
+                source_version="v1",
+                notes="synthetic",
+                row_hash="plan-501",
+            )
+        )
+        session.add(
+            LocationWeatherMapping(
+                id=801,
+                location_reference_id=601,
+                weather_source_location_id=7011,
+                mapping_method="explicit",
+                distance_km=Decimal("1"),
+                altitude_difference_m=Decimal("10"),
+                mapping_score=Decimal("1"),
+                confidence_level="high",
+                mapping_version="map-v1",
+                config_hash="weather-cfg",
+                available_at=date(2026, 1, 1),
+                valid_from=date(2026, 1, 1),
+                valid_to=None,
+                row_hash="mapping-a",
+            )
+        )
+        session.add(
+            BaseTemperatureSearchRun(
+                id=901,
+                scope_type="variety_zone",
+                variety_id=101,
+                climate_zone_id=301,
+                training_cutoff=date(2026, 4, 30),
+                anchor_event="flowering_start_date",
+                target_event="first_pick_date",
+                candidate_temperatures=["3", "5"],
+                selected_base_temperature=Decimal("5"),
+                scoring_method="season_loso_mae_days",
+                selected_score=Decimal("1.000000"),
+                sample_count=3,
+                distinct_season_count=3,
+                training_sample_ids=[1, 2, 3],
+                candidate_scores={"candidates": []},
+                config_hash="weather-cfg",
+                feature_version="task7-v1",
+                source_signature="base-temp-sig",
+                status="completed",
+                warnings=[],
+                blockers=[],
+                input_snapshot={"samples": []},
+                finished_at=datetime(2026, 2, 20, 12, 0, tzinfo=UTC),
+            )
+        )
+
+        model_run = MaturityModelRun(
+            id=101,
+            model_version="task8-v1",
+            config_hash="task8-model-config-hash",
+            config_snapshot={"version": "task8-v1"},
+            training_cutoff=date(2026, 2, 28),
+            source_signature="model-sig-1",
+            status="completed",
+            random_seed=20260703,
+            model_family="shared_spline_partial_pooling",
+            scope="task8",
+            sample_count=10,
+            distinct_season_count=2,
+            distinct_farm_count=1,
+            distinct_subfarm_count=1,
+            training_metrics={},
+            calibration_metrics={},
+            warnings=[],
+            blockers=[],
+            input_snapshot={},
+            started_at=datetime(2026, 2, 28, 11, 0, tzinfo=UTC),
+            finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+            error_message=None,
+        )
+        session.add(model_run)
+        artifact = MaturityModelArtifact(
+            id=201,
+            run_id=101,
+            artifact_hash="artifact-hash-1",
+            support_min_day=-30,
+            support_max_day=90,
+            artifact_payload={
+                "support_days": [0, 1],
+                "anchor_event": "flowering_start_date",
+                "group_models": {},
+                "shift_model": {
+                    "enabled": False,
+                    "intercept_days": "0",
+                    "coefficients": {},
+                    "category_vocabulary": {"facility_type": ["unknown"]},
+                    "reference_categories": {"facility_type": "unknown"},
+                    "feature_order": [],
+                    "scaler_center": {},
+                    "scaler_scale": {},
+                    "feature_units": {},
+                    "missing_value_rules": {},
+                    "bounds": ["-21", "21"],
+                    "warnings": [],
+                },
+                "calibration": {},
+                "base_temperature_context": {},
+            },
+            created_at=datetime(2026, 2, 28, 12, 5, tzinfo=UTC),
+        )
+        session.add(artifact)
+        forecast = MaturityForecastRun(
+            id=401,
+            model_run_id=101,
+            artifact_id=201,
+            plan_id=501,
+            location_reference_id=601,
+            weather_mapping_id=801,
+            base_temperature_search_run_id=901,
+            as_of_date=date(2026, 2, 28),
+            prediction_start_date=date(2026, 3, 1),
+            prediction_end_date=date(2026, 3, 3),
+            expected_marketable_total_kg=Decimal("96000"),
+            expected_total_source="explicit",
+            axis_mode="calendar_proxy_axis",
+            source_signature="forecast-sig-1",
+            status="completed",
+            warnings=[],
+            blockers=[],
+            input_snapshot={},
+            started_at=datetime(2026, 2, 28, 12, 10, tzinfo=UTC),
+            finished_at=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
+            error_message=None,
+        )
+        session.add(forecast)
+
+        for (prediction_date, _variety_id), daily_id in sorted(daily_ids.items()):
+            session.add(
+                MaturityDailyPredictionModel(
+                    id=daily_id,
+                    forecast_run_id=401,
+                    prediction_date=prediction_date,
+                    phenology_coordinate_day=Decimal("1"),
+                    p50_kg=Decimal("20"),
+                    p80_kg=Decimal("24"),
+                    p90_kg=Decimal("28"),
+                    cumulative_p50_kg=Decimal("20"),
+                    cumulative_p80_kg=Decimal("24"),
+                    cumulative_p90_kg=Decimal("28"),
+                    curve_share=Decimal("0.3333333333"),
+                    confidence_level="medium",
+                    quality_flags=[],
+                    created_at=datetime(2026, 2, 28, 13, 5, tzinfo=UTC),
+                )
+            )
+        await session.commit()
+
+    return {
+        "model_run_id": 101,
+        "artifact_id": 201,
+        "forecast_run_id": 401,
+    }
+
+
+async def _seed_real_task9_run() -> tuple[int, str, str, datetime]:
+    async with AsyncSessionMaker() as session:
+        output = run_harvest_state_model(make_request())
+        assert output.status == "completed"
+        run = await save_harvest_state_output(session, output=output)
+        await session.commit()
+        row = await session.get(HarvestStateRun, run.id)
+        assert row is not None
+        assert row.created_at is not None
+        return row.id, row.result_hash, row.canonical_payload_hash, row.created_at
+
+
+async def _seed_real_task10_authorities() -> dict[str, int]:
+    fixture = await _seed_prediction_fixture()
+    samples = _diverse_training_samples(
+        task9_run_id=fixture["train_task9_run_id"],
+        label_build_run_id=fixture["train_label_build_run_id"],
+        feature_build_run_id=fixture["train_feature_build_run_id"],
+        validation_task9_run_id=fixture["validation_task9_run_id"],
+        validation_label_build_run_id=fixture["validation_label_build_run_id"],
+        validation_feature_build_run_id=fixture["validation_feature_build_run_id"],
+        as_of_date=date(2026, 2, 28),
+    )
+
+    async with AsyncSessionMaker() as session:
+        training_result, training_run_id = await execute_residual_training(
+            session,
+            samples=samples,
+            config=_relaxed_residual_config(),
+        )
+        assert training_result.execution_status == "completed"
+        prediction_result, prediction_run_id = await execute_residual_prediction(
+            session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=fixture["train_task9_run_id"],
+                feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
+                supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
+            ),
+        )
+        assert prediction_result.execution_status == "completed"
+        artifact_row = (
+            await session.execute(
+                select(ResidualModelArtifact)
+                .where(ResidualModelArtifact.training_run_id == training_run_id)
+                .order_by(ResidualModelArtifact.id.asc())
+                .limit(1)
+            )
+        ).scalar_one()
+        training_row = await session.get(ResidualModelTrainingRun, training_run_id)
+        prediction_row = await session.get(ResidualModelPredictionRun, prediction_run_id)
+        assert training_row is not None
+        assert prediction_row is not None
+        return {
+            "task9_run_id": fixture["train_task9_run_id"],
+            "training_run_id": training_run_id,
+            "artifact_id": artifact_row.id,
+            "prediction_run_id": prediction_run_id,
+            "feature_build_run_id": fixture["train_feature_build_run_id"],
+            "validation_task9_run_id": fixture["validation_task9_run_id"],
+        }
+
+
+def _parent_authority(
+    *,
+    source_type: AvailabilitySourceType,
+    authority_status: str,
+    authority_timestamp: datetime,
+    persistent_reference: PersistentUpstreamReference,
+    semantic_input_signature: str | None = None,
+    result_hash: str | None = None,
+    canonical_payload_hash: str | None = None,
+) -> ParentAuthorityIdentity:
+    return ParentAuthorityIdentity(
+        source_type=source_type,
+        authority_schema_version="task11-upstream-v1",
+        authority_policy_version="task11-upstream-v1",
+        authority_timestamp=authority_timestamp,
+        authority_status=authority_status,
+        semantic_input_signature=semantic_input_signature,
+        result_hash=result_hash,
+        canonical_payload_hash=canonical_payload_hash,
+        persistent_reference=persistent_reference,
+    )
+
+
+async def _build_real_orchestration_command(
+    *,
+    forecast_cutoff_at: datetime,
+    pinned_task9_run_id: int | None = None,
+) -> RollingBacktestPersistenceCommand:
+    task10 = await _seed_real_task10_authorities()
+    task8 = await _seed_real_task8_authorities(season_id=1)
+    task9_run_id = task10["task9_run_id"]
+    pinned_task9_run_id = pinned_task9_run_id or task9_run_id
+
+    async with AsyncSessionMaker() as session:
+        feature_build = await session.get(AnalyticsBuildRun, task10["feature_build_run_id"])
+        task9_row = await session.get(HarvestStateRun, task9_run_id)
+        pinned_task9_row = await session.get(HarvestStateRun, pinned_task9_run_id)
+        training_row = await session.get(ResidualModelTrainingRun, task10["training_run_id"])
+        artifact_row = await session.get(ResidualModelArtifact, task10["artifact_id"])
+        prediction_row = await session.get(ResidualModelPredictionRun, task10["prediction_run_id"])
+        assert feature_build is not None and feature_build.finished_at is not None
+        assert task9_row is not None and task9_row.created_at is not None
+        assert pinned_task9_row is not None and pinned_task9_row.created_at is not None
+        assert training_row is not None and training_row.finished_at is not None
+        assert artifact_row is not None and artifact_row.created_at is not None
+        assert prediction_row is not None and prediction_row.completed_at is not None
+
+    identities: tuple[ResolvedUpstreamSemanticIdentity, ...] = (
+        _make_identity(
+            source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+            source_role="task3_analytics_build",
+            schema_version="task3-analytics-v1",
+            semantic_payload_hash=feature_build.config_hash,
+            config_hash=feature_build.config_hash,
+            business_version=feature_build.aggregation_version,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=feature_build.id,
+            ),
+        ),
+        _make_identity(
+            source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+            source_role="task8_model_run",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash="task8-model-config-hash",
+            config_hash="task8-model-config-hash",
+            business_version="task8-v1",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=task8["model_run_id"],
+            ),
+        ),
+        _make_identity(
+            source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+            source_role="task8_model_artifact",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash="artifact-hash-1",
+            config_hash="task8-model-config-hash",
+            business_version="task8-v1",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_artifact_id",
+                reference_value=task8["artifact_id"],
+            ),
+        ),
+        _make_identity(
+            source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+            source_role="task8_forecast_run",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash="forecast-sig-1",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=task8["forecast_run_id"],
+            ),
+        ),
+        _make_identity(
+            source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
+            source_role="task9_structural_forecast",
+            schema_version=pinned_task9_row.output_schema_version,
+            semantic_payload_hash=pinned_task9_row.result_hash,
+            config_hash=pinned_task9_row.config_hash,
+            result_hash=pinned_task9_row.result_hash,
+            canonical_payload_hash=pinned_task9_row.canonical_payload_hash,
+            business_version=pinned_task9_row.output_schema_version,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=pinned_task9_row.id,
+            ),
+        ),
+        _make_identity(
+            source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
+            source_role="task10_training_run",
+            schema_version=training_row.feature_schema_version,
+            semantic_payload_hash=training_row.training_signature,
+            config_hash=training_row.config_hash,
+            result_hash=training_row.canonical_payload_hash,
+            canonical_payload_hash=training_row.canonical_payload_hash,
+            business_version=training_row.model_version,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=training_row.id,
+            ),
+        ),
+        _make_identity(
+            source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
+            source_role="task10_model_artifact",
+            schema_version=artifact_row.feature_schema_version,
+            semantic_payload_hash=artifact_row.artifact_sha256,
+            config_hash=artifact_row.config_hash,
+            artifact_payload_hash=artifact_row.artifact_sha256,
+            business_version=artifact_row.artifact_schema_version,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_artifact_id",
+                reference_value=artifact_row.id,
+            ),
+        ),
+        _make_identity(
+            source_type=AvailabilitySourceType.TASK10_PREDICTION_RUN,
+            source_role="task10_prediction_run",
+            schema_version=prediction_row.feature_schema_version,
+            semantic_payload_hash=prediction_row.prediction_hash,
+            config_hash=prediction_row.config_hash,
+            result_hash=prediction_row.prediction_hash,
+            canonical_payload_hash=prediction_row.prediction_hash,
+            input_signature=prediction_row.prediction_input_signature,
+            business_version=prediction_row.feature_schema_version,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=prediction_row.id,
+            ),
+        ),
+    )
+
+    node = _make_pinned_node(
+        season_id=2030,
+        node_key="real_chain",
+        resolved_identities=identities,
+    ).model_copy(
+        update={
+            "as_of_local_date": forecast_cutoff_at.date(),
+            "forecast_cutoff_at": forecast_cutoff_at,
+            "forecast_start_local_date": forecast_cutoff_at.date() + timedelta(days=1),
+            "forecast_end_local_date": forecast_cutoff_at.date() + timedelta(days=7),
+        }
+    )
+    config = _make_config(nodes=(node,))
+
+    audits = (
+        AvailabilityAuditPersistenceCommand(
+            source_role="task3_analytics_build",
+            snapshot=Task3AnalyticsBuildAvailabilitySnapshot(
+                source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+                status="completed",
+                authoritative_timestamp=feature_build.finished_at,
+            ),
+            forecast_cutoff_at=node.forecast_cutoff_at,
+            resolved_identity=identities[0],
+        ),
+        AvailabilityAuditPersistenceCommand(
+            source_role="task8_model_run",
+            snapshot=Task8ModelRunAvailabilitySnapshot(
+                source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+                status="completed",
+                authoritative_timestamp=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+            ),
+            forecast_cutoff_at=node.forecast_cutoff_at,
+            resolved_identity=identities[1],
+        ),
+        AvailabilityAuditPersistenceCommand(
+            source_role="task8_model_artifact",
+            snapshot=Task8ModelArtifactAvailabilitySnapshot(
+                source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+                created_at=datetime(2026, 2, 28, 12, 5, tzinfo=UTC),
+                parent_authority=_parent_authority(
+                    source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+                    authority_status="completed",
+                    authority_timestamp=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+                    persistent_reference=PersistentUpstreamReference(
+                        reference_type="database_run_id",
+                        reference_value=task8["model_run_id"],
+                    ),
+                    canonical_payload_hash="task8-model-config-hash",
+                ),
+            ),
+            forecast_cutoff_at=node.forecast_cutoff_at,
+            resolved_identity=identities[2],
+        ),
+        AvailabilityAuditPersistenceCommand(
+            source_role="task8_forecast_run",
+            snapshot=Task8ForecastRunAvailabilitySnapshot(
+                source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+                status="completed",
+                authoritative_timestamp=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
+            ),
+            forecast_cutoff_at=node.forecast_cutoff_at,
+            resolved_identity=identities[3],
+        ),
+        AvailabilityAuditPersistenceCommand(
+            source_role="task9_structural_forecast",
+            snapshot=Task9HarvestStateRunAvailabilitySnapshot(
+                source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
+                status="completed",
+                authoritative_timestamp=pinned_task9_row.created_at,
+            ),
+            forecast_cutoff_at=node.forecast_cutoff_at,
+            resolved_identity=identities[4],
+        ),
+        AvailabilityAuditPersistenceCommand(
+            source_role="task10_training_run",
+            snapshot=Task10TrainingRunAvailabilitySnapshot(
+                source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
+                status="completed",
+                authoritative_timestamp=training_row.finished_at,
+            ),
+            forecast_cutoff_at=node.forecast_cutoff_at,
+            resolved_identity=identities[5],
+        ),
+        AvailabilityAuditPersistenceCommand(
+            source_role="task10_model_artifact",
+            snapshot=Task10ModelArtifactAvailabilitySnapshot(
+                source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
+                created_at=artifact_row.created_at,
+                parent_authority=_parent_authority(
+                    source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
+                    authority_status="completed",
+                    authority_timestamp=training_row.finished_at,
+                    persistent_reference=PersistentUpstreamReference(
+                        reference_type="database_run_id",
+                        reference_value=training_row.id,
+                    ),
+                    semantic_input_signature=training_row.training_signature,
+                    result_hash=training_row.canonical_payload_hash,
+                    canonical_payload_hash=training_row.canonical_payload_hash,
+                ),
+            ),
+            forecast_cutoff_at=node.forecast_cutoff_at,
+            resolved_identity=identities[6],
+        ),
+        AvailabilityAuditPersistenceCommand(
+            source_role="task10_prediction_run",
+            snapshot=Task10PredictionRunAvailabilitySnapshot(
+                source_type=AvailabilitySourceType.TASK10_PREDICTION_RUN,
+                status="completed",
+                authoritative_timestamp=prediction_row.completed_at,
+            ),
+            forecast_cutoff_at=node.forecast_cutoff_at,
+            resolved_identity=identities[7],
+        ),
+    )
+
+    node_cmd = RollingNodePersistenceCommand(
+        node=node,
+        resolved_inputs=tuple(
+            ResolvedInputPersistenceCommand(identity=identity) for identity in identities
+        ),
+        availability_audits=audits,
+        dag=_make_dag(),
+    )
+    return RollingBacktestPersistenceCommand(
+        config=config.model_copy(update={"nodes": (node,)}),
+        nodes=(node_cmd,),
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -806,3 +1483,249 @@ async def test_update_run_status_from_attempts() -> None:
         )
         db_status = result.scalar_one()
     assert db_status == "forecast_completed"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# k) real authority exact-load / reuse chain
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
+    """orchestrate_node must exact-load real Task 8/9/10 authorities and freeze them in snapshot."""
+    _require_postgres()
+    cmd = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    async with AsyncSessionMaker() as session:
+        outcome = await orchestrate_node(
+            session,
+            rolling_run_id=run.id,
+            rolling_node_id=node_id,
+        )
+        await session.commit()
+
+    assert outcome.status == "completed"
+    assert outcome.blocker_code is None
+
+    async with AsyncSessionMaker() as session:
+        attempt = (
+            await session.execute(
+                select(RollingBacktestAttempt)
+                .where(RollingBacktestAttempt.rolling_run_id == run.id)
+                .order_by(RollingBacktestAttempt.id.desc())
+                .limit(1)
+            )
+        ).scalar_one()
+        snapshot = (
+            await session.execute(
+                select(RollingBacktestOrchestrationSnapshot).where(
+                    RollingBacktestOrchestrationSnapshot.attempt_id == attempt.id
+                )
+            )
+        ).scalar_one()
+        assert attempt.status == "completed"
+        assert snapshot.status == "completed"
+        assert snapshot.canonical_payload["attempt"]["attempt_number"] == 1
+        assert snapshot.canonical_payload["task9_authority"]["run_reference"]["reference_type"] == (
+            "database_run_id"
+        )
+        assert snapshot.canonical_payload["task9_authority"]["source_catalog_hash"]
+        assert snapshot.canonical_payload["task9_authority"]["verification_snapshot_hash"]
+        assert (
+            snapshot.canonical_payload["task10_authority"]["training_reference"]["reference_type"]
+            == "database_run_id"
+        )
+        assert (
+            snapshot.canonical_payload["task10_authority"]["artifact_reference"]["reference_type"]
+            == "database_artifact_id"
+        )
+        assert (
+            snapshot.canonical_payload["task10_authority"]["prediction_reference"]["reference_type"]
+            == "database_run_id"
+        )
+        loaded_run = (
+            await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
+        ).scalar_one()
+        await load_logical_run_with_integrity(session, loaded_run)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# l) real Task 10 / Task 9 binding mismatch
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_real_task10_task9_binding_mismatch_blocks() -> None:
+    """Pinned Task 9 must match the real Task 10 prediction's frozen Task 9 binding."""
+    _require_postgres()
+    cmd = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    async with AsyncSessionMaker() as session:
+        expected_task9_run_id = (
+            await session.execute(
+                select(ResidualModelPredictionRun.task9_run_id)
+                .order_by(ResidualModelPredictionRun.id.desc())
+                .limit(1)
+            )
+        ).scalar_one()
+        other_task9, *_ = await _seed_real_task9_run()
+        assert other_task9 != expected_task9_run_id
+        node_row = (
+            await session.execute(
+                select(RollingBacktestNode).where(RollingBacktestNode.id == node_id)
+            )
+        ).scalar_one()
+        run_row = (
+            await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
+        ).scalar_one()
+        payload = dict(node_row.canonical_payload)
+        identities = list(payload["resolved_upstream_semantic_identities"])
+        for item in identities:
+            if item["source_type"] == AvailabilitySourceType.TASK9_HARVEST_STATE_RUN.value:
+                item["persistent_reference"]["reference_value"] = other_task9
+        payload["resolved_upstream_semantic_identities"] = identities
+        node_row.canonical_payload = payload
+        run_payload = dict(run_row.canonical_payload)
+        run_nodes = list(run_payload["nodes"])
+        run_nodes[0] = payload
+        run_payload["nodes"] = run_nodes
+        run_row.canonical_payload = run_payload
+        await session.commit()
+
+    async with AsyncSessionMaker() as session:
+        outcome = await orchestrate_node(
+            session,
+            rolling_run_id=run.id,
+            rolling_node_id=node_id,
+        )
+        await session.commit()
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "TASK10_TASK9_BINDING_MISMATCH"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# m) real Task 10 completed_at cutoff
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
+    """A real persisted Task 10 prediction completed after cutoff must be blocked."""
+    _require_postgres()
+    cmd = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    async with AsyncSessionMaker() as session:
+        prediction_completed_at = (
+            await session.execute(
+                select(ResidualModelPredictionRun.completed_at)
+                .order_by(ResidualModelPredictionRun.id.desc())
+                .limit(1)
+            )
+        ).scalar_one()
+        assert prediction_completed_at is not None
+        node_row = (
+            await session.execute(
+                select(RollingBacktestNode).where(RollingBacktestNode.id == node_id)
+            )
+        ).scalar_one()
+        run_row = (
+            await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
+        ).scalar_one()
+        payload = dict(node_row.canonical_payload)
+        payload["as_of_local_date"] = (prediction_completed_at - timedelta(days=1)).date()
+        payload["forecast_cutoff_at"] = (prediction_completed_at - timedelta(minutes=1)).isoformat()
+        payload["forecast_start_local_date"] = prediction_completed_at.date()
+        payload["forecast_end_local_date"] = prediction_completed_at.date() + timedelta(days=7)
+        node_row.canonical_payload = payload
+        run_payload = dict(run_row.canonical_payload)
+        run_nodes = list(run_payload["nodes"])
+        run_nodes[0] = payload
+        run_payload["nodes"] = run_nodes
+        run_row.canonical_payload = run_payload
+        await session.commit()
+
+    async with AsyncSessionMaker() as session:
+        outcome = await orchestrate_node(
+            session,
+            rolling_run_id=run.id,
+            rolling_node_id=node_id,
+        )
+        await session.commit()
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "TASK10_PREDICTION_AFTER_CUTOFF"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# n) integrity reload rollback is atomic
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_integrity_reload_failure_rolls_back_completed_execution() -> None:
+    """Integrity reload failure must rollback completed attempt, snapshot, and run status."""
+    _require_postgres()
+    cmd = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    with patch(
+        "backend.app.rolling_backtest.node_orchestration.load_logical_run_with_integrity",
+        side_effect=RuntimeError("integrity reload failed"),
+    ):
+        async with AsyncSessionMaker() as session:
+            outcome = await orchestrate_node(
+                session,
+                rolling_run_id=run.id,
+                rolling_node_id=node_id,
+            )
+            await session.commit()
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "ROLLING_ORCHESTRATION_INTEGRITY_RELOAD_FAILED"
+
+    async with AsyncSessionMaker() as fresh_session:
+        completed_attempts = await fresh_session.scalar(
+            select(func.count())
+            .select_from(RollingBacktestAttempt)
+            .where(
+                RollingBacktestAttempt.rolling_run_id == run.id,
+                RollingBacktestAttempt.status == "completed",
+            )
+        )
+        completed_snapshots = await fresh_session.scalar(
+            select(func.count())
+            .select_from(RollingBacktestOrchestrationSnapshot)
+            .join(
+                RollingBacktestAttempt,
+                RollingBacktestAttempt.id == RollingBacktestOrchestrationSnapshot.attempt_id,
+            )
+            .where(
+                RollingBacktestAttempt.rolling_run_id == run.id,
+                RollingBacktestOrchestrationSnapshot.status == "completed",
+            )
+        )
+        run_status = (
+            await fresh_session.execute(
+                select(RollingBacktestRun.status).where(RollingBacktestRun.id == run.id)
+            )
+        ).scalar_one()
+
+    assert completed_attempts == 0
+    assert completed_snapshots == 0
+    assert run_status != "forecast_completed"
