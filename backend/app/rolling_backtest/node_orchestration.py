@@ -613,7 +613,7 @@ async def _load_exact_pinned_candidate(
             business_version=parent_model_run.model_version,
             display_label="task8:model_artifact",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id",
+                reference_type="database_artifact_id",
                 reference_value=model_artifact_row.id,
             ),
         )
@@ -621,7 +621,7 @@ async def _load_exact_pinned_candidate(
             source_role="task8_model_artifact",
             source_type=source_type,
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id",
+                reference_type="database_artifact_id",
                 reference_value=model_artifact_row.id,
             ),
             semantic_identity=exact_identity,
@@ -696,7 +696,7 @@ async def _load_exact_pinned_candidate(
             canonical_payload_hash=daily_payload_hash,
             display_label="task8:daily_prediction",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id",
+                reference_type="database_row_id",
                 reference_value=daily_prediction_row.id,
             ),
         )
@@ -704,7 +704,7 @@ async def _load_exact_pinned_candidate(
             source_role="task8_daily_prediction",
             source_type=source_type,
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id",
+                reference_type="database_row_id",
                 reference_value=daily_prediction_row.id,
             ),
             semantic_identity=exact_identity,
@@ -824,7 +824,7 @@ async def _load_exact_pinned_candidate(
             business_version=residual_artifact_row.artifact_schema_version,
             display_label="task10:model_artifact",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id",
+                reference_type="database_artifact_id",
                 reference_value=residual_artifact_row.id,
             ),
         )
@@ -832,7 +832,7 @@ async def _load_exact_pinned_candidate(
             source_role="task10_model_artifact",
             source_type=source_type,
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id",
+                reference_type="database_artifact_id",
                 reference_value=residual_artifact_row.id,
             ),
             semantic_identity=exact_identity,
@@ -1761,22 +1761,42 @@ async def orchestrate_node(
         # Hard integrity reload — fail closed, no swallowing.
         # Verifies: run canonical parity, node canonical parity,
         # attempt chain, stage continuity, snapshot consistency.
+        #
+        # P0-4: Freeze primitive values BEFORE the reload so that after
+        # rollback (which expires ORM objects) we can construct the outcome
+        # without touching expired ORM attributes or triggering MissingGreenlet.
+        frozen_run_signature = run.run_signature
+        frozen_node_signature = (
+            node_def.node_signature if hasattr(node_def, "node_signature") else ""
+        )
+        frozen_attempt_number = attempt.attempt_number
+        frozen_started_at = attempt.started_at
+        frozen_resolved_inputs = tuple(ctx.resolved_inputs.values())
+        frozen_availability_audits = tuple(ctx.availability_audits.values())
+        frozen_task9_authority = ctx.task9_authority
+        frozen_task10_authority = ctx.task10_authority
+        frozen_fallback_mode = ctx.fallback_mode
+
         try:
             await load_logical_run_with_integrity(session, run)
         except Exception as reload_exc:
             # Integrity reload failed — rollback the entire execution so
             # no completed attempt, snapshot, or run-status mutation survives.
             await session.rollback()
-            return _build_outcome(
-                ctx=ctx,
-                config=config,
-                node=node_def,
-                run=run,
-                attempt=attempt,
+            return NodeOrchestrationOutcome(
+                rolling_run_signature=frozen_run_signature,
+                node_signature=frozen_node_signature,
+                attempt_number=frozen_attempt_number,
                 status="blocked",
                 stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
+                resolved_inputs=frozen_resolved_inputs,
+                availability_audits=frozen_availability_audits,
+                task9_authority=frozen_task9_authority,
+                task10_authority=frozen_task10_authority,
+                fallback_mode=frozen_fallback_mode,
                 blocker_code="ROLLING_ORCHESTRATION_INTEGRITY_RELOAD_FAILED",
                 diagnostics={"error": str(reload_exc)},
+                started_at=frozen_started_at,
             )
 
         return _build_outcome(

@@ -751,7 +751,7 @@ async def _query_task8_artifact_candidates(
             business_version=model_run.model_version,
             display_label="task8:model_artifact",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id", reference_value=artifact.id
+                reference_type="database_artifact_id", reference_value=artifact.id
             ),
         )
         candidates.append(
@@ -759,7 +759,7 @@ async def _query_task8_artifact_candidates(
                 source_role="task8_model_artifact",
                 source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
                 persistent_reference=PersistentUpstreamReference(
-                    reference_type="database_run_id", reference_value=artifact.id
+                    reference_type="database_artifact_id", reference_value=artifact.id
                 ),
                 semantic_identity=identity,
                 authoritative_available_at=artifact.created_at,
@@ -810,7 +810,7 @@ async def _query_task8_daily_prediction_candidates(
             canonical_payload_hash=daily_hash,
             display_label="task8:daily_prediction",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id", reference_value=daily.id
+                reference_type="database_row_id", reference_value=daily.id
             ),
         )
         candidates.append(
@@ -818,7 +818,7 @@ async def _query_task8_daily_prediction_candidates(
                 source_role="task8_daily_prediction",
                 source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
                 persistent_reference=PersistentUpstreamReference(
-                    reference_type="database_run_id", reference_value=daily.id
+                    reference_type="database_row_id", reference_value=daily.id
                 ),
                 semantic_identity=identity,
                 authoritative_available_at=daily.created_at,
@@ -862,7 +862,7 @@ async def _query_task10_artifact_candidates(
             business_version=artifact.artifact_schema_version,
             display_label="task10:model_artifact",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id", reference_value=artifact.id
+                reference_type="database_artifact_id", reference_value=artifact.id
             ),
         )
         candidates.append(
@@ -870,7 +870,7 @@ async def _query_task10_artifact_candidates(
                 source_role="task10_model_artifact",
                 source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
                 persistent_reference=PersistentUpstreamReference(
-                    reference_type="database_run_id", reference_value=artifact.id
+                    reference_type="database_artifact_id", reference_value=artifact.id
                 ),
                 semantic_identity=identity,
                 authoritative_available_at=artifact.created_at,
