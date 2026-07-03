@@ -833,9 +833,19 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
     }
 
 
-async def _seed_real_task9_run() -> tuple[int, str, str, datetime]:
+async def _seed_real_task9_run(
+    *,
+    request_variant: str = "baseline",
+) -> tuple[int, str, str, datetime]:
     async with AsyncSessionMaker() as session:
-        output = run_harvest_state_model(make_request())
+        payload = make_request()
+        if request_variant == "inventory_shift":
+            payload["initial_inventory_cohorts"][0]["remaining_quantity_kg"] = Decimal("6")
+            payload["initial_opening_mature_inventory_kg"] = Decimal("31")
+        elif request_variant != "baseline":
+            raise AssertionError(f"unsupported request_variant={request_variant}")
+
+        output = run_harvest_state_model(payload)
         assert output.status == "completed"
         run = await save_harvest_state_output(session, output=output)
         await session.commit()
@@ -1768,8 +1778,7 @@ async def test_real_task10_task9_binding_mismatch_blocks() -> None:
     cmd = await _build_real_orchestration_command(
         forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
     )
-    run = await create_or_load_logical_run(cmd)
-    node_id = await _get_node_id_for_run(run.id)
+    await create_or_load_logical_run(cmd)
 
     async with AsyncSessionMaker() as session:
         expected_task9_run_id = (
@@ -1779,35 +1788,30 @@ async def test_real_task10_task9_binding_mismatch_blocks() -> None:
                 .limit(1)
             )
         ).scalar_one()
-        other_task9, *_ = await _seed_real_task9_run()
+        other_task9, other_task9_result_hash, *_ = await _seed_real_task9_run(
+            request_variant="inventory_shift"
+        )
         assert other_task9 != expected_task9_run_id
-        node_row = (
+        expected_task9_result_hash = (
             await session.execute(
-                select(RollingBacktestNode).where(RollingBacktestNode.id == node_id)
+                select(HarvestStateRun.result_hash).where(
+                    HarvestStateRun.id == expected_task9_run_id
+                )
             )
         ).scalar_one()
-        run_row = (
-            await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
-        ).scalar_one()
-        payload = dict(node_row.canonical_payload)
-        identities = list(payload["resolved_upstream_semantic_identities"])
-        for item in identities:
-            if item["source_type"] == AvailabilitySourceType.TASK9_HARVEST_STATE_RUN.value:
-                item["persistent_reference"]["reference_value"] = other_task9
-        payload["resolved_upstream_semantic_identities"] = identities
-        node_row.canonical_payload = payload
-        run_payload = dict(run_row.canonical_payload)
-        run_nodes = list(run_payload["nodes"])
-        run_nodes[0] = payload
-        run_payload["nodes"] = run_nodes
-        run_row.canonical_payload = run_payload
-        await session.commit()
+        assert other_task9_result_hash != expected_task9_result_hash
+    mismatched_cmd = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+        pinned_task9_run_id=other_task9,
+    )
+    mismatched_run = await create_or_load_logical_run(mismatched_cmd)
+    mismatched_node_id = await _get_node_id_for_run(mismatched_run.id)
 
     async with AsyncSessionMaker() as session:
         outcome = await orchestrate_node(
             session,
-            rolling_run_id=run.id,
-            rolling_node_id=node_id,
+            rolling_run_id=mismatched_run.id,
+            rolling_node_id=mismatched_node_id,
         )
         await session.commit()
 
@@ -1831,33 +1835,21 @@ async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
     node_id = await _get_node_id_for_run(run.id)
 
     async with AsyncSessionMaker() as session:
-        prediction_completed_at = (
+        prediction_run_id = (
             await session.execute(
-                select(ResidualModelPredictionRun.completed_at)
+                select(ResidualModelPredictionRun.id)
                 .order_by(ResidualModelPredictionRun.id.desc())
                 .limit(1)
             )
         ).scalar_one()
-        assert prediction_completed_at is not None
         node_row = (
             await session.execute(
                 select(RollingBacktestNode).where(RollingBacktestNode.id == node_id)
             )
         ).scalar_one()
-        run_row = (
-            await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
-        ).scalar_one()
-        payload = dict(node_row.canonical_payload)
-        payload["as_of_local_date"] = (prediction_completed_at - timedelta(days=1)).date()
-        payload["forecast_cutoff_at"] = (prediction_completed_at - timedelta(minutes=1)).isoformat()
-        payload["forecast_start_local_date"] = prediction_completed_at.date()
-        payload["forecast_end_local_date"] = prediction_completed_at.date() + timedelta(days=7)
-        node_row.canonical_payload = payload
-        run_payload = dict(run_row.canonical_payload)
-        run_nodes = list(run_payload["nodes"])
-        run_nodes[0] = payload
-        run_payload["nodes"] = run_nodes
-        run_row.canonical_payload = run_payload
+        prediction_row = await session.get(ResidualModelPredictionRun, prediction_run_id)
+        assert prediction_row is not None
+        prediction_row.completed_at = node_row.forecast_cutoff_at + timedelta(minutes=1)
         await session.commit()
 
     async with AsyncSessionMaker() as session:
@@ -1870,6 +1862,49 @@ async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "TASK10_PREDICTION_AFTER_CUTOFF"
+    assert outcome.stage == "execute_task10_prediction"
+
+    async with AsyncSessionMaker() as session:
+        attempt = (
+            await session.execute(
+                select(RollingBacktestAttempt)
+                .where(RollingBacktestAttempt.rolling_run_id == run.id)
+                .order_by(RollingBacktestAttempt.attempt_number.desc())
+                .limit(1)
+            )
+        ).scalar_one()
+        snapshot = (
+            await session.execute(
+                select(RollingBacktestOrchestrationSnapshot).where(
+                    RollingBacktestOrchestrationSnapshot.attempt_id == attempt.id
+                )
+            )
+        ).scalar_one()
+        events = (
+            (
+                await session.execute(
+                    select(RollingBacktestStageEvent)
+                    .where(RollingBacktestStageEvent.attempt_id == attempt.id)
+                    .order_by(RollingBacktestStageEvent.stage_ordinal.asc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    assert attempt.current_stage == "execute_task10_prediction"
+    assert snapshot.terminal_stage == "execute_task10_prediction"
+    assert [event.stage for event in events] == [
+        "resolve_historical_inputs",
+        "validate_visibility",
+        "validate_authority_chain",
+        "resolve_or_replay_task8",
+        "resolve_or_replay_task9",
+        "resolve_or_train_task10",
+        "execute_task10_prediction",
+    ]
+    assert [event.status for event in events[:-1]] == ["completed"] * 6
+    assert events[-1].status == "blocked"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
