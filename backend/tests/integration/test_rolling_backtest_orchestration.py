@@ -123,6 +123,11 @@ TASK8_MODEL_CONFIG_HASH = sha256_payload({"fixture": "task8-model-config", "vers
 TASK8_MODEL_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-model-run", "version": 1})
 TASK8_ARTIFACT_HASH = sha256_payload({"fixture": "task8-model-artifact", "version": 1})
 TASK8_FORECAST_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-forecast-run", "version": 1})
+TASK8_FORECAST_SOURCE_SIGNATURE_VARIETY_102 = sha256_payload(
+    {"fixture": "task8-forecast-run-variety-102", "version": 1}
+)
+TASK8_VARIETY_102_PLAN_ID = 502
+TASK8_VARIETY_102_FORECAST_RUN_ID = 402
 
 
 def _assert_sha256_hex(value: str) -> None:
@@ -671,6 +676,32 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
                     notes="synthetic",
                     row_hash="plan-501",
                 ),
+                FarmSeasonVarietyPlan(
+                    id=502,
+                    farm_id=1,
+                    subfarm_id=None,
+                    season_id=season_id,
+                    variety_id=102,
+                    planted_area_mu=Decimal("80"),
+                    expected_yield_kg_per_mu=Decimal("1100"),
+                    marketable_rate=Decimal("0.75"),
+                    tree_age_years=Decimal("2"),
+                    pruning_date=date(2026, 1, 1),
+                    flowering_start_date=date(2026, 2, 2),
+                    flowering_peak_date=date(2026, 2, 7),
+                    flowering_end_date=date(2026, 2, 11),
+                    first_pick_date=date(2026, 3, 6),
+                    expected_total_marketable_kg=Decimal("66000"),
+                    version=1,
+                    effective_from=date(2026, 1, 1),
+                    effective_to=None,
+                    available_at=date(2025, 12, 15),
+                    source_type="manual",
+                    source_name="planner",
+                    source_version="v1",
+                    notes="synthetic-variety-102",
+                    row_hash="plan-502",
+                ),
                 BaseTemperatureSearchRun(
                     id=901,
                     scope_type="variety_zone",
@@ -825,20 +856,78 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
             )
         session.add_all(daily_rows)
         await session.flush()
+
+        # ── Variety 102 forecast run and daily prediction rows ──
+        forecast_v102 = MaturityForecastRun(
+            id=TASK8_VARIETY_102_FORECAST_RUN_ID,
+            model_run_id=101,
+            artifact_id=201,
+            plan_id=TASK8_VARIETY_102_PLAN_ID,
+            location_reference_id=601,
+            weather_mapping_id=801,
+            base_temperature_search_run_id=901,
+            as_of_date=date(2026, 2, 28),
+            prediction_start_date=date(2026, 3, 1),
+            prediction_end_date=date(2026, 3, 3),
+            expected_marketable_total_kg=Decimal("66000"),
+            expected_total_source="explicit",
+            axis_mode="calendar_proxy_axis",
+            source_signature=TASK8_FORECAST_SOURCE_SIGNATURE_VARIETY_102,
+            status="completed",
+            warnings=[],
+            blockers=[],
+            input_snapshot={},
+            started_at=datetime(2026, 2, 28, 12, 10, tzinfo=UTC),
+            finished_at=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
+            error_message=None,
+        )
+        session.add(forecast_v102)
+        await session.flush()
+
+        # Compute variety 102 daily prediction IDs using the same formula as
+        # make_task8_source_ref: ordinal * 100_000 + farm * 10_000 + subfarm * 100 + variety
+        daily_rows_v102 = []
+        for prediction_date in sorted(daily_ids_by_date.keys()):
+            daily_id_v102 = prediction_date.toordinal() * 100_000 + 1 * 10_000 + 11 * 100 + 102
+            daily_rows_v102.append(
+                MaturityDailyPredictionModel(
+                    id=daily_id_v102,
+                    forecast_run_id=TASK8_VARIETY_102_FORECAST_RUN_ID,
+                    prediction_date=prediction_date,
+                    phenology_coordinate_day=Decimal("1"),
+                    p50_kg=Decimal("20"),
+                    p80_kg=Decimal("24"),
+                    p90_kg=Decimal("28"),
+                    cumulative_p50_kg=Decimal("20"),
+                    cumulative_p80_kg=Decimal("24"),
+                    cumulative_p90_kg=Decimal("28"),
+                    curve_share=Decimal("0.3333333333"),
+                    confidence_level="medium",
+                    quality_flags=[],
+                    created_at=datetime(2026, 2, 28, 13, 5, tzinfo=UTC),
+                )
+            )
+        session.add_all(daily_rows_v102)
+        await session.flush()
         await session.commit()
 
     return {
         "model_run_id": 101,
         "artifact_id": 201,
         "forecast_run_id": 401,
+        "variety_102_plan_id": TASK8_VARIETY_102_PLAN_ID,
+        "variety_102_forecast_run_id": TASK8_VARIETY_102_FORECAST_RUN_ID,
     }
 
 
 async def _seed_real_task10_authorities(
     *,
     task8_authority: dict[str, Any] | None = None,
+    variety_overrides: dict[int, dict[str, Any]] | None = None,
 ) -> dict[str, int]:
-    fixture = await _seed_prediction_fixture(task8_authority=task8_authority)
+    fixture = await _seed_prediction_fixture(
+        task8_authority=task8_authority, variety_overrides=variety_overrides
+    )
     samples = _diverse_training_samples(
         task9_run_id=fixture["train_task9_run_id"],
         label_build_run_id=fixture["train_label_build_run_id"],
@@ -952,7 +1041,19 @@ async def _build_real_orchestration_command(
         "forecast_run_id": task8["forecast_run_id"],
         "forecast_source_signature": TASK8_FORECAST_SOURCE_SIGNATURE,
     }
-    task10 = await _seed_real_task10_authorities(task8_authority=task8_authority)
+    # NOTE: The harvest state model requires all entries in a single request
+    # to share the same forecast_run identity (TASK8_SOURCE_SIGNATURE_MISMATCH
+    # otherwise). Both varieties use forecast_run_id=401 in the Task 9 request.
+    # The DB has a separate forecast run 402 for variety 102, but the Task 9
+    # request binds both varieties to forecast_run 401.
+    variety_overrides = {
+        102: {
+            "plan_id": TASK8_VARIETY_102_PLAN_ID,
+        },
+    }
+    task10 = await _seed_real_task10_authorities(
+        task8_authority=task8_authority, variety_overrides=variety_overrides
+    )
     task9_run_id = task10["task9_run_id"]
     if pinned_task9_variant == "training":
         pinned_task9_run_id = task10["task9_run_id"]
@@ -995,21 +1096,51 @@ async def _build_real_orchestration_command(
         assert first_vs["maturity_model_artifact_id"] == task8_artifact_row.id
         assert first_vs["maturity_model_artifact_hash"] == task8_artifact_row.artifact_hash
         assert first_vs["maturity_forecast_run_id"] == task8_forecast_row.id
-        # daily prediction exact-set: variety 101 IDs from task9 input must
-        # exactly match DB rows (schema uq_maturity_daily_run_date allows only
-        # one row per forecast_run+date, so variety 102 IDs have no DB rows).
-        plan_variety = 101
-        daily_ids_in_task9_plan = {
-            item["verification_snapshot"]["maturity_daily_prediction_id"]
-            for item in t8_preds
-            if item.get("variety_id") == plan_variety
+        # daily prediction exact-set: ALL variety 101+102 IDs from task9 input
+        # must exactly match DB rows (both varieties now have DB rows).
+        all_daily_ids_in_task9 = {
+            item["verification_snapshot"]["maturity_daily_prediction_id"] for item in t8_preds
         }
         daily_ids_in_task8 = await session.execute(select(MaturityDailyPredictionModel.id))
         daily_ids_in_task8_set = set(daily_ids_in_task8.scalars().all())
-        assert daily_ids_in_task8_set == daily_ids_in_task9_plan, (
+        assert daily_ids_in_task8_set == all_daily_ids_in_task9, (
             f"Task 8 DB daily IDs {daily_ids_in_task8_set} "
-            f"!= Task 9 plan variety daily IDs {daily_ids_in_task9_plan}"
+            f"!= Task 9 all-variety daily IDs {all_daily_ids_in_task9}"
         )
+        # Verify both varieties present
+        varieties_in_task9 = {item.get("variety_id") for item in t8_preds}
+        assert varieties_in_task9 == {101, 102}, (
+            f"expected varieties {{101, 102}}, got {varieties_in_task9}"
+        )
+        # Verify forecast run IDs: harvest state model requires all entries
+        # to share the same forecast run identity, so both varieties use 401.
+        v101_forecast_ids = {
+            item["verification_snapshot"]["maturity_forecast_run_id"]
+            for item in t8_preds
+            if item.get("variety_id") == 101
+        }
+        v102_forecast_ids = {
+            item["verification_snapshot"]["maturity_forecast_run_id"]
+            for item in t8_preds
+            if item.get("variety_id") == 102
+        }
+        assert v101_forecast_ids == v102_forecast_ids == {401}, (
+            f"all varieties must share forecast run 401, "
+            f"got v101={v101_forecast_ids} v102={v102_forecast_ids}"
+        )
+        # Verify plan IDs per variety
+        v101_plan_ids = {
+            item["verification_snapshot"]["plan_id"]
+            for item in t8_preds
+            if item.get("variety_id") == 101
+        }
+        v102_plan_ids = {
+            item["verification_snapshot"]["plan_id"]
+            for item in t8_preds
+            if item.get("variety_id") == 102
+        }
+        assert v101_plan_ids == {501}, f"variety 101 plan should be 501, got {v101_plan_ids}"
+        assert v102_plan_ids == {502}, f"variety 102 plan should be 502, got {v102_plan_ids}"
 
     identities: tuple[ResolvedUpstreamSemanticIdentity, ...] = (
         _make_identity(
@@ -1926,7 +2057,7 @@ async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "TASK10_PREDICTION_AFTER_CUTOFF"
-    assert outcome.stage == "execute_task10_prediction"
+    assert outcome.stage == "resolve_or_train_task10"
 
     async with AsyncSessionMaker() as session:
         attempt = (
@@ -1949,15 +2080,15 @@ async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
                 await session.execute(
                     select(RollingBacktestStageEvent)
                     .where(RollingBacktestStageEvent.attempt_id == attempt.id)
-                    .order_by(RollingBacktestStageEvent.stage_ordinal.asc())
+                    .order_by(RollingBacktestStageEvent.sequence_number.asc())
                 )
             )
             .scalars()
             .all()
         )
 
-    assert attempt.current_stage == "execute_task10_prediction"
-    assert snapshot.terminal_stage == "execute_task10_prediction"
+    assert attempt.current_stage == "resolve_or_train_task10"
+    assert snapshot.terminal_stage == "resolve_or_train_task10"
     assert [event.stage for event in events] == [
         "resolve_historical_inputs",
         "validate_visibility",
@@ -1965,9 +2096,8 @@ async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
         "resolve_or_replay_task8",
         "resolve_or_replay_task9",
         "resolve_or_train_task10",
-        "execute_task10_prediction",
     ]
-    assert [event.status for event in events[:-1]] == ["completed"] * 6
+    assert [event.status for event in events[:-1]] == ["completed"] * 5
     assert events[-1].status == "blocked"
 
 

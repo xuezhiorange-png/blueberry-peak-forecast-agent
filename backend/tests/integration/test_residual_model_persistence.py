@@ -70,11 +70,18 @@ def _relaxed_config():
 def _apply_task8_authority_to_payload(
     payload: dict[str, Any],
     authority: dict[str, Any],
+    *,
+    variety_overrides: dict[int, dict[str, Any]] | None = None,
 ) -> None:
-    """Override Task 8 authority fields in every task8_daily_predictions item."""
+    """Override Task 8 authority fields in every task8_daily_predictions item.
+
+    variety_overrides maps variety_id → dict of extra field overrides applied
+    to source_ref and verification_snapshot for that variety's entries.
+    """
     for item in payload["task8_daily_predictions"]:
         src = item["source_ref"]
         vs = item["verification_snapshot"]
+        variety_id = item.get("variety_id")
         # source_ref fields
         src["maturity_model_run_id"] = authority["model_run_id"]
         src["maturity_model_config_hash"] = authority["model_config_hash"]
@@ -94,11 +101,20 @@ def _apply_task8_authority_to_payload(
         vs["maturity_forecast_model_run_id"] = authority["model_run_id"]
         vs["maturity_forecast_artifact_id"] = authority["artifact_id"]
         vs["maturity_forecast_source_signature"] = authority["forecast_source_signature"]
+        # Apply variety-specific overrides (e.g. different forecast_run_id for variety 102)
+        if variety_overrides and variety_id in variety_overrides:
+            overrides = variety_overrides[variety_id]
+            for key, val in overrides.items():
+                if key in src:
+                    src[key] = val
+                if key in vs:
+                    vs[key] = val
 
 
 async def _seed_prediction_fixture(
     *,
     task8_authority: dict[str, Any] | None = None,
+    variety_overrides: dict[int, dict[str, Any]] | None = None,
 ) -> dict[str, int]:
     async with AsyncSessionMaker() as session:
         season_id, factory_id, variety_id = await _seed_master_data(session)
@@ -111,13 +127,17 @@ async def _seed_prediction_fixture(
         )
         if task8_authority is not None:
             base_payload = copy.deepcopy(make_request())
-            _apply_task8_authority_to_payload(base_payload, task8_authority)
+            _apply_task8_authority_to_payload(
+                base_payload, task8_authority, variety_overrides=variety_overrides
+            )
             task9_run_id, output = await _persist_task9_run(session, payload=base_payload)
         else:
             task9_run_id, output = await _persist_task9_run(session)
         if task8_authority is not None:
             validation_payload = copy.deepcopy(make_request())
-            _apply_task8_authority_to_payload(validation_payload, task8_authority)
+            _apply_task8_authority_to_payload(
+                validation_payload, task8_authority, variety_overrides=variety_overrides
+            )
         else:
             validation_payload = make_request()
         validation_payload["initial_inventory_cohorts"][0]["remaining_quantity_kg"] = Decimal("6")
