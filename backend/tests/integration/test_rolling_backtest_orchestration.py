@@ -693,6 +693,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
             error_message=None,
         )
         session.add(forecast)
+        await session.flush()
 
         for (prediction_date, _variety_id), daily_id in sorted(daily_ids.items()):
             session.add(
