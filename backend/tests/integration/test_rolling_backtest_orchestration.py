@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch
@@ -396,19 +397,63 @@ async def _get_node_id_for_run(run_id: int) -> int:
 
 def _relaxed_residual_config():
     config = _residual_config()
-    eligibility = config.rules.eligibility.model_copy(
-        update={
-            "min_training_rows": 1,
-            "min_seasons": 1,
-            "min_factories": 1,
-        }
+    eligibility = replace(
+        config.rules.eligibility,
+        min_training_rows=1,
+        min_seasons=1,
+        min_factories=1,
     )
-    return config.model_copy(
-        update={
-            "rules": config.rules.model_copy(
-                update={"eligibility": eligibility},
-            )
-        }
+    rules = replace(config.rules, eligibility=eligibility)
+    return replace(config, rules=rules)
+
+
+async def _make_real_task8_orchestration_persistence_command(
+    *,
+    season_id: int,
+    node_key: str,
+) -> RollingBacktestPersistenceCommand:
+    task8 = await _seed_real_task8_authorities(season_id=season_id)
+
+    async with AsyncSessionMaker() as session:
+        forecast_row = await session.get(MaturityForecastRun, task8["forecast_run_id"])
+        assert forecast_row is not None and forecast_row.finished_at is not None
+
+    identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        source_role="task8_forecast_run",
+        schema_version="task8-maturity-v1",
+        semantic_payload_hash=forecast_row.source_signature,
+        display_label="task8:forecast_run",
+        persistent_reference=PersistentUpstreamReference(
+            reference_type="database_run_id",
+            reference_value=forecast_row.id,
+        ),
+    )
+    node = _make_pinned_node(
+        season_id=season_id,
+        node_key=node_key,
+        resolved_identities=(identity,),
+    )
+    config = _make_config(execution_mode=ExecutionMode.HISTORICAL_OBSERVED, nodes=(node,))
+    audit_cmd = AvailabilityAuditPersistenceCommand(
+        source_role="task8_forecast_run",
+        snapshot=Task8ForecastRunAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+            status="completed",
+            authoritative_timestamp=forecast_row.finished_at,
+        ),
+        forecast_cutoff_at=node.forecast_cutoff_at,
+        resolved_identity=identity,
+    )
+    node_cmd = RollingNodePersistenceCommand(
+        node=node,
+        resolved_inputs=(ResolvedInputPersistenceCommand(identity=identity),),
+        availability_audits=(audit_cmd,),
+        dag=_make_dag(),
+    )
+    return RollingBacktestPersistenceCommand(
+        config=config.model_copy(update={"nodes": (node,)}),
+        nodes=(node_cmd,),
     )
 
 
@@ -1032,7 +1077,10 @@ async def _build_real_orchestration_command(
 async def test_single_node_successful_orchestration() -> None:
     """Create a run with one node, execute orchestrate_node, verify all artifacts."""
     _require_postgres()
-    cmd = _make_orchestration_persistence_command()
+    cmd = await _make_real_task8_orchestration_persistence_command(
+        season_id=2026,
+        node_key="march_15",
+    )
     run = await create_or_load_logical_run(cmd)
     assert run.id is not None
 
@@ -1088,7 +1136,10 @@ async def test_single_node_successful_orchestration() -> None:
 async def test_independent_session_committed_reload() -> None:
     """Create run + orchestrate, then in a NEW session verify the run loads with integrity."""
     _require_postgres()
-    cmd = _make_orchestration_persistence_command()
+    cmd = await _make_real_task8_orchestration_persistence_command(
+        season_id=2027,
+        node_key="march_16",
+    )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
 
@@ -1135,9 +1186,9 @@ async def test_independent_session_committed_reload() -> None:
 async def test_existing_finalized_result_integrity_reload() -> None:
     """Orchestrate once (success), try again → idempotent completed (P0-1)."""
     _require_postgres()
-    cmd = _make_orchestration_persistence_command(
-        season_id=2027,
-        identity_role="task8_forecast_run_reload",
+    cmd = await _make_real_task8_orchestration_persistence_command(
+        season_id=2028,
+        node_key="march_17",
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
