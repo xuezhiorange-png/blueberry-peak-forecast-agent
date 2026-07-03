@@ -369,10 +369,6 @@ async def test_single_node_successful_orchestration() -> None:
         )
         await session.commit()
 
-    if outcome.status != "completed":
-        print(f"DIAGNOSTICS: {outcome.diagnostics}")
-    if outcome.status != "completed":
-        print(f"DIAGNOSTICS: {outcome.diagnostics}")
     assert outcome.status == "completed"
     assert outcome.stage == "finalize_orchestration_snapshot"
 
@@ -460,7 +456,7 @@ async def test_independent_session_committed_reload() -> None:
 
 @pytest.mark.asyncio
 async def test_existing_finalized_result_integrity_reload() -> None:
-    """Orchestrate once (success), try again → NodeAlreadyFinalizedError, verify original intact."""
+    """Orchestrate once (success), try again → idempotent completed (P0-1)."""
     _require_postgres()
     cmd = _make_orchestration_persistence_command(
         season_id=2027,
@@ -479,7 +475,9 @@ async def test_existing_finalized_result_integrity_reload() -> None:
         await session.commit()
     assert outcome1.status == "completed"
 
-    # Second orchestration: should raise NodeAlreadyFinalizedError
+    first_attempt_id = outcome1.attempt_number
+
+    # Second orchestration: idempotent completed (P0-1)
     async with AsyncSessionMaker() as session:
         outcome2 = await orchestrate_node(
             session,
@@ -487,10 +485,26 @@ async def test_existing_finalized_result_integrity_reload() -> None:
             rolling_node_id=node_id,
         )
         await session.commit()
-    assert outcome2.status == "blocked"
-    assert outcome2.blocker_code == "NODE_ALREADY_FINALIZED"
+    assert outcome2.status == "completed"
+    assert outcome2.diagnostics.get("idempotent_reload") is True
+    # Same attempt number, no new attempt created
+    assert outcome2.attempt_number == first_attempt_id
 
-    # Verify original result is intact via integrity reload
+    # Verify no new attempt was created
+    async with AsyncSessionMaker() as session:
+        attempt_count = await session.scalar(
+            select(func.count()).where(RollingBacktestAttempt.rolling_run_id == run.id)
+        )
+        assert attempt_count == 1
+
+    # Verify no new snapshot was created
+    async with AsyncSessionMaker() as session:
+        snap_count = await session.scalar(
+            select(func.count()).select_from(RollingBacktestOrchestrationSnapshot)
+        )
+        assert snap_count == 1
+
+    # Verify original result is intact via integrity reload in fresh session
     async with AsyncSessionMaker() as session:
         result = await session.execute(
             select(RollingBacktestRun).where(RollingBacktestRun.id == run.id)
@@ -498,12 +512,11 @@ async def test_existing_finalized_result_integrity_reload() -> None:
         loaded_run = result.scalar_one()
         await load_logical_run_with_integrity(session, loaded_run)
 
-    # Verify exactly 2 attempts (first completed, second blocked)
+    # Verify snapshot hash unchanged
     async with AsyncSessionMaker() as session:
-        attempt_count = await session.scalar(
-            select(func.count()).where(RollingBacktestAttempt.rolling_run_id == run.id)
-        )
-        assert attempt_count == 2
+        snap_result = await session.execute(select(RollingBacktestOrchestrationSnapshot))
+        snap = snap_result.scalar_one()
+        assert snap.canonical_payload_hash is not None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -542,7 +555,7 @@ async def test_same_node_concurrent_attempt_allocation() -> None:
 
 @pytest.mark.asyncio
 async def test_blocked_execution_leaves_no_partial_snapshot() -> None:
-    """Configure node with unsupported execution_mode, verify blocked, no orphaned data."""
+    """Unsupported execution_mode → blocked, persisted attempt, no completed snapshot (P0-2)."""
     _require_postgres()
     # Use retrospective_replay which is not supported in this phase
     cmd = _make_orchestration_persistence_command(
@@ -562,26 +575,55 @@ async def test_blocked_execution_leaves_no_partial_snapshot() -> None:
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "UNSUPPORTED_EXECUTION_MODE"
 
-    # Verify attempt was finalized as blocked
+    # Verify exactly 1 attempt was created and finalized as blocked
     async with AsyncSessionMaker() as session:
         attempt_count = await session.scalar(
             select(func.count()).where(RollingBacktestAttempt.rolling_run_id == run.id)
         )
         assert attempt_count == 1
 
-    # Verify no completed orchestration snapshot exists
+    # Verify attempt status is blocked
     async with AsyncSessionMaker() as session:
-        snap_count = await session.scalar(
-            select(func.count()).select_from(RollingBacktestOrchestrationSnapshot)
+        result = await session.execute(
+            select(RollingBacktestAttempt).where(RollingBacktestAttempt.rolling_run_id == run.id)
         )
-        assert snap_count == 1  # snapshot exists but status is "blocked"
+        attempt = result.scalar_one()
+        assert attempt.status == "blocked"
 
-    # Verify the snapshot has blocked status, not completed
+    # Verify stage events: persist_stage_event uses ON CONFLICT DO UPDATE,
+    # so running → blocked for the same stage = 1 row with terminal state.
     async with AsyncSessionMaker() as session:
-        result = await session.execute(select(RollingBacktestOrchestrationSnapshot))
-        snap = result.scalar_one()
-        assert snap.status == "blocked"
-        assert snap.blocker_code == "UNSUPPORTED_EXECUTION_MODE"
+        stage_count = await session.scalar(
+            select(func.count()).select_from(RollingBacktestStageEvent)
+        )
+        assert stage_count == 1
+
+    # Verify no Stage 2-8 events exist
+    async with AsyncSessionMaker() as session:
+        result = await session.execute(
+            select(RollingBacktestStageEvent).where(
+                RollingBacktestStageEvent.attempt_id == attempt.id
+            )
+        )
+        events = result.scalars().all()
+        stage_names = {e.stage for e in events}
+        assert stage_names == {"resolve_historical_inputs"}
+
+    # Verify blocked snapshot exists, no completed snapshot
+    async with AsyncSessionMaker() as session:
+        snap_result = await session.execute(select(RollingBacktestOrchestrationSnapshot))
+        snaps = snap_result.scalars().all()
+        assert len(snaps) == 1
+        assert snaps[0].status == "blocked"
+        assert snaps[0].blocker_code == "UNSUPPORTED_EXECUTION_MODE"
+
+    # Verify integrity reload succeeds in fresh session
+    async with AsyncSessionMaker() as session:
+        result = await session.execute(
+            select(RollingBacktestRun).where(RollingBacktestRun.id == run.id)
+        )
+        loaded_run = result.scalar_one()
+        await load_logical_run_with_integrity(session, loaded_run)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

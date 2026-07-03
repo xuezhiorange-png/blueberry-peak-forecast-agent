@@ -351,7 +351,7 @@ async def test_historical_observed_pinned_success(mock_session, mock_run, mock_n
 
 @pytest.mark.asyncio
 async def test_retrospective_replay_unsupported(mock_session):
-    """Retrospective replay mode returns blocker."""
+    """Retrospective replay mode returns blocked outcome (P0-2)."""
     retro_config = _make_config(execution_mode=ExecutionMode.RETROSPECTIVE_REPLAY)
 
     mock_run = MagicMock()
@@ -367,11 +367,24 @@ async def test_retrospective_replay_unsupported(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = retro_config.nodes[0].model_dump(mode="python")
 
+    mock_attempt = MagicMock()
+    mock_attempt.id = 100
+    mock_attempt.attempt_number = 1
+    mock_attempt.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    mock_attempt.finished_at = None
+
     mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
-    with pytest.raises(UnsupportedExecutionModeError) as exc_info:
-        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
-    assert exc_info.value.code == "UNSUPPORTED_EXECUTION_MODE"
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+    )
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "UNSUPPORTED_EXECUTION_MODE"
 
 
 # ── 3. Historical resolution unsupported ─────────────────────────────────────
@@ -379,7 +392,7 @@ async def test_retrospective_replay_unsupported(mock_session):
 
 @pytest.mark.asyncio
 async def test_historical_resolution_unsupported(mock_session):
-    """Historical resolution mode returns blocker.
+    """Historical resolution mode returns blocked outcome (P0-2).
 
     Note: the ExecutionMode enum currently only has HISTORICAL_OBSERVED and
     RETROSPECTIVE_REPLAY. We test with a config whose execution_mode is
@@ -401,11 +414,24 @@ async def test_historical_resolution_unsupported(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = retro_config.nodes[0].model_dump(mode="python")
 
+    mock_attempt = MagicMock()
+    mock_attempt.id = 100
+    mock_attempt.attempt_number = 1
+    mock_attempt.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    mock_attempt.finished_at = None
+
     mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
-    with pytest.raises(UnsupportedExecutionModeError) as exc_info:
-        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
-    assert exc_info.value.code == "UNSUPPORTED_EXECUTION_MODE"
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+    )
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "UNSUPPORTED_EXECUTION_MODE"
 
 
 # ── 4. Node already finalized ────────────────────────────────────────────────
@@ -413,7 +439,7 @@ async def test_historical_resolution_unsupported(mock_session):
 
 @pytest.mark.asyncio
 async def test_node_already_finalized(mock_session):
-    """Completed node cannot be re-executed."""
+    """Completed node returns idempotent completed outcome (P0-1)."""
     config = _make_config()
     mock_run = MagicMock()
     mock_run.id = 1
@@ -431,15 +457,28 @@ async def test_node_already_finalized(mock_session):
     completed_attempt = MagicMock()
     completed_attempt.id = 100
     completed_attempt.status = "completed"
+    completed_attempt.attempt_number = 1
+    completed_attempt.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    completed_attempt.finished_at = datetime(2026, 3, 15, 5, 0, tzinfo=UTC)
+
     mock_session.execute = AsyncMock(
         side_effect=_build_session_side_effect(
             mock_run, mock_node, completed_attempt=completed_attempt
         )
     )
 
-    with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
-        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
-    assert exc_info.value.code == "NODE_ALREADY_FINALIZED"
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=completed_attempt,
+    )
+    patches["load_logical_run_with_integrity"] = AsyncMock(return_value=mock_run)
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "completed"
+    assert outcome.diagnostics.get("idempotent_reload") is True
+    assert outcome.attempt_number == 1
 
 
 # ── 5. Pinned source not found ───────────────────────────────────────────────
@@ -974,7 +1013,7 @@ async def test_cross_node_prior_attempt_rejected(mock_session):
 
 @pytest.mark.asyncio
 async def test_successful_node_cannot_be_overwritten(mock_session):
-    """Cannot re-run a completed node — verifies NodeAlreadyFinalizedError."""
+    """Re-running a completed node returns idempotent completed outcome (P0-1)."""
     config = _make_config()
     mock_run = MagicMock()
     mock_run.id = 1
@@ -992,15 +1031,27 @@ async def test_successful_node_cannot_be_overwritten(mock_session):
     completed_attempt = MagicMock()
     completed_attempt.id = 200
     completed_attempt.status = "completed"
+    completed_attempt.attempt_number = 1
+    completed_attempt.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    completed_attempt.finished_at = datetime(2026, 3, 15, 5, 0, tzinfo=UTC)
+
     mock_session.execute = AsyncMock(
         side_effect=_build_session_side_effect(
             mock_run, mock_node, completed_attempt=completed_attempt
         )
     )
 
-    with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
-        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
-    assert exc_info.value.code == "NODE_ALREADY_FINALIZED"
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=completed_attempt,
+    )
+    patches["load_logical_run_with_integrity"] = AsyncMock(return_value=mock_run)
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "completed"
+    assert outcome.diagnostics.get("idempotent_reload") is True
 
 
 # ── 17. Mixed node status aggregation ────────────────────────────────────────
@@ -1008,14 +1059,14 @@ async def test_successful_node_cannot_be_overwritten(mock_session):
 
 @pytest.mark.asyncio
 async def test_mixed_node_status_aggregation(mock_session):
-    """Multiple nodes with different statuses — each handled independently."""
+    """Multiple nodes with different statuses — each handled independently (P0-1)."""
     config = _make_config()
     mock_run = MagicMock()
     mock_run.id = 1
     mock_run.run_signature = "a" * 64
     mock_run.canonical_payload = config.model_dump(mode="python")
 
-    # Node A: completed → blocked
+    # Node A: completed → returns completed with idempotent_reload
     mock_node_a = MagicMock()
     mock_node_a.id = 10
     mock_node_a.rolling_run_id = 1
@@ -1027,15 +1078,26 @@ async def test_mixed_node_status_aggregation(mock_session):
     completed_attempt_a = MagicMock()
     completed_attempt_a.id = 300
     completed_attempt_a.status = "completed"
+    completed_attempt_a.attempt_number = 1
+    completed_attempt_a.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    completed_attempt_a.finished_at = datetime(2026, 3, 15, 5, 0, tzinfo=UTC)
     mock_session.execute = AsyncMock(
         side_effect=_build_session_side_effect(
             mock_run, mock_node_a, completed_attempt=completed_attempt_a
         )
     )
 
-    with pytest.raises(NodeAlreadyFinalizedError) as exc_info:
-        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
-    assert exc_info.value.code == "NODE_ALREADY_FINALIZED"
+    patches_a = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node_a,
+        mock_attempt=completed_attempt_a,
+    )
+    patches_a["load_logical_run_with_integrity"] = AsyncMock(return_value=mock_run)
+
+    with patch.multiple(_MOD, **patches_a):
+        outcome_a = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome_a.status == "completed"
+    assert outcome_a.diagnostics.get("idempotent_reload") is True
 
     # Node B: pending → success
     mock_node_b = MagicMock()
@@ -1126,7 +1188,7 @@ async def test_deterministic_final_snapshot_hash(mock_session, mock_run, mock_no
 
 @pytest.mark.asyncio
 async def test_unsupported_mode_returns_typed_error(mock_session):
-    """Returns UnsupportedExecutionModeError, not NotImplementedError."""
+    """Returns blocked outcome with UNSUPPORTED_EXECUTION_MODE blocker (P0-2)."""
     retro_config = _make_config(execution_mode=ExecutionMode.RETROSPECTIVE_REPLAY)
     mock_run = MagicMock()
     mock_run.id = 1
@@ -1141,13 +1203,24 @@ async def test_unsupported_mode_returns_typed_error(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
     mock_node.canonical_payload = retro_config.nodes[0].model_dump(mode="python")
 
+    mock_attempt = MagicMock()
+    mock_attempt.id = 100
+    mock_attempt.attempt_number = 1
+    mock_attempt.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    mock_attempt.finished_at = None
+
     mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
-    with pytest.raises(UnsupportedExecutionModeError) as exc_info:
-        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
-    assert exc_info.value.code == "UNSUPPORTED_EXECUTION_MODE"
-    # Verify it's a typed error, not NotImplementedError
-    assert not isinstance(exc_info.value, NotImplementedError)
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+    )
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "UNSUPPORTED_EXECUTION_MODE"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1285,14 +1358,14 @@ def test_stage_ordinals_are_sequential():
 
 @pytest.mark.asyncio
 async def test_unsupported_selection_mode(mock_session):
-    """Non-pinned selection mode returns UnsupportedSelectionModeError."""
-    config = _make_config()
+    """Non-pinned selection mode returns blocked outcome (P0-2)."""
+    node_def = _make_node_def(selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION)
+    config = _make_config(nodes=(node_def,))
     mock_run = MagicMock()
     mock_run.id = 1
     mock_run.run_signature = "a" * 64
     mock_run.canonical_payload = config.model_dump(mode="python")
 
-    node_def = _make_node_def(selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION)
     mock_node = MagicMock()
     mock_node.id = 10
     mock_node.rolling_run_id = 1
@@ -1301,8 +1374,21 @@ async def test_unsupported_selection_mode(mock_session):
     mock_node.upstream_selection_mode = UpstreamSelectionMode.HISTORICAL_RESOLUTION
     mock_node.canonical_payload = node_def.model_dump(mode="python")
 
+    mock_attempt = MagicMock()
+    mock_attempt.id = 100
+    mock_attempt.attempt_number = 1
+    mock_attempt.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    mock_attempt.finished_at = None
+
     mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
 
-    with pytest.raises(UnsupportedSelectionModeError) as exc_info:
-        await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
-    assert exc_info.value.code == "UNSUPPORTED_SELECTION_MODE"
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+    )
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "UNSUPPORTED_SELECTION_MODE"

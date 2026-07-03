@@ -30,6 +30,7 @@ from backend.app.models.rolling_backtest import (
     RollingBacktestAttempt,
     RollingBacktestAvailabilityAudit,
     RollingBacktestNode,
+    RollingBacktestOrchestrationSnapshot,
     RollingBacktestRun,
 )
 from backend.app.rolling_backtest.availability import (
@@ -57,9 +58,9 @@ from backend.app.rolling_backtest.orchestration import (
     _sanitize_diagnostics,
 )
 from backend.app.rolling_backtest.persistence import (
+    _finalize_attempt_status_in_session,
     _resolved_input_canonical_payload,
     create_execution_attempt,
-    finalize_attempt_status,
     finalize_attempt_with_snapshot,
     load_logical_run_with_integrity,
     persist_orchestration_snapshot,
@@ -499,16 +500,6 @@ async def orchestrate_node(
     config = _config_from_payload(run.canonical_payload)
     node_def = _node_def_from_payload(node.canonical_payload, config)
 
-    # ── Validate execution and selection modes ────────────────────────────
-    if config.execution_mode != ExecutionMode.HISTORICAL_OBSERVED:
-        raise UnsupportedExecutionModeError(
-            f"execution_mode={config.execution_mode.value} is not supported"
-        )
-    if node.upstream_selection_mode != UpstreamSelectionMode.PINNED:
-        raise UnsupportedSelectionModeError(
-            f"upstream_selection_mode={node.upstream_selection_mode} not supported"
-        )
-
     ctx = _StageContext(
         attempt_id=0,
         node_id=rolling_node_id,
@@ -518,7 +509,7 @@ async def orchestrate_node(
     )
     attempt = None
 
-    # ── Prevent overwrite of successfully completed node ──────────────────
+    # ── Check for existing finalized result (P0-1: idempotent reload) ──────
     latest_attempt_result = await session.execute(
         select(RollingBacktestAttempt)
         .where(
@@ -530,10 +521,37 @@ async def orchestrate_node(
     )
     latest_attempt = latest_attempt_result.scalar_one_or_none()
     if latest_attempt is not None and latest_attempt.status == "completed":
-        raise NodeAlreadyFinalizedError(f"node {rolling_node_id} is already completed")
+        # Load persisted orchestration snapshot
+        snap_result = await session.execute(
+            select(RollingBacktestOrchestrationSnapshot).where(
+                RollingBacktestOrchestrationSnapshot.attempt_id == latest_attempt.id
+            )
+        )
+        snapshot = snap_result.scalar_one_or_none()
+
+        # Hard integrity reload — fail closed
+        await load_logical_run_with_integrity(session, run)
+
+        # Build completed outcome from persisted data (no new attempt, no mutation)
+        terminal_stage = (
+            snapshot.terminal_stage
+            if snapshot
+            else OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value
+        )
+        return NodeOrchestrationOutcome(
+            rolling_run_signature=run.run_signature,
+            node_signature=(node_def.node_signature if hasattr(node_def, "node_signature") else ""),
+            attempt_number=latest_attempt.attempt_number,
+            status="completed",
+            stage=terminal_stage,
+            started_at=latest_attempt.started_at,
+            finished_at=latest_attempt.finished_at,
+            diagnostics={"idempotent_reload": True},
+        )
 
     try:
-        # ── Create execution attempt ──────────────────────────────────────────
+        # P0-2: Mode validation moved into Stage 1 (after attempt creation)
+        # ── Create execution attempt ────────────────────────────────────────
         attempt = await create_execution_attempt(
             rolling_run_id,
             rolling_node_id,
@@ -630,19 +648,46 @@ async def orchestrate_node(
             _before_stage_hook,
         )
 
-        # ── Integrity reload ─────────────────────────────────────────────
-        # Integrity reload — best-effort for now (display_label issue)
-        try:
-            await load_logical_run_with_integrity(session, run)
-        except Exception:
-            await session.rollback()  # Clear rollback state from failed reload
-
-        # ── Finalize attempt as completed ────────────────────────────────
-        await finalize_attempt_status(
+        # ── P0-3: Finalize attempt THEN integrity reload (fail closed) ───
+        # Finalize in caller's session so rollback can undo everything
+        # if integrity check fails.
+        await _finalize_attempt_status_in_session(
+            session,
             attempt.id,
             status="completed",
             current_stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
         )
+
+        # Hard integrity reload — fail closed, no swallowing.
+        # Verifies: run canonical parity, node canonical parity,
+        # attempt chain, stage continuity, snapshot consistency.
+        try:
+            await load_logical_run_with_integrity(session, run)
+        except Exception as reload_exc:
+            # Integrity reload failed — rollback attempt finalization,
+            # persist blocked snapshot, return blocked outcome.
+            await session.rollback()
+            await _finalize_blocked(
+                session,
+                ctx,
+                config,
+                node_def,
+                run,
+                attempt,
+                blocker_code="ROLLING_ORCHESTRATION_INTEGRITY_RELOAD_FAILED",
+                error=reload_exc,
+            )
+            return _build_outcome(
+                ctx=ctx,
+                config=config,
+                node=node_def,
+                run=run,
+                attempt=attempt,
+                status="blocked",
+                stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
+                blocker_code="ROLLING_ORCHESTRATION_INTEGRITY_RELOAD_FAILED",
+                diagnostics={"error": str(reload_exc)},
+            )
 
         # ── Update node and run status ───────────────────────────────────
         await update_run_status_from_attempts(session, rolling_run_id)
@@ -766,14 +811,15 @@ async def _run_stage(
         ctx.diagnostics["last_completed_stage"] = stage.value
         return ctx
 
-    except Exception:
-        # Block/fail stage
+    except Exception as exc:
+        # P0-4: Preserve typed error code instead of degrading to STAGE_FAILED
+        code = getattr(exc, "code", "STAGE_FAILED")
         await persist_stage_event(
             ctx.attempt_id,
             ctx.node_id,
             stage=stage.value,
             status="blocked",
-            structured_error_code="STAGE_FAILED",
+            structured_error_code=code,
         )
         raise
 
@@ -781,7 +827,7 @@ async def _run_stage(
 # ── Individual stage implementations ─────────────────────────────────────────
 
 
-async def _stage_resolve_historical_inputs(  # noqa: ARG001
+async def _stage_resolve_historical_inputs(
     session: AsyncSession,
     ctx: _StageContext,
     config: RollingBacktestConfig,
@@ -803,6 +849,18 @@ async def _stage_resolve_historical_inputs(  # noqa: ARG001
             business_version=identity.semantic.business_version,
         )
         ctx.resolved_inputs[identity.source_role] = outcome
+
+    # P0-2: Validate execution mode and selection mode inside Stage 1,
+    # AFTER attempt creation.  Unsupported mode → Stage 1 blocked.
+    if config.execution_mode != ExecutionMode.HISTORICAL_OBSERVED:
+        raise UnsupportedExecutionModeError(
+            f"execution_mode={config.execution_mode.value} is not supported"
+        )
+    if node.upstream_selection_mode != UpstreamSelectionMode.PINNED:
+        raise UnsupportedSelectionModeError(
+            f"upstream_selection_mode={node.upstream_selection_mode} not supported"
+        )
+
     return ctx
 
 
@@ -1081,13 +1139,21 @@ def _node_def_from_payload(
     payload: dict[str, Any],
     config: RollingBacktestConfig,
 ) -> RollingNodeDefinition:
-    """Reconstruct node definition from canonical payload."""
+    """Reconstruct node definition from canonical payload.
+
+    IMPORTANT: Uses deepcopy to avoid mutating the original payload dict.
+    Without this, ``sem["display_label"] = "__canonical__"`` would modify
+    the shared reference inside the SQLAlchemy model's canonical_payload,
+    corrupting it and causing integrity check failures.
+    """
+    from copy import deepcopy
+
     from pydantic import TypeAdapter
 
     # Node canonical payload may include run-level fields that
     # RollingNodeDefinition rejects (extra="forbid"). Strip them.
     _NODE_STRIP_KEYS = {"execution_mode", "cutoff_policy_version"}
-    cleaned = {k: v for k, v in payload.items() if k not in _NODE_STRIP_KEYS}
+    cleaned = {k: deepcopy(v) for k, v in payload.items() if k not in _NODE_STRIP_KEYS}
     # Restore display_label for semantic identities
     for ident in cleaned.get("resolved_upstream_semantic_identities", []):
         sem = ident.get("semantic") if isinstance(ident, dict) else None
