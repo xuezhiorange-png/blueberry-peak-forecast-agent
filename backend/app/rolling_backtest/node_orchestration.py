@@ -214,6 +214,9 @@ class _StageContext:
     task10_authority: Task10AuthorityOutcome | None = None
     fallback_mode: str | None = None
     blocker_code: str | None = None
+    active_stage: str | None = None
+    last_completed_stage: str | None = None
+    terminal_stage: str | None = None
     diagnostics: dict[str, Any] = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
@@ -1820,12 +1823,13 @@ async def orchestrate_node(
             run=run,
             attempt=attempt,
             status="blocked",
-            stage=ctx.diagnostics.get(
-                "last_completed_stage",
-                OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
-            ),
+            stage=_blocked_terminal_stage(ctx),
             blocker_code=blocker_code,
-            diagnostics={"error": str(exc)},
+            diagnostics={
+                "error": str(exc),
+                "last_completed_stage": ctx.last_completed_stage,
+                "terminal_stage": _blocked_terminal_stage(ctx),
+            },
         )
 
     except Exception as exc:
@@ -1848,12 +1852,13 @@ async def orchestrate_node(
             run=run,
             attempt=attempt,
             status="failed",
-            stage=ctx.diagnostics.get(
-                "last_completed_stage",
-                OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
-            ),
+            stage=_blocked_terminal_stage(ctx),
             blocker_code="PERSISTENCE_FAILURE",
-            diagnostics={"error": str(exc)},
+            diagnostics={
+                "error": str(exc),
+                "last_completed_stage": ctx.last_completed_stage,
+                "terminal_stage": _blocked_terminal_stage(ctx),
+            },
         )
 
 
@@ -1876,6 +1881,7 @@ async def _run_stage(
             await hook_result
 
     # Enter stage (running)
+    ctx.active_stage = stage.value
     await persist_stage_event(
         ctx.attempt_id,
         ctx.node_id,
@@ -1894,11 +1900,14 @@ async def _run_stage(
             status="completed",
             session=session,
         )
+        ctx.last_completed_stage = stage.value
+        ctx.active_stage = None
         ctx.diagnostics["last_completed_stage"] = stage.value
         return ctx
 
     except Exception as exc:
         # P0-4: Preserve typed error code instead of degrading to STAGE_FAILED
+        ctx.terminal_stage = stage.value
         code = getattr(exc, "code", "STAGE_FAILED")
         await persist_stage_event(
             ctx.attempt_id,
@@ -1909,6 +1918,15 @@ async def _run_stage(
             session=session,
         )
         raise
+
+
+def _blocked_terminal_stage(ctx: _StageContext) -> str:
+    return (
+        ctx.terminal_stage
+        or ctx.active_stage
+        or ctx.last_completed_stage
+        or OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value
+    )
 
 
 # ── Individual stage implementations ─────────────────────────────────────────
@@ -2162,16 +2180,15 @@ async def _finalize_blocked(
     error: Exception,
 ) -> None:
     """Finalize attempt and snapshot as blocked."""
+    terminal_stage = _blocked_terminal_stage(ctx)
     diagnostics = _sanitize_diagnostics(
         {
             "error": str(error),
             "error_type": type(error).__name__,
             "blocker_code": blocker_code,
+            "last_completed_stage": ctx.last_completed_stage,
+            "terminal_stage": terminal_stage,
         }
-    )
-    terminal_stage = ctx.diagnostics.get(
-        "last_completed_stage",
-        OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
     )
 
     await finalize_attempt_with_snapshot(

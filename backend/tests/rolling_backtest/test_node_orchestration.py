@@ -1039,6 +1039,157 @@ async def test_blocked_stage_has_no_later_events(mock_session):
         )
 
 
+@pytest.mark.asyncio
+async def test_stage2_blocker_uses_actual_terminal_stage(
+    mock_session, mock_run, mock_node, mock_attempt
+):
+    """Blocked stage uses the actual failing stage, not the last completed stage."""
+    config = _make_config()
+    mock_run.canonical_payload = config.model_dump(mode="python")
+    mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+
+    async def _stage2_blocked(session, ctx, config, node):
+        raise PinnedSourceNotVisibleError("blocked at stage 2")
+
+    finalize_mock = AsyncMock(return_value=(mock_attempt, MagicMock()))
+    update_run_mock = AsyncMock()
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+        stage_validate_visibility=_stage2_blocked,
+    )
+    patches["finalize_attempt_with_snapshot"] = finalize_mock
+    patches["update_run_status_from_attempts"] = update_run_mock
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "PINNED_SOURCE_NOT_VISIBLE"
+    assert outcome.stage == OrchestrationStage.VALIDATE_VISIBILITY.value
+    assert (
+        outcome.diagnostics["last_completed_stage"]
+        == OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value
+    )
+    assert outcome.diagnostics["terminal_stage"] == OrchestrationStage.VALIDATE_VISIBILITY.value
+
+    assert (
+        finalize_mock.await_args.kwargs["current_stage"]
+        == OrchestrationStage.VALIDATE_VISIBILITY.value
+    )
+    assert (
+        finalize_mock.await_args.kwargs["terminal_stage"]
+        == OrchestrationStage.VALIDATE_VISIBILITY.value
+    )
+    assert (
+        finalize_mock.await_args.kwargs["sanitized_diagnostics"]["last_completed_stage"]
+        == OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value
+    )
+    assert (
+        finalize_mock.await_args.kwargs["sanitized_diagnostics"]["terminal_stage"]
+        == OrchestrationStage.VALIDATE_VISIBILITY.value
+    )
+
+    stage_calls = patches["persist_stage_event"].call_args_list
+    assert stage_calls[1].kwargs["stage"] == OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value
+    assert stage_calls[1].kwargs["status"] == "completed"
+    assert stage_calls[3].kwargs["stage"] == OrchestrationStage.VALIDATE_VISIBILITY.value
+    assert stage_calls[3].kwargs["status"] == "blocked"
+
+
+@pytest.mark.asyncio
+async def test_stage6_blocker_uses_actual_terminal_stage(
+    mock_session, mock_run, mock_node, mock_attempt
+):
+    """Later-stage blockers keep previous completion separate from actual terminal stage."""
+    config = _make_config()
+    mock_run.canonical_payload = config.model_dump(mode="python")
+    mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+
+    async def _stage6_blocked(session, ctx, config, node):
+        raise Task10Task9BindingMismatchError("task10/task9 mismatch")
+
+    finalize_mock = AsyncMock(return_value=(mock_attempt, MagicMock()))
+    update_run_mock = AsyncMock()
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+        stage_resolve_task10=_stage6_blocked,
+    )
+    patches["finalize_attempt_with_snapshot"] = finalize_mock
+    patches["update_run_status_from_attempts"] = update_run_mock
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "TASK10_TASK9_BINDING_MISMATCH"
+    assert outcome.stage == OrchestrationStage.RESOLVE_OR_TRAIN_TASK10.value
+    assert (
+        outcome.diagnostics["last_completed_stage"]
+        == OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value
+    )
+    assert outcome.diagnostics["terminal_stage"] == OrchestrationStage.RESOLVE_OR_TRAIN_TASK10.value
+    assert (
+        finalize_mock.await_args.kwargs["current_stage"]
+        == OrchestrationStage.RESOLVE_OR_TRAIN_TASK10.value
+    )
+    assert (
+        finalize_mock.await_args.kwargs["sanitized_diagnostics"]["last_completed_stage"]
+        == OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value
+    )
+
+
+@pytest.mark.asyncio
+async def test_unexpected_stage_exception_uses_actual_terminal_stage(
+    mock_session, mock_run, mock_node, mock_attempt
+):
+    """Unexpected stage exceptions keep the real terminal stage and generic blocker outcome."""
+    config = _make_config()
+    mock_run.canonical_payload = config.model_dump(mode="python")
+    mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+
+    async def _stage5_boom(session, ctx, config, node):
+        raise RuntimeError("boom")
+
+    finalize_mock = AsyncMock(return_value=(mock_attempt, MagicMock()))
+    update_run_mock = AsyncMock()
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+        stage_resolve_task9=_stage5_boom,
+    )
+    patches["finalize_attempt_with_snapshot"] = finalize_mock
+    patches["update_run_status_from_attempts"] = update_run_mock
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+
+    assert outcome.status == "failed"
+    assert outcome.blocker_code == "PERSISTENCE_FAILURE"
+    assert outcome.stage == OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value
+    assert (
+        outcome.diagnostics["last_completed_stage"]
+        == OrchestrationStage.RESOLVE_OR_REPLAY_TASK8.value
+    )
+    assert outcome.diagnostics["terminal_stage"] == OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value
+    assert (
+        finalize_mock.await_args.kwargs["current_stage"]
+        == OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value
+    )
+    assert finalize_mock.await_args.kwargs["structured_error_code"] == "PERSISTENCE_FAILURE"
+    blocked_stage_call = patches["persist_stage_event"].call_args_list[-1]
+    assert blocked_stage_call.kwargs["stage"] == OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value
+    assert blocked_stage_call.kwargs["status"] == "blocked"
+    assert blocked_stage_call.kwargs["structured_error_code"] == "STAGE_FAILED"
+
+
 # ── 14. Retry creates new attempt ───────────────────────────────────────────
 
 
@@ -2039,6 +2190,7 @@ async def test_finalize_blocked_uses_caller_session(mock_attempt):
         resolved_inputs={},
         availability_audits={},
     )
+    ctx.last_completed_stage = OrchestrationStage.VALIDATE_VISIBILITY.value
     ctx.diagnostics["last_completed_stage"] = OrchestrationStage.VALIDATE_VISIBILITY.value
     finalize_mock = AsyncMock(return_value=(mock_attempt, MagicMock()))
     update_run_mock = AsyncMock()
@@ -2059,6 +2211,10 @@ async def test_finalize_blocked_uses_caller_session(mock_attempt):
         )
 
     assert finalize_mock.await_args.kwargs["session"] is session
+    assert (
+        finalize_mock.await_args.kwargs["terminal_stage"]
+        == OrchestrationStage.VALIDATE_VISIBILITY.value
+    )
     update_run_mock.assert_awaited_once_with(session, 1)
 
 

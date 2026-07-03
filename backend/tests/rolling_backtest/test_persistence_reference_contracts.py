@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 
@@ -13,7 +14,10 @@ from backend.app.rolling_backtest.enums import (
     Task10ModelPolicy,
     UpstreamSelectionMode,
 )
-from backend.app.rolling_backtest.errors import RollingBacktestCommandMismatchError
+from backend.app.rolling_backtest.errors import (
+    RollingBacktestCanonicalParityError,
+    RollingBacktestCommandMismatchError,
+)
 from backend.app.rolling_backtest.persistence import (
     AvailabilityAuditPersistenceCommand,
     DagPersistenceCommand,
@@ -21,6 +25,7 @@ from backend.app.rolling_backtest.persistence import (
     RollingBacktestPersistenceCommand,
     RollingNodePersistenceCommand,
     _config_from_canonical_payload,
+    _persistent_reference_from_row,
     _resolved_input_canonical_payload,
     validate_persistence_command,
 )
@@ -238,3 +243,26 @@ def test_multi_identity_round_trip_preserves_canonical_payload() -> None:
     reloaded = _config_from_canonical_payload(json.loads(canonical_json_dumps(payload)))
 
     assert rolling_backtest_config_payload(reloaded) == payload
+
+
+@pytest.mark.parametrize(
+    ("ref_type", "ref_value"),
+    [
+        ("database_run_id", None),
+        (None, "42"),
+    ],
+)
+def test_persistent_reference_loader_rejects_partial_pair(
+    ref_type: str | None,
+    ref_value: str | None,
+) -> None:
+    row = SimpleNamespace(
+        source_role="task8_forecast_run",
+        persistent_reference_type=ref_type,
+        persistent_reference_value=ref_value,
+    )
+
+    with pytest.raises(RollingBacktestCanonicalParityError) as exc:
+        _persistent_reference_from_row(row)  # type: ignore[arg-type]
+
+    assert exc.value.code == "ROLLING_BACKTEST_CANONICAL_PARITY_ERROR"

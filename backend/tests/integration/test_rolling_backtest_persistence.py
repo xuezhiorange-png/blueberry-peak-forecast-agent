@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError as SAIntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import AsyncSessionMaker
@@ -1008,6 +1009,43 @@ async def test_tamper_delete_resolved_input_triggers_child_count_error() -> None
     [
         ("database_run_id", None),
         (None, "42"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_database_rejects_partial_resolved_input_reference_pair(
+    ref_type: str | None,
+    ref_value: str | None,
+) -> None:
+    _require_postgres()
+    cmd, _ = _make_pinned_persistence_command()
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        node_id = await session.scalar(
+            select(RollingBacktestNode.id).where(RollingBacktestNode.rolling_run_id == run.id)
+        )
+        assert node_id is not None
+        with pytest.raises(SAIntegrityError) as exc:
+            await session.execute(
+                text(
+                    "UPDATE rolling_backtest_resolved_input "
+                    "SET persistent_reference_type = :ref_type, "
+                    "persistent_reference_value = :ref_value "
+                    "WHERE rolling_node_id = :node_id"
+                ),
+                {"ref_type": ref_type, "ref_value": ref_value, "node_id": node_id},
+            )
+            await session.flush()
+
+        await session.rollback()
+
+    constraint_name = getattr(getattr(exc.value.orig, "diag", None), "constraint_name", None)
+    assert constraint_name == "ck_rolling_backtest_resolved_input_persistent_ref_pairing"
+
+
+@pytest.mark.parametrize(
+    ("ref_type", "ref_value"),
+    [
         ("database_run_id", "abc"),
         ("database_run_id", "001"),
         ("database_run_id", "0"),
