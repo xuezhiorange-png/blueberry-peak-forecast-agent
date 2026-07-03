@@ -923,6 +923,7 @@ async def create_execution_attempt(
     status: str = "pending",
     current_stage: str = "initialized",
     prior_attempt_id: int | None = None,
+    session: AsyncSession | None = None,
 ) -> RollingBacktestAttempt:
     """Create a new execution attempt with per-node attempt_number.
 
@@ -933,6 +934,94 @@ async def create_execution_attempt(
     Repository gate: validates that rolling_run_id on the attempt
     equals the node's rolling_run_id at insert time.
     """
+    if session is not None:
+        # Lock the node row to serialize attempt creation for this node
+        node_result = await session.execute(
+            select(RollingBacktestNode).where(RollingBacktestNode.id == node_id).with_for_update()
+        )
+        node_row = node_result.scalar_one_or_none()
+        if node_row is None:
+            raise RollingBacktestIntegrityError(f"node {node_id} not found")
+
+        if node_row.rolling_run_id != run_id:
+            raise RollingBacktestAuthorityBindingError(
+                f"attempt run_id {run_id} does not match node {node_id} "
+                f"run_id {node_row.rolling_run_id}"
+            )
+
+        await _run_sync_hook(_ATTEMPT_ALLOCATION_SYNC_HOOK, "after_node_lock")
+
+        existing_attempts = await session.execute(
+            select(RollingBacktestAttempt)
+            .where(RollingBacktestAttempt.rolling_node_id == node_id)
+            .order_by(RollingBacktestAttempt.attempt_number)
+        )
+        attempts = existing_attempts.scalars().all()
+
+        for index, attempt in enumerate(attempts, start=1):
+            if attempt.attempt_number != index:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt chain has gap: expected {index} found {attempt.attempt_number}"
+                )
+            if index == 1 and attempt.prior_attempt_id is not None:
+                raise RollingBacktestAttemptConflictError(
+                    "attempt 1 must not point to a prior attempt"
+                )
+            if index > 1 and attempt.prior_attempt_id != attempts[index - 2].id:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} does not point to direct predecessor"
+                )
+            if attempt.prior_attempt_id is not None:
+                prior_in_chain = await session.get(RollingBacktestAttempt, attempt.prior_attempt_id)
+                if prior_in_chain is None or prior_in_chain.rolling_node_id != node_id:
+                    raise RollingBacktestAttemptConflictError(
+                        f"attempt {attempt.id} prior link crosses node boundary"
+                    )
+                if prior_in_chain.rolling_run_id != run_id:
+                    raise RollingBacktestAttemptConflictError(
+                        f"attempt {attempt.id} prior link crosses run boundary"
+                    )
+
+        next_number = len(attempts) + 1
+        resolved_prior_id = prior_attempt_id
+        if attempts:
+            previous = attempts[-1]
+            if previous.status not in ("failed", "blocked"):
+                raise RollingBacktestAttemptConflictError(
+                    f"cannot create retry after previous status {previous.status}"
+                )
+            if resolved_prior_id is None:
+                resolved_prior_id = previous.id
+            elif resolved_prior_id != previous.id:
+                raise RollingBacktestAttemptConflictError(
+                    f"prior_attempt must be direct predecessor {previous.id}"
+                )
+        elif resolved_prior_id is not None:
+            raise RollingBacktestAttemptConflictError("attempt 1 must not provide prior_attempt_id")
+
+        finished_at_val = None
+        if status not in ("pending", "running"):
+            finished_at_val = datetime.now(UTC)
+
+        attempt = RollingBacktestAttempt(
+            rolling_run_id=run_id,
+            rolling_node_id=node_id,
+            attempt_number=next_number,
+            prior_attempt_id=resolved_prior_id,
+            status=status,
+            current_stage=current_stage,
+            started_at=datetime.now(UTC),
+            finished_at=finished_at_val,
+        )
+        session.add(attempt)
+        try:
+            await session.flush()
+        except SAIntegrityError as exc:
+            raise RollingBacktestAttemptConflictError(
+                f"attempt_number {next_number} already exists for node {node_id}"
+            ) from exc
+        return attempt
+
     async with AsyncSessionMaker() as session:
         # Lock the node row to serialize attempt creation for this node
         node_result = await session.execute(
@@ -1112,6 +1201,7 @@ async def persist_stage_event(
     sanitized_diagnostics: dict[str, object] | None = None,
     entered_at: datetime | None = None,
     finished_at: datetime | None = None,
+    session: AsyncSession | None = None,
 ) -> RollingBacktestStageEvent:
     """Insert or update a stage event for a given attempt and stage.
 
@@ -1132,6 +1222,37 @@ async def persist_stage_event(
         entered_at = now
 
     finished_at_value: datetime | None = None if status == "running" else (finished_at or now)
+
+    if session is not None:
+        stmt = pg_insert(RollingBacktestStageEvent).values(
+            attempt_id=attempt_id,
+            rolling_node_id=node_id,
+            sequence_number=ordinal,
+            stage=stage,
+            status=status,
+            structured_error_code=structured_error_code,
+            sanitized_diagnostics=sanitized_diagnostics,
+            entered_at=entered_at,
+            finished_at=finished_at_value,
+        )
+        returning_stmt = stmt.on_conflict_do_update(
+            constraint="uq_rolling_backtest_stage_event_stage",
+            set_={
+                "status": stmt.excluded.status,
+                "finished_at": stmt.excluded.finished_at,
+                "structured_error_code": stmt.excluded.structured_error_code,
+                "sanitized_diagnostics": stmt.excluded.sanitized_diagnostics,
+            },
+        ).returning(RollingBacktestStageEvent)
+
+        try:
+            result = await session.execute(returning_stmt)
+            return result.scalar_one()
+        except SAIntegrityError as exc:
+            constraint_name = _extract_constraint_name(exc)
+            raise RollingBacktestStageIntegrityError(
+                f"persist_stage_event constraint violation: {constraint_name or 'unknown'}"
+            ) from exc
 
     async with AsyncSessionMaker() as session:
         stmt = pg_insert(RollingBacktestStageEvent).values(

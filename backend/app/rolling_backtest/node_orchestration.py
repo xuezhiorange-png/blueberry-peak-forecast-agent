@@ -21,11 +21,31 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.harvest_state.application import get_harvest_state_run_by_id
+from backend.app.maturity.service import (
+    load_maturity_forecast_result,
+    load_maturity_model_result,
+)
+from backend.app.models.analytics import AnalyticsBuildRun
+from backend.app.models.harvest_state import HarvestStateRun
+from backend.app.models.maturity import (
+    MaturityDailyPredictionModel,
+    MaturityForecastRun,
+    MaturityModelArtifact,
+    MaturityModelRun,
+)
+from backend.app.models.production_plan import ProductionPlanImportRun
+from backend.app.models.residual_model import (
+    ResidualModelArtifact,
+    ResidualModelPredictionRun,
+    ResidualModelTrainingRun,
+)
 from backend.app.models.rolling_backtest import (
     RollingBacktestAttempt,
     RollingBacktestAvailabilityAudit,
@@ -33,12 +53,23 @@ from backend.app.models.rolling_backtest import (
     RollingBacktestOrchestrationSnapshot,
     RollingBacktestRun,
 )
+from backend.app.models.weather import (
+    LocationWeatherMapping,
+    WeatherDailyObservation,
+    WeatherFeatureRun,
+)
+from backend.app.residual_model.persistence import (
+    load_and_validate_trusted_residual_artifacts,
+    load_residual_prediction_run_by_id,
+    load_residual_training_run_by_id,
+)
 from backend.app.rolling_backtest.availability import (
     availability_snapshot_audit_hash,
     evaluate_authority_visibility,
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps, sha256_payload
 from backend.app.rolling_backtest.enums import (
+    AvailabilitySourceType,
     ExecutionMode,
     UpstreamSelectionMode,
 )
@@ -55,6 +86,7 @@ from backend.app.rolling_backtest.orchestration import (
     ResolvedInputOutcome,
     Task9AuthorityOutcome,
     Task10AuthorityOutcome,
+    _build_frozen_dag,
     _sanitize_diagnostics,
 )
 from backend.app.rolling_backtest.persistence import (
@@ -67,6 +99,11 @@ from backend.app.rolling_backtest.persistence import (
     persist_orchestration_snapshot,
     persist_stage_event,
     update_run_status_from_attempts,
+)
+from backend.app.rolling_backtest.resolution import (
+    HistoricalCandidate,
+    _build_identity_payload,
+    _make_identity,
 )
 from backend.app.rolling_backtest.schemas import (
     AvailabilitySnapshot,
@@ -169,6 +206,8 @@ class _StageContext:
     run_id: int
     resolved_inputs: dict[str, ResolvedInputOutcome]
     availability_audits: dict[str, AvailabilityAuditOutcome]
+    attempt_number: int | None = None
+    prior_attempt_id: int | None = None
     task9_authority: Task9AuthorityOutcome | None = None
     task10_authority: Task10AuthorityOutcome | None = None
     fallback_mode: str | None = None
@@ -250,13 +289,599 @@ def _extract_authoritative_available_at(
         )
     if hasattr(snapshot, "created_at"):
         return snapshot.created_at
-    return datetime.now(UTC)
+    raise PinnedSourceIdentityMismatchError(
+        "availability snapshot missing authoritative timestamp fields"
+    )
+
+
+def _require_database_ref(
+    identity: ResolvedUpstreamSemanticIdentity,
+    *,
+    allowed_types: tuple[str, ...],
+) -> int:
+    ref = identity.persistent_reference
+    if ref is None or ref.reference_type not in allowed_types:
+        allowed = ",".join(allowed_types)
+        raise PinnedSourceIdentityMismatchError(
+            f"pinned source role={identity.source_role} must use persistent reference "
+            f"type in {{{allowed}}}"
+        )
+    if not isinstance(ref.reference_value, int):
+        raise PinnedSourceIdentityMismatchError(
+            f"pinned source role={identity.source_role} must use integer persistent reference"
+        )
+    return ref.reference_value
+
+
+def _local_midnight(value: Any, timezone_name: str) -> datetime:
+    if not hasattr(value, "year") or not hasattr(value, "month") or not hasattr(value, "day"):
+        raise PinnedSourceIdentityMismatchError(
+            f"cannot derive authoritative local datetime for timezone={timezone_name}"
+        )
+    return datetime(value.year, value.month, value.day, tzinfo=ZoneInfo(timezone_name))
+
+
+def _task9_source_catalog_hash(envelope: Any) -> str | None:
+    source_ref_catalog = getattr(getattr(envelope, "output", None), "source_ref_catalog", None)
+    if source_ref_catalog is None:
+        return None
+    normalized = [
+        item.model_dump(mode="python") if hasattr(item, "model_dump") else item
+        for item in source_ref_catalog
+    ]
+    return sha256_payload(normalized)
+
+
+def _task9_verification_snapshot_hash(envelope: Any) -> str | None:
+    input_snapshot = getattr(getattr(envelope, "output", None), "input_snapshot", None)
+    if not isinstance(input_snapshot, dict):
+        return None
+    predictions = input_snapshot.get("task8_daily_predictions")
+    if not isinstance(predictions, list):
+        return None
+    normalized: list[dict[str, Any]] = []
+    for item in predictions:
+        if not isinstance(item, dict):
+            continue
+        verification_snapshot = item.get("verification_snapshot")
+        if verification_snapshot is None:
+            continue
+        normalized.append(
+            {
+                "source_ref_hash": item.get("source_ref_hash"),
+                "verification_snapshot": verification_snapshot,
+                "verification_snapshot_hash": item.get("verification_snapshot_hash"),
+            }
+        )
+    normalized.sort(
+        key=lambda item: (
+            str(item.get("source_ref_hash") or ""),
+            canonical_json_dumps(item.get("verification_snapshot")),
+        )
+    )
+    return sha256_payload(normalized) if normalized else None
+
+
+async def _load_exact_pinned_candidate(
+    session: AsyncSession,
+    node: RollingNodeDefinition,
+    identity: ResolvedUpstreamSemanticIdentity,
+) -> HistoricalCandidate:
+    source_type = identity.source_type
+
+    if source_type == AvailabilitySourceType.TASK3_ANALYTICS_BUILD:
+        run_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        build_run = cast(AnalyticsBuildRun | None, await session.get(AnalyticsBuildRun, run_id))
+        if build_run is None or build_run.finished_at is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task3_analytics_build",
+            schema_version="task3-analytics-v1",
+            semantic_payload_hash=build_run.config_hash or "",
+            config_hash=build_run.config_hash,
+            business_version=build_run.aggregation_version,
+            display_label=f"task3:analytics_build:season{build_run.season_id}",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=build_run.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task3_analytics_build",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=build_run.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=build_run.finished_at,
+            business_version=build_run.aggregation_version,
+            canonical_payload_hash=build_run.config_hash or "",
+        )
+
+    if source_type == AvailabilitySourceType.TASK6_PLAN_VERSION:
+        run_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        plan_run = cast(
+            ProductionPlanImportRun | None,
+            await session.get(ProductionPlanImportRun, run_id),
+        )
+        if plan_run is None or plan_run.finished_at is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task6_plan_version",
+            schema_version="task6-plan-v1",
+            semantic_payload_hash=plan_run.file_sha256,
+            business_version=plan_run.source_version,
+            display_label="task6:plan_version",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=plan_run.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task6_plan_version",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=plan_run.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=plan_run.finished_at,
+            business_version=plan_run.source_version,
+            canonical_payload_hash=plan_run.file_sha256,
+        )
+
+    if source_type == AvailabilitySourceType.TASK7_WEATHER_FEATURE_RUN:
+        run_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        feature_run = cast(WeatherFeatureRun | None, await session.get(WeatherFeatureRun, run_id))
+        if feature_run is None or feature_run.finished_at is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task7_weather_feature_run",
+            schema_version="task7-weather-v1",
+            semantic_payload_hash=feature_run.source_signature,
+            config_hash=feature_run.config_hash,
+            business_version=feature_run.feature_version,
+            display_label="task7:weather_feature_run",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=feature_run.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task7_weather_feature_run",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=feature_run.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=feature_run.finished_at,
+            business_version=feature_run.feature_version,
+            canonical_payload_hash=feature_run.source_signature,
+        )
+
+    if source_type == AvailabilitySourceType.TASK7_LOCATION_WEATHER_MAPPING:
+        row_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        mapping_row = cast(
+            LocationWeatherMapping | None,
+            await session.get(LocationWeatherMapping, row_id),
+        )
+        if mapping_row is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={row_id} was not found"
+            )
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task7_location_weather_mapping",
+            schema_version="task7-weather-v1",
+            semantic_payload_hash=mapping_row.row_hash,
+            config_hash=mapping_row.config_hash,
+            business_version=mapping_row.mapping_version,
+            display_label="task7:location_weather_mapping",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=mapping_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task7_location_weather_mapping",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=mapping_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=_local_midnight(mapping_row.available_at, node.timezone),
+            business_version=mapping_row.mapping_version,
+            canonical_payload_hash=mapping_row.row_hash,
+        )
+
+    if source_type == AvailabilitySourceType.TASK7_WEATHER_OBSERVATION:
+        row_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        observation_row = cast(
+            WeatherDailyObservation | None,
+            await session.get(WeatherDailyObservation, row_id),
+        )
+        if observation_row is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={row_id} was not found"
+            )
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task7_weather_observation",
+            schema_version="task7-weather-v1",
+            semantic_payload_hash=observation_row.row_hash,
+            canonical_payload_hash=observation_row.row_hash,
+            business_version=observation_row.source_version,
+            display_label="task7:weather_observation",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=observation_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task7_weather_observation",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=observation_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=_local_midnight(observation_row.available_at, node.timezone),
+            business_version=observation_row.source_version,
+            canonical_payload_hash=observation_row.row_hash,
+        )
+
+    if source_type == AvailabilitySourceType.TASK8_MODEL_RUN:
+        run_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        model_run_row = cast(MaturityModelRun | None, await session.get(MaturityModelRun, run_id))
+        if model_run_row is None or model_run_row.finished_at is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        await load_maturity_model_result(session, run_id=run_id)
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task8_model_run",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash=model_run_row.config_hash,
+            config_hash=model_run_row.config_hash,
+            business_version=model_run_row.model_version,
+            display_label="task8:model_run",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=model_run_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task8_model_run",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=model_run_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=model_run_row.finished_at,
+            business_version=model_run_row.model_version,
+            canonical_payload_hash=model_run_row.config_hash,
+        )
+
+    if source_type == AvailabilitySourceType.TASK8_MODEL_ARTIFACT:
+        artifact_id = _require_database_ref(
+            identity,
+            allowed_types=("database_run_id", "database_artifact_id"),
+        )
+        model_artifact_row = cast(
+            MaturityModelArtifact | None,
+            await session.get(MaturityModelArtifact, artifact_id),
+        )
+        if model_artifact_row is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={artifact_id} was not found"
+            )
+        parent_model_run = cast(
+            MaturityModelRun | None,
+            await session.get(MaturityModelRun, model_artifact_row.run_id),
+        )
+        if parent_model_run is None:
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 model artifact {artifact_id} parent model run was not found"
+            )
+        await load_maturity_model_result(session, run_id=parent_model_run.id)
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task8_model_artifact",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash=model_artifact_row.artifact_hash,
+            config_hash=parent_model_run.config_hash,
+            business_version=parent_model_run.model_version,
+            display_label="task8:model_artifact",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=model_artifact_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task8_model_artifact",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=model_artifact_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=model_artifact_row.created_at,
+            business_version=parent_model_run.model_version,
+            canonical_payload_hash=model_artifact_row.artifact_hash,
+        )
+
+    if source_type == AvailabilitySourceType.TASK8_FORECAST_RUN:
+        run_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        forecast_run_row = cast(
+            MaturityForecastRun | None,
+            await session.get(MaturityForecastRun, run_id),
+        )
+        if forecast_run_row is None or forecast_run_row.finished_at is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        await load_maturity_forecast_result(session, run_id=run_id)
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task8_forecast_run",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash=forecast_run_row.source_signature,
+            display_label="task8:forecast_run",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=forecast_run_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task8_forecast_run",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=forecast_run_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=forecast_run_row.finished_at,
+        )
+
+    if source_type == AvailabilitySourceType.TASK8_DAILY_PREDICTION:
+        row_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        daily_prediction_row = cast(
+            MaturityDailyPredictionModel | None,
+            await session.get(MaturityDailyPredictionModel, row_id),
+        )
+        if daily_prediction_row is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={row_id} was not found"
+            )
+        parent_forecast_run = cast(
+            MaturityForecastRun | None,
+            await session.get(MaturityForecastRun, daily_prediction_row.forecast_run_id),
+        )
+        if parent_forecast_run is None:
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 daily prediction {row_id} parent forecast run was not found"
+            )
+        await load_maturity_forecast_result(session, run_id=parent_forecast_run.id)
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task8_daily_prediction",
+            schema_version="task8-maturity-v1",
+            semantic_payload_hash=parent_forecast_run.source_signature,
+            display_label="task8:daily_prediction",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=daily_prediction_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task8_daily_prediction",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=daily_prediction_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=daily_prediction_row.created_at,
+        )
+
+    if source_type == AvailabilitySourceType.TASK9_HARVEST_STATE_RUN:
+        run_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        harvest_run_row = cast(HarvestStateRun | None, await session.get(HarvestStateRun, run_id))
+        if harvest_run_row is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        envelope = await get_harvest_state_run_by_id(session, run_id=run_id)
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task9_structural_forecast",
+            schema_version=harvest_run_row.output_schema_version,
+            semantic_payload_hash=harvest_run_row.result_hash,
+            config_hash=harvest_run_row.config_hash,
+            result_hash=harvest_run_row.result_hash,
+            canonical_payload_hash=harvest_run_row.canonical_payload_hash,
+            business_version=harvest_run_row.output_schema_version,
+            display_label="task9:harvest_state",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=harvest_run_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task9_structural_forecast",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=harvest_run_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=envelope.created_at,
+            business_version=harvest_run_row.output_schema_version,
+            canonical_payload_hash=harvest_run_row.canonical_payload_hash,
+        )
+
+    if source_type == AvailabilitySourceType.TASK10_TRAINING_RUN:
+        run_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        training_run_row = cast(
+            ResidualModelTrainingRun | None,
+            await session.get(ResidualModelTrainingRun, run_id),
+        )
+        loaded_training = await load_residual_training_run_by_id(session, run_id=run_id)
+        if (
+            training_run_row is None
+            or training_run_row.finished_at is None
+            or loaded_training is None
+        ):
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task10_training_run",
+            schema_version=training_run_row.feature_schema_version,
+            semantic_payload_hash=training_run_row.training_signature,
+            config_hash=training_run_row.config_hash,
+            result_hash=training_run_row.canonical_payload_hash,
+            canonical_payload_hash=training_run_row.canonical_payload_hash,
+            business_version=training_run_row.model_version,
+            display_label="task10:training_run",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=training_run_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task10_training_run",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=training_run_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=training_run_row.finished_at,
+            business_version=training_run_row.model_version,
+            canonical_payload_hash=training_run_row.canonical_payload_hash,
+        )
+
+    if source_type == AvailabilitySourceType.TASK10_MODEL_ARTIFACT:
+        artifact_id = _require_database_ref(
+            identity,
+            allowed_types=("database_run_id", "database_artifact_id"),
+        )
+        residual_artifact_row = cast(
+            ResidualModelArtifact | None,
+            await session.get(ResidualModelArtifact, artifact_id),
+        )
+        if residual_artifact_row is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={artifact_id} was not found"
+            )
+        trusted_artifacts = await load_and_validate_trusted_residual_artifacts(
+            session,
+            run_id=residual_artifact_row.training_run_id,
+        )
+        if not any(
+            item.metadata.binary_sha256 == residual_artifact_row.artifact_sha256
+            for item in trusted_artifacts
+        ):
+            raise Task10Task9BindingMismatchError(
+                f"Task 10 artifact {artifact_id} failed trusted artifact validation"
+            )
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task10_model_artifact",
+            schema_version=residual_artifact_row.feature_schema_version,
+            semantic_payload_hash=residual_artifact_row.artifact_sha256,
+            config_hash=residual_artifact_row.config_hash,
+            artifact_payload_hash=residual_artifact_row.artifact_sha256,
+            business_version=residual_artifact_row.artifact_schema_version,
+            display_label="task10:model_artifact",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=residual_artifact_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task10_model_artifact",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=residual_artifact_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=residual_artifact_row.created_at,
+            business_version=residual_artifact_row.artifact_schema_version,
+            canonical_payload_hash=residual_artifact_row.artifact_sha256,
+        )
+
+    if source_type == AvailabilitySourceType.TASK10_PREDICTION_RUN:
+        run_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        prediction_run_row = cast(
+            ResidualModelPredictionRun | None,
+            await session.get(ResidualModelPredictionRun, run_id),
+        )
+        loaded_prediction = await load_residual_prediction_run_by_id(session, run_id=run_id)
+        if (
+            prediction_run_row is None
+            or prediction_run_row.completed_at is None
+            or loaded_prediction is None
+        ):
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        exact_identity = _make_identity(
+            source_type=source_type,
+            source_role="task10_prediction_run",
+            schema_version=prediction_run_row.feature_schema_version,
+            semantic_payload_hash=prediction_run_row.prediction_hash,
+            config_hash=prediction_run_row.config_hash,
+            result_hash=prediction_run_row.prediction_hash,
+            canonical_payload_hash=prediction_run_row.prediction_hash,
+            input_signature=prediction_run_row.prediction_input_signature,
+            business_version=prediction_run_row.feature_schema_version,
+            display_label="task10:prediction_run",
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=prediction_run_row.id,
+            ),
+        )
+        return HistoricalCandidate(
+            source_role="task10_prediction_run",
+            source_type=source_type,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=prediction_run_row.id,
+            ),
+            semantic_identity=exact_identity,
+            authoritative_available_at=prediction_run_row.completed_at,
+            business_version=prediction_run_row.feature_schema_version,
+            canonical_payload_hash=prediction_run_row.prediction_hash,
+        )
+
+    raise PinnedSourceNotFoundError(
+        f"exact pinned loader is not implemented for source type {source_type.value}"
+    )
 
 
 # ── Task 8 reuse (stage 4) ──────────────────────────────────────────────────
 
 
 async def _resolve_task8_reuse(
+    session: AsyncSession,
     ctx: _StageContext,
     config: RollingBacktestConfig,
     node: RollingNodeDefinition,
@@ -277,17 +902,123 @@ async def _resolve_task8_reuse(
     if not task8_inputs:
         return  # No Task 8 inputs required
 
-    # Verify parent authority chain for Task 8 artifacts
-    for _role, outcome in task8_inputs.items():
-        if outcome.source_type.value == "task8_model_artifact":
-            # Verify the artifact's parent (model run) is in resolved inputs
-            model_run_inputs = {
-                r: o for r, o in task8_inputs.items() if o.source_type.value == "task8_model_run"
-            }
-            if not model_run_inputs:
+    model_run = next(
+        (
+            outcome
+            for outcome in task8_inputs.values()
+            if outcome.source_type == AvailabilitySourceType.TASK8_MODEL_RUN
+        ),
+        None,
+    )
+    model_artifact = next(
+        (
+            outcome
+            for outcome in task8_inputs.values()
+            if outcome.source_type == AvailabilitySourceType.TASK8_MODEL_ARTIFACT
+        ),
+        None,
+    )
+    forecast_run = next(
+        (
+            outcome
+            for outcome in task8_inputs.values()
+            if outcome.source_type == AvailabilitySourceType.TASK8_FORECAST_RUN
+        ),
+        None,
+    )
+
+    if model_run is not None:
+        model_run_id = _require_database_ref(
+            model_run.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        loaded_model = await load_maturity_model_result(session, run_id=model_run_id)
+        if loaded_model.status != "completed":
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 model run {model_run_id} must be completed"
+            )
+
+    if model_artifact is not None:
+        artifact_id = _require_database_ref(
+            model_artifact.semantic_identity,
+            allowed_types=("database_run_id", "database_artifact_id"),
+        )
+        artifact_row = await session.get(MaturityModelArtifact, artifact_id)
+        if artifact_row is None:
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 model artifact {artifact_id} was not found"
+            )
+        if model_run is None:
+            raise Task8ParentAuthorityMismatchError(
+                "Task 8 model artifact has no parent model run in resolved inputs"
+            )
+        model_run_id = _require_database_ref(
+            model_run.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        if artifact_row.run_id != model_run_id:
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 model artifact {artifact_id} parent mismatch"
+            )
+
+    if forecast_run is not None:
+        forecast_run_id = _require_database_ref(
+            forecast_run.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        loaded_forecast = await load_maturity_forecast_result(session, run_id=forecast_run_id)
+        forecast_row = await session.get(MaturityForecastRun, forecast_run_id)
+        if forecast_row is None:
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 forecast run {forecast_run_id} was not found"
+            )
+        if loaded_forecast.status != "completed":
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 forecast run {forecast_run_id} must be completed"
+            )
+        if model_run is not None:
+            model_run_id = _require_database_ref(
+                model_run.semantic_identity,
+                allowed_types=("database_run_id",),
+            )
+            if forecast_row.model_run_id != model_run_id:
                 raise Task8ParentAuthorityMismatchError(
-                    "Task 8 model artifact has no parent model run in resolved inputs"
+                    f"Task 8 forecast run {forecast_run_id} model parent mismatch"
                 )
+        if model_artifact is not None:
+            artifact_id = _require_database_ref(
+                model_artifact.semantic_identity,
+                allowed_types=("database_run_id", "database_artifact_id"),
+            )
+            if forecast_row.artifact_id != artifact_id:
+                raise Task8ParentAuthorityMismatchError(
+                    f"Task 8 forecast run {forecast_run_id} artifact parent mismatch"
+                )
+
+    for outcome in task8_inputs.values():
+        if outcome.source_type != AvailabilitySourceType.TASK8_DAILY_PREDICTION:
+            continue
+        daily_id = _require_database_ref(
+            outcome.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        daily_row = await session.get(MaturityDailyPredictionModel, daily_id)
+        if daily_row is None:
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 daily prediction {daily_id} was not found"
+            )
+        if forecast_run is None:
+            raise Task8ParentAuthorityMismatchError(
+                "Task 8 daily prediction has no parent forecast run in resolved inputs"
+            )
+        forecast_run_id = _require_database_ref(
+            forecast_run.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        if daily_row.forecast_run_id != forecast_run_id:
+            raise Task8ParentAuthorityMismatchError(
+                f"Task 8 daily prediction {daily_id} parent forecast mismatch"
+            )
 
 
 # ── Task 9 reuse (stage 5) ──────────────────────────────────────────────────
@@ -298,6 +1029,7 @@ async def _resolve_task9_reuse(
     config: RollingBacktestConfig,
     node: RollingNodeDefinition,
     *,
+    session: AsyncSession,
     resolved_inputs: dict[str, ResolvedInputOutcome],
 ) -> None:
     """Stage 5: Reuse persisted Task 9 harvest state.
@@ -314,13 +1046,101 @@ async def _resolve_task9_reuse(
         return
 
     task9_outcome = next(iter(task9_inputs.values()))
+    ref = task9_outcome.persistent_reference
+    if ref.reference_type != "database_run_id" or not isinstance(ref.reference_value, int):
+        raise PinnedSourceIdentityMismatchError("Task 9 pinned reference must be database_run_id")
+    envelope = await get_harvest_state_run_by_id(session, run_id=ref.reference_value)
+    if envelope.status != "completed":
+        raise Task9Task8AuthorityMismatchError("Task 9 persisted envelope must be completed")
+
+    task8_inputs = {
+        outcome.source_type: outcome
+        for outcome in resolved_inputs.values()
+        if outcome.source_type.value.startswith("task8_")
+    }
+    task8_snapshot_rows = envelope.output.input_snapshot.get("task8_daily_predictions", [])
+    if task8_inputs and not isinstance(task8_snapshot_rows, list):
+        raise Task9Task8AuthorityMismatchError(
+            "Task 9 persisted envelope is missing Task 8 verification snapshots"
+        )
+
+    for item in task8_snapshot_rows:
+        if not isinstance(item, dict):
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 persisted envelope contains malformed Task 8 verification rows"
+            )
+        verification = item.get("verification_snapshot")
+        if not isinstance(verification, dict):
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 persisted envelope contains malformed Task 8 verification snapshot"
+            )
+        model_run = task8_inputs.get(AvailabilitySourceType.TASK8_MODEL_RUN)
+        model_run_id = (
+            model_run.persistent_reference.reference_value if model_run is not None else None
+        )
+        if model_run is not None and verification.get("maturity_model_run_id") != model_run_id:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot model_run_id does not match pinned Task 8 model run"
+            )
+        model_artifact = task8_inputs.get(AvailabilitySourceType.TASK8_MODEL_ARTIFACT)
+        if model_artifact is not None:
+            artifact_ref_id = model_artifact.persistent_reference.reference_value
+            if verification.get("maturity_model_artifact_id") != artifact_ref_id:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot artifact_id does not match pinned Task 8 artifact"
+                )
+            expected_artifact_hash = model_artifact.canonical_payload_hash
+            if (
+                expected_artifact_hash
+                and verification.get("maturity_model_artifact_hash") != expected_artifact_hash
+            ):
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot artifact_hash "
+                    "does not match pinned Task 8 artifact"
+                )
+        forecast_run = task8_inputs.get(AvailabilitySourceType.TASK8_FORECAST_RUN)
+        forecast_run_id = (
+            forecast_run.persistent_reference.reference_value if forecast_run is not None else None
+        )
+        if (
+            forecast_run is not None
+            and verification.get("maturity_forecast_run_id") != forecast_run_id
+        ):
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot forecast_run_id "
+                "does not match pinned Task 8 forecast run"
+            )
+
+    pinned_daily_ids = {
+        outcome.persistent_reference.reference_value
+        for outcome in resolved_inputs.values()
+        if outcome.source_type == AvailabilitySourceType.TASK8_DAILY_PREDICTION
+    }
+    if pinned_daily_ids:
+        actual_daily_ids = {
+            item.get("verification_snapshot", {}).get("maturity_daily_prediction_id")
+            for item in task8_snapshot_rows
+            if isinstance(item, dict)
+        }
+        if actual_daily_ids != pinned_daily_ids:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot daily prediction set "
+                "does not match pinned Task 8 rows"
+            )
+
     ctx.task9_authority = Task9AuthorityOutcome(
         run_reference=task9_outcome.persistent_reference,
         semantic_input_signature=task9_outcome.semantic_identity.semantic.input_signature,
-        result_hash=task9_outcome.semantic_identity.semantic.result_hash,
+        result_hash=envelope.result_hash,
         canonical_payload_hash=task9_outcome.semantic_identity.semantic.canonical_payload_hash,
-        source_catalog_hash=None,
-        verification_snapshot_hash=None,
+        source_catalog_hash=(
+            getattr(envelope.output, "source_catalog_hash", None)
+            or _task9_source_catalog_hash(envelope)
+        ),
+        verification_snapshot_hash=(
+            getattr(envelope.output, "verification_snapshot_hash", None)
+            or _task9_verification_snapshot_hash(envelope)
+        ),
         mode="reuse",
     )
 
@@ -329,6 +1149,7 @@ async def _resolve_task9_reuse(
 
 
 async def _resolve_task10_reuse(
+    session: AsyncSession,
     ctx: _StageContext,
     config: RollingBacktestConfig,
     node: RollingNodeDefinition,
@@ -360,11 +1181,134 @@ async def _resolve_task10_reuse(
         (o for t, o in task10_inputs.items() if "artifact" in t),
         None,
     )
+    analytics_build = next(
+        (
+            outcome
+            for outcome in resolved_inputs.values()
+            if outcome.source_type == AvailabilitySourceType.TASK3_ANALYTICS_BUILD
+        ),
+        None,
+    )
+
+    if training is not None:
+        training_run_id = _require_database_ref(
+            training.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        training_result = await load_residual_training_run_by_id(session, run_id=training_run_id)
+        if training_result is None or training_result.execution_status != "completed":
+            raise Task10Task9BindingMismatchError(
+                f"Task 10 training run {training_run_id} must be completed"
+            )
+
+    if artifact is not None:
+        artifact_id = _require_database_ref(
+            artifact.semantic_identity,
+            allowed_types=("database_run_id", "database_artifact_id"),
+        )
+        artifact_row = await session.get(ResidualModelArtifact, artifact_id)
+        if artifact_row is None:
+            raise Task10Task9BindingMismatchError(f"Task 10 artifact {artifact_id} was not found")
+        trusted_artifacts = await load_and_validate_trusted_residual_artifacts(
+            session,
+            run_id=artifact_row.training_run_id,
+        )
+        if not any(
+            item.metadata.binary_sha256 == artifact_row.artifact_sha256
+            for item in trusted_artifacts
+        ):
+            raise Task10Task9BindingMismatchError(
+                f"Task 10 artifact {artifact_id} did not pass trusted-artifact validation"
+            )
+        if training is not None:
+            training_run_id = _require_database_ref(
+                training.semantic_identity,
+                allowed_types=("database_run_id",),
+            )
+            if artifact_row.training_run_id != training_run_id:
+                raise Task10Task9BindingMismatchError(
+                    f"Task 10 artifact {artifact_id} does not belong to pinned training run"
+                )
+
+    if prediction is not None:
+        prediction_run_id = _require_database_ref(
+            prediction.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        prediction_row = await session.get(ResidualModelPredictionRun, prediction_run_id)
+        prediction_result = await load_residual_prediction_run_by_id(
+            session,
+            run_id=prediction_run_id,
+        )
+        if prediction_row is None or prediction_result is None:
+            raise Task10PredictionNotCompletedError(
+                f"Task 10 prediction run {prediction_run_id} was not found"
+            )
+        if prediction_result.execution_status != "completed" or prediction_row.completed_at is None:
+            raise Task10PredictionNotCompletedError(
+                f"Task 10 prediction run {prediction_run_id} must be completed"
+            )
+        if prediction_row.completed_at > node.forecast_cutoff_at:
+            raise Task10PredictionAfterCutoffError(
+                f"Task 10 prediction run {prediction_run_id} completed after cutoff"
+            )
+        if training is not None:
+            training_run_id = _require_database_ref(
+                training.semantic_identity,
+                allowed_types=("database_run_id",),
+            )
+            if prediction_row.training_run_id != training_run_id:
+                raise Task10Task9BindingMismatchError(
+                    f"Task 10 prediction run {prediction_run_id} "
+                    "does not belong to pinned training run"
+                )
+        if ctx.task9_authority is None or ctx.task9_authority.run_reference is None:
+            raise Task10Task9BindingMismatchError(
+                "Task 10 prediction run requires pinned Task 9 authority"
+            )
+        if prediction_result.task9_run_id != ctx.task9_authority.run_reference.reference_value:
+            raise Task10Task9BindingMismatchError(
+                f"Task 10 prediction run {prediction_run_id} Task 9 run mismatch"
+            )
+        if prediction_result.task9_result_hash != ctx.task9_authority.result_hash:
+            raise Task10Task9BindingMismatchError(
+                f"Task 10 prediction run {prediction_run_id} Task 9 result hash mismatch"
+            )
+        if analytics_build is not None:
+            build_run_id = _require_database_ref(
+                analytics_build.semantic_identity,
+                allowed_types=("database_run_id",),
+            )
+            feature_snapshot = prediction_result.input_snapshot.get("feature_actual_snapshot")
+            if not isinstance(feature_snapshot, dict):
+                raise Task10Task9BindingMismatchError(
+                    f"Task 10 prediction run {prediction_run_id} is missing feature_actual_snapshot"
+                )
+            if feature_snapshot.get("build_run_id") != build_run_id:
+                raise Task10Task9BindingMismatchError(
+                    f"Task 10 prediction run {prediction_run_id} feature build mismatch"
+                )
+            if (
+                analytics_build.business_version is not None
+                and feature_snapshot.get("aggregation_version") != analytics_build.business_version
+            ):
+                raise Task10Task9BindingMismatchError(
+                    f"Task 10 prediction run {prediction_run_id} feature version mismatch"
+                )
+            expected_config_hash = analytics_build.semantic_identity.semantic.config_hash
+            if (
+                expected_config_hash is not None
+                and feature_snapshot.get("config_hash") != expected_config_hash
+            ):
+                raise Task10Task9BindingMismatchError(
+                    f"Task 10 prediction run {prediction_run_id} feature config mismatch"
+                )
 
     ctx.task10_authority = Task10AuthorityOutcome(
         training_reference=training.persistent_reference if training else None,
         artifact_reference=artifact.persistent_reference if artifact else None,
         prediction_reference=prediction.persistent_reference if prediction else None,
+        feature_reference=analytics_build.persistent_reference if analytics_build else None,
         task9_run_reference=ctx.task9_authority.run_reference if ctx.task9_authority else None,
         task9_result_hash=ctx.task9_authority.result_hash if ctx.task9_authority else None,
         input_signature=(
@@ -379,6 +1323,7 @@ async def _resolve_task10_reuse(
 
 
 async def _execute_task10_prediction_reuse(
+    session: AsyncSession,
     ctx: _StageContext,
     config: RollingBacktestConfig,
     node: RollingNodeDefinition,
@@ -392,7 +1337,59 @@ async def _execute_task10_prediction_reuse(
         return
     if ctx.task10_authority.prediction_hash is None:
         return
-    # Prediction reuse: integrity verified in stage 6
+    if ctx.task10_authority.prediction_reference is None:
+        raise Task10PredictionNotCompletedError(
+            "Task 10 reuse is missing pinned prediction reference"
+        )
+    prediction_run_id = ctx.task10_authority.prediction_reference.reference_value
+    if not isinstance(prediction_run_id, int):
+        raise Task10PredictionNotCompletedError(
+            "Task 10 prediction reference must be a database_run_id"
+        )
+    prediction_result = await load_residual_prediction_run_by_id(session, run_id=prediction_run_id)
+    prediction_row = await session.get(ResidualModelPredictionRun, prediction_run_id)
+    if prediction_result is None or prediction_row is None or prediction_row.completed_at is None:
+        raise Task10PredictionNotCompletedError(
+            f"Task 10 prediction run {prediction_run_id} was not found"
+        )
+    if prediction_result.execution_status != "completed":
+        raise Task10PredictionNotCompletedError(
+            f"Task 10 prediction run {prediction_run_id} must be completed"
+        )
+    if prediction_row.completed_at > node.forecast_cutoff_at:
+        raise Task10PredictionAfterCutoffError(
+            f"Task 10 prediction run {prediction_run_id} completed after cutoff"
+        )
+    if prediction_result.prediction_hash != ctx.task10_authority.prediction_hash:
+        raise Task10Task9BindingMismatchError(
+            f"Task 10 prediction run {prediction_run_id} prediction hash mismatch"
+        )
+    if prediction_result.prediction_input_signature != ctx.task10_authority.input_signature:
+        raise Task10Task9BindingMismatchError(
+            f"Task 10 prediction run {prediction_run_id} input signature mismatch"
+        )
+    if ctx.task9_authority is None or ctx.task9_authority.run_reference is None:
+        raise Task10Task9BindingMismatchError(
+            "Task 10 prediction run requires resolved Task 9 authority"
+        )
+    if prediction_result.task9_run_id != ctx.task9_authority.run_reference.reference_value:
+        raise Task10Task9BindingMismatchError(
+            f"Task 10 prediction run {prediction_run_id} Task 9 run mismatch"
+        )
+    if prediction_result.task9_result_hash != ctx.task9_authority.result_hash:
+        raise Task10Task9BindingMismatchError(
+            f"Task 10 prediction run {prediction_run_id} Task 9 result hash mismatch"
+        )
+    if ctx.task10_authority.feature_reference is not None:
+        feature_snapshot = prediction_result.input_snapshot.get("feature_actual_snapshot")
+        expected_build_run_id = ctx.task10_authority.feature_reference.reference_value
+        if (
+            not isinstance(feature_snapshot, dict)
+            or feature_snapshot.get("build_run_id") != expected_build_run_id
+        ):
+            raise Task10Task9BindingMismatchError(
+                f"Task 10 prediction run {prediction_run_id} feature build mismatch"
+            )
 
 
 # ── Snapshot builder ────────────────────────────────────────────────────────
@@ -407,10 +1404,25 @@ def _build_orchestration_snapshot_payload(
     node_signature: str,
 ) -> dict[str, Any]:
     """Build the canonical orchestration snapshot payload."""
+    task8_authorities = {
+        role: {
+            "source_role": outcome.source_role,
+            "source_type": outcome.source_type.value,
+            "persistent_reference": outcome.persistent_reference.model_dump(mode="python"),
+            "business_version": outcome.business_version,
+            "canonical_identity_hash": outcome.canonical_identity_hash,
+            "canonical_payload_hash": outcome.canonical_payload_hash,
+        }
+        for role, outcome in ctx.resolved_inputs.items()
+        if outcome.source_type.value.startswith("task8_")
+    }
     resolved_inputs_dict = {
         role: {
             "source_role": outcome.source_role,
             "source_type": outcome.source_type.value,
+            "persistent_reference": outcome.persistent_reference.model_dump(mode="python"),
+            "authoritative_available_at": outcome.authoritative_available_at.isoformat(),
+            "business_version": outcome.business_version,
             "canonical_identity_hash": outcome.canonical_identity_hash,
             "canonical_payload_hash": outcome.canonical_payload_hash,
         }
@@ -422,19 +1434,38 @@ def _build_orchestration_snapshot_payload(
             "source_type": audit.source_type,
             "allowed": audit.allowed,
             "blocker_code": audit.blocker_code,
+            "authoritative_available_at": audit.authoritative_available_at,
+            "forecast_cutoff_at": audit.forecast_cutoff_at,
             "audit_hash": audit.audit_hash,
+            "parent_authority": audit.parent_authority,
         }
         for role, audit in ctx.availability_audits.items()
+    }
+    dag = _build_frozen_dag(owner_node_signature=node_signature)
+    dag_payload = {
+        "dag_schema_version": dag.dag_schema_version,
+        "dag_policy_version": dag.dag_policy_version,
+        "nodes": dag.dag_dict["nodes"],
+        "edges": dag.dag_dict["edges"],
     }
     snapshot: dict[str, Any] = {
         "run_signature": run_signature,
         "node_signature": node_signature,
+        "attempt": {
+            "attempt_id": ctx.attempt_id,
+            "attempt_number": ctx.attempt_number,
+            "prior_attempt_id": ctx.prior_attempt_id,
+        },
         "execution_mode": config.execution_mode.value,
         "upstream_selection_mode": node.upstream_selection_mode.value,
         "forecast_cutoff_at": node.forecast_cutoff_at.isoformat(),
+        "dag": dag_payload,
+        "dag_hash": sha256_payload(dag_payload),
         "resolved_inputs": resolved_inputs_dict,
         "availability_audits": audits_dict,
     }
+    if task8_authorities:
+        snapshot["task8_authorities"] = task8_authorities
     if ctx.task9_authority:
         snapshot["task9_authority"] = {
             "run_reference": (
@@ -442,7 +1473,11 @@ def _build_orchestration_snapshot_payload(
                 if ctx.task9_authority.run_reference
                 else None
             ),
+            "semantic_input_signature": ctx.task9_authority.semantic_input_signature,
             "result_hash": ctx.task9_authority.result_hash,
+            "canonical_payload_hash": ctx.task9_authority.canonical_payload_hash,
+            "source_catalog_hash": ctx.task9_authority.source_catalog_hash,
+            "verification_snapshot_hash": ctx.task9_authority.verification_snapshot_hash,
             "mode": ctx.task9_authority.mode,
         }
     if ctx.task10_authority:
@@ -457,6 +1492,24 @@ def _build_orchestration_snapshot_payload(
                 if ctx.task10_authority.prediction_reference
                 else None
             ),
+            "artifact_reference": (
+                ctx.task10_authority.artifact_reference.model_dump(mode="python")
+                if ctx.task10_authority.artifact_reference
+                else None
+            ),
+            "feature_reference": (
+                ctx.task10_authority.feature_reference.model_dump(mode="python")
+                if ctx.task10_authority.feature_reference
+                else None
+            ),
+            "task9_run_reference": (
+                ctx.task10_authority.task9_run_reference.model_dump(mode="python")
+                if ctx.task10_authority.task9_run_reference
+                else None
+            ),
+            "task9_result_hash": ctx.task10_authority.task9_result_hash,
+            "input_signature": ctx.task10_authority.input_signature,
+            "prediction_hash": ctx.task10_authority.prediction_hash,
             "mode": ctx.task10_authority.mode,
         }
     if ctx.fallback_mode:
@@ -558,8 +1611,11 @@ async def orchestrate_node(
             rolling_node_id,
             status="running",
             current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
+            session=session,
         )
         ctx.attempt_id = attempt.id
+        ctx.attempt_number = attempt.attempt_number
+        ctx.prior_attempt_id = getattr(attempt, "prior_attempt_id", None)
 
         # ── Stage 1: resolve_historical_inputs ───────────────────────────
         ctx = await _run_stage(
@@ -659,25 +1715,18 @@ async def orchestrate_node(
             current_stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
         )
 
+        await update_run_status_from_attempts(session, rolling_run_id)
+        await session.flush()
+
         # Hard integrity reload — fail closed, no swallowing.
         # Verifies: run canonical parity, node canonical parity,
         # attempt chain, stage continuity, snapshot consistency.
         try:
             await load_logical_run_with_integrity(session, run)
         except Exception as reload_exc:
-            # Integrity reload failed — rollback attempt finalization,
-            # persist blocked snapshot, return blocked outcome.
+            # Integrity reload failed — rollback the entire execution so
+            # no completed attempt, snapshot, or run-status mutation survives.
             await session.rollback()
-            await _finalize_blocked(
-                session,
-                ctx,
-                config,
-                node_def,
-                run,
-                attempt,
-                blocker_code="ROLLING_ORCHESTRATION_INTEGRITY_RELOAD_FAILED",
-                error=reload_exc,
-            )
             return _build_outcome(
                 ctx=ctx,
                 config=config,
@@ -689,9 +1738,6 @@ async def orchestrate_node(
                 blocker_code="ROLLING_ORCHESTRATION_INTEGRITY_RELOAD_FAILED",
                 diagnostics={"error": str(reload_exc)},
             )
-
-        # ── Update node and run status ───────────────────────────────────
-        await update_run_status_from_attempts(session, rolling_run_id)
 
         return _build_outcome(
             ctx=ctx,
@@ -798,6 +1844,7 @@ async def _run_stage(
         ctx.node_id,
         stage=stage.value,
         status="running",
+        session=session,
     )
 
     try:
@@ -808,6 +1855,7 @@ async def _run_stage(
             ctx.node_id,
             stage=stage.value,
             status="completed",
+            session=session,
         )
         ctx.diagnostics["last_completed_stage"] = stage.value
         return ctx
@@ -821,6 +1869,7 @@ async def _run_stage(
             stage=stage.value,
             status="blocked",
             structured_error_code=code,
+            session=session,
         )
         raise
 
@@ -835,24 +1884,8 @@ async def _stage_resolve_historical_inputs(
     node: RollingNodeDefinition,
 ) -> _StageContext:
     """Stage 1: Resolve historical inputs from persisted resolved_upstream_semantic_identities."""
-    for identity in node.resolved_upstream_semantic_identities:
-        outcome = ResolvedInputOutcome(
-            source_role=identity.source_role,
-            source_type=identity.source_type,
-            semantic_identity=identity,
-            persistent_reference=identity.persistent_reference
-            or PersistentUpstreamReference(reference_type="database_run_id", reference_value=1),
-            authoritative_available_at=datetime.now(UTC),
-            canonical_identity_hash=sha256_payload(
-                canonical_json_dumps(_resolved_input_canonical_payload(identity))
-            ),
-            canonical_payload_hash=identity.semantic.canonical_payload_hash or "",
-            business_version=identity.semantic.business_version,
-        )
-        ctx.resolved_inputs[identity.source_role] = outcome
-
-    # P0-2: Validate execution mode and selection mode inside Stage 1,
-    # AFTER attempt creation.  Unsupported mode → Stage 1 blocked.
+    # Preserve the stage-1 blocker contract: unsupported mode/selection must
+    # fail closed before any availability lookup or exact-load attempt.
     if config.execution_mode != ExecutionMode.HISTORICAL_OBSERVED:
         raise UnsupportedExecutionModeError(
             f"execution_mode={config.execution_mode.value} is not supported"
@@ -861,6 +1894,33 @@ async def _stage_resolve_historical_inputs(
         raise UnsupportedSelectionModeError(
             f"upstream_selection_mode={node.upstream_selection_mode} not supported"
         )
+
+    for identity in node.resolved_upstream_semantic_identities:
+        if identity.persistent_reference is None:
+            raise PinnedSourceNotFoundError(
+                f"pinned source role={identity.source_role} is missing persistent reference"
+            )
+        exact = await _load_exact_pinned_candidate(session, node, identity)
+        if exact.semantic_identity.source_role != identity.source_role:
+            raise PinnedSourceIdentityMismatchError(
+                f"pinned source role mismatch: expected {identity.source_role} "
+                f"got {exact.semantic_identity.source_role}"
+            )
+        if _build_identity_payload(exact.semantic_identity) != _build_identity_payload(identity):
+            raise PinnedSourceIdentityMismatchError(
+                f"pinned source semantic mismatch for role={identity.source_role}"
+            )
+        outcome = ResolvedInputOutcome(
+            source_role=identity.source_role,
+            source_type=identity.source_type,
+            semantic_identity=identity,
+            persistent_reference=exact.persistent_reference,
+            authoritative_available_at=exact.authoritative_available_at,
+            canonical_identity_hash=exact.canonical_identity_hash,
+            canonical_payload_hash=exact.canonical_payload_hash,
+            business_version=exact.business_version,
+        )
+        ctx.resolved_inputs[identity.source_role] = outcome
 
     return ctx
 
@@ -947,7 +2007,13 @@ async def _stage_resolve_task8(  # noqa: ARG001
     For historical_observed + pinned: reuse persisted Task 8.
     Verify parent authority chain.
     """
-    await _resolve_task8_reuse(ctx, config, node, resolved_inputs=ctx.resolved_inputs)
+    await _resolve_task8_reuse(
+        session,
+        ctx,
+        config,
+        node,
+        resolved_inputs=ctx.resolved_inputs,
+    )
     return ctx
 
 
@@ -962,7 +2028,13 @@ async def _stage_resolve_task9(  # noqa: ARG001
     For historical_observed + pinned: reuse persisted Task 9.
     Verify frozen Task 8 identity matches.
     """
-    await _resolve_task9_reuse(ctx, config, node, resolved_inputs=ctx.resolved_inputs)
+    await _resolve_task9_reuse(
+        ctx,
+        config,
+        node,
+        session=session,
+        resolved_inputs=ctx.resolved_inputs,
+    )
     return ctx
 
 
@@ -977,7 +2049,13 @@ async def _stage_resolve_task10(  # noqa: ARG001
     For historical_observed + pinned: reuse persisted Task 10.
     Verify training run completed, prediction run completed.
     """
-    await _resolve_task10_reuse(ctx, config, node, resolved_inputs=ctx.resolved_inputs)
+    await _resolve_task10_reuse(
+        session,
+        ctx,
+        config,
+        node,
+        resolved_inputs=ctx.resolved_inputs,
+    )
     return ctx
 
 
@@ -991,7 +2069,7 @@ async def _stage_execute_task10_prediction(  # noqa: ARG001
 
     For historical_observed: reuse persisted prediction only.
     """
-    await _execute_task10_prediction_reuse(ctx, config, node)
+    await _execute_task10_prediction_reuse(session, ctx, config, node)
     return ctx
 
 
@@ -1027,6 +2105,7 @@ async def _stage_finalize_snapshot(
         status="completed",
         terminal_stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
         canonical_payload=snapshot_payload,
+        session=session,
     )
     return ctx
 
@@ -1058,26 +2137,21 @@ async def _finalize_blocked(
         OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
     )
 
-    try:
-        await finalize_attempt_with_snapshot(
-            attempt.id,
-            node_id=ctx.node_id,
-            status="blocked",
-            current_stage=terminal_stage,
-            snapshot_status="blocked",
-            terminal_stage=terminal_stage,
-            blocker_code=blocker_code,
-            structured_error_code=blocker_code,
-            sanitized_diagnostics=diagnostics,
-            canonical_payload={"blocker_code": blocker_code},
-        )
-    except Exception:
-        pass  # Best-effort finalize
+    await finalize_attempt_with_snapshot(
+        attempt.id,
+        node_id=ctx.node_id,
+        status="blocked",
+        current_stage=terminal_stage,
+        snapshot_status="blocked",
+        terminal_stage=terminal_stage,
+        blocker_code=blocker_code,
+        structured_error_code=blocker_code,
+        sanitized_diagnostics=diagnostics,
+        canonical_payload={"blocker_code": blocker_code},
+        session=session,
+    )
 
-    try:
-        await update_run_status_from_attempts(session, ctx.run_id)
-    except Exception:
-        pass
+    await update_run_status_from_attempts(session, ctx.run_id)
 
 
 # ── Outcome builder ──────────────────────────────────────────────────────────

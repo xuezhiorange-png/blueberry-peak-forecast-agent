@@ -20,6 +20,7 @@ from backend.app.rolling_backtest.enums import (
 )
 from backend.app.rolling_backtest.node_orchestration import (
     NodeAlreadyFinalizedError,
+    PinnedSourceIdentityMismatchError,
     PinnedSourceNotFoundError,
     PinnedSourceNotVisibleError,
     Task8ParentAuthorityMismatchError,
@@ -28,12 +29,16 @@ from backend.app.rolling_backtest.node_orchestration import (
     Task10Task9BindingMismatchError,
     UnsupportedExecutionModeError,
     UnsupportedSelectionModeError,
+    _extract_authoritative_available_at,
     orchestrate_node,
 )
 from backend.app.rolling_backtest.orchestration import (
     AvailabilityAuditOutcome,
     NodeOrchestrationOutcome,
     OrchestrationStage,
+    ResolvedInputOutcome,
+    Task9AuthorityOutcome,
+    Task10AuthorityOutcome,
 )
 from backend.app.rolling_backtest.persistence import _STAGE_ORDINAL
 from backend.app.rolling_backtest.schemas import (
@@ -243,6 +248,13 @@ def _empty_audit_result():
     return result
 
 
+def _scalar_result(obj):
+    result = MagicMock()
+    result.scalar_one.return_value = obj
+    result.scalar_one_or_none.return_value = obj
+    return result
+
+
 def _build_session_side_effect(run, node, completed_attempt=None):
     """Build a side_effect for session.execute that routes by model type."""
 
@@ -278,6 +290,35 @@ async def _mock_stage_validate_visibility_happy(session, ctx, config, node):
     return ctx
 
 
+async def _mock_stage_resolve_historical_inputs_happy(session, ctx, config, node):
+    """Mock stage 1 for unit tests so later-stage tests stay focused."""
+    for identity in node.resolved_upstream_semantic_identities:
+        ctx.resolved_inputs[identity.source_role] = ResolvedInputOutcome(
+            source_role=identity.source_role,
+            source_type=identity.source_type,
+            semantic_identity=identity,
+            persistent_reference=identity.persistent_reference
+            or PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=42,
+            ),
+            authoritative_available_at=datetime(2026, 3, 14, 4, 0, tzinfo=UTC),
+            canonical_identity_hash="1" * 64,
+            canonical_payload_hash=identity.semantic.canonical_payload_hash or "2" * 64,
+            business_version=identity.semantic.business_version,
+        )
+    return ctx
+
+
+async def _noop_stage(session, ctx, config, node):
+    """No-op stage helper for unit tests that are not exercising real reuse loaders."""
+    return ctx
+
+
+class _SnapshotWithoutAuthorityTimestamp:
+    pass
+
+
 # ── Common mock patches for orchestrate_node ─────────────────────────────────
 
 
@@ -286,6 +327,7 @@ def _make_attempt_mock(attempt_fixture):
     m = MagicMock()
     m.id = attempt_fixture.id
     m.attempt_number = attempt_fixture.attempt_number
+    m.prior_attempt_id = getattr(attempt_fixture, "prior_attempt_id", None)
     m.started_at = attempt_fixture.started_at
     m.finished_at = attempt_fixture.finished_at
     return m
@@ -296,11 +338,26 @@ def _orchestration_patches(
     mock_run,
     mock_node,
     mock_attempt,
+    stage_resolve_historical_inputs=None,
     stage_validate_visibility=None,
+    stage_resolve_task8=None,
+    stage_resolve_task9=None,
+    stage_resolve_task10=None,
+    stage_execute_task10_prediction=None,
 ):
     """Return a dict of {short_attr_name: mock_value} for patch.multiple."""
+    if stage_resolve_historical_inputs is None:
+        stage_resolve_historical_inputs = _mock_stage_resolve_historical_inputs_happy
     if stage_validate_visibility is None:
         stage_validate_visibility = _mock_stage_validate_visibility_happy
+    if stage_resolve_task8 is None:
+        stage_resolve_task8 = _noop_stage
+    if stage_resolve_task9 is None:
+        stage_resolve_task9 = _noop_stage
+    if stage_resolve_task10 is None:
+        stage_resolve_task10 = _noop_stage
+    if stage_execute_task10_prediction is None:
+        stage_execute_task10_prediction = _noop_stage
 
     attempt_inst = _make_attempt_mock(mock_attempt)
 
@@ -312,7 +369,12 @@ def _orchestration_patches(
         "finalize_attempt_status": AsyncMock(return_value=attempt_inst),
         "finalize_attempt_with_snapshot": AsyncMock(return_value=(attempt_inst, MagicMock())),
         "update_run_status_from_attempts": AsyncMock(),
+        "_stage_resolve_historical_inputs": stage_resolve_historical_inputs,
         "_stage_validate_visibility": stage_validate_visibility,
+        "_stage_resolve_task8": stage_resolve_task8,
+        "_stage_resolve_task9": stage_resolve_task9,
+        "_stage_resolve_task10": stage_resolve_task10,
+        "_stage_execute_task10_prediction": stage_execute_task10_prediction,
     }
 
 
@@ -352,6 +414,8 @@ async def test_historical_observed_pinned_success(mock_session, mock_run, mock_n
 @pytest.mark.asyncio
 async def test_retrospective_replay_unsupported(mock_session):
     """Retrospective replay mode returns blocked outcome (P0-2)."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
     retro_config = _make_config(execution_mode=ExecutionMode.RETROSPECTIVE_REPLAY)
 
     mock_run = MagicMock()
@@ -379,6 +443,7 @@ async def test_retrospective_replay_unsupported(mock_session):
         mock_run=mock_run,
         mock_node=mock_node,
         mock_attempt=mock_attempt,
+        stage_resolve_historical_inputs=node_orch._stage_resolve_historical_inputs,
     )
 
     with patch.multiple(_MOD, **patches):
@@ -399,6 +464,8 @@ async def test_historical_resolution_unsupported(mock_session):
     RETROSPECTIVE_REPLAY to exercise the 'unsupported mode' path, which is
     the same code path a future HISTORICAL_RESOLUTION mode would hit.
     """
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
     retro_config = _make_config(execution_mode=ExecutionMode.RETROSPECTIVE_REPLAY)
 
     mock_run = MagicMock()
@@ -426,6 +493,7 @@ async def test_historical_resolution_unsupported(mock_session):
         mock_run=mock_run,
         mock_node=mock_node,
         mock_attempt=mock_attempt,
+        stage_resolve_historical_inputs=node_orch._stage_resolve_historical_inputs,
     )
 
     with patch.multiple(_MOD, **patches):
@@ -575,12 +643,20 @@ async def test_pinned_source_not_visible(mock_session):
     assert outcome.blocker_code == "PINNED_SOURCE_NOT_VISIBLE"
 
 
+def test_extract_authoritative_available_at_rejects_missing_timestamp() -> None:
+    """Availability extraction must fail closed without a persisted timestamp."""
+    with pytest.raises(PinnedSourceIdentityMismatchError):
+        _extract_authoritative_available_at(_SnapshotWithoutAuthorityTimestamp())
+
+
 # ── 7. Task 8 parent authority mismatch ──────────────────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_task8_parent_authority_mismatch(mock_session):
     """Task 8 artifact without model run blocks orchestration."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
     artifact_identity = _make_identity(
         source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
         source_role="task8_model_artifact",
@@ -610,7 +686,10 @@ async def test_task8_parent_authority_mismatch(mock_session):
     mock_attempt.finished_at = None
 
     patches = _orchestration_patches(
-        mock_run=mock_run, mock_node=mock_node, mock_attempt=mock_attempt
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+        stage_resolve_task8=node_orch._stage_resolve_task8,
     )
 
     with patch.multiple(_MOD, **patches):
@@ -1189,6 +1268,8 @@ async def test_deterministic_final_snapshot_hash(mock_session, mock_run, mock_no
 @pytest.mark.asyncio
 async def test_unsupported_mode_returns_typed_error(mock_session):
     """Returns blocked outcome with UNSUPPORTED_EXECUTION_MODE blocker (P0-2)."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
     retro_config = _make_config(execution_mode=ExecutionMode.RETROSPECTIVE_REPLAY)
     mock_run = MagicMock()
     mock_run.id = 1
@@ -1215,6 +1296,7 @@ async def test_unsupported_mode_returns_typed_error(mock_session):
         mock_run=mock_run,
         mock_node=mock_node,
         mock_attempt=mock_attempt,
+        stage_resolve_historical_inputs=node_orch._stage_resolve_historical_inputs,
     )
 
     with patch.multiple(_MOD, **patches):
@@ -1353,12 +1435,667 @@ def test_stage_ordinals_are_sequential():
     assert ordinals == list(range(1, len(OrchestrationStage) + 1))
 
 
+@pytest.mark.asyncio
+async def test_run_stage_passes_caller_session_to_stage_event_persistence(mock_session):
+    """Stage persistence must use the caller session so one node orchestration stays atomic."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    captured_sessions: list[object | None] = []
+
+    async def _capture_stage_event(*args, **kwargs):
+        captured_sessions.append(kwargs.get("session"))
+        return MagicMock()
+
+    async def _noop_stage(session, ctx, config, node):
+        return ctx
+
+    ctx = node_orch._StageContext(
+        attempt_id=100,
+        node_id=10,
+        run_id=1,
+        resolved_inputs={},
+        availability_audits={},
+    )
+
+    with patch(f"{_MOD}.persist_stage_event", new=AsyncMock(side_effect=_capture_stage_event)):
+        await node_orch._run_stage(
+            mock_session,
+            ctx,
+            OrchestrationStage.RESOLVE_HISTORICAL_INPUTS,
+            _make_config(),
+            _make_node_def(),
+            _noop_stage,
+        )
+
+    assert captured_sessions == [mock_session, mock_session]
+
+
+@pytest.mark.asyncio
+async def test_exact_pinned_candidate_loads_task8_model_run_via_official_loader():
+    """Pinned exact-load must use the official Task 8 loader and frozen authority time."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+        source_role="task8_model_run",
+        semantic_payload_hash="c" * 64,
+        canonical_payload_hash="c" * 64,
+        business_version="task8-v1",
+    ).model_copy(
+        update={
+            "persistent_reference": PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=84,
+            )
+        }
+    )
+
+    session = AsyncMock()
+    row = MagicMock()
+    row.id = 84
+    row.finished_at = datetime(2026, 3, 14, 4, 0, tzinfo=UTC)
+    row.config_hash = "c" * 64
+    row.model_version = "task8-v1"
+    session.get = AsyncMock(return_value=row)
+
+    with patch(
+        f"{_MOD}.load_maturity_model_result",
+        new=AsyncMock(return_value=MagicMock(status="completed")),
+    ) as load_model:
+        candidate = await node_orch._load_exact_pinned_candidate(
+            session,
+            _make_node_def(identities=(identity,)),
+            identity,
+        )
+
+    load_model.assert_awaited_once_with(session, run_id=84)
+    assert candidate.persistent_reference == PersistentUpstreamReference(
+        reference_type="database_run_id",
+        reference_value=84,
+    )
+    assert candidate.authoritative_available_at == row.finished_at
+    assert candidate.canonical_payload_hash == "c" * 64
+
+
+@pytest.mark.asyncio
+async def test_task9_reuse_uses_official_loader_and_freezes_hashes():
+    """Task 9 reuse must go through the official envelope loader and carry frozen hashes."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    task9_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
+        source_role="task9_structural_forecast",
+        input_signature="1" * 64,
+        result_hash="2" * 64,
+        canonical_payload_hash="3" * 64,
+    )
+    task8_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        source_role="task8_forecast_run",
+        input_signature="4" * 64,
+        result_hash="5" * 64,
+        canonical_payload_hash="6" * 64,
+    )
+    ctx = node_orch._StageContext(
+        attempt_id=100,
+        node_id=10,
+        run_id=1,
+        resolved_inputs={
+            "task9_structural_forecast": node_orch.ResolvedInputOutcome(
+                source_role=task9_identity.source_role,
+                source_type=task9_identity.source_type,
+                semantic_identity=task9_identity,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=42,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="7" * 64,
+                canonical_payload_hash="8" * 64,
+            ),
+            "task8_forecast_run": node_orch.ResolvedInputOutcome(
+                source_role=task8_identity.source_role,
+                source_type=task8_identity.source_type,
+                semantic_identity=task8_identity,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=84,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="9" * 64,
+                canonical_payload_hash="a" * 64,
+            ),
+        },
+        availability_audits={},
+    )
+    envelope = MagicMock()
+    envelope.status = "completed"
+    envelope.result_hash = "2" * 64
+    envelope.config_hash = "b" * 64
+    envelope.output = MagicMock()
+    envelope.output.input_snapshot = {"task8_daily_predictions": []}
+    envelope.output.source_catalog_hash = "c" * 64
+    envelope.output.verification_snapshot_hash = "d" * 64
+
+    with patch(
+        f"{_MOD}.get_harvest_state_run_by_id",
+        new=AsyncMock(return_value=envelope),
+        create=True,
+    ) as get_run:
+        await node_orch._resolve_task9_reuse(
+            ctx,
+            _make_config(nodes=(_make_node_def(identities=(task8_identity, task9_identity)),)),
+            _make_node_def(identities=(task8_identity, task9_identity)),
+            session=AsyncMock(),
+            resolved_inputs=ctx.resolved_inputs,
+        )
+
+    get_run.assert_awaited_once()
+    assert ctx.task9_authority is not None
+    assert ctx.task9_authority.source_catalog_hash == "c" * 64
+    assert ctx.task9_authority.verification_snapshot_hash == "d" * 64
+
+
+@pytest.mark.asyncio
+async def test_task10_reuse_uses_official_loaders_and_feature_binding():
+    """Task 10 reuse must exact-load training/artifact/prediction and freeze feature authority."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    task3_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+        source_role="task3_analytics_build",
+        business_version="agg-v1",
+    )
+    task9_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
+        source_role="task9_structural_forecast",
+        result_hash="2" * 64,
+        canonical_payload_hash="3" * 64,
+    )
+    training_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
+        source_role="task10_training_run",
+    )
+    artifact_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
+        source_role="task10_model_artifact",
+    )
+    prediction_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK10_PREDICTION_RUN,
+        source_role="task10_prediction_run",
+        input_signature="6" * 64,
+        result_hash="7" * 64,
+    )
+    ctx = node_orch._StageContext(
+        attempt_id=100,
+        node_id=10,
+        run_id=1,
+        resolved_inputs={
+            "task3_analytics_build": node_orch.ResolvedInputOutcome(
+                source_role=task3_identity.source_role,
+                source_type=task3_identity.source_type,
+                semantic_identity=task3_identity.model_copy(
+                    update={
+                        "persistent_reference": PersistentUpstreamReference(
+                            reference_type="database_run_id",
+                            reference_value=34,
+                        ),
+                        "semantic": task3_identity.semantic.model_copy(
+                            update={"config_hash": "c" * 64}
+                        ),
+                    }
+                ),
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=34,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="1" * 64,
+                canonical_payload_hash="2" * 64,
+                business_version="agg-v1",
+            ),
+            "task9_structural_forecast": node_orch.ResolvedInputOutcome(
+                source_role=task9_identity.source_role,
+                source_type=task9_identity.source_type,
+                semantic_identity=task9_identity,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=11,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="3" * 64,
+                canonical_payload_hash="4" * 64,
+            ),
+            "task10_training_run": node_orch.ResolvedInputOutcome(
+                source_role=training_identity.source_role,
+                source_type=training_identity.source_type,
+                semantic_identity=training_identity.model_copy(
+                    update={
+                        "persistent_reference": PersistentUpstreamReference(
+                            reference_type="database_run_id",
+                            reference_value=31,
+                        )
+                    }
+                ),
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=31,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="5" * 64,
+                canonical_payload_hash="6" * 64,
+            ),
+            "task10_model_artifact": node_orch.ResolvedInputOutcome(
+                source_role=artifact_identity.source_role,
+                source_type=artifact_identity.source_type,
+                semantic_identity=artifact_identity.model_copy(
+                    update={
+                        "persistent_reference": PersistentUpstreamReference(
+                            reference_type="database_artifact_id",
+                            reference_value=32,
+                        )
+                    }
+                ),
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_artifact_id",
+                    reference_value=32,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="7" * 64,
+                canonical_payload_hash="8" * 64,
+            ),
+            "task10_prediction_run": node_orch.ResolvedInputOutcome(
+                source_role=prediction_identity.source_role,
+                source_type=prediction_identity.source_type,
+                semantic_identity=prediction_identity.model_copy(
+                    update={
+                        "persistent_reference": PersistentUpstreamReference(
+                            reference_type="database_run_id",
+                            reference_value=33,
+                        )
+                    }
+                ),
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=33,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="9" * 64,
+                canonical_payload_hash="a" * 64,
+            ),
+        },
+        availability_audits={},
+        task9_authority=Task9AuthorityOutcome(
+            run_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=11,
+            ),
+            result_hash="2" * 64,
+            mode="reuse",
+        ),
+    )
+
+    session = AsyncMock()
+    artifact_row = MagicMock()
+    artifact_row.training_run_id = 31
+    artifact_row.artifact_sha256 = "b" * 64
+    prediction_row = MagicMock()
+    prediction_row.completed_at = datetime(2026, 3, 15, 3, 0, tzinfo=UTC)
+    prediction_row.training_run_id = 31
+
+    async def _session_get(model, key):
+        if model.__name__ == "ResidualModelArtifact":
+            return artifact_row
+        if model.__name__ == "ResidualModelPredictionRun":
+            return prediction_row
+        return None
+
+    session.get = AsyncMock(side_effect=_session_get)
+
+    training_result = MagicMock(execution_status="completed")
+    trusted_artifact = MagicMock()
+    trusted_artifact.metadata.binary_sha256 = "b" * 64
+    prediction_result = MagicMock(
+        execution_status="completed",
+        task9_run_id=11,
+        task9_result_hash="2" * 64,
+        prediction_input_signature="6" * 64,
+        prediction_hash="7" * 64,
+        input_snapshot={
+            "feature_actual_snapshot": {
+                "build_run_id": 34,
+                "aggregation_version": "agg-v1",
+                "config_hash": "c" * 64,
+            }
+        },
+    )
+
+    with (
+        patch(
+            f"{_MOD}.load_residual_training_run_by_id",
+            new=AsyncMock(return_value=training_result),
+        ) as load_training,
+        patch(
+            f"{_MOD}.load_and_validate_trusted_residual_artifacts",
+            new=AsyncMock(return_value=[trusted_artifact]),
+        ) as load_artifacts,
+        patch(
+            f"{_MOD}.load_residual_prediction_run_by_id",
+            new=AsyncMock(return_value=prediction_result),
+        ) as load_prediction,
+    ):
+        await node_orch._resolve_task10_reuse(
+            session,
+            ctx,
+            _make_config(),
+            _make_node_def(
+                identities=(
+                    task3_identity,
+                    task9_identity,
+                    training_identity,
+                    artifact_identity,
+                    prediction_identity,
+                )
+            ),
+            resolved_inputs=ctx.resolved_inputs,
+        )
+
+    load_training.assert_awaited_once()
+    load_artifacts.assert_awaited_once()
+    load_prediction.assert_awaited_once()
+    assert ctx.task10_authority is not None
+    assert ctx.task10_authority.feature_reference == PersistentUpstreamReference(
+        reference_type="database_run_id",
+        reference_value=34,
+    )
+    assert ctx.task10_authority.task9_run_reference == PersistentUpstreamReference(
+        reference_type="database_run_id",
+        reference_value=11,
+    )
+
+
+@pytest.mark.asyncio
+async def test_task10_prediction_reuse_reloads_prediction_and_feature_binding():
+    """Stage 7 must exact-load the prediction run again instead of acting as a no-op."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    session = AsyncMock()
+    prediction_row = MagicMock()
+    prediction_row.completed_at = datetime(2026, 3, 15, 3, 0, tzinfo=UTC)
+    session.get = AsyncMock(return_value=prediction_row)
+    prediction_result = MagicMock(
+        execution_status="completed",
+        task9_run_id=11,
+        task9_result_hash="2" * 64,
+        prediction_input_signature="6" * 64,
+        prediction_hash="7" * 64,
+        input_snapshot={"feature_actual_snapshot": {"build_run_id": 34}},
+    )
+    ctx = node_orch._StageContext(
+        attempt_id=100,
+        node_id=10,
+        run_id=1,
+        resolved_inputs={},
+        availability_audits={},
+        task9_authority=Task9AuthorityOutcome(
+            run_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=11,
+            ),
+            result_hash="2" * 64,
+            mode="reuse",
+        ),
+        task10_authority=Task10AuthorityOutcome(
+            prediction_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=33,
+            ),
+            feature_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=34,
+            ),
+            task9_run_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=11,
+            ),
+            task9_result_hash="2" * 64,
+            input_signature="6" * 64,
+            prediction_hash="7" * 64,
+            mode="reuse",
+        ),
+    )
+
+    with patch(
+        f"{_MOD}.load_residual_prediction_run_by_id",
+        new=AsyncMock(return_value=prediction_result),
+    ) as load_prediction:
+        await node_orch._execute_task10_prediction_reuse(
+            session,
+            ctx,
+            _make_config(),
+            _make_node_def(),
+        )
+
+    load_prediction.assert_awaited_once_with(session, run_id=33)
+
+
+def test_snapshot_payload_freezes_references_and_hashes():
+    """Completed orchestration snapshot must freeze exact authority references and hashes."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        source_role="task8_forecast_run",
+    )
+    outcome = node_orch.ResolvedInputOutcome(
+        source_role=identity.source_role,
+        source_type=identity.source_type,
+        semantic_identity=identity,
+        persistent_reference=PersistentUpstreamReference(
+            reference_type="database_run_id",
+            reference_value=42,
+        ),
+        authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+        canonical_identity_hash="1" * 64,
+        canonical_payload_hash="2" * 64,
+        business_version="v1",
+    )
+    ctx = node_orch._StageContext(
+        attempt_id=100,
+        node_id=10,
+        run_id=1,
+        resolved_inputs={identity.source_role: outcome},
+        availability_audits={},
+        attempt_number=2,
+        prior_attempt_id=99,
+        task9_authority=Task9AuthorityOutcome(
+            run_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=11,
+            ),
+            semantic_input_signature="3" * 64,
+            result_hash="4" * 64,
+            canonical_payload_hash="5" * 64,
+            source_catalog_hash="6" * 64,
+            verification_snapshot_hash="7" * 64,
+            mode="reuse",
+        ),
+        task10_authority=Task10AuthorityOutcome(
+            training_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=21,
+            ),
+            artifact_reference=PersistentUpstreamReference(
+                reference_type="database_artifact_id",
+                reference_value=22,
+            ),
+            feature_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=24,
+            ),
+            prediction_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=23,
+            ),
+            task9_run_reference=PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=11,
+            ),
+            task9_result_hash="8" * 64,
+            input_signature="9" * 64,
+            prediction_hash="a" * 64,
+            mode="reuse",
+        ),
+    )
+
+    snapshot = node_orch._build_orchestration_snapshot_payload(
+        ctx,
+        _make_config(),
+        _make_node_def(),
+        run_signature="b" * 64,
+        node_signature="c" * 64,
+    )
+
+    assert snapshot["resolved_inputs"]["task8_forecast_run"]["persistent_reference"] == {
+        "reference_type": "database_run_id",
+        "reference_value": 42,
+    }
+    assert snapshot["attempt"] == {
+        "attempt_id": 100,
+        "attempt_number": 2,
+        "prior_attempt_id": 99,
+    }
+    assert snapshot["task8_authorities"]["task8_forecast_run"]["canonical_payload_hash"] == "2" * 64
+    assert snapshot["dag"]["dag_schema_version"] == "task11-phase3-v1"
+    assert len(snapshot["dag_hash"]) == 64
+    assert snapshot["task9_authority"]["source_catalog_hash"] == "6" * 64
+    assert snapshot["task9_authority"]["verification_snapshot_hash"] == "7" * 64
+    assert snapshot["task10_authority"]["artifact_reference"] == {
+        "reference_type": "database_artifact_id",
+        "reference_value": 22,
+    }
+    assert snapshot["task10_authority"]["feature_reference"] == {
+        "reference_type": "database_run_id",
+        "reference_value": 24,
+    }
+
+
+@pytest.mark.asyncio
+async def test_finalize_blocked_uses_caller_session(mock_attempt):
+    """Blocked finalization must stay in the caller transaction and update run status."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    session = AsyncMock()
+    ctx = node_orch._StageContext(
+        attempt_id=mock_attempt.id,
+        node_id=10,
+        run_id=1,
+        resolved_inputs={},
+        availability_audits={},
+    )
+    ctx.diagnostics["last_completed_stage"] = OrchestrationStage.VALIDATE_VISIBILITY.value
+    finalize_mock = AsyncMock(return_value=(mock_attempt, MagicMock()))
+    update_run_mock = AsyncMock()
+
+    with (
+        patch(f"{_MOD}.finalize_attempt_with_snapshot", new=finalize_mock),
+        patch(f"{_MOD}.update_run_status_from_attempts", new=update_run_mock),
+    ):
+        await node_orch._finalize_blocked(
+            session,
+            ctx,
+            _make_config(),
+            _make_node_def(),
+            MagicMock(id=1),
+            mock_attempt,
+            blocker_code="PINNED_SOURCE_NOT_VISIBLE",
+            error=PinnedSourceNotVisibleError("blocked"),
+        )
+
+    assert finalize_mock.await_args.kwargs["session"] is session
+    update_run_mock.assert_awaited_once_with(session, 1)
+
+
+@pytest.mark.asyncio
+async def test_completed_path_updates_run_status_before_integrity_reload(
+    mock_session,
+    mock_run,
+    mock_node,
+    mock_attempt,
+):
+    """Successful orchestration must derive run status before the integrity reload."""
+    order: list[str] = []
+
+    async def _update_run_status(session, run_id):
+        order.append("update_run_status")
+        return "forecast_completed"
+
+    async def _integrity_reload(session, run):
+        order.append("integrity_reload")
+        return run
+
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+    )
+    patches["update_run_status_from_attempts"] = AsyncMock(side_effect=_update_run_status)
+    patches["load_logical_run_with_integrity"] = AsyncMock(side_effect=_integrity_reload)
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(
+            mock_session,
+            rolling_run_id=mock_run.id,
+            rolling_node_id=mock_node.id,
+        )
+
+    assert outcome.status == "completed"
+    assert order == ["update_run_status", "integrity_reload"]
+    mock_session.flush.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_integrity_reload_failure_rolls_back_without_persisting_blocked_finalize(
+    mock_session,
+    mock_run,
+    mock_node,
+    mock_attempt,
+):
+    """Integrity reload failure must rollback the whole transaction and skip blocked persistence."""
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+    finalize_snapshot_mock = AsyncMock(return_value=(mock_attempt, MagicMock()))
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+    )
+    patches["load_logical_run_with_integrity"] = AsyncMock(
+        side_effect=RuntimeError("reload failed")
+    )
+    patches["finalize_attempt_with_snapshot"] = finalize_snapshot_mock
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(
+            mock_session,
+            rolling_run_id=mock_run.id,
+            rolling_node_id=mock_node.id,
+        )
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "ROLLING_ORCHESTRATION_INTEGRITY_RELOAD_FAILED"
+    mock_session.rollback.assert_awaited_once()
+    finalize_snapshot_mock.assert_not_awaited()
+
+
 # ── Unsupported selection mode ───────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_unsupported_selection_mode(mock_session):
     """Non-pinned selection mode returns blocked outcome (P0-2)."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
     node_def = _make_node_def(selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION)
     config = _make_config(nodes=(node_def,))
     mock_run = MagicMock()
@@ -1386,6 +2123,7 @@ async def test_unsupported_selection_mode(mock_session):
         mock_run=mock_run,
         mock_node=mock_node,
         mock_attempt=mock_attempt,
+        stage_resolve_historical_inputs=node_orch._stage_resolve_historical_inputs,
     )
 
     with patch.multiple(_MOD, **patches):
