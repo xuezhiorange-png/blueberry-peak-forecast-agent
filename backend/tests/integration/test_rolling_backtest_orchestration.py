@@ -1090,25 +1090,21 @@ async def _build_real_orchestration_command(
         assert db_daily_ids == task9_daily_ids, (
             f"Task 8 DB daily IDs {db_daily_ids} != Task 9 daily IDs {task9_daily_ids}"
         )
-        quantiles_by_date: dict[date, set[str]] = {}
+        entry_count_by_date: dict[date, int] = {}
         task9_daily_ids_by_date: dict[date, set[int]] = {}
         varieties_in_task9 = {item.get("variety_id") for item in t8_preds}
         assert varieties_in_task9 == {101}, f"expected only variety 101, got {varieties_in_task9}"
         for item in t8_preds:
-            src = item["source_ref"]
+            source_ref_hash = item["source_ref_hash"]
             verification = item["verification_snapshot"]
             expected_daily = task8["daily_predictions_by_date"][item["prediction_date"]]
-            quantile = src["forecast_quantile"]
-            quantiles_by_date.setdefault(item["prediction_date"], set()).add(quantile)
+            assert len(source_ref_hash) == 64
+            entry_count_by_date[item["prediction_date"]] = (
+                entry_count_by_date.get(item["prediction_date"], 0) + 1
+            )
             task9_daily_ids_by_date.setdefault(item["prediction_date"], set()).add(
                 verification["maturity_daily_prediction_id"]
             )
-            expected_quantity = {
-                "P50": expected_daily["p50_kg"],
-                "P80": expected_daily["p80_kg"],
-                "P90": expected_daily["p90_kg"],
-            }[quantile]
-            assert src["maturity_daily_prediction_id"] == expected_daily["id"]
             assert verification["maturity_daily_prediction_id"] == expected_daily["id"]
             assert (
                 verification["maturity_daily_prediction_forecast_run_id"]
@@ -1122,11 +1118,12 @@ async def _build_real_orchestration_command(
             assert verification["farm_id"] == task8["farm_id"]
             assert verification["subfarm_id"] == task8["subfarm_id"]
             assert verification["variety_id"] == task8["variety_id"]
-            assert src["source_quantity_kg"] == expected_quantity
-            assert verification[f"{quantile.lower()}_kg"] == expected_quantity
-        assert set(quantiles_by_date) == expected_dates
+            assert verification["p50_kg"] == expected_daily["p50_kg"]
+            assert verification["p80_kg"] == expected_daily["p80_kg"]
+            assert verification["p90_kg"] == expected_daily["p90_kg"]
+        assert set(entry_count_by_date) == expected_dates
         for prediction_date in expected_dates:
-            assert quantiles_by_date[prediction_date] == {"P50", "P80", "P90"}
+            assert entry_count_by_date[prediction_date] == 3
             assert task9_daily_ids_by_date[prediction_date] == {
                 task8["daily_predictions_by_date"][prediction_date]["id"]
             }
