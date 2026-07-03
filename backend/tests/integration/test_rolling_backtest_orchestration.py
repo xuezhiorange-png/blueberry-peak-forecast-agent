@@ -10,6 +10,7 @@ import os
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -833,8 +834,11 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
     }
 
 
-async def _seed_real_task10_authorities() -> dict[str, int]:
-    fixture = await _seed_prediction_fixture()
+async def _seed_real_task10_authorities(
+    *,
+    task8_authority: dict[str, Any] | None = None,
+) -> dict[str, int]:
+    fixture = await _seed_prediction_fixture(task8_authority=task8_authority)
     samples = _diverse_training_samples(
         task9_run_id=fixture["train_task9_run_id"],
         label_build_run_id=fixture["train_label_build_run_id"],
@@ -938,8 +942,17 @@ async def _build_real_orchestration_command(
     forecast_cutoff_at: datetime,
     pinned_task9_variant: str = "training",
 ) -> RollingBacktestPersistenceCommand:
-    task10 = await _seed_real_task10_authorities()
-    task8 = await _seed_real_task8_authorities(season_id=1)
+    task8 = await _seed_real_task8_authorities(season_id=2026)
+    task8_authority = {
+        "model_run_id": task8["model_run_id"],
+        "model_config_hash": TASK8_MODEL_CONFIG_HASH,
+        "model_source_signature": TASK8_MODEL_SOURCE_SIGNATURE,
+        "artifact_id": task8["artifact_id"],
+        "artifact_hash": TASK8_ARTIFACT_HASH,
+        "forecast_run_id": task8["forecast_run_id"],
+        "forecast_source_signature": TASK8_FORECAST_SOURCE_SIGNATURE,
+    }
+    task10 = await _seed_real_task10_authorities(task8_authority=task8_authority)
     task9_run_id = task10["task9_run_id"]
     if pinned_task9_variant == "training":
         pinned_task9_run_id = task10["task9_run_id"]
@@ -971,6 +984,32 @@ async def _build_real_orchestration_command(
         _assert_sha256_hex(task8_model_row.source_signature)
         _assert_sha256_hex(task8_artifact_row.artifact_hash)
         _assert_sha256_hex(task8_forecast_row.source_signature)
+
+        # ── Fixture parity: Task 9 envelope must match real Task 8 DB rows ──
+        task9_input = task9_row.input_snapshot
+        t8_preds = task9_input["task8_daily_predictions"]
+        first_vs = t8_preds[0]["verification_snapshot"]
+        assert first_vs["maturity_model_run_id"] == task8_model_row.id
+        assert first_vs["maturity_model_config_hash"] == task8_model_row.config_hash
+        assert first_vs["maturity_model_source_signature"] == task8_model_row.source_signature
+        assert first_vs["maturity_model_artifact_id"] == task8_artifact_row.id
+        assert first_vs["maturity_model_artifact_hash"] == task8_artifact_row.artifact_hash
+        assert first_vs["maturity_forecast_run_id"] == task8_forecast_row.id
+        # daily prediction exact-set: variety 101 IDs from task9 input must
+        # exactly match DB rows (schema uq_maturity_daily_run_date allows only
+        # one row per forecast_run+date, so variety 102 IDs have no DB rows).
+        plan_variety = 101
+        daily_ids_in_task9_plan = {
+            item["verification_snapshot"]["maturity_daily_prediction_id"]
+            for item in t8_preds
+            if item.get("variety_id") == plan_variety
+        }
+        daily_ids_in_task8 = await session.execute(select(MaturityDailyPredictionModel.id))
+        daily_ids_in_task8_set = set(daily_ids_in_task8.scalars().all())
+        assert daily_ids_in_task8_set == daily_ids_in_task9_plan, (
+            f"Task 8 DB daily IDs {daily_ids_in_task8_set} "
+            f"!= Task 9 plan variety daily IDs {daily_ids_in_task9_plan}"
+        )
 
     identities: tuple[ResolvedUpstreamSemanticIdentity, ...] = (
         _make_identity(
