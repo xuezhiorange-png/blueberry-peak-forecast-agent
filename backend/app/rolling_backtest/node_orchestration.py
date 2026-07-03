@@ -61,6 +61,7 @@ from backend.app.rolling_backtest.persistence import (
     _finalize_attempt_status_in_session,
     _resolved_input_canonical_payload,
     create_execution_attempt,
+    finalize_attempt_status,  # noqa: F401 – used by unit test mocks
     finalize_attempt_with_snapshot,
     load_logical_run_with_integrity,
     persist_orchestration_snapshot,
