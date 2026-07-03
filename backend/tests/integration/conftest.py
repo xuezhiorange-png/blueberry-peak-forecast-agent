@@ -86,9 +86,15 @@ def _ensure_test_database() -> None:
 async def _truncate_master_data() -> None:
     _ensure_test_database()
     async with AsyncSessionMaker() as session:
-        await session.execute(
-            text(f"TRUNCATE {', '.join(_MASTER_DATA_TABLES)} RESTART IDENTITY CASCADE")
+        # Filter to tables that actually exist in the database
+        result = await session.execute(
+            text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
         )
+        existing = {row[0] for row in result.fetchall()}
+        to_truncate = [t for t in _MASTER_DATA_TABLES if t in existing]
+        if not to_truncate:
+            return
+        await session.execute(text(f"TRUNCATE {', '.join(to_truncate)} RESTART IDENTITY CASCADE"))
         await session.commit()
 
 
