@@ -88,9 +88,7 @@ async def sqlite_session() -> AsyncSession:
     FactReceiptRaw.__table__.c.exclusion_reasons.type = JSON()
     FactReceiptRaw.__table__.c.parse_errors.type = JSON()
     async with engine.begin() as conn:
-        await conn.run_sync(
-            lambda sync_conn: Season.metadata.create_all(sync_conn, tables=TABLES)
-        )
+        await conn.run_sync(lambda sync_conn: Season.metadata.create_all(sync_conn, tables=TABLES))
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with sessionmaker() as session:
         yield session
@@ -98,24 +96,35 @@ async def sqlite_session() -> AsyncSession:
 
 
 async def _seed_master_data(session: AsyncSession) -> tuple[int, int, int]:
-    season = Season(
-        id=1,
-        code="2025-2026",
-        start_date=date(2026, 1, 1),
-        end_date=date(2026, 3, 31),
-    )
-    factory = Factory(
-        id=701,
-        code="factory-a",
-        name="Factory A",
-        region_name="north",
-        active=True,
-    )
-    variety = Variety(id=101, code="DX", name="Dx")
-    grade = Grade(id=301, code="优果", is_analysis_eligible_default=True)
-    session.add_all([season, factory, variety, grade])
+    existing_season = await session.get(Season, 1)
+    if existing_season is None:
+        season = Season(
+            id=1,
+            code="2025-2026",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 3, 31),
+        )
+        session.add(season)
+    existing_factory = await session.get(Factory, 701)
+    if existing_factory is None:
+        factory = Factory(
+            id=701,
+            code="factory-a",
+            name="Factory A",
+            region_name="north",
+            active=True,
+        )
+        session.add(factory)
+    existing_variety = await session.get(Variety, 101)
+    if existing_variety is None:
+        variety = Variety(id=101, code="DX", name="Dx")
+        session.add(variety)
+    existing_grade = await session.get(Grade, 301)
+    if existing_grade is None:
+        grade = Grade(id=301, code="优果", is_analysis_eligible_default=True)
+        session.add(grade)
     await session.flush()
-    return season.id, factory.id, variety.id
+    return 1, 701, 101
 
 
 async def _seed_season(
@@ -437,8 +446,7 @@ def _diverse_training_samples(
         samples.append(
             ResidualTrainingSampleSpec(
                 task9_run_id=validation_task9_run_id or task9_run_id,
-                label_analytics_build_run_id=validation_label_build_run_id
-                or label_build_run_id,
+                label_analytics_build_run_id=validation_label_build_run_id or label_build_run_id,
                 feature_analytics_build_run_id=validation_feature_build_run_id
                 or feature_build_run_id,
                 split="validation",
@@ -593,30 +601,30 @@ async def test_later_build_does_not_override_explicit_feature_build_for_as_of_fe
         (early_feature_build.id, Decimal("11")),
         (later_feature_build.id, Decimal("999")),
     ):
-            await _seed_daily_fact(
-                sqlite_session,
-                fact_id=(build_run_id * 10) + 1,
-                build_run_id=build_run_id,
+        await _seed_daily_fact(
+            sqlite_session,
+            fact_id=(build_run_id * 10) + 1,
+            build_run_id=build_run_id,
             season_id=season_id,
             factory_id=factory_id,
             variety_id=variety_id,
             receipt_date=as_of_date - timedelta(days=1),
             weight_kg=lag_value,
         )
-            await _seed_daily_fact(
-                sqlite_session,
-                fact_id=(build_run_id * 10) + 2,
-                build_run_id=build_run_id,
+        await _seed_daily_fact(
+            sqlite_session,
+            fact_id=(build_run_id * 10) + 2,
+            build_run_id=build_run_id,
             season_id=season_id,
             factory_id=factory_id,
             variety_id=variety_id,
             receipt_date=as_of_date - timedelta(days=3),
             weight_kg=lag_value,
         )
-            await _seed_daily_fact(
-                sqlite_session,
-                fact_id=(build_run_id * 10) + 3,
-                build_run_id=build_run_id,
+        await _seed_daily_fact(
+            sqlite_session,
+            fact_id=(build_run_id * 10) + 3,
+            build_run_id=build_run_id,
             season_id=season_id,
             factory_id=factory_id,
             variety_id=variety_id,
@@ -727,14 +735,10 @@ async def test_zero_receipt_and_missing_fact_are_distinguished(
     )
 
     included_rows = [
-        row
-        for row in rows
-        if row.feature_actual_snapshot.build_run_id == covered_feature_build.id
+        row for row in rows if row.feature_actual_snapshot.build_run_id == covered_feature_build.id
     ]
     excluded_rows = [
-        row
-        for row in rows
-        if row.feature_actual_snapshot.build_run_id == missing_feature_build.id
+        row for row in rows if row.feature_actual_snapshot.build_run_id == missing_feature_build.id
     ]
     assert included_rows
     included_features = {item.feature_name: item.value for item in included_rows[0].feature_values}
@@ -1298,7 +1302,7 @@ async def test_task9_completed_only_is_required(sqlite_session: AsyncSession) ->
                     label_analytics_build_run_id=label_build.id,
                     feature_analytics_build_run_id=feature_build.id,
                     split="train",
-        )
+                )
             ],
         )
 

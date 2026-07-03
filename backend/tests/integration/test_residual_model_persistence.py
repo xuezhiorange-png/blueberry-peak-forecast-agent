@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import copy
 import os
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 import pytest
 from sqlalchemy import func, select, text
@@ -65,7 +67,39 @@ def _relaxed_config():
     return replace(config, rules=rules)
 
 
-async def _seed_prediction_fixture() -> dict[str, int]:
+def _apply_task8_authority_to_payload(
+    payload: dict[str, Any],
+    authority: dict[str, Any],
+) -> None:
+    """Override Task 8 authority fields in every task8_daily_predictions item."""
+    for item in payload["task8_daily_predictions"]:
+        src = item["source_ref"]
+        vs = item["verification_snapshot"]
+        # source_ref fields
+        src["maturity_model_run_id"] = authority["model_run_id"]
+        src["maturity_model_config_hash"] = authority["model_config_hash"]
+        src["maturity_model_source_signature"] = authority["model_source_signature"]
+        src["maturity_model_artifact_id"] = authority["artifact_id"]
+        src["maturity_model_artifact_hash"] = authority["artifact_hash"]
+        src["maturity_forecast_run_id"] = authority["forecast_run_id"]
+        src["maturity_forecast_source_signature"] = authority["forecast_source_signature"]
+        # verification_snapshot fields
+        vs["maturity_model_run_id"] = authority["model_run_id"]
+        vs["maturity_model_config_hash"] = authority["model_config_hash"]
+        vs["maturity_model_source_signature"] = authority["model_source_signature"]
+        vs["maturity_model_artifact_id"] = authority["artifact_id"]
+        vs["maturity_model_artifact_run_id"] = authority["model_run_id"]
+        vs["maturity_model_artifact_hash"] = authority["artifact_hash"]
+        vs["maturity_forecast_run_id"] = authority["forecast_run_id"]
+        vs["maturity_forecast_model_run_id"] = authority["model_run_id"]
+        vs["maturity_forecast_artifact_id"] = authority["artifact_id"]
+        vs["maturity_forecast_source_signature"] = authority["forecast_source_signature"]
+
+
+async def _seed_prediction_fixture(
+    *,
+    task8_authority: dict[str, Any] | None = None,
+) -> dict[str, int]:
     async with AsyncSessionMaker() as session:
         season_id, factory_id, variety_id = await _seed_master_data(session)
         validation_season_id = await _seed_season(
@@ -75,8 +109,17 @@ async def _seed_prediction_fixture() -> dict[str, int]:
             start_date=date(2026, 1, 1),
             end_date=date(2026, 3, 31),
         )
-        task9_run_id, output = await _persist_task9_run(session)
-        validation_payload = make_request()
+        if task8_authority is not None:
+            base_payload = copy.deepcopy(make_request())
+            _apply_task8_authority_to_payload(base_payload, task8_authority)
+            task9_run_id, output = await _persist_task9_run(session, payload=base_payload)
+        else:
+            task9_run_id, output = await _persist_task9_run(session)
+        if task8_authority is not None:
+            validation_payload = copy.deepcopy(make_request())
+            _apply_task8_authority_to_payload(validation_payload, task8_authority)
+        else:
+            validation_payload = make_request()
         validation_payload["initial_inventory_cohorts"][0]["remaining_quantity_kg"] = Decimal("6")
         validation_payload["initial_opening_mature_inventory_kg"] = Decimal("31")
         validation_task9_run_id, _validation_output = await _persist_task9_run(
@@ -106,9 +149,7 @@ async def _seed_prediction_fixture() -> dict[str, int]:
             analysis_start_date=date(2026, 1, 1),
             analysis_end_date=date(2026, 2, 27),
         )
-        for index, target_date in enumerate(
-            (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
-        ):
+        for index, target_date in enumerate((date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))):
             await _seed_daily_fact(
                 session,
                 fact_id=100 + index,
@@ -148,9 +189,7 @@ async def _seed_prediction_fixture() -> dict[str, int]:
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
-        for index, target_date in enumerate(
-            (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
-        ):
+        for index, target_date in enumerate((date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))):
             await _seed_daily_fact(
                 session,
                 fact_id=300 + index,
@@ -226,21 +265,15 @@ async def test_postgres_execute_residual_training_completed_eligible_round_trip(
         loaded = await load_residual_training_run_by_id(session, run_id=training_run_id)
 
         assert training_result.blockers == ()
-        assert (
-            training_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
-        )
+        assert training_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
         assert training_result.execution_status == "completed"
         assert training_result.eligibility_status == "eligible"
         assert loaded is not None
         assert training_result_json_payload(loaded) == training_result_json_payload(training_result)
-        assert {
-            item.quantile_label: item.artifact_bytes for item in loaded.artifacts
-        } == {
+        assert {item.quantile_label: item.artifact_bytes for item in loaded.artifacts} == {
             item.quantile_label: item.artifact_bytes for item in training_result.artifacts
         }
-        assert (
-            await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
-        )
+        assert await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
         expected_manifest_row_count = int(
             training_result.input_snapshot["manifest_summary"]["row_count"]
         )
@@ -248,9 +281,7 @@ async def test_postgres_execute_residual_training_completed_eligible_round_trip(
             await session.scalar(select(func.count()).select_from(ResidualModelManifestRow))
             == expected_manifest_row_count
         )
-        assert (
-            training_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
-        )
+        assert training_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
         assert await session.scalar(select(func.count()).select_from(ResidualModelArtifact)) == 3
 
 
@@ -282,9 +313,7 @@ async def test_postgres_execute_residual_training_same_signature_is_idempotent()
 
         assert first_run_id == second_run_id
         assert first_result.training_signature == second_result.training_signature
-        assert (
-            await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
-        )
+        assert await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
         expected_manifest_row_count = int(
             first_result.input_snapshot["manifest_summary"]["row_count"]
         )
@@ -292,9 +321,7 @@ async def test_postgres_execute_residual_training_same_signature_is_idempotent()
             await session.scalar(select(func.count()).select_from(ResidualModelManifestRow))
             == expected_manifest_row_count
         )
-        assert (
-            first_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
-        )
+        assert first_result.input_snapshot["manifest_summary"]["included_row_count"] > 0
         assert await session.scalar(select(func.count()).select_from(ResidualModelArtifact)) == 3
 
 
@@ -326,9 +353,7 @@ async def test_postgres_execute_residual_prediction_round_trip() -> None:
                 model_run_id=training_run_id,
                 task9_run_id=fixture["train_task9_run_id"],
                 feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
-                supplemental_feature_values=_supplemental_features(
-                    as_of_date=date(2026, 2, 28)
-                ),
+                supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
             ),
         )
         loaded = await load_residual_prediction_run_by_id(session, run_id=prediction_run_id)
@@ -338,13 +363,11 @@ async def test_postgres_execute_residual_prediction_round_trip() -> None:
         assert loaded is not None
         assert loaded.model_dump(mode="json") == prediction_result.model_dump(mode="json")
         assert (
-            await session.scalar(select(func.count()).select_from(ResidualModelPredictionRun))
-            == 1
+            await session.scalar(select(func.count()).select_from(ResidualModelPredictionRun)) == 1
         )
-        assert (
-            await session.scalar(select(func.count()).select_from(ResidualModelPredictionRow))
-            == len(prediction_result.rows)
-        )
+        assert await session.scalar(
+            select(func.count()).select_from(ResidualModelPredictionRow)
+        ) == len(prediction_result.rows)
 
 
 @pytest.mark.integration
@@ -376,9 +399,7 @@ async def test_postgres_execute_residual_prediction_structural_only_for_ineligib
                 model_run_id=training_run_id,
                 task9_run_id=fixture["train_task9_run_id"],
                 feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
-                supplemental_feature_values=_supplemental_features(
-                    as_of_date=date(2026, 2, 28)
-                ),
+                supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
             ),
         )
 
@@ -429,9 +450,7 @@ async def test_postgres_artifact_hash_corruption_forces_structural_only_fallback
                 model_run_id=training_run_id,
                 task9_run_id=fixture["train_task9_run_id"],
                 feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
-                supplemental_feature_values=_supplemental_features(
-                    as_of_date=date(2026, 2, 28)
-                ),
+                supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
             ),
         )
 
@@ -456,9 +475,7 @@ async def test_postgres_training_manifest_build_failure_persists_failed_attempt(
             label_analytics_build_run_id=fixture["train_label_build_run_id"],
             feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
             split="train",
-            supplemental_feature_values=_supplemental_features(
-                as_of_date=date(2026, 2, 28)
-            ),
+            supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
         )
     ]
 
@@ -592,15 +609,17 @@ async def test_postgres_successful_training_run_attempt_finalized_as_completed()
     async with AsyncSessionMaker() as session:
         training_result, training_run_id = await execute_residual_training(
             session,
-            samples=[ResidualTrainingSampleSpec(
-                task9_run_id=fixture["train_task9_run_id"],
-                label_analytics_build_run_id=fixture["train_label_build_run_id"],
-                feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
-                split="train",
-                supplemental_feature_values=_supplemental_features(
-                    as_of_date=date(2026, 2, 28)
-                ),
-            )],
+            samples=[
+                ResidualTrainingSampleSpec(
+                    task9_run_id=fixture["train_task9_run_id"],
+                    label_analytics_build_run_id=fixture["train_label_build_run_id"],
+                    feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
+                    split="train",
+                    supplemental_feature_values=_supplemental_features(
+                        as_of_date=date(2026, 2, 28)
+                    ),
+                )
+            ],
             config=_relaxed_config(),
         )
 
