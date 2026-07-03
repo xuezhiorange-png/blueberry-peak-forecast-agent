@@ -52,6 +52,7 @@ from backend.app.residual_model.application import (
     execute_residual_training,
 )
 from backend.app.residual_model.schemas import ResidualPredictionRequest
+from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
     ExecutionMode,
@@ -113,6 +114,20 @@ pytestmark = pytest.mark.integration
 def _require_postgres() -> None:
     if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
+
+
+# ── Canonical Task 8 fixture hashes (deterministic SHA-256) ─────────────────
+
+TASK8_MODEL_CONFIG_HASH = sha256_payload({"fixture": "task8-model-config", "version": 1})
+TASK8_MODEL_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-model-run", "version": 1})
+TASK8_ARTIFACT_HASH = sha256_payload({"fixture": "task8-model-artifact", "version": 1})
+TASK8_FORECAST_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-forecast-run", "version": 1})
+
+
+def _assert_sha256_hex(value: str) -> None:
+    """Assert *value* is a valid lowercase 64-hex SHA-256 string."""
+    assert len(value) == 64, f"expected 64 chars, got {len(value)}: {value!r}"
+    assert set(value) <= set("0123456789abcdef"), f"non-hex chars in: {value!r}"
 
 
 # ── Fixture helpers (same as test_rolling_backtest_persistence.py) ────────────
@@ -416,13 +431,18 @@ async def _make_real_task8_orchestration_persistence_command(
 
     async with AsyncSessionMaker() as session:
         forecast_row = await session.get(MaturityForecastRun, task8["forecast_run_id"])
+        model_row = await session.get(MaturityModelRun, task8["model_run_id"])
         assert forecast_row is not None and forecast_row.finished_at is not None
+        assert model_row is not None
+        _assert_sha256_hex(model_row.config_hash)
+        _assert_sha256_hex(forecast_row.source_signature)
 
     identity = _make_identity(
         source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
         source_role="task8_forecast_run",
         schema_version="task8-maturity-v1",
         semantic_payload_hash=forecast_row.source_signature,
+        config_hash=model_row.config_hash,
         display_label="task8:forecast_run",
         persistent_reference=PersistentUpstreamReference(
             reference_type="database_run_id",
@@ -661,10 +681,10 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
         model_run = MaturityModelRun(
             id=101,
             model_version="task8-v1",
-            config_hash="task8-model-config-hash",
+            config_hash=TASK8_MODEL_CONFIG_HASH,
             config_snapshot={"version": "task8-v1"},
             training_cutoff=date(2026, 2, 28),
-            source_signature="model-sig-1",
+            source_signature=TASK8_MODEL_SOURCE_SIGNATURE,
             status="completed",
             random_seed=20260703,
             model_family="shared_spline_partial_pooling",
@@ -687,7 +707,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
         artifact = MaturityModelArtifact(
             id=201,
             run_id=101,
-            artifact_hash="artifact-hash-1",
+            artifact_hash=TASK8_ARTIFACT_HASH,
             support_min_day=-30,
             support_max_day=90,
             artifact_payload={
@@ -729,7 +749,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
             expected_marketable_total_kg=Decimal("96000"),
             expected_total_source="explicit",
             axis_mode="calendar_proxy_axis",
-            source_signature="forecast-sig-1",
+            source_signature=TASK8_FORECAST_SOURCE_SIGNATURE,
             status="completed",
             warnings=[],
             blockers=[],
@@ -875,12 +895,22 @@ async def _build_real_orchestration_command(
         training_row = await session.get(ResidualModelTrainingRun, task10["training_run_id"])
         artifact_row = await session.get(ResidualModelArtifact, task10["artifact_id"])
         prediction_row = await session.get(ResidualModelPredictionRun, task10["prediction_run_id"])
+        task8_model_row = await session.get(MaturityModelRun, task8["model_run_id"])
+        task8_artifact_row = await session.get(MaturityModelArtifact, task8["artifact_id"])
+        task8_forecast_row = await session.get(MaturityForecastRun, task8["forecast_run_id"])
         assert feature_build is not None and feature_build.finished_at is not None
         assert task9_row is not None and task9_row.created_at is not None
         assert pinned_task9_row is not None and pinned_task9_row.created_at is not None
         assert training_row is not None and training_row.finished_at is not None
         assert artifact_row is not None and artifact_row.created_at is not None
         assert prediction_row is not None and prediction_row.completed_at is not None
+        assert task8_model_row is not None
+        assert task8_artifact_row is not None
+        assert task8_forecast_row is not None
+        _assert_sha256_hex(task8_model_row.config_hash)
+        _assert_sha256_hex(task8_model_row.source_signature)
+        _assert_sha256_hex(task8_artifact_row.artifact_hash)
+        _assert_sha256_hex(task8_forecast_row.source_signature)
 
     identities: tuple[ResolvedUpstreamSemanticIdentity, ...] = (
         _make_identity(
@@ -899,8 +929,8 @@ async def _build_real_orchestration_command(
             source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
             source_role="task8_model_run",
             schema_version="task8-maturity-v1",
-            semantic_payload_hash="task8-model-config-hash",
-            config_hash="task8-model-config-hash",
+            semantic_payload_hash=task8_model_row.config_hash,
+            config_hash=task8_model_row.config_hash,
             business_version="task8-v1",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id",
@@ -911,8 +941,8 @@ async def _build_real_orchestration_command(
             source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
             source_role="task8_model_artifact",
             schema_version="task8-maturity-v1",
-            semantic_payload_hash="artifact-hash-1",
-            config_hash="task8-model-config-hash",
+            semantic_payload_hash=task8_artifact_row.artifact_hash,
+            config_hash=task8_model_row.config_hash,
             business_version="task8-v1",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_artifact_id",
@@ -923,7 +953,8 @@ async def _build_real_orchestration_command(
             source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
             source_role="task8_forecast_run",
             schema_version="task8-maturity-v1",
-            semantic_payload_hash="forecast-sig-1",
+            semantic_payload_hash=task8_forecast_row.source_signature,
+            config_hash=task8_model_row.config_hash,
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id",
                 reference_value=task8["forecast_run_id"],
@@ -1035,7 +1066,7 @@ async def _build_real_orchestration_command(
                         reference_type="database_run_id",
                         reference_value=task8["model_run_id"],
                     ),
-                    canonical_payload_hash="task8-model-config-hash",
+                    canonical_payload_hash=task8_model_row.config_hash,
                 ),
             ),
             forecast_cutoff_at=node.forecast_cutoff_at,
