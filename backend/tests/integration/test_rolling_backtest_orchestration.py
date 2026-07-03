@@ -459,66 +459,94 @@ async def _make_real_task8_orchestration_persistence_command(
 
 async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
     request = make_request()
-    forecast_rows = request["task8_daily_predictions"]
-    daily_ids: dict[tuple[date, int], int] = {}
-    for item in forecast_rows:
-        key = (item["prediction_date"], item["variety_id"])
-        daily_ids.setdefault(key, item["source_ref"]["maturity_daily_prediction_id"])
+    plan_variety_id = 101
+    daily_ids_by_date: dict[date, int] = {}
+    for item in request["task8_daily_predictions"]:
+        if item["variety_id"] != plan_variety_id:
+            continue
+        prediction_date = item["prediction_date"]
+        daily_id = item["source_ref"]["maturity_daily_prediction_id"]
+        assert prediction_date not in daily_ids_by_date
+        daily_ids_by_date[prediction_date] = daily_id
+
+    expected_dates = {
+        date(2026, 3, 1),
+        date(2026, 3, 2),
+        date(2026, 3, 3),
+    }
+    assert set(daily_ids_by_date) == expected_dates
 
     async with AsyncSessionMaker() as session:
-        session.add_all(
-            [
+        existing_season = await session.get(Season, season_id)
+        existing_variety_101 = await session.get(Variety, 101)
+
+        root_rows = [
+            Farm(
+                id=1,
+                name="Farm A",
+                latitude=Decimal("24.100000"),
+                longitude=Decimal("102.100000"),
+                altitude_m=Decimal("1800.00"),
+            ),
+            AgroClimateZone(
+                id=301,
+                code="ZONE-A",
+                name="Zone A",
+                country="CN",
+                province="Yunnan",
+                prefecture="Honghe",
+                county="Mile",
+                centroid_latitude=Decimal("24.000000"),
+                centroid_longitude=Decimal("102.000000"),
+                min_altitude_m=Decimal("1700"),
+                max_altitude_m=Decimal("1900"),
+                zone_version="zone-v1",
+                valid_from=date(2024, 1, 1),
+                valid_to=None,
+                source_name="synthetic",
+                source_version="zone-v1",
+            ),
+            WeatherSourceLocation(
+                id=7011,
+                provider_code="synthetic_station",
+                external_location_id="station-1",
+                location_type="station",
+                name="Station 1",
+                latitude=Decimal("24.110000"),
+                longitude=Decimal("102.110000"),
+                altitude_m=Decimal("1810.00"),
+                timezone_name="Asia/Shanghai",
+                grid_resolution=None,
+                source_version="dataset-v1",
+                valid_from=date(2024, 1, 1),
+                valid_to=None,
+                row_hash="src-a",
+            ),
+        ]
+        if existing_season is None:
+            assert 1900 <= season_id <= 9999
+            root_rows.append(
                 Season(
                     id=season_id,
                     code=f"season-{season_id}",
                     start_date=date(season_id, 1, 1),
                     end_date=date(season_id, 12, 31),
-                ),
-                Farm(
-                    id=1,
-                    name="Farm A",
-                    latitude=Decimal("24.100000"),
-                    longitude=Decimal("102.100000"),
-                    altitude_m=Decimal("1800.00"),
-                ),
-                Variety(id=101, code="DX", name="Dx"),
-                Variety(id=102, code="DX-ALT", name="Dx Alt"),
-                AgroClimateZone(
-                    id=301,
-                    code="ZONE-A",
-                    name="Zone A",
-                    country="CN",
-                    province="Yunnan",
-                    prefecture="Honghe",
-                    county="Mile",
-                    centroid_latitude=Decimal("24.000000"),
-                    centroid_longitude=Decimal("102.000000"),
-                    min_altitude_m=Decimal("1700"),
-                    max_altitude_m=Decimal("1900"),
-                    zone_version="zone-v1",
-                    valid_from=date(2024, 1, 1),
-                    valid_to=None,
-                    source_name="synthetic",
-                    source_version="zone-v1",
-                ),
-                WeatherSourceLocation(
-                    id=7011,
-                    provider_code="synthetic_station",
-                    external_location_id="station-1",
-                    location_type="station",
-                    name="Station 1",
-                    latitude=Decimal("24.110000"),
-                    longitude=Decimal("102.110000"),
-                    altitude_m=Decimal("1810.00"),
-                    timezone_name="Asia/Shanghai",
-                    grid_resolution=None,
-                    source_version="dataset-v1",
-                    valid_from=date(2024, 1, 1),
-                    valid_to=None,
-                    row_hash="src-a",
-                ),
-            ]
-        )
+                )
+            )
+        else:
+            assert existing_season.id == season_id
+            assert existing_season.start_date <= date(2026, 1, 1)
+            assert existing_season.end_date >= date(2026, 3, 31)
+
+        if existing_variety_101 is None:
+            root_rows.append(Variety(id=101, code="DX", name="Dx"))
+        else:
+            assert existing_variety_101.code == "DX"
+            assert existing_variety_101.name == "Dx"
+
+        root_rows.append(Variety(id=102, code="DX-ALT", name="Dx Alt"))
+
+        session.add_all(root_rows)
         await session.flush()
 
         session.add_all(
@@ -706,7 +734,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
         await session.flush()
 
         daily_rows = []
-        for (prediction_date, _variety_id), daily_id in sorted(daily_ids.items()):
+        for prediction_date, daily_id in sorted(daily_ids_by_date.items()):
             daily_rows.append(
                 MaturityDailyPredictionModel(
                     id=daily_id,
