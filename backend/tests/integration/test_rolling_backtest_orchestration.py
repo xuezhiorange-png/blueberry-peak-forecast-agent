@@ -21,7 +21,7 @@ from backend.app.harvest_state.persistence import save_harvest_state_output
 from backend.app.harvest_state.service import run_harvest_state_model
 from backend.app.models.analytics import AnalyticsBuildRun
 from backend.app.models.harvest_state import HarvestStateRun
-from backend.app.models.master_data import Farm, Variety
+from backend.app.models.master_data import Farm, Season, Variety
 from backend.app.models.maturity import (
     MaturityDailyPredictionModel,
     MaturityForecastRun,
@@ -468,6 +468,12 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
     async with AsyncSessionMaker() as session:
         session.add_all(
             [
+                Season(
+                    id=season_id,
+                    code=f"season-{season_id}",
+                    start_date=date(season_id, 1, 1),
+                    end_date=date(season_id, 12, 31),
+                ),
                 Farm(
                     id=1,
                     name="Farm A",
@@ -475,6 +481,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
                     longitude=Decimal("102.100000"),
                     altitude_m=Decimal("1800.00"),
                 ),
+                Variety(id=101, code="DX", name="Dx"),
                 Variety(id=102, code="DX-ALT", name="Dx Alt"),
                 AgroClimateZone(
                     id=301,
@@ -494,6 +501,28 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
                     source_name="synthetic",
                     source_version="zone-v1",
                 ),
+                WeatherSourceLocation(
+                    id=7011,
+                    provider_code="synthetic_station",
+                    external_location_id="station-1",
+                    location_type="station",
+                    name="Station 1",
+                    latitude=Decimal("24.110000"),
+                    longitude=Decimal("102.110000"),
+                    altitude_m=Decimal("1810.00"),
+                    timezone_name="Asia/Shanghai",
+                    grid_resolution=None,
+                    source_version="dataset-v1",
+                    valid_from=date(2024, 1, 1),
+                    valid_to=None,
+                    row_hash="src-a",
+                ),
+            ]
+        )
+        await session.flush()
+
+        session.add_all(
+            [
                 LocationReference(
                     id=601,
                     farm_id=1,
@@ -517,22 +546,6 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
                     valid_from=date(2024, 1, 1),
                     valid_to=None,
                     source_row_hash="loc-a",
-                ),
-                WeatherSourceLocation(
-                    id=7011,
-                    provider_code="synthetic_station",
-                    external_location_id="station-1",
-                    location_type="station",
-                    name="Station 1",
-                    latitude=Decimal("24.110000"),
-                    longitude=Decimal("102.110000"),
-                    altitude_m=Decimal("1810.00"),
-                    timezone_name="Asia/Shanghai",
-                    grid_resolution=None,
-                    source_version="dataset-v1",
-                    valid_from=date(2024, 1, 1),
-                    valid_to=None,
-                    row_hash="src-a",
                 ),
                 FarmSeasonVarietyPlan(
                     id=501,
@@ -560,22 +573,6 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
                     notes="synthetic",
                     row_hash="plan-501",
                 ),
-                LocationWeatherMapping(
-                    id=801,
-                    location_reference_id=601,
-                    weather_source_location_id=7011,
-                    mapping_method="explicit",
-                    distance_km=Decimal("1"),
-                    altitude_difference_m=Decimal("10"),
-                    mapping_score=Decimal("1"),
-                    confidence_level="high",
-                    mapping_version="map-v1",
-                    config_hash="weather-cfg",
-                    available_at=date(2026, 1, 1),
-                    valid_from=date(2026, 1, 1),
-                    valid_to=None,
-                    row_hash="mapping-a",
-                ),
                 BaseTemperatureSearchRun(
                     id=901,
                     scope_type="variety_zone",
@@ -602,6 +599,26 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
                     finished_at=datetime(2026, 2, 20, 12, 0, tzinfo=UTC),
                 ),
             ]
+        )
+        await session.flush()
+
+        session.add(
+            LocationWeatherMapping(
+                id=801,
+                location_reference_id=601,
+                weather_source_location_id=7011,
+                mapping_method="explicit",
+                distance_km=Decimal("1"),
+                altitude_difference_m=Decimal("10"),
+                mapping_score=Decimal("1"),
+                confidence_level="high",
+                mapping_version="map-v1",
+                config_hash="weather-cfg",
+                available_at=date(2026, 1, 1),
+                valid_from=date(2026, 1, 1),
+                valid_to=None,
+                row_hash="mapping-a",
+            )
         )
         await session.flush()
 
