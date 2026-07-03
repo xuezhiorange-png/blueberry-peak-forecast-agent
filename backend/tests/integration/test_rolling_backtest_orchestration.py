@@ -466,153 +466,144 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
         daily_ids.setdefault(key, item["source_ref"]["maturity_daily_prediction_id"])
 
     async with AsyncSessionMaker() as session:
-        session.add(
-            Farm(
-                id=1,
-                name="Farm A",
-                latitude=Decimal("24.100000"),
-                longitude=Decimal("102.100000"),
-                altitude_m=Decimal("1800.00"),
-            )
+        session.add_all(
+            [
+                Farm(
+                    id=1,
+                    name="Farm A",
+                    latitude=Decimal("24.100000"),
+                    longitude=Decimal("102.100000"),
+                    altitude_m=Decimal("1800.00"),
+                ),
+                Variety(id=102, code="DX-ALT", name="Dx Alt"),
+                AgroClimateZone(
+                    id=301,
+                    code="ZONE-A",
+                    name="Zone A",
+                    country="CN",
+                    province="Yunnan",
+                    prefecture="Honghe",
+                    county="Mile",
+                    centroid_latitude=Decimal("24.000000"),
+                    centroid_longitude=Decimal("102.000000"),
+                    min_altitude_m=Decimal("1700"),
+                    max_altitude_m=Decimal("1900"),
+                    zone_version="zone-v1",
+                    valid_from=date(2024, 1, 1),
+                    valid_to=None,
+                    source_name="synthetic",
+                    source_version="zone-v1",
+                ),
+                LocationReference(
+                    id=601,
+                    farm_id=1,
+                    subfarm_id=None,
+                    farm_code="FARM-A",
+                    farm_name="Farm A",
+                    subfarm_name=None,
+                    address_raw="Farm A",
+                    address_normalized="farm a",
+                    province="Yunnan",
+                    prefecture="Honghe",
+                    county="Mile",
+                    township="Xisan",
+                    village=None,
+                    latitude=Decimal("24.100000"),
+                    longitude=Decimal("102.100000"),
+                    altitude_m=Decimal("1800.00"),
+                    climate_zone_id=301,
+                    location_source="synthetic",
+                    source_version="loc-v1",
+                    valid_from=date(2024, 1, 1),
+                    valid_to=None,
+                    source_row_hash="loc-a",
+                ),
+                WeatherSourceLocation(
+                    id=7011,
+                    provider_code="synthetic_station",
+                    external_location_id="station-1",
+                    location_type="station",
+                    name="Station 1",
+                    latitude=Decimal("24.110000"),
+                    longitude=Decimal("102.110000"),
+                    altitude_m=Decimal("1810.00"),
+                    timezone_name="Asia/Shanghai",
+                    grid_resolution=None,
+                    source_version="dataset-v1",
+                    valid_from=date(2024, 1, 1),
+                    valid_to=None,
+                    row_hash="src-a",
+                ),
+                FarmSeasonVarietyPlan(
+                    id=501,
+                    farm_id=1,
+                    subfarm_id=None,
+                    season_id=season_id,
+                    variety_id=101,
+                    planted_area_mu=Decimal("100"),
+                    expected_yield_kg_per_mu=Decimal("1200"),
+                    marketable_rate=Decimal("0.8"),
+                    tree_age_years=Decimal("3"),
+                    pruning_date=date(2026, 1, 1),
+                    flowering_start_date=date(2026, 2, 1),
+                    flowering_peak_date=date(2026, 2, 6),
+                    flowering_end_date=date(2026, 2, 10),
+                    first_pick_date=date(2026, 3, 5),
+                    expected_total_marketable_kg=Decimal("96000"),
+                    version=1,
+                    effective_from=date(2026, 1, 1),
+                    effective_to=None,
+                    available_at=date(2025, 12, 15),
+                    source_type="manual",
+                    source_name="planner",
+                    source_version="v1",
+                    notes="synthetic",
+                    row_hash="plan-501",
+                ),
+                LocationWeatherMapping(
+                    id=801,
+                    location_reference_id=601,
+                    weather_source_location_id=7011,
+                    mapping_method="explicit",
+                    distance_km=Decimal("1"),
+                    altitude_difference_m=Decimal("10"),
+                    mapping_score=Decimal("1"),
+                    confidence_level="high",
+                    mapping_version="map-v1",
+                    config_hash="weather-cfg",
+                    available_at=date(2026, 1, 1),
+                    valid_from=date(2026, 1, 1),
+                    valid_to=None,
+                    row_hash="mapping-a",
+                ),
+                BaseTemperatureSearchRun(
+                    id=901,
+                    scope_type="variety_zone",
+                    variety_id=101,
+                    climate_zone_id=301,
+                    training_cutoff=date(2026, 4, 30),
+                    anchor_event="flowering_start_date",
+                    target_event="first_pick_date",
+                    candidate_temperatures=["3", "5"],
+                    selected_base_temperature=Decimal("5"),
+                    scoring_method="season_loso_mae_days",
+                    selected_score=Decimal("1.000000"),
+                    sample_count=3,
+                    distinct_season_count=3,
+                    training_sample_ids=[1, 2, 3],
+                    candidate_scores={"candidates": []},
+                    config_hash="weather-cfg",
+                    feature_version="task7-v1",
+                    source_signature="base-temp-sig",
+                    status="completed",
+                    warnings=[],
+                    blockers=[],
+                    input_snapshot={"samples": []},
+                    finished_at=datetime(2026, 2, 20, 12, 0, tzinfo=UTC),
+                ),
+            ]
         )
-        session.add(Variety(id=102, code="DX-ALT", name="Dx Alt"))
-        session.add(
-            AgroClimateZone(
-                id=301,
-                code="ZONE-A",
-                name="Zone A",
-                country="CN",
-                province="Yunnan",
-                prefecture="Honghe",
-                county="Mile",
-                centroid_latitude=Decimal("24.000000"),
-                centroid_longitude=Decimal("102.000000"),
-                min_altitude_m=Decimal("1700"),
-                max_altitude_m=Decimal("1900"),
-                zone_version="zone-v1",
-                valid_from=date(2024, 1, 1),
-                valid_to=None,
-                source_name="synthetic",
-                source_version="zone-v1",
-            )
-        )
-        session.add(
-            LocationReference(
-                id=601,
-                farm_id=1,
-                subfarm_id=None,
-                farm_code="FARM-A",
-                farm_name="Farm A",
-                subfarm_name=None,
-                address_raw="Farm A",
-                address_normalized="farm a",
-                province="Yunnan",
-                prefecture="Honghe",
-                county="Mile",
-                township="Xisan",
-                village=None,
-                latitude=Decimal("24.100000"),
-                longitude=Decimal("102.100000"),
-                altitude_m=Decimal("1800.00"),
-                climate_zone_id=301,
-                location_source="synthetic",
-                source_version="loc-v1",
-                valid_from=date(2024, 1, 1),
-                valid_to=None,
-                source_row_hash="loc-a",
-            )
-        )
-        session.add(
-            WeatherSourceLocation(
-                id=7011,
-                provider_code="synthetic_station",
-                external_location_id="station-1",
-                location_type="station",
-                name="Station 1",
-                latitude=Decimal("24.110000"),
-                longitude=Decimal("102.110000"),
-                altitude_m=Decimal("1810.00"),
-                timezone_name="Asia/Shanghai",
-                grid_resolution=None,
-                source_version="dataset-v1",
-                valid_from=date(2024, 1, 1),
-                valid_to=None,
-                row_hash="src-a",
-            )
-        )
-        session.add(
-            FarmSeasonVarietyPlan(
-                id=501,
-                farm_id=1,
-                subfarm_id=None,
-                season_id=season_id,
-                variety_id=101,
-                planted_area_mu=Decimal("100"),
-                expected_yield_kg_per_mu=Decimal("1200"),
-                marketable_rate=Decimal("0.8"),
-                tree_age_years=Decimal("3"),
-                pruning_date=date(2026, 1, 1),
-                flowering_start_date=date(2026, 2, 1),
-                flowering_peak_date=date(2026, 2, 6),
-                flowering_end_date=date(2026, 2, 10),
-                first_pick_date=date(2026, 3, 5),
-                expected_total_marketable_kg=Decimal("96000"),
-                version=1,
-                effective_from=date(2026, 1, 1),
-                effective_to=None,
-                available_at=date(2025, 12, 15),
-                source_type="manual",
-                source_name="planner",
-                source_version="v1",
-                notes="synthetic",
-                row_hash="plan-501",
-            )
-        )
-        session.add(
-            LocationWeatherMapping(
-                id=801,
-                location_reference_id=601,
-                weather_source_location_id=7011,
-                mapping_method="explicit",
-                distance_km=Decimal("1"),
-                altitude_difference_m=Decimal("10"),
-                mapping_score=Decimal("1"),
-                confidence_level="high",
-                mapping_version="map-v1",
-                config_hash="weather-cfg",
-                available_at=date(2026, 1, 1),
-                valid_from=date(2026, 1, 1),
-                valid_to=None,
-                row_hash="mapping-a",
-            )
-        )
-        session.add(
-            BaseTemperatureSearchRun(
-                id=901,
-                scope_type="variety_zone",
-                variety_id=101,
-                climate_zone_id=301,
-                training_cutoff=date(2026, 4, 30),
-                anchor_event="flowering_start_date",
-                target_event="first_pick_date",
-                candidate_temperatures=["3", "5"],
-                selected_base_temperature=Decimal("5"),
-                scoring_method="season_loso_mae_days",
-                selected_score=Decimal("1.000000"),
-                sample_count=3,
-                distinct_season_count=3,
-                training_sample_ids=[1, 2, 3],
-                candidate_scores={"candidates": []},
-                config_hash="weather-cfg",
-                feature_version="task7-v1",
-                source_signature="base-temp-sig",
-                status="completed",
-                warnings=[],
-                blockers=[],
-                input_snapshot={"samples": []},
-                finished_at=datetime(2026, 2, 20, 12, 0, tzinfo=UTC),
-            )
-        )
+        await session.flush()
 
         model_run = MaturityModelRun(
             id=101,
@@ -639,6 +630,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
             error_message=None,
         )
         session.add(model_run)
+        await session.flush()
         artifact = MaturityModelArtifact(
             id=201,
             run_id=101,
@@ -669,6 +661,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
             created_at=datetime(2026, 2, 28, 12, 5, tzinfo=UTC),
         )
         session.add(artifact)
+        await session.flush()
         forecast = MaturityForecastRun(
             id=401,
             model_run_id=101,
@@ -695,8 +688,9 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
         session.add(forecast)
         await session.flush()
 
+        daily_rows = []
         for (prediction_date, _variety_id), daily_id in sorted(daily_ids.items()):
-            session.add(
+            daily_rows.append(
                 MaturityDailyPredictionModel(
                     id=daily_id,
                     forecast_run_id=401,
@@ -714,6 +708,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
                     created_at=datetime(2026, 2, 28, 13, 5, tzinfo=UTC),
                 )
             )
+        session.add_all(daily_rows)
+        await session.flush()
         await session.commit()
 
     return {
