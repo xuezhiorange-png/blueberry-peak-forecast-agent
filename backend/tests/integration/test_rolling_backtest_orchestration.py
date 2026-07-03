@@ -442,6 +442,7 @@ async def _make_real_task8_orchestration_persistence_command(
         source_role="task8_forecast_run",
         schema_version="task8-maturity-v1",
         semantic_payload_hash=forecast_row.source_signature,
+        input_signature=forecast_row.source_signature,
         display_label="task8:forecast_run",
         persistent_reference=PersistentUpstreamReference(
             reference_type="database_run_id",
@@ -953,6 +954,7 @@ async def _build_real_orchestration_command(
             source_role="task8_forecast_run",
             schema_version="task8-maturity-v1",
             semantic_payload_hash=task8_forecast_row.source_signature,
+            input_signature=task8_forecast_row.source_signature,
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id",
                 reference_value=task8["forecast_run_id"],
