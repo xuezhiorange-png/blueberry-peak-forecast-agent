@@ -40,7 +40,7 @@ from backend.app.models.maturity import (
     MaturityModelArtifact,
     MaturityModelRun,
 )
-from backend.app.models.production_plan import ProductionPlanImportRun
+from backend.app.models.production_plan import FarmSeasonVarietyPlan, ProductionPlanImportRun
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelPredictionRun,
@@ -164,6 +164,12 @@ class PinnedSourceNotVisibleError(NodeOrchestrationError):
     """Pinned source is not visible at forecast cutoff."""
 
     code = "PINNED_SOURCE_NOT_VISIBLE"
+
+
+class PinnedSourceScopeMismatchError(NodeOrchestrationError):
+    """Pinned source database scope does not match the rolling node scope."""
+
+    code = "PINNED_SOURCE_SCOPE_MISMATCH"
 
 
 class Task8ParentAuthorityMismatchError(NodeOrchestrationError):
@@ -382,6 +388,195 @@ def _task9_verification_snapshot_hash(envelope: Any) -> str | None:
     return sha256_payload(normalized) if normalized else None
 
 
+async def _load_task8_plan_for_scope(
+    session: AsyncSession,
+    *,
+    forecast_row: MaturityForecastRun,
+    node_season_id: int,
+) -> FarmSeasonVarietyPlan:
+    plan_row = cast(
+        FarmSeasonVarietyPlan | None,
+        await session.get(FarmSeasonVarietyPlan, forecast_row.plan_id),
+    )
+    if plan_row is None:
+        raise Task8ParentAuthorityMismatchError(
+            f"Task 8 forecast run {forecast_row.id} plan {forecast_row.plan_id} was not found"
+        )
+    if plan_row.season_id != node_season_id:
+        raise PinnedSourceScopeMismatchError(
+            f"Task 8 forecast run {forecast_row.id} plan season {plan_row.season_id} "
+            f"does not match node season {node_season_id}"
+        )
+    return plan_row
+
+
+@dataclass(frozen=True)
+class _Task8DailyExactSet:
+    target_dates: tuple[date, ...]
+    db_daily_ids: frozenset[int]
+    pinned_daily_ids: frozenset[int]
+    task9_daily_ids: frozenset[int]
+    db_date_to_id: dict[date, int]
+    pinned_date_to_id: dict[date, int]
+    task9_date_to_id: dict[date, int]
+    db_rows_by_date: dict[date, MaturityDailyPredictionModel]
+
+
+def _task8_daily_role_date(source_role: str) -> date:
+    prefix = "task8_daily_prediction:"
+    if not source_role.startswith(prefix):
+        raise Task9Task8AuthorityMismatchError(
+            f"Task 8 daily source role {source_role!r} is malformed"
+        )
+    try:
+        return date.fromisoformat(source_role.removeprefix(prefix))
+    except ValueError as exc:
+        raise Task9Task8AuthorityMismatchError(
+            f"Task 8 daily source role {source_role!r} does not carry an ISO date"
+        ) from exc
+
+
+async def _verify_task8_daily_exact_set(
+    session: AsyncSession,
+    *,
+    forecast_run_id: int,
+    pinned_daily_inputs: tuple[ResolvedInputOutcome, ...],
+    task9_snapshot_rows: list[dict[str, Any]],
+) -> _Task8DailyExactSet:
+    task9_rows_by_date: dict[date, list[dict[str, Any]]] = {}
+    task9_date_to_id: dict[date, int] = {}
+    task9_daily_ids: set[int] = set()
+
+    for item in task9_snapshot_rows:
+        if not isinstance(item, dict):
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 persisted envelope contains malformed Task 8 verification rows"
+            )
+        verification = item.get("verification_snapshot")
+        if not isinstance(verification, dict):
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 persisted envelope contains malformed Task 8 verification snapshot"
+            )
+        prediction_date = _coerce_persisted_date(
+            verification.get("prediction_date"),
+            field_name="prediction_date",
+        )
+        daily_id = verification.get("maturity_daily_prediction_id")
+        if not isinstance(daily_id, int):
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot daily prediction id must be an integer"
+            )
+        verification_forecast_run_id = verification.get("maturity_daily_prediction_forecast_run_id")
+        if verification_forecast_run_id is None:
+            verification_forecast_run_id = verification.get("maturity_forecast_run_id")
+        if verification_forecast_run_id != forecast_run_id:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot daily prediction forecast parent "
+                "does not match pinned Task 8 forecast run"
+            )
+        source_ref = item.get("source_ref")
+        forecast_quantile = verification.get("forecast_quantile")
+        if forecast_quantile is None and isinstance(source_ref, dict):
+            forecast_quantile = source_ref.get("forecast_quantile")
+        if forecast_quantile not in {"P50", "P80", "P90"}:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot forecast quantile is invalid"
+            )
+        task9_rows_by_date.setdefault(prediction_date, []).append(
+            {
+                "verification_snapshot": verification,
+                "forecast_quantile": forecast_quantile,
+                "daily_id": daily_id,
+            }
+        )
+        task9_daily_ids.add(daily_id)
+
+    for prediction_date, rows in task9_rows_by_date.items():
+        quantiles = {cast(str, row["forecast_quantile"]) for row in rows}
+        if quantiles != {"P50", "P80", "P90"} or len(rows) != 3:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot does not carry exactly P50/P80/P90 per date"
+            )
+        daily_ids_for_date = {cast(int, row["daily_id"]) for row in rows}
+        if len(daily_ids_for_date) != 1:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot uses multiple daily ids for one date"
+            )
+        task9_date_to_id[prediction_date] = next(iter(daily_ids_for_date))
+
+    target_dates = tuple(sorted(task9_rows_by_date))
+    pinned_date_to_id: dict[date, int] = {}
+    pinned_daily_ids: set[int] = set()
+    for outcome in pinned_daily_inputs:
+        prediction_date = _task8_daily_role_date(outcome.source_role)
+        daily_id = _require_database_ref(
+            outcome.semantic_identity,
+            allowed_types=("database_row_id",),
+        )
+        if prediction_date in pinned_date_to_id:
+            raise Task9Task8AuthorityMismatchError(
+                "Pinned Task 8 daily predictions contain duplicate dates"
+            )
+        if daily_id in pinned_daily_ids:
+            raise Task9Task8AuthorityMismatchError(
+                "Pinned Task 8 daily predictions contain duplicate persistent references"
+            )
+        pinned_date_to_id[prediction_date] = daily_id
+        pinned_daily_ids.add(daily_id)
+
+    if set(pinned_date_to_id) != set(target_dates):
+        raise Task9Task8AuthorityMismatchError(
+            "Pinned Task 8 daily prediction date set does not match Task 9 verification dates"
+        )
+
+    result = await session.execute(
+        select(MaturityDailyPredictionModel).where(
+            MaturityDailyPredictionModel.forecast_run_id == forecast_run_id,
+            MaturityDailyPredictionModel.prediction_date.in_(target_dates),
+        )
+    )
+    db_rows = result.scalars().all()
+    db_rows_by_date: dict[date, MaturityDailyPredictionModel] = {}
+    db_daily_ids: set[int] = set()
+    for row in db_rows:
+        if row.prediction_date in db_rows_by_date:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 8 forecast run contains duplicate daily rows for one date"
+            )
+        if row.forecast_run_id != forecast_run_id:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 8 daily prediction database row has unexpected parent forecast run"
+            )
+        db_rows_by_date[row.prediction_date] = row
+        db_daily_ids.add(row.id)
+
+    if set(db_rows_by_date) != set(target_dates):
+        raise Task9Task8AuthorityMismatchError(
+            "Task 8 daily prediction database date set does not match Task 9 verification dates"
+        )
+
+    db_date_to_id = {prediction_date: row.id for prediction_date, row in db_rows_by_date.items()}
+    if db_date_to_id != task9_date_to_id:
+        raise Task9Task8AuthorityMismatchError(
+            "Task 9 verification snapshot date-to-daily mapping does not match database rows"
+        )
+    if db_date_to_id != pinned_date_to_id:
+        raise Task9Task8AuthorityMismatchError(
+            "Pinned Task 8 daily prediction date-to-daily mapping does not match database rows"
+        )
+
+    return _Task8DailyExactSet(
+        target_dates=target_dates,
+        db_daily_ids=frozenset(db_daily_ids),
+        pinned_daily_ids=frozenset(pinned_daily_ids),
+        task9_daily_ids=frozenset(task9_daily_ids),
+        db_date_to_id=db_date_to_id,
+        pinned_date_to_id=pinned_date_to_id,
+        task9_date_to_id=task9_date_to_id,
+        db_rows_by_date=db_rows_by_date,
+    )
+
+
 async def _load_exact_pinned_candidate(
     session: AsyncSession,
     node: RollingNodeDefinition,
@@ -395,6 +590,11 @@ async def _load_exact_pinned_candidate(
         if build_run is None or build_run.finished_at is None:
             raise PinnedSourceNotFoundError(
                 f"pinned source role={identity.source_role} ref={run_id} was not found"
+            )
+        if build_run.season_id != node.season_id:
+            raise PinnedSourceScopeMismatchError(
+                f"Task 3 analytics build season {build_run.season_id} "
+                f"does not match node season {node.season_id}"
             )
         exact_identity = _make_identity(
             source_type=source_type,
@@ -656,6 +856,11 @@ async def _load_exact_pinned_candidate(
                 f"pinned source role={identity.source_role} ref={run_id} was not found"
             )
         await load_maturity_forecast_result(session, run_id=run_id)
+        await _load_task8_plan_for_scope(
+            session,
+            forecast_row=forecast_run_row,
+            node_season_id=node.season_id,
+        )
         exact_identity = _make_identity(
             source_type=source_type,
             source_role="task8_forecast_run",
@@ -698,6 +903,11 @@ async def _load_exact_pinned_candidate(
                 f"Task 8 daily prediction {row_id} parent forecast run was not found"
             )
         await load_maturity_forecast_result(session, run_id=parent_forecast_run.id)
+        await _load_task8_plan_for_scope(
+            session,
+            forecast_row=parent_forecast_run,
+            node_season_id=node.season_id,
+        )
         daily_payload_hash = _task8_daily_prediction_payload_hash(
             daily_prediction_row,
             forecast_source_signature=parent_forecast_run.source_signature,
@@ -1092,6 +1302,57 @@ async def _resolve_task9_reuse(
             "Task 9 persisted envelope is missing Task 8 verification snapshots"
         )
 
+    model_run = task8_inputs.get(AvailabilitySourceType.TASK8_MODEL_RUN)
+    model_run_row: MaturityModelRun | None = None
+    if model_run is not None:
+        model_run_id = _require_database_ref(
+            model_run.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        model_run_row = cast(
+            MaturityModelRun | None,
+            await session.get(MaturityModelRun, model_run_id),
+        )
+        if model_run_row is None:
+            raise PinnedSourceNotFoundError(f"Task 8 model run {model_run_id} was not found")
+
+    model_artifact = task8_inputs.get(AvailabilitySourceType.TASK8_MODEL_ARTIFACT)
+    model_artifact_row: MaturityModelArtifact | None = None
+    if model_artifact is not None:
+        artifact_ref_id = _require_database_ref(
+            model_artifact.semantic_identity,
+            allowed_types=("database_artifact_id",),
+        )
+        model_artifact_row = cast(
+            MaturityModelArtifact | None,
+            await session.get(MaturityModelArtifact, artifact_ref_id),
+        )
+        if model_artifact_row is None:
+            raise PinnedSourceNotFoundError(
+                f"Task 8 model artifact {artifact_ref_id} was not found"
+            )
+
+    forecast_run = task8_inputs.get(AvailabilitySourceType.TASK8_FORECAST_RUN)
+    forecast_run_id: int | None = None
+    forecast_row: MaturityForecastRun | None = None
+    plan_row: FarmSeasonVarietyPlan | None = None
+    if forecast_run is not None:
+        forecast_run_id = _require_database_ref(
+            forecast_run.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        forecast_row = cast(
+            MaturityForecastRun | None,
+            await session.get(MaturityForecastRun, forecast_run_id),
+        )
+        if forecast_row is None:
+            raise PinnedSourceNotFoundError(f"Task 8 forecast run {forecast_run_id} was not found")
+        plan_row = await _load_task8_plan_for_scope(
+            session,
+            forecast_row=forecast_row,
+            node_season_id=node.season_id,
+        )
+
     for item in task8_snapshot_rows:
         if not isinstance(item, dict):
             raise Task9Task8AuthorityMismatchError(
@@ -1106,49 +1367,38 @@ async def _resolve_task9_reuse(
             verification.get("prediction_date"),
             field_name="prediction_date",
         )
-        if prediction_date.year != node.season_id:
-            raise Task9Task8AuthorityMismatchError(
-                "Task 9 verification snapshot prediction_date season "
-                "does not match the rolling node season"
-            )
         forecast_as_of_date = _coerce_persisted_date(
             verification.get("maturity_forecast_as_of_date"),
             field_name="maturity_forecast_as_of_date",
         )
-        if forecast_as_of_date.year != node.season_id:
-            raise Task9Task8AuthorityMismatchError(
-                "Task 9 verification snapshot maturity_forecast_as_of_date season "
-                "does not match the rolling node season"
-            )
         forecast_start_date = _coerce_persisted_date(
             verification.get("maturity_forecast_prediction_start_date"),
             field_name="maturity_forecast_prediction_start_date",
         )
-        if forecast_start_date.year != node.season_id:
-            raise Task9Task8AuthorityMismatchError(
-                "Task 9 verification snapshot forecast prediction start season "
-                "does not match the rolling node season"
-            )
         forecast_end_date = _coerce_persisted_date(
             verification.get("maturity_forecast_prediction_end_date"),
             field_name="maturity_forecast_prediction_end_date",
         )
-        if forecast_end_date.year != node.season_id:
-            raise Task9Task8AuthorityMismatchError(
-                "Task 9 verification snapshot forecast prediction end season "
-                "does not match the rolling node season"
+        verification_model_run_id = (
+            _require_database_ref(
+                model_run.semantic_identity,
+                allowed_types=("database_run_id",),
             )
-        model_run = task8_inputs.get(AvailabilitySourceType.TASK8_MODEL_RUN)
-        model_run_id = (
-            model_run.persistent_reference.reference_value if model_run is not None else None
+            if model_run is not None
+            else None
         )
-        if model_run is not None and verification.get("maturity_model_run_id") != model_run_id:
+        if (
+            model_run is not None
+            and verification.get("maturity_model_run_id") != verification_model_run_id
+        ):
             raise Task9Task8AuthorityMismatchError(
                 "Task 9 verification snapshot model_run_id does not match pinned Task 8 model run"
             )
-        model_artifact = task8_inputs.get(AvailabilitySourceType.TASK8_MODEL_ARTIFACT)
         if model_artifact is not None:
-            artifact_ref_id = model_artifact.persistent_reference.reference_value
+            artifact_ref_id = _require_database_ref(
+                model_artifact.semantic_identity,
+                allowed_types=("database_artifact_id",),
+            )
             if verification.get("maturity_model_artifact_id") != artifact_ref_id:
                 raise Task9Task8AuthorityMismatchError(
                     "Task 9 verification snapshot artifact_id does not match pinned Task 8 artifact"
@@ -1162,10 +1412,6 @@ async def _resolve_task9_reuse(
                     "Task 9 verification snapshot artifact_hash "
                     "does not match pinned Task 8 artifact"
                 )
-        forecast_run = task8_inputs.get(AvailabilitySourceType.TASK8_FORECAST_RUN)
-        forecast_run_id = (
-            forecast_run.persistent_reference.reference_value if forecast_run is not None else None
-        )
         if (
             forecast_run is not None
             and verification.get("maturity_forecast_run_id") != forecast_run_id
@@ -1174,23 +1420,175 @@ async def _resolve_task9_reuse(
                 "Task 9 verification snapshot forecast_run_id "
                 "does not match pinned Task 8 forecast run"
             )
+        if forecast_row is not None:
+            if verification.get("maturity_forecast_run_status") not in {
+                None,
+                forecast_row.status,
+            }:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot forecast run status "
+                    "does not match pinned Task 8 forecast"
+                )
+            if verification.get("maturity_forecast_model_run_id") != forecast_row.model_run_id:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot forecast model parent "
+                    "does not match pinned Task 8 forecast"
+                )
+            if verification.get("maturity_forecast_artifact_id") != forecast_row.artifact_id:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot forecast artifact parent "
+                    "does not match pinned Task 8 forecast"
+                )
+            if (
+                verification.get("maturity_forecast_source_signature")
+                != forecast_row.source_signature
+            ):
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot forecast source signature "
+                    "does not match pinned Task 8 forecast"
+                )
+            if forecast_as_of_date != forecast_row.as_of_date:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot forecast as-of date "
+                    "does not match pinned Task 8 forecast"
+                )
+            if forecast_start_date != forecast_row.prediction_start_date:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot forecast prediction start "
+                    "does not match pinned Task 8 forecast"
+                )
+            if forecast_end_date != forecast_row.prediction_end_date:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot forecast prediction end "
+                    "does not match pinned Task 8 forecast"
+                )
+            if verification.get("location_reference_id") != forecast_row.location_reference_id:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot location reference "
+                    "does not match pinned Task 8 forecast"
+                )
+            if verification.get("weather_mapping_id") not in {
+                None,
+                forecast_row.weather_mapping_id,
+            }:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot weather mapping "
+                    "does not match pinned Task 8 forecast"
+                )
+            if verification.get("base_temperature_search_run_id") not in {
+                None,
+                forecast_row.base_temperature_search_run_id,
+            }:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot base temperature search run "
+                    "does not match pinned Task 8 forecast"
+                )
+        if model_run_row is not None:
+            if verification.get("maturity_model_version") not in {
+                None,
+                model_run_row.model_version,
+            }:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot model version "
+                    "does not match pinned Task 8 model run"
+                )
+            if (
+                verification.get("maturity_model_config_hash") is not None
+                and verification.get("maturity_model_config_hash") != model_run_row.config_hash
+            ):
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot model config hash "
+                    "does not match pinned Task 8 model run"
+                )
+            if (
+                verification.get("maturity_model_source_signature") is not None
+                and verification.get("maturity_model_source_signature")
+                != model_run_row.source_signature
+            ):
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot model source signature "
+                    "does not match pinned Task 8 model run"
+                )
+        if model_artifact_row is not None and verification.get(
+            "maturity_model_artifact_run_id"
+        ) not in {
+            None,
+            model_artifact_row.run_id,
+        }:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot model artifact parent run "
+                "does not match pinned Task 8 artifact"
+            )
+        if plan_row is not None:
+            if verification.get("plan_id") != plan_row.id:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot plan id does not match pinned Task 8 plan"
+                )
+            if verification.get("farm_id") != plan_row.farm_id:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot farm id does not match pinned Task 8 plan"
+                )
+            if verification.get("subfarm_id") != plan_row.subfarm_id:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot subfarm id does not match pinned Task 8 plan"
+                )
+            if verification.get("variety_id") != plan_row.variety_id:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot variety id does not match pinned Task 8 plan"
+                )
 
-    pinned_daily_ids = {
-        outcome.persistent_reference.reference_value
+    pinned_daily_inputs = tuple(
+        outcome
         for outcome in resolved_inputs.values()
         if outcome.source_type == AvailabilitySourceType.TASK8_DAILY_PREDICTION
-    }
-    if pinned_daily_ids:
-        actual_daily_ids = {
-            item.get("verification_snapshot", {}).get("maturity_daily_prediction_id")
-            for item in task8_snapshot_rows
-            if isinstance(item, dict)
-        }
-        if actual_daily_ids != pinned_daily_ids:
+    )
+    if forecast_run_id is not None and pinned_daily_inputs:
+        exact_daily_set = await _verify_task8_daily_exact_set(
+            session,
+            forecast_run_id=forecast_run_id,
+            pinned_daily_inputs=pinned_daily_inputs,
+            task9_snapshot_rows=task8_snapshot_rows,
+        )
+        if not (
+            exact_daily_set.db_daily_ids
+            == exact_daily_set.pinned_daily_ids
+            == exact_daily_set.task9_daily_ids
+        ):
             raise Task9Task8AuthorityMismatchError(
                 "Task 9 verification snapshot daily prediction set "
                 "does not match pinned Task 8 rows"
             )
+        for item in task8_snapshot_rows:
+            if not isinstance(item, dict):
+                continue
+            verification = item.get("verification_snapshot")
+            source_ref = item.get("source_ref")
+            if not isinstance(verification, dict) or not isinstance(source_ref, dict):
+                continue
+            prediction_date = _coerce_persisted_date(
+                verification.get("prediction_date"),
+                field_name="prediction_date",
+            )
+            db_row = exact_daily_set.db_rows_by_date[prediction_date]
+            forecast_quantile = source_ref.get("forecast_quantile")
+            if forecast_quantile not in {"P50", "P80", "P90"}:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 source_ref forecast quantile is invalid"
+                )
+            expected_quantity = {
+                "P50": db_row.p50_kg,
+                "P80": db_row.p80_kg,
+                "P90": db_row.p90_kg,
+            }[forecast_quantile]
+            if source_ref.get("source_quantity_kg") != expected_quantity:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 source_ref quantity does not match pinned Task 8 daily prediction"
+                )
+            if verification.get(f"{forecast_quantile.lower()}_kg") != expected_quantity:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot quantile quantity "
+                    "does not match pinned Task 8 daily prediction"
+                )
 
     ctx.task9_authority = Task9AuthorityOutcome(
         run_reference=task9_outcome.persistent_reference,

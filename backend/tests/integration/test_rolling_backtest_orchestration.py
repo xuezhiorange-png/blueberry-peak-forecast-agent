@@ -20,7 +20,7 @@ from sqlalchemy.exc import IntegrityError as SAIntegrityError
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.analytics import AnalyticsBuildRun
 from backend.app.models.harvest_state import HarvestStateRun
-from backend.app.models.master_data import Farm, Season, Variety
+from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import (
     MaturityDailyPredictionModel,
     MaturityForecastRun,
@@ -549,52 +549,73 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
         assert quantiles_by_date[prediction_date] == {"P50", "P80", "P90"}
 
     async with AsyncSessionMaker() as session:
+        existing_farm = await session.get(Farm, 1)
         existing_season = await session.get(Season, season_id)
+        existing_subfarm = await session.get(Subfarm, 11)
         existing_variety_101 = await session.get(Variety, 101)
+        existing_zone = await session.get(AgroClimateZone, 301)
+        existing_weather_source = await session.get(WeatherSourceLocation, 7011)
 
-        root_rows = [
-            Farm(
-                id=1,
-                name="Farm A",
-                latitude=Decimal("24.100000"),
-                longitude=Decimal("102.100000"),
-                altitude_m=Decimal("1800.00"),
-            ),
-            AgroClimateZone(
-                id=301,
-                code="ZONE-A",
-                name="Zone A",
-                country="CN",
-                province="Yunnan",
-                prefecture="Honghe",
-                county="Mile",
-                centroid_latitude=Decimal("24.000000"),
-                centroid_longitude=Decimal("102.000000"),
-                min_altitude_m=Decimal("1700"),
-                max_altitude_m=Decimal("1900"),
-                zone_version="zone-v1",
-                valid_from=date(2024, 1, 1),
-                valid_to=None,
-                source_name="synthetic",
-                source_version="zone-v1",
-            ),
-            WeatherSourceLocation(
-                id=7011,
-                provider_code="synthetic_station",
-                external_location_id="station-1",
-                location_type="station",
-                name="Station 1",
-                latitude=Decimal("24.110000"),
-                longitude=Decimal("102.110000"),
-                altitude_m=Decimal("1810.00"),
-                timezone_name="Asia/Shanghai",
-                grid_resolution=None,
-                source_version="dataset-v1",
-                valid_from=date(2024, 1, 1),
-                valid_to=None,
-                row_hash="src-a",
-            ),
-        ]
+        root_rows = []
+        if existing_farm is None:
+            root_rows.append(
+                Farm(
+                    id=1,
+                    name="Farm A",
+                    latitude=Decimal("24.100000"),
+                    longitude=Decimal("102.100000"),
+                    altitude_m=Decimal("1800.00"),
+                )
+            )
+        else:
+            assert existing_farm.id == 1
+            assert existing_farm.name == "Farm A"
+        if existing_zone is None:
+            root_rows.append(
+                AgroClimateZone(
+                    id=301,
+                    code="ZONE-A",
+                    name="Zone A",
+                    country="CN",
+                    province="Yunnan",
+                    prefecture="Honghe",
+                    county="Mile",
+                    centroid_latitude=Decimal("24.000000"),
+                    centroid_longitude=Decimal("102.000000"),
+                    min_altitude_m=Decimal("1700"),
+                    max_altitude_m=Decimal("1900"),
+                    zone_version="zone-v1",
+                    valid_from=date(2024, 1, 1),
+                    valid_to=None,
+                    source_name="synthetic",
+                    source_version="zone-v1",
+                )
+            )
+        else:
+            assert existing_zone.id == 301
+            assert existing_zone.code == "ZONE-A"
+        if existing_weather_source is None:
+            root_rows.append(
+                WeatherSourceLocation(
+                    id=7011,
+                    provider_code="synthetic_station",
+                    external_location_id="station-1",
+                    location_type="station",
+                    name="Station 1",
+                    latitude=Decimal("24.110000"),
+                    longitude=Decimal("102.110000"),
+                    altitude_m=Decimal("1810.00"),
+                    timezone_name="Asia/Shanghai",
+                    grid_resolution=None,
+                    source_version="dataset-v1",
+                    valid_from=date(2024, 1, 1),
+                    valid_to=None,
+                    row_hash="src-a",
+                )
+            )
+        else:
+            assert existing_weather_source.id == 7011
+            assert existing_weather_source.timezone_name == "Asia/Shanghai"
         if existing_season is None:
             assert 1900 <= season_id <= 9999
             root_rows.append(
@@ -618,6 +639,23 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
 
         session.add_all(root_rows)
         await session.flush()
+
+        if existing_subfarm is None:
+            session.add(
+                Subfarm(
+                    id=11,
+                    farm_id=1,
+                    name="Block 11",
+                    altitude_m=Decimal("1800.00"),
+                )
+            )
+            await session.flush()
+            persisted_subfarm = await session.get(Subfarm, 11)
+        else:
+            persisted_subfarm = existing_subfarm
+        assert persisted_subfarm is not None
+        assert persisted_subfarm.id == 11
+        assert persisted_subfarm.farm_id == 1
 
         session.add_all(
             [
@@ -1048,9 +1086,12 @@ async def _build_real_orchestration_command(
             item["verification_snapshot"]["maturity_daily_prediction_id"] for item in t8_preds
         }
         db_daily_ids = {payload["id"] for payload in task8["daily_predictions_by_date"].values()}
+        expected_dates = set(task8["daily_predictions_by_date"])
         assert db_daily_ids == task9_daily_ids, (
             f"Task 8 DB daily IDs {db_daily_ids} != Task 9 daily IDs {task9_daily_ids}"
         )
+        quantiles_by_date: dict[date, set[str]] = {}
+        task9_daily_ids_by_date: dict[date, set[int]] = {}
         varieties_in_task9 = {item.get("variety_id") for item in t8_preds}
         assert varieties_in_task9 == {101}, f"expected only variety 101, got {varieties_in_task9}"
         for item in t8_preds:
@@ -1058,6 +1099,10 @@ async def _build_real_orchestration_command(
             verification = item["verification_snapshot"]
             expected_daily = task8["daily_predictions_by_date"][item["prediction_date"]]
             quantile = src["forecast_quantile"]
+            quantiles_by_date.setdefault(item["prediction_date"], set()).add(quantile)
+            task9_daily_ids_by_date.setdefault(item["prediction_date"], set()).add(
+                verification["maturity_daily_prediction_id"]
+            )
             expected_quantity = {
                 "P50": expected_daily["p50_kg"],
                 "P80": expected_daily["p80_kg"],
@@ -1065,8 +1110,26 @@ async def _build_real_orchestration_command(
             }[quantile]
             assert src["maturity_daily_prediction_id"] == expected_daily["id"]
             assert verification["maturity_daily_prediction_id"] == expected_daily["id"]
+            assert (
+                verification["maturity_daily_prediction_forecast_run_id"]
+                == task8["forecast_run_id"]
+            )
+            assert verification["maturity_forecast_run_id"] == task8["forecast_run_id"]
+            assert verification["maturity_model_run_id"] == task8["model_run_id"]
+            assert verification["maturity_model_artifact_id"] == task8["artifact_id"]
+            assert verification["plan_id"] == task8["plan_id"]
+            assert verification["location_reference_id"] == task8["location_reference_id"]
+            assert verification["farm_id"] == task8["farm_id"]
+            assert verification["subfarm_id"] == task8["subfarm_id"]
+            assert verification["variety_id"] == task8["variety_id"]
             assert src["source_quantity_kg"] == expected_quantity
             assert verification[f"{quantile.lower()}_kg"] == expected_quantity
+        assert set(quantiles_by_date) == expected_dates
+        for prediction_date in expected_dates:
+            assert quantiles_by_date[prediction_date] == {"P50", "P80", "P90"}
+            assert task9_daily_ids_by_date[prediction_date] == {
+                task8["daily_predictions_by_date"][prediction_date]["id"]
+            }
 
     identity_items: list[ResolvedUpstreamSemanticIdentity] = [
         _make_identity(
@@ -1929,6 +1992,45 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
             snapshot.canonical_payload["task10_authority"]["prediction_reference"]["reference_type"]
             == "database_run_id"
         )
+        task8_authorities = snapshot.canonical_payload["task8_authorities"]
+        snapshot_daily_entries = [
+            payload
+            for payload in task8_authorities.values()
+            if payload["source_type"] == "task8_daily_prediction"
+        ]
+        assert len(snapshot_daily_entries) == 3
+        snapshot_daily_ids = {
+            entry["persistent_reference"]["reference_value"] for entry in snapshot_daily_entries
+        }
+        assert {
+            entry["persistent_reference"]["reference_type"] for entry in snapshot_daily_entries
+        } == {"database_row_id"}
+        assert {entry["source_role"] for entry in snapshot_daily_entries} == {
+            "task8_daily_prediction:2026-03-01",
+            "task8_daily_prediction:2026-03-02",
+            "task8_daily_prediction:2026-03-03",
+        }
+        task9_run_id = snapshot.canonical_payload["task9_authority"]["run_reference"][
+            "reference_value"
+        ]
+        task9_row = await session.get(HarvestStateRun, task9_run_id)
+        assert task9_row is not None
+        task9_daily_ids = {
+            item["verification_snapshot"]["maturity_daily_prediction_id"]
+            for item in task9_row.input_snapshot["task8_daily_predictions"]
+        }
+        db_daily_ids = set(
+            (
+                await session.execute(
+                    select(MaturityDailyPredictionModel.id).where(
+                        MaturityDailyPredictionModel.forecast_run_id == 401
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert db_daily_ids == task9_daily_ids == snapshot_daily_ids
         loaded_run = (
             await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
         ).scalar_one()
@@ -1997,8 +2099,10 @@ async def test_cross_season_task8_authority_blocks() -> None:
         await session.commit()
 
     assert outcome.status == "blocked"
-    assert outcome.blocker_code == "TASK9_TASK8_AUTHORITY_MISMATCH"
-    assert outcome.stage == OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value
+    assert outcome.blocker_code == "PINNED_SOURCE_SCOPE_MISMATCH"
+    assert outcome.stage == OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value
+    assert "2027" in str(outcome.diagnostics)
+    assert "2026" in str(outcome.diagnostics)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

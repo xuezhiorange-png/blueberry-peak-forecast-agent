@@ -23,6 +23,7 @@ from backend.app.rolling_backtest.node_orchestration import (
     PinnedSourceIdentityMismatchError,
     PinnedSourceNotFoundError,
     PinnedSourceNotVisibleError,
+    PinnedSourceScopeMismatchError,
     Task8ParentAuthorityMismatchError,
     Task9Task8AuthorityMismatchError,
     Task10PredictionNotCompletedError,
@@ -1780,6 +1781,13 @@ async def test_task9_reuse_uses_official_loader_and_freezes_hashes():
     envelope.output.input_snapshot = {"task8_daily_predictions": []}
     envelope.output.source_catalog_hash = "c" * 64
     envelope.output.verification_snapshot_hash = "d" * 64
+    session = AsyncMock()
+    session.get = AsyncMock(
+        side_effect=[
+            MagicMock(id=84, plan_id=501),
+            MagicMock(id=501, season_id=2026),
+        ]
+    )
 
     with patch(
         f"{_MOD}.get_harvest_state_run_by_id",
@@ -1790,7 +1798,7 @@ async def test_task9_reuse_uses_official_loader_and_freezes_hashes():
             ctx,
             _make_config(nodes=(_make_node_def(identities=(task8_identity, task9_identity)),)),
             _make_node_def(identities=(task8_identity, task9_identity)),
-            session=AsyncMock(),
+            session=session,
             resolved_inputs=ctx.resolved_inputs,
         )
 
@@ -1833,6 +1841,207 @@ async def test_load_exact_task8_model_artifact_requires_database_artifact_id():
 
 
 @pytest.mark.asyncio
+async def test_load_exact_task3_candidate_rejects_db_season_scope_mismatch():
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+        source_role="task3_analytics_build",
+        business_version="agg-v1",
+    )
+    session = AsyncMock()
+    session.get = AsyncMock(
+        return_value=MagicMock(
+            id=42,
+            season_id=2026,
+            aggregation_version="agg-v1",
+            config_hash="a" * 64,
+            finished_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+        )
+    )
+    mismatched_node = _make_node_def(identities=(identity,)).model_copy(
+        update={
+            "season_id": 2027,
+            "as_of_local_date": date(2027, 3, 15),
+            "forecast_cutoff_at": datetime(2027, 3, 15, 4, 0, tzinfo=UTC),
+            "forecast_start_local_date": date(2027, 3, 16),
+            "forecast_end_local_date": date(2027, 3, 31),
+        }
+    )
+
+    with pytest.raises(PinnedSourceScopeMismatchError):
+        await node_orch._load_exact_pinned_candidate(
+            session,
+            mismatched_node,
+            identity,
+        )
+
+
+@pytest.mark.asyncio
+async def test_verify_task8_daily_exact_set_rejects_db_date_to_id_mismatch():
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    pinned_daily_a = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        source_role="task8_daily_prediction:2026-03-01",
+        semantic_payload_hash="5" * 64,
+        input_signature="4" * 64,
+        canonical_payload_hash="5" * 64,
+    ).model_copy(
+        update={
+            "persistent_reference": PersistentUpstreamReference(
+                reference_type="database_row_id",
+                reference_value=901,
+            )
+        }
+    )
+    pinned_daily_b = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        source_role="task8_daily_prediction:2026-03-02",
+        semantic_payload_hash="6" * 64,
+        input_signature="4" * 64,
+        canonical_payload_hash="6" * 64,
+    ).model_copy(
+        update={
+            "persistent_reference": PersistentUpstreamReference(
+                reference_type="database_row_id",
+                reference_value=902,
+            )
+        }
+    )
+    pinned_outcomes = (
+        node_orch.ResolvedInputOutcome(
+            source_role=pinned_daily_a.source_role,
+            source_type=pinned_daily_a.source_type,
+            semantic_identity=pinned_daily_a,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_row_id",
+                reference_value=901,
+            ),
+            authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+            canonical_identity_hash="1" * 64,
+            canonical_payload_hash="5" * 64,
+        ),
+        node_orch.ResolvedInputOutcome(
+            source_role=pinned_daily_b.source_role,
+            source_type=pinned_daily_b.source_type,
+            semantic_identity=pinned_daily_b,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_row_id",
+                reference_value=902,
+            ),
+            authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+            canonical_identity_hash="2" * 64,
+            canonical_payload_hash="6" * 64,
+        ),
+    )
+    verification_rows = [
+        {
+            "verification_snapshot": {
+                "prediction_date": date(2026, 3, 1),
+                "forecast_quantile": "P50",
+                "maturity_daily_prediction_id": 901,
+                "maturity_daily_prediction_forecast_run_id": 84,
+            }
+        },
+        {
+            "verification_snapshot": {
+                "prediction_date": date(2026, 3, 1),
+                "forecast_quantile": "P80",
+                "maturity_daily_prediction_id": 901,
+                "maturity_daily_prediction_forecast_run_id": 84,
+            }
+        },
+        {
+            "verification_snapshot": {
+                "prediction_date": date(2026, 3, 1),
+                "forecast_quantile": "P90",
+                "maturity_daily_prediction_id": 901,
+                "maturity_daily_prediction_forecast_run_id": 84,
+            }
+        },
+        {
+            "verification_snapshot": {
+                "prediction_date": date(2026, 3, 2),
+                "forecast_quantile": "P50",
+                "maturity_daily_prediction_id": 902,
+                "maturity_daily_prediction_forecast_run_id": 84,
+            }
+        },
+        {
+            "verification_snapshot": {
+                "prediction_date": date(2026, 3, 2),
+                "forecast_quantile": "P80",
+                "maturity_daily_prediction_id": 902,
+                "maturity_daily_prediction_forecast_run_id": 84,
+            }
+        },
+        {
+            "verification_snapshot": {
+                "prediction_date": date(2026, 3, 2),
+                "forecast_quantile": "P90",
+                "maturity_daily_prediction_id": 902,
+                "maturity_daily_prediction_forecast_run_id": 84,
+            }
+        },
+    ]
+    db_row_a = MagicMock(id=901, forecast_run_id=84, prediction_date=date(2026, 3, 1))
+    db_row_b = MagicMock(id=999, forecast_run_id=84, prediction_date=date(2026, 3, 2))
+    execute_result = MagicMock()
+    execute_result.scalars.return_value.all.return_value = [db_row_a, db_row_b]
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=execute_result)
+
+    with pytest.raises(Task9Task8AuthorityMismatchError):
+        await node_orch._verify_task8_daily_exact_set(
+            session,
+            forecast_run_id=84,
+            pinned_daily_inputs=pinned_outcomes,
+            task9_snapshot_rows=verification_rows,
+        )
+
+
+@pytest.mark.asyncio
+async def test_load_exact_task8_forecast_rejects_plan_season_scope_mismatch():
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        source_role="task8_forecast_run",
+        input_signature="4" * 64,
+    )
+    forecast_row = MagicMock(
+        id=84,
+        plan_id=501,
+        finished_at=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
+        source_signature="4" * 64,
+    )
+    plan_row = MagicMock(id=501, season_id=2026)
+    session = AsyncMock()
+    session.get = AsyncMock(side_effect=[forecast_row, plan_row])
+
+    with patch(
+        f"{_MOD}.load_maturity_forecast_result",
+        new=AsyncMock(return_value=MagicMock(status="completed")),
+        create=True,
+    ):
+        with pytest.raises(PinnedSourceScopeMismatchError):
+            await node_orch._load_exact_pinned_candidate(
+                session,
+                _make_node_def().model_copy(
+                    update={
+                        "season_id": 2027,
+                        "as_of_local_date": date(2027, 3, 15),
+                        "forecast_cutoff_at": datetime(2027, 3, 15, 4, 0, tzinfo=UTC),
+                        "forecast_start_local_date": date(2027, 3, 16),
+                        "forecast_end_local_date": date(2027, 3, 31),
+                    }
+                ),
+                identity,
+            )
+
+
+@pytest.mark.asyncio
 async def test_load_exact_task10_model_artifact_requires_database_artifact_id():
     import backend.app.rolling_backtest.node_orchestration as node_orch
 
@@ -1849,7 +2058,7 @@ async def test_load_exact_task10_model_artifact_requires_database_artifact_id():
 
 
 @pytest.mark.asyncio
-async def test_task9_reuse_rejects_cross_season_task8_verification_snapshots():
+async def test_task9_reuse_rejects_quantile_rows_with_different_daily_ids():
     import backend.app.rolling_backtest.node_orchestration as node_orch
 
     task9_identity = _make_identity(
@@ -1930,22 +2139,110 @@ async def test_task9_reuse_rejects_cross_season_task8_verification_snapshots():
     envelope.output.input_snapshot = {
         "task8_daily_predictions": [
             {
+                "source_ref": {
+                    "forecast_quantile": "P50",
+                    "source_quantity_kg": "20",
+                },
                 "verification_snapshot": {
-                    "prediction_date": date(2027, 3, 1),
-                    "maturity_forecast_as_of_date": date(2027, 2, 28),
-                    "maturity_forecast_prediction_start_date": date(2027, 3, 1),
-                    "maturity_forecast_prediction_end_date": date(2027, 3, 3),
+                    "prediction_date": date(2026, 3, 1),
+                    "maturity_forecast_as_of_date": date(2026, 2, 28),
+                    "maturity_forecast_prediction_start_date": date(2026, 3, 1),
+                    "maturity_forecast_prediction_end_date": date(2026, 3, 3),
                     "maturity_daily_prediction_id": 901,
+                    "maturity_daily_prediction_forecast_run_id": 84,
                     "maturity_forecast_run_id": 84,
-                    "maturity_model_run_id": 42,
-                    "maturity_model_artifact_id": 201,
-                    "maturity_model_artifact_hash": "a" * 64,
-                }
-            }
+                    "maturity_forecast_run_status": "completed",
+                    "maturity_forecast_model_run_id": 101,
+                    "maturity_forecast_artifact_id": 201,
+                    "maturity_forecast_source_signature": "4" * 64,
+                    "plan_id": 501,
+                    "location_reference_id": 601,
+                    "farm_id": 1,
+                    "subfarm_id": 11,
+                    "variety_id": 101,
+                    "p50_kg": "20",
+                },
+            },
+            {
+                "source_ref": {
+                    "forecast_quantile": "P80",
+                    "source_quantity_kg": "24",
+                },
+                "verification_snapshot": {
+                    "prediction_date": date(2026, 3, 1),
+                    "maturity_forecast_as_of_date": date(2026, 2, 28),
+                    "maturity_forecast_prediction_start_date": date(2026, 3, 1),
+                    "maturity_forecast_prediction_end_date": date(2026, 3, 3),
+                    "maturity_daily_prediction_id": 902,
+                    "maturity_daily_prediction_forecast_run_id": 84,
+                    "maturity_forecast_run_id": 84,
+                    "maturity_forecast_run_status": "completed",
+                    "maturity_forecast_model_run_id": 101,
+                    "maturity_forecast_artifact_id": 201,
+                    "maturity_forecast_source_signature": "4" * 64,
+                    "plan_id": 501,
+                    "location_reference_id": 601,
+                    "farm_id": 1,
+                    "subfarm_id": 11,
+                    "variety_id": 101,
+                    "p80_kg": "24",
+                },
+            },
+            {
+                "source_ref": {
+                    "forecast_quantile": "P90",
+                    "source_quantity_kg": "28",
+                },
+                "verification_snapshot": {
+                    "prediction_date": date(2026, 3, 1),
+                    "maturity_forecast_as_of_date": date(2026, 2, 28),
+                    "maturity_forecast_prediction_start_date": date(2026, 3, 1),
+                    "maturity_forecast_prediction_end_date": date(2026, 3, 3),
+                    "maturity_daily_prediction_id": 901,
+                    "maturity_daily_prediction_forecast_run_id": 84,
+                    "maturity_forecast_run_id": 84,
+                    "maturity_forecast_run_status": "completed",
+                    "maturity_forecast_model_run_id": 101,
+                    "maturity_forecast_artifact_id": 201,
+                    "maturity_forecast_source_signature": "4" * 64,
+                    "plan_id": 501,
+                    "location_reference_id": 601,
+                    "farm_id": 1,
+                    "subfarm_id": 11,
+                    "variety_id": 101,
+                    "p90_kg": "28",
+                },
+            },
         ]
     }
     envelope.output.source_catalog_hash = "c" * 64
     envelope.output.verification_snapshot_hash = "d" * 64
+    session = AsyncMock()
+    session.get = AsyncMock(
+        side_effect=[
+            MagicMock(
+                id=84,
+                plan_id=501,
+                status="completed",
+                model_run_id=101,
+                artifact_id=201,
+                source_signature="4" * 64,
+                as_of_date=date(2026, 2, 28),
+                prediction_start_date=date(2026, 3, 1),
+                prediction_end_date=date(2026, 3, 3),
+                location_reference_id=601,
+                weather_mapping_id=801,
+                base_temperature_search_run_id=901,
+            ),
+            MagicMock(
+                id=501,
+                season_id=2026,
+                farm_id=1,
+                subfarm_id=11,
+                variety_id=101,
+            ),
+        ]
+    )
 
     with patch(
         f"{_MOD}.get_harvest_state_run_by_id",
@@ -1973,7 +2270,7 @@ async def test_task9_reuse_rejects_cross_season_task8_verification_snapshots():
                         task9_identity,
                     )
                 ),
-                session=AsyncMock(),
+                session=session,
                 resolved_inputs=ctx.resolved_inputs,
             )
 
