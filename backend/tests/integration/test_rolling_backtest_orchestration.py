@@ -461,13 +461,19 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
     request = make_request()
     plan_variety_id = 101
     daily_ids_by_date: dict[date, int] = {}
+    quantiles_by_date: dict[date, set[str]] = {}
     for item in request["task8_daily_predictions"]:
         if item["variety_id"] != plan_variety_id:
             continue
         prediction_date = item["prediction_date"]
         daily_id = item["source_ref"]["maturity_daily_prediction_id"]
-        assert prediction_date not in daily_ids_by_date
-        daily_ids_by_date[prediction_date] = daily_id
+        forecast_quantile = item["source_ref"]["forecast_quantile"]
+        existing_daily_id = daily_ids_by_date.get(prediction_date)
+        if existing_daily_id is None:
+            daily_ids_by_date[prediction_date] = daily_id
+        else:
+            assert existing_daily_id == daily_id
+        quantiles_by_date.setdefault(prediction_date, set()).add(forecast_quantile)
 
     expected_dates = {
         date(2026, 3, 1),
@@ -475,6 +481,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
         date(2026, 3, 3),
     }
     assert set(daily_ids_by_date) == expected_dates
+    for prediction_date in expected_dates:
+        assert quantiles_by_date[prediction_date] == {"P50", "P80", "P90"}
 
     async with AsyncSessionMaker() as session:
         existing_season = await session.get(Season, season_id)
