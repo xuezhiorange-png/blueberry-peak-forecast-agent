@@ -11,6 +11,7 @@ import pytest
 from sqlalchemy import func, select, text
 
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.canonical import make_stable_cohort_key
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelExecutionAttempt,
@@ -72,6 +73,25 @@ def _apply_task8_authority_to_payload(
     authority: dict[str, Any],
 ) -> None:
     """Override Task 8 authority fields with one exact persisted variety chain."""
+    pool = copy.deepcopy(payload["capacity_pools"][0])
+    pool["members"] = [
+        {
+            "farm_id": authority["farm_id"],
+            "subfarm_id": authority["subfarm_id"],
+            "variety_id": authority["variety_id"],
+        }
+    ]
+    payload["capacity_pools"] = [pool]
+    capacity_pool_membership_hash = make_stable_cohort_key(
+        {
+            "capacity_pool_grain": pool["capacity_pool_grain"],
+            "members": sorted(
+                pool["members"],
+                key=lambda item: (item["farm_id"], item["subfarm_id"], item["variety_id"]),
+            ),
+        }
+    )
+
     filtered_predictions = [
         copy.deepcopy(item)
         for item in payload["task8_daily_predictions"]
@@ -142,6 +162,39 @@ def _apply_task8_authority_to_payload(
 
     payload["task8_daily_predictions"] = filtered_predictions
 
+    filtered_cohorts = [
+        copy.deepcopy(item)
+        for item in payload["initial_inventory_cohorts"]
+        if item["variety_id"] == authority["variety_id"]
+    ]
+    assert len(filtered_cohorts) == 3
+    for cohort in filtered_cohorts:
+        cohort["farm_id"] = authority["farm_id"]
+        cohort["subfarm_id"] = authority["subfarm_id"]
+        cohort["variety_id"] = authority["variety_id"]
+        cohort["stable_cohort_key"] = make_stable_cohort_key(
+            {
+                "schema_version": cohort["stable_cohort_key_schema_version"],
+                "source_ref_type": cohort["source_ref"]["source_ref_type"],
+                "source_system": cohort["source_ref"]["source_system"],
+                "source_record_key": cohort["source_ref"]["source_record_key"],
+                "source_version": cohort["source_ref"]["source_version"],
+                "source_row_hash": cohort["source_ref"]["source_row_hash"],
+                "cohort_date": cohort["cohort_date"].isoformat(),
+                "forecast_quantile": cohort["forecast_quantile"],
+                "farm_id": cohort["farm_id"],
+                "subfarm_id": cohort["subfarm_id"],
+                "variety_id": cohort["variety_id"],
+                "capacity_pool_id": pool["capacity_pool_id"],
+                "capacity_pool_membership_hash": capacity_pool_membership_hash,
+                "destination_factory_id": payload["destination_factory_id"],
+            }
+        )
+    payload["initial_inventory_cohorts"] = filtered_cohorts
+    payload["initial_opening_mature_inventory_kg"] = sum(
+        Decimal(str(item["remaining_quantity_kg"])) for item in filtered_cohorts
+    )
+
 
 async def _seed_prediction_fixture(
     *,
@@ -168,7 +221,10 @@ async def _seed_prediction_fixture(
         else:
             validation_payload = make_request()
         validation_payload["initial_inventory_cohorts"][0]["remaining_quantity_kg"] = Decimal("6")
-        validation_payload["initial_opening_mature_inventory_kg"] = Decimal("31")
+        validation_payload["initial_opening_mature_inventory_kg"] = sum(
+            Decimal(str(item["remaining_quantity_kg"]))
+            for item in validation_payload["initial_inventory_cohorts"]
+        )
         validation_task9_run_id, _validation_output = await _persist_task9_run(
             session,
             payload=validation_payload,
