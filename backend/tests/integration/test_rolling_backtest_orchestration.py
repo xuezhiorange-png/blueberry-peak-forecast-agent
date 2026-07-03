@@ -624,10 +624,10 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                 LocationReference(
                     id=601,
                     farm_id=1,
-                    subfarm_id=None,
+                    subfarm_id=11,
                     farm_code="FARM-A",
                     farm_name="Farm A",
-                    subfarm_name=None,
+                    subfarm_name="Block 11",
                     address_raw="Farm A",
                     address_normalized="farm a",
                     province="Yunnan",
@@ -648,7 +648,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                 FarmSeasonVarietyPlan(
                     id=501,
                     farm_id=1,
-                    subfarm_id=None,
+                    subfarm_id=11,
                     season_id=season_id,
                     variety_id=101,
                     planted_area_mu=Decimal("100"),
@@ -830,7 +830,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
     return {
         "season_id": season_id,
         "farm_id": 1,
-        "subfarm_id": None,
+        "subfarm_id": 11,
         "variety_id": 101,
         "plan_id": 501,
         "location_reference_id": 601,
