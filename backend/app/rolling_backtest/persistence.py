@@ -36,6 +36,7 @@ from backend.app.rolling_backtest.config import (
     rolling_backtest_config_hash,
     rolling_backtest_config_payload,
 )
+from backend.app.rolling_backtest.enums import UpstreamSelectionMode
 from backend.app.rolling_backtest.errors import (
     RollingBacktestAttemptConflictError,
     RollingBacktestAuthorityBindingError,
@@ -190,6 +191,65 @@ def _resolved_input_identity_from_payload(
     return _RESOLVED_IDENTITY_ADAPTER.validate_python(normalized)
 
 
+def _validated_resolved_input_reference(
+    item: ResolvedInputPersistenceCommand,
+    *,
+    pinned: bool,
+) -> PersistentUpstreamReference | None:
+    identity_ref = item.identity.persistent_reference
+    command_ref = item.persistent_reference
+
+    if identity_ref != command_ref:
+        raise RollingBacktestCommandMismatchError(
+            f"resolved input role={item.identity.source_role} persistent reference mismatch"
+        )
+
+    if pinned and command_ref is None:
+        raise RollingBacktestCommandMismatchError(
+            f"pinned resolved input role={item.identity.source_role} is missing "
+            "persistent reference"
+        )
+
+    return command_ref
+
+
+def _persistent_reference_from_row(
+    row: RollingBacktestResolvedInput,
+) -> PersistentUpstreamReference | None:
+    ref_type = row.persistent_reference_type
+    ref_value = row.persistent_reference_value
+
+    if ref_type is None and ref_value is None:
+        return None
+
+    if ref_type is None or ref_value is None:
+        raise RollingBacktestCanonicalParityError(
+            f"resolved input role={row.source_role} has partial persistent reference"
+        )
+
+    if ref_type in {"database_run_id", "database_artifact_id"}:
+        try:
+            parsed = int(ref_value)
+        except (TypeError, ValueError) as exc:
+            raise RollingBacktestCanonicalParityError(
+                f"resolved input role={row.source_role} has invalid database reference"
+            ) from exc
+
+        if parsed <= 0 or str(parsed) != ref_value:
+            raise RollingBacktestCanonicalParityError(
+                f"resolved input role={row.source_role} has non-canonical database reference"
+            )
+
+        return PersistentUpstreamReference(
+            reference_type=ref_type,
+            reference_value=parsed,
+        )
+
+    raise RollingBacktestCanonicalParityError(
+        f"resolved input role={row.source_role} has unsupported reference type={ref_type}"
+    )
+
+
 def _config_from_canonical_payload(payload: Mapping[str, Any]) -> RollingBacktestConfig:
     normalized = deepcopy(dict(payload))
     raw_nodes = normalized.get("nodes")
@@ -211,6 +271,64 @@ def _config_from_canonical_payload(payload: Mapping[str, Any]) -> RollingBacktes
 
 def _resolved_input_audit_hash(identity: ResolvedUpstreamSemanticIdentity) -> str:
     return sha256_payload(_resolved_input_canonical_payload(identity))
+
+
+async def load_node_resolved_identities_with_references(
+    session: AsyncSession,
+    *,
+    rolling_node_id: int,
+) -> tuple[ResolvedUpstreamSemanticIdentity, ...]:
+    resolved_result = await session.execute(
+        select(RollingBacktestResolvedInput)
+        .where(RollingBacktestResolvedInput.rolling_node_id == rolling_node_id)
+        .order_by(
+            RollingBacktestResolvedInput.source_role,
+            RollingBacktestResolvedInput.role_qualifier,
+            RollingBacktestResolvedInput.source_type,
+        )
+    )
+    resolved_rows = resolved_result.scalars().all()
+
+    identities: list[ResolvedUpstreamSemanticIdentity] = []
+    seen_roles: set[str] = set()
+    for row in resolved_rows:
+        _assert_no_persistent_reference_fields(row.canonical_payload)
+        try:
+            reconstructed = _resolved_input_identity_from_payload(row.canonical_payload)
+        except ValidationError as exc:
+            raise RollingBacktestCanonicalParityError("resolved input payload is invalid") from exc
+
+        reference = _persistent_reference_from_row(row)
+
+        if row.source_role in seen_roles:
+            raise RollingBacktestIntegrityError(
+                f"duplicate resolved input role '{row.source_role}' for node {rolling_node_id}"
+            )
+        seen_roles.add(row.source_role)
+
+        normalized_fields = {
+            "source_role": reconstructed.source_role,
+            "source_type": reconstructed.source_type.value,
+            "role_qualifier": reconstructed.role_qualifier,
+            "semantic_input_signature": reconstructed.semantic.input_signature,
+            "result_hash": reconstructed.semantic.result_hash,
+            "canonical_payload_hash": reconstructed.semantic.canonical_payload_hash,
+            "schema_version": reconstructed.semantic.schema_version,
+            "policy_version": reconstructed.semantic.policy_version,
+            "audit_hash": _resolved_input_audit_hash(reconstructed),
+        }
+        for field_name, expected_value in normalized_fields.items():
+            if getattr(row, field_name) != expected_value:
+                raise RollingBacktestCanonicalParityError(
+                    f"resolved input {field_name} mismatch for role '{row.source_role}'"
+                )
+
+        if row.canonical_payload != _resolved_input_canonical_payload(reconstructed):
+            raise RollingBacktestCanonicalParityError("resolved input canonical payload mismatch")
+
+        identities.append(reconstructed.model_copy(update={"persistent_reference": reference}))
+
+    return tuple(identities)
 
 
 def _dag_canonical_payload(
@@ -321,6 +439,10 @@ def validate_persistence_command(command: RollingBacktestPersistenceCommand) -> 
                 f"node {expected_node.node_key.value} resolved identities do not match "
                 "resolved input commands"
             )
+
+        pinned = node_cmd.node.upstream_selection_mode == UpstreamSelectionMode.PINNED
+        for item in node_cmd.resolved_inputs:
+            _validated_resolved_input_reference(item, pinned=pinned)
 
         resolved_by_role = {
             item.identity.source_role: item.identity for item in node_cmd.resolved_inputs
@@ -443,6 +565,10 @@ async def create_or_load_logical_run(
 
                 for ri_cmd in node_cmd.resolved_inputs:
                     ident = ri_cmd.identity
+                    validated_ref = _validated_resolved_input_reference(
+                        ri_cmd,
+                        pinned=node_def.upstream_selection_mode == UpstreamSelectionMode.PINNED,
+                    )
                     db_input = RollingBacktestResolvedInput(
                         rolling_node_id=db_node.id,
                         source_role=ident.source_role,
@@ -454,13 +580,11 @@ async def create_or_load_logical_run(
                         schema_version=ident.semantic.schema_version,
                         policy_version=ident.semantic.policy_version,
                         persistent_reference_type=(
-                            ri_cmd.persistent_reference.reference_type
-                            if ri_cmd.persistent_reference
-                            else None
+                            validated_ref.reference_type if validated_ref is not None else None
                         ),
                         persistent_reference_value=(
-                            str(ri_cmd.persistent_reference.reference_value)
-                            if ri_cmd.persistent_reference
+                            str(validated_ref.reference_value)
+                            if validated_ref is not None
                             else None
                         ),
                         canonical_payload=_resolved_input_canonical_payload(ident),
@@ -696,63 +820,34 @@ async def _verify_node_with_integrity(
     if node.node_signature != expected_signature:
         raise RollingBacktestCanonicalParityError("node_signature mismatch")
 
-    resolved_result = await session.execute(
-        select(RollingBacktestResolvedInput)
-        .where(RollingBacktestResolvedInput.rolling_node_id == node.id)
-        .order_by(RollingBacktestResolvedInput.source_role)
+    resolved_identities = await load_node_resolved_identities_with_references(
+        session,
+        rolling_node_id=node.id,
     )
-    resolved_rows = resolved_result.scalars().all()
-    if len(resolved_rows) != node.expected_resolved_input_count:
+    if len(resolved_identities) != node.expected_resolved_input_count:
         raise RollingBacktestChildCountMismatchError(
             "resolved_input count mismatch for "
             f"node {node.id}: expected={node.expected_resolved_input_count} "
-            f"actual={len(resolved_rows)}"
+            f"actual={len(resolved_identities)}"
         )
 
     expected_resolved = {
         item.source_role: item for item in expected_node.resolved_upstream_semantic_identities
     }
     resolved_rows_by_role: dict[str, ResolvedUpstreamSemanticIdentity] = {}
-    for row in resolved_rows:
-        _assert_no_persistent_reference_fields(row.canonical_payload)
-        try:
-            reconstructed = _resolved_input_identity_from_payload(row.canonical_payload)
-        except ValidationError as exc:
-            raise RollingBacktestCanonicalParityError("resolved input payload is invalid") from exc
-        expected_identity = expected_resolved.get(row.source_role)
+    for reconstructed in resolved_identities:
+        expected_identity = expected_resolved.get(reconstructed.source_role)
         if expected_identity is None:
             raise RollingBacktestIntegrityError(
-                f"unexpected resolved input role '{row.source_role}' for node {node.id}"
+                f"unexpected resolved input role '{reconstructed.source_role}' for node {node.id}"
             )
         if _resolved_input_canonical_payload(reconstructed) != _resolved_input_canonical_payload(
             expected_identity
         ):
             raise RollingBacktestCanonicalParityError(
-                f"resolved input semantic mismatch for role '{row.source_role}'"
+                f"resolved input semantic mismatch for role '{reconstructed.source_role}'"
             )
-        if row.source_type != reconstructed.source_type.value:
-            raise RollingBacktestCanonicalParityError("resolved input source_type mismatch")
-        if row.role_qualifier != reconstructed.role_qualifier:
-            raise RollingBacktestCanonicalParityError("resolved input role_qualifier mismatch")
-        if row.semantic_input_signature != reconstructed.semantic.input_signature:
-            raise RollingBacktestCanonicalParityError(
-                "resolved input semantic_input_signature mismatch"
-            )
-        if row.result_hash != reconstructed.semantic.result_hash:
-            raise RollingBacktestCanonicalParityError("resolved input result_hash mismatch")
-        if row.canonical_payload_hash != reconstructed.semantic.canonical_payload_hash:
-            raise RollingBacktestCanonicalParityError(
-                "resolved input canonical_payload_hash mismatch"
-            )
-        if row.schema_version != reconstructed.semantic.schema_version:
-            raise RollingBacktestCanonicalParityError("resolved input schema_version mismatch")
-        if row.policy_version != reconstructed.semantic.policy_version:
-            raise RollingBacktestCanonicalParityError("resolved input policy_version mismatch")
-        if row.canonical_payload != _resolved_input_canonical_payload(reconstructed):
-            raise RollingBacktestCanonicalParityError("resolved input canonical payload mismatch")
-        if row.audit_hash != _resolved_input_audit_hash(reconstructed):
-            raise RollingBacktestCanonicalParityError("resolved input audit hash mismatch")
-        resolved_rows_by_role[row.source_role] = reconstructed
+        resolved_rows_by_role[reconstructed.source_role] = reconstructed
 
     audit_result = await session.execute(
         select(RollingBacktestAvailabilityAudit)

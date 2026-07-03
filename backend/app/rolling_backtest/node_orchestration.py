@@ -96,6 +96,7 @@ from backend.app.rolling_backtest.persistence import (
     finalize_attempt_status,  # noqa: F401 – used by unit test mocks
     finalize_attempt_with_snapshot,
     load_logical_run_with_integrity,
+    load_node_resolved_identities_with_references,
     persist_orchestration_snapshot,
     persist_stage_event,
     update_run_status_from_attempts,
@@ -1611,6 +1612,33 @@ async def orchestrate_node(
             finished_at=latest_attempt.finished_at,
             diagnostics={"idempotent_reload": True},
         )
+
+    persisted_identities = await load_node_resolved_identities_with_references(
+        session,
+        rolling_node_id=node.id,
+    )
+    expected_resolved_input_count = getattr(
+        node,
+        "expected_resolved_input_count",
+        len(node_def.resolved_upstream_semantic_identities),
+    )
+    if not isinstance(expected_resolved_input_count, int):
+        expected_resolved_input_count = len(node_def.resolved_upstream_semantic_identities)
+    if len(persisted_identities) != expected_resolved_input_count:
+        raise RollingBacktestIntegrityError(
+            "persisted resolved input count does not match node expected_resolved_input_count"
+        )
+
+    if node_def.upstream_selection_mode == UpstreamSelectionMode.PINNED:
+        for identity in persisted_identities:
+            if identity.persistent_reference is None:
+                raise PinnedSourceNotFoundError(
+                    f"pinned source role={identity.source_role} is missing persistent reference"
+                )
+
+    node_def = node_def.model_copy(
+        update={"resolved_upstream_semantic_identities": persisted_identities}
+    )
 
     try:
         # P0-2: Mode validation moved into Stage 1 (after attempt creation)
