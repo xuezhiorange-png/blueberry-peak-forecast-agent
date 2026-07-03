@@ -104,6 +104,7 @@ from backend.app.rolling_backtest.resolution import (
     HistoricalCandidate,
     _build_identity_payload,
     _make_identity,
+    _task8_daily_prediction_payload_hash,
 )
 from backend.app.rolling_backtest.schemas import (
     AvailabilitySnapshot,
@@ -417,6 +418,7 @@ async def _load_exact_pinned_candidate(
             source_role="task6_plan_version",
             schema_version="task6-plan-v1",
             semantic_payload_hash=plan_run.file_sha256,
+            canonical_payload_hash=plan_run.file_sha256,
             business_version=plan_run.source_version,
             display_label="task6:plan_version",
             persistent_reference=PersistentUpstreamReference(
@@ -640,6 +642,7 @@ async def _load_exact_pinned_candidate(
             source_role="task8_forecast_run",
             schema_version="task8-maturity-v1",
             semantic_payload_hash=forecast_run_row.source_signature,
+            input_signature=forecast_run_row.source_signature,
             display_label="task8:forecast_run",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id",
@@ -676,11 +679,17 @@ async def _load_exact_pinned_candidate(
                 f"Task 8 daily prediction {row_id} parent forecast run was not found"
             )
         await load_maturity_forecast_result(session, run_id=parent_forecast_run.id)
+        daily_payload_hash = _task8_daily_prediction_payload_hash(
+            daily_prediction_row,
+            forecast_source_signature=parent_forecast_run.source_signature,
+        )
         exact_identity = _make_identity(
             source_type=source_type,
             source_role="task8_daily_prediction",
             schema_version="task8-maturity-v1",
-            semantic_payload_hash=parent_forecast_run.source_signature,
+            semantic_payload_hash=daily_payload_hash,
+            input_signature=parent_forecast_run.source_signature,
+            canonical_payload_hash=daily_payload_hash,
             display_label="task8:daily_prediction",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id",
