@@ -442,7 +442,6 @@ async def _make_real_task8_orchestration_persistence_command(
         source_role="task8_forecast_run",
         schema_version="task8-maturity-v1",
         semantic_payload_hash=forecast_row.source_signature,
-        config_hash=model_row.config_hash,
         display_label="task8:forecast_run",
         persistent_reference=PersistentUpstreamReference(
             reference_type="database_run_id",
@@ -954,7 +953,6 @@ async def _build_real_orchestration_command(
             source_role="task8_forecast_run",
             schema_version="task8-maturity-v1",
             semantic_payload_hash=task8_forecast_row.source_signature,
-            config_hash=task8_model_row.config_hash,
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id",
                 reference_value=task8["forecast_run_id"],
@@ -1020,7 +1018,7 @@ async def _build_real_orchestration_command(
 
     node = _make_pinned_node(
         season_id=2030,
-        node_key="real_chain",
+        node_key="march_15",
         resolved_identities=identities,
     ).model_copy(
         update={
@@ -1175,7 +1173,11 @@ async def test_single_node_successful_orchestration() -> None:
         )
         await session.commit()
 
-    assert outcome.status == "completed"
+    assert outcome.status == "completed", (
+        outcome.blocker_code,
+        outcome.stage,
+        outcome.diagnostics,
+    )
     assert outcome.stage == "finalize_orchestration_snapshot"
 
     # Verify attempt was created
@@ -1219,7 +1221,7 @@ async def test_independent_session_committed_reload() -> None:
     _require_postgres()
     cmd = await _make_real_task8_orchestration_persistence_command(
         season_id=2027,
-        node_key="march_16",
+        node_key="march_15",
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
@@ -1232,7 +1234,11 @@ async def test_independent_session_committed_reload() -> None:
             rolling_node_id=node_id,
         )
         await session.commit()
-    assert outcome.status == "completed"
+    assert outcome.status == "completed", (
+        outcome.blocker_code,
+        outcome.stage,
+        outcome.diagnostics,
+    )
 
     # Reload in a completely independent session
     async with AsyncSessionMaker() as session:
@@ -1269,7 +1275,7 @@ async def test_existing_finalized_result_integrity_reload() -> None:
     _require_postgres()
     cmd = await _make_real_task8_orchestration_persistence_command(
         season_id=2028,
-        node_key="march_17",
+        node_key="march_15",
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
@@ -1282,7 +1288,11 @@ async def test_existing_finalized_result_integrity_reload() -> None:
             rolling_node_id=node_id,
         )
         await session.commit()
-    assert outcome1.status == "completed"
+    assert outcome1.status == "completed", (
+        outcome1.blocker_code,
+        outcome1.stage,
+        outcome1.diagnostics,
+    )
 
     first_attempt_id = outcome1.attempt_number
 
@@ -1294,7 +1304,11 @@ async def test_existing_finalized_result_integrity_reload() -> None:
             rolling_node_id=node_id,
         )
         await session.commit()
-    assert outcome2.status == "completed"
+    assert outcome2.status == "completed", (
+        outcome2.blocker_code,
+        outcome2.stage,
+        outcome2.diagnostics,
+    )
     assert outcome2.diagnostics.get("idempotent_reload") is True
     # Same attempt number, no new attempt created
     assert outcome2.attempt_number == first_attempt_id
@@ -1640,7 +1654,11 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
         )
         await session.commit()
 
-    assert outcome.status == "completed"
+    assert outcome.status == "completed", (
+        outcome.blocker_code,
+        outcome.stage,
+        outcome.diagnostics,
+    )
     assert outcome.blocker_code is None
 
     async with AsyncSessionMaker() as session:
