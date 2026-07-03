@@ -62,6 +62,7 @@ from backend.app.rolling_backtest.errors import (
     RollingBacktestStageIntegrityError,
 )
 from backend.app.rolling_backtest.node_orchestration import (
+    _task8_daily_prediction_payload_hash,
     orchestrate_node,
 )
 from backend.app.rolling_backtest.orchestration import OrchestrationStage
@@ -90,6 +91,7 @@ from backend.app.rolling_backtest.schemas import (
     RollingNodeDefinition,
     Task3AnalyticsBuildAvailabilitySnapshot,
     Task3SourceVisibilityIdentity,
+    Task8DailyPredictionAvailabilitySnapshot,
     Task8ForecastRunAvailabilitySnapshot,
     Task8ModelArtifactAvailabilitySnapshot,
     Task8ModelRunAvailabilitySnapshot,
@@ -123,11 +125,6 @@ TASK8_MODEL_CONFIG_HASH = sha256_payload({"fixture": "task8-model-config", "vers
 TASK8_MODEL_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-model-run", "version": 1})
 TASK8_ARTIFACT_HASH = sha256_payload({"fixture": "task8-model-artifact", "version": 1})
 TASK8_FORECAST_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-forecast-run", "version": 1})
-TASK8_FORECAST_SOURCE_SIGNATURE_VARIETY_102 = sha256_payload(
-    {"fixture": "task8-forecast-run-variety-102", "version": 1}
-)
-TASK8_VARIETY_102_PLAN_ID = 502
-TASK8_VARIETY_102_FORECAST_RUN_ID = 402
 
 
 def _assert_sha256_hex(value: str) -> None:
@@ -524,7 +521,7 @@ async def _make_real_task8_orchestration_persistence_command(
     return RollingBacktestPersistenceCommand(config=config, nodes=(node_cmd,))
 
 
-async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
+async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
     request = make_request()
     plan_variety_id = 101
     daily_ids_by_date: dict[date, int] = {}
@@ -619,8 +616,6 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
             assert existing_variety_101.code == "DX"
             assert existing_variety_101.name == "Dx"
 
-        root_rows.append(Variety(id=102, code="DX-ALT", name="Dx Alt"))
-
         session.add_all(root_rows)
         await session.flush()
 
@@ -675,32 +670,6 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
                     source_version="v1",
                     notes="synthetic",
                     row_hash="plan-501",
-                ),
-                FarmSeasonVarietyPlan(
-                    id=502,
-                    farm_id=1,
-                    subfarm_id=None,
-                    season_id=season_id,
-                    variety_id=102,
-                    planted_area_mu=Decimal("80"),
-                    expected_yield_kg_per_mu=Decimal("1100"),
-                    marketable_rate=Decimal("0.75"),
-                    tree_age_years=Decimal("2"),
-                    pruning_date=date(2026, 1, 1),
-                    flowering_start_date=date(2026, 2, 2),
-                    flowering_peak_date=date(2026, 2, 7),
-                    flowering_end_date=date(2026, 2, 11),
-                    first_pick_date=date(2026, 3, 6),
-                    expected_total_marketable_kg=Decimal("66000"),
-                    version=1,
-                    effective_from=date(2026, 1, 1),
-                    effective_to=None,
-                    available_at=date(2025, 12, 15),
-                    source_type="manual",
-                    source_name="planner",
-                    source_version="v1",
-                    notes="synthetic-variety-102",
-                    row_hash="plan-502",
                 ),
                 BaseTemperatureSearchRun(
                     id=901,
@@ -856,78 +825,44 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
             )
         session.add_all(daily_rows)
         await session.flush()
-
-        # ── Variety 102 forecast run and daily prediction rows ──
-        forecast_v102 = MaturityForecastRun(
-            id=TASK8_VARIETY_102_FORECAST_RUN_ID,
-            model_run_id=101,
-            artifact_id=201,
-            plan_id=TASK8_VARIETY_102_PLAN_ID,
-            location_reference_id=601,
-            weather_mapping_id=801,
-            base_temperature_search_run_id=901,
-            as_of_date=date(2026, 2, 28),
-            prediction_start_date=date(2026, 3, 1),
-            prediction_end_date=date(2026, 3, 3),
-            expected_marketable_total_kg=Decimal("66000"),
-            expected_total_source="explicit",
-            axis_mode="calendar_proxy_axis",
-            source_signature=TASK8_FORECAST_SOURCE_SIGNATURE_VARIETY_102,
-            status="completed",
-            warnings=[],
-            blockers=[],
-            input_snapshot={},
-            started_at=datetime(2026, 2, 28, 12, 10, tzinfo=UTC),
-            finished_at=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
-            error_message=None,
-        )
-        session.add(forecast_v102)
-        await session.flush()
-
-        # Compute variety 102 daily prediction IDs using the same formula as
-        # make_task8_source_ref: ordinal * 100_000 + farm * 10_000 + subfarm * 100 + variety
-        daily_rows_v102 = []
-        for prediction_date in sorted(daily_ids_by_date.keys()):
-            daily_id_v102 = prediction_date.toordinal() * 100_000 + 1 * 10_000 + 11 * 100 + 102
-            daily_rows_v102.append(
-                MaturityDailyPredictionModel(
-                    id=daily_id_v102,
-                    forecast_run_id=TASK8_VARIETY_102_FORECAST_RUN_ID,
-                    prediction_date=prediction_date,
-                    phenology_coordinate_day=Decimal("1"),
-                    p50_kg=Decimal("20"),
-                    p80_kg=Decimal("24"),
-                    p90_kg=Decimal("28"),
-                    cumulative_p50_kg=Decimal("20"),
-                    cumulative_p80_kg=Decimal("24"),
-                    cumulative_p90_kg=Decimal("28"),
-                    curve_share=Decimal("0.3333333333"),
-                    confidence_level="medium",
-                    quality_flags=[],
-                    created_at=datetime(2026, 2, 28, 13, 5, tzinfo=UTC),
-                )
-            )
-        session.add_all(daily_rows_v102)
-        await session.flush()
         await session.commit()
 
     return {
+        "season_id": season_id,
+        "farm_id": 1,
+        "subfarm_id": None,
+        "variety_id": 101,
+        "plan_id": 501,
+        "location_reference_id": 601,
+        "weather_mapping_id": 801,
+        "base_temperature_search_run_id": 901,
         "model_run_id": 101,
+        "model_version": "task8-v1",
         "artifact_id": 201,
+        "artifact_run_id": 101,
         "forecast_run_id": 401,
-        "variety_102_plan_id": TASK8_VARIETY_102_PLAN_ID,
-        "variety_102_forecast_run_id": TASK8_VARIETY_102_FORECAST_RUN_ID,
+        "forecast_run_status": "completed",
+        "forecast_as_of_date": date(2026, 2, 28),
+        "prediction_start_date": date(2026, 3, 1),
+        "prediction_end_date": date(2026, 3, 3),
+        "daily_predictions_by_date": {
+            prediction_date: {
+                "id": daily_id,
+                "p50_kg": Decimal("20"),
+                "p80_kg": Decimal("24"),
+                "p90_kg": Decimal("28"),
+                "created_at": datetime(2026, 2, 28, 13, 5, tzinfo=UTC),
+            }
+            for prediction_date, daily_id in sorted(daily_ids_by_date.items())
+        },
     }
 
 
 async def _seed_real_task10_authorities(
     *,
     task8_authority: dict[str, Any] | None = None,
-    variety_overrides: dict[int, dict[str, Any]] | None = None,
 ) -> dict[str, int]:
-    fixture = await _seed_prediction_fixture(
-        task8_authority=task8_authority, variety_overrides=variety_overrides
-    )
+    fixture = await _seed_prediction_fixture(task8_authority=task8_authority)
     samples = _diverse_training_samples(
         task9_run_id=fixture["train_task9_run_id"],
         label_build_run_id=fixture["train_label_build_run_id"],
@@ -1031,29 +966,33 @@ async def _build_real_orchestration_command(
     forecast_cutoff_at: datetime,
     pinned_task9_variant: str = "training",
 ) -> RollingBacktestPersistenceCommand:
+    assert forecast_cutoff_at.year == 2026
     task8 = await _seed_real_task8_authorities(season_id=2026)
     task8_authority = {
+        "season_id": task8["season_id"],
+        "farm_id": task8["farm_id"],
+        "subfarm_id": task8["subfarm_id"],
+        "variety_id": task8["variety_id"],
+        "plan_id": task8["plan_id"],
+        "location_reference_id": task8["location_reference_id"],
+        "weather_mapping_id": task8["weather_mapping_id"],
+        "base_temperature_search_run_id": task8["base_temperature_search_run_id"],
         "model_run_id": task8["model_run_id"],
+        "model_version": task8["model_version"],
         "model_config_hash": TASK8_MODEL_CONFIG_HASH,
         "model_source_signature": TASK8_MODEL_SOURCE_SIGNATURE,
         "artifact_id": task8["artifact_id"],
+        "artifact_run_id": task8["artifact_run_id"],
         "artifact_hash": TASK8_ARTIFACT_HASH,
         "forecast_run_id": task8["forecast_run_id"],
+        "forecast_run_status": task8["forecast_run_status"],
         "forecast_source_signature": TASK8_FORECAST_SOURCE_SIGNATURE,
+        "forecast_as_of_date": task8["forecast_as_of_date"],
+        "prediction_start_date": task8["prediction_start_date"],
+        "prediction_end_date": task8["prediction_end_date"],
+        "daily_predictions_by_date": task8["daily_predictions_by_date"],
     }
-    # NOTE: The harvest state model requires all entries in a single request
-    # to share the same forecast_run identity (TASK8_SOURCE_SIGNATURE_MISMATCH
-    # otherwise). Both varieties use forecast_run_id=401 in the Task 9 request.
-    # The DB has a separate forecast run 402 for variety 102, but the Task 9
-    # request binds both varieties to forecast_run 401.
-    variety_overrides = {
-        102: {
-            "plan_id": TASK8_VARIETY_102_PLAN_ID,
-        },
-    }
-    task10 = await _seed_real_task10_authorities(
-        task8_authority=task8_authority, variety_overrides=variety_overrides
-    )
+    task10 = await _seed_real_task10_authorities(task8_authority=task8_authority)
     task9_run_id = task10["task9_run_id"]
     if pinned_task9_variant == "training":
         pinned_task9_run_id = task10["task9_run_id"]
@@ -1089,60 +1028,47 @@ async def _build_real_orchestration_command(
         # ── Fixture parity: Task 9 envelope must match real Task 8 DB rows ──
         task9_input = task9_row.input_snapshot
         t8_preds = task9_input["task8_daily_predictions"]
+        assert len(t8_preds) == 9
         first_vs = t8_preds[0]["verification_snapshot"]
         assert first_vs["maturity_model_run_id"] == task8_model_row.id
+        assert first_vs["maturity_model_version"] == task8["model_version"]
         assert first_vs["maturity_model_config_hash"] == task8_model_row.config_hash
         assert first_vs["maturity_model_source_signature"] == task8_model_row.source_signature
         assert first_vs["maturity_model_artifact_id"] == task8_artifact_row.id
         assert first_vs["maturity_model_artifact_hash"] == task8_artifact_row.artifact_hash
         assert first_vs["maturity_forecast_run_id"] == task8_forecast_row.id
-        # daily prediction exact-set: ALL variety 101+102 IDs from task9 input
-        # must exactly match DB rows (both varieties now have DB rows).
-        all_daily_ids_in_task9 = {
+        assert first_vs["maturity_forecast_source_signature"] == task8_forecast_row.source_signature
+        assert first_vs["plan_id"] == task8["plan_id"]
+        assert first_vs["location_reference_id"] == task8["location_reference_id"]
+        assert first_vs["farm_id"] == task8["farm_id"]
+        assert first_vs["subfarm_id"] == task8["subfarm_id"]
+        assert first_vs["variety_id"] == task8["variety_id"]
+
+        task9_daily_ids = {
             item["verification_snapshot"]["maturity_daily_prediction_id"] for item in t8_preds
         }
-        daily_ids_in_task8 = await session.execute(select(MaturityDailyPredictionModel.id))
-        daily_ids_in_task8_set = set(daily_ids_in_task8.scalars().all())
-        assert daily_ids_in_task8_set == all_daily_ids_in_task9, (
-            f"Task 8 DB daily IDs {daily_ids_in_task8_set} "
-            f"!= Task 9 all-variety daily IDs {all_daily_ids_in_task9}"
+        db_daily_ids = {payload["id"] for payload in task8["daily_predictions_by_date"].values()}
+        assert db_daily_ids == task9_daily_ids, (
+            f"Task 8 DB daily IDs {db_daily_ids} != Task 9 daily IDs {task9_daily_ids}"
         )
-        # Verify both varieties present
         varieties_in_task9 = {item.get("variety_id") for item in t8_preds}
-        assert varieties_in_task9 == {101, 102}, (
-            f"expected varieties {{101, 102}}, got {varieties_in_task9}"
-        )
-        # Verify forecast run IDs: harvest state model requires all entries
-        # to share the same forecast run identity, so both varieties use 401.
-        v101_forecast_ids = {
-            item["verification_snapshot"]["maturity_forecast_run_id"]
-            for item in t8_preds
-            if item.get("variety_id") == 101
-        }
-        v102_forecast_ids = {
-            item["verification_snapshot"]["maturity_forecast_run_id"]
-            for item in t8_preds
-            if item.get("variety_id") == 102
-        }
-        assert v101_forecast_ids == v102_forecast_ids == {401}, (
-            f"all varieties must share forecast run 401, "
-            f"got v101={v101_forecast_ids} v102={v102_forecast_ids}"
-        )
-        # Verify plan IDs per variety
-        v101_plan_ids = {
-            item["verification_snapshot"]["plan_id"]
-            for item in t8_preds
-            if item.get("variety_id") == 101
-        }
-        v102_plan_ids = {
-            item["verification_snapshot"]["plan_id"]
-            for item in t8_preds
-            if item.get("variety_id") == 102
-        }
-        assert v101_plan_ids == {501}, f"variety 101 plan should be 501, got {v101_plan_ids}"
-        assert v102_plan_ids == {502}, f"variety 102 plan should be 502, got {v102_plan_ids}"
+        assert varieties_in_task9 == {101}, f"expected only variety 101, got {varieties_in_task9}"
+        for item in t8_preds:
+            src = item["source_ref"]
+            verification = item["verification_snapshot"]
+            expected_daily = task8["daily_predictions_by_date"][item["prediction_date"]]
+            quantile = src["forecast_quantile"]
+            expected_quantity = {
+                "P50": expected_daily["p50_kg"],
+                "P80": expected_daily["p80_kg"],
+                "P90": expected_daily["p90_kg"],
+            }[quantile]
+            assert src["maturity_daily_prediction_id"] == expected_daily["id"]
+            assert verification["maturity_daily_prediction_id"] == expected_daily["id"]
+            assert src["source_quantity_kg"] == expected_quantity
+            assert verification[f"{quantile.lower()}_kg"] == expected_quantity
 
-    identities: tuple[ResolvedUpstreamSemanticIdentity, ...] = (
+    identity_items: list[ResolvedUpstreamSemanticIdentity] = [
         _make_identity(
             source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
             source_role="task3_analytics_build",
@@ -1246,10 +1172,60 @@ async def _build_real_orchestration_command(
                 reference_value=prediction_row.id,
             ),
         ),
+    ]
+    daily_audits: list[AvailabilityAuditPersistenceCommand] = []
+    forecast_parent = _parent_authority(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        authority_status="completed",
+        authority_timestamp=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
+        persistent_reference=PersistentUpstreamReference(
+            reference_type="database_run_id",
+            reference_value=task8["forecast_run_id"],
+        ),
+        semantic_input_signature=task8_forecast_row.source_signature,
+        canonical_payload_hash=task8_forecast_row.source_signature,
     )
+    for prediction_date, daily_payload in sorted(task8["daily_predictions_by_date"].items()):
+        daily_row = await session.get(MaturityDailyPredictionModel, daily_payload["id"])
+        assert daily_row is not None
+        daily_hash = _task8_daily_prediction_payload_hash(
+            daily_row,
+            forecast_source_signature=task8_forecast_row.source_signature,
+        )
+        source_role = f"task8_daily_prediction:{prediction_date.isoformat()}"
+        identity_items.append(
+            _make_identity(
+                source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+                source_role=source_role,
+                schema_version="task8-maturity-v1",
+                semantic_payload_hash=daily_hash,
+                input_signature=task8_forecast_row.source_signature,
+                canonical_payload_hash=daily_hash,
+                business_version="task8-v1",
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_row_id",
+                    reference_value=daily_row.id,
+                ),
+            )
+        )
+        daily_audits.append(
+            AvailabilityAuditPersistenceCommand(
+                source_role=source_role,
+                snapshot=Task8DailyPredictionAvailabilitySnapshot(
+                    source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+                    prediction_date=prediction_date,
+                    created_at=daily_payload["created_at"],
+                    parent_authority=forecast_parent,
+                ),
+                forecast_cutoff_at=forecast_cutoff_at,
+                resolved_identity=identity_items[-1],
+            )
+        )
+
+    identities = tuple(identity_items)
 
     node = _make_pinned_node(
-        season_id=2030,
+        season_id=2026,
         node_key="march_15",
         resolved_identities=identities,
     ).model_copy(
@@ -1367,6 +1343,7 @@ async def _build_real_orchestration_command(
             forecast_cutoff_at=node.forecast_cutoff_at,
             resolved_identity=identities[7],
         ),
+        *daily_audits,
     )
 
     validated_node = config.nodes[0]
@@ -1896,7 +1873,7 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
     """orchestrate_node must exact-load real Task 8/9/10 authorities and freeze them in snapshot."""
     _require_postgres()
     cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+        forecast_cutoff_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
@@ -1958,6 +1935,72 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
         await load_logical_run_with_integrity(session, loaded_run)
 
 
+@pytest.mark.asyncio
+async def test_cross_season_task8_authority_blocks() -> None:
+    """Pinned Task 8/9 authorities from season 2026 must block a season-2027 node."""
+    _require_postgres()
+    base_cmd = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    cross_node_payload = base_cmd.config.nodes[0].model_dump(mode="python")
+    cross_node_payload.update(
+        {
+            "season_id": 2027,
+            "as_of_local_date": date(2027, 3, 15),
+            "forecast_cutoff_at": datetime(2027, 3, 15, 4, 0, tzinfo=UTC),
+            "forecast_start_local_date": date(2027, 3, 16),
+            "forecast_end_local_date": date(2027, 3, 31),
+        }
+    )
+    cross_node = RollingNodeDefinition.model_validate(cross_node_payload)
+    cross_config = RollingBacktestConfig.model_validate(
+        {
+            **base_cmd.config.model_dump(mode="python"),
+            "nodes": (cross_node.model_dump(mode="python"),),
+        }
+    )
+    validated_node = cross_config.nodes[0]
+    validated_identity_by_role = {
+        identity.source_role: identity
+        for identity in validated_node.resolved_upstream_semantic_identities
+    }
+    base_node_cmd = base_cmd.nodes[0]
+    cross_node_cmd = RollingNodePersistenceCommand(
+        node=validated_node,
+        resolved_inputs=tuple(
+            ResolvedInputPersistenceCommand(
+                identity=validated_identity_by_role[item.identity.source_role],
+                persistent_reference=item.persistent_reference,
+            )
+            for item in base_node_cmd.resolved_inputs
+        ),
+        availability_audits=tuple(
+            replace(
+                audit,
+                forecast_cutoff_at=validated_node.forecast_cutoff_at,
+                resolved_identity=validated_identity_by_role[audit.source_role],
+            )
+            for audit in base_node_cmd.availability_audits
+        ),
+        dag=base_node_cmd.dag,
+    )
+    cross_cmd = RollingBacktestPersistenceCommand(config=cross_config, nodes=(cross_node_cmd,))
+    run = await create_or_load_logical_run(cross_cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    async with AsyncSessionMaker() as session:
+        outcome = await orchestrate_node(
+            session,
+            rolling_run_id=run.id,
+            rolling_node_id=node_id,
+        )
+        await session.commit()
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "TASK9_TASK8_AUTHORITY_MISMATCH"
+    assert outcome.stage == OrchestrationStage.RESOLVE_OR_REPLAY_TASK9.value
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # l) real Task 10 / Task 9 binding mismatch
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1967,7 +2010,7 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
 async def test_real_task10_task9_binding_mismatch_blocks() -> None:
     """Pinned Task 9 must match the real Task 10 prediction's frozen Task 9 binding."""
     _require_postgres()
-    forecast_cutoff_at = datetime(2030, 3, 15, 4, 0, tzinfo=UTC)
+    forecast_cutoff_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
     cmd = await _build_real_orchestration_command(
         forecast_cutoff_at=forecast_cutoff_at,
         pinned_task9_variant="validation",
@@ -2024,7 +2067,7 @@ async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
     """A real persisted Task 10 prediction completed after cutoff must be blocked."""
     _require_postgres()
     cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+        forecast_cutoff_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
@@ -2111,7 +2154,7 @@ async def test_integrity_reload_failure_rolls_back_completed_execution() -> None
     """Integrity reload failure must rollback completed attempt, snapshot, and run status."""
     _require_postgres()
     cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+        forecast_cutoff_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)

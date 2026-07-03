@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -706,6 +706,13 @@ async def test_task8_parent_authority_mismatch(mock_session):
     artifact_identity = _make_identity(
         source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
         source_role="task8_model_artifact",
+    ).model_copy(
+        update={
+            "persistent_reference": PersistentUpstreamReference(
+                reference_type="database_artifact_id",
+                reference_value=42,
+            )
+        }
     )
     node_def = _make_node_def(identities=(artifact_identity,))
     config = _make_config(nodes=(node_def,))
@@ -1791,6 +1798,184 @@ async def test_task9_reuse_uses_official_loader_and_freezes_hashes():
     assert ctx.task9_authority is not None
     assert ctx.task9_authority.source_catalog_hash == "c" * 64
     assert ctx.task9_authority.verification_snapshot_hash == "d" * 64
+
+
+@pytest.mark.asyncio
+async def test_load_exact_task8_daily_prediction_requires_database_row_id():
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        source_role="task8_daily_prediction:2026-03-01",
+    )
+    with pytest.raises(PinnedSourceIdentityMismatchError):
+        await node_orch._load_exact_pinned_candidate(
+            AsyncMock(),
+            _make_node_def(identities=(identity,)),
+            identity,
+        )
+
+
+@pytest.mark.asyncio
+async def test_load_exact_task8_model_artifact_requires_database_artifact_id():
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+        source_role="task8_model_artifact",
+    )
+    with pytest.raises(PinnedSourceIdentityMismatchError):
+        await node_orch._load_exact_pinned_candidate(
+            AsyncMock(),
+            _make_node_def(identities=(identity,)),
+            identity,
+        )
+
+
+@pytest.mark.asyncio
+async def test_load_exact_task10_model_artifact_requires_database_artifact_id():
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
+        source_role="task10_model_artifact",
+    )
+    with pytest.raises(PinnedSourceIdentityMismatchError):
+        await node_orch._load_exact_pinned_candidate(
+            AsyncMock(),
+            _make_node_def(identities=(identity,)),
+            identity,
+        )
+
+
+@pytest.mark.asyncio
+async def test_task9_reuse_rejects_cross_season_task8_verification_snapshots():
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    task9_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
+        source_role="task9_structural_forecast",
+        input_signature="1" * 64,
+        result_hash="2" * 64,
+        canonical_payload_hash="3" * 64,
+    )
+    task8_forecast_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+        source_role="task8_forecast_run",
+        input_signature="4" * 64,
+    )
+    task8_daily_identity = _make_identity(
+        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+        source_role="task8_daily_prediction:2026-03-01",
+        semantic_payload_hash="5" * 64,
+        input_signature="4" * 64,
+        canonical_payload_hash="5" * 64,
+    ).model_copy(
+        update={
+            "persistent_reference": PersistentUpstreamReference(
+                reference_type="database_row_id",
+                reference_value=901,
+            )
+        }
+    )
+    ctx = node_orch._StageContext(
+        attempt_id=100,
+        node_id=10,
+        run_id=1,
+        resolved_inputs={
+            "task9_structural_forecast": node_orch.ResolvedInputOutcome(
+                source_role=task9_identity.source_role,
+                source_type=task9_identity.source_type,
+                semantic_identity=task9_identity,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=42,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="7" * 64,
+                canonical_payload_hash="8" * 64,
+            ),
+            "task8_forecast_run": node_orch.ResolvedInputOutcome(
+                source_role=task8_forecast_identity.source_role,
+                source_type=task8_forecast_identity.source_type,
+                semantic_identity=task8_forecast_identity,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=84,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="9" * 64,
+                canonical_payload_hash="a" * 64,
+            ),
+            task8_daily_identity.source_role: node_orch.ResolvedInputOutcome(
+                source_role=task8_daily_identity.source_role,
+                source_type=task8_daily_identity.source_type,
+                semantic_identity=task8_daily_identity,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_row_id",
+                    reference_value=901,
+                ),
+                authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+                canonical_identity_hash="b" * 64,
+                canonical_payload_hash="5" * 64,
+            ),
+        },
+        availability_audits={},
+    )
+    envelope = MagicMock()
+    envelope.status = "completed"
+    envelope.result_hash = "2" * 64
+    envelope.config_hash = "b" * 64
+    envelope.output = MagicMock()
+    envelope.output.input_snapshot = {
+        "task8_daily_predictions": [
+            {
+                "verification_snapshot": {
+                    "prediction_date": date(2027, 3, 1),
+                    "maturity_forecast_as_of_date": date(2027, 2, 28),
+                    "maturity_forecast_prediction_start_date": date(2027, 3, 1),
+                    "maturity_forecast_prediction_end_date": date(2027, 3, 3),
+                    "maturity_daily_prediction_id": 901,
+                    "maturity_forecast_run_id": 84,
+                    "maturity_model_run_id": 42,
+                    "maturity_model_artifact_id": 201,
+                    "maturity_model_artifact_hash": "a" * 64,
+                }
+            }
+        ]
+    }
+    envelope.output.source_catalog_hash = "c" * 64
+    envelope.output.verification_snapshot_hash = "d" * 64
+
+    with patch(
+        f"{_MOD}.get_harvest_state_run_by_id",
+        new=AsyncMock(return_value=envelope),
+        create=True,
+    ):
+        with pytest.raises(Task9Task8AuthorityMismatchError):
+            await node_orch._resolve_task9_reuse(
+                ctx,
+                _make_config(
+                    nodes=(
+                        _make_node_def(
+                            identities=(
+                                task8_forecast_identity,
+                                task8_daily_identity,
+                                task9_identity,
+                            )
+                        ),
+                    )
+                ),
+                _make_node_def(
+                    identities=(
+                        task8_forecast_identity,
+                        task8_daily_identity,
+                        task9_identity,
+                    )
+                ),
+                session=AsyncMock(),
+                resolved_inputs=ctx.resolved_inputs,
+            )
 
 
 @pytest.mark.asyncio
