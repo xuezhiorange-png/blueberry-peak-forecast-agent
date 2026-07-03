@@ -74,6 +74,37 @@ def _require_postgres() -> None:
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
 
 
+def _postgres_constraint_name(error: BaseException) -> str | None:
+    pending: list[BaseException] = [error]
+    seen: set[int] = set()
+
+    while pending:
+        current = pending.pop()
+        marker = id(current)
+        if marker in seen:
+            continue
+        seen.add(marker)
+
+        direct = getattr(current, "constraint_name", None)
+        if isinstance(direct, str) and direct:
+            return direct
+
+        diag = getattr(current, "diag", None)
+        diag_name = getattr(diag, "constraint_name", None)
+        if isinstance(diag_name, str) and diag_name:
+            return diag_name
+
+        for candidate in (
+            getattr(current, "orig", None),
+            current.__cause__,
+            current.__context__,
+        ):
+            if isinstance(candidate, BaseException):
+                pending.append(candidate)
+
+    return None
+
+
 # ── Fixture helpers ──────────────────────────────────────────────────────────
 
 
@@ -1039,8 +1070,9 @@ async def test_database_rejects_partial_resolved_input_reference_pair(
 
         await session.rollback()
 
-    constraint_name = getattr(getattr(exc.value.orig, "diag", None), "constraint_name", None)
-    assert constraint_name == "ck_rolling_backtest_resolved_input_persistent_ref_pairing"
+    assert _postgres_constraint_name(exc.value) == (
+        "ck_rolling_backtest_resolved_input_persistent_ref_pairing"
+    )
 
 
 @pytest.mark.parametrize(

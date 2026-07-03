@@ -17,8 +17,6 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError as SAIntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
-from backend.app.harvest_state.persistence import save_harvest_state_output
-from backend.app.harvest_state.service import run_harvest_state_model
 from backend.app.models.analytics import AnalyticsBuildRun
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.master_data import Farm, Season, Variety
@@ -65,6 +63,7 @@ from backend.app.rolling_backtest.errors import (
 from backend.app.rolling_backtest.node_orchestration import (
     orchestrate_node,
 )
+from backend.app.rolling_backtest.orchestration import OrchestrationStage
 from backend.app.rolling_backtest.persistence import (
     AvailabilityAuditPersistenceCommand,
     DagPersistenceCommand,
@@ -89,6 +88,7 @@ from backend.app.rolling_backtest.schemas import (
     RollingBacktestConfig,
     RollingNodeDefinition,
     Task3AnalyticsBuildAvailabilitySnapshot,
+    Task3SourceVisibilityIdentity,
     Task8ForecastRunAvailabilitySnapshot,
     Task8ModelArtifactAvailabilitySnapshot,
     Task8ModelRunAvailabilitySnapshot,
@@ -833,28 +833,6 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
     }
 
 
-async def _seed_real_task9_run(
-    *,
-    request_variant: str = "baseline",
-) -> tuple[int, str, str, datetime]:
-    async with AsyncSessionMaker() as session:
-        payload = make_request()
-        if request_variant == "inventory_shift":
-            payload["initial_inventory_cohorts"][0]["remaining_quantity_kg"] = Decimal("6")
-            payload["initial_opening_mature_inventory_kg"] = Decimal("31")
-        elif request_variant != "baseline":
-            raise AssertionError(f"unsupported request_variant={request_variant}")
-
-        output = run_harvest_state_model(payload)
-        assert output.status == "completed"
-        run = await save_harvest_state_output(session, output=output)
-        await session.commit()
-        row = await session.get(HarvestStateRun, run.id)
-        assert row is not None
-        assert row.created_at is not None
-        return row.id, row.result_hash, row.canonical_payload_hash, row.created_at
-
-
 async def _seed_real_task10_authorities() -> dict[str, int]:
     fixture = await _seed_prediction_fixture()
     samples = _diverse_training_samples(
@@ -929,15 +907,46 @@ def _parent_authority(
     )
 
 
+def _task3_source_visibility(
+    feature_build: AnalyticsBuildRun,
+    *,
+    forecast_cutoff_at: datetime,
+) -> Task3SourceVisibilityIdentity:
+    assert feature_build.finished_at is not None
+    visible_through_at = min(feature_build.finished_at, forecast_cutoff_at)
+    visibility_manifest_hash = sha256_payload(
+        {
+            "visibility_policy_version": "task11-task3-source-visibility-v1",
+            "source_max_raw_id": feature_build.source_max_raw_id,
+            "aggregation_version": feature_build.aggregation_version,
+            "config_hash": feature_build.config_hash,
+            "visible_through_at": visible_through_at,
+        }
+    )
+    return Task3SourceVisibilityIdentity(
+        visibility_policy_version="task11-task3-source-visibility-v1",
+        source_max_raw_id=feature_build.source_max_raw_id,
+        aggregation_version=feature_build.aggregation_version,
+        config_hash=feature_build.config_hash,
+        visibility_manifest_hash=visibility_manifest_hash,
+        visible_through_at=visible_through_at,
+    )
+
+
 async def _build_real_orchestration_command(
     *,
     forecast_cutoff_at: datetime,
-    pinned_task9_run_id: int | None = None,
+    pinned_task9_variant: str = "training",
 ) -> RollingBacktestPersistenceCommand:
     task10 = await _seed_real_task10_authorities()
     task8 = await _seed_real_task8_authorities(season_id=1)
     task9_run_id = task10["task9_run_id"]
-    pinned_task9_run_id = pinned_task9_run_id or task9_run_id
+    if pinned_task9_variant == "training":
+        pinned_task9_run_id = task10["task9_run_id"]
+    elif pinned_task9_variant == "validation":
+        pinned_task9_run_id = task10["validation_task9_run_id"]
+    else:
+        raise AssertionError(f"unsupported pinned_task9_variant={pinned_task9_variant}")
 
     async with AsyncSessionMaker() as session:
         feature_build = await session.get(AnalyticsBuildRun, task10["feature_build_run_id"])
@@ -1090,6 +1099,10 @@ async def _build_real_orchestration_command(
                 source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
                 status="completed",
                 authoritative_timestamp=feature_build.finished_at,
+                task3_source_visibility=_task3_source_visibility(
+                    feature_build,
+                    forecast_cutoff_at=node.forecast_cutoff_at,
+                ),
             ),
             forecast_cutoff_at=node.forecast_cutoff_at,
             resolved_identity=identities[0],
@@ -1187,6 +1200,15 @@ async def _build_real_orchestration_command(
     )
 
     validated_node = config.nodes[0]
+    task3_snapshot = audits[0].snapshot
+    assert task3_snapshot.task3_source_visibility is not None
+    assert task3_snapshot.task3_source_visibility.visible_through_at <= node.forecast_cutoff_at
+    assert (
+        task3_snapshot.task3_source_visibility.aggregation_version
+        == feature_build.aggregation_version
+    )
+    assert task3_snapshot.task3_source_visibility.config_hash == feature_build.config_hash
+    assert len(task3_snapshot.task3_source_visibility.visibility_manifest_hash) == 64
     validated_identity_by_role = {
         identity.source_role: identity
         for identity in validated_node.resolved_upstream_semantic_identities
@@ -1775,36 +1797,38 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
 async def test_real_task10_task9_binding_mismatch_blocks() -> None:
     """Pinned Task 9 must match the real Task 10 prediction's frozen Task 9 binding."""
     _require_postgres()
+    forecast_cutoff_at = datetime(2030, 3, 15, 4, 0, tzinfo=UTC)
     cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
+        forecast_cutoff_at=forecast_cutoff_at,
+        pinned_task9_variant="validation",
     )
-    await create_or_load_logical_run(cmd)
+    pinned_task9_identity = next(
+        identity
+        for identity in cmd.config.nodes[0].resolved_upstream_semantic_identities
+        if identity.source_role == "task9_structural_forecast"
+    )
+    pinned_task9_run_id = pinned_task9_identity.persistent_reference.reference_value
+    assert isinstance(pinned_task9_run_id, int)
 
     async with AsyncSessionMaker() as session:
-        expected_task9_run_id = (
+        prediction_task9_run_id = (
             await session.execute(
                 select(ResidualModelPredictionRun.task9_run_id)
                 .order_by(ResidualModelPredictionRun.id.desc())
                 .limit(1)
             )
         ).scalar_one()
-        other_task9, other_task9_result_hash, *_ = await _seed_real_task9_run(
-            request_variant="inventory_shift"
+        prediction_task9_row = await session.get(HarvestStateRun, prediction_task9_run_id)
+        validation_task9_row = await session.get(HarvestStateRun, pinned_task9_run_id)
+        assert prediction_task9_row is not None
+        assert validation_task9_row is not None
+        assert pinned_task9_run_id != prediction_task9_run_id
+        assert validation_task9_row.result_hash != prediction_task9_row.result_hash
+        assert (
+            validation_task9_row.canonical_payload_hash
+            != prediction_task9_row.canonical_payload_hash
         )
-        assert other_task9 != expected_task9_run_id
-        expected_task9_result_hash = (
-            await session.execute(
-                select(HarvestStateRun.result_hash).where(
-                    HarvestStateRun.id == expected_task9_run_id
-                )
-            )
-        ).scalar_one()
-        assert other_task9_result_hash != expected_task9_result_hash
-    mismatched_cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2030, 3, 15, 4, 0, tzinfo=UTC),
-        pinned_task9_run_id=other_task9,
-    )
-    mismatched_run = await create_or_load_logical_run(mismatched_cmd)
+    mismatched_run = await create_or_load_logical_run(cmd)
     mismatched_node_id = await _get_node_id_for_run(mismatched_run.id)
 
     async with AsyncSessionMaker() as session:
@@ -1817,6 +1841,7 @@ async def test_real_task10_task9_binding_mismatch_blocks() -> None:
 
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "TASK10_TASK9_BINDING_MISMATCH"
+    assert outcome.stage == OrchestrationStage.RESOLVE_OR_TRAIN_TASK10.value
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
