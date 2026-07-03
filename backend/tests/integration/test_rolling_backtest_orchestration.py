@@ -267,10 +267,25 @@ def _make_node_command(
     )
     return RollingNodePersistenceCommand(
         node=node_with_identity,
-        resolved_inputs=(ResolvedInputPersistenceCommand(identity=identity),),
+        resolved_inputs=(
+            ResolvedInputPersistenceCommand(
+                identity=identity,
+                persistent_reference=identity.persistent_reference,
+            ),
+        ),
         availability_audits=(),
         dag=_make_dag(),
     )
+
+
+def _revalidated_config(
+    config: RollingBacktestConfig,
+    *,
+    nodes: tuple[RollingNodeDefinition, ...],
+) -> RollingBacktestConfig:
+    payload = config.model_dump(mode="python")
+    payload["nodes"] = [node.model_dump(mode="python") for node in nodes]
+    return RollingBacktestConfig.model_validate(payload)
 
 
 def _make_persistence_command(
@@ -294,6 +309,7 @@ def _make_persistence_command(
                         source_role="task3_analytics",
                         source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
                     ),
+                    persistent_reference=None,
                 ),
             )
 
@@ -309,9 +325,20 @@ def _make_persistence_command(
                 source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
             )
             if not inputs:
-                inputs = (ResolvedInputPersistenceCommand(identity=identity),)
+                inputs = (
+                    ResolvedInputPersistenceCommand(
+                        identity=identity,
+                        persistent_reference=identity.persistent_reference,
+                    ),
+                )
             elif all(item.identity.source_role != identity.source_role for item in inputs):
-                inputs = (*inputs, ResolvedInputPersistenceCommand(identity=identity))
+                inputs = (
+                    *inputs,
+                    ResolvedInputPersistenceCommand(
+                        identity=identity,
+                        persistent_reference=identity.persistent_reference,
+                    ),
+                )
             audits = (
                 AvailabilityAuditPersistenceCommand(
                     source_role="task8_forecast_run",
@@ -339,10 +366,11 @@ def _make_persistence_command(
             )
         )
 
-    return RollingBacktestPersistenceCommand(
-        config=config.model_copy(update={"nodes": tuple(cmd.node for cmd in node_cmds)}),
-        nodes=tuple(node_cmds),
+    validated_config = _revalidated_config(
+        config,
+        nodes=tuple(cmd.node for cmd in node_cmds),
     )
+    return RollingBacktestPersistenceCommand(config=validated_config, nodes=tuple(node_cmds))
 
 
 # ── Orchestration test helpers ───────────────────────────────────────────────
@@ -364,6 +392,13 @@ def _make_orchestration_persistence_command(
     identity = _make_semantic_identity(
         source_role=identity_role,
         source_type=identity_source_type,
+    ).model_copy(
+        update={
+            "persistent_reference": PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=42,
+            )
+        }
     )
     node = _make_pinned_node(
         season_id=season_id,
@@ -371,6 +406,8 @@ def _make_orchestration_persistence_command(
         resolved_identities=(identity,),
     )
     config = _make_config(execution_mode=execution_mode, nodes=(node,))
+    validated_node = config.nodes[0]
+    validated_identity = validated_node.resolved_upstream_semantic_identities[0]
 
     # Build availability snapshot that passes the visibility check.
     # For TASK8_FORECAST_RUN: status="completed", authoritative_timestamp before cutoff.
@@ -383,22 +420,22 @@ def _make_orchestration_persistence_command(
     audit_cmd = AvailabilityAuditPersistenceCommand(
         source_role=identity_role,
         snapshot=snapshot,
-        forecast_cutoff_at=node.forecast_cutoff_at,
-        resolved_identity=identity,
+        forecast_cutoff_at=validated_node.forecast_cutoff_at,
+        resolved_identity=validated_identity,
     )
 
-    ri_cmd = ResolvedInputPersistenceCommand(identity=identity)
+    ri_cmd = ResolvedInputPersistenceCommand(
+        identity=validated_identity,
+        persistent_reference=validated_identity.persistent_reference,
+    )
     node_cmd = RollingNodePersistenceCommand(
-        node=node,
+        node=validated_node,
         resolved_inputs=(ri_cmd,),
         availability_audits=(audit_cmd,),
         dag=_make_dag(),
     )
 
-    return RollingBacktestPersistenceCommand(
-        config=config.model_copy(update={"nodes": (node,)}),
-        nodes=(node_cmd,),
-    )
+    return RollingBacktestPersistenceCommand(config=config, nodes=(node_cmd,))
 
 
 async def _get_node_id_for_run(run_id: int) -> int:
@@ -455,6 +492,8 @@ async def _make_real_task8_orchestration_persistence_command(
         resolved_identities=(identity,),
     )
     config = _make_config(execution_mode=ExecutionMode.HISTORICAL_OBSERVED, nodes=(node,))
+    validated_node = config.nodes[0]
+    validated_identity = validated_node.resolved_upstream_semantic_identities[0]
     audit_cmd = AvailabilityAuditPersistenceCommand(
         source_role="task8_forecast_run",
         snapshot=Task8ForecastRunAvailabilitySnapshot(
@@ -462,19 +501,21 @@ async def _make_real_task8_orchestration_persistence_command(
             status="completed",
             authoritative_timestamp=forecast_row.finished_at,
         ),
-        forecast_cutoff_at=node.forecast_cutoff_at,
-        resolved_identity=identity,
+        forecast_cutoff_at=validated_node.forecast_cutoff_at,
+        resolved_identity=validated_identity,
     )
     node_cmd = RollingNodePersistenceCommand(
-        node=node,
-        resolved_inputs=(ResolvedInputPersistenceCommand(identity=identity),),
+        node=validated_node,
+        resolved_inputs=(
+            ResolvedInputPersistenceCommand(
+                identity=validated_identity,
+                persistent_reference=validated_identity.persistent_reference,
+            ),
+        ),
         availability_audits=(audit_cmd,),
         dag=_make_dag(),
     )
-    return RollingBacktestPersistenceCommand(
-        config=config.model_copy(update={"nodes": (node,)}),
-        nodes=(node_cmd,),
-    )
+    return RollingBacktestPersistenceCommand(config=config, nodes=(node_cmd,))
 
 
 async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, int]:
@@ -1135,18 +1176,28 @@ async def _build_real_orchestration_command(
         ),
     )
 
+    validated_node = config.nodes[0]
+    validated_identity_by_role = {
+        identity.source_role: identity
+        for identity in validated_node.resolved_upstream_semantic_identities
+    }
+    validated_audits = tuple(
+        replace(audit, resolved_identity=validated_identity_by_role[audit.source_role])
+        for audit in audits
+    )
     node_cmd = RollingNodePersistenceCommand(
-        node=node,
+        node=validated_node,
         resolved_inputs=tuple(
-            ResolvedInputPersistenceCommand(identity=identity) for identity in identities
+            ResolvedInputPersistenceCommand(
+                identity=identity,
+                persistent_reference=identity.persistent_reference,
+            )
+            for identity in validated_node.resolved_upstream_semantic_identities
         ),
-        availability_audits=audits,
+        availability_audits=validated_audits,
         dag=_make_dag(),
     )
-    return RollingBacktestPersistenceCommand(
-        config=config.model_copy(update={"nodes": (node,)}),
-        nodes=(node_cmd,),
-    )
+    return RollingBacktestPersistenceCommand(config=config, nodes=(node_cmd,))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

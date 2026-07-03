@@ -27,6 +27,7 @@ from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
     ExecutionMode,
     Task10ModelPolicy,
+    UpstreamSelectionMode,
 )
 from backend.app.rolling_backtest.errors import (
     RollingBacktestAttemptConflictError,
@@ -48,10 +49,12 @@ from backend.app.rolling_backtest.persistence import (
     create_or_load_logical_run,
     finalize_attempt_status,
     finalize_attempt_with_snapshot,
+    load_node_resolved_identities_with_references,
     persist_stage_event,
 )
 from backend.app.rolling_backtest.schemas import (
     HistoricalAvailableModelIdentity,
+    PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
     RollingBacktestConfig,
     RollingNodeDefinition,
@@ -188,10 +191,25 @@ def _make_node_command(
     )
     return RollingNodePersistenceCommand(
         node=node_with_identity,
-        resolved_inputs=(ResolvedInputPersistenceCommand(identity=identity),),
+        resolved_inputs=(
+            ResolvedInputPersistenceCommand(
+                identity=identity,
+                persistent_reference=identity.persistent_reference,
+            ),
+        ),
         availability_audits=(),
         dag=_make_dag(),
     )
+
+
+def _revalidated_config(
+    config: RollingBacktestConfig,
+    *,
+    nodes: tuple[RollingNodeDefinition, ...],
+) -> RollingBacktestConfig:
+    payload = config.model_dump(mode="python")
+    payload["nodes"] = [node.model_dump(mode="python") for node in nodes]
+    return RollingBacktestConfig.model_validate(payload)
 
 
 def _make_persistence_command(
@@ -215,6 +233,7 @@ def _make_persistence_command(
                         source_role="task3_analytics",
                         source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
                     ),
+                    persistent_reference=None,
                 ),
             )
 
@@ -230,9 +249,20 @@ def _make_persistence_command(
                 source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
             )
             if not inputs:
-                inputs = (ResolvedInputPersistenceCommand(identity=identity),)
+                inputs = (
+                    ResolvedInputPersistenceCommand(
+                        identity=identity,
+                        persistent_reference=identity.persistent_reference,
+                    ),
+                )
             elif all(item.identity.source_role != identity.source_role for item in inputs):
-                inputs = (*inputs, ResolvedInputPersistenceCommand(identity=identity))
+                inputs = (
+                    *inputs,
+                    ResolvedInputPersistenceCommand(
+                        identity=identity,
+                        persistent_reference=identity.persistent_reference,
+                    ),
+                )
             audits = (
                 AvailabilityAuditPersistenceCommand(
                     source_role="task8_forecast_run",
@@ -260,10 +290,41 @@ def _make_persistence_command(
             )
         )
 
-    return RollingBacktestPersistenceCommand(
-        config=config.model_copy(update={"nodes": tuple(cmd.node for cmd in node_cmds)}),
-        nodes=tuple(node_cmds),
+    validated_config = _revalidated_config(
+        config,
+        nodes=tuple(cmd.node for cmd in node_cmds),
     )
+    return RollingBacktestPersistenceCommand(config=validated_config, nodes=tuple(node_cmds))
+
+
+def _make_pinned_persistence_command() -> tuple[RollingBacktestPersistenceCommand, int]:
+    ref = PersistentUpstreamReference(reference_type="database_run_id", reference_value=42)
+    identity = _make_semantic_identity(
+        source_role="task8_forecast_run",
+        source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+    ).model_copy(update={"persistent_reference": ref})
+    node = _make_node().model_copy(update={"upstream_selection_mode": UpstreamSelectionMode.PINNED})
+    config = _make_config(
+        nodes=(
+            node.model_copy(
+                update={"resolved_upstream_semantic_identities": (identity,)},
+            ),
+        )
+    )
+    validated_node = config.nodes[0]
+    validated_identity = validated_node.resolved_upstream_semantic_identities[0]
+    node_cmd = RollingNodePersistenceCommand(
+        node=validated_node,
+        resolved_inputs=(
+            ResolvedInputPersistenceCommand(
+                identity=validated_identity,
+                persistent_reference=validated_identity.persistent_reference,
+            ),
+        ),
+        availability_audits=(),
+        dag=_make_dag(),
+    )
+    return RollingBacktestPersistenceCommand(config=config, nodes=(node_cmd,)), ref.reference_value
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -333,6 +394,54 @@ async def test_create_with_resolved_inputs_and_audits_and_dag() -> None:
         dag = dag_result.scalar_one()
         assert dag.expected_node_count == 3
         assert dag.expected_edge_count == 2
+
+
+@pytest.mark.asyncio
+async def test_pinned_resolved_input_persists_database_reference_columns() -> None:
+    _require_postgres()
+    cmd, expected_id = _make_pinned_persistence_command()
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        node_id = await session.scalar(
+            select(RollingBacktestNode.id).where(RollingBacktestNode.rolling_run_id == run.id)
+        )
+        assert node_id is not None
+        row = await session.scalar(
+            select(RollingBacktestResolvedInput).where(
+                RollingBacktestResolvedInput.rolling_node_id == node_id
+            )
+        )
+        assert row is not None
+        assert row.persistent_reference_type == "database_run_id"
+        assert row.persistent_reference_value == str(expected_id)
+        assert "persistent_reference" not in row.canonical_payload
+        assert "database_id" not in row.canonical_payload
+        assert "uuid" not in row.canonical_payload
+        assert "orm_id" not in row.canonical_payload
+
+
+@pytest.mark.asyncio
+async def test_fresh_session_rehydrates_pinned_reference_as_int() -> None:
+    _require_postgres()
+    cmd, expected_id = _make_pinned_persistence_command()
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        node_id = await session.scalar(
+            select(RollingBacktestNode.id).where(RollingBacktestNode.rolling_run_id == run.id)
+        )
+        assert node_id is not None
+        identities = await load_node_resolved_identities_with_references(
+            session,
+            rolling_node_id=node_id,
+        )
+
+    assert len(identities) == 1
+    reference = identities[0].persistent_reference
+    assert reference is not None
+    assert reference.reference_type == "database_run_id"
+    assert reference.reference_value == expected_id
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -894,6 +1003,53 @@ async def test_tamper_delete_resolved_input_triggers_child_count_error() -> None
         await create_or_load_logical_run(cmd)
 
 
+@pytest.mark.parametrize(
+    ("ref_type", "ref_value"),
+    [
+        ("database_run_id", None),
+        (None, "42"),
+        ("database_run_id", "abc"),
+        ("database_run_id", "001"),
+        ("database_run_id", "0"),
+        ("database_run_id", "-7"),
+        ("uuid", "123e4567-e89b-12d3-a456-426614174000"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_tamper_resolved_input_reference_columns_fail_closed(
+    ref_type: str | None,
+    ref_value: str | None,
+) -> None:
+    _require_postgres()
+    cmd, _ = _make_pinned_persistence_command()
+    run = await create_or_load_logical_run(cmd)
+
+    async with AsyncSessionMaker() as session:
+        node_id = await session.scalar(
+            select(RollingBacktestNode.id).where(RollingBacktestNode.rolling_run_id == run.id)
+        )
+        assert node_id is not None
+        await session.execute(
+            text(
+                "UPDATE rolling_backtest_resolved_input "
+                "SET persistent_reference_type = :ref_type, "
+                "persistent_reference_value = :ref_value "
+                "WHERE rolling_node_id = :node_id"
+            ),
+            {"ref_type": ref_type, "ref_value": ref_value, "node_id": node_id},
+        )
+        await session.commit()
+
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(RollingBacktestCanonicalParityError) as exc:
+            await load_node_resolved_identities_with_references(
+                session,
+                rolling_node_id=node_id,
+            )
+
+    assert exc.value.code == "ROLLING_BACKTEST_CANONICAL_PARITY_ERROR"
+
+
 @pytest.mark.asyncio
 async def test_tamper_resolved_input_semantic_hash_triggers_parity_error() -> None:
     _require_postgres()
@@ -1205,9 +1361,7 @@ async def test_tamper_attempt_skip_number_is_detected() -> None:
     node_id = await _first_node_id(run.id)
     a1 = await create_execution_attempt(run.id, node_id, status="failed")
     await _mark_attempt_failed(a1.id, node_id)
-    a2 = await create_execution_attempt(
-        run.id, node_id, status="failed", prior_attempt_id=a1.id
-    )
+    a2 = await create_execution_attempt(run.id, node_id, status="failed", prior_attempt_id=a1.id)
     await _mark_attempt_failed(a2.id, node_id)
 
     # Tamper: change attempt 2's number to 3

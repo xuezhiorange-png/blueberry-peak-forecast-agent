@@ -346,6 +346,9 @@ def _orchestration_patches(
     stage_execute_task10_prediction=None,
 ):
     """Return a dict of {short_attr_name: mock_value} for patch.multiple."""
+    persisted_identities = RollingNodeDefinition.model_validate(
+        mock_node.canonical_payload
+    ).resolved_upstream_semantic_identities
     if stage_resolve_historical_inputs is None:
         stage_resolve_historical_inputs = _mock_stage_resolve_historical_inputs_happy
     if stage_validate_visibility is None:
@@ -365,6 +368,9 @@ def _orchestration_patches(
         "create_execution_attempt": AsyncMock(return_value=attempt_inst),
         "persist_stage_event": AsyncMock(),
         "persist_orchestration_snapshot": AsyncMock(),
+        "load_node_resolved_identities_with_references": AsyncMock(
+            return_value=persisted_identities
+        ),
         "load_logical_run_with_integrity": AsyncMock(return_value=mock_run),
         "finalize_attempt_status": AsyncMock(return_value=attempt_inst),
         "finalize_attempt_with_snapshot": AsyncMock(return_value=(attempt_inst, MagicMock())),
@@ -406,6 +412,46 @@ async def test_historical_observed_pinned_success(mock_session, mock_run, mock_n
     assert outcome.stage == OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value
     assert outcome.blocker_code is None
     assert outcome.rolling_run_signature == mock_run.run_signature
+
+
+@pytest.mark.asyncio
+async def test_orchestrate_node_uses_persisted_resolved_references_before_stage1(
+    mock_session, mock_run, mock_node, mock_attempt
+):
+    """Stage 1 must receive identities rehydrated from persisted resolved-input rows."""
+    bare_identity = _make_identity().model_copy(update={"persistent_reference": None})
+    persisted_identity = _make_identity().model_copy(
+        update={
+            "persistent_reference": PersistentUpstreamReference(
+                reference_type="database_run_id",
+                reference_value=84,
+            )
+        }
+    )
+    config = _make_config(nodes=(_make_node_def(identities=(bare_identity,)),))
+    mock_run.canonical_payload = config.model_dump(mode="python")
+    mock_node.canonical_payload = config.nodes[0].model_dump(mode="python")
+
+    async def _assert_persisted_stage(session, ctx, config, node):
+        assert node.resolved_upstream_semantic_identities == (persisted_identity,)
+        assert node.resolved_upstream_semantic_identities[0].persistent_reference is not None
+        return ctx
+
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+        stage_resolve_historical_inputs=_assert_persisted_stage,
+    )
+    patches["load_node_resolved_identities_with_references"] = AsyncMock(
+        return_value=(persisted_identity,)
+    )
+
+    with patch.multiple(_MOD, **patches):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+
+    assert outcome.status == "completed"
 
 
 # ── 2. Retrospective replay unsupported ──────────────────────────────────────
