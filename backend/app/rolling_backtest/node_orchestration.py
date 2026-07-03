@@ -20,7 +20,7 @@ integrity reload, and authority binding verification only.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
@@ -318,6 +318,21 @@ def _require_database_ref(
     return ref.reference_value
 
 
+def _coerce_persisted_date(value: Any, *, field_name: str) -> date:
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise Task9Task8AuthorityMismatchError(
+                f"Task 9 verification snapshot {field_name} is not a valid ISO date"
+            ) from exc
+    raise Task9Task8AuthorityMismatchError(
+        f"Task 9 verification snapshot {field_name} is not a persisted date"
+    )
+
+
 def _local_midnight(value: Any, timezone_name: str) -> datetime:
     if not hasattr(value, "year") or not hasattr(value, "month") or not hasattr(value, "day"):
         raise PinnedSourceIdentityMismatchError(
@@ -585,7 +600,7 @@ async def _load_exact_pinned_candidate(
     if source_type == AvailabilitySourceType.TASK8_MODEL_ARTIFACT:
         artifact_id = _require_database_ref(
             identity,
-            allowed_types=("database_run_id", "database_artifact_id"),
+            allowed_types=("database_artifact_id",),
         )
         model_artifact_row = cast(
             MaturityModelArtifact | None,
@@ -665,7 +680,7 @@ async def _load_exact_pinned_candidate(
         )
 
     if source_type == AvailabilitySourceType.TASK8_DAILY_PREDICTION:
-        row_id = _require_database_ref(identity, allowed_types=("database_run_id",))
+        row_id = _require_database_ref(identity, allowed_types=("database_row_id",))
         daily_prediction_row = cast(
             MaturityDailyPredictionModel | None,
             await session.get(MaturityDailyPredictionModel, row_id),
@@ -793,7 +808,7 @@ async def _load_exact_pinned_candidate(
     if source_type == AvailabilitySourceType.TASK10_MODEL_ARTIFACT:
         artifact_id = _require_database_ref(
             identity,
-            allowed_types=("database_run_id", "database_artifact_id"),
+            allowed_types=("database_artifact_id",),
         )
         residual_artifact_row = cast(
             ResidualModelArtifact | None,
@@ -954,7 +969,7 @@ async def _resolve_task8_reuse(
     if model_artifact is not None:
         artifact_id = _require_database_ref(
             model_artifact.semantic_identity,
-            allowed_types=("database_run_id", "database_artifact_id"),
+            allowed_types=("database_artifact_id",),
         )
         artifact_row = await session.get(MaturityModelArtifact, artifact_id)
         if artifact_row is None:
@@ -1001,7 +1016,7 @@ async def _resolve_task8_reuse(
         if model_artifact is not None:
             artifact_id = _require_database_ref(
                 model_artifact.semantic_identity,
-                allowed_types=("database_run_id", "database_artifact_id"),
+                allowed_types=("database_artifact_id",),
             )
             if forecast_row.artifact_id != artifact_id:
                 raise Task8ParentAuthorityMismatchError(
@@ -1013,7 +1028,7 @@ async def _resolve_task8_reuse(
             continue
         daily_id = _require_database_ref(
             outcome.semantic_identity,
-            allowed_types=("database_run_id",),
+            allowed_types=("database_row_id",),
         )
         daily_row = await session.get(MaturityDailyPredictionModel, daily_id)
         if daily_row is None:
@@ -1086,6 +1101,42 @@ async def _resolve_task9_reuse(
         if not isinstance(verification, dict):
             raise Task9Task8AuthorityMismatchError(
                 "Task 9 persisted envelope contains malformed Task 8 verification snapshot"
+            )
+        prediction_date = _coerce_persisted_date(
+            verification.get("prediction_date"),
+            field_name="prediction_date",
+        )
+        if prediction_date.year != node.season_id:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot prediction_date season "
+                "does not match the rolling node season"
+            )
+        forecast_as_of_date = _coerce_persisted_date(
+            verification.get("maturity_forecast_as_of_date"),
+            field_name="maturity_forecast_as_of_date",
+        )
+        if forecast_as_of_date.year != node.season_id:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot maturity_forecast_as_of_date season "
+                "does not match the rolling node season"
+            )
+        forecast_start_date = _coerce_persisted_date(
+            verification.get("maturity_forecast_prediction_start_date"),
+            field_name="maturity_forecast_prediction_start_date",
+        )
+        if forecast_start_date.year != node.season_id:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot forecast prediction start season "
+                "does not match the rolling node season"
+            )
+        forecast_end_date = _coerce_persisted_date(
+            verification.get("maturity_forecast_prediction_end_date"),
+            field_name="maturity_forecast_prediction_end_date",
+        )
+        if forecast_end_date.year != node.season_id:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot forecast prediction end season "
+                "does not match the rolling node season"
             )
         model_run = task8_inputs.get(AvailabilitySourceType.TASK8_MODEL_RUN)
         model_run_id = (
@@ -1217,7 +1268,7 @@ async def _resolve_task10_reuse(
     if artifact is not None:
         artifact_id = _require_database_ref(
             artifact.semantic_identity,
-            allowed_types=("database_run_id", "database_artifact_id"),
+            allowed_types=("database_artifact_id",),
         )
         artifact_row = await session.get(ResidualModelArtifact, artifact_id)
         if artifact_row is None:

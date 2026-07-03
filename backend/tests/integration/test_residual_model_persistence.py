@@ -70,51 +70,82 @@ def _relaxed_config():
 def _apply_task8_authority_to_payload(
     payload: dict[str, Any],
     authority: dict[str, Any],
-    *,
-    variety_overrides: dict[int, dict[str, Any]] | None = None,
 ) -> None:
-    """Override Task 8 authority fields in every task8_daily_predictions item.
+    """Override Task 8 authority fields with one exact persisted variety chain."""
+    filtered_predictions = [
+        copy.deepcopy(item)
+        for item in payload["task8_daily_predictions"]
+        if item.get("variety_id") == authority["variety_id"]
+    ]
+    assert len(filtered_predictions) == 9
 
-    variety_overrides maps variety_id → dict of extra field overrides applied
-    to source_ref and verification_snapshot for that variety's entries.
-    """
-    for item in payload["task8_daily_predictions"]:
+    for item in filtered_predictions:
         src = item["source_ref"]
         vs = item["verification_snapshot"]
-        variety_id = item.get("variety_id")
-        # source_ref fields
+        prediction_date = item["prediction_date"]
+        forecast_quantile = src["forecast_quantile"]
+        daily_row = authority["daily_predictions_by_date"][prediction_date]
+        quantity_by_quantile = {
+            "P50": daily_row["p50_kg"],
+            "P80": daily_row["p80_kg"],
+            "P90": daily_row["p90_kg"],
+        }
+        source_quantity_kg = quantity_by_quantile[forecast_quantile]
+
+        item["farm_id"] = authority["farm_id"]
+        item["subfarm_id"] = authority["subfarm_id"]
+        item["variety_id"] = authority["variety_id"]
+
         src["maturity_model_run_id"] = authority["model_run_id"]
+        src["maturity_model_version"] = authority["model_version"]
         src["maturity_model_config_hash"] = authority["model_config_hash"]
         src["maturity_model_source_signature"] = authority["model_source_signature"]
         src["maturity_model_artifact_id"] = authority["artifact_id"]
         src["maturity_model_artifact_hash"] = authority["artifact_hash"]
         src["maturity_forecast_run_id"] = authority["forecast_run_id"]
         src["maturity_forecast_source_signature"] = authority["forecast_source_signature"]
-        # verification_snapshot fields
+        src["maturity_forecast_as_of_date"] = authority["forecast_as_of_date"]
+        src["maturity_daily_prediction_id"] = daily_row["id"]
+        src["prediction_date"] = prediction_date
+        src["source_quantity_kg"] = source_quantity_kg
+        src["plan_id"] = authority["plan_id"]
+        src["location_reference_id"] = authority["location_reference_id"]
+        src["weather_mapping_id"] = authority["weather_mapping_id"]
+        src["base_temperature_search_run_id"] = authority["base_temperature_search_run_id"]
+
         vs["maturity_model_run_id"] = authority["model_run_id"]
+        vs["maturity_model_version"] = authority["model_version"]
         vs["maturity_model_config_hash"] = authority["model_config_hash"]
         vs["maturity_model_source_signature"] = authority["model_source_signature"]
         vs["maturity_model_artifact_id"] = authority["artifact_id"]
-        vs["maturity_model_artifact_run_id"] = authority["model_run_id"]
+        vs["maturity_model_artifact_run_id"] = authority["artifact_run_id"]
         vs["maturity_model_artifact_hash"] = authority["artifact_hash"]
         vs["maturity_forecast_run_id"] = authority["forecast_run_id"]
+        vs["maturity_forecast_run_status"] = authority["forecast_run_status"]
         vs["maturity_forecast_model_run_id"] = authority["model_run_id"]
         vs["maturity_forecast_artifact_id"] = authority["artifact_id"]
         vs["maturity_forecast_source_signature"] = authority["forecast_source_signature"]
-        # Apply variety-specific overrides (e.g. different forecast_run_id for variety 102)
-        if variety_overrides and variety_id in variety_overrides:
-            overrides = variety_overrides[variety_id]
-            for key, val in overrides.items():
-                if key in src:
-                    src[key] = val
-                if key in vs:
-                    vs[key] = val
+        vs["maturity_forecast_as_of_date"] = authority["forecast_as_of_date"]
+        vs["maturity_forecast_prediction_start_date"] = authority["prediction_start_date"]
+        vs["maturity_forecast_prediction_end_date"] = authority["prediction_end_date"]
+        vs["maturity_daily_prediction_id"] = daily_row["id"]
+        vs["maturity_daily_prediction_forecast_run_id"] = authority["forecast_run_id"]
+        vs["prediction_date"] = prediction_date
+        vs["farm_id"] = authority["farm_id"]
+        vs["subfarm_id"] = authority["subfarm_id"]
+        vs["variety_id"] = authority["variety_id"]
+        vs["plan_id"] = authority["plan_id"]
+        vs["location_reference_id"] = authority["location_reference_id"]
+        vs["p50_kg"] = daily_row["p50_kg"]
+        vs["p80_kg"] = daily_row["p80_kg"]
+        vs["p90_kg"] = daily_row["p90_kg"]
+
+    payload["task8_daily_predictions"] = filtered_predictions
 
 
 async def _seed_prediction_fixture(
     *,
     task8_authority: dict[str, Any] | None = None,
-    variety_overrides: dict[int, dict[str, Any]] | None = None,
 ) -> dict[str, int]:
     async with AsyncSessionMaker() as session:
         season_id, factory_id, variety_id = await _seed_master_data(session)
@@ -127,17 +158,13 @@ async def _seed_prediction_fixture(
         )
         if task8_authority is not None:
             base_payload = copy.deepcopy(make_request())
-            _apply_task8_authority_to_payload(
-                base_payload, task8_authority, variety_overrides=variety_overrides
-            )
+            _apply_task8_authority_to_payload(base_payload, task8_authority)
             task9_run_id, output = await _persist_task9_run(session, payload=base_payload)
         else:
             task9_run_id, output = await _persist_task9_run(session)
         if task8_authority is not None:
             validation_payload = copy.deepcopy(make_request())
-            _apply_task8_authority_to_payload(
-                validation_payload, task8_authority, variety_overrides=variety_overrides
-            )
+            _apply_task8_authority_to_payload(validation_payload, task8_authority)
         else:
             validation_payload = make_request()
         validation_payload["initial_inventory_cohorts"][0]["remaining_quantity_kg"] = Decimal("6")
