@@ -1119,9 +1119,9 @@ async def _build_real_orchestration_command(
             assert verification["farm_id"] == task8["farm_id"]
             assert verification["subfarm_id"] == task8["subfarm_id"]
             assert verification["variety_id"] == task8["variety_id"]
-            assert verification["p50_kg"] == expected_daily["p50_kg"]
-            assert verification["p80_kg"] == expected_daily["p80_kg"]
-            assert verification["p90_kg"] == expected_daily["p90_kg"]
+            assert Decimal(str(verification["p50_kg"])) == expected_daily["p50_kg"]
+            assert Decimal(str(verification["p80_kg"])) == expected_daily["p80_kg"]
+            assert Decimal(str(verification["p90_kg"])) == expected_daily["p90_kg"]
         assert set(entry_count_by_date) == expected_dates
         for prediction_date in expected_dates:
             assert entry_count_by_date[prediction_date] == 3
