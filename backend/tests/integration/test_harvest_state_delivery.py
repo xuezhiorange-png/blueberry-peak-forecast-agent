@@ -151,9 +151,7 @@ async def test_postgres_repeated_request_reuses_same_run_and_children(
             == 9
         )
         assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateDailyMemberRowModel)
-            )
+            await session.scalar(select(func.count()).select_from(HarvestStateDailyMemberRowModel))
             == 18
         )
         assert (
@@ -203,9 +201,7 @@ async def test_postgres_failed_save_rolls_back_run_and_children(
             == 0
         )
         assert (
-            await session.scalar(
-                select(func.count()).select_from(HarvestStateDailyMemberRowModel)
-            )
+            await session.scalar(select(func.count()).select_from(HarvestStateDailyMemberRowModel))
             == 0
         )
         assert (

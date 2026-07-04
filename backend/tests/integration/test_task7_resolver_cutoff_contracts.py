@@ -370,7 +370,9 @@ async def _seed_weather_daily_observation(
         available_at=available_at,
         quality_code=None,
         quality_flags=[],
-        row_hash=hashlib.sha256(f"obs-{available_at.isoformat()}-{observation_date.isoformat()}-t7".encode()).hexdigest(),
+        row_hash=hashlib.sha256(
+            f"obs-{available_at.isoformat()}-{observation_date.isoformat()}-t7".encode()
+        ).hexdigest(),
     )
     session.add(obs)
     await session.flush()
