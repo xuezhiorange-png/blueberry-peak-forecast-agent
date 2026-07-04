@@ -1011,8 +1011,17 @@ async def _build_real_orchestration_command(
     forecast_cutoff_at: datetime,
     pinned_task9_variant: str = "training",
 ) -> RollingBacktestPersistenceCommand:
-    assert forecast_cutoff_at.year == 2026
-    task8 = await _seed_real_task8_authorities(season_id=2026)
+    # forecast_cutoff_at must be strictly AFTER the test runtime so the
+    # Task 10 artifact audit's parent_authority_timestamp (set to the
+    # actual training finished_at = datetime.now(UTC)) is not blocked
+    # by PARENT_AUTHORITY_REQUIRED.
+    assert forecast_cutoff_at.year >= 2099, (
+        f"forecast_cutoff_at must be in 2099 or later to remain ahead of "
+        f"training runtime, got year={forecast_cutoff_at.year}"
+    )
+    # Derive Task 8 season from forecast_cutoff_at year so node_key matches
+    task8_season_id = forecast_cutoff_at.year
+    task8 = await _seed_real_task8_authorities(season_id=task8_season_id)
     task8_authority = {
         "season_id": task8["season_id"],
         "farm_id": task8["farm_id"],
@@ -1295,7 +1304,7 @@ async def _build_real_orchestration_command(
     identities = tuple(identity_items)
 
     node = _make_pinned_node(
-        season_id=2026,
+        season_id=forecast_cutoff_at.year,
         node_key="march_15",
         resolved_identities=identities,
     ).model_copy(
@@ -1943,7 +1952,7 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
     """orchestrate_node must exact-load real Task 8/9/10 authorities and freeze them in snapshot."""
     _require_postgres()
     cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
@@ -2049,7 +2058,7 @@ async def test_cross_season_task8_authority_blocks() -> None:
     """Pinned Task 8/9 authorities from season 2026 must block a season-2027 node."""
     _require_postgres()
     base_cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
     )
     cross_node_payload = base_cmd.config.nodes[0].model_dump(mode="python")
     cross_node_payload.update(
@@ -2178,7 +2187,7 @@ async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
     """A real persisted Task 10 prediction completed after cutoff must be blocked."""
     _require_postgres()
     cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
@@ -2265,7 +2274,7 @@ async def test_integrity_reload_failure_rolls_back_completed_execution() -> None
     """Integrity reload failure must rollback completed attempt, snapshot, and run status."""
     _require_postgres()
     cmd = await _build_real_orchestration_command(
-        forecast_cutoff_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
     )
     run = await create_or_load_logical_run(cmd)
     node_id = await _get_node_id_for_run(run.id)
