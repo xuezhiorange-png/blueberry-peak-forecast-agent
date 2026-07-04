@@ -2815,3 +2815,312 @@ async def test_unsupported_selection_mode(mock_session):
         outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert outcome.status == "blocked"
     assert outcome.blocker_code == "UNSUPPORTED_SELECTION_MODE"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Task 9 source_ref_catalog fallback unit coverage
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _build_catalog_fallback_pinned_outcomes(
+    *, source_ref_hash_a: str, source_ref_hash_b: str
+) -> tuple:
+    """Build a pair of pinned_daily_inputs outcomes for catalog-fallback tests."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    def _identity(date_str: str, daily_id: int) -> ResolvedUpstreamSemanticIdentity:
+        return _make_identity(
+            source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+            source_role=f"task8_daily_prediction:{date_str}",
+            semantic_payload_hash=str(daily_id).zfill(64)[:64],
+            input_signature="4" * 64,
+            canonical_payload_hash=str(daily_id).zfill(64)[:64],
+        ).model_copy(
+            update={
+                "persistent_reference": PersistentUpstreamReference(
+                    reference_type="database_row_id",
+                    reference_value=daily_id,
+                )
+            }
+        )
+
+    identity_a = _identity("2026-03-01", 901)
+    identity_b = _identity("2026-03-02", 902)
+    return (
+        node_orch.ResolvedInputOutcome(
+            source_role=identity_a.source_role,
+            source_type=identity_a.source_type,
+            semantic_identity=identity_a,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_row_id",
+                reference_value=901,
+            ),
+            authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+            canonical_identity_hash="1" * 64,
+            canonical_payload_hash="5" * 64,
+        ),
+        node_orch.ResolvedInputOutcome(
+            source_role=identity_b.source_role,
+            source_type=identity_b.source_type,
+            semantic_identity=identity_b,
+            persistent_reference=PersistentUpstreamReference(
+                reference_type="database_row_id",
+                reference_value=902,
+            ),
+            authoritative_available_at=datetime(2026, 3, 15, 4, 0, tzinfo=UTC),
+            canonical_identity_hash="2" * 64,
+            canonical_payload_hash="6" * 64,
+        ),
+    )
+
+
+def _build_catalog_fallback_verification_rows() -> list[dict]:
+    """6 verification rows for 2 dates × 3 quantiles; forecast_quantile intentionally absent.
+
+    Each row carries a unique source_ref_hash so the catalog can resolve
+    a different forecast_quantile per row (P50, P80, P90 for each date).
+    """
+    rows: list[dict] = []
+    quantile_to_hash = {"P50": "hash-p50", "P80": "hash-p80", "P90": "hash-p90"}
+    for day, daily_id in [
+        (date(2026, 3, 1), 901),
+        (date(2026, 3, 2), 902),
+    ]:
+        for _quantile, hash_key in quantile_to_hash.items():
+            rows.append(
+                {
+                    "source_ref_hash": hash_key,
+                    # NOTE: no inline forecast_quantile → catalog fallback path
+                    "verification_snapshot": {
+                        "prediction_date": day,
+                        # forecast_quantile is None → forces catalog lookup
+                        "maturity_daily_prediction_id": daily_id,
+                        "maturity_daily_prediction_forecast_run_id": 84,
+                    },
+                }
+            )
+    return rows
+
+
+def _build_catalog_fallback_db_rows() -> list[MagicMock]:
+    return [
+        MagicMock(id=901, forecast_run_id=84, prediction_date=date(2026, 3, 1)),
+        MagicMock(id=902, forecast_run_id=84, prediction_date=date(2026, 3, 2)),
+    ]
+
+
+def _build_catalog_fallback_payload_map(quantile_per_hash: dict[str, str]) -> dict[str, dict]:
+    """Build source_ref_payload_by_hash with given quantile per hash key."""
+    return {
+        h: {"forecast_quantile": q, "source_quantity_kg": "20.000000"}
+        for h, q in quantile_per_hash.items()
+    }
+
+
+@pytest.mark.asyncio
+async def test_catalog_payload_resolves_forecast_quantile_via_source_ref_hash() -> None:
+    """Catalog hit: row has source_ref_hash, no inline forecast_quantile, catalog has payload."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    pinned_outcomes = _build_catalog_fallback_pinned_outcomes(
+        source_ref_hash_a="hash-p50", source_ref_hash_b="hash-p80"
+    )
+    verification_rows = _build_catalog_fallback_verification_rows()
+    source_ref_payload_by_hash = _build_catalog_fallback_payload_map(
+        {"hash-p50": "P50", "hash-p80": "P80", "hash-p90": "P90"}
+    )
+
+    db_rows = _build_catalog_fallback_db_rows()
+    execute_result = MagicMock()
+    execute_result.scalars.return_value.all.return_value = db_rows
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=execute_result)
+
+    result = await node_orch._verify_task8_daily_exact_set(
+        session,
+        forecast_run_id=84,
+        pinned_daily_inputs=pinned_outcomes,
+        task9_snapshot_rows=verification_rows,
+        source_ref_payload_by_hash=source_ref_payload_by_hash,
+    )
+
+    # All 6 rows were resolved, with forecast_quantile from catalog for each.
+    # Note: _Task8DailyExactSet exposes target_dates / task9_date_to_id / db_rows_by_date,
+    # but the per-date row internals (task9_rows_by_date) are local to the function.
+    # We assert the public surface here; the per-date quantile resolution is verified
+    # indirectly through target_dates and task9_daily_ids.
+    assert set(result.target_dates) == {date(2026, 3, 1), date(2026, 3, 2)}
+    assert result.db_daily_ids == frozenset({901, 902})
+    assert result.task9_daily_ids == frozenset({901, 902})
+    assert result.db_date_to_id == {date(2026, 3, 1): 901, date(2026, 3, 2): 902}
+    assert result.task9_date_to_id == {date(2026, 3, 1): 901, date(2026, 3, 2): 902}
+
+
+@pytest.mark.asyncio
+async def test_missing_source_ref_hash_raises_typed_error() -> None:
+    """Catalog miss-path: row has no source_ref_hash AND no inline forecast_quantile."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    pinned_outcomes = _build_catalog_fallback_pinned_outcomes(
+        source_ref_hash_a="hash-p50", source_ref_hash_b="hash-p80"
+    )
+    rows = _build_catalog_fallback_verification_rows()
+    # Strip source_ref_hash on the first row
+    rows[0].pop("source_ref_hash", None)
+
+    db_rows = _build_catalog_fallback_db_rows()
+    execute_result = MagicMock()
+    execute_result.scalars.return_value.all.return_value = db_rows
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=execute_result)
+
+    with pytest.raises(Task9Task8AuthorityMismatchError) as exc_info:
+        await node_orch._verify_task8_daily_exact_set(
+            session,
+            forecast_run_id=84,
+            pinned_daily_inputs=pinned_outcomes,
+            task9_snapshot_rows=rows,
+            source_ref_payload_by_hash=_build_catalog_fallback_payload_map(
+                {"hash-p50": "P50", "hash-p80": "P80", "hash-p90": "P90"}
+            ),
+        )
+    assert "source_ref_hash is absent" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_missing_catalog_payload_raises_typed_error() -> None:
+    """Catalog miss-path: row has source_ref_hash but catalog is empty for that hash."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    pinned_outcomes = _build_catalog_fallback_pinned_outcomes(
+        source_ref_hash_a="hash-p50", source_ref_hash_b="hash-p80"
+    )
+    rows = _build_catalog_fallback_verification_rows()
+    # Only hash-p80 + hash-p90 are in the catalog; hash-p50 is missing
+    source_ref_payload_by_hash = _build_catalog_fallback_payload_map(
+        {"hash-p80": "P80", "hash-p90": "P90"}
+    )
+
+    db_rows = _build_catalog_fallback_db_rows()
+    execute_result = MagicMock()
+    execute_result.scalars.return_value.all.return_value = db_rows
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=execute_result)
+
+    with pytest.raises(Task9Task8AuthorityMismatchError) as exc_info:
+        await node_orch._verify_task8_daily_exact_set(
+            session,
+            forecast_run_id=84,
+            pinned_daily_inputs=pinned_outcomes,
+            task9_snapshot_rows=rows,
+            source_ref_payload_by_hash=source_ref_payload_by_hash,
+        )
+    assert "missing from source_ref_catalog" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_invalid_catalog_forecast_quantile_raises_typed_error() -> None:
+    """Catalog hit but payload.forecast_quantile is not in {P50, P80, P90}."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    pinned_outcomes = _build_catalog_fallback_pinned_outcomes(
+        source_ref_hash_a="hash-p50", source_ref_hash_b="hash-p80"
+    )
+    rows = _build_catalog_fallback_verification_rows()
+    # hash-p50 has invalid forecast_quantile
+    source_ref_payload_by_hash = {
+        "hash-p50": {"forecast_quantile": "INVALID", "source_quantity_kg": "20.000000"},
+        "hash-p80": {"forecast_quantile": "P80", "source_quantity_kg": "24.000000"},
+        "hash-p90": {"forecast_quantile": "P90", "source_quantity_kg": "28.000000"},
+    }
+
+    db_rows = _build_catalog_fallback_db_rows()
+    execute_result = MagicMock()
+    execute_result.scalars.return_value.all.return_value = db_rows
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=execute_result)
+
+    with pytest.raises(Task9Task8AuthorityMismatchError) as exc_info:
+        await node_orch._verify_task8_daily_exact_set(
+            session,
+            forecast_run_id=84,
+            pinned_daily_inputs=pinned_outcomes,
+            task9_snapshot_rows=rows,
+            source_ref_payload_by_hash=source_ref_payload_by_hash,
+        )
+    assert "forecast quantile is invalid" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_decimal_string_quantity_bridge_matches_db_decimal() -> None:
+    """Source quantity string (post-canonical_json_value round-trip) must match DB Decimal.
+
+    The catalog stores source_quantity_kg as a string after canonical_json_value
+    serialization (Decimal -> string for canonical form). The DB row stores
+    p{50,80,90}_kg as Decimal. parse_decimal() must bridge the type mismatch.
+    """
+    from decimal import Decimal
+
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    pinned_outcomes = _build_catalog_fallback_pinned_outcomes(
+        source_ref_hash_a="hash-p50", source_ref_hash_b="hash-p80"
+    )
+    rows = _build_catalog_fallback_verification_rows()
+    # catalog: string form (canonical_json_value Decimal->string)
+    source_ref_payload_by_hash = {
+        "hash-p50": {"forecast_quantile": "P50", "source_quantity_kg": "20"},
+        "hash-p80": {"forecast_quantile": "P80", "source_quantity_kg": "24"},
+        "hash-p90": {"forecast_quantile": "P90", "source_quantity_kg": "28"},
+    }
+
+    # DB rows with Decimal type quantities (mimic Numeric(18, 6) column)
+    db_rows = [
+        MagicMock(
+            id=901,
+            forecast_run_id=84,
+            prediction_date=date(2026, 3, 1),
+            p50_kg=Decimal("20.000000"),
+            p80_kg=Decimal("24.000000"),
+            p90_kg=Decimal("28.000000"),
+        ),
+        MagicMock(
+            id=902,
+            forecast_run_id=84,
+            prediction_date=date(2026, 3, 2),
+            p50_kg=Decimal("20.000000"),
+            p80_kg=Decimal("24.000000"),
+            p90_kg=Decimal("28.000000"),
+        ),
+    ]
+    execute_result = MagicMock()
+    execute_result.scalars.return_value.all.return_value = db_rows
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=execute_result)
+
+    # First, verify _verify_task8_daily_exact_set succeeds (catalog hit, all 6 rows resolved)
+    result = await node_orch._verify_task8_daily_exact_set(
+        session,
+        forecast_run_id=84,
+        pinned_daily_inputs=pinned_outcomes,
+        task9_snapshot_rows=rows,
+        source_ref_payload_by_hash=source_ref_payload_by_hash,
+    )
+    assert len(result.db_rows_by_date) == 2
+
+    # Second, verify the parse_decimal bridge: catalog "20" string == DB Decimal("20.000000")
+    from backend.app.harvest_state.canonical import parse_decimal
+
+    for hash_key, expected_db in [
+        ("hash-p50", db_rows[0].p50_kg),
+        ("hash-p80", db_rows[0].p80_kg),
+        ("hash-p90", db_rows[0].p90_kg),
+    ]:
+        catalog_value = source_ref_payload_by_hash[hash_key]["source_quantity_kg"]
+        bridged = parse_decimal(catalog_value)
+        assert isinstance(bridged, Decimal)
+        assert isinstance(expected_db, Decimal)
+        assert bridged == expected_db, (
+            f"parse_decimal({catalog_value!r}) = {bridged!r} must equal "
+            f"DB Decimal {expected_db!r}"
+        )
