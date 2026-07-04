@@ -227,7 +227,7 @@ def _persistent_reference_from_row(
             f"resolved input role={row.source_role} has partial persistent reference"
         )
 
-    if ref_type in {"database_run_id", "database_artifact_id"}:
+    if ref_type in {"database_run_id", "database_artifact_id", "database_row_id"}:
         try:
             parsed = int(ref_value)
         except (TypeError, ValueError) as exc:
