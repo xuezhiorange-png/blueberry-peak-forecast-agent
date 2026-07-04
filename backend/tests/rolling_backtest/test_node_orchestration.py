@@ -1998,6 +1998,7 @@ async def test_verify_task8_daily_exact_set_rejects_db_date_to_id_mismatch():
             forecast_run_id=84,
             pinned_daily_inputs=pinned_outcomes,
             task9_snapshot_rows=verification_rows,
+            source_ref_payload_by_hash={},
         )
 
 
