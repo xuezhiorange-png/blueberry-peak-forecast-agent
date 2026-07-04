@@ -1024,14 +1024,24 @@ async def _build_real_orchestration_command(
     # forecast_cutoff_at must be strictly AFTER the test runtime so the
     # Task 10 artifact audit's parent_authority_timestamp (set to the
     # actual training finished_at = datetime.now(UTC)) is not blocked
-    # by PARENT_AUTHORITY_REQUIRED.
-    assert forecast_cutoff_at.year >= 2099, (
-        f"forecast_cutoff_at must be in 2099 or later to remain ahead of "
-        f"training runtime, got year={forecast_cutoff_at.year}"
+    # by PARENT_AUTHORITY_REQUIRED. The forecast_cutoff_at year has no
+    # semantic relationship to the analytical season — it only acts as
+    # the wall-clock audit threshold.
+    assert forecast_cutoff_at > datetime(2026, 7, 1, tzinfo=UTC), (
+        f"forecast_cutoff_at must be in the future relative to test "
+        f"runtime (2026-07-04) to avoid parent_authority_timestamp > "
+        f"cutoff; got {forecast_cutoff_at.isoformat()}"
     )
-    # Derive Task 8 season from forecast_cutoff_at year so node_key matches
-    task8_season_id = forecast_cutoff_at.year
-    task8 = await _seed_real_task8_authorities(season_id=task8_season_id)
+    # The Task 8 / Task 3 / Task 9 fixture payloads all carry 2026-dated
+    # forecast_start_date / state_date / as_of_date (make_request() in
+    # tests/harvest_state/conftest.py hardcodes 2026-03-01..03 and
+    # 2026-02-28 as_of_date). The analytics season MUST therefore be
+    # 2026 too — otherwise the manifest builder drops every structural
+    # row as `date_outside_build_season` and training returns BLOCKED
+    # with `no_included_training_rows`. Keep season_id pinned to 2026
+    # regardless of forecast_cutoff_at's wall-clock year.
+    fixture_season_id = 2026
+    task8 = await _seed_real_task8_authorities(season_id=fixture_season_id)
     task8_authority = {
         "season_id": task8["season_id"],
         "farm_id": task8["farm_id"],
@@ -1057,7 +1067,7 @@ async def _build_real_orchestration_command(
         "daily_predictions_by_date": task8["daily_predictions_by_date"],
     }
     task10 = await _seed_real_task10_authorities(
-        task8_authority=task8_authority, analytics_season_id=forecast_cutoff_at.year
+        task8_authority=task8_authority, analytics_season_id=fixture_season_id
     )
     task9_run_id = task10["task9_run_id"]
     if pinned_task9_variant == "training":
@@ -1314,7 +1324,7 @@ async def _build_real_orchestration_command(
     identities = tuple(identity_items)
 
     node = _make_pinned_node(
-        season_id=forecast_cutoff_at.year,
+        season_id=fixture_season_id,
         node_key="march_15",
         resolved_identities=identities,
     ).model_copy(
