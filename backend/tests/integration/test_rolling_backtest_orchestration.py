@@ -899,8 +899,11 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
 async def _seed_real_task10_authorities(
     *,
     task8_authority: dict[str, Any] | None = None,
+    analytics_season_id: int | None = None,
 ) -> dict[str, int]:
-    fixture = await _seed_prediction_fixture(task8_authority=task8_authority)
+    fixture = await _seed_prediction_fixture(
+        task8_authority=task8_authority, analytics_season_id=analytics_season_id
+    )
     samples = _diverse_training_samples(
         task9_run_id=fixture["train_task9_run_id"],
         label_build_run_id=fixture["train_label_build_run_id"],
@@ -1034,7 +1037,9 @@ async def _build_real_orchestration_command(
         "prediction_end_date": task8["prediction_end_date"],
         "daily_predictions_by_date": task8["daily_predictions_by_date"],
     }
-    task10 = await _seed_real_task10_authorities(task8_authority=task8_authority)
+    task10 = await _seed_real_task10_authorities(
+        task8_authority=task8_authority, analytics_season_id=2026
+    )
     task9_run_id = task10["task9_run_id"]
     if pinned_task9_variant == "training":
         pinned_task9_run_id = task10["task9_run_id"]

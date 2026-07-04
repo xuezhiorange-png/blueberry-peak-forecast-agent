@@ -199,9 +199,13 @@ def _apply_task8_authority_to_payload(
 async def _seed_prediction_fixture(
     *,
     task8_authority: dict[str, Any] | None = None,
+    analytics_season_id: int | None = None,
 ) -> dict[str, int]:
     async with AsyncSessionMaker() as session:
         season_id, factory_id, variety_id = await _seed_master_data(session)
+        resolved_analytics_season_id = (
+            analytics_season_id if analytics_season_id is not None else season_id
+        )
         validation_season_id = await _seed_season(
             session,
             season_id=2,
@@ -233,7 +237,7 @@ async def _seed_prediction_fixture(
         label_build = await _seed_build_run(
             session,
             build_run_id=1,
-            season_id=season_id,
+            season_id=resolved_analytics_season_id,
             source_max_raw_id=100,
             config_hash="a" * 64,
             finished_at=datetime(2026, 3, 20, tzinfo=UTC),
@@ -244,7 +248,7 @@ async def _seed_prediction_fixture(
         feature_build = await _seed_build_run(
             session,
             build_run_id=2,
-            season_id=season_id,
+            season_id=resolved_analytics_season_id,
             source_max_raw_id=50,
             config_hash="b" * 64,
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),

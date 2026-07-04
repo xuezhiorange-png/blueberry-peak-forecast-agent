@@ -30,9 +30,7 @@ def _require_postgres() -> None:
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
 
 
-async def _expect_integrity_error(
-    sql: str, params: dict[str, Any] | None = None
-) -> None:
+async def _expect_integrity_error(sql: str, params: dict[str, Any] | None = None) -> None:
     """Execute sql, commit, and assert IntegrityError is raised.
 
     After the error, verify the session is still usable by performing a simple

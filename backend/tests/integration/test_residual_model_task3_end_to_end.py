@@ -149,9 +149,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             end_date=date(2026, 3, 31),
         )
 
-        analytics_config = load_analytics_config(
-            repo_root() / "configs" / "analytics_rules.yaml"
-        )
+        analytics_config = load_analytics_config(repo_root() / "configs" / "analytics_rules.yaml")
 
         # ------------------------------------------------------------------
         # 2. TRAIN SEASON — Limited feature build for a different factory.
@@ -182,11 +180,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         await session.commit()
 
         limited_feature_build = await build_daily_facts_for_season(
-            session, "2025-2026", analytics_config,
+            session,
+            "2025-2026",
+            analytics_config,
         )
         assert limited_feature_build.status == "completed", (
-            f"Limited feature build expected 'completed', got "
-            f"{limited_feature_build.status!r}"
+            f"Limited feature build expected 'completed', got {limited_feature_build.status!r}"
         )
         limited_feature_build_run_id = limited_feature_build.build_run_id
         assert limited_feature_build_run_id is not None
@@ -243,11 +242,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         await session.commit()
 
         main_feature_build = await build_daily_facts_for_season(
-            session, "2025-2026", analytics_config,
+            session,
+            "2025-2026",
+            analytics_config,
         )
         assert main_feature_build.status == "completed", (
-            f"Main feature build expected 'completed', got "
-            f"{main_feature_build.status!r}"
+            f"Main feature build expected 'completed', got {main_feature_build.status!r}"
         )
         main_feature_build_run_id = main_feature_build.build_run_id
         assert main_feature_build_run_id is not None
@@ -296,7 +296,9 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         await session.commit()
 
         label_build = await build_daily_facts_for_season(
-            session, "2025-2026", analytics_config,
+            session,
+            "2025-2026",
+            analytics_config,
         )
         assert label_build.status == "completed", (
             f"Label build expected 'completed', got {label_build.status!r}"
@@ -366,11 +368,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         await session.commit()
 
         val_feature_build = await build_daily_facts_for_season(
-            session, "2025-2026-val", analytics_config,
+            session,
+            "2025-2026-val",
+            analytics_config,
         )
         assert val_feature_build.status == "completed", (
-            f"Validation feature build expected 'completed', got "
-            f"{val_feature_build.status!r}"
+            f"Validation feature build expected 'completed', got {val_feature_build.status!r}"
         )
         val_feature_build_run_id = val_feature_build.build_run_id
         assert val_feature_build_run_id is not None
@@ -419,11 +422,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         await session.commit()
 
         val_label_build = await build_daily_facts_for_season(
-            session, "2025-2026-val", analytics_config,
+            session,
+            "2025-2026-val",
+            analytics_config,
         )
         assert val_label_build.status == "completed", (
-            f"Validation label build expected 'completed', got "
-            f"{val_label_build.status!r}"
+            f"Validation label build expected 'completed', got {val_label_build.status!r}"
         )
         val_label_build_run_id = val_label_build.build_run_id
         assert val_label_build_run_id is not None
@@ -474,9 +478,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             val_feature_build_run_id,
             val_label_build_run_id,
         ]
-        assert len(set(all_build_ids)) == 5, (
-            f"Expected 5 unique build_run_ids, got {all_build_ids}"
-        )
+        assert len(set(all_build_ids)) == 5, f"Expected 5 unique build_run_ids, got {all_build_ids}"
 
         # A3. Train builds belong to train season; validation builds to
         #     validation season (disjoint season verification)
@@ -489,8 +491,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             row = await session.get(AnalyticsBuildRun, build_run_id)
             assert row is not None
             assert row.season_id == season_id, (
-                f"Train build {build_run_id} has season_id {row.season_id}, "
-                f"expected {season_id}"
+                f"Train build {build_run_id} has season_id {row.season_id}, expected {season_id}"
             )
         for build_run_id in [val_feature_build_run_id, val_label_build_run_id]:
             row = await session.get(AnalyticsBuildRun, build_run_id)
@@ -505,8 +506,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             row = await session.get(AnalyticsBuildRun, build_run_id)
             assert row is not None
             assert row.source_max_raw_id > 0, (
-                f"Build {build_run_id} source_max_raw_id should be >0, "
-                f"got {row.source_max_raw_id}"
+                f"Build {build_run_id} source_max_raw_id should be >0, got {row.source_max_raw_id}"
             )
 
         # A5. aggregation_version is 'task3-v1'
@@ -592,15 +592,12 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
 
         # B1. Correct field names: destination_factory_id
         assert first_row.destination_factory_id == factory_id, (
-            f"Expected destination_factory_id={factory_id}, "
-            f"got {first_row.destination_factory_id}"
+            f"Expected destination_factory_id={factory_id}, got {first_row.destination_factory_id}"
         )
         # B1b. Correct field names: target_arrival_local_date
         assert first_row.target_arrival_local_date is not None
 
-        feature_map = {
-            item.feature_name: item.value for item in first_row.feature_values
-        }
+        feature_map = {item.feature_name: item.value for item in first_row.feature_values}
 
         # B2. Multi-farm/subfarm same-day data deterministic SUM
         #     Feb 25 has 10 kg (farm-b) + 13 kg (farm-c) = 23 kg
@@ -612,9 +609,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         #     Feb 26 (as_of - 2) has no data but factory is covered → zero
         #     The rolling 3d includes Feb 26 as zero → (23+0+11)/3 = 34/3
         expected_roll_3d = Decimal("34") / Decimal("3")
-        assert (
-            feature_map["actual_receipt_rolling_3d_mean_kg"] == expected_roll_3d
-        ), (
+        assert feature_map["actual_receipt_rolling_3d_mean_kg"] == expected_roll_3d, (
             f"Expected rolling_3d={expected_roll_3d}, "
             f"got {feature_map['actual_receipt_rolling_3d_mean_kg']}"
         )
@@ -636,9 +631,9 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             ],
         )
         assert uncovered_manifest_rows, "Uncovered manifest must not be empty"
-        assert all(
-            row.include is False for row in uncovered_manifest_rows
-        ), "Every uncovered row must be excluded"
+        assert all(row.include is False for row in uncovered_manifest_rows), (
+            "Every uncovered row must be excluded"
+        )
         assert all(
             row.exclusion_reason == "factory_missing_from_build_run"
             for row in uncovered_manifest_rows
@@ -662,15 +657,11 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
 
         # B6. Rolling 3/7
         expected_roll_7d = Decimal("51") / Decimal("7")
-        assert (
-            feature_map["actual_receipt_rolling_3d_mean_kg"] == expected_roll_3d
-        ), (
+        assert feature_map["actual_receipt_rolling_3d_mean_kg"] == expected_roll_3d, (
             f"Expected rolling_3d={expected_roll_3d}, "
             f"got {feature_map['actual_receipt_rolling_3d_mean_kg']}"
         )
-        assert (
-            feature_map["actual_receipt_rolling_7d_mean_kg"] == expected_roll_7d
-        ), (
+        assert feature_map["actual_receipt_rolling_7d_mean_kg"] == expected_roll_7d, (
             f"Expected rolling_7d={expected_roll_7d}, "
             f"got {feature_map['actual_receipt_rolling_7d_mean_kg']}"
         )
@@ -679,8 +670,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         #     Primary destination factory data before Feb 28 = 17 + 10 + 13 + 11 = 51
         #     The secondary factory's 5 kg is excluded from this cumulative feature.
         assert feature_map["actual_receipt_cumulative_to_as_of_kg"] == Decimal("51"), (
-            f"Expected cumulative=51, "
-            f"got {feature_map['actual_receipt_cumulative_to_as_of_kg']}"
+            f"Expected cumulative=51, got {feature_map['actual_receipt_cumulative_to_as_of_kg']}"
         )
 
         # B8. Manifest ordering — rows ordered by
@@ -730,7 +720,8 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
 
         # C1a. Rebuild manifest for disjoint season verification
         manifest_for_verification = await build_residual_training_manifest(
-            session, samples=training_samples,
+            session,
+            samples=training_samples,
         )
         train_seasons = {
             row.season_id
@@ -748,9 +739,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             f"Train seasons {train_seasons} and validation seasons "
             f"{validation_seasons} must be disjoint"
         )
-        assert len(train_seasons) == 1, (
-            f"Expected exactly 1 train season, got {len(train_seasons)}"
-        )
+        assert len(train_seasons) == 1, f"Expected exactly 1 train season, got {len(train_seasons)}"
         assert len(validation_seasons) == 1, (
             f"Expected exactly 1 validation season, got {len(validation_seasons)}"
         )
@@ -762,8 +751,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             for row in included_rows
         ), {
             row.feature_visibility_audit.audit_hash: [
-                issue.code.value
-                for issue in row.feature_visibility_audit.blockers
+                issue.code.value for issue in row.feature_visibility_audit.blockers
             ]
             for row in included_rows
             if row.feature_visibility_audit is not None
@@ -777,9 +765,7 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         )
 
         # C2. Training signature is set
-        assert training_result.training_signature, (
-            "Training signature must not be empty"
-        )
+        assert training_result.training_signature, "Training signature must not be empty"
 
         # C3. Execution completed
         assert training_result.execution_status == "completed", (
@@ -799,19 +785,18 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         # C6. Distinct seasons = 1 (train rows only, validation is excluded
         #     from training distinct_season_count)
         assert training_result.distinct_season_count == 1, (
-            f"Expected 1 distinct season (train only), "
-            f"got {training_result.distinct_season_count}"
+            f"Expected 1 distinct season (train only), got {training_result.distinct_season_count}"
         )
 
         # C7. Distinct factories >= 1
         assert training_result.distinct_factory_count >= 1, (
-            f"Expected at least 1 factory, got "
-            f"{training_result.distinct_factory_count}"
+            f"Expected at least 1 factory, got {training_result.distinct_factory_count}"
         )
 
         # C8. Persistence / reload parity
         loaded = await load_residual_training_run_by_id(
-            session, run_id=training_run_id,
+            session,
+            run_id=training_run_id,
         )
         assert loaded is not None, "Must be able to reload training run"
         assert training_result_json_payload(loaded) == (
@@ -825,21 +810,19 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
         )
 
         # C9. Artifact count = 3 (P50, P80, P90)
-        assert await session.scalar(
-            select(func.count()).select_from(ResidualModelTrainingRun)
-        ) == 1, "Expected exactly 1 training run"
-        assert await session.scalar(
-            select(func.count()).select_from(ResidualModelArtifact)
-        ) == 3, "Expected exactly 3 artifacts (P50, P80, P90)"
+        assert (
+            await session.scalar(select(func.count()).select_from(ResidualModelTrainingRun)) == 1
+        ), "Expected exactly 1 training run"
+        assert await session.scalar(select(func.count()).select_from(ResidualModelArtifact)) == 3, (
+            "Expected exactly 3 artifacts (P50, P80, P90)"
+        )
 
         # C10. Manifest rows stored in DB
         manifest_db_count = await session.scalar(
             select(func.count()).select_from(ResidualModelManifestRow)
         )
         assert manifest_db_count is not None
-        assert manifest_db_count > 0, (
-            "Expected at least 1 manifest row in the database"
-        )
+        assert manifest_db_count > 0, "Expected at least 1 manifest row in the database"
 
         # C11. Explicit validation: training and validation use DIFFERENT
         #      task9_run_id and DIFFERENT build_run_ids
@@ -851,12 +834,10 @@ async def test_real_task3_build_residual_model_end_to_end() -> None:
             "Train and validation must use different task9_run_id"
         )
         assert (
-            train_sample.label_analytics_build_run_id
-            != val_sample.label_analytics_build_run_id
+            train_sample.label_analytics_build_run_id != val_sample.label_analytics_build_run_id
         ), "Train and validation must use different label build_run_id"
         assert (
-            train_sample.feature_analytics_build_run_id
-            != val_sample.feature_analytics_build_run_id
+            train_sample.feature_analytics_build_run_id != val_sample.feature_analytics_build_run_id
         ), "Train and validation must use different feature build_run_id"
 
         # C12. No blockers
