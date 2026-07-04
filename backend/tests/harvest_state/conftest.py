@@ -51,6 +51,7 @@ def make_task8_source_ref(
     artifact_hash: str = "artifact-hash-1",
     weather_mapping_id: int | None = 801,
     base_temperature_search_run_id: int | None = 901,
+    forecast_as_of_date: date | None = None,
 ) -> dict[str, Any]:
     subfarm_component = 0 if subfarm_id is None else subfarm_id
     daily_prediction_id = (
@@ -70,7 +71,7 @@ def make_task8_source_ref(
         "maturity_model_artifact_hash": artifact_hash,
         "maturity_forecast_run_id": forecast_run_id,
         "maturity_forecast_source_signature": forecast_source_signature,
-        "maturity_forecast_as_of_date": date(2026, 2, 28),
+        "maturity_forecast_as_of_date": forecast_as_of_date or date(2026, 2, 28),
         "maturity_daily_prediction_id": daily_prediction_id,
         "prediction_date": prediction_date,
         "forecast_quantile": forecast_quantile,
@@ -97,6 +98,9 @@ def make_task8_verification_snapshot(
     variety_id: int = 101,
     plan_id: int = 501,
     location_reference_id: int = 601,
+    forecast_as_of_date: date | None = None,
+    prediction_start_date: date | None = None,
+    prediction_end_date: date | None = None,
 ) -> dict[str, Any]:
     subfarm_component = 0 if subfarm_id is None else subfarm_id
     daily_prediction_id = (
@@ -118,9 +122,9 @@ def make_task8_verification_snapshot(
         "maturity_forecast_model_run_id": 101,
         "maturity_forecast_artifact_id": 201,
         "maturity_forecast_source_signature": forecast_source_signature,
-        "maturity_forecast_as_of_date": date(2026, 2, 28),
-        "maturity_forecast_prediction_start_date": date(2026, 3, 1),
-        "maturity_forecast_prediction_end_date": date(2026, 3, 3),
+        "maturity_forecast_as_of_date": forecast_as_of_date or date(2026, 2, 28),
+        "maturity_forecast_prediction_start_date": prediction_start_date or date(2026, 3, 1),
+        "maturity_forecast_prediction_end_date": prediction_end_date or date(2026, 3, 3),
         "maturity_daily_prediction_id": daily_prediction_id,
         "maturity_daily_prediction_forecast_run_id": forecast_run_id,
         "prediction_date": prediction_date,
@@ -211,17 +215,19 @@ def make_capacity_input(
     planned_picker_count: Decimal | None = Decimal("10"),
     productivity: Decimal | None = Decimal("20"),
     direct_capacity: Decimal | None = None,
+    as_of_date: date | None = None,
 ) -> dict[str, Any]:
+    as_of = as_of_date or date(2026, 2, 28)
     parameter_refs = [
         make_parameter_source_ref(
             parameter_code="LABOR_AVAILABILITY_RATIO",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=as_of,
             source_record_key=f"{pool_id}-{capacity_date}-labor",
             source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-labor"}),
         ),
         make_parameter_source_ref(
             parameter_code="OPERATIONAL_EFFICIENCY_RATIO",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=as_of,
             source_record_key=f"{pool_id}-{capacity_date}-ops",
             source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-ops"}),
         ),
@@ -231,13 +237,13 @@ def make_capacity_input(
             [
                 make_parameter_source_ref(
                     parameter_code="PLANNED_PICKER_COUNT",
-                    as_of_date=date(2026, 2, 28),
+                    as_of_date=as_of,
                     source_record_key=f"{pool_id}-{capacity_date}-pickers",
                     source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-pickers"}),
                 ),
                 make_parameter_source_ref(
                     parameter_code="PICKER_PRODUCTIVITY",
-                    as_of_date=date(2026, 2, 28),
+                    as_of_date=as_of,
                     source_record_key=f"{pool_id}-{capacity_date}-productivity",
                     source_row_hash=sha256_hex(
                         {"source": f"{pool_id}-{capacity_date}-productivity"}
@@ -249,7 +255,7 @@ def make_capacity_input(
         parameter_refs.append(
             make_parameter_source_ref(
                 parameter_code="DIRECT_NOMINAL_CAPACITY",
-                as_of_date=date(2026, 2, 28),
+                as_of_date=as_of,
                 source_record_key=f"{pool_id}-{capacity_date}-direct",
                 source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-direct"}),
             )
@@ -273,6 +279,7 @@ def make_weather_feature(
     pool_id: str,
     feature_id: str,
     value: Decimal,
+    as_of_date: date | None = None,
 ) -> dict[str, Any]:
     return {
         "capacity_date": capacity_date,
@@ -281,7 +288,7 @@ def make_weather_feature(
         "value": value,
         "source_ref": make_parameter_source_ref(
             parameter_code="WEATHER_FEATURE_OBSERVATION",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=as_of_date or date(2026, 2, 28),
             source_record_key=f"{pool_id}-{capacity_date}-{feature_id}",
             source_row_hash=sha256_hex({"source": f"{pool_id}-{capacity_date}-{feature_id}"}),
         ),
@@ -294,6 +301,7 @@ def make_loss_input(
     pool_id: str,
     quantile: str,
     quantity: Decimal,
+    as_of_date: date | None = None,
 ) -> dict[str, Any]:
     return {
         "state_date": state_date,
@@ -302,7 +310,7 @@ def make_loss_input(
         "mature_inventory_loss_quantity_kg": quantity,
         "source_ref": make_parameter_source_ref(
             parameter_code="MATURE_INVENTORY_LOSS",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=as_of_date or date(2026, 2, 28),
             source_record_key=f"{pool_id}-{state_date}-{quantile}-loss",
             source_row_hash=sha256_hex({"source": f"{pool_id}-{state_date}-{quantile}-loss"}),
         ),
@@ -313,13 +321,16 @@ def make_initial_cohort(
     *,
     quantile: str,
     quantity: Decimal,
-    cohort_date: date = date(2026, 2, 28),
+    cohort_date: date | None = None,
+    as_of_date: date | None = None,
     variety_id: int = 101,
     capacity_pool_id: str = "pool-a",
     capacity_pool_membership_hash: str = "membership-hash-placeholder",
     destination_factory_id: int = 701,
 ) -> dict[str, Any]:
-    source_ref = make_initial_source_ref(as_of_date=date(2026, 2, 28))
+    resolved_cohort_date = cohort_date or date(2026, 2, 28)
+    resolved_as_of_date = as_of_date or date(2026, 2, 28)
+    source_ref = make_initial_source_ref(as_of_date=resolved_as_of_date)
     stable_key = make_stable_cohort_key(
         {
             "schema_version": "task9a-cohort-key-v1",
@@ -328,7 +339,7 @@ def make_initial_cohort(
             "source_record_key": source_ref["source_record_key"],
             "source_version": source_ref["source_version"],
             "source_row_hash": source_ref["source_row_hash"],
-            "cohort_date": cohort_date.isoformat(),
+            "cohort_date": resolved_cohort_date.isoformat(),
             "forecast_quantile": quantile,
             "farm_id": 1,
             "subfarm_id": 11,
@@ -339,7 +350,7 @@ def make_initial_cohort(
         }
     )
     return {
-        "cohort_date": cohort_date,
+        "cohort_date": resolved_cohort_date,
         "farm_id": 1,
         "subfarm_id": 11,
         "variety_id": variety_id,
@@ -359,6 +370,9 @@ def make_task8_supply(
     farm_id: int = 1,
     subfarm_id: int | None = 11,
     variety_id: int = 101,
+    forecast_as_of_date: date | None = None,
+    prediction_start_date: date | None = None,
+    prediction_end_date: date | None = None,
 ) -> dict[str, Any]:
     source_ref = make_task8_source_ref(
         prediction_date=prediction_date,
@@ -367,6 +381,7 @@ def make_task8_supply(
         farm_id=farm_id,
         subfarm_id=subfarm_id,
         variety_id=variety_id,
+        forecast_as_of_date=forecast_as_of_date,
     )
     return {
         "prediction_date": prediction_date,
@@ -381,12 +396,19 @@ def make_task8_supply(
             farm_id=farm_id,
             subfarm_id=subfarm_id,
             variety_id=variety_id,
+            forecast_as_of_date=forecast_as_of_date,
+            prediction_start_date=prediction_start_date,
+            prediction_end_date=prediction_end_date,
         ),
     }
 
 
-def make_request() -> dict[str, Any]:
-    forecast_dates = [date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)]
+def make_request(*, season_id: int = 2026) -> dict[str, Any]:
+    forecast_dates = [
+        date(season_id, 3, 1),
+        date(season_id, 3, 2),
+        date(season_id, 3, 3),
+    ]
     quantiles = ("P50", "P80", "P90")
     pool = make_pool()
     capacity_pool_membership_hash = make_stable_cohort_key(
@@ -412,12 +434,18 @@ def make_request() -> dict[str, Any]:
                         quantile=quantile,
                         quantity=amount,
                         variety_id=101,
+                        forecast_as_of_date=date(season_id, 2, 28),
+                        prediction_start_date=forecast_dates[0],
+                        prediction_end_date=forecast_dates[-1],
                     ),
                     make_task8_supply(
                         prediction_date=prediction_date,
                         quantile=quantile,
                         quantity=amount,
                         variety_id=102,
+                        forecast_as_of_date=date(season_id, 2, 28),
+                        prediction_start_date=forecast_dates[0],
+                        prediction_end_date=forecast_dates[-1],
                     ),
                 ]
             )
@@ -427,6 +455,7 @@ def make_request() -> dict[str, Any]:
             pool_id="pool-a",
             quantile=quantile,
             quantity=Decimal("0"),
+            as_of_date=date(season_id, 2, 28),
         )
         for prediction_date in forecast_dates
         for quantile in quantiles
@@ -440,55 +469,58 @@ def make_request() -> dict[str, Any]:
                     pool_id="pool-a",
                     feature_id="daily_precipitation_mm",
                     value=Decimal("0"),
+                    as_of_date=date(season_id, 2, 28),
                 ),
                 make_weather_feature(
                     capacity_date=prediction_date,
                     pool_id="pool-a",
                     feature_id="consecutive_rainy_days",
                     value=Decimal("0"),
+                    as_of_date=date(season_id, 2, 28),
                 ),
                 make_weather_feature(
                     capacity_date=prediction_date,
                     pool_id="pool-a",
                     feature_id="minimum_temperature_c",
                     value=Decimal("12"),
+                    as_of_date=date(season_id, 2, 28),
                 ),
             ]
         )
     global_parameter_source_refs = [
         make_parameter_source_ref(
             parameter_code="HOLIDAY_CALENDAR",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=date(season_id, 2, 28),
             source_record_key="holiday-calendar-v1",
             source_row_hash=sha256_hex({"source": "holiday-calendar-v1"}),
         ),
         make_parameter_source_ref(
             parameter_code="WEATHER_RULE_CONFIG",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=date(season_id, 2, 28),
             source_record_key="weather-rule-v1",
             source_row_hash=sha256_hex({"source": "weather-rule-v1"}),
         ),
         make_parameter_source_ref(
             parameter_code="HARVEST_TO_ARRIVAL_LAG",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=date(season_id, 2, 28),
             source_record_key="arrival-lag-v1",
             source_row_hash=sha256_hex({"source": "arrival-lag-v1"}),
         ),
         make_parameter_source_ref(
             parameter_code="TIMEZONE_CONFIG",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=date(season_id, 2, 28),
             source_record_key="timezone-v1",
             source_row_hash=sha256_hex({"source": "timezone-v1"}),
         ),
         make_parameter_source_ref(
             parameter_code="HARVEST_BUCKET_ANCHOR_TIME",
-            as_of_date=date(2026, 2, 28),
+            as_of_date=date(season_id, 2, 28),
             source_record_key="anchor-time-v1",
             source_row_hash=sha256_hex({"source": "anchor-time-v1"}),
         ),
     ]
     return {
-        "as_of_date": date(2026, 2, 28),
+        "as_of_date": date(season_id, 2, 28),
         "forecast_start_date": forecast_dates[0],
         "forecast_end_date": forecast_dates[-1],
         "forecast_quantiles": list(quantiles),
@@ -579,7 +611,11 @@ def make_request() -> dict[str, Any]:
         "run_parameter_source_refs": global_parameter_source_refs,
         "capacity_pools": [pool],
         "daily_capacity_inputs": [
-            make_capacity_input(capacity_date=prediction_date) for prediction_date in forecast_dates
+            make_capacity_input(
+                capacity_date=prediction_date,
+                as_of_date=date(season_id, 2, 28),
+            )
+            for prediction_date in forecast_dates
         ],
         "daily_weather_features": weather_features,
         "task8_daily_predictions": task8_predictions,
@@ -588,36 +624,48 @@ def make_request() -> dict[str, Any]:
                 quantile="P50",
                 quantity=Decimal("5"),
                 variety_id=101,
+                cohort_date=date(season_id, 2, 28),
+                as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
             ),
             make_initial_cohort(
                 quantile="P50",
                 quantity=Decimal("3"),
                 variety_id=102,
+                cohort_date=date(season_id, 2, 28),
+                as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
             ),
             make_initial_cohort(
                 quantile="P80",
                 quantity=Decimal("6"),
                 variety_id=101,
+                cohort_date=date(season_id, 2, 28),
+                as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
             ),
             make_initial_cohort(
                 quantile="P80",
                 quantity=Decimal("4"),
                 variety_id=102,
+                cohort_date=date(season_id, 2, 28),
+                as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
             ),
             make_initial_cohort(
                 quantile="P90",
                 quantity=Decimal("7"),
                 variety_id=101,
+                cohort_date=date(season_id, 2, 28),
+                as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
             ),
             make_initial_cohort(
                 quantile="P90",
                 quantity=Decimal("5"),
                 variety_id=102,
+                cohort_date=date(season_id, 2, 28),
+                as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
             ),
         ],

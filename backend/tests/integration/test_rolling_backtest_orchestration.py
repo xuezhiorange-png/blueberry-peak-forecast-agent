@@ -522,7 +522,7 @@ async def _make_real_task8_orchestration_persistence_command(
 
 
 async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
-    request = make_request()
+    request = make_request(season_id=season_id)
     plan_variety_id = 101
     daily_ids_by_date: dict[date, int] = {}
     quantiles_by_date: dict[date, set[str]] = {}
@@ -540,9 +540,9 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
         quantiles_by_date.setdefault(prediction_date, set()).add(forecast_quantile)
 
     expected_dates = {
-        date(2026, 3, 1),
-        date(2026, 3, 2),
-        date(2026, 3, 3),
+        date(season_id, 3, 1),
+        date(season_id, 3, 2),
+        date(season_id, 3, 3),
     }
     assert set(daily_ids_by_date) == expected_dates
     for prediction_date in expected_dates:
@@ -628,8 +628,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             )
         else:
             assert existing_season.id == season_id
-            assert existing_season.start_date <= date(2026, 1, 1)
-            assert existing_season.end_date >= date(2026, 3, 31)
+            assert existing_season.start_date <= date(season_id, 1, 1)
+            assert existing_season.end_date >= date(season_id, 3, 31)
 
         if existing_variety_101 is None:
             root_rows.append(Variety(id=101, code="DX", name="Dx"))
@@ -693,14 +693,14 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     expected_yield_kg_per_mu=Decimal("1200"),
                     marketable_rate=Decimal("0.8"),
                     tree_age_years=Decimal("3"),
-                    pruning_date=date(2026, 1, 1),
-                    flowering_start_date=date(2026, 2, 1),
-                    flowering_peak_date=date(2026, 2, 6),
-                    flowering_end_date=date(2026, 2, 10),
-                    first_pick_date=date(2026, 3, 5),
+                    pruning_date=date(season_id, 1, 1),
+                    flowering_start_date=date(season_id, 2, 1),
+                    flowering_peak_date=date(season_id, 2, 6),
+                    flowering_end_date=date(season_id, 2, 10),
+                    first_pick_date=date(season_id, 3, 5),
                     expected_total_marketable_kg=Decimal("96000"),
                     version=1,
-                    effective_from=date(2026, 1, 1),
+                    effective_from=date(season_id, 1, 1),
                     effective_to=None,
                     available_at=date(2025, 12, 15),
                     source_type="manual",
@@ -714,7 +714,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     scope_type="variety_zone",
                     variety_id=101,
                     climate_zone_id=301,
-                    training_cutoff=date(2026, 4, 30),
+                    training_cutoff=date(season_id, 4, 30),
                     anchor_event="flowering_start_date",
                     target_event="first_pick_date",
                     candidate_temperatures=["3", "5"],
@@ -732,7 +732,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     warnings=[],
                     blockers=[],
                     input_snapshot={"samples": []},
-                    finished_at=datetime(2026, 2, 20, 12, 0, tzinfo=UTC),
+                    finished_at=datetime(season_id, 2, 20, 12, 0, tzinfo=UTC),
                 ),
             ]
         )
@@ -750,8 +750,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                 confidence_level="high",
                 mapping_version="map-v1",
                 config_hash="weather-cfg",
-                available_at=date(2026, 1, 1),
-                valid_from=date(2026, 1, 1),
+                available_at=date(season_id, 1, 1),
+                valid_from=date(season_id, 1, 1),
                 valid_to=None,
                 row_hash="mapping-a",
             )
@@ -763,7 +763,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             model_version="task8-v1",
             config_hash=TASK8_MODEL_CONFIG_HASH,
             config_snapshot={"version": "task8-v1"},
-            training_cutoff=date(2026, 2, 28),
+            training_cutoff=date(season_id, 2, 28),
             source_signature=TASK8_MODEL_SOURCE_SIGNATURE,
             status="completed",
             random_seed=20260703,
@@ -778,8 +778,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             warnings=[],
             blockers=[],
             input_snapshot={},
-            started_at=datetime(2026, 2, 28, 11, 0, tzinfo=UTC),
-            finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+            started_at=datetime(season_id, 2, 28, 11, 0, tzinfo=UTC),
+            finished_at=datetime(season_id, 2, 28, 12, 0, tzinfo=UTC),
             error_message=None,
         )
         session.add(model_run)
@@ -811,7 +811,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                 "calibration": {},
                 "base_temperature_context": {},
             },
-            created_at=datetime(2026, 2, 28, 12, 5, tzinfo=UTC),
+            created_at=datetime(season_id, 2, 28, 12, 5, tzinfo=UTC),
         )
         session.add(artifact)
         await session.flush()
@@ -823,9 +823,9 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             location_reference_id=601,
             weather_mapping_id=801,
             base_temperature_search_run_id=901,
-            as_of_date=date(2026, 2, 28),
-            prediction_start_date=date(2026, 3, 1),
-            prediction_end_date=date(2026, 3, 3),
+            as_of_date=date(season_id, 2, 28),
+            prediction_start_date=date(season_id, 3, 1),
+            prediction_end_date=date(season_id, 3, 3),
             expected_marketable_total_kg=Decimal("96000"),
             expected_total_source="explicit",
             axis_mode="calendar_proxy_axis",
@@ -834,8 +834,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             warnings=[],
             blockers=[],
             input_snapshot={},
-            started_at=datetime(2026, 2, 28, 12, 10, tzinfo=UTC),
-            finished_at=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
+            started_at=datetime(season_id, 2, 28, 12, 10, tzinfo=UTC),
+            finished_at=datetime(season_id, 2, 28, 13, 0, tzinfo=UTC),
             error_message=None,
         )
         session.add(forecast)
@@ -858,7 +858,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     curve_share=Decimal("0.3333333333"),
                     confidence_level="medium",
                     quality_flags=[],
-                    created_at=datetime(2026, 2, 28, 13, 5, tzinfo=UTC),
+                    created_at=datetime(season_id, 2, 28, 13, 5, tzinfo=UTC),
                 )
             )
         session.add_all(daily_rows)
@@ -883,16 +883,16 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
         "artifact_run_id": 101,
         "forecast_run_id": 401,
         "forecast_run_status": "completed",
-        "forecast_as_of_date": date(2026, 2, 28),
-        "prediction_start_date": date(2026, 3, 1),
-        "prediction_end_date": date(2026, 3, 3),
+        "forecast_as_of_date": date(season_id, 2, 28),
+        "prediction_start_date": date(season_id, 3, 1),
+        "prediction_end_date": date(season_id, 3, 3),
         "daily_predictions_by_date": {
             prediction_date: {
                 "id": daily_id,
                 "p50_kg": Decimal("20"),
                 "p80_kg": Decimal("24"),
                 "p90_kg": Decimal("28"),
-                "created_at": datetime(2026, 2, 28, 13, 5, tzinfo=UTC),
+                "created_at": datetime(season_id, 2, 28, 13, 5, tzinfo=UTC),
             }
             for prediction_date, daily_id in sorted(daily_ids_by_date.items())
         },
@@ -904,6 +904,12 @@ async def _seed_real_task10_authorities(
     task8_authority: dict[str, Any] | None = None,
     analytics_season_id: int | None = None,
 ) -> dict[str, int]:
+    # Re-anchor the diverse-training-samples as_of_date to the same
+    # season as the request payload so the manifest builder's
+    # `date_outside_build_season` exclusion does not drop any
+    # structural row. When `analytics_season_id` is None the legacy
+    # 2026 fixture is used.
+    fixture_season_id_for_samples = analytics_season_id if analytics_season_id is not None else 2026
     fixture = await _seed_prediction_fixture(
         task8_authority=task8_authority, analytics_season_id=analytics_season_id
     )
@@ -914,7 +920,7 @@ async def _seed_real_task10_authorities(
         validation_task9_run_id=fixture["validation_task9_run_id"],
         validation_label_build_run_id=fixture["validation_label_build_run_id"],
         validation_feature_build_run_id=fixture["validation_feature_build_run_id"],
-        as_of_date=date(2026, 2, 28),
+        as_of_date=date(fixture_season_id_for_samples, 2, 28),
     )
 
     async with AsyncSessionMaker() as session:
@@ -923,16 +929,6 @@ async def _seed_real_task10_authorities(
             samples=samples,
             config=_relaxed_residual_config(),
         )
-        if training_result.execution_status != "completed":
-            print(
-                "DEBUG training blocked:",
-                "blockers=",
-                training_result.blockers,
-                "eligibility_reasons=",
-                training_result.eligibility_reasons,
-                "sample_count=",
-                training_result.sample_count,
-            )
         assert training_result.execution_status == "completed"
         prediction_result, prediction_run_id = await execute_residual_prediction(
             session,
@@ -940,7 +936,9 @@ async def _seed_real_task10_authorities(
                 model_run_id=training_run_id,
                 task9_run_id=fixture["train_task9_run_id"],
                 feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
-                supplemental_feature_values=_supplemental_features(as_of_date=date(2026, 2, 28)),
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=date(fixture_season_id_for_samples, 2, 28)
+                ),
             ),
         )
         assert prediction_result.execution_status == "completed"
@@ -1042,15 +1040,24 @@ async def _build_real_orchestration_command(
         f"runtime (2026-07-04) to avoid parent_authority_timestamp > "
         f"cutoff; got {forecast_cutoff_at.isoformat()}"
     )
-    # The Task 8 / Task 3 / Task 9 fixture payloads all carry 2026-dated
-    # forecast_start_date / state_date / as_of_date (make_request() in
-    # tests/harvest_state/conftest.py hardcodes 2026-03-01..03 and
-    # 2026-02-28 as_of_date). The analytics season MUST therefore be
-    # 2026 too — otherwise the manifest builder drops every structural
-    # row as `date_outside_build_season` and training returns BLOCKED
-    # with `no_included_training_rows`. Keep season_id pinned to 2026
-    # regardless of forecast_cutoff_at's wall-clock year.
-    fixture_season_id = 2026
+    # The Task 8 / Task 3 / Task 9 fixture helpers carry hardcoded
+    # 2026-dated forecast_start_date / state_date / as_of_date (e.g.
+    # make_request() in tests/harvest_state/conftest.py hardcodes
+    # 2026-03-01..03 forecast_dates and 2026-02-28 as_of_date). The
+    # analytics season MUST therefore match the date the fixture
+    # helpers use — otherwise the manifest builder drops every
+    # structural row as `date_outside_build_season` and training
+    # returns BLOCKED with `no_included_training_rows`. Pin
+    # fixture_season_id to the year the helper fixtures are anchored
+    # on. The future-season fixture uses fixture_season_id=2099 to
+    # satisfy the Pydantic schema's
+    # `forecast_cutoff_at.local_date() == as_of_local_date` cross-
+    # check on a MARCH_15 node_key with a forecast_cutoff_at that must
+    # remain in the future (>= 2026-07-01) for the parent authority
+    # audit. All fixture helper date fields are expressed in terms of
+    # fixture_season_id so the analytical season and the fixture
+    # helper dates stay co-anchored (no post-seed SQL shift required).
+    fixture_season_id = 2099
     task8 = await _seed_real_task8_authorities(season_id=fixture_season_id)
     task8_authority = {
         "season_id": task8["season_id"],
@@ -1286,7 +1293,7 @@ async def _build_real_orchestration_command(
     forecast_parent = _parent_authority(
         source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
         authority_status="completed",
-        authority_timestamp=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
+        authority_timestamp=datetime(fixture_season_id, 2, 28, 13, 0, tzinfo=UTC),
         persistent_reference=PersistentUpstreamReference(
             reference_type="database_run_id",
             reference_value=task8["forecast_run_id"],
@@ -1377,7 +1384,7 @@ async def _build_real_orchestration_command(
             snapshot=Task8ModelRunAvailabilitySnapshot(
                 source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
                 status="completed",
-                authoritative_timestamp=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+                authoritative_timestamp=datetime(fixture_season_id, 2, 28, 12, 0, tzinfo=UTC),
             ),
             forecast_cutoff_at=node.forecast_cutoff_at,
             resolved_identity=identities[1],
@@ -1386,11 +1393,11 @@ async def _build_real_orchestration_command(
             source_role="task8_model_artifact",
             snapshot=Task8ModelArtifactAvailabilitySnapshot(
                 source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
-                created_at=datetime(2026, 2, 28, 12, 5, tzinfo=UTC),
+                created_at=datetime(fixture_season_id, 2, 28, 12, 5, tzinfo=UTC),
                 parent_authority=_parent_authority(
                     source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
                     authority_status="completed",
-                    authority_timestamp=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+                    authority_timestamp=datetime(fixture_season_id, 2, 28, 12, 0, tzinfo=UTC),
                     persistent_reference=PersistentUpstreamReference(
                         reference_type="database_run_id",
                         reference_value=task8["model_run_id"],
@@ -1406,7 +1413,7 @@ async def _build_real_orchestration_command(
             snapshot=Task8ForecastRunAvailabilitySnapshot(
                 source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
                 status="completed",
-                authoritative_timestamp=datetime(2026, 2, 28, 13, 0, tzinfo=UTC),
+                authoritative_timestamp=datetime(fixture_season_id, 2, 28, 13, 0, tzinfo=UTC),
             ),
             forecast_cutoff_at=node.forecast_cutoff_at,
             resolved_identity=identities[3],
@@ -1990,6 +1997,7 @@ async def test_update_run_status_from_attempts() -> None:
 @pytest.mark.asyncio
 async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
     """orchestrate_node must exact-load real Task 8/9/10 authorities and freeze them in snapshot."""
+    fixture_season_id = 2099
     _require_postgres()
     cmd = await _build_real_orchestration_command(
         forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
@@ -2062,9 +2070,9 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
             entry["persistent_reference"]["reference_type"] for entry in snapshot_daily_entries
         } == {"database_row_id"}
         assert {entry["source_role"] for entry in snapshot_daily_entries} == {
-            "task8_daily_prediction:2026-03-01",
-            "task8_daily_prediction:2026-03-02",
-            "task8_daily_prediction:2026-03-03",
+            f"task8_daily_prediction:{fixture_season_id}-03-01",
+            f"task8_daily_prediction:{fixture_season_id}-03-02",
+            f"task8_daily_prediction:{fixture_season_id}-03-03",
         }
         task9_run_id = snapshot.canonical_payload["task9_authority"]["run_reference"][
             "reference_value"
@@ -2095,7 +2103,8 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
 
 @pytest.mark.asyncio
 async def test_cross_season_task8_authority_blocks() -> None:
-    """Pinned Task 8/9 authorities from season 2026 must block a season-2027 node."""
+    """Pinned Task 8/9 authorities from the fixture season must block a different season node."""
+    fixture_season_id = 2099
     _require_postgres()
     base_cmd = await _build_real_orchestration_command(
         forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
@@ -2154,11 +2163,15 @@ async def test_cross_season_task8_authority_blocks() -> None:
         )
         await session.commit()
 
-    assert outcome.status == "blocked"
+    assert outcome.status == "blocked", (
+        outcome.blocker_code,
+        outcome.stage,
+        outcome.diagnostics,
+    )
     assert outcome.blocker_code == "PINNED_SOURCE_SCOPE_MISMATCH"
     assert outcome.stage == OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value
     assert "2027" in str(outcome.diagnostics)
-    assert "2026" in str(outcome.diagnostics)
+    assert str(fixture_season_id) in str(outcome.diagnostics)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
