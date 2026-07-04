@@ -914,11 +914,14 @@ async def _load_exact_pinned_candidate(
         )
         exact_identity = _make_identity(
             source_type=source_type,
-            source_role="task8_daily_prediction",
+            source_role=identity.source_role,
+            role_qualifier=identity.role_qualifier,
             schema_version="task8-maturity-v1",
             semantic_payload_hash=daily_payload_hash,
             input_signature=parent_forecast_run.source_signature,
             canonical_payload_hash=daily_payload_hash,
+            business_version=identity.semantic.business_version,
+            policy_version=identity.semantic.policy_version,
             display_label="task8:daily_prediction",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_row_id",
@@ -926,7 +929,7 @@ async def _load_exact_pinned_candidate(
             ),
         )
         return HistoricalCandidate(
-            source_role="task8_daily_prediction",
+            source_role=identity.source_role,
             source_type=source_type,
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_row_id",
