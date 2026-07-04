@@ -28,6 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.harvest_state.application import get_harvest_state_run_by_id
+from backend.app.harvest_state.canonical import parse_decimal
 from backend.app.maturity.service import (
     load_maturity_forecast_result,
     load_maturity_model_result,
@@ -442,6 +443,7 @@ async def _verify_task8_daily_exact_set(
     forecast_run_id: int,
     pinned_daily_inputs: tuple[ResolvedInputOutcome, ...],
     task9_snapshot_rows: list[dict[str, Any]],
+    source_ref_payload_by_hash: dict[str, dict[str, Any]],
 ) -> _Task8DailyExactSet:
     task9_rows_by_date: dict[date, list[dict[str, Any]]] = {}
     task9_date_to_id: dict[date, int] = {}
@@ -474,10 +476,20 @@ async def _verify_task8_daily_exact_set(
                 "Task 9 verification snapshot daily prediction forecast parent "
                 "does not match pinned Task 8 forecast run"
             )
-        source_ref = item.get("source_ref")
         forecast_quantile = verification.get("forecast_quantile")
-        if forecast_quantile is None and isinstance(source_ref, dict):
-            forecast_quantile = source_ref.get("forecast_quantile")
+        if forecast_quantile is None:
+            source_ref_hash = item.get("source_ref_hash")
+            if not isinstance(source_ref_hash, str) or not source_ref_hash:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot forecast quantile is missing "
+                    "and source_ref_hash is absent"
+                )
+            source_ref_payload = source_ref_payload_by_hash.get(source_ref_hash)
+            if not isinstance(source_ref_payload, dict):
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 source_ref_hash is missing from source_ref_catalog"
+                )
+            forecast_quantile = source_ref_payload.get("forecast_quantile")
         if forecast_quantile not in {"P50", "P80", "P90"}:
             raise Task9Task8AuthorityMismatchError(
                 "Task 9 verification snapshot forecast quantile is invalid"
@@ -1294,6 +1306,16 @@ async def _resolve_task9_reuse(
     if envelope.status != "completed":
         raise Task9Task8AuthorityMismatchError("Task 9 persisted envelope must be completed")
 
+    source_ref_catalog = (
+        getattr(getattr(envelope, "output", None), "source_ref_catalog", None) or []
+    )
+    source_ref_payload_by_hash: dict[str, dict[str, Any]] = {
+        entry.source_ref_hash: dict(entry.source_ref_payload)
+        for entry in source_ref_catalog
+        if isinstance(getattr(entry, "source_ref_hash", None), str)
+        and isinstance(getattr(entry, "source_ref_payload", None), dict)
+    }
+
     task8_inputs = {
         outcome.source_type: outcome
         for outcome in resolved_inputs.values()
@@ -1551,6 +1573,7 @@ async def _resolve_task9_reuse(
             forecast_run_id=forecast_run_id,
             pinned_daily_inputs=pinned_daily_inputs,
             task9_snapshot_rows=task8_snapshot_rows,
+            source_ref_payload_by_hash=source_ref_payload_by_hash,
         )
         if not (
             exact_daily_set.db_daily_ids
@@ -1565,15 +1588,24 @@ async def _resolve_task9_reuse(
             if not isinstance(item, dict):
                 continue
             verification = item.get("verification_snapshot")
-            source_ref = item.get("source_ref")
-            if not isinstance(verification, dict) or not isinstance(source_ref, dict):
+            if not isinstance(verification, dict):
                 continue
+            source_ref_hash = item.get("source_ref_hash")
+            if not isinstance(source_ref_hash, str) or not source_ref_hash:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot source_ref_hash is missing"
+                )
+            source_ref_payload = source_ref_payload_by_hash.get(source_ref_hash)
+            if not isinstance(source_ref_payload, dict):
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 source_ref_hash is missing from source_ref_catalog"
+                )
             prediction_date = _coerce_persisted_date(
                 verification.get("prediction_date"),
                 field_name="prediction_date",
             )
             db_row = exact_daily_set.db_rows_by_date[prediction_date]
-            forecast_quantile = source_ref.get("forecast_quantile")
+            forecast_quantile = source_ref_payload.get("forecast_quantile")
             if forecast_quantile not in {"P50", "P80", "P90"}:
                 raise Task9Task8AuthorityMismatchError(
                     "Task 9 source_ref forecast quantile is invalid"
@@ -1583,11 +1615,15 @@ async def _resolve_task9_reuse(
                 "P80": db_row.p80_kg,
                 "P90": db_row.p90_kg,
             }[forecast_quantile]
-            if source_ref.get("source_quantity_kg") != expected_quantity:
+            actual_source_quantity = parse_decimal(source_ref_payload.get("source_quantity_kg"))
+            if actual_source_quantity != expected_quantity:
                 raise Task9Task8AuthorityMismatchError(
                     "Task 9 source_ref quantity does not match pinned Task 8 daily prediction"
                 )
-            if verification.get(f"{forecast_quantile.lower()}_kg") != expected_quantity:
+            verification_quantile_quantity = parse_decimal(
+                verification.get(f"{forecast_quantile.lower()}_kg")
+            )
+            if verification_quantile_quantity != expected_quantity:
                 raise Task9Task8AuthorityMismatchError(
                     "Task 9 verification snapshot quantile quantity "
                     "does not match pinned Task 8 daily prediction"
@@ -2268,6 +2304,7 @@ async def orchestrate_node(
         RollingBacktestAttemptConflictError,
         PinnedSourceNotFoundError,
         PinnedSourceIdentityMismatchError,
+        PinnedSourceScopeMismatchError,
         PinnedSourceNotVisibleError,
         Task8ParentAuthorityMismatchError,
         Task9Task8AuthorityMismatchError,
