@@ -65,7 +65,7 @@ class RollingNodeScope(_BaseModel):
 
 
 class PersistentUpstreamReference(_BaseModel):
-    reference_type: Literal["database_run_id", "database_artifact_id", "uuid"]
+    reference_type: Literal["database_run_id", "database_artifact_id", "database_row_id", "uuid"]
     reference_value: int | str
 
     @field_validator("reference_value")

@@ -57,25 +57,28 @@ def _zone_row(
     source_name: str = "synthetic",
     source_version: str = "src-v1",
 ) -> str:
-    return ",".join(
-        [
-            code,
-            name,
-            "China",
-            province,
-            prefecture,
-            county,
-            latitude,
-            longitude,
-            min_altitude,
-            max_altitude,
-            zone_version,
-            valid_from,
-            valid_to,
-            source_name,
-            source_version,
-        ]
-    ) + "\n"
+    return (
+        ",".join(
+            [
+                code,
+                name,
+                "China",
+                province,
+                prefecture,
+                county,
+                latitude,
+                longitude,
+                min_altitude,
+                max_altitude,
+                zone_version,
+                valid_from,
+                valid_to,
+                source_name,
+                source_version,
+            ]
+        )
+        + "\n"
+    )
 
 
 def _write_config(path: Path) -> None:
@@ -223,9 +226,7 @@ async def test_climate_zone_import_conflict_does_not_overwrite_existing_zone(
             dry_run=False,
         )
         zones = (
-            await session.scalars(
-                select(AgroClimateZone).order_by(AgroClimateZone.id.asc())
-            )
+            await session.scalars(select(AgroClimateZone).order_by(AgroClimateZone.id.asc()))
         ).all()
 
     assert conflict.status == "failed"

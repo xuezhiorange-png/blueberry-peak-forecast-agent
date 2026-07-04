@@ -319,9 +319,7 @@ async def _assert_fact_rows_visible_by_cutoff(
         rows = list(
             (
                 await session.scalars(
-                    select(FactReceiptDaily).where(
-                        FactReceiptDaily.build_run_id == build_run_id
-                    )
+                    select(FactReceiptDaily).where(FactReceiptDaily.build_run_id == build_run_id)
                 )
             ).all()
         )
@@ -411,9 +409,7 @@ async def _task8_table_counts() -> dict[str, int]:
                 await session.scalar(select(func.count()).select_from(MaturityForecastRun)) or 0
             ),
             "maturity_daily_prediction": int(
-                await session.scalar(
-                    select(func.count()).select_from(MaturityDailyPredictionModel)
-                )
+                await session.scalar(select(func.count()).select_from(MaturityDailyPredictionModel))
                 or 0
             ),
         }
@@ -832,10 +828,7 @@ async def test_task8_clis_dry_run_do_not_write_rows(
     )
     counts_after_forecast = await _task8_table_counts()
     assert forecast_code == 0, forecast_stderr
-    assert (
-        json.loads(forecast_output.read_text(encoding="utf-8"))["payload"]["status"]
-        == "dry_run"
-    )
+    assert json.loads(forecast_output.read_text(encoding="utf-8"))["payload"]["status"] == "dry_run"
     assert counts_after_forecast == counts_before_forecast
 
 
@@ -1092,9 +1085,9 @@ async def test_training_cutoff_blocks_future_visible_dependencies(client: AsyncC
     manifest_row = payload["input_snapshot"]["manifest_rows"][0]
     assert manifest_row["resolved_exclusion_reason"] == "analytics_build_run_not_visible_at_cutoff"
     assert (
-        payload["input_snapshot"]["leakage_checks"][
-            "analytics_completed_finished_visibility"
-        ]["status"]
+        payload["input_snapshot"]["leakage_checks"]["analytics_completed_finished_visibility"][
+            "status"
+        ]
         == "fail"
     )
 
@@ -1175,10 +1168,7 @@ async def test_training_cutoff_blocks_future_base_temperature_run(client: AsyncC
     manifest_row = payload["input_snapshot"]["manifest_rows"][0]
     assert manifest_row["resolved_exclusion_reason"] == "base_temperature_run_not_visible_at_cutoff"
     assert (
-        payload["input_snapshot"]["leakage_checks"]["base_temperature_cutoff"][
-            "status"
-        ]
-        == "fail"
+        payload["input_snapshot"]["leakage_checks"]["base_temperature_cutoff"]["status"] == "fail"
     )
 
 
@@ -1254,9 +1244,9 @@ async def test_training_cutoff_blocks_completed_run_without_finished_at(
     manifest_row = payload["input_snapshot"]["manifest_rows"][0]
     assert manifest_row["resolved_exclusion_reason"] == "analytics_build_run_missing_finished_at"
     assert (
-        payload["input_snapshot"]["leakage_checks"][
-            "analytics_completed_finished_visibility"
-        ]["status"]
+        payload["input_snapshot"]["leakage_checks"]["analytics_completed_finished_visibility"][
+            "status"
+        ]
         == "fail"
     )
 
@@ -1298,9 +1288,7 @@ async def test_training_cutoff_blocks_fact_rows_created_after_cutoff(
         rows = list(
             (
                 await session.scalars(
-                    select(FactReceiptDaily).where(
-                        FactReceiptDaily.build_run_id == build_run_id
-                    )
+                    select(FactReceiptDaily).where(FactReceiptDaily.build_run_id == build_run_id)
                 )
             ).all()
         )
@@ -1341,12 +1329,9 @@ async def test_training_cutoff_blocks_fact_rows_created_after_cutoff(
     manifest_row = payload["input_snapshot"]["manifest_rows"][0]
     assert manifest_row["resolved_exclusion_reason"] == "fact_rows_not_visible_at_cutoff"
     assert payload["input_snapshot"]["leakage_checks"]["fact_visibility"]["status"] == "fail"
-    assert (
-        payload["input_snapshot"]["leakage_checks"]["fact_visibility"][
-            "reason_code_breakdown"
-        ]
-        == {"fact_rows_not_visible_at_cutoff": 1}
-    )
+    assert payload["input_snapshot"]["leakage_checks"]["fact_visibility"][
+        "reason_code_breakdown"
+    ] == {"fact_rows_not_visible_at_cutoff": 1}
 
 
 async def test_training_cutoff_warns_for_mixed_visible_and_leaking_rows(
@@ -1418,9 +1403,7 @@ async def test_training_cutoff_warns_for_mixed_visible_and_leaking_rows(
         rows = list(
             (
                 await session.scalars(
-                    select(FactReceiptDaily).where(
-                        FactReceiptDaily.build_run_id == build_leak
-                    )
+                    select(FactReceiptDaily).where(FactReceiptDaily.build_run_id == build_leak)
                 )
             ).all()
         )
@@ -1499,13 +1482,9 @@ async def test_training_cutoff_warns_for_mixed_visible_and_leaking_rows(
     assert fact_visibility["passed_row_count"] == 2
     assert fact_visibility["excluded_row_count"] == 1
     assert fact_visibility["failed_row_count"] == 0
-    assert fact_visibility["reason_code_breakdown"] == {
-        "fact_rows_not_visible_at_cutoff": 1
-    }
+    assert fact_visibility["reason_code_breakdown"] == {"fact_rows_not_visible_at_cutoff": 1}
     manifest_rows = payload["input_snapshot"]["manifest_rows"]
-    excluded_rows = [
-        row for row in manifest_rows if row["resolved_exclusion_reason"] is not None
-    ]
+    excluded_rows = [row for row in manifest_rows if row["resolved_exclusion_reason"] is not None]
     assert len(excluded_rows) == 1
     assert excluded_rows[0]["resolved_exclusion_reason"] == "fact_rows_not_visible_at_cutoff"
 
@@ -1626,9 +1605,7 @@ async def test_training_cutoff_warns_for_future_invisible_weather_revisions(
         "weather_observation_visibility"
     ]
     assert weather_visibility["status"] == "pass"
-    future_revision = payload["input_snapshot"]["leakage_checks"][
-        "future_revision_exclusion"
-    ]
+    future_revision = payload["input_snapshot"]["leakage_checks"]["future_revision_exclusion"]
     assert future_revision["status"] == "warn"
     assert future_revision["future_excluded_observation_count"] >= 1
     assert future_revision["reason_code_breakdown"] == {
@@ -1916,10 +1893,9 @@ async def test_forecast_observed_axis_uses_day_coordinate_and_nonzero_mass(
         payload["input_snapshot"]["axis_snapshot"]["coordinate_system"]
         == "observed_weather_phase_adjusted_day"
     )
-    assert (
-        Decimal(payload["input_snapshot"]["axis_snapshot"]["phenology_coordinate_day"])
-        <= Decimal("90")
-    )
+    assert Decimal(
+        payload["input_snapshot"]["axis_snapshot"]["phenology_coordinate_day"]
+    ) <= Decimal("90")
     p50_values = [Decimal(item["p50_kg"]) for item in payload["daily_predictions"]]
     assert any(value > 0 for value in p50_values)
     assert sum(p50_values, Decimal("0")) == Decimal("96000.000000")

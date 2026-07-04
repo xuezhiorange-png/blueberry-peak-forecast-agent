@@ -117,9 +117,15 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
+          # --durations=0 reports every test's wall time to help diagnose
+          # pytest-level hangs (the per-test --timeout=120 cannot interrupt
+          # blocked coroutines reliably, so we surface slow tests).
+          # Use --timeout-method=signal for asyncio tests that cannot be
+          # interrupted via thread-based signals.
           pytest -m integration -vv --tb=long \
             --timeout=120 \
-            --timeout-method=thread \
+            --timeout-method=signal \
+            --durations=0 \
             --junitxml=reports/test-results/integration.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/integration.xml ]; then

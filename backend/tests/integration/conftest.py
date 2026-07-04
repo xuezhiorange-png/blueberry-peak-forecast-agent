@@ -86,10 +86,30 @@ def _ensure_test_database() -> None:
 async def _truncate_master_data() -> None:
     _ensure_test_database()
     async with AsyncSessionMaker() as session:
-        await session.execute(
-            text(f"TRUNCATE {', '.join(_MASTER_DATA_TABLES)} RESTART IDENTITY CASCADE")
+        # Filter to tables that actually exist in the database
+        result = await session.execute(
+            text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
         )
-        await session.commit()
+        existing = {row[0] for row in result.fetchall()}
+        to_truncate = [t for t in _MASTER_DATA_TABLES if t in existing]
+        if not to_truncate:
+            return
+        # Use a short statement-level timeout so the truncate fails fast
+        # if any prior transaction still holds an ACCESS EXCLUSIVE lock on
+        # the master data tables (e.g. from a leaked connection). Without
+        # this, a leaked lock can hang pytest indefinitely.
+        try:
+            await session.execute(text("SET LOCAL lock_timeout = '2s'"))
+        except Exception:
+            pass
+        try:
+            await session.execute(
+                text(f"TRUNCATE {', '.join(to_truncate)} RESTART IDENTITY CASCADE")
+            )
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 @pytest.fixture(scope="session", autouse=True)
