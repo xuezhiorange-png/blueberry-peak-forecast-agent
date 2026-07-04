@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.models.analytics import AnalyticsBuildRun
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.maturity import (
+    MaturityDailyPredictionModel,
     MaturityForecastRun,
     MaturityModelRun,
 )
@@ -97,6 +98,35 @@ class HistoricalCandidate:
 def _is_sha256_hex(value: str) -> bool:
     """Check if a string is a valid lowercase SHA-256 hex digest."""
     return len(value) == 64 and all(c in "0123456789abcdef" for c in value)
+
+
+def _task8_daily_prediction_payload_hash(
+    daily: MaturityDailyPredictionModel,
+    *,
+    forecast_source_signature: str,
+) -> str:
+    """Deterministic SHA-256 hash of a daily prediction row's content fields.
+
+    Excludes database IDs (daily.id, forecast_run.id) and server-generated
+    timestamps (created_at).  The forecast_source_signature ties the hash to
+    the parent forecast run without embedding mutable database state.
+    """
+    return sha256_payload(
+        {
+            "forecast_source_signature": forecast_source_signature,
+            "prediction_date": str(daily.prediction_date),
+            "phenology_coordinate_day": str(daily.phenology_coordinate_day),
+            "p50_kg": str(daily.p50_kg),
+            "p80_kg": str(daily.p80_kg),
+            "p90_kg": str(daily.p90_kg),
+            "cumulative_p50_kg": str(daily.cumulative_p50_kg),
+            "cumulative_p80_kg": str(daily.cumulative_p80_kg),
+            "cumulative_p90_kg": str(daily.cumulative_p90_kg),
+            "curve_share": str(daily.curve_share),
+            "confidence_level": daily.confidence_level,
+            "quality_flags": sorted(daily.quality_flags),
+        }
+    )
 
 
 def _build_identity_payload(identity: ResolvedUpstreamSemanticIdentity) -> dict[str, object]:
@@ -278,6 +308,7 @@ async def _query_task6_candidates(
             source_role="task6_plan_version",
             schema_version="task6-plan-v1",
             semantic_payload_hash=row.file_sha256,
+            canonical_payload_hash=row.file_sha256,
             business_version=row.source_version,
             display_label="task6:plan_version",
             persistent_reference=PersistentUpstreamReference(
@@ -564,6 +595,7 @@ async def _query_task8_forecast_run_candidates(
             source_role="task8_forecast_run",
             schema_version="task8-maturity-v1",
             semantic_payload_hash=row.source_signature if hasattr(row, "source_signature") else "",
+            input_signature=row.source_signature if hasattr(row, "source_signature") else "",
             display_label="task8:forecast_run",
             persistent_reference=PersistentUpstreamReference(
                 reference_type="database_run_id", reference_value=row.id
@@ -719,7 +751,7 @@ async def _query_task8_artifact_candidates(
             business_version=model_run.model_version,
             display_label="task8:model_artifact",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id", reference_value=artifact.id
+                reference_type="database_artifact_id", reference_value=artifact.id
             ),
         )
         candidates.append(
@@ -727,7 +759,7 @@ async def _query_task8_artifact_candidates(
                 source_role="task8_model_artifact",
                 source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
                 persistent_reference=PersistentUpstreamReference(
-                    reference_type="database_run_id", reference_value=artifact.id
+                    reference_type="database_artifact_id", reference_value=artifact.id
                 ),
                 semantic_identity=identity,
                 authoritative_available_at=artifact.created_at,
@@ -768,14 +800,17 @@ async def _query_task8_daily_prediction_candidates(
     candidates: list[HistoricalCandidate] = []
     for daily, forecast_run in rows:
         sig = getattr(forecast_run, "source_signature", "")
+        daily_hash = _task8_daily_prediction_payload_hash(daily, forecast_source_signature=sig)
         identity = _make_identity(
             source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
             source_role="task8_daily_prediction",
             schema_version="task8-maturity-v1",
-            semantic_payload_hash=sig,
+            semantic_payload_hash=daily_hash,
+            input_signature=sig,
+            canonical_payload_hash=daily_hash,
             display_label="task8:daily_prediction",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id", reference_value=daily.id
+                reference_type="database_row_id", reference_value=daily.id
             ),
         )
         candidates.append(
@@ -783,10 +818,11 @@ async def _query_task8_daily_prediction_candidates(
                 source_role="task8_daily_prediction",
                 source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
                 persistent_reference=PersistentUpstreamReference(
-                    reference_type="database_run_id", reference_value=daily.id
+                    reference_type="database_row_id", reference_value=daily.id
                 ),
                 semantic_identity=identity,
                 authoritative_available_at=daily.created_at,
+                canonical_payload_hash=daily_hash,
             )
         )
     return candidates
@@ -826,7 +862,7 @@ async def _query_task10_artifact_candidates(
             business_version=artifact.artifact_schema_version,
             display_label="task10:model_artifact",
             persistent_reference=PersistentUpstreamReference(
-                reference_type="database_run_id", reference_value=artifact.id
+                reference_type="database_artifact_id", reference_value=artifact.id
             ),
         )
         candidates.append(
@@ -834,7 +870,7 @@ async def _query_task10_artifact_candidates(
                 source_role="task10_model_artifact",
                 source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
                 persistent_reference=PersistentUpstreamReference(
-                    reference_type="database_run_id", reference_value=artifact.id
+                    reference_type="database_artifact_id", reference_value=artifact.id
                 ),
                 semantic_identity=identity,
                 authoritative_available_at=artifact.created_at,

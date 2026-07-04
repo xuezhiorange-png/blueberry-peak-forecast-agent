@@ -220,6 +220,7 @@ class Task10AuthorityOutcome:
     training_reference: PersistentUpstreamReference | None = None
     artifact_reference: PersistentUpstreamReference | None = None
     prediction_reference: PersistentUpstreamReference | None = None
+    feature_reference: PersistentUpstreamReference | None = None
     task9_run_reference: PersistentUpstreamReference | None = None
     task9_result_hash: str | None = None
     input_signature: str | None = None

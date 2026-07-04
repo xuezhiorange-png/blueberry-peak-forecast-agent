@@ -36,6 +36,7 @@ from backend.app.rolling_backtest.config import (
     rolling_backtest_config_hash,
     rolling_backtest_config_payload,
 )
+from backend.app.rolling_backtest.enums import UpstreamSelectionMode
 from backend.app.rolling_backtest.errors import (
     RollingBacktestAttemptConflictError,
     RollingBacktestAuthorityBindingError,
@@ -190,6 +191,65 @@ def _resolved_input_identity_from_payload(
     return _RESOLVED_IDENTITY_ADAPTER.validate_python(normalized)
 
 
+def _validated_resolved_input_reference(
+    item: ResolvedInputPersistenceCommand,
+    *,
+    pinned: bool,
+) -> PersistentUpstreamReference | None:
+    identity_ref = item.identity.persistent_reference
+    command_ref = item.persistent_reference
+
+    if identity_ref != command_ref:
+        raise RollingBacktestCommandMismatchError(
+            f"resolved input role={item.identity.source_role} persistent reference mismatch"
+        )
+
+    if pinned and command_ref is None:
+        raise RollingBacktestCommandMismatchError(
+            f"pinned resolved input role={item.identity.source_role} is missing "
+            "persistent reference"
+        )
+
+    return command_ref
+
+
+def _persistent_reference_from_row(
+    row: RollingBacktestResolvedInput,
+) -> PersistentUpstreamReference | None:
+    ref_type = row.persistent_reference_type
+    ref_value = row.persistent_reference_value
+
+    if ref_type is None and ref_value is None:
+        return None
+
+    if ref_type is None or ref_value is None:
+        raise RollingBacktestCanonicalParityError(
+            f"resolved input role={row.source_role} has partial persistent reference"
+        )
+
+    if ref_type in {"database_run_id", "database_artifact_id", "database_row_id"}:
+        try:
+            parsed = int(ref_value)
+        except (TypeError, ValueError) as exc:
+            raise RollingBacktestCanonicalParityError(
+                f"resolved input role={row.source_role} has invalid database reference"
+            ) from exc
+
+        if parsed <= 0 or str(parsed) != ref_value:
+            raise RollingBacktestCanonicalParityError(
+                f"resolved input role={row.source_role} has non-canonical database reference"
+            )
+
+        return PersistentUpstreamReference(
+            reference_type=ref_type,
+            reference_value=parsed,
+        )
+
+    raise RollingBacktestCanonicalParityError(
+        f"resolved input role={row.source_role} has unsupported reference type={ref_type}"
+    )
+
+
 def _config_from_canonical_payload(payload: Mapping[str, Any]) -> RollingBacktestConfig:
     normalized = deepcopy(dict(payload))
     raw_nodes = normalized.get("nodes")
@@ -211,6 +271,64 @@ def _config_from_canonical_payload(payload: Mapping[str, Any]) -> RollingBacktes
 
 def _resolved_input_audit_hash(identity: ResolvedUpstreamSemanticIdentity) -> str:
     return sha256_payload(_resolved_input_canonical_payload(identity))
+
+
+async def load_node_resolved_identities_with_references(
+    session: AsyncSession,
+    *,
+    rolling_node_id: int,
+) -> tuple[ResolvedUpstreamSemanticIdentity, ...]:
+    resolved_result = await session.execute(
+        select(RollingBacktestResolvedInput)
+        .where(RollingBacktestResolvedInput.rolling_node_id == rolling_node_id)
+        .order_by(
+            RollingBacktestResolvedInput.source_role,
+            RollingBacktestResolvedInput.role_qualifier,
+            RollingBacktestResolvedInput.source_type,
+        )
+    )
+    resolved_rows = resolved_result.scalars().all()
+
+    identities: list[ResolvedUpstreamSemanticIdentity] = []
+    seen_roles: set[str] = set()
+    for row in resolved_rows:
+        _assert_no_persistent_reference_fields(row.canonical_payload)
+        try:
+            reconstructed = _resolved_input_identity_from_payload(row.canonical_payload)
+        except ValidationError as exc:
+            raise RollingBacktestCanonicalParityError("resolved input payload is invalid") from exc
+
+        reference = _persistent_reference_from_row(row)
+
+        if row.source_role in seen_roles:
+            raise RollingBacktestIntegrityError(
+                f"duplicate resolved input role '{row.source_role}' for node {rolling_node_id}"
+            )
+        seen_roles.add(row.source_role)
+
+        normalized_fields = {
+            "source_role": reconstructed.source_role,
+            "source_type": reconstructed.source_type.value,
+            "role_qualifier": reconstructed.role_qualifier,
+            "semantic_input_signature": reconstructed.semantic.input_signature,
+            "result_hash": reconstructed.semantic.result_hash,
+            "canonical_payload_hash": reconstructed.semantic.canonical_payload_hash,
+            "schema_version": reconstructed.semantic.schema_version,
+            "policy_version": reconstructed.semantic.policy_version,
+            "audit_hash": _resolved_input_audit_hash(reconstructed),
+        }
+        for field_name, expected_value in normalized_fields.items():
+            if getattr(row, field_name) != expected_value:
+                raise RollingBacktestCanonicalParityError(
+                    f"resolved input {field_name} mismatch for role '{row.source_role}'"
+                )
+
+        if row.canonical_payload != _resolved_input_canonical_payload(reconstructed):
+            raise RollingBacktestCanonicalParityError("resolved input canonical payload mismatch")
+
+        identities.append(reconstructed.model_copy(update={"persistent_reference": reference}))
+
+    return tuple(identities)
 
 
 def _dag_canonical_payload(
@@ -321,6 +439,10 @@ def validate_persistence_command(command: RollingBacktestPersistenceCommand) -> 
                 f"node {expected_node.node_key.value} resolved identities do not match "
                 "resolved input commands"
             )
+
+        pinned = node_cmd.node.upstream_selection_mode == UpstreamSelectionMode.PINNED
+        for item in node_cmd.resolved_inputs:
+            _validated_resolved_input_reference(item, pinned=pinned)
 
         resolved_by_role = {
             item.identity.source_role: item.identity for item in node_cmd.resolved_inputs
@@ -443,6 +565,10 @@ async def create_or_load_logical_run(
 
                 for ri_cmd in node_cmd.resolved_inputs:
                     ident = ri_cmd.identity
+                    validated_ref = _validated_resolved_input_reference(
+                        ri_cmd,
+                        pinned=node_def.upstream_selection_mode == UpstreamSelectionMode.PINNED,
+                    )
                     db_input = RollingBacktestResolvedInput(
                         rolling_node_id=db_node.id,
                         source_role=ident.source_role,
@@ -454,13 +580,11 @@ async def create_or_load_logical_run(
                         schema_version=ident.semantic.schema_version,
                         policy_version=ident.semantic.policy_version,
                         persistent_reference_type=(
-                            ri_cmd.persistent_reference.reference_type
-                            if ri_cmd.persistent_reference
-                            else None
+                            validated_ref.reference_type if validated_ref is not None else None
                         ),
                         persistent_reference_value=(
-                            str(ri_cmd.persistent_reference.reference_value)
-                            if ri_cmd.persistent_reference
+                            str(validated_ref.reference_value)
+                            if validated_ref is not None
                             else None
                         ),
                         canonical_payload=_resolved_input_canonical_payload(ident),
@@ -696,63 +820,34 @@ async def _verify_node_with_integrity(
     if node.node_signature != expected_signature:
         raise RollingBacktestCanonicalParityError("node_signature mismatch")
 
-    resolved_result = await session.execute(
-        select(RollingBacktestResolvedInput)
-        .where(RollingBacktestResolvedInput.rolling_node_id == node.id)
-        .order_by(RollingBacktestResolvedInput.source_role)
+    resolved_identities = await load_node_resolved_identities_with_references(
+        session,
+        rolling_node_id=node.id,
     )
-    resolved_rows = resolved_result.scalars().all()
-    if len(resolved_rows) != node.expected_resolved_input_count:
+    if len(resolved_identities) != node.expected_resolved_input_count:
         raise RollingBacktestChildCountMismatchError(
             "resolved_input count mismatch for "
             f"node {node.id}: expected={node.expected_resolved_input_count} "
-            f"actual={len(resolved_rows)}"
+            f"actual={len(resolved_identities)}"
         )
 
     expected_resolved = {
         item.source_role: item for item in expected_node.resolved_upstream_semantic_identities
     }
     resolved_rows_by_role: dict[str, ResolvedUpstreamSemanticIdentity] = {}
-    for row in resolved_rows:
-        _assert_no_persistent_reference_fields(row.canonical_payload)
-        try:
-            reconstructed = _resolved_input_identity_from_payload(row.canonical_payload)
-        except ValidationError as exc:
-            raise RollingBacktestCanonicalParityError("resolved input payload is invalid") from exc
-        expected_identity = expected_resolved.get(row.source_role)
+    for reconstructed in resolved_identities:
+        expected_identity = expected_resolved.get(reconstructed.source_role)
         if expected_identity is None:
             raise RollingBacktestIntegrityError(
-                f"unexpected resolved input role '{row.source_role}' for node {node.id}"
+                f"unexpected resolved input role '{reconstructed.source_role}' for node {node.id}"
             )
         if _resolved_input_canonical_payload(reconstructed) != _resolved_input_canonical_payload(
             expected_identity
         ):
             raise RollingBacktestCanonicalParityError(
-                f"resolved input semantic mismatch for role '{row.source_role}'"
+                f"resolved input semantic mismatch for role '{reconstructed.source_role}'"
             )
-        if row.source_type != reconstructed.source_type.value:
-            raise RollingBacktestCanonicalParityError("resolved input source_type mismatch")
-        if row.role_qualifier != reconstructed.role_qualifier:
-            raise RollingBacktestCanonicalParityError("resolved input role_qualifier mismatch")
-        if row.semantic_input_signature != reconstructed.semantic.input_signature:
-            raise RollingBacktestCanonicalParityError(
-                "resolved input semantic_input_signature mismatch"
-            )
-        if row.result_hash != reconstructed.semantic.result_hash:
-            raise RollingBacktestCanonicalParityError("resolved input result_hash mismatch")
-        if row.canonical_payload_hash != reconstructed.semantic.canonical_payload_hash:
-            raise RollingBacktestCanonicalParityError(
-                "resolved input canonical_payload_hash mismatch"
-            )
-        if row.schema_version != reconstructed.semantic.schema_version:
-            raise RollingBacktestCanonicalParityError("resolved input schema_version mismatch")
-        if row.policy_version != reconstructed.semantic.policy_version:
-            raise RollingBacktestCanonicalParityError("resolved input policy_version mismatch")
-        if row.canonical_payload != _resolved_input_canonical_payload(reconstructed):
-            raise RollingBacktestCanonicalParityError("resolved input canonical payload mismatch")
-        if row.audit_hash != _resolved_input_audit_hash(reconstructed):
-            raise RollingBacktestCanonicalParityError("resolved input audit hash mismatch")
-        resolved_rows_by_role[row.source_role] = reconstructed
+        resolved_rows_by_role[reconstructed.source_role] = reconstructed
 
     audit_result = await session.execute(
         select(RollingBacktestAvailabilityAudit)
@@ -923,6 +1018,7 @@ async def create_execution_attempt(
     status: str = "pending",
     current_stage: str = "initialized",
     prior_attempt_id: int | None = None,
+    session: AsyncSession | None = None,
 ) -> RollingBacktestAttempt:
     """Create a new execution attempt with per-node attempt_number.
 
@@ -933,6 +1029,94 @@ async def create_execution_attempt(
     Repository gate: validates that rolling_run_id on the attempt
     equals the node's rolling_run_id at insert time.
     """
+    if session is not None:
+        # Lock the node row to serialize attempt creation for this node
+        node_result = await session.execute(
+            select(RollingBacktestNode).where(RollingBacktestNode.id == node_id).with_for_update()
+        )
+        node_row = node_result.scalar_one_or_none()
+        if node_row is None:
+            raise RollingBacktestIntegrityError(f"node {node_id} not found")
+
+        if node_row.rolling_run_id != run_id:
+            raise RollingBacktestAuthorityBindingError(
+                f"attempt run_id {run_id} does not match node {node_id} "
+                f"run_id {node_row.rolling_run_id}"
+            )
+
+        await _run_sync_hook(_ATTEMPT_ALLOCATION_SYNC_HOOK, "after_node_lock")
+
+        existing_attempts = await session.execute(
+            select(RollingBacktestAttempt)
+            .where(RollingBacktestAttempt.rolling_node_id == node_id)
+            .order_by(RollingBacktestAttempt.attempt_number)
+        )
+        attempts = existing_attempts.scalars().all()
+
+        for index, attempt in enumerate(attempts, start=1):
+            if attempt.attempt_number != index:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt chain has gap: expected {index} found {attempt.attempt_number}"
+                )
+            if index == 1 and attempt.prior_attempt_id is not None:
+                raise RollingBacktestAttemptConflictError(
+                    "attempt 1 must not point to a prior attempt"
+                )
+            if index > 1 and attempt.prior_attempt_id != attempts[index - 2].id:
+                raise RollingBacktestAttemptConflictError(
+                    f"attempt {attempt.id} does not point to direct predecessor"
+                )
+            if attempt.prior_attempt_id is not None:
+                prior_in_chain = await session.get(RollingBacktestAttempt, attempt.prior_attempt_id)
+                if prior_in_chain is None or prior_in_chain.rolling_node_id != node_id:
+                    raise RollingBacktestAttemptConflictError(
+                        f"attempt {attempt.id} prior link crosses node boundary"
+                    )
+                if prior_in_chain.rolling_run_id != run_id:
+                    raise RollingBacktestAttemptConflictError(
+                        f"attempt {attempt.id} prior link crosses run boundary"
+                    )
+
+        next_number = len(attempts) + 1
+        resolved_prior_id = prior_attempt_id
+        if attempts:
+            previous = attempts[-1]
+            if previous.status not in ("failed", "blocked"):
+                raise RollingBacktestAttemptConflictError(
+                    f"cannot create retry after previous status {previous.status}"
+                )
+            if resolved_prior_id is None:
+                resolved_prior_id = previous.id
+            elif resolved_prior_id != previous.id:
+                raise RollingBacktestAttemptConflictError(
+                    f"prior_attempt must be direct predecessor {previous.id}"
+                )
+        elif resolved_prior_id is not None:
+            raise RollingBacktestAttemptConflictError("attempt 1 must not provide prior_attempt_id")
+
+        finished_at_val = None
+        if status not in ("pending", "running"):
+            finished_at_val = datetime.now(UTC)
+
+        attempt = RollingBacktestAttempt(
+            rolling_run_id=run_id,
+            rolling_node_id=node_id,
+            attempt_number=next_number,
+            prior_attempt_id=resolved_prior_id,
+            status=status,
+            current_stage=current_stage,
+            started_at=datetime.now(UTC),
+            finished_at=finished_at_val,
+        )
+        session.add(attempt)
+        try:
+            await session.flush()
+        except SAIntegrityError as exc:
+            raise RollingBacktestAttemptConflictError(
+                f"attempt_number {next_number} already exists for node {node_id}"
+            ) from exc
+        return attempt
+
     async with AsyncSessionMaker() as session:
         # Lock the node row to serialize attempt creation for this node
         node_result = await session.execute(
@@ -1112,6 +1296,7 @@ async def persist_stage_event(
     sanitized_diagnostics: dict[str, object] | None = None,
     entered_at: datetime | None = None,
     finished_at: datetime | None = None,
+    session: AsyncSession | None = None,
 ) -> RollingBacktestStageEvent:
     """Insert or update a stage event for a given attempt and stage.
 
@@ -1132,6 +1317,37 @@ async def persist_stage_event(
         entered_at = now
 
     finished_at_value: datetime | None = None if status == "running" else (finished_at or now)
+
+    if session is not None:
+        stmt = pg_insert(RollingBacktestStageEvent).values(
+            attempt_id=attempt_id,
+            rolling_node_id=node_id,
+            sequence_number=ordinal,
+            stage=stage,
+            status=status,
+            structured_error_code=structured_error_code,
+            sanitized_diagnostics=sanitized_diagnostics,
+            entered_at=entered_at,
+            finished_at=finished_at_value,
+        )
+        returning_stmt = stmt.on_conflict_do_update(
+            constraint="uq_rolling_backtest_stage_event_stage",
+            set_={
+                "status": stmt.excluded.status,
+                "finished_at": stmt.excluded.finished_at,
+                "structured_error_code": stmt.excluded.structured_error_code,
+                "sanitized_diagnostics": stmt.excluded.sanitized_diagnostics,
+            },
+        ).returning(RollingBacktestStageEvent)
+
+        try:
+            result = await session.execute(returning_stmt)
+            return result.scalar_one()
+        except SAIntegrityError as exc:
+            constraint_name = _extract_constraint_name(exc)
+            raise RollingBacktestStageIntegrityError(
+                f"persist_stage_event constraint violation: {constraint_name or 'unknown'}"
+            ) from exc
 
     async with AsyncSessionMaker() as session:
         stmt = pg_insert(RollingBacktestStageEvent).values(
@@ -1284,7 +1500,33 @@ async def finalize_attempt_with_snapshot(
     structured_error_code: str | None = None,
     sanitized_diagnostics: dict[str, object] | None = None,
     canonical_payload: dict[str, Any] | None = None,
+    session: AsyncSession | None = None,
 ) -> tuple[RollingBacktestAttempt, RollingBacktestOrchestrationSnapshot]:
+    if session is not None:
+        try:
+            attempt = await _finalize_attempt_status_in_session(
+                session,
+                attempt_id,
+                status=status,
+                current_stage=current_stage,
+                structured_error_code=structured_error_code,
+                sanitized_diagnostics=sanitized_diagnostics,
+            )
+            snapshot = await _persist_orchestration_snapshot_in_session(
+                session,
+                attempt_id,
+                node_id,
+                status=snapshot_status,
+                terminal_stage=terminal_stage,
+                fallback_mode=fallback_mode,
+                blocker_code=blocker_code,
+                canonical_payload=canonical_payload,
+            )
+            return attempt, snapshot
+        except SAIntegrityError as exc:
+            raise RollingBacktestAttemptConflictError(
+                f"finalize with snapshot failed for attempt {attempt_id}"
+            ) from exc
     async with AsyncSessionMaker() as session:
         try:
             attempt = await _finalize_attempt_status_in_session(
@@ -1441,3 +1683,71 @@ async def validate_orchestration_snapshot_consistency(
             f"attempt {attempt_id} has snapshot but non-terminal status {attempt.status}"
         )
     return snapshot.terminal_stage
+
+
+# ── Node and run status management ───────────────────────────────────────────
+
+
+async def derive_run_status_from_attempts(
+    session: AsyncSession,
+    run_id: int,
+) -> str:
+    """Derive run-level status from the latest attempt per node."""
+
+    node_result = await session.execute(
+        select(RollingBacktestNode.id).where(RollingBacktestNode.rolling_run_id == run_id)
+    )
+    node_ids = [row[0] for row in node_result.all()]
+    statuses: list[str] = []
+    for nid in node_ids:
+        latest_result = await session.execute(
+            select(RollingBacktestAttempt.status)
+            .where(
+                RollingBacktestAttempt.rolling_node_id == nid,
+                RollingBacktestAttempt.rolling_run_id == run_id,
+            )
+            .order_by(RollingBacktestAttempt.attempt_number.desc())
+            .limit(1)
+        )
+        latest = latest_result.scalar_one_or_none()
+        if latest is not None:
+            statuses.append(latest)
+    if not statuses:
+        return "pending"
+    all_pending = all(s == "pending" for s in statuses)
+    all_completed = all(s == "completed" for s in statuses)
+    any_running = any(s == "running" for s in statuses)
+    any_blocked = any(s == "blocked" for s in statuses)
+    any_failed = any(s == "failed" for s in statuses)
+    any_completed = any(s == "completed" for s in statuses)
+
+    if all_pending:
+        return "pending"
+    if any_running:
+        return "running"
+    if any_failed:
+        return "failed"
+    if all_completed:
+        return "forecast_completed"
+    if any_completed and any_blocked:
+        return "partially_completed"
+    if any_blocked and not any_completed:
+        return "blocked"
+    return "pending"
+
+
+async def update_run_status_from_attempts(
+    session: AsyncSession,
+    run_id: int,
+) -> str:
+    """Aggregate latest attempt statuses and update the run status. Returns the new status."""
+    derived = await derive_run_status_from_attempts(session, run_id)
+    result = await session.execute(
+        select(RollingBacktestRun).where(RollingBacktestRun.id == run_id).with_for_update()
+    )
+    run = result.scalar_one_or_none()
+    if run is None:
+        raise RollingBacktestIntegrityError(f"run {run_id} not found")
+    run.status = derived
+    await session.flush()
+    return derived
