@@ -864,6 +864,9 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
         session.add_all(daily_rows)
         await session.flush()
         await session.commit()
+        # Explicit close so the connection returns to the pool fully
+        # reset. See the comment in _seed_real_task10_authorities.
+        await session.close()
 
     return {
         "season_id": season_id,
@@ -957,6 +960,13 @@ async def _seed_real_task10_authorities(
         # async with's auto-close may roll back the training and prediction
         # rows, leaving the next test to see leftover connection state.
         await session.commit()
+        # Explicit close so the connection returns to the pool with a
+        # fully-reset transaction state. Without this, asyncpg may hand
+        # the same connection to the next test's TRUNCATE session in
+        # idle-in-transaction state, blocking the next test's setup
+        # truncate for the full 2s lock_timeout window and cascading
+        # LockNotAvailableError failures through the rest of the run.
+        await session.close()
         return {
             "task9_run_id": fixture["train_task9_run_id"],
             "training_run_id": training_run_id,
@@ -1323,16 +1333,26 @@ async def _build_real_orchestration_command(
 
     identities = tuple(identity_items)
 
+    # Pin as_of_local_date and the forecast window to the analytical
+    # season (fixture_season_id=2026) rather than forecast_cutoff_at's
+    # wall-clock date. The schema's _validate_dates model_validator
+    # requires node_key (MARCH_15) to match
+    # `date(season_id, 3, 15)` exactly, and Task 8 / Task 9 fixture
+    # dates (make_request()) are all anchored in 2026. forecast_cutoff_at
+    # still drives parent_authority_timestamp audit and is intentionally
+    # future-dated (>= 2026-07-01) to remain ahead of the training
+    # finished_at wall clock.
+    as_of_local_date = date(fixture_season_id, 3, 15)
     node = _make_pinned_node(
         season_id=fixture_season_id,
         node_key="march_15",
         resolved_identities=identities,
     ).model_copy(
         update={
-            "as_of_local_date": forecast_cutoff_at.date(),
+            "as_of_local_date": as_of_local_date,
             "forecast_cutoff_at": forecast_cutoff_at,
-            "forecast_start_local_date": forecast_cutoff_at.date() + timedelta(days=1),
-            "forecast_end_local_date": forecast_cutoff_at.date() + timedelta(days=7),
+            "forecast_start_local_date": as_of_local_date + timedelta(days=1),
+            "forecast_end_local_date": as_of_local_date + timedelta(days=7),
         }
     )
     config = _make_config(nodes=(node,))
