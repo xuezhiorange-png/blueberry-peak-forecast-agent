@@ -920,16 +920,6 @@ async def _seed_real_task10_authorities(
             samples=samples,
             config=_relaxed_residual_config(),
         )
-        if training_result.execution_status != "completed":
-            print(
-                "DEBUG training blocked:",
-                "blockers=",
-                training_result.blockers,
-                "eligibility_reasons=",
-                training_result.eligibility_reasons,
-                "sample_count=",
-                training_result.sample_count,
-            )
         assert training_result.execution_status == "completed"
         prediction_result, prediction_run_id = await execute_residual_prediction(
             session,
