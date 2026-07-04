@@ -2479,38 +2479,6 @@ async def _stage_validate_visibility(
                 f"no availability audit for resolved input role={role}"
             )
         snapshot = snapshot_adapter.validate_python(audit_row.canonical_payload)
-        # P0-debug: temporary diagnostic for task10_model_artifact visibility
-        if role == "task10_model_artifact":
-            from backend.app.rolling_backtest.canonical import canonical_json_dumps
-
-            print(
-                "DEBUG task10_model_artifact audit:",
-                canonical_json_dumps(audit_row.canonical_payload),
-            )
-            print(
-                "DEBUG node.forecast_cutoff_at:",
-                node.forecast_cutoff_at,
-                "as_of_local_date:",
-                node.as_of_local_date,
-                "execution_mode:",
-                config.execution_mode,
-                "business_timezone:",
-                config.cutoff_timezone,
-            )
-            pa = snapshot.parent_authority
-            print(
-                "DEBUG parent_authority:",
-                "status=",
-                pa.authority_status,
-                "timestamp=",
-                pa.authority_timestamp,
-                "ts > cutoff:",
-                pa.authority_timestamp > node.forecast_cutoff_at,
-                "created_at=",
-                snapshot.created_at,
-                "created_at > cutoff:",
-                snapshot.created_at > node.forecast_cutoff_at,
-            )
         eval_result = evaluate_authority_visibility(
             snapshot=snapshot,
             execution_mode=config.execution_mode,
@@ -2518,8 +2486,6 @@ async def _stage_validate_visibility(
             as_of_local_date=node.as_of_local_date,
             business_timezone=config.cutoff_timezone,
         )
-        if role == "task10_model_artifact":
-            print("DEBUG eval_result:", eval_result)
         available_at = _extract_authoritative_available_at(snapshot)
         ctx.availability_audits[role] = AvailabilityAuditOutcome(
             source_role=role,
