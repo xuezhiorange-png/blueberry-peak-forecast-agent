@@ -12,6 +12,7 @@ from sqlalchemy import func, select, text
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.canonical import make_stable_cohort_key
+from backend.app.models.master_data import Season
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelExecutionAttempt,
@@ -206,6 +207,24 @@ async def _seed_prediction_fixture(
         resolved_analytics_season_id = (
             analytics_season_id if analytics_season_id is not None else season_id
         )
+        # Ensure the analytics build's season row exists (FK target for
+        # analytics_build_run.season_id). _seed_master_data only creates
+        # season_id=1; callers may want analytics builds for a different
+        # season (e.g. when the orchestration node uses a future year).
+        if resolved_analytics_season_id != season_id:
+            existing_analytics_season = await session.get(
+                Season, resolved_analytics_season_id
+            )
+            if existing_analytics_season is None:
+                session.add(
+                    Season(
+                        id=resolved_analytics_season_id,
+                        code=f"analytics-season-{resolved_analytics_season_id}",
+                        start_date=date(resolved_analytics_season_id, 1, 1),
+                        end_date=date(resolved_analytics_season_id, 12, 31),
+                    )
+                )
+                await session.flush()
         validation_season_id = await _seed_season(
             session,
             season_id=2,

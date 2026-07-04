@@ -1047,7 +1047,7 @@ async def _build_real_orchestration_command(
         "daily_predictions_by_date": task8["daily_predictions_by_date"],
     }
     task10 = await _seed_real_task10_authorities(
-        task8_authority=task8_authority, analytics_season_id=2026
+        task8_authority=task8_authority, analytics_season_id=forecast_cutoff_at.year
     )
     task9_run_id = task10["task9_run_id"]
     if pinned_task9_variant == "training":
@@ -2130,7 +2130,7 @@ async def test_cross_season_task8_authority_blocks() -> None:
 async def test_real_task10_task9_binding_mismatch_blocks() -> None:
     """Pinned Task 9 must match the real Task 10 prediction's frozen Task 9 binding."""
     _require_postgres()
-    forecast_cutoff_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    forecast_cutoff_at = datetime(2099, 3, 15, 4, 0, tzinfo=UTC)
     cmd = await _build_real_orchestration_command(
         forecast_cutoff_at=forecast_cutoff_at,
         pinned_task9_variant="validation",
