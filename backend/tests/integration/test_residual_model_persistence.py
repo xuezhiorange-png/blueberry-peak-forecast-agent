@@ -73,7 +73,23 @@ def _apply_task8_authority_to_payload(
     payload: dict[str, Any],
     authority: dict[str, Any],
 ) -> None:
-    """Override Task 8 authority fields with one exact persisted variety chain."""
+    """Override Task 8 authority fields with one exact persisted variety chain.
+
+    The orchestration fixture re-anchors the task8 dict's date fields
+    (forecast_as_of_date / prediction_start_date / prediction_end_date)
+    to the future season (e.g. 2099-02-28 / 2099-03-01..03) before
+    passing the task8_authority into this helper. The request payload
+    created by ``make_request(season_id=2099)`` already carries the
+    same season-anchored dates, but as an additional safety net we
+    also force the payload's top-level scalar date fields to follow
+    the task8_authority dates so production-side validation (e.g.
+    `verification.maturity_forecast_as_of_date > request.as_of_date`)
+    can never see a season mismatch even if ``make_request()`` was
+    invoked with the wrong ``season_id``.
+    """
+    payload["as_of_date"] = authority["forecast_as_of_date"]
+    payload["forecast_start_date"] = authority["prediction_start_date"]
+    payload["forecast_end_date"] = authority["prediction_end_date"]
     pool = copy.deepcopy(payload["capacity_pools"][0])
     pool["members"] = [
         {
@@ -223,24 +239,43 @@ async def _seed_prediction_fixture(
                     )
                 )
                 await session.flush()
+        # The validation season (id=2) is used as the FK target for
+        # validation_label_build / validation_feature_build runs. Pin
+        # its date range to the same anchor season as the request
+        # payload so receipt dates land inside the coverage window.
+        # The default anchor (when no `analytics_season_id` override
+        # is supplied) is year 2026 — this matches the legacy fixture
+        # `Season(id=1)` created by `_seed_master_data`.
+        validation_anchor_season_id = (
+            analytics_season_id if analytics_season_id is not None else 2026
+        )
         validation_season_id = await _seed_season(
             session,
             season_id=2,
             code="2026-2027",
-            start_date=date(2026, 1, 1),
-            end_date=date(2026, 3, 31),
+            start_date=date(validation_anchor_season_id, 1, 1),
+            end_date=date(validation_anchor_season_id, 3, 31),
         )
+        # Default the request payload to the legacy 2026 fixture when
+        # the caller did not override `analytics_season_id` to a different
+        # future year. `_seed_master_data` creates a `Season(id=1)` whose
+        # `start_date=date(2026, 1, 1)` and `end_date=date(2026, 12, 31)`,
+        # so anchoring the request payload to year 2026 keeps the
+        # structural rows inside the analytics season's coverage window.
+        request_anchor_season_id = analytics_season_id if analytics_season_id is not None else 2026
         if task8_authority is not None:
-            base_payload = copy.deepcopy(make_request())
+            base_payload = copy.deepcopy(make_request(season_id=request_anchor_season_id))
             _apply_task8_authority_to_payload(base_payload, task8_authority)
             task9_run_id, output = await _persist_task9_run(session, payload=base_payload)
         else:
-            task9_run_id, output = await _persist_task9_run(session)
+            task9_run_id, output = await _persist_task9_run(
+                session, payload=make_request(season_id=request_anchor_season_id)
+            )
         if task8_authority is not None:
-            validation_payload = copy.deepcopy(make_request())
+            validation_payload = copy.deepcopy(make_request(season_id=request_anchor_season_id))
             _apply_task8_authority_to_payload(validation_payload, task8_authority)
         else:
-            validation_payload = make_request()
+            validation_payload = make_request(season_id=request_anchor_season_id)
         validation_payload["initial_inventory_cohorts"][0]["remaining_quantity_kg"] = Decimal("6")
         validation_payload["initial_opening_mature_inventory_kg"] = sum(
             Decimal(str(item["remaining_quantity_kg"]))
@@ -251,16 +286,23 @@ async def _seed_prediction_fixture(
             payload=validation_payload,
         )
         as_of_date = _snapshot_as_of_date(output)
+        # The default anchor for analytics build coverage is 2026 (the
+        # legacy `Season(id=1)` created by `_seed_master_data`). When
+        # the caller overrides `analytics_season_id` to a different
+        # year (e.g. 2099 for the orchestration fixture), anchor the
+        # build's coverage and the receipt dates to that year so they
+        # stay inside the analytics season's coverage window.
+        coverage_anchor_season_id = analytics_season_id if analytics_season_id is not None else 2026
         label_build = await _seed_build_run(
             session,
             build_run_id=1,
             season_id=resolved_analytics_season_id,
             source_max_raw_id=100,
             config_hash="a" * 64,
-            finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+            finished_at=datetime(coverage_anchor_season_id, 3, 20, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
-            analysis_start_date=date(2026, 1, 1),
-            analysis_end_date=date(2026, 3, 20),
+            analysis_start_date=date(coverage_anchor_season_id, 1, 1),
+            analysis_end_date=date(coverage_anchor_season_id, 3, 20),
         )
         feature_build = await _seed_build_run(
             session,
@@ -268,10 +310,10 @@ async def _seed_prediction_fixture(
             season_id=resolved_analytics_season_id,
             source_max_raw_id=50,
             config_hash="b" * 64,
-            finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+            finished_at=datetime(coverage_anchor_season_id, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
-            analysis_start_date=date(2026, 1, 1),
-            analysis_end_date=date(2026, 2, 27),
+            analysis_start_date=date(coverage_anchor_season_id, 1, 1),
+            analysis_end_date=date(coverage_anchor_season_id, 2, 27),
         )
         # Use a receipt date in the analytics season's date range so the
         # manifest builder's `date_outside_build_season` exclusion does
@@ -321,7 +363,7 @@ async def _seed_prediction_fixture(
             season_id=validation_season_id,
             source_max_raw_id=200,
             config_hash="c" * 64,
-            finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+            finished_at=datetime(validation_anchor_season_id, 3, 20, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
         validation_feature_build = await _seed_build_run(
@@ -330,10 +372,16 @@ async def _seed_prediction_fixture(
             season_id=validation_season_id,
             source_max_raw_id=150,
             config_hash="d" * 64,
-            finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
+            finished_at=datetime(validation_anchor_season_id, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
-        for index, target_date in enumerate((date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))):
+        for index, target_date in enumerate(
+            (
+                date(resolved_analytics_season_id, 3, 1),
+                date(resolved_analytics_season_id, 3, 2),
+                date(resolved_analytics_season_id, 3, 3),
+            )
+        ):
             await _seed_daily_fact(
                 session,
                 fact_id=300 + index,
