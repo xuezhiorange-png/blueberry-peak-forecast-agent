@@ -273,13 +273,22 @@ async def _seed_prediction_fixture(
             analysis_start_date=date(2026, 1, 1),
             analysis_end_date=date(2026, 2, 27),
         )
-        # Use a receipt date in the analytics season's range so the
+        # Use a receipt date in the analytics season's date range so the
         # manifest builder's `date_outside_build_season` exclusion does
-        # not drop the row. Pick a date in the season's start..end.
+        # not drop the row. The default season (id=1) created by
+        # _seed_master_data has start_date=2026-01-01 — receipt dates
+        # in March 2026 fall inside. When the caller overrides the
+        # analytics season to a different year (e.g. 2099 for the
+        # orchestration fixture), anchor the dates to that year instead
+        # so the analytics build's season matches its facts' dates.
+        if resolved_analytics_season_id == season_id:
+            season_anchor = date(2026, 3, 1)
+        else:
+            season_anchor = date(resolved_analytics_season_id, 3, 1)
         analytics_receipt_dates = (
-            date(resolved_analytics_season_id, 3, 1),
-            date(resolved_analytics_season_id, 3, 2),
-            date(resolved_analytics_season_id, 3, 3),
+            season_anchor,
+            season_anchor + timedelta(days=1),
+            season_anchor + timedelta(days=2),
         )
         for index, target_date in enumerate(analytics_receipt_dates):
             await _seed_daily_fact(
@@ -292,9 +301,9 @@ async def _seed_prediction_fixture(
                 receipt_date=target_date,
                 weight_kg=Decimal("100") + Decimal(index),
             )
-        # Feature build: seed facts near the as_of_date within the
-        # analytics season range (as_of_date is the training snapshot
-        # date; offset back a few days for the feature window).
+        # Feature build: seed facts near the season anchor within the
+        # analytics season range (offset back a few days for the feature
+        # window).
         for offset, weight in ((1, Decimal("11")), (3, Decimal("13")), (7, Decimal("17"))):
             await _seed_daily_fact(
                 session,
@@ -303,7 +312,7 @@ async def _seed_prediction_fixture(
                 season_id=resolved_analytics_season_id,
                 factory_id=factory_id,
                 variety_id=variety_id,
-                receipt_date=date(resolved_analytics_season_id, 3, 1) - timedelta(days=offset),
+                receipt_date=season_anchor - timedelta(days=offset),
                 weight_kg=weight,
             )
         validation_label_build = await _seed_build_run(
