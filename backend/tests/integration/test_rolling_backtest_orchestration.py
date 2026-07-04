@@ -940,6 +940,10 @@ async def _seed_real_task10_authorities(
         prediction_row = await session.get(ResidualModelPredictionRun, prediction_run_id)
         assert training_row is not None
         assert prediction_row is not None
+        # Explicit commit before exiting the async with. Without this, the
+        # async with's auto-close may roll back the training and prediction
+        # rows, leaving the next test to see leftover connection state.
+        await session.commit()
         return {
             "task9_run_id": fixture["train_task9_run_id"],
             "training_run_id": training_run_id,
