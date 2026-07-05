@@ -43,8 +43,8 @@ from backend.app.rolling_backtest.orchestration import (
     Task9AuthorityOutcome,
     Task10AuthorityOutcome,
 )
-from backend.app.rolling_backtest.resolution import HistoricalCandidate, ResolutionResult
 from backend.app.rolling_backtest.persistence import _STAGE_ORDINAL
+from backend.app.rolling_backtest.resolution import HistoricalCandidate, ResolutionResult
 from backend.app.rolling_backtest.schemas import (
     PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
@@ -3282,6 +3282,5 @@ async def test_decimal_string_quantity_bridge_matches_db_decimal() -> None:
         assert isinstance(bridged, Decimal)
         assert isinstance(expected_db, Decimal)
         assert bridged == expected_db, (
-            f"parse_decimal({catalog_value!r}) = {bridged!r} must equal "
-            f"DB Decimal {expected_db!r}"
+            f"parse_decimal({catalog_value!r}) = {bridged!r} must equal DB Decimal {expected_db!r}"
         )

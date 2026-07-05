@@ -112,9 +112,10 @@ from backend.app.rolling_backtest.resolution import (
 from backend.app.rolling_backtest.schemas import (
     AvailabilitySnapshot,
     ParentAuthorityIdentity,
-    Task10ModelArtifactAvailabilitySnapshot,
-    Task10PredictionRunAvailabilitySnapshot,
-    Task10TrainingRunAvailabilitySnapshot,
+    PersistentUpstreamReference,
+    ResolvedUpstreamSemanticIdentity,
+    RollingBacktestConfig,
+    RollingNodeDefinition,
     Task3AnalyticsBuildAvailabilitySnapshot,
     Task3SourceVisibilityIdentity,
     Task8DailyPredictionAvailabilitySnapshot,
@@ -122,10 +123,9 @@ from backend.app.rolling_backtest.schemas import (
     Task8ModelArtifactAvailabilitySnapshot,
     Task8ModelRunAvailabilitySnapshot,
     Task9HarvestStateRunAvailabilitySnapshot,
-    PersistentUpstreamReference,
-    ResolvedUpstreamSemanticIdentity,
-    RollingBacktestConfig,
-    RollingNodeDefinition,
+    Task10ModelArtifactAvailabilitySnapshot,
+    Task10PredictionRunAvailabilitySnapshot,
+    Task10TrainingRunAvailabilitySnapshot,
 )
 
 # ── Error types ──────────────────────────────────────────────────────────────
@@ -336,7 +336,9 @@ def _extract_authoritative_available_at(
     )
 
 
-def _task3_source_visibility_snapshot(build_run: AnalyticsBuildRun) -> Task3SourceVisibilityIdentity:
+def _task3_source_visibility_snapshot(
+    build_run: AnalyticsBuildRun,
+) -> Task3SourceVisibilityIdentity:
     assert build_run.finished_at is not None
     visible_through_at = build_run.finished_at
     visibility_manifest_hash = sha256_payload(
@@ -2521,7 +2523,9 @@ async def _stage_resolve_historical_inputs(
                     f"pinned source role mismatch: expected {identity.source_role} "
                     f"got {exact.semantic_identity.source_role}"
                 )
-            if _build_identity_payload(exact.semantic_identity) != _build_identity_payload(identity):
+            if _build_identity_payload(exact.semantic_identity) != _build_identity_payload(
+                identity
+            ):
                 raise PinnedSourceIdentityMismatchError(
                     f"pinned source semantic mismatch for role={identity.source_role}"
                 )
@@ -2555,15 +2559,17 @@ async def _stage_resolve_historical_inputs(
                         source_type=request_identity.source_type,
                         node=node,
                     ):
+                        role = request_identity.source_role
                         raise HistoricalSourceNotVisibleError(
-                            f"no cutoff-visible historical candidate for role={request_identity.source_role}"
+                            f"no cutoff-visible historical candidate for role={role}"
                         )
                     raise HistoricalSourceNotFoundError(
                         f"no valid historical candidate for role={request_identity.source_role}"
                     )
                 if blocker_code == HistoricalSourceNotVisibleError.code:
+                    role = request_identity.source_role
                     raise HistoricalSourceNotVisibleError(
-                        f"no cutoff-visible historical candidate for role={request_identity.source_role}"
+                        f"no cutoff-visible historical candidate for role={role}"
                     )
                 if blocker_code == AmbiguousHistoricalCandidateError.code:
                     raise AmbiguousHistoricalCandidateError(
@@ -2592,7 +2598,9 @@ async def _stage_resolve_historical_inputs(
     )
 
 
-def _task3_source_visibility_snapshot(build_run: AnalyticsBuildRun) -> Task3SourceVisibilityIdentity:
+def _task3_source_visibility_snapshot(
+    build_run: AnalyticsBuildRun,
+) -> Task3SourceVisibilityIdentity:
     assert build_run.finished_at is not None
     visible_through_at = build_run.finished_at
     visibility_manifest_hash = sha256_payload(
@@ -2692,7 +2700,9 @@ async def _has_historical_candidates_outside_cutoff(
                     MaturityDailyPredictionModel.forecast_run_id == MaturityForecastRun.id,
                 )
                 .where(MaturityForecastRun.status.in_(["completed", "unavailable"]))
-                .where(MaturityDailyPredictionModel.prediction_date >= node.forecast_start_local_date)
+                .where(
+                    MaturityDailyPredictionModel.prediction_date >= node.forecast_start_local_date
+                )
                 .where(MaturityDailyPredictionModel.prediction_date <= node.forecast_end_local_date)
                 .limit(1)
             )
@@ -2712,7 +2722,11 @@ async def _has_historical_candidates_outside_cutoff(
         row = (
             await session.execute(
                 select(ResidualModelTrainingRun.id)
-                .where(ResidualModelTrainingRun.execution_status.in_(["completed", "blocked", "failed"]))
+                .where(
+                    ResidualModelTrainingRun.execution_status.in_(
+                        ["completed", "blocked", "failed"]
+                    )
+                )
                 .limit(1)
             )
         ).first()
@@ -2754,7 +2768,9 @@ async def _build_availability_snapshot_for_resolved_input(
             outcome.semantic_identity,
             allowed_types=("database_run_id",),
         )
-        build_run = cast(AnalyticsBuildRun | None, await session.get(AnalyticsBuildRun, build_run_id))
+        build_run = cast(
+            AnalyticsBuildRun | None, await session.get(AnalyticsBuildRun, build_run_id)
+        )
         if build_run is None or build_run.finished_at is None:
             raise HistoricalSourceNotFoundError(
                 f"Task 3 analytics build {build_run_id} was not found"
@@ -2767,7 +2783,9 @@ async def _build_availability_snapshot_for_resolved_input(
         )
 
     if source_type == AvailabilitySourceType.TASK8_MODEL_RUN:
-        run_id = _require_database_ref(outcome.semantic_identity, allowed_types=("database_run_id",))
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
         row = cast(MaturityModelRun | None, await session.get(MaturityModelRun, run_id))
         if row is None or row.finished_at is None:
             raise HistoricalSourceNotFoundError(f"Task 8 model run {run_id} was not found")
@@ -2782,14 +2800,20 @@ async def _build_availability_snapshot_for_resolved_input(
             outcome.semantic_identity,
             allowed_types=("database_artifact_id",),
         )
-        artifact_row = cast(MaturityModelArtifact | None, await session.get(MaturityModelArtifact, artifact_id))
+        artifact_row = cast(
+            MaturityModelArtifact | None, await session.get(MaturityModelArtifact, artifact_id)
+        )
         parent_run = (
             None
             if artifact_row is None
-            else cast(MaturityModelRun | None, await session.get(MaturityModelRun, artifact_row.run_id))
+            else cast(
+                MaturityModelRun | None, await session.get(MaturityModelRun, artifact_row.run_id)
+            )
         )
         if artifact_row is None or parent_run is None or parent_run.finished_at is None:
-            raise HistoricalSourceNotFoundError(f"Task 8 model artifact {artifact_id} was not found")
+            raise HistoricalSourceNotFoundError(
+                f"Task 8 model artifact {artifact_id} was not found"
+            )
         return Task8ModelArtifactAvailabilitySnapshot(
             source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
             created_at=artifact_row.created_at,
@@ -2806,7 +2830,9 @@ async def _build_availability_snapshot_for_resolved_input(
         )
 
     if source_type == AvailabilitySourceType.TASK8_FORECAST_RUN:
-        run_id = _require_database_ref(outcome.semantic_identity, allowed_types=("database_run_id",))
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
         row = cast(MaturityForecastRun | None, await session.get(MaturityForecastRun, run_id))
         if row is None or row.finished_at is None:
             raise HistoricalSourceNotFoundError(f"Task 8 forecast run {run_id} was not found")
@@ -2817,12 +2843,20 @@ async def _build_availability_snapshot_for_resolved_input(
         )
 
     if source_type == AvailabilitySourceType.TASK8_DAILY_PREDICTION:
-        row_id = _require_database_ref(outcome.semantic_identity, allowed_types=("database_row_id",))
-        row = cast(MaturityDailyPredictionModel | None, await session.get(MaturityDailyPredictionModel, row_id))
+        row_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_row_id",)
+        )
+        row = cast(
+            MaturityDailyPredictionModel | None,
+            await session.get(MaturityDailyPredictionModel, row_id),
+        )
         parent_forecast = (
             None
             if row is None
-            else cast(MaturityForecastRun | None, await session.get(MaturityForecastRun, row.forecast_run_id))
+            else cast(
+                MaturityForecastRun | None,
+                await session.get(MaturityForecastRun, row.forecast_run_id),
+            )
         )
         if row is None or parent_forecast is None or parent_forecast.finished_at is None:
             raise HistoricalSourceNotFoundError(f"Task 8 daily prediction {row_id} was not found")
@@ -2844,7 +2878,9 @@ async def _build_availability_snapshot_for_resolved_input(
         )
 
     if source_type == AvailabilitySourceType.TASK9_HARVEST_STATE_RUN:
-        run_id = _require_database_ref(outcome.semantic_identity, allowed_types=("database_run_id",))
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
         row = cast(HarvestStateRun | None, await session.get(HarvestStateRun, run_id))
         if row is None or row.created_at is None:
             raise HistoricalSourceNotFoundError(f"Task 9 run {run_id} was not found")
@@ -2855,8 +2891,12 @@ async def _build_availability_snapshot_for_resolved_input(
         )
 
     if source_type == AvailabilitySourceType.TASK10_TRAINING_RUN:
-        run_id = _require_database_ref(outcome.semantic_identity, allowed_types=("database_run_id",))
-        row = cast(ResidualModelTrainingRun | None, await session.get(ResidualModelTrainingRun, run_id))
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
+        row = cast(
+            ResidualModelTrainingRun | None, await session.get(ResidualModelTrainingRun, run_id)
+        )
         if row is None or row.finished_at is None:
             raise HistoricalSourceNotFoundError(f"Task 10 training run {run_id} was not found")
         return Task10TrainingRunAvailabilitySnapshot(
@@ -2870,11 +2910,16 @@ async def _build_availability_snapshot_for_resolved_input(
             outcome.semantic_identity,
             allowed_types=("database_artifact_id",),
         )
-        row = cast(ResidualModelArtifact | None, await session.get(ResidualModelArtifact, artifact_id))
+        row = cast(
+            ResidualModelArtifact | None, await session.get(ResidualModelArtifact, artifact_id)
+        )
         parent_run = (
             None
             if row is None
-            else cast(ResidualModelTrainingRun | None, await session.get(ResidualModelTrainingRun, row.training_run_id))
+            else cast(
+                ResidualModelTrainingRun | None,
+                await session.get(ResidualModelTrainingRun, row.training_run_id),
+            )
         )
         if row is None or parent_run is None or parent_run.finished_at is None:
             raise HistoricalSourceNotFoundError(f"Task 10 artifact {artifact_id} was not found")
@@ -2896,8 +2941,12 @@ async def _build_availability_snapshot_for_resolved_input(
         )
 
     if source_type == AvailabilitySourceType.TASK10_PREDICTION_RUN:
-        run_id = _require_database_ref(outcome.semantic_identity, allowed_types=("database_run_id",))
-        row = cast(ResidualModelPredictionRun | None, await session.get(ResidualModelPredictionRun, run_id))
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
+        row = cast(
+            ResidualModelPredictionRun | None, await session.get(ResidualModelPredictionRun, run_id)
+        )
         if row is None or row.completed_at is None:
             raise HistoricalSourceNotFoundError(f"Task 10 prediction run {run_id} was not found")
         return Task10PredictionRunAvailabilitySnapshot(

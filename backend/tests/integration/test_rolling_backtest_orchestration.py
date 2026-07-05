@@ -1521,7 +1521,8 @@ async def _build_real_historical_resolution_command(
         requested_identities = all_identities
 
     historical_identities = tuple(
-        identity.model_copy(update={"persistent_reference": None}) for identity in requested_identities
+        identity.model_copy(update={"persistent_reference": None})
+        for identity in requested_identities
     )
     historical_node = pinned_node.model_copy(
         update={
@@ -2192,9 +2193,10 @@ async def test_historical_resolution_real_chain_success_and_snapshot() -> None:
         assert snapshot.canonical_payload["task9_authority"]["run_reference"]["reference_type"] == (
             "database_run_id"
         )
-        assert snapshot.canonical_payload["task10_authority"]["prediction_reference"][
-            "reference_type"
-        ] == "database_run_id"
+        assert (
+            snapshot.canonical_payload["task10_authority"]["prediction_reference"]["reference_type"]
+            == "database_run_id"
+        )
         loaded_run = (
             await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
         ).scalar_one()
@@ -2205,7 +2207,7 @@ async def test_historical_resolution_real_chain_success_and_snapshot() -> None:
 async def test_historical_resolution_task9_latest_visible_candidate_selected() -> None:
     """Historical resolution must deterministically select the latest visible Task 9 candidate."""
     _require_postgres()
-    base_cmd = await _build_real_orchestration_command(
+    await _build_real_orchestration_command(
         forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
     )
     async with AsyncSessionMaker() as session:
@@ -2217,10 +2219,16 @@ async def test_historical_resolution_task9_latest_visible_candidate_selected() -
                 )
             ).scalar_one()
         task9_rows = (
-            await session.execute(
-                select(HarvestStateRun).order_by(HarvestStateRun.created_at.asc(), HarvestStateRun.id.asc())
+            (
+                await session.execute(
+                    select(HarvestStateRun).order_by(
+                        HarvestStateRun.created_at.asc(), HarvestStateRun.id.asc()
+                    )
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(task9_rows) >= 2
         expected = max(task9_rows, key=lambda row: (row.created_at, row.output_schema_version))
         expected_id = expected.id
@@ -2259,10 +2267,16 @@ async def test_historical_resolution_task9_same_priority_conflict_blocks() -> No
     )
     async with AsyncSessionMaker() as session:
         task9_rows = (
-            await session.execute(
-                select(HarvestStateRun).order_by(HarvestStateRun.created_at.asc(), HarvestStateRun.id.asc())
+            (
+                await session.execute(
+                    select(HarvestStateRun).order_by(
+                        HarvestStateRun.created_at.asc(), HarvestStateRun.id.asc()
+                    )
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(task9_rows) >= 2
         first, second = task9_rows[0], task9_rows[1]
         second.created_at = first.created_at
@@ -2291,7 +2305,7 @@ async def test_historical_resolution_task9_same_priority_conflict_blocks() -> No
 async def test_historical_resolution_task10_invisible_by_cutoff_blocks() -> None:
     """When only Task 10 prediction candidates are after cutoff, block as not visible."""
     _require_postgres()
-    base_cmd = await _build_real_orchestration_command(
+    await _build_real_orchestration_command(
         forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
     )
     async with AsyncSessionMaker() as session:
