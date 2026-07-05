@@ -183,23 +183,38 @@ Indexes:
 | Phase | Status | Rationale |
 |---|---|---|
 | Phase 2 | DONE | merged to main as PR #28 @ `67a595704b8582d9c62ca6d876a5fd8249e5767c` |
-| Phase 3.0 (this PR) | DRAFT | schema-gap additive only, no business logic |
-| Phase 3.1 (business) | NOT STARTED | paused; waits on Phase 3.0 merge + frozen design contract |
+| **Phase 3.0** | **DONE** | merged to main as PR #31 @ `c0377521057d2af74a5a9bb01004f43b09469b0f`; main post-merge CI 28742013066 `success` |
+| Phase 3.1 (business) | NOT STARTED | paused; waits on explicit Task scope authorization under Issue #29 (PR #30 still Draft / head `ed7c2a7f`) |
 
-## Provenance / governance chain — untouched
+## Provenance / governance chain — post-merge state
 
 - `Issue #21` (Task 11 umbrella): OPEN, untouched.
 - `Issue #29` (Phase 3 umbrella): OPEN, untouched.
 - `PR #28` (Phase 2 historical_resolution): MERGED at `67a5957f`, untouched.
-- `PR #30` (Phase 3 design): OPEN / Draft / head `ed7c2a7f`, untouched.
+- `PR #31` (Phase 3.0 schema prerequisite): **MERGED at `c0377521057d2af74a5a9bb01004f43b09469b0f`**.
+- `PR #30` (Phase 3 business design): OPEN / Draft / head `ed7c2a7f`, **untouched** (Phase 3 business implementation still NOT STARTED; waits on explicit Task scope authorization).
 - `Issue #27`: CLOSED / completed (Phase 2 closeout).
-- TASK-XXX prior rows in `docs/TASK_BACKLOG.md`: read-only here.
+- `main` post-merge CI run `28742013066`: completed / `success`.
+- `main` HEAD: `c0377521057d2af74a5a9bb01004f43b09469b0f` (= `origin/main`).
 
-## Final State (this PR — to be filled at close)
+## Final State
 
-- code changed: NO (purely additive DDL + ORM, no behavioural change)
-- tests changed: YES (new alembic round-trip + column-presence + constraint tests)
-- migration: YES (`0015_task11_phase3_schema_gap`, additive)
-- commit: pending
-- push: pending
-- LOCAL_HEAD == REMOTE_HEAD: pending verification after push
+This closeout is a governance-only refresh of `docs/task-11-phase3-schema-gap.md`,
+no production / migration / ORM / test / service code was modified.
+The schema-gap DELIVERABLE state recorded during PR #31 (commit `f5912a3`)
+plus the doc-only P2 index-name alignment commit `411c29c` is now merged via
+PR #31 merge commit `c0377521057d2af74a5a9bb01004f43b09469b0f`.
+
+- code changed (PR #31): YES — additive DDL (`0015_task11_phase3_schema_gap`) + ORM columns + tests, **no behavioural change to historical_observed path**
+- tests changed (PR #31): YES — 17 unit tests + 12 PG integration tests collected, all green in CI run `28742013066`
+- migration created (PR #31): YES — `0015_task11_phase3_schema_gap`, additive (chained from `0014_task9_historical_authority`)
+- PR merge: PR #31 merged at `c0377521` via GitHub UI by `xuezhiorange-png` on 2026-07-05T13:14:57Z
+- CI (PR #31 push to `main`): run `28742013066`, status `completed`, conclusion `success`
+- PR / Issue / boundary preservation:
+  - `PR #31`: MERGED
+  - `PR #30`: OPEN / Draft / untouched (head `ed7c2a7f`)
+  - `Issue #21`: OPEN (unclosed)
+  - `Issue #29`: OPEN (unclosed)
+  - Phase 3 business implementation: NOT STARTED
+  - Task 12 / Task 13: untouched
+  - Retrospective replay runner / Task 9 service call / Task 10 replay binding: not implemented
