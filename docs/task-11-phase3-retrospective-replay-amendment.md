@@ -498,26 +498,53 @@ existing docs and frozen SHA stay untouched.
 
 ---
 
-## 16. Frozen Authority SHA
+## 16. Frozen Authority SHA (base + content)
 
-This document freezes design decisions for Phase 3.1 implementation
-on top of the merge-main commit `7340ec51865645a2c06b2d2e1e54d24cd457c831`
-absorbed into PR #30. The Frozen Authority SHA below is **the
-merge-main baseline the decisions are scoped against**; it is a
-fixed external reference, so the doc's own commits do not need to be
-re-pinned every time the doc is refreshed. If the merge-main SHA
-itself rotates, the Frozen Authority SHA rotates with it.
+This document freezes Phase 3.1 design decisions on top of the
+merge-main baseline. Two SHAs together identify the frozen contract:
 
-- **Frozen Authority SHA: 7340ec51865645a2c06b2d2e1e54d24cd457c831** —
-  the merge-main commit on PR #30 that absorbed PR #31 (Phase 3.0
-  schema prerequisite, merge `c0377521`) + PR #32 (governance
-  closeout, merge `0d748737`). Phase 3.1 implementation buckets in
-  §12 land on top of this baseline; any code change that contradicts
-  the amendment MUST either amend the doc first or wait for
-  explicit Task scope reauthorization.
-- Implementation authorization: **NOT GRANTED** as of this doc-only
-  commit. Each implementation bucket (§12) requires its own review
-  round before any code lands.
+- **Frozen Authority Base SHA: 7340ec51865645a2c06b2d2e1e54d24cd457c831**
+  The merge-main commit on PR #30 branch
+  `codex/task-11-phase3-retrospective-replay` that absorbed
+  PR #31 (Phase 3.0 schema prerequisite, merge `c0377521`) +
+  PR #32 (governance closeout, merge `0d748737`).
+  This SHA is the *stable external anchor*: it identifies the schema
+  and governance state that all 13 frozen decisions are scoped
+  against. The Base SHA does **not** move when only the wording of
+  this amendment changes.
+
+- **Frozen Amendment Content SHA: 11545b59eb14414e54efe26dffa3338ba5d6c27c**
+  The current commit on PR #30 branch (on top of the Base SHA)
+  that contains the actual Phase 3.1 13 frozen decisions (`§3`
+  through `§15`), the vocabulary table (`§2`), the Frozen Authority
+  section (`§16`), and the provenance section (`§17`), with the
+  `Base + Content` SHA pair exposed explicitly.
+  This SHA moves whenever the doc wording changes; reviewers
+  cross-check this SHA against the PR #30 body. The wording that
+  introduced the `Base + Content` split was committed at
+  `7fdf5aa63f05525c79c84168905a0669e2374862` (an intermediate
+  amend) and finalized at this SHA after the §16 / §17 literals
+  were aligned to point at each other; both readings are useful
+  for review.
+
+Clarification: The Base SHA is the **authority anchor** for Phase 3.1
+implementation (i.e. the schema / governance state any code change must
+be consistent with). The Content SHA is the **location** where the
+13 frozen decisions are written. A reviewer can:
+1. Open the commit at the Content SHA in GitHub and read the 13
+   decisions in their final wording.
+2. Cross-check the Base SHA to confirm the schema / governance
+   state the decisions apply to.
+
+If a future code change rotates the Base SHA (e.g. a follow-up
+schema or governance PR merges into `main` and PR #30 re-absorbs
+main), both SHAs MUST be rotated in `§16`, in the PR #30 body,
+and in Issue #29 body — atomically. Adding a new SHA without
+rotating the existing one is a freeze-lifecycle violation.
+
+- Implementation authorization: **NOT GRANTED** as of this
+  doc-only commit. Each implementation bucket (§12) requires its
+  own review round before any code lands.
 - Benchmark cases: **NOT IMPLEMENTED** (the test matrix in §14 is
   pending implementation PR).
 - Provenance / governance chain (post-merge state):
@@ -535,10 +562,19 @@ itself rotates, the Frozen Authority SHA rotates with it.
 
 ## 17. Provenance / governance chain (this commit)
 
-- This commit: doc-only — no service / runner / repository /
-  persistence / availability / resolution / ORM / migration / test
-  file touched.
+- This commit: doc-only. No service / runner / repository /
+  persistence / availability / resolution / ORM / migration /
+  test / CI / frontend / API / exports / metrics file touched.
+  The cleanup only rephrases `§16` to expose the
+  `Base SHA + Content SHA` pair for freeze-lifecycle clarity.
+- Frozen Authority Base SHA (from §16):
+  `7340ec51865645a2c06b2d2e1e54d24cd457c831`.
+- Frozen Amendment Content SHA (this commit):
+  `11545b59eb14414e54efe26dffa3338ba5d6c27c`. The prior
+  wording's Content SHA at `8272bec1...` is the SHA of the previous
+  wording of this section; both readings are useful for review.
 - Author: `root <root@C202606092244457.local>` (autodetected in the
-  repos session).
-- PR #30 milestone: **governance freeze** at this SHA — round of
-  review required before any implementation bucket begins.
+  repo session).
+- PR #30 milestone: **frozen design contract** at the Base SHA,
+  locatable at the Content SHA. Ready / Merge / codegen are NOT
+  authorized at this round.
