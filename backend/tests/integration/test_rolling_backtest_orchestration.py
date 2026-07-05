@@ -1505,6 +1505,50 @@ async def _build_real_orchestration_command(
     return RollingBacktestPersistenceCommand(config=config, nodes=(node_cmd,))
 
 
+async def _build_real_historical_resolution_command(
+    *,
+    forecast_cutoff_at: datetime,
+    source_roles: tuple[str, ...] | None = None,
+) -> RollingBacktestPersistenceCommand:
+    pinned_cmd = await _build_real_orchestration_command(forecast_cutoff_at=forecast_cutoff_at)
+    pinned_node = pinned_cmd.config.nodes[0]
+    all_identities = pinned_node.resolved_upstream_semantic_identities
+    if source_roles is not None:
+        requested_identities = tuple(
+            identity for identity in all_identities if identity.source_role in source_roles
+        )
+    else:
+        requested_identities = all_identities
+
+    historical_identities = tuple(
+        identity.model_copy(update={"persistent_reference": None}) for identity in requested_identities
+    )
+    historical_node = pinned_node.model_copy(
+        update={
+            "upstream_selection_mode": UpstreamSelectionMode.HISTORICAL_RESOLUTION,
+            "resolved_upstream_semantic_identities": historical_identities,
+        }
+    )
+    config = _make_config(
+        execution_mode=ExecutionMode.HISTORICAL_OBSERVED,
+        nodes=(historical_node,),
+    )
+    validated_node = config.nodes[0]
+    node_cmd = RollingNodePersistenceCommand(
+        node=validated_node,
+        resolved_inputs=tuple(
+            ResolvedInputPersistenceCommand(
+                identity=identity,
+                persistent_reference=None,
+            )
+            for identity in validated_node.resolved_upstream_semantic_identities
+        ),
+        availability_audits=(),
+        dag=_make_dag(),
+    )
+    return RollingBacktestPersistenceCommand(config=config, nodes=(node_cmd,))
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # a) test_single_node_successful_orchestration
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2099,6 +2143,185 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
             await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
         ).scalar_one()
         await load_logical_run_with_integrity(session, loaded_run)
+
+
+@pytest.mark.asyncio
+async def test_historical_resolution_real_chain_success_and_snapshot() -> None:
+    """Historical resolution must select real persisted Task 8/9/10 authorities and complete."""
+    _require_postgres()
+    cmd = await _build_real_historical_resolution_command(
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    async with AsyncSessionMaker() as session:
+        outcome = await orchestrate_node(
+            session,
+            rolling_run_id=run.id,
+            rolling_node_id=node_id,
+        )
+        await session.commit()
+
+    assert outcome.status == "completed", (
+        outcome.blocker_code,
+        outcome.stage,
+        outcome.diagnostics,
+    )
+    assert outcome.blocker_code is None
+
+    async with AsyncSessionMaker() as session:
+        attempt = (
+            await session.execute(
+                select(RollingBacktestAttempt)
+                .where(RollingBacktestAttempt.rolling_run_id == run.id)
+                .order_by(RollingBacktestAttempt.id.desc())
+                .limit(1)
+            )
+        ).scalar_one()
+        snapshot = (
+            await session.execute(
+                select(RollingBacktestOrchestrationSnapshot).where(
+                    RollingBacktestOrchestrationSnapshot.attempt_id == attempt.id
+                )
+            )
+        ).scalar_one()
+        assert attempt.status == "completed"
+        assert snapshot.status == "completed"
+        assert snapshot.canonical_payload["upstream_selection_mode"] == "historical_resolution"
+        assert snapshot.canonical_payload["task9_authority"]["run_reference"]["reference_type"] == (
+            "database_run_id"
+        )
+        assert snapshot.canonical_payload["task10_authority"]["prediction_reference"][
+            "reference_type"
+        ] == "database_run_id"
+        loaded_run = (
+            await session.execute(select(RollingBacktestRun).where(RollingBacktestRun.id == run.id))
+        ).scalar_one()
+        await load_logical_run_with_integrity(session, loaded_run)
+
+
+@pytest.mark.asyncio
+async def test_historical_resolution_task9_latest_visible_candidate_selected() -> None:
+    """Historical resolution must deterministically select the latest visible Task 9 candidate."""
+    _require_postgres()
+    base_cmd = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    async with AsyncSessionMaker() as session:
+        training_row = await session.get(HarvestStateRun, 1)
+        if training_row is None:
+            training_row = (
+                await session.execute(
+                    select(HarvestStateRun).order_by(HarvestStateRun.id.asc()).limit(1)
+                )
+            ).scalar_one()
+        task9_rows = (
+            await session.execute(
+                select(HarvestStateRun).order_by(HarvestStateRun.created_at.asc(), HarvestStateRun.id.asc())
+            )
+        ).scalars().all()
+        assert len(task9_rows) >= 2
+        expected = max(task9_rows, key=lambda row: (row.created_at, row.output_schema_version))
+        expected_id = expected.id
+
+    cmd = await _build_real_historical_resolution_command(
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
+        source_roles=("task9_structural_forecast",),
+    )
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    async with AsyncSessionMaker() as session:
+        outcome = await orchestrate_node(
+            session,
+            rolling_run_id=run.id,
+            rolling_node_id=node_id,
+        )
+        await session.commit()
+
+    assert outcome.status == "completed", (
+        outcome.blocker_code,
+        outcome.stage,
+        outcome.diagnostics,
+    )
+    assert outcome.task9_authority is not None
+    assert outcome.task9_authority.run_reference is not None
+    assert outcome.task9_authority.run_reference.reference_value == expected_id
+
+
+@pytest.mark.asyncio
+async def test_historical_resolution_task9_same_priority_conflict_blocks() -> None:
+    """Same-priority conflicting Task 9 candidates must block as ambiguous."""
+    _require_postgres()
+    _ = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    async with AsyncSessionMaker() as session:
+        task9_rows = (
+            await session.execute(
+                select(HarvestStateRun).order_by(HarvestStateRun.created_at.asc(), HarvestStateRun.id.asc())
+            )
+        ).scalars().all()
+        assert len(task9_rows) >= 2
+        first, second = task9_rows[0], task9_rows[1]
+        second.created_at = first.created_at
+        await session.commit()
+
+    cmd = await _build_real_historical_resolution_command(
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
+        source_roles=("task9_structural_forecast",),
+    )
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    async with AsyncSessionMaker() as session:
+        outcome = await orchestrate_node(
+            session,
+            rolling_run_id=run.id,
+            rolling_node_id=node_id,
+        )
+        await session.commit()
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "ambiguous_historical_candidate"
+
+
+@pytest.mark.asyncio
+async def test_historical_resolution_task10_invisible_by_cutoff_blocks() -> None:
+    """When only Task 10 prediction candidates are after cutoff, block as not visible."""
+    _require_postgres()
+    base_cmd = await _build_real_orchestration_command(
+        forecast_cutoff_at=datetime(2099, 3, 15, 4, 0, tzinfo=UTC),
+    )
+    async with AsyncSessionMaker() as session:
+        prediction_row = (
+            await session.execute(
+                select(ResidualModelPredictionRun)
+                .order_by(ResidualModelPredictionRun.completed_at.desc())
+                .limit(1)
+            )
+        ).scalar_one()
+        assert prediction_row.completed_at is not None
+        cutoff = prediction_row.completed_at - timedelta(minutes=1)
+
+    cmd = await _build_real_historical_resolution_command(
+        forecast_cutoff_at=cutoff,
+        source_roles=("task10_prediction_run",),
+    )
+    run = await create_or_load_logical_run(cmd)
+    node_id = await _get_node_id_for_run(run.id)
+
+    async with AsyncSessionMaker() as session:
+        outcome = await orchestrate_node(
+            session,
+            rolling_run_id=run.id,
+            rolling_node_id=node_id,
+        )
+        await session.commit()
+
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == "historical_source_not_visible"
 
 
 @pytest.mark.asyncio
