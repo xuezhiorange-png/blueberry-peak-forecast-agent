@@ -1518,7 +1518,18 @@ async def _build_real_historical_resolution_command(
             identity for identity in all_identities if identity.source_role in source_roles
         )
     else:
-        requested_identities = all_identities
+        # Residual training persists one artifact row per quantile label.
+        # The generic task10_model_artifact role is therefore intentionally
+        # ambiguous under historical resolution unless a more specific role
+        # contract exists. Keep the success-path fixture focused on the
+        # deterministic Task 10 authorities (training + prediction) and let
+        # explicit task10_model_artifact requests continue to surface the
+        # ambiguity blocker instead of silently selecting by row ordering.
+        requested_identities = tuple(
+            identity
+            for identity in all_identities
+            if identity.source_role != "task10_model_artifact"
+        )
 
     historical_identities = tuple(
         identity.model_copy(update={"persistent_reference": None})
