@@ -19,6 +19,8 @@ from backend.app.rolling_backtest.enums import (
     UpstreamSelectionMode,
 )
 from backend.app.rolling_backtest.node_orchestration import (
+    HistoricalSourceNotFoundError,
+    HistoricalSourceNotVisibleError,
     NodeAlreadyFinalizedError,
     PinnedSourceIdentityMismatchError,
     PinnedSourceNotFoundError,
@@ -41,6 +43,7 @@ from backend.app.rolling_backtest.orchestration import (
     Task9AuthorityOutcome,
     Task10AuthorityOutcome,
 )
+from backend.app.rolling_backtest.resolution import HistoricalCandidate, ResolutionResult
 from backend.app.rolling_backtest.persistence import _STAGE_ORDINAL
 from backend.app.rolling_backtest.schemas import (
     PersistentUpstreamReference,
@@ -504,29 +507,112 @@ async def test_retrospective_replay_unsupported(mock_session):
 
 @pytest.mark.asyncio
 async def test_historical_resolution_unsupported(mock_session):
-    """Historical resolution mode returns blocked outcome (P0-2).
-
-    Note: the ExecutionMode enum currently only has HISTORICAL_OBSERVED and
-    RETROSPECTIVE_REPLAY. We test with a config whose execution_mode is
-    RETROSPECTIVE_REPLAY to exercise the 'unsupported mode' path, which is
-    the same code path a future HISTORICAL_RESOLUTION mode would hit.
-    """
+    """Historical resolution selects via resolve_historical and completes."""
     import backend.app.rolling_backtest.node_orchestration as node_orch
 
-    retro_config = _make_config(execution_mode=ExecutionMode.RETROSPECTIVE_REPLAY)
+    node_def = _make_node_def(selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION)
+    config = _make_config(nodes=(node_def,))
+    persisted_identity = node_def.resolved_upstream_semantic_identities[0]
 
     mock_run = MagicMock()
     mock_run.id = 1
     mock_run.run_signature = "a" * 64
-    mock_run.canonical_payload = retro_config.model_dump(mode="python")
+    mock_run.canonical_payload = config.model_dump(mode="python")
 
     mock_node = MagicMock()
     mock_node.id = 10
     mock_node.rolling_run_id = 1
     mock_node.status = "pending"
     mock_node.node_signature = "b" * 64
-    mock_node.upstream_selection_mode = UpstreamSelectionMode.PINNED
-    mock_node.canonical_payload = retro_config.nodes[0].model_dump(mode="python")
+    mock_node.upstream_selection_mode = UpstreamSelectionMode.HISTORICAL_RESOLUTION
+    mock_node.canonical_payload = node_def.model_dump(mode="python")
+
+    mock_attempt = MagicMock()
+    mock_attempt.id = 100
+    mock_attempt.attempt_number = 1
+    mock_attempt.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    mock_attempt.finished_at = None
+
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+
+    resolved_candidate = HistoricalCandidate(
+        source_role=persisted_identity.source_role,
+        source_type=persisted_identity.source_type,
+        persistent_reference=PersistentUpstreamReference(
+            reference_type="database_run_id",
+            reference_value=84,
+        ),
+        semantic_identity=persisted_identity.model_copy(
+            update={
+                "persistent_reference": PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=84,
+                )
+            }
+        ),
+        authoritative_available_at=datetime(2026, 3, 14, 4, 0, tzinfo=UTC),
+        business_version=persisted_identity.semantic.business_version,
+        canonical_payload_hash="c" * 64,
+    )
+
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+        stage_resolve_historical_inputs=node_orch._stage_resolve_historical_inputs,
+    )
+
+    with (
+        patch.multiple(_MOD, **patches),
+        patch(
+            f"{_MOD}.resolve_historical",
+            AsyncMock(
+                return_value=ResolutionResult(
+                    source_role=persisted_identity.source_role,
+                    source_type=persisted_identity.source_type,
+                    candidates=(resolved_candidate,),
+                    resolved=resolved_candidate,
+                )
+            ),
+        ),
+        patch(
+            f"{_MOD}._build_availability_snapshot_for_resolved_input",
+            AsyncMock(
+                return_value=MagicMock(
+                    source_type=persisted_identity.source_type,
+                    status="completed",
+                    authoritative_timestamp=datetime(2026, 3, 14, 4, 0, tzinfo=UTC),
+                )
+            ),
+        ),
+        patch(f"{_MOD}._has_historical_candidates_outside_cutoff", AsyncMock(return_value=False)),
+    ):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "completed"
+    assert outcome.blocker_code is None
+
+
+@pytest.mark.asyncio
+async def test_historical_resolution_no_candidate_blocks(mock_session):
+    """Historical resolution with no valid candidate must block fail-closed."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    node_def = _make_node_def(selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION)
+    config = _make_config(nodes=(node_def,))
+    persisted_identity = node_def.resolved_upstream_semantic_identities[0]
+
+    mock_run = MagicMock()
+    mock_run.id = 1
+    mock_run.run_signature = "a" * 64
+    mock_run.canonical_payload = config.model_dump(mode="python")
+
+    mock_node = MagicMock()
+    mock_node.id = 10
+    mock_node.rolling_run_id = 1
+    mock_node.status = "pending"
+    mock_node.node_signature = "b" * 64
+    mock_node.upstream_selection_mode = UpstreamSelectionMode.HISTORICAL_RESOLUTION
+    mock_node.canonical_payload = node_def.model_dump(mode="python")
 
     mock_attempt = MagicMock()
     mock_attempt.id = 100
@@ -543,10 +629,82 @@ async def test_historical_resolution_unsupported(mock_session):
         stage_resolve_historical_inputs=node_orch._stage_resolve_historical_inputs,
     )
 
-    with patch.multiple(_MOD, **patches):
+    with (
+        patch.multiple(_MOD, **patches),
+        patch(
+            f"{_MOD}.resolve_historical",
+            AsyncMock(
+                return_value=ResolutionResult(
+                    source_role=persisted_identity.source_role,
+                    source_type=persisted_identity.source_type,
+                    candidates=(),
+                    blocked=True,
+                    blocker_code="historical_source_not_found",
+                )
+            ),
+        ),
+        patch(f"{_MOD}._has_historical_candidates_outside_cutoff", AsyncMock(return_value=False)),
+    ):
         outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert outcome.status == "blocked"
-    assert outcome.blocker_code == "UNSUPPORTED_EXECUTION_MODE"
+    assert outcome.blocker_code == HistoricalSourceNotFoundError.code
+
+
+@pytest.mark.asyncio
+async def test_historical_resolution_not_visible_blocks(mock_session):
+    """Historical resolution with only cutoff-invisible candidates must block."""
+    import backend.app.rolling_backtest.node_orchestration as node_orch
+
+    node_def = _make_node_def(selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION)
+    config = _make_config(nodes=(node_def,))
+    persisted_identity = node_def.resolved_upstream_semantic_identities[0]
+
+    mock_run = MagicMock()
+    mock_run.id = 1
+    mock_run.run_signature = "a" * 64
+    mock_run.canonical_payload = config.model_dump(mode="python")
+
+    mock_node = MagicMock()
+    mock_node.id = 10
+    mock_node.rolling_run_id = 1
+    mock_node.status = "pending"
+    mock_node.node_signature = "b" * 64
+    mock_node.upstream_selection_mode = UpstreamSelectionMode.HISTORICAL_RESOLUTION
+    mock_node.canonical_payload = node_def.model_dump(mode="python")
+
+    mock_attempt = MagicMock()
+    mock_attempt.id = 100
+    mock_attempt.attempt_number = 1
+    mock_attempt.started_at = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    mock_attempt.finished_at = None
+
+    mock_session.execute = AsyncMock(side_effect=_build_session_side_effect(mock_run, mock_node))
+
+    patches = _orchestration_patches(
+        mock_run=mock_run,
+        mock_node=mock_node,
+        mock_attempt=mock_attempt,
+        stage_resolve_historical_inputs=node_orch._stage_resolve_historical_inputs,
+    )
+
+    with (
+        patch.multiple(_MOD, **patches),
+        patch(
+            f"{_MOD}.resolve_historical",
+            AsyncMock(
+                return_value=ResolutionResult(
+                    source_role=persisted_identity.source_role,
+                    source_type=persisted_identity.source_type,
+                    candidates=(),
+                    blocked=True,
+                    blocker_code="historical_source_not_visible",
+                )
+            ),
+        ),
+    ):
+        outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
+    assert outcome.status == "blocked"
+    assert outcome.blocker_code == HistoricalSourceNotVisibleError.code
 
 
 # ── 4. Node already finalized ────────────────────────────────────────────────
@@ -2777,8 +2935,8 @@ async def test_integrity_reload_failure_rolls_back_without_persisting_blocked_fi
 
 
 @pytest.mark.asyncio
-async def test_unsupported_selection_mode(mock_session):
-    """Non-pinned selection mode returns blocked outcome (P0-2)."""
+async def test_historical_resolution_without_valid_candidates_blocks(mock_session):
+    """Historical resolution without any visible or future candidate blocks as not found."""
     import backend.app.rolling_backtest.node_orchestration as node_orch
 
     node_def = _make_node_def(selection_mode=UpstreamSelectionMode.HISTORICAL_RESOLUTION)
@@ -2811,10 +2969,13 @@ async def test_unsupported_selection_mode(mock_session):
         stage_resolve_historical_inputs=node_orch._stage_resolve_historical_inputs,
     )
 
-    with patch.multiple(_MOD, **patches):
+    with (
+        patch.multiple(_MOD, **patches),
+        patch(f"{_MOD}._has_historical_candidates_outside_cutoff", AsyncMock(return_value=False)),
+    ):
         outcome = await orchestrate_node(mock_session, rolling_run_id=1, rolling_node_id=10)
     assert outcome.status == "blocked"
-    assert outcome.blocker_code == "UNSUPPORTED_SELECTION_MODE"
+    assert outcome.blocker_code == HistoricalSourceNotFoundError.code
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
