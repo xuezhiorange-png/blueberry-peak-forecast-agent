@@ -660,8 +660,23 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
         assert persisted_subfarm.id == 11
         assert persisted_subfarm.farm_id == 1
 
-        session.add_all(
-            [
+        # All Task 8 authority rows use fixed, deterministic IDs so the
+        # authority identity is stable across the rolling-backtest
+        # contract. `_seed_real_task8_authorities` is called more than
+        # once within a single test function (e.g. historical_resolution
+        # paths first call `_build_real_orchestration_command` to lay
+        # down the canonical authorities, then call it again via
+        # `_build_real_historical_resolution_command` to compose the
+        # pinned identity set). A bare `session.add(...)` on the second
+        # call would raise UniqueViolationError on the primary key, so
+        # each row below is gated on an existence probe that mirrors
+        # the Farm / Zone / WeatherSourceLocation / Season / Variety /
+        # Subfarm blocks above. When the row already exists we still
+        # assert the deterministic identity fields are intact so a
+        # mis-seeded prior test cannot silently leak into this fixture.
+        existing_location_reference = await session.get(LocationReference, 601)
+        if existing_location_reference is None:
+            session.add(
                 LocationReference(
                     id=601,
                     farm_id=1,
@@ -685,7 +700,18 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     valid_from=date(2024, 1, 1),
                     valid_to=None,
                     source_row_hash="loc-a",
-                ),
+                )
+            )
+            await session.flush()
+        else:
+            assert existing_location_reference.id == 601
+            assert existing_location_reference.farm_id == 1
+            assert existing_location_reference.subfarm_id == 11
+            assert existing_location_reference.source_row_hash == "loc-a"
+
+        existing_plan = await session.get(FarmSeasonVarietyPlan, 501)
+        if existing_plan is None:
+            session.add(
                 FarmSeasonVarietyPlan(
                     id=501,
                     farm_id=1,
@@ -711,7 +737,20 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     source_version="v1",
                     notes="synthetic",
                     row_hash="plan-501",
-                ),
+                )
+            )
+            await session.flush()
+        else:
+            assert existing_plan.id == 501
+            assert existing_plan.farm_id == 1
+            assert existing_plan.subfarm_id == 11
+            assert existing_plan.season_id == season_id
+            assert existing_plan.variety_id == 101
+            assert existing_plan.row_hash == "plan-501"
+
+        existing_base_temp = await session.get(BaseTemperatureSearchRun, 901)
+        if existing_base_temp is None:
+            session.add(
                 BaseTemperatureSearchRun(
                     id=901,
                     scope_type="variety_zone",
@@ -736,117 +775,163 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     blockers=[],
                     input_snapshot={"samples": []},
                     finished_at=datetime(season_id, 2, 20, 12, 0, tzinfo=UTC),
-                ),
-            ]
-        )
-        await session.flush()
-
-        session.add(
-            LocationWeatherMapping(
-                id=801,
-                location_reference_id=601,
-                weather_source_location_id=7011,
-                mapping_method="explicit",
-                distance_km=Decimal("1"),
-                altitude_difference_m=Decimal("10"),
-                mapping_score=Decimal("1"),
-                confidence_level="high",
-                mapping_version="map-v1",
-                config_hash="weather-cfg",
-                available_at=date(season_id, 1, 1),
-                valid_from=date(season_id, 1, 1),
-                valid_to=None,
-                row_hash="mapping-a",
+                )
             )
-        )
-        await session.flush()
+            await session.flush()
+        else:
+            assert existing_base_temp.id == 901
+            assert existing_base_temp.variety_id == 101
+            assert existing_base_temp.climate_zone_id == 301
+            assert existing_base_temp.source_signature == "base-temp-sig"
 
-        model_run = MaturityModelRun(
-            id=101,
-            model_version="task8-v1",
-            config_hash=TASK8_MODEL_CONFIG_HASH,
-            config_snapshot={"version": "task8-v1"},
-            training_cutoff=date(season_id, 2, 28),
-            source_signature=TASK8_MODEL_SOURCE_SIGNATURE,
-            status="completed",
-            random_seed=20260703,
-            model_family="shared_spline_partial_pooling",
-            scope="task8",
-            sample_count=10,
-            distinct_season_count=2,
-            distinct_farm_count=1,
-            distinct_subfarm_count=1,
-            training_metrics={},
-            calibration_metrics={},
-            warnings=[],
-            blockers=[],
-            input_snapshot={},
-            started_at=datetime(season_id, 2, 28, 2, 0, tzinfo=UTC),
-            finished_at=datetime(season_id, 2, 28, 3, 0, tzinfo=UTC),
-            error_message=None,
-        )
-        session.add(model_run)
-        await session.flush()
-        artifact = MaturityModelArtifact(
-            id=201,
-            run_id=101,
-            artifact_hash=TASK8_ARTIFACT_HASH,
-            support_min_day=-30,
-            support_max_day=90,
-            artifact_payload={
-                "support_days": [0, 1],
-                "anchor_event": "flowering_start_date",
-                "group_models": {},
-                "shift_model": {
-                    "enabled": False,
-                    "intercept_days": "0",
-                    "coefficients": {},
-                    "category_vocabulary": {"facility_type": ["unknown"]},
-                    "reference_categories": {"facility_type": "unknown"},
-                    "feature_order": [],
-                    "scaler_center": {},
-                    "scaler_scale": {},
-                    "feature_units": {},
-                    "missing_value_rules": {},
-                    "bounds": ["-21", "21"],
-                    "warnings": [],
+        existing_weather_mapping = await session.get(LocationWeatherMapping, 801)
+        if existing_weather_mapping is None:
+            session.add(
+                LocationWeatherMapping(
+                    id=801,
+                    location_reference_id=601,
+                    weather_source_location_id=7011,
+                    mapping_method="explicit",
+                    distance_km=Decimal("1"),
+                    altitude_difference_m=Decimal("10"),
+                    mapping_score=Decimal("1"),
+                    confidence_level="high",
+                    mapping_version="map-v1",
+                    config_hash="weather-cfg",
+                    available_at=date(season_id, 1, 1),
+                    valid_from=date(season_id, 1, 1),
+                    valid_to=None,
+                    row_hash="mapping-a",
+                )
+            )
+            await session.flush()
+        else:
+            assert existing_weather_mapping.id == 801
+            assert existing_weather_mapping.location_reference_id == 601
+            assert existing_weather_mapping.weather_source_location_id == 7011
+
+        existing_model_run = await session.get(MaturityModelRun, 101)
+        if existing_model_run is None:
+            model_run = MaturityModelRun(
+                id=101,
+                model_version="task8-v1",
+                config_hash=TASK8_MODEL_CONFIG_HASH,
+                config_snapshot={"version": "task8-v1"},
+                training_cutoff=date(season_id, 2, 28),
+                source_signature=TASK8_MODEL_SOURCE_SIGNATURE,
+                status="completed",
+                random_seed=20260703,
+                model_family="shared_spline_partial_pooling",
+                scope="task8",
+                sample_count=10,
+                distinct_season_count=2,
+                distinct_farm_count=1,
+                distinct_subfarm_count=1,
+                training_metrics={},
+                calibration_metrics={},
+                warnings=[],
+                blockers=[],
+                input_snapshot={},
+                started_at=datetime(season_id, 2, 28, 2, 0, tzinfo=UTC),
+                finished_at=datetime(season_id, 2, 28, 3, 0, tzinfo=UTC),
+                error_message=None,
+            )
+            session.add(model_run)
+            await session.flush()
+        else:
+            assert existing_model_run.id == 101
+            assert existing_model_run.model_version == "task8-v1"
+            _assert_sha256_hex(existing_model_run.config_hash)
+            _assert_sha256_hex(existing_model_run.source_signature)
+            assert existing_model_run.status == "completed"
+
+        existing_model_artifact = await session.get(MaturityModelArtifact, 201)
+        if existing_model_artifact is None:
+            artifact = MaturityModelArtifact(
+                id=201,
+                run_id=101,
+                artifact_hash=TASK8_ARTIFACT_HASH,
+                support_min_day=-30,
+                support_max_day=90,
+                artifact_payload={
+                    "support_days": [0, 1],
+                    "anchor_event": "flowering_start_date",
+                    "group_models": {},
+                    "shift_model": {
+                        "enabled": False,
+                        "intercept_days": "0",
+                        "coefficients": {},
+                        "category_vocabulary": {"facility_type": ["unknown"]},
+                        "reference_categories": {"facility_type": "unknown"},
+                        "feature_order": [],
+                        "scaler_center": {},
+                        "scaler_scale": {},
+                        "feature_units": {},
+                        "missing_value_rules": {},
+                        "bounds": ["-21", "21"],
+                        "warnings": [],
+                    },
+                    "calibration": {},
+                    "base_temperature_context": {},
                 },
-                "calibration": {},
-                "base_temperature_context": {},
-            },
-            created_at=datetime(season_id, 2, 28, 3, 5, tzinfo=UTC),
-        )
-        session.add(artifact)
-        await session.flush()
-        forecast = MaturityForecastRun(
-            id=401,
-            model_run_id=101,
-            artifact_id=201,
-            plan_id=501,
-            location_reference_id=601,
-            weather_mapping_id=801,
-            base_temperature_search_run_id=901,
-            as_of_date=date(season_id, 2, 28),
-            prediction_start_date=date(season_id, 3, 1),
-            prediction_end_date=date(season_id, 3, 3),
-            expected_marketable_total_kg=Decimal("96000"),
-            expected_total_source="explicit",
-            axis_mode="calendar_proxy_axis",
-            source_signature=TASK8_FORECAST_SOURCE_SIGNATURE,
-            status="completed",
-            warnings=[],
-            blockers=[],
-            input_snapshot={},
-            started_at=datetime(season_id, 2, 28, 3, 10, tzinfo=UTC),
-            finished_at=datetime(season_id, 2, 28, 3, 30, tzinfo=UTC),
-            error_message=None,
-        )
-        session.add(forecast)
-        await session.flush()
+                created_at=datetime(season_id, 2, 28, 3, 5, tzinfo=UTC),
+            )
+            session.add(artifact)
+            await session.flush()
+        else:
+            assert existing_model_artifact.id == 201
+            assert existing_model_artifact.run_id == 101
+            _assert_sha256_hex(existing_model_artifact.artifact_hash)
 
-        daily_rows = []
+        existing_forecast_run = await session.get(MaturityForecastRun, 401)
+        if existing_forecast_run is None:
+            forecast = MaturityForecastRun(
+                id=401,
+                model_run_id=101,
+                artifact_id=201,
+                plan_id=501,
+                location_reference_id=601,
+                weather_mapping_id=801,
+                base_temperature_search_run_id=901,
+                as_of_date=date(season_id, 2, 28),
+                prediction_start_date=date(season_id, 3, 1),
+                prediction_end_date=date(season_id, 3, 3),
+                expected_marketable_total_kg=Decimal("96000"),
+                expected_total_source="explicit",
+                axis_mode="calendar_proxy_axis",
+                source_signature=TASK8_FORECAST_SOURCE_SIGNATURE,
+                status="completed",
+                warnings=[],
+                blockers=[],
+                input_snapshot={},
+                started_at=datetime(season_id, 2, 28, 3, 10, tzinfo=UTC),
+                finished_at=datetime(season_id, 2, 28, 3, 30, tzinfo=UTC),
+                error_message=None,
+            )
+            session.add(forecast)
+            await session.flush()
+        else:
+            assert existing_forecast_run.id == 401
+            assert existing_forecast_run.model_run_id == 101
+            assert existing_forecast_run.artifact_id == 201
+            assert existing_forecast_run.plan_id == 501
+            assert existing_forecast_run.location_reference_id == 601
+            assert existing_forecast_run.weather_mapping_id == 801
+            assert existing_forecast_run.base_temperature_search_run_id == 901
+            assert existing_forecast_run.status == "completed"
+            _assert_sha256_hex(existing_forecast_run.source_signature)
+
+        # Daily prediction rows are keyed on per-date IDs derived from
+        # the make_request() fixture. Insert only the missing dates so
+        # a repeated seed call cannot violate the row_hash contract or
+        # double-write completed forecast children.
         for prediction_date, daily_id in sorted(daily_ids_by_date.items()):
-            daily_rows.append(
+            existing_daily = await session.get(MaturityDailyPredictionModel, daily_id)
+            if existing_daily is not None:
+                assert existing_daily.forecast_run_id == 401
+                assert existing_daily.prediction_date == prediction_date
+                continue
+            session.add(
                 MaturityDailyPredictionModel(
                     id=daily_id,
                     forecast_run_id=401,
@@ -864,8 +949,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     created_at=datetime(season_id, 2, 28, 3, 35, tzinfo=UTC),
                 )
             )
-        session.add_all(daily_rows)
-        await session.flush()
+            await session.flush()
         await session.commit()
         # Explicit close so the connection returns to the pool fully
         # reset. See the comment in _seed_real_task10_authorities.
@@ -914,6 +998,102 @@ async def _seed_real_task10_authorities(
     # structural row. When `analytics_season_id` is None the legacy
     # 2026 fixture is used.
     fixture_season_id_for_samples = analytics_season_id if analytics_season_id is not None else 2026
+
+    # Idempotency guard: a single test can call this helper more than
+    # once when it composes `_build_real_orchestration_command` with
+    # `_build_real_historical_resolution_command`. The historical path
+    # then runs SQL `resolve_historical` over every HarvestStateRun
+    # whose created_at <= forecast_cutoff_at, ordered by created_at
+    # desc. If a second call re-creates the train task9 run, the
+    # resolved Task 9 reference would point at the *newer* run while
+    # the previously-persisted residual prediction still binds the
+    # earlier run, and the stage-6 `_resolve_task10_reuse` contract
+    # `prediction.task9_run_id == ctx.task9_authority.reference_value`
+    # would fail with TASK10_TASK9_BINDING_MISMATCH. Detect an
+    # existing trio (one train task9, one completed training run,
+    # one completed prediction run) and return it instead of seeding
+    # fresh data so the historical resolver still sees the same
+    # authority chain. The conftest.py autouse fixture already
+    # truncates these tables between tests, so reuse only happens
+    # within a single test invocation.
+    async with AsyncSessionMaker() as session:
+        existing_prediction = (
+            await session.execute(
+                select(ResidualModelPredictionRun)
+                .where(ResidualModelPredictionRun.completed_at.is_not(None))
+                .order_by(
+                    ResidualModelPredictionRun.completed_at.asc().nullslast(),
+                    ResidualModelPredictionRun.id.asc(),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+    if existing_prediction is not None:
+        # Reuse the existing authority chain. The latest existing
+        # train task9 is the one bound to the existing prediction
+        # (its task9_run_id FK is what stage 6 checks), so we anchor
+        # on it instead of `created_at desc` to stay deterministic.
+        # Do NOT mutate HarvestStateRun.created_at here: tests such as
+        # `test_historical_resolution_task9_same_priority_conflict_blocks`
+        # deliberately rewrite created_at to surface ambiguity, and a
+        # fixture-driven rewrite here would silently re-order the
+        # candidates and break that contract.
+        async with AsyncSessionMaker() as session:
+            train_task9 = await session.get(
+                HarvestStateRun, existing_prediction.task9_run_id
+            )
+            assert train_task9 is not None, (
+                "idempotent task10 fixture detected a prediction_run "
+                "whose task9_run_id row is missing"
+            )
+            training_run = await session.get(
+                ResidualModelTrainingRun, existing_prediction.training_run_id
+            )
+            assert training_run is not None
+            artifact_row = (
+                await session.execute(
+                    select(ResidualModelArtifact)
+                    .where(
+                        ResidualModelArtifact.training_run_id
+                        == existing_prediction.training_run_id
+                    )
+                    .order_by(ResidualModelArtifact.id.asc())
+                    .limit(1)
+                )
+            ).scalar_one()
+            other_task9_rows = (
+                await session.execute(
+                    select(HarvestStateRun).where(
+                        HarvestStateRun.id != train_task9.id
+                    )
+                )
+            ).scalars().all()
+            validation_task9 = other_task9_rows[0] if other_task9_rows else None
+            feature_build_row = (
+                await session.execute(
+                    select(AnalyticsBuildRun).order_by(AnalyticsBuildRun.id.asc()).limit(1)
+                )
+            ).scalar_one_or_none()
+            assert feature_build_row is not None
+        if feature_build_finished_at is not None:
+            async with AsyncSessionMaker() as session:
+                feature_build = await session.get(
+                    AnalyticsBuildRun, feature_build_row.id
+                )
+                if feature_build is not None:
+                    feature_build.finished_at = feature_build_finished_at
+                    await session.commit()
+        return {
+            "task9_run_id": train_task9.id,
+            "training_run_id": training_run.id,
+            "artifact_id": artifact_row.id,
+            "prediction_run_id": existing_prediction.id,
+            "feature_build_run_id": feature_build_row.id,
+            "validation_task9_run_id": (
+                validation_task9.id if validation_task9 is not None else train_task9.id
+            ),
+        }
+
     fixture = await _seed_prediction_fixture(
         task8_authority=task8_authority, analytics_season_id=analytics_season_id
     )
@@ -1566,6 +1746,30 @@ async def _build_real_historical_resolution_command(
         for identity in historical_identities
     ):
         season_id = pinned_node.season_id
+        # The Task 8 daily prediction fixture (see
+        # tests/harvest_state/conftest.py::make_request) anchors the
+        # observed daily predictions on
+        # {season_id}-03-01 .. {season_id}-03-03 with the forecast
+        # anchored at {season_id}-02-28 03:30 UTC. Under historical
+        # resolution the daily prediction authority enforces
+        # `prediction_date <= as_of_local_date` (see
+        # AvailabilityBlockerCode.OBSERVATION_DATE_AFTER_CUTOFF in
+        # availability.py), which is incompatible with the FEBRUARY_END
+        # node whose as_of_local_date = {season_id}-02-28 — the daily
+        # predictions would all be rejected. Drop the daily identities
+        # from the success-path identity set so the historical resolver
+        # still sees the canonical Task 8 forecast_run authority (whose
+        # audit chain is `authoritative_timestamp <= forecast_cutoff_at`
+        # and does not involve as_of_local_date). The ambiguity coverage
+        # for `task10_model_artifact` is preserved separately above.
+        historical_identities = tuple(
+            identity
+            for identity in historical_identities
+            if not identity.source_role.startswith("task8_daily_prediction:")
+        )
+        historical_node_updates["resolved_upstream_semantic_identities"] = (
+            historical_identities
+        )
         february_end_cutoff_at = datetime.combine(
             date(season_id, 2, 28),
             pinned_cmd.config.cutoff_local_time,
@@ -2368,6 +2572,22 @@ async def test_historical_resolution_task10_invisible_by_cutoff_blocks() -> None
             )
         ).scalar_one()
         assert prediction_row.completed_at is not None
+        # Rewrite the prediction wall clock into the {season_id}=2099
+        # audit window so the subsequent cutoff below satisfies the
+        # RollingNodeDefinition pydantic invariant
+        # `forecast_cutoff_at.local_date == as_of_local_date`
+        # (as_of_local_date is fixed at {season_id}-03-15 by the
+        # MARCH_15 node_key the helper fabricates). Move completed_at
+        # 1 hour past the audit cutoff so historical resolution
+        # filters it out via SQL `completed_at <= forecast_cutoff_at`.
+        prediction_row.completed_at = datetime(2099, 3, 15, 4, 1, tzinfo=UTC)
+        await session.commit()
+        # Cutoff sits 1 minute before the rewritten completed_at, on
+        # the same local date as as_of_local_date so the config
+        # validation passes. Because prediction.completed_at >
+        # forecast_cutoff_at, the historical resolver must surface
+        # `historical_source_not_visible` for the task10_prediction_run
+        # authority, not a reused row.
         cutoff = prediction_row.completed_at - timedelta(minutes=1)
 
     cmd = await _build_real_historical_resolution_command(

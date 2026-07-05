@@ -12,6 +12,7 @@ from sqlalchemy import func, select, text
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.canonical import make_stable_cohort_key
+from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.master_data import Season
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
@@ -404,6 +405,37 @@ async def _seed_prediction_fixture(
                 weight_kg=weight,
             )
         await session.commit()
+        # The downstream task10 prediction_run row binds to
+        # `train_task9_run_id`, and the rolling-backtest stage-6
+        # `_resolve_task10_reuse` audit enforces
+        # `prediction.task9_run_id == ctx.task9_authority.reference_value`.
+        # Under the historical resolver the candidate with the
+        # highest `created_at` wins, so re-stamp train to be strictly
+        # newer than validation here. Without this re-stamp a single
+        # fixture call would still leave train (the first persisted
+        # task9) at a lower created_at than validation, and historical
+        # tests that depend on the train reference would fail with
+        # TASK10_TASK9_BINDING_MISMATCH. The conftest.py autouse
+        # truncate resets this state between tests.
+        train_row = await session.get(HarvestStateRun, task9_run_id)
+        validation_row = await session.get(
+            HarvestStateRun, validation_task9_run_id
+        )
+        if (
+            train_row is not None
+            and validation_row is not None
+            and train_row.created_at is not None
+            and (
+                validation_row.created_at is None
+                or validation_row.created_at >= train_row.created_at
+            )
+        ):
+            train_row.created_at = (
+                validation_row.created_at + timedelta(microseconds=1)
+                if validation_row.created_at is not None
+                else train_row.created_at
+            )
+            await session.commit()
         return {
             "train_task9_run_id": task9_run_id,
             "validation_task9_run_id": validation_task9_run_id,
