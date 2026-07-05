@@ -416,6 +416,25 @@ All other `HISTORICAL_OBSERVED` references in the file are
 *downstream signature / payload / config* references and are
 unchanged.
 
+#### Traceability anchors (informational, non-normative)
+
+For reviewer convenience when cross-referencing the table above
+against the source tree at the Frozen Authority Base SHA
+(`7340ec51865645a2c06b2d2e1e54d24cd457c831`), each lifted site
+corresponds to a stable `path:line` location in
+`backend/app/rolling_backtest/node_orchestration.py`:
+
+- L4 — module docstring
+- L289 — orchestration context default (`execution_mode` default)
+- L2510 — gate rejecting non-`HISTORICAL_OBSERVED` mode
+- L2552 / L2982 — branch sites already reading
+  `config.execution_mode` (no change)
+
+These anchors are best-effort; verify against `git blame` /
+`git grep -n "HISTORICAL_OBSERVED"` on the Base SHA before relying
+on them. The table above (lines + current value + Phase 3.1
+change) remains the authoritative description.
+
 ---
 
 ## 14. Decision 12 — Test matrix
@@ -538,6 +557,22 @@ schema or governance PR merges into `main` and PR #30 re-absorbs
 main), both SHAs MUST be rotated in `§16`, in the PR #30 body,
 and in Issue #29 body — atomically. Adding a new SHA without
 rotating the existing one is a freeze-lifecycle violation.
+
+**Awareness note (non-binding, informational only):** the literal
+"Content SHA" recorded in the PR #30 body is a human-maintained
+string in the PR description. If a force-push rewrites the head
+branch's commit graph without updating the PR body's literal,
+or if an external pin (e.g. a git tag, a GitHub release, or an
+external release-record) is relied on as a downstream audit
+anchor, that external anchor may diverge from the literal the PR
+body records. Reviewers who need a tamper-evident anchor should
+cross-check against `git ls-remote origin
+refs/heads/codex/task-11-phase3-retrospective-replay` (or a
+frozen git tag) rather than relying on the PR body literal in
+isolation. This note does **not** introduce a new requirement
+and does **not** change the Base + Content SHA authority model
+above; it only flags a known out-of-band risk for downstream
+consumers.
 
 - Implementation authorization: **NOT GRANTED** as of this
   doc-only commit. Each implementation bucket (§12) requires its
