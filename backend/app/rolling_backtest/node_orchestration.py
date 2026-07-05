@@ -107,13 +107,25 @@ from backend.app.rolling_backtest.resolution import (
     _build_identity_payload,
     _make_identity,
     _task8_daily_prediction_payload_hash,
+    resolve_historical,
 )
 from backend.app.rolling_backtest.schemas import (
     AvailabilitySnapshot,
+    ParentAuthorityIdentity,
     PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
     RollingBacktestConfig,
     RollingNodeDefinition,
+    Task3AnalyticsBuildAvailabilitySnapshot,
+    Task3SourceVisibilityIdentity,
+    Task8DailyPredictionAvailabilitySnapshot,
+    Task8ForecastRunAvailabilitySnapshot,
+    Task8ModelArtifactAvailabilitySnapshot,
+    Task8ModelRunAvailabilitySnapshot,
+    Task9HarvestStateRunAvailabilitySnapshot,
+    Task10ModelArtifactAvailabilitySnapshot,
+    Task10PredictionRunAvailabilitySnapshot,
+    Task10TrainingRunAvailabilitySnapshot,
 )
 
 # ── Error types ──────────────────────────────────────────────────────────────
@@ -171,6 +183,24 @@ class PinnedSourceScopeMismatchError(NodeOrchestrationError):
     """Pinned source database scope does not match the rolling node scope."""
 
     code = "PINNED_SOURCE_SCOPE_MISMATCH"
+
+
+class HistoricalSourceNotFoundError(NodeOrchestrationError):
+    """No valid historical candidate exists for the requested source role/type."""
+
+    code = "historical_source_not_found"
+
+
+class HistoricalSourceNotVisibleError(NodeOrchestrationError):
+    """Historical candidate(s) exist but none are visible at the forecast cutoff."""
+
+    code = "historical_source_not_visible"
+
+
+class AmbiguousHistoricalCandidateError(NodeOrchestrationError):
+    """Same-priority historical candidates disagree semantically or by payload."""
+
+    code = "ambiguous_historical_candidate"
 
 
 class Task8ParentAuthorityMismatchError(NodeOrchestrationError):
@@ -303,6 +333,30 @@ def _extract_authoritative_available_at(
         return snapshot.created_at
     raise PinnedSourceIdentityMismatchError(
         "availability snapshot missing authoritative timestamp fields"
+    )
+
+
+def _task3_source_visibility_snapshot(
+    build_run: AnalyticsBuildRun,
+) -> Task3SourceVisibilityIdentity:
+    assert build_run.finished_at is not None
+    visible_through_at = build_run.finished_at
+    visibility_manifest_hash = sha256_payload(
+        {
+            "visibility_policy_version": "task11-task3-source-visibility-v1",
+            "source_max_raw_id": build_run.source_max_raw_id,
+            "aggregation_version": build_run.aggregation_version,
+            "config_hash": build_run.config_hash,
+            "visible_through_at": visible_through_at,
+        }
+    )
+    return Task3SourceVisibilityIdentity(
+        visibility_policy_version="task11-task3-source-visibility-v1",
+        source_max_raw_id=build_run.source_max_raw_id,
+        aggregation_version=build_run.aggregation_version,
+        config_hash=build_run.config_hash,
+        visibility_manifest_hash=visibility_manifest_hash,
+        visible_through_at=visible_through_at,
     )
 
 
@@ -2302,6 +2356,9 @@ async def orchestrate_node(
         UnsupportedSelectionModeError,
         NodeAlreadyFinalizedError,
         RollingBacktestAttemptConflictError,
+        HistoricalSourceNotFoundError,
+        HistoricalSourceNotVisibleError,
+        AmbiguousHistoricalCandidateError,
         PinnedSourceNotFoundError,
         PinnedSourceIdentityMismatchError,
         PinnedSourceScopeMismatchError,
@@ -2447,46 +2504,444 @@ async def _stage_resolve_historical_inputs(
     config: RollingBacktestConfig,
     node: RollingNodeDefinition,
 ) -> _StageContext:
-    """Stage 1: Resolve historical inputs from persisted resolved_upstream_semantic_identities."""
+    """Stage 1: Resolve historical inputs from persisted source requests."""
     # Preserve the stage-1 blocker contract: unsupported mode/selection must
     # fail closed before any availability lookup or exact-load attempt.
     if config.execution_mode != ExecutionMode.HISTORICAL_OBSERVED:
         raise UnsupportedExecutionModeError(
             f"execution_mode={config.execution_mode.value} is not supported"
         )
-    if node.upstream_selection_mode != UpstreamSelectionMode.PINNED:
-        raise UnsupportedSelectionModeError(
-            f"upstream_selection_mode={node.upstream_selection_mode} not supported"
+    if node.upstream_selection_mode == UpstreamSelectionMode.PINNED:
+        for identity in node.resolved_upstream_semantic_identities:
+            if identity.persistent_reference is None:
+                raise PinnedSourceNotFoundError(
+                    f"pinned source role={identity.source_role} is missing persistent reference"
+                )
+            exact = await _load_exact_pinned_candidate(session, node, identity)
+            if exact.semantic_identity.source_role != identity.source_role:
+                raise PinnedSourceIdentityMismatchError(
+                    f"pinned source role mismatch: expected {identity.source_role} "
+                    f"got {exact.semantic_identity.source_role}"
+                )
+            if _build_identity_payload(exact.semantic_identity) != _build_identity_payload(
+                identity
+            ):
+                raise PinnedSourceIdentityMismatchError(
+                    f"pinned source semantic mismatch for role={identity.source_role}"
+                )
+            outcome = ResolvedInputOutcome(
+                source_role=identity.source_role,
+                source_type=identity.source_type,
+                semantic_identity=identity,
+                persistent_reference=exact.persistent_reference,
+                authoritative_available_at=exact.authoritative_available_at,
+                canonical_identity_hash=exact.canonical_identity_hash,
+                canonical_payload_hash=exact.canonical_payload_hash,
+                business_version=exact.business_version,
+            )
+            ctx.resolved_inputs[identity.source_role] = outcome
+        return ctx
+
+    if node.upstream_selection_mode == UpstreamSelectionMode.HISTORICAL_RESOLUTION:
+        for request_identity in node.resolved_upstream_semantic_identities:
+            resolution = await resolve_historical(
+                session,
+                source_role=request_identity.source_role,
+                source_type=request_identity.source_type,
+                node=node,
+                execution_mode=config.execution_mode,
+            )
+            if resolution.blocked or resolution.resolved is None:
+                blocker_code = resolution.blocker_code or HistoricalSourceNotFoundError.code
+                if blocker_code == HistoricalSourceNotFoundError.code:
+                    if await _has_historical_candidates_outside_cutoff(
+                        session,
+                        source_type=request_identity.source_type,
+                        node=node,
+                    ):
+                        role = request_identity.source_role
+                        raise HistoricalSourceNotVisibleError(
+                            f"no cutoff-visible historical candidate for role={role}"
+                        )
+                    raise HistoricalSourceNotFoundError(
+                        f"no valid historical candidate for role={request_identity.source_role}"
+                    )
+                if blocker_code == HistoricalSourceNotVisibleError.code:
+                    role = request_identity.source_role
+                    raise HistoricalSourceNotVisibleError(
+                        f"no cutoff-visible historical candidate for role={role}"
+                    )
+                if blocker_code == AmbiguousHistoricalCandidateError.code:
+                    raise AmbiguousHistoricalCandidateError(
+                        f"ambiguous historical candidates for role={request_identity.source_role}"
+                    )
+                raise NodeOrchestrationError(
+                    f"historical resolution blocked for role={request_identity.source_role}",
+                    code=blocker_code,
+                )
+
+            resolved = resolution.resolved
+            ctx.resolved_inputs[request_identity.source_role] = ResolvedInputOutcome(
+                source_role=request_identity.source_role,
+                source_type=resolved.source_type,
+                semantic_identity=resolved.semantic_identity,
+                persistent_reference=resolved.persistent_reference,
+                authoritative_available_at=resolved.authoritative_available_at,
+                canonical_identity_hash=resolved.canonical_identity_hash,
+                canonical_payload_hash=resolved.canonical_payload_hash,
+                business_version=resolved.business_version,
+            )
+        return ctx
+
+    raise UnsupportedSelectionModeError(
+        f"upstream_selection_mode={node.upstream_selection_mode} not supported"
+    )
+def _parent_authority_identity(
+    *,
+    source_type: AvailabilitySourceType,
+    authority_status: str,
+    authority_timestamp: datetime,
+    persistent_reference: PersistentUpstreamReference,
+    semantic_input_signature: str | None = None,
+    result_hash: str | None = None,
+    canonical_payload_hash: str | None = None,
+) -> ParentAuthorityIdentity:
+    return ParentAuthorityIdentity(
+        source_type=source_type,
+        authority_schema_version="task11-upstream-v1",
+        authority_policy_version="task11-upstream-v1",
+        authority_timestamp=authority_timestamp,
+        authority_status=authority_status,
+        semantic_input_signature=semantic_input_signature,
+        result_hash=result_hash,
+        canonical_payload_hash=canonical_payload_hash,
+        persistent_reference=persistent_reference,
+    )
+
+
+async def _has_historical_candidates_outside_cutoff(
+    session: AsyncSession,
+    *,
+    source_type: AvailabilitySourceType,
+    node: RollingNodeDefinition,
+) -> bool:
+    if source_type == AvailabilitySourceType.TASK3_ANALYTICS_BUILD:
+        row = (
+            await session.execute(
+                select(AnalyticsBuildRun.id)
+                .where(AnalyticsBuildRun.season_id == node.season_id)
+                .where(AnalyticsBuildRun.status == "completed")
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    if source_type == AvailabilitySourceType.TASK8_MODEL_RUN:
+        row = (
+            await session.execute(
+                select(MaturityModelRun.id)
+                .where(MaturityModelRun.status.in_(["completed", "unavailable"]))
+                .where(MaturityModelRun.training_cutoff <= node.as_of_local_date)
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    if source_type == AvailabilitySourceType.TASK8_MODEL_ARTIFACT:
+        row = (
+            await session.execute(
+                select(MaturityModelArtifact.id)
+                .join(MaturityModelRun, MaturityModelArtifact.run_id == MaturityModelRun.id)
+                .where(MaturityModelRun.status.in_(["completed", "unavailable"]))
+                .where(MaturityModelRun.training_cutoff <= node.as_of_local_date)
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    if source_type == AvailabilitySourceType.TASK8_FORECAST_RUN:
+        row = (
+            await session.execute(
+                select(MaturityForecastRun.id)
+                .where(MaturityForecastRun.status.in_(["completed", "unavailable"]))
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    if source_type == AvailabilitySourceType.TASK8_DAILY_PREDICTION:
+        row = (
+            await session.execute(
+                select(MaturityDailyPredictionModel.id)
+                .join(
+                    MaturityForecastRun,
+                    MaturityDailyPredictionModel.forecast_run_id == MaturityForecastRun.id,
+                )
+                .where(MaturityForecastRun.status.in_(["completed", "unavailable"]))
+                .where(
+                    MaturityDailyPredictionModel.prediction_date >= node.forecast_start_local_date
+                )
+                .where(MaturityDailyPredictionModel.prediction_date <= node.forecast_end_local_date)
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    if source_type == AvailabilitySourceType.TASK9_HARVEST_STATE_RUN:
+        row = (
+            await session.execute(
+                select(HarvestStateRun.id)
+                .where(HarvestStateRun.as_of_date <= node.as_of_local_date)
+                .where(HarvestStateRun.status.in_(["completed", "blocked"]))
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    if source_type == AvailabilitySourceType.TASK10_TRAINING_RUN:
+        row = (
+            await session.execute(
+                select(ResidualModelTrainingRun.id)
+                .where(
+                    ResidualModelTrainingRun.execution_status.in_(
+                        ["completed", "blocked", "failed"]
+                    )
+                )
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    if source_type == AvailabilitySourceType.TASK10_MODEL_ARTIFACT:
+        row = (
+            await session.execute(
+                select(ResidualModelArtifact.id)
+                .join(
+                    ResidualModelTrainingRun,
+                    ResidualModelArtifact.training_run_id == ResidualModelTrainingRun.id,
+                )
+                .where(ResidualModelTrainingRun.execution_status == "completed")
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    if source_type == AvailabilitySourceType.TASK10_PREDICTION_RUN:
+        row = (
+            await session.execute(
+                select(ResidualModelPredictionRun.id)
+                .where(ResidualModelPredictionRun.execution_status == "completed")
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+    return False
+
+
+async def _build_availability_snapshot_for_resolved_input(
+    session: AsyncSession,
+    *,
+    outcome: ResolvedInputOutcome,
+) -> AvailabilitySnapshot:
+    source_type = outcome.source_type
+
+    if source_type == AvailabilitySourceType.TASK3_ANALYTICS_BUILD:
+        build_run_id = _require_database_ref(
+            outcome.semantic_identity,
+            allowed_types=("database_run_id",),
+        )
+        build_run = cast(
+            AnalyticsBuildRun | None, await session.get(AnalyticsBuildRun, build_run_id)
+        )
+        if build_run is None or build_run.finished_at is None:
+            raise HistoricalSourceNotFoundError(
+                f"Task 3 analytics build {build_run_id} was not found"
+            )
+        return Task3AnalyticsBuildAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK3_ANALYTICS_BUILD,
+            status=build_run.status,
+            authoritative_timestamp=build_run.finished_at,
+            task3_source_visibility=_task3_source_visibility_snapshot(build_run),
         )
 
-    for identity in node.resolved_upstream_semantic_identities:
-        if identity.persistent_reference is None:
-            raise PinnedSourceNotFoundError(
-                f"pinned source role={identity.source_role} is missing persistent reference"
-            )
-        exact = await _load_exact_pinned_candidate(session, node, identity)
-        if exact.semantic_identity.source_role != identity.source_role:
-            raise PinnedSourceIdentityMismatchError(
-                f"pinned source role mismatch: expected {identity.source_role} "
-                f"got {exact.semantic_identity.source_role}"
-            )
-        if _build_identity_payload(exact.semantic_identity) != _build_identity_payload(identity):
-            raise PinnedSourceIdentityMismatchError(
-                f"pinned source semantic mismatch for role={identity.source_role}"
-            )
-        outcome = ResolvedInputOutcome(
-            source_role=identity.source_role,
-            source_type=identity.source_type,
-            semantic_identity=identity,
-            persistent_reference=exact.persistent_reference,
-            authoritative_available_at=exact.authoritative_available_at,
-            canonical_identity_hash=exact.canonical_identity_hash,
-            canonical_payload_hash=exact.canonical_payload_hash,
-            business_version=exact.business_version,
+    if source_type == AvailabilitySourceType.TASK8_MODEL_RUN:
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
         )
-        ctx.resolved_inputs[identity.source_role] = outcome
+        model_run = cast(MaturityModelRun | None, await session.get(MaturityModelRun, run_id))
+        if model_run is None or model_run.finished_at is None:
+            raise HistoricalSourceNotFoundError(f"Task 8 model run {run_id} was not found")
+        return Task8ModelRunAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+            status=model_run.status,
+            authoritative_timestamp=model_run.finished_at,
+        )
 
-    return ctx
+    if source_type == AvailabilitySourceType.TASK8_MODEL_ARTIFACT:
+        artifact_id = _require_database_ref(
+            outcome.semantic_identity,
+            allowed_types=("database_artifact_id",),
+        )
+        artifact_row = cast(
+            MaturityModelArtifact | None, await session.get(MaturityModelArtifact, artifact_id)
+        )
+        parent_run = (
+            None
+            if artifact_row is None
+            else cast(
+                MaturityModelRun | None, await session.get(MaturityModelRun, artifact_row.run_id)
+            )
+        )
+        if artifact_row is None or parent_run is None or parent_run.finished_at is None:
+            raise HistoricalSourceNotFoundError(
+                f"Task 8 model artifact {artifact_id} was not found"
+            )
+        return Task8ModelArtifactAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK8_MODEL_ARTIFACT,
+            created_at=artifact_row.created_at,
+            parent_authority=_parent_authority_identity(
+                source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
+                authority_status=parent_run.status,
+                authority_timestamp=parent_run.finished_at,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=parent_run.id,
+                ),
+                canonical_payload_hash=parent_run.config_hash,
+            ),
+        )
+
+    if source_type == AvailabilitySourceType.TASK8_FORECAST_RUN:
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
+        forecast_run = cast(
+            MaturityForecastRun | None, await session.get(MaturityForecastRun, run_id)
+        )
+        if forecast_run is None or forecast_run.finished_at is None:
+            raise HistoricalSourceNotFoundError(f"Task 8 forecast run {run_id} was not found")
+        return Task8ForecastRunAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+            status=forecast_run.status,
+            authoritative_timestamp=forecast_run.finished_at,
+        )
+
+    if source_type == AvailabilitySourceType.TASK8_DAILY_PREDICTION:
+        row_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_row_id",)
+        )
+        daily_prediction = cast(
+            MaturityDailyPredictionModel | None,
+            await session.get(MaturityDailyPredictionModel, row_id),
+        )
+        parent_forecast = (
+            None
+            if daily_prediction is None
+            else cast(
+                MaturityForecastRun | None,
+                await session.get(MaturityForecastRun, daily_prediction.forecast_run_id),
+            )
+        )
+        if (
+            daily_prediction is None
+            or parent_forecast is None
+            or parent_forecast.finished_at is None
+        ):
+            raise HistoricalSourceNotFoundError(f"Task 8 daily prediction {row_id} was not found")
+        return Task8DailyPredictionAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+            prediction_date=daily_prediction.prediction_date,
+            created_at=daily_prediction.created_at,
+            parent_authority=_parent_authority_identity(
+                source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
+                authority_status=parent_forecast.status,
+                authority_timestamp=parent_forecast.finished_at,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=parent_forecast.id,
+                ),
+                semantic_input_signature=parent_forecast.source_signature,
+                canonical_payload_hash=parent_forecast.source_signature,
+            ),
+        )
+
+    if source_type == AvailabilitySourceType.TASK9_HARVEST_STATE_RUN:
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
+        harvest_run = cast(HarvestStateRun | None, await session.get(HarvestStateRun, run_id))
+        if harvest_run is None or harvest_run.created_at is None:
+            raise HistoricalSourceNotFoundError(f"Task 9 run {run_id} was not found")
+        return Task9HarvestStateRunAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
+            status=harvest_run.status,
+            authoritative_timestamp=harvest_run.created_at,
+        )
+
+    if source_type == AvailabilitySourceType.TASK10_TRAINING_RUN:
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
+        training_run = cast(
+            ResidualModelTrainingRun | None, await session.get(ResidualModelTrainingRun, run_id)
+        )
+        if training_run is None or training_run.finished_at is None:
+            raise HistoricalSourceNotFoundError(f"Task 10 training run {run_id} was not found")
+        return Task10TrainingRunAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
+            status=training_run.execution_status,
+            authoritative_timestamp=training_run.finished_at,
+        )
+
+    if source_type == AvailabilitySourceType.TASK10_MODEL_ARTIFACT:
+        artifact_id = _require_database_ref(
+            outcome.semantic_identity,
+            allowed_types=("database_artifact_id",),
+        )
+        residual_artifact = cast(
+            ResidualModelArtifact | None, await session.get(ResidualModelArtifact, artifact_id)
+        )
+        artifact_training_run = (
+            None
+            if residual_artifact is None
+            else cast(
+                ResidualModelTrainingRun | None,
+                await session.get(ResidualModelTrainingRun, residual_artifact.training_run_id),
+            )
+        )
+        if (
+            residual_artifact is None
+            or artifact_training_run is None
+            or artifact_training_run.finished_at is None
+        ):
+            raise HistoricalSourceNotFoundError(f"Task 10 artifact {artifact_id} was not found")
+        return Task10ModelArtifactAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
+            created_at=residual_artifact.created_at,
+            parent_authority=_parent_authority_identity(
+                source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
+                authority_status=artifact_training_run.execution_status,
+                authority_timestamp=artifact_training_run.finished_at,
+                persistent_reference=PersistentUpstreamReference(
+                    reference_type="database_run_id",
+                    reference_value=artifact_training_run.id,
+                ),
+                semantic_input_signature=artifact_training_run.training_signature,
+                result_hash=artifact_training_run.canonical_payload_hash,
+                canonical_payload_hash=artifact_training_run.canonical_payload_hash,
+            ),
+        )
+
+    if source_type == AvailabilitySourceType.TASK10_PREDICTION_RUN:
+        run_id = _require_database_ref(
+            outcome.semantic_identity, allowed_types=("database_run_id",)
+        )
+        prediction_run = cast(
+            ResidualModelPredictionRun | None, await session.get(ResidualModelPredictionRun, run_id)
+        )
+        if prediction_run is None or prediction_run.completed_at is None:
+            raise HistoricalSourceNotFoundError(f"Task 10 prediction run {run_id} was not found")
+        return Task10PredictionRunAvailabilitySnapshot(
+            source_type=AvailabilitySourceType.TASK10_PREDICTION_RUN,
+            status=prediction_run.execution_status,
+            authoritative_timestamp=prediction_run.completed_at,
+        )
+
+    raise UnsupportedSelectionModeError(
+        f"availability snapshot builder is not implemented for source_type={source_type.value}"
+    )
 
 
 async def _stage_validate_visibility(
@@ -2512,10 +2967,16 @@ async def _stage_validate_visibility(
     for role, outcome in ctx.resolved_inputs.items():
         audit_row = audit_by_role.get(role)
         if audit_row is None:
-            raise RollingBacktestAuthorityBindingError(
-                f"no availability audit for resolved input role={role}"
+            if node.upstream_selection_mode != UpstreamSelectionMode.HISTORICAL_RESOLUTION:
+                raise RollingBacktestAuthorityBindingError(
+                    f"no availability audit for resolved input role={role}"
+                )
+            snapshot = await _build_availability_snapshot_for_resolved_input(
+                session,
+                outcome=outcome,
             )
-        snapshot = snapshot_adapter.validate_python(audit_row.canonical_payload)
+        else:
+            snapshot = snapshot_adapter.validate_python(audit_row.canonical_payload)
         eval_result = evaluate_authority_visibility(
             snapshot=snapshot,
             execution_mode=config.execution_mode,
@@ -2535,6 +2996,10 @@ async def _stage_validate_visibility(
             parent_authority=None,
         )
         if not eval_result.allowed:
+            if node.upstream_selection_mode == UpstreamSelectionMode.HISTORICAL_RESOLUTION:
+                raise HistoricalSourceNotVisibleError(
+                    f"historical source role={role} blocked by {eval_result.blocker_code}"
+                )
             raise PinnedSourceNotVisibleError(
                 f"pinned source role={role} blocked by {eval_result.blocker_code}"
             )

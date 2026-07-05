@@ -801,9 +801,10 @@ async def _query_task8_daily_prediction_candidates(
     for daily, forecast_run in rows:
         sig = getattr(forecast_run, "source_signature", "")
         daily_hash = _task8_daily_prediction_payload_hash(daily, forecast_source_signature=sig)
+        source_role = f"task8_daily_prediction:{daily.prediction_date.isoformat()}"
         identity = _make_identity(
             source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
-            source_role="task8_daily_prediction",
+            source_role=source_role,
             schema_version="task8-maturity-v1",
             semantic_payload_hash=daily_hash,
             input_signature=sig,
@@ -815,7 +816,7 @@ async def _query_task8_daily_prediction_candidates(
         )
         candidates.append(
             HistoricalCandidate(
-                source_role="task8_daily_prediction",
+                source_role=source_role,
                 source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
                 persistent_reference=PersistentUpstreamReference(
                     reference_type="database_row_id", reference_value=daily.id
@@ -1107,7 +1108,11 @@ async def resolve_historical(
     All filtering happens in SQL via the source-specific adapter.
     Only deterministic sorting and ambiguity detection happen in Python.
     """
-    candidates = await _query_candidates_by_type(session, node, execution_mode, source_type)
+    candidates = [
+        candidate
+        for candidate in await _query_candidates_by_type(session, node, execution_mode, source_type)
+        if candidate.source_role == source_role
+    ]
 
     if not candidates:
         return ResolutionResult(
