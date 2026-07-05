@@ -68,6 +68,24 @@ class OrchestrationBlocker(StrEnum):
     INTEGRITY_RELOAD_FAILED = "rolling_orchestration_integrity_reload_failed"
     TASK9_REUSE_INTEGRITY_FAILED = "task9_reuse_integrity_failed"
 
+    # ── Phase 3.1 replay blocker taxonomy (frozen amendment §7) ────────────
+    # The 9 values below were frozen by
+    # ``docs/task-11-phase3-retrospective-replay-amendment.md`` §7 (Decision 5).
+    # ``TASK9_REPLAY_INPUT_INCOMPLETE`` above is the umbrella code carried over
+    # from Phase 2 closeout; the 9 below are the more-specific replay taxonomy.
+    # Stability rule: each value is a stable, machine-readable
+    # lower_snake_case string literal that MUST NOT be inferred from log
+    # message text. Code values MUST NOT be reused across taxonomies.
+    REPLAY_RUNTIME_IDENTITY_MISSING = "replay_runtime_identity_missing"
+    REPLAY_AUDIT_INCOMPLETE = "replay_audit_incomplete"
+    MISSING_TASK8_REPLAY_SOURCE = "missing_task8_replay_source"
+    CUTOFF_INVISIBLE_TASK9_INPUT = "cutoff_invisible_task9_input"
+    AMBIGUOUS_REPLAY_INPUT = "ambiguous_replay_input"
+    AUTHORITY_CHAIN_INCOMPATIBLE = "authority_chain_incompatible"
+    REPLAY_METADATA_INVALID = "replay_metadata_invalid"
+    TASK9_REPLAY_FAILED = "task9_replay_failed"
+    TASK10_REPLAY_BINDING_INVALID = "task10_replay_binding_invalid"
+
 
 # ── Date/time authority helpers ───────────────────────────────────────────────
 
