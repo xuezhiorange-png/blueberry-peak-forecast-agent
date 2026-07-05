@@ -54,6 +54,7 @@ from backend.app.residual_model.schemas import ResidualPredictionRequest
 from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
+    DefaultNodeKey,
     ExecutionMode,
     UpstreamSelectionMode,
 )
@@ -1535,12 +1536,24 @@ async def _build_real_historical_resolution_command(
         identity.model_copy(update={"persistent_reference": None})
         for identity in requested_identities
     )
-    historical_node = pinned_node.model_copy(
-        update={
-            "upstream_selection_mode": UpstreamSelectionMode.HISTORICAL_RESOLUTION,
-            "resolved_upstream_semantic_identities": historical_identities,
-        }
-    )
+    historical_node_updates: dict[str, Any] = {
+        "upstream_selection_mode": UpstreamSelectionMode.HISTORICAL_RESOLUTION,
+        "resolved_upstream_semantic_identities": historical_identities,
+    }
+    if any(
+        identity.source_role.startswith("task8_daily_prediction:")
+        for identity in historical_identities
+    ):
+        season_id = pinned_node.season_id
+        historical_node_updates.update(
+            {
+                "node_key": DefaultNodeKey.FEBRUARY_END,
+                "as_of_local_date": date(season_id, 2, 28),
+                "forecast_start_local_date": date(season_id, 3, 1),
+                "forecast_end_local_date": date(season_id, 3, 7),
+            }
+        )
+    historical_node = pinned_node.model_copy(update=historical_node_updates)
     config = _make_config(
         execution_mode=ExecutionMode.HISTORICAL_OBSERVED,
         nodes=(historical_node,),
