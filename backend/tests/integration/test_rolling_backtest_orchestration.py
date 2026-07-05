@@ -12,6 +12,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import func, select, text
@@ -1545,10 +1546,16 @@ async def _build_real_historical_resolution_command(
         for identity in historical_identities
     ):
         season_id = pinned_node.season_id
+        february_end_cutoff_at = datetime.combine(
+            date(season_id, 2, 28),
+            pinned_cmd.config.cutoff_local_time,
+            tzinfo=ZoneInfo(pinned_cmd.config.cutoff_timezone),
+        ).astimezone(UTC)
         historical_node_updates.update(
             {
                 "node_key": DefaultNodeKey.FEBRUARY_END,
                 "as_of_local_date": date(season_id, 2, 28),
+                "forecast_cutoff_at": february_end_cutoff_at,
                 "forecast_start_local_date": date(season_id, 3, 1),
                 "forecast_end_local_date": date(season_id, 3, 7),
             }
