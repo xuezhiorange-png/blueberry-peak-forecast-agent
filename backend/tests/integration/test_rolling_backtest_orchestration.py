@@ -1115,6 +1115,10 @@ async def _build_real_orchestration_command(
         assert task8_model_row is not None
         assert task8_artifact_row is not None
         assert task8_forecast_row is not None
+        task3_visible_finished_at = datetime(fixture_season_id, 2, 28, 4, 0, tzinfo=UTC)
+        if feature_build.finished_at > task3_visible_finished_at:
+            feature_build.finished_at = task3_visible_finished_at
+            await session.commit()
         _assert_sha256_hex(task8_model_row.config_hash)
         _assert_sha256_hex(task8_model_row.source_signature)
         _assert_sha256_hex(task8_artifact_row.artifact_hash)
