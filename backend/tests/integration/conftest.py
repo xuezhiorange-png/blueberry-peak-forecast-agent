@@ -94,17 +94,60 @@ async def _truncate_master_data() -> None:
         to_truncate = [t for t in _MASTER_DATA_TABLES if t in existing]
         if not to_truncate:
             return
-        # Use a short statement-level timeout so the truncate fails fast
-        # if any prior transaction still holds an ACCESS EXCLUSIVE lock on
-        # the master data tables (e.g. from a leaked connection). Without
-        # this, a leaked lock can hang pytest indefinitely.
+        # Best-effort: terminate any leftover backend connections that are
+        # stuck in `idle in transaction` (or its aborted variant). These
+        # are the canonical symptom of a fixture helper that opened a
+        # session via `async with AsyncSessionMaker()`, executed SELECTs,
+        # and exited the `async with` block without first committing or
+        # rolling back the autobegun transaction. The leftover
+        # transaction keeps row-level locks (including any
+        # `SELECT ... FOR UPDATE` taken via `with_for_update()` inside
+        # `_run_stage` / `create_execution_attempt`) alive even after the
+        # session's ORM is closed, and the next test's autouse
+        # `TRUNCATE ... RESTART IDENTITY CASCADE` would wait for those
+        # locks until `lock_timeout` fires (or hang indefinitely when no
+        # timeout is set).
+        #
+        # Terminating the leaked backend forces PG to roll back its open
+        # transaction and release every lock it held, so the TRUNCATE
+        # that follows can proceed immediately. The
+        # `pid <> pg_backend_pid()` filter keeps the truncate session
+        # itself alive; the `datname = current_database()` filter keeps
+        # this destructive operation scoped to the test database. The
+        # `try/except` wrapper allows the operation to silently succeed
+        # on databases without the `pg_stat_activity` permissions
+        # (e.g. locked-down managed PG instances) — the lock_timeout
+        # belt below still provides the safety net.
         try:
-            await session.execute(text("SET LOCAL lock_timeout = '2s'"))
+            await session.execute(
+                text(
+                    "SELECT pg_terminate_backend(pid) "
+                    "FROM pg_stat_activity "
+                    "WHERE state IN ("
+                    "    'idle in transaction', "
+                    "    'idle in transaction (aborted)'"
+                    ") "
+                    "AND datname = current_database() "
+                    "AND pid <> pg_backend_pid()"
+                )
+            )
+        except Exception:
+            pass
+        # Use a short statement-level timeout so the truncate fails
+        # fast if any prior transaction still holds an ACCESS EXCLUSIVE
+        # lock on the master data tables (e.g. from a leaked
+        # connection that could not be terminated above). Without this,
+        # a leaked lock would hang pytest indefinitely.
+        try:
+            await session.execute(text("SET LOCAL lock_timeout = '5s'"))
         except Exception:
             pass
         try:
             await session.execute(
-                text(f"TRUNCATE {', '.join(to_truncate)} RESTART IDENTITY CASCADE")
+                text(
+                    f"TRUNCATE {', '.join(to_truncate)} "
+                    "RESTART IDENTITY CASCADE"
+                )
             )
             await session.commit()
         except Exception:
