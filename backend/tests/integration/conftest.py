@@ -32,6 +32,7 @@ _MASTER_DATA_TABLES = (
     "residual_model_artifact",
     "residual_model_manifest_row",
     "residual_model_training_run",
+    "harvest_state_replay_source_visibility_audit",
     "harvest_state_future_arrival_row",
     "harvest_state_cohort_transition_row",
     "harvest_state_daily_member_row",
