@@ -127,6 +127,7 @@ TASK8_MODEL_CONFIG_HASH = sha256_payload({"fixture": "task8-model-config", "vers
 TASK8_MODEL_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-model-run", "version": 1})
 TASK8_ARTIFACT_HASH = sha256_payload({"fixture": "task8-model-artifact", "version": 1})
 TASK8_FORECAST_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-forecast-run", "version": 1})
+TASK11_FEBRUARY_END_CUTOFF_HOUR_UTC = 4
 
 
 def _assert_sha256_hex(value: str) -> None:
@@ -780,8 +781,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             warnings=[],
             blockers=[],
             input_snapshot={},
-            started_at=datetime(season_id, 2, 28, 11, 0, tzinfo=UTC),
-            finished_at=datetime(season_id, 2, 28, 12, 0, tzinfo=UTC),
+            started_at=datetime(season_id, 2, 28, 2, 0, tzinfo=UTC),
+            finished_at=datetime(season_id, 2, 28, 3, 0, tzinfo=UTC),
             error_message=None,
         )
         session.add(model_run)
@@ -813,7 +814,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                 "calibration": {},
                 "base_temperature_context": {},
             },
-            created_at=datetime(season_id, 2, 28, 12, 5, tzinfo=UTC),
+            created_at=datetime(season_id, 2, 28, 3, 5, tzinfo=UTC),
         )
         session.add(artifact)
         await session.flush()
@@ -836,8 +837,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             warnings=[],
             blockers=[],
             input_snapshot={},
-            started_at=datetime(season_id, 2, 28, 12, 10, tzinfo=UTC),
-            finished_at=datetime(season_id, 2, 28, 13, 0, tzinfo=UTC),
+            started_at=datetime(season_id, 2, 28, 3, 10, tzinfo=UTC),
+            finished_at=datetime(season_id, 2, 28, 3, 30, tzinfo=UTC),
             error_message=None,
         )
         session.add(forecast)
@@ -860,7 +861,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     curve_share=Decimal("0.3333333333"),
                     confidence_level="medium",
                     quality_flags=[],
-                    created_at=datetime(season_id, 2, 28, 13, 5, tzinfo=UTC),
+                    created_at=datetime(season_id, 2, 28, 3, 35, tzinfo=UTC),
                 )
             )
         session.add_all(daily_rows)
@@ -894,7 +895,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                 "p50_kg": Decimal("20"),
                 "p80_kg": Decimal("24"),
                 "p90_kg": Decimal("28"),
-                "created_at": datetime(season_id, 2, 28, 13, 5, tzinfo=UTC),
+                "created_at": datetime(season_id, 2, 28, 3, 35, tzinfo=UTC),
             }
             for prediction_date, daily_id in sorted(daily_ids_by_date.items())
         },
@@ -905,6 +906,7 @@ async def _seed_real_task10_authorities(
     *,
     task8_authority: dict[str, Any] | None = None,
     analytics_season_id: int | None = None,
+    feature_build_finished_at: datetime | None = None,
 ) -> dict[str, int]:
     # Re-anchor the diverse-training-samples as_of_date to the same
     # season as the request payload so the manifest builder's
@@ -915,6 +917,16 @@ async def _seed_real_task10_authorities(
     fixture = await _seed_prediction_fixture(
         task8_authority=task8_authority, analytics_season_id=analytics_season_id
     )
+    if feature_build_finished_at is not None:
+        async with AsyncSessionMaker() as session:
+            feature_build = await session.get(
+                AnalyticsBuildRun,
+                fixture["train_feature_build_run_id"],
+            )
+            assert feature_build is not None
+            feature_build.finished_at = feature_build_finished_at
+            await session.commit()
+
     samples = _diverse_training_samples(
         task9_run_id=fixture["train_task9_run_id"],
         label_build_run_id=fixture["train_label_build_run_id"],
@@ -1086,7 +1098,15 @@ async def _build_real_orchestration_command(
         "daily_predictions_by_date": task8["daily_predictions_by_date"],
     }
     task10 = await _seed_real_task10_authorities(
-        task8_authority=task8_authority, analytics_season_id=fixture_season_id
+        task8_authority=task8_authority,
+        analytics_season_id=fixture_season_id,
+        feature_build_finished_at=datetime(
+            fixture_season_id,
+            2,
+            28,
+            TASK11_FEBRUARY_END_CUTOFF_HOUR_UTC,
+            tzinfo=UTC,
+        ),
     )
     task9_run_id = task10["task9_run_id"]
     if pinned_task9_variant == "training":
@@ -1115,10 +1135,6 @@ async def _build_real_orchestration_command(
         assert task8_model_row is not None
         assert task8_artifact_row is not None
         assert task8_forecast_row is not None
-        task3_visible_finished_at = datetime(fixture_season_id, 2, 28, 4, 0, tzinfo=UTC)
-        if feature_build.finished_at > task3_visible_finished_at:
-            feature_build.finished_at = task3_visible_finished_at
-            await session.commit()
         _assert_sha256_hex(task8_model_row.config_hash)
         _assert_sha256_hex(task8_model_row.source_signature)
         _assert_sha256_hex(task8_artifact_row.artifact_hash)
