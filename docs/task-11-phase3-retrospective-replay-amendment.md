@@ -513,19 +513,16 @@ merge-main baseline. Two SHAs together identify the frozen contract:
   against. The Base SHA does **not** move when only the wording of
   this amendment changes.
 
-- **Frozen Amendment Content SHA: 11545b59eb14414e54efe26dffa3338ba5d6c27c**
-  The current commit on PR #30 branch (on top of the Base SHA)
-  that contains the actual Phase 3.1 13 frozen decisions (`§3`
-  through `§15`), the vocabulary table (`§2`), the Frozen Authority
-  section (`§16`), and the provenance section (`§17`), with the
-  `Base + Content` SHA pair exposed explicitly.
-  This SHA moves whenever the doc wording changes; reviewers
-  cross-check this SHA against the PR #30 body. The wording that
-  introduced the `Base + Content` split was committed at
-  `7fdf5aa63f05525c79c84168905a0669e2374862` (an intermediate
-  amend) and finalized at this SHA after the §16 / §17 literals
-  were aligned to point at each other; both readings are useful
-  for review.
+- **Frozen Amendment Content SHA: recorded in PR #30 body's
+  "Frozen Amendment Content SHA" field, and in Issue #29 body's
+  "Frozen design authority" → "Amendment Content SHA" field.**
+  Reviewers cross-check the literal the PR body records against
+  this doc's `git log --oneline origin/codex/task-11-phase3-retrospective-replay`
+  top commit; the literal matches the SHA of the commit that
+  authored `§3` through `§15`, `§2` vocabulary, `§16` Frozen
+  Authority, and `§17` Provenance. The wording that introduced
+  the `Base + Content` split was committed before this
+  convention tightened and is preserved in `git log`.
 
 Clarification: The Base SHA is the **authority anchor** for Phase 3.1
 implementation (i.e. the schema / governance state any code change must
@@ -569,10 +566,11 @@ rotating the existing one is a freeze-lifecycle violation.
   `Base SHA + Content SHA` pair for freeze-lifecycle clarity.
 - Frozen Authority Base SHA (from §16):
   `7340ec51865645a2c06b2d2e1e54d24cd457c831`.
-- Frozen Amendment Content SHA (this commit):
-  `11545b59eb14414e54efe26dffa3338ba5d6c27c`. The prior
-  wording's Content SHA at `8272bec1...` is the SHA of the previous
-  wording of this section; both readings are useful for review.
+- Frozen Amendment Content SHA (this commit's SHA at the time
+  the doc was finalized; see the PR #30 body and Issue #29 body
+  for the canonical literal — those bodies are the live source of
+  truth for the current Content SHA so the doc body does not
+  de-sync from the commit on every wording refresh).
 - Author: `root <root@C202606092244457.local>` (autodetected in the
   repo session).
 - PR #30 milestone: **frozen design contract** at the Base SHA,
