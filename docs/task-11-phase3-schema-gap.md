@@ -158,8 +158,8 @@ harvest_state_replay_source_visibility_audit
 ```
 
 Indexes:
-- `ix_harvest_state_replay_source_visibility_audit_run_id` on `harvest_state_run_id`
-- `ix_harvest_state_replay_source_visibility_audit_role` on `source_role`
+- `ix_hsrpsva_harvest_state_run_id` on `harvest_state_run_id`
+- `ix_hsrpsva_source_role` on `source_role`
 
 ## Phase 3.0 deliverable checklist
 
