@@ -7,16 +7,19 @@ from typing import Any, cast
 from sqlalchemy import (
     JSON,
     BigInteger,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -204,6 +207,113 @@ class HarvestStateRun(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    # ── Phase 3.0 schema gap (additive, nullable) ─────────────────────────
+    # Every column below is nullable. No business code path writes them
+    # today (this PR is schema-only).
+    #
+    # ``is_replay`` is the discriminator. ``replay_executed_at`` carries NO
+    # server-side default: it is replay-only metadata and must remain
+    # explicitly NULL on historical_observed rows. Only the Phase 3 replay
+    # business writer is allowed to populate it, and only when
+    # ``is_replay = TRUE``. The composite CHECK
+    # ``ck_harvest_state_run_replay_metadata_coupling`` enforces the
+    # historical_observed-vs-replay partition in PG; an ORM-only writer
+    # would silently violate it.
+    is_replay: Mapped[bool | None] = mapped_column(
+        Boolean, nullable=True, server_default=text("FALSE")
+    )
+    forecast_effective_cutoff_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    replay_executed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    replay_code_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+    replay_run_correlation_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class HarvestStateReplaySourceVisibilityAuditModel(Base):
+    """Per-source, per-cutoff replay visibility audit.
+
+    One row per (source_role, forecast_cutoff_at) decision captured at replay
+    time. Append-only by convention; no UPDATE statements are issued against
+    this table. The ``harvest_state_run_id`` FK is nullable so that audit
+    rows persist even when the parent ``harvest_state_run`` row is removed
+    (deletion is rare; replay audit must survive).
+    """
+
+    __tablename__ = "harvest_state_replay_source_visibility_audit"
+    __table_args__ = (
+        CheckConstraint(
+            "btrim(source_role) <> ''",
+            name="ck_hsrpsva_role_non_blank",
+        ),
+        CheckConstraint(
+            "btrim(source_type) <> ''",
+            name="ck_hsrpsva_type_non_blank",
+        ),
+        CheckConstraint(
+            "btrim(source_visibility_source) <> ''",
+            name="ck_hsrpsva_visibility_source_non_blank",
+        ),
+        CheckConstraint(
+            "forecast_cutoff_at <= now() + interval '1 hour'",
+            name="ck_hsrpsva_cutoff_past",
+        ),
+        CheckConstraint(
+            "rejection_blocker_code IS NULL "
+            "OR btrim(rejection_blocker_code) <> ''",
+            name="ck_hsrpsva_rejection_code_non_blank",
+        ),
+        CheckConstraint(
+            "semantic_identity_hash IS NULL "
+            "OR (length(semantic_identity_hash) = 64 "
+            "AND lower(semantic_identity_hash) = semantic_identity_hash "
+            "AND replace(replace(replace(replace(replace(replace(replace("
+            "replace(replace(replace(replace(replace(replace(replace("
+            "replace(replace(replace(replace(semantic_identity_hash, "
+            "'0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), "
+            "'6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), "
+            "'c', ''), 'd', ''), 'e', ''), 'f', '') = '')",
+            name="ck_hsrpsva_semantic_identity_hash_sha256",
+        ),
+        CheckConstraint(
+            "(visibility_passed = TRUE AND rejection_blocker_code IS NULL) "
+            "OR "
+            "(visibility_passed = FALSE AND rejection_blocker_code IS NOT NULL)",
+            name="ck_hsrpsva_passed_blocker_coupling",
+        ),
+        ForeignKeyConstraint(
+            ["harvest_state_run_id"],
+            ["harvest_state_run.id"],
+            name="fk_hsrpsva_harvest_state_run_id",
+            ondelete="SET NULL",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True
+    )
+    harvest_state_run_id: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True
+    )
+    source_role: Mapped[str] = mapped_column(Text, nullable=False)
+    source_type: Mapped[str] = mapped_column(Text, nullable=False)
+    source_visibility_source: Mapped[str] = mapped_column(Text, nullable=False)
+    forecast_cutoff_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    visibility_passed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("FALSE")
+    )
+    rejection_blocker_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    semantic_identity_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
 
 
