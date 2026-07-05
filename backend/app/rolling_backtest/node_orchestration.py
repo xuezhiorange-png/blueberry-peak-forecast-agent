@@ -2596,32 +2596,6 @@ async def _stage_resolve_historical_inputs(
     raise UnsupportedSelectionModeError(
         f"upstream_selection_mode={node.upstream_selection_mode} not supported"
     )
-
-
-def _task3_source_visibility_snapshot(
-    build_run: AnalyticsBuildRun,
-) -> Task3SourceVisibilityIdentity:
-    assert build_run.finished_at is not None
-    visible_through_at = build_run.finished_at
-    visibility_manifest_hash = sha256_payload(
-        {
-            "visibility_policy_version": "task11-task3-source-visibility-v1",
-            "source_max_raw_id": build_run.source_max_raw_id,
-            "aggregation_version": build_run.aggregation_version,
-            "config_hash": build_run.config_hash,
-            "visible_through_at": visible_through_at,
-        }
-    )
-    return Task3SourceVisibilityIdentity(
-        visibility_policy_version="task11-task3-source-visibility-v1",
-        source_max_raw_id=build_run.source_max_raw_id,
-        aggregation_version=build_run.aggregation_version,
-        config_hash=build_run.config_hash,
-        visibility_manifest_hash=visibility_manifest_hash,
-        visible_through_at=visible_through_at,
-    )
-
-
 def _parent_authority_identity(
     *,
     source_type: AvailabilitySourceType,
@@ -2786,13 +2760,13 @@ async def _build_availability_snapshot_for_resolved_input(
         run_id = _require_database_ref(
             outcome.semantic_identity, allowed_types=("database_run_id",)
         )
-        row = cast(MaturityModelRun | None, await session.get(MaturityModelRun, run_id))
-        if row is None or row.finished_at is None:
+        model_run = cast(MaturityModelRun | None, await session.get(MaturityModelRun, run_id))
+        if model_run is None or model_run.finished_at is None:
             raise HistoricalSourceNotFoundError(f"Task 8 model run {run_id} was not found")
         return Task8ModelRunAvailabilitySnapshot(
             source_type=AvailabilitySourceType.TASK8_MODEL_RUN,
-            status=row.status,
-            authoritative_timestamp=row.finished_at,
+            status=model_run.status,
+            authoritative_timestamp=model_run.finished_at,
         )
 
     if source_type == AvailabilitySourceType.TASK8_MODEL_ARTIFACT:
@@ -2833,37 +2807,43 @@ async def _build_availability_snapshot_for_resolved_input(
         run_id = _require_database_ref(
             outcome.semantic_identity, allowed_types=("database_run_id",)
         )
-        row = cast(MaturityForecastRun | None, await session.get(MaturityForecastRun, run_id))
-        if row is None or row.finished_at is None:
+        forecast_run = cast(
+            MaturityForecastRun | None, await session.get(MaturityForecastRun, run_id)
+        )
+        if forecast_run is None or forecast_run.finished_at is None:
             raise HistoricalSourceNotFoundError(f"Task 8 forecast run {run_id} was not found")
         return Task8ForecastRunAvailabilitySnapshot(
             source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
-            status=row.status,
-            authoritative_timestamp=row.finished_at,
+            status=forecast_run.status,
+            authoritative_timestamp=forecast_run.finished_at,
         )
 
     if source_type == AvailabilitySourceType.TASK8_DAILY_PREDICTION:
         row_id = _require_database_ref(
             outcome.semantic_identity, allowed_types=("database_row_id",)
         )
-        row = cast(
+        daily_prediction = cast(
             MaturityDailyPredictionModel | None,
             await session.get(MaturityDailyPredictionModel, row_id),
         )
         parent_forecast = (
             None
-            if row is None
+            if daily_prediction is None
             else cast(
                 MaturityForecastRun | None,
-                await session.get(MaturityForecastRun, row.forecast_run_id),
+                await session.get(MaturityForecastRun, daily_prediction.forecast_run_id),
             )
         )
-        if row is None or parent_forecast is None or parent_forecast.finished_at is None:
+        if (
+            daily_prediction is None
+            or parent_forecast is None
+            or parent_forecast.finished_at is None
+        ):
             raise HistoricalSourceNotFoundError(f"Task 8 daily prediction {row_id} was not found")
         return Task8DailyPredictionAvailabilitySnapshot(
             source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
-            prediction_date=row.prediction_date,
-            created_at=row.created_at,
+            prediction_date=daily_prediction.prediction_date,
+            created_at=daily_prediction.created_at,
             parent_authority=_parent_authority_identity(
                 source_type=AvailabilitySourceType.TASK8_FORECAST_RUN,
                 authority_status=parent_forecast.status,
@@ -2881,28 +2861,28 @@ async def _build_availability_snapshot_for_resolved_input(
         run_id = _require_database_ref(
             outcome.semantic_identity, allowed_types=("database_run_id",)
         )
-        row = cast(HarvestStateRun | None, await session.get(HarvestStateRun, run_id))
-        if row is None or row.created_at is None:
+        harvest_run = cast(HarvestStateRun | None, await session.get(HarvestStateRun, run_id))
+        if harvest_run is None or harvest_run.created_at is None:
             raise HistoricalSourceNotFoundError(f"Task 9 run {run_id} was not found")
         return Task9HarvestStateRunAvailabilitySnapshot(
             source_type=AvailabilitySourceType.TASK9_HARVEST_STATE_RUN,
-            status=row.status,
-            authoritative_timestamp=row.created_at,
+            status=harvest_run.status,
+            authoritative_timestamp=harvest_run.created_at,
         )
 
     if source_type == AvailabilitySourceType.TASK10_TRAINING_RUN:
         run_id = _require_database_ref(
             outcome.semantic_identity, allowed_types=("database_run_id",)
         )
-        row = cast(
+        training_run = cast(
             ResidualModelTrainingRun | None, await session.get(ResidualModelTrainingRun, run_id)
         )
-        if row is None or row.finished_at is None:
+        if training_run is None or training_run.finished_at is None:
             raise HistoricalSourceNotFoundError(f"Task 10 training run {run_id} was not found")
         return Task10TrainingRunAvailabilitySnapshot(
             source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
-            status=row.execution_status,
-            authoritative_timestamp=row.finished_at,
+            status=training_run.execution_status,
+            authoritative_timestamp=training_run.finished_at,
         )
 
     if source_type == AvailabilitySourceType.TASK10_MODEL_ARTIFACT:
@@ -2910,33 +2890,37 @@ async def _build_availability_snapshot_for_resolved_input(
             outcome.semantic_identity,
             allowed_types=("database_artifact_id",),
         )
-        row = cast(
+        residual_artifact = cast(
             ResidualModelArtifact | None, await session.get(ResidualModelArtifact, artifact_id)
         )
-        parent_run = (
+        artifact_training_run = (
             None
-            if row is None
+            if residual_artifact is None
             else cast(
                 ResidualModelTrainingRun | None,
-                await session.get(ResidualModelTrainingRun, row.training_run_id),
+                await session.get(ResidualModelTrainingRun, residual_artifact.training_run_id),
             )
         )
-        if row is None or parent_run is None or parent_run.finished_at is None:
+        if (
+            residual_artifact is None
+            or artifact_training_run is None
+            or artifact_training_run.finished_at is None
+        ):
             raise HistoricalSourceNotFoundError(f"Task 10 artifact {artifact_id} was not found")
         return Task10ModelArtifactAvailabilitySnapshot(
             source_type=AvailabilitySourceType.TASK10_MODEL_ARTIFACT,
-            created_at=row.created_at,
+            created_at=residual_artifact.created_at,
             parent_authority=_parent_authority_identity(
                 source_type=AvailabilitySourceType.TASK10_TRAINING_RUN,
-                authority_status=parent_run.execution_status,
-                authority_timestamp=parent_run.finished_at,
+                authority_status=artifact_training_run.execution_status,
+                authority_timestamp=artifact_training_run.finished_at,
                 persistent_reference=PersistentUpstreamReference(
                     reference_type="database_run_id",
-                    reference_value=parent_run.id,
+                    reference_value=artifact_training_run.id,
                 ),
-                semantic_input_signature=parent_run.training_signature,
-                result_hash=parent_run.canonical_payload_hash,
-                canonical_payload_hash=parent_run.canonical_payload_hash,
+                semantic_input_signature=artifact_training_run.training_signature,
+                result_hash=artifact_training_run.canonical_payload_hash,
+                canonical_payload_hash=artifact_training_run.canonical_payload_hash,
             ),
         )
 
@@ -2944,15 +2928,15 @@ async def _build_availability_snapshot_for_resolved_input(
         run_id = _require_database_ref(
             outcome.semantic_identity, allowed_types=("database_run_id",)
         )
-        row = cast(
+        prediction_run = cast(
             ResidualModelPredictionRun | None, await session.get(ResidualModelPredictionRun, run_id)
         )
-        if row is None or row.completed_at is None:
+        if prediction_run is None or prediction_run.completed_at is None:
             raise HistoricalSourceNotFoundError(f"Task 10 prediction run {run_id} was not found")
         return Task10PredictionRunAvailabilitySnapshot(
             source_type=AvailabilitySourceType.TASK10_PREDICTION_RUN,
-            status=row.execution_status,
-            authoritative_timestamp=row.completed_at,
+            status=prediction_run.execution_status,
+            authoritative_timestamp=prediction_run.completed_at,
         )
 
     raise UnsupportedSelectionModeError(
