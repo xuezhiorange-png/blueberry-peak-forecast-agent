@@ -227,6 +227,22 @@ class Task10PredictionNotCompletedError(NodeOrchestrationError):
     code = "TASK10_PREDICTION_NOT_COMPLETED"
 
 
+class Task10ReplayBindingInvalidError(NodeOrchestrationError):
+    """Task 10 binding does not satisfy the §11 replay binding contract.
+
+    Raised by :mod:`backend.app.rolling_backtest.replay_task10_binding`
+    when a replay-mode Task 10 binding attempt fails any of the §11
+    cross-run substitution / hash-equality / authority-chain /
+    Task10ModelPolicy requirements. Carries the bucket #2 frozen
+    literal ``OrchestrationBlocker.TASK10_REPLAY_BINDING_INVALID.value``
+    as its ``code`` so the existing typed-error → blocked-outcome
+    catch block (lines ~2383-2428) routes to the §7 blocker
+    taxonomy without any orchestrator-level change.
+    """
+
+    code = "task10_replay_binding_invalid"
+
+
 class Task10PredictionAfterCutoffError(NodeOrchestrationError):
     """Task 10 prediction completed_at is after forecast_cutoff_at."""
 
@@ -2395,6 +2411,7 @@ async def orchestrate_node(
         Task8ParentAuthorityMismatchError,
         Task9Task8AuthorityMismatchError,
         Task10Task9BindingMismatchError,
+        Task10ReplayBindingInvalidError,
         Task10PredictionNotCompletedError,
         Task10PredictionAfterCutoffError,
     ) as exc:
