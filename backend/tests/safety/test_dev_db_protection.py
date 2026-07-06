@@ -23,13 +23,12 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
 # Repository root (the worktree root).
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 POSTGRES_TEST_DB_SH = REPO_ROOT / "backend" / "scripts" / "postgres_test_db.sh"
 WAIT_FOR_POSTGRES_SH = REPO_ROOT / "backend" / "scripts" / "wait_for_postgres.sh"
 RESET_TEST_DB_SH = REPO_ROOT / "backend" / "scripts" / "reset_test_db.sh"
@@ -74,7 +73,7 @@ def _run_helper(
 # ---------------------------------------------------------------------------
 
 
-def test_dev_db_postgres_host_localhost_port_5432_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dev_db_dev_port_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     """The harness MUST refuse to start when POSTGRES_PORT=5432 (dev-DB port).
 
     Port 5432 is reserved for the development database; using it would
@@ -97,14 +96,14 @@ def test_dev_db_postgres_host_localhost_port_5432_is_rejected(monkeypatch: pytes
     )
 
     assert result.returncode != 0, (
-        f"Harness accepted dev-DB port 5432 — guard broken. stdout={result.stdout!r} stderr={result.stderr!r}"
+        f"Guard accepted dev-DB port 5432. stdout={result.stdout!r} stderr={result.stderr!r}"
     )
     assert "55432" in result.stderr or "5432" in result.stderr, (
         f"Harness rejection message must mention the port; got stderr={result.stderr!r}"
     )
 
 
-def test_dev_db_app_env_production_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dev_db_prod_app_env_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     """The harness MUST refuse to start when APP_ENV is not 'test'.
 
     APP_ENV=production (or any value other than 'test') is an explicit
@@ -126,7 +125,7 @@ def test_dev_db_app_env_production_is_rejected(monkeypatch: pytest.MonkeyPatch) 
     )
 
     assert result.returncode != 0, (
-        f"Harness accepted APP_ENV=production — guard broken. stdout={result.stdout!r} stderr={result.stderr!r}"
+        f"Guard accepted APP_ENV=production. stdout={result.stdout!r} stderr={result.stderr!r}"
     )
     assert "APP_ENV" in result.stderr, (
         f"Harness rejection message must mention APP_ENV; got stderr={result.stderr!r}"
@@ -163,8 +162,15 @@ def test_dev_db_database_url_dev_db_is_rejected(monkeypatch: pytest.MonkeyPatch)
     # Acceptable: either exit 0 (bash wrapper passes to docker, fails on
     # missing docker) or exit != 0 (bash wrapper also checks). The
     # contract here is: NO SILENT CONNECTION to the dev DB.
-    assert "blueberry_peak_test" in result.stdout or result.returncode != 0 or "docker" in result.stderr.lower(), (
-        f"Unexpected outcome. stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
+    assert (
+        "blueberry_peak_test" in result.stdout
+        or result.returncode != 0
+        or "docker" in result.stderr.lower()
+    ), (
+        f"Unexpected outcome. "
+        f"stdout={result.stdout!r} "
+        f"stderr={result.stderr!r} "
+        f"rc={result.returncode}"
     )
 
 
