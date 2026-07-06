@@ -227,6 +227,22 @@ class Task10PredictionNotCompletedError(NodeOrchestrationError):
     code = "TASK10_PREDICTION_NOT_COMPLETED"
 
 
+class Task10ReplayBindingInvalidError(NodeOrchestrationError):
+    """Task 10 binding does not satisfy the §11 replay binding contract.
+
+    Raised by :mod:`backend.app.rolling_backtest.replay_task10_binding`
+    when a replay-mode Task 10 binding attempt fails any of the §11
+    cross-run substitution / hash-equality / authority-chain /
+    Task10ModelPolicy requirements. Carries the bucket #2 frozen
+    literal ``OrchestrationBlocker.TASK10_REPLAY_BINDING_INVALID.value``
+    as its ``code`` so the existing typed-error → blocked-outcome
+    catch block (lines ~2383-2428) routes to the §7 blocker
+    taxonomy without any orchestrator-level change.
+    """
+
+    code = "task10_replay_binding_invalid"
+
+
 class Task10PredictionAfterCutoffError(NodeOrchestrationError):
     """Task 10 prediction completed_at is after forecast_cutoff_at."""
 
@@ -273,8 +289,21 @@ async def _verify_pinned_source(
     forecast_cutoff_at: datetime,
     node_timezone: str,
     as_of_local_date: Any,
+    execution_mode: ExecutionMode,
 ) -> ResolvedInputOutcome:
-    """Verify a pinned source's database existence and integrity."""
+    """Verify a pinned source's database existence and integrity.
+
+    §5.4 dispatch lift: the per-call ``execution_mode`` parameter
+    replaces the previously-hardcoded
+    ``ExecutionMode.HISTORICAL_OBSERVED`` literal. The caller
+    (downstream replay-pipeline paths) supplies the explicit
+    ``ExecutionMode`` so context tracks ``RollingBacktestConfig``.
+    Note this helper is currently dead code (no callers in this
+    module — kept for completeness); the parameter is required so
+    that future replay-mode dispatch that does resurrect pinned paths
+    is forced to pass the explicit mode rather than inheriting a
+    hidden default.
+    """
     from backend.app.rolling_backtest.schemas import AvailabilitySnapshot
 
     snapshot_adapter = __import__("pydantic").TypeAdapter(AvailabilitySnapshot)
@@ -286,7 +315,7 @@ async def _verify_pinned_source(
     snapshot = snapshot_adapter.validate_python(audit_row.canonical_payload)
     eval_result = evaluate_authority_visibility(
         snapshot=snapshot,
-        execution_mode=ExecutionMode.HISTORICAL_OBSERVED,
+        execution_mode=execution_mode,
         forecast_cutoff_at=forecast_cutoff_at,
         as_of_local_date=as_of_local_date,
         business_timezone=node_timezone,
@@ -2086,6 +2115,22 @@ async def orchestrate_node(
 
     This is the formal typed service for node orchestration.
     All state changes go through the persistence layer.
+
+    §5 dispatch lift (bucket #5):
+        * The hard gate at ``_stage_resolve_historical_inputs`` is
+          updated so that ``ExecutionMode.RETROSPECTIVE_REPLAY``
+          surfaces a typed :class:`UnsupportedExecutionModeError`
+          that explicitly points callers at the dedicated
+          bucket-#5 entry point
+          :func:`backend.app.rolling_backtest.replay_pipeline.orchestrate_replay_node`.
+          Future dispatch code (Phase 4+ Task 10 binding) invokes
+          the replay pipeline directly; bucket #5 does NOT wire it
+          into ``orchestrate_node`` because doing so would break
+          the Phase 2 ``test_blocked_execution_leaves_no_partial_snapshot``
+          contract (``attempt_count == 1``, ``stage_count == 1``,
+          ``blocker_code == "UNSUPPORTED_EXECUTION_MODE"``).
+        * Historical-mode callers continue to use the unchanged
+          ``orchestrate_node`` signature with no replay kwargs.
     """
     # ── Load and validate ─────────────────────────────────────────────────
     run_result = await session.execute(
@@ -2366,6 +2411,7 @@ async def orchestrate_node(
         Task8ParentAuthorityMismatchError,
         Task9Task8AuthorityMismatchError,
         Task10Task9BindingMismatchError,
+        Task10ReplayBindingInvalidError,
         Task10PredictionNotCompletedError,
         Task10PredictionAfterCutoffError,
     ) as exc:
@@ -2507,6 +2553,29 @@ async def _stage_resolve_historical_inputs(
     """Stage 1: Resolve historical inputs from persisted source requests."""
     # Preserve the stage-1 blocker contract: unsupported mode/selection must
     # fail closed before any availability lookup or exact-load attempt.
+    #
+    # §5.1 / §5.5: the historical 8-stage DAG body below supports
+    # ``ExecutionMode.HISTORICAL_OBSERVED`` only. ``RETROSPECTIVE_REPLAY``
+    # mode is dispatched to
+    # ``backend.app.rolling_backtest.replay_pipeline.orchestrate_replay_node``
+    # (the bucket-#5 entry point) which composes around (does not replace)
+    # the historical 8-stage DAG. The dedicated replay pipeline is
+    # invoked directly by future dispatch callers (Phase 4+ Task 10 binding).
+    #
+    # Replay mode flows through this function only when the future
+    # dispatch-level wiring is installed (bucket-6+ scope); for
+    # bucket-5 the gate continues to fail closed with
+    # ``UnsupportedExecutionModeError`` so the existing
+    # ``test_blocked_execution_leaves_no_partial_snapshot`` Phase 2
+    # contract (``attempt_count == 1``, ``stage_count == 1``,
+    # ``blocker_code == "UNSUPPORTED_EXECUTION_MODE"``) is preserved.
+    if config.execution_mode == ExecutionMode.RETROSPECTIVE_REPLAY:
+        raise UnsupportedExecutionModeError(
+            "RETROSPECTIVE_REPLAY mode must be dispatched via "
+            "backend.app.rolling_backtest.replay_pipeline.orchestrate_replay_node; "
+            "orchestrate_node does not run the historical 8-stage DAG for replay mode "
+            "(see §5.5)."
+        )
     if config.execution_mode != ExecutionMode.HISTORICAL_OBSERVED:
         raise UnsupportedExecutionModeError(
             f"execution_mode={config.execution_mode.value} is not supported"
