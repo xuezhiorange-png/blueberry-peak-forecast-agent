@@ -8,6 +8,18 @@ from backend.app.rolling_backtest.availability import (
     parent_authority_semantic_payload,
 )
 from backend.app.rolling_backtest.calendar import resolve_default_node_dates
+from backend.app.rolling_backtest.cli import (
+    CLI_VERSION,
+    EXIT_HASH_COLLISION,
+    EXIT_IO_ERROR,
+    EXIT_METRIC_BLOCKER,
+    EXIT_SERVICE_CONTRACT_ERROR,
+    EXIT_SUCCESS,
+    EXIT_USAGE_ERROR,
+)
+from backend.app.rolling_backtest.cli import (
+    main as cli_main,
+)
 from backend.app.rolling_backtest.config import rolling_backtest_config_hash
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
@@ -17,6 +29,19 @@ from backend.app.rolling_backtest.enums import (
     ForecastStatus,
     RunDerivedStatus,
     UpstreamSelectionMode,
+)
+from backend.app.rolling_backtest.export import (
+    CSV_HEADER,
+    DEFAULT_CRASH_RECOVERY_THRESHOLD_SECONDS,
+    JSON_TOP_LEVEL_KEYS,
+    MANIFEST_TOP_LEVEL_KEYS,
+    ExportArtifacts,
+    ExportRequest,
+    ExportSubdir,
+    OverwritePolicy,
+    PathCollision,
+    build_target_paths,
+    write_export_artifacts,
 )
 from backend.app.rolling_backtest.metrics import (
     DEFAULT_DECIMAL_SCALE,
@@ -127,7 +152,10 @@ __all__ = [
     "AvailabilityAuthorityEvaluationResult",
     "AvailabilitySnapshot",
     "AvailabilitySourceType",
+    "CSV_HEADER",
+    "CLI_VERSION",
     "DagPersistenceCommand",
+    "DEFAULT_CRASH_RECOVERY_THRESHOLD_SECONDS",
     "DefaultNodeKey",
     "DefaultRollingNodeDate",
     "EvaluationMaskState",
@@ -135,6 +163,15 @@ __all__ = [
     "EvaluationResult",
     "EvaluationStatus",
     "ExecutionMode",
+    "ExportArtifacts",
+    "ExportRequest",
+    "ExportSubdir",
+    "EXIT_HASH_COLLISION",
+    "EXIT_IO_ERROR",
+    "EXIT_METRIC_BLOCKER",
+    "EXIT_SERVICE_CONTRACT_ERROR",
+    "EXIT_SUCCESS",
+    "EXIT_USAGE_ERROR",
     "ForecastStatus",
     "HistoricalCandidate",
     "MaskState",
@@ -145,9 +182,13 @@ __all__ = [
     "MetricOutput",
     "NodeOrchestrationOutcome",
     "NodeStateSnapshot",
+    "JSON_TOP_LEVEL_KEYS",
+    "MANIFEST_TOP_LEVEL_KEYS",
     "OrchestrationBlocker",
     "OrchestrationStage",
+    "OverwritePolicy",
     "ParentAuthorityIdentity",
+    "PathCollision",
     "ResolvedInputPersistenceCommand",
     "ResolvedInputOutcome",
     "ResolvedUpstreamSemanticIdentity",
@@ -175,7 +216,9 @@ __all__ = [
     "availability_snapshot_audit_hash",
     "availability_snapshot_audit_payload",
     "build_availability_authority_registry",
+    "build_target_paths",
     "canonical_payload_hash",
+    "cli_main",
     "comparable_row_count",
     "compute_metrics",
     "correction_magnitude_count",
@@ -220,4 +263,5 @@ __all__ = [
     "validate_stage_continuity",
     "wmape",
     "withheld_row_count",
+    "write_export_artifacts",
 ]
