@@ -2226,6 +2226,19 @@ async def orchestrate_node(
     )
 
     try:
+        # P0-2: Mode validation moved into Stage 1 (after attempt creation)
+        # ── Create execution attempt ────────────────────────────────────────
+        attempt = await create_execution_attempt(
+            rolling_run_id,
+            rolling_node_id,
+            status="running",
+            current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
+            session=session,
+        )
+        ctx.attempt_id = attempt.id
+        ctx.attempt_number = attempt.attempt_number
+        ctx.prior_attempt_id = getattr(attempt, "prior_attempt_id", None)
+
         # ── §5 dispatch lift (bucket #5): RETROSPECTIVE_REPLAY mode routes
         # through ``replay_pipeline.orchestrate_replay_node`` instead of the
         # historical 8-stage DAG. The replay pipeline "composes around
@@ -2235,14 +2248,10 @@ async def orchestrate_node(
         # metadata writer. The historical 8-stage DAG does NOT run for
         # replay mode here; replay has its own closed pipeline.
         #
-        # The dispatch branch lives INSIDE the existing ``try`` block so
-        # the typed error path (``UnsupportedExecutionModeError``) raised
-        # when ``_replay_runtime_identity`` is missing is caught into the
-        # same ``build_blocked_outcome`` flow the L2510 historical gate
-        # would have used. This preserves the legacy
-        # ``blocker_code == "UNSUPPORTED_EXECUTION_MODE"`` outcome
-        # shape that Phase 2 unit tests pin against the
-        # RETROSPECTIVE_REPLAY-without-identity case.
+        # The dispatch branch lives INSIDE the existing ``try`` block,
+        # AFTER ``create_execution_attempt`` so the Phase 2 contract
+        # ``attempt_count == 1`` for unsupported-mode blocked outcomes
+        # is preserved (Phase 2 integration tests pin this).
         if config.execution_mode == ExecutionMode.RETROSPECTIVE_REPLAY:
             if _replay_runtime_identity is None:
                 # §4.3 / §4.4 hard rule: replay dispatch must be supplied
@@ -2263,19 +2272,6 @@ async def orchestrate_node(
                 replay_runtime_identity=_replay_runtime_identity,
                 replay_dispatch_task9a_request=replay_dispatch_task9a_request,
             )
-
-        # P0-2: Mode validation moved into Stage 1 (after attempt creation)
-        # ── Create execution attempt ────────────────────────────────────────
-        attempt = await create_execution_attempt(
-            rolling_run_id,
-            rolling_node_id,
-            status="running",
-            current_stage=OrchestrationStage.RESOLVE_HISTORICAL_INPUTS.value,
-            session=session,
-        )
-        ctx.attempt_id = attempt.id
-        ctx.attempt_number = attempt.attempt_number
-        ctx.prior_attempt_id = getattr(attempt, "prior_attempt_id", None)
 
         # ── Stage 1: resolve_historical_inputs ───────────────────────────
         ctx = await _run_stage(
