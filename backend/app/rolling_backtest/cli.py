@@ -252,24 +252,52 @@ def _parse_scope_json(raw: str) -> dict[str, object]:
     return parsed
 
 
+def _validate_output_dir_absolute(raw: str) -> Path:
+    """Validate ``--output-dir`` BEFORE calling ``Path.resolve()``.
+
+    ``Path.resolve()`` collapses relative paths to absolute paths on
+    the host, which would silently transform a caller mistake
+    (``./rel`` → ``/cwd/rel``) into a successful run writing to an
+    unintended directory. Per §4.2 the contract is that
+    ``--output-dir`` MUST be absolute; we therefore reject relative
+    paths with a CLI usage error (exit 64) so the failure mode is
+    loud and never silently coerces a relative input.
+    """
+    if not raw:
+        raise CLIUsageError("invalid_output_dir: --output-dir is empty")
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        raise CLIUsageError(f"invalid_output_dir: --output-dir must be absolute (got {raw!r})")
+    return candidate
+
+
 # ---------------------------------------------------------------------------
 # Subcommand handlers
 # ---------------------------------------------------------------------------
 
 
-def _handle_compute_metrics(args: argparse.Namespace) -> int:
+def _handle_compute_metrics(
+    args: argparse.Namespace,
+    *,
+    effective_argv: Sequence[str],
+) -> int:
     """Handle the ``compute-metrics`` subcommand.
 
     Returns the desired process exit code; main() propagates it via
     ``sys.exit``.
+
+    ``effective_argv`` is the post-subcommand argv slice that was
+    actually parsed (i.e. ``argv[1:]`` when ``argv[0]`` is
+    ``"compute-metrics"``). We pass it explicitly so the audit
+    record captures the caller's effective invocation rather than
+    ``sys.argv[1:]`` — using ``sys.argv`` would corrupt the audit
+    whenever the CLI is invoked via ``main(argv=[...])`` from a
+    test harness or library entry point where ``sys.argv`` is the
+    pytest runner, not the CLI.
     """
     scope = _parse_scope_json(args.scope)
     metric_subset = _parse_metric_subset(args.metric_subset)
-    output_dir: Path = args.output_dir.resolve()
-    if not output_dir.is_absolute():
-        raise CLIUsageError(
-            f"invalid_output_dir: --output-dir must be absolute (got {args.output_dir})"
-        )
+    output_dir: Path = _validate_output_dir_absolute(args.output_dir)
     overwrite_policy = OverwritePolicy(args.overwrite)
     emit_audit = not args.no_audit
 
@@ -293,7 +321,12 @@ def _handle_compute_metrics(args: argparse.Namespace) -> int:
         return _emit_error(
             kind=kind,
             message=message,
-            run_id=args.run_id,
+            run_id=str(payload.get("run_id") or args.run_id),
+            scope_id=str(payload.get("scope_id") or ""),
+            evaluation_mask_hash=str(payload.get("evaluation_mask_hash") or args.mask_hash),
+            metric_definition_version=str(
+                payload.get("metric_definition_version", METRIC_DEFINITION_VERSION)
+            ),
         )
 
     # 2) Derive scope_id from result.outputs[0].metric_scope_identity (§6.1).
@@ -308,7 +341,7 @@ def _handle_compute_metrics(args: argparse.Namespace) -> int:
 
     # 4) Build ExportRequest and write the four target files.
     cli_invocation: dict[str, str] = {
-        "argv": " ".join(sys.argv[1:]),
+        "argv": " ".join(effective_argv),
         "--scope": args.scope,
         "--mask-hash": args.mask_hash,
         "--metric-subset": args.metric_subset or "",
@@ -370,7 +403,18 @@ def _handle_compute_metrics(args: argparse.Namespace) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point (§4.1)."""
+    """CLI entry point (§4.1).
+
+    ``argv`` is the effective caller-provided argv slice. When
+    ``None`` we fall back to ``sys.argv[1:]`` (the standard
+    module-as-script invocation). We deliberately do NOT use
+    ``sys.argv[1:]`` as the audit's argv capture: when this function
+    is invoked from a library / test harness with an explicit
+    ``argv=``, the audit must reflect the caller, not the test
+    runner.
+    """
+    if argv is None:
+        argv = sys.argv[1:]
     parser = _build_parser()
     try:
         args = parser.parse_args(argv)
@@ -381,7 +425,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return EXIT_USAGE_ERROR if exc.code not in (None, 0) else 0
     if args.subcommand == "compute-metrics":
         try:
-            return _handle_compute_metrics(args)
+            return _handle_compute_metrics(args, effective_argv=argv)
         except CLIUsageError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return EXIT_USAGE_ERROR
