@@ -88,6 +88,15 @@ class ServiceContractError(ValueError):
     expect ``ValueError`` on bad input. The ``kind`` field carries the
     machine-readable error code; the ``message`` field carries a
     human-readable description.
+
+    Carries the caller's request context (``run_id``, ``scope_id``,
+    ``evaluation_mask_hash``, ``metric_subset``) so that the
+    machine-readable error payload emitted by the CLI / outer
+    layers preserves the structured binding fields per design §3.4.
+    These are optional — pre-validation errors may not have a fully
+    formed context — but the service layer MUST populate them
+    whenever the relevant field was syntactically accepted by the
+    caller.
     """
 
     def __init__(
@@ -95,19 +104,48 @@ class ServiceContractError(ValueError):
         *,
         kind: str,
         message: str,
+        run_id: str = "",
+        scope_id: str = "",
+        evaluation_mask_hash: str = "",
+        metric_subset: tuple[str, ...] | None = None,
         metric_definition_version: str = METRIC_DEFINITION_VERSION,
     ) -> None:
         super().__init__(message)
         self.kind = kind
         self.message = message
+        self.run_id = run_id
+        self.scope_id = scope_id
+        self.evaluation_mask_hash = evaluation_mask_hash
+        self.metric_subset = metric_subset
         self.metric_definition_version = metric_definition_version
 
-    def to_payload(self) -> dict[str, str]:
-        return {
+    def to_payload(self) -> dict[str, object]:
+        """Render the structured error payload (§3.4 / §9).
+
+        Always includes ``kind``, ``message``, and
+        ``metric_definition_version`` (the binding binding identity
+        for Phase 4b). The optional structured context fields
+        (``run_id``, ``scope_id``, ``evaluation_mask_hash``,
+        ``metric_subset``) are included only when they were set on
+        construction, so downstream consumers (the CLI error
+        emitter, audit tooling) see a complete record when one is
+        available and an empty record when the failure pre-dated
+        request validation.
+        """
+        payload: dict[str, object] = {
             "kind": self.kind,
             "message": self.message,
             "metric_definition_version": self.metric_definition_version,
         }
+        if self.run_id:
+            payload["run_id"] = self.run_id
+        if self.scope_id:
+            payload["scope_id"] = self.scope_id
+        if self.evaluation_mask_hash:
+            payload["evaluation_mask_hash"] = self.evaluation_mask_hash
+        if self.metric_subset is not None:
+            payload["metric_subset"] = list(self.metric_subset)
+        return payload
 
 
 # ---------------------------------------------------------------------------
@@ -379,14 +417,78 @@ def compute_metrics(
     # Input validation — runs in a fixed order so the error kind is
     # deterministic for a given input. The order is the order of the
     # rows in design §3.4 (top to bottom).
-    _validate_mask_hash(mask_hash)
-    _validate_scope(scope)
-    _validate_decimal_scale(decimal_scale)
-    _validate_metric_subset(metric_subset)
+    #
+    # The structured request context (``run_id``, ``scope_id``,
+    # ``evaluation_mask_hash``, ``metric_subset``) is attached to
+    # every ``ServiceContractError`` we raise so that the CLI / audit
+    # tooling can emit a complete machine-readable payload. We
+    # compute the scope_id up front (it is purely a function of the
+    # caller-supplied ``scope`` mapping and does not require any
+    # Phase 4a IO) and reuse it for the error context.
+    scope_id = str(scope.get("node", "")) if "node" in scope else ""
+    try:
+        _validate_mask_hash(mask_hash)
+    except ServiceContractError as exc:
+        raise ServiceContractError(
+            kind=exc.kind,
+            message=exc.message,
+            run_id=run_id,
+            scope_id=scope_id,
+            evaluation_mask_hash=mask_hash,
+            metric_subset=metric_subset,
+            metric_definition_version=exc.metric_definition_version,
+        ) from exc
+    try:
+        _validate_scope(scope)
+    except ServiceContractError as exc:
+        raise ServiceContractError(
+            kind=exc.kind,
+            message=exc.message,
+            run_id=run_id,
+            scope_id=scope_id,
+            evaluation_mask_hash=mask_hash,
+            metric_subset=metric_subset,
+            metric_definition_version=exc.metric_definition_version,
+        ) from exc
+    try:
+        _validate_decimal_scale(decimal_scale)
+    except ServiceContractError as exc:
+        raise ServiceContractError(
+            kind=exc.kind,
+            message=exc.message,
+            run_id=run_id,
+            scope_id=scope_id,
+            evaluation_mask_hash=mask_hash,
+            metric_subset=metric_subset,
+            metric_definition_version=exc.metric_definition_version,
+        ) from exc
+    try:
+        _validate_metric_subset(metric_subset)
+    except ServiceContractError as exc:
+        raise ServiceContractError(
+            kind=exc.kind,
+            message=exc.message,
+            run_id=run_id,
+            scope_id=scope_id,
+            evaluation_mask_hash=mask_hash,
+            metric_subset=metric_subset,
+            metric_definition_version=exc.metric_definition_version,
+        ) from exc
 
     # Materialization lookup — raises ServiceContractError on missing
     # provider / missing run / unbound mask.
-    rows = _validate_mask_binding(run_id=run_id, mask_hash=mask_hash)
+    try:
+        rows = _validate_mask_binding(run_id=run_id, mask_hash=mask_hash)
+    except ServiceContractError as exc:
+        raise ServiceContractError(
+            kind=exc.kind,
+            message=exc.message,
+            run_id=run_id,
+            scope_id=scope_id,
+            evaluation_mask_hash=mask_hash,
+            metric_subset=metric_subset,
+            metric_definition_version=exc.metric_definition_version,
+        ) from exc
 
     # Phase 4b invocation. We delegate canonical payload hash
     # computation to Phase 4b (which is the authoritative source of

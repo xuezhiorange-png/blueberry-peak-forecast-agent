@@ -16,6 +16,7 @@ import hashlib
 import io
 import json
 import os
+import sys
 from collections.abc import Iterator
 from datetime import date
 from decimal import Decimal
@@ -297,22 +298,55 @@ def test_csv_export_null_decimal_renders_as_empty_field(
     golden_rows_single_node: list[EvaluationMetricRow],
     tmp_path: Path,
 ) -> None:
+    """§5.2: 'null → empty field' binding.
+
+    The golden fixture produces ``metric_value=None`` for
+    ``empirical_coverage_p50``,
+    ``interval_width_mean_p80_p50``, and
+    ``interval_width_median_p80_p50`` (rows lack ``p50_kg`` /
+    ``p80_kg``). The CSV MUST emit an empty cell for the
+    ``metric_value`` column on those rows — NOT the literal string
+    ``"null"`` and NOT the string ``"None"``.
+
+    This test parses the CSV with ``csv.reader`` (which faithfully
+    distinguishes empty cells from the literal string ``"null"``)
+    and asserts the ``metric_value`` cell is exactly the empty
+    string for at least one row whose ``blocker_count > 0``.
+    """
+    import csv as _csv
+
     rows_by_run_mask[(SAMPLE_RUN_ID, SAMPLE_MASK_HASH)] = golden_rows_single_node
     result = _make_evaluation_result(golden_rows_single_node)
     artifacts = write_export_artifacts(_make_export_request(result, tmp_path))
-    # Find a row whose metric_value is "null" (none rows like
-    # comparable_row_count with no comparable data). We assert that
-    # at least one row in the CSV has an empty second field (or the
-    # cell is "null" if the writer chose to render None as the
-    # literal "null" string). Per §5.2 the binding is: "null →
-    # empty field".
     text = artifacts.csv_path.read_text(encoding="utf-8")
-    reader = csv_module.reader(io.StringIO(text))
+    reader = _csv.reader(io.StringIO(text))
     rows = list(reader)
-    # rows[0] is the header; remaining are data rows. All data rows
-    # should have len == len(header).
+    header = rows[0]
+    assert tuple(header) == CSV_HEADER
+    # All data rows must have len == len(header) (no off-by-one).
     for r in rows[1:]:
         assert len(r) == len(CSV_HEADER)
+    # Find the metric_value column index.
+    metric_value_idx = header.index("metric_value")
+    metric_name_idx = header.index("metric_name")
+    blocker_count_idx = header.index("blocker_count")
+    # At least one row has a None metric_value (the empirical_coverage
+    # / interval_width metrics that triggered ZERO_DENOMINATOR
+    # blockers). For that row the metric_value cell MUST be "".
+    null_rows_found = 0
+    for r in rows[1:]:
+        if int(r[blocker_count_idx]) > 0 and r[metric_value_idx] == "":
+            null_rows_found += 1
+    assert null_rows_found >= 1, (
+        "expected at least one CSV row with empty metric_value cell "
+        f"for a blocked metric, got rows={rows[1:]!r}"
+    )
+    # Spot-check: the empirical_coverage_p50 row MUST be the empty-
+    # cell form, never the literal "null".
+    coverage_row = next(r for r in rows[1:] if r[metric_name_idx] == "empirical_coverage_p50")
+    assert coverage_row[metric_value_idx] == ""
+    assert coverage_row[metric_value_idx] != "null"
+    assert coverage_row[metric_value_idx] != "None"
 
 
 def test_csv_export_row_order_matches_outputs(
@@ -747,6 +781,92 @@ def test_cli_missing_required_flag_exits_64(
     assert rc == EXIT_USAGE_ERROR
 
 
+def test_cli_relative_output_dir_exits_64(
+    tmp_path: Path,
+) -> None:
+    """P0: ``--output-dir`` MUST be absolute.
+
+    Per §4.2, ``--output-dir`` is bound as absolute. Per §4.3,
+    relative paths surface as exit 64 (CLI usage error). We
+    deliberately do NOT use ``Path.resolve()`` because that would
+    silently coerce a relative input (e.g. ``./foo``) into an
+    absolute path on the host's CWD, which is exactly the
+    silent-failure mode that the absolute-path binding is meant
+    to prevent. The CLI must therefore reject relative paths
+    BEFORE any ``resolve()`` is applied.
+    """
+    from backend.app.rolling_backtest import cli_main
+
+    # Use a relative path that would otherwise resolve to a real
+    # directory on the test host (``tmp_path.name`` is the leaf
+    # basename of the pytest tmp dir; ``./<basename>`` does not
+    # exist as a CWD-relative path during pytest, but that
+    # non-existence is irrelevant — the absolute-path check fires
+    # before any filesystem lookup).
+    relative = f"./rel_{tmp_path.name}"
+    assert not Path(relative).is_absolute()
+    rc = cli_main(
+        [
+            "compute-metrics",
+            "--run-id",
+            SAMPLE_RUN_ID,
+            "--scope",
+            json.dumps(SAMPLE_SCOPE),
+            "--mask-hash",
+            SAMPLE_MASK_HASH,
+            "--output-dir",
+            relative,
+        ]
+    )
+    assert rc == EXIT_USAGE_ERROR
+
+
+def test_cli_relative_output_dir_does_not_create_directory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """P0: a relative ``--output-dir`` MUST be rejected before any
+    directory creation / filesystem write is attempted.
+
+    The pre-fix implementation called ``Path.resolve()`` first,
+    which collapsed the relative path to an absolute one and
+    then proceeded to create that absolute path's parent
+    directory. This test asserts that no such side effect
+    occurs for a relative input. We monkey-patch
+    ``Path.mkdir`` to record any call; if the CLI is well-behaved,
+    no ``mkdir`` call is made for the json/ csv/ manifest/ audit
+    subdirs.
+    """
+    from backend.app.rolling_backtest import cli_main
+
+    mkdir_calls: list[Path] = []
+    original_mkdir = Path.mkdir
+
+    def spy_mkdir(self: Path, *args: object, **kwargs: object) -> None:
+        mkdir_calls.append(self)
+        return original_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", spy_mkdir)
+    relative = "./another_rel"
+    rc = cli_main(
+        [
+            "compute-metrics",
+            "--run-id",
+            SAMPLE_RUN_ID,
+            "--scope",
+            json.dumps(SAMPLE_SCOPE),
+            "--mask-hash",
+            SAMPLE_MASK_HASH,
+            "--output-dir",
+            relative,
+        ]
+    )
+    assert rc == EXIT_USAGE_ERROR
+    # No mkdir calls should have been made — the absolute-path
+    # check fires before the writer is invoked.
+    assert mkdir_calls == []
+
+
 def test_cli_invalid_mask_hash_exits_2_via_service_contract(
     tmp_path: Path,
 ) -> None:
@@ -824,6 +944,114 @@ def test_cli_service_contract_error_exits_2(
         assert rc == EXIT_SERVICE_CONTRACT_ERROR
     finally:
         register_materialization_provider(previous)
+
+
+def test_cli_service_contract_error_payload_includes_structured_fields(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """P1: the JSON error payload MUST include the structured request
+    context (``run_id``, ``scope_id``, ``evaluation_mask_hash``,
+    ``metric_definition_version``).
+
+    Pre-fix the payload only carried ``kind``, ``message``, and
+    ``metric_definition_version``; the structured context
+    fields were dropped at the boundary between the 4c-1 service
+    layer and the 4c-2 CLI, leaving downstream audit tooling
+    unable to attribute a service-layer failure to the caller's
+    run. This test asserts the full structured payload is
+    present in the stdout JSON error.
+    """
+    from backend.app.rolling_backtest import cli_main
+
+    previous = register_materialization_provider(None)
+    try:
+        rc = cli_main(
+            [
+                "compute-metrics",
+                "--run-id",
+                SAMPLE_RUN_ID,
+                "--scope",
+                json.dumps(SAMPLE_SCOPE),
+                "--mask-hash",
+                SAMPLE_MASK_HASH,
+                "--output-dir",
+                str(tmp_path),
+            ]
+        )
+    finally:
+        register_materialization_provider(previous)
+    assert rc == EXIT_SERVICE_CONTRACT_ERROR
+    captured = capsys.readouterr()
+    # Stdout carries the JSON error payload (one line).
+    payload = json.loads(captured.out.strip().splitlines()[-1])
+    # Required structured fields per §3.4.
+    assert payload["kind"] == "missing_run"
+    assert payload["run_id"] == SAMPLE_RUN_ID
+    assert payload["evaluation_mask_hash"] == SAMPLE_MASK_HASH
+    assert payload["metric_definition_version"] == METRIC_DEFINITION_VERSION
+    # scope_id is the stringified node id from the caller's scope.
+    assert payload["scope_id"] == str(SAMPLE_SCOPE["node"])
+
+
+def test_cli_audit_argv_uses_main_argv_not_sys_argv(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """P1: the audit's ``command_invocations`` field MUST be the
+    effective ``main(argv=...)`` invocation, NOT ``sys.argv[1:]``.
+
+    Pre-fix the audit unconditionally used ``sys.argv[1:]``, which
+    corrupts the audit whenever the CLI is invoked from a
+    library / test harness with an explicit ``argv=`` argument:
+    the audit would record the test runner's argv (e.g.
+    ``["pytest", ...]``) instead of the caller's invocation. This
+    test monkey-patches ``sys.argv`` to a known sentinel and
+    asserts the audit reflects the caller's argv, not the
+    sentinel.
+
+    §4.4 binds the audit's argv capture to the top-level key
+    ``command_invocations`` (NOT ``cli_invocation`` — that name
+    is reserved for the §5.1 JSON export payload and the §5.3
+    manifest). The pre-fix code wrote ``sys.argv[1:]`` to
+    ``command_invocations``.
+    """
+    from backend.app.rolling_backtest import cli_main
+
+    # Replace sys.argv with a sentinel that would clearly be wrong
+    # if leaked into the audit.
+    sentinel = "PYTEST_SENTINEL_SHOULD_NOT_LEAK_INTO_AUDIT"
+    monkeypatch.setattr(sys, "argv", [sentinel, sentinel + "_2", sentinel + "_3"])
+    rows_by_run_mask[(SAMPLE_RUN_ID, SAMPLE_MASK_HASH)] = golden_rows_single_node
+    rc = cli_main(
+        [
+            "compute-metrics",
+            "--run-id",
+            SAMPLE_RUN_ID,
+            "--scope",
+            json.dumps(SAMPLE_SCOPE),
+            "--mask-hash",
+            SAMPLE_MASK_HASH,
+            "--output-dir",
+            str(tmp_path),
+        ]
+    )
+    assert rc in (EXIT_SUCCESS, EXIT_METRIC_BLOCKER)
+    # The audit file MUST be written and MUST contain the caller's
+    # argv string, not the sys.argv sentinel.
+    audit_files = list((tmp_path / "audit").iterdir())
+    assert len(audit_files) == 1
+    audit_payload = json.loads(audit_files[0].read_text(encoding="utf-8"))
+    # §4.4 binds the argv capture to the top-level
+    # ``command_invocations`` field.
+    audit_argv = audit_payload["command_invocations"]
+    # The caller's argv starts with "compute-metrics --run-id ...".
+    assert audit_argv.startswith("compute-metrics --run-id")
+    # The pytest sentinel MUST NOT appear in the audit.
+    assert sentinel not in audit_argv
 
 
 def test_cli_overwrite_never_collision_exits_5(
