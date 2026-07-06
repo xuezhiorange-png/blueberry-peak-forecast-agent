@@ -41,10 +41,18 @@ Materialization-provider contract:
   caller's responsibility to register a provider (e.g. an in-memory
   fixture for tests; a future Phase 4a materialization reader for
   production).
-* If the provider raises ``KeyError`` or returns ``None`` for a
-  ``(run_id, mask_hash)`` pair, ``compute_metrics`` translates this to
-  ``ServiceContractError(kind="missing_run", ...)`` or
-  ``ServiceContractError(kind="mask_hash_unbound", ...)`` as appropriate.
+* The provider signals **negative outcomes** by raising typed
+  exceptions, NOT by returning ``None`` or a sentinel list:
+
+  - :class:`MaterializationRunNotFound` — the ``run_id`` is not
+    present in the Phase 4a materialization at all. Translated to
+    ``ServiceContractError(kind="missing_run", ...)``.
+  - :class:`MaterializationMaskNotBound` — the ``run_id`` is present,
+    but the requested ``mask_hash`` is not bound to that ``run_id``.
+    Translated to ``ServiceContractError(kind="mask_hash_unbound", ...)``.
+
+  The service layer discriminates these two kinds via the exception
+  type, never by parsing exception message text or return value shape.
 * The provider slot is module-level (single global). This is the
   minimum surface for the frozen signature and is documented in §3.3
   (no IO inside ``compute_metrics``). The slot is intentionally
@@ -137,10 +145,43 @@ _PHASE_4B_METRIC_NAMES: Final[frozenset[str]] = frozenset(
 # ---------------------------------------------------------------------------
 
 
+# Typed internal exceptions for the materialization provider contract.
+# The provider raises these (instead of returning a sentinel) so that the
+# service layer can distinguish "run is unknown" from "run exists but
+# mask is not bound to it" via the exception type — never by string
+# parsing.
+
+
+class MaterializationRunNotFound(LookupError):
+    """Raised by a materialization provider when ``run_id`` is unknown.
+
+    Translated by :func:`compute_metrics` to
+    ``ServiceContractError(kind="missing_run", ...)``.
+    """
+
+    def __init__(self, *, run_id: str) -> None:
+        super().__init__(f"run_id={run_id!r} not found in materialization")
+        self.run_id = run_id
+
+
+class MaterializationMaskNotBound(LookupError):
+    """Raised by a materialization provider when ``run_id`` is known
+    but ``mask_hash`` is not bound to it.
+
+    Translated by :func:`compute_metrics` to
+    ``ServiceContractError(kind="mask_hash_unbound", ...)``.
+    """
+
+    def __init__(self, *, run_id: str, mask_hash: str) -> None:
+        super().__init__(f"mask_hash={mask_hash!r} is not bound to run_id={run_id!r}")
+        self.run_id = run_id
+        self.mask_hash = mask_hash
+
+
 # Module-level slot for an optional materialization provider. The slot is
 # single-valued; tests can swap it in serial setup / teardown. Production
 # wiring lives outside this module (a future slice).
-_MaterializationProvider = Callable[[str, str], list[EvaluationMetricRow] | None]
+_MaterializationProvider = Callable[[str, str], list[EvaluationMetricRow]]
 _provider: _MaterializationProvider | None = None
 
 
@@ -238,16 +279,19 @@ def _validate_mask_binding(
 ) -> list[EvaluationMetricRow]:
     """Look up Phase 4a materialization via the registered provider.
 
-    Returns the row list on success. Raises ``ServiceContractError`` on:
+    Returns the row list on success. Raises :class:`ServiceContractError`
+    on the following negative outcomes:
 
     * missing provider → ``missing_run`` (no materialization wired)
-    * provider raises ``KeyError`` for ``(run_id, mask_hash)`` →
-      ``missing_run``
-    * provider returns ``None`` for ``(run_id, mask_hash)`` →
-      ``missing_run``
-    * provider returns rows that are not all bound to ``run_id`` →
-      ``mask_hash_unbound`` (the rows carry a different mask hash)
+    * provider raises :class:`MaterializationRunNotFound` →
+      ``missing_run`` (run is unknown)
+    * provider raises :class:`MaterializationMaskNotBound` →
+      ``mask_hash_unbound`` (run exists, mask is not bound)
+    * provider raises any other exception → ``missing_run`` (defensive)
     * provider returns a non-list → ``missing_run`` (defensive)
+
+    The two error kinds are discriminated by exception **type**, never
+    by message parsing.
     """
 
     if _provider is None:
@@ -260,19 +304,19 @@ def _validate_mask_binding(
         )
     try:
         materialized = _provider(run_id, mask_hash)
-    except KeyError as exc:
+    except MaterializationRunNotFound as exc:
         raise ServiceContractError(
             kind="missing_run",
+            message=(f"run_id={exc.run_id!r} not found in Phase 4a materialization"),
+        ) from exc
+    except MaterializationMaskNotBound as exc:
+        raise ServiceContractError(
+            kind="mask_hash_unbound",
             message=(
-                f"run_id={run_id!r} not found in Phase 4a materialization "
-                f"(provider raised KeyError: {exc!s})"
+                f"mask_hash={exc.mask_hash!r} is not bound to "
+                f"run_id={exc.run_id!r} in Phase 4a materialization"
             ),
         ) from exc
-    if materialized is None:
-        raise ServiceContractError(
-            kind="missing_run",
-            message=f"run_id={run_id!r} not found in Phase 4a materialization",
-        )
     if not isinstance(materialized, list):
         raise ServiceContractError(
             kind="missing_run",
@@ -281,16 +325,6 @@ def _validate_mask_binding(
                 f"run_id={run_id!r} (got {type(materialized).__name__})"
             ),
         )
-    # Mask-binding check: every row must carry ``run_id`` identity and
-    # the rows' implicit mask binding must equal ``mask_hash``. The row
-    # identity fields are (forecast_output_id, node_id,
-    # evaluation_as_of_date) — these do not carry mask_hash. We
-    # therefore rely on the provider to enforce mask-hash binding by
-    # raising ``KeyError`` if the (run_id, mask_hash) pair is not bound.
-    # The check below is a defensive secondary check: the provider must
-    # not surface rows from a different mask binding.
-    del run_id  # signature-bound; checked via provider's KeyError contract
-    del mask_hash  # signature-bound; checked via provider's KeyError contract
     return materialized
 
 
