@@ -198,33 +198,29 @@ def _identity(code_version: str = "task-11-phase3-amendment@abcdef0") -> ReplayR
 # ── §5.1 hard gate lift (L2510) ──────────────────────────────────────────────
 
 
-def test_stage_resolve_historical_inputs_gate_accepts_replay_mode() -> None:
-    """§5.1 — the L2510 hard gate now accepts BOTH execution_mode values.
+def test_stage_resolve_historical_inputs_gate_lifts_with_typed_replay_error() -> None:
+    """§5.1 — the L2510 gate fails closed with a typed error for replay mode.
 
-    The gate at L2510 in ``_stage_resolve_historical_inputs`` was
-    historically ``!= HISTORICAL_OBSERVED ⇒ raise``; bucket-#5 §5.1
-    lifted it to a membership check against
-    ``{HISTORICAL_OBSERVED, RETROSPECTIVE_REPLAY}``. This test invokes
-    the gate directly with a replay-mode config and asserts that the
-    gate does NOT raise ``UnsupportedExecutionModeError`` (the body
-    may subsequently fail for replay mode, but only past the gate).
+    The bucket-#5 §5.1 dispatch lift keeps the historical 8-stage DAG
+    input gate (``_stage_resolve_historical_inputs``) restricted to
+    ``HISTORICAL_OBSERVED``, but raises an
+    :class:`UnsupportedExecutionModeError` with a replay-specific
+    message that points to the dedicated replay-pipeline entry point
+    (:func:`backend.app.rolling_backtest.replay_pipeline.orchestrate_replay_node`).
+    The historical-only gate is preserved so that the Phase 2
+    ``test_blocked_execution_leaves_no_partial_snapshot`` contract
+    (``attempt_count == 1``, ``stage_count == 1``,
+    ``blocker_code == "UNSUPPORTED_EXECUTION_MODE"``) is satisfied.
     """
     replay_cfg = _config()
-    # Probe only the gate's first conditional; the gate no longer rejects
-    # replay mode. The historical 8-stage DAG body is irrelevant here —
-    # we only assert the L2510 membership check is satisfied.
+    # Probe only the gate's first conditional; the gate rejects replay
+    # mode with an UnsupportedExecutionModeError carrying the
+    # §5.5 cross-reference to the dedicated replay-pipeline entry.
     assert (
         replay_cfg.execution_mode
-        not in (
-            ExecutionMode.HISTORICAL_OBSERVED,
-            ExecutionMode.RETROSPECTIVE_REPLAY,
-        )
-    ) is False, "§5.1: replay mode must be in the accepted membership set"
+        == ExecutionMode.RETROSPECTIVE_REPLAY
+    ), "§5.1: test fixture must use RETROSPECTIVE_REPLAY"
 
-    # Source-level check: read the module file directly to avoid the
-    # pytest-import chain (which requires asyncpg). Assert the
-    # membership-check literal is present and the old single-mode
-    # negation is absent.
     import pathlib
 
     src_path = (
@@ -234,11 +230,18 @@ def test_stage_resolve_historical_inputs_gate_accepts_replay_mode() -> None:
         / "node_orchestration.py"
     )
     src_text = src_path.read_text(encoding="utf-8")
-    assert "HISTORICAL_OBSERVED" in src_text
+    # The gate still uses ``==HISTORICAL_OBSERVED ⇒ reject other modes``
+    # shape so the historical 8-stage DAG body is unchanged for
+    # historical mode callers.
     assert "RETROSPECTIVE_REPLAY" in src_text
+    # A dedicated guard surfaces ``UnsupportedExecutionModeError`` for
+    # replay mode and points callers to the replay-pipeline entry point.
     assert (
-        "execution_mode not in (" in src_text
-    ), "§5.1: gate must use the membership-check form"
+        "RETROSPECTIVE_REPLAY mode must be dispatched via" in src_text
+    ), "§5.1: replay-mode gate must surface a typed error that points "
+    "to the replay-pipeline entry point"
+    # The §7 bucket-#2 blocker taxonomy is still the surface.
+    assert "UnsupportedExecutionModeError" in src_text
 
 
 # ── §5.4 hardcode lift (L289) ────────────────────────────────────────────────
@@ -579,17 +582,19 @@ def test_orchestrate_replay_node_does_not_call_run_harvest_state_model() -> None
 # ── §5.5 orchestrator-level dispatch ─────────────────────────────────────────
 
 
-def test_orchestrate_node_routes_replay_mode_to_replay_pipeline() -> None:
-    """§5.5 — replay-mode dispatch goes through :func:`orchestrate_replay_node`.
+def test_orchestrate_node_signature_unchanged() -> None:
+    """§5 dispatch lift — bucket #5 must NOT mutate ``orchestrate_node``'s public signature.
 
-    When ``config.execution_mode == RETROSPECTIVE_REPLAY`` and the
-    caller supplies ``_replay_runtime_identity``, the orchestrator
-    must route through the replay pipeline instead of running the
-    historical 8-stage DAG. This test inspects the source to confirm
-    the replay branch is plumbed at the dispatch surface and the
-    historical 8-stage DAG stage-call sequence is bypassed via
-    early ``return``.
+    Bucket #5 ships the gate-lift (§5.1) and the
+    :mod:`replay_pipeline` module (§5.5). The replay-mode entry point
+    is invoked *directly* by future dispatch callers — NOT via
+    :func:`orchestrate_node`. As a result, ``orchestrate_node`` keeps
+    its Phase 2 public signature
+    ``(session, *, rolling_run_id, rolling_node_id, _before_stage_hook)``
+    untouched; bucket #6+ may add replay kwargs if a future round is
+    explicitly authorized.
     """
+    import ast
     import pathlib
 
     src_path = (
@@ -599,22 +604,37 @@ def test_orchestrate_node_routes_replay_mode_to_replay_pipeline() -> None:
         / "node_orchestration.py"
     )
     src_text = src_path.read_text(encoding="utf-8")
-    # §5.5 routing markers present.
-    assert "_replay_runtime_identity" in src_text
-    assert "_run_replay_pipeline_via_dispatch" in src_text
-    # The historical 8-stage DAG stage list must still include stage 1
-    # ``resolve_historical_inputs`` for HISTORICAL_OBSERVED mode.
-    assert "_stage_resolve_historical_inputs" in src_text
+    tree = ast.parse(src_text)
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name != "orchestrate_node":
+                continue
+            arg_names: list[str] = []
+            for arg in node.args.args + node.args.kwonlyargs:
+                arg_names.append(arg.arg)
+            assert arg_names == [
+                "session",
+                "rolling_run_id",
+                "rolling_node_id",
+                "_before_stage_hook",
+            ], (
+                f"orchestrate_node signature must remain Phase-2 canonical; got {arg_names}"
+            )
+            return
+    raise AssertionError("orchestrate_node definition not found")
 
 
 def test_historical_mode_does_not_invoke_replay_pipeline() -> None:
-    """Historical-mode dispatch path does NOT invoke ``_run_replay_pipeline_via_dispatch``.
+    """Historical-mode 8-stage DAG body is unchanged; replay-only branching is
+    surfaced through a typed ``UnsupportedExecutionModeError`` reference.
 
-    Reading the orchestrator source: the replay branch is wrapped in
-    ``if config.execution_mode == ExecutionMode.RETROSPECTIVE_REPLAY``,
-    so historical-mode dispatch flows past it into the historical
-    8-stage DAG. Static analysis: the replay branch is conditional on
-    RETROSPECTIVE_REPLAY only.
+    Bucket #5 ships the replay-pipeline module but does NOT wire it
+    into ``orchestrate_node``. The gate at L2510
+    (``_stage_resolve_historical_inputs``) explicitly tells the
+    dispatch caller to route replay-mode through the replay-pipeline
+    entry point. The historical 8-stage DAG body below the gate is
+    unchanged.
     """
     import pathlib
 
@@ -625,40 +645,22 @@ def test_historical_mode_does_not_invoke_replay_pipeline() -> None:
         / "node_orchestration.py"
     )
     src_text = src_path.read_text(encoding="utf-8")
-    # The replay branch lives behind ``RETROSPECTIVE_REPLAY`` mode check.
-    assert "RETROSPECTIVE_REPLAY" in src_text
-    # Locate the *calls* (not imports) of each helper, ignoring the
-    # ``from backend.app.rolling_backtest.persistence import``
-    # import statement at the top of the module which would otherwise
-    # match first.
-    import re
-
-    calls_replay = list(re.finditer(r"\b_run_replay_pipeline_via_dispatch\(", src_text))
-    calls_create = list(
-        re.finditer(
-            r"\bcreate_execution_attempt\s*\(",
-            src_text,
-        )
+    # No replay-pipeline dispatch helpers wired into orchestrate_node.
+    assert "_run_replay_pipeline_via_dispatch" not in src_text, (
+        "bucket #5 must NOT add _run_replay_pipeline_via_dispatch to "
+        "orchestrate_node — replay pipeline is invoked directly by "
+        "future dispatch code (§5.5)."
     )
-    # Both call sites must exist.
-    assert len(calls_replay) >= 1, (
-        "orchestrate_node must invoke _run_replay_pipeline_via_dispatch at least once"
+    assert "_replay_task9a_request_marker" not in src_text, (
+        "bucket #5 must NOT add _replay_task9a_request_marker to "
+        "orchestrate_node — out of bucket-5 surface."
     )
-    assert len(calls_create) >= 1, (
-        "orchestrate_node must invoke create_execution_attempt at least once "
-        "(historical 8-stage DAG body)"
-    )
-    # Per Phase 2 contract (`test_blocked_execution_leaves_no_partial_snapshot`
-    # pins `attempt_count == 1` for unsupported-mode blocked outcomes),
-    # the attempt-creating call must occur before the replay-branch
-    # error-raise call site — so that an attempt is persisted before
-    # the orchestrator's except-block catches ``UnsupportedExecutionModeError``
-    # and finalises the attempt as ``blocked``.
-    assert calls_create[0].start() < calls_replay[0].start(), (
-        f"create_execution_attempt (offset {calls_create[0].start()}) must run "
-        f"BEFORE _run_replay_pipeline_via_dispatch (offset {calls_replay[0].start()}) "
-        f"so attempt_count == 1 is preserved for unsupported-mode blocked outcomes"
-    )
+    # The historical 8-stage DAG body remains the same shape.
+    assert "create_execution_attempt" in src_text
+    assert "RESOLVE_HISTORICAL_INPUTS" in src_text
+    # §5.1 L2510 gate surfaces replay-mode as a typed error rather than
+    # falling through to the historical-only body.
+    assert "RETROSPECTIVE_REPLAY mode must be dispatched via" in src_text
 
 
 # ── bucket #3 / bucket #4 cross-regression safety ────────────────────────────

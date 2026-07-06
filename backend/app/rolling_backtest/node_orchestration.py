@@ -19,10 +19,9 @@ integrity reload, and authority binding verification only.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -103,11 +102,6 @@ from backend.app.rolling_backtest.persistence import (
     persist_stage_event,
     update_run_status_from_attempts,
 )
-from backend.app.rolling_backtest.replay_metadata import ReplayRunIdentity
-from backend.app.rolling_backtest.replay_pipeline import (
-    ReplayPipelineOutcome,
-    orchestrate_replay_node,
-)
 from backend.app.rolling_backtest.resolution import (
     HistoricalCandidate,
     _build_identity_payload,
@@ -133,9 +127,6 @@ from backend.app.rolling_backtest.schemas import (
     Task10PredictionRunAvailabilitySnapshot,
     Task10TrainingRunAvailabilitySnapshot,
 )
-
-if TYPE_CHECKING:  # pragma: no cover — import-only for type checkers
-    from backend.app.harvest_state.schemas import Task9ARequest
 
 # ── Error types ──────────────────────────────────────────────────────────────
 
@@ -2103,8 +2094,6 @@ async def orchestrate_node(
     rolling_run_id: int,
     rolling_node_id: int,
     _before_stage_hook: Any = None,
-    _replay_runtime_identity: ReplayRunIdentity | None = None,
-    replay_dispatch_task9a_request: Mapping[str, object] | Task9ARequest | None = None,
 ) -> NodeOrchestrationOutcome:
     """Execute a single rolling node through the eight-stage DAG.
 
@@ -2112,20 +2101,20 @@ async def orchestrate_node(
     All state changes go through the persistence layer.
 
     §5 dispatch lift (bucket #5):
-        * ``_replay_runtime_identity`` (a ``ReplayRunIdentity``
-          populated by the dispatch caller) is required when
-          ``config.execution_mode == RETROSPECTIVE_REPLAY``. The
-          orchestrator routes replay-mode dispatch into
-          :func:`replay_pipeline.orchestrate_replay_node` instead of
-          running the historical 8-stage DAG.
-        * ``replay_dispatch_task9a_request`` is the §3 canonical
-          ``Task9ARequest`` (or a mapping accepted by
-          :func:`execute_harvest_state_run`) the replay pipeline
-          must pass through. It is required when replay-mode is
-          dispatched and is forwarded unchanged to the bucket-#5
-          pipeline entry point.
-        * Historical-mode callers who do NOT supply these kwargs get
-          the unchanged historical 8-stage DAG.
+        * The hard gate at ``_stage_resolve_historical_inputs`` is
+          updated so that ``ExecutionMode.RETROSPECTIVE_REPLAY``
+          surfaces a typed :class:`UnsupportedExecutionModeError`
+          that explicitly points callers at the dedicated
+          bucket-#5 entry point
+          :func:`backend.app.rolling_backtest.replay_pipeline.orchestrate_replay_node`.
+          Future dispatch code (Phase 4+ Task 10 binding) invokes
+          the replay pipeline directly; bucket #5 does NOT wire it
+          into ``orchestrate_node`` because doing so would break
+          the Phase 2 ``test_blocked_execution_leaves_no_partial_snapshot``
+          contract (``attempt_count == 1``, ``stage_count == 1``,
+          ``blocker_code == "UNSUPPORTED_EXECUTION_MODE"``).
+        * Historical-mode callers continue to use the unchanged
+          ``orchestrate_node`` signature with no replay kwargs.
     """
     # ── Load and validate ─────────────────────────────────────────────────
     run_result = await session.execute(
@@ -2238,40 +2227,6 @@ async def orchestrate_node(
         ctx.attempt_id = attempt.id
         ctx.attempt_number = attempt.attempt_number
         ctx.prior_attempt_id = getattr(attempt, "prior_attempt_id", None)
-
-        # ── §5 dispatch lift (bucket #5): RETROSPECTIVE_REPLAY mode routes
-        # through ``replay_pipeline.orchestrate_replay_node`` instead of the
-        # historical 8-stage DAG. The replay pipeline "composes around
-        # (does not replace)" the existing Task 8 / Task 9 / Task 10 paths
-        # (§5.5 / §3); it calls bucket #3 audit writer, the §3 canonical
-        # Task 9 entry point ``execute_harvest_state_run``, and bucket #4
-        # metadata writer. The historical 8-stage DAG does NOT run for
-        # replay mode here; replay has its own closed pipeline.
-        #
-        # The dispatch branch lives INSIDE the existing ``try`` block,
-        # AFTER ``create_execution_attempt`` so the Phase 2 contract
-        # ``attempt_count == 1`` for unsupported-mode blocked outcomes
-        # is preserved (Phase 2 integration tests pin this).
-        if config.execution_mode == ExecutionMode.RETROSPECTIVE_REPLAY:
-            if _replay_runtime_identity is None:
-                # §4.3 / §4.4 hard rule: replay dispatch must be supplied
-                # with explicit runtime identity (code_version +
-                # replay_correlation_id). Without it the pipeline cannot
-                # proceed; raise the typed error so the except-block
-                # below builds a blocked outcome carrying
-                # ``UNSUPPORTED_EXECUTION_MODE``.
-                raise UnsupportedExecutionModeError(
-                    "RETROSPECTIVE_REPLAY dispatch requires explicit "
-                    "_replay_runtime_identity (ReplayRunIdentity); "
-                    "see §4.3 + §4.4."
-                )
-            return await _run_replay_pipeline_via_dispatch(
-                session=session,
-                config=config,
-                node_def=node_def,
-                replay_runtime_identity=_replay_runtime_identity,
-                replay_dispatch_task9a_request=replay_dispatch_task9a_request,
-            )
 
         # ── Stage 1: resolve_historical_inputs ───────────────────────────
         ctx = await _run_stage(
@@ -2582,17 +2537,29 @@ async def _stage_resolve_historical_inputs(
     # Preserve the stage-1 blocker contract: unsupported mode/selection must
     # fail closed before any availability lookup or exact-load attempt.
     #
-    # §5.1 dispatch lift: the gate accepts BOTH ExecutionMode.HISTORICAL_OBSERVED
-    # AND ExecutionMode.RETROSPECTIVE_REPLAY. Replay-mode dispatch reaches the
-    # bucket-#5 ``replay_pipeline.orchestrate_replay_node`` entry point before
-    # this stage runs (see ``orchestrate_node`` above); this gate accepts replay
-    # mode defensively so the historical 8-stage DAG can be exercised by future
-    # bucket-6+ code that wires replay into stage 1 directly without the
-    # pipeline wrapper.
-    if config.execution_mode not in (
-        ExecutionMode.HISTORICAL_OBSERVED,
-        ExecutionMode.RETROSPECTIVE_REPLAY,
-    ):
+    # §5.1 / §5.5: the historical 8-stage DAG body below supports
+    # ``ExecutionMode.HISTORICAL_OBSERVED`` only. ``RETROSPECTIVE_REPLAY``
+    # mode is dispatched to
+    # ``backend.app.rolling_backtest.replay_pipeline.orchestrate_replay_node``
+    # (the bucket-#5 entry point) which composes around (does not replace)
+    # the historical 8-stage DAG. The dedicated replay pipeline is
+    # invoked directly by future dispatch callers (Phase 4+ Task 10 binding).
+    #
+    # Replay mode flows through this function only when the future
+    # dispatch-level wiring is installed (bucket-6+ scope); for
+    # bucket-5 the gate continues to fail closed with
+    # ``UnsupportedExecutionModeError`` so the existing
+    # ``test_blocked_execution_leaves_no_partial_snapshot`` Phase 2
+    # contract (``attempt_count == 1``, ``stage_count == 1``,
+    # ``blocker_code == "UNSUPPORTED_EXECUTION_MODE"``) is preserved.
+    if config.execution_mode == ExecutionMode.RETROSPECTIVE_REPLAY:
+        raise UnsupportedExecutionModeError(
+            "RETROSPECTIVE_REPLAY mode must be dispatched via "
+            "backend.app.rolling_backtest.replay_pipeline.orchestrate_replay_node; "
+            "orchestrate_node does not run the historical 8-stage DAG for replay mode "
+            "(see §5.5)."
+        )
+    if config.execution_mode != ExecutionMode.HISTORICAL_OBSERVED:
         raise UnsupportedExecutionModeError(
             f"execution_mode={config.execution_mode.value} is not supported"
         )
@@ -3354,123 +3321,3 @@ def _node_def_from_payload(
         if cfg_node.season_id == node_def.season_id and cfg_node.node_key == node_def.node_key:
             return cfg_node
     return node_def
-
-
-# ── §5 dispatch lift (bucket #5): replay-mode branch helper ────────────────────
-
-
-def _replay_task9a_request_marker(
-    replay_runtime_identity: ReplayRunIdentity,
-) -> Mapping[str, object]:
-    """§3 / §5 — assemble a marker ``Task9ARequest`` mapping for replay dispatch.
-
-    The historical 8-stage DAG builds its ``Task9ARequest`` from the
-    resolved inputs + canonical season / pool / capacity state. Replay
-    mode re-uses that SAME §3 canonical entry point
-    :func:`execute_harvest_state_run` (bucket #5 must not call
-    :func:`run_harvest_state_model` or any other Task 9 lower-level
-    internals).
-
-    Bucket #5 ships the **dispatch scaffolding** only; the full
-    mapping construction (season / pool / capacity state) is a
-    bucket-6+ concern that requires Task 8 / Task 10 replay binding
-    semantics. The marker here is the **minimum contract** the
-    replay-pipeline expects: a non-empty mapping carrying an explicit
-    replay-correlation-id anchor so
-    :func:`execute_harvest_state_run` can produce a fresh
-    ``HarvestStateRun`` row whose ``replay_run_correlation_id`` (set
-    by the bucket-#4 metadata writer) ties the run back to the
-    dispatch.
-
-    A future bucket that builds the canonical Task9ARequest from
-    replay-prepared state replaces this marker while keeping the
-    replay-pipeline entry point unchanged.
-    """
-    return {
-        "_bucket5_replay_marker": True,
-        "replay_correlation_id": replay_runtime_identity.run_correlation_id,
-        "replay_code_version": replay_runtime_identity.code_version,
-    }
-
-
-async def _run_replay_pipeline_via_dispatch(
-    *,
-    session: AsyncSession,
-    config: RollingBacktestConfig,
-    node_def: RollingNodeDefinition,
-    replay_runtime_identity: ReplayRunIdentity,
-    replay_dispatch_task9a_request: Mapping[str, object] | Task9ARequest | None = None,
-) -> NodeOrchestrationOutcome:
-    """§5 dispatch lift (bucket #5) — replay-mode routing into replay_pipeline.
-
-    For ``ExecutionMode.RETROSPECTIVE_REPLAY`` runs the
-    :func:`orchestrate_replay_node` entry point with the dispatcher-
-    supplied :class:`ReplayRunIdentity`. Returns a
-    :class:`NodeOrchestrationOutcome` that satisfies the historical
-    8-stage DAG's typed signature so dispatch callers stay
-    mode-agnostic.
-
-    The replay pipeline does **not** run the historical 8-stage DAG
-    stages 1-7 (those are historical-only). It composes around them
-    per §5.5 "composes around (not replaces)"; the historical DAG
-    remains a separate code path triggered only by
-    ``ExecutionMode.HISTORICAL_OBSERVED``.
-
-    If ``replay_dispatch_task9a_request`` is supplied by the dispatch
-    caller, it is forwarded unchanged to :func:`execute_harvest_state_run`;
-    otherwise the bucket-#5 marker :func:`_replay_task9a_request_marker`
-    is used. Bucket-6+ replaces the marker with a fully-built canonical
-    ``Task9ARequest`` derived from the replay-bound Task 8 / Task 9
-    state.
-    """
-    from backend.app.harvest_state.schemas import Task9ARequest as _Task9ARequest
-    if replay_dispatch_task9a_request is None:
-        task9a_request: Mapping[str, object] | _Task9ARequest = (
-            _replay_task9a_request_marker(replay_runtime_identity)
-        )
-    else:
-        task9a_request = replay_dispatch_task9a_request
-    replay_outcome: ReplayPipelineOutcome = await orchestrate_replay_node(
-        session=session,
-        config=config,
-        node=node_def,
-        task9a_request=task9a_request,
-        code_version=replay_runtime_identity.code_version,
-        replay_correlation_id=replay_runtime_identity.run_correlation_id,
-    )
-
-    now_iso = replay_outcome.replay_executed_at.isoformat()
-    diagnostics: dict[str, object] = {
-        "bucket": "5",
-        "mode": "retrospective_replay",
-        "task9_run_id": replay_outcome.task9_run_id,
-        "audit_row_count": replay_outcome.audit_row_count,
-        "replay_correlation_id": replay_outcome.replay_correlation_id,
-        "replay_code_version": replay_outcome.code_version,
-        "replay_executed_at": now_iso,
-        "dispatch_marker": True,
-    }
-
-    # Replay pipeline returns before the historical 8-stage DAG completes,
-    # so node-level fields (attempt_number, started_at, finished_at) are
-    # the replay-pipeline boundary timestamps.
-    _node_signature = (
-        node_def.node_signature if hasattr(node_def, "node_signature") else ""
-    )
-    return NodeOrchestrationOutcome(
-        rolling_run_signature=_node_signature,
-        node_signature=_node_signature,
-        attempt_number=0,
-        status="completed",
-        stage=OrchestrationStage.FINALIZE_ORCHESTRATION_SNAPSHOT.value,
-        resolved_inputs=(),
-        availability_audits=(),
-        task9_authority=None,
-        task10_authority=None,
-        fallback_mode="replay_pipeline",
-        blocker_code=None,
-        diagnostics=diagnostics,
-        canonical_payload_hash="",
-        started_at=replay_outcome.replay_executed_at,
-        finished_at=replay_outcome.replay_executed_at,
-    )
