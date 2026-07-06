@@ -1,0 +1,393 @@
+"""TASK-011 Phase 4c-2 — CLI entrypoint.
+
+Thin wrapper over the 4c-1 service layer (``compute_metrics``) and the
+4c-2 deterministic export writer (``write_export_artifacts``). The CLI
+does NOT recompute metrics, does NOT bypass service-layer validation,
+and does NOT introduce a new audit format.
+
+Frozen design source
+--------------------
+``docs/task-11-phase4c-service-cli-export-amendment.md`` on main
+(frozen at content SHA
+``9f1f541367ee7c4ea3814f0068f682b29e590758690dcb2098cadd5de7796216``).
+
+Binding sections
+----------------
+* §4.1 — Module / entry point
+* §4.2 — Flag grammar
+* §4.3 — Exit code model
+* §4.4 — CLI audit contract (delegated to ``export.py``)
+* §4.5 — CLI error / blocker model
+* §9 — Consolidated error / blocker model
+
+Entry point (frozen for §4.1)
+-----------------------------
+``python -m backend.app.rolling_backtest.cli compute-metrics …``
+
+Forbidden scope (binding)
+-------------------------
+This module MUST NOT:
+
+* recompute Phase 4b metrics;
+* bypass the 4c-1 service-layer validation;
+* read / write the database, network, or any other side channel;
+* introduce a new audit format;
+* implement 4c-3 production-shaped E2E / reload integrity;
+* modify Phase 4a materialization semantics or Phase 4b metric
+  formula semantics;
+* implement ``replay_trained_model``;
+* introduce ``current`` / ``latest`` / ``most recent`` implicit fallback.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from collections.abc import Sequence
+from pathlib import Path
+
+from backend.app.rolling_backtest.canonical import canonical_json_dumps
+from backend.app.rolling_backtest.export import (
+    ExportRequest,
+    OverwritePolicy,
+    PathCollision,
+    write_export_artifacts,
+)
+from backend.app.rolling_backtest.metrics import (
+    METRIC_DEFINITION_VERSION,
+    EvaluationResult,
+)
+from backend.app.rolling_backtest.service import (
+    ServiceContractError,
+    compute_metrics,
+)
+
+# Exit codes (frozen, §4.3).
+EXIT_SUCCESS: int = 0
+EXIT_SERVICE_CONTRACT_ERROR: int = 2
+EXIT_METRIC_BLOCKER: int = 3
+EXIT_IO_ERROR: int = 4
+EXIT_HASH_COLLISION: int = 5
+EXIT_USAGE_ERROR: int = 64
+
+# CLI module name (used in audit `cli_version`).
+CLI_VERSION: str = "4c-2.0.0"
+
+
+# ---------------------------------------------------------------------------
+# Exit helpers
+# ---------------------------------------------------------------------------
+
+
+def _emit_error(
+    *,
+    kind: str,
+    message: str,
+    scope_id: str = "",
+    evaluation_mask_hash: str = "",
+    metric_definition_version: str = METRIC_DEFINITION_VERSION,
+    run_id: str = "",
+    extra: dict[str, object] | None = None,
+) -> int:
+    """Emit a single-line stderr message + JSON stdout payload (§4.5).
+
+    Returns the desired process exit code (2) so the caller can
+    propagate it without using ``sys.exit``.
+    """
+    payload: dict[str, object] = {
+        "kind": kind,
+        "message": message,
+        "scope_id": scope_id,
+        "metric_definition_version": metric_definition_version,
+        "evaluation_mask_hash": evaluation_mask_hash,
+    }
+    if run_id:
+        payload["run_id"] = run_id
+    if extra:
+        payload.update(extra)
+    print(canonical_json_dumps(payload), file=sys.stdout)
+    print(f"error: {kind}: {message}", file=sys.stderr)
+    return EXIT_SERVICE_CONTRACT_ERROR
+
+
+def _emit_blocker(
+    *,
+    blockers: list[dict[str, str]],
+    canonical_payload_hash: str,
+    scope_id: str,
+    evaluation_mask_hash: str,
+    run_id: str,
+) -> int:
+    """Emit blocker list on stdout (§4.5). Returns exit code 3."""
+    payload: dict[str, object] = {
+        "kind": "metric_blocker",
+        "blockers": blockers,
+        "canonical_payload_hash": canonical_payload_hash,
+        "scope_id": scope_id,
+        "evaluation_mask_hash": evaluation_mask_hash,
+        "run_id": run_id,
+        "metric_definition_version": METRIC_DEFINITION_VERSION,
+    }
+    print(canonical_json_dumps(payload), file=sys.stdout)
+    return EXIT_METRIC_BLOCKER
+
+
+def _emit_hash_collision(path: Path) -> int:
+    """Emit conflicting path on stderr. Returns exit code 5."""
+    print(f"error: hash_collision: {path}", file=sys.stderr)
+    return EXIT_HASH_COLLISION
+
+
+def _emit_io_error(message: str) -> int:
+    """Emit IO error on stderr. Returns exit code 4."""
+    print(f"error: io_error: {message}", file=sys.stderr)
+    return EXIT_IO_ERROR
+
+
+# ---------------------------------------------------------------------------
+# Argparse
+# ---------------------------------------------------------------------------
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the argparse parser with the frozen §4.2 flag grammar."""
+    parser = argparse.ArgumentParser(
+        prog="python -m backend.app.rolling_backtest.cli compute-metrics",
+        description=(
+            "TASK-011 Phase 4c-2 CLI: compute Phase 4b metrics over a "
+            "Phase 4a materialization and write deterministic JSON / CSV "
+            "/ manifest / audit files."
+        ),
+    )
+    sub = parser.add_subparsers(dest="subcommand", required=True)
+    p = sub.add_parser("compute-metrics", help=argparse.SUPPRESS)
+
+    p.add_argument(
+        "--run-id",
+        type=str,
+        required=True,
+        help="Phase 4a logical run id (binding for §4.2).",
+    )
+    p.add_argument(
+        "--scope",
+        type=str,
+        required=True,
+        help=(
+            "JSON object; MUST include 'node' (binding for §4.2 / §3.4). "
+            "Pass the JSON as a single CLI argument, e.g. "
+            '--scope \'{"node":1,"horizon":"daily"}\'.'
+        ),
+    )
+    p.add_argument(
+        "--mask-hash",
+        type=str,
+        required=True,
+        help="64-char lowercase hex Phase 4a evaluation mask hash (§4.2).",
+    )
+    p.add_argument(
+        "--output-dir",
+        type=Path,
+        required=True,
+        help="Absolute path; the writer creates json/ csv/ manifest/ audit/ sub-dirs.",
+    )
+    p.add_argument(
+        "--metric-subset",
+        type=str,
+        default=None,
+        help="Comma-separated allowlist of metric names (binding for §4.2).",
+    )
+    p.add_argument(
+        "--decimal-scale",
+        type=int,
+        default=None,
+        help="Decimal scale (≥ 0; default 6). Binding for §4.2.",
+    )
+    p.add_argument(
+        "--overwrite",
+        type=str,
+        choices=("never", "missing", "always"),
+        default="missing",
+        help="Overwrite / collision policy (§6.2). Default: missing.",
+    )
+    p.add_argument(
+        "--no-audit",
+        action="store_true",
+        help="Skip audit-record emission (§4.4).",
+    )
+    p.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress stderr progress logs (§4.2).",
+    )
+    return parser
+
+
+def _parse_metric_subset(raw: str | None) -> tuple[str, ...] | None:
+    """Parse a comma-separated metric-subset string into a tuple."""
+    if raw is None:
+        return None
+    items = tuple(s.strip() for s in raw.split(",") if s.strip())
+    return items or None
+
+
+class CLIUsageError(ValueError):
+    """Raised by CLI argument-parsing helpers when input is malformed.
+
+    The CLI ``main()`` translates this to ``EXIT_USAGE_ERROR`` (64).
+    Distinct from ``ServiceContractError`` (4c-1) which exits 2.
+    """
+
+
+def _parse_scope_json(raw: str) -> dict[str, object]:
+    """Parse ``--scope`` JSON. Raises :class:`CLIUsageError` on malformed JSON."""
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise CLIUsageError(f"invalid_scope_json: {exc.msg} at pos {exc.pos}") from exc
+    if not isinstance(parsed, dict):
+        raise CLIUsageError(
+            f"invalid_scope_json: scope must be a JSON object (got {type(parsed).__name__})"
+        )
+    return parsed
+
+
+# ---------------------------------------------------------------------------
+# Subcommand handlers
+# ---------------------------------------------------------------------------
+
+
+def _handle_compute_metrics(args: argparse.Namespace) -> int:
+    """Handle the ``compute-metrics`` subcommand.
+
+    Returns the desired process exit code; main() propagates it via
+    ``sys.exit``.
+    """
+    scope = _parse_scope_json(args.scope)
+    metric_subset = _parse_metric_subset(args.metric_subset)
+    output_dir: Path = args.output_dir.resolve()
+    if not output_dir.is_absolute():
+        raise CLIUsageError(
+            f"invalid_output_dir: --output-dir must be absolute (got {args.output_dir})"
+        )
+    overwrite_policy = OverwritePolicy(args.overwrite)
+    emit_audit = not args.no_audit
+
+    # 1) Call 4c-1 service layer.
+    try:
+        result: EvaluationResult = compute_metrics(
+            run_id=args.run_id,
+            scope=scope,
+            mask_hash=args.mask_hash,
+            metric_subset=metric_subset,
+            decimal_scale=(
+                args.decimal_scale
+                if args.decimal_scale is not None
+                else 6  # Phase 4b default (binding for §3.2)
+            ),
+        )
+    except ServiceContractError as exc:
+        payload = exc.to_payload()
+        kind = str(payload.get("kind", "service_contract_error"))
+        message = str(payload.get("message", ""))
+        return _emit_error(
+            kind=kind,
+            message=message,
+            run_id=args.run_id,
+        )
+
+    # 2) Derive scope_id from result.outputs[0].metric_scope_identity (§6.1).
+    scope_id = result.outputs[0].metric_scope_identity if result.outputs else ""
+    evaluation_mask_hash = result.outputs[0].evaluation_mask_hash if result.outputs else ""
+
+    # 3) Check MetricBlocker presence (§4.5 / §9).
+    blockers: list[dict[str, str]] = []
+    for out in result.outputs:
+        for b in out.blocked_reasons:
+            blockers.append(b.to_payload())
+
+    # 4) Build ExportRequest and write the four target files.
+    cli_invocation: dict[str, str] = {
+        "argv": " ".join(sys.argv[1:]),
+        "--scope": args.scope,
+        "--mask-hash": args.mask_hash,
+        "--metric-subset": args.metric_subset or "",
+    }
+    request = ExportRequest(
+        result=result,
+        run_id=args.run_id,
+        decimal_scale=(args.decimal_scale if args.decimal_scale is not None else 6),
+        output_dir=output_dir,
+        overwrite_policy=overwrite_policy,
+        cli_invocation=cli_invocation if emit_audit else None,
+        emit_audit=emit_audit,
+    )
+
+    try:
+        artifacts = write_export_artifacts(request)
+    except PathCollision as exc:
+        return _emit_hash_collision(exc.path)
+    except OSError as exc:
+        return _emit_io_error(str(exc))
+
+    # 5) Emit success output. If MetricBlocker is present, exit 3
+    #    (§4.5); otherwise exit 0 with the canonical payload hash on
+    #    stdout (unless --quiet).
+    if blockers:
+        return _emit_blocker(
+            blockers=blockers,
+            canonical_payload_hash=result.canonical_payload_hash,
+            scope_id=scope_id,
+            evaluation_mask_hash=evaluation_mask_hash,
+            run_id=args.run_id,
+        )
+
+    if not args.quiet:
+        print(
+            canonical_json_dumps(
+                {
+                    "canonical_payload_hash": result.canonical_payload_hash,
+                    "json_path": str(artifacts.json_path),
+                    "csv_path": str(artifacts.csv_path),
+                    "manifest_path": str(artifacts.manifest_path),
+                    "audit_path": (
+                        str(artifacts.audit_path) if artifacts.audit_path is not None else None
+                    ),
+                    "run_id": args.run_id,
+                    "scope_id": scope_id,
+                    "evaluation_mask_hash": evaluation_mask_hash,
+                    "metric_definition_version": METRIC_DEFINITION_VERSION,
+                }
+            ),
+            file=sys.stdout,
+        )
+    return EXIT_SUCCESS
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """CLI entry point (§4.1)."""
+    parser = _build_parser()
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        # Argparse raises SystemExit(2) on usage errors. The frozen
+        # §4.3 exit-code model mandates exit 64 for CLI usage
+        # errors. Translate here.
+        return EXIT_USAGE_ERROR if exc.code not in (None, 0) else 0
+    if args.subcommand == "compute-metrics":
+        try:
+            return _handle_compute_metrics(args)
+        except CLIUsageError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE_ERROR
+    parser.print_help(sys.stderr)
+    return EXIT_USAGE_ERROR
+
+
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(main())
