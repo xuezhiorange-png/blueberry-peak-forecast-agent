@@ -363,6 +363,44 @@ class TestOrchestrationBlocker:
             OrchestrationBlocker.TASK10_TASK9_BINDING_MISMATCH.value
             == "task10_task9_binding_mismatch"
         )
+        # ── Phase 3.1 replay blocker taxonomy (frozen amendment §7) ────────────
+        # The 9 values below were frozen by
+        # ``docs/task-11-phase3-retrospective-replay-amendment.md`` §7.
+        # Stability rule: each value MUST be a stable, machine-readable
+        # lower_snake_case string literal.
+        assert (
+            OrchestrationBlocker.REPLAY_RUNTIME_IDENTITY_MISSING.value
+            == "replay_runtime_identity_missing"
+        )
+        assert (
+            OrchestrationBlocker.REPLAY_AUDIT_INCOMPLETE.value
+            == "replay_audit_incomplete"
+        )
+        assert (
+            OrchestrationBlocker.MISSING_TASK8_REPLAY_SOURCE.value
+            == "missing_task8_replay_source"
+        )
+        assert (
+            OrchestrationBlocker.CUTOFF_INVISIBLE_TASK9_INPUT.value
+            == "cutoff_invisible_task9_input"
+        )
+        assert (
+            OrchestrationBlocker.AMBIGUOUS_REPLAY_INPUT.value
+            == "ambiguous_replay_input"
+        )
+        assert (
+            OrchestrationBlocker.AUTHORITY_CHAIN_INCOMPATIBLE.value
+            == "authority_chain_incompatible"
+        )
+        assert (
+            OrchestrationBlocker.REPLAY_METADATA_INVALID.value
+            == "replay_metadata_invalid"
+        )
+        assert OrchestrationBlocker.TASK9_REPLAY_FAILED.value == "task9_replay_failed"
+        assert (
+            OrchestrationBlocker.TASK10_REPLAY_BINDING_INVALID.value
+            == "task10_replay_binding_invalid"
+        )
 
     def test_all_blocker_codes_are_unique(self) -> None:
         codes = [b.value for b in OrchestrationBlocker]
