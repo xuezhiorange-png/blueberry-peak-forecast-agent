@@ -627,10 +627,6 @@ def test_historical_mode_does_not_invoke_replay_pipeline() -> None:
     src_text = src_path.read_text(encoding="utf-8")
     # The replay branch lives behind ``RETROSPECTIVE_REPLAY`` mode check.
     assert "RETROSPECTIVE_REPLAY" in src_text
-    # The historical-mode path enters ``create_execution_attempt`` —
-    # i.e. the historical 8-stage DAG — without first invoking the
-    # replay pipeline helper.
-    #
     # Locate the *calls* (not imports) of each helper, ignoring the
     # ``from backend.app.rolling_backtest.persistence import``
     # import statement at the top of the module which would otherwise
@@ -644,13 +640,7 @@ def test_historical_mode_does_not_invoke_replay_pipeline() -> None:
             src_text,
         )
     )
-    # The replay-pipeline dispatch must be the FIRST and the only
-    # ``_run_replay_pipeline_via_dispatch(`` call site, AND it must
-    # appear before the FIRST ``create_execution_attempt(`` call
-    # site (the import statement at the top of the module does not
-    # match this pattern because ``create_execution_attempt`` is
-    # imported as a name — it is only referenced as a call site below
-    # the replay branch).
+    # Both call sites must exist.
     assert len(calls_replay) >= 1, (
         "orchestrate_node must invoke _run_replay_pipeline_via_dispatch at least once"
     )
@@ -658,9 +648,16 @@ def test_historical_mode_does_not_invoke_replay_pipeline() -> None:
         "orchestrate_node must invoke create_execution_attempt at least once "
         "(historical 8-stage DAG body)"
     )
-    assert calls_replay[0].start() < calls_create[0].start(), (
-        f"replay pipeline dispatch (offset {calls_replay[0].start()}) must run "
-        f"BEFORE create_execution_attempt (offset {calls_create[0].start()})"
+    # Per Phase 2 contract (`test_blocked_execution_leaves_no_partial_snapshot`
+    # pins `attempt_count == 1` for unsupported-mode blocked outcomes),
+    # the attempt-creating call must occur before the replay-branch
+    # error-raise call site — so that an attempt is persisted before
+    # the orchestrator's except-block catches ``UnsupportedExecutionModeError``
+    # and finalises the attempt as ``blocked``.
+    assert calls_create[0].start() < calls_replay[0].start(), (
+        f"create_execution_attempt (offset {calls_create[0].start()}) must run "
+        f"BEFORE _run_replay_pipeline_via_dispatch (offset {calls_replay[0].start()}) "
+        f"so attempt_count == 1 is preserved for unsupported-mode blocked outcomes"
     )
 
 
