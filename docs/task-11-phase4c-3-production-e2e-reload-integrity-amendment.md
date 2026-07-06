@@ -45,10 +45,13 @@
 
 ### 1.1 Refs
 
-- Issue #21 — TASK-011 umbrella, OPEN
-- Issue #33 — Phase 4 planning, OPEN
-- Issue #38 — Phase 4c planning, OPEN
-- Issue #43 — Phase 4c-2 tracking, CLOSED / COMPLETED
+- Issue #21 — TASK-011 umbrella, CLOSED / COMPLETED
+- Issue #33 — Phase 4 planning, CLOSED / COMPLETED
+- Issue #36 — Phase 4b planning, CLOSED / COMPLETED
+- Issue #38 — Phase 4c planning, CLOSED / COMPLETED
+- Issue #43 — Phase 4c-2 tracking, CLOSED / COMPLETED (closeout comment `4895013757`)
+- Issue #23 — postgres test infra, OPEN, infra track (separate from 4c-3)
+- PR #24 — postgres test infra draft, CLOSED / draft / not merged, infra track (separate from 4c-3)
 - PR #35 — Phase 4a design amendment, MERGED
 - PR #37 — Phase 4b design amendment, MERGED
 - PR #40 — Phase 4b implementation, MERGED
@@ -336,8 +339,8 @@ The 4c-3 test contract is a description of the test surface, **not** an implemen
 ### 9.3 Issue / PR invariants
 
 - Issue #43 (Phase 4c-2 tracking) MUST remain CLOSED / COMPLETED. It MUST NOT be reopened.
-- Issue #21 / #33 / #36 / #38 MUST remain in their current state (OPEN / CLOSED).
-- Issue #23 / PR #24 (infra track) MUST NOT be modified by 4c-3.
+- Issue #21 / #33 / #36 / #38 MUST remain in their current CLOSED / COMPLETED state.
+- Issue #23 / PR #24 (infra track) MUST remain in their current state (Issue #23 OPEN; PR #24 CLOSED / draft / not merged). 4c-3 MUST NOT modify either.
 - Branch `codex/task-011-phase4c-2-cli-export` MUST NOT be deleted by 4c-3.
 
 ---
