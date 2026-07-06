@@ -103,6 +103,8 @@ from backend.app.rolling_backtest.schemas import (
     Task10TrainingRunAvailabilitySnapshot,
 )
 from backend.app.rolling_backtest.service import (
+    MaterializationMaskNotBound,
+    MaterializationRunNotFound,
     ServiceContractError,
     compute_metrics,
     get_materialization_provider,
@@ -136,6 +138,8 @@ __all__ = [
     "ForecastStatus",
     "HistoricalCandidate",
     "MaskState",
+    "MaterializationMaskNotBound",
+    "MaterializationRunNotFound",
     "MetricBlocker",
     "MetricBlockerKind",
     "MetricOutput",

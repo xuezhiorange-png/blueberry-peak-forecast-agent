@@ -29,6 +29,10 @@ from backend.app.rolling_backtest.metrics import (
     MaskState,
     evaluate_scope,
 )
+from backend.app.rolling_backtest.service import (
+    MaterializationMaskNotBound,
+    MaterializationRunNotFound,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -131,10 +135,26 @@ def rows_by_run_mask() -> dict[tuple[str, str], list[EvaluationMetricRow]]:
 
 @pytest.fixture
 def stub_provider(rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]]):
-    """Register a stub materialization provider; tear down after the test."""
+    """Register a stub materialization provider; tear down after the test.
 
-    def provider(run_id: str, mask_hash: str) -> list[EvaluationMetricRow] | None:
-        return rows_by_run_mask.get((run_id, mask_hash))
+    The provider honors the 4c-1 typed-exception contract:
+
+    * ``MaterializationRunNotFound`` — ``run_id`` is not in the materialization
+      table. Translates to ``ServiceContractError(kind="missing_run", ...)``.
+    * ``MaterializationMaskNotBound`` — ``run_id`` exists but ``mask_hash`` is
+      not bound to it. Translates to
+      ``ServiceContractError(kind="mask_hash_unbound", ...)``.
+    * list return — the rows for ``(run_id, mask_hash)`` (may be empty).
+    """
+
+    def provider(run_id: str, mask_hash: str) -> list[EvaluationMetricRow]:
+        # Computed lazily: tests populate ``rows_by_run_mask`` after
+        # the fixture's registration call.
+        if run_id not in {r for r, _ in rows_by_run_mask}:
+            raise MaterializationRunNotFound(run_id=run_id)
+        if (run_id, mask_hash) not in rows_by_run_mask:
+            raise MaterializationMaskNotBound(run_id=run_id, mask_hash=mask_hash)
+        return rows_by_run_mask[(run_id, mask_hash)]
 
     previous = register_materialization_provider(provider)
     try:
@@ -259,7 +279,9 @@ def test_missing_provider_raises_missing_run() -> None:
 
 
 def test_missing_run_raises_missing_run(stub_provider: None) -> None:
-    # Provider registered, but (run_id, mask_hash) not in the table.
+    # Provider registered, but run_id is not in the materialization table.
+    # The provider raises MaterializationRunNotFound; compute_metrics must
+    # translate this to ServiceContractError(kind="missing_run", ...).
     with pytest.raises(ServiceContractError) as exc_info:
         compute_metrics(
             run_id="non-existent-run",
@@ -269,11 +291,101 @@ def test_missing_run_raises_missing_run(stub_provider: None) -> None:
     assert exc_info.value.kind == "missing_run"
 
 
-def test_provider_keyerror_translates_to_missing_run() -> None:
-    def raising_provider(run_id: str, mask_hash: str) -> list[EvaluationMetricRow] | None:
-        raise KeyError(f"unknown {(run_id, mask_hash)}")
+def test_mask_hash_unbound_raises_mask_hash_unbound(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+) -> None:
+    """P0-1: run exists, mask_hash is legal 64-char lowercase hex, but
+    the mask_hash is NOT bound to this run. The provider raises
+    MaterializationMaskNotBound; compute_metrics must translate this to
+    ServiceContractError(kind="mask_hash_unbound", ...) — and crucially
+    must NOT fold this into ``missing_run``.
+    """
+    # run_id is registered with one mask binding.
+    rows_by_run_mask[(SAMPLE_RUN_ID, SAMPLE_MASK_HASH)] = golden_rows_single_node
+    # But the caller asks for a *different* (legal, but unbound) mask_hash.
+    unbound_mask_hash = "a" * 63 + "b"  # 64-char lowercase hex, but not bound
+    with pytest.raises(ServiceContractError) as exc_info:
+        compute_metrics(
+            run_id=SAMPLE_RUN_ID,
+            scope=SAMPLE_SCOPE,
+            mask_hash=unbound_mask_hash,
+        )
+    assert exc_info.value.kind == "mask_hash_unbound"
+    # The error message must reference the unbound mask hash for traceability.
+    assert unbound_mask_hash in exc_info.value.message
+    # And the run_id (so callers can disambiguate).
+    assert SAMPLE_RUN_ID in exc_info.value.message
 
-    previous = register_materialization_provider(raising_provider)
+
+def test_mask_hash_unbound_in_multi_factory_path(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+) -> None:
+    """The ``mask_hash_unbound`` translation must also apply on the
+    multi-factory code path (rows span >1 ``node_id``). The provider
+    raises before the multi-factory branch is reached, so the kind
+    must still be ``mask_hash_unbound``.
+    """
+    rows_by_run_mask[(SAMPLE_RUN_ID, SAMPLE_MASK_HASH)] = []
+    unbound_mask_hash = "c" * 63 + "d"
+    with pytest.raises(ServiceContractError) as exc_info:
+        compute_metrics(
+            run_id=SAMPLE_RUN_ID,
+            scope=SAMPLE_SCOPE,
+            mask_hash=unbound_mask_hash,
+        )
+    assert exc_info.value.kind == "mask_hash_unbound"
+
+
+def test_missing_run_and_mask_hash_unbound_are_distinct_kinds(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+) -> None:
+    """P0-1 regression: the two error kinds must NOT collapse into each
+    other. The same provider must produce ``missing_run`` when the run
+    is unknown, and ``mask_hash_unbound`` when the run exists but the
+    mask is not bound.
+    """
+    # (a) Run exists, mask IS bound → success, kind is not raised.
+    rows_by_run_mask[(SAMPLE_RUN_ID, SAMPLE_MASK_HASH)] = golden_rows_single_node
+    # (b) Run does NOT exist → missing_run.
+    with pytest.raises(ServiceContractError) as exc_info:
+        compute_metrics(
+            run_id="definitely-not-registered",
+            scope=SAMPLE_SCOPE,
+            mask_hash=SAMPLE_MASK_HASH,
+        )
+    assert exc_info.value.kind == "missing_run"
+    # (c) Run exists, mask NOT bound → mask_hash_unbound (NOT missing_run).
+    unbound_mask_hash = "e" * 63 + "f"
+    with pytest.raises(ServiceContractError) as exc_info:
+        compute_metrics(
+            run_id=SAMPLE_RUN_ID,
+            scope=SAMPLE_SCOPE,
+            mask_hash=unbound_mask_hash,
+        )
+    assert exc_info.value.kind == "mask_hash_unbound"
+    assert exc_info.value.kind != "missing_run"
+
+
+def test_provider_typed_exceptions_translate_to_correct_kinds() -> None:
+    """The service layer translates typed provider exceptions to
+    ServiceContractError via the contract — not by string parsing.
+
+    This test stubs a provider that raises each typed exception
+    deterministically, and verifies the kind mapping.
+    """
+
+    def raising_run_not_found(run_id: str, mask_hash: str) -> list[EvaluationMetricRow]:
+        raise MaterializationRunNotFound(run_id=run_id)
+
+    def raising_mask_not_bound(run_id: str, mask_hash: str) -> list[EvaluationMetricRow]:
+        raise MaterializationMaskNotBound(run_id=run_id, mask_hash=mask_hash)
+
+    previous = register_materialization_provider(raising_run_not_found)
     try:
         with pytest.raises(ServiceContractError) as exc_info:
             compute_metrics(
@@ -282,6 +394,18 @@ def test_provider_keyerror_translates_to_missing_run() -> None:
                 mask_hash=SAMPLE_MASK_HASH,
             )
         assert exc_info.value.kind == "missing_run"
+    finally:
+        register_materialization_provider(previous)
+
+    previous = register_materialization_provider(raising_mask_not_bound)
+    try:
+        with pytest.raises(ServiceContractError) as exc_info:
+            compute_metrics(
+                run_id=SAMPLE_RUN_ID,
+                scope=SAMPLE_SCOPE,
+                mask_hash=SAMPLE_MASK_HASH,
+            )
+        assert exc_info.value.kind == "mask_hash_unbound"
     finally:
         register_materialization_provider(previous)
 
@@ -503,7 +627,7 @@ def test_register_materialization_provider_returns_previous() -> None:
     previous = get_materialization_provider()
     try:
 
-        def p(run_id: str, mask_hash: str) -> list[EvaluationMetricRow] | None:
+        def p(run_id: str, mask_hash: str) -> list[EvaluationMetricRow]:
             return []
 
         before = register_materialization_provider(p)
