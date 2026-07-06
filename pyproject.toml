@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Blueberry processing peak forecast agent backend bootstrap"
 requires-python = ">=3.12"
 dependencies = [
+    "appdirs>=1.4",  # Issue #23 Batch 1
+    
     "alembic>=1.16.0",
     "asyncpg>=0.30.0",
     "fastapi>=0.115.0",
