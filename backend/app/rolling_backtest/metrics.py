@@ -1,10 +1,11 @@
 """TASK-011 Phase 4b — metric formulas and scoped metrics.
 
 This module is the first implementation slice of the Phase 4b design contract
-(`docs/task-11-phase4b-metric-formulas-amendment.md` on main). It implements the
-deterministic counter / aggregate-error / coverage / structural-parity metric
-formulas described in the design, restricted to a small, frozen subset
-sufficient to exercise the public surface end-to-end.
+(``docs/task-11-phase4b-metric-formulas-amendment.md`` on main, frozen at
+``6b59092``). It implements the deterministic counter / aggregate-error /
+coverage / peak / interval-width / crossing / correction-magnitude metric
+formulas described in the design and the user-authorized formula
+clarifications.
 
 Hard constraints (mirrored from the design §10 stop conditions):
 
@@ -17,6 +18,28 @@ Hard constraints (mirrored from the design §10 stop conditions):
   ``sorted(rows, key=lambda r: (r.node_id, r.evaluation_as_of_date, r.forecast_output_id))``.
 * Stable, versioned metric definition identity. Bumping
   ``METRIC_DEFINITION_VERSION`` requires a new design amendment.
+
+Formula clarifications (binding for this slice; design §3 leaves them to
+implementation buckets):
+
+* ``cumulative_relative_error`` = ``(sum(prediction) - sum(actual)) / sum(actual)``
+  (signed, NOT absolute). Denominator is ``sum(actual)`` (NOT ``sum(|actual|)``);
+  emits a ``ZERO_DENOMINATOR`` blocker when ``sum(actual) == 0``.
+* ``empirical_coverage_p50`` = ``count(actual <= p50_kg) / included_row_count``
+  (scalar p50 point prediction, NOT a p50 interval band).
+* ``peak_date_error_days_p50`` finds the single included row with the
+  maximum prediction / target. Ties are broken by the smallest
+  ``evaluation_as_of_date`` (earliest). Output is the **signed** day error
+  ``(predicted_peak_date - actual_peak_date).days``; this slice exposes
+  ``peak_date_error_days_p50_signed`` for that primary contract and keeps
+  ``peak_date_error_days_p50_absolute`` as a follow-up absolute variant.
+* ``peak_magnitude_error_p50`` is the **signed** difference
+  ``predicted_peak_kg - actual_peak_kg``.
+* ``interval_width_mean_p80_p50`` and ``interval_width_median_p80_p50``
+  use the per-row scalar width ``p80_kg - p50_kg`` (NOT an interval-band
+  delta); mean and median of those row widths are returned.
+* ``quantile_crossing_count`` counts rows where ``p50_kg > p80_kg``
+  (the p50 point prediction lies outside the p80 level on the same row).
 """
 
 from __future__ import annotations
@@ -89,6 +112,12 @@ class EvaluationMetricRow:
 
     All quantitites are ``Decimal`` to keep the canonical payload hash stable
     across Python / PostgreSQL boundaries (per design §6 + §8).
+
+    The ``p50_kg`` / ``p80_kg`` / ``p90_kg`` fields carry the scalar point
+    quantile predictions emitted by the Task 8 / Task 9 daily forecast
+    pipeline. They are NOT interval bands. Interval-band fields were
+    considered and rejected for this slice: the metric contract is built
+    around scalar point quantiles.
     """
 
     forecast_output_id: int
@@ -97,20 +126,16 @@ class EvaluationMetricRow:
     target: Decimal | None
     prediction: Decimal | None
     mask_state: MaskState = MaskState.NONE
-    p50_low: Decimal | None = None
-    p50_high: Decimal | None = None
-    p80_low: Decimal | None = None
-    p80_high: Decimal | None = None
-    peak_date: date | None = None
+    p50_kg: Decimal | None = None
+    p80_kg: Decimal | None = None
+    p90_kg: Decimal | None = None
 
     def __post_init__(self) -> None:
         if self.forecast_output_id <= 0:
             raise ValueError("forecast_output_id must be positive")
         if self.node_id <= 0:
             raise ValueError("node_id must be positive")
-        if (
-            self.evaluation_mask_state() not in MaskState.__members__.values()
-        ):  # pragma: no cover - typed
+        if not isinstance(self.mask_state, MaskState):
             raise ValueError("mask_state must be a MaskState member")
 
     # Convenience alias used by docs and tests.
@@ -248,6 +273,21 @@ def _row_identity(row: EvaluationMetricRow) -> tuple[int, int, date]:
 def _is_comparable(row: EvaluationMetricRow) -> bool:
     if row.target is None or row.prediction is None:
         return False
+    if row.mask_state in (MaskState.EXCLUDED, MaskState.BLOCKED, MaskState.WITHHELD):
+        return False
+    return True
+
+
+def _is_included(row: EvaluationMetricRow) -> bool:
+    """Rows counted by ``included_row_count``: present and not masked out.
+
+    Used by ``empirical_coverage_p50`` (which counts actual ≤ p50 across all
+    included rows, not just those with target/prediction present) and by
+    ``peak_date_error_days_p50`` / ``peak_magnitude_error_p50`` (which find
+    the peak across the comparable target/prediction rows but the tie-break
+    still operates over all included dates).
+    """
+
     if row.mask_state in (MaskState.EXCLUDED, MaskState.BLOCKED, MaskState.WITHHELD):
         return False
     return True
@@ -480,6 +520,15 @@ def cumulative_relative_error(
     scope: Mapping[str, Any],
     decimal_scale: int = DEFAULT_DECIMAL_SCALE,
 ) -> MetricOutput:
+    """Signed cumulative relative error.
+
+    Formula: ``(sum(prediction) - sum(actual)) / sum(actual)``.
+
+    Returns ``MetricBlocker(ZERO_DENOMINATOR)`` when ``sum(actual) == 0``
+    on the comparable set. The numerator is signed (NOT absolute); this
+    is the canonical P4b cumulative-relative-error contract.
+    """
+
     materialized = _ordered(_validate_rows(rows, expected_mask_hash=mask.evaluation_mask_hash))
     comparable = [r for r in materialized if _is_comparable(r)]
     blockers: list[MetricBlocker] = []
@@ -489,9 +538,11 @@ def cumulative_relative_error(
                 kind=MetricBlockerKind.ZERO_DENOMINATOR,
                 metric="cumulative_relative_error",
                 scope_id=scope_identity_for(
-                    scope, decimal_scale=decimal_scale, metric_family="cumulative_relative_error"
+                    scope,
+                    decimal_scale=decimal_scale,
+                    metric_family="cumulative_relative_error",
                 ),
-                message="comparable_row_count == 0; cannot compute cumulative relative error",
+                message=("comparable_row_count == 0; cannot compute cumulative relative error"),
                 evaluation_mask_hash=mask.evaluation_mask_hash,
             )
         )
@@ -504,24 +555,25 @@ def cumulative_relative_error(
             tuple(blockers),
             scope,
         )
-    abs_err_sum = sum(
-        (
-            abs(r.prediction - r.target)
-            for r in comparable
-            if r.prediction is not None and r.target is not None
-        ),
+    prediction_sum = sum(
+        (r.prediction for r in comparable if r.prediction is not None),
         Decimal(0),
     )
-    abs_target_sum = sum((abs(r.target) for r in comparable if r.target is not None), Decimal(0))
-    if abs_target_sum == 0:
+    actual_sum = sum(
+        (r.target for r in comparable if r.target is not None),
+        Decimal(0),
+    )
+    if actual_sum == 0:
         blockers.append(
             MetricBlocker(
                 kind=MetricBlockerKind.ZERO_DENOMINATOR,
                 metric="cumulative_relative_error",
                 scope_id=scope_identity_for(
-                    scope, decimal_scale=decimal_scale, metric_family="cumulative_relative_error"
+                    scope,
+                    decimal_scale=decimal_scale,
+                    metric_family="cumulative_relative_error",
                 ),
-                message="sum(|target|) == 0; cumulative relative error denominator is zero",
+                message="sum(actual) == 0; cumulative relative error denominator is zero",
                 evaluation_mask_hash=mask.evaluation_mask_hash,
             )
         )
@@ -534,7 +586,8 @@ def cumulative_relative_error(
             tuple(blockers),
             scope,
         )
-    value = _quantize(abs_err_sum / abs_target_sum, decimal_scale)
+    numerator = prediction_sum - actual_sum
+    value = _quantize(numerator / actual_sum, decimal_scale)
     return _output(
         "cumulative_relative_error",
         value,
@@ -606,38 +659,27 @@ def empirical_coverage_p50(
     scope: Mapping[str, Any],
     decimal_scale: int = DEFAULT_DECIMAL_SCALE,
 ) -> MetricOutput:
+    """Empirical coverage of the p50 point prediction.
+
+    Formula: ``count(actual <= p50_kg) / included_row_count``.
+
+    "included" rows are those present in the input set and not masked out
+    (excluded / blocked / withheld). Rows missing either the target
+    actual or the p50_kg scalar prediction are skipped from the numerator
+    AND the denominator.
+    """
+
     materialized = _ordered(_validate_rows(rows, expected_mask_hash=mask.evaluation_mask_hash))
     blockers: list[MetricBlocker] = []
-    if not materialized:
-        blockers.append(
-            MetricBlocker(
-                kind=MetricBlockerKind.ZERO_DENOMINATOR,
-                metric="empirical_coverage_p50",
-                scope_id=scope_identity_for(
-                    scope, decimal_scale=decimal_scale, metric_family="empirical_coverage_p50"
-                ),
-                message="row_count == 0; cannot compute empirical coverage",
-                evaluation_mask_hash=mask.evaluation_mask_hash,
-            )
-        )
-        return _output(
-            "empirical_coverage_p50",
-            None,
-            0,
-            mask.evaluation_mask_hash,
-            decimal_scale,
-            tuple(blockers),
-            scope,
-        )
     in_band = 0
     denom = 0
     for r in materialized:
-        if r.p50_low is None or r.p50_high is None or r.target is None:
+        if not _is_included(r):
             continue
-        if r.mask_state in (MaskState.EXCLUDED, MaskState.BLOCKED, MaskState.WITHHELD):
+        if r.target is None or r.p50_kg is None:
             continue
         denom += 1
-        if r.p50_low <= r.target <= r.p50_high:
+        if r.target <= r.p50_kg:
             in_band += 1
     if denom == 0:
         blockers.append(
@@ -645,9 +687,13 @@ def empirical_coverage_p50(
                 kind=MetricBlockerKind.ZERO_DENOMINATOR,
                 metric="empirical_coverage_p50",
                 scope_id=scope_identity_for(
-                    scope, decimal_scale=decimal_scale, metric_family="empirical_coverage_p50"
+                    scope,
+                    decimal_scale=decimal_scale,
+                    metric_family="empirical_coverage_p50",
                 ),
-                message="comparable_row_count == 0 for coverage; cannot compute empirical coverage",
+                message=(
+                    "no comparable rows with actual + p50_kg; cannot compute empirical coverage"
+                ),
                 evaluation_mask_hash=mask.evaluation_mask_hash,
             )
         )
@@ -677,30 +723,87 @@ def empirical_coverage_p50(
 # ---------------------------------------------------------------------------
 
 
-def peak_date_error_days_p50(
+def _peak_row(
+    candidates: list[EvaluationMetricRow],
+    *,
+    value_getter: Any,
+) -> EvaluationMetricRow:
+    """Find the peak row by ``value_getter(row)``.
+
+    Tie-break rule (binding for this slice): the row with the smallest
+    ``evaluation_as_of_date`` wins ties on the value. Among ties on
+    (value, date) the row with the smallest ``forecast_output_id`` wins
+    (this is the canonical ordering key used everywhere else).
+    """
+
+    best: EvaluationMetricRow | None = None
+    best_value: Decimal | None = None
+    for row in candidates:
+        value = value_getter(row)
+        if value is None:
+            continue
+        if best is None:
+            best = row
+            best_value = value
+            continue
+        assert best_value is not None  # for type checkers
+        if value > best_value:
+            best = row
+            best_value = value
+            continue
+        if value == best_value:
+            # Tie on value: prefer the earliest date.
+            if row.evaluation_as_of_date < best.evaluation_as_of_date:
+                best = row
+                best_value = value
+                continue
+            if row.evaluation_as_of_date == best.evaluation_as_of_date:
+                # Final tie-break: smallest forecast_output_id.
+                if row.forecast_output_id < best.forecast_output_id:
+                    best = row
+                    best_value = value
+    if best is None:
+        raise MetricInputError("no candidate rows had a non-null value for peak selection")
+    return best
+
+
+def peak_date_error_days_p50_signed(
     rows: Iterable[EvaluationMetricRow],
     mask: EvaluationMaskState,
     *,
     scope: Mapping[str, Any],
     decimal_scale: int = DEFAULT_DECIMAL_SCALE,
 ) -> MetricOutput:
+    """Signed peak-date error in days.
+
+    Predicted peak date = the date (``evaluation_as_of_date``) of the
+    comparable row with the maximum ``prediction``. Actual peak date =
+    the date of the comparable row with the maximum ``target``. Ties
+    on the maximum value are broken by the earliest
+    ``evaluation_as_of_date`` (and then by the smallest
+    ``forecast_output_id``). Output = ``(predicted_peak_date -
+    actual_peak_date).days``.
+    """
+
     materialized = _ordered(_validate_rows(rows, expected_mask_hash=mask.evaluation_mask_hash))
     blockers: list[MetricBlocker] = []
-    comparable = [r for r in materialized if _is_comparable(r) and r.peak_date is not None]
+    comparable = [r for r in materialized if _is_comparable(r)]
     if not comparable:
         blockers.append(
             MetricBlocker(
                 kind=MetricBlockerKind.ZERO_DENOMINATOR,
-                metric="peak_date_error_days_p50",
+                metric="peak_date_error_days_p50_signed",
                 scope_id=scope_identity_for(
-                    scope, decimal_scale=decimal_scale, metric_family="peak_date_error_days_p50"
+                    scope,
+                    decimal_scale=decimal_scale,
+                    metric_family="peak_date_error_days_p50_signed",
                 ),
-                message="no comparable rows with peak_date; cannot compute peak-date error",
+                message=("no comparable rows; cannot compute peak date error"),
                 evaluation_mask_hash=mask.evaluation_mask_hash,
             )
         )
         return _output(
-            "peak_date_error_days_p50",
+            "peak_date_error_days_p50_signed",
             None,
             len(comparable),
             mask.evaluation_mask_hash,
@@ -708,15 +811,68 @@ def peak_date_error_days_p50(
             tuple(blockers),
             scope,
         )
-    abs_diffs: list[int] = []
-    for r in comparable:
-        if r.peak_date is None:
-            continue
-        abs_diffs.append(abs((r.peak_date - r.evaluation_as_of_date).days))
-    median = _median(abs_diffs)
-    value = _quantize(Decimal(median), decimal_scale)
+    predicted_peak = _peak_row(comparable, value_getter=lambda r: r.prediction)
+    actual_peak = _peak_row(comparable, value_getter=lambda r: r.target)
+    signed_days = (predicted_peak.evaluation_as_of_date - actual_peak.evaluation_as_of_date).days
+    value = _quantize(Decimal(signed_days), decimal_scale)
     return _output(
-        "peak_date_error_days_p50",
+        "peak_date_error_days_p50_signed",
+        value,
+        len(comparable),
+        mask.evaluation_mask_hash,
+        decimal_scale,
+        tuple(blockers),
+        scope,
+    )
+
+
+def peak_date_error_days_p50_absolute(
+    rows: Iterable[EvaluationMetricRow],
+    mask: EvaluationMaskState,
+    *,
+    scope: Mapping[str, Any],
+    decimal_scale: int = DEFAULT_DECIMAL_SCALE,
+) -> MetricOutput:
+    """Absolute day error for the peak date.
+
+    Same peak-selection rule as
+    :func:`peak_date_error_days_p50_signed`; output = ``|(predicted_peak_date
+    - actual_peak_date).days|``. The signed primary contract is exposed via
+    :func:`peak_date_error_days_p50_signed`.
+    """
+
+    materialized = _ordered(_validate_rows(rows, expected_mask_hash=mask.evaluation_mask_hash))
+    blockers: list[MetricBlocker] = []
+    comparable = [r for r in materialized if _is_comparable(r)]
+    if not comparable:
+        blockers.append(
+            MetricBlocker(
+                kind=MetricBlockerKind.ZERO_DENOMINATOR,
+                metric="peak_date_error_days_p50_absolute",
+                scope_id=scope_identity_for(
+                    scope,
+                    decimal_scale=decimal_scale,
+                    metric_family="peak_date_error_days_p50_absolute",
+                ),
+                message=("no comparable rows; cannot compute peak date error"),
+                evaluation_mask_hash=mask.evaluation_mask_hash,
+            )
+        )
+        return _output(
+            "peak_date_error_days_p50_absolute",
+            None,
+            len(comparable),
+            mask.evaluation_mask_hash,
+            decimal_scale,
+            tuple(blockers),
+            scope,
+        )
+    predicted_peak = _peak_row(comparable, value_getter=lambda r: r.prediction)
+    actual_peak = _peak_row(comparable, value_getter=lambda r: r.target)
+    raw_days = (predicted_peak.evaluation_as_of_date - actual_peak.evaluation_as_of_date).days
+    value = _quantize(Decimal(abs(raw_days)), decimal_scale)
+    return _output(
+        "peak_date_error_days_p50_absolute",
         value,
         len(comparable),
         mask.evaluation_mask_hash,
@@ -733,42 +889,48 @@ def peak_magnitude_error_p50(
     scope: Mapping[str, Any],
     decimal_scale: int = DEFAULT_DECIMAL_SCALE,
 ) -> MetricOutput:
+    """Signed peak-magnitude error.
+
+    Formula: ``predicted_peak_kg - actual_peak_kg`` where the peaks are
+    the maximum value over the comparable rows for prediction / target
+    respectively (with the same tie-break rule as
+    :func:`peak_date_error_days_p50_signed`).
+    """
+
     materialized = _ordered(_validate_rows(rows, expected_mask_hash=mask.evaluation_mask_hash))
     blockers: list[MetricBlocker] = []
-    comparable_targets: list[Decimal] = [
-        r.target for r in materialized if _is_comparable(r) and r.target is not None
-    ]
-    comparable_predictions: list[Decimal] = [
-        r.prediction for r in materialized if _is_comparable(r) and r.prediction is not None
-    ]
-    if not comparable_targets or not comparable_predictions:
+    comparable = [r for r in materialized if _is_comparable(r)]
+    if not comparable:
         blockers.append(
             MetricBlocker(
                 kind=MetricBlockerKind.ZERO_DENOMINATOR,
                 metric="peak_magnitude_error_p50",
                 scope_id=scope_identity_for(
-                    scope, decimal_scale=decimal_scale, metric_family="peak_magnitude_error_p50"
+                    scope,
+                    decimal_scale=decimal_scale,
+                    metric_family="peak_magnitude_error_p50",
                 ),
-                message="no comparable rows; cannot compute peak magnitude error",
+                message=("no comparable rows; cannot compute peak magnitude error"),
                 evaluation_mask_hash=mask.evaluation_mask_hash,
             )
         )
         return _output(
             "peak_magnitude_error_p50",
             None,
-            len(comparable_targets),
+            0,
             mask.evaluation_mask_hash,
             decimal_scale,
             tuple(blockers),
             scope,
         )
-    peak_target = max(comparable_targets)
-    peak_prediction = max(comparable_predictions)
-    value = _quantize(abs(peak_prediction - peak_target), decimal_scale)
+    predicted_peak = _peak_row(comparable, value_getter=lambda r: r.prediction)
+    actual_peak = _peak_row(comparable, value_getter=lambda r: r.target)
+    assert predicted_peak.prediction is not None and actual_peak.target is not None
+    value = _quantize(predicted_peak.prediction - actual_peak.target, decimal_scale)
     return _output(
         "peak_magnitude_error_p50",
         value,
-        len(comparable_targets),
+        len(comparable),
         mask.evaluation_mask_hash,
         decimal_scale,
         tuple(blockers),
@@ -783,22 +945,31 @@ def quantile_crossing_count(
     scope: Mapping[str, Any],
     decimal_scale: int = DEFAULT_DECIMAL_SCALE,
 ) -> MetricOutput:
+    """Count of included rows where the quantile ladder crosses.
+
+    For each included row with both ``p50_kg`` and ``p80_kg`` present, a
+    crossing is recorded when ``p50_kg > p80_kg`` (the lower-quantile
+    point prediction lies above the higher-quantile point prediction,
+    which is a degenerate ordering).
+    """
+
     materialized = _ordered(_validate_rows(rows, expected_mask_hash=mask.evaluation_mask_hash))
     blockers: list[MetricBlocker] = []
     crossings = 0
+    included_count = 0
     for r in materialized:
-        if r.mask_state in (MaskState.EXCLUDED, MaskState.BLOCKED, MaskState.WITHHELD):
+        if not _is_included(r):
             continue
-        if r.p50_low is None or r.p50_high is None or r.p80_low is None or r.p80_high is None:
+        included_count += 1
+        if r.p50_kg is None or r.p80_kg is None:
             continue
-        # Crossing = inner (p50) band extends beyond outer (p80) band.
-        if r.p50_low < r.p80_low or r.p50_high > r.p80_high:
+        if r.p50_kg > r.p80_kg:
             crossings += 1
     value = _quantize(Decimal(crossings), decimal_scale)
     return _output(
         "quantile_crossing_count",
         value,
-        len(materialized),
+        included_count,
         mask.evaluation_mask_hash,
         decimal_scale,
         tuple(blockers),
@@ -806,8 +977,8 @@ def quantile_crossing_count(
     )
 
 
-def _interval_width(p_low: Decimal, p_high: Decimal) -> Decimal:
-    return p_high - p_low
+def _interval_width_scalar(p50: Decimal, p80: Decimal) -> Decimal:
+    return p80 - p50
 
 
 def interval_width_mean_p80_p50(
@@ -817,26 +988,33 @@ def interval_width_mean_p80_p50(
     scope: Mapping[str, Any],
     decimal_scale: int = DEFAULT_DECIMAL_SCALE,
 ) -> MetricOutput:
+    """Per-row scalar width ``p80_kg - p50_kg`` averaged across included rows.
+
+    Rows missing either scalar field are skipped. The metric returns the
+    mean of the remaining row widths. NOTE: this metric uses scalar point
+    quantile predictions (Task 8 / Task 9 schema), NOT interval bands.
+    """
+
     materialized = _ordered(_validate_rows(rows, expected_mask_hash=mask.evaluation_mask_hash))
     blockers: list[MetricBlocker] = []
     widths: list[Decimal] = []
     for r in materialized:
-        if r.mask_state in (MaskState.EXCLUDED, MaskState.BLOCKED, MaskState.WITHHELD):
+        if not _is_included(r):
             continue
-        if r.p50_low is None or r.p50_high is None or r.p80_low is None or r.p80_high is None:
+        if r.p50_kg is None or r.p80_kg is None:
             continue
-        widths.append(
-            _interval_width(r.p80_low, r.p80_high) - _interval_width(r.p50_low, r.p50_high)
-        )
+        widths.append(_interval_width_scalar(r.p50_kg, r.p80_kg))
     if not widths:
         blockers.append(
             MetricBlocker(
                 kind=MetricBlockerKind.ZERO_DENOMINATOR,
                 metric="interval_width_mean_p80_p50",
                 scope_id=scope_identity_for(
-                    scope, decimal_scale=decimal_scale, metric_family="interval_width_mean_p80_p50"
+                    scope,
+                    decimal_scale=decimal_scale,
+                    metric_family="interval_width_mean_p80_p50",
                 ),
-                message="no comparable rows with p50/p80 interval bounds",
+                message="no comparable rows with p50_kg + p80_kg",
                 evaluation_mask_hash=mask.evaluation_mask_hash,
             )
         )
@@ -868,17 +1046,17 @@ def interval_width_median_p80_p50(
     scope: Mapping[str, Any],
     decimal_scale: int = DEFAULT_DECIMAL_SCALE,
 ) -> MetricOutput:
+    """Per-row scalar width ``p80_kg - p50_kg`` median across included rows."""
+
     materialized = _ordered(_validate_rows(rows, expected_mask_hash=mask.evaluation_mask_hash))
     blockers: list[MetricBlocker] = []
     widths: list[Decimal] = []
     for r in materialized:
-        if r.mask_state in (MaskState.EXCLUDED, MaskState.BLOCKED, MaskState.WITHHELD):
+        if not _is_included(r):
             continue
-        if r.p50_low is None or r.p50_high is None or r.p80_low is None or r.p80_high is None:
+        if r.p50_kg is None or r.p80_kg is None:
             continue
-        widths.append(
-            _interval_width(r.p80_low, r.p80_high) - _interval_width(r.p50_low, r.p50_high)
-        )
+        widths.append(_interval_width_scalar(r.p50_kg, r.p80_kg))
     if not widths:
         blockers.append(
             MetricBlocker(
@@ -889,7 +1067,7 @@ def interval_width_median_p80_p50(
                     decimal_scale=decimal_scale,
                     metric_family="interval_width_median_p80_p50",
                 ),
-                message="no comparable rows with p50/p80 interval bounds",
+                message="no comparable rows with p50_kg + p80_kg",
                 evaluation_mask_hash=mask.evaluation_mask_hash,
             )
         )
@@ -1178,7 +1356,12 @@ def evaluate_scope(
         cumulative_relative_error(materialized, mask, scope=scope, decimal_scale=decimal_scale),
         pinball_loss_p50(materialized, mask, scope=scope, decimal_scale=decimal_scale),
         empirical_coverage_p50(materialized, mask, scope=scope, decimal_scale=decimal_scale),
-        peak_date_error_days_p50(materialized, mask, scope=scope, decimal_scale=decimal_scale),
+        peak_date_error_days_p50_signed(
+            materialized, mask, scope=scope, decimal_scale=decimal_scale
+        ),
+        peak_date_error_days_p50_absolute(
+            materialized, mask, scope=scope, decimal_scale=decimal_scale
+        ),
         peak_magnitude_error_p50(materialized, mask, scope=scope, decimal_scale=decimal_scale),
         quantile_crossing_count(materialized, mask, scope=scope, decimal_scale=decimal_scale),
         interval_width_mean_p80_p50(materialized, mask, scope=scope, decimal_scale=decimal_scale),
