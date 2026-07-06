@@ -232,6 +232,14 @@ State:
 - **Any source / test / migration / frontend changes are P0 scope violation.**
 - **Any attempt to close Issue #21, #33, or #38 is P0 governance violation.**
 
+**Ready gate (CI green before Ready)**:
+
+- PR #39 must remain Draft until CI is `completed / success` on the exact PR head SHA.
+- CI success alone does NOT authorize Ready.
+- Ready requires separate Charles authorization after design review and evidence reconciliation.
+- No freeze / Ready / merge may happen in the same round as design-doc correction.
+- Any new commit to PR #39 invalidates previous candidate SHA and requires recalculating candidate SHA-256 and re-running CI.
+
 ### Refs
 
 - Refs #21 — TASK-011 umbrella, OPEN
