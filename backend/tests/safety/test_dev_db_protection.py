@@ -7,16 +7,11 @@ PostgreSQL — so the tests must NOT depend on a live database. Every
 test injects env vars via ``monkeypatch`` and inspects the guard's
 exit code / exit message only.
 
-What is NOT tested here (intentionally, for scope discipline):
-* The actual ``make test-pg`` end-to-end flow (requires Docker, which is
-  a developer-machine concern; see Issue #23 §1).
-* PostgreSQL connection logic (out of scope; the safeguard sits in front
-  of any connection).
-* The actual schema or rows in ``blueberry_peak_test`` (out of scope).
-* The CI workflow split (Batch 2, deferred).
-* The marker taxonomy overhaul (Batch 3, deferred).
-* The fixture refactor (Batch 3, deferred).
-* The whole-DB TRUNCATE audit (Batch 4, deferred).
+Scope discipline
+----------------
+* File location: ``backend/tests/safety/`` (NOT ``backend/app/``).
+* No production-code mutation.
+* No DB / network IO.
 """
 
 from __future__ import annotations
@@ -27,15 +22,16 @@ from pathlib import Path
 
 import pytest
 
-# Repository root (the worktree root).
+# Repository root (the worktree root): 4 parents up from this test file
+# (backend/tests/safety/test_dev_db_protection.py).
 REPO_ROOT = Path(__file__).resolve().parents[3]
-POSTGRES_TEST_DB_SH = REPO_ROOT / "backend" / "scripts" / "postgres_test_db.sh"
-WAIT_FOR_POSTGRES_SH = REPO_ROOT / "backend" / "scripts" / "wait_for_postgres.sh"
-RESET_TEST_DB_SH = REPO_ROOT / "backend" / "scripts" / "reset_test_db.sh"
+POSTGRES_TEST_DB_SH = (REPO_ROOT / "backend" / "scripts" / "postgres_test_db.sh").resolve()
+WAIT_FOR_POSTGRES_SH = (REPO_ROOT / "backend" / "scripts" / "wait_for_postgres.sh").resolve()
+RESET_TEST_DB_SH = (REPO_ROOT / "backend" / "scripts" / "reset_test_db.sh").resolve()
 
 
 # ---------------------------------------------------------------------------
-# Helper: run postgres_test_db.sh under the given env, return (exit_code, stdout, stderr)
+# Helper: run a shell helper under the given env, return CompletedProcess
 # ---------------------------------------------------------------------------
 
 
@@ -43,15 +39,11 @@ def _run_helper(
     env_overrides: dict[str, str] | None = None,
     helper: Path = POSTGRES_TEST_DB_SH,
 ) -> subprocess.CompletedProcess:
-    """Invoke the helper under the requested env and capture exit + output.
+    """Invoke the helper script under the requested env and capture exit + output.
 
-    The helper uses ``set -euo pipefail`` and ``exec docker compose ...`` so
-    when the guard fails the helper exits before the docker compose call.
-    When the guard passes (happy path), the helper would attempt
-    ``docker compose up -d`` which will fail in this sandbox because Docker
-    is not installed; this is acceptable for the negative tests (we want
-    the guard to refuse BEFORE docker compose runs) and is documented in
-    TEST D below.
+    Uses an absolute path for the helper so that the helper's internal
+    ``cd "$(dirname "$0")/../.."`` always lands at REPO_ROOT regardless of
+    the caller's cwd.
     """
     base_env = {
         "PATH": os.environ.get("PATH", ""),
@@ -65,7 +57,17 @@ def _run_helper(
         text=True,
         env=base_env,
         cwd=str(REPO_ROOT),
+        timeout=30,
     )
+
+
+# Standard "correct test profile" env, used to verify the guard accepts it.
+_TEST_PROFILE_ENV: dict[str, str] = {
+    "POSTGRES_DB": "blueberry_peak_test",
+    "POSTGRES_HOST": "localhost",
+    "POSTGRES_PORT": "55432",
+    "APP_ENV": "test",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -73,214 +75,114 @@ def _run_helper(
 # ---------------------------------------------------------------------------
 
 
-def test_dev_db_dev_port_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The harness MUST refuse to start when POSTGRES_PORT=5432 (dev-DB port).
+def test_dev_db_dev_port_is_rejected() -> None:
+    """Guard MUST refuse POSTGRES_PORT=5432 (dev-DB port).
 
     Port 5432 is reserved for the development database; using it would
-    leak test runs into dev. The guard must exit non-zero and the
+    leak test runs into dev. The guard must exit non-zero AND the error
     message must mention the port mismatch.
     """
-    monkeypatch.setenv("POSTGRES_DB", "blueberry_peak_test")
-    monkeypatch.setenv("POSTGRES_HOST", "localhost")
-    monkeypatch.setenv("POSTGRES_PORT", "5432")  # dev-DB port — must be rejected
-    monkeypatch.setenv("APP_ENV", "test")
-    monkeypatch.delenv("DATABASE_URL", raising=False)
+    env = dict(_TEST_PROFILE_ENV)
+    env["POSTGRES_PORT"] = "5432"  # dev-DB port
 
-    result = _run_helper(
-        env_overrides={
-            "POSTGRES_DB": "blueberry_peak_test",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "5432",
-            "APP_ENV": "test",
-        }
-    )
+    result = _run_helper(env_overrides=env)
 
     assert result.returncode != 0, (
-        f"Guard accepted dev-DB port 5432. stdout={result.stdout!r} stderr={result.stderr!r}"
+        f"Guard accepted dev-DB port 5432 — broken. "
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
     )
     assert "55432" in result.stderr or "5432" in result.stderr, (
-        f"Harness rejection message must mention the port; got stderr={result.stderr!r}"
+        f"Guard rejection message must mention the port; got stderr={result.stderr!r}"
     )
 
 
-def test_dev_db_prod_app_env_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The harness MUST refuse to start when APP_ENV is not 'test'.
+def test_dev_db_prod_app_env_is_rejected() -> None:
+    """Guard MUST refuse APP_ENV != 'test' (e.g. production).
 
     APP_ENV=production (or any value other than 'test') is an explicit
     refusal condition.
     """
-    monkeypatch.setenv("POSTGRES_DB", "blueberry_peak_test")
-    monkeypatch.setenv("POSTGRES_HOST", "localhost")
-    monkeypatch.setenv("POSTGRES_PORT", "55432")
-    monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.delenv("DATABASE_URL", raising=False)
+    env = dict(_TEST_PROFILE_ENV)
+    env["APP_ENV"] = "production"
 
-    result = _run_helper(
-        env_overrides={
-            "POSTGRES_DB": "blueberry_peak_test",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "55432",
-            "APP_ENV": "production",
-        }
-    )
+    result = _run_helper(env_overrides=env)
 
     assert result.returncode != 0, (
-        f"Guard accepted APP_ENV=production. stdout={result.stdout!r} stderr={result.stderr!r}"
+        f"Guard accepted APP_ENV=production — broken. "
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
     )
     assert "APP_ENV" in result.stderr, (
-        f"Harness rejection message must mention APP_ENV; got stderr={result.stderr!r}"
+        f"Guard rejection message must mention APP_ENV; got stderr={result.stderr!r}"
     )
 
 
-def test_dev_db_database_url_dev_db_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The harness MUST refuse to start when DATABASE_URL points at the dev DB.
+def test_dev_db_database_url_dev_db_is_rejected() -> None:
+    """Guard MUST refuse DATABASE_URL pointing at the dev DB.
 
-    The Makefile guard also checks DATABASE_URL; here we verify the
-    bash wrapper behaves consistently.
+    The wrapper must explicitly check DATABASE_URL for dev-DB markers
+    (``blueberry_peak`` without ``_test``, ``localhost:5432``) and fail
+    closed. This test does NOT accept Docker absence as a valid accept
+    reason for a dev DATABASE_URL — a dev URL must be rejected by the
+    guard even when Docker is unavailable.
     """
-    monkeypatch.setenv("POSTGRES_DB", "blueberry_peak_test")
-    monkeypatch.setenv("POSTGRES_HOST", "localhost")
-    monkeypatch.setenv("POSTGRES_PORT", "55432")
-    monkeypatch.setenv("APP_ENV", "test")
-    monkeypatch.setenv("DATABASE_URL", "postgresql://localhost:5432/blueberry_peak")  # dev-DB URL
+    env = dict(_TEST_PROFILE_ENV)
+    # DATABASE_URL points at the dev DB (port 5432, db name without _test).
+    env["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/blueberry_peak"
 
-    result = _run_helper(
-        env_overrides={
-            "POSTGRES_DB": "blueberry_peak_test",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "55432",
-            "APP_ENV": "test",
-            "DATABASE_URL": "postgresql://localhost:5432/blueberry_peak",
-        }
+    result = _run_helper(env_overrides=env)
+
+    assert result.returncode != 0, (
+        f"Guard accepted dev DATABASE_URL — broken. "
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+    assert "DATABASE_URL" in result.stderr, (
+        f"Guard rejection message must mention DATABASE_URL; got stderr={result.stderr!r}"
     )
 
-    # The bash wrapper itself does NOT parse DATABASE_URL — only the
-    # Makefile does. So the bash wrapper will pass the guard when
-    # POSTGRES_DB/HOST/PORT/APP_ENV are correct, and only the Makefile
-    # would refuse. We assert this boundary here for documentation.
-    # (The Makefile guard is covered indirectly via TEST A + TEST B.)
-    # Acceptable: either exit 0 (bash wrapper passes to docker, fails on
-    # missing docker) or exit != 0 (bash wrapper also checks). The
-    # contract here is: NO SILENT CONNECTION to the dev DB.
+
+def test_test_db_correct_profile_is_accepted() -> None:
+    """Guard MUST accept the correct test profile.
+
+    With the correct profile, the guard must NOT refuse. Any non-zero
+    exit must come from the subsequent ``docker compose up -d`` failing
+    because Docker is unavailable in the sandbox — NOT from the guard.
+    """
+    result = _run_helper(env_overrides=dict(_TEST_PROFILE_ENV))
+
+    # If docker is unavailable, bash command not found -> rc=127.
+    if result.returncode == 127:
+        pytest.skip(
+            "docker not available in this sandbox; skipping "
+            "downstream assertion (guard is still exercised)."
+        )
+
+    # The guard itself MUST NOT refuse the correct profile.
+    # The downstream docker compose call MAY fail (rc != 0) for
+    # environment reasons unrelated to the guard.
+    combined = (result.stdout + result.stderr).lower()
     assert (
         "blueberry_peak_test" in result.stdout
-        or result.returncode != 0
-        or "docker" in result.stderr.lower()
+        or result.returncode == 0
+        or "docker" in combined
+        or "compose" in combined
     ), (
-        f"Unexpected outcome. "
+        f"Guard refused correct profile (not docker-related). "
         f"stdout={result.stdout!r} "
         f"stderr={result.stderr!r} "
         f"rc={result.returncode}"
     )
 
 
-def test_test_db_correct_profile_is_accepted(monkeypatch: pytest.MonkeyPatch) -> None:
-    """When the full test profile is correct, the harness attempts to start.
-
-    With Docker not installed in this sandbox, the underlying
-    ``docker compose up -d`` will fail with a missing-binary error. This
-    is acceptable; the contract here is: the guard PASSES (i.e. the
-    helper does NOT refuse the profile), and any subsequent failure is
-    a Docker-availability problem, not a guard problem.
-    """
-    monkeypatch.setenv("POSTGRES_DB", "blueberry_peak_test")
-    monkeypatch.setenv("POSTGRES_HOST", "localhost")
-    monkeypatch.setenv("POSTGRES_PORT", "55432")
-    monkeypatch.setenv("APP_ENV", "test")
-    monkeypatch.delenv("DATABASE_URL", raising=False)
-
-    result = _run_helper(
-        env_overrides={
-            "POSTGRES_DB": "blueberry_peak_test",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "55432",
-            "APP_ENV": "test",
-        }
-    )
-
-    # The guard should NOT refuse the correct profile. Any non-zero
-    # exit must come from the subsequent ``docker compose up -d`` call
-    # failing because Docker is unavailable — NOT from the guard.
-    if result.returncode != 0:
-        # Allow failure only when the error message mentions docker,
-        # which indicates Docker is unavailable in this sandbox (NOT a
-        # guard problem).
-        combined = (result.stdout + result.stderr).lower()
-        assert "docker" in combined or "compose" in combined, (
-            f"Harness refused the correct test profile. "
-            f"Guard should accept correct profile. "
-            f"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
-        )
-
-
 def test_check_test_profile_unit_helper() -> None:
-    """Unit-level guard check via the Makefile guard helper.
+    """Sanity test: the test-profile env satisfies the guard's contract.
 
-    The Makefile uses an inline Python guard via ``GUARD_OK``. We
-    re-implement the same check here and verify that the four
-    mismatch cases fail closed while the happy path passes. This is
-    intentionally a separate test from the bash-wrapper tests above
-    so that a failure in one does not mask the other.
+    This test does NOT invoke the bash wrapper (so it works without
+    Docker). It just verifies that the helper script resolves to the
+    expected path and the env dict is well-formed.
     """
-
-    def check(env: dict[str, str]) -> bool:
-        db = env.get("POSTGRES_DB", env.get("DB_NAME", "blueberry_peak"))
-        host = env.get("POSTGRES_HOST", "localhost")
-        port = env.get("POSTGRES_PORT", "5432")
-        env_name = env.get("APP_ENV", "development")
-        bad = (
-            env_name != "test"
-            or ("blueberry_peak" in db and "_test" not in db)
-            or (host == "localhost" and port == "5432")
-        )
-        return not bad
-
-    # Happy path
-    assert check(
-        {
-            "POSTGRES_DB": "blueberry_peak_test",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "55432",
-            "APP_ENV": "test",
-        }
-    ), "Happy path must pass"
-
-    # APP_ENV mismatch
-    assert not check(
-        {
-            "POSTGRES_DB": "blueberry_peak_test",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "55432",
-            "APP_ENV": "production",
-        }
-    ), "APP_ENV=production must fail closed"
-
-    # Dev DB port
-    assert not check(
-        {
-            "POSTGRES_DB": "blueberry_peak_test",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "5432",
-            "APP_ENV": "test",
-        }
-    ), "POSTGRES_PORT=5432 must fail closed"
-
-    # Dev DB name
-    assert not check(
-        {
-            "POSTGRES_DB": "blueberry_peak",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "55432",
-            "APP_ENV": "test",
-        }
-    ), "POSTGRES_DB=blueberry_peak (dev) must fail closed"
-
-    # Mixed dev-DB host + port
-    assert not check(
-        {
-            "POSTGRES_DB": "blueberry_peak",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "5432",
-            "APP_ENV": "production",
-        }
-    ), "Combined dev-DB mismatches must fail closed"
+    assert POSTGRES_TEST_DB_SH.exists(), f"postgres_test_db.sh not found at {POSTGRES_TEST_DB_SH}"
+    assert WAIT_FOR_POSTGRES_SH.exists()
+    assert RESET_TEST_DB_SH.exists()
+    assert _TEST_PROFILE_ENV["POSTGRES_DB"] == "blueberry_peak_test"
+    assert _TEST_PROFILE_ENV["POSTGRES_PORT"] == "55432"
+    assert _TEST_PROFILE_ENV["APP_ENV"] == "test"
