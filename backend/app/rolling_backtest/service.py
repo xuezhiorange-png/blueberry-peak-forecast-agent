@@ -269,6 +269,19 @@ def _validate_mask_hash(mask_hash: str) -> None:
 
 
 def _validate_scope(scope: Mapping[str, Any]) -> None:
+    # Mapping guard FIRST. ``"node" not in scope`` is undefined for
+    # non-Mapping payloads (None / int / bool / str) and would leak a
+    # raw ``TypeError`` to the caller. We translate any non-Mapping
+    # scope into the contractually promised
+    # ``ServiceContractError(kind="invalid_scope")`` here so that
+    # ``compute_metrics`` never re-raises a non-contract exception
+    # for a bad ``scope``. (Post-merge follow-up to PR #44; see P1
+    # regression test ``test_service_scope_type_validation.py``.)
+    if not isinstance(scope, Mapping):
+        raise ServiceContractError(
+            kind="invalid_scope",
+            message=(f"scope must be a mapping (got {type(scope).__name__})"),
+        )
     if "node" not in scope:
         raise ServiceContractError(
             kind="invalid_scope",
@@ -421,25 +434,32 @@ def compute_metrics(
     # The structured request context (``run_id``, ``scope_id``,
     # ``evaluation_mask_hash``, ``metric_subset``) is attached to
     # every ``ServiceContractError`` we raise so that the CLI / audit
-    # tooling can emit a complete machine-readable payload. We
-    # compute the scope_id up front (it is purely a function of the
-    # caller-supplied ``scope`` mapping and does not require any
-    # Phase 4a IO) and reuse it for the error context.
-    scope_id = str(scope.get("node", "")) if "node" in scope else ""
+    # tooling can emit a complete machine-readable payload.
+    #
+    # ``_validate_scope`` MUST run before any mapping-only access on
+    # ``scope`` (``scope.get(...)``, ``"node" in scope``). The scope_id
+    # is computed only AFTER the validator confirms ``scope`` is a
+    # Mapping, so non-mapping payloads (``None`` / ``int`` / ``bool``)
+    # surface as ``ServiceContractError(kind="invalid_scope")`` instead
+    # of leaking a raw ``AttributeError`` / ``TypeError`` from the
+    # mapping-only path. (Post-merge follow-up to PR #44; see P1
+    # regression test ``test_service_scope_type_validation.py``.)
     try:
-        _validate_mask_hash(mask_hash)
+        _validate_scope(scope)
     except ServiceContractError as exc:
         raise ServiceContractError(
             kind=exc.kind,
             message=exc.message,
             run_id=run_id,
-            scope_id=scope_id,
+            scope_id="",
             evaluation_mask_hash=mask_hash,
             metric_subset=metric_subset,
             metric_definition_version=exc.metric_definition_version,
         ) from exc
+    # scope is now guaranteed to be a Mapping; safe to read ``node``.
+    scope_id = str(scope.get("node", "")) if "node" in scope else ""
     try:
-        _validate_scope(scope)
+        _validate_mask_hash(mask_hash)
     except ServiceContractError as exc:
         raise ServiceContractError(
             kind=exc.kind,
