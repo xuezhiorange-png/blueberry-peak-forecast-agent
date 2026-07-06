@@ -102,6 +102,12 @@ from backend.app.rolling_backtest.schemas import (
     Task10PredictionRunAvailabilitySnapshot,
     Task10TrainingRunAvailabilitySnapshot,
 )
+from backend.app.rolling_backtest.service import (
+    ServiceContractError,
+    compute_metrics,
+    get_materialization_provider,
+    register_materialization_provider,
+)
 from backend.app.rolling_backtest.signatures import (
     node_signature_hash,
     node_signature_payload,
@@ -147,6 +153,7 @@ __all__ = [
     "RollingNodeDefinition",
     "RollingNodePersistenceCommand",
     "RunDerivedStatus",
+    "ServiceContractError",
     "Task3AnalyticsBuildAvailabilitySnapshot",
     "Task6PlanVersionAvailabilitySnapshot",
     "Task7WeatherObservationAvailabilitySnapshot",
@@ -166,6 +173,7 @@ __all__ = [
     "build_availability_authority_registry",
     "canonical_payload_hash",
     "comparable_row_count",
+    "compute_metrics",
     "correction_magnitude_count",
     "correction_magnitude_median",
     "create_execution_attempt",
@@ -177,6 +185,7 @@ __all__ = [
     "evaluate_scope",
     "finalize_attempt_status",
     "get_availability_authority_spec",
+    "get_materialization_provider",
     "interval_width_mean_p80_p50",
     "interval_width_median_p80_p50",
     "load_logical_run_with_integrity",
@@ -193,6 +202,7 @@ __all__ = [
     "persist_stage_event",
     "pinball_loss_p50",
     "quantile_crossing_count",
+    "register_materialization_provider",
     "resolve_default_node_dates",
     "resolve_historical",
     "resolve_pinned",
