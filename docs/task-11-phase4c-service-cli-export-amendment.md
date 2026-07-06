@@ -100,10 +100,12 @@ Define:
 
 Define:
 
-- **export formats** — JSON (canonical), CSV (RFC 4180 with LF line endings), Manifest (JSON)
+- **export formats** — JSON (canonical), CSV (RFC 4180 with UTF-8 encoding and LF line endings, plus REQUIRED trailing newline per §13), Manifest (JSON)
+- **canonical CSV column ordering** — every CSV export must emit headers in a frozen, deterministic order; data rows must follow the exact same column order; column order must NOT depend on dict insertion order, ORM field order, database reflection order, locale, filesystem order, or Python version; adding / removing / reordering columns requires a frozen design amendment; structural and corrected exports must use the same canonical ordering policy where their schemas overlap
 - **canonical JSON ordering** — alphabetical keys, no whitespace between tokens
 - **decimal / string representation** — Decimal canonical string, no scientific notation
 - **timestamp representation** — UTC ISO-8601 with `Z` suffix (e.g. `2026-07-06T07:00:22Z`)
+- **CSV null-to-empty handling** — Python `None` and database `NULL` must serialize to an empty CSV field; must NOT serialize as `null`, `None`, `"null"`, `"None"`, `NaN`, or omitted column; JSON may use JSON `null`, but CSV must use empty field; reload must distinguish empty CSV field according to the frozen schema contract, not by ad-hoc inference
 - **path determinism** — `${output_path}/${run_id}/${metric_scope_identity_hash}.json` (stable)
 - **filename determinism** — `metric_report.json`, `manifest.json`, `metric_report.csv`, `audit.json`
 - **manifest fields** — `manifest_schema_version`, `run_id`, `created_at`, `metric_definition_version`, `evaluation_mask_hash`, `content_hashes`, `input_artifacts`, `output_artifacts`
@@ -183,6 +185,7 @@ Define:
 - **hash input ordering** — alphabetical keys, canonical string values
 - **path normalization** — absolute paths, no symlinks
 - **deterministic overwrite policy** — with `--overwrite`, file replaced; without, exit 3
+- **CSV byte-stable reload/export contract** — export → reload → export must be byte-identical for the same artifact and same frozen schema; byte identity must cover header order, row order, decimal formatting, datetime formatting, null/empty handling, line endings, final newline policy, and UTF-8 encoding; CSV must use UTF-8 encoding and LF line endings with a REQUIRED trailing newline at end of file; reload/compare tests must assert byte-stable re-export
 - **deterministic failure payload** — `Blocker` shape is deterministic
 - **reproducibility verification command or future hook** — `blueberry-eval verify --run-id <run_id>` re-exports + compares content hashes
 
@@ -210,6 +213,17 @@ Explicitly exclude:
 - **frontend work**
 - **model training changes**
 - **Task 10 `replay_trained_model`**
+- **Task 12 API / UI**
+- **Task 13 Agent**
+- **Task 14 production scheduling**
+- **Task 14 drift monitoring**
+- **Task 14 alerting**
+- **cron**
+- **Celery**
+- **Kubernetes scheduling**
+- **production plan optimization / dispatch**
+- **new model code**
+- **Task 8 / Task 9 / Task 10 semantic changes**
 - **Phase 4a redesign**
 - **Phase 4b metric formula redesign**
 - **production deployment**
@@ -241,6 +255,13 @@ State:
 - Any new commit to PR #39 invalidates previous candidate SHA and requires recalculating candidate SHA-256 and re-running CI.
 
 ### Refs
+
+- **Issue #33 Option C split decision comment `4888970615`** (by Charles, 2026-07-06T04:04:39Z) — establishes the Phase 4 split:
+  - **Phase 4a** = evaluation materialization + mask foundation (PR #35, frozen Content SHA `632e2e1f2880c9a6d7b87ee9f90565223ece69aaee43bea620f526c1fe1c8f3c`)
+  - **Phase 4b** = metric formulas + scoped metrics (PR #37, frozen Content SHA `7ed7cb567c72f107b4a83ed64f0ed66309fdd98049110afa4ec3831598e7c63a`)
+  - **Phase 4c** = service layer + CLI + deterministic export (this PR)
+- **Phase 4c consumes Phase 4a and Phase 4b artifacts as frozen inputs but does NOT redefine or implement them** (see §3, §5).
+- **Phase 4c must NOT absorb deferred Task 10 `replay_trained_model`** (see §15).
 
 - Refs #21 — TASK-011 umbrella, OPEN
 - Refs #33 — Phase 4 planning, OPEN (continuity anchor)
