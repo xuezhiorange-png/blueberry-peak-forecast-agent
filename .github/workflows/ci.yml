@@ -746,6 +746,24 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+    env:
+      # Slice 4 — postgres-concurrency isolated DB profile. The
+      # ``@pytest.mark.postgres_concurrency`` tests need real commits
+      # and cross-transaction visibility, so they cannot share the
+      # service container's literal ``blueberry_peak`` DB with the
+      # domain / task11 jobs. They are bound to a per-run isolated
+      # database whose name is fail-closed validated by
+      # backend/tests/concurrency_isolation_helpers.py (which itself
+      # wraps backend/tests/migration_isolation_helpers.py). The
+      # service container's own ``blueberry_peak`` is only used as
+      # the admin / "postgres" connection target (to create + drop
+      # the isolated database) and is never the target of any
+      # alembic upgrade / pytest run.
+      ISOLATED_JOB_NAME: postgres_concurrency
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: blueberry_app
+      POSTGRES_PASSWORD: change-me-in-local-env
     steps:
       - uses: actions/checkout@v4
 
@@ -760,16 +778,16 @@ jobs:
 
       - name: Wait for PostgreSQL service
         env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
           POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           python - <<'PY'
-          import asyncio, os, asyncpg
+          import asyncio
+          import os
+
+          import asyncpg
+
           async def main() -> None:
-              last_error = None
+              last_error: Exception | None = None
               for _ in range(30):
                   try:
                       conn = await asyncpg.connect(
@@ -779,37 +797,130 @@ jobs:
                           user=os.environ["POSTGRES_USER"],
                           password=os.environ["POSTGRES_PASSWORD"],
                       )
-                      v = await conn.fetchval("SELECT 1"); await conn.close()
-                      if v == 1: return
-                  except Exception as e:
-                      last_error = e; await asyncio.sleep(1)
-              raise SystemExit(f"PG not ready: {last_error}")
+                      value = await conn.fetchval("SELECT 1")
+                      await conn.close()
+                      if value == 1:
+                          return
+                  except Exception as exc:
+                      last_error = exc
+                      await asyncio.sleep(1)
+              raise SystemExit(f"PostgreSQL service was not ready: {last_error}")
+
           asyncio.run(main())
           PY
 
-      - name: Alembic upgrade head
+      - name: Resolve isolated test database name
+        # Slice 4: derive a per-run isolated DB name and run the
+        # fail-closed guard so the rest of the job binds to a name
+        # that is unique, recognizably a test database, and not on
+        # the FORBIDDEN_DATABASE_NAMES list. The wrapper routes
+        # through the Slice 3 helper which routes through the
+        # Slice 1 dev-DB safeguard.
+        env:
+          POSTGRES_DB: blueberry_peak
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import os
+          import sys
+
+          from backend.tests.concurrency_isolation_helpers import (
+              assert_safe_concurrency_isolated_db_name,
+              resolve_concurrency_isolated_db_name,
+          )
+
+          run_id = os.environ["GITHUB_RUN_ID"]
+          run_attempt = os.environ["GITHUB_RUN_ATTEMPT"]
+          job_name = os.environ["ISOLATED_JOB_NAME"]
+          name = resolve_concurrency_isolated_db_name(run_id, run_attempt)
+          assert_safe_concurrency_isolated_db_name(name)
+          print(f"ISOLATED_DB_NAME={name}")
+          print(f"ISOLATED_DB_NAME matches slice-3 template: {name.startswith('blueberry_peak_test_')}", file=sys.stderr)
+          PY
+
+      - name: Create isolated test database
+        env:
+          POSTGRES_DB: blueberry_peak
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import os
+
+          import asyncpg
+
+          ISOLATED_DB_NAME = os.environ["ISOLATED_DB_NAME"]
+
+          async def main() -> None:
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database="blueberry_peak",
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  # Defensive: do not silently overwrite an existing
+                  # database. If we see one, fail the step loudly so
+                  # the operator can investigate naming collisions
+                  # before we reuse a stale schema.
+                  exists = await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1",
+                      ISOLATED_DB_NAME,
+                  )
+                  if exists:
+                      raise SystemExit(
+                          f"isolated test database {ISOLATED_DB_NAME!r} "
+                          "already exists; refusing to overwrite"
+                      )
+                  await conn.execute(
+                      f'CREATE DATABASE "{ISOLATED_DB_NAME}"'
+                  )
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
+
+      - name: Alembic upgrade head against isolated database
+        # Bound to the isolated database so the destructive CI
+        # pipeline never reaches the dev-like ``blueberry_peak``
+        # service DB. The alembic upgrade is read-mostly here (no
+        # downgrade); Slice 3's destructive round-trip stays in the
+        # ``postgres-migration`` job.
         env:
           APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:${{ env.POSTGRES_PORT }}/${{ env.ISOLATED_DB_NAME }}
         run: alembic -c backend/alembic.ini upgrade head
 
       - name: Postgres concurrency tests
+        # Concurrency / real-commit tests against the isolated DB.
+        # The marker selector (-m postgres_concurrency) is preserved
+        # so the behavioural tests in test_task11_dependency_serialization
+        # and test_task9_authority_repository_postgres are picked up.
+        # The new contract-test file
+        # (backend/tests/test_concurrency_isolation_helpers.py) and
+        # the live companion
+        # (backend/tests/test_concurrency_isolation_helpers_live.py)
+        # are also marked ``postgres`` / ``postgres_concurrency`` and
+        # are listed explicitly so the marker selector is
+        # deterministic across shards.
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
+          DATABASE_URL: postgresql+asyncpg://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:${{ env.POSTGRES_PORT }}/${{ env.ISOLATED_DB_NAME }}
           RUN_POSTGRES_INTEGRATION: "1"
         run: |
           mkdir -p reports/test-results
           set +e
-          pytest -m postgres_concurrency -q --tb=long \
+          pytest \
+            backend/tests/test_concurrency_isolation_helpers.py \
+            backend/tests/test_concurrency_isolation_helpers_live.py \
+            -m postgres_concurrency -q --tb=long \
             --timeout=180 \
             --timeout-method=signal \
             --durations=0 \
@@ -829,6 +940,72 @@ jobs:
           name: postgres-concurrency-results
           path: reports/test-results/postgres-concurrency.xml
           if-no-files-found: warn
+
+      - name: Drop isolated test database
+        # Cleanup is best-effort: a DROP failure must NEVER mask a
+        # pre-existing failure in the concurrency tests. The step is
+        # `if: always()` and wraps DROP in `pg_terminate_backend` to
+        # release any leaked connection, then `::warning::` on failure
+        # so the run still reports the upstream exit code.
+        if: always()
+        env:
+          POSTGRES_DB: blueberry_peak
+        run: |
+          set +e
+          python - <<'PY'
+          import asyncio
+          import os
+          import sys
+
+          import asyncpg
+
+          ISOLATED_DB_NAME = os.environ["ISOLATED_DB_NAME"]
+
+          async def main() -> None:
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database="blueberry_peak",
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  # Terminate any active backends on the isolated DB so
+                  # DROP can acquire ACCESS EXCLUSIVE.
+                  await conn.execute(
+                      "SELECT pg_terminate_backend(pid) "
+                      "FROM pg_stat_activity "
+                      "WHERE datname = $1 AND pid <> pg_backend_pid()",
+                      ISOLATED_DB_NAME,
+                  )
+                  exists = await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1",
+                      ISOLATED_DB_NAME,
+                  )
+                  if not exists:
+                      print(
+                          f"isolated test database {ISOLATED_DB_NAME!r} "
+                          "does not exist; nothing to drop"
+                      )
+                      return
+                  await conn.execute(
+                      f'DROP DATABASE "{ISOLATED_DB_NAME}"'
+                  )
+                  print(
+                      f"dropped isolated test database {ISOLATED_DB_NAME!r}"
+                  )
+              finally:
+                  await conn.close()
+
+          try:
+              asyncio.run(main())
+          except Exception as exc:  # noqa: BLE001
+              print(
+                  f"::warning::failed to drop isolated test database "
+                  f"{ISOLATED_DB_NAME!r}: {exc}"
+              )
+              sys.exit(0)
+          PY
 
   # ----------------------------------------------------------------
   # §3 row 8 — compose-smoke (PR only, no pytest)
