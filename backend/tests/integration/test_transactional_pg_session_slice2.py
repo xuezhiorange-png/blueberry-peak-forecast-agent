@@ -42,11 +42,24 @@ def _pg_skip() -> None:
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
 
 
-# A trivial season_code is used so the test does not collide with
+# A trivial ``code`` is used so the test does not collide with
 # any real production data; Slice 1's TRUNCATE clears master data
 # between tests, and Slice 2's transactional fixture reverts on
 # teardown, so we are safe to use a deterministic value.
+#
+# Note: ``dim_season`` schema (per migration 0002_master_data.py) only
+# exposes ``id`` / ``code`` (unique) / ``start_date`` / ``end_date``.
+# There is no ``season_code`` or ``display_name`` column — the
+# earlier version of this test file used non-existent columns, which
+# caused ``asyncpg.UndefinedColumnError`` in CI. This hotfix pins the
+# probes to the real schema and keeps the same rollback semantics.
 _SLICE2_SEASON_CODE = "S2-TXN-ISOLATION-PROBE"
+
+# Use fixed, low-side-effect date values for the ``start_date`` /
+# ``end_date`` NOT NULL columns. The fixture's outer transaction is
+# rolled back, so the rows never escape the test.
+_SLICE2_SEASON_START = "2026-01-01"
+_SLICE2_SEASON_END = "2026-12-31"
 
 
 @pytest.mark.asyncio
@@ -59,17 +72,21 @@ async def test_outer_txn_rolls_back_inner_writes(
     # Insert inside the transactional session.
     await transactional_pg_session.execute(
         text(
-            "INSERT INTO dim_season (season_code, display_name) "
-            "VALUES (:code, :name) "
-            "ON CONFLICT (season_code) DO NOTHING"
+            "INSERT INTO dim_season (code, start_date, end_date) "
+            "VALUES (:code, :start_date, :end_date) "
+            "ON CONFLICT (code) DO NOTHING"
         ),
-        {"code": _SLICE2_SEASON_CODE, "name": "slice2 probe"},
+        {
+            "code": _SLICE2_SEASON_CODE,
+            "start_date": _SLICE2_SEASON_START,
+            "end_date": _SLICE2_SEASON_END,
+        },
     )
     await transactional_pg_session.flush()
 
     # Sanity check: the row is visible inside the same test.
     result = await transactional_pg_session.execute(
-        text("SELECT COUNT(*) FROM dim_season WHERE season_code = :code"),
+        text("SELECT COUNT(*) FROM dim_season WHERE code = :code"),
         {"code": _SLICE2_SEASON_CODE},
     )
     assert int(result.scalar_one()) == 1
@@ -113,11 +130,15 @@ async def test_commit_inside_test_does_not_leak(
 
     await transactional_pg_session.execute(
         text(
-            "INSERT INTO dim_season (season_code, display_name) "
-            "VALUES (:code, :name) "
-            "ON CONFLICT (season_code) DO NOTHING"
+            "INSERT INTO dim_season (code, start_date, end_date) "
+            "VALUES (:code, :start_date, :end_date) "
+            "ON CONFLICT (code) DO NOTHING"
         ),
-        {"code": probe_code, "name": "slice2 commit-probe"},
+        {
+            "code": probe_code,
+            "start_date": _SLICE2_SEASON_START,
+            "end_date": _SLICE2_SEASON_END,
+        },
     )
     await transactional_pg_session.commit()
 
@@ -125,16 +146,20 @@ async def test_commit_inside_test_does_not_leak(
     probe_code_after = f"{_SLICE2_SEASON_CODE}-G02-AFTER"
     await transactional_pg_session.execute(
         text(
-            "INSERT INTO dim_season (season_code, display_name) "
-            "VALUES (:code, :name) "
-            "ON CONFLICT (season_code) DO NOTHING"
+            "INSERT INTO dim_season (code, start_date, end_date) "
+            "VALUES (:code, :start_date, :end_date) "
+            "ON CONFLICT (code) DO NOTHING"
         ),
-        {"code": probe_code_after, "name": "slice2 after-commit-probe"},
+        {
+            "code": probe_code_after,
+            "start_date": _SLICE2_SEASON_START,
+            "end_date": _SLICE2_SEASON_END,
+        },
     )
 
     # Inside the test, both rows are visible.
     result = await transactional_pg_session.execute(
-        text("SELECT COUNT(*) FROM dim_season WHERE season_code IN (:a, :b)"),
+        text("SELECT COUNT(*) FROM dim_season WHERE code IN (:a, :b)"),
         {"a": probe_code, "b": probe_code_after},
     )
     assert int(result.scalar_one()) == 2
@@ -158,30 +183,35 @@ async def test_savepoint_restart_after_commit(
     # Write 1
     await transactional_pg_session.execute(
         text(
-            "INSERT INTO dim_season (season_code, display_name) "
-            "VALUES (:code, :name) "
-            "ON CONFLICT (season_code) DO NOTHING"
+            "INSERT INTO dim_season (code, start_date, end_date) "
+            "VALUES (:code, :start_date, :end_date) "
+            "ON CONFLICT (code) DO NOTHING"
         ),
-        {"code": probe_code, "name": "slice3 first write"},
+        {
+            "code": probe_code,
+            "start_date": _SLICE2_SEASON_START,
+            "end_date": _SLICE2_SEASON_END,
+        },
     )
 
     # Commit releases the current savepoint
     await transactional_pg_session.commit()
 
     # Write 2: must succeed because SQLAlchemy re-opens a
-    # new savepoint for the next ORM write.
+    # new savepoint for the next ORM write. We bump
+    # ``end_date`` by one day inside the new savepoint.
     await transactional_pg_session.execute(
-        text("UPDATE dim_season SET display_name = :name WHERE season_code = :code"),
-        {"code": probe_code, "name": "slice3 second write"},
+        text("UPDATE dim_season SET end_date = :end_date WHERE code = :code"),
+        {"code": probe_code, "end_date": "2027-01-01"},
     )
 
     # Read back to confirm the second write took effect inside
     # the new savepoint.
     result = await transactional_pg_session.execute(
-        text("SELECT display_name FROM dim_season WHERE season_code = :code"),
+        text("SELECT end_date FROM dim_season WHERE code = :code"),
         {"code": probe_code},
     )
-    assert result.scalar_one() == "slice3 second write"
+    assert result.scalar_one() == "2027-01-01"
 
     # Fixture teardown will roll back BOTH writes.
 
@@ -201,7 +231,7 @@ async def test_rollback_visible_to_fresh_session_after_teardown() -> None:
 
     async with AsyncSessionMaker() as session:
         result = await session.execute(
-            text("SELECT season_code FROM dim_season WHERE season_code LIKE :pattern"),
+            text("SELECT code FROM dim_season WHERE code LIKE :pattern"),
             {"pattern": f"{_SLICE2_SEASON_CODE}%"},
         )
         codes = {row[0] for row in result.all()}
