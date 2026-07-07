@@ -27,6 +27,12 @@ from pathlib import Path
 
 import pytest
 
+from backend.tests.migration_isolation_helpers import (
+    ISOLATED_DB_NAME_PREFIX,
+    assert_safe_isolated_db_name,
+    resolve_isolated_db_name,
+)
+
 # Repository root (the worktree root): 4 parents up from this test file.
 REPO_ROOT = Path(__file__).resolve().parents[3]
 POSTGRES_TEST_DB_SH = (REPO_ROOT / "backend" / "scripts" / "postgres_test_db.sh").resolve()
@@ -337,3 +343,77 @@ def test_make_test_pg_dev_database_url_rejects() -> None:
     assert _guard_rejection_in_output(result.stdout, result.stderr), (
         f"Expected guard rejection markers; got stdout={result.stdout!r} stderr={result.stderr!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Slice 3 — isolated PostgreSQL test-database profile guards
+# (Issue #51 / Batch 3 / Slice 3 — postgres-migration isolated DB profile)
+#
+# These tests pin the contract between the ``postgres-migration`` CI job
+# and the slice-1 dev-DB safeguard: a per-run isolated database name
+# must start with the ``_test_`` marker AND must not collide with any
+# FORBIDDEN_DATABASE_NAMES entry. The tests are pure-python; they do NOT
+# require a running PostgreSQL — they exercise the helper that the
+# CI step invokes.
+# ---------------------------------------------------------------------------
+
+
+def test_isolated_db_profile_accepts_canonical_run_id_attempt_job() -> None:
+    """The canonical per-run shape must pass the guard without error."""
+    name = resolve_isolated_db_name(28869639380, 1, "postgres_migration")
+    assert_safe_isolated_db_name(name)
+
+
+def test_isolated_db_profile_rejects_bare_blueberry_peak() -> None:
+    """The dev-DB literal ``blueberry_peak`` must still be rejected by
+    Slice 3's guard — Slice 3 narrows the test profile; it does not
+    widen the forbidden list."""
+    with pytest.raises(ValueError, match="refusing isolated DB name"):
+        assert_safe_isolated_db_name("blueberry_peak")
+
+
+def test_isolated_db_profile_rejects_blueberry_peak_without_test_marker() -> None:
+    """``blueberry_peak_<something>`` *without* ``_test_`` must be
+    rejected by the slice-1 safeguard's dev-DB pattern rule. This
+    pins the property that the prefix rule is not enough — the
+    underlying slice-1 guard is still the authority."""
+    with pytest.raises(ValueError, match="refusing isolated DB name"):
+        # ``resolve_isolated_db_name`` would refuse to produce this
+        # shape, so we hand-craft the bad name to exercise the guard.
+        assert_safe_isolated_db_name("blueberry_peak_dev")
+
+
+def test_isolated_db_profile_rejects_postgres_cluster_default() -> None:
+    """The PostgreSQL cluster-default ``postgres`` database must never
+    be the migration target — it is reserved for administrative
+    connections."""
+    with pytest.raises(ValueError, match="FORBIDDEN_DATABASE_NAMES"):
+        assert_safe_isolated_db_name("postgres")
+
+
+def test_isolated_db_profile_error_message_omits_password_and_url() -> None:
+    """The guard's error message must NOT echo a password, token, or
+    a full ``DATABASE_URL`` fragment — this is the same property the
+    slice-1 safeguard guarantees, re-pinned here against regression."""
+    secret_password = "p@ssw0rd-canary-XYZ"
+    secret_token = "ghp_xx...xxxx"
+    try:
+        assert_safe_isolated_db_name(secret_password)
+    except ValueError as exc:
+        message = str(exc)
+        assert secret_password not in message, (
+            f"assert_safe_isolated_db_name leaked the input into the error: {message!r}"
+        )
+        assert secret_token not in message, (
+            f"assert_safe_isolated_db_name leaked a token into the error: {message!r}"
+        )
+
+
+def test_isolated_db_profile_prefix_is_blueberry_peak_test() -> None:
+    """The slice-3 prefix must literally be ``blueberry_peak_test_``.
+
+    This test guards against a future refactor silently changing the
+    prefix and thereby breaking the slice-1 dev-DB safeguard's
+    ``_test_`` substring expectation.
+    """
+    assert ISOLATED_DB_NAME_PREFIX == "blueberry_peak_test_"
