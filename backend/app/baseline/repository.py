@@ -231,9 +231,7 @@ async def get_run_by_id(
 ) -> BaselineBacktestRun | None:
     return cast(
         BaselineBacktestRun | None,
-        await session.scalar(
-            select(BaselineBacktestRun).where(BaselineBacktestRun.id == run_id)
-        ),
+        await session.scalar(select(BaselineBacktestRun).where(BaselineBacktestRun.id == run_id)),
     )
 
 
@@ -287,20 +285,20 @@ async def load_result_rows_for_run(
                 baseline_name=baseline_name,
                 target_season_id=target_season_id,
                 target_season_code=target_season_code,
-            factory_id=factory_id,
-            factory_name=factory_name,
-            previous_season_id=previous_season_id,
-            previous_season_code=previous_season_code,
-            fold_key=fold_key,
-            status=status,
-            actual_stable_peak_kg=actual_stable_peak_kg,
-            predicted_stable_peak_kg=predicted_stable_peak_kg,
-            absolute_error_kg=absolute_error_kg,
-            signed_error_kg=signed_error_kg,
-            ape=ape,
-            input_features=input_features,
-            training_season_codes=training_season_codes,
-            model_metadata=model_metadata,
+                factory_id=factory_id,
+                factory_name=factory_name,
+                previous_season_id=previous_season_id,
+                previous_season_code=previous_season_code,
+                fold_key=fold_key,
+                status=status,
+                actual_stable_peak_kg=actual_stable_peak_kg,
+                predicted_stable_peak_kg=predicted_stable_peak_kg,
+                absolute_error_kg=absolute_error_kg,
+                signed_error_kg=signed_error_kg,
+                ape=ape,
+                input_features=input_features,
+                training_season_codes=training_season_codes,
+                model_metadata=model_metadata,
                 exclusion_reason=exclusion_reason,
             )
         )

@@ -63,9 +63,7 @@ def _sha256_check_sql(column_name: str) -> str:
     for char in "0123456789abcdef":
         stripped = f"replace({stripped}, '{char}', '')"
     return (
-        f"length({column_name}) = 64 "
-        f"and lower({column_name}) = {column_name} "
-        f"and {stripped} = ''"
+        f"length({column_name}) = 64 and lower({column_name}) = {column_name} and {stripped} = ''"
     )
 
 
@@ -263,8 +261,7 @@ class HarvestStateReplaySourceVisibilityAuditModel(Base):
             name="ck_hsrpsva_cutoff_past",
         ),
         CheckConstraint(
-            "rejection_blocker_code IS NULL "
-            "OR btrim(rejection_blocker_code) <> ''",
+            "rejection_blocker_code IS NULL OR btrim(rejection_blocker_code) <> ''",
             name="ck_hsrpsva_rejection_code_non_blank",
         ),
         CheckConstraint(
@@ -293,18 +290,12 @@ class HarvestStateReplaySourceVisibilityAuditModel(Base):
         ),
     )
 
-    id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True
-    )
-    harvest_state_run_id: Mapped[int | None] = mapped_column(
-        BigInteger, nullable=True
-    )
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    harvest_state_run_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     source_role: Mapped[str] = mapped_column(Text, nullable=False)
     source_type: Mapped[str] = mapped_column(Text, nullable=False)
     source_visibility_source: Mapped[str] = mapped_column(Text, nullable=False)
-    forecast_cutoff_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    forecast_cutoff_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     visibility_passed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("FALSE")
     )

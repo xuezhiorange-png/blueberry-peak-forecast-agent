@@ -255,11 +255,13 @@ class RollingBacktestStageEvent(Base):
     __tablename__ = "rolling_backtest_stage_event"
     __table_args__ = (
         UniqueConstraint(
-            "attempt_id", "sequence_number",
+            "attempt_id",
+            "sequence_number",
             name="uq_rolling_backtest_stage_event_seq",
         ),
         UniqueConstraint(
-            "attempt_id", "stage",
+            "attempt_id",
+            "stage",
             name="uq_rolling_backtest_stage_event_stage",
         ),
         CheckConstraint(

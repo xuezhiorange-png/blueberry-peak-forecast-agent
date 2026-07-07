@@ -143,9 +143,7 @@ async def import_location_references_csv(
         )
         farm_name = normalize_location_name(row.get("farm_name"))
         farm = (
-            await get_farm_by_name(session, farm_name=farm_name)
-            if farm_name is not None
-            else None
+            await get_farm_by_name(session, farm_name=farm_name) if farm_name is not None else None
         )
         session.add(
             LocationReference(

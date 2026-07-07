@@ -53,4 +53,3 @@ def test_clipped_interval_applies_rate_and_non_negative_bounds(
 def test_weighted_quantile_rejects_non_positive_weights() -> None:
     with pytest.raises(ValueError):
         weighted_quantile([Decimal("1")], [Decimal("0")], Decimal("0.50"))
-

@@ -26,4 +26,3 @@ def test_nonnegative_and_monotonic_projection() -> None:
     assert projected.corrected_p50_kg <= projected.corrected_p80_kg <= projected.corrected_p90_kg
     assert projected.nonnegative_projection_applied is True
     assert projected.quantile_projection_applied is True
-

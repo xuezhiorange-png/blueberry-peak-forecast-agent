@@ -2665,6 +2665,8 @@ async def _stage_resolve_historical_inputs(
     raise UnsupportedSelectionModeError(
         f"upstream_selection_mode={node.upstream_selection_mode} not supported"
     )
+
+
 def _parent_authority_identity(
     *,
     source_type: AvailabilitySourceType,

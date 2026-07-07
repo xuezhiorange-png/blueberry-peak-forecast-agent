@@ -43,9 +43,9 @@ def _error_response(
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
-        content=HarvestStateErrorResponse(
-            error={"code": code, "message": message}
-        ).model_dump(mode="json"),
+        content=HarvestStateErrorResponse(error={"code": code, "message": message}).model_dump(
+            mode="json"
+        ),
     )
 
 
@@ -133,9 +133,7 @@ async def download_harvest_state_json_report(
             output=envelope.output,
         ),
         media_type="application/json",
-        headers={
-            "Content-Disposition": f'attachment; filename="harvest-state-run-{run_id}.json"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="harvest-state-run-{run_id}.json"'},
     )
 
 
@@ -163,7 +161,5 @@ async def download_harvest_state_csv_report(
             output=envelope.output,
         ),
         media_type="application/zip",
-        headers={
-            "Content-Disposition": f'attachment; filename="harvest-state-run-{run_id}.zip"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="harvest-state-run-{run_id}.zip"'},
     )

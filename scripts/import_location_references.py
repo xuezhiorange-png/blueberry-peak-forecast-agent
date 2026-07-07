@@ -47,8 +47,7 @@ async def _run() -> int:
     _write_report(Path(args.report_dir), args.version, result)
     if args.activate:
         logging.info(
-            "location reference import ignores --activate; "
-            "versions are source scoped only"
+            "location reference import ignores --activate; versions are source scoped only"
         )
     logging.info(
         "status=%s inserted=%s skipped=%s sha=%s",

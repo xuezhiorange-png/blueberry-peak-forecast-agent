@@ -26,4 +26,3 @@ def test_unknown_category_uses_explicit_bucket() -> None:
 
     assert encode_category("z", encoding=encoding) == encoding.unknown_bucket_code
     assert encode_category(None, encoding=encoding) == encoding.missing_bucket_code
-

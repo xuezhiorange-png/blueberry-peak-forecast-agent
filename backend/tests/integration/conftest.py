@@ -145,10 +145,7 @@ async def _truncate_master_data() -> None:
             pass
         try:
             await session.execute(
-                text(
-                    f"TRUNCATE {', '.join(to_truncate)} "
-                    "RESTART IDENTITY CASCADE"
-                )
+                text(f"TRUNCATE {', '.join(to_truncate)} RESTART IDENTITY CASCADE")
             )
             await session.commit()
         except Exception:

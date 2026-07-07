@@ -180,9 +180,7 @@ async def build_replay_task9_binding_context(
 
     # §11 §2: result_hash is loaded from the dedicated integrity loader,
     # not from any earlier historical row.
-    output = await load_harvest_state_output_by_id(
-        session, run_id=replay_outcome.task9_run_id
-    )
+    output = await load_harvest_state_output_by_id(session, run_id=replay_outcome.task9_run_id)
     if output is None or getattr(output, "result_hash", None) is None:
         raise Task10ReplayBindingInvalidError(
             "replay-produced HarvestStateRun id="
@@ -400,8 +398,7 @@ async def evaluate_replay_task10_binding(
         )
     except ResidualModelPersistenceError as exc:
         raise Task10ReplayBindingInvalidError(
-            f"Task 10 prediction run {prediction_run_id} failed "
-            f"integrity loader: {exc}",
+            f"Task 10 prediction run {prediction_run_id} failed integrity loader: {exc}",
         ) from exc
 
     if prediction_result is None:

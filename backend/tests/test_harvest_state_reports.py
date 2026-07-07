@@ -66,7 +66,7 @@ def test_csv_nested_list_uses_canonical_json(completed_harvest_state_output: obj
 
     with zipfile.ZipFile(io.BytesIO(report)) as archive:
         csv_text = archive.read("daily_pool_state_rows.csv").decode("utf-8")
-    assert "[\"" in csv_text
+    assert '["' in csv_text
 
 
 def test_csv_does_not_use_python_repr(completed_harvest_state_output: object) -> None:

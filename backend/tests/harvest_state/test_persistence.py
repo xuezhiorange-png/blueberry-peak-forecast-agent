@@ -238,9 +238,9 @@ async def test_child_insert_failure_rolls_back_entire_run(sqlite_session: AsyncS
     duplicate_row = output.daily_pool_state_rows[0]
     broken = _with_valid_result_hash(
         output.model_copy(
-        update={
-            "daily_pool_state_rows": [*output.daily_pool_state_rows, duplicate_row],
-        },
+            update={
+                "daily_pool_state_rows": [*output.daily_pool_state_rows, duplicate_row],
+            },
         )
     )
 
@@ -279,10 +279,7 @@ async def test_jsonb_verification_snapshot_is_preserved(sqlite_session: AsyncSes
     first_input = loaded.input_snapshot["task8_daily_predictions"][0]
     original_input = output.input_snapshot["task8_daily_predictions"][0]
     assert first_input["verification_snapshot"] == original_input["verification_snapshot"]
-    assert (
-        first_input["verification_snapshot_hash"]
-        == original_input["verification_snapshot_hash"]
-    )
+    assert first_input["verification_snapshot_hash"] == original_input["verification_snapshot_hash"]
 
 
 @pytest.mark.asyncio
@@ -293,13 +290,10 @@ async def test_timezone_aware_arrival_round_trip(sqlite_session: AsyncSession) -
     loaded = await load_harvest_state_output_by_id(sqlite_session, run_id=run.id)
     assert loaded is not None
     completed = cast(Task9ACompletedOutput, loaded)
-    harvested_rows = [
-        row for row in completed.cohort_transition_rows if row.arrival_at is not None
-    ]
+    harvested_rows = [row for row in completed.cohort_transition_rows if row.arrival_at is not None]
     assert harvested_rows
     assert all(
-        row.arrival_at is not None and row.arrival_at.tzinfo is not None
-        for row in harvested_rows
+        row.arrival_at is not None and row.arrival_at.tzinfo is not None for row in harvested_rows
     )
 
 
@@ -456,10 +450,10 @@ async def test_duplicate_member_business_key_with_null_subfarm_rejected(
         sqlite_session,
         output=_with_valid_result_hash(
             output.model_copy(
-            update={
-                "daily_member_state_rows": updated_members,
-                "future_arrival_schedule": updated_future,
-            },
+                update={
+                    "daily_member_state_rows": updated_members,
+                    "future_arrival_schedule": updated_future,
+                },
             )
         ),
     )
@@ -494,10 +488,10 @@ async def test_duplicate_future_arrival_key_with_null_subfarm_rejected(
         sqlite_session,
         output=_with_valid_result_hash(
             output.model_copy(
-            update={
-                "daily_member_state_rows": updated_members,
-                "future_arrival_schedule": updated_future,
-            },
+                update={
+                    "daily_member_state_rows": updated_members,
+                    "future_arrival_schedule": updated_future,
+                },
             )
         ),
     )
@@ -567,11 +561,7 @@ async def test_load_rejects_canonical_payload_hash_mismatch(
     output = _completed_output()
     run = await save_harvest_state_output(sqlite_session, output=output)
     await sqlite_session.execute(
-        text(
-            "UPDATE harvest_state_run "
-            "SET canonical_payload_hash = :value "
-            "WHERE id = :run_id"
-        ),
+        text("UPDATE harvest_state_run SET canonical_payload_hash = :value WHERE id = :run_id"),
         {"value": "e" * 64, "run_id": run.id},
     )
     await sqlite_session.commit()

@@ -898,10 +898,9 @@ def test_weather_ratio_is_not_quantized_before_capacity_calculation() -> None:
     result = run_harvest_state_model(payload)
 
     assert result.status == "completed"
-    assert (
-        result.resolved_parameter_snapshot.daily_pool_parameters[0].weather_harvest_efficiency_ratio
-        == Decimal("0.123457")
-    )
+    assert result.resolved_parameter_snapshot.daily_pool_parameters[
+        0
+    ].weather_harvest_efficiency_ratio == Decimal("0.123457")
 
 
 def test_resolved_parameter_snapshot_quantizes_ratio_only_on_output() -> None:
@@ -917,10 +916,9 @@ def test_resolved_parameter_snapshot_quantizes_ratio_only_on_output() -> None:
     result = run_harvest_state_model(payload)
 
     assert result.status == "completed"
-    assert (
-        result.resolved_parameter_snapshot.daily_pool_parameters[0].weather_harvest_efficiency_ratio
-        == Decimal("0.123457")
-    )
+    assert result.resolved_parameter_snapshot.daily_pool_parameters[
+        0
+    ].weather_harvest_efficiency_ratio == Decimal("0.123457")
 
 
 def test_verification_snapshot_change_changes_result_hash() -> None:
@@ -929,9 +927,7 @@ def test_verification_snapshot_change_changes_result_hash() -> None:
     payload_a = make_request()
     payload_b = make_request()
     for item in payload_b["task8_daily_predictions"]:
-        item["verification_snapshot"]["maturity_forecast_prediction_end_date"] = date(
-            2026, 3, 31
-        )
+        item["verification_snapshot"]["maturity_forecast_prediction_end_date"] = date(2026, 3, 31)
 
     result_a = run_harvest_state_model(payload_a)
     result_b = run_harvest_state_model(payload_b)

@@ -216,10 +216,9 @@ def test_stage_resolve_historical_inputs_gate_lifts_with_typed_replay_error() ->
     # Probe only the gate's first conditional; the gate rejects replay
     # mode with an UnsupportedExecutionModeError carrying the
     # §5.5 cross-reference to the dedicated replay-pipeline entry.
-    assert (
-        replay_cfg.execution_mode
-        == ExecutionMode.RETROSPECTIVE_REPLAY
-    ), "§5.1: test fixture must use RETROSPECTIVE_REPLAY"
+    assert replay_cfg.execution_mode == ExecutionMode.RETROSPECTIVE_REPLAY, (
+        "§5.1: test fixture must use RETROSPECTIVE_REPLAY"
+    )
 
     import pathlib
 
@@ -236,9 +235,9 @@ def test_stage_resolve_historical_inputs_gate_lifts_with_typed_replay_error() ->
     assert "RETROSPECTIVE_REPLAY" in src_text
     # A dedicated guard surfaces ``UnsupportedExecutionModeError`` for
     # replay mode and points callers to the replay-pipeline entry point.
-    assert (
-        "RETROSPECTIVE_REPLAY mode must be dispatched via" in src_text
-    ), "§5.1: replay-mode gate must surface a typed error that points "
+    assert "RETROSPECTIVE_REPLAY mode must be dispatched via" in src_text, (
+        "§5.1: replay-mode gate must surface a typed error that points "
+    )
     "to the replay-pipeline entry point"
     # The §7 bucket-#2 blocker taxonomy is still the surface.
     assert "UnsupportedExecutionModeError" in src_text
@@ -277,33 +276,30 @@ def test_verify_pinned_source_signature_accepts_execution_mode_parameter() -> No
         src_text,
         re.MULTILINE,
     )
-    assert func_open is not None, (
-        "_verify_pinned_source must exist in node_orchestration.py"
-    )
+    assert func_open is not None, "_verify_pinned_source must exist in node_orchestration.py"
     # Find the closing line that ends the signature: ``) -> ...:``
-    after_open = src_text[func_open.end():]
+    after_open = src_text[func_open.end() :]
     closing_idx = re.search(r"^\)\s*->", after_open, re.MULTILINE)
     assert closing_idx is not None
     fn_params = after_open[: closing_idx.start()]
     assert "execution_mode:" in fn_params.replace(" ", ""), (
-        "§5.4: _verify_pinned_source must accept execution_mode as "
-        "an explicit parameter"
+        "§5.4: _verify_pinned_source must accept execution_mode as an explicit parameter"
     )
     assert "execution_mode:ExecutionMode" in fn_params.replace(" ", ""), (
         "§5.4: execution_mode must be typed as ExecutionMode"
     )
 
     # Body must use the parameter (not the literal).
-    body = src_text[func_open.end() + closing_idx.end():]
+    body = src_text[func_open.end() + closing_idx.end() :]
     fn_end = body.find("\nasync def ")
     if fn_end == -1:
         fn_end = body.find("\ndef ")
     if fn_end == -1:
         fn_end = len(body)
     body_text = body[:fn_end]
-    assert (
-        "execution_mode=execution_mode" in body_text
-    ), "§5.4: the body must use the new parameter (not the literal)"
+    assert "execution_mode=execution_mode" in body_text, (
+        "§5.4: the body must use the new parameter (not the literal)"
+    )
 
 
 def test_verify_pinned_source_body_does_not_hardcode_default_mode() -> None:
@@ -330,19 +326,19 @@ def test_verify_pinned_source_body_does_not_hardcode_default_mode() -> None:
         re.MULTILINE,
     )
     assert func_open is not None
-    after_open = src_text[func_open.end():]
+    after_open = src_text[func_open.end() :]
     closing_idx = re.search(r"^\)\s*->", after_open, re.MULTILINE)
     assert closing_idx is not None
-    body = src_text[func_open.end() + closing_idx.end():]
+    body = src_text[func_open.end() + closing_idx.end() :]
     # Skip past the docstring (delimited by """ ... """); the §5.4
     # narrative text legitimately references the literal name to explain
     # the lift. We only assert the literal is absent from actual code.
     doc_match = re.search(r'^\s*"""', body, re.MULTILINE)
     if doc_match is not None:
-        rest_after_doc_open = body[doc_match.end():]
+        rest_after_doc_open = body[doc_match.end() :]
         close_doc = re.search(r'"""', rest_after_doc_open)
         if close_doc is not None:
-            body = rest_after_doc_open[close_doc.end():]
+            body = rest_after_doc_open[close_doc.end() :]
     fn_end = body.find("\nasync def ")
     if fn_end == -1:
         fn_end = body.find("\ndef ")
@@ -424,9 +420,7 @@ def test_orchestrate_replay_node_rejects_blank_correlation_id() -> None:
                     replay_correlation_id="",
                 )
             )
-    assert exc_info.value.blocker_code == (
-        OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-    )
+    assert exc_info.value.blocker_code == (OrchestrationBlocker.REPLAY_METADATA_INVALID.value)
 
 
 def test_orchestrate_replay_node_rejects_empty_resolved_identities() -> None:
@@ -478,9 +472,7 @@ def test_orchestrate_replay_node_rejects_empty_resolved_identities() -> None:
                 replay_correlation_id="c" * 32,
             )
         )
-    assert exc_info.value.blocker_code == (
-        OrchestrationBlocker.REPLAY_AUDIT_INCOMPLETE.value
-    )
+    assert exc_info.value.blocker_code == (OrchestrationBlocker.REPLAY_AUDIT_INCOMPLETE.value)
 
 
 # ── bucket #5 integration: writers invoked in the documented order ──────────
@@ -574,8 +566,7 @@ def test_orchestrate_replay_node_does_not_call_run_harvest_state_model() -> None
             elif isinstance(func, ast.Attribute):
                 called_names.add(func.attr)
     assert "run_harvest_state_model" not in called_names, (
-        "§3 rule #1: orchestrate_replay_node must not call "
-        "run_harvest_state_model directly"
+        "§3 rule #1: orchestrate_replay_node must not call run_harvest_state_model directly"
     )
 
 
@@ -618,9 +609,7 @@ def test_orchestrate_node_signature_unchanged() -> None:
                 "rolling_run_id",
                 "rolling_node_id",
                 "_before_stage_hook",
-            ], (
-                f"orchestrate_node signature must remain Phase-2 canonical; got {arg_names}"
-            )
+            ], f"orchestrate_node signature must remain Phase-2 canonical; got {arg_names}"
             return
     raise AssertionError("orchestrate_node definition not found")
 
@@ -781,6 +770,5 @@ def test_replay_pipeline_does_not_import_run_harvest_state_model() -> None:
             for alias in node.names:
                 imported_names.add(alias.asname or alias.name.split(".")[0])
     assert "run_harvest_state_model" not in imported_names, (
-        "§3 rule #1: replay_pipeline module must not import "
-        "run_harvest_state_model"
+        "§3 rule #1: replay_pipeline module must not import run_harvest_state_model"
     )

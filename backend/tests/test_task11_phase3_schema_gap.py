@@ -28,18 +28,14 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 
-_REVISION_PATH = Path(
-    "backend/alembic/versions/0015_task11_phase3_schema_gap.py"
-)
+_REVISION_PATH = Path("backend/alembic/versions/0015_task11_phase3_schema_gap.py")
 
 
 def test_phase3_schema_gap_revision_exists() -> None:
     assert _REVISION_PATH.exists()
     source = _REVISION_PATH.read_text()
     assert 'revision: str = "0015_task11_phase3_schema_gap"' in source
-    assert (
-        'down_revision: str | None = "0014_task9_historical_authority"' in source
-    )
+    assert 'down_revision: str | None = "0014_task9_historical_authority"' in source
     assert "def upgrade() -> None:" in source
     assert "def downgrade() -> None:" in source
 
@@ -47,9 +43,7 @@ def test_phase3_schema_gap_revision_exists() -> None:
 def test_phase3_schema_gap_migration_chains_into_0014() -> None:
     """0015 must revise the 0014 migration (chain integrity)."""
     source = _REVISION_PATH.read_text()
-    assert (
-        'down_revision: str | None = "0014_task9_historical_authority"' in source
-    )
+    assert 'down_revision: str | None = "0014_task9_historical_authority"' in source
 
 
 def test_phase3_schema_gap_migration_drops_columns_in_downgrade() -> None:
@@ -70,9 +64,7 @@ def test_phase3_schema_gap_migration_drops_columns_in_downgrade() -> None:
 def test_phase3_schema_gap_migration_drops_support_table_in_downgrade() -> None:
     """downgrade() must drop the new replay visibility audit table."""
     source = _REVISION_PATH.read_text()
-    assert (
-        'op.drop_table("harvest_state_replay_source_visibility_audit")' in source
-    )
+    assert 'op.drop_table("harvest_state_replay_source_visibility_audit")' in source
 
 
 def test_phase3_schema_gap_adds_replay_columns_to_harvest_state_run() -> None:
@@ -90,8 +82,7 @@ def test_phase3_schema_gap_adds_replay_columns_to_harvest_state_run() -> None:
             found[col.name] = (bool(col.nullable), type_name)
 
     assert set(found) == set(expected), (
-        "HarvestStateRun missing replay columns: "
-        f"expected {set(expected)}, found {set(found)}"
+        f"HarvestStateRun missing replay columns: expected {set(expected)}, found {set(found)}"
     )
     for name, (_nullable, type_name) in expected.items():
         actual_nullable, actual_type = found[name]
@@ -102,9 +93,7 @@ def test_phase3_schema_gap_adds_replay_columns_to_harvest_state_run() -> None:
         )
 
 
-def test_phase3_schema_gap_migration_uses_replay_metadata_coupling_constraint() -> (
-    None
-):
+def test_phase3_schema_gap_migration_uses_replay_metadata_coupling_constraint() -> None:
     """The composite CHECK on harvest_state_run must be the strict
     ``ck_harvest_state_run_replay_metadata_coupling`` form.
 
@@ -209,9 +198,7 @@ def test_phase3_schema_gap_harvest_state_run_partial_index_present() -> None:
     )
 
 
-def test_phase3_schema_gap_does_not_change_existing_harvest_state_run_columns() -> (
-    None
-):
+def test_phase3_schema_gap_does_not_change_existing_harvest_state_run_columns() -> None:
     """No existing column on harvest_state_run may change: pre-Phase-3.0 spec.
 
     We assert the columns we expect Phase 2 readers to load (no rename,
@@ -243,9 +230,7 @@ def test_phase3_schema_gap_does_not_change_existing_harvest_state_run_columns() 
         "replay_run_correlation_id",
     }
     actual = {col.name for col in HarvestStateRun.__table__.columns}
-    assert expected.issubset(actual), (
-        f"Expected subset missing: {expected - actual}"
-    )
+    assert expected.issubset(actual), f"Expected subset missing: {expected - actual}"
 
 
 @pytest.mark.parametrize(
@@ -258,9 +243,7 @@ def test_phase3_schema_gap_does_not_change_existing_harvest_state_run_columns() 
         ("replay_run_correlation_id", str),
     ],
 )
-def test_phase3_schema_gap_replay_columns_declared_on_orm(
-    attribute: str, orm_type: type
-) -> None:
+def test_phase3_schema_gap_replay_columns_declared_on_orm(attribute: str, orm_type: type) -> None:
     assert hasattr(HarvestStateRun, attribute), (
         f"HarvestStateRun must expose {attribute!r} for Phase 3 writers"
     )

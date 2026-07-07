@@ -277,9 +277,7 @@ async def execute_baseline_backtest(
 
     source_build_runs_value = source_build_run_payload(selected_runs)
     source_signature_value = source_signature(selected_runs)
-    season_order = {
-        item.season_code: index for index, item in enumerate(selected_runs)
-    }
+    season_order = {item.season_code: index for index, item in enumerate(selected_runs)}
 
     if dry_run:
         dry_run_rows = await _compute_rows(

@@ -174,8 +174,7 @@ class UpstreamVisibilityDecision:
         else:
             if not self.rejection_blocker_code or not self.rejection_blocker_code.strip():
                 raise ReplayAuditInputError(
-                    "rejection_blocker_code must be a non-blank string when "
-                    "visibility_passed=False"
+                    "rejection_blocker_code must be a non-blank string when visibility_passed=False"
                 )
             # §6 says rejection_blocker_code is one of AvailabilityBlockerCode
             # enum values when visibility_passed=False. Validate the literal
@@ -241,9 +240,7 @@ async def write_replay_source_visibility_audit(
 
     forecast_cutoff_at: datetime = node.forecast_cutoff_at
     if forecast_cutoff_at.tzinfo is None:
-        raise ReplayAuditInputError(
-            "node.forecast_cutoff_at must be timezone-aware per §6"
-        )
+        raise ReplayAuditInputError("node.forecast_cutoff_at must be timezone-aware per §6")
 
     # §6 ¶3: deterministic ordering = sort by source_role lexicographically
     # BEFORE computing per-row semantic_identity_hash so the hash inputs

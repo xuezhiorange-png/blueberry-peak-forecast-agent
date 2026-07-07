@@ -209,9 +209,7 @@ def _metrics_from_projection_payloads(
             "fallback_row_count": fallback_count,
             "evaluated_row_count": evaluated,
             "fallback_rate": (
-                Decimal(fallback_count) / Decimal(evaluated)
-                if evaluated > 0
-                else Decimal("0")
+                Decimal(fallback_count) / Decimal(evaluated) if evaluated > 0 else Decimal("0")
             ),
         }
     actual_receipts = [row.observed_effective_receipt_kg for row in rows]
@@ -260,9 +258,7 @@ def _metrics_from_projection_payloads(
         "fallback_row_count": fallback_count,
         "evaluated_row_count": len(rows),
         "fallback_rate": (
-            Decimal(fallback_count) / Decimal(len(rows))
-            if len(rows) > 0
-            else Decimal("0")
+            Decimal(fallback_count) / Decimal(len(rows)) if len(rows) > 0 else Decimal("0")
         ),
     }
 
@@ -607,22 +603,18 @@ def train_residual_model_from_manifest(
             residual_p80=validation_pred80,
             residual_p90=validation_pred90,
             fallback_row_count=sum(
-                1
-                for decision in validation_decisions
-                if decision.fallback_reason is not None
+                1 for decision in validation_decisions if decision.fallback_reason is not None
             ),
             row_is_fallback=[
-                decision.fallback_reason is not None
-                for decision in validation_decisions
+                decision.fallback_reason is not None for decision in validation_decisions
             ],
         )
         metrics["validation"] = validation_metrics
         validation_global_metrics = cast(dict[str, object], validation_metrics["global"])
         validation_wmape = validation_global_metrics["corrected_daily_wmape"]
         structural_wmape = validation_global_metrics["structural_daily_wmape"]
-        if (
-            isinstance(validation_wmape, Decimal)
-            and validation_wmape > Decimal(str(config.rules.eligibility.max_validation_wmape))
+        if isinstance(validation_wmape, Decimal) and validation_wmape > Decimal(
+            str(config.rules.eligibility.max_validation_wmape)
         ):
             eligibility_reasons.append("validation_wmape_above_threshold")
         if (
@@ -891,9 +883,7 @@ def predict_residual_correction(
         "feature_names": feature_names,
     }
     row_fallback_reasons = {
-        decision.fallback_reason
-        for decision in decisions
-        if decision.fallback_reason is not None
+        decision.fallback_reason for decision in decisions if decision.fallback_reason is not None
     }
     resolved_fallback_reason = fallback_reason
     if resolved_fallback_reason is None and len(row_fallback_reasons) == 1:

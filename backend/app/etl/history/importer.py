@@ -315,9 +315,7 @@ async def _prepare_file(
     report.missing_expected_sheets = list(parser_stats["missing_expected_sheets"])
     report.unexpected_sheets = list(parser_stats["unexpected_sheets"])
     report.warnings.extend(str(item) for item in parser_stats["warnings"])
-    sheet_stats_by_name = {
-        item["sheet_name"]: item for item in parser_stats["sheet_stats"]
-    }
+    sheet_stats_by_name = {item["sheet_name"]: item for item in parser_stats["sheet_stats"]}
     for sheet_report in report.sheet_reports:
         stats = sheet_stats_by_name[sheet_report.sheet_name]
         sheet_report.physical_row_count = int(stats["physical_row_count"])
