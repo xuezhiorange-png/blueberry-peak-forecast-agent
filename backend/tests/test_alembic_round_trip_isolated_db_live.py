@@ -39,6 +39,19 @@ Local-development contract:
   password / token / ``DATABASE_URL`` value is ever printed or
   formatted into an error message.
 
+Async / event-loop contract:
+
+* The asyncpg connection and its query are executed inside the
+  *same* async function and the *same* event loop. We do **not**
+  open the connection in one helper, hand the (still-pending)
+  coroutine to the test, and ``await`` it from a separate event
+  loop — asyncpg connections are bound to the loop that opened
+  them, and the previous attempt at that pattern raised
+  ``AttributeError: 'coroutine' object has no attribute 'fetchval'``
+  in CI. Each test creates a fresh connection, runs exactly one
+  query, and closes the connection in the same async function
+  before ``asyncio.run`` returns.
+
 Head revision discovery:
 
 * The expected head revision is **not** hard-coded. It is resolved at
@@ -50,6 +63,7 @@ Head revision discovery:
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 import pytest
@@ -121,6 +135,59 @@ def _expected_head_revision() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Async helpers — connect, query, close, all in the same coroutine.
+# ---------------------------------------------------------------------------
+
+
+async def _fetch_current_database(asyncpg, env: dict[str, str], database: str) -> str:
+    """Open a connection, run ``SELECT current_database()``, and close.
+
+    The connection and the query live in the *same* event loop and
+    the *same* coroutine. This is the asyncpg-correct pattern: an
+    asyncpg connection is bound to the loop that opened it, and the
+    connection object only exposes ``fetchval`` / ``execute`` / etc.
+    *after* the ``await asyncpg.connect(...)`` call has actually
+    resolved.
+    """
+
+    port = int(env["POSTGRES_PORT"])
+    conn = await asyncpg.connect(
+        host=env["POSTGRES_HOST"],
+        port=port,
+        database=database,
+        user=env["POSTGRES_USER"],
+        password=env["POSTGRES_PASSWORD"],
+    )
+    try:
+        return await conn.fetchval("SELECT current_database()")
+    finally:
+        await conn.close()
+
+
+async def _fetch_alembic_version(asyncpg, env: dict[str, str], database: str) -> str | None:
+    """Open a connection, query ``alembic_version``, and close.
+
+    Same single-coroutine pattern as :func:`_fetch_current_database`.
+    Returns the ``version_num`` column, or ``None`` if the
+    ``alembic_version`` table is present but empty (treated as a
+    contract violation by the caller).
+    """
+
+    port = int(env["POSTGRES_PORT"])
+    conn = await asyncpg.connect(
+        host=env["POSTGRES_HOST"],
+        port=port,
+        database=database,
+        user=env["POSTGRES_USER"],
+        password=env["POSTGRES_PASSWORD"],
+    )
+    try:
+        return await conn.fetchval("SELECT version_num FROM alembic_version")
+    finally:
+        await conn.close()
+
+
+# ---------------------------------------------------------------------------
 # Live assertions
 # ---------------------------------------------------------------------------
 
@@ -148,13 +215,7 @@ def test_live_current_database_matches_isolated_db_name() -> None:
     except ImportError:  # pragma: no cover - optional dep
         pytest.skip("asyncpg is not installed in this environment")
 
-    conn = None
-    try:
-        conn = _connect_asyncpg(asyncpg, env, database=expected_db)
-        actual_db = _run_sync(conn.fetchval("SELECT current_database()"))
-    finally:
-        if conn is not None:
-            _run_sync(conn.close())
+    actual_db = asyncio.run(_fetch_current_database(asyncpg, env, database=expected_db))
 
     assert actual_db == expected_db, (
         "current_database() did not match ISOLATED_DB_NAME — "
@@ -184,13 +245,7 @@ def test_live_alembic_version_equals_current_head() -> None:
     except ImportError:  # pragma: no cover - optional dep
         pytest.skip("asyncpg is not installed in this environment")
 
-    conn = None
-    try:
-        conn = _connect_asyncpg(asyncpg, env, database=expected_db)
-        actual_version = _run_sync(conn.fetchval("SELECT version_num FROM alembic_version"))
-    finally:
-        if conn is not None:
-            _run_sync(conn.close())
+    actual_version = asyncio.run(_fetch_alembic_version(asyncpg, env, database=expected_db))
 
     assert actual_version is not None, (
         "alembic_version table is empty — the CI round-trip did not "
@@ -200,51 +255,6 @@ def test_live_alembic_version_equals_current_head() -> None:
         f"alembic_version.version_num={actual_version!r} does not "
         f"match the project head {expected_head!r}"
     )
-
-
-# ---------------------------------------------------------------------------
-# asyncpg helpers (kept private to this module to avoid leaking
-# connection-opening code into the rest of the test suite)
-# ---------------------------------------------------------------------------
-
-
-def _connect_asyncpg(asyncpg, env: dict[str, str], database: str):
-    """Open an asyncpg connection with the env-supplied credentials.
-
-    Connection parameters come exclusively from environment variables.
-    No password, token, or full ``DATABASE_URL`` value is ever
-    formatted into a log line or assertion message; if the connection
-    fails, we surface only the **exception type** (the driver
-    itself prints the host / port / database on its own), never the
-    password.
-    """
-
-    port_value = env["POSTGRES_PORT"]
-    try:
-        port = int(port_value)
-    except ValueError:
-        pytest.skip(f"POSTGRES_PORT={port_value!r} is not an integer")
-    return asyncpg.connect(  # pragma: no cover - requires live PG
-        host=env["POSTGRES_HOST"],
-        port=port,
-        database=database,
-        user=env["POSTGRES_USER"],
-        password=env["POSTGRES_PASSWORD"],
-    )
-
-
-def _run_sync(awaitable):  # type: ignore[no-untyped-def]
-    """Run an asyncpg coroutine in a sync test function.
-
-    The test file is pure sync to keep the surface simple; each call
-    here opens a transient event loop. asyncpg's connection objects
-    are not designed to cross loops, so we run the coroutine in the
-    same loop that opened the connection.
-    """
-
-    import asyncio
-
-    return asyncio.get_event_loop().run_until_complete(awaitable)
 
 
 __all__ = [
