@@ -136,8 +136,7 @@ def test_isolated_db_name_resolves_to_expected_template() -> None:
     """``ISOLATED_DB_NAME`` must end with the canonical ``postgres_concurrency`` job segment."""
     name = _skip_unless_safe_isolated_db_present()
     assert name.endswith(f"_{ISOLATED_JOB_NAME}"), (
-        f"unexpected ISOLATED_DB_NAME={name!r}; "
-        f"expected it to end with _{ISOLATED_JOB_NAME}"
+        f"unexpected ISOLATED_DB_NAME={name!r}; expected it to end with _{ISOLATED_JOB_NAME}"
     )
 
 
@@ -160,9 +159,7 @@ def test_current_database_returns_isolated_name() -> None:
         conn = await asyncpg.connect(**_connection_kwargs_for(name))
         try:
             actual = await conn.fetchval("SELECT current_database()")
-            assert actual == name, (
-                f"current_database()={actual!r} != ISOLATED_DB_NAME={name!r}"
-            )
+            assert actual == name, f"current_database()={actual!r} != ISOLATED_DB_NAME={name!r}"
         finally:
             await conn.close()
 
@@ -212,8 +209,7 @@ def test_write_and_commit_visible_to_second_session() -> None:
                 f'CREATE TABLE IF NOT EXISTS "{marker_table}" (marker TEXT NOT NULL)'
             )
             await writer.execute(
-                f'INSERT INTO "{marker_table}" (marker) VALUES ($1) '
-                "ON CONFLICT DO NOTHING",
+                f'INSERT INTO "{marker_table}" (marker) VALUES ($1) ON CONFLICT DO NOTHING',
                 "slice4-isolated-db-proof",
             )
         finally:
@@ -221,12 +217,8 @@ def test_write_and_commit_visible_to_second_session() -> None:
         # Read from a fresh session
         reader = await asyncpg.connect(**_connection_kwargs_for(name))
         try:
-            row = await reader.fetchrow(
-                f'SELECT marker FROM "{marker_table}"'
-            )
-            assert row is not None, (
-                f"marker table {marker_table!r} missing in second session"
-            )
+            row = await reader.fetchrow(f'SELECT marker FROM "{marker_table}"')
+            assert row is not None, f"marker table {marker_table!r} missing in second session"
             assert row["marker"] == "slice4-isolated-db-proof", (
                 f"unexpected marker value: {row['marker']!r}"
             )
