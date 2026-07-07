@@ -81,11 +81,7 @@ def build_training_matrix(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], list[CategoryEncoding]]:
     included_rows = [row for row in rows if row.include and row.split.value == "train"]
     feature_names = sorted(
-        {
-            feature.feature_name
-            for row in included_rows
-            for feature in row.feature_values
-        }
+        {feature.feature_name for row in included_rows for feature in row.feature_values}
     )
     encodings = {
         item.feature_name: item for item in build_category_encodings(included_rows, config=config)
@@ -122,8 +118,7 @@ def build_training_matrix(
                 vector.append(np.nan)
             else:
                 raise TypeError(
-                    f"Unsupported feature value type for {feature_name}: "
-                    f"{type(value).__name__}"
+                    f"Unsupported feature value type for {feature_name}: {type(value).__name__}"
                 )
         matrix.append(vector)
         labels.append(float(row.residual_label_kg))
@@ -176,8 +171,7 @@ def build_prediction_matrix(
                 vector.append(np.nan)
             else:
                 raise TypeError(
-                    f"Unsupported feature value type for {feature_name}: "
-                    f"{type(value).__name__}"
+                    f"Unsupported feature value type for {feature_name}: {type(value).__name__}"
                 )
         matrix.append(vector)
 
@@ -197,10 +191,6 @@ def summarize_manifest(rows: list[ResidualTrainingManifestRow]) -> dict[str, Any
         "distinct_factory_count": len({row.destination_factory_id for row in included}),
         "split_counts": dict(sorted(split_counts.items())),
         "feature_names": sorted(
-            {
-                feature.feature_name
-                for row in included
-                for feature in row.feature_values
-            }
+            {feature.feature_name for row in included for feature in row.feature_values}
         ),
     }

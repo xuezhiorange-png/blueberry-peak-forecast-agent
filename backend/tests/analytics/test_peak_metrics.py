@@ -210,9 +210,9 @@ def test_stable_and_mean_peak_dates_can_differ() -> None:
 def test_hhi_and_unknown_weight_shares_use_decimal_precision() -> None:
     assert calculate_hhi({"only": Decimal("10")}) == Decimal("1.0000000000")
     assert calculate_hhi({"a": Decimal("5"), "b": Decimal("5")}) == Decimal("0.5000000000")
-    assert calculate_hhi(
-        {"a": Decimal("50"), "b": Decimal("25"), "c": Decimal("25")}
-    ) == Decimal("0.3750000000")
+    assert calculate_hhi({"a": Decimal("50"), "b": Decimal("25"), "c": Decimal("25")}) == Decimal(
+        "0.3750000000"
+    )
 
     dense = [
         DailySeriesPoint(date=date(2026, 1, 1), weight_kg=Decimal("1")),

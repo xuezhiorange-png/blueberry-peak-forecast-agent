@@ -38,9 +38,7 @@ def _sha256_check_sql(column_name: str) -> str:
     for char in "0123456789abcdef":
         stripped = f"replace({stripped}, '{char}', '')"
     return (
-        f"length({column_name}) = 64 "
-        f"and lower({column_name}) = {column_name} "
-        f"and {stripped} = ''"
+        f"length({column_name}) = 64 and lower({column_name}) = {column_name} and {stripped} = ''"
     )
 
 
@@ -85,8 +83,7 @@ def upgrade() -> None:
     op.create_check_constraint(
         "ck_harvest_state_run_replay_executed_at",
         "harvest_state_run",
-        "replay_executed_at IS NULL "
-        "OR replay_executed_at <= now() + interval '1 hour'",
+        "replay_executed_at IS NULL OR replay_executed_at <= now() + interval '1 hour'",
     )
     op.create_check_constraint(
         "ck_harvest_state_run_replay_cutoff_past",
@@ -97,14 +94,12 @@ def upgrade() -> None:
     op.create_check_constraint(
         "ck_harvest_state_run_replay_code_version_non_blank",
         "harvest_state_run",
-        "replay_code_version IS NULL "
-        "OR btrim(replay_code_version) <> ''",
+        "replay_code_version IS NULL OR btrim(replay_code_version) <> ''",
     )
     op.create_check_constraint(
         "ck_harvest_state_run_replay_correlation_id_non_blank",
         "harvest_state_run",
-        "replay_run_correlation_id IS NULL "
-        "OR btrim(replay_run_correlation_id) <> ''",
+        "replay_run_correlation_id IS NULL OR btrim(replay_run_correlation_id) <> ''",
     )
     # Composite coupling: ``is_replay`` is the discriminator.
     #
@@ -200,13 +195,11 @@ def upgrade() -> None:
             name="ck_hsrpsva_cutoff_past",
         ),
         sa.CheckConstraint(
-            "rejection_blocker_code IS NULL "
-            "OR btrim(rejection_blocker_code) <> ''",
+            "rejection_blocker_code IS NULL OR btrim(rejection_blocker_code) <> ''",
             name="ck_hsrpsva_rejection_code_non_blank",
         ),
         sa.CheckConstraint(
-            "semantic_identity_hash IS NULL "
-            "OR " + _sha256_check_sql("semantic_identity_hash"),
+            "semantic_identity_hash IS NULL OR " + _sha256_check_sql("semantic_identity_hash"),
             name="ck_hsrpsva_semantic_identity_hash_sha256",
         ),
         sa.CheckConstraint(

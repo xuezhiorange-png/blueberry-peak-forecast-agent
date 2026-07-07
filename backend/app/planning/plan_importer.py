@@ -171,9 +171,7 @@ async def import_production_plans_csv(
                     )
                     if subfarm is None:
                         unknown_subfarm_count += 1
-                        raise ProductionPlanValidationError(
-                            f"unknown subfarm_name: {subfarm_name}"
-                        )
+                        raise ProductionPlanValidationError(f"unknown subfarm_name: {subfarm_name}")
                     subfarm_id = subfarm.id
 
                 payload = {

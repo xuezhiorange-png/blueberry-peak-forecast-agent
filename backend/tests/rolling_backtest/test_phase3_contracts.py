@@ -372,30 +372,20 @@ class TestOrchestrationBlocker:
             OrchestrationBlocker.REPLAY_RUNTIME_IDENTITY_MISSING.value
             == "replay_runtime_identity_missing"
         )
+        assert OrchestrationBlocker.REPLAY_AUDIT_INCOMPLETE.value == "replay_audit_incomplete"
         assert (
-            OrchestrationBlocker.REPLAY_AUDIT_INCOMPLETE.value
-            == "replay_audit_incomplete"
-        )
-        assert (
-            OrchestrationBlocker.MISSING_TASK8_REPLAY_SOURCE.value
-            == "missing_task8_replay_source"
+            OrchestrationBlocker.MISSING_TASK8_REPLAY_SOURCE.value == "missing_task8_replay_source"
         )
         assert (
             OrchestrationBlocker.CUTOFF_INVISIBLE_TASK9_INPUT.value
             == "cutoff_invisible_task9_input"
         )
-        assert (
-            OrchestrationBlocker.AMBIGUOUS_REPLAY_INPUT.value
-            == "ambiguous_replay_input"
-        )
+        assert OrchestrationBlocker.AMBIGUOUS_REPLAY_INPUT.value == "ambiguous_replay_input"
         assert (
             OrchestrationBlocker.AUTHORITY_CHAIN_INCOMPATIBLE.value
             == "authority_chain_incompatible"
         )
-        assert (
-            OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-            == "replay_metadata_invalid"
-        )
+        assert OrchestrationBlocker.REPLAY_METADATA_INVALID.value == "replay_metadata_invalid"
         assert OrchestrationBlocker.TASK9_REPLAY_FAILED.value == "task9_replay_failed"
         assert (
             OrchestrationBlocker.TASK10_REPLAY_BINDING_INVALID.value

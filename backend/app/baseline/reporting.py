@@ -61,9 +61,7 @@ def _factory_error_rows(
                 "actual_peak_kg": row.actual_stable_peak_kg,
                 "predicted_peak_kg": row.predicted_stable_peak_kg,
                 "actual_peak_tonne": (
-                    None
-                    if row.actual_stable_peak_kg is None
-                    else row.actual_stable_peak_kg / 1000
+                    None if row.actual_stable_peak_kg is None else row.actual_stable_peak_kg / 1000
                 ),
                 "predicted_peak_tonne": (
                     None

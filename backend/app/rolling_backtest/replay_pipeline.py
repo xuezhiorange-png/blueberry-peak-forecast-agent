@@ -127,12 +127,8 @@ class ReplayPipelineInputError(ReplayPipelineError, ValueError):
 _RUNTIME_IDENTITY_MISSING_BLOCKER: Final[str] = (
     OrchestrationBlocker.REPLAY_RUNTIME_IDENTITY_MISSING.value
 )
-_METADATA_INVALID_BLOCKER: Final[str] = (
-    OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-)
-_AUDIT_INCOMPLETE_BLOCKER: Final[str] = (
-    OrchestrationBlocker.REPLAY_AUDIT_INCOMPLETE.value
-)
+_METADATA_INVALID_BLOCKER: Final[str] = OrchestrationBlocker.REPLAY_METADATA_INVALID.value
+_AUDIT_INCOMPLETE_BLOCKER: Final[str] = OrchestrationBlocker.REPLAY_AUDIT_INCOMPLETE.value
 
 
 def _require_non_blank_text(

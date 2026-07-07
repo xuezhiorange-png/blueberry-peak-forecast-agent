@@ -24,14 +24,14 @@ from backend.app.planning.similarity import haversine_distance_km
 
 
 def _rules() -> ParameterInferenceRules:
-        return ParameterInferenceRules(
-            resolver_version="task5-v1",
-            resolver=ResolverRules(
-                address_fuzzy_match_min_score=Decimal("0.75"),
-                nearest_reference_distance_km=Decimal("20"),
-                climate_zone_radius_km=Decimal("80"),
-            ),
-            similarity=SimilarityRules(
+    return ParameterInferenceRules(
+        resolver_version="task5-v1",
+        resolver=ResolverRules(
+            address_fuzzy_match_min_score=Decimal("0.75"),
+            nearest_reference_distance_km=Decimal("20"),
+            climate_zone_radius_km=Decimal("80"),
+        ),
+        similarity=SimilarityRules(
             max_distance_km=Decimal("300"),
             max_altitude_difference_m=Decimal("800"),
             township_bonus=Decimal("0.30"),

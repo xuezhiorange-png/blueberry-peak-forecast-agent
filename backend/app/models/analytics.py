@@ -262,9 +262,7 @@ class FactorySeasonPeakMetric(Base):
     farm_hhi: Mapped[Decimal] = mapped_column(Numeric(12, 10), nullable=False)
     subfarm_hhi: Mapped[Decimal] = mapped_column(Numeric(12, 10), nullable=False)
     unknown_farm_weight_share: Mapped[Decimal] = mapped_column(Numeric(12, 10), nullable=False)
-    unknown_subfarm_weight_share: Mapped[Decimal] = mapped_column(
-        Numeric(12, 10), nullable=False
-    )
+    unknown_subfarm_weight_share: Mapped[Decimal] = mapped_column(Numeric(12, 10), nullable=False)
     spring_festival_day_count: Mapped[int] = mapped_column(
         Integer,
         nullable=False,

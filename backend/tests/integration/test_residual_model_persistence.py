@@ -418,9 +418,7 @@ async def _seed_prediction_fixture(
         # TASK10_TASK9_BINDING_MISMATCH. The conftest.py autouse
         # truncate resets this state between tests.
         train_row = await session.get(HarvestStateRun, task9_run_id)
-        validation_row = await session.get(
-            HarvestStateRun, validation_task9_run_id
-        )
+        validation_row = await session.get(HarvestStateRun, validation_task9_run_id)
         if (
             train_row is not None
             and validation_row is not None
