@@ -47,7 +47,7 @@ Public surface (frozen for Slice 2–5 to consume):
 
 ### 2. New tests — `backend/tests/safety/test_dev_db_safeguard_slice1.py`
 
-30 new tests covering:
+27 new tests covering:
 
 - Resolver: safe defaults / partial env / worker_id override.
 - Validator (rejection): forbidden DB name, dev-DB pattern,
@@ -122,7 +122,7 @@ Public surface (frozen for Slice 2–5 to consume):
 
 - `backend/tests/postgres_test_support.py` — NEW (15,484 bytes).
 - `backend/tests/safety/test_dev_db_safeguard_slice1.py` — NEW
-  (15,140 bytes, 30 tests).
+  (15,140 bytes, 27 tests).
 - `docs/task-11-issue-51-batch3-slice1-dev-db-safeguard.md` — NEW
   (this file).
 
