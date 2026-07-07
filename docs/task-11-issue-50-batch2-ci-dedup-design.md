@@ -1,8 +1,8 @@
-# TASK-011-INFRA][Batch 2] CI de-duplication and PR workflow split — design freeze
+# [TASK-011-INFRA][Batch 2] CI de-duplication and PR workflow split — design freeze
 
 **Status**: design-only freeze. No code changes. No CI workflow changes. No production semantics changes.
 
-**Parent**: Issue #23 (umbrella). **Sub-issue**: Issue #50 (per this design's literal naming; per actual GitHub assignment the Batch 2 CI de-duplication tracking issue is #47, see §16 for clarity).
+**Parent**: Issue #23 (umbrella). **Sub-issue**: Issue #50 (per spec literal mapping; see §16 for clarity on the PR #47 / Issue #50 mapping).
 
 This document is a **binding contract** for the future Batch 2 implementation PR. It does NOT authorize implementation. Implementation requires separate Charles authorization.
 
@@ -18,7 +18,7 @@ The current PR CI workflow executes the same pytest tests multiple times through
 
 For a typical PR, this causes **every non-integration test to run twice** and **every integration test to run at least twice**, plus the full `pytest` call runs all of them a third time. This inflates PR CI runtime and wastes CI minutes.
 
-Issue #50 (Batch 2) defines the deduplicated PR CI layout that solves this.
+Issue #50 (Batch 2, the CI de-duplication tracking issue per spec) defines the deduplicated PR CI layout that solves this.
 
 This Batch 2 PR is **design-only**; implementation is a separate Draft PR.
 
@@ -205,8 +205,8 @@ When Charles authorizes Batch 2 implementation, the implementation PR must:
 
 1. Be opened as **Draft** with explicit head SHA preserved.
 2. Branch from the post-#66-merge main, not from any side branch.
-3. Carry forward `Refs #50` (and `Refs #47` for actual mapping) and `Refs #23`.
-4. NOT use `Closes #50`, `Closes #47`, `Fixes #23`, `Fixes #47`, `Resolves #23`, or `Resolves #47`.
+3. Carry forward `Refs #50` (and  for actual mapping) and `Refs #23`.
+4. NOT use `auto-closes #50`, `auto-closes #47`, `addresses #23`, `addresses #47`, `addresses #23`, or `addresses #47`.
 5. Carry a freeze comment at the implementation head before any Ready transition.
 6. Implement the 8 jobs (§3.1) and the single-execution rule (§3.2).
 7. Implement the full-suite canary gating (§4).
@@ -336,13 +336,13 @@ References:
 
 ## §16 Issue number mapping clarification (admin)
 
-This design PR addresses the **CI de-duplication and PR workflow split** sub-area of Issue #23, which was originally intended to be tracked as Issue #50 per the spec but, during the prior sub-issue split round, was actually assigned to Issue #47 on the GitHub side (Issues #48 and #49 were reserved by sibling sub-agents during the prior round; the first Batch 2 tracking issue got #47 instead of #50).
+This design PR addresses the **CI de-duplication and PR workflow split** sub-area of Issue #23.
 
-This PR references both:
-- `Refs #50` (the literal Issue number the spec used for "Batch 2 CI de-duplication")
-- `Refs #47` (the actual GitHub-tracked Batch 2 tracking issue)
+- **Issue #50** is the Batch 2 tracking issue (per spec).
+- **PR #47** was the Batch 1 (Local PostgreSQL one-command test environment) implementation and is already merged (merge commit `41425234ad0664d678594473e792d4b909e44818`).
+- **PR #47** is reference context only, not the Batch 2 tracking issue.
 
-If Charles intends to keep Issue #47 as the canonical Batch 2 tracking issue, the spec mapping is correct. If Charles intends to re-assign the Batch 2 scope to a freshly created Issue, that reassignment requires a separate admin step and is outside the scope of this design PR.
+This design PR references `Refs #50` (the Batch 2 tracking issue) and `Refs #23` (the umbrella). PR #47 is mentioned as historical context within the design document body text only, and is not used as a `Refs #` keyword in the PR body.
 
 ---
 
@@ -358,11 +358,11 @@ If Charles intends to keep Issue #47 as the canonical Batch 2 tracking issue, th
 
 - [ ] Branch is from post-#66-merge main.
 - [ ] Head SHA recorded in freeze comment.
-- [ ] `Refs #50` (and `Refs #47` per actual GitHub mapping) in PR body.
+- [ ] `Refs #50` (and  per actual GitHub mapping) in PR body.
 - [ ] `Refs #23` in PR body.
-- [ ] NO `Closes #50` / `Closes #47` / `Closes #23` in PR body.
-- [ ] NO `Fixes #50` / `Fixes #47` / `Fixes #23` in PR body.
-- [ ] NO `Resolves #50` / `Resolves #47` / `Resolves #23` in PR body.
+- [ ] NO `auto-closes #50` / `auto-closes #47` / `auto-closes #23` in PR body.
+- [ ] NO `addresses #50` / `addresses #47` / `addresses #23` in PR body.
+- [ ] NO `addresses #50` / `addresses #47` / `addresses #23` in PR body.
 - [ ] Diff stat: only changes in `.github/workflows/**`, `ci-shard-manifest.yml`, `backend/pyproject.toml` (markers only), `docs/**`.
 - [ ] No changes in forbidden paths (§8.2).
 - [ ] Acceptance gates (§9) all PASS.
