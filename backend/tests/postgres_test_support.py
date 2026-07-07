@@ -36,11 +36,11 @@ Batch 3 Slice 1 contracts (see
 
 * Fail closed: any unsafe profile raises ``ValueError`` with a clear
   message naming the offending field.
-* Never silently fall back to development defaults. The resolver uses
-  ``os.environ.get`` with NO fallback to ``blueberry_peak`` /
-  ``5432`` / ``development``. When a field is missing the resolver
-  raises ``ValueError`` (validation), so the test runner cannot
-  accidentally connect to a dev default.
+* Never silently fall back to development defaults. The resolver fills
+  missing fields with safe test defaults (``blueberry_peak_test`` /
+  ``55432`` / ``test``) and records them in ``used_defaults``. The
+  validator accepts those safe defaults while rejecting unsafe explicit
+  profiles, unsafe ``DATABASE_URL`` values, and any non-safe fallback.
 * Worker id is included in the identity. The resolver accepts an
   optional ``worker_id`` argument (default ``"master"``) so future
   Slice 3 / Slice 4 isolation work can pass ``pytest-xdist`` worker ids
