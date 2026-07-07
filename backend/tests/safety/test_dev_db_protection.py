@@ -1,37 +1,48 @@
-"""Safety tests for the Issue #23 Batch 1 dev-DB safeguard.
+"""Safety tests for the Issue #23 Batch 1 dev-DB safeguard + one-command Makefile.
 
 These tests verify that the local test harness / one-command runners
 refuse to connect to the development database. The safeguard is meant
 to **fail closed** in CI and local dev — even without a running
-PostgreSQL — so the tests must NOT depend on a live database. Every
-test injects env vars via ``monkeypatch`` and inspects the guard's
-exit code / exit message only.
+PostgreSQL — so the tests must NOT depend on a live database.
+
+What is tested here:
+* The bash wrapper script (``postgres_test_db.sh``) rejects bad env.
+* The Makefile ``test-pg`` target propagates the test profile to all
+  shell subprocesses (one-command contract) AND still fails closed on
+  dev-DB overrides.
 
 Scope discipline
 ----------------
 * File location: ``backend/tests/safety/`` (NOT ``backend/app/``).
 * No production-code mutation.
-* No DB / network IO.
+* No DB / network IO (in the test body itself).
 """
 
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
-# Repository root (the worktree root): 4 parents up from this test file
-# (backend/tests/safety/test_dev_db_protection.py).
+# Repository root (the worktree root): 4 parents up from this test file.
 REPO_ROOT = Path(__file__).resolve().parents[3]
 POSTGRES_TEST_DB_SH = (REPO_ROOT / "backend" / "scripts" / "postgres_test_db.sh").resolve()
 WAIT_FOR_POSTGRES_SH = (REPO_ROOT / "backend" / "scripts" / "wait_for_postgres.sh").resolve()
 RESET_TEST_DB_SH = (REPO_ROOT / "backend" / "scripts" / "reset_test_db.sh").resolve()
+MAKEFILE = (REPO_ROOT / "Makefile").resolve()
+
+# Skip the whole module if `make` is not on PATH (sandbox without it).
+_REQUIRE_MAKE = pytest.mark.skipif(
+    shutil.which("make") is None,
+    reason="make not available in this sandbox",
+)
 
 
 # ---------------------------------------------------------------------------
-# Helper: run a shell helper under the given env, return CompletedProcess
+# Helpers
 # ---------------------------------------------------------------------------
 
 
@@ -42,8 +53,7 @@ def _run_helper(
     """Invoke the helper script under the requested env and capture exit + output.
 
     Uses an absolute path for the helper so that the helper's internal
-    ``cd "$(dirname "$0")/../.."`` always lands at REPO_ROOT regardless of
-    the caller's cwd.
+    ``cd "$(dirname "$0")/../.."`` always lands at REPO_ROOT.
     """
     base_env = {
         "PATH": os.environ.get("PATH", ""),
@@ -61,6 +71,31 @@ def _run_helper(
     )
 
 
+def _run_make(
+    *make_args: str,
+    make_env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess:
+    """Run ``make <args>`` in the worktree root, capturing exit + output.
+
+    Used for the one-command contract tests; we keep ``make`` out of the
+    pytest-env so the test exercises the real recipe.
+    """
+    base_env = {
+        "PATH": os.environ.get("PATH", ""),
+        "HOME": os.environ.get("HOME", ""),
+    }
+    if make_env:
+        base_env.update(make_env)
+    return subprocess.run(
+        ["make", *make_args],
+        capture_output=True,
+        text=True,
+        env=base_env,
+        cwd=str(REPO_ROOT),
+        timeout=30,
+    )
+
+
 # Standard "correct test profile" env, used to verify the guard accepts it.
 _TEST_PROFILE_ENV: dict[str, str] = {
     "POSTGRES_DB": "blueberry_peak_test",
@@ -70,18 +105,33 @@ _TEST_PROFILE_ENV: dict[str, str] = {
 }
 
 
+def _is_docker_not_available() -> bool:
+    """Heuristic: detect whether docker / docker-compose is on PATH."""
+    return shutil.which("docker") is None or shutil.which("docker-compose") is None
+
+
+def _guard_rejection_in_output(stdout: str, stderr: str) -> bool:
+    """Detect the guard's distinctive rejection markers in output."""
+    combined = stdout + stderr
+    return any(
+        marker in combined
+        for marker in (
+            "POSTGRES_DB must be",
+            "POSTGRES_PORT must be",
+            "APP_ENV must be",
+            "DATABASE_URL points at",
+            "refuse to run with non-test env",
+        )
+    )
+
+
 # ---------------------------------------------------------------------------
-# Guards on the wrapper script
+# Tests for the bash wrapper script (postgres_test_db.sh)
 # ---------------------------------------------------------------------------
 
 
 def test_dev_db_dev_port_is_rejected() -> None:
-    """Guard MUST refuse POSTGRES_PORT=5432 (dev-DB port).
-
-    Port 5432 is reserved for the development database; using it would
-    leak test runs into dev. The guard must exit non-zero AND the error
-    message must mention the port mismatch.
-    """
+    """Guard MUST refuse POSTGRES_PORT=5432 (dev-DB port)."""
     env = dict(_TEST_PROFILE_ENV)
     env["POSTGRES_PORT"] = "5432"  # dev-DB port
 
@@ -97,11 +147,7 @@ def test_dev_db_dev_port_is_rejected() -> None:
 
 
 def test_dev_db_prod_app_env_is_rejected() -> None:
-    """Guard MUST refuse APP_ENV != 'test' (e.g. production).
-
-    APP_ENV=production (or any value other than 'test') is an explicit
-    refusal condition.
-    """
+    """Guard MUST refuse APP_ENV != 'test' (e.g. production)."""
     env = dict(_TEST_PROFILE_ENV)
     env["APP_ENV"] = "production"
 
@@ -117,17 +163,9 @@ def test_dev_db_prod_app_env_is_rejected() -> None:
 
 
 def test_dev_db_database_url_dev_db_is_rejected() -> None:
-    """Guard MUST refuse DATABASE_URL pointing at the dev DB.
-
-    The wrapper must explicitly check DATABASE_URL for dev-DB markers
-    (``blueberry_peak`` without ``_test``, ``localhost:5432``) and fail
-    closed. This test does NOT accept Docker absence as a valid accept
-    reason for a dev DATABASE_URL — a dev URL must be rejected by the
-    guard even when Docker is unavailable.
-    """
+    """Guard MUST refuse DATABASE_URL pointing at the dev DB."""
     env = dict(_TEST_PROFILE_ENV)
-    # DATABASE_URL points at the dev DB (port 5432, db name without _test).
-    env["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/blueberry_peak"
+    env["DATABASE_URL"] = "postgresql://postgres:***@localhost:5432/blueberry_peak"
 
     result = _run_helper(env_overrides=env)
 
@@ -141,24 +179,15 @@ def test_dev_db_database_url_dev_db_is_rejected() -> None:
 
 
 def test_test_db_correct_profile_is_accepted() -> None:
-    """Guard MUST accept the correct test profile.
-
-    With the correct profile, the guard must NOT refuse. Any non-zero
-    exit must come from the subsequent ``docker compose up -d`` failing
-    because Docker is unavailable in the sandbox — NOT from the guard.
-    """
+    """Guard MUST accept the correct test profile."""
     result = _run_helper(env_overrides=dict(_TEST_PROFILE_ENV))
 
-    # If docker is unavailable, bash command not found -> rc=127.
     if result.returncode == 127:
         pytest.skip(
             "docker not available in this sandbox; skipping "
             "downstream assertion (guard is still exercised)."
         )
 
-    # The guard itself MUST NOT refuse the correct profile.
-    # The downstream docker compose call MAY fail (rc != 0) for
-    # environment reasons unrelated to the guard.
     combined = (result.stdout + result.stderr).lower()
     assert (
         "blueberry_peak_test" in result.stdout
@@ -167,22 +196,144 @@ def test_test_db_correct_profile_is_accepted() -> None:
         or "compose" in combined
     ), (
         f"Guard refused correct profile (not docker-related). "
-        f"stdout={result.stdout!r} "
-        f"stderr={result.stderr!r} "
-        f"rc={result.returncode}"
+        f"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
     )
 
 
 def test_check_test_profile_unit_helper() -> None:
-    """Sanity test: the test-profile env satisfies the guard's contract.
-
-    This test does NOT invoke the bash wrapper (so it works without
-    Docker). It just verifies that the helper script resolves to the
-    expected path and the env dict is well-formed.
-    """
+    """Sanity test: the test-profile env satisfies the guard's contract."""
     assert POSTGRES_TEST_DB_SH.exists(), f"postgres_test_db.sh not found at {POSTGRES_TEST_DB_SH}"
     assert WAIT_FOR_POSTGRES_SH.exists()
     assert RESET_TEST_DB_SH.exists()
     assert _TEST_PROFILE_ENV["POSTGRES_DB"] == "blueberry_peak_test"
     assert _TEST_PROFILE_ENV["POSTGRES_PORT"] == "55432"
     assert _TEST_PROFILE_ENV["APP_ENV"] == "test"
+
+
+# ---------------------------------------------------------------------------
+# Tests for the one-command Makefile contract (test-pg)
+# ---------------------------------------------------------------------------
+
+
+@_REQUIRE_MAKE
+def test_make_test_pg_no_env_does_not_reject() -> None:
+    """Plain ``make test-pg`` (no env pre-export) must NOT be rejected by the guard.
+
+    If the run fails, the only acceptable reason is Docker /
+    docker-compose not being on PATH (rc=127) — NOT a guard rejection.
+    """
+    clean_env = {
+        k: v
+        for k, v in os.environ.items()
+        if k
+        not in {
+            "APP_ENV",
+            "POSTGRES_HOST",
+            "POSTGRES_PORT",
+            "POSTGRES_DB",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+            "DATABASE_URL",
+        }
+    }
+
+    result = _run_make("test-pg", make_env=clean_env)
+
+    if _is_docker_not_available() and result.returncode in (127, 126):
+        pytest.skip(
+            f"docker not available in this sandbox (rc={result.returncode}); "
+            "guard is still exercised"
+        )
+
+    assert not _guard_rejection_in_output(result.stdout, result.stderr), (
+        f"Guard rejected plain 'make test-pg' (one-command contract broken). "
+        f"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
+    )
+
+
+@_REQUIRE_MAKE
+def test_make_test_pg_dev_port_rejects() -> None:
+    """``make test-pg POSTGRES_PORT=5432`` MUST be rejected by the guard."""
+    clean_env = {
+        k: v
+        for k, v in os.environ.items()
+        if k
+        not in {
+            "APP_ENV",
+            "POSTGRES_HOST",
+            "POSTGRES_PORT",
+            "POSTGRES_DB",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+            "DATABASE_URL",
+        }
+    }
+
+    result = _run_make("POSTGRES_PORT=5432", "test-pg", make_env=clean_env)
+
+    assert result.returncode != 0, (
+        f"make test-pg POSTGRES_PORT=5432 was NOT rejected — "
+        f"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
+    )
+    assert _guard_rejection_in_output(result.stdout, result.stderr), (
+        f"Expected guard rejection markers; got stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+
+
+@_REQUIRE_MAKE
+def test_make_test_pg_dev_db_rejects() -> None:
+    """``make test-pg POSTGRES_DB=blueberry_peak`` MUST be rejected by the guard."""
+    clean_env = {
+        k: v
+        for k, v in os.environ.items()
+        if k
+        not in {
+            "APP_ENV",
+            "POSTGRES_HOST",
+            "POSTGRES_PORT",
+            "POSTGRES_DB",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+            "DATABASE_URL",
+        }
+    }
+
+    result = _run_make("POSTGRES_DB=blueberry_peak", "test-pg", make_env=clean_env)
+
+    assert result.returncode != 0, (
+        f"make test-pg POSTGRES_DB=blueberry_peak was NOT rejected — "
+        f"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
+    )
+    assert _guard_rejection_in_output(result.stdout, result.stderr), (
+        f"Expected guard rejection markers; got stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+
+
+@_REQUIRE_MAKE
+def test_make_test_pg_dev_database_url_rejects() -> None:
+    """``DATABASE_URL=.../blueberry_peak make test-pg`` MUST be rejected by the guard."""
+    clean_env = {
+        k: v
+        for k, v in os.environ.items()
+        if k
+        not in {
+            "APP_ENV",
+            "POSTGRES_HOST",
+            "POSTGRES_PORT",
+            "POSTGRES_DB",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+            "DATABASE_URL",
+        }
+    }
+    clean_env["DATABASE_URL"] = "postgresql://postgres:***@localhost:5432/blueberry_peak"
+
+    result = _run_make("test-pg", make_env=clean_env)
+
+    assert result.returncode != 0, (
+        f"DATABASE_URL=dev-db make test-pg was NOT rejected — "
+        f"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
+    )
+    assert _guard_rejection_in_output(result.stdout, result.stderr), (
+        f"Expected guard rejection markers; got stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
