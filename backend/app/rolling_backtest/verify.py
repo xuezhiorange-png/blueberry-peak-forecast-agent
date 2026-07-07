@@ -52,7 +52,6 @@ import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
-from decimal import Decimal
 from pathlib import Path
 from typing import Any, Final
 
@@ -70,8 +69,11 @@ from backend.app.rolling_backtest.metrics import (
 RELOAD_CONTRACT_VERSION: Final[str] = "4c-3.0.0"
 
 # Frozen sub-directory names from the 4c-2 export (binding for §4.5).
-_JSON_SUBDIR: Final[str] = "json"
-_CSV_SUBDIR: Final[str] = "csv"
+# The reload resolves ``json_path`` and ``csv_path`` from the manifest
+# (so they may live at arbitrary positions under ``root``). The audit
+# path is derived structurally from the JSON filename: the audit is
+# always at ``<root>/audit/<filename>``. Only the ``manifest`` and
+# ``audit`` sub-directory names are referenced directly in this module.
 _MANIFEST_SUBDIR: Final[str] = "manifest"
 _AUDIT_SUBDIR: Final[str] = "audit"
 
@@ -356,26 +358,6 @@ def _validate_metric_definition_version(payload: dict[str, object], *, path: str
         )
 
 
-def _parse_decimal_safe(value: object) -> Decimal:
-    """Parse a decimal value for CSV comparison (allow str / Decimal / None).
-
-    Returns ``Decimal("NaN")`` for ``None`` so the comparison logic
-    can distinguish "metric value present" from "metric value missing"
-    in a way that does not raise.
-    """
-    if value is None:
-        return Decimal("NaN")
-    if isinstance(value, Decimal):
-        return value
-    if isinstance(value, str):
-        return Decimal(value)
-    raise MalformedJsonError(
-        f"metric value is not a Decimal / str / None: {value!r}",
-        path="<outputs[*].metric_value>",
-        reason="not_a_decimal",
-    )
-
-
 # ---------------------------------------------------------------------------
 # Public API: verify_artifact_set
 # ---------------------------------------------------------------------------
@@ -500,13 +482,22 @@ def verify_artifact_set(
     audit_bytes: bytes | None = None
     if audit_payload_hash_expected is not None:
         # Audit is expected. The 4c-2 contract writes the audit under
-        # <root>/audit/ with the same filename pattern; the manifest
-        # does NOT carry an explicit audit_path, so we compute it
-        # from the JSON path (the audit uses the same filename stem).
-        audit_relpath = str(json_path.relative_to(root.resolve())).replace(
-            _JSON_SUBDIR + "/", _AUDIT_SUBDIR + "/", 1
-        )
-        audit_path = _resolve_under_root(root, audit_relpath)
+        # ``<root>/audit/`` with the **same filename** as the JSON
+        # artifact. We resolve the audit path structurally from the
+        # JSON path's filename component (NOT via fragile string
+        # replacement of the parent directory name), so the lookup
+        # works for both flat layouts (``<root>/json/<file>``) and
+        # any nested layout (the JSON may live at any depth under
+        # ``<root>``; the audit always lives at ``<root>/audit/``).
+        #
+        # Steps (structural, no raw-string replace):
+        # 1. Extract the JSON file's basename (``Path.name``).
+        # 2. Construct the audit candidate as ``root / _AUDIT_SUBDIR / <basename>``.
+        # 3. Run the candidate through ``_resolve_under_root`` to
+        #    guarantee the path stays under the reload root (§4.5).
+        json_basename = json_path.name
+        audit_candidate_relpath = f"{_AUDIT_SUBDIR}/{json_basename}"
+        audit_path = _resolve_under_root(root, audit_candidate_relpath)
         if not audit_path.is_file():
             raise MissingArtifactError(
                 f"audit file missing on disk: {audit_path}",

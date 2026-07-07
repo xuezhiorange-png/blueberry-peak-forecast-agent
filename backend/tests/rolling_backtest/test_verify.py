@@ -51,6 +51,7 @@ from backend.app.rolling_backtest import (
     ForbiddenImplicitFallbackError,
     MalformedCsvError,
     MalformedJsonError,
+    ManifestMismatchError,
     MaskHashMismatchError,
     MaskState,
     MetricDefinitionVersionMismatchError,
@@ -451,6 +452,119 @@ def test_corrupting_json_outputs_raises_canonical_payload_hash_mismatch(
 
 
 # ---------------------------------------------------------------------------
+# §7.5b — Path integrity (§4.5 path escape)
+# ---------------------------------------------------------------------------
+
+
+def test_manifest_path_escape_raises_manifest_mismatch(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+    tmp_path: Path,
+) -> None:
+    """§4.5 path integrity: a manifest whose ``json_path`` resolves
+    outside the reload root MUST surface as :class:`ManifestMismatchError`
+    with ``field='path_escape'`` and a structured payload carrying the
+    offending path and the expected root.
+
+    This is a security-sensitive invariant: a manifest MUST NOT be able
+    to coerce the reload into validating files outside the caller-chosen
+    root directory.
+    """
+    _write_artifacts(golden_rows_single_node, rows_by_run_mask, tmp_path)
+    # Mutate the manifest's json_path to one that resolves outside
+    # the reload root.
+    manifest_dir = tmp_path / "manifest"
+    manifest_files = sorted(manifest_dir.iterdir())
+    assert len(manifest_files) == 1
+    manifest_path = manifest_files[0]
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    # `../<one>/<two>` resolves above the reload root.
+    payload["json_path"] = "../escape/escape.json"
+    manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    with pytest.raises(ManifestMismatchError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    assert excinfo.value.kind == "manifest_mismatch"
+    payload_dict = excinfo.value.to_payload()
+    assert payload_dict["field"] == "path_escape"
+    assert payload_dict["path"] == "../escape/escape.json"
+    # The expected root MUST be the resolved reload root, and the
+    # actual value MUST be the resolved escape target (caller is
+    # informed where the path tried to go).
+    assert payload_dict["expected"] == str(tmp_path.resolve())
+    assert payload_dict["actual"] != payload_dict["expected"]
+    # The error MUST NOT silently fall back to the original JSON.
+    assert not payload_dict["actual"].startswith(str(tmp_path.resolve()))
+
+
+def test_nested_json_layout_with_audit_at_root_audit_subdir_succeeds(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+    tmp_path: Path,
+) -> None:
+    """P1-1 regression: the 4c-2 contract allows the JSON to live at a
+    nested path under ``<root>`` (e.g. ``<root>/2026-01/json/<file>``)
+    while the audit always lives at ``<root>/audit/<filename>``. The
+    reload's structural audit-path discovery (NOT string-replace of
+    the parent dir) MUST handle this layout correctly.
+    """
+    _write_artifacts(golden_rows_single_node, rows_by_run_mask, tmp_path)
+    # Move the JSON into a nested subdir; the audit stays at
+    # <root>/audit/<filename> per the 4c-2 contract.
+    nested_json_dir = tmp_path / "2026-01" / "json"
+    nested_json_dir.mkdir(parents=True)
+    original_json = next((tmp_path / "json").iterdir())
+    nested_json = nested_json_dir / original_json.name
+    nested_json.write_bytes(original_json.read_bytes())
+    original_json.unlink()
+    # Update the manifest to reflect the new JSON path. The CSV and
+    # audit paths stay at their canonical locations.
+    manifest_dir = tmp_path / "manifest"
+    manifest_path = next(manifest_dir.iterdir())
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["json_path"] = f"2026-01/json/{original_json.name}"
+    manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    # The reload MUST succeed despite the nested JSON layout.
+    result = verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    assert result.evaluation_mask_hash == SAMPLE_MASK_HASH
+    assert result.canonical_payload_hash is not None
+
+
+def test_mismatched_audit_filename_raises_missing_artifact(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+    tmp_path: Path,
+) -> None:
+    """P1-1 negative: if the audit file at ``<root>/audit/<filename>``
+    (matching the JSON filename) is missing or has a different
+    filename, the reload MUST surface :class:`MissingArtifactError`
+    with ``expected_kind='audit'`` — not silently fall back or raise a
+    different error kind.
+    """
+    _write_artifacts(golden_rows_single_node, rows_by_run_mask, tmp_path)
+    # Rename the audit file so the JSON filename no longer matches
+    # any audit file in <root>/audit/. The manifest's audit_payload_hash
+    # is still the original hash, so the reload will look for the
+    # matching audit file (and fail to find it).
+    audit_dir = tmp_path / "audit"
+    audit_files = sorted(audit_dir.iterdir())
+    assert len(audit_files) == 1
+    audit_files[0] = audit_files[0].rename(audit_dir / "renamed_audit.json")
+    with pytest.raises(MissingArtifactError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    assert excinfo.value.kind == "missing_artifact"
+    payload_dict = excinfo.value.to_payload()
+    assert payload_dict["expected_kind"] == "audit"
+    # The error payload MUST point to the expected audit path
+    # (the structural lookup target), not some other location.
+    assert "audit" in str(payload_dict["path"])
+    assert str(payload_dict["path"]).endswith(".json")
+
+
+# ---------------------------------------------------------------------------
 # §7.6a — missing_artifact
 # ---------------------------------------------------------------------------
 
@@ -670,29 +784,187 @@ def test_verify_artifact_set_does_not_touch_db_or_network(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """§7.7: a 4c-3 reload MUST NOT perform database IO or network IO.
-
-    The test patches the most common entry points (``urllib.request``,
-    ``requests.*`` if available, and the canonical ``db.session`` if it
-    exists in the project) and asserts that no patched call was made
-    during the reload.
+    """§7.7: a 4c-3 reload MUST NOT perform database IO, network IO,
+    or subprocess IO. The test patches every common entry point for
+    these side channels (urllib, requests, urllib3, httpx, aiohttp,
+    subprocess, SQLAlchemy engine, asyncpg/psycopg connection surfaces)
+    and asserts none of them are invoked during a 4c-3 reload.
     """
-    import urllib.request as _urllib_request
-
     _write_artifacts(golden_rows_single_node, rows_by_run_mask, tmp_path)
 
-    def _fail(*args: object, **kwargs: object) -> None:  # pragma: no cover
-        raise AssertionError(f"forbidden side channel invoked: args={args!r} kwargs={kwargs!r}")
+    # 1. Network: urllib.request.urlopen (always present).
+    import urllib.request as _urllib_request
 
-    # Patch all urlopen variants.
-    monkeypatch.setattr(_urllib_request, "urlopen", _fail)
+    def _fail_url(*args: object, **kwargs: object) -> None:  # pragma: no cover
+        raise AssertionError(
+            f"forbidden urllib side channel invoked: args={args!r} kwargs={kwargs!r}"
+        )
 
-    # Patch requests.* if available.
+    monkeypatch.setattr(_urllib_request, "urlopen", _fail_url)
+
+    # 2. Network: requests (optional dep).
     try:
         import requests as _requests  # type: ignore[import-not-found]
 
-        monkeypatch.setattr(_requests, "get", _fail)
-        monkeypatch.setattr(_requests, "post", _fail)
+        def _fail_requests(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden requests side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        monkeypatch.setattr(_requests, "get", _fail_requests)
+        monkeypatch.setattr(_requests, "post", _fail_requests)
+        if hasattr(_requests, "Session"):
+            monkeypatch.setattr(_requests, "Session", _fail_requests)
+    except ImportError:
+        pass
+
+    # 3. Network: urllib3 (optional dep).
+    try:
+        import urllib3  # type: ignore[import-not-found]
+
+        def _fail_urllib3(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden urllib3 side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        # urllib3 may or may not expose a top-level PoolManager at import time.
+        if hasattr(urllib3, "PoolManager"):
+            monkeypatch.setattr(urllib3.PoolManager, "request", _fail_urllib3)
+    except ImportError:
+        pass
+
+    # 4. Network: httpx (optional dep).
+    try:
+        import httpx  # type: ignore[import-not-found]
+
+        def _fail_httpx(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden httpx side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        if hasattr(httpx, "Client"):
+            monkeypatch.setattr(httpx.Client, "request", _fail_httpx)
+        if hasattr(httpx, "AsyncClient"):
+            monkeypatch.setattr(httpx.AsyncClient, "request", _fail_httpx)
+    except ImportError:
+        pass
+
+    # 5. Network: aiohttp (optional dep).
+    try:
+        import aiohttp  # type: ignore[import-not-found]
+
+        def _fail_aiohttp(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden aiohttp side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        if hasattr(aiohttp, "ClientSession"):
+            monkeypatch.setattr(aiohttp.ClientSession, "get", _fail_aiohttp)
+            monkeypatch.setattr(aiohttp.ClientSession, "post", _fail_aiohttp)
+    except ImportError:
+        pass
+
+    # 6. Subprocess: subprocess.Popen is the standard shell-out
+    # surface in Python's stdlib.
+    import subprocess as _subprocess
+
+    def _fail_subprocess(*args: object, **kwargs: object) -> None:  # pragma: no cover
+        raise AssertionError(
+            f"forbidden subprocess side channel invoked: args={args!r} kwargs={kwargs!r}"
+        )
+
+    monkeypatch.setattr(_subprocess, "Popen", _fail_subprocess)
+
+    # 7. Database: SQLAlchemy engine creation surfaces.
+    try:
+        import sqlalchemy  # type: ignore[import-not-found]
+        import sqlalchemy.engine as _sa_engine  # type: ignore[import-not-found]
+
+        def _fail_sqlalchemy(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden sqlalchemy side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        if hasattr(_sa_engine, "create_engine"):
+            monkeypatch.setattr(_sa_engine, "create_engine", _fail_sqlalchemy)
+        if hasattr(sqlalchemy, "create_engine"):
+            monkeypatch.setattr(sqlalchemy, "create_engine", _fail_sqlalchemy)
+        try:
+            from sqlalchemy.ext.asyncio import (  # type: ignore[import-not-found]  # noqa: F401
+                create_async_engine,
+            )
+
+            monkeypatch.setattr("sqlalchemy.ext.asyncio.create_async_engine", _fail_sqlalchemy)
+        except ImportError:
+            pass
+        try:
+            from sqlalchemy.orm import sessionmaker  # type: ignore[import-not-found]
+
+            monkeypatch.setattr(sessionmaker, "__call__", _fail_sqlalchemy)
+        except ImportError:
+            pass
+    except ImportError:
+        pass
+
+    # 8. Project's actual DB session module (the canonical entry point
+    # for async SQLAlchemy sessions in this project). We patch the
+    # module-level engine and the public ``get_db_session`` async
+    # function so any DB usage would be detected.
+    try:
+        from backend.app.db import session as _db_session  # type: ignore[import-not-found]
+
+        def _fail_db(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden project db side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        async def _fail_db_async(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden project db side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        if hasattr(_db_session, "get_db_session"):
+            monkeypatch.setattr(_db_session, "get_db_session", _fail_db_async)
+    except ImportError:
+        pass
+
+    # 9. Database: asyncpg + psycopg (optional deps).
+    try:
+        import asyncpg  # type: ignore[import-not-found]
+
+        def _fail_asyncpg(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden asyncpg side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        if hasattr(asyncpg, "connect"):
+            monkeypatch.setattr(asyncpg, "connect", _fail_asyncpg)
+    except ImportError:
+        pass
+
+    try:
+        import psycopg2  # type: ignore[import-not-found]
+
+        def _fail_psycopg2(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden psycopg2 side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        if hasattr(psycopg2, "connect"):
+            monkeypatch.setattr(psycopg2, "connect", _fail_psycopg2)
+    except ImportError:
+        pass
+
+    try:
+        import psycopg  # type: ignore[import-not-found]
+
+        def _fail_psycopg(*args: object, **kwargs: object) -> None:  # pragma: no cover
+            raise AssertionError(
+                f"forbidden psycopg side channel invoked: args={args!r} kwargs={kwargs!r}"
+            )
+
+        if hasattr(psycopg, "connect"):
+            monkeypatch.setattr(psycopg, "connect", _fail_psycopg)
     except ImportError:
         pass
 
