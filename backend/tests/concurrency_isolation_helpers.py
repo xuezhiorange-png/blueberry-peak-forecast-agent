@@ -54,6 +54,8 @@ from __future__ import annotations
 from backend.tests.migration_isolation_helpers import (
     ISOLATED_DB_NAME_PREFIX,
     MAX_ISOLATED_DB_NAME_LEN,
+)
+from backend.tests.migration_isolation_helpers import (
     assert_safe_isolated_db_name as _assert_safe_isolated_db_name,
 )
 from backend.tests.migration_isolation_helpers import (
