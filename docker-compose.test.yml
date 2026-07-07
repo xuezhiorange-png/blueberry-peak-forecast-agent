@@ -1,0 +1,53 @@
+# Docker Compose for local PostgreSQL test profile (Issue #23 Batch 1).
+#
+# Scope: isolated local one-command test environment for the blueberry
+# backend. NOT for production. NOT for CI (CI uses its own workflow in
+# .github/workflows/, which is out of scope for this Batch 1 PR).
+#
+# Contract:
+# - database:  blueberry_peak_test
+# - port:      55432 (NOT 5432, which is reserved for the dev DB)
+# - APP_ENV:   test
+# - volume:    postgres_test_data (named volume; removed by `down -v`)
+# - health:    pg_isready -U postgres -d blueberry_peak_test
+# - isolation: dedicated bridge network `blueberry_test_net`
+#
+# Usage:
+#   make test-pg     # bring up + run pytest -m postgres
+#   make test-clean  # tear down + drop volume
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: blueberry-postgres-test
+    restart: "no"
+    environment:
+      POSTGRES_DB: blueberry_peak_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      APP_ENV: test
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    networks:
+      - blueberry_test_net
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "pg_isready -U postgres -d blueberry_peak_test"
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+networks:
+  blueberry_test_net:
+    name: blueberry_test_net
+    driver: bridge
+
+volumes:
+  postgres_test_data:
+    name: blueberry_postgres_test_data
+    driver: local
