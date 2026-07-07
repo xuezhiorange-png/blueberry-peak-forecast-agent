@@ -78,9 +78,7 @@ class _CapturingSession:
                     "harvest_state_run_id": getattr(obj, "harvest_state_run_id", None),
                     "source_role": getattr(obj, "source_role", None),
                     "source_type": getattr(obj, "source_type", None),
-                    "source_visibility_source": getattr(
-                        obj, "source_visibility_source", None
-                    ),
+                    "source_visibility_source": getattr(obj, "source_visibility_source", None),
                     "forecast_cutoff_at": getattr(obj, "forecast_cutoff_at", None),
                     "visibility_passed": getattr(obj, "visibility_passed", None),
                     "rejection_blocker_code": getattr(obj, "rejection_blocker_code", None),
@@ -116,6 +114,7 @@ def _existing_row(*, is_replay: bool | None) -> Any:
     never inspects the ``__class__`` of the row — it only assigns the
     five metadata fields onto the instance returned by the session.
     """
+
     # Use a private subclass / instance trampoline so the writer's
     # ``is_replay is True`` / ``is_replay is False`` checks behave
     # identically to a real ``HarvestStateRun`` ORM attribute.
@@ -265,9 +264,7 @@ def test_writer_rejects_blank_correlation_id_with_metadata_invalid() -> None:
                 ),
             )
         )
-    assert exc_info.value.blocker_code == (
-        OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-    )
+    assert exc_info.value.blocker_code == (OrchestrationBlocker.REPLAY_METADATA_INVALID.value)
     assert session.add_calls == 0
     assert session.flush_calls == 0
 
@@ -289,9 +286,7 @@ def test_writer_rejects_naive_replay_executed_at() -> None:
                 replay_identity=_identity(),
             )
         )
-    assert exc_info.value.blocker_code == (
-        OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-    )
+    assert exc_info.value.blocker_code == (OrchestrationBlocker.REPLAY_METADATA_INVALID.value)
     assert session.add_calls == 0
     assert session.flush_calls == 0
 
@@ -306,9 +301,7 @@ def test_writer_rejects_naive_forecast_cutoff_at_on_node() -> None:
     # Pydantic does not normally allow this, but ``model_construct``
     # already built the object so a direct attribute assignment bypasses
     # validators (writers do not re-validate the node they receive).
-    object.__setattr__(
-        bad_node, "forecast_cutoff_at", datetime(2026, 3, 15, 4, 0, 0)
-    )
+    object.__setattr__(bad_node, "forecast_cutoff_at", datetime(2026, 3, 15, 4, 0, 0))
     # Sanity: confirm the timestamp indeed has no tzinfo.
     assert bad_node.forecast_cutoff_at.tzinfo is None  # noqa: UP017
     with pytest.raises(ReplayMetadataInputError) as exc_info:
@@ -322,9 +315,7 @@ def test_writer_rejects_naive_forecast_cutoff_at_on_node() -> None:
                 replay_identity=_identity(),
             )
         )
-    assert exc_info.value.blocker_code == (
-        OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-    )
+    assert exc_info.value.blocker_code == (OrchestrationBlocker.REPLAY_METADATA_INVALID.value)
     assert session.add_calls == 0
     assert session.flush_calls == 0
     # required to silence linter complaining about unused import
@@ -374,9 +365,7 @@ def test_writer_rejects_already_replay_row_with_conflict_error() -> None:
                 replay_identity=_identity(),
             )
         )
-    assert exc_info.value.blocker_code == (
-        OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-    )
+    assert exc_info.value.blocker_code == (OrchestrationBlocker.REPLAY_METADATA_INVALID.value)
     # No audit row emitted; no flush called (writer is conservative).
     assert session.add_calls == 0
     assert session.flush_calls == 0
@@ -396,9 +385,7 @@ def test_writer_rejects_missing_row() -> None:
                 replay_identity=_identity(),
             )
         )
-    assert exc_info.value.blocker_code == (
-        OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-    )
+    assert exc_info.value.blocker_code == (OrchestrationBlocker.REPLAY_METADATA_INVALID.value)
     assert session.add_calls == 0
     assert session.flush_calls == 0
 
@@ -559,9 +546,7 @@ def test_writer_does_not_import_or_invoke_bucket_three_audit_writer() -> None:
     import backend.app.rolling_backtest.replay_metadata as bucket4
 
     # The writer must not be wrapped around the bucket-#3 entry point.
-    assert id(bucket4.write_replay_metadata) != id(
-        bucket3.write_replay_source_visibility_audit
-    )
+    assert id(bucket4.write_replay_metadata) != id(bucket3.write_replay_source_visibility_audit)
 
 
 def test_metadata_field_sources_table_covers_five_columns() -> None:

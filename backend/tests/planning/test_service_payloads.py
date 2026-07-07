@@ -326,8 +326,9 @@ def test_api_response_payload_accepts_execution_result_dataclass() -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_minimal_planning_task_rejects_multiple_location_forms_before_db_access(
-) -> None:
+async def test_create_minimal_planning_task_rejects_multiple_location_forms_before_db_access() -> (
+    None
+):
     with pytest.raises(ValueError, match="exactly one of address, latitude\\+longitude"):
         await create_minimal_planning_task(
             cast(Any, object()),

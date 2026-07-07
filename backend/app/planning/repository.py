@@ -56,9 +56,7 @@ async def get_active_library_version(
     *,
     as_of_date: date | None = None,
 ) -> ParameterLibraryVersion | None:
-    statement = select(ParameterLibraryVersion).where(
-        ParameterLibraryVersion.status == "active"
-    )
+    statement = select(ParameterLibraryVersion).where(ParameterLibraryVersion.status == "active")
     if as_of_date is not None:
         statement = statement.where(ParameterLibraryVersion.effective_from <= as_of_date)
     return cast(
@@ -116,9 +114,7 @@ async def get_library_version_by_id(
     return cast(
         ParameterLibraryVersion | None,
         await session.scalar(
-            select(ParameterLibraryVersion).where(
-                ParameterLibraryVersion.id == library_version_id
-            )
+            select(ParameterLibraryVersion).where(ParameterLibraryVersion.id == library_version_id)
         ),
     )
 

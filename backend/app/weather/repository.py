@@ -41,10 +41,7 @@ async def find_location_reference_for_plan(
     statement = select(LocationReference).where(
         LocationReference.farm_id == farm_id,
         LocationReference.valid_from <= as_of_date,
-        (
-            LocationReference.valid_to.is_(None)
-            | (LocationReference.valid_to >= as_of_date)
-        ),
+        (LocationReference.valid_to.is_(None) | (LocationReference.valid_to >= as_of_date)),
     )
     if subfarm_id is None:
         statement = statement.where(LocationReference.subfarm_id.is_(None))
@@ -62,10 +59,7 @@ async def list_visible_weather_source_locations(
 ) -> list[WeatherSourceLocation]:
     statement = select(WeatherSourceLocation).where(
         WeatherSourceLocation.valid_from <= as_of_date,
-        (
-            WeatherSourceLocation.valid_to.is_(None)
-            | (WeatherSourceLocation.valid_to >= as_of_date)
-        ),
+        (WeatherSourceLocation.valid_to.is_(None) | (WeatherSourceLocation.valid_to >= as_of_date)),
     )
     if provider_code is not None:
         statement = statement.where(WeatherSourceLocation.provider_code == provider_code)
@@ -422,9 +416,7 @@ async def update_weather_feature_run(
         if field in normalized:
             normalized[field] = canonical_json_value(normalized[field])
     await session.execute(
-        update(WeatherFeatureRun)
-        .where(WeatherFeatureRun.id == run_id)
-        .values(**normalized)
+        update(WeatherFeatureRun).where(WeatherFeatureRun.id == run_id).values(**normalized)
     )
     await session.commit()
 

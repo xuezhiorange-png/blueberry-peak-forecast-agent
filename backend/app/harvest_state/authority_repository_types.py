@@ -7,6 +7,7 @@ from datetime import date
 @dataclass(frozen=True, slots=True)
 class AuthorityCreateResult:
     """Returned by create-or-load operations."""
+
     authority_id: int
     row_hash: str
     created: bool
@@ -16,6 +17,7 @@ class AuthorityCreateResult:
 @dataclass(frozen=True, slots=True)
 class AuthorityLoadResult:
     """Returned by exact load operations."""
+
     authority_id: int
     row_hash: str
     status: str
@@ -27,6 +29,7 @@ class AuthorityLoadResult:
 @dataclass(frozen=True, slots=True)
 class AuthorityBundleCreateResult:
     """Returned by bundle create-or-load operations."""
+
     parent: AuthorityCreateResult
     child_ids: list[int]
 
@@ -34,6 +37,7 @@ class AuthorityBundleCreateResult:
 @dataclass(frozen=True, slots=True)
 class AuthorityBundleLoadResult:
     """Returned by bundle load operations."""
+
     parent: AuthorityLoadResult
     child_hashes: list[str]
 
@@ -41,6 +45,7 @@ class AuthorityBundleLoadResult:
 @dataclass(frozen=True, slots=True)
 class LifecycleTransitionResult:
     """Returned by lifecycle transition operations."""
+
     authority_id: int
     new_status: str
     lifecycle_event_id: int
@@ -51,6 +56,7 @@ class LifecycleTransitionResult:
 @dataclass(frozen=True, slots=True)
 class SupersessionResult:
     """Returned by supersession operations."""
+
     old: LifecycleTransitionResult
     new: AuthorityCreateResult
     new_activation: LifecycleTransitionResult

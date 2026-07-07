@@ -135,9 +135,7 @@ class TestValidatePredictionResult:
             )
 
     @pytest.mark.asyncio
-    async def test_failed_prediction_with_rows_rejected(
-        self, sqlite_session: AsyncSession
-    ) -> None:
+    async def test_failed_prediction_with_rows_rejected(self, sqlite_session: AsyncSession) -> None:
         """failed + rows → ResidualModelPersistenceError."""
         prediction = structural_only_prediction(
             model_run_id=None,
@@ -184,9 +182,7 @@ class TestValidatePredictionResult:
             )
 
     @pytest.mark.asyncio
-    async def test_structural_only_has_fallback_reason(
-        self, sqlite_session: AsyncSession
-    ) -> None:
+    async def test_structural_only_has_fallback_reason(self, sqlite_session: AsyncSession) -> None:
         """structural_only prediction must carry fallback_reason."""
         prediction = structural_only_prediction(
             model_run_id=None,
@@ -223,9 +219,7 @@ class TestApplicationStateTransitions:
     # ----------------------------------------------------------------
 
     @pytest.mark.asyncio
-    async def test_missing_training_run_raises_error(
-        self, sqlite_session: AsyncSession
-    ) -> None:
+    async def test_missing_training_run_raises_error(self, sqlite_session: AsyncSession) -> None:
         """Missing training run → ResidualTrainingApplicationIntegrityError."""
         season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
         task9_run_id, output = await _persist_task9_run(sqlite_session)
@@ -239,9 +233,7 @@ class TestApplicationStateTransitions:
             covered_factory_ids=(factory_id,),
         )
 
-        with pytest.raises(
-            ResidualTrainingApplicationIntegrityError, match="was not found"
-        ):
+        with pytest.raises(ResidualTrainingApplicationIntegrityError, match="was not found"):
             await execute_residual_prediction(
                 sqlite_session,
                 request=ResidualPredictionRequest(
@@ -252,21 +244,25 @@ class TestApplicationStateTransitions:
             )
 
     @pytest.mark.asyncio
-    async def test_running_training_run_raises_error(
-        self, sqlite_session: AsyncSession
-    ) -> None:
+    async def test_running_training_run_raises_error(self, sqlite_session: AsyncSession) -> None:
         """running training run → ResidualTrainingApplicationIntegrityError."""
         season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
         task9_run_id, output = await _persist_task9_run(sqlite_session)
         label_build = await _seed_build_run(
-            sqlite_session, build_run_id=1, season_id=season_id,
-            source_max_raw_id=100, config_hash="a" * 64,
+            sqlite_session,
+            build_run_id=1,
+            season_id=season_id,
+            source_max_raw_id=100,
+            config_hash="a" * 64,
             finished_at=datetime(2026, 3, 20, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
         feature_build = await _seed_build_run(
-            sqlite_session, build_run_id=2, season_id=season_id,
-            source_max_raw_id=50, config_hash="b" * 64,
+            sqlite_session,
+            build_run_id=2,
+            season_id=season_id,
+            source_max_raw_id=50,
+            config_hash="b" * 64,
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
@@ -294,9 +290,7 @@ class TestApplicationStateTransitions:
         )
         await sqlite_session.commit()
 
-        with pytest.raises(
-            ResidualTrainingApplicationIntegrityError, match="running"
-        ):
+        with pytest.raises(ResidualTrainingApplicationIntegrityError, match="running"):
             await execute_residual_prediction(
                 sqlite_session,
                 request=ResidualPredictionRequest(
@@ -307,21 +301,25 @@ class TestApplicationStateTransitions:
             )
 
     @pytest.mark.asyncio
-    async def test_failed_training_run_raises_error(
-        self, sqlite_session: AsyncSession
-    ) -> None:
+    async def test_failed_training_run_raises_error(self, sqlite_session: AsyncSession) -> None:
         """failed training run → ResidualTrainingApplicationIntegrityError."""
         season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
         task9_run_id, output = await _persist_task9_run(sqlite_session)
         label_build = await _seed_build_run(
-            sqlite_session, build_run_id=1, season_id=season_id,
-            source_max_raw_id=100, config_hash="a" * 64,
+            sqlite_session,
+            build_run_id=1,
+            season_id=season_id,
+            source_max_raw_id=100,
+            config_hash="a" * 64,
             finished_at=datetime(2026, 3, 20, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
         feature_build = await _seed_build_run(
-            sqlite_session, build_run_id=2, season_id=season_id,
-            source_max_raw_id=50, config_hash="b" * 64,
+            sqlite_session,
+            build_run_id=2,
+            season_id=season_id,
+            source_max_raw_id=50,
+            config_hash="b" * 64,
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
@@ -348,9 +346,7 @@ class TestApplicationStateTransitions:
         )
         await sqlite_session.commit()
 
-        with pytest.raises(
-            ResidualTrainingApplicationIntegrityError, match="failed"
-        ):
+        with pytest.raises(ResidualTrainingApplicationIntegrityError, match="failed"):
             await execute_residual_prediction(
                 sqlite_session,
                 request=ResidualPredictionRequest(
@@ -372,15 +368,20 @@ class TestApplicationStateTransitions:
         season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
         task9_run_id, output = await _persist_task9_run(sqlite_session)
         feature_build = await _seed_build_run(
-            sqlite_session, build_run_id=2, season_id=season_id,
-            source_max_raw_id=50, config_hash="b" * 64,
+            sqlite_session,
+            build_run_id=2,
+            season_id=season_id,
+            source_max_raw_id=50,
+            config_hash="b" * 64,
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
 
         # Empty samples → blocked training run
         _, training_run_id = await execute_residual_training(
-            sqlite_session, samples=[], config=_relaxed_config(),
+            sqlite_session,
+            samples=[],
+            config=_relaxed_config(),
         )
 
         tr = (
@@ -416,26 +417,41 @@ class TestApplicationStateTransitions:
         task9_run_id, output = await _persist_task9_run(sqlite_session)
         as_of_date = _snapshot_as_of_date(output)
         label_build = await _seed_build_run(
-            sqlite_session, build_run_id=1, season_id=season_id,
-            source_max_raw_id=100, config_hash="a" * 64,
+            sqlite_session,
+            build_run_id=1,
+            season_id=season_id,
+            source_max_raw_id=100,
+            config_hash="a" * 64,
             finished_at=datetime(2026, 3, 20, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
         feature_build = await _seed_build_run(
-            sqlite_session, build_run_id=2, season_id=season_id,
-            source_max_raw_id=50, config_hash="b" * 64,
+            sqlite_session,
+            build_run_id=2,
+            season_id=season_id,
+            source_max_raw_id=50,
+            config_hash="b" * 64,
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
         await _seed_daily_fact(
-            sqlite_session, fact_id=1, build_run_id=label_build.id,
-            season_id=season_id, factory_id=factory_id, variety_id=variety_id,
-            receipt_date=output.forecast_start_date, weight_kg=Decimal("100"),
+            sqlite_session,
+            fact_id=1,
+            build_run_id=label_build.id,
+            season_id=season_id,
+            factory_id=factory_id,
+            variety_id=variety_id,
+            receipt_date=output.forecast_start_date,
+            weight_kg=Decimal("100"),
         )
         for offset, fact_id in ((1, 2), (3, 3), (7, 4)):
             await _seed_daily_fact(
-                sqlite_session, fact_id=fact_id, build_run_id=feature_build.id,
-                season_id=season_id, factory_id=factory_id, variety_id=variety_id,
+                sqlite_session,
+                fact_id=fact_id,
+                build_run_id=feature_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
                 receipt_date=as_of_date - timedelta(days=offset),
                 weight_kg=Decimal("10") + Decimal(offset),
             )
@@ -487,49 +503,69 @@ class TestApplicationStateTransitions:
         """completed+eligible training run → residual_corrected."""
         season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
         validation_season_id = await _seed_season(
-            sqlite_session, season_id=2, code="2026-2027",
-            start_date=date(2026, 1, 1), end_date=date(2026, 3, 31),
+            sqlite_session,
+            season_id=2,
+            code="2026-2027",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 3, 31),
         )
         task9_run_id, output = await _persist_task9_run(sqlite_session)
         as_of_date = _snapshot_as_of_date(output)
         label_build = await _seed_build_run(
-            sqlite_session, build_run_id=1, season_id=season_id,
-            source_max_raw_id=100, config_hash="a" * 64,
+            sqlite_session,
+            build_run_id=1,
+            season_id=season_id,
+            source_max_raw_id=100,
+            config_hash="a" * 64,
             finished_at=datetime(2026, 3, 20, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
         feature_build = await _seed_build_run(
-            sqlite_session, build_run_id=2, season_id=season_id,
-            source_max_raw_id=50, config_hash="b" * 64,
+            sqlite_session,
+            build_run_id=2,
+            season_id=season_id,
+            source_max_raw_id=50,
+            config_hash="b" * 64,
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
         await _seed_build_run(
-            sqlite_session, build_run_id=101, season_id=validation_season_id,
-            source_max_raw_id=200, config_hash="c" * 64,
+            sqlite_session,
+            build_run_id=101,
+            season_id=validation_season_id,
+            source_max_raw_id=200,
+            config_hash="c" * 64,
             finished_at=datetime(2026, 3, 20, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
         await _seed_build_run(
-            sqlite_session, build_run_id=102, season_id=validation_season_id,
-            source_max_raw_id=150, config_hash="d" * 64,
+            sqlite_session,
+            build_run_id=102,
+            season_id=validation_season_id,
+            source_max_raw_id=150,
+            config_hash="d" * 64,
             finished_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC),
             covered_factory_ids=(factory_id,),
         )
-        for index, target_date in enumerate(
-            (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
-        ):
+        for index, target_date in enumerate((date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))):
             await _seed_daily_fact(
-                sqlite_session, fact_id=100 + index,
-                build_run_id=label_build.id, season_id=season_id,
-                factory_id=factory_id, variety_id=variety_id,
-                receipt_date=target_date, weight_kg=Decimal("100") + Decimal(index),
+                sqlite_session,
+                fact_id=100 + index,
+                build_run_id=label_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
+                receipt_date=target_date,
+                weight_kg=Decimal("100") + Decimal(index),
             )
         for offset, fact_id in ((1, 200), (3, 201), (7, 202)):
             await _seed_daily_fact(
-                sqlite_session, fact_id=fact_id,
-                build_run_id=feature_build.id, season_id=season_id,
-                factory_id=factory_id, variety_id=variety_id,
+                sqlite_session,
+                fact_id=fact_id,
+                build_run_id=feature_build.id,
+                season_id=season_id,
+                factory_id=factory_id,
+                variety_id=variety_id,
                 receipt_date=as_of_date - timedelta(days=offset),
                 weight_kg=Decimal("11") + Decimal(offset),
             )
@@ -562,6 +598,7 @@ class TestApplicationStateTransitions:
 
         # Verify the model artifact hashes exist in training artifacts
         from backend.app.repositories.residual_model import list_residual_artifacts
+
         artifacts = await list_residual_artifacts(sqlite_session, training_run_id=training_run_id)
         assert len(artifacts) == 3
 
@@ -623,7 +660,4 @@ class TestORMConstraints:
             if isinstance(c, CheckConstraint)
         ]
         assert "ck_residual_model_prediction_row_structural_fallback" in row_constraints
-        assert (
-            "ck_residual_model_prediction_row_corrected_no_fallback"
-            in row_constraints
-        )
+        assert "ck_residual_model_prediction_row_corrected_no_fallback" in row_constraints

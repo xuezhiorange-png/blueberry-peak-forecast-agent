@@ -84,9 +84,7 @@ METADATA_FIELD_SOURCES: Final[tuple[tuple[str, str], ...]] = (
 _RUNTIME_IDENTITY_MISSING_BLOCKER: Final[str] = (
     OrchestrationBlocker.REPLAY_RUNTIME_IDENTITY_MISSING.value
 )
-_METADATA_INVALID_BLOCKER: Final[str] = (
-    OrchestrationBlocker.REPLAY_METADATA_INVALID.value
-)
+_METADATA_INVALID_BLOCKER: Final[str] = OrchestrationBlocker.REPLAY_METADATA_INVALID.value
 
 
 # ── §4.5 audit row format (literal handles) ──────────────────────────────────
@@ -276,9 +274,7 @@ async def write_replay_metadata(
             f"run_id must be a positive integer (got {run_id!r})",
             blocker_code=_METADATA_INVALID_BLOCKER,
         )
-    replay_executed_at_utc = _ensure_utc(
-        replay_executed_at, field_name="replay_executed_at"
-    )
+    replay_executed_at_utc = _ensure_utc(replay_executed_at, field_name="replay_executed_at")
     forecast_effective_cutoff_at = _ensure_utc(
         rolling_node.forecast_cutoff_at,
         field_name="rolling_node.forecast_cutoff_at",
@@ -295,9 +291,7 @@ async def write_replay_metadata(
     )
 
     # ── 2. Read the persisted run row ────────────────────────────────────
-    result = await session.execute(
-        select(HarvestStateRun).where(HarvestStateRun.id == run_id)
-    )
+    result = await session.execute(select(HarvestStateRun).where(HarvestStateRun.id == run_id))
     row = result.scalar_one_or_none()
     if row is None:
         raise ReplayMetadataInputError(

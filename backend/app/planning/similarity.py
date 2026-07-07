@@ -37,10 +37,7 @@ def haversine_distance_km(
     delta_lon = radians(longitude_b - longitude_a)
     lat_a = radians(latitude_a)
     lat_b = radians(latitude_b)
-    value = (
-        sin(delta_lat / 2) ** 2
-        + cos(lat_a) * cos(lat_b) * sin(delta_lon / 2) ** 2
-    )
+    value = sin(delta_lat / 2) ** 2 + cos(lat_a) * cos(lat_b) * sin(delta_lon / 2) ** 2
     distance = 2 * earth_radius_km * asin(sqrt(value))
     return Decimal(str(distance)).quantize(Decimal("0.000001"))
 
@@ -154,9 +151,7 @@ def _historical_mape_within_limit(
     if maximum_historical_mape is None:
         return True
     values = [
-        row.candidate.historical_mape
-        for row in ranked
-        if row.candidate.historical_mape is not None
+        row.candidate.historical_mape for row in ranked if row.candidate.historical_mape is not None
     ]
     if not values:
         return False
@@ -199,11 +194,7 @@ def select_fallback_level(
             continue
         rule = fallback_rules[level]
         season_count = len(
-            {
-                row.candidate.season_code
-                for row in ranked
-                if row.candidate.season_code is not None
-            }
+            {row.candidate.season_code for row in ranked if row.candidate.season_code is not None}
         )
         if (
             len(ranked) >= rule.minimum_sample_count

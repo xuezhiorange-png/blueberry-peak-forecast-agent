@@ -90,7 +90,13 @@ from backend.app.rolling_backtest.schemas import (
 
 def _utc(year: int = 2026, month: int = 3, day: int = 15) -> _dt.datetime:
     return _dt.datetime(
-        year, month, day, 4, 0, 0, tzinfo=UTC,
+        year,
+        month,
+        day,
+        4,
+        0,
+        0,
+        tzinfo=UTC,
     )
 
 
@@ -180,9 +186,7 @@ def _make_resolved_input(
 
 
 def test_is_replay_execution_mode_enum_match() -> None:
-    assert is_replay_execution_mode(
-        ExecutionMode.RETROSPECTIVE_REPLAY
-    ) is True
+    assert is_replay_execution_mode(ExecutionMode.RETROSPECTIVE_REPLAY) is True
     assert is_replay_execution_mode(ExecutionMode.HISTORICAL_OBSERVED) is False
 
 
@@ -226,9 +230,7 @@ def test_validate_replay_task10_model_policy_rejects_none() -> None:
 
 def test_validate_replay_task10_model_policy_rejects_unknown() -> None:
     with pytest.raises(Task10ReplayBindingInvalidError) as excinfo:
-        validate_replay_task10_model_policy(
-            requested_policy="not_a_real_policy"
-        )
+        validate_replay_task10_model_policy(requested_policy="not_a_real_policy")
     expected = OrchestrationBlocker.TASK10_REPLAY_BINDING_INVALID.value
     assert excinfo.value.code == expected
 
@@ -741,9 +743,7 @@ def test_binding_module_does_not_import_run_harvest_state_model() -> None:
                     bad.append("call .run_harvest_state_model")
         return bad
 
-    assert _walk(tree) == [], (
-        f"binding module references run_harvest_state_model: {_walk(tree)}"
-    )
+    assert _walk(tree) == [], f"binding module references run_harvest_state_model: {_walk(tree)}"
 
 
 def test_binding_module_no_residual_training() -> None:
@@ -765,9 +765,7 @@ def test_binding_module_no_residual_training() -> None:
             func = child.func
             if isinstance(func, ast.Name) and func.id == "train_residual_model":
                 bad.append("call train_residual_model")
-    assert bad == [], (
-        f"binding module references residual-training: {bad}"
-    )
+    assert bad == [], f"binding module references residual-training: {bad}"
 
 
 # ── replay output cannot pose as historical_observed ────────────────
@@ -843,12 +841,6 @@ def test_binding_module_no_wall_clock_decisions() -> None:
         func = child.func
         attr = func.attr if isinstance(func, ast.Attribute) else None
         value = func.value if isinstance(func, ast.Attribute) else None
-        if (
-            isinstance(value, ast.Name)
-            and value.id == "datetime"
-            and attr in {"now", "utcnow"}
-        ):
+        if isinstance(value, ast.Name) and value.id == "datetime" and attr in {"now", "utcnow"}:
             bad.append(f"datetime.{attr}()")
-    assert bad == [], (
-        f"binding module uses wall-clock fallback: {bad}"
-    )
+    assert bad == [], f"binding module uses wall-clock fallback: {bad}"

@@ -15,15 +15,7 @@ from backend.app.harvest_state.canonical import (
     sha256_hex,
 )
 
-JsonValue = (
-    None
-    | str
-    | bool
-    | int
-    | float
-    | list["JsonValue"]
-    | dict[str, "JsonValue"]
-)
+JsonValue = None | str | bool | int | float | list["JsonValue"] | dict[str, "JsonValue"]
 
 
 def canonical_payload_hash(payload: object) -> str:
@@ -59,23 +51,23 @@ def prediction_input_signature_payload(
     return cast(
         dict[str, JsonValue],
         canonical_json_value(
-        {
-            "model_run_id": model_run_id,
-            "training_signature": training_signature,
-            "task9_run_id": task9_run_id,
-            "task9_result_hash": task9_result_hash,
-            "feature_analytics_build_run_id": feature_analytics_build_run_id,
-            "feature_actual_snapshot": feature_actual_snapshot,
-            "supplemental_feature_values": list(supplemental_feature_values),
-            "feature_audit_hashes": list(feature_audit_hashes),
-            "feature_rows": list(feature_rows),
-            "artifact_hashes": list(artifact_hashes),
-            "config_hash": config_hash,
-            "feature_schema_version": feature_schema_version,
-            "feature_schema_hash": feature_schema_hash,
-            "projection_version": projection_version,
-            "fallback_policy_version": fallback_policy_version,
-        }
+            {
+                "model_run_id": model_run_id,
+                "training_signature": training_signature,
+                "task9_run_id": task9_run_id,
+                "task9_result_hash": task9_result_hash,
+                "feature_analytics_build_run_id": feature_analytics_build_run_id,
+                "feature_actual_snapshot": feature_actual_snapshot,
+                "supplemental_feature_values": list(supplemental_feature_values),
+                "feature_audit_hashes": list(feature_audit_hashes),
+                "feature_rows": list(feature_rows),
+                "artifact_hashes": list(artifact_hashes),
+                "config_hash": config_hash,
+                "feature_schema_version": feature_schema_version,
+                "feature_schema_hash": feature_schema_hash,
+                "projection_version": projection_version,
+                "fallback_policy_version": fallback_policy_version,
+            }
         ),
     )
 

@@ -152,9 +152,7 @@ def _resolved_from_reference(
     score = Decimal("1") if has_valid_reference_zone else None
     return ResolvedLocation(
         status=(
-            status
-            if has_valid_reference_zone or preserve_status_without_zone
-            else "unresolved"
+            status if has_valid_reference_zone or preserve_status_without_zone else "unresolved"
         ),
         location_reference_id=reference.id,
         address_raw=reference.address_raw,
@@ -535,14 +533,9 @@ async def resolve_location_input(
         if zone_resolution.warning is not None:
             warnings.append(zone_resolution.warning)
         location_reference_value = None
-        if (
-            nearest is not None
-            and nearest[1] <= rules.resolver.nearest_reference_distance_km
-        ):
+        if nearest is not None and nearest[1] <= rules.resolver.nearest_reference_distance_km:
             location_reference_value = nearest[0].id
-        status: ResolvedStatus = (
-            "resolved" if zone_resolution.warning is None else "unresolved"
-        )
+        status: ResolvedStatus = "resolved" if zone_resolution.warning is None else "unresolved"
         return ResolvedLocation(
             status=status,
             location_reference_id=location_reference_value,
@@ -566,24 +559,18 @@ async def resolve_location_input(
             climate_zone_mapping_method=zone_resolution.mapping_method,
             climate_zone_confidence=zone_resolution.confidence,
             candidate_count=zone_resolution.candidate_count,
-            confidence_score=(
-                Decimal("1") if nearest_reference is not None else Decimal("0.8")
-            ),
+            confidence_score=(Decimal("1") if nearest_reference is not None else Decimal("0.8")),
             warnings=tuple(warnings),
             candidates=(),
             reproducibility_snapshot={
                 "nearest_location_reference_id": (
                     nearest_reference.id if nearest_reference is not None else None
                 ),
-                "nearest_reference_distance_km": (
-                    str(nearest[1]) if nearest is not None else None
-                ),
+                "nearest_reference_distance_km": (str(nearest[1]) if nearest is not None else None),
                 "climate_zone_version": zone_resolution.zone_version,
                 "climate_zone_mapping_method": zone_resolution.mapping_method,
                 "climate_zone_distance_km": zone_resolution.distance_km,
-                "climate_zone_altitude_difference_m": (
-                    zone_resolution.altitude_difference_m
-                ),
+                "climate_zone_altitude_difference_m": (zone_resolution.altitude_difference_m),
                 "climate_zone_score": zone_resolution.score,
             },
             climate_zone_version=zone_resolution.zone_version,
@@ -613,9 +600,7 @@ async def resolve_location_input(
                 address_normalized=normalized,
                 warning="address_unresolved",
             )
-        if len(scored) >= 2 and (
-            scored[0][0] - scored[1][0] <= rules.similarity.ambiguity_margin
-        ):
+        if len(scored) >= 2 and (scored[0][0] - scored[1][0] <= rules.similarity.ambiguity_margin):
             candidates: tuple[dict[str, object], ...] = tuple(
                 {
                     "location_reference_id": item.id,

@@ -98,23 +98,17 @@ async def _insert_minimal_harvest_state_run(
     "caller did not pass" vs "caller passed None" are distinguishable.
     """
 
-    def _resolve_dt(
-        value: datetime | None | object, *, is_replay_path: bool
-    ) -> datetime | None:
+    def _resolve_dt(value: datetime | None | object, *, is_replay_path: bool) -> datetime | None:
         if value is _UNSET:
             return replay_now if is_replay_path else None
         return value  # type: ignore[return-value]
 
-    def _resolve_str(
-        value: str | None | object, *, is_replay_path: bool
-    ) -> str | None:
+    def _resolve_str(value: str | None | object, *, is_replay_path: bool) -> str | None:
         if value is _UNSET:
             return "replay-v1.0.0" if is_replay_path else None
         return value  # type: ignore[return-value]
 
-    def _resolve_str_corr(
-        value: str | None | object, *, is_replay_path: bool
-    ) -> str | None:
+    def _resolve_str_corr(value: str | None | object, *, is_replay_path: bool) -> str | None:
         if value is _UNSET:
             return "phase3-unit-001" if is_replay_path else None
         return value  # type: ignore[return-value]
@@ -156,12 +150,8 @@ async def _insert_minimal_harvest_state_run(
         forecast_effective_cutoff_at=_resolve_dt(
             forecast_effective_cutoff_at, is_replay_path=is_replay_path
         ),
-        replay_executed_at=_resolve_dt(
-            replay_executed_at, is_replay_path=is_replay_path
-        ),
-        replay_code_version=_resolve_str(
-            replay_code_version, is_replay_path=is_replay_path
-        ),
+        replay_executed_at=_resolve_dt(replay_executed_at, is_replay_path=is_replay_path),
+        replay_code_version=_resolve_str(replay_code_version, is_replay_path=is_replay_path),
         replay_run_correlation_id=_resolve_str_corr(
             replay_run_correlation_id, is_replay_path=is_replay_path
         ),
@@ -256,9 +246,7 @@ async def test_phase3_replay_audit_table_basic_insert_and_reload() -> None:
         audit_id = audit.id
 
     async with AsyncSessionMaker() as fresh_session:
-        again = await fresh_session.get(
-            HarvestStateReplaySourceVisibilityAuditModel, audit_id
-        )
+        again = await fresh_session.get(HarvestStateReplaySourceVisibilityAuditModel, audit_id)
         assert again is not None
         assert again.source_role == "task8_daily_prediction:2099-03-01"
         assert again.visibility_passed is True
@@ -345,18 +333,14 @@ async def test_phase3_replay_audit_fk_ondelete_set_null() -> None:
 
     # Direct DELETE on the parent. Audit must survive with NULL FK.
     async with AsyncSessionMaker() as session:
-        result = await session.execute(
-            delete(HarvestStateRun).where(HarvestStateRun.id == run_id)
-        )
+        result = await session.execute(delete(HarvestStateRun).where(HarvestStateRun.id == run_id))
         # Either rowcount==1 (deleted) or pytest expects we deleted; the
         # integration conftest ensures the parent was insertable.
         assert result.rowcount == 1
         await session.commit()
 
     async with AsyncSessionMaker() as fresh:
-        again = await fresh.get(
-            HarvestStateReplaySourceVisibilityAuditModel, audit_id
-        )
+        again = await fresh.get(HarvestStateReplaySourceVisibilityAuditModel, audit_id)
         assert again is not None
         assert again.harvest_state_run_id is None, (
             "Audit row must survive parent deletion (FK ondelete SET NULL)"
@@ -582,9 +566,7 @@ async def test_phase3_alembic_round_trip_upgrade_downgrade() -> None:
     _assert_migration_0015_identity()
 
     async with AsyncSessionMaker() as session:
-        rev = await session.execute(
-            text("SELECT version_num FROM alembic_version")
-        )
+        rev = await session.execute(text("SELECT version_num FROM alembic_version"))
         alembic_head = rev.scalar_one_or_none()
     assert alembic_head is not None, "alembic_version must be present"
 
@@ -603,9 +585,7 @@ def _assert_migration_0015_identity() -> None:
     spec = importlib.util.spec_from_file_location(
         "_0015_task11_phase3_schema_gap_loadable", str(migration_path)
     )
-    assert spec is not None and spec.loader is not None, (
-        f"spec/loader missing for {migration_path}"
-    )
+    assert spec is not None and spec.loader is not None, f"spec/loader missing for {migration_path}"
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert module.revision == "0015_task11_phase3_schema_gap"

@@ -282,11 +282,15 @@ async def test_prediction_authority_artifact_hash_modified(
         session, result=training_result, manifest_rows=rows
     )
     # Get the training artifact hashes
-    training_artifact_rows = (await session.execute(
-        text("SELECT artifact_sha256 FROM residual_model_artifact "
-             "WHERE training_run_id = :tid ORDER BY quantile_label"),
-        {"tid": training_run.id},
-    )).fetchall()
+    training_artifact_rows = (
+        await session.execute(
+            text(
+                "SELECT artifact_sha256 FROM residual_model_artifact "
+                "WHERE training_run_id = :tid ORDER BY quantile_label"
+            ),
+            {"tid": training_run.id},
+        )
+    ).fetchall()
     training_artifact_hashes = [row[0] for row in training_artifact_rows]
 
     # Build a structural_only prediction that references the training run
@@ -319,14 +323,16 @@ async def test_prediction_authority_artifact_hash_modified(
         task9_run_id=10,
         task9_result_hash="c" * 64,
         config_hash=training_run.config_hash,
-        structural_rows=[{
-            "destination_factory_id": 701,
-            "arrival_local_date": date(2026, 3, 2),
-            "forecast_horizon_days": 1,
-            "structural_p50_kg": Decimal("100"),
-            "structural_p80_kg": Decimal("110"),
-            "structural_p90_kg": Decimal("120"),
-        }],
+        structural_rows=[
+            {
+                "destination_factory_id": 701,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
         fallback_reason="model_ineligible",
         input_snapshot=input_snapshot,
     )
@@ -374,11 +380,15 @@ async def test_prediction_authority_schema_hash_mismatch_on_load(
     training_run = await save_residual_training_run(
         session, result=training_result, manifest_rows=rows
     )
-    training_artifact_rows = (await session.execute(
-        text("SELECT artifact_sha256 FROM residual_model_artifact "
-             "WHERE training_run_id = :tid ORDER BY quantile_label"),
-        {"tid": training_run.id},
-    )).fetchall()
+    training_artifact_rows = (
+        await session.execute(
+            text(
+                "SELECT artifact_sha256 FROM residual_model_artifact "
+                "WHERE training_run_id = :tid ORDER BY quantile_label"
+            ),
+            {"tid": training_run.id},
+        )
+    ).fetchall()
     training_artifact_hashes = [row[0] for row in training_artifact_rows]
 
     # Create prediction linked to training run
@@ -411,14 +421,16 @@ async def test_prediction_authority_schema_hash_mismatch_on_load(
         task9_run_id=10,
         task9_result_hash="c" * 64,
         config_hash=training_run.config_hash,
-        structural_rows=[{
-            "destination_factory_id": 701,
-            "arrival_local_date": date(2026, 3, 2),
-            "forecast_horizon_days": 1,
-            "structural_p50_kg": Decimal("100"),
-            "structural_p80_kg": Decimal("110"),
-            "structural_p90_kg": Decimal("120"),
-        }],
+        structural_rows=[
+            {
+                "destination_factory_id": 701,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
         fallback_reason="model_ineligible",
         input_snapshot=input_snapshot,
     )
@@ -460,11 +472,15 @@ async def test_prediction_authority_schema_version_mismatch_with_training_run(
         session, result=training_result, manifest_rows=rows
     )
 
-    training_artifact_rows = (await session.execute(
-        text("SELECT artifact_sha256 FROM residual_model_artifact "
-             "WHERE training_run_id = :tid ORDER BY quantile_label"),
-        {"tid": training_run.id},
-    )).fetchall()
+    training_artifact_rows = (
+        await session.execute(
+            text(
+                "SELECT artifact_sha256 FROM residual_model_artifact "
+                "WHERE training_run_id = :tid ORDER BY quantile_label"
+            ),
+            {"tid": training_run.id},
+        )
+    ).fetchall()
     training_artifact_hashes = [row[0] for row in training_artifact_rows]
 
     input_snapshot = {
@@ -496,14 +512,16 @@ async def test_prediction_authority_schema_version_mismatch_with_training_run(
         task9_run_id=10,
         task9_result_hash="c" * 64,
         config_hash=training_run.config_hash,
-        structural_rows=[{
-            "destination_factory_id": 701,
-            "arrival_local_date": date(2026, 3, 2),
-            "forecast_horizon_days": 1,
-            "structural_p50_kg": Decimal("100"),
-            "structural_p80_kg": Decimal("110"),
-            "structural_p90_kg": Decimal("120"),
-        }],
+        structural_rows=[
+            {
+                "destination_factory_id": 701,
+                "arrival_local_date": date(2026, 3, 2),
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+        ],
         fallback_reason="model_ineligible",
         input_snapshot=input_snapshot,
     )
