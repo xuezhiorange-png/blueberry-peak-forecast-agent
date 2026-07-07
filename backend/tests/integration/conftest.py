@@ -171,3 +171,63 @@ async def isolate_master_data_tables() -> AsyncIterator[None]:
         yield
     finally:
         await _truncate_master_data()
+
+
+# ---------------------------------------------------------------------------
+# Slice 2 — opt-in transactional isolation fixture
+# ---------------------------------------------------------------------------
+#
+# This fixture is **opt-in**: a test must declare it as a parameter to
+# use it. The autouse `isolate_master_data_tables` TRUNCATE fixture
+# above continues to run for every integration test, including tests
+# that opt into `transactional_pg_session`. The TRUNCATE behavior is
+# unchanged in this slice; removing it is Slice 5 territory.
+#
+# The fixture is gated on:
+#   - `_postgres_integration_enabled()` — RUN_POSTGRES_INTEGRATION=1
+#   - the Slice 1 dev-DB safeguard — assert_safe_postgres_test_identity
+# When either gate fails, the fixture yields a no-op context that
+# lets the test body run without acquiring a real connection. This
+# matches the pre-Slice-2 behavior for the same gate conditions and
+# keeps the rest of the integration suite green on hosts that do not
+# run PG.
+
+
+@pytest.fixture
+async def transactional_pg_session() -> AsyncIterator[object]:
+    """Opt-in transaction + savepoint + rollback session for PG tests.
+
+    Yields a SQLAlchemy :class:`AsyncSession` that is bound to a
+    single outer transaction on a dedicated connection. The fixture
+    rolls the outer transaction back at teardown so every write is
+    reverted, including writes that passed through
+    ``session.commit()``.
+
+    When PG is not enabled (``RUN_POSTGRES_INTEGRATION!=1``) or the
+    Slice 1 dev-DB safeguard rejects the test identity, the fixture
+    yields ``None`` and emits a pytest skip. Tests that require a
+    real connection should be marked with
+    ``@pytest.mark.skipif(not _postgres_integration_enabled(), ...)``
+    (or the equivalent pattern used elsewhere in this directory).
+    """
+    from backend.tests.integration._txn_isolation import (
+        transactional_async_session,
+    )
+    from backend.tests.postgres_test_support import (
+        assert_safe_postgres_test_identity,
+    )
+
+    if not _postgres_integration_enabled():
+        pytest.skip("transactional_pg_session requires RUN_POSTGRES_INTEGRATION=1")
+        return  # unreachable, but keeps type checkers happy
+
+    # Slice 1 dev-DB safeguard: must run BEFORE the engine connects,
+    # so an unsafe DATABASE_URL / port / APP_ENV fails fast without
+    # touching the wire. The function raises ValueError on unsafe
+    # inputs; we propagate that raise as a test failure (not a skip)
+    # so the safeguard regression test still fires.
+    assert_safe_postgres_test_identity(env=None)
+
+    engine = AsyncSessionMaker().get_bind()
+    async with transactional_async_session(engine) as session:
+        yield session
