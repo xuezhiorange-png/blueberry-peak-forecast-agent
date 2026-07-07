@@ -288,6 +288,7 @@ jobs:
             backend/tests/test_harvest_state_alembic.py \
             backend/tests/test_residual_model_alembic.py \
             backend/tests/test_alembic_round_trip_isolated.py \
+            backend/tests/test_alembic_round_trip_isolated_db_live.py \
             -q --tb=long \
             --junitxml=reports/test-results/postgres-migration.xml
           status=$?

@@ -1,21 +1,40 @@
-"""Slice 3 — isolated PostgreSQL test-database profile for migration round-trip.
+"""Slice 3 — pure helper-contract tests for the isolated PostgreSQL profile.
 
-These tests verify the *contract* of
+This file is a **pure helper-contract test** for
 :mod:`backend.tests.migration_isolation_helpers` (the pure helper that
 the ``postgres-migration`` GitHub Actions job uses to derive and guard
 its per-run isolated database name).
 
-The tests do **not** open a PG connection. They are pure-python
-validators of the helper, so they are safe to run on hosts without
-PostgreSQL and will be picked up by the ``unit-contract-golden`` CI
-job (which excludes anything marked ``integration`` / ``postgres`` /
-``postgres_concurrency`` — this file is **not** marked, because it
-has no live-PG dependency).
+Property: this file does **not** open a PostgreSQL connection. It is
+a pure-python validator of the helper, so it is safe to run on hosts
+without PostgreSQL.
 
-The companion live-PG assertion
-(``test_alembic_round_trip_uses_isolated_database``) lives in
-``backend/tests/integration/test_alembic_round_trip_isolated_db_live.py``
-and is executed only by the ``postgres-migration`` job in CI.
+Marker / CI ownership (corrected contract):
+
+* This file is marked ``pytest.mark.postgres`` (see ``pytestmark``
+  below). The ``unit-contract-golden`` CI job selects tests with
+  ``-m "not integration and not postgres and not postgres_concurrency"``,
+  so this file is **explicitly excluded** from
+  ``unit-contract-golden``. Running it there would be a mistake, not
+  a feature: the contract being asserted is the *isolated-DB profile*
+  used by the destructive ``postgres-migration`` job, not the
+  unit-contract path.
+* This file is **owned** by the ``postgres-migration`` job, which
+  lists it explicitly in its ``pytest`` invocation in
+  ``.github/workflows/ci.yml`` (the ``-m`` selector does not apply to
+  a hand-listed file). It is the only CI job that runs these tests.
+* This file is intentionally **not** placed under
+  ``backend/tests/integration/`` to avoid being collected by any
+  future integration-shard wiring.
+
+This PR does **not** add a live-PG companion assertion
+(``test_alembic_round_trip_uses_isolated_database``) under
+``backend/tests/integration/`` or elsewhere. The CI round-trip
+itself is the only live evidence in this slice; it is asserted at
+the *CI step* level (the ``alembic upgrade head`` /
+``downgrade 0010_harvest_state_persistence`` / ``upgrade head``
+chain), not by a pytest module. This file's job is to pin the
+helper contract so the CI step cannot silently drift.
 """
 
 from __future__ import annotations
@@ -30,9 +49,12 @@ from backend.tests.migration_isolation_helpers import (
 )
 from backend.tests.postgres_test_support import FORBIDDEN_DATABASE_NAMES
 
-# Mark this file so it is excluded from the "postgres" / "integration"
-# shards if anyone later adds the markers. It is intentionally NOT
-# marked ``integration`` because it has no live-PG requirement.
+# Mark this file ``postgres`` so the ``unit-contract-golden`` job's
+# ``-m "not integration and not postgres and not postgres_concurrency"``
+# selector **excludes** it. The ``postgres-migration`` job lists the
+# file explicitly in its ``pytest`` invocation, so the marker is not a
+# no-op for that job — it only governs whether the contract tests get
+# collected by other shards.
 pytestmark = pytest.mark.postgres
 
 
