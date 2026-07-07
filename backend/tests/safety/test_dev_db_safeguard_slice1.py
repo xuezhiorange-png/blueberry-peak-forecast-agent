@@ -237,9 +237,7 @@ def test_validator_accepts_worker_suffixed_test_db() -> None:
 def test_database_url_with_dev_db_name_is_rejected() -> None:
     """DATABASE_URL containing dev-DB name pattern is rejected via wrapper."""
     env = dict(SAFE_PROFILE_ENV)
-    env["DATABASE_URL"] = (
-        "postgresql://postgres:secret@localhost:55432/blueberry_peak"
-    )
+    env["DATABASE_URL"] = "postgresql://postgres:secret@localhost:55432/blueberry_peak"
     with pytest.raises(ValueError, match="DATABASE_URL contains a dev-DB name pattern"):
         assert_safe_postgres_test_identity(env)
 
@@ -247,9 +245,7 @@ def test_database_url_with_dev_db_name_is_rejected() -> None:
 def test_database_url_with_dev_port_is_rejected() -> None:
     """DATABASE_URL pointing at localhost:5432 is rejected via wrapper."""
     env = dict(SAFE_PROFILE_ENV)
-    env["DATABASE_URL"] = (
-        "postgresql://postgres:secret@localhost:5432/blueberry_peak_test"
-    )
+    env["DATABASE_URL"] = "postgresql://postgres:secret@localhost:5432/blueberry_peak_test"
     with pytest.raises(ValueError, match="dev port"):
         assert_safe_postgres_test_identity(env)
 
@@ -257,9 +253,7 @@ def test_database_url_with_dev_port_is_rejected() -> None:
 def test_database_url_test_profile_is_accepted() -> None:
     """A DATABASE_URL pointing at the test profile is accepted."""
     env = dict(SAFE_PROFILE_ENV)
-    env["DATABASE_URL"] = (
-        "postgresql://postgres:secret@localhost:55432/blueberry_peak_test"
-    )
+    env["DATABASE_URL"] = "postgresql://postgres:secret@localhost:55432/blueberry_peak_test"
     # Must not raise.
     identity = assert_safe_postgres_test_identity(env)
     assert identity.database_name == DEFAULT_TEST_DB_NAME
