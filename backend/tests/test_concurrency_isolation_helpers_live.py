@@ -153,7 +153,7 @@ def test_resolver_matches_ci_step_for_known_run_inputs() -> None:
 
 
 def test_current_database_returns_isolated_name() -> None:
-    """A live connection to the isolated DB must report ``current_database() == ISOLATED_DB_NAME``."""
+    """A live connection must report ``current_database() == ISOLATED_DB_NAME``."""
 
     async def _run() -> None:
         name = _skip_unless_safe_isolated_db_present()
