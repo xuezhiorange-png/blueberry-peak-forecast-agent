@@ -481,10 +481,7 @@ def _window_feature_from_observations(
 
     effective_temperature_sum = (
         sum(
-            (
-                max(item.temperature_mean_c - base_temperature, Decimal("0"))
-                for item in valid_days
-            ),
+            (max(item.temperature_mean_c - base_temperature, Decimal("0")) for item in valid_days),
             Decimal("0"),
         )
         if base_temperature is not None
@@ -496,13 +493,10 @@ def _window_feature_from_observations(
         Decimal("0"),
     )
     minimum_temperature = min(item.temperature_min_c for item in valid_days)
-    mean_dtr = (
-        sum(
-            (item.temperature_max_c - item.temperature_min_c for item in valid_days),
-            Decimal("0"),
-        )
-        / Decimal(len(valid_days))
-    )
+    mean_dtr = sum(
+        (item.temperature_max_c - item.temperature_min_c for item in valid_days),
+        Decimal("0"),
+    ) / Decimal(len(valid_days))
 
     return WeatherWindowFeature(
         window_days=window_days,
@@ -588,8 +582,7 @@ def _build_phenology_timeline(
         cumulative_missing_dates = tuple(missing_dates)
         if cumulative_expected_day_count > 0:
             cumulative_coverage_ratio = (
-                Decimal(cumulative_observed_day_count)
-                / Decimal(cumulative_expected_day_count)
+                Decimal(cumulative_observed_day_count) / Decimal(cumulative_expected_day_count)
             ).quantize(Decimal("0.000001"))
         if missing_dates:
             warnings.append("anchor_weather_incomplete")
@@ -775,9 +768,7 @@ def _rehydrate_window_feature(payload: dict[str, Any]) -> WeatherWindowFeature:
         coverage_ratio=cast(Decimal, _decimal_from_json(payload["coverage_ratio"])),
         missing_dates=tuple(
             item
-            for item in (
-                _date_from_json(value) for value in payload.get("missing_dates", [])
-            )
+            for item in (_date_from_json(value) for value in payload.get("missing_dates", []))
             if item is not None
         ),
         quality_flags=tuple(str(item) for item in payload.get("quality_flags", [])),
@@ -832,8 +823,7 @@ def _rehydrate_timeline(payload: dict[str, Any]) -> PhenologyTimeline:
         cumulative_missing_dates=tuple(
             item
             for item in (
-                _date_from_json(value)
-                for value in payload.get("cumulative_missing_dates", [])
+                _date_from_json(value) for value in payload.get("cumulative_missing_dates", [])
             )
             if item is not None
         ),
@@ -1052,9 +1042,7 @@ async def import_weather_observations(
                 provider_code=row.provider_code,
             )
             matches = [
-                item
-                for item in locations
-                if item.external_location_id == row.external_location_id
+                item for item in locations if item.external_location_id == row.external_location_id
             ]
             if not matches:
                 unknown_location_count += 1
@@ -1196,9 +1184,7 @@ async def import_location_weather_mappings(
             external_location_id = str(row["external_location_id"]).strip()
             valid_from = _date_value(row["valid_from"], field="valid_from")
             valid_to = (
-                _date_value(row["valid_to"], field="valid_to")
-                if row.get("valid_to")
-                else None
+                _date_value(row["valid_to"], field="valid_to") if row.get("valid_to") else None
             )
             available_at = _date_value(row["available_at"], field="available_at")
             source_locations = await list_visible_weather_source_locations(
@@ -2011,9 +1997,7 @@ async def search_base_temperature(
         }
         if not sample.include:
             manifest_row["status"] = "excluded"
-            manifest_row["resolved_exclusion_reason"] = (
-                sample.exclusion_reason or "input_excluded"
-            )
+            manifest_row["resolved_exclusion_reason"] = sample.exclusion_reason or "input_excluded"
             training_manifest.append(manifest_row)
             continue
         plan = await get_plan_by_id(session, plan_id=sample.plan_id)
@@ -2300,9 +2284,9 @@ async def search_base_temperature(
                 fold_errors.append(Decimal(abs((predicted_date - actual_target).days)))
                 evaluated_count += 1
         mae_days = (
-            (
-                sum(fold_errors, Decimal("0")) / Decimal(len(fold_errors))
-            ).quantize(Decimal("0.000001"))
+            (sum(fold_errors, Decimal("0")) / Decimal(len(fold_errors))).quantize(
+                Decimal("0.000001")
+            )
             if fold_errors
             else None
         )

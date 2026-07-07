@@ -209,9 +209,7 @@ def _prediction_input_snapshot(
             value.model_dump(mode="json") for value in request.supplemental_feature_values
         ],
         "feature_audit_hashes": [audit.audit_hash for audit in feature_audits],
-        "feature_rows": [
-            [item.model_dump(mode="json") for item in row] for row in feature_rows
-        ],
+        "feature_rows": [[item.model_dump(mode="json") for item in row] for row in feature_rows],
         "feature_schema_version": feature_schema_version,
         "feature_schema_hash": feature_schema_hash,
         "config_hash": config_hash,
@@ -379,10 +377,7 @@ async def execute_residual_prediction(
         )
 
         artifact_hashes: list[str] = []
-        if (
-            preload_artifact_error is not None
-            and training_run_row.eligibility_status == "eligible"
-        ):
+        if preload_artifact_error is not None and training_run_row.eligibility_status == "eligible":
             current_stage = "artifact_identity_load"
             await _update_attempt_stage(
                 session=session,
@@ -401,9 +396,7 @@ async def execute_residual_prediction(
             artifact_hashes = [item.artifact_sha256 for item in training_artifact_rows]
 
         model_run_snapshot = (
-            model_run.input_snapshot
-            if model_run is not None
-            else training_run_row.input_snapshot
+            model_run.input_snapshot if model_run is not None else training_run_row.input_snapshot
         )
         config = load_residual_model_config_from_snapshot(model_run_snapshot["config_snapshot"])
         result: ResidualPredictionExecutionResult
@@ -513,9 +506,7 @@ async def execute_residual_prediction(
             config_hash=training_run_row.config_hash,
             config_snapshot=training_run_row.config_snapshot,
             feature_snapshot=(
-                feature_snapshot.model_dump(mode="json")
-                if feature_snapshot is not None
-                else None
+                feature_snapshot.model_dump(mode="json") if feature_snapshot is not None else None
             ),
             feature_audits=feature_audits,
             artifact_hashes=artifact_hashes,

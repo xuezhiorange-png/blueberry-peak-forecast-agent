@@ -108,9 +108,7 @@ def test_write_model_reports_creates_json_and_markdown(tmp_path: Path) -> None:
                     "passed_row_count": 1,
                     "excluded_row_count": 1,
                     "failed_row_count": 0,
-                    "reason_code_breakdown": {
-                        "fact_rows_not_visible_at_cutoff": 1
-                    },
+                    "reason_code_breakdown": {"fact_rows_not_visible_at_cutoff": 1},
                     "affected_manifest_rows": [
                         {
                             "index": 1,
@@ -230,9 +228,5 @@ def test_write_forecast_reports_creates_json_and_markdown(tmp_path: Path) -> Non
 
     assert json_path.exists()
     assert markdown_path.exists()
-    assert '"expected_marketable_total_kg": "96000"' in json_path.read_text(
-        encoding="utf-8"
-    )
-    assert "# Natural Maturity Forecast Report" in markdown_path.read_text(
-        encoding="utf-8"
-    )
+    assert '"expected_marketable_total_kg": "96000"' in json_path.read_text(encoding="utf-8")
+    assert "# Natural Maturity Forecast Report" in markdown_path.read_text(encoding="utf-8")

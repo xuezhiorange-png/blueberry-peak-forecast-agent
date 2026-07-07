@@ -34,9 +34,7 @@ def _sha256_check_sql(column_name: str) -> str:
     for char in "0123456789abcdef":
         stripped = f"replace({stripped}, '{char}', '')"
     return (
-        f"length({column_name}) = 64 "
-        f"and lower({column_name}) = {column_name} "
-        f"and {stripped} = ''"
+        f"length({column_name}) = 64 and lower({column_name}) = {column_name} and {stripped} = ''"
     )
 
 

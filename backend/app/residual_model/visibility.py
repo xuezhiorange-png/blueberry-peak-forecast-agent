@@ -158,11 +158,7 @@ def audit_feature_visibility(
         "blockers": [item.model_dump(mode="json") for item in blockers],
         "warnings": warnings,
     }
-    status = (
-        ResidualExecutionStatus.BLOCKED
-        if blockers
-        else ResidualExecutionStatus.COMPLETED
-    )
+    status = ResidualExecutionStatus.BLOCKED if blockers else ResidualExecutionStatus.COMPLETED
     return FeatureVisibilityAudit(
         status=status,
         feature_count=len(features),

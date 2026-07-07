@@ -173,8 +173,7 @@ async def seeded_residual_inputs(sqlite_session: AsyncSession) -> dict[str, obje
         "validation_label_analytics_build_run_id": validation_label_build.id,
         "validation_feature_analytics_build_run_id": validation_feature_build.id,
         "supplemental_feature_values": [
-            item.model_dump(mode="json")
-            for item in _supplemental_features(as_of_date=as_of_date)
+            item.model_dump(mode="json") for item in _supplemental_features(as_of_date=as_of_date)
         ],
     }
 

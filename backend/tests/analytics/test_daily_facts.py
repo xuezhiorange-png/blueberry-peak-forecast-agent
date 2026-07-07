@@ -126,6 +126,7 @@ async def test_build_daily_facts_allows_empty_analysis_calendar_without_global_r
         start_date=date(2026, 5, 1),
         end_date=date(2026, 5, 31),
     )
+
     class _Session:
         async def stream(self, _statement: object) -> object:
             class _EmptyStream:

@@ -122,9 +122,7 @@ async def test_artifact_coordinated_db_and_metadata_hash_mutation(
     await sqlite_session.commit()
 
     with pytest.raises(ResidualArtifactIntegrityError):
-        await load_and_validate_trusted_residual_artifacts(
-            sqlite_session, run_id=run.id
-        )
+        await load_and_validate_trusted_residual_artifacts(sqlite_session, run_id=run.id)
 
 
 # ── 2. Invalid bytes (valid SHA but invalid joblib bytes) ─────────────────
@@ -138,12 +136,16 @@ def test_artifact_invalid_bytes_valid_sha() -> None:
     artifact = _artifact()
     garbage_bytes = b"this is not a valid joblib file"
     valid_sha = hashlib.sha256(garbage_bytes).hexdigest()
-    bad_artifact = artifact.model_copy(update={
-        "artifact_bytes": garbage_bytes,
-        "metadata": artifact.metadata.model_copy(update={
-            "binary_sha256": valid_sha,
-        }),
-    })
+    bad_artifact = artifact.model_copy(
+        update={
+            "artifact_bytes": garbage_bytes,
+            "metadata": artifact.metadata.model_copy(
+                update={
+                    "binary_sha256": valid_sha,
+                }
+            ),
+        }
+    )
 
     with pytest.raises(ResidualArtifactIntegrityError):
         load_trusted_quantile_estimator(
@@ -174,21 +176,27 @@ def test_artifact_wrong_estimator_type() -> None:
     wrong_sha = hashlib.sha256(wrong_bytes).hexdigest()
 
     valid_artifact = _artifact()
-    bad_metadata = valid_artifact.metadata.model_copy(update={
-        "binary_sha256": wrong_sha,
-        "binary_format": "joblib_bundle",
-    })
+    bad_metadata = valid_artifact.metadata.model_copy(
+        update={
+            "binary_sha256": wrong_sha,
+            "binary_format": "joblib_bundle",
+        }
+    )
     # Fix metadata_sha256 to make the metadata payload consistent
     fixed_metadata_sha = canonical_payload_hash(
         bad_metadata.model_dump(mode="python", exclude={"metadata_sha256"})
     )
-    bad_metadata = bad_metadata.model_copy(update={
-        "metadata_sha256": fixed_metadata_sha,
-    })
-    bad_artifact = valid_artifact.model_copy(update={
-        "artifact_bytes": wrong_bytes,
-        "metadata": bad_metadata,
-    })
+    bad_metadata = bad_metadata.model_copy(
+        update={
+            "metadata_sha256": fixed_metadata_sha,
+        }
+    )
+    bad_artifact = valid_artifact.model_copy(
+        update={
+            "artifact_bytes": wrong_bytes,
+            "metadata": bad_metadata,
+        }
+    )
 
     with pytest.raises(ResidualArtifactIntegrityError):
         load_trusted_quantile_estimator(
@@ -228,26 +236,30 @@ def test_artifact_wrong_estimator_parameters() -> None:
     wrong_sha = hashlib.sha256(wrong_bytes).hexdigest()
 
     valid_artifact = _artifact()
-    metadata_that_claims_default = valid_artifact.metadata.model_copy(update={
-        "binary_sha256": wrong_sha,
-        "estimator_parameters": {
-            **valid_artifact.metadata.estimator_parameters,
-            "learning_rate": 0.1,
-        },
-    })
+    metadata_that_claims_default = valid_artifact.metadata.model_copy(
+        update={
+            "binary_sha256": wrong_sha,
+            "estimator_parameters": {
+                **valid_artifact.metadata.estimator_parameters,
+                "learning_rate": 0.1,
+            },
+        }
+    )
     # Fix metadata_sha256 for consistent metadata payload
     fixed_metadata_sha = canonical_payload_hash(
-        metadata_that_claims_default.model_dump(
-            mode="python", exclude={"metadata_sha256"}
-        )
+        metadata_that_claims_default.model_dump(mode="python", exclude={"metadata_sha256"})
     )
-    metadata_that_claims_default = metadata_that_claims_default.model_copy(update={
-        "metadata_sha256": fixed_metadata_sha,
-    })
-    bad_artifact = valid_artifact.model_copy(update={
-        "artifact_bytes": wrong_bytes,
-        "metadata": metadata_that_claims_default,
-    })
+    metadata_that_claims_default = metadata_that_claims_default.model_copy(
+        update={
+            "metadata_sha256": fixed_metadata_sha,
+        }
+    )
+    bad_artifact = valid_artifact.model_copy(
+        update={
+            "artifact_bytes": wrong_bytes,
+            "metadata": metadata_that_claims_default,
+        }
+    )
 
     with pytest.raises(ResidualArtifactIntegrityError, match="parameters"):
         load_trusted_quantile_estimator(
@@ -274,18 +286,24 @@ def test_artifact_runtime_version_mismatch() -> None:
     config = _config()
     valid_artifact = _artifact()
 
-    bad_metadata = valid_artifact.metadata.model_copy(update={
-        "sklearn_version": "0.24.0",
-    })
+    bad_metadata = valid_artifact.metadata.model_copy(
+        update={
+            "sklearn_version": "0.24.0",
+        }
+    )
     fixed_metadata_sha = canonical_payload_hash(
         bad_metadata.model_dump(mode="python", exclude={"metadata_sha256"})
     )
-    bad_metadata = bad_metadata.model_copy(update={
-        "metadata_sha256": fixed_metadata_sha,
-    })
-    bad_artifact = valid_artifact.model_copy(update={
-        "metadata": bad_metadata,
-    })
+    bad_metadata = bad_metadata.model_copy(
+        update={
+            "metadata_sha256": fixed_metadata_sha,
+        }
+    )
+    bad_artifact = valid_artifact.model_copy(
+        update={
+            "metadata": bad_metadata,
+        }
+    )
 
     with pytest.raises(ResidualArtifactIntegrityError, match="sklearn"):
         load_trusted_quantile_estimator(
@@ -334,11 +352,7 @@ async def test_artifact_category_encoding_coordinated_mutation(
     )
 
     await sqlite_session.execute(
-        text(
-            "UPDATE residual_model_artifact "
-            "SET metadata = :metadata "
-            "WHERE id = :artifact_id"
-        ),
+        text("UPDATE residual_model_artifact SET metadata = :metadata WHERE id = :artifact_id"),
         {
             "metadata": json.dumps(metadata),
             "artifact_id": p50_artifact.id,
@@ -358,6 +372,4 @@ async def test_artifact_category_encoding_coordinated_mutation(
     await sqlite_session.commit()
 
     with pytest.raises(ResidualArtifactIntegrityError):
-        await load_and_validate_trusted_residual_artifacts(
-            sqlite_session, run_id=run.id
-        )
+        await load_and_validate_trusted_residual_artifacts(sqlite_session, run_id=run.id)

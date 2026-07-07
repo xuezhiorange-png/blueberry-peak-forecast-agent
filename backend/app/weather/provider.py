@@ -153,9 +153,7 @@ class CsvWeatherProvider:
                 mean_source = "derived"
             else:
                 if mean < minimum or mean > maximum:
-                    raise WeatherValidationError(
-                        "temperature_mean_c must be between min and max"
-                    )
+                    raise WeatherValidationError("temperature_mean_c must be between min and max")
                 mean_source = "provided"
             precipitation = _decimal_value(row.get("precipitation_mm"), field="precipitation_mm")
             if precipitation < 0:

@@ -45,11 +45,7 @@ class VarietyAreaInput(BaseModel):
 
     @model_validator(mode="after")
     def _validate_lookup(self) -> VarietyAreaInput:
-        if (
-            self.variety_id is None
-            and self.variety_code is None
-            and self.variety_name is None
-        ):
+        if self.variety_id is None and self.variety_code is None and self.variety_name is None:
             raise ValueError("variety lookup is required")
         return self
 

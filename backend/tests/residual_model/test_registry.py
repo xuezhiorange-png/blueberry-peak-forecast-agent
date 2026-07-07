@@ -16,4 +16,3 @@ def test_blocklisted_features_include_target_and_future_actuals() -> None:
     blocklist = blocklisted_features()
     assert "target_date_actual_receipt_kg" in blocklist
     assert "future_actual_receipt_kg" in blocklist
-

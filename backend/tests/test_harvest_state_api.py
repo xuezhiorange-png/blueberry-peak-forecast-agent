@@ -331,9 +331,9 @@ def test_openapi_report_error_models() -> None:
     ):
         operation = schema["paths"][path]["get"]
         for status_code in ("404", "422", "500"):
-            ref = operation["responses"][status_code]["content"]["application/json"][
-                "schema"
-            ]["$ref"]
+            ref = operation["responses"][status_code]["content"]["application/json"]["schema"][
+                "$ref"
+            ]
             assert ref.endswith("/HarvestStateErrorResponse")
 
 

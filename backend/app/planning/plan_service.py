@@ -707,9 +707,7 @@ async def create_replacement_version(
                     "replacement subfarm_id must match current plan"
                 )
             if season_id != current.season_id:
-                raise ProductionPlanValidationError(
-                    "replacement season_id must match current plan"
-                )
+                raise ProductionPlanValidationError("replacement season_id must match current plan")
             if variety_id != current.variety_id:
                 raise ProductionPlanValidationError(
                     "replacement variety_id must match current plan"

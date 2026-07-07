@@ -39,8 +39,7 @@ def manifest_row_payload(row: ResidualTrainingManifestRow) -> dict[str, Any]:
         "structural_p90_kg": row.structural_p90_kg,
         "residual_label_kg": row.residual_label_kg,
         "feature_values": [
-            item.model_dump(mode="json")
-            for item in sort_feature_values(row.feature_values)
+            item.model_dump(mode="json") for item in sort_feature_values(row.feature_values)
         ],
         "feature_visibility_audit": (
             row.feature_visibility_audit.model_dump(mode="json")
@@ -70,8 +69,5 @@ def manifest_row_sort_key(row: ResidualTrainingManifestRow) -> tuple[object, ...
 
 
 def manifest_hash(rows: Iterable[ResidualTrainingManifestRow]) -> str:
-    payload = [
-        manifest_row_payload(row)
-        for row in sorted(rows, key=manifest_row_sort_key)
-    ]
+    payload = [manifest_row_payload(row) for row in sorted(rows, key=manifest_row_sort_key)]
     return sha256_hex(canonical_json_value(payload))

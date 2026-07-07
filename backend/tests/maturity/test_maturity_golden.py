@@ -28,9 +28,7 @@ from backend.app.models.planning import Base
 
 def _config():
     repo_root = Path(__file__).resolve().parents[3]
-    return load_maturity_curve_config(
-        repo_root / "configs/maturity_curve.yaml"
-    )
+    return load_maturity_curve_config(repo_root / "configs/maturity_curve.yaml")
 
 
 def _golden_sample(
@@ -275,12 +273,9 @@ def test_maturity_golden_order_invariance_and_mass_conservation() -> None:
 
     assert artifacts_a["zone:1|variety:1"].density == artifacts_b["zone:1|variety:1"].density
     assert metrics_a["reference_phase_rates"] == metrics_b["reference_phase_rates"]
-    assert (
-        sum(artifacts_a["zone:1|variety:1"].density, Decimal("0")).quantize(
-            Decimal("0.000001")
-        )
-        == Decimal("1.000000")
-    )
+    assert sum(artifacts_a["zone:1|variety:1"].density, Decimal("0")).quantize(
+        Decimal("0.000001")
+    ) == Decimal("1.000000")
     assert all(value >= 0 for value in artifacts_a["zone:1|variety:1"].density)
     daily_p50 = reconcile_p50_mass(
         expected_total_kg=Decimal("96000"),
@@ -325,23 +320,15 @@ def test_maturity_golden_shift_direction_and_sparse_group_fallback() -> None:
         feature_values=samples[2].feature_values,
     )
     assert high_shift > low_shift
-    assert (
-        artifacts["zone:2|variety:1"].fallback_reason
-        == "insufficient_training_samples"
-    )
-    assert (
-        artifacts["zone:2|variety:1"].density
-        == artifacts["province:Sichuan|variety:1"].density
-    )
+    assert artifacts["zone:2|variety:1"].fallback_reason == "insufficient_training_samples"
+    assert artifacts["zone:2|variety:1"].density == artifacts["province:Sichuan|variety:1"].density
     assert "variety:2" not in artifacts
     assert metrics["group_levels"]["variety:2"]["available"] is False
     assert (
-        metrics["group_levels"]["variety:2"]["fallback_reason"]
-        == "insufficient_training_samples"
+        metrics["group_levels"]["variety:2"]["fallback_reason"] == "insufficient_training_samples"
     )
     assert (
-        metrics["group_levels"]["zone:1|variety:2"]["fallback_reason"]
-        == "parent_group_unavailable"
+        metrics["group_levels"]["zone:1|variety:2"]["fallback_reason"] == "parent_group_unavailable"
     )
 
 
@@ -446,18 +433,12 @@ def test_maturity_golden_calibration_and_base_temperature_context_are_separated(
         reference_phase_rates=metrics["reference_phase_rates"],
     )
 
-    assert (
-        payload["base_temperature_context"]["zone:1|variety:1"][
-            "selected_base_temperature"
-        ]
-        == Decimal("4")
-    )
-    assert (
-        payload["base_temperature_context"]["zone:1|variety:2"][
-            "selected_base_temperature"
-        ]
-        == Decimal("6")
-    )
+    assert payload["base_temperature_context"]["zone:1|variety:1"][
+        "selected_base_temperature"
+    ] == Decimal("4")
+    assert payload["base_temperature_context"]["zone:1|variety:2"][
+        "selected_base_temperature"
+    ] == Decimal("6")
     assert calibration["interval_semantics"] == "pointwise_marginal"
     assert set(calibration["held_out_seasons"]) >= {"2024-2025", "2025-2026", "2026-2027"}
     assert calibration["p80_margin_share"] >= Decimal("0")
@@ -547,9 +528,7 @@ def test_maturity_golden_reports_include_representative_values(tmp_path: Path) -
                     "passed_row_count": len(samples),
                     "excluded_row_count": 1,
                     "failed_row_count": 0,
-                    "reason_code_breakdown": {
-                        "fact_rows_not_visible_at_cutoff": 1
-                    },
+                    "reason_code_breakdown": {"fact_rows_not_visible_at_cutoff": 1},
                     "affected_manifest_rows": [
                         {
                             "index": 99,

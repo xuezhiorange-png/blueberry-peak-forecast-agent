@@ -1039,9 +1039,7 @@ async def _seed_real_task10_authorities(
         # fixture-driven rewrite here would silently re-order the
         # candidates and break that contract.
         async with AsyncSessionMaker() as session:
-            train_task9 = await session.get(
-                HarvestStateRun, existing_prediction.task9_run_id
-            )
+            train_task9 = await session.get(HarvestStateRun, existing_prediction.task9_run_id)
             assert train_task9 is not None, (
                 "idempotent task10 fixture detected a prediction_run "
                 "whose task9_run_id row is missing"
@@ -1054,20 +1052,21 @@ async def _seed_real_task10_authorities(
                 await session.execute(
                     select(ResidualModelArtifact)
                     .where(
-                        ResidualModelArtifact.training_run_id
-                        == existing_prediction.training_run_id
+                        ResidualModelArtifact.training_run_id == existing_prediction.training_run_id
                     )
                     .order_by(ResidualModelArtifact.id.asc())
                     .limit(1)
                 )
             ).scalar_one()
             other_task9_rows = (
-                await session.execute(
-                    select(HarvestStateRun).where(
-                        HarvestStateRun.id != train_task9.id
+                (
+                    await session.execute(
+                        select(HarvestStateRun).where(HarvestStateRun.id != train_task9.id)
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             validation_task9 = other_task9_rows[0] if other_task9_rows else None
             feature_build_row = (
                 await session.execute(
@@ -1077,9 +1076,7 @@ async def _seed_real_task10_authorities(
             assert feature_build_row is not None
         if feature_build_finished_at is not None:
             async with AsyncSessionMaker() as session:
-                feature_build = await session.get(
-                    AnalyticsBuildRun, feature_build_row.id
-                )
+                feature_build = await session.get(AnalyticsBuildRun, feature_build_row.id)
                 if feature_build is not None:
                     feature_build.finished_at = feature_build_finished_at
                     await session.commit()
@@ -1767,9 +1764,7 @@ async def _build_real_historical_resolution_command(
             for identity in historical_identities
             if not identity.source_role.startswith("task8_daily_prediction:")
         )
-        historical_node_updates["resolved_upstream_semantic_identities"] = (
-            historical_identities
-        )
+        historical_node_updates["resolved_upstream_semantic_identities"] = historical_identities
         february_end_cutoff_at = datetime.combine(
             date(season_id, 2, 28),
             pinned_cmd.config.cutoff_local_time,

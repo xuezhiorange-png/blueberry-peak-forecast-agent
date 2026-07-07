@@ -258,10 +258,10 @@ async def _load_holidays(
     return list(
         (
             await session.scalars(
-            select(Holiday)
-            .where(Holiday.season_id == season_id, Holiday.active.is_(True))
-            .order_by(Holiday.start_date, Holiday.id)
-        )
+                select(Holiday)
+                .where(Holiday.season_id == season_id, Holiday.active.is_(True))
+                .order_by(Holiday.start_date, Holiday.id)
+            )
         ).all()
     )
 
@@ -317,10 +317,7 @@ def _holiday_codes_by_factory_date(
                 codes_by_factory_date[factory_id][current].add(holiday.code)
                 current += timedelta(days=1)
     return {
-        factory_id: {
-            holiday_date: tuple(sorted(codes))
-            for holiday_date, codes in by_date.items()
-        }
+        factory_id: {holiday_date: tuple(sorted(codes)) for holiday_date, codes in by_date.items()}
         for factory_id, by_date in codes_by_factory_date.items()
     }
 
