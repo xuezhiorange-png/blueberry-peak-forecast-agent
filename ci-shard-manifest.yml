@@ -1,0 +1,318 @@
+# ci-shard-manifest.yml
+#
+# TASK-011-INFRA Batch 2 implementation: single-execution ownership source of truth.
+#
+# Per PR #55 design freeze (docs/task-11-issue-50-batch2-ci-dedup-design.md):
+#   §3.1 single-execution rule: each pytest test node must be assigned to exactly
+#        one PR CI owner job or intentionally excluded from PR CI with documented
+#        canary coverage. Overlapping execution in PR CI is forbidden.
+#   §5 marker and shard dependency contract: this manifest is the source of truth
+#       for single-execution review. Future implementation PRs must update this
+#       manifest when test ownership changes.
+#   §13 test catalog placeholder: filled in by this implementation with concrete
+#        directory-glob + marker ownership per PR CI job, NOT by reclassifying
+#        tests (reclassification is forbidden by §2.2 non-goals).
+#
+# Strategy: directory-glob + marker ownership (NOT test reclassification), because
+# §2.2 forbids "test class additions, modifications, or reclassification" while
+# §8.1 permits "minimal pytest marker declarations only, if required". We use
+# EXISTING markers (postgres, integration, postgres_concurrency) defined in
+# pyproject.toml as the marker selectors; no new markers are added in this
+# implementation round (the existing three markers are sufficient).
+#
+# PR CI layout (8 PR jobs, per PR #55 §3):
+#   1. static                   — linting, formatting, type-checking (no pytest)
+#   2. unit-contract-golden     — pure unit, contract, golden tests
+#   3. postgres-migration       — Alembic / migration round-trip tests
+#   4. postgres-domain-1        — domain integration tests, slice 1
+#   5. postgres-domain-2        — domain integration tests, slice 2
+#   6. postgres-task11          — Task 11 evaluation and mask tests
+#   7. postgres-concurrency     — concurrency and real-commit tests
+#   8. compose-smoke            — Docker Compose smoke test (no pytest)
+#
+# Canary (NOT on PR events):
+#   9. full-suite-canary        — full pytest run on main push / nightly / dispatch
+#
+# Cross-jobs (must NOT run on PR events):
+#   - full-suite-canary: main push + schedule + workflow_dispatch ONLY (see §4).
+#
+version: 1
+
+# Single-execution principle applied throughout:
+#   - "Sharp selector" wins: when a marker filter matches a test, the marker
+#     filter is the owner, NOT the file path. Path-based shards add the
+#     `-m "not postgres_concurrency"` filter so that no node is run twice.
+#   - Dev-DB safeguard test (backend/tests/safety/test_dev_db_protection.py)
+#     is preserved in unit-contract-golden per PR #55 §2.1 + §15.
+
+shards:
+
+  # ------------------------------------------------------------------
+  # §3 row 1 — static (pull_request only, NO pytest invocation)
+  # ------------------------------------------------------------------
+  - name: static
+    job: static
+    event: pull_request
+    pytest_runs: none
+    owner_files: []
+    notes: |
+      PR #55 §3 row 1. Linting/formatting/type-checking/security scanning.
+      No pytest invocation; this job runs ruff + mypy.
+
+  # ------------------------------------------------------------------
+  # §3 row 2 — unit-contract-golden (pull_request only)
+  # Marker-residual ownership: any test NOT marked integration/postgres/
+  # postgres_concurrency and NOT in any postgres-* shard's file glob.
+  # ------------------------------------------------------------------
+  - name: unit-contract-golden
+    job: unit-contract-golden
+    event: pull_request
+    pytest_args:
+      - backend/tests
+      - "-m"
+      - "not integration and not postgres and not postgres_concurrency"
+      - "-q"
+      - "--tb=short"
+    owner_files:
+      # All directory contents owned by this shard (their tests have no
+      # integration/postgres/postgres_concurrency marker; verified by manifest audit).
+      - backend/tests/analytics/
+      - backend/tests/baseline/
+      - backend/tests/etl/
+      - backend/tests/maturity/
+      - backend/tests/planning/
+      - backend/tests/residual_model/
+      - backend/tests/rolling_backtest/
+      - backend/tests/weather/
+      # Root-level test files (no postgres requirement):
+      - backend/tests/test_config.py
+      - backend/tests/test_health.py
+      - backend/tests/test_lifespan.py
+      - backend/tests/test_residual_model_cli.py
+      - backend/tests/test_harvest_state_api.py
+      - backend/tests/test_harvest_state_cli.py
+      - backend/tests/test_harvest_state_reports.py
+      - backend/tests/test_task9_authority_models.py
+      # Dev-DB safeguard from PR #47 / Issue #23 Batch 1, MUST be preserved
+      # in PR CI (per PR #55 §2.1 non-degradation rule + §15 glossary):
+      - backend/tests/safety/test_dev_db_protection.py
+    notes: |
+      PR #55 §3 row 2. Pure unit, contract, golden tests via marker-residual
+      filter. The `-m "not integration and not postgres and not
+      postgres_concurrency"` filter is the single-execution enforcement: any
+      test that gains an integration/postgres/postgres_concurrency marker
+      will be excluded from this job and run in a postgres-* shard.
+      The dev-DB safeguard (backend/tests/safety/test_dev_db_protection.py)
+      is preserved here per PR #55 §2.1 + §15.
+
+  # ------------------------------------------------------------------
+  # §3 row 3 — postgres-migration (pull_request only)
+  # Three dedicated Alembic migration round-trip root-level files.
+  # ------------------------------------------------------------------
+  - name: postgres-migration
+    job: postgres-migration
+    event: pull_request
+    pytest_args:
+      - backend/tests/test_alembic_baseline.py
+      - backend/tests/test_harvest_state_alembic.py
+      - backend/tests/test_residual_model_alembic.py
+      - "-q"
+      - "--tb=short"
+    owner_files:
+      - backend/tests/test_alembic_baseline.py
+      - backend/tests/test_harvest_state_alembic.py
+      - backend/tests/test_residual_model_alembic.py
+    notes: |
+      PR #55 §3 row 3. Alembic migration round-trip tests.
+      Excludes backend/tests/integration/test_task11_phase3_schema_gap_persistence.py
+      and backend/tests/test_task11_phase3_schema_gap.py (which use Alembic
+      but are TASK-011 domain scope) — those go to postgres-task11.
+
+  # ------------------------------------------------------------------
+  # §3 row 4 — postgres-task11 (pull_request only)
+  # All TASK-011 evaluation/mask/canonical/hash/key/audit domain tests,
+  # plus the task11 integration serialization file (with marker filter
+  # to exclude concurrency-marked nodes — those go to postgres-concurrency).
+  # ------------------------------------------------------------------
+  - name: postgres-task11
+    job: postgres-task11
+    event: pull_request
+    pytest_args:
+      - backend/tests/harvest_state/
+      - backend/tests/test_task11_phase3_schema_gap.py
+      - backend/tests/integration/test_task11_dependency_serialization.py
+      - backend/tests/integration/test_task11_exact_load_and_colon_matrix.py
+      - backend/tests/integration/test_task11_hardening_tests.py
+      - backend/tests/integration/test_task11_phase3_schema_gap_persistence.py
+      - "-m"
+      - "not postgres_concurrency"
+      - "-q"
+      - "--tb=short"
+    owner_files:
+      - backend/tests/harvest_state/
+      - backend/tests/test_task11_phase3_schema_gap.py
+      - backend/tests/integration/test_task11_dependency_serialization.py
+      - backend/tests/integration/test_task11_exact_load_and_colon_matrix.py
+      - backend/tests/integration/test_task11_hardening_tests.py
+      - backend/tests/integration/test_task11_phase3_schema_gap_persistence.py
+    notes: |
+      PR #55 §3 row 6. Task 11 evaluation, mask, canonical, hash, key, audit
+      domain. The harvest_state/ directory contains the TASK-011 service and
+      schemas. The root-level test_task11_phase3_schema_gap* files and four
+      integration/test_task11_* files are also TASK-011 scope.
+      The `-m "not postgres_concurrency"` filter excludes the 5
+      concurrency-marked nodes in test_task11_dependency_serialization.py;
+      those nodes are owned by postgres-concurrency (the sharp selector wins).
+
+  # ------------------------------------------------------------------
+  # §3 row 5 — postgres-concurrency (pull_request only)
+  # Marker-driven ownership per §5 marker dependency contract.
+  # ------------------------------------------------------------------
+  - name: postgres-concurrency
+    job: postgres-concurrency
+    event: pull_request
+    pytest_args:
+      - "-m"
+      - "postgres_concurrency"
+      - "-q"
+      - "--tb=short"
+    owner_files:
+      # Marker-driven ownership per §5 marker dependency contract. Both
+      # files carry @pytest.mark.postgres_concurrency on some test
+      # functions; the marker filter selects precisely those nodes. The
+      # non-concurrency nodes in these files are owned by other shards
+      # (postgres-task11 / postgres-domain-1) via file globs with the
+      # `-m "not postgres_concurrency"` exclusion filter.
+      - backend/tests/integration/test_task11_dependency_serialization.py
+      - backend/tests/integration/test_task9_authority_repository_postgres.py
+    notes: |
+      PR #55 §3 row 7. Concurrency / real-commit tests. Marker-driven:
+      @pytest.mark.postgres_concurrency. The `-m postgres_concurrency`
+      filter is the precise single-execution owner. No test
+      reclassification required (the marker already exists in pyproject.toml).
+
+  # ------------------------------------------------------------------
+  # §3 row 6 — postgres-domain-1 (pull_request only, slice 1)
+  # ------------------------------------------------------------------
+  - name: postgres-domain-1
+    job: postgres-domain-1
+    event: pull_request
+    pytest_args:
+      - backend/tests/integration/test_baseline_backtest.py
+      - backend/tests/integration/test_climate_zone_import.py
+      - backend/tests/integration/test_daily_facts_analytics.py
+      - backend/tests/integration/test_failed_attempts.py
+      - backend/tests/integration/test_harvest_state_delivery.py
+      - backend/tests/integration/test_harvest_state_persistence.py
+      - backend/tests/integration/test_health_ready_postgres.py
+      - backend/tests/integration/test_history_import.py
+      - backend/tests/integration/test_master_data_api.py
+      - backend/tests/integration/test_master_data_constraints.py
+      - backend/tests/integration/test_maturity_curve.py
+      - backend/tests/integration/test_minimal_input_parameter_inference.py
+      - backend/tests/integration/test_production_plans.py
+      - backend/tests/integration/test_residual_model_constraints.py
+      - backend/tests/integration/test_residual_model_persistence.py
+      - backend/tests/integration/test_task9_authority_migration_postgres.py
+      - backend/tests/integration/test_task9_authority_request_loader_postgres.py
+      - backend/tests/integration/test_task9_authority_resolution_postgres.py
+      - backend/tests/integration/test_task9_authority_repository_postgres.py
+      - "-m"
+      - "not postgres_concurrency"
+      - "-q"
+      - "--tb=short"
+    owner_files:
+      - backend/tests/integration/test_baseline_backtest.py
+      - backend/tests/integration/test_climate_zone_import.py
+      - backend/tests/integration/test_daily_facts_analytics.py
+      - backend/tests/integration/test_failed_attempts.py
+      - backend/tests/integration/test_harvest_state_delivery.py
+      - backend/tests/integration/test_harvest_state_persistence.py
+      - backend/tests/integration/test_health_ready_postgres.py
+      - backend/tests/integration/test_history_import.py
+      - backend/tests/integration/test_master_data_api.py
+      - backend/tests/integration/test_master_data_constraints.py
+      - backend/tests/integration/test_maturity_curve.py
+      - backend/tests/integration/test_minimal_input_parameter_inference.py
+      - backend/tests/integration/test_production_plans.py
+      - backend/tests/integration/test_residual_model_constraints.py
+      - backend/tests/integration/test_residual_model_persistence.py
+      - backend/tests/integration/test_task9_authority_migration_postgres.py
+      - backend/tests/integration/test_task9_authority_request_loader_postgres.py
+      - backend/tests/integration/test_task9_authority_resolution_postgres.py
+      - backend/tests/integration/test_task9_authority_repository_postgres.py
+    notes: |
+      PR #55 §3 row 4. Integration domain tests, slice 1 of 2.
+      Covers Task 7 / 9 / 10 (cutoff, authority, master data, residual
+      model, production plans, health) plus Task 9 authority postgres
+      repository (file claims ownership of non-concurrency nodes).
+      The `-m "not postgres_concurrency"` filter excludes the 2
+      concurrency-marked nodes in test_task9_authority_repository_postgres.py;
+      those nodes are owned by postgres-concurrency (sharp selector wins).
+
+  # ------------------------------------------------------------------
+  # §3 row 7 — postgres-domain-2 (pull_request only, slice 2)
+  # ------------------------------------------------------------------
+  - name: postgres-domain-2
+    job: postgres-domain-2
+    event: pull_request
+    pytest_args:
+      - backend/tests/integration/test_residual_model_task3_end_to_end.py
+      - backend/tests/integration/test_rolling_backtest_0013.py
+      - backend/tests/integration/test_rolling_backtest_orchestration.py
+      - backend/tests/integration/test_rolling_backtest_persistence.py
+      - backend/tests/integration/test_task7_resolver_cutoff_contracts.py
+      - backend/tests/integration/test_weather_features.py
+      - "-q"
+      - "--tb=short"
+    owner_files:
+      - backend/tests/integration/test_residual_model_task3_end_to_end.py
+      - backend/tests/integration/test_rolling_backtest_0013.py
+      - backend/tests/integration/test_rolling_backtest_orchestration.py
+      - backend/tests/integration/test_rolling_backtest_persistence.py
+      - backend/tests/integration/test_task7_resolver_cutoff_contracts.py
+      - backend/tests/integration/test_weather_features.py
+    notes: |
+      PR #55 §3 row 5. Integration domain tests, slice 2 of 2. Covers
+      rolling backtest + Task 7 resolver + weather features + the
+      residual model task 3 end-to-end integration test. No
+      concurrency-marked nodes in this slice.
+
+  # ------------------------------------------------------------------
+  # §3 row 8 — compose-smoke (pull_request only, NO pytest)
+  # ------------------------------------------------------------------
+  - name: compose-smoke
+    job: compose-smoke
+    event: pull_request
+    pytest_runs: none
+    owner_files: []
+    notes: |
+      PR #55 §3 row 8. Docker Compose smoke test on port 55432.
+      No pytest invocation (smoke validates the dev-DB safeguard from
+      PR #47 / Issue #23 Batch 1 is intact).
+
+  # ------------------------------------------------------------------
+  # §4 — full-suite-canary (NOT pull_request)
+  # Push to main + schedule + workflow_dispatch ONLY.
+  # ------------------------------------------------------------------
+  - name: full-suite-canary
+    job: full-suite-canary
+    event:
+      - push
+      - schedule
+      - workflow_dispatch
+    pytest_args:
+      - backend/tests
+      - "-q"
+      - "--tb=short"
+    owner_files:
+      # Canary owns EVERY test file (exhaustive coverage for the canary
+      # gate). Single-execution rule for PR events is unaffected because
+      # this job does not run on pull_request.
+      - backend/tests/
+    notes: |
+      PR #55 §4 full-suite canary gating. Runs ONLY on push to main,
+      nightly schedule, or manual workflow_dispatch. MUST NOT run on
+      pull_request events per §4. Canary is the single source of truth
+      for "no regression in the full pytest suite" and is the rollback
+      trigger per §11 (G-04 and the full_canary_on_pr_event blocker).
