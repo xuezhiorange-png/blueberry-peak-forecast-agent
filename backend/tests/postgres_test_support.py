@@ -277,18 +277,9 @@ def validate_postgres_test_identity(identity: PostgresTestIdentity) -> None:
         # If any field was defaulted and the default is not the safe
         # test default, raise. This catches the case where someone
         # implicitly relied on a hardcoded dev fallback.
-        defaulted_db = (
-            identity.used_defaults.get("database_name")
-            and db_name != DEFAULT_TEST_DB_NAME
-        )
-        defaulted_port = (
-            identity.used_defaults.get("database_port")
-            and db_port != DEFAULT_TEST_DB_PORT
-        )
-        defaulted_env = (
-            identity.used_defaults.get("app_env")
-            and app_env != DEFAULT_TEST_APP_ENV
-        )
+        defaulted_db = identity.used_defaults.get("database_name") and db_name != DEFAULT_TEST_DB_NAME
+        defaulted_port = identity.used_defaults.get("database_port") and db_port != DEFAULT_TEST_DB_PORT
+        defaulted_env = identity.used_defaults.get("app_env") and app_env != DEFAULT_TEST_APP_ENV
         if defaulted_db or defaulted_port or defaulted_env:
             raise ValueError(
                 "refusing unsafe PostgreSQL test identity: silent fallback to "
@@ -386,7 +377,9 @@ def format_postgres_test_identity(identity: PostgresTestIdentity) -> str:
     The ``DATABASE_URL`` value is intentionally NEVER included.
     """
     defaults_repr = (
-        "none" if not identity.used_defaults else ",".join(sorted(identity.used_defaults.keys()))
+        "none"
+        if not identity.used_defaults
+        else ",".join(sorted(identity.used_defaults.keys()))
     )
     return (
         f"postgres-test-identity: "
