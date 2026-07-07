@@ -135,6 +135,20 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+    env:
+      # Slice 3 — postgres-migration isolated DB profile. The destructive
+      # Alembic round-trip (upgrade head → downgrade 0010 → upgrade head)
+      # is bound to a per-run isolated database whose name is fail-closed
+      # validated by backend/tests/migration_isolation_helpers.py. The
+      # service container's own ``blueberry_peak`` is only used as the
+      # admin / "postgres" connection target (to create + drop the
+      # isolated database) and is never the target of any alembic
+      # upgrade / downgrade / pytest run.
+      ISOLATED_JOB_NAME: postgres_migration
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: blueberry_app
+      POSTGRES_PASSWORD: change-me-in-local-env
     steps:
       - uses: actions/checkout@v4
 
@@ -149,11 +163,7 @@ jobs:
 
       - name: Wait for PostgreSQL service
         env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
           POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           python - <<'PY'
           import asyncio
@@ -184,14 +194,82 @@ jobs:
           asyncio.run(main())
           PY
 
+      - name: Resolve isolated test database name
+        # Slice 3: derive a per-run isolated DB name and run the
+        # fail-closed guard so the rest of the job binds to a name
+        # that is unique, recognizably a test database, and not on
+        # the FORBIDDEN_DATABASE_NAMES list.
+        env:
+          POSTGRES_DB: blueberry_peak
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import os
+          import sys
+
+          from backend.tests.migration_isolation_helpers import (
+              assert_safe_isolated_db_name,
+              resolve_isolated_db_name,
+          )
+
+          run_id = os.environ["GITHUB_RUN_ID"]
+          run_attempt = os.environ["GITHUB_RUN_ATTEMPT"]
+          job_name = os.environ["ISOLATED_JOB_NAME"]
+          name = resolve_isolated_db_name(run_id, run_attempt, job_name)
+          assert_safe_isolated_db_name(name)
+          print(f"ISOLATED_DB_NAME={name}")
+          PY
+
+      - name: Create isolated test database
+        env:
+          POSTGRES_DB: blueberry_peak
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import os
+
+          import asyncpg
+
+          ISOLATED_DB_NAME = os.environ["ISOLATED_DB_NAME"]
+
+          async def main() -> None:
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database="blueberry_peak",
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  # Defensive: do not silently overwrite an existing
+                  # database. If we see one, fail the step loudly so
+                  # the operator can investigate naming collisions
+                  # before we reuse a stale schema.
+                  exists = await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1",
+                      ISOLATED_DB_NAME,
+                  )
+                  if exists:
+                      raise SystemExit(
+                          f"isolated test database {ISOLATED_DB_NAME!r} "
+                          "already exists; refusing to overwrite"
+                      )
+                  await conn.execute(
+                      f'CREATE DATABASE "{ISOLATED_DB_NAME}"'
+                  )
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
+
       - name: Alembic harvest-state persistence migration round trip
+        # Bound to the isolated database so the destructive downgrade
+        # never reaches the dev-like ``blueberry_peak`` service DB.
         env:
           APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:${{ env.POSTGRES_PORT }}/${{ env.ISOLATED_DB_NAME }}
         run: |
           alembic -c backend/alembic.ini upgrade head
           alembic -c backend/alembic.ini downgrade 0010_harvest_state_persistence
@@ -200,11 +278,8 @@ jobs:
       - name: Postgres migration tests
         env:
           APP_ENV: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
-          POSTGRES_USER: blueberry_app
-          POSTGRES_PASSWORD: change-me-in-local-env
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:${{ env.POSTGRES_PORT }}/${{ env.ISOLATED_DB_NAME }}
         run: |
           mkdir -p reports/test-results
           set +e
@@ -212,6 +287,7 @@ jobs:
             backend/tests/test_alembic_baseline.py \
             backend/tests/test_harvest_state_alembic.py \
             backend/tests/test_residual_model_alembic.py \
+            backend/tests/test_alembic_round_trip_isolated.py \
             -q --tb=long \
             --junitxml=reports/test-results/postgres-migration.xml
           status=$?
@@ -230,6 +306,71 @@ jobs:
           path: reports/test-results/postgres-migration.xml
           if-no-files-found: warn
 
+      - name: Drop isolated test database
+        # Cleanup is best-effort: a DROP failure must NEVER mask a
+        # pre-existing failure in the migration steps. The step is
+        # `if: always()` and wraps DROP in `pg_terminate_backend` to
+        # release any leaked connection, then `::warning::` on failure
+        # so the run still reports the upstream exit code.
+        if: always()
+        env:
+          POSTGRES_DB: blueberry_peak
+        run: |
+          set +e
+          python - <<'PY'
+          import asyncio
+          import os
+          import sys
+
+          import asyncpg
+
+          ISOLATED_DB_NAME = os.environ["ISOLATED_DB_NAME"]
+
+          async def main() -> None:
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database="blueberry_peak",
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  # Terminate any active backends on the isolated DB so
+                  # DROP can acquire ACCESS EXCLUSIVE.
+                  await conn.execute(
+                      "SELECT pg_terminate_backend(pid) "
+                      "FROM pg_stat_activity "
+                      "WHERE datname = $1 AND pid <> pg_backend_pid()",
+                      ISOLATED_DB_NAME,
+                  )
+                  exists = await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1",
+                      ISOLATED_DB_NAME,
+                  )
+                  if not exists:
+                      print(
+                          f"isolated test database {ISOLATED_DB_NAME!r} "
+                          "does not exist; nothing to drop"
+                      )
+                      return
+                  await conn.execute(
+                      f'DROP DATABASE "{ISOLATED_DB_NAME}"'
+                  )
+                  print(
+                      f"dropped isolated test database {ISOLATED_DB_NAME!r}"
+                  )
+              finally:
+                  await conn.close()
+
+          try:
+              asyncio.run(main())
+          except Exception as exc:  # noqa: BLE001
+              print(
+                  f"::warning::failed to drop isolated test database "
+                  f"{ISOLATED_DB_NAME!r}: {exc}"
+              )
+              sys.exit(0)
+          PY
   # ----------------------------------------------------------------
   # §3 row 4 — postgres-domain-1 (PR only)
   # Integration domain tests, slice 1.
