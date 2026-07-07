@@ -2,9 +2,9 @@
 
 **Status**: design-only freeze. No code changes. No CI workflow changes. No production semantics changes.
 
-**Parent**: Issue #23 (umbrella). **Sub-issue**: Issue #50 (per spec literal mapping; see §16 for clarity on the PR #47 / Issue #50 mapping).
+**Parent**: Issue #23 umbrella. **Sub-issue**: Issue #50 per Batch 2 mapping.
 
-This document is a **binding contract** for the future Batch 2 implementation PR. It does NOT authorize implementation. Implementation requires separate Charles authorization.
+This document is a binding contract for the future Batch 2 implementation PR. It does not authorize implementation. Implementation requires separate Charles authorization.
 
 ---
 
@@ -14,188 +14,156 @@ The current PR CI workflow executes the same pytest tests multiple times through
 
 - `pytest -m "not integration"`
 - `pytest -m integration`
-- full `pytest` (or equivalent in workflow step)
+- full `pytest` or equivalent workflow step
 
-For a typical PR, this causes **every non-integration test to run twice** and **every integration test to run at least twice**, plus the full `pytest` call runs all of them a third time. This inflates PR CI runtime and wastes CI minutes.
+This inflates PR CI runtime and wastes CI minutes. Issue #50 defines the deduplicated PR CI layout for Batch 2.
 
-Issue #50 (Batch 2, the CI de-duplication tracking issue per spec) defines the deduplicated PR CI layout that solves this.
-
-This Batch 2 PR is **design-only**; implementation is a separate Draft PR.
+This PR is design-only. Implementation must happen in a separate Draft PR.
 
 ---
 
-## §2 Scope (binding for Batch 2 implementation)
+## §2 Scope
 
-### 2.1 Goals (must achieve)
+### 2.1 Goals
 
-- Each pytest test node is executed **at most once** in the deduplicated PR CI matrix.
+- Each pytest test node is executed at most once in the deduplicated PR CI matrix.
 - PR CI runtime is reduced versus the current overlapping pattern.
-- `full pytest` (or equivalent all-tests sweep) **does not run on PR** events; it runs only as a canary on `main` push / nightly schedule / manual `workflow_dispatch`.
-- The dev-DB safeguard from PR #47 (Issue #23 sub-area 1 / Batch 1) is preserved and respected.
+- `full pytest` does not run on PR events; it runs only as canary on main push, nightly schedule, or manual `workflow_dispatch`.
+- The dev-DB safeguard from PR #47 / Issue #23 Batch 1 is preserved.
 
-### 2.2 Non-goals (must not change)
+### 2.2 Non-goals
 
-- Production semantics — no change to TASK-011 evaluation / mask / canonical / hash / key / audit logic.
-- Migration semantics — no Alembic schema changes.
-- Test semantics — no test class additions, modifications, or reclassifications.
-- Backend code — `backend/app/**` is forbidden to modify.
-- Database isolation mechanics — deferred to Issue #51 / Batch 3.
-- Marker taxonomy overhaul (beyond what is required for the CI split) — deferred to Issue #52 / Batch 4.
-- Fixture refactor — deferred to Issue #53 / Batch 5.
-- CI performance & diagnostics beyond what's required for the CI split — deferred to Issue #54 / Batch 6.
+- No production semantic change to TASK-011 evaluation, mask, canonical, hash, key, or audit logic.
+- No Alembic schema change.
+- No test class additions, modifications, or reclassification.
+- No `backend/app/**` modification.
+- Database isolation mechanics are deferred to Issue #51 / Batch 3.
+- Marker taxonomy overhaul is deferred to Issue #52 / Batch 4.
+- Fixture refactor is deferred to Issue #53 / Batch 5.
+- CI performance and diagnostics beyond the required split are deferred to Issue #54 / Batch 6.
 
 ---
 
-## §3 Target PR CI job layout (binding)
-
-### 3.1 Required PR CI jobs (8 jobs)
+## §3 Target PR CI job layout
 
 | # | Job | Purpose | Events |
 |---|-----|---------|--------|
-| 1 | `static` | Linting, formatting, type-checking, security scanning | `pull_request` |
-| 2 | `unit-contract-golden` | Pure unit tests, contract tests, golden tests (no DB) | `pull_request` |
-| 3 | `postgres-migration` | Alembic / migration round-trip tests | `pull_request` |
-| 4 | `postgres-domain-1` | Domain layer integration tests (slice 1) | `pull_request` |
-| 5 | `postgres-domain-2` | Domain layer integration tests (slice 2) | `pull_request` |
-| 6 | `postgres-task11` | Task 11 evaluation / mask tests | `pull_request` |
-| 7 | `postgres-concurrency` | Concurrency / real-commit tests | `pull_request` |
-| 8 | `compose-smoke` | Docker Compose smoke test (port 55432 + DB connectivity) | `pull_request` |
-| 9 (canary) | `full-suite-canary` | Full pytest run | `push` to main, `schedule` (nightly), `workflow_dispatch` |
+| 1 | `static` | linting, formatting, type-checking, security scanning | `pull_request` |
+| 2 | `unit-contract-golden` | pure unit, contract, and golden tests | `pull_request` |
+| 3 | `postgres-migration` | Alembic and migration round-trip tests | `pull_request` |
+| 4 | `postgres-domain-1` | domain integration tests, slice 1 | `pull_request` |
+| 5 | `postgres-domain-2` | domain integration tests, slice 2 | `pull_request` |
+| 6 | `postgres-task11` | Task 11 evaluation and mask tests | `pull_request` |
+| 7 | `postgres-concurrency` | concurrency and real-commit tests | `pull_request` |
+| 8 | `compose-smoke` | Docker Compose smoke test on port 55432 | `pull_request` |
+| 9 | `full-suite-canary` | full pytest run | main push, schedule, workflow_dispatch |
 
-### 3.2 Single-execution rule (hard constraint)
+### 3.1 Single-execution rule
 
-Each test node across the entire pytest test suite MUST be executed **at most once** in the deduplicated PR CI matrix. Overlapping execution is explicitly forbidden.
+Each test node across the pytest corpus must be assigned to exactly one PR CI owner job or intentionally excluded from PR CI with documented canary coverage. Overlapping execution in PR CI is forbidden.
 
-This means:
+Required consequences:
 
-- No PR CI job may invoke `pytest` with `-m "not integration"` AND another PR CI job invoke `pytest` with full run that re-includes non-integration tests.
-- No test class may run in two different jobs in PR CI.
-- Migration tests run **only** in `postgres-migration` (not in domain / task11 / concurrency jobs).
-- Task 11 evaluation / mask tests run **only** in `postgres-task11`.
+- No PR CI job may run an all-tests sweep that re-includes tests already owned by another PR job.
+- No test class may run in two PR jobs.
+- Migration tests run only in `postgres-migration`.
+- Task 11 evaluation and mask tests run only in `postgres-task11`.
 
-### 3.3 What PR CI MUST NOT include
+### 3.2 PR CI must not include
 
-- `pytest` (full sweep)
-- `pytest -m integration` (without marker subset)
-- `pytest -m "not integration"` (without marker subset)
-- Any pytest invocation that re-runs tests already covered by another PR CI job
-
----
-
-## §4 Full-suite canary gating (binding)
-
-### 4.1 Allowed canary triggers
-
-The `full-suite-canary` job runs **only** on:
-
-- `push` to the `main` branch.
-- `schedule` (nightly cron run — exact cron expression to be set by the implementation PR within an allowed window).
-- `workflow_dispatch` (manual trigger).
-
-### 4.2 Forbidden canary triggers
-
-The `full-suite-canary` job MUST NOT run on:
-
-- `pull_request` (any branch).
-- `pull_request_review`.
-- `pull_request_target`.
-- Any other PR-related event.
+- Full-suite pytest sweep on PR events.
+- Unscoped `pytest -m integration` on PR events.
+- Unscoped `pytest -m "not integration"` on PR events.
+- Any pytest invocation that re-runs test nodes already covered by another PR job.
 
 ---
 
-## §5 Marker & shard dependency contract
+## §4 Full-suite canary gating
 
-The deduplicated PR CI matrix relies on accurate pytest markers to assign each test class to exactly one CI job. The current marker taxonomy (post-Batch 1 / PR #47) provides only the `postgres` marker.
+The `full-suite-canary` job runs only on:
 
-For Batch 2 implementation:
+- push to `main`
+- nightly schedule
+- manual `workflow_dispatch`
 
-- The implementation PR MAY introduce minimal additional markers (`unit` / `contract` / `golden` / `migration` / `concurrency` / `e2e` etc.) **only to the extent required** for the CI split.
-- Marker taxonomy overhaul (full marker registry, dedicated marker taxonomy PR) is **deferred to Issue #52 / Batch 4**. Batch 2 only adds minimal markers needed for the job split; it must NOT do a full taxonomy pass.
-- `ci-shard-manifest.yml` MUST be updated to register which tests each job owns. This is a binding contract for the implementation PR.
+The canary must not run on PR-related events.
+
+---
+
+## §5 Marker and shard dependency contract
+
+Batch 2 implementation may introduce only the minimal markers needed for the CI split. Full marker taxonomy remains Batch 4 scope.
+
+The implementation PR must update `ci-shard-manifest.yml` to register which tests each PR job owns. That manifest is the source of truth for single-execution review.
 
 ---
 
 ## §6 Boundaries vs Batch 3 / 4 / 5 / 6
 
-### 6.1 Batch 3 (Issue #51 — PostgreSQL database isolation)
+- Batch 3 / Issue #51 owns PostgreSQL database isolation beyond what is required for CI job ownership.
+- Batch 4 / Issue #52 owns full marker taxonomy.
+- Batch 5 / Issue #53 owns fixture refactor.
+- Batch 6 / Issue #54 owns broader CI performance and diagnostics.
 
-Batch 2 may need transaction vs migration vs concurrency vs concurrency-test class bucket logic (to map isolation requirements to job types). **This is allowed** in Batch 2's allowed paths.
-
-Batch 2 MUST NOT:
-
-- Implement migration-only-isolated schemas.
-- Implement serialized-execution orchestration beyond what the CI split requires.
-- Modify PR #24's `postgres_transactional` / `postgres_real_commit` classification.
-
-### 6.2 Batch 4 (Issue #52 — marker taxonomy)
-
-Batch 2's allowed marker declarations are minimal, scoped to the CI split. The full marker taxonomy overhaul (canonical marker registry, exclusivity rules, documentation standard) is Batch 4. Any marker naming convention introduced in Batch 2 must be compatible with Batch 4's forthcoming taxonomy.
-
-### 6.3 Batch 5 (Issue #53 — fixture refactor)
-
-Batch 2 does not move or refactor test fixtures. If a fixture needs to be scoped per CI job, the implementation may add a conftest-level decision in `tests/conftest.py`-adjacent areas, but must not refactor existing fixtures.
-
-### 6.4 Batch 6 (Issue #54 — CI performance & diagnostics)
-
-Batch 2 may incidentally enable some diagnostics (e.g. JUnit XML upload per job) as required for CI split. The full diagnostics overhaul (cancellation, durations, random seed, etc.) is Batch 6.
+Batch 2 must not implement those sibling scopes.
 
 ---
 
 ## §7 Production semantics prohibition
 
-The Batch 2 design and any future implementation MUST NOT:
+Batch 2 design and implementation must not modify:
 
-- Modify TASK-011 evaluation logic in `backend/app/rolling_backtest/`.
-- Modify TASK-011 mask / canonical / hash / key / audit semantics.
-- Modify Alembic migrations.
-- Modify the JSON / CSV / manifest / audit output format introduced by Phase 4c.
+- `backend/app/rolling_backtest/**` semantics
+- TASK-011 mask, canonical, hash, key, and audit behavior
+- Alembic migrations
+- JSON, CSV, manifest, or audit output semantics introduced by Phase 4c
 
-Any change to production semantics will require a separate Issue + PR. Batch 2 is strictly CI structure-only.
+Any production semantic change requires separate authorization.
 
 ---
 
-## §8 Allowed paths / Forbidden paths (binding for implementation)
+## §8 Allowed paths and forbidden paths
 
-### 8.1 Allowed paths (Batch 2 implementation can modify)
+### 8.1 Allowed paths for future implementation
 
 | Path | Purpose |
 |------|---------|
-| `.github/workflows/**` | YAML re-definition for the new job layout |
-| `ci-shard-manifest.yml` | Manifest registering which tests each job owns |
-| `backend/pyproject.toml` | MAY adjust `[tool.pytest.ini_options].markers` IF AND ONLY IF needed for CI split (minimal markers only) |
-| `docs/task-11-ci-architecture*.md` | New architecture documentation |
-| `docs/task-11-issue-50-*.md` | Implementation journal |
-| `docs/task-11-issue-50-batch2-ci-dedup-design.md` | THIS design freeze document (already added in this PR) |
+| `.github/workflows/**` | workflow job layout |
+| `ci-shard-manifest.yml` | test ownership manifest |
+| `backend/pyproject.toml` | minimal pytest marker declarations only, if required |
+| `docs/task-11-ci-architecture*.md` | CI architecture documentation |
+| `docs/task-11-issue-50-*.md` | Batch 2 documentation and journal |
+| `docs/task-11-issue-50-batch2-ci-dedup-design.md` | this design document |
 
-### 8.2 Forbidden paths (Batch 2 implementation MUST NOT modify)
+### 8.2 Forbidden paths for future implementation
 
 | Path | Reason |
 |------|--------|
-| `backend/app/**` | Production semantics protection |
-| `backend/alembic/versions/**` | Migration semantics protection |
-| `backend/tests/integration/**` (other than minimal marker additions) | Test semantics protection |
-| `backend/tests/conftest.py` (other than minimal marker-only edits) | Test isolation boundary protection |
-| `backend/scripts/**` | Operational scripts (dev-DB safeguard) protection |
-| `backend/app/rolling_backtest/service.py` | Phase 4c-1 service-layer implementation protection |
-| `backend/app/rolling_backtest/cli.py` | Phase 4c-2 CLI protection |
-| `backend/app/rolling_backtest/export.py` | Phase 4c-2 export protection |
-
-These forbidden paths are CI structure changes only — anything else requires separate authorization.
+| `backend/app/**` | production semantics protection |
+| `backend/alembic/versions/**` | migration semantics protection |
+| `backend/tests/integration/**` except minimal marker additions | test semantics protection |
+| `backend/tests/conftest.py` except minimal marker-only edits | test isolation boundary |
+| `backend/scripts/**` | dev-DB safeguard protection |
+| `backend/app/rolling_backtest/service.py` | Phase 4c service layer protection |
+| `backend/app/rolling_backtest/cli.py` | Phase 4c CLI protection |
+| `backend/app/rolling_backtest/export.py` | Phase 4c export protection |
 
 ---
 
-## §9 Acceptance gates (implementation must pass all)
+## §9 Acceptance gates
 
 | # | Gate | Measurement |
 |---|------|-------------|
-| G-01 | **No triple execution**: zero PR CI run executes `pytest -m "not integration"` + `pytest -m integration` + `full pytest` simultaneously | Count pytest invocations per CI run; assert count = 1 (or per-job count, but not per-PY-test type triple) |
-| G-02 | **Single execution per test node**: each pytest node-id appears at most once across all PR CI jobs | Aggregate `pytest --collect-only` output across jobs; verify uniqueness |
-| G-03 | **`full-suite-canary` gating**: `full-suite-canary` job is NOT triggered on `pull_request` events | Inspect workflow YAML after merge; verify `on:` block excludes `pull_request` |
-| G-04 | **Postgres-test profile preservation**: `pytest -m postgres` invocations still use the dev-DB safeguard from PR #47 / Issue #23 Batch 1 | Inspect new pytest invocations; verify `postgres_test_db.sh` is invoked |
-| G-05 | **Forbidden paths unchanged**: `backend/app/**`, `backend/alembic/versions/**`, production semantics all preserved | `git diff` against the implementation PR head; forbidden paths have zero changes |
-| G-06 | **Backward compatibility**: existing test classes continue to run (no test dropout) | Run existing pytest suite once after merge; compare pass count vs pre-Batch-2 baseline |
-| G-07 | **CI runtime reduction**: PR CI median runtime reduces vs current PR CI baseline | Compare median CI time before/after for similar-size PRs |
-| G-08 | **Clean artifact upload**: each PR CI job uploads its JUnit XML even on failure | Inspect CI workflow YAML for `actions/upload-artifact` per job |
+| G-01 | no triple execution pattern | inspect CI commands and job ownership |
+| G-02 | single execution per test node | aggregate node ownership and verify uniqueness |
+| G-03 | canary not triggered on PR events | inspect workflow event rules |
+| G-04 | PostgreSQL test profile preserved | verify safeguarded Postgres runner usage |
+| G-05 | forbidden paths unchanged | compare implementation PR diff |
+| G-06 | backward compatibility | existing tests continue to pass |
+| G-07 | PR CI runtime reduction | compare baseline and post-change PR CI runtime |
+| G-08 | clean artifact upload | JUnit artifacts uploaded per PR CI job |
+
+All gates must pass before any Ready transition of the implementation PR.
 
 ---
 
@@ -203,173 +171,132 @@ These forbidden paths are CI structure changes only — anything else requires s
 
 When Charles authorizes Batch 2 implementation, the implementation PR must:
 
-1. Be opened as **Draft** with explicit head SHA preserved.
-2. Branch from the post-#66-merge main, not from any side branch.
-3. Carry forward `Refs #50` (and  for actual mapping) and `Refs #23`.
-4. NOT use `auto-closes #50`, `auto-closes #47`, `addresses #23`, `addresses #47`, `addresses #23`, or `addresses #47`.
+1. Be opened as Draft with explicit head SHA preserved.
+2. Branch from the authorized main base, not from a side branch.
+3. Carry forward only `Refs #50` and `Refs #23`. Do not use GitHub automatic issue-transition keywords.
+4. Avoid GitHub automatic issue-transition keywords for #50, #47, or #23.
 5. Carry a freeze comment at the implementation head before any Ready transition.
-6. Implement the 8 jobs (§3.1) and the single-execution rule (§3.2).
-7. Implement the full-suite canary gating (§4).
-8. Update `ci-shard-manifest.yml` (§5).
-9. Update `README.md` and `docs/task-11-ci-architecture*.md` to reflect the new CI matrix.
+6. Implement the 8 PR CI jobs and the single-execution rule.
+7. Implement the full-suite canary gating.
+8. Update `ci-shard-manifest.yml`.
+9. Update README and CI architecture documentation as needed.
 
-The implementation PR must pass all acceptance gates (§9) and Charles's separate review before Ready transition.
+The implementation PR must pass all acceptance gates and Charles review before Ready transition.
 
 ---
 
-## §11 Rollback / blocker model
+## §11 Rollback and blocker model
 
-### 11.1 Rollback triggers (any of these → revert the implementation PR)
+Rollback triggers for the future implementation include:
 
-- G-01 through G-04 fails on the first full-suite-canary run after merge.
-- A test class is observed running more than once across PR CI jobs.
-- The `full-suite-canary` job is observed firing on `pull_request` events.
-- The dev-DB safeguard from PR #47 / Issue #23 Batch 1 is observed disabled.
+- acceptance gates G-01 through G-04 fail on first post-merge canary
+- a test node is observed running more than once across PR CI jobs
+- canary fires on a PR event
+- dev-DB safeguard from PR #47 / Issue #23 Batch 1 is disabled
 
-### 11.2 Named blocker kinds (defer Ready transition)
+Named blocker kinds:
 
 | Blocker kind | Symptom | Recovery action |
 |--------------|---------|-----------------|
-| `missing_shard_manifest` | `ci-shard-manifest.yml` not updated | Implementation PR adds manifest before Ready |
-| `marker_conflict` | A test class is double-marked across Batch 2 and Batch 4 scopes | Implementation PR refines marker assignments |
-| `dev_db_safeguard_disabled` | `postgres_test_db.sh` invocation removed | Implementation PR reinvokes safeguard |
-| `pr_ci_runtime_increase` | Median runtime increased > 5% vs baseline | Implementation PR re-architects job split |
-| `full_canary_on_pr_event` | Canary fires on PR | Implementation PR fixes `on:` block |
-| `single_node_double_run` | A test node runs twice in PR CI | Implementation PR fixes shard manifest |
-
-### 11.3 Acceptance of revert by Charles
-
-In the event of any rollback trigger, the implementation PR is reverted via `git revert` (not closed) and a new tracking issue is opened to address the underlying cause.
+| `missing_shard_manifest` | `ci-shard-manifest.yml` not updated | add manifest before Ready |
+| `marker_conflict` | test class assigned to incompatible scopes | refine marker assignment |
+| `dev_db_safeguard_disabled` | safeguarded runner removed | reinstate safeguard usage |
+| `pr_ci_runtime_increase` | runtime increased beyond allowed threshold | re-architect job split |
+| `full_canary_on_pr_event` | canary fires on PR | correct event rules |
+| `single_node_double_run` | test node runs twice | correct shard manifest |
 
 ---
 
 ## §12 Risk register
 
-| # | Risk | Likelihood | Impact | Mitigation | Owner |
-|---|------|------------|--------|------------|-------|
-| R-01 | Existing test classes lack required markers | Medium | High | Implementation PR either adds markers OR shards via conftest-level logic | Implementation PR author |
-| R-02 | CI runtime inadvertently increases due to artifact upload overhead | Low | Medium | G-07 measures runtime; canary compares before/after | Batch 2 implementation |
-| R-03 | `ci-shard-manifest.yml` becomes stale relative to new tests | Low | Low | Mention test-class-to-job mapping at each test (best-effort) | Test author discipline |
-| R-04 | Canary-spawn-jobs accidentally fire on forks | Low | High | Verify `if: github.event_name == 'push' && github.ref == 'refs/heads/main'` | Implementation PR author |
-| R-05 | Migration tests fail in matrix-split due to per-job isolated DB schema | Medium | Medium | Each job uses its own test DB schema; CI composition via separate `compose-smoke` Postgres instance | Implementation PR author |
+| # | Risk | Likelihood | Impact | Mitigation |
+|---|------|------------|--------|------------|
+| R-01 | existing tests lack required markers | medium | high | add minimal markers or explicit manifest ownership |
+| R-02 | artifact upload overhead increases runtime | low | medium | measure runtime gate G-07 |
+| R-03 | shard manifest becomes stale | low | medium | require manifest updates with test ownership changes |
+| R-04 | canary event rules accidentally include PR events | low | high | gate G-03 review |
+| R-05 | migration tests need stronger DB isolation | medium | medium | defer durable isolation mechanics to Batch 3 |
 
 ---
 
-## §13 Test catalog (placeholder for implementation)
+## §13 Test catalog placeholder
 
-The implementation PR must populate this section with concrete test names per job target. Below is the placeholder structure:
+Future implementation must replace this placeholder with concrete test ownership per job:
 
-### Job 1 — `static`
-
-- Backend lint (Ruff)
-- Frontend lint (Ruff)
-- Type check (Mypy on `backend/app/`)
-- Format check (Ruff format --check)
-- Security scan (if applicable)
-
-### Job 2 — `unit-contract-golden`
-
-- `tests/backend/test_<unit_only>`
-- `tests/backend/test_<contract>`
-- `tests/backend/test_<golden>`
-
-### Job 3 — `postgres-migration`
-
-- `tests/backend/migrations/test_<alembic_up>`
-- `tests/backend/migrations/test_<alembic_down>`
-
-### Job 4 — `postgres-domain-1`
-
-- `tests/backend/integration/test_domain_<slice_1>` (no concurrency, no real-commit)
-
-### Job 5 — `postgres-domain-2`
-
-- `tests/backend/integration/test_domain_<slice_2>`
-
-### Job 6 — `postgres-task11`
-
-- `tests/backend/integration/test_task11_<evaluation>`
-- `tests/backend/integration/test_task11_<mask>`
-
-### Job 7 — `postgres-concurrency`
-
-- `tests/backend/integration/test_<concurrency>`
-- `tests/backend/integration/test_<real_commit>`
-
-### Job 8 — `compose-smoke`
-
-- DB health check (`pg_isready`)
-- Smoke test of port 55432 / db `blueberry_peak_test`
-
-(These are PLACEHOLDERS; the actual test names are filled in by the implementation PR based on the existing pytest test corpus.)
+- `static`: lint, format, type-check, security checks
+- `unit-contract-golden`: pure unit, contract, and golden tests
+- `postgres-migration`: Alembic and migration tests
+- `postgres-domain-1`: domain integration slice 1
+- `postgres-domain-2`: domain integration slice 2
+- `postgres-task11`: Task 11 evaluation and mask tests
+- `postgres-concurrency`: concurrency and real-commit tests
+- `compose-smoke`: Docker Compose smoke validation
 
 ---
 
-## §14 Open questions (frozen at design stage)
+## §14 Open questions frozen at design stage
 
-These will be resolved at the implementation PR stage:
+- Exact nightly canary cron expression.
+- How to shard `unit-contract-golden` if the test corpus grows.
+- Whether `compose-smoke` should run in parallel or sequentially.
+- Deadline for stale PR workflow cleanup.
 
-1. **Q-A**: Exact cron expression for nightly canary. Options: `0 2 * * *` (daily 2am UTC), `0 2 * * 0` (weekly Sunday 2am UTC), or manual-only (no cron). Implementation PR author chooses; Charles reviews.
-2. **Q-B**: How to shard `unit-contract-golden` if test corpus grows large. Implementation may introduce `pytest -k <pattern>` filters; Charles reviews at implementation.
-3. **Q-C**: Whether `compose-smoke` should run in parallel with other jobs or sequentially. Implementation PR author chooses.
-4. **Q-D**: What is the exact deadline for the canary's "stale PR workflow" cleanup. Implementation PR author handles.
+These are implementation-stage decisions and require Charles review.
 
 ---
 
-## §15 Glossary & references
+## §15 Glossary and references
 
-- **PR CI**: GitHub Actions workflows triggered by `pull_request` events.
-- **Canary**: A targeted job that runs the full pytest test suite on `main` push / nightly / manual `workflow_dispatch`.
-- **Shard**: A subset of tests assigned to a specific job.
-- **Dev-DB safeguard**: The PR #47 / Issue #23 Batch 1 mechanism that prevents `make test-pg` / `pytest -m postgres` from connecting to a non-test database.
-- **Production semantics**: Behavior of TASK-011 evaluation, mask, canonical, hash, key, audit in `backend/app/rolling_backtest/` — protected from modification.
+- **PR CI**: GitHub Actions workflows triggered by PR events.
+- **Canary**: full-suite run on main push, schedule, or manual dispatch.
+- **Shard**: subset of tests assigned to a specific job.
+- **Dev-DB safeguard**: PR #47 / Issue #23 Batch 1 mechanism that prevents test commands from connecting to a non-test database.
+- **Production semantics**: TASK-011 evaluation, mask, canonical, hash, key, and audit behavior.
 
 References:
 
-- `docs/task-11-infra-test-environment.md` (Issue #23 Batch 1 / PR #47)
-- `backend/scripts/postgres_test_db.sh` (dev-DB safeguard from PR #47)
-- `backend/tests/safety/test_dev_db_protection.py` (Batch 1 safety tests)
-- `Makefile` (one-command contract from PR #47)
-- `docker-compose.test.yml` (test profile from PR #47)
+- `docs/task-11-infra-test-environment.md`
+- `backend/scripts/postgres_test_db.sh`
+- `backend/tests/safety/test_dev_db_protection.py`
+- `Makefile`
+- `docker-compose.test.yml`
 
 ---
 
-## §16 Issue number mapping clarification (admin)
+## §16 Issue number mapping clarification
 
-This design PR addresses the **CI de-duplication and PR workflow split** sub-area of Issue #23.
+This design PR addresses the CI de-duplication and PR workflow split sub-area of Issue #23.
 
-- **Issue #50** is the Batch 2 tracking issue (per spec).
-- **PR #47** was the Batch 1 (Local PostgreSQL one-command test environment) implementation and is already merged (merge commit `41425234ad0664d678594473e792d4b909e44818`).
-- **PR #47** is reference context only, not the Batch 2 tracking issue.
+- Issue #50 is the Batch 2 tracking issue.
+- PR #47 was the Batch 1 local PostgreSQL test harness implementation and is already merged.
+- PR #47 is historical reference context only, not the Batch 2 tracking issue.
 
-This design PR references `Refs #50` (the Batch 2 tracking issue) and `Refs #23` (the umbrella). PR #47 is mentioned as historical context within the design document body text only, and is not used as a `Refs #` keyword in the PR body.
-
----
-
-## §17 Definitions (binding)
-
-- **Implementation PR**: A future PR with concrete code changes, opened as Draft, based on the post-#66-merge main, carrying this design's `Refs #` and freeze comment.
-- **Freeze comment**: A comment posted on the implementation PR head commit, summarizing the binding contract that the implementation honors.
-- **Backward compatibility**: Existing tests continue to pass after the implementation PR is merged. No test class is added, removed, or reclassified.
+This design PR references `Refs #50` and `Refs #23`. PR #47 is mentioned only as historical context in prose.
 
 ---
 
-## §18 Self-audit checklist (for the implementation PR author)
+## §17 Definitions
 
-- [ ] Branch is from post-#66-merge main.
-- [ ] Head SHA recorded in freeze comment.
-- [ ] `Refs #50` (and  per actual GitHub mapping) in PR body.
-- [ ] `Refs #23` in PR body.
-- [ ] NO `auto-closes #50` / `auto-closes #47` / `auto-closes #23` in PR body.
-- [ ] NO `addresses #50` / `addresses #47` / `addresses #23` in PR body.
-- [ ] NO `addresses #50` / `addresses #47` / `addresses #23` in PR body.
-- [ ] Diff stat: only changes in `.github/workflows/**`, `ci-shard-manifest.yml`, `backend/pyproject.toml` (markers only), `docs/**`.
-- [ ] No changes in forbidden paths (§8.2).
-- [ ] Acceptance gates (§9) all PASS.
-- [ ] Dev-DB safeguard (§1 / §6 / §11.1) preserved.
-- [ ] PR opened as Draft.
-- [ ] Charles's separate authorization received before any Ready transition.
+- **Implementation PR**: future Draft PR with concrete CI changes, based on an authorized main base, carrying this design's references and freeze comment.
+- **Freeze comment**: comment posted on the implementation PR head commit summarizing the binding contract.
+- **Backward compatibility**: existing tests continue to pass; no test class is added, removed, or reclassified except minimal marker ownership needed for the CI split.
 
 ---
 
-🤖 This design freeze document was generated by the bot following Charles's explicit authorization. It is a design-only freeze. No implementation was performed. No CI workflow was modified. No production code was modified. Implementation requires separate Charles authorization per the §10 future implementation PR requirements.
+## §18 Self-audit checklist for implementation PR author
+
+- [ ] Branch is from the authorized main base.
+- [ ] Head SHA is recorded in freeze comment.
+- [ ] `Refs #50` appears in PR body.
+- [ ] `Refs #23` appears in PR body.
+- [ ] No GitHub automatic issue-transition keywords for #50, #47, or #23 in PR body or commit messages.
+- [ ] Diff stat is limited to allowed Batch 2 implementation paths.
+- [ ] No forbidden paths are changed.
+- [ ] Acceptance gates all pass.
+- [ ] Dev-DB safeguard is preserved.
+- [ ] PR is opened as Draft.
+- [ ] Charles authorization is received before any Ready transition.
+
+---
+
+This design freeze document was generated under Charles authorization. It is design-only. No implementation was performed. No CI workflow was modified. No production code was modified. Implementation requires separate Charles authorization.
