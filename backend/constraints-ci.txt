@@ -1,0 +1,43 @@
+# CI dependency constraints for Batch 6 (Issue #54 / Issue #23 sub-area 6).
+#
+# Purpose: pin direct project dependencies so CI runs are reproducible
+# across PRs. This file is the SINGLE source of truth for CI install —
+# invoked via:
+#     pip install -c backend/constraints-ci.txt -e ".[dev]"
+#
+# Scope discipline:
+# - Only the direct deps declared in pyproject.toml are pinned.
+# - Versions are EXACT pins (``==``) because the floors in pyproject.toml
+#   are already permissive (``>=``) and a single PR should not silently
+#   pull in newer minor versions.
+# - No broad dependency upgrades are introduced.
+# - Transitive deps (numpy / scipy / anyio / …) are NOT pinned here —
+#   they are resolved through pip's resolver and locked indirectly by
+#   the direct pins above.
+#
+# If a future PR needs to bump one of these, the bump must:
+#   (1) update this file,
+#   (2) update pyproject.toml's ``>=`` floor to match,
+#   (3) be exercised in a canary run before merging.
+
+alembic==1.18.5
+asyncpg==0.31.0
+fastapi==0.139.0
+numpy==2.5.1
+pydantic==2.13.4
+pydantic-settings==2.14.2
+PyYAML==6.0.3
+scikit-learn==1.9.0
+SQLAlchemy==2.0.51
+uvicorn==0.50.2
+xlrd==2.0.2
+
+# dev extras
+aiosqlite==0.22.1
+httpx==0.28.1
+mypy==2.1.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-timeout==2.4.0
+ruff==0.15.20
+xlwt==1.3.0
