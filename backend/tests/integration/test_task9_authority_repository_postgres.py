@@ -2237,6 +2237,7 @@ async def test_concurrent_pool_create_conflicting_payload_returns_typed_conflict
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
+@pytest.mark.concurrency
 async def test_barrier_same_payload_exact_load_integrity() -> None:
     """Two concurrent create_or_load calls with an identical payload.
 
@@ -2362,6 +2363,7 @@ async def test_barrier_same_payload_exact_load_integrity() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
+@pytest.mark.concurrency
 async def test_barrier_conflicting_payload_version_conflict() -> None:
     """Two concurrent create_or_load calls with same business key but
     different canonical payload (different source_record_key ⇒ different

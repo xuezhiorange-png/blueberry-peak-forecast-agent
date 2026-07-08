@@ -84,7 +84,11 @@ from backend.app.harvest_state.enums import (
 )
 from backend.app.harvest_state.schemas import WeatherFeatureBand, WeatherFeatureRule
 
-pytestmark = pytest.mark.integration
+# Slice 1 Batch 4 marker annotation: this file is owned by the
+# `postgres-task11` shard per ci-shard-manifest.yml. ``integration`` is
+# preserved as the legacy broad-dependency indicator; ``task11`` is the
+# canonical Issue #52 task-domain marker.
+pytestmark = [pytest.mark.integration, pytest.mark.task11]
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────

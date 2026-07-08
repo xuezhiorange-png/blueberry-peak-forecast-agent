@@ -58,9 +58,28 @@ asyncio_mode = "auto"
 asyncio_default_test_loop_scope = "session"
 asyncio_default_fixture_loop_scope = "session"
 markers = [
-    "postgres: PostgreSQL tests using the isolated local test profile",
-    "integration: tests that require external services such as PostgreSQL",
-    "postgres_concurrency: PostgreSQL integration tests requiring independent concurrent transactions",
+    # ----------------------------------------------------------------
+    # Issue #52 Batch 4 marker taxonomy (canonical names)
+    # ----------------------------------------------------------------
+    # Execution markers (CI ownership + resource profile)
+    "unit: Unit tests that do not require PostgreSQL or external services (eligible for unit-contract-golden shard).",
+    "contract: Contract tests against deterministic service-layer, API, or CLI output.",
+    "golden: Golden / snapshot tests with stored expected outputs or hashes.",
+    "postgres: PostgreSQL tests using the isolated local test profile.",
+    "migration: Alembic / migration round-trip tests (owned by postgres-migration shard).",
+    "concurrency: Tests requiring real commits, concurrent transactions, or cross-session visibility (owned by postgres-concurrency shard; additive alias for legacy postgres_concurrency).",
+    "e2e: End-to-end production-shaped tests (require explicit owner; canary-only if too broad for PR CI).",
+    "slow: Long-running tests whose expected runtime is greater than 30 seconds (require explicit owner).",
+    # Task-domain markers (descriptive; do not override execution ownership)
+    "task8: Natural maturity curve tests.",
+    "task9: Harvest capacity / authority / mature inventory tests.",
+    "task10: Residual model tests.",
+    "task11: Evaluation, mask, canonicalization, hash, key, audit, and infrastructure tests related to Task 11.",
+    # ----------------------------------------------------------------
+    # Legacy compatibility markers (preserved during migration)
+    # ----------------------------------------------------------------
+    "integration: Legacy broad service / external-dependency indicator (coexists with postgres, e2e, or task-domain markers; see ci-shard-manifest.yml).",
+    "postgres_concurrency: Legacy compatibility alias for the current Batch 2 CI selector; concurrency is the canonical taxonomy marker going forward, but postgres_concurrency remains the active PR CI sharp selector until a separate compatibility-removal PR. Do not remove without separate authorization.",
 ]
 
 [tool.ruff]
