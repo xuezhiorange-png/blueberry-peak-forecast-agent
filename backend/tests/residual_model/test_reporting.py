@@ -26,7 +26,6 @@ from backend.app.residual_model.service import (
 from backend.tests.residual_model.support import residual_model_config_path
 from backend.tests.residual_model.test_persistence import _training_row
 
-
 _ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 _ZIP_EXTERNAL_ATTR = 0o600 << 16
 _TRAINING_RUN_HEADER = (
@@ -86,15 +85,16 @@ def _eligible_training():
         "rows": [manifest_row_payload(row) for row in rows],
         "summary": result.input_snapshot["manifest_summary"],
     }
-    return rows, result, manifest_snapshot
+    return result, manifest_snapshot
+
+
+def _csv_records(archive: zipfile.ZipFile, name: str) -> list[dict[str, str]]:
+    payload = archive.read(name).decode("utf-8")
+    return list(DictReader(io.StringIO(payload)))
 
 
 def _csv_header(archive: zipfile.ZipFile, name: str) -> str:
     return archive.read(name).decode("utf-8").splitlines()[0]
-
-
-def _csv_records(archive: zipfile.ZipFile, name: str) -> list[dict[str, str]]:
-    return list(DictReader(io.StringIO(archive.read(name).decode("utf-8"))))
 
 
 def _assert_zip_metadata(archive: zipfile.ZipFile, names: list[str]) -> None:
@@ -107,7 +107,7 @@ def _assert_zip_metadata(archive: zipfile.ZipFile, names: list[str]) -> None:
 
 
 def test_training_json_report_is_deterministic() -> None:
-    _rows, result, manifest_snapshot = _eligible_training()
+    result, manifest_snapshot = _eligible_training()
     created_at = datetime(2026, 6, 26, 12, 0, tzinfo=UTC)
 
     first = render_residual_training_json_report(
@@ -134,14 +134,9 @@ def test_training_json_report_is_deterministic() -> None:
 
 
 def test_training_csv_report_is_deterministic() -> None:
-    _rows, result, manifest_snapshot = _eligible_training()
+    result, manifest_snapshot = _eligible_training()
     created_at = datetime(2026, 6, 26, 12, 0, tzinfo=UTC)
-    result = result.model_copy(
-        update={
-            "warnings": ("training-warning-a", "training-warning-b"),
-            "blockers": ("training-blocker",),
-        }
-    )
+    result = result.model_copy(update={"warnings": ("w1", "w2"), "blockers": ("b1",)})
 
     first = render_residual_training_csv_report(
         run_id=1,
@@ -160,7 +155,7 @@ def test_training_csv_report_is_deterministic() -> None:
 
     assert first == second
     with zipfile.ZipFile(io.BytesIO(first)) as archive:
-        expected_names = [
+        names = [
             "manifest.json",
             "manifest_rows.csv",
             "run.csv",
@@ -169,25 +164,23 @@ def test_training_csv_report_is_deterministic() -> None:
             "warnings.csv",
             "blockers.csv",
         ]
-        assert archive.namelist() == expected_names
-        _assert_zip_metadata(archive, expected_names)
+        assert archive.namelist() == names
+        _assert_zip_metadata(archive, names)
         assert _csv_header(archive, "run.csv") == _TRAINING_RUN_HEADER
         assert _csv_header(archive, "artifacts.csv") == _ARTIFACTS_HEADER
-        manifest = json.loads(archive.read("manifest.json"))
+        assert json.loads(archive.read("manifest.json"))["report_schema_version"] == (
+            TRAINING_CSV_REPORT_SCHEMA_VERSION
+        )
         manifest_rows = archive.read("manifest_rows.csv").decode("utf-8")
-        assert manifest["report_schema_version"] == TRAINING_CSV_REPORT_SCHEMA_VERSION
         parsed_rows = list(DictReader(io.StringIO(manifest_rows)))
         assert parsed_rows[0]["source_refs"] == '["analytics","task9"]'
         assert "['task9', 'analytics']" not in manifest_rows
-        assert _csv_records(archive, "warnings.csv") == [
-            {"warning": "training-warning-a"},
-            {"warning": "training-warning-b"},
-        ]
-        assert _csv_records(archive, "blockers.csv") == [{"blocker": "training-blocker"}]
+        assert _csv_records(archive, "warnings.csv") == [{"warning": "w1"}, {"warning": "w2"}]
+        assert _csv_records(archive, "blockers.csv") == [{"blocker": "b1"}]
 
 
 def test_training_json_payload_does_not_attempt_utf8_decode_artifact_bytes() -> None:
-    _rows, result, manifest_snapshot = _eligible_training()
+    result, manifest_snapshot = _eligible_training()
     created_at = datetime(2026, 6, 26, 12, 0, tzinfo=UTC)
 
     payload = render_residual_training_json_report(
@@ -220,12 +213,7 @@ def test_prediction_json_and_csv_reports_are_deterministic() -> None:
             }
         ],
         fallback_reason="model_ineligible",
-    ).model_copy(
-        update={
-            "warnings": ("prediction-warning",),
-            "blockers": ("prediction-blocker-a", "prediction-blocker-b"),
-        }
-    )
+    ).model_copy(update={"warnings": ("w1",), "blockers": ("b1", "b2")})
 
     json_first = render_residual_prediction_json_report(
         run_id=2,
@@ -253,29 +241,18 @@ def test_prediction_json_and_csv_reports_are_deterministic() -> None:
     assert json_first.startswith(b'{"output":')
     assert b'"report_schema_version":"task10-residual-prediction-report-v1"' in json_first
     assert csv_first == csv_second
-    decoded_json = json.loads(json_first)
-    assert decoded_json["report_schema_version"] == PREDICTION_JSON_REPORT_SCHEMA_VERSION
-    assert decoded_json["output"]["warnings"] == ["prediction-warning"]
-    assert decoded_json["output"]["blockers"] == [
-        "prediction-blocker-a",
-        "prediction-blocker-b",
-    ]
+    payload = json.loads(json_first)
+    assert payload["report_schema_version"] == PREDICTION_JSON_REPORT_SCHEMA_VERSION
+    assert payload["output"]["warnings"] == ["w1"]
+    assert payload["output"]["blockers"] == ["b1", "b2"]
     with zipfile.ZipFile(io.BytesIO(csv_first)) as archive:
-        expected_names = [
-            "manifest.json",
-            "run.csv",
-            "prediction_rows.csv",
-            "warnings.csv",
-            "blockers.csv",
-        ]
-        assert archive.namelist() == expected_names
-        _assert_zip_metadata(archive, expected_names)
+        names = ["manifest.json", "run.csv", "prediction_rows.csv", "warnings.csv", "blockers.csv"]
+        assert archive.namelist() == names
+        _assert_zip_metadata(archive, names)
         assert _csv_header(archive, "run.csv") == _PREDICTION_RUN_HEADER
         assert _csv_header(archive, "prediction_rows.csv") == _PREDICTION_ROWS_HEADER
-        manifest = json.loads(archive.read("manifest.json"))
-        assert manifest["report_schema_version"] == PREDICTION_CSV_REPORT_SCHEMA_VERSION
-        assert _csv_records(archive, "warnings.csv") == [{"warning": "prediction-warning"}]
-        assert _csv_records(archive, "blockers.csv") == [
-            {"blocker": "prediction-blocker-a"},
-            {"blocker": "prediction-blocker-b"},
-        ]
+        assert json.loads(archive.read("manifest.json"))["report_schema_version"] == (
+            PREDICTION_CSV_REPORT_SCHEMA_VERSION
+        )
+        assert _csv_records(archive, "warnings.csv") == [{"warning": "w1"}]
+        assert _csv_records(archive, "blockers.csv") == [{"blocker": "b1"}, {"blocker": "b2"}]
