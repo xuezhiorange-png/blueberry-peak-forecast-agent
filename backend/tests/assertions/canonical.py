@@ -37,8 +37,7 @@ def assert_canonical_payload_hash(payload: object, expected_hash: str) -> None:
     )
     actual_hash = sha256_hex(payload)
     assert actual_hash == expected_hash, (
-        f"canonical_payload_hash mismatch: "
-        f"expected={expected_hash!r} actual={actual_hash!r}"
+        f"canonical_payload_hash mismatch: expected={expected_hash!r} actual={actual_hash!r}"
     )
 
 
@@ -59,8 +58,7 @@ def assert_canonical_serialization(
 
     actual = canonical_json_dumps(payload)
     assert actual == expected_canonical_json, (
-        f"canonical JSON mismatch: "
-        f"expected={expected_canonical_json!r} actual={actual!r}"
+        f"canonical JSON mismatch: expected={expected_canonical_json!r} actual={actual!r}"
     )
 
 
