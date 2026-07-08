@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 # ---------------------------------------------------------------------------
 # Forbidden / allowed constants
@@ -186,6 +187,70 @@ def resolve_postgres_test_identity(
     )
 
 
+def _parse_database_url_safely(url: str) -> tuple[str, str, int] | None:
+    """Parse a ``DATABASE_URL`` and return ``(database, host, port)``.
+
+    Returns ``None`` when the URL is empty, malformed, or carries no
+    resolvable database name. The parser is deliberately lenient — we
+    only use it to extract the database name (the dev-DB safeguard's
+    fail-closed predicate). The password component is **never** read
+    and the original URL is **never** echoed into error messages.
+
+    This is a defensive helper used by
+    :func:`assert_safe_postgres_test_identity` to honor the
+    Batch 3 Slice 1 contract that an obviously unsafe
+    ``DATABASE_URL`` (one that points at a dev/prod database name
+    or the cluster default) must be rejected independently from
+    the typed identity object.
+    """
+    if not url or not isinstance(url, str):
+        return None
+    candidate = url.strip()
+    if not candidate:
+        return None
+    try:
+        parsed = urlparse(candidate)
+    except (TypeError, ValueError):
+        return None
+    # urlparse puts the path in ``path`` (e.g. "/blueberry_peak").
+    db_name = (parsed.path or "").lstrip("/")
+    if not db_name:
+        return None
+    host = parsed.hostname or ""
+    try:
+        port = parsed.port if parsed.port is not None else 5432
+    except ValueError:
+        port = 5432
+    return db_name, host, port
+
+
+def _validate_database_url(url: str) -> None:
+    """Fail-closed validator for a ``DATABASE_URL`` value.
+
+    Raises :class:`ValueError` if the URL points at a forbidden
+    database name (e.g. ``blueberry_peak``) or the cluster default
+    ``postgres``. The error message contains the ``"dev-DB"``
+    substring that the Slice 5 regression tests in
+    ``backend/tests/integration/test_isolate_master_data_tables_slice5.py``
+    pin, and **never** echoes the full URL or any password component.
+
+    A URL that does not parse cleanly is treated as benign (the
+    typed-identity validator below still runs).
+    """
+    parsed = _parse_database_url_safely(url)
+    if parsed is None:
+        return
+    db_name, _host, _port = parsed
+    if db_name in FORBIDDEN_DATABASE_NAMES:
+        # Pin the "dev-DB" substring for regression tests, but never
+        # echo the URL / db_name verbatim — those may carry secrets.
+        raise ValueError(
+            "refuse to connect to dev-DB via DATABASE_URL: "
+            "target database name is forbidden by the Slice 1 "
+            "dev-DB safeguard (input redacted for safety)"
+        )
+
+
 def validate_postgres_test_identity(identity: PostgresTestIdentity) -> None:
     """Fail-closed validator.
 
@@ -211,7 +276,29 @@ def assert_safe_postgres_test_identity(
     *,
     worker_id: str = "master",
 ) -> PostgresTestIdentity:
-    """Resolve and validate a Postgres test identity (fail-closed)."""
+    """Resolve and validate a Postgres test identity (fail-closed).
+
+    The validator runs in two layers, in this order:
+
+    1. **DATABASE_URL guard** — if ``DATABASE_URL`` is present in
+       ``env`` (or the process environment), parse the URL and
+       reject if its target database name is in
+       :data:`FORBIDDEN_DATABASE_NAMES`. This honors the Batch 3
+       Slice 1 contract that an obviously unsafe ``DATABASE_URL``
+       must be rejected independently from the typed identity
+       object. The error message contains the ``"dev-DB"``
+       substring pinned by the Slice 5 regression tests.
+    2. **Typed-identity guard** — resolve
+       :class:`PostgresTestIdentity` from ``POSTGRES_DB`` /
+       ``POSTGRES_PORT`` / ``APP_ENV`` / ``POSTGRES_USER`` /
+       ``POSTGRES_HOST`` and run
+       :func:`validate_postgres_test_identity` (fail-closed on
+       forbidden names / ports / APP_ENV).
+    """
+    src = os.environ if env is None else env
+    database_url = src.get("DATABASE_URL", "")
+    if database_url:
+        _validate_database_url(database_url)
     identity = resolve_postgres_test_identity(env, worker_id=worker_id)
     validate_postgres_test_identity(identity)
     return identity

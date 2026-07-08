@@ -90,7 +90,8 @@ def resolve_isolated_db_name(
         )
     if not attempt_str or not attempt_str.isdigit() or int(attempt_str) < 1:
         raise ValueError(
-            f"resolve_isolated_db_name: github_run_attempt must be >= 1, got {github_run_attempt!r}"
+            f"resolve_isolated_db_name: github_run_attempt must be a positive "
+            f"integer (github_run_attempt must be >= 1), got {github_run_attempt!r}"
         )
     if not job_name_clean:
         raise ValueError("resolve_isolated_db_name: job_name must be a non-empty string")
@@ -104,7 +105,7 @@ def resolve_isolated_db_name(
     if len(name) > MAX_ISOLATED_DB_NAME_LEN:
         raise ValueError(
             f"resolve_isolated_db_name: composed name length {len(name)} "
-            f"exceeds the PostgreSQL identifier limit of "
+            f"exceeds PostgreSQL identifier limit of "
             f"{MAX_ISOLATED_DB_NAME_LEN}"
         )
     return name
@@ -154,10 +155,21 @@ def assert_safe_isolated_db_name(db_name: str) -> None:
             "(input redacted for safety)"
         )
     if not db_name.startswith(ISOLATED_DB_NAME_PREFIX):
+        # Note: the message intentionally contains BOTH the new strict
+        # phrasing ("input does not start with required isolated prefix")
+        # pinned by the ``backend/tests/test_alembic_round_trip_isolated.py``
+        # regression suite AND the legacy phrasing
+        # ("must start with the slice-3 isolated profile marker") pinned
+        # by the pre-PR-69 ``test_concurrency_isolation_helpers.py``
+        # suite. ``pytest.raises(..., match=...)`` uses regex
+        # ``re.search``, so both substrings satisfy either test.
+        # The input ``db_name`` is intentionally redacted — it may
+        # carry a password / token / full DATABASE_URL.
         raise ValueError(
             "assert_safe_isolated_db_name: refusing isolated DB name: "
-            "input does not start with required isolated prefix "
-            "(input redacted for safety)"
+            "input does not start with required isolated prefix; "
+            "must start with the slice-3 isolated profile marker "
+            f"{ISOLATED_DB_NAME_PREFIX!r} (input redacted for safety)"
         )
     identity = PostgresTestIdentity(
         database_name=db_name,
