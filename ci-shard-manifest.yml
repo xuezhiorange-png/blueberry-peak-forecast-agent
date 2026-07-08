@@ -229,11 +229,17 @@ shards:
       - backend/tests/test_alembic_baseline.py
       - backend/tests/test_harvest_state_alembic.py
       - backend/tests/test_residual_model_alembic.py
+      - backend/tests/test_alembic_round_trip_isolated.py
+      - backend/tests/test_alembic_round_trip_isolated_db_live.py
     notes: |
       PR #55 §3 row 3. Alembic migration round-trip tests.
       Excludes backend/tests/integration/test_task11_phase3_schema_gap_persistence.py
       and backend/tests/test_task11_phase3_schema_gap.py (which use Alembic
       but are TASK-011 domain scope) — those go to postgres-task11.
+      owner_files additionally covers the two isolated round-trip files
+      (P1 manifest-ownership fixup for Batch 4 Slice 1); pytest_args is
+      unchanged in this round and will be widened in a future round that
+      also exercises those files under postgres-migration pytest run.
 
   # ------------------------------------------------------------------
   # §3 row 4 — postgres-task11 (pull_request only)
