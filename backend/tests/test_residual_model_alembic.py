@@ -1,6 +1,7 @@
 import importlib
 from pathlib import Path
 
+import pytest
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateTable
 
@@ -12,6 +13,10 @@ from backend.app.models.residual_model import (
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
 )
+
+# Slice 1 Batch 4 marker annotation: this file is owned by the
+# `postgres-migration` shard per ci-shard-manifest.yml.
+pytestmark = [pytest.mark.postgres, pytest.mark.migration]
 
 
 def _load_migration() -> object:

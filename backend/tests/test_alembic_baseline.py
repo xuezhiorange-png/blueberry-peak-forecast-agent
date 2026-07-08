@@ -1,5 +1,11 @@
 from pathlib import Path
 
+import pytest
+
+# Slice 1 Batch 4 marker annotation: this file is owned by the
+# `postgres-migration` shard per ci-shard-manifest.yml.
+pytestmark = [pytest.mark.postgres, pytest.mark.migration]
+
 
 def test_task0_alembic_baseline_revision_exists():
     revision_path = Path("backend/alembic/versions/0001_task0_baseline.py")

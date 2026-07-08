@@ -69,7 +69,11 @@ from backend.tests.postgres_test_support import assert_safe_postgres_test_identi
 # Mark this file ``postgres_concurrency`` so the ``postgres-concurrency``
 # CI job's ``-m postgres_concurrency`` selector **includes** it. The
 # ``unit-contract-golden`` job's selector excludes it.
-pytestmark = pytest.mark.postgres_concurrency
+# Slice 1 Batch 4 marker annotation: add ``concurrency`` (canonical
+# Issue #52 taxonomy) additively. ``postgres_concurrency`` remains the
+# active PR CI sharp selector per ci-shard-manifest.yml; ``concurrency``
+# is the canonical taxonomy alias for the same ownership.
+pytestmark = [pytest.mark.postgres_concurrency, pytest.mark.concurrency]
 
 
 def _postgres_integration_enabled() -> bool:
