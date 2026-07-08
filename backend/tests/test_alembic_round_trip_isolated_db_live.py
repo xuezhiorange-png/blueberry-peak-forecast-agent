@@ -75,7 +75,10 @@ import pytest
 # Mark this file ``postgres`` so ``unit-contract-golden`` excludes it.
 # The ``postgres-migration`` job lists the file explicitly in its
 # ``pytest`` invocation, so the marker is not a no-op for that job.
-pytestmark = pytest.mark.postgres
+# Slice 1 Batch 4 marker annotation: add ``migration`` (canonical
+# Issue #52 taxonomy) additively. Ownership remains ``postgres-migration``
+# per ci-shard-manifest.yml.
+pytestmark = [pytest.mark.postgres, pytest.mark.migration]
 
 
 # ---------------------------------------------------------------------------
