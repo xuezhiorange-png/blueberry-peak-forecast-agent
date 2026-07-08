@@ -33,8 +33,14 @@ on:
   workflow_dispatch:
 
 # Cancel in-progress runs of the same workflow when a new commit lands.
+# Per Batch 6 (Issue #54 item 3) — the group key MUST be the PR head
+# ref when one exists (so PR pushes cancel sibling PR pushes on the
+# same head branch only) and MUST fall back to the run SHA for main
+# pushes / schedule / dispatch (so main push full-suite-canary is NOT
+# cancelled by an unrelated PR run that happens to share a workflow
+# invocation, and vice-versa).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.head.ref || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -52,11 +58,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Batch 6 (Issue #54 item 1) — pip dependency cache. The cache
+          # key is keyed on Python version (so 3.11/3.13 jobs do not
+          # collide) and the project lock + constraints file hashes (so
+          # adding/removing a dep invalidates the cache automatically).
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip
-          pip install --disable-pip-version-check --quiet -e ".[dev]"
+          # Batch 6 (Issue #54 item 2) — pin direct deps via
+          # ``backend/constraints-ci.txt`` so CI is reproducible across
+          # PRs. The constraints file holds the same dep set as
+          # pyproject.toml with exact ``==`` pins; transitive deps are
+          # resolved by pip and locked indirectly by the direct pins.
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      # Batch 6 (Issue #54 item 8) — runner / PostgreSQL worker identity
+      # log. Surfaces runner host, container host, current_database(),
+      # current_user(), and the worker_index (job / run_id / attempt /
+      # sha) in the step summary for failure triage. ``|| true`` ensures
+      # this step NEVER fails the workflow — a connection problem
+      # degrades to "current_database: unavailable" via the helper itself.
+      # For non-postgres jobs (static, unit-contract-golden,
+      # compose-smoke) the PG fields gracefully show "unavailable"
+      # while runner / worker_index are still useful for triage.
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Ruff lint
         run: ruff check .
@@ -82,11 +117,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Batch 6 (Issue #54 item 1) — pip dependency cache. The cache
+          # key is keyed on Python version (so 3.11/3.13 jobs do not
+          # collide) and the project lock + constraints file hashes (so
+          # adding/removing a dep invalidates the cache automatically).
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip
-          pip install --disable-pip-version-check --quiet -e ".[dev]"
+          # Batch 6 (Issue #54 item 2) — pin direct deps via
+          # ``backend/constraints-ci.txt`` so CI is reproducible across
+          # PRs. The constraints file holds the same dep set as
+          # pyproject.toml with exact ``==`` pins; transitive deps are
+          # resolved by pip and locked indirectly by the direct pins.
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      # Batch 6 (Issue #54 item 8) — runner / PostgreSQL worker identity
+      # log. Surfaces runner host, container host, current_database(),
+      # current_user(), and the worker_index (job / run_id / attempt /
+      # sha) in the step summary for failure triage. ``|| true`` ensures
+      # this step NEVER fails the workflow — a connection problem
+      # degrades to "current_database: unavailable" via the helper itself.
+      # For non-postgres jobs (static, unit-contract-golden,
+      # compose-smoke) the PG fields gracefully show "unavailable"
+      # while runner / worker_index are still useful for triage.
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Unit / contract / golden tests
         env:
@@ -94,8 +158,15 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
+          # Batch 6 (Issue #54 items 5 + 7) — emit top-30 slowest tests
+          # for triage, and echo the deterministic CI seed marker (the
+          # project does not currently use a randomized-order plugin,
+          # so this is a CI-visible traceability log line only — no
+          # ordering change).
+          echo "PYTEST_CI_SEED=${PYTEST_CI_SEED:-$GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
           pytest -m "not integration and not postgres and not postgres_concurrency" -q \
             --tb=short \
+            --durations=30 \
             --junitxml=reports/test-results/unit-contract-golden.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/unit-contract-golden.xml ]; then
@@ -104,6 +175,18 @@ jobs:
             echo "::endgroup::"
           fi
           exit "$status"
+
+      # Batch 6 (Issue #54 item 6) — failed pytest nodeid summary.
+      # Runs after pytest (with ``if: always()``) and never fails the
+      # workflow: parser failure is caught by ``|| true`` and surfaces
+      # as "no JUnit XML found" / "no failed nodeids reported" in the
+      # step summary, never as a workflow failure.
+      - name: Failed nodeid summary
+        if: always()
+        run: |
+          python scripts/ci/parse_junit_failures.py \
+            --xml reports/test-results/${{ github.job }}.xml \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload unit-contract-golden JUnit
         if: always()
@@ -155,11 +238,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Batch 6 (Issue #54 item 1) — pip dependency cache. The cache
+          # key is keyed on Python version (so 3.11/3.13 jobs do not
+          # collide) and the project lock + constraints file hashes (so
+          # adding/removing a dep invalidates the cache automatically).
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip
-          pip install --disable-pip-version-check --quiet -e ".[dev]"
+          # Batch 6 (Issue #54 item 2) — pin direct deps via
+          # ``backend/constraints-ci.txt`` so CI is reproducible across
+          # PRs. The constraints file holds the same dep set as
+          # pyproject.toml with exact ``==`` pins; transitive deps are
+          # resolved by pip and locked indirectly by the direct pins.
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      # Batch 6 (Issue #54 item 8) — runner / PostgreSQL worker identity
+      # log. Surfaces runner host, container host, current_database(),
+      # current_user(), and the worker_index (job / run_id / attempt /
+      # sha) in the step summary for failure triage. ``|| true`` ensures
+      # this step NEVER fails the workflow — a connection problem
+      # degrades to "current_database: unavailable" via the helper itself.
+      # For non-postgres jobs (static, unit-contract-golden,
+      # compose-smoke) the PG fields gracefully show "unavailable"
+      # while runner / worker_index are still useful for triage.
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Wait for PostgreSQL service
         env:
@@ -283,6 +395,9 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
+          # Batch 6 (Issue #54 items 5 + 7) — emit top-30 slowest tests
+          # and echo the deterministic CI seed marker.
+          echo "PYTEST_CI_SEED=${PYTEST_CI_SEED:-$GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
           pytest \
             backend/tests/test_alembic_baseline.py \
             backend/tests/test_harvest_state_alembic.py \
@@ -290,6 +405,7 @@ jobs:
             backend/tests/test_alembic_round_trip_isolated.py \
             backend/tests/test_alembic_round_trip_isolated_db_live.py \
             -q --tb=long \
+            --durations=30 \
             --junitxml=reports/test-results/postgres-migration.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/postgres-migration.xml ]; then
@@ -298,6 +414,18 @@ jobs:
             echo "::endgroup::"
           fi
           exit "$status"
+
+      # Batch 6 (Issue #54 item 6) — failed pytest nodeid summary.
+      # Runs after pytest (with ``if: always()``) and never fails the
+      # workflow: parser failure is caught by ``|| true`` and surfaces
+      # as "no JUnit XML found" / "no failed nodeids reported" in the
+      # step summary, never as a workflow failure.
+      - name: Failed nodeid summary
+        if: always()
+        run: |
+          python scripts/ci/parse_junit_failures.py \
+            --xml reports/test-results/${{ github.job }}.xml \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload postgres-migration JUnit
         if: always()
@@ -400,11 +528,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Batch 6 (Issue #54 item 1) — pip dependency cache. The cache
+          # key is keyed on Python version (so 3.11/3.13 jobs do not
+          # collide) and the project lock + constraints file hashes (so
+          # adding/removing a dep invalidates the cache automatically).
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip
-          pip install --disable-pip-version-check --quiet -e ".[dev]"
+          # Batch 6 (Issue #54 item 2) — pin direct deps via
+          # ``backend/constraints-ci.txt`` so CI is reproducible across
+          # PRs. The constraints file holds the same dep set as
+          # pyproject.toml with exact ``==`` pins; transitive deps are
+          # resolved by pip and locked indirectly by the direct pins.
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      # Batch 6 (Issue #54 item 8) — runner / PostgreSQL worker identity
+      # log. Surfaces runner host, container host, current_database(),
+      # current_user(), and the worker_index (job / run_id / attempt /
+      # sha) in the step summary for failure triage. ``|| true`` ensures
+      # this step NEVER fails the workflow — a connection problem
+      # degrades to "current_database: unavailable" via the helper itself.
+      # For non-postgres jobs (static, unit-contract-golden,
+      # compose-smoke) the PG fields gracefully show "unavailable"
+      # while runner / worker_index are still useful for triage.
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Wait for PostgreSQL service
         env:
@@ -457,6 +614,10 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
+          # Batch 6 (Issue #54 items 5 + 7) — emit top-30 slowest tests
+          # and echo the deterministic CI seed marker. ``--durations=30``
+          # is appended to each pytest invocation in the same job below.
+          echo "PYTEST_CI_SEED=${PYTEST_CI_SEED:-$GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
           pytest \
             backend/tests/integration/test_baseline_backtest.py \
             backend/tests/integration/test_climate_zone_import.py \
@@ -480,7 +641,7 @@ jobs:
             -m "not postgres_concurrency" -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \
-            --durations=0 \
+            --durations=30 \
             --junitxml=reports/test-results/postgres-domain-1.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/postgres-domain-1.xml ]; then
@@ -489,6 +650,18 @@ jobs:
             echo "::endgroup::"
           fi
           exit "$status"
+
+      # Batch 6 (Issue #54 item 6) — failed pytest nodeid summary.
+      # Runs after pytest (with ``if: always()``) and never fails the
+      # workflow: parser failure is caught by ``|| true`` and surfaces
+      # as "no JUnit XML found" / "no failed nodeids reported" in the
+      # step summary, never as a workflow failure.
+      - name: Failed nodeid summary
+        if: always()
+        run: |
+          python scripts/ci/parse_junit_failures.py \
+            --xml reports/test-results/${{ github.job }}.xml \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload postgres-domain-1 JUnit
         if: always()
@@ -526,11 +699,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Batch 6 (Issue #54 item 1) — pip dependency cache. The cache
+          # key is keyed on Python version (so 3.11/3.13 jobs do not
+          # collide) and the project lock + constraints file hashes (so
+          # adding/removing a dep invalidates the cache automatically).
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip
-          pip install --disable-pip-version-check --quiet -e ".[dev]"
+          # Batch 6 (Issue #54 item 2) — pin direct deps via
+          # ``backend/constraints-ci.txt`` so CI is reproducible across
+          # PRs. The constraints file holds the same dep set as
+          # pyproject.toml with exact ``==`` pins; transitive deps are
+          # resolved by pip and locked indirectly by the direct pins.
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      # Batch 6 (Issue #54 item 8) — runner / PostgreSQL worker identity
+      # log. Surfaces runner host, container host, current_database(),
+      # current_user(), and the worker_index (job / run_id / attempt /
+      # sha) in the step summary for failure triage. ``|| true`` ensures
+      # this step NEVER fails the workflow — a connection problem
+      # degrades to "current_database: unavailable" via the helper itself.
+      # For non-postgres jobs (static, unit-contract-golden,
+      # compose-smoke) the PG fields gracefully show "unavailable"
+      # while runner / worker_index are still useful for triage.
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Wait for PostgreSQL service
         env:
@@ -583,6 +785,10 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
+          # Batch 6 (Issue #54 items 5 + 7) — emit top-30 slowest tests
+          # and echo the deterministic CI seed marker. ``--durations=30``
+          # is appended to each pytest invocation in the same job below.
+          echo "PYTEST_CI_SEED=${PYTEST_CI_SEED:-$GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
           pytest \
             backend/tests/integration/test_residual_model_task3_end_to_end.py \
             backend/tests/integration/test_rolling_backtest_0013.py \
@@ -593,7 +799,7 @@ jobs:
             -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \
-            --durations=0 \
+            --durations=30 \
             --junitxml=reports/test-results/postgres-domain-2.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/postgres-domain-2.xml ]; then
@@ -602,6 +808,18 @@ jobs:
             echo "::endgroup::"
           fi
           exit "$status"
+
+      # Batch 6 (Issue #54 item 6) — failed pytest nodeid summary.
+      # Runs after pytest (with ``if: always()``) and never fails the
+      # workflow: parser failure is caught by ``|| true`` and surfaces
+      # as "no JUnit XML found" / "no failed nodeids reported" in the
+      # step summary, never as a workflow failure.
+      - name: Failed nodeid summary
+        if: always()
+        run: |
+          python scripts/ci/parse_junit_failures.py \
+            --xml reports/test-results/${{ github.job }}.xml \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload postgres-domain-2 JUnit
         if: always()
@@ -639,11 +857,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Batch 6 (Issue #54 item 1) — pip dependency cache. The cache
+          # key is keyed on Python version (so 3.11/3.13 jobs do not
+          # collide) and the project lock + constraints file hashes (so
+          # adding/removing a dep invalidates the cache automatically).
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip
-          pip install --disable-pip-version-check --quiet -e ".[dev]"
+          # Batch 6 (Issue #54 item 2) — pin direct deps via
+          # ``backend/constraints-ci.txt`` so CI is reproducible across
+          # PRs. The constraints file holds the same dep set as
+          # pyproject.toml with exact ``==`` pins; transitive deps are
+          # resolved by pip and locked indirectly by the direct pins.
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      # Batch 6 (Issue #54 item 8) — runner / PostgreSQL worker identity
+      # log. Surfaces runner host, container host, current_database(),
+      # current_user(), and the worker_index (job / run_id / attempt /
+      # sha) in the step summary for failure triage. ``|| true`` ensures
+      # this step NEVER fails the workflow — a connection problem
+      # degrades to "current_database: unavailable" via the helper itself.
+      # For non-postgres jobs (static, unit-contract-golden,
+      # compose-smoke) the PG fields gracefully show "unavailable"
+      # while runner / worker_index are still useful for triage.
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Wait for PostgreSQL service
         env:
@@ -696,6 +943,10 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
+          # Batch 6 (Issue #54 items 5 + 7) — emit top-30 slowest tests
+          # and echo the deterministic CI seed marker. ``--durations=30``
+          # is appended to each pytest invocation in the same job below.
+          echo "PYTEST_CI_SEED=${PYTEST_CI_SEED:-$GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
           pytest \
             backend/tests/harvest_state/ \
             backend/tests/test_task11_phase3_schema_gap.py \
@@ -706,7 +957,7 @@ jobs:
             -m "not postgres_concurrency" -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \
-            --durations=0 \
+            --durations=30 \
             --junitxml=reports/test-results/postgres-task11.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/postgres-task11.xml ]; then
@@ -715,6 +966,18 @@ jobs:
             echo "::endgroup::"
           fi
           exit "$status"
+
+      # Batch 6 (Issue #54 item 6) — failed pytest nodeid summary.
+      # Runs after pytest (with ``if: always()``) and never fails the
+      # workflow: parser failure is caught by ``|| true`` and surfaces
+      # as "no JUnit XML found" / "no failed nodeids reported" in the
+      # step summary, never as a workflow failure.
+      - name: Failed nodeid summary
+        if: always()
+        run: |
+          python scripts/ci/parse_junit_failures.py \
+            --xml reports/test-results/${{ github.job }}.xml \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload postgres-task11 JUnit
         if: always()
@@ -770,11 +1033,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Batch 6 (Issue #54 item 1) — pip dependency cache. The cache
+          # key is keyed on Python version (so 3.11/3.13 jobs do not
+          # collide) and the project lock + constraints file hashes (so
+          # adding/removing a dep invalidates the cache automatically).
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip
-          pip install --disable-pip-version-check --quiet -e ".[dev]"
+          # Batch 6 (Issue #54 item 2) — pin direct deps via
+          # ``backend/constraints-ci.txt`` so CI is reproducible across
+          # PRs. The constraints file holds the same dep set as
+          # pyproject.toml with exact ``==`` pins; transitive deps are
+          # resolved by pip and locked indirectly by the direct pins.
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      # Batch 6 (Issue #54 item 8) — runner / PostgreSQL worker identity
+      # log. Surfaces runner host, container host, current_database(),
+      # current_user(), and the worker_index (job / run_id / attempt /
+      # sha) in the step summary for failure triage. ``|| true`` ensures
+      # this step NEVER fails the workflow — a connection problem
+      # degrades to "current_database: unavailable" via the helper itself.
+      # For non-postgres jobs (static, unit-contract-golden,
+      # compose-smoke) the PG fields gracefully show "unavailable"
+      # while runner / worker_index are still useful for triage.
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Wait for PostgreSQL service
         env:
@@ -917,13 +1209,17 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
+          # Batch 6 (Issue #54 items 5 + 7) — emit top-30 slowest tests
+          # and echo the deterministic CI seed marker. ``--durations=30``
+          # is appended to each pytest invocation in the same job below.
+          echo "PYTEST_CI_SEED=${PYTEST_CI_SEED:-$GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
           pytest \
             backend/tests/test_concurrency_isolation_helpers.py \
             backend/tests/test_concurrency_isolation_helpers_live.py \
             -m postgres_concurrency -q --tb=long \
             --timeout=180 \
             --timeout-method=signal \
-            --durations=0 \
+            --durations=30 \
             --junitxml=reports/test-results/postgres-concurrency.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/postgres-concurrency.xml ]; then
@@ -932,6 +1228,18 @@ jobs:
             echo "::endgroup::"
           fi
           exit "$status"
+
+      # Batch 6 (Issue #54 item 6) — failed pytest nodeid summary.
+      # Runs after pytest (with ``if: always()``) and never fails the
+      # workflow: parser failure is caught by ``|| true`` and surfaces
+      # as "no JUnit XML found" / "no failed nodeids reported" in the
+      # step summary, never as a workflow failure.
+      - name: Failed nodeid summary
+        if: always()
+        run: |
+          python scripts/ci/parse_junit_failures.py \
+            --xml reports/test-results/${{ github.job }}.xml \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload postgres-concurrency JUnit
         if: always()
@@ -1071,11 +1379,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Batch 6 (Issue #54 item 1) — pip dependency cache. The cache
+          # key is keyed on Python version (so 3.11/3.13 jobs do not
+          # collide) and the project lock + constraints file hashes (so
+          # adding/removing a dep invalidates the cache automatically).
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip
-          pip install --disable-pip-version-check --quiet -e ".[dev]"
+          # Batch 6 (Issue #54 item 2) — pin direct deps via
+          # ``backend/constraints-ci.txt`` so CI is reproducible across
+          # PRs. The constraints file holds the same dep set as
+          # pyproject.toml with exact ``==`` pins; transitive deps are
+          # resolved by pip and locked indirectly by the direct pins.
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      # Batch 6 (Issue #54 item 8) — runner / PostgreSQL worker identity
+      # log. Surfaces runner host, container host, current_database(),
+      # current_user(), and the worker_index (job / run_id / attempt /
+      # sha) in the step summary for failure triage. ``|| true`` ensures
+      # this step NEVER fails the workflow — a connection problem
+      # degrades to "current_database: unavailable" via the helper itself.
+      # For non-postgres jobs (static, unit-contract-golden,
+      # compose-smoke) the PG fields gracefully show "unavailable"
+      # while runner / worker_index are still useful for triage.
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Wait for PostgreSQL service
         env:
@@ -1128,7 +1465,11 @@ jobs:
         run: |
           mkdir -p reports/test-results
           set +e
+          # Batch 6 (Issue #54 items 5 + 7) — emit top-30 slowest tests
+          # and echo the deterministic CI seed marker.
+          echo "PYTEST_CI_SEED=${PYTEST_CI_SEED:-$GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
           pytest -q --tb=long \
+            --durations=30 \
             --junitxml=reports/test-results/full.xml
           status=$?
           if [ "$status" -ne 0 ] && [ -f reports/test-results/full.xml ]; then
@@ -1137,6 +1478,18 @@ jobs:
             echo "::endgroup::"
           fi
           exit "$status"
+
+      # Batch 6 (Issue #54 item 6) — failed pytest nodeid summary.
+      # The full-suite-canary job uses ``reports/test-results/full.xml``
+      # (historical name from PR #55), not the conventional
+      # ``<job-name>.xml`` pattern. Hard-code the explicit path so
+      # the parser finds the right JUnit artifact.
+      - name: Failed nodeid summary
+        if: always()
+        run: |
+          python scripts/ci/parse_junit_failures.py \
+            --xml reports/test-results/full.xml \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload full pytest JUnit
         if: always()
