@@ -1,17 +1,18 @@
-"""Compatibility shim for ``backend.tests.postgres_test_support``.
+"""Slice 1 (continued) — public re-export of safety predicates.
 
-Per the Batch 5 design freeze (PR #68 / Issue #53) §7 commit 2,
-this module is preserved as a thin re-export during the transition
-from ``backend/tests/postgres_test_support.py`` to
-``backend/tests/db/profile.py``. Future removal of this shim is a
-separate authorization (design §7 commit 7).
+This module re-exports the safety predicates from
+:mod:`backend.tests.db._safety_predicates` so the
+``backend.tests.db.safety`` namespace is the canonical import
+location for the dev-DB safeguard machinery.
+
+The legacy ``backend.tests.postgres_test_support`` module remains
+a thin compatibility shim during the transition (see commit 2 of
+design §7).
 """
 
 from __future__ import annotations
 
-import warnings
-
-from backend.tests.db.profile import (  # noqa: F401  (re-export)
+from backend.tests.db._safety_predicates import (  # noqa: F401  (re-export)
     DEFAULT_TEST_APP_ENV,
     DEFAULT_TEST_DB_HOST,
     DEFAULT_TEST_DB_NAME,
@@ -26,13 +27,6 @@ from backend.tests.db.profile import (  # noqa: F401  (re-export)
     format_postgres_test_identity,
     resolve_postgres_test_identity,
     validate_postgres_test_identity,
-)
-
-warnings.warn(
-    "backend.tests.postgres_test_support has moved to backend.tests.db.profile. "
-    "The top-level shim will be removed in a future round; update imports.",
-    DeprecationWarning,
-    stacklevel=2,
 )
 
 __all__ = [
