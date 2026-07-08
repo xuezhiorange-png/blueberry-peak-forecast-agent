@@ -29,9 +29,17 @@ from backend.tests.residual_model.test_persistence import _training_row
 
 _ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 _ZIP_EXTERNAL_ATTR = 0o600 << 16
-_TRAINING_RUN_HEADER = "run_id,execution_status,eligibility_status,training_signature,config_hash,manifest_hash,created_at"
-_ARTIFACTS_HEADER = "quantile_label,artifact_sha256,model_family,model_version,feature_schema_version,config_hash,training_signature,manifest_hash"
-_PREDICTION_RUN_HEADER = "run_id,execution_status,mode,prediction_hash,config_hash,created_at"
+_TRAINING_RUN_HEADER = (
+    "run_id,execution_status,eligibility_status,training_signature,"
+    "config_hash,manifest_hash,created_at"
+)
+_ARTIFACTS_HEADER = (
+    "quantile_label,artifact_sha256,model_family,model_version,"
+    "feature_schema_version,config_hash,training_signature,manifest_hash"
+)
+_PREDICTION_RUN_HEADER = (
+    "run_id,execution_status,mode,prediction_hash,config_hash,created_at"
+)
 _PREDICTION_ROWS_HEADER = (
     "model_run_id,prediction_run_id,task9_run_id,task9_result_hash,"
     "destination_factory_id,arrival_local_date,forecast_horizon_days,"
