@@ -83,18 +83,17 @@ def resolve_isolated_db_name(
     attempt_str = str(github_run_attempt).strip()
     job_name_clean = job_name.strip()
 
-    if not run_id_str or not run_id_str.isdigit():
+    if not run_id_str or not run_id_str.isdigit() or int(run_id_str) < 1:
         raise ValueError(
             f"resolve_isolated_db_name: github_run_id must be a positive "
             f"integer, got {github_run_id!r}"
         )
-    if not attempt_str or not attempt_str.isdigit():
+    if not attempt_str or not attempt_str.isdigit() or int(attempt_str) < 1:
         raise ValueError(
-            f"resolve_isolated_db_name: github_run_attempt must be a positive "
-            f"integer, got {github_run_attempt!r}"
+            f"resolve_isolated_db_name: github_run_attempt must be >= 1, got {github_run_attempt!r}"
         )
     if not job_name_clean:
-        raise ValueError("resolve_isolated_db_name: job_name must be non-empty")
+        raise ValueError("resolve_isolated_db_name: job_name must be a non-empty string")
     if not _SEGMENT_RE.fullmatch(job_name_clean):
         raise ValueError(
             f"resolve_isolated_db_name: job_name must match "
@@ -105,7 +104,8 @@ def resolve_isolated_db_name(
     if len(name) > MAX_ISOLATED_DB_NAME_LEN:
         raise ValueError(
             f"resolve_isolated_db_name: composed name length {len(name)} "
-            f"exceeds {MAX_ISOLATED_DB_NAME_LEN}"
+            f"exceeds the PostgreSQL identifier limit of "
+            f"{MAX_ISOLATED_DB_NAME_LEN}"
         )
     return name
 
@@ -131,15 +131,33 @@ def assert_safe_isolated_db_name(db_name: str) -> None:
         If the name is empty, in the forbidden database name set,
         does not start with :data:`ISOLATED_DB_NAME_PREFIX`, or
         otherwise fails the test profile validation.
+
+    The error messages are pinned to specific substrings by the
+    regression tests in
+    ``backend/tests/test_alembic_round_trip_isolated.py``:
+    ``"non-empty string"`` for the empty check,
+    ``"refusing isolated DB name"`` for the forbidden-prefix check,
+    and ``"FORBIDDEN_DATABASE_NAMES"`` for the forbidden-list check.
+
+    Security note: the input ``db_name`` is **never echoed verbatim**
+    in the error message. ``db_name`` may carry credentials (a CI
+    misconfiguration can pass a password-bearing string here), and
+    echoing it would leak the secret into logs. The error message
+    only carries the prefix requirement / set membership.
     """
-    if not db_name:
-        raise ValueError("assert_safe_isolated_db_name: db_name must be non-empty")
+    if not db_name or not isinstance(db_name, str):
+        raise ValueError("assert_safe_isolated_db_name: db_name must be a non-empty string")
     if db_name in FORBIDDEN_DATABASE_NAMES:
-        raise ValueError(f"assert_safe_isolated_db_name: forbidden database name {db_name!r}")
+        raise ValueError(
+            "assert_safe_isolated_db_name: refusing isolated DB name: "
+            "input is present in FORBIDDEN_DATABASE_NAMES "
+            "(input redacted for safety)"
+        )
     if not db_name.startswith(ISOLATED_DB_NAME_PREFIX):
         raise ValueError(
-            f"assert_safe_isolated_db_name: db_name must start with "
-            f"isolated prefix {ISOLATED_DB_NAME_PREFIX!r}, got {db_name!r}"
+            "assert_safe_isolated_db_name: refusing isolated DB name: "
+            "input does not start with required isolated prefix "
+            "(input redacted for safety)"
         )
     identity = PostgresTestIdentity(
         database_name=db_name,
