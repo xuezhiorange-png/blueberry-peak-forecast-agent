@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 
-def effective_isolation_level(session: "Session") -> str:
+def effective_isolation_level(session: Session) -> str:
     """Return the effective isolation level for a SQLAlchemy session.
 
     Pure introspection; does not mutate the session. Returns
