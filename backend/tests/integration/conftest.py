@@ -160,9 +160,83 @@ async def dispose_engine_after_integration_tests() -> AsyncIterator[None]:
         await dispose_db_engine()
 
 
+# ---------------------------------------------------------------------------
+# Slice 5 — ordinary integration isolation strategy
+# ---------------------------------------------------------------------------
+#
+# Batch 3 Slice 5 retires the whole-database ``TRUNCATE`` autouse fixture
+# for ordinary integration tests that opt into ``transactional_pg_session``.
+# Tests that do NOT opt in keep the Slice 2 / pre-Slice-5 TRUNCATE
+# behavior. The narrow rule below applies only when the test function's
+# own fixturenames declare ``transactional_pg_session`` (or any test that
+# has declared one of the *savepoint-isolation* fixtures that route
+# through the same outer-transaction machinery).
+#
+# The narrow rule is detected via ``request.fixturenames``: pytest gives
+# the autouse fixture a ``FixtureRequest`` instance so it can introspect
+# the requesting test's parameters without coupling this fixture to the
+# individual test files. The set of savepoint-isolation fixtures is
+# pinned here so adding a new opt-in fixture requires updating this
+# list deliberately.
+
+#: Fixtures whose presence on a test marks that test as savepoint-isolated
+#: for the purpose of the ``isolate_master_data_tables`` narrow rule.
+#: Adding a new savepoint fixture is a deliberate act; the new fixture
+#: must be added to this set AND must be implemented on top of
+#: :func:`backend.tests.integration._txn_isolation.transactional_async_session`.
+_SAVEPOINT_ISOLATION_FIXTURES: frozenset[str] = frozenset(
+    {"transactional_pg_session"}
+)
+
+
+def _request_uses_savepoint_isolation(request: pytest.FixtureRequest) -> bool:
+    """Return ``True`` iff the requesting test opted into savepoint isolation.
+
+    Implemented as a module-level function so it can be unit-tested
+    independently of pytest's fixture machinery.
+    """
+    return any(name in _SAVEPOINT_ISOLATION_FIXTURES for name in request.fixturenames)
+
+
 @pytest.fixture(autouse=True)
-async def isolate_master_data_tables() -> AsyncIterator[None]:
+async def isolate_master_data_tables(
+    request: pytest.FixtureRequest,
+) -> AsyncIterator[None]:
+    """Slice 5 — narrowed master-data isolation fixture.
+
+    Behavior matrix:
+
+    +---------------------------------+----------------------+--------------------------+
+    | Test profile                    | Before-test TRUNCATE | After-test TRUNCATE      |
+    +=================================+======================+==========================+
+    | No PG (``RUN_POSTGRES_INTEGRATION!=1``) | skip (no-op)   | skip (no-op)             |
+    +---------------------------------+----------------------+--------------------------+
+    | PG enabled, ordinary test       | execute              | execute                  |
+    | (no savepoint fixture)          |                      |                          |
+    +---------------------------------+----------------------+--------------------------+
+    | PG enabled, savepoint-isolated  | **skip**             | **skip**                 |
+    | test (``transactional_pg_session``) |                  |                          |
+    +---------------------------------+----------------------+--------------------------+
+
+    The narrowed rule means tests that opt into ``transactional_pg_session``
+    no longer pay the cost of the ``TRUNCATE ... RESTART IDENTITY CASCADE``
+    before/after every test, and no longer need to wait for the autouse
+    ``SET LOCAL lock_timeout`` belt. Their rollback semantics are now
+    entirely owned by the outer-transaction machinery in
+    :mod:`backend.tests.integration._txn_isolation`.
+
+    Tests that still need global TRUNCATE (e.g. tests that bypass the
+    savepoint fixture to write to the database directly through a
+    non-transactional session) continue to get the pre-Slice-5 behavior.
+    """
     if not _postgres_integration_enabled():
+        yield
+        return
+
+    if _request_uses_savepoint_isolation(request):
+        # Savepoint-isolated test: skip TRUNCATE entirely. The
+        # outer-transaction rollback in the savepoint fixture owns
+        # cleanup.
         yield
         return
 
@@ -178,10 +252,11 @@ async def isolate_master_data_tables() -> AsyncIterator[None]:
 # ---------------------------------------------------------------------------
 #
 # This fixture is **opt-in**: a test must declare it as a parameter to
-# use it. The autouse `isolate_master_data_tables` TRUNCATE fixture
-# above continues to run for every integration test, including tests
-# that opt into `transactional_pg_session`. The TRUNCATE behavior is
-# unchanged in this slice; removing it is Slice 5 territory.
+# use it. The autouse ``isolate_master_data_tables`` TRUNCATE fixture
+# above is **narrowed** by Slice 5 so that it skips the
+# ``TRUNCATE ... RESTART IDENTITY CASCADE`` for any test that opted into
+# ``transactional_pg_session``. Tests that do NOT opt in still get the
+# pre-Slice-5 TRUNCATE behavior.
 #
 # The fixture is gated on:
 #   - `_postgres_integration_enabled()` — RUN_POSTGRES_INTEGRATION=1
