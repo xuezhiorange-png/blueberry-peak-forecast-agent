@@ -184,9 +184,7 @@ async def dispose_engine_after_integration_tests() -> AsyncIterator[None]:
 #: Adding a new savepoint fixture is a deliberate act; the new fixture
 #: must be added to this set AND must be implemented on top of
 #: :func:`backend.tests.integration._txn_isolation.transactional_async_session`.
-_SAVEPOINT_ISOLATION_FIXTURES: frozenset[str] = frozenset(
-    {"transactional_pg_session"}
-)
+_SAVEPOINT_ISOLATION_FIXTURES: frozenset[str] = frozenset({"transactional_pg_session"})
 
 
 def _request_uses_savepoint_isolation(request: pytest.FixtureRequest) -> bool:
