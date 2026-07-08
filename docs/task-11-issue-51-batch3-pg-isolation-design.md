@@ -1,6 +1,7 @@
 # [TASK-011-INFRA][Batch 3] PostgreSQL database isolation strategy — design freeze
 
 ## Status
+
 Design-only freeze. This document does not implement database isolation, does not modify tests, does not modify CI workflows, and does not modify production semantics.
 
 ## Issue mapping
@@ -258,5 +259,32 @@ P2 follow-ups:
 - [ ] Issue #51 remains OPEN.
 - [ ] Issue #23 remains OPEN.
 - [ ] Issue #50 remains OPEN.
-- [ ] Uses "Refs" only.
-- [ ] Does not use GitHub auto-closing keywords.
+
+## Appendix A — Batch 3 as-built implementation record
+
+Batch 3 was implemented in staged slices after this design freeze. The as-built evidence is recorded in:
+
+```text
+docs/task-11-issue-51-batch3-implementation-record.md
+```
+
+Summary:
+
+- Slice 1 / PR #59: dev-DB safeguard baseline, merged as `bd883d7885c66b18eb18fe8e56b419ecbac0e7f4`.
+- Slice 2 / PR #60: opt-in transaction + savepoint + rollback fixture, merged as `e5a616e3ef851bd69727fae7c5989fc04d4361aa`.
+- Slice 2 hotfix / PR #61: rollback probe schema correction, merged as `cbd7930da58a79d19804316d8dcd3b3ba766f955`.
+- Slice 3 / PR #62: `postgres-migration` isolated database profile, merged as `4311b301b73ecc938f92b2f38d37784afa04a075`.
+- Slice 4 / PR #63: `postgres-concurrency` isolated database profile, merged as `5838f9e6c613a24289de4fbde47b1c4521c93f97`.
+- Slice 5 / PR #64: ordinary integration savepoint rollback isolation narrowing, merged as `14b891ccf7fd537aa33bc13dc543b19f656b6b68`.
+
+As-built acceptance status:
+
+- G-01: closed by Slice 2 + Slice 5.
+- G-02: closed by Slice 3.
+- G-03: closed by Slice 4.
+- G-04: closed by Slice 1 and preserved through later slices.
+- G-05: partially closed; savepoint-isolated tests no longer use default TRUNCATE, while non-opted-in tests intentionally retain the legacy TRUNCATE path.
+- G-06: open residual; worker identity logs were not implemented or verified across all PostgreSQL test paths.
+- G-07: partially closed; the CI split consumes the migration and concurrency isolation classes, but full marker-to-isolation mapping remains incomplete.
+
+This appendix is documentation-only. It does not reinterpret the original design freeze as authorizing CI diagnostics, marker taxonomy cleanup, fixture refactor, production semantics, Alembic migration changes, or Issue closeout.
