@@ -1,6 +1,7 @@
 # ci-shard-manifest.yml
 #
-# TASK-011-INFRA Batch 2 implementation: single-execution ownership source of truth.
+# TASK-011-INFRA Batch 2 + Batch 4 implementation: single-execution ownership
+# source of truth.
 #
 # Per PR #55 design freeze (docs/task-11-issue-50-batch2-ci-dedup-design.md):
 #   §3.1 single-execution rule: each pytest test node must be assigned to exactly
@@ -13,6 +14,19 @@
 #        directory-glob + marker ownership per PR CI job, NOT by reclassifying
 #        tests (reclassification is forbidden by §2.2 non-goals).
 #
+# Per PR #66 design freeze (docs/task-11-issue-52-batch4-marker-taxonomy-design.md):
+#   The Issue #52 marker taxonomy is registered in pyproject.toml (12 canonical
+#   markers + 2 legacy compatibility markers). This manifest records:
+#     - marker taxonomy categories (execution / assertion-style / task-domain)
+#     - legacy marker compatibility (`integration` / `postgres_concurrency`)
+#     - CI ownership precedence rules
+#     - concurrency / postgres_concurrency sharp-selector precedence
+#     - migration ownership
+#     - task11 ownership
+#     - dev-DB safeguard ownership
+#     - no-duplicate-PR-execution rule
+#     - canary-only policy for e2e / slow if not owned in PR CI
+#
 # Strategy: directory-glob + marker ownership (NOT test reclassification), because
 # §2.2 forbids "test class additions, modifications, or reclassification" while
 # §8.1 permits "minimal pytest marker declarations only, if required". We use
@@ -20,7 +34,13 @@
 # pyproject.toml as the marker selectors; no new markers are added in this
 # implementation round (the existing three markers are sufficient).
 #
-# PR CI layout (8 PR jobs, per PR #55 §3):
+# Batch 4 Slice 1 only ADDITIVELY registers the Issue #52 marker taxonomy in
+# pyproject.toml and updates this manifest to record the new taxonomy. It does
+# NOT change CI selectors, does NOT remove legacy markers, does NOT rewrite
+# pytest commands in .github/workflows/ci.yml, and does NOT mass-annotate tests
+# beyond the minimal deterministic set recorded below.
+#
+# PR CI layout (8 PR jobs, per PR #55 §3) — unchanged by Batch 4 Slice 1:
 #   1. static                   — linting, formatting, type-checking (no pytest)
 #   2. unit-contract-golden     — pure unit, contract, golden tests
 #   3. postgres-migration       — Alembic / migration round-trip tests
@@ -44,6 +64,93 @@ version: 1
 #     `-m "not postgres_concurrency"` filter so that no node is run twice.
 #   - Dev-DB safeguard test (backend/tests/safety/test_dev_db_protection.py)
 #     is preserved in unit-contract-golden per PR #55 §2.1 + §15.
+
+# ----------------------------------------------------------------
+# Batch 4 marker taxonomy reference (Issue #52, PR #66)
+# ----------------------------------------------------------------
+# Canonical markers registered in pyproject.toml:
+#   Execution markers (CI ownership + resource profile):
+#     unit            — eligible for unit-contract-golden
+#     postgres        — eligible for any postgres-* shard
+#     migration       — owned by postgres-migration
+#     concurrency     — owned by postgres-concurrency (additive alias
+#                        for legacy postgres_concurrency; the legacy
+#                        marker remains the active PR CI sharp selector
+#                        until a separate compatibility-removal PR)
+#     e2e             — requires explicit owner; canary-only if not
+#                        owned in PR CI (no PR CI owner in Slice 1)
+#     slow            — requires explicit owner; canary-only if not
+#                        owned in PR CI (no PR CI owner in Slice 1)
+#   Assertion-style markers (descriptive, do not pick a shard by
+#   themselves):
+#     contract        — contract tests
+#     golden          — golden / snapshot tests
+#   Task-domain markers (descriptive, do not override execution
+#   ownership):
+#     task8 / task9 / task10 / task11
+# Legacy compatibility markers (preserved during migration):
+#     integration           — broad service / external-dependency
+#                             indicator; remains in pyproject.toml
+#                             and CI selectors
+#     postgres_concurrency  — sharp selector for postgres-concurrency
+#                             shard (Batch 2 CI selector); remains
+#                             the ACTIVE PR CI selector for that shard
+#                             in this slice. The canonical `concurrency`
+#                             marker is additive only; do not replace
+#                             `postgres_concurrency` in CI selectors
+#                             during this slice unless proven safe.
+# ----------------------------------------------------------------
+# CI ownership precedence (when a test carries multiple markers):
+#   1. `concurrency` or legacy `postgres_concurrency` → postgres-concurrency
+#   2. `migration`                                    → postgres-migration
+#   3. `postgres` + `task11`                          → postgres-task11
+#                                                     (unless rule 1/2 applies)
+#   4. `postgres` + non-task11 domain files           → postgres-domain-1
+#                                                     or postgres-domain-2
+#                                                     (per file glob)
+#   5. `unit` / `contract` / `golden` without
+#      `postgres` / `migration` / `concurrency` / `e2e` → unit-contract-golden
+#   6. `slow` is a runtime-policy tag; it does not pick a shard
+#      by itself and must be paired with an owning marker or
+#      file path
+#   7. `e2e` must have an explicit owner in this manifest;
+#      otherwise it is a canary-only blocker
+# ----------------------------------------------------------------
+# Sharp-selector rule (from Batch 2 §5, unchanged): concurrency
+# ownership (postgres_concurrency) wins over file-path ownership.
+# No test node is intentionally executed by more than one PR CI
+# job. No test node is accidentally dropped from PR CI unless
+# explicitly documented as canary-only (full-suite-canary).
+# ----------------------------------------------------------------
+# Dev-DB safeguard ownership:
+#   backend/tests/safety/test_dev_db_protection.py  → unit-contract-golden
+#   (preserved in PR CI per PR #55 §2.1 + §15 + Batch 1 PR #47)
+# ----------------------------------------------------------------
+# Migration ownership:
+#   backend/tests/test_alembic_baseline.py
+#   backend/tests/test_harvest_state_alembic.py
+#   backend/tests/test_residual_model_alembic.py
+#   backend/tests/test_alembic_round_trip_isolated.py
+#   backend/tests/test_alembic_round_trip_isolated_db_live.py
+#   → postgres-migration (with Slice 3 isolated DB behavior)
+# ----------------------------------------------------------------
+# Task11 ownership:
+#   backend/tests/harvest_state/
+#   backend/tests/test_task11_phase3_schema_gap.py
+#   backend/tests/integration/test_task11_dependency_serialization.py
+#   backend/tests/integration/test_task11_exact_load_and_colon_matrix.py
+#   backend/tests/integration/test_task11_hardening_tests.py
+#   backend/tests/integration/test_task11_phase3_schema_gap_persistence.py
+#   → postgres-task11 (with `-m "not postgres_concurrency"` exclusion
+#     so the 5 concurrency-marked nodes in
+#     test_task11_dependency_serialization.py stay in postgres-concurrency)
+# ----------------------------------------------------------------
+# Canary-only policy (no PR CI owner in this slice):
+#   e2e — no PR CI owner; full-suite-canary is the only execution
+#   slow — no PR CI owner; full-suite-canary is the only execution
+#   These must be revisited in a later slice once the broader marker
+#   rollout is complete.
+# ----------------------------------------------------------------
 
 shards:
 

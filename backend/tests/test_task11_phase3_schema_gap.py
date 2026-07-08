@@ -28,6 +28,10 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 
+# Slice 1 Batch 4 marker annotation: this file is owned by the
+# `postgres-task11` shard per ci-shard-manifest.yml.
+pytestmark = [pytest.mark.task11]
+
 _REVISION_PATH = Path("backend/alembic/versions/0015_task11_phase3_schema_gap.py")
 
 

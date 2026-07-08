@@ -53,7 +53,13 @@ from backend.app.harvest_state.enums import (
 )
 from backend.app.harvest_state.schemas import WeatherFeatureBand, WeatherFeatureRule
 
-pytestmark = pytest.mark.integration
+# Slice 1 Batch 4 marker annotation: this file is owned by the
+# `postgres-task11` shard (non-concurrency nodes) and the
+# `postgres-concurrency` shard (5 nodes with `@pytest.mark.postgres_concurrency`)
+# per ci-shard-manifest.yml. ``integration`` is preserved as the legacy
+# broad-dependency indicator; ``task11`` is the canonical Issue #52
+# task-domain marker.
+pytestmark = [pytest.mark.integration, pytest.mark.task11]
 
 # ── Deterministic test data helpers ──────────────────────────────────────
 
@@ -397,6 +403,7 @@ class _DependencyRaceControl:
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
+@pytest.mark.concurrency
 async def test_replacement_race_vs_package_activation() -> None:
     """Concurrent replacement (Transaction A) vs activating a draft package
     referencing the same dependencies (Transaction B).
@@ -546,6 +553,7 @@ async def test_replacement_race_vs_package_activation() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
+@pytest.mark.concurrency
 async def test_replacement_race_vs_package_create() -> None:
     """Concurrent replacement (A) vs creating a new package (B) referencing
     the same dependencies.
@@ -710,6 +718,7 @@ async def test_replacement_race_vs_package_create() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
+@pytest.mark.concurrency
 async def test_trio_replacement_vs_direct_dependency_supersession_no_deadlock() -> None:
     """Concurrent trio replacement (A) vs directly superseding holiday H1
     with a different new holiday (B).
@@ -889,6 +898,7 @@ async def test_trio_replacement_vs_direct_dependency_supersession_no_deadlock() 
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
+@pytest.mark.concurrency
 async def test_concurrent_package_activation_uses_locked_fresh_state() -> None:
     """Two concurrent activate_authority calls on the same draft package.
 
@@ -992,6 +1002,7 @@ async def test_concurrent_package_activation_uses_locked_fresh_state() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
+@pytest.mark.concurrency
 async def test_concurrent_trio_replacement_uses_locked_fresh_state() -> None:
     """Two concurrent replace_run_package_with_dependencies calls on the
     same old package.

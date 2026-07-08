@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateTable
 
@@ -10,6 +11,10 @@ from backend.app.models.harvest_state import (
     HarvestStateFutureArrivalRowModel,
     HarvestStateRun,
 )
+
+# Slice 1 Batch 4 marker annotation: this file is owned by the
+# `postgres-migration` shard per ci-shard-manifest.yml.
+pytestmark = [pytest.mark.postgres, pytest.mark.migration]
 
 
 def test_harvest_state_migration_metadata() -> None:

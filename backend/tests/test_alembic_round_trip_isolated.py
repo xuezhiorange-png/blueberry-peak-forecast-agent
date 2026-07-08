@@ -55,7 +55,10 @@ from backend.tests.postgres_test_support import FORBIDDEN_DATABASE_NAMES
 # file explicitly in its ``pytest`` invocation, so the marker is not a
 # no-op for that job — it only governs whether the contract tests get
 # collected by other shards.
-pytestmark = pytest.mark.postgres
+# Slice 1 Batch 4 marker annotation: add ``migration`` (canonical
+# Issue #52 taxonomy) additively. Ownership remains ``postgres-migration``
+# per ci-shard-manifest.yml.
+pytestmark = [pytest.mark.postgres, pytest.mark.migration]
 
 
 # ---------------------------------------------------------------------------
