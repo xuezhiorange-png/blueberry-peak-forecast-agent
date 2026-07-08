@@ -36,9 +36,7 @@ _ARTIFACTS_HEADER = (
     "quantile_label,artifact_sha256,model_family,model_version,"
     "feature_schema_version,config_hash,training_signature,manifest_hash"
 )
-_PREDICTION_RUN_HEADER = (
-    "run_id,execution_status,mode,prediction_hash,config_hash,created_at"
-)
+_PREDICTION_RUN_HEADER = "run_id,execution_status,mode,prediction_hash,config_hash,created_at"
 _PREDICTION_ROWS_HEADER = (
     "model_run_id,prediction_run_id,task9_run_id,task9_result_hash,"
     "destination_factory_id,arrival_local_date,forecast_horizon_days,"
