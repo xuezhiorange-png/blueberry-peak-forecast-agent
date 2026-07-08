@@ -12,6 +12,7 @@ from backend.app.api.master_data import router as master_data_router
 from backend.app.api.maturity import router as maturity_router
 from backend.app.api.planning import router as planning_router
 from backend.app.api.production_plans import router as production_plan_router
+from backend.app.api.residual_model import router as residual_model_router
 from backend.app.api.weather import router as weather_router
 from backend.app.core.config import AppSettings, get_settings
 from backend.app.core.version import APP_VERSION
@@ -61,6 +62,11 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     app.include_router(production_plan_router, prefix="/planning", tags=["production-plans"])
     app.include_router(weather_router, prefix="/planning", tags=["weather"])
     app.include_router(maturity_router, prefix="/planning", tags=["maturity"])
+    app.include_router(
+        residual_model_router,
+        prefix="/api/v1/residual-model",
+        tags=["residual-model"],
+    )
     return app
 
 
