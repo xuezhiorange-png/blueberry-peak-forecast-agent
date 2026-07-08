@@ -25,24 +25,38 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 FACTORIES_DIR = REPO_ROOT / "backend" / "tests" / "factories"
 ASSERTIONS_DIR = REPO_ROOT / "backend" / "tests" / "assertions"
+
+# Fail-closed: if any of the submodules is missing, the test module
+# itself must refuse to load (rather than silently passing with an
+# empty scan). Per Batch 5 PR #69 P0-3 fix.
+for _required_dir, _label in (
+    (FACTORIES_DIR, "FACTORIES_DIR"),
+    (ASSERTIONS_DIR, "ASSERTIONS_DIR"),
+):
+    if not _required_dir.is_dir():
+        raise RuntimeError(
+            f"test_no_canonical_reimplementation: required directory "
+            f"{_label} does not exist: {_required_dir}"
+        )
+del _required_dir, _label
 
 # Forbidden canonical-logic patterns inside test-only factories and
 # assertions. The intent is to forbid any local reimplementation of
 # production canonical / hash / key / ID logic.
 FORBIDDEN_PATTERNS: tuple[tuple[str, str], ...] = (
-    (r"hashlib\.sha256\(", "raw hashlib.sha256 invocation (use sha256_hex from backend.app.harvest_state.canonical)"),
-    (r"hashlib\.sha512\(", "raw hashlib.sha512 invocation (use sha256_hex from backend.app.harvest_state.canonical)"),
-    (r"hashlib\.sha1\(", "raw hashlib.sha1 invocation (use sha256_hex from backend.app.harvest_state.canonical)"),
+    (r"hashlib\.sha256\(", "raw hashlib.sha256 invocation"),
+    (r"hashlib\.sha512\(", "raw hashlib.sha512 invocation"),
+    (r"hashlib\.sha1\(", "raw hashlib.sha1 invocation"),
     (r"hashlib\.new\(\s*[\"']sha", "raw hashlib.new('sha...') invocation"),
-    (r"hmac\.new\(", "raw hmac.new invocation (use production canonical helpers)"),
-    (r"secrets\.(token_hex|token_bytes|token_urlsafe)\(", "deterministic-key-like usage (production canonical handles keys)"),
-    (r"uuid\.uuid5\(", "deterministic UUID5 invocation (production canonical handles ids)"),
-    (r"uuid\.uuid3\(", "deterministic UUID3 invocation (production canonical handles ids)"),
-    (r"hashlib\.blake2b\(", "raw blake2b invocation (use production canonical helpers)"),
-    (r"hashlib\.blake2s\(", "raw blake2s invocation (use production canonical helpers)"),
+    (r"hmac\.new\(", "raw hmac.new invocation"),
+    (r"secrets\.(token_hex|token_bytes|token_urlsafe)\(", "deterministic-key-like usage"),
+    (r"uuid\.uuid5\(", "deterministic UUID5 invocation"),
+    (r"uuid\.uuid3\(", "deterministic UUID3 invocation"),
+    (r"hashlib\.blake2b\(", "raw blake2b invocation"),
+    (r"hashlib\.blake2s\(", "raw blake2s invocation"),
 )
 
 
@@ -80,16 +94,23 @@ def test_no_canonical_reimplementation(file_path: Path) -> None:
     """No factory or assertion may reimplement production canonical logic.
 
     Submodule-boundary enforcement per design §5.2 and §6.
+
+    The test file itself is excluded from the scan (it intentionally
+    contains the forbidden patterns as FORBIDDEN_PATTERNS literals and
+    in its docstring as illustrative examples). Per Batch 5 PR #69
+    P0-3 fix.
     """
     if not file_path.exists():
         pytest.skip(f"file not present: {file_path}")
+    # The scope-guard test itself is the source of truth for the
+    # forbidden patterns; scanning it would always trip on its own
+    # FORBIDDEN_PATTERNS definitions and docstring examples.
+    if file_path.name == "test_no_canonical_reimplementation.py":
+        pytest.skip("scope-guard test scans itself: skipping")
     violations = _scan_for_forbidden_patterns(file_path)
     assert not violations, (
         f"{file_path.relative_to(REPO_ROOT)} re-implements production "
         f"canonical logic. Test-only helpers must call backend.app.** "
         f"canonical helpers, not reimplement them. Violations:\n"
-        + "\n".join(
-            f"  line {ln}: {desc}\n    >>> {line}"
-            for ln, line, desc in violations
-        )
+        + "\n".join(f"  line {ln}: {desc}\n    >>> {line}" for ln, line, desc in violations)
     )

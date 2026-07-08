@@ -22,10 +22,24 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 FACTORIES_DIR = REPO_ROOT / "backend" / "tests" / "factories"
 ASSERTIONS_DIR = REPO_ROOT / "backend" / "tests" / "assertions"
 DB_DIR = REPO_ROOT / "backend" / "tests" / "db"
+
+# Fail-closed: if any of the submodules is missing, the test module
+# itself must refuse to load (rather than silently passing with an
+# empty scan). Per Batch 5 PR #69 P0-3 fix.
+for _required_dir, _label in (
+    (FACTORIES_DIR, "FACTORIES_DIR"),
+    (ASSERTIONS_DIR, "ASSERTIONS_DIR"),
+    (DB_DIR, "DB_DIR"),
+):
+    if not _required_dir.is_dir():
+        raise RuntimeError(
+            f"test_import_boundaries: required directory {_label} does not exist: {_required_dir}"
+        )
+del _required_dir, _label
 
 # Map (source_submodule, target_submodule) -> human-readable rule.
 FORBIDDEN_IMPORTS: tuple[tuple[str, str, str], ...] = (
@@ -97,9 +111,7 @@ def _files_under(directory: Path) -> list[Path]:
 
 @pytest.mark.parametrize(
     "file_path",
-    _files_under(FACTORIES_DIR)
-    + _files_under(ASSERTIONS_DIR)
-    + _files_under(DB_DIR),
+    _files_under(FACTORIES_DIR) + _files_under(ASSERTIONS_DIR) + _files_under(DB_DIR),
     ids=lambda p: str(p.relative_to(REPO_ROOT)) if isinstance(p, Path) else str(p),
 )
 def test_no_forbidden_imports(file_path: Path) -> None:
@@ -114,9 +126,7 @@ def test_no_forbidden_imports(file_path: Path) -> None:
             if source_submodule != src:
                 continue
             # Match the target submodule anywhere in the imported module path.
-            if f".tests.{tgt}" in imported_module or imported_module.endswith(
-                f".tests.{tgt}"
-            ):
+            if f".tests.{tgt}" in imported_module or imported_module.endswith(f".tests.{tgt}"):
                 pytest.fail(
                     f"{file_path.relative_to(REPO_ROOT)}: forbidden import "
                     f"{imported_module!r}. {message}"

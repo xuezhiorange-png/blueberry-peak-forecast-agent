@@ -26,7 +26,6 @@ from __future__ import annotations
 
 from backend.app.harvest_state.canonical import sha256_hex
 from backend.app.rolling_backtest.canonical import sha256_payload
-
 from backend.tests.factories.identity import build_test_identity
 
 

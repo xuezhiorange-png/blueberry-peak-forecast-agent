@@ -19,14 +19,14 @@ from ``factories/`` or ``assertions/``).
 from __future__ import annotations
 
 # Re-export the production SessionLocal factory so integration tests
-# can wire it via the ``db/`` namespace without reaching into
-# production code paths directly. This is the only allowed
-# import-boundary crossing from ``db/`` to ``backend.app.**``
-# for session plumbing.
+# Re-export the production AsyncSessionMaker factory so integration tests
+# can wire it via the ``db/`` namespace without reaching into production
+# code paths directly. This is the only allowed import-boundary crossing
+# from ``db/`` to ``backend.app.**`` for session plumbing.
 try:
-    from backend.app.db.session import SessionLocal  # noqa: F401  (re-export)
-except ImportError:  # pragma: no cover - production module may not import cleanly under minimal CI profile
-    SessionLocal = None  # type: ignore[assignment]
+    from backend.app.db.session import AsyncSessionMaker  # noqa: F401
+except ImportError:  # pragma: no cover (production module may not import cleanly)
+    AsyncSessionMaker = None  # type: ignore[assignment]
 
 
-__all__ = ["SessionLocal"]
+__all__ = ["AsyncSessionMaker"]

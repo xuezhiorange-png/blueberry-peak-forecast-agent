@@ -19,7 +19,7 @@ from __future__ import annotations
 import re
 
 from backend.tests.db.safety import (
-    DEFAULT_TEST_APP_ENV,
+    DEFAULT_TEST_DB_PORT,
     FORBIDDEN_DATABASE_NAMES,
     PostgresTestIdentity,
     validate_postgres_test_identity,
@@ -94,9 +94,7 @@ def resolve_isolated_db_name(
             f"integer, got {github_run_attempt!r}"
         )
     if not job_name_clean:
-        raise ValueError(
-            "resolve_isolated_db_name: job_name must be non-empty"
-        )
+        raise ValueError("resolve_isolated_db_name: job_name must be non-empty")
     if not _SEGMENT_RE.fullmatch(job_name_clean):
         raise ValueError(
             f"resolve_isolated_db_name: job_name must match "
@@ -121,21 +119,31 @@ def assert_safe_isolated_db_name(db_name: str) -> None:
     Slice 3 / Slice 4 chain shares the same fail-closed predicate that
     the dev-DB safeguard uses.
 
+    In addition, the name MUST start with the isolated DB prefix
+    :data:`ISOLATED_DB_NAME_PREFIX` (per design §4.3 + Batch 5 PR #69
+    P0-2 fix). This is the per-run isolation guarantee — without it,
+    a CI run could land on the service container's literal
+    ``blueberry_peak`` DB.
+
     Raises
     ------
     ValueError
-        If the name is empty, in the forbidden database name set, or
+        If the name is empty, in the forbidden database name set,
+        does not start with :data:`ISOLATED_DB_NAME_PREFIX`, or
         otherwise fails the test profile validation.
     """
     if not db_name:
         raise ValueError("assert_safe_isolated_db_name: db_name must be non-empty")
     if db_name in FORBIDDEN_DATABASE_NAMES:
+        raise ValueError(f"assert_safe_isolated_db_name: forbidden database name {db_name!r}")
+    if not db_name.startswith(ISOLATED_DB_NAME_PREFIX):
         raise ValueError(
-            f"assert_safe_isolated_db_name: forbidden database name {db_name!r}"
+            f"assert_safe_isolated_db_name: db_name must start with "
+            f"isolated prefix {ISOLATED_DB_NAME_PREFIX!r}, got {db_name!r}"
         )
     identity = PostgresTestIdentity(
         database_name=db_name,
-        port=DEFAULT_TEST_APP_ENV and 0,  # port-agnostic at validation layer
+        port=DEFAULT_TEST_DB_PORT,
         app_env="test",
         database_user="postgres",
         host="localhost",

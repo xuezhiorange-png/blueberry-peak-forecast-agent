@@ -16,7 +16,6 @@ from __future__ import annotations
 import pytest
 
 from backend.app.harvest_state.canonical import canonical_json_dumps, sha256_hex
-
 from backend.tests.assertions.canonical import (
     assert_canonical_payload_hash,
     assert_canonical_serialization,

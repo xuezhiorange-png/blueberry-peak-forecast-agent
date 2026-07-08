@@ -20,7 +20,11 @@ from __future__ import annotations
 from backend.tests.db.migration import (  # noqa: F401  (re-export)
     ISOLATED_DB_NAME_PREFIX,
     MAX_ISOLATED_DB_NAME_LEN,
+)
+from backend.tests.db.migration import (
     assert_safe_isolated_db_name as _assert_safe_isolated_db_name,
+)
+from backend.tests.db.migration import (
     resolve_isolated_db_name as _resolve_isolated_db_name,
 )
 

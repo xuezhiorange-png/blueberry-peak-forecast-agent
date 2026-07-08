@@ -26,9 +26,7 @@ from typing import Any
 from backend.app.harvest_state.canonical import (
     canonical_json_dumps,
     make_result_hash,
-    sha256_hex,
 )
-
 from backend.tests.factories.identity import TestIdentity, build_test_identity
 
 
