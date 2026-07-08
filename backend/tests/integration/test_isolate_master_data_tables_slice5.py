@@ -56,12 +56,12 @@ import pytest
 from sqlalchemy import text
 
 from backend.tests.integration.conftest import (
-    _request_uses_savepoint_isolation,
     _SAVEPOINT_ISOLATION_FIXTURES,
+    _request_uses_savepoint_isolation,
 )
 
 if TYPE_CHECKING:
-    from pytest import FixtureRequest
+    pass
 
 pytestmark = pytest.mark.integration
 
