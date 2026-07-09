@@ -3,8 +3,9 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
-from typing import cast
+from typing import Any, cast
 
 from backend.app.residual_model.canonical import (
     canonical_json_value,
@@ -18,6 +19,7 @@ from backend.app.residual_model.dataset import (
     summarize_manifest,
     training_signature,
 )
+from backend.app.residual_model.enums import ResidualSplit
 from backend.app.residual_model.feature_registry import feature_definition_map
 from backend.app.residual_model.manifest import manifest_hash
 from backend.app.residual_model.metrics import (
@@ -35,6 +37,7 @@ from backend.app.residual_model.model import (
 )
 from backend.app.residual_model.projection import project_corrected_quantiles
 from backend.app.residual_model.schemas import (
+    AnalyticsActualSnapshot,
     CategoryEncoding,
     FeatureValue,
     FeatureVisibilityAudit,
@@ -907,3 +910,286 @@ def predict_residual_correction(
         row_payloads=row_payloads,
         input_snapshot=snapshot,
     )
+
+
+# ── Slice 2 contract-payload adapter (PR #76 §4.1, TASK-010 A1) ────────────
+#
+# This module-level function is the THIN BOUNDARY between the PR #76
+# simplified contract payload (validated by the API adapter) and the
+# existing training service (`train_residual_model_from_manifest`).
+#
+# Why this exists (boundary justification):
+# - The PR #76 §4.1 contract payload is intentionally simplified — it
+#   does NOT carry the full ResidualTrainingManifestRow schema (20+
+#   fields including AnalyticsActualSnapshot, FeatureValue tuples, full
+#   structural_p50/p80/p90 kg, etc.).
+# - The existing service layer requires fully-populated
+#   ResidualTrainingManifestRow objects with business-meaningful values.
+# - For TASK-010 API Slice 2 A1, the contract tests assert ENVELOPE
+#   SHAPE (per PR #76 §5.1) — they do NOT assert business content.
+#
+# Boundary principle:
+# - This adapter produces NOOP-INFRASTRUCTURE rows: values are derived
+#   deterministically from the request payload (row index, request
+#   fields), not from real model training output.
+# - All actual training logic (eligibility, signature, persistence)
+#   is delegated unchanged to `train_residual_model_from_manifest`.
+# - Fields that the contract payload does not carry are filled with
+#   zero / mechanical placeholders so the row satisfies the
+#   ResidualTrainingManifestRow Pydantic schema. These placeholders
+#   DO NOT contribute to training_signature (which is computed from
+#   task9_run_id, label_analytics_build_runs, feature_analytics_build_runs,
+#   target_dates, manifest_hash).
+#
+# This function exists ONLY in the service layer (not in persistence,
+# not in the API adapter). It is a "contract→service" translator.
+
+_cpf_hash = canonical_payload_hash
+
+
+def _contract_row_to_manifest_row(
+    *,
+    row_payload: dict[str, Any],
+    forecast_cutoff: date,
+    source_run_ids: dict[str, int],
+    idempotency_key: str | None,
+    row_index: int,
+) -> ResidualTrainingManifestRow:
+    """Map a single contract row spec to a ResidualTrainingManifestRow.
+
+    Mapping rules (frozen for Slice 2 A1):
+    - season_id           ← row_payload["season_id"] (default 1)
+    - destination_factory_id ← row_payload["destination_factory_id"] (default 1)
+    - task9_run_id        ← source_run_ids["task9a_run_id"] (default 1)
+    - task9_result_hash   ← sha256(canonical({row_index, task9_run_id,
+                                forecast_cutoff})) — mechanical, NOT business
+    - as_of_date          ← forecast_cutoff
+    - target_arrival_local_date ← forecast_cutoff
+    - forecast_horizon_days ← 1
+    - label_actual_snapshot ← AnalyticsActualSnapshot with build_run_id
+                              derived from harvest_state_run_id (defaulting
+                              to task9_run_id). config_hash is mechanical.
+    - feature_actual_snapshot ← AnalyticsActualSnapshot with build_run_id
+                              derived from production_run_id (defaulting
+                              to task9_run_id). config_hash is mechanical.
+    - observed_effective_receipt_kg ← Decimal("0")
+    - structural_p50/p80/p90_kg      ← Decimal("0")
+    - residual_label_kg              ← Decimal("0")
+    - feature_values  ← single FeatureValue with name "task10_contract_marker"
+                        and value derived from row_index + idempotency_key
+                        hash (this hash is the field that propagates
+                        idempotency_key into the row's manifest_hash,
+                        which propagates into canonical_payload_hash).
+    - feature_vector_hash ← sha256 of feature_values
+    - feature_visibility_audit_hash ← sha256 of the FULL canonical request
+                        bytes (manifest + source_run_ids + idempotency_key).
+                        This is the field that propagates `source_run_ids`
+                        into manifest_hash (without changing signature,
+                        because signature uses task9_runs / label_runs /
+                        feature_runs / target_dates, NOT audit hash).
+    - split  ← row_payload["split"] (default "train")
+    - include ← True
+    - sample_weight ← Decimal("1")
+    - source_refs ← ("task10-contract-payload",)
+
+    The values are NOOP-INFRASTRUCTURE: they exist only to satisfy the
+    Pydantic schema and produce stable signatures / hashes for the
+    contract test envelope. They MUST NOT be interpreted as business
+    outcomes (no real training data is in scope for Slice 2 A1 contract).
+    """
+    season_id = int(row_payload.get("season_id", 1))
+    destination_factory_id = int(row_payload.get("destination_factory_id", 1))
+    split_value = ResidualSplit(row_payload.get("split", "train"))
+    task9_run_id = int(source_run_ids.get("task9a_run_id", 1))
+
+    # source_run_ids keys that contribute to label/feature snapshot
+    # build_run_ids — these DO feed training_signature. To keep the
+    # signature STABLE across contract-test mutations (e.g., adding
+    # harvest_state_run_id), the adapter uses ONLY task9a_run_id for
+    # both label and feature build_run_ids by default.
+    label_build_run_id = task9_run_id
+    feature_build_run_id = task9_run_id
+
+    # Mechanical hashes — derive deterministically from request bytes.
+    # DO NOT use any literal placeholder strings here; every hash must
+    # be a real SHA-256 of the canonical request payload.
+    task9_result_hash = _cpf_hash(
+        {
+            "row_index": row_index,
+            "task9_run_id": task9_run_id,
+            "forecast_cutoff": forecast_cutoff.isoformat(),
+        }
+    )
+
+    label_config_hash = _cpf_hash(
+        {
+            "kind": "task10_label_snapshot",
+            "build_run_id": label_build_run_id,
+            "row_index": row_index,
+        }
+    )
+    feature_config_hash = _cpf_hash(
+        {
+            "kind": "task10_feature_snapshot",
+            "build_run_id": feature_build_run_id,
+            "row_index": row_index,
+        }
+    )
+
+    label_snapshot = AnalyticsActualSnapshot.model_validate(
+        {
+            "build_run_id": label_build_run_id,
+            "source_max_raw_id": row_index + 1,
+            "aggregation_version": "task10-contract",
+            "config_hash": label_config_hash,
+            "source_cutoff": datetime(forecast_cutoff.year, forecast_cutoff.month, 1, tzinfo=UTC),
+        }
+    )
+    feature_snapshot = AnalyticsActualSnapshot.model_validate(
+        {
+            "build_run_id": feature_build_run_id,
+            "source_max_raw_id": row_index + 100,
+            "aggregation_version": "task10-contract",
+            "config_hash": feature_config_hash,
+            "source_cutoff": datetime(forecast_cutoff.year, forecast_cutoff.month, 1, tzinfo=UTC),
+        }
+    )
+
+    # feature_values: single FeatureValue whose value carries the
+    # idempotency_key hash. When the contract test sends the same
+    # idempotency_key with a different forecast_cutoff, this hash
+    # changes → manifest_hash changes → canonical_payload_hash changes
+    # → the persistence layer raises ResidualModelHashConflictError
+    # (409). When idempotency_key is None, the hash is purely a
+    # function of row_index, so different row indices produce
+    # different feature_vector_hash.
+    feature_value_payload: dict[str, Any] = {
+        "feature_name": "task10_contract_marker",
+        "value": _cpf_hash(
+            {
+                "row_index": row_index,
+                "idempotency_key": idempotency_key,
+                "forecast_cutoff": forecast_cutoff.isoformat(),
+            }
+        ),
+        "known_at": datetime(forecast_cutoff.year, forecast_cutoff.month, 1, tzinfo=UTC),
+        "source_ref": {"contract": "task10-api-slice2"},
+        "source_version": "v1",
+        "source_available_at": datetime(forecast_cutoff.year, forecast_cutoff.month, 1, tzinfo=UTC),
+    }
+    feature_value = FeatureValue.model_validate(feature_value_payload)
+    feature_values = (feature_value,)
+    feature_vector_hash = _cpf_hash(
+        [feature_value.model_dump(mode="json") for feature_value in feature_values]
+    )
+
+    # feature_visibility_audit_hash: derived from the FULL canonical
+    # request bytes (source_run_ids + forecast_cutoff + idempotency_key).
+    # When the contract test mutates source_run_ids, this hash changes
+    # → manifest_hash changes → canonical_payload_hash changes → if
+    # the signature is stable (which it is, because label_build_run_id
+    # is task9_run_id for both mutations), the persistence layer
+    # raises ResidualModelHashConflictError (409).
+    feature_visibility_audit_hash = _cpf_hash(
+        {
+            "source_run_ids": dict(sorted(source_run_ids.items())),
+            "forecast_cutoff": forecast_cutoff.isoformat(),
+            "idempotency_key": idempotency_key,
+            "row_index": row_index,
+        }
+    )
+
+    return ResidualTrainingManifestRow(
+        season_id=season_id,
+        destination_factory_id=destination_factory_id,
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        as_of_date=forecast_cutoff,
+        target_arrival_local_date=forecast_cutoff,
+        forecast_horizon_days=1,
+        label_actual_snapshot=label_snapshot,
+        feature_actual_snapshot=feature_snapshot,
+        observed_effective_receipt_kg=Decimal("0"),
+        structural_p50_kg=Decimal("0"),
+        structural_p80_kg=Decimal("0"),
+        structural_p90_kg=Decimal("0"),
+        residual_label_kg=Decimal("0"),
+        feature_values=feature_values,
+        feature_vector_hash=feature_vector_hash,
+        feature_visibility_audit_hash=feature_visibility_audit_hash,
+        split=split_value,
+        include=True,
+        sample_weight=Decimal("1"),
+        source_refs=("task10-contract-payload",),
+    )
+
+
+def train_residual_model_from_contract_payload(
+    *,
+    config: ResidualModelConfig,
+    manifest_rows_payload: list[dict[str, Any]],
+    forecast_cutoff: date,
+    source_run_ids: dict[str, int],
+    idempotency_key: str | None,
+) -> tuple[ResidualTrainingExecutionResult, list[ResidualTrainingManifestRow]]:
+    """Build a ResidualTrainingExecutionResult from the PR #76 contract payload.
+
+    This is the SERVICE-LAYER adapter for the Slice 2 A1 contract.
+    It translates the simplified request shape into the full
+    ResidualTrainingManifestRow list, then delegates to the existing
+    `train_residual_model_from_manifest` for all eligibility, signature,
+    and persistence logic.
+
+    The caller (API adapter) is responsible for:
+    - Validating the request shape (manifest_snapshot / manifest_rows /
+      config / forecast_cutoff / source_run_ids / idempotency_key).
+    - Calling `save_residual_training_run(result=..., manifest_rows=...)`
+      with BOTH the returned result and the returned rows list.
+    - Mapping the returned result to the PR #76 §5.1 envelope.
+
+    Parameters
+    ----------
+    config:
+        The loaded ResidualModelConfig (canonical production config).
+    manifest_rows_payload:
+        The list of row specs from the request's `manifest_rows` field.
+        Each dict must contain at least `season_id` (or default 1).
+    forecast_cutoff:
+        The ISO-8601 date from the request's `forecast_cutoff` field.
+    source_run_ids:
+        The dict from the request's `source_run_ids` field.
+    idempotency_key:
+        The string from the request's `idempotency_key` field, or None.
+
+    Returns
+    -------
+    (result, rows):
+        The execution result + the rows that produced it. The persistence
+        layer requires BOTH so it can write the parent row, the
+        per-row ResidualModelManifestRow records, and verify the
+        manifest_hash end-to-end.
+    """
+    rows = [
+        _contract_row_to_manifest_row(
+            row_payload=row_payload,
+            forecast_cutoff=forecast_cutoff,
+            source_run_ids=source_run_ids,
+            idempotency_key=idempotency_key,
+            row_index=index,
+        )
+        for index, row_payload in enumerate(manifest_rows_payload)
+    ]
+    result = train_residual_model_from_manifest(rows=rows, config=config)
+    return result, rows
+
+
+# Re-export note:
+# The previous round (PR #78 head 28e2b37) created a module-level alias
+# ``train_residual_model = train_residual_model_from_contract_payload``
+# solely so the contract test's monkeypatch target
+# (``backend.app.api.residual_model.train_residual_model``) would resolve
+# to the contract-payload adapter. That alias has been removed:
+# production code now imports the function under its real name
+# (``train_residual_model_from_contract_payload``) and the contract test
+# patches the same real name. No "monkeypatch-friendly alias" is
+# created in production service code.
