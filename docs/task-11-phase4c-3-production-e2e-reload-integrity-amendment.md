@@ -198,8 +198,19 @@ The 4c-3 surface MUST distinguish the following error / blocker kinds. Each is a
 
 ### 6.1 `missing_artifact`
 
-- **When:** a reload expected a file (json / csv / manifest / audit) at the path recorded in the manifest, but the file does not exist.
-- **Carries:** `path` (relative path string), `expected_kind` ("json" | "csv" | "manifest" | "audit").
+- **When:** a reload expected a file (json / csv / manifest / audit) at the path recorded in the manifest, but the file does not exist. Also covers the reload-root-itself-missing case (§6.1a — see amendment history).
+- **Carries:** `path` (relative path string), `expected_kind` ("root" | "json" | "csv" | "manifest" | "audit").
+
+#### 6.1a `expected_kind = "root"` amendment (Round 2 — post-PR-80)
+
+- **Round 1 (PR #41, frozen via content SHA `9f1f541367ee7c4ea3814f0068f682b29e590758690dcb2098cadd5de7796216`):** the `expected_kind` union was documented as `"json" | "csv" | "manifest" | "audit"` only.
+- **Round 2 (this amendment):** the union is **extended** to also include `"root"`. The reload root is the outermost container of the artifact set; when the root itself is missing or not discoverable, the failure kind remains `missing_artifact` (not `manifest_mismatch`), and the payload carries `expected_kind="root"`.
+- **Semantics of `"root"`:**
+  - The reload root is missing from disk (e.g. caller passed a non-existent path), OR
+  - The reload root is not a directory (e.g. caller passed a file path).
+- **Why `missing_artifact` (not `manifest_mismatch`):** the root missing is an *artifact set container* absence, not an index metadata disagreement. The `manifest_mismatch` kind (§6.4) is reserved for cases where the manifest exists but its indexed fields disagree with the canonical artifact contents.
+- **Production behaviour pinned by:** `test_verify_on_nonexistent_root_raises_missing_artifact` (added in PR #80, MERGED 2026-07-08 → commit `abd8126e1c9229d3b080e61cd37f8555f1aae2d3`).
+- **Backward compatibility:** this is a **union extension**, not a rename. Existing payload consumers continue to work; new consumers MUST accept `"root"` alongside the four pre-existing kinds.
 
 ### 6.2 `malformed_json`
 
@@ -213,8 +224,21 @@ The 4c-3 surface MUST distinguish the following error / blocker kinds. Each is a
 
 ### 6.4 `manifest_mismatch`
 
-- **When:** a reload read a manifest that fails the §4.5 path-integrity check, or whose `metric_definition_version` is not `"4b-1.0.0"`.
+- **When:** a reload read a manifest that fails the §4.5 path-integrity check, or whose `metric_definition_version` is not `"4b-1.0.0"`. Also covers the JSON-vs-manifest internal hash-field disagreement case (§6.4a — see amendment history).
 - **Carries:** `path` (relative path string), `field` (the failing field name), `expected` (the expected value), `actual` (the actual value).
+
+#### 6.4a `manifest_mismatch` with `field="evaluation_mask_hash"` amendment (Round 2 — post-PR-80)
+
+- **Round 1 (PR #41, frozen via content SHA `9f1f541367ee7c4ea3814f0068f682b29e590758690dcb2098cadd5de7796216`):** §6.4 documented `manifest_mismatch` for *path-integrity* and `metric_definition_version` mismatches only. The JSON-vs-manifest `evaluation_mask_hash` internal disagreement case was not explicitly bound to any kind.
+- **Round 2 (this amendment):** the `manifest_mismatch` kind is **extended** to also cover `field="evaluation_mask_hash"` disagreements. The failure kind is `manifest_mismatch`, NOT `mask_hash_mismatch`.
+- **Binding rules:**
+  - `field="evaluation_mask_hash"`
+  - `expected` = the JSON's `evaluation_mask_hash` value (canonical source)
+  - `actual` = the manifest's `evaluation_mask_hash` value (index side)
+  - `path` = the manifest file path
+- **Why `manifest_mismatch` (not `mask_hash_mismatch`):** the manifest is the artifact-set index / routing authority. The JSON is the canonical payload source for `evaluation_mask_hash`. A disagreement between the manifest's indexed value and the canonical JSON value is, by construction, an *index metadata* disagreement — it is the manifest that is wrong, not the JSON. The `mask_hash_mismatch` kind (§6.9) is reserved for caller-provided `expected_mask_hash` vs the canonical JSON / artifact actual.
+- **Production behaviour pinned by:** `test_verify_detects_json_vs_manifest_mask_hash_mismatch` (added in PR #80, MERGED 2026-07-08 → commit `abd8126e1c9229d3b080e61cd37f8555f1aae2d3`).
+- **Backward compatibility:** this is a **kind coverage extension**, not a rename. `manifest_mismatch` already existed; only its `field` payload enum gains the value `"evaluation_mask_hash"`. Existing payload consumers continue to work; new consumers MUST accept `"evaluation_mask_hash"` alongside the pre-existing `field` values.
 
 ### 6.5 `canonical_payload_hash_mismatch`
 
@@ -240,6 +264,10 @@ The 4c-3 surface MUST distinguish the following error / blocker kinds. Each is a
 
 - **When:** a reload read a JSON file whose `evaluation_mask_hash` differs from the value the caller expected. The 4c-3 reload is a typed operation: the caller specifies the `(run_id, evaluation_mask_hash)` they expect to verify, and a reload against a different mask hash is an error (not a silent fallback).
 - **Carries:** `expected_mask_hash` (the caller's expected value), `actual_mask_hash` (the value in the artifact).
+- **Scope restriction (Round 2 — post-PR-80 amendment):** `mask_hash_mismatch` is **strictly** the caller-vs-artifact comparison. It is NOT triggered by:
+  - JSON-vs-manifest internal hash-field disagreements (those are `manifest_mismatch` with `field="evaluation_mask_hash"` per §6.4a).
+  - Any disagreement that does not involve the caller's `expected_mask_hash` argument.
+- **Why this split:** the manifest-vs-JSON disagreement is an *internal* index-vs-canonical check (caught by §6.4a). The caller-vs-JSON disagreement is an *external* contract check (caught here). Binding them to the same kind would conflate two distinct failure modes; the post-PR-80 tests in `test_verify.py` already separate them.
 
 ### 6.10 `forbidden_implicit_fallback`
 
@@ -386,6 +414,46 @@ The 4c-3 test contract is a description of the test surface, **not** an implemen
 - 4c-2 CLI + export: PR #44 (MERGED) → `backend/app/rolling_backtest/cli.py` + `backend/app/rolling_backtest/export.py` on main
 - 4c-2 merge commit: `a3a65e9097dca886d655c3e52e1c0234d606d9fd`
 - 4c-2 closeout comment: `#4895013757` on Issue #43
+
+---
+
+## 13. Post-PR-80 contract clarification (Round 2 amendment)
+
+This section is added by the **Round 2 design amendment PR** (post-PR-#80). It freezes two contract-drift bindings surfaced by the test-only P2 follow-ups PR.
+
+### 13.1 Provenance
+
+- **Trigger PR:** PR #80 — `[TASK-011][Phase 4c-3] P2 reload integrity follow-up tests`.
+- **Trigger merge commit (origin/main HEAD):** `abd8126e1c9229d3b080e61cd37f8555f1aae2d3` (MERGED 2026-07-08).
+- **Trigger PR scope:** test-only P2 reload integrity follow-ups. No production code under `backend/app/rolling_backtest/verify.py` was modified by PR #80.
+- **Trigger PR observation:** PR #80 body flagged two production contract drifts between `verify.py` and this design document (§6.1 union vs `expected_kind="root"`; §6.4 / §6.9 vs JSON-vs-manifest mask-hash disagreement). The test code in PR #80 **pins** the production behaviour; this amendment PR **freezes the design wording** to match.
+
+### 13.2 Amendment scope statement
+
+This amendment:
+
+- **DOES** clarify the design wording for §6.1 (`expected_kind` union extension) and §6.4 / §6.9 (JSON-vs-manifest mask-hash kind binding).
+- **DOES NOT** change the reload algorithm.
+- **DOES NOT** change the failure class names (`MissingArtifactError`, `ManifestMismatchError`, `MaskHashMismatchError`).
+- **DOES NOT** change the post-PR-80 test expectations (`test_verify_on_nonexistent_root_raises_missing_artifact`, `test_verify_detects_json_vs_manifest_mask_hash_mismatch`).
+- **DOES NOT** change any content hash listed in §9.2 (the three prior amendment content SHAs — Phase 4a, 4b, 4c — are preserved unchanged on main).
+- **DOES NOT** modify any production code under `backend/app/rolling_backtest/verify.py`.
+- **DOES NOT** modify any test file under `backend/tests/rolling_backtest/test_verify.py`.
+
+### 13.3 Decisions frozen
+
+1. **§6.1 union extension.** `expected_kind` MAY be `"root"`. The reload-root-itself-missing / not-a-directory case binds to `missing_artifact` (not `manifest_mismatch`). Pinned by `test_verify_on_nonexistent_root_raises_missing_artifact`.
+2. **§6.4 kind coverage extension.** `manifest_mismatch` MAY carry `field="evaluation_mask_hash"` for JSON-vs-manifest internal hash-field disagreements. `expected` = JSON value, `actual` = manifest value, `path` = manifest file path. Pinned by `test_verify_detects_json_vs_manifest_mask_hash_mismatch`.
+3. **§6.9 scope restriction.** `mask_hash_mismatch` is **strictly** the caller-vs-artifact comparison; it is NOT triggered by JSON-vs-manifest internal disagreements (those are §6.4a).
+
+### 13.4 Content SHA pair (Round 1 / Round 2)
+
+| Round | Frozen by | Content SHA | Notes |
+|-------|-----------|-------------|-------|
+| Round 1 (PR #41) | PR #41 merge | `9f1f541367ee7c4ea3814f0068f682b29e590758690dcb2098cadd5de7796216` | Prior frozen; preserved unchanged on main per §9.2 / §9.3. |
+| Round 2 (this amendment) | this PR (post-PR-#80) | _populated at merge time_ | Computed at merge; recorded as a **new** content SHA row above the prior row. Does **not** rotate the Round 1 SHA. |
+
+The Round 2 content SHA MUST be populated by Charles (or by an automated follow-up commit) at the time this PR is merged to main, following the same "frozen at merge time" discipline as the prior amendment rows.
 
 ---
 
