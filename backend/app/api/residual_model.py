@@ -931,14 +931,15 @@ async def post_prediction_run(
         # match" → 409 clause.
         #
         # We use a lightweight SQL query that ONLY compares
-        # ``result_hash`` — we do NOT call
-        # ``load_harvest_state_output_by_id`` (which validates
-        # ``canonical_payload_hash`` + child-row counts + canonical
-        # output schema), because the contract test's fixture does not
-        # seed harvest_state child rows or a validated canonical_output
-        # payload. Full validation is the persistence layer's job — the
-        # API's pre-check is purely for the surface-level hash mismatch
-        # detection per §7.2.
+        # ``result_hash`` here at the API pre-check layer; the FULL
+        # Task 9 authority validation (canonical_payload_hash + child
+        # row counts + canonical output schema) runs downstream inside
+        # ``save_residual_prediction_run`` /
+        # ``load_residual_prediction_run_by_id`` via
+        # ``load_harvest_state_output_by_id``. This split is a layered
+        # design (cheap pre-check + strict downstream authority), not
+        # a validation-de-rating shortcut — see those persistence
+        # callers for the full validation path.
         if task9_run_id is not None:
             from backend.app.models.harvest_state import (
                 HarvestStateRun as _HarvestStateRun,

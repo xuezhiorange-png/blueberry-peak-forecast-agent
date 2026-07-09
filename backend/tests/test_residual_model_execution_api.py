@@ -94,6 +94,7 @@ async def residual_client() -> AsyncClient:
     the persistence layer is built on SQLAlchemy's portable
     ``Mapped`` / ``JSONB.with_variant(JSON)`` abstractions.
     """
+    from sqlalchemy import text
     from sqlalchemy.ext.asyncio import (
         AsyncSession as _AsyncSession,
     )
@@ -164,36 +165,110 @@ async def residual_client() -> AsyncClient:
 
         # Seed training_run_id=1 + task9_run_id=10.
         #
-        # The B1 contract tests assume a fresh DB contains a
-        # training_run with id=1 and a task9_run with id=10. The fixture
-        # uses direct ORM inserts (via ``session.add``) to plant these
-        # rows because:
-        #
-        # (a) The contract payload is intentionally simplified and
-        #     does NOT carry enough fields to satisfy the production
-        #     training / harvest_state schemas end-to-end (e.g. the
-        #     contract payload's config has only ``{family, version}``
-        #     vs. the production loader's 11+ nested fields).
-        # (b) The production ``save_residual_training_run`` and
-        #     ``save_harvest_state_output`` paths require full canonical
-        #     payloads + child row counts + canonical payload hashes —
-        #     these are out of scope for the B1 contract tests (which
-        #     assert envelope shape, not training/harvest_state
-        #     business content).
-        #
-        # Per the brief for this round, "fixture sharing is strictly
-        # necessary" — direct ORM seeding in the fixture is allowed.
-        # Production code paths (``save_residual_prediction_run``)
-        # still run against the seeded rows for their authority checks
-        # (training_signature, config_hash, feature_schema_*).
-        from datetime import date as _date
-        from datetime import datetime as _dt
-        from pathlib import Path as _Path
+        # Task 9 (harvest_state) authority is provided via the FULL
+        # production save path: ``run_harvest_state_model(make_request())``
+        # builds a real ``Task9ACompletedOutput`` (with full pool /
+        # member / cohort / future-arrival rows); ``save_harvest_state_output``
+        # then writes the canonical ``HarvestStateRun`` row + child rows +
+        # canonical_payload_hash. The B1 contract tests intentionally
+        # reference ``task9_run_id=10`` and ``task9_result_hash="a"*64``,
+        # so after the production save we UPDATE the row to (a) pin the
+        # run id to 10 (so test payloads can address it deterministically),
+        # (b) replace ``result_hash`` with the literal "a"*64, and (c)
+        # recompute ``canonical_payload_hash`` from the canonical_output
+        # after the same result_hash mutation. This keeps
+        # ``load_harvest_state_output_by_id`` on the PRODUCTION
+        # validation path — no canonical_output={} backdoor, no skipped
+        # child-row-count check, no status/result_hash-only shortcut.
+        from backend.app.harvest_state import persistence as _hs_persistence
+        from backend.app.harvest_state.canonical import (
+            canonical_json_dumps as _hs_canonical_json_dumps,
+        )
+        from backend.app.harvest_state.service import (
+            run_harvest_state_model as _hs_run_model,
+        )
+        from backend.tests.harvest_state.conftest import (
+            make_request as _hs_make_request,
+        )
 
+        _task9a_request = _hs_make_request(season_id=2026)
+        _task9a_output = _hs_run_model(_task9a_request)
+        assert _task9a_output.status == "completed", (
+            "B1 task9 fixture requires a completed Task9A output; "
+            f"got status={_task9a_output.status!r}"
+        )
+        _task9a_run = await _hs_persistence.save_harvest_state_output(
+            session, output=_task9a_output
+        )
+
+        # Pin task9 row id -> 10 + replace result_hash with the literal
+        # "a"*64 (the test contract hard-codes ``task9_run_id=10`` and
+        # ``task9_result_hash="a"*64``). Both edits are applied via SQL
+        # so we also keep ``canonical_payload_hash`` in sync with the
+        # canonical_output after the result_hash mutation.
+        _task9a_canonical_output = _task9a_output.model_dump(mode="python")
+        _task9a_canonical_output["result_hash"] = "a" * 64
+        _task9a_canonical_output_json = _hs_canonical_json_dumps(_task9a_canonical_output)
         from backend.app.harvest_state.canonical import (
             sha256_hex as _hs_sha256_hex,
         )
-        from backend.app.models.harvest_state import HarvestStateRun as _HSR
+
+        _task9a_canonical_payload_hash = _hs_sha256_hex(_task9a_canonical_output_json)
+
+        await session.execute(
+            text(
+                "UPDATE harvest_state_run "
+                "SET id = :new_id, "
+                "    result_hash = :new_result_hash, "
+                "    canonical_output = :new_canonical_output, "
+                "    canonical_payload_hash = :new_canonical_payload_hash "
+                "WHERE id = :old_id"
+            ),
+            {
+                "new_id": 10,
+                "new_result_hash": "a" * 64,
+                "new_canonical_output": _task9a_canonical_output_json,
+                "new_canonical_payload_hash": _task9a_canonical_payload_hash,
+                "old_id": _task9a_run.id,
+            },
+        )
+        # Child rows reference harvest_state_run_id (FK); SQLite CASCADE
+        # is set per migration, but the contracts/foreign_keys pragma
+        # may be off — re-parent child rows explicitly via SQL.
+        for _child_table in (
+            "harvest_state_daily_pool_row",
+            "harvest_state_daily_member_row",
+            "harvest_state_cohort_transition_row",
+            "harvest_state_future_arrival_row",
+        ):
+            await session.execute(
+                text(
+                    f"UPDATE {_child_table} "
+                    "SET harvest_state_run_id = :new_id "
+                    "WHERE harvest_state_run_id = :old_id"
+                ),
+                {"new_id": 10, "old_id": _task9a_run.id},
+            )
+        await session.commit()
+
+        # Seed a minimal training_run with id=1. The training_api will
+        # validate that input_snapshot["training_signature"] matches
+        # this row's training_signature, and that
+        # config_hash / feature_schema_version / feature_schema_hash
+        # match. The values below are derived from the production
+        # config + empty feature_names (matching the API adapter's
+        # ``predict_residual_model_from_contract_payload`` derivation).
+        # NOTE: the training_run row is intentionally NOT exercised via
+        # the production ``save_residual_training_run`` path because the
+        # B1 contract payload's ``config`` carries only
+        # ``{family, version}`` (vs. the production loader's 11+ nested
+        # fields) — Slice 2 B1 is scoped to envelope shape, not training
+        # business content. The production ``save_residual_prediction_run``
+        # authority checks still run against this row's training_signature
+        # / config_hash / feature_schema_* via the read-side validators.
+        from datetime import datetime as _dt
+        from pathlib import Path as _Path
+
         from backend.app.residual_model.canonical import (
             canonical_payload_hash as _cph,
         )
@@ -205,50 +280,6 @@ async def residual_client() -> AsyncClient:
         )
 
         config = _load_config(_Path("configs/residual_model.yaml"))
-
-        # The harvest_state_run fixture must satisfy the persistence's
-        # ``_validate_canonical_payload_hash`` check (canonical_payload_hash
-        # == sha256_hex(canonical_output)) so that ``load_harvest_state_output_by_id``
-        # succeeds when called from the prediction replay/conflict paths.
-        empty_canonical_output = {}
-        harvest_canonical_payload_hash = _hs_sha256_hex(empty_canonical_output)
-
-        hsr = _HSR(
-            id=10,
-            status="completed",
-            output_schema_version="task9a-output-v1",
-            result_hash_schema_version="task9a-result-hash-v1",
-            resolved_parameter_snapshot_schema_version=("task9a-resolved-parameters-v1"),
-            source_ref_schema_version="task9a-source-ref-v1",
-            stable_cohort_key_schema_version="task9a-stable-cohort-key-v1",
-            input_snapshot={},
-            resolved_parameter_snapshot=None,
-            source_ref_catalog=[],
-            warnings=[],
-            blockers=[],
-            mass_balance_result=None,
-            continuity_result=None,
-            canonical_output={},
-            config_hash="a" * 64,
-            result_hash="a" * 64,
-            canonical_payload_hash=harvest_canonical_payload_hash,
-            forecast_start_date=_date(2026, 4, 1),
-            forecast_end_date=_date(2026, 4, 30),
-            as_of_date=_date(2026, 4, 1),
-            destination_factory_id=1,
-            pool_row_count=0,
-            member_row_count=0,
-            cohort_row_count=0,
-            future_arrival_row_count=0,
-        )
-        session.add(hsr)
-        # Seed a minimal training_run with id=1. The training_api will
-        # validate that input_snapshot["training_signature"] matches
-        # this row's training_signature, and that
-        # config_hash / feature_schema_version / feature_schema_hash
-        # match. The values below are derived from the production
-        # config + empty feature_names (matching the API adapter's
-        # ``predict_residual_model_from_contract_payload`` derivation).
 
         training_signature_value = "b" * 64  # arbitrary valid SHA-256 hex
         config_hash_value = config.config_hash
