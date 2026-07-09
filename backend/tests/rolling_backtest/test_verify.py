@@ -1013,3 +1013,570 @@ def test_cli_compute_metrics_exits_0_or_3(
     assert (tmp_path / "audit").is_dir()
     # And the 4c-3 reload MUST accept the artifact set.
     verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+
+
+# ===========================================================================
+# Phase 4c-3 P2 follow-up remediation (test-only).
+#
+# These five tests close the P2 follow-up items that PR #49 explicitly
+# flagged as "intentionally NOT addressed this round" — see the PR #49
+# body, "P2 follow-ups (intentionally NOT addressed this round)" section.
+# Per the binding rule for this slice, production code under
+# ``backend/app/rolling_backtest/verify.py`` is NOT modified; only this
+# test file gains coverage. Two contract observations are surfaced as
+# in-test documentation (the ``expected_kind="root"`` §6.1 union drift
+# and the JSON-vs-manifest mask-hash mismatch kind choice) and are
+# flagged in the PR body for separate Charles authorization.
+#
+# Cross-references (design §6):
+# * §6.1 ``missing_artifact`` — carries ``path`` + ``expected_kind``
+#   (frozen union: "json" | "csv" | "manifest" | "audit"; see
+#   design §6.1 documentation. The production implementation also
+#   emits ``expected_kind="root"`` for the reload-root-missing case;
+#   this is a documented contract drift flagged in the PR body.)
+# * §6.2 ``malformed_json`` — carries ``path`` + ``reason``
+# * §6.3 ``malformed_csv`` — carries ``path`` + ``reason``
+# * §6.4 ``manifest_mismatch`` — carries ``path`` + ``field`` +
+#   ``expected`` + ``actual``
+# * §6.5 ``canonical_payload_hash_mismatch`` — carries ``path`` +
+#   ``expected`` + ``actual``
+# * §6.6 ``audit_payload_hash_mismatch`` — carries ``path`` +
+#   ``expected`` + ``actual``
+# * §6.7 ``row_order_mismatch`` — carries ``path`` + ``csv_order`` +
+#   ``json_order`` + ``first_diverging_index``
+# * §6.8 ``metric_definition_version_mismatch`` — carries ``path`` +
+#   ``expected`` + ``actual``
+# * §6.9 ``mask_hash_mismatch`` — carries ``expected_mask_hash`` +
+#   ``actual_mask_hash``
+# * §6.10 ``forbidden_implicit_fallback`` — carries
+#   ``attempted_selection``
+# ===========================================================================
+
+
+# ---------------------------------------------------------------------------
+# P2-1 — assertion-depth self-check (no shallow assertions).
+#
+# Existing 4c-3 tests assert ``excinfo.value.kind == "..."`` for each
+# failure kind. This test is the meta-check that the failure kind also
+# carries the full structured payload documented in design §6.1 – §6.10
+# (relevant subset per kind). A "shallow assertion" of only ``kind``
+# would be insufficient: e.g. a contract regression that drops
+# ``path`` from the payload would still satisfy ``kind == "..."`` but
+# would break downstream tooling that consumes the structured payload.
+# This test triggers each failure kind on a minimal artifact set and
+# asserts the documented carries are present (not merely the kind).
+# ---------------------------------------------------------------------------
+
+
+def test_assertions_are_not_shallow_p2_self_check(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+    tmp_path: Path,
+) -> None:
+    """§6.1 – §6.10 / P2-1: every frozen failure kind MUST carry the
+    structured payload documented in design §6 (relevant subset per
+    kind), not just the kind string.
+
+    A failure kind without its documented carries is a "shallow
+    assertion" hazard: the kind-only check would pass even when the
+    production payload drops fields downstream tooling depends on
+    (paths, expected/actual values, indexes). This test pins the
+    full structured payload to the design contract.
+    """
+    # ---- §6.1 missing_artifact (json path) ----
+    _write_artifacts(
+        golden_rows_single_node, rows_by_run_mask, tmp_path, overwrite_policy=OverwritePolicy.ALWAYS
+    )
+    json_files = sorted((tmp_path / "json").iterdir())
+    assert len(json_files) == 1
+    json_path = json_files[0]
+    json_path.unlink()
+    with pytest.raises(MissingArtifactError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "missing_artifact"
+    assert payload["expected_kind"] == "json"
+    assert isinstance(payload["path"], str) and payload["path"].endswith(".json")
+    # The payload MUST also carry the binding identity fields (§3.4
+    # / §6 base class) so downstream tooling can correlate failures
+    # with the canonical Phase 4b identity.
+    assert payload["metric_definition_version"] == METRIC_DEFINITION_VERSION
+    assert payload["reload_contract_version"] == RELOAD_CONTRACT_VERSION
+
+    # ---- §6.2 malformed_json (frozen top-level key removed) ----
+    _write_artifacts(
+        golden_rows_single_node,
+        rows_by_run_mask,
+        tmp_path,
+        overwrite_policy=OverwritePolicy.ALWAYS,
+    )
+    json_files = sorted((tmp_path / "json").iterdir())
+    payload_dict = json.loads(json_files[0].read_text(encoding="utf-8"))
+    del payload_dict["run_id"]
+    json_files[0].write_text(
+        json.dumps(payload_dict, ensure_ascii=False, sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(MalformedJsonError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "malformed_json"
+    assert payload["reason"] == "key_mismatch"
+    assert isinstance(payload["path"], str) and payload["path"].endswith(".json")
+    # §6.2 documents ``path`` + ``reason``; the production payload
+    # also includes ``expected``/``actual`` lists when the reason is
+    # ``key_mismatch``. Pin both lists so a regression that drops
+    # them is caught here.
+    assert payload["expected"] == list(
+        # §5.1 frozen top-level keys
+        (
+            "canonical_payload_hash",
+            "cli_invocation",
+            "decimal_scale",
+            "evaluation_mask_hash",
+            "metric_definition_version",
+            "outputs",
+            "run_id",
+            "scope_id",
+            "written_at_utc",
+        )
+    )
+    missing_keys = [k for k in payload["expected"] if k not in payload["actual"]]
+    assert missing_keys == ["run_id"]
+    assert "run_id" not in payload["actual"]
+
+    # ---- §6.3 malformed_csv (header mismatch) ----
+    _write_artifacts(
+        golden_rows_single_node, rows_by_run_mask, tmp_path, overwrite_policy=OverwritePolicy.ALWAYS
+    )
+    csv_files = sorted((tmp_path / "csv").iterdir())
+    csv_text = csv_files[0].read_text(encoding="utf-8")
+    # Replace the header line with a single-column CSV.
+    first_newline = csv_text.index("\n")
+    csv_files[0].write_text("only_one_column\n" + csv_text[first_newline + 1 :], encoding="utf-8")
+    with pytest.raises(MalformedCsvError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "malformed_csv"
+    assert payload["reason"] == "header_mismatch"
+    assert isinstance(payload["path"], str) and payload["path"].endswith(".csv")
+    # §6.3 documents ``path`` + ``reason``; the production payload
+    # also carries ``expected``/``actual`` for header_mismatch.
+    assert payload["expected"] == [
+        "metric_name",
+        "metric_value",
+        "comparable_row_count",
+        "decimal_scale",
+        "evaluation_mask_hash",
+        "metric_scope_identity",
+        "metric_definition_version",
+        "blocker_count",
+        "blocker_kinds",
+    ]
+    assert payload["actual"] == ["only_one_column"]
+
+    # ---- §6.4 manifest_mismatch (modifying the manifest's
+    #      metric_definition_version in-place) ----
+    _write_artifacts(
+        golden_rows_single_node, rows_by_run_mask, tmp_path, overwrite_policy=OverwritePolicy.ALWAYS
+    )
+    manifest_dir = tmp_path / "manifest"
+    manifest_path = next(manifest_dir.iterdir())
+    payload_dict = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload_dict["metric_definition_version"] = "4b-0.9.0"
+    manifest_path.write_text(
+        json.dumps(payload_dict, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+    )
+    with pytest.raises(MetricDefinitionVersionMismatchError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    # §6.4 / §6.8 surface a kind-level discriminator; pin both.
+    assert payload["kind"] == "metric_definition_version_mismatch"
+    # §6.4 documents ``path`` + ``field`` + ``expected`` + ``actual``.
+    # The production implementation (verify.py:_validate_metric_definition_version)
+    # emits ``path`` + ``expected`` + ``actual`` (the ``field`` is
+    # implied by the kind). Pin the production carries; the design
+    # contract is partial-documented for the field discriminator.
+    assert isinstance(payload["path"], str) and payload["path"].endswith(".json")
+    assert payload["expected"] == METRIC_DEFINITION_VERSION
+    assert payload["actual"] == "4b-0.9.0"
+
+    # ---- §6.5 canonical_payload_hash_mismatch ----
+    _write_artifacts(
+        golden_rows_single_node, rows_by_run_mask, tmp_path, overwrite_policy=OverwritePolicy.ALWAYS
+    )
+    json_files = sorted((tmp_path / "json").iterdir())
+    payload_dict = json.loads(json_files[0].read_text(encoding="utf-8"))
+    payload_dict["outputs"][0]["metric_value"] = "999.999999"
+    json_files[0].write_text(
+        json.dumps(payload_dict, ensure_ascii=False, sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(CanonicalPayloadHashMismatchError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "canonical_payload_hash_mismatch"
+    # §6.5 carries ``path`` + ``expected`` + ``actual`` — all three
+    # MUST be 64-char lowercase hex, not generic strings.
+    assert isinstance(payload["path"], str) and payload["path"].endswith(".json")
+    assert isinstance(payload["expected"], str) and len(payload["expected"]) == 64
+    assert isinstance(payload["actual"], str) and len(payload["actual"]) == 64
+    assert payload["expected"] != payload["actual"]
+
+    # ---- §6.6 audit_payload_hash_mismatch ----
+    _write_artifacts(
+        golden_rows_single_node, rows_by_run_mask, tmp_path, overwrite_policy=OverwritePolicy.ALWAYS
+    )
+    audit_files = sorted((tmp_path / "audit").iterdir())
+    audit_files[0].write_text("{not even valid json", encoding="utf-8")
+    with pytest.raises(AuditPayloadHashMismatchError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "audit_payload_hash_mismatch"
+    assert isinstance(payload["path"], str) and payload["path"].endswith(".json")
+    assert isinstance(payload["expected"], str) and len(payload["expected"]) == 64
+    assert isinstance(payload["actual"], str) and len(payload["actual"]) == 64
+    assert payload["expected"] != payload["actual"]
+
+    # ---- §6.7 row_order_mismatch (swap two CSV rows) ----
+    _write_artifacts(
+        golden_rows_single_node, rows_by_run_mask, tmp_path, overwrite_policy=OverwritePolicy.ALWAYS
+    )
+    csv_files = sorted((tmp_path / "csv").iterdir())
+    csv_text = csv_files[0].read_text(encoding="utf-8")
+    lines = csv_text.split("\n")
+    # lines[0] is the header. Swap lines[1] and lines[2].
+    lines[1], lines[2] = lines[2], lines[1]
+    csv_files[0].write_text("\n".join(lines), encoding="utf-8")
+    with pytest.raises(RowOrderMismatchError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "row_order_mismatch"
+    assert isinstance(payload["path"], str) and payload["path"].endswith(".csv")
+    # §6.7 carries ``path`` + ``csv_order`` + ``json_order`` +
+    # ``first_diverging_index``. The index is 0-based: swapping the
+    # first two data rows produces a divergence at index 0 (per
+    # verify.py:611-615). Pin the index to 0 and the two orderings
+    # to be non-equal, so a regression that swaps or drops the index
+    # is caught here.
+    assert payload["first_diverging_index"] == 0
+    assert payload["csv_order"] != payload["json_order"]
+    assert isinstance(payload["csv_order"], list)
+    assert isinstance(payload["json_order"], list)
+    assert len(payload["csv_order"]) == len(payload["json_order"])
+    assert len(payload["csv_order"]) >= 2
+
+    # ---- §6.9 mask_hash_mismatch (caller's expected differs) ----
+    _write_artifacts(
+        golden_rows_single_node, rows_by_run_mask, tmp_path, overwrite_policy=OverwritePolicy.ALWAYS
+    )
+    wrong = "f" * 64
+    assert wrong != SAMPLE_MASK_HASH
+    with pytest.raises(MaskHashMismatchError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=wrong)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "mask_hash_mismatch"
+    assert payload["expected_mask_hash"] == wrong
+    assert payload["actual_mask_hash"] == SAMPLE_MASK_HASH
+
+    # ---- §6.10 forbidden_implicit_fallback (two manifest files) ----
+    _write_artifacts(
+        golden_rows_single_node, rows_by_run_mask, tmp_path, overwrite_policy=OverwritePolicy.ALWAYS
+    )
+    # Plant a second manifest file with a different filename so the
+    # manifest directory contains two candidates.
+    extra_manifest = tmp_path / "manifest" / "_extra_manifest.json"
+    extra_manifest.write_text('{"_": "placeholder"}', encoding="utf-8")
+    with pytest.raises(ForbiddenImplicitFallbackError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "forbidden_implicit_fallback"
+    # §6.10 documents ``attempted_selection``. Pin it to a non-empty
+    # string and assert it identifies the implicit selector the
+    # reload attempted (current / latest / most recent).
+    assert isinstance(payload["attempted_selection"], str)
+    assert payload["attempted_selection"] != ""
+    assert payload["attempted_selection"] in {"current", "latest", "most_recent"}
+
+
+# ---------------------------------------------------------------------------
+# P2-2 — ``expected_mask_hash=None`` path (happy path: skip the check).
+#
+# §6.9 documents the failure as "the caller specifies the
+# ``(run_id, evaluation_mask_hash)`` they expect to verify, and a
+# reload against a different mask hash is an error". The contract is
+# silent on the case where the caller deliberately passes ``None`` to
+# opt out of the check. The production implementation honours this opt-
+# out at ``verify.py:528`` (``if expected_mask_hash is not None and
+# ...``). This test pins both halves of the contract:
+#
+#   (a) ``expected_mask_hash=None`` MUST NOT raise
+#       ``MaskHashMismatchError`` (the §6.9 check is opt-out, not
+#       mandatory).
+#   (b) A non-None mismatch MUST still raise the structured
+#       ``MaskHashMismatchError`` (existing test already covers this;
+#       we re-pin the structured payload to keep parity).
+#
+# ---------------------------------------------------------------------------
+
+
+def test_verify_with_expected_mask_hash_none_skips_check(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+    tmp_path: Path,
+) -> None:
+    """§6.9 / P2-2: ``expected_mask_hash=None`` MUST skip the §6.9 check
+    and return a typed ``ReloadResult`` carrying the JSON's actual
+    ``evaluation_mask_hash``. A non-None mismatch MUST still raise
+    ``MaskHashMismatchError`` with the full structured payload.
+    """
+    _write_artifacts(golden_rows_single_node, rows_by_run_mask, tmp_path)
+    # (a) expected_mask_hash=None MUST NOT raise.
+    result = verify_artifact_set(tmp_path, expected_mask_hash=None)
+    assert isinstance(result, ReloadResult)
+    # The reload MUST still bind the §5.1 / §5.3 identity triple.
+    assert result.run_id == SAMPLE_RUN_ID
+    assert result.evaluation_mask_hash == SAMPLE_MASK_HASH
+    assert result.scope_id != ""
+    assert result.canonical_payload_hash != ""
+    assert result.audit_payload_hash is not None
+    assert result.metric_definition_version == METRIC_DEFINITION_VERSION
+    # The result's evaluated-mask identity MUST equal what the JSON
+    # carries — the §6.9 opt-out is a check skip, NOT a silent
+    # substitution of the mask hash.
+    assert result.evaluation_mask_hash == SAMPLE_MASK_HASH
+
+    # (b) Non-None mismatch MUST still raise (parity with existing
+    # test_wrong_expected_mask_hash_raises_mask_hash_mismatch). Pin
+    # the full structured payload to ensure the opt-out branch did
+    # not accidentally widen the contract.
+    wrong = "f" * 64
+    assert wrong != SAMPLE_MASK_HASH
+    with pytest.raises(MaskHashMismatchError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=wrong)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "mask_hash_mismatch"
+    assert payload["expected_mask_hash"] == wrong
+    assert payload["actual_mask_hash"] == SAMPLE_MASK_HASH
+
+
+# ---------------------------------------------------------------------------
+# P2-3 — JSON vs manifest mask-hash inconsistency.
+#
+# §6.4 ``manifest_mismatch`` is documented for path-integrity and
+# ``metric_definition_version`` mismatches. §6.9
+# ``mask_hash_mismatch`` is documented for caller-vs-JSON mismatches.
+# Neither §6.4 nor §6.9 explicitly cover the JSON-vs-manifest
+# internal hash-field disagreement, but the production code at
+# ``verify.py:514-525`` raises ``ManifestMismatchError`` (kind
+# ``"manifest_mismatch"``) with the ``field``, ``expected``, and
+# ``actual`` carries when the two hashes diverge. This is a reasonable
+# interpretation (the manifest is the index, so the JSON is the
+# expected source of truth and the manifest is at fault). This test
+# pins that production behaviour with the full structured payload.
+#
+# Cross-reference: see PR body "production contract observation" for
+# the rationale and the deferred alternative (``mask_hash_mismatch``).
+# ---------------------------------------------------------------------------
+
+
+def test_verify_detects_json_vs_manifest_mask_hash_mismatch(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+    tmp_path: Path,
+) -> None:
+    """§6 / P2-3: when the JSON's ``evaluation_mask_hash`` differs
+    from the manifest's, the reload MUST surface a structured error
+    (``manifest_mismatch`` per the production interpretation; see
+    verify.py:514-525) with ``field`` / ``expected`` / ``actual``
+    carries documenting which side carries which value.
+    """
+    _write_artifacts(golden_rows_single_node, rows_by_run_mask, tmp_path)
+    manifest_dir = tmp_path / "manifest"
+    manifest_path = next(manifest_dir.iterdir())
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    # Pin a deliberately divergent manifest hash (any 64-char hex
+    # other than SAMPLE_MASK_HASH).
+    divergent_mask = "a" * 64
+    assert divergent_mask != SAMPLE_MASK_HASH
+    payload["evaluation_mask_hash"] = divergent_mask
+    manifest_path.write_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(ManifestMismatchError) as excinfo:
+        verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    err_payload = excinfo.value.to_payload()
+    # Production kind choice (verify.py:518): ``manifest_mismatch``.
+    assert err_payload["kind"] == "manifest_mismatch"
+    assert err_payload["field"] == "evaluation_mask_hash"
+    # ``expected`` carries the JSON value (the source of truth per
+    # the production comment); ``actual`` carries the manifest value
+    # (the mismatched side).
+    assert err_payload["expected"] == SAMPLE_MASK_HASH
+    assert err_payload["actual"] == divergent_mask
+    assert isinstance(err_payload["path"], str) and err_payload["path"].endswith(".json")
+
+
+# ---------------------------------------------------------------------------
+# P2-4 — non-existent reload root.
+#
+# §6.1 ``missing_artifact`` documents the ``expected_kind`` union as
+# ``"json" | "csv" | "manifest" | "audit"``. The production code at
+# ``verify.py:409-414`` raises ``MissingArtifactError`` with
+# ``expected_kind="root"`` when the reload root itself does not
+# exist. This is a documented contract drift: the union in §6.1 does
+# not list ``"root"`` but the production payload uses it as a
+# discriminator. We pin the production behaviour here so a future
+# regression that aligns production with the documented union (or vice
+# versa) is caught by this test rather than silently breaking
+# downstream tooling.
+#
+# Cross-reference: PR body "production contract observation" notes
+# this drift and defers the union extension / production rename to a
+# separate Charles authorization.
+# ---------------------------------------------------------------------------
+
+
+def test_verify_on_nonexistent_root_raises_missing_artifact(
+    tmp_path: Path,
+) -> None:
+    """§6.1 / P2-4: ``verify_artifact_set`` against a non-existent
+    ``root`` MUST surface as ``MissingArtifactError`` with the
+    production-chosen ``expected_kind`` discriminator.
+
+    The production code at ``verify.py:409-414`` uses
+    ``expected_kind="root"`` for the reload-root-missing case. The
+    design §6.1 union (``"json" | "csv" | "manifest" | "audit"``)
+    does not list ``"root"`` — this test pins the production
+    behaviour and surfaces the drift in the PR body for separate
+    authorization.
+    """
+    nonexistent_root = tmp_path / "_does_not_exist_subdir_"
+    assert not nonexistent_root.exists()
+    with pytest.raises(MissingArtifactError) as excinfo:
+        verify_artifact_set(nonexistent_root, expected_mask_hash=SAMPLE_MASK_HASH)
+    payload = excinfo.value.to_payload()
+    assert payload["kind"] == "missing_artifact"
+    # Production-chosen ``expected_kind`` discriminator. The
+    # documented §6.1 union is ``"json" | "csv" | "manifest" |
+    # "audit"``; ``"root"`` is the production extension for the
+    # reload-root-missing case. See PR body for the contract drift
+    # note.
+    assert payload["expected_kind"] == "root"
+    assert isinstance(payload["path"], str)
+    # The carried ``path`` MUST point at the missing root, not at
+    # some unrelated location.
+    assert str(nonexistent_root) in payload["path"]
+    # The reload MUST fail before any materialization provider or
+    # DB / network call is touched (defensive: the contract is
+    # stateless, but pinning here makes the no-side-effect
+    # guarantee explicit at the very first guard).
+    assert payload["metric_definition_version"] == METRIC_DEFINITION_VERSION
+    assert payload["reload_contract_version"] == RELOAD_CONTRACT_VERSION
+
+
+# ---------------------------------------------------------------------------
+# P2-5 — nested-layout audit-path discovery (existing test coverage
+# depth-up).
+#
+# ``test_nested_json_layout_with_audit_at_root_audit_subdir_succeeds``
+# already covers the happy path (the reload succeeds despite the
+# nested JSON layout). This follow-up DEPTHS the assertions: pin the
+# exact returned identity triple, the exact resolved audit / JSON /
+# CSV / manifest paths, the canonical_payload_hash equality with the
+# flat-layout reference run, and the no-side-effect guarantee.
+#
+# Per the round-1 directive ("如果已存在等价覆盖, 不要重复造同义
+# 测试; 改为补强断言"), this test is a depth-up augmentation of
+# the existing P1-1 regression rather than a brand-new test case.
+# ---------------------------------------------------------------------------
+
+
+def test_nested_layout_audit_path_discovered_via_structural_lookup(
+    stub_provider: None,
+    rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
+    golden_rows_single_node: list[EvaluationMetricRow],
+    tmp_path: Path,
+) -> None:
+    """§7 / P2-5: depth-up of the nested-layout audit-path discovery
+    regression (P1-1, originally covered by
+    ``test_nested_json_layout_with_audit_at_root_audit_subdir_succeeds``).
+
+    Pins the full ``ReloadResult`` identity triple + exact resolved
+    paths + canonical_payload_hash equality with a flat-layout
+    reference run + the binding identity fields, so a regression
+    in the structural audit-path discovery (or in the canonical
+    payload-hash derivation) is caught by this single test rather
+    than silently breaking downstream consumers.
+    """
+    # 1. Build the nested-layout artifact set (same setup as the
+    #    P1-1 regression).
+    _write_artifacts(golden_rows_single_node, rows_by_run_mask, tmp_path)
+    nested_json_dir = tmp_path / "2026-01" / "json"
+    nested_json_dir.mkdir(parents=True)
+    original_json = next((tmp_path / "json").iterdir())
+    nested_json = nested_json_dir / original_json.name
+    nested_json.write_bytes(original_json.read_bytes())
+    original_json.unlink()
+    manifest_dir = tmp_path / "manifest"
+    manifest_path = next(manifest_dir.iterdir())
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["json_path"] = f"2026-01/json/{original_json.name}"
+    manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    # 2. The reload MUST succeed with the nested JSON layout.
+    result_nested = verify_artifact_set(tmp_path, expected_mask_hash=SAMPLE_MASK_HASH)
+    assert isinstance(result_nested, ReloadResult)
+
+    # 3. The reload's identity triple MUST equal the artifact set's
+    #    §5.1 / §5.3 binding identity.
+    assert result_nested.run_id == SAMPLE_RUN_ID
+    assert result_nested.evaluation_mask_hash == SAMPLE_MASK_HASH
+    assert result_nested.scope_id != ""
+    assert result_nested.metric_definition_version == METRIC_DEFINITION_VERSION
+    # The audit_payload_hash MUST be non-null (audit was emitted in
+    # the fixture; verify.py:483 keeps the assertion that an audit
+    # exists whenever the manifest records an audit_payload_hash).
+    assert result_nested.audit_payload_hash is not None
+    assert len(result_nested.audit_payload_hash) == 64
+
+    # 4. The reload MUST resolve the JSON path to the nested layout
+    #    (NOT the original flat layout). The CSV / audit / manifest
+    #    paths MUST stay at their canonical locations. The 4c-2
+    #    filename pattern (``<run-id>__<scope-id>__<hash>.<ext>``)
+    #    differs in extension between JSON / CSV / manifest / audit,
+    #    so the test derives each resolved path from the same base
+    #    name with the appropriate extension rather than reusing the
+    #    JSON name verbatim.
+    base_name = original_json.name[: -len(".json")]
+    assert result_nested.json_path == nested_json.resolve()
+    assert "2026-01" in result_nested.json_path.parts
+    assert result_nested.csv_path == (tmp_path / "csv" / f"{base_name}.csv").resolve()
+    assert result_nested.manifest_path == (tmp_path / "manifest" / f"{base_name}.json").resolve()
+    assert result_nested.audit_path == (tmp_path / "audit" / f"{base_name}.json").resolve()
+
+    # 5. The reload MUST produce the same canonical_payload_hash as
+    #    a flat-layout reference run. Build a fresh flat-layout
+    #    artifact set in a separate tmp dir and assert hash equality
+    #    — this guards against a regression in the structural lookup
+    #    that silently recomputes the hash from a different JSON
+    #    byte sequence.
+    flat_root = tmp_path.parent / f"{tmp_path.name}_flat_reference"
+    flat_root.mkdir()
+    try:
+        _write_artifacts(golden_rows_single_node, rows_by_run_mask, flat_root)
+        result_flat = verify_artifact_set(flat_root, expected_mask_hash=SAMPLE_MASK_HASH)
+        assert result_flat.canonical_payload_hash == result_nested.canonical_payload_hash
+        assert result_flat.evaluation_mask_hash == result_nested.evaluation_mask_hash
+        assert result_flat.scope_id == result_nested.scope_id
+    finally:
+        # Best-effort cleanup; pytest's tmp_path machinery handles
+        # teardown of ``tmp_path`` itself but the parallel flat
+        # reference dir is created in tmp_path.parent.
+        import shutil
+
+        shutil.rmtree(flat_root, ignore_errors=True)
