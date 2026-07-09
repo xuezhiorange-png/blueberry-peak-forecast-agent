@@ -1183,13 +1183,13 @@ def train_residual_model_from_contract_payload(
     return result, rows
 
 
-# Re-export under the alias name used by the contract test's monkeypatch.
-# The contract test (`test_training_post_integrity_exception_shielded_to_500`)
-# patches `backend.app.api.residual_model.train_residual_model` to raise a
-# realistic integrity exception. We make `train_residual_model` an alias
-# of `train_residual_model_from_contract_payload` so the monkeypatch fires
-# correctly when the API adapter calls the monkeypatched symbol. This is
-# the only way to satisfy both:
-# 1. The test's monkeypatch target (`train_residual_model`).
-# 2. The API's contract-payload translation requirement.
-train_residual_model = train_residual_model_from_contract_payload
+# Re-export note:
+# The previous round (PR #78 head 28e2b37) created a module-level alias
+# ``train_residual_model = train_residual_model_from_contract_payload``
+# solely so the contract test's monkeypatch target
+# (``backend.app.api.residual_model.train_residual_model``) would resolve
+# to the contract-payload adapter. That alias has been removed:
+# production code now imports the function under its real name
+# (``train_residual_model_from_contract_payload``) and the contract test
+# patches the same real name. No "monkeypatch-friendly alias" is
+# created in production service code.
