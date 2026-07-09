@@ -1,8 +1,25 @@
 # TASK-012 replay_trained_model design freeze
 
-Status: DESIGN DRAFT
+Status: DESIGN FREEZE CANDIDATE — freezes on merge
 Scope: Task 12 design only
 Base main: `863fb4c59c653dbdbe84b094c2c4afdaa953aa87`
+
+Design authority:
+- This PR freezes the TASK-012 design only when merged to main.
+- Until merge, current production behavior remains unchanged.
+- This PR does not authorize implementation, tests, migrations, API / CLI / frontend changes, or replay training execution.
+
+PR identity:
+- PR: #82
+- Base main: `863fb4c59c653dbdbe84b094c2c4afdaa953aa87`
+- Branch: `codex/task-012-replay-trained-model-design`
+- Head SHA: recorded in PR body / merge report
+
+Content SHA discipline:
+- The full-file content SHA for this design document is recorded in the PR body / merge report only.
+- This document intentionally does not embed its own full-file content SHA.
+- Embedding the SHA inside this file would change the file content and therefore change the SHA again unless a normalized hash exclusion were explicitly defined.
+- TASK-012 does not define such a normalized hash mechanism.
 
 ---
 
@@ -280,6 +297,8 @@ Forbidden: cross-run reuse or silent fallback.
 
 Allowed only after Slices A-D are green and a separate API / CLI amendment opens that surface.
 
+These slices define the required future sequence only. They are not authorized by this PR. Slice A may start only after this design PR is merged and Charles separately authorizes a new implementation-facing PR.
+
 ---
 
 ## 13. Out of scope
@@ -321,6 +340,8 @@ Future implementation must stop and return to design if any of these are encount
 ## 15. Final design position
 
 TASK-012 may proceed only as design freeze first, then contract tests, then implementation slices.
+
+On merge, this document becomes the TASK-012 design freeze. Until then, it is a design freeze candidate.
 
 The repository must continue to reject `replay_trained_model` until the policy gate, manifest identity, anti-leakage checks, deterministic artifact hashes, and replay binding tests are implemented in later authorized PRs.
 
