@@ -93,6 +93,13 @@ class OrchestrationBlocker(StrEnum):
     TASK12_MODEL_ARTIFACT_HASH_MISMATCH = "task12_model_artifact_hash_mismatch"
     TASK12_MANIFEST_MISMATCH = "task12_manifest_mismatch"
     TASK12_CROSS_RUN_SUBSTITUTION = "task12_cross_run_substitution"
+    # ── TASK-012 Slice C additions (§11 #3 / #4 / #5) ────────────────────
+    # These blocker codes cover the §11 #3 (execution portion — cutoff
+    # filtering), §11 #4 (label-availability cutoff filtering), and
+    # §11 #5 (structured empty-training-set blocker) obligations. Slice D
+    # may raise additional §9 categories not yet implemented.
+    TASK12_TRAINING_ROWS_EMPTY = "task12_training_rows_empty"
+    TASK12_CUTOFF_FILTERED_ROW = "task12_cutoff_filtered_row"
 
 
 # ── Date/time authority helpers ───────────────────────────────────────────────
