@@ -49,8 +49,10 @@ CURRENT COUNTS AT TIME OF THIS PR
 
 - ACTIVE_SLICE_A passing tests: 4  (#1, #2, #6, #7)
 - ACTIVE_SLICE_B passing tests: 2  (#8, #9 — landed in TASK-012 Slice B)
-- OBLIGATION_PLACEHOLDER awaiting future slices: 6  (full §11 #4, #5,
-  #10, #11, plus the execution portion of §11 #3 and §11 #12)
+- ACTIVE_SLICE_C passing tests: 3  (#3 execution portion, #4, #5 —
+  landed in TASK-012 Slice C)
+- OBLIGATION_PLACEHOLDER awaiting future slices: 3  (full §11 #10,
+  #11, #12 — all awaiting TASK-012 Slice D)
 - Meta-checks: 4  (test-count guard, no-implementation guard,
   active-vs-placeholder separation guard, obligation-references guard).
 
@@ -115,6 +117,7 @@ class SliceClassification(str, Enum):  # noqa: UP042 — string-valued enum pref
 
     ACTIVE_SLICE_A = "active_slice_a"
     ACTIVE_SLICE_B = "active_slice_b"
+    ACTIVE_SLICE_C = "active_slice_c"
     OBLIGATION_PLACEHOLDER = "obligation_placeholder"
 
 
@@ -146,21 +149,19 @@ _SECTION_11_REGISTRY: Final[tuple[dict[str, str], ...]] = (
         "name": "test_training_rows_after_training_cutoff_at_are_excluded",
         "section": "§11 #3",
         # Schema-level bound (tz-aware + ≤ forecast_cutoff_at) is active.
-        # Execution-time row filtering awaits Slice C.
-        "classification": SliceClassification.OBLIGATION_PLACEHOLDER.value,
-        "future_slice": OBLIGATION_FUTURE_SLICE_C,
+        # Execution-time row filtering was reclassified to ACTIVE_SLICE_C
+        # once Slice C deterministic cutoff filter landed.
+        "classification": SliceClassification.ACTIVE_SLICE_C.value,
     },
     {
         "name": "test_labels_with_post_cutoff_availability_are_excluded",
         "section": "§11 #4",
-        "classification": SliceClassification.OBLIGATION_PLACEHOLDER.value,
-        "future_slice": OBLIGATION_FUTURE_SLICE_C,
+        "classification": SliceClassification.ACTIVE_SLICE_C.value,
     },
     {
         "name": "test_empty_training_set_produces_structured_blocker",
         "section": "§11 #5",
-        "classification": SliceClassification.OBLIGATION_PLACEHOLDER.value,
-        "future_slice": OBLIGATION_FUTURE_SLICE_C,
+        "classification": SliceClassification.ACTIVE_SLICE_C.value,
     },
     {
         "name": "test_cross_run_model_artifact_substitution_is_rejected",
@@ -282,23 +283,32 @@ def test_explicit_replay_trained_model_does_not_fall_back_to_historical() -> Non
 
 
 # ── §11 #3: training rows after training_cutoff_at are excluded ──────────────
-# Classification: OBLIGATION_PLACEHOLDER (awaits Slice C; schema-level bound active)
+# Classification: ACTIVE_SLICE_C (Slice C landed)
 
 
 def test_training_rows_after_training_cutoff_at_are_excluded() -> None:
-    """§11 #3 — OBLIGATION_PLACEHOLDER (awaits Slice C).
+    """§11 #3 — ACTIVE_SLICE_C (Slice C landed).
 
     Schema-level bound: ``ReplayTrainedModelIdentity.training_cutoff_at``
     must be timezone-aware AND must not exceed the node's
     ``forecast_cutoff_at`` (active today via
     ``RollingNodeDefinition._validate_task10_policy_cutoff``).
 
-    Execution-time row filtering (rows with observation_date AFTER
-    ``training_cutoff_at`` are dropped from the training set) requires
-    Slice C — replay training execution. Per §13, Slice C must not
-    change Task 8 / Task 9 semantics.
+    Execution-time row filtering: rows with ``observation_date`` strictly
+    greater than ``training_cutoff_at`` are dropped from the training
+    set. Implemented by ``filter_training_rows_by_cutoff`` in
+    ``backend.app.rolling_backtest.replay_trained_filtering``. Per §13,
+    Slice C must not change Task 8 / Task 9 semantics — the filter is
+    a pure function operating on caller-supplied rows; it never
+    touches persistence / re-trains Task 8 curves / re-runs Task 9.
     """
 
+    from datetime import date as _date
+
+    from backend.app.rolling_backtest.replay_trained_filtering import (
+        FilteredTrainingRow,
+        filter_training_rows_by_cutoff,
+    )
     from backend.app.rolling_backtest.schemas import ReplayTrainedModelIdentity
 
     forecast_cutoff = _utc(2026, 3, 15, hour=12)
@@ -319,49 +329,107 @@ def test_training_rows_after_training_cutoff_at_are_excluded() -> None:
     assert identity.training_cutoff_at.tzinfo is not None
     assert identity.training_cutoff_at <= forecast_cutoff
 
-    # Execution-time row filtering requires Slice C implementation.
-    pytest.skip(
-        "Execution-time training-row filtering (rows after training_cutoff_at) "
-        "awaits Slice C implementation per TASK-012 design §11 #3 + §12. "
-        "Schema-level bound above is ACTIVE_SLICE_A."
+    # Execution-time: rows after the cutoff are dropped; rows equal to
+    # the cutoff are KEPT (inclusive cutoff per §3 binding gate).
+    rows = (
+        FilteredTrainingRow(_date(2024, 6, 1), 1.0),
+        FilteredTrainingRow(_date(2025, 6, 1), 2.0),
+        FilteredTrainingRow(_date(2026, 3, 14), 3.0),  # == cutoff, KEPT
+        FilteredTrainingRow(_date(2026, 3, 15), 4.0),  # > cutoff, dropped
+    )
+    kept = filter_training_rows_by_cutoff(rows, training_cutoff_at=_date(2026, 3, 14))
+    assert [r.value for r in kept] == [1.0, 2.0, 3.0], (
+        f"cutoff filter must drop post-cutoff rows in deterministic order; got "
+        f"{[r.value for r in kept]}"
     )
 
 
 # ── §11 #4: labels with post-cutoff availability are excluded ────────────────
-# Classification: OBLIGATION_PLACEHOLDER (awaits Slice C)
+# Classification: ACTIVE_SLICE_C (Slice C landed)
 
 
 def test_labels_with_post_cutoff_availability_are_excluded() -> None:
-    """§11 #4 — OBLIGATION_PLACEHOLDER (awaits Slice C).
+    """§11 #4 — ACTIVE_SLICE_C (Slice C landed).
 
-    Labels with authoritative availability AFTER ``training_cutoff_at``
-    must be excluded even when observation_date is BEFORE the cutoff.
-    Requires Slice C — replay training execution. Schema-level rejection
-    of ``training_cutoff_at > forecast_cutoff_at`` is pinned in test #3.
+    Labels whose authoritative ``label_availability_date`` is strictly
+    greater than ``label_availability_cutoff_at`` are excluded even
+    when ``observation_date`` is BEFORE the cutoff. Implemented by
+    ``filter_labels_by_availability_cutoff`` in
+    ``backend.app.rolling_backtest.replay_trained_filtering``. Schema-
+    level rejection of ``training_cutoff_at > forecast_cutoff_at`` is
+    pinned in test #3.
     """
 
-    pytest.skip(
-        "Label availability filtering (post-cutoff availability timestamps) "
-        "awaits Slice C implementation per TASK-012 design §11 #4 + §12."
+    from datetime import date as _date
+
+    from backend.app.rolling_backtest.replay_trained_filtering import (
+        FilteredLabelRow,
+        filter_labels_by_availability_cutoff,
+    )
+
+    rows = (
+        # observation before cutoff AND label_availability before cutoff — KEPT.
+        FilteredLabelRow(_date(2024, 1, 1), _date(2024, 1, 5), 1.0),
+        # observation after training_cutoff but label_availability == cutoff — KEPT.
+        FilteredLabelRow(_date(2024, 6, 1), _date(2024, 12, 31), 2.0),
+        # observation before cutoff BUT label_availability after cutoff — DROPPED.
+        FilteredLabelRow(_date(2024, 1, 1), _date(2025, 1, 5), 3.0),
+    )
+    kept = filter_labels_by_availability_cutoff(
+        rows, label_availability_cutoff_at=_date(2024, 12, 31)
+    )
+    assert [r.value for r in kept] == [1.0, 2.0], (
+        f"label availability filter must drop post-cutoff labels in "
+        f"deterministic order; got {[r.value for r in kept]}"
     )
 
 
 # ── §11 #5: empty training set produces a structured blocker ────────────────
-# Classification: OBLIGATION_PLACEHOLDER (awaits Slice C)
+# Classification: ACTIVE_SLICE_C (Slice C landed)
 
 
 def test_empty_training_set_produces_structured_blocker() -> None:
-    """§11 #5 — OBLIGATION_PLACEHOLDER (awaits Slice C).
+    """§11 #5 — ACTIVE_SLICE_C (Slice C landed).
 
     When all rows are excluded by cutoff / availability filters, the
     system MUST raise a structured blocker (per §9 blocker taxonomy)
-    rather than fabricating an empty training set.
+    rather than fabricating an empty training set. Implemented by
+    ``require_non_empty_training_rows`` +
+    :class:`TrainingRowsEmptyError` in
+    ``backend.app.rolling_backtest.replay_trained_filtering``. The
+    blocker is ``OrchestrationBlocker.TASK12_TRAINING_ROWS_EMPTY``
+    (added in Slice C).
     """
 
-    pytest.skip(
-        "Empty-training-set structured blocker awaits Slice C implementation "
-        "per TASK-012 design §9 blocker taxonomy + §11 #5 + §12."
+    from datetime import date as _date
+
+    from backend.app.rolling_backtest.orchestration import OrchestrationBlocker
+    from backend.app.rolling_backtest.replay_trained_filtering import (
+        FilteredTrainingRow,
+        require_non_empty_training_rows,
     )
+
+    empty_filtered: tuple[FilteredTrainingRow, ...] = ()
+    with pytest.raises(Exception) as excinfo:
+        require_non_empty_training_rows(
+            empty_filtered,
+            training_cutoff_at=_date(2026, 3, 14),
+            candidate_row_count=5,
+        )
+    # The exception MUST carry the canonical blocker enum value, not an
+    # ad-hoc string. §9 blocker taxonomy + §11 #5 obligation pin.
+    assert getattr(excinfo.value, "blocker_code", None) == (
+        OrchestrationBlocker.TASK12_TRAINING_ROWS_EMPTY.value
+    ), (
+        f"empty training set must raise structured blocker "
+        f"{OrchestrationBlocker.TASK12_TRAINING_ROWS_EMPTY.value}; "
+        f"got blocker_code={getattr(excinfo.value, 'blocker_code', None)!r}"
+    )
+    # Deterministic payload must carry cutoff + counts for §7 hash traceability.
+    assert getattr(excinfo.value, "training_cutoff_at", None) == _date(2026, 3, 14)
+    assert getattr(excinfo.value, "candidate_row_count", None) == 5
+    assert getattr(excinfo.value, "kept_row_count", None) == 0
+    assert getattr(excinfo.value, "payload", None) is not None
 
 
 # ── §11 #6: cross-run model artifact substitution is rejected ────────────────
@@ -951,7 +1019,7 @@ def test_slice_a_module_does_not_define_replay_trained_model_implementation() ->
 
 def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
     """Slice A meta-check: every §11 test in the registry MUST be classified
-    as one of ``ACTIVE_SLICE_A`` / ``ACTIVE_SLICE_B`` /
+    as one of ``ACTIVE_SLICE_A`` / ``ACTIVE_SLICE_B`` / ``ACTIVE_SLICE_C`` /
     ``OBLIGATION_PLACEHOLDER``, and the obligation placeholders MUST
     reference a specific future slice label.
 
@@ -966,16 +1034,21 @@ def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
     Post-Slice B: ACTIVE_SLICE_A=4, ACTIVE_SLICE_B=2,
     OBLIGATION_PLACEHOLDER=6 (tests #8 + #9 reclassified to
     ACTIVE_SLICE_B once Slice B deterministic hash helpers landed).
+    Post-Slice C: ACTIVE_SLICE_A=4, ACTIVE_SLICE_B=2,
+    ACTIVE_SLICE_C=3 (#3 execution portion + #4 + #5), and
+    OBLIGATION_PLACEHOLDER=3 (Slice D: #10, #11, #12).
     """
 
     active_a_count = 0
     active_b_count = 0
+    active_c_count = 0
     obligation_count = 0
     for entry in _SECTION_11_REGISTRY:
         classification = entry["classification"]
         assert classification in (
             SliceClassification.ACTIVE_SLICE_A.value,
             SliceClassification.ACTIVE_SLICE_B.value,
+            SliceClassification.ACTIVE_SLICE_C.value,
             SliceClassification.OBLIGATION_PLACEHOLDER.value,
         ), f"§11 registry entry {entry['name']!r} has invalid classification"
         if classification == SliceClassification.ACTIVE_SLICE_A.value:
@@ -994,6 +1067,15 @@ def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
                 f"ACTIVE_SLICE_B entry {entry['name']!r} should not carry "
                 f"future_slice (Slice B has landed; the obligation is now active)"
             )
+        elif classification == SliceClassification.ACTIVE_SLICE_C.value:
+            active_c_count += 1
+            # ACTIVE_SLICE_C entries were originally OBLIGATION_PLACEHOLDER
+            # entries tagged with future_slice="Slice C". After Slice C
+            # lands, those entries should drop the future_slice label.
+            assert "future_slice" not in entry, (
+                f"ACTIVE_SLICE_C entry {entry['name']!r} should not carry "
+                f"future_slice (Slice C has landed; the obligation is now active)"
+            )
         else:
             obligation_count += 1
             assert "future_slice" in entry, (
@@ -1006,30 +1088,35 @@ def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
             ), (
                 f"OBLIGATION_PLACEHOLDER entry {entry['name']!r} has "
                 f"non-canonical future_slice label {entry['future_slice']!r}; "
-                f"future_slice='Slice B' is no longer valid (Slice B landed)"
+                f"future_slice='Slice B' is no longer valid (Slice B landed); "
+                f"future_slice='Slice C' is no longer valid (Slice C landed)"
             )
 
     # Slice A is contract-tests-only per §12; the count of
-    # ACTIVE_SLICE_A + ACTIVE_SLICE_B + OBLIGATION_PLACEHOLDER must total
-    # exactly 12 (the §11 contract surface).
-    total = active_a_count + active_b_count + obligation_count
+    # ACTIVE_SLICE_A + ACTIVE_SLICE_B + ACTIVE_SLICE_C +
+    # OBLIGATION_PLACEHOLDER must total exactly 12 (the §11 contract
+    # surface).
+    total = active_a_count + active_b_count + active_c_count + obligation_count
     assert total == 12, (
         f"§11 registry must total 12 tests (got {total}: "
         f"{active_a_count} ACTIVE_SLICE_A + {active_b_count} ACTIVE_SLICE_B "
-        f"+ {obligation_count} OBLIGATION_PLACEHOLDER)"
+        f"+ {active_c_count} ACTIVE_SLICE_C + {obligation_count} "
+        f"OBLIGATION_PLACEHOLDER)"
     )
 
-    # Hardened visibility assertion: there MUST be at least 6 obligation
+    # Hardened visibility assertion: there MUST be at least 3 obligation
     # placeholders so that the test runner output can NEVER be misread as
     # "12/12 §11 contract tests passing today". Once Slice B landed,
-    # 2 placeholders (originally #8 + #9) were reclassified to
-    # ACTIVE_SLICE_B, leaving 6 obligation placeholders awaiting Slice
-    # C + Slice D. The `>= 6` guard remains valid; it is the minimum
-    # lower bound that prevents "all silent" misreading.
-    assert obligation_count >= 6, (
-        f"Expected ≥6 obligation placeholders awaiting future slices "
+    # 2 placeholders (#8 + #9) were reclassified to ACTIVE_SLICE_B.
+    # Once Slice C landed, 3 more placeholders (#3 execution portion +
+    # #4 + #5) were reclassified to ACTIVE_SLICE_C, leaving 3 obligation
+    # placeholders awaiting Slice D (#10, #11, #12). The `>= 3` guard
+    # remains valid; it is the minimum lower bound that prevents
+    # "all silent" misreading.
+    assert obligation_count >= 3, (
+        f"Expected ≥3 obligation placeholders awaiting future slices "
         f"(got {obligation_count}). Slice A is contract-tests-only per §12; "
-        f"if obligation_count has dropped below 6, an unauthorized "
+        f"if obligation_count has dropped below 3, an unauthorized "
         f"reclassification has occurred."
     )
 
