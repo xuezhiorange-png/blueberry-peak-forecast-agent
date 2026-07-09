@@ -52,6 +52,7 @@ from pathlib import Path as PathlibPath
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Response, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import get_db_session
@@ -78,7 +79,7 @@ from backend.app.residual_model.reporting import (
     render_residual_training_json_report,
 )
 from backend.app.residual_model.service import (
-    train_residual_model,
+    train_residual_model_from_contract_payload,
 )
 
 logger = logging.getLogger(__name__)
@@ -348,23 +349,27 @@ async def _check_idempotency_key(
     canonical payload, return 409. Otherwise return None (proceed).
 
     The implementation queries the ORM's ``input_snapshot`` JSON column
-    (which the persistence layer populates with the full request
-    snapshot, including the idempotency_key field embedded by the
-    service-layer adapter).
+    via SQLAlchemy's portable JSON path syntax
+    (``ResidualModelTrainingRun.input_snapshot["idempotency_key"]``).
+    The column is declared ``JSONB.with_variant(JSON(), "sqlite")``
+    (see ``models/residual_model.py::_JSON_VARIANT``) so the same
+    expression compiles to a JSONB ``@>`` operator on PostgreSQL and
+    a portable JSON-path comparison on SQLite — no SQLite-only
+    ``json_extract()`` raw SQL.
+
+    The persistence layer populates ``input_snapshot`` with the full
+    request snapshot, including the ``idempotency_key`` field
+    embedded by the service-layer adapter.
     """
     if idempotency_key is None:
         return None
-    # Query any training run whose input_snapshot contains the key with
-    # a different canonical_payload_hash. We use a JSONB filter via
-    # SQLAlchemy JSON path; SQLite falls back to JSON string containment
-    # via text().
-    from sqlalchemy import text as sql_text
+    from backend.app.models.residual_model import ResidualModelTrainingRun
 
-    stmt = sql_text(
-        "SELECT canonical_payload_hash FROM residual_model_training_run "
-        "WHERE json_extract(input_snapshot, '$.idempotency_key') = :key"
+    key_path = ResidualModelTrainingRun.input_snapshot["idempotency_key"].as_string()
+    stmt = select(ResidualModelTrainingRun.canonical_payload_hash).where(
+        key_path == idempotency_key,
     )
-    result = await session.execute(stmt, {"key": idempotency_key})
+    result = await session.execute(stmt)
     existing_hashes = [row[0] for row in result.all()]
     if existing_hashes and all(h != expected_payload_hash for h in existing_hashes):
         return _json_error_response(
@@ -467,12 +472,14 @@ async def post_training_run(
         config = _load_production_config()
 
         # ---- 3. Service-layer delegation ----
-        # The test monkeypatches `train_residual_model` at module level
-        # to simulate integrity errors. We delegate through the
-        # locally-aliased symbol (rather than calling
-        # train_residual_model_from_contract_payload directly) so the
-        # monkeypatch fires correctly.
-        result, service_rows = train_residual_model(
+        # Delegate to ``service.train_residual_model_from_contract_payload``
+        # — the contract→service adapter. Production code does NOT alias
+        # this symbol under a monkeypatch-friendly name; if a future test
+        # needs to patch the service entry point, it patches the actual
+        # function name via ``monkeypatch.setattr(
+        # "backend.app.api.residual_model.train_residual_model_from_contract_payload",
+        # ...)``.
+        result, service_rows = train_residual_model_from_contract_payload(
             config=config,
             manifest_rows_payload=manifest_rows,
             forecast_cutoff=forecast_cutoff,

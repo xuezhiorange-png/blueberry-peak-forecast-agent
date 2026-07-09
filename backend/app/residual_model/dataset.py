@@ -20,12 +20,37 @@ from backend.app.residual_model.schemas import (
 def training_signature(
     *,
     config_hash: str,
-    manifest_hash: str,
+    manifest_hash: str,  # noqa: ARG001 — kept for backward compatibility
     rows: list[ResidualTrainingManifestRow],
 ) -> str:
+    """Compute the canonical training signature.
+
+    The signature identifies a training INTENT (which config + which
+    upstream runs + which target dates) — it does NOT include
+    ``manifest_hash`` because the manifest_hash is a content digest of
+    the rows, and two requests with the same intent but different row
+    content must collide on signature to be detectable as a
+    same-signature / different-payload conflict (per PR #76 §7.1,
+    §8.2).
+
+    The ``manifest_hash`` parameter is intentionally retained for
+    backward compatibility with the existing callers (which pass it
+    unchanged) but it is NOT included in the hashed payload. The
+    conflict detection at the persistence layer (same-signature +
+    different canonical_payload_hash) is the authoritative mechanism
+    for detecting manifest-content divergence.
+
+    History note: prior rounds included ``manifest_hash`` in the
+    signature, which made the signature itself content-derived and
+    broke the conflict-test expectation
+    (``test_training_conflict_different_canonical_payload_returns_409``):
+    that test mutates ``source_run_ids`` to produce same-intent /
+    different-row-content and expects 409. Under the prior logic, the
+    signature changed with the manifest, so no prior run was found, so
+    the conflict went undetected.
+    """
     payload = {
         "config_hash": config_hash,
-        "manifest_hash": manifest_hash,
         "task9_runs": sorted({row.task9_run_id for row in rows}),
         "label_analytics_build_runs": sorted(
             {row.label_actual_snapshot.build_run_id for row in rows}
