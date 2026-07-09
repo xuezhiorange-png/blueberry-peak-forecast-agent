@@ -448,12 +448,12 @@ This amendment:
 
 ### 13.4 Content SHA pair (Round 1 / Round 2)
 
-| Round | Frozen by | Content SHA | Notes |
-|-------|-----------|-------------|-------|
+| Round | Frozen by | Content SHA location | Notes |
+|-------|-----------|----------------------|-------|
 | Round 1 (PR #41) | PR #41 merge | `9f1f541367ee7c4ea3814f0068f682b29e590758690dcb2098cadd5de7796216` | Prior frozen; preserved unchanged on main per §9.2 / §9.3. |
-| Round 2 (this amendment) | this PR (post-PR-#80) | _populated at merge time_ | Computed at merge; recorded as a **new** content SHA row above the prior row. Does **not** rotate the Round 1 SHA. |
+| Round 2 (this amendment) | this PR (post-PR-#80) | PR body / merge report only | The full-file post-amendment SHA is reported outside this document to avoid self-referential content-hash instability. This document does not embed its own full-file SHA. |
 
-The Round 2 content SHA MUST be populated by Charles (or by an automated follow-up commit) at the time this PR is merged to main, following the same "frozen at merge time" discipline as the prior amendment rows.
+The Round 2 full-file content SHA is intentionally recorded in the PR body / merge report, not inside this Markdown file. Embedding the SHA inside the file would change the file content and therefore change the SHA again. This amendment does not define a normalized hash that excludes the SHA cell, so no in-file self-hash is used.
 
 ---
 
