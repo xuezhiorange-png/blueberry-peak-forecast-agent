@@ -1058,7 +1058,12 @@ async def save_residual_prediction_run(
                     "artifact_hashes authority mismatch with training artifacts"
                 )
 
-    # 7.3: Read Task 9 via integrity loader and verify task9_result_hash
+    # 7.3: Verify Task 9 identity via the full Task 9 authority loader.
+    # ``load_harvest_state_output_by_id`` enforces the canonical-output
+    # validation + child row count reconciliation that the prediction
+    # authority check relies on; we MUST NOT replace it with a
+    # status/result_hash-only query (that path was removed for the B1
+    # fixup because it de-rated the production authority binding).
     if result.task9_run_id is not None:
         task9_output = await load_harvest_state_output_by_id(session, run_id=result.task9_run_id)
         if task9_output is None:
@@ -1357,7 +1362,12 @@ async def load_residual_prediction_run_by_id(
                     "artifact_hashes mismatch with referenced training run"
                 )
 
-    # SECTION 7.3: Verify Task 9 identity against referenced Task 9 run
+    # SECTION 7.3: Verify Task 9 identity against the full Task 9
+    # authority loader. The lightweight status/result_hash SELECT was
+    # removed because it de-rated the production authority binding; we
+    # MUST go through ``load_harvest_state_output_by_id`` here so the
+    # canonical-output validation + child row count reconciliation
+    # always run.
     if run.task9_run_id is not None:
         task9_output = await load_harvest_state_output_by_id(session, run_id=run.task9_run_id)
         if task9_output is None:
@@ -1370,7 +1380,7 @@ async def load_residual_prediction_run_by_id(
             )
         if task9_output.result_hash != run.task9_result_hash:
             raise ResidualModelPersistenceIntegrityError(
-                "task9_result_hash mismatch with referenced Task 9 run"
+                "task9_hash mismatch with referenced Task 9 run"
             )
 
     # SECTION 8.4: Rebuild prediction_input_signature from authorities, compare
