@@ -85,6 +85,14 @@ class OrchestrationBlocker(StrEnum):
     REPLAY_METADATA_INVALID = "replay_metadata_invalid"
     TASK9_REPLAY_FAILED = "task9_replay_failed"
     TASK10_REPLAY_BINDING_INVALID = "task10_replay_binding_invalid"
+    # ── TASK-012 Slice B additions (§9 blocker taxonomy) ─────────────────
+    # These blocker codes cover the §9 categories that Slice B produces
+    # as part of its manifest/identity/hash pipeline. Slice C / D may
+    # raise additional §9 categories that are not yet implemented.
+    TASK12_TRAINING_DATASET_EMPTY = "task12_training_dataset_empty"
+    TASK12_MODEL_ARTIFACT_HASH_MISMATCH = "task12_model_artifact_hash_mismatch"
+    TASK12_MANIFEST_MISMATCH = "task12_manifest_mismatch"
+    TASK12_CROSS_RUN_SUBSTITUTION = "task12_cross_run_substitution"
 
 
 # ── Date/time authority helpers ───────────────────────────────────────────────

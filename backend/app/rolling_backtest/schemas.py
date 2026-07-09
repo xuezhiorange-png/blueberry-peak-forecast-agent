@@ -143,6 +143,18 @@ class ReplayTrainedModelIdentity(_BaseModel):
     feature_visibility_policy_version: str = Field(min_length=1)
     artifact_visibility_policy_version: str = Field(min_length=1)
     training_manifest_semantic_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    # ── TASK-012 Slice B additions (§6 identity model) ────────────────────
+    # The two hash fields below are required for canonical replay-trained
+    # identity per design §6 line 132-133. They default to ``None`` so
+    # existing Slice A contract-test call sites (which only construct
+    # the schema-level identity without populating Slice B hashes)
+    # continue to work; :meth:`is_canonical` enforces that the canonical
+    # projection (per §6 line 141) requires non-empty hashes, and
+    # :meth:`_validate_slice_b_hash` rejects malformed non-empty values.
+    model_config_hash: str | None = Field(default=None)
+    model_artifact_hash: str | None = Field(default=None)
+    model_code_version: str = Field(default="", min_length=0)
+    task12_policy_version: str = Field(default="", min_length=0)
 
     @field_validator("training_cutoff_at")
     @classmethod
@@ -161,6 +173,38 @@ class ReplayTrainedModelIdentity(_BaseModel):
         if len(set(value)) != len(value):
             raise ValueError("allowed_training_season_ids must not contain duplicates")
         return tuple(sorted(value))
+
+    @field_validator("model_config_hash", "model_artifact_hash")
+    @classmethod
+    def _validate_slice_b_hash(cls, value: str | None) -> str | None:
+        # Slice B adds these as Optional fields; existing Slice A callers
+        # leave them None. A non-None value MUST be a 64-char lowercase
+        # hex string per design §6 line 132-133. Empty string is rejected
+        # here (callers wanting "absent" must pass None).
+        if value is None:
+            return None
+        if len(value) != 64 or not all(c in "0123456789abcdef" for c in value):
+            raise ValueError(
+                "Slice B hash must be a 64-char lowercase hex string (design §6 line 132-133)"
+            )
+        return value
+
+    def is_canonical(self) -> bool:
+        """Design §6 line 141: "not canonical unless all identity fields
+        are present and all hash fields are non-empty".
+
+        Returns True iff every Slice B hash field is a non-empty 64-hex
+        string AND every Slice B identity string is non-empty.
+        """
+        hash_fields = (
+            self.training_manifest_semantic_hash,
+            self.model_config_hash,
+            self.model_artifact_hash,
+        )
+        if any(not h or len(h) != 64 for h in hash_fields):
+            return False
+        identity_fields = (self.model_code_version, self.task12_policy_version)
+        return all(bool(v) for v in identity_fields)
 
 
 ResolvedTask10ModelPolicy = Annotated[
