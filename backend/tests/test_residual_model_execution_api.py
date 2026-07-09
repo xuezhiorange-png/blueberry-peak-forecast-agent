@@ -45,6 +45,7 @@ Companion docs (read first):
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
@@ -83,16 +84,60 @@ LEAK_PATTERNS = (
 
 @pytest.fixture
 async def residual_client() -> AsyncClient:
-    """Build an AsyncClient with no DB session override.
+    """Build an AsyncClient wired to an in-memory SQLite session.
 
-    For Slice 2 contract tests, the implementation is not yet present,
-    so we do not need a real DB session. We only need a FastAPI app
-    that will return 404 / 405 for the future routes — enough to drive
-    ``xfail`` strictness.
+    The Slice 2 execution POST handler persists training runs via
+    ``save_residual_training_run``, which writes to multiple tables in
+    a single transaction. The DB session must therefore be backed by an
+    engine where those tables exist. SQLite is acceptable here because
+    the persistence layer is built on SQLAlchemy's portable
+    ``Mapped`` / ``JSONB.with_variant(JSON)`` abstractions.
     """
-    app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        yield client
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession as _AsyncSession,
+    )
+    from sqlalchemy.ext.asyncio import (
+        async_sessionmaker,
+        create_async_engine,
+    )
+
+    from backend.app.db.session import get_db_session
+    from backend.app.models.residual_model import (
+        ResidualModelArtifact,
+        ResidualModelExecutionAttempt,
+        ResidualModelManifestRow,
+        ResidualModelPredictionRow,
+        ResidualModelPredictionRun,
+        ResidualModelTrainingRun,
+    )
+
+    def _create_residual_tables(sync_conn: Any) -> None:
+        ResidualModelTrainingRun.metadata.create_all(
+            sync_conn,
+            tables=[
+                ResidualModelTrainingRun.__table__,
+                ResidualModelManifestRow.__table__,
+                ResidualModelArtifact.__table__,
+                ResidualModelPredictionRun.__table__,
+                ResidualModelPredictionRow.__table__,
+                ResidualModelExecutionAttempt.__table__,
+            ],
+        )
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(_create_residual_tables)
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=_AsyncSession)
+    async with sessionmaker() as session:
+        app = create_app()
+
+        async def _override() -> AsyncIterator[_AsyncSession]:
+            yield session
+
+        app.dependency_overrides[get_db_session] = _override
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            yield client
+    await engine.dispose()
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +249,6 @@ def _assert_no_internal_leak(text: str) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_returns_201_with_envelope(
     residual_client: AsyncClient,
 ) -> None:
@@ -244,7 +288,6 @@ async def test_training_get_returns_200_with_envelope(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_replay_same_payload_returns_200_existing_run(
     residual_client: AsyncClient,
 ) -> None:
@@ -383,7 +426,6 @@ async def test_prediction_conflict_different_canonical_payload_returns_409(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_get_missing_run_returns_404_stable_error(
     residual_client: AsyncClient,
 ) -> None:
@@ -420,7 +462,6 @@ async def test_prediction_get_missing_run_returns_404_stable_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_invalid_schema_returns_422_stable_error(
     residual_client: AsyncClient,
 ) -> None:
@@ -456,7 +497,6 @@ async def test_prediction_post_invalid_schema_returns_422_stable_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_unknown_prediction_mode_returns_422(
     residual_client: AsyncClient,
 ) -> None:
@@ -474,7 +514,6 @@ async def test_training_post_unknown_prediction_mode_returns_422(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_integrity_exception_shielded_to_500(
     residual_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -561,7 +600,6 @@ def _raise_integrity(*args: Any, **kwargs: Any) -> Any:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_commit_failure_rolls_back_no_partial_run(
     residual_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -620,7 +658,6 @@ async def test_prediction_post_commit_failure_rolls_back_no_partial_run(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_report_json_endpoint_remains_reachable(
     residual_client: AsyncClient,
 ) -> None:
@@ -646,7 +683,6 @@ async def test_training_report_json_endpoint_remains_reachable(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_report_csv_endpoint_remains_reachable(
     residual_client: AsyncClient,
 ) -> None:
@@ -708,7 +744,6 @@ async def test_prediction_report_csv_endpoint_remains_reachable(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_idempotency_key_replay_returns_existing_run(
     residual_client: AsyncClient,
 ) -> None:
@@ -725,7 +760,6 @@ async def test_training_post_idempotency_key_replay_returns_existing_run(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_idempotency_key_reused_with_different_payload_returns_409(
     residual_client: AsyncClient,
 ) -> None:
