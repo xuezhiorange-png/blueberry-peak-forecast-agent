@@ -47,11 +47,10 @@ OBLIGATION_PLACEHOLDER — recorded contract pin awaiting a future slice.
 CURRENT COUNTS AT TIME OF THIS PR
 =====================================================================
 
-- ACTIVE_SLICE_A passing tests: 5  (#1, #2, #6, #7, schema-level #3 / #12
-  counted as partial — see per-test annotations for exact mapping)
-- OBLIGATION_PLACEHOLDER awaiting future slices: 7  (full §11 #4, #5, #8,
-  #9, #10, #11, full §11 #12) plus the execution portion of §11 #3 and
-  §11 #12.
+- ACTIVE_SLICE_A passing tests: 4  (#1, #2, #6, #7)
+- ACTIVE_SLICE_B passing tests: 2  (#8, #9 — landed in TASK-012 Slice B)
+- OBLIGATION_PLACEHOLDER awaiting future slices: 6  (full §11 #4, #5,
+  #10, #11, plus the execution portion of §11 #3 and §11 #12)
 - Meta-checks: 4  (test-count guard, no-implementation guard,
   active-vs-placeholder separation guard, obligation-references guard).
 
@@ -102,6 +101,11 @@ class SliceClassification(str, Enum):  # noqa: UP042 — string-valued enum pref
       passes without any production implementation. The acceptance gate
       is "this code path must continue to enforce this contract".
 
+    ``ACTIVE_SLICE_B`` — the test exercises TASK-012 Slice B production
+      code (manifest schema, identity projection, deterministic hash
+      helpers, structured blockers) and passes once Slice B is
+      implemented.
+
     ``OBLIGATION_PLACEHOLDER`` — the test exists to satisfy §11's
       "these tests must exist" rule but requires production code that
       is explicitly forbidden by §12 Slice A. Each placeholder carries
@@ -110,13 +114,15 @@ class SliceClassification(str, Enum):  # noqa: UP042 — string-valued enum pref
     """
 
     ACTIVE_SLICE_A = "active_slice_a"
+    ACTIVE_SLICE_B = "active_slice_b"
     OBLIGATION_PLACEHOLDER = "obligation_placeholder"
 
 
-# Future slice label that activates each obligation placeholder. Used by
-# the obligation-references meta-test to guard against vague "awaits
-# future" language that fails to name a specific §12 slice.
-OBLIGATION_FUTURE_SLICE_B: Final = "Slice B"
+# Future slice label that activates each remaining obligation placeholder.
+# Used by the obligation-references meta-test to guard against vague
+# "awaits future" language that fails to name a specific §12 slice.
+# (Slice B is no longer a future-slice — it has landed — so
+# OBLIGATION_FUTURE_SLICE_B was removed in the Slice B reclassification.)
 OBLIGATION_FUTURE_SLICE_C: Final = "Slice C"
 OBLIGATION_FUTURE_SLICE_D: Final = "Slice D"
 
@@ -169,14 +175,16 @@ _SECTION_11_REGISTRY: Final[tuple[dict[str, str], ...]] = (
     {
         "name": "test_identical_replay_inputs_produce_identical_hashes",
         "section": "§11 #8",
-        "classification": SliceClassification.OBLIGATION_PLACEHOLDER.value,
-        "future_slice": OBLIGATION_FUTURE_SLICE_B,
+        # Reclassified to ACTIVE_SLICE_B once Slice B deterministic hash
+        # helpers landed. Pre-Slice B this entry was an OBLIGATION_PLACEHOLDER.
+        "classification": SliceClassification.ACTIVE_SLICE_B.value,
     },
     {
         "name": "test_changing_model_config_changes_hashes",
         "section": "§11 #9",
-        "classification": SliceClassification.OBLIGATION_PLACEHOLDER.value,
-        "future_slice": OBLIGATION_FUTURE_SLICE_B,
+        # Reclassified to ACTIVE_SLICE_B once Slice B deterministic hash
+        # helpers landed. Pre-Slice B this entry was an OBLIGATION_PLACEHOLDER.
+        "classification": SliceClassification.ACTIVE_SLICE_B.value,
     },
     {
         "name": "test_json_manifest_mismatch_for_replay_trained_identity_is_rejected",
@@ -554,46 +562,219 @@ async def test_cross_run_task9_replay_binding_substitution_is_rejected(
 
 
 # ── §11 #8: identical replay inputs produce identical hashes ─────────────────
-# Classification: OBLIGATION_PLACEHOLDER (awaits Slice B)
+# Classification: ACTIVE_SLICE_B
 
 
 def test_identical_replay_inputs_produce_identical_hashes() -> None:
-    """§11 #8 — OBLIGATION_PLACEHOLDER (awaits Slice B).
+    """§11 #8 — ACTIVE_SLICE_B (Slice B landed).
 
     Given the same replay attempt id, node id, forecast cutoff,
     training cutoff, training manifest, model config, model code
     version, and policy version, the ``training_manifest_semantic_hash``
     and the ``model_artifact_hash`` MUST be byte-identical.
 
-    Awaiting Slice B (training manifest + identity plumbing + hash
-    helpers). The schema-level fields for these hashes exist in
-    ``ReplayTrainedModelIdentity`` today.
+    Exercised via ``compute_training_manifest_hash``,
+    ``compute_model_config_hash``, ``compute_model_artifact_hash``, and
+    ``project_replay_trained_identity`` in
+    :mod:`backend.app.rolling_backtest.replay_trained_identity` (Slice B
+    deterministic hash helpers per design §6 + §7).
     """
 
-    pytest.skip(
-        "Deterministic training_manifest_semantic_hash + model_artifact_hash "
-        "computation awaits Slice B implementation per TASK-012 design §6 "
-        "identity model + §7 training manifest contract + §11 #8 + §12."
+    from backend.app.rolling_backtest.replay_trained_identity import (
+        ModelConfigPayload,
+        TrainingManifestPayload,
+        compute_model_artifact_hash,
+        compute_model_config_hash,
+        compute_training_manifest_hash,
+        project_replay_trained_identity,
     )
+
+    forecast_cutoff = _utc(2026, 3, 15, hour=12)
+    training_cutoff = _utc(2026, 3, 14, hour=12)
+    manifest = TrainingManifestPayload(
+        replay_attempt_id="att-8",
+        replay_node_id="node-8",
+        scenario_id="scn-8",
+        forecast_cutoff_at=forecast_cutoff,
+        training_cutoff_at=training_cutoff,
+        allowed_training_season_ids=(2025,),
+        feature_visibility_policy_version="task11-visibility-v1",
+        label_visibility_policy_version="task11-visibility-v1",
+        artifact_visibility_policy_version="task11-visibility-v1",
+        validation_policy_version="task11-validation-v1",
+        training_dataset_hash="1" * 64,
+        task8_curve_identity=None,
+        task9_replay_binding_identity=None,
+        row_count=10,
+        excluded_row_count=1,
+    )
+    config = ModelConfigPayload(
+        algorithm_family="slice_b_8",
+        hyperparameters={"lr": "0.001"},
+        random_seed=42,
+        deterministic_serialization_version="slice-b-v1",
+    )
+
+    # §11 #8 contract: identical inputs → byte-identical hashes.
+    manifest_hash_a = compute_training_manifest_hash(manifest)
+    manifest_hash_b = compute_training_manifest_hash(manifest)
+    assert manifest_hash_a == manifest_hash_b
+    assert len(manifest_hash_a) == 64 and all(c in "0123456789abcdef" for c in manifest_hash_a)
+
+    config_hash_a = compute_model_config_hash(config)
+    config_hash_b = compute_model_config_hash(config)
+    assert config_hash_a == config_hash_b
+    assert len(config_hash_a) == 64
+
+    artifact_hash_a = compute_model_artifact_hash(
+        training_manifest_hash=manifest_hash_a,
+        model_config_hash=config_hash_a,
+        model_code_version="slice-b-code-v1",
+    )
+    artifact_hash_b = compute_model_artifact_hash(
+        training_manifest_hash=manifest_hash_b,
+        model_config_hash=config_hash_b,
+        model_code_version="slice-b-code-v1",
+    )
+    assert artifact_hash_a == artifact_hash_b
+    assert len(artifact_hash_a) == 64
+
+    # Identity projection also stable.
+    projection_a = project_replay_trained_identity(
+        manifest=manifest,
+        config=config,
+        model_code_version="slice-b-code-v1",
+        task12_policy_version="slice-b-policy-v1",
+    )
+    projection_b = project_replay_trained_identity(
+        manifest=manifest,
+        config=config,
+        model_code_version="slice-b-code-v1",
+        task12_policy_version="slice-b-policy-v1",
+    )
+    assert projection_a.training_manifest_hash == manifest_hash_a
+    assert projection_b.training_manifest_hash == manifest_hash_a
+    assert projection_a.model_artifact_hash == artifact_hash_a
+    assert projection_b.model_artifact_hash == artifact_hash_a
 
 
 # ── §11 #9: changing model config changes the hashes ─────────────────────────
-# Classification: OBLIGATION_PLACEHOLDER (awaits Slice B)
+# Classification: ACTIVE_SLICE_B
 
 
 def test_changing_model_config_changes_hashes() -> None:
-    """§11 #9 — OBLIGATION_PLACEHOLDER (awaits Slice B).
+    """§11 #9 — ACTIVE_SLICE_B (Slice B landed).
 
     Changing only the model config (algorithm, hyperparameters, seed)
     MUST change both the ``model_config_hash`` AND the
     ``model_artifact_hash``. Other identity fields held constant.
 
-    Awaiting Slice B implementation.
+    Exercised via ``compute_model_config_hash`` and
+    ``compute_model_artifact_hash`` (Slice B deterministic hash
+    helpers per design §6).
     """
 
-    pytest.skip(
-        "Model config → model_config_hash + model_artifact_hash derivation "
-        "awaits Slice B implementation per TASK-012 design §6 + §11 #9 + §12."
+    from backend.app.rolling_backtest.replay_trained_identity import (
+        ModelConfigPayload,
+        TrainingManifestPayload,
+        compute_model_artifact_hash,
+        compute_model_config_hash,
+        compute_training_manifest_hash,
+    )
+
+    forecast_cutoff = _utc(2026, 3, 15, hour=12)
+    training_cutoff = _utc(2026, 3, 14, hour=12)
+    manifest = TrainingManifestPayload(
+        replay_attempt_id="att-9",
+        replay_node_id="node-9",
+        scenario_id="scn-9",
+        forecast_cutoff_at=forecast_cutoff,
+        training_cutoff_at=training_cutoff,
+        allowed_training_season_ids=(2025,),
+        feature_visibility_policy_version="task11-visibility-v1",
+        label_visibility_policy_version="task11-visibility-v1",
+        artifact_visibility_policy_version="task11-visibility-v1",
+        validation_policy_version="task11-validation-v1",
+        training_dataset_hash="2" * 64,
+        task8_curve_identity=None,
+        task9_replay_binding_identity=None,
+        row_count=20,
+        excluded_row_count=2,
+    )
+
+    manifest_hash = compute_training_manifest_hash(manifest)
+
+    # Baseline config.
+    config_a = ModelConfigPayload(
+        algorithm_family="slice_b_9",
+        hyperparameters={"lr": "0.001"},
+        random_seed=42,
+        deterministic_serialization_version="slice-b-v1",
+    )
+    config_hash_a = compute_model_config_hash(config_a)
+    artifact_hash_a = compute_model_artifact_hash(
+        training_manifest_hash=manifest_hash,
+        model_config_hash=config_hash_a,
+        model_code_version="slice-b-code-v1",
+    )
+
+    # Variant 1: change algorithm_family only.
+    config_b = ModelConfigPayload(
+        algorithm_family="slice_b_9_alt",  # changed
+        hyperparameters={"lr": "0.001"},
+        random_seed=42,
+        deterministic_serialization_version="slice-b-v1",
+    )
+    config_hash_b = compute_model_config_hash(config_b)
+    artifact_hash_b = compute_model_artifact_hash(
+        training_manifest_hash=manifest_hash,
+        model_config_hash=config_hash_b,
+        model_code_version="slice-b-code-v1",
+    )
+    assert config_hash_a != config_hash_b, "changing algorithm_family must change model_config_hash"
+    assert artifact_hash_a != artifact_hash_b, (
+        "changing algorithm_family must change model_artifact_hash"
+    )
+
+    # Variant 2: change random_seed only.
+    config_c = ModelConfigPayload(
+        algorithm_family="slice_b_9",
+        hyperparameters={"lr": "0.001"},
+        random_seed=43,  # changed
+        deterministic_serialization_version="slice-b-v1",
+    )
+    config_hash_c = compute_model_config_hash(config_c)
+    artifact_hash_c = compute_model_artifact_hash(
+        training_manifest_hash=manifest_hash,
+        model_config_hash=config_hash_c,
+        model_code_version="slice-b-code-v1",
+    )
+    assert config_hash_a != config_hash_c, "changing random_seed must change model_config_hash"
+    assert artifact_hash_a != artifact_hash_c, (
+        "changing random_seed must change model_artifact_hash"
+    )
+
+    # Variant 3: change hyperparameters only.
+    config_d = ModelConfigPayload(
+        algorithm_family="slice_b_9",
+        hyperparameters={"lr": "0.01"},  # changed
+        random_seed=42,
+        deterministic_serialization_version="slice-b-v1",
+    )
+    config_hash_d = compute_model_config_hash(config_d)
+    artifact_hash_d = compute_model_artifact_hash(
+        training_manifest_hash=manifest_hash,
+        model_config_hash=config_hash_d,
+        model_code_version="slice-b-code-v1",
+    )
+    assert config_hash_a != config_hash_d, "changing hyperparameters must change model_config_hash"
+    assert artifact_hash_a != artifact_hash_d, (
+        "changing hyperparameters must change model_artifact_hash"
+    )
+
+    # Manifest hash MUST remain constant (only config varied).
+    assert compute_training_manifest_hash(manifest) == manifest_hash, (
+        "manifest hash must not change when only model config varies (§9 #9 contract)"
     )
 
 
@@ -770,67 +951,86 @@ def test_slice_a_module_does_not_define_replay_trained_model_implementation() ->
 
 def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
     """Slice A meta-check: every §11 test in the registry MUST be classified
-    as either ``ACTIVE_SLICE_A`` or ``OBLIGATION_PLACEHOLDER``, and the
-    obligation placeholders MUST reference a specific future slice label.
+    as one of ``ACTIVE_SLICE_A`` / ``ACTIVE_SLICE_B`` /
+    ``OBLIGATION_PLACEHOLDER``, and the obligation placeholders MUST
+    reference a specific future slice label.
 
     This guards against two failure modes:
 
-    1. A test being added with classification=None / missing.
+    1. A test being added with classification=None / missing / a typo.
     2. An obligation placeholder being added without naming the future
        slice (so future readers cannot tell whether it awaits Slice B /
        C / D / E).
+
+    Pre-Slice B (PR #83): ACTIVE_SLICE_A=4, OBLIGATION_PLACEHOLDER=8.
+    Post-Slice B: ACTIVE_SLICE_A=4, ACTIVE_SLICE_B=2,
+    OBLIGATION_PLACEHOLDER=6 (tests #8 + #9 reclassified to
+    ACTIVE_SLICE_B once Slice B deterministic hash helpers landed).
     """
 
-    active_count = 0
+    active_a_count = 0
+    active_b_count = 0
     obligation_count = 0
     for entry in _SECTION_11_REGISTRY:
         classification = entry["classification"]
         assert classification in (
             SliceClassification.ACTIVE_SLICE_A.value,
+            SliceClassification.ACTIVE_SLICE_B.value,
             SliceClassification.OBLIGATION_PLACEHOLDER.value,
         ), f"§11 registry entry {entry['name']!r} has invalid classification"
         if classification == SliceClassification.ACTIVE_SLICE_A.value:
-            active_count += 1
+            active_a_count += 1
             # ACTIVE_SLICE_A entries MUST NOT carry a future_slice label
             # (they don't await one).
             assert "future_slice" not in entry, (
                 f"ACTIVE_SLICE_A entry {entry['name']!r} should not carry future_slice"
             )
+        elif classification == SliceClassification.ACTIVE_SLICE_B.value:
+            active_b_count += 1
+            # ACTIVE_SLICE_B entries were originally OBLIGATION_PLACEHOLDER
+            # entries tagged with future_slice="Slice B". After Slice B
+            # lands, those entries should drop the future_slice label.
+            assert "future_slice" not in entry, (
+                f"ACTIVE_SLICE_B entry {entry['name']!r} should not carry "
+                f"future_slice (Slice B has landed; the obligation is now active)"
+            )
         else:
             obligation_count += 1
             assert "future_slice" in entry, (
                 f"OBLIGATION_PLACEHOLDER entry {entry['name']!r} must name "
-                f"the future slice (Slice B / Slice C / Slice D / Slice E)"
+                f"the future slice (Slice C / Slice D / Slice E)"
             )
             assert entry["future_slice"] in (
-                OBLIGATION_FUTURE_SLICE_B,
                 OBLIGATION_FUTURE_SLICE_C,
                 OBLIGATION_FUTURE_SLICE_D,
             ), (
                 f"OBLIGATION_PLACEHOLDER entry {entry['name']!r} has "
-                f"non-canonical future_slice label {entry['future_slice']!r}"
+                f"non-canonical future_slice label {entry['future_slice']!r}; "
+                f"future_slice='Slice B' is no longer valid (Slice B landed)"
             )
 
     # Slice A is contract-tests-only per §12; the count of
-    # ACTIVE_SLICE_A + OBLIGATION_PLACEHOLDER must total exactly 12.
-    total = active_count + obligation_count
+    # ACTIVE_SLICE_A + ACTIVE_SLICE_B + OBLIGATION_PLACEHOLDER must total
+    # exactly 12 (the §11 contract surface).
+    total = active_a_count + active_b_count + obligation_count
     assert total == 12, (
         f"§11 registry must total 12 tests (got {total}: "
-        f"{active_count} active + {obligation_count} placeholder)"
+        f"{active_a_count} ACTIVE_SLICE_A + {active_b_count} ACTIVE_SLICE_B "
+        f"+ {obligation_count} OBLIGATION_PLACEHOLDER)"
     )
 
-    # Hardened visibility assertion: there MUST be at least one obligation
-    # placeholder so that the test runner output can NEVER be misread as
-    # "12/12 §11 contract tests passing today". If the obligation count
-    # drops to 0, Slice B/C/D implementation has already landed and this
-    # contract-test scaffold has served its purpose; the slice A PR
-    # should be retired. Until then, this assertion guards against the
-    # "all tests silently satisfied" failure mode.
+    # Hardened visibility assertion: there MUST be at least 6 obligation
+    # placeholders so that the test runner output can NEVER be misread as
+    # "12/12 §11 contract tests passing today". Once Slice B landed,
+    # 2 placeholders (originally #8 + #9) were reclassified to
+    # ACTIVE_SLICE_B, leaving 6 obligation placeholders awaiting Slice
+    # C + Slice D. The `>= 6` guard remains valid; it is the minimum
+    # lower bound that prevents "all silent" misreading.
     assert obligation_count >= 6, (
         f"Expected ≥6 obligation placeholders awaiting future slices "
         f"(got {obligation_count}). Slice A is contract-tests-only per §12; "
-        f"if obligation_count has dropped, this contract-test PR should be "
-        f"retired in favor of Slice B/C/D implementation PRs."
+        f"if obligation_count has dropped below 6, an unauthorized "
+        f"reclassification has occurred."
     )
 
 
