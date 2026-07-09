@@ -46,6 +46,7 @@ Companion docs (read first):
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from datetime import UTC
 from typing import Any
 
 import pytest
@@ -102,6 +103,19 @@ async def residual_client() -> AsyncClient:
     )
 
     from backend.app.db.session import get_db_session
+
+    # Harvest-state tables (needed for the API's task9_run_id pre-check).
+    # The fixture is responsible for creating only the tables that the
+    # Slice 2 contract paths actually touch — JSONB columns on tables
+    # not used here (e.g. baseline_backtest_run) would otherwise fail to
+    # compile under SQLite's portable JSON() variant.
+    from backend.app.models.harvest_state import (
+        HarvestStateCohortTransitionRowModel,
+        HarvestStateDailyMemberRowModel,
+        HarvestStateDailyPoolRowModel,
+        HarvestStateFutureArrivalRowModel,
+        HarvestStateRun,
+    )
     from backend.app.models.residual_model import (
         ResidualModelArtifact,
         ResidualModelExecutionAttempt,
@@ -114,13 +128,25 @@ async def residual_client() -> AsyncClient:
     def _create_residual_tables(sync_conn: Any) -> None:
         ResidualModelTrainingRun.metadata.create_all(
             sync_conn,
-            tables=[
+            tables=[  # type: ignore[arg-type]
                 ResidualModelTrainingRun.__table__,
                 ResidualModelManifestRow.__table__,
                 ResidualModelArtifact.__table__,
                 ResidualModelPredictionRun.__table__,
                 ResidualModelPredictionRow.__table__,
                 ResidualModelExecutionAttempt.__table__,
+                HarvestStateRun.__table__,
+                HarvestStateDailyPoolRowModel.__table__,
+                HarvestStateDailyMemberRowModel.__table__,
+                HarvestStateCohortTransitionRowModel.__table__,
+                HarvestStateFutureArrivalRowModel.__table__,
+                # NOTE: HarvestStateReplaySourceVisibilityAuditModel is
+                # intentionally excluded from this fixture because its
+                # DDL uses a Postgres-only ``interval '1 hour'`` clause
+                # in a CHECK constraint. The Slice 2 B1 contract paths
+                # do not query this table, so omitting it from the
+                # SQLite test schema is safe (and consistent with the
+                # design's "use a portable JSON column variant" pattern).
             ],
         )
 
@@ -135,6 +161,157 @@ async def residual_client() -> AsyncClient:
             yield session
 
         app.dependency_overrides[get_db_session] = _override
+
+        # Seed training_run_id=1 + task9_run_id=10.
+        #
+        # The B1 contract tests assume a fresh DB contains a
+        # training_run with id=1 and a task9_run with id=10. The fixture
+        # uses direct ORM inserts (via ``session.add``) to plant these
+        # rows because:
+        #
+        # (a) The contract payload is intentionally simplified and
+        #     does NOT carry enough fields to satisfy the production
+        #     training / harvest_state schemas end-to-end (e.g. the
+        #     contract payload's config has only ``{family, version}``
+        #     vs. the production loader's 11+ nested fields).
+        # (b) The production ``save_residual_training_run`` and
+        #     ``save_harvest_state_output`` paths require full canonical
+        #     payloads + child row counts + canonical payload hashes —
+        #     these are out of scope for the B1 contract tests (which
+        #     assert envelope shape, not training/harvest_state
+        #     business content).
+        #
+        # Per the brief for this round, "fixture sharing is strictly
+        # necessary" — direct ORM seeding in the fixture is allowed.
+        # Production code paths (``save_residual_prediction_run``)
+        # still run against the seeded rows for their authority checks
+        # (training_signature, config_hash, feature_schema_*).
+        from datetime import date as _date
+        from datetime import datetime as _dt
+        from pathlib import Path as _Path
+
+        from backend.app.harvest_state.canonical import (
+            sha256_hex as _hs_sha256_hex,
+        )
+        from backend.app.models.harvest_state import HarvestStateRun as _HSR
+        from backend.app.residual_model.canonical import (
+            canonical_payload_hash as _cph,
+        )
+        from backend.app.residual_model.config import (
+            load_residual_model_config as _load_config,
+        )
+        from backend.app.residual_model.persistence import (
+            _feature_schema_hash as _fsh,
+        )
+
+        config = _load_config(_Path("configs/residual_model.yaml"))
+
+        # The harvest_state_run fixture must satisfy the persistence's
+        # ``_validate_canonical_payload_hash`` check (canonical_payload_hash
+        # == sha256_hex(canonical_output)) so that ``load_harvest_state_output_by_id``
+        # succeeds when called from the prediction replay/conflict paths.
+        empty_canonical_output = {}
+        harvest_canonical_payload_hash = _hs_sha256_hex(empty_canonical_output)
+
+        hsr = _HSR(
+            id=10,
+            status="completed",
+            output_schema_version="task9a-output-v1",
+            result_hash_schema_version="task9a-result-hash-v1",
+            resolved_parameter_snapshot_schema_version=("task9a-resolved-parameters-v1"),
+            source_ref_schema_version="task9a-source-ref-v1",
+            stable_cohort_key_schema_version="task9a-stable-cohort-key-v1",
+            input_snapshot={},
+            resolved_parameter_snapshot=None,
+            source_ref_catalog=[],
+            warnings=[],
+            blockers=[],
+            mass_balance_result=None,
+            continuity_result=None,
+            canonical_output={},
+            config_hash="a" * 64,
+            result_hash="a" * 64,
+            canonical_payload_hash=harvest_canonical_payload_hash,
+            forecast_start_date=_date(2026, 4, 1),
+            forecast_end_date=_date(2026, 4, 30),
+            as_of_date=_date(2026, 4, 1),
+            destination_factory_id=1,
+            pool_row_count=0,
+            member_row_count=0,
+            cohort_row_count=0,
+            future_arrival_row_count=0,
+        )
+        session.add(hsr)
+        # Seed a minimal training_run with id=1. The training_api will
+        # validate that input_snapshot["training_signature"] matches
+        # this row's training_signature, and that
+        # config_hash / feature_schema_version / feature_schema_hash
+        # match. The values below are derived from the production
+        # config + empty feature_names (matching the API adapter's
+        # ``predict_residual_model_from_contract_payload`` derivation).
+
+        training_signature_value = "b" * 64  # arbitrary valid SHA-256 hex
+        config_hash_value = config.config_hash
+        feature_schema_version_value = config.rules.feature_schema_version
+        feature_schema_hash_value = _fsh([])  # empty feature_names
+        manifest_hash_value = "c" * 64
+        canonical_payload_hash_value = _cph({"seed": "training_run_1"})
+
+        # Compute prediction_input_signature-style metadata so that
+        # the persistence authority checks pass for the seeded run.
+        empty_snapshot_payload = {
+            "manifest_summary": {"row_count": 0},
+            "manifest_hash": manifest_hash_value,
+            "training_signature": training_signature_value,
+            "config_snapshot": config.snapshot,
+        }
+        training_run_input_snapshot = empty_snapshot_payload
+
+        seeded_training_run = ResidualModelTrainingRun(
+            id=1,
+            execution_status="blocked",  # not "eligible" → artifact check skipped
+            eligibility_status="ineligible",
+            model_family=config.rules.model_family,
+            model_version=config.rules.model_version,
+            feature_schema_version=feature_schema_version_value,
+            feature_schema_hash=feature_schema_hash_value,
+            artifact_schema_version=config.rules.artifact_schema_version,
+            training_signature=training_signature_value,
+            config_hash=config_hash_value,
+            config_snapshot=config.snapshot,
+            manifest_hash=manifest_hash_value,
+            manifest_snapshot={
+                "rows": [],
+                "summary": {"row_count": 0},
+            },
+            feature_audit_summary={},
+            category_encoding_snapshot=[],
+            training_metrics={},
+            validation_metrics={},
+            eligibility_reasons=[],
+            warnings=[],
+            blockers=[],
+            fallback_reason=None,
+            input_snapshot=training_run_input_snapshot,
+            canonical_output={},
+            canonical_payload_hash=canonical_payload_hash_value,
+            sample_count=0,
+            distinct_season_count=0,
+            distinct_factory_count=0,
+            manifest_row_count=0,
+            expected_artifact_count=0,
+            python_version="3.12",
+            numpy_version="2.0",
+            sklearn_version="1.5",
+            started_at=_dt(2026, 4, 1, tzinfo=UTC),
+            finished_at=_dt(2026, 4, 1, tzinfo=UTC),
+            created_at=_dt(2026, 4, 1, tzinfo=UTC),
+            error_message=None,
+            typed_attempt=None,
+        )
+        session.add(seeded_training_run)
+        await session.commit()
+
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             yield client
     await engine.dispose()
@@ -363,7 +540,6 @@ async def test_training_conflict_different_canonical_payload_returns_409(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_post_returns_201_with_envelope(
     residual_client: AsyncClient,
 ) -> None:
@@ -385,12 +561,22 @@ async def test_prediction_post_returns_201_with_envelope(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_get_returns_200_with_envelope(
     residual_client: AsyncClient,
 ) -> None:
-    """GET /api/v1/residual-model/prediction-runs/{run_id} → 200 + envelope."""
-    response = await residual_client.get("/api/v1/residual-model/prediction-runs/1")
+    """GET /api/v1/residual-model/prediction-runs/{run_id} → 200 + envelope.
+
+    Each test gets a fresh in-memory SQLite DB via the
+    ``residual_client`` fixture, so the test must create a run via
+    POST before reading it back via GET.
+    """
+    create = await residual_client.post(
+        "/api/v1/residual-model/prediction-runs",
+        json=_prediction_request_payload(),
+    )
+    assert create.status_code == 201
+    run_id = create.json()["run_id"]
+    response = await residual_client.get(f"/api/v1/residual-model/prediction-runs/{run_id}")
     assert response.status_code == 200
     payload = response.json()
     _assert_envelope_shape(payload, kind="prediction")
@@ -402,7 +588,6 @@ async def test_prediction_get_returns_200_with_envelope(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_replay_same_payload_returns_200_existing_run(
     residual_client: AsyncClient,
 ) -> None:
@@ -427,16 +612,30 @@ async def test_prediction_replay_same_payload_returns_200_existing_run(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_conflict_different_canonical_payload_returns_409(
     residual_client: AsyncClient,
 ) -> None:
-    """Same prediction_input_signature but different canonical payload → 409."""
+    """Same prediction_input_signature but different canonical payload → 409.
+
+    Each test gets a fresh in-memory SQLite DB via the residual_client
+    fixture, so the test must create the baseline run via POST
+    first; the second POST mutates the ``idempotency_key`` (which
+    embeds into input_snapshot but does NOT change
+    prediction_input_signature), so the persistence layer detects
+    same-signature / different-canonical-payload and raises
+    ``ResidualModelHashConflictError`` → 409 stable.
+
+    The prior contract-test design assumed a pre-seeded run with
+    matching signature; the B1 fixture uses an explicit baseline
+    POST for the same effect.
+    """
+    baseline = await residual_client.post(
+        "/api/v1/residual-model/prediction-runs",
+        json=_prediction_request_payload(),
+    )
+    assert baseline.status_code == 201
+
     payload_b = _prediction_request_payload()
-    # Force same hash by tweaking non-canonical ordering: the implementation
-    # canonicalizes before hashing, so different bytes with same canonical form
-    # should NOT trigger 409. We instead mutate a non-signature field and
-    # expect the implementation to detect the conflict.
     payload_b["idempotency_key"] = "11111111-1111-1111-1111-111111111111"
 
     response = await residual_client.post("/api/v1/residual-model/prediction-runs", json=payload_b)
@@ -469,7 +668,6 @@ async def test_training_get_missing_run_returns_404_stable_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_get_missing_run_returns_404_stable_error(
     residual_client: AsyncClient,
 ) -> None:
@@ -506,7 +704,6 @@ async def test_training_post_invalid_schema_returns_422_stable_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_post_invalid_schema_returns_422_stable_error(
     residual_client: AsyncClient,
 ) -> None:
@@ -585,15 +782,25 @@ async def test_training_post_integrity_exception_shielded_to_500(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_post_integrity_exception_shielded_to_500(
     residual_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Future impl must shield service integrity errors to 500 stable payload."""
+    """Future impl must shield service integrity errors to 500 stable payload.
+
+    The Slice 2 B1 service entry point is now
+    ``backend.app.api.residual_model.predict_residual_model_from_contract_payload``.
+    The contract test's monkeypatch target is updated accordingly
+    (per the test's own docstring: "If the future import path differs,
+    this test must be updated as part of the implementation round").
+    The fixture seeds training_run 1 + task9_run 10 so the API reaches
+    the service-layer call.
+    """
+    from backend.app.residual_model import persistence as persistence_module  # noqa: F401
+
     try:
         monkeypatch.setattr(
-            "backend.app.api.residual_model.predict_with_residual_model",
+            "backend.app.api.residual_model.predict_residual_model_from_contract_payload",
             _raise_integrity,
             raising=False,
         )
@@ -665,15 +872,23 @@ async def test_training_post_commit_failure_rolls_back_no_partial_run(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_post_commit_failure_rolls_back_no_partial_run(
     residual_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Future impl must roll back on commit failure → 500 + no partial state."""
+    """Future impl must roll back on commit failure → 500 + no partial state.
+
+    The Slice 2 B1 service entry point is now
+    ``backend.app.api.residual_model.predict_residual_model_from_contract_payload``.
+    The contract test's monkeypatch target is updated accordingly.
+    The fixture seeds training_run 1 + task9_run 10 so the API reaches
+    the service-layer call.
+    """
+    from backend.app.residual_model import persistence as persistence_module  # noqa: F401
+
     try:
         monkeypatch.setattr(
-            "backend.app.api.residual_model.predict_with_residual_model",
+            "backend.app.api.residual_model.predict_residual_model_from_contract_payload",
             _raise_integrity,
             raising=False,
         )
@@ -738,7 +953,6 @@ async def test_training_report_csv_endpoint_remains_reachable(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_report_json_endpoint_remains_reachable(
     residual_client: AsyncClient,
 ) -> None:
@@ -757,7 +971,6 @@ async def test_prediction_report_json_endpoint_remains_reachable(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_report_csv_endpoint_remains_reachable(
     residual_client: AsyncClient,
 ) -> None:
@@ -817,7 +1030,6 @@ async def test_training_post_idempotency_key_reused_with_different_payload_retur
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_post_with_missing_training_run_returns_404(
     residual_client: AsyncClient,
 ) -> None:
@@ -830,14 +1042,16 @@ async def test_prediction_post_with_missing_training_run_returns_404(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_prediction_post_task9_hash_mismatch_returns_409(
     residual_client: AsyncClient,
 ) -> None:
-    """task9_result_hash supplied but doesn't match persisted hash → 409."""
+    """task9_result_hash supplied but doesn't match persisted hash → 409.
+
+    The fixture seeds task9_run_id=10 with result_hash="a"*64. This
+    test sends task9_result_hash="f"*64 → hash mismatch → API
+    pre-check returns 409 stable.
+    """
     payload = _prediction_request_payload()
-    # The implementation must verify task9_result_hash matches task9_run_id's hash.
-    # We supply a clearly-wrong hash and expect 409 (or 404 if task9 doesn't exist).
     payload["task9_run_id"] = 10
     payload["task9_result_hash"] = "f" * 64  # arbitrary; should not match
     response = await residual_client.post("/api/v1/residual-model/prediction-runs", json=payload)
