@@ -45,6 +45,7 @@ Companion docs (read first):
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
@@ -83,16 +84,60 @@ LEAK_PATTERNS = (
 
 @pytest.fixture
 async def residual_client() -> AsyncClient:
-    """Build an AsyncClient with no DB session override.
+    """Build an AsyncClient wired to an in-memory SQLite session.
 
-    For Slice 2 contract tests, the implementation is not yet present,
-    so we do not need a real DB session. We only need a FastAPI app
-    that will return 404 / 405 for the future routes — enough to drive
-    ``xfail`` strictness.
+    The Slice 2 execution POST handler persists training runs via
+    ``save_residual_training_run``, which writes to multiple tables in
+    a single transaction. The DB session must therefore be backed by an
+    engine where those tables exist. SQLite is acceptable here because
+    the persistence layer is built on SQLAlchemy's portable
+    ``Mapped`` / ``JSONB.with_variant(JSON)`` abstractions.
     """
-    app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        yield client
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession as _AsyncSession,
+    )
+    from sqlalchemy.ext.asyncio import (
+        async_sessionmaker,
+        create_async_engine,
+    )
+
+    from backend.app.db.session import get_db_session
+    from backend.app.models.residual_model import (
+        ResidualModelArtifact,
+        ResidualModelExecutionAttempt,
+        ResidualModelManifestRow,
+        ResidualModelPredictionRow,
+        ResidualModelPredictionRun,
+        ResidualModelTrainingRun,
+    )
+
+    def _create_residual_tables(sync_conn: Any) -> None:
+        ResidualModelTrainingRun.metadata.create_all(
+            sync_conn,
+            tables=[
+                ResidualModelTrainingRun.__table__,
+                ResidualModelManifestRow.__table__,
+                ResidualModelArtifact.__table__,
+                ResidualModelPredictionRun.__table__,
+                ResidualModelPredictionRow.__table__,
+                ResidualModelExecutionAttempt.__table__,
+            ],
+        )
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(_create_residual_tables)
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=_AsyncSession)
+    async with sessionmaker() as session:
+        app = create_app()
+
+        async def _override() -> AsyncIterator[_AsyncSession]:
+            yield session
+
+        app.dependency_overrides[get_db_session] = _override
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            yield client
+    await engine.dispose()
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +249,6 @@ def _assert_no_internal_leak(text: str) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_returns_201_with_envelope(
     residual_client: AsyncClient,
 ) -> None:
@@ -227,12 +271,22 @@ async def test_training_post_returns_201_with_envelope(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_get_returns_200_with_envelope(
     residual_client: AsyncClient,
 ) -> None:
-    """GET /api/v1/residual-model/training-runs/{run_id} → 200 + envelope."""
-    response = await residual_client.get("/api/v1/residual-model/training-runs/1")
+    """GET /api/v1/residual-model/training-runs/{run_id} → 200 + envelope.
+
+    Each test gets a fresh in-memory SQLite DB via the
+    ``residual_client`` fixture, so the test must create a run via
+    POST before reading it back via GET.
+    """
+    create = await residual_client.post(
+        "/api/v1/residual-model/training-runs",
+        json=_training_request_payload(),
+    )
+    assert create.status_code == 201
+    run_id = create.json()["run_id"]
+    response = await residual_client.get(f"/api/v1/residual-model/training-runs/{run_id}")
     assert response.status_code == 200
     payload = response.json()
     _assert_envelope_shape(payload, kind="training")
@@ -244,7 +298,6 @@ async def test_training_get_returns_200_with_envelope(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_replay_same_payload_returns_200_existing_run(
     residual_client: AsyncClient,
 ) -> None:
@@ -273,15 +326,30 @@ async def test_training_replay_same_payload_returns_200_existing_run(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_conflict_different_canonical_payload_returns_409(
     residual_client: AsyncClient,
 ) -> None:
-    """Same signature but different canonical payload bytes → 409 + stable error."""
+    """Same signature but different canonical payload bytes → 409 + stable error.
+
+    Each test gets a fresh in-memory SQLite DB via the
+    ``residual_client`` fixture, so the test must create the baseline
+    run (default ``source_run_ids``) via POST first; the second POST
+    mutates ``source_run_ids`` which keeps the ``training_signature``
+    stable but changes ``feature_visibility_audit_hash`` →
+    ``manifest_hash`` → ``canonical_payload_hash``; the persistence
+    layer detects same-signature / different-payload and raises
+    ``ResidualModelHashConflictError`` (mapped to 409 by the API).
+    """
+    baseline = await residual_client.post(
+        "/api/v1/residual-model/training-runs",
+        json=_training_request_payload(),
+    )
+    assert baseline.status_code == 201
+
     payload_b = _training_request_payload()
     payload_b["source_run_ids"] = {"harvest_state_run_id": 99, "task9a_run_id": 1}
 
-    # The future endpoint must canonicalize + hash and detect the conflict.
+    # The endpoint must canonicalize + hash and detect the conflict.
     # We expect 409 with stable error envelope.
     response = await residual_client.post("/api/v1/residual-model/training-runs", json=payload_b)
     assert response.status_code == 409
@@ -383,7 +451,6 @@ async def test_prediction_conflict_different_canonical_payload_returns_409(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_get_missing_run_returns_404_stable_error(
     residual_client: AsyncClient,
 ) -> None:
@@ -420,7 +487,6 @@ async def test_prediction_get_missing_run_returns_404_stable_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_invalid_schema_returns_422_stable_error(
     residual_client: AsyncClient,
 ) -> None:
@@ -456,7 +522,6 @@ async def test_prediction_post_invalid_schema_returns_422_stable_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_unknown_prediction_mode_returns_422(
     residual_client: AsyncClient,
 ) -> None:
@@ -474,7 +539,6 @@ async def test_training_post_unknown_prediction_mode_returns_422(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_integrity_exception_shielded_to_500(
     residual_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -496,9 +560,15 @@ async def test_training_post_integrity_exception_shielded_to_500(
 
     # Try patching the future import path; if it doesn't exist yet,
     # the route 404 already xfails this test before patching matters.
+    # The Slice 2 service entry point is now
+    # ``backend.app.api.residual_model.train_residual_model_from_contract_payload``.
+    # The previous round (PR #78 head 28e2b37) aliased this symbol to
+    # ``train_residual_model`` solely so the monkeypatch target resolved.
+    # That alias has been removed (no production-code aliases for
+    # monkeypatch convenience), so we patch the real function name.
     try:
         monkeypatch.setattr(
-            "backend.app.api.residual_model.train_residual_model",
+            "backend.app.api.residual_model.train_residual_model_from_contract_payload",
             _raise_integrity,
             raising=False,
         )
@@ -561,7 +631,6 @@ def _raise_integrity(*args: Any, **kwargs: Any) -> Any:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_commit_failure_rolls_back_no_partial_run(
     residual_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -571,9 +640,15 @@ async def test_training_post_commit_failure_rolls_back_no_partial_run(
     Once Slice 2 is implemented, this test verifies that a mid-transaction
     commit failure does NOT leave a half-written training run visible.
     """
+    # The Slice 2 service entry point is now
+    # ``backend.app.api.residual_model.train_residual_model_from_contract_payload``.
+    # The previous round (PR #78 head 28e2b37) aliased this symbol to
+    # ``train_residual_model`` solely so the monkeypatch target resolved.
+    # That alias has been removed (no production-code aliases for
+    # monkeypatch convenience), so we patch the real function name.
     try:
         monkeypatch.setattr(
-            "backend.app.api.residual_model.train_residual_model",
+            "backend.app.api.residual_model.train_residual_model_from_contract_payload",
             _raise_integrity,
             raising=False,
         )
@@ -620,7 +695,6 @@ async def test_prediction_post_commit_failure_rolls_back_no_partial_run(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_report_json_endpoint_remains_reachable(
     residual_client: AsyncClient,
 ) -> None:
@@ -646,7 +720,6 @@ async def test_training_report_json_endpoint_remains_reachable(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_report_csv_endpoint_remains_reachable(
     residual_client: AsyncClient,
 ) -> None:
@@ -708,7 +781,6 @@ async def test_prediction_report_csv_endpoint_remains_reachable(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_idempotency_key_replay_returns_existing_run(
     residual_client: AsyncClient,
 ) -> None:
@@ -725,7 +797,6 @@ async def test_training_post_idempotency_key_replay_returns_existing_run(
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(strict=True, reason=SLICE2_XFAIL_REASON)
 async def test_training_post_idempotency_key_reused_with_different_payload_returns_409(
     residual_client: AsyncClient,
 ) -> None:
