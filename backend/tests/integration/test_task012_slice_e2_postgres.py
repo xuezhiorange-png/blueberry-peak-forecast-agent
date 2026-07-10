@@ -246,6 +246,10 @@ async def test_postgres_slice_e2_non_replay_task9_authority_blocks() -> None:
         run = await session.get(HarvestStateRun, request.task9_run_id)
         assert run is not None
         run.is_replay = False
+        run.forecast_effective_cutoff_at = None
+        run.replay_executed_at = None
+        run.replay_code_version = None
+        run.replay_run_correlation_id = None
         await session.commit()
         with pytest.raises(ReplayTrainedServiceBlockerError) as exc_info:
             await execute_replay_trained_prediction(session, request=request)

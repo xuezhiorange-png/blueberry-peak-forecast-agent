@@ -697,7 +697,7 @@ async def _visible_samples(
 
 
 def _normalized_numeric(value: object) -> str:
-    return format(Decimal(str(value)), "f")
+    return format(Decimal(str(value)).normalize(), "f")
 
 
 def _request_training_rows(rows: Sequence[FilteredTrainingRow]) -> list[dict[str, str]]:
