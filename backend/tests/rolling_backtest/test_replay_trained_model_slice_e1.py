@@ -401,8 +401,7 @@ def test_json_manifest_artifact_mismatch_is_rejected() -> None:
 
     assert exc_info.value.mismatched_fields == ("model_artifact_hash",)
     assert (
-        exc_info.value.blocker_code
-        == OrchestrationBlocker.TASK12_ARTIFACT_IDENTITY_MISMATCH.value
+        exc_info.value.blocker_code == OrchestrationBlocker.TASK12_ARTIFACT_IDENTITY_MISMATCH.value
     )
 
 
