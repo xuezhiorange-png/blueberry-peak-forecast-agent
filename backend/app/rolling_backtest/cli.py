@@ -50,6 +50,7 @@ import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
+from backend.app.db.session import AsyncSessionMaker
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 from backend.app.rolling_backtest.export import (
     ExportRequest,
@@ -63,6 +64,7 @@ from backend.app.rolling_backtest.metrics import (
 )
 from backend.app.rolling_backtest.replay_trained_service import (
     ReplayTrainedExecutionRequest,
+    ReplayTrainedExecutionResult,
     ReplayTrainedServiceError,
     execute_replay_trained_prediction,
 )
@@ -526,7 +528,7 @@ def _handle_replay_trained_predict(args: argparse.Namespace) -> int:
     output_path = _validate_absolute_file(args.output_json, flag="output_json")
     try:
         request = _load_replay_request(request_path)
-        result = asyncio.run(execute_replay_trained_prediction(session=None, request=request))
+        result = asyncio.run(_execute_replay_trained_request(request))
     except ReplayTrainedServiceError as exc:
         return _emit_replay_error(exc)
     payload = canonical_json_dumps(result.to_payload()).encode("utf-8")
@@ -567,6 +569,13 @@ def _handle_replay_trained_predict(args: argparse.Namespace) -> int:
     if not args.quiet:
         print(payload.decode("utf-8"), file=sys.stdout)
     return EXIT_SUCCESS
+
+
+async def _execute_replay_trained_request(
+    request: ReplayTrainedExecutionRequest,
+) -> ReplayTrainedExecutionResult:
+    async with AsyncSessionMaker() as session:
+        return await execute_replay_trained_prediction(session, request=request)
 
 
 # ---------------------------------------------------------------------------

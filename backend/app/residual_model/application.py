@@ -197,8 +197,9 @@ def _prediction_input_snapshot(
     feature_audits: list[FeatureVisibilityAudit],
     artifact_hashes: list[str],
     feature_rows: list[tuple[FeatureValue, ...]],
+    execution_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    snapshot = {
         "model_run_id": request.model_run_id,
         "training_signature": training_signature,
         "task9_run_id": request.task9_run_id,
@@ -217,6 +218,9 @@ def _prediction_input_snapshot(
         "projection_version": config_snapshot["projection"]["version"],
         "fallback_policy": config_snapshot["categorical_encoding"]["unknown_policy"],
     }
+    if execution_context:
+        snapshot.update(execution_context)
+    return snapshot
 
 
 async def execute_residual_training(
@@ -224,6 +228,8 @@ async def execute_residual_training(
     *,
     samples: list[ResidualTrainingSampleSpec],
     config: ResidualModelConfig,
+    execution_context: dict[str, Any] | None = None,
+    typed_attempt: dict[str, Any] | None = None,
 ) -> tuple[ResidualTrainingExecutionResult, int]:
     attempt_id: int | None = await _create_attempt(
         session=session,
@@ -232,6 +238,7 @@ async def execute_residual_training(
         requested_inputs={
             "sample_count": len(samples),
             "splits": [sample.split.value for sample in samples],
+            "execution_context": execution_context or {},
         },
         config_identity={
             "model_family": config.rules.model_family,
@@ -258,6 +265,15 @@ async def execute_residual_training(
             current_stage=current_stage,
         )
         result = train_residual_model_from_manifest(rows=manifest_rows, config=config)
+        if execution_context:
+            result = result.model_copy(
+                update={
+                    "input_snapshot": {
+                        **result.input_snapshot,
+                        **execution_context,
+                    }
+                }
+            )
         current_stage = "persistence"
         await _update_attempt_stage(
             session=session,
@@ -268,6 +284,7 @@ async def execute_residual_training(
             session,
             result=result,
             manifest_rows=manifest_rows,
+            typed_attempt=typed_attempt,
         )
         current_stage = "reload_integrity"
         await _update_attempt_stage(
@@ -317,12 +334,17 @@ async def execute_residual_prediction(
     session: AsyncSession,
     *,
     request: ResidualPredictionRequest,
+    execution_context: dict[str, Any] | None = None,
+    typed_attempt: dict[str, Any] | None = None,
 ) -> tuple[ResidualPredictionExecutionResult, int]:
     attempt_id: int | None = await _create_attempt(
         session=session,
         attempt_type="prediction",
         current_stage="training_load",
-        requested_inputs=request.model_dump(mode="json"),
+        requested_inputs={
+            **request.model_dump(mode="json"),
+            "execution_context": execution_context or {},
+        },
         config_identity={
             "model_run_id": request.model_run_id,
             "feature_analytics_build_run_id": request.feature_analytics_build_run_id,
@@ -511,6 +533,7 @@ async def execute_residual_prediction(
             feature_audits=feature_audits,
             artifact_hashes=artifact_hashes,
             feature_rows=feature_rows,
+            execution_context=execution_context,
         ) | {
             "task9_result_hash": task9_output.result_hash,
             "prediction_as_of_date": str(task9_output.input_snapshot["as_of_date"]),
@@ -568,6 +591,7 @@ async def execute_residual_prediction(
             feature_schema_version=training_run_row.feature_schema_version,
             feature_schema_hash=training_run_row.feature_schema_hash,
             artifact_hashes=artifact_hashes,
+            typed_attempt=typed_attempt,
         )
         current_stage = "reload_integrity"
         await _update_attempt_stage(
