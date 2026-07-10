@@ -25,6 +25,7 @@ executions and must not be interpreted as fulfilled acceptance criteria.
 from __future__ import annotations
 
 import inspect
+import json
 from collections import Counter
 from dataclasses import replace
 from datetime import UTC, date, datetime
@@ -649,6 +650,131 @@ def test_cli_output_is_byte_identical_for_identical_requests(
     first = output_path.read_bytes()
     assert _write_replay_result(output_path, payload, overwrite="missing") is True
     assert output_path.read_bytes() == first
+
+
+def test_cli_maps_replay_trained_service_conflict_to_exit_code_five(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Service-level conflict surfaces as EXIT_HASH_COLLISION (5).
+
+    The frozen contract distinguishes three rejection shapes at the
+    CLI:
+
+    - request / policy input error  → EXIT_SERVICE_CONTRACT_ERROR (2)
+    - structured blocker            → EXIT_METRIC_BLOCKER (3)
+    - idempotency / hash / path
+      conflict                       → EXIT_HASH_COLLISION (5)
+
+    ``ReplayTrainedServiceConflictError`` carries the stable code
+    ``TASK012_REPLAY_TRAINED_CONFLICT`` and a ``None`` blocker_code. The
+    CLI must route it to exit code 5 (not 2), emit the JSON envelope
+    on stdout, and emit a single-line deterministic diagnostic on
+    stderr. This test exercises ``main(...)`` end-to-end with
+    ``_execute_replay_trained_request`` monkeypatched so no database or
+    service-side persistence is required.
+    """
+    from backend.app.rolling_backtest import cli as rolling_cli
+    from backend.app.rolling_backtest.cli import (
+        EXIT_HASH_COLLISION,
+        EXIT_METRIC_BLOCKER,
+        EXIT_SERVICE_CONTRACT_ERROR,
+        main,
+    )
+    from backend.app.rolling_backtest.replay_trained_service import (
+        ReplayTrainedServiceBlockerError,
+        ReplayTrainedServiceConflictError,
+        ReplayTrainedServiceInputError,
+    )
+
+    # Build a valid request and write it to disk so the CLI's path
+    # grammar + JSON loader succeed and execution reaches the service
+    # call.
+    request = _service_request(idempotency_key="e2-conflict-cli")
+    request_payload = json.loads(json.dumps(request.to_payload()))
+    request_path = tmp_path / "e2-conflict-request.json"
+    request_path.write_text(
+        json.dumps(request_payload, sort_keys=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    output_path = tmp_path / "e2-conflict-output.json"
+
+    def _raise_conflict(_request: ReplayTrainedExecutionRequest) -> object:
+        raise ReplayTrainedServiceConflictError(
+            "idempotency key conflict",
+            mismatched_fields=("idempotency_key_payload_mismatch",),
+        )
+
+    monkeypatch.setattr(rolling_cli, "_execute_replay_trained_request", _raise_conflict)
+
+    # 1. Conflict → exit 5, with stable envelope + stderr.
+    rc = main(
+        [
+            "replay-trained-predict",
+            "--request-json",
+            str(request_path),
+            "--output-json",
+            str(output_path),
+        ]
+    )
+    assert rc == EXIT_HASH_COLLISION
+    assert rc == 5
+    captured = capsys.readouterr()
+    envelope = json.loads(captured.out.strip())
+    # The CLI emits a stable JSON envelope on stdout. The exact field
+    # set is the frozen contract from §4.5; this assertion pins the
+    # machine-readable surface and the human-readable stderr line.
+    assert envelope["error"]["code"] == "TASK012_REPLAY_TRAINED_CONFLICT"
+    assert envelope["error"]["blocker"] is None
+    assert envelope["error"]["identity"]["mismatched_fields"] == [
+        "idempotency_key_payload_mismatch"
+    ]
+    assert "idempotency key conflict" in envelope["error"]["message"]
+    assert "error: TASK012_REPLAY_TRAINED_CONFLICT" in captured.err.splitlines()
+    assert not output_path.exists(), "conflict must not produce an output file"
+
+    # 2. Input / policy error → exit 2 (regression for non-conflict
+    # service error path).
+    def _raise_input(_request: ReplayTrainedExecutionRequest) -> object:
+        raise ReplayTrainedServiceInputError(
+            "policy invalid",
+            mismatched_fields=("model_policy_required",),
+        )
+
+    monkeypatch.setattr(rolling_cli, "_execute_replay_trained_request", _raise_input)
+    rc_input = main(
+        [
+            "replay-trained-predict",
+            "--request-json",
+            str(request_path),
+            "--output-json",
+            str(output_path),
+        ]
+    )
+    assert rc_input == EXIT_SERVICE_CONTRACT_ERROR
+    assert rc_input == 2
+
+    # 3. Blocker → exit 3 (regression for structured blocker path).
+    def _raise_blocker(_request: ReplayTrainedExecutionRequest) -> object:
+        raise ReplayTrainedServiceBlockerError(
+            "training rows empty",
+            blocker_code="task12_training_rows_empty",
+            mismatched_fields=("training_rows_empty",),
+        )
+
+    monkeypatch.setattr(rolling_cli, "_execute_replay_trained_request", _raise_blocker)
+    rc_blocker = main(
+        [
+            "replay-trained-predict",
+            "--request-json",
+            str(request_path),
+            "--output-json",
+            str(output_path),
+        ]
+    )
+    assert rc_blocker == EXIT_METRIC_BLOCKER
+    assert rc_blocker == 3
 
 
 def test_api_first_execution_is_201_and_exact_replay_is_200() -> None:

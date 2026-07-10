@@ -65,6 +65,7 @@ from backend.app.rolling_backtest.metrics import (
 from backend.app.rolling_backtest.replay_trained_service import (
     ReplayTrainedExecutionRequest,
     ReplayTrainedExecutionResult,
+    ReplayTrainedServiceConflictError,
     ReplayTrainedServiceError,
     execute_replay_trained_prediction,
 )
@@ -518,6 +519,16 @@ def _emit_replay_error(exc: ReplayTrainedServiceError) -> int:
     }
     print(canonical_json_dumps(payload), file=sys.stdout)
     print(f"error: {exc.code}", file=sys.stderr)
+    # Service-level durable idempotency / exact-identity conflict
+    # (ReplayTrainedServiceConflictError carries code
+    # "TASK012_REPLAY_TRAINED_CONFLICT" and a None blocker_code).
+    # Per the frozen contract, this class of failure is a hash / path
+    # collision and maps to EXIT_HASH_COLLISION (5). The subclass check
+    # is performed before the generic blocker branch so a future
+    # subclass that *also* sets a blocker_code still routes by its
+    # conflict identity first.
+    if isinstance(exc, ReplayTrainedServiceConflictError):
+        return EXIT_HASH_COLLISION
     if exc.blocker_code:
         return EXIT_METRIC_BLOCKER
     return EXIT_SERVICE_CONTRACT_ERROR
