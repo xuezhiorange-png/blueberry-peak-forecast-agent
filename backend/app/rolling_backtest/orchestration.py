@@ -96,10 +96,18 @@ class OrchestrationBlocker(StrEnum):
     # ── TASK-012 Slice C additions (§11 #3 / #4 / #5) ────────────────────
     # These blocker codes cover the §11 #3 (execution portion — cutoff
     # filtering), §11 #4 (label-availability cutoff filtering), and
-    # §11 #5 (structured empty-training-set blocker) obligations. Slice D
-    # may raise additional §9 categories not yet implemented.
+    # §11 #5 (structured empty-training-set blocker) obligations.
     TASK12_TRAINING_ROWS_EMPTY = "task12_training_rows_empty"
     TASK12_CUTOFF_FILTERED_ROW = "task12_cutoff_filtered_row"
+    # ── TASK-012 Slice D additions (§11 #10 / #11) ───────────────────────
+    # These blocker codes cover the §11 #10 (artifact identity mismatch
+    # — JSON-side vs manifest-side disagreement on the canonical §6
+    # identity fields) and §11 #11 (prediction binding mismatch —
+    # exact Task 9 replay binding not satisfied) obligations. §11 #12
+    # reuses the existing TASK12_CROSS_RUN_SUBSTITUTION code (§9
+    # taxonomy). Slice E (API / CLI) is out of scope.
+    TASK12_ARTIFACT_IDENTITY_MISMATCH = "task12_artifact_identity_mismatch"
+    TASK12_PREDICTION_BINDING_MISMATCH = "task12_prediction_binding_mismatch"
 
 
 # ── Date/time authority helpers ───────────────────────────────────────────────
