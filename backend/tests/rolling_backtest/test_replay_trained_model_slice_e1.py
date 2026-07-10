@@ -84,7 +84,7 @@ class SliceEClassification(str, Enum):  # noqa: UP042 - explicit string values a
 
     ACTIVE_SLICE_E1 = "active_slice_e1"
     ACTIVE_SLICE_E2 = "active_slice_e2"
-    OBLIGATION_SLICE_E3 = "obligation_slice_e3"
+    ACTIVE_SLICE_E3 = "active_slice_e3"
 
 
 _SECTION_10_REGISTRY: Final[tuple[dict[str, str], ...]] = (
@@ -166,20 +166,17 @@ _SECTION_10_REGISTRY: Final[tuple[dict[str, str], ...]] = (
     {
         "name": "test_api_first_execution_is_201_and_exact_replay_is_200",
         "section": "§10 #16",
-        "classification": SliceEClassification.OBLIGATION_SLICE_E3.value,
-        "future_slice": "Slice E3",
+        "classification": SliceEClassification.ACTIVE_SLICE_E3.value,
     },
     {
         "name": "test_api_error_envelopes_are_stable_and_non_leaking",
         "section": "§10 #17",
-        "classification": SliceEClassification.OBLIGATION_SLICE_E3.value,
-        "future_slice": "Slice E3",
+        "classification": SliceEClassification.ACTIVE_SLICE_E3.value,
     },
     {
         "name": "test_get_requires_exact_prediction_run_id",
         "section": "§10 #18",
-        "classification": SliceEClassification.OBLIGATION_SLICE_E3.value,
-        "future_slice": "Slice E3",
+        "classification": SliceEClassification.ACTIVE_SLICE_E3.value,
     },
     {
         "name": "test_api_and_cli_do_not_use_implicit_latest_selection",
@@ -777,34 +774,342 @@ def test_cli_maps_replay_trained_service_conflict_to_exit_code_five(
     assert rc_blocker == 3
 
 
-def test_api_first_execution_is_201_and_exact_replay_is_200() -> None:
-    """§10 #16 — HTTP status semantics activate in Slice E3."""
+async def test_api_first_execution_is_201_and_exact_replay_is_200(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """§10 #16 — HTTP status semantics activate in Slice E3.
 
-    _skip_obligation(
-        section="§10 #16",
-        future_slice="Slice E3",
-        requirement="POST first-execution and exact-idempotent-replay status contract",
+    The test exercises the POST endpoint through a real ASGI transport.
+    First execution returns 201 Created; an exact idempotent replay
+    (same canonical request) returns 200 OK. The HTTP layer delegates
+    to the Slice E2 service; the test patches only the service boundary
+    to keep the test deterministic and not require PostgreSQL.
+    """
+    import httpx
+    from httpx import ASGITransport
+
+    from backend.app.api import rolling_backtest_replay_trained
+    from backend.app.main import create_app
+    from backend.tests.rolling_backtest.test_replay_trained_model_slice_e1 import (
+        _service_request,
     )
 
+    recorded: list[tuple[int | None, int]] = []
 
-def test_api_error_envelopes_are_stable_and_non_leaking() -> None:
-    """§10 #17 — HTTP error envelopes activate in Slice E3."""
+    class _StubResult:
+        def __init__(self) -> None:
+            self.prediction_run_id = 4242
+            self.prediction_hash = "p" * 64
+            self.request_payload_hash = "h" * 64
+            self.training_manifest_hash = "m" * 64
+            self.model_config_hash = "c" * 64
+            self.model_artifact_hash = "a" * 64
+            self.task9_run_id = 91
+            self.task9_result_hash = "9" * 64
+            self.filtered_training_row_count = 3
+            self.filtered_label_row_count = 2
+            self.training_execution_status = "completed"
+            self.training_eligibility_status = "eligible"
+            self.prediction_execution_status = "completed"
+            self.prediction_mode = "residual_corrected"
+            self.audit_identity = "audit-" + "x" * 56
 
-    _skip_obligation(
-        section="§10 #17",
-        future_slice="Slice E3",
-        requirement="stable 404/409/422/500 transport envelopes",
+        def to_payload(self) -> dict[str, object]:
+            return {
+                "service_version": "task12-slice-e3-test",
+                "model_policy": "replay_trained_model",
+                "task12_policy_version": "task12-policy-e3",
+                "replay_attempt_id": "attempt-e3",
+                "replay_node_id": "node-e3",
+                "scenario_id": "scenario-e3",
+                "training_manifest_hash": "m" * 64,
+                "training_dataset_hash": "d" * 64,
+                "model_config_hash": "c" * 64,
+                "model_artifact_hash": "a" * 64,
+                "model_code_version": "task10-code-e3",
+                "forecast_cutoff_at": "2026-03-15T12:00:00Z",
+                "training_cutoff_at": "2026-03-14T12:00:00Z",
+                "task9_run_id": 91,
+                "task9_result_hash": "9" * 64,
+                "prediction_run_id": 4242,
+                "prediction_hash": "p" * 64,
+                "request_payload_hash": "h" * 64,
+                "filtered_training_row_count": 3,
+                "filtered_label_row_count": 2,
+                "training_execution_status": "completed",
+                "training_eligibility_status": "eligible",
+                "prediction_execution_status": "completed",
+                "prediction_mode": "residual_corrected",
+                "task10_training_run_id": 7,
+                "task10_training_signature": "s" * 64,
+                "task10_manifest_hash": "mh" * 32,
+                "task10_config_hash": "ch" * 32,
+                "task10_artifact_hashes": ["ah" * 32],
+                "idempotency_key": "idem-e3-16",
+                "caller_identity": "test:e3-16",
+                "no_implicit_selection": True,
+                "no_cross_run_substitution": True,
+            }
+
+    async def _fake_execute(session: object, *, request: object) -> _StubResult:
+        recorded.append((getattr(request, "idempotency_key", None), 201))  # type: ignore[arg-type]
+        return _StubResult()
+
+    async def _fake_existing(
+        session: object,
+        *,
+        idempotency_key: str,
+        request_payload_hash: str,
+    ) -> object | None:
+        if recorded:
+            return object()
+        return None
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "execute_replay_trained_prediction",
+        _fake_execute,
+    )
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "_find_existing_replay_prediction",
+        _fake_existing,
     )
 
+    request = _service_request(idempotency_key="idem-e3-16")
+    body = request.to_payload()
+    body["idempotency_key"] = "idem-e3-16"
 
-def test_get_requires_exact_prediction_run_id() -> None:
-    """§10 #18 — exact retrieval semantics activate in Slice E3."""
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        first = await client.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
+        assert first.status_code == 201, first.text
+        first_payload = first.json()
+        assert first_payload["prediction_run_id"] == 4242
+        assert first_payload["audit_identity"].startswith("audit-")
 
-    _skip_obligation(
-        section="§10 #18",
-        future_slice="Slice E3",
-        requirement="GET by exact prediction_run_id with no implicit selection",
+        second = await client.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
+        assert second.status_code == 200, second.text
+        second_payload = second.json()
+        assert second_payload == first_payload
+
+
+async def test_api_error_envelopes_are_stable_and_non_leaking(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """§10 #17 — HTTP error envelopes activate in Slice E3.
+
+    Stable 404 / 409 / 422 / 500 transport envelopes must not leak
+    SQL text, traceback text, file paths, or environment variables.
+    """
+    import httpx
+    from httpx import ASGITransport
+
+    from backend.app.api import rolling_backtest_replay_trained
+    from backend.app.main import create_app
+    from backend.app.rolling_backtest.replay_trained_service import (
+        ReplayTrainedServiceInputError,
     )
+    from backend.tests.rolling_backtest.test_replay_trained_model_slice_e1 import (
+        _service_request,
+    )
+
+    async def _raise_input_error(session: object, *, request: object) -> object:
+        raise ReplayTrainedServiceInputError(
+            "internal-impl-detail: /var/secrets/db/credentials.txt leaked",
+            mismatched_fields=("shape",),
+        )
+
+    async def _raise_unexpected(session: object, *, request: object) -> object:
+        raise RuntimeError(
+            "Traceback (most recent call last):\n"
+            "  File '/srv/blueberry/replay_trained_service.py', line 9999\n"
+            "    raise SQLAlchemyError('DSN=postgres://root:hunter2@host/db')\n"
+        )
+
+    async def _no_existing(
+        session: object,
+        *,
+        idempotency_key: str,
+        request_payload_hash: str,
+    ) -> object | None:
+        return None
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # 422 — request shape is not a JSON object
+        shape_response = await client.post(
+            "/api/v1/rolling-backtest/replay-trained-predictions", json=[1, 2, 3]
+        )
+        assert shape_response.status_code == 422
+        shape_body = shape_response.json()
+        assert shape_body["error"]["code"] == "TASK012_REPLAY_TRAINED_INPUT_INVALID"
+        assert "credentials.txt" not in shape_response.text
+        assert "Traceback" not in shape_response.text
+        assert "SQLAlchemy" not in shape_response.text
+
+        # 422 — missing required identity
+        missing_body = {
+            "idempotency_key": "idem-missing",
+            "model_policy": "replay_trained_model",
+        }
+        missing_response = await client.post(
+            "/api/v1/rolling-backtest/replay-trained-predictions", json=missing_body
+        )
+        assert missing_response.status_code == 422
+        assert missing_response.json()["error"]["code"] == ("TASK012_REPLAY_TRAINED_INPUT_INVALID")
+
+        # 500 — internal exception, must not leak traceback / SQL / path / secret
+        request = _service_request(idempotency_key="idem-e3-17")
+        body = request.to_payload()
+        body["idempotency_key"] = "idem-e3-17"
+        monkeypatch.setattr(
+            rolling_backtest_replay_trained,
+            "execute_replay_trained_prediction",
+            _raise_unexpected,
+        )
+        monkeypatch.setattr(
+            rolling_backtest_replay_trained,
+            "_find_existing_replay_prediction",
+            _no_existing,
+        )
+        unexpected_response = await client.post(
+            "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+        )
+        assert unexpected_response.status_code == 500
+        unexpected_body = unexpected_response.json()
+        assert unexpected_body["error"]["code"] == ("TASK012_REPLAY_TRAINED_INTEGRITY_ERROR")
+        leaked_text = unexpected_response.text
+        for forbidden in (
+            "Traceback",
+            "SQLAlchemy",
+            "postgres://",
+            "hunter2",
+            "/srv/blueberry",
+            "replay_trained_service.py",
+            "DSN=",
+        ):
+            assert forbidden not in leaked_text, forbidden
+
+        # Reset monkeypatch and test 422 via service InputError
+        monkeypatch.setattr(
+            rolling_backtest_replay_trained,
+            "execute_replay_trained_prediction",
+            _raise_input_error,
+        )
+        leaked_response = await client.post(
+            "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+        )
+        assert leaked_response.status_code == 422
+        leaked_body = leaked_response.json()
+        assert leaked_body["error"]["code"] == ("TASK012_REPLAY_TRAINED_INPUT_INVALID")
+        # The internal-impl-detail string from the InputError MUST NOT
+        # be reflected into the stable 422 envelope.
+        assert "/var/secrets" not in leaked_response.text
+
+
+async def test_get_requires_exact_prediction_run_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """§10 #18 — exact retrieval semantics activate in Slice E3.
+
+    The GET endpoint must:
+    * return 200 with the persisted TASK-012 identity for the exact
+      ``prediction_run_id`` it is asked for;
+    * return 404 when the ``prediction_run_id`` is not found;
+    * never accept / infer ``latest`` / ``current`` / ``most_recent``
+      selectors and must not re-execute training or prediction.
+    """
+    import httpx
+    from httpx import ASGITransport
+
+    from backend.app.api import rolling_backtest_replay_trained
+    from backend.app.main import create_app
+
+    class _StubRow:
+        def __init__(self) -> None:
+            self.canonical_payload_hash = "z" * 64
+            self.input_snapshot = {
+                "task12_replay": {
+                    "idempotency_key": "idem-e3-18",
+                    "prediction_hash": "p" * 64,
+                    "request_payload_hash": "h" * 64,
+                    "model_policy": "replay_trained_model",
+                    "task12_policy_version": "task12-policy-e3",
+                    "replay_attempt_id": "attempt-e3",
+                    "replay_node_id": "node-e3",
+                    "scenario_id": "scenario-e3",
+                    "training_manifest_hash": "m" * 64,
+                    "training_dataset_hash": "d" * 64,
+                    "model_config_hash": "c" * 64,
+                    "model_artifact_hash": "a" * 64,
+                    "model_code_version": "task10-code-e3",
+                    "forecast_cutoff_at": "2026-03-15T12:00:00Z",
+                    "training_cutoff_at": "2026-03-14T12:00:00Z",
+                    "task9_run_id": 91,
+                    "task9_result_hash": "9" * 64,
+                    "task10_training_run_id": 7,
+                    "task10_training_signature": "s" * 64,
+                    "task10_manifest_hash": "mh" * 32,
+                    "task10_config_hash": "ch" * 32,
+                    "task10_artifact_hashes": ["ah" * 32],
+                    "filtered_training_row_count": 3,
+                    "filtered_label_row_count": 2,
+                    "training_execution_status": "completed",
+                    "training_eligibility_status": "eligible",
+                    "prediction_execution_status": "completed",
+                    "prediction_mode": "residual_corrected",
+                    "caller_identity": "test:e3-18",
+                    "service_version": "task12-slice-e3-test",
+                }
+            }
+            self.typed_attempt = {"task12_replay": {"audit_identity": "audit-" + "y" * 56}}
+
+    found_rows: dict[int, _StubRow | None] = {4242: _StubRow()}
+    called_ids: list[int] = []
+    service_called: list[bool] = []
+
+    async def _fake_get(session: object, *, run_id: int) -> _StubRow | None:
+        called_ids.append(run_id)
+        return found_rows.get(run_id)
+
+    async def _service_should_not_run(session: object, *, request: object) -> object:
+        service_called.append(True)
+        raise AssertionError("GET endpoint must not call the Slice E2 service")
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "get_residual_prediction_run",
+        _fake_get,
+    )
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "execute_replay_trained_prediction",
+        _service_should_not_run,
+    )
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        exact = await client.get("/api/v1/rolling-backtest/replay-trained-predictions/4242")
+        assert exact.status_code == 200
+        exact_body = exact.json()
+        assert exact_body["prediction_run_id"] == 4242
+        assert exact_body["audit_identity"].startswith("audit-")
+        assert exact_body["model_policy"] == "replay_trained_model"
+        assert called_ids == [4242]
+
+        missing = await client.get("/api/v1/rolling-backtest/replay-trained-predictions/9999")
+        assert missing.status_code == 404
+        missing_body = missing.json()
+        assert missing_body["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
+        assert missing_body["error"]["identity"]["prediction_run_id"] == 9999
+
+    # GET must never re-execute the Slice E2 service
+    assert service_called == []
 
 
 def test_api_and_cli_do_not_use_implicit_latest_selection() -> None:
@@ -859,12 +1164,12 @@ def test_slice_e1_classification_counts_are_explicit() -> None:
     assert counts == {
         SliceEClassification.ACTIVE_SLICE_E1.value: 9,
         SliceEClassification.ACTIVE_SLICE_E2.value: 8,
-        SliceEClassification.OBLIGATION_SLICE_E3.value: 3,
+        SliceEClassification.ACTIVE_SLICE_E3.value: 3,
     }
 
 
 def test_slice_e1_obligations_name_the_exact_future_slice() -> None:
-    """Meta — every placeholder names E2 or E3 and no active test does."""
+    """Meta — every obligation classification is recognised; no placeholders remain."""
 
     for entry in _SECTION_10_REGISTRY:
         classification = entry["classification"]
@@ -873,7 +1178,7 @@ def test_slice_e1_obligations_name_the_exact_future_slice() -> None:
             assert future_slice is None
         elif classification == SliceEClassification.ACTIVE_SLICE_E2.value:
             assert future_slice is None
-        elif classification == SliceEClassification.OBLIGATION_SLICE_E3.value:
-            assert future_slice == "Slice E3"
+        elif classification == SliceEClassification.ACTIVE_SLICE_E3.value:
+            assert future_slice is None
         else:  # pragma: no cover - registry enum guard
             raise AssertionError(f"unknown classification: {classification}")
