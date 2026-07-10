@@ -899,7 +899,8 @@ async def _existing_prediction_for_idempotency(
         existing_hash = context.get("request_payload_hash")
         if existing_hash != request_payload_hash:
             raise ReplayTrainedServiceConflictError(
-                "idempotency key is already bound to a different canonical request",
+                "idempotency_key_payload_mismatch: idempotency key is already bound "
+                "to a different canonical request",
                 mismatched_fields=("idempotency_key_payload_mismatch",),
             )
         return row, True

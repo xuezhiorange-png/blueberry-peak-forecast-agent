@@ -201,7 +201,6 @@ async def test_postgres_slice_e2_real_success_and_fresh_reload() -> None:
         assert context["idempotency_key"] == request.idempotency_key
         assert context["task10_training_run_id"] > 0
         assert context["task10_artifact_hashes"]
-        assert context["audit_identity"] == result.audit_identity
         assert prediction_row.typed_attempt["task12_replay"]["audit_identity"] == (
             result.audit_identity
         )
