@@ -42,11 +42,15 @@ This module MUST NOT:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
+import os
 import sys
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
+from backend.app.db.session import AsyncSessionMaker
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 from backend.app.rolling_backtest.export import (
     ExportRequest,
@@ -57,6 +61,13 @@ from backend.app.rolling_backtest.export import (
 from backend.app.rolling_backtest.metrics import (
     METRIC_DEFINITION_VERSION,
     EvaluationResult,
+)
+from backend.app.rolling_backtest.replay_trained_service import (
+    ReplayTrainedExecutionRequest,
+    ReplayTrainedExecutionResult,
+    ReplayTrainedServiceConflictError,
+    ReplayTrainedServiceError,
+    execute_replay_trained_prediction,
 )
 from backend.app.rolling_backtest.service import (
     ServiceContractError,
@@ -220,6 +231,35 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Suppress stderr progress logs (§4.2).",
     )
+
+    replay = sub.add_parser(
+        "replay-trained-predict",
+        help="Execute one explicitly identified TASK-012 replay-trained prediction.",
+    )
+    replay.add_argument(
+        "--request-json",
+        type=str,
+        required=True,
+        help="Absolute UTF-8 JSON request path containing the complete replay identity.",
+    )
+    replay.add_argument(
+        "--output-json",
+        type=str,
+        required=True,
+        help="Absolute output path for the canonical UTF-8 JSON result.",
+    )
+    replay.add_argument(
+        "--overwrite",
+        type=str,
+        choices=("never", "missing", "always"),
+        default="missing",
+        help="Existing output policy: never, missing, or always.",
+    )
+    replay.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Do not echo the successful canonical result to stdout.",
+    )
     return parser
 
 
@@ -269,6 +309,77 @@ def _validate_output_dir_absolute(raw: str) -> Path:
     if not candidate.is_absolute():
         raise CLIUsageError(f"invalid_output_dir: --output-dir must be absolute (got {raw!r})")
     return candidate
+
+
+def _validate_absolute_file(raw: str, *, flag: str) -> Path:
+    if not raw:
+        raise CLIUsageError(f"invalid_{flag}: {flag} is empty")
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        raise CLIUsageError(f"invalid_{flag}: {flag} must be absolute (got {raw!r})")
+    return candidate
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise CLIUsageError(f"duplicate_json_key: {key}")
+        result[key] = value
+    return result
+
+
+def _load_replay_request(path: Path) -> ReplayTrainedExecutionRequest:
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise CLIUsageError(f"request_read_failed: {path}") from exc
+    try:
+        decoded = json.loads(raw, object_pairs_hook=_reject_duplicate_json_keys)
+    except (json.JSONDecodeError, CLIUsageError) as exc:
+        if isinstance(exc, CLIUsageError):
+            raise
+        raise CLIUsageError(f"request_json_invalid: {exc.msg} at pos {exc.pos}") from exc
+    if not isinstance(decoded, dict):
+        raise CLIUsageError("request_json_invalid: root must be an object")
+    return ReplayTrainedExecutionRequest.from_payload(decoded)
+
+
+def _write_replay_result(path: Path, payload: bytes, *, overwrite: str) -> bool:
+    """Atomically write a result and return whether an identical file existed."""
+    if path.exists():
+        existing = path.read_bytes()
+        if overwrite == "never":
+            raise FileExistsError("output_exists")
+        if overwrite == "missing":
+            if existing == payload:
+                return True
+            raise FileExistsError("output_payload_conflict")
+    parent = path.parent
+    if not parent.exists() or not parent.is_dir():
+        raise OSError("output_parent_missing")
+    temporary_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            temporary_path = temporary.name
+            temporary.write(payload)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, path)
+        temporary_path = None
+    finally:
+        if temporary_path is not None:
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -397,6 +508,87 @@ def _handle_compute_metrics(
     return EXIT_SUCCESS
 
 
+def _emit_replay_error(exc: ReplayTrainedServiceError) -> int:
+    payload = {
+        "error": {
+            "code": exc.code,
+            "message": str(exc),
+            "blocker": exc.blocker_code,
+            "identity": exc.to_payload(),
+        }
+    }
+    print(canonical_json_dumps(payload), file=sys.stdout)
+    print(f"error: {exc.code}", file=sys.stderr)
+    # Service-level durable idempotency / exact-identity conflict
+    # (ReplayTrainedServiceConflictError carries code
+    # "TASK012_REPLAY_TRAINED_CONFLICT" and a None blocker_code).
+    # Per the frozen contract, this class of failure is a hash / path
+    # collision and maps to EXIT_HASH_COLLISION (5). The subclass check
+    # is performed before the generic blocker branch so a future
+    # subclass that *also* sets a blocker_code still routes by its
+    # conflict identity first.
+    if isinstance(exc, ReplayTrainedServiceConflictError):
+        return EXIT_HASH_COLLISION
+    if exc.blocker_code:
+        return EXIT_METRIC_BLOCKER
+    return EXIT_SERVICE_CONTRACT_ERROR
+
+
+def _handle_replay_trained_predict(args: argparse.Namespace) -> int:
+    request_path = _validate_absolute_file(args.request_json, flag="request_json")
+    output_path = _validate_absolute_file(args.output_json, flag="output_json")
+    try:
+        request = _load_replay_request(request_path)
+        result = asyncio.run(_execute_replay_trained_request(request))
+    except ReplayTrainedServiceError as exc:
+        return _emit_replay_error(exc)
+    payload = canonical_json_dumps(result.to_payload()).encode("utf-8")
+    try:
+        _write_replay_result(output_path, payload, overwrite=args.overwrite)
+    except FileExistsError as exc:
+        print(
+            canonical_json_dumps(
+                {
+                    "error": {
+                        "code": "TASK012_REPLAY_TRAINED_CONFLICT",
+                        "message": str(exc),
+                        "blocker": None,
+                        "identity": {},
+                    }
+                }
+            ),
+            file=sys.stdout,
+        )
+        print("error: TASK012_REPLAY_TRAINED_CONFLICT", file=sys.stderr)
+        return EXIT_HASH_COLLISION
+    except OSError as exc:
+        print(
+            canonical_json_dumps(
+                {
+                    "error": {
+                        "code": "TASK012_REPLAY_TRAINED_IO_ERROR",
+                        "message": str(exc),
+                        "blocker": None,
+                        "identity": {},
+                    }
+                }
+            ),
+            file=sys.stdout,
+        )
+        print("error: TASK012_REPLAY_TRAINED_IO_ERROR", file=sys.stderr)
+        return EXIT_IO_ERROR
+    if not args.quiet:
+        print(payload.decode("utf-8"), file=sys.stdout)
+    return EXIT_SUCCESS
+
+
+async def _execute_replay_trained_request(
+    request: ReplayTrainedExecutionRequest,
+) -> ReplayTrainedExecutionResult:
+    async with AsyncSessionMaker() as session:
+        return await execute_replay_trained_prediction(session, request=request)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -426,6 +618,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.subcommand == "compute-metrics":
         try:
             return _handle_compute_metrics(args, effective_argv=argv)
+        except CLIUsageError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE_ERROR
+    if args.subcommand == "replay-trained-predict":
+        try:
+            return _handle_replay_trained_predict(args)
         except CLIUsageError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return EXIT_USAGE_ERROR
