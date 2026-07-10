@@ -51,8 +51,11 @@ CURRENT COUNTS AT TIME OF THIS PR
 - ACTIVE_SLICE_B passing tests: 2  (#8, #9 — landed in TASK-012 Slice B)
 - ACTIVE_SLICE_C passing tests: 3  (#3 execution portion, #4, #5 —
   landed in TASK-012 Slice C)
-- OBLIGATION_PLACEHOLDER awaiting future slices: 3  (full §11 #10,
-  #11, #12 — all awaiting TASK-012 Slice D)
+- ACTIVE_SLICE_D passing tests: 3  (#10, #11, #12 — landed in
+  TASK-012 Slice D)
+- OBLIGATION_PLACEHOLDER awaiting future slices: 0  (the §11
+  contract surface is complete; Slice E is API/CLI and lives outside
+  the §11 contract-test surface per §12 Slice E)
 - Meta-checks: 4  (test-count guard, no-implementation guard,
   active-vs-placeholder separation guard, obligation-references guard).
 
@@ -118,6 +121,7 @@ class SliceClassification(str, Enum):  # noqa: UP042 — string-valued enum pref
     ACTIVE_SLICE_A = "active_slice_a"
     ACTIVE_SLICE_B = "active_slice_b"
     ACTIVE_SLICE_C = "active_slice_c"
+    ACTIVE_SLICE_D = "active_slice_d"
     OBLIGATION_PLACEHOLDER = "obligation_placeholder"
 
 
@@ -126,6 +130,14 @@ class SliceClassification(str, Enum):  # noqa: UP042 — string-valued enum pref
 # "awaits future" language that fails to name a specific §12 slice.
 # (Slice B is no longer a future-slice — it has landed — so
 # OBLIGATION_FUTURE_SLICE_B was removed in the Slice B reclassification.)
+# (Slice C is no longer a future-slice — it has landed — so the
+# OBLIGATION_FUTURE_SLICE_C label is retained only for backward
+# compatibility of the OBLIGATION_PLACEHOLDER future_slice assertion
+# tuple, but no entry currently references it.)
+# (Slice D is no longer a future-slice — it has landed in TASK-012
+# Slice D — so the OBLIGATION_FUTURE_SLICE_D label is retained only
+# for backward compatibility of the OBLIGATION_PLACEHOLDER future_slice
+# assertion tuple, but no entry currently references it.)
 OBLIGATION_FUTURE_SLICE_C: Final = "Slice C"
 OBLIGATION_FUTURE_SLICE_D: Final = "Slice D"
 
@@ -190,24 +202,23 @@ _SECTION_11_REGISTRY: Final[tuple[dict[str, str], ...]] = (
     {
         "name": "test_json_manifest_mismatch_for_replay_trained_identity_is_rejected",
         "section": "§11 #10",
-        "classification": SliceClassification.OBLIGATION_PLACEHOLDER.value,
-        "future_slice": OBLIGATION_FUTURE_SLICE_D,
+        # Reclassified to ACTIVE_SLICE_D once Slice D prediction binding
+        # + artifact identity verification landed.
+        "classification": SliceClassification.ACTIVE_SLICE_D.value,
     },
     {
         "name": "test_replay_trained_prediction_carries_model_policy_string",
         "section": "§11 #11",
-        # Enum-level pin is active (frozen string literal). Record-side
-        # emission awaits Slice D.
-        "classification": SliceClassification.OBLIGATION_PLACEHOLDER.value,
-        "future_slice": OBLIGATION_FUTURE_SLICE_D,
+        # Reclassified to ACTIVE_SLICE_D once Slice D prediction binding
+        # + result-record model_policy emission landed.
+        "classification": SliceClassification.ACTIVE_SLICE_D.value,
     },
     {
         "name": "test_historical_and_replay_trained_comparison_runs_produce_separate_identities",
         "section": "§11 #12",
-        # Schema-level discriminator mutual-exclusion is active. Per-run
-        # identity separation awaits Slice D.
-        "classification": SliceClassification.OBLIGATION_PLACEHOLDER.value,
-        "future_slice": OBLIGATION_FUTURE_SLICE_D,
+        # Reclassified to ACTIVE_SLICE_D once Slice D per-run identity
+        # separation landed.
+        "classification": SliceClassification.ACTIVE_SLICE_D.value,
     },
 )
 
@@ -847,69 +858,286 @@ def test_changing_model_config_changes_hashes() -> None:
 
 
 # ── §11 #10: JSON / manifest mismatch for replay-trained identity rejected ──
-# Classification: OBLIGATION_PLACEHOLDER (awaits Slice D)
+# Classification: ACTIVE_SLICE_D
 
 
 def test_json_manifest_mismatch_for_replay_trained_identity_is_rejected() -> None:
-    """§11 #10 — OBLIGATION_PLACEHOLDER (awaits Slice D).
+    """§11 #10 — ACTIVE_SLICE_D.
 
     A replay-trained artifact whose JSON-side identity fields disagree
-    with the manifest-side identity fields MUST be rejected.
+    with the manifest-side identity fields MUST be rejected with a
+    structured blocker (per §9 ``task12_manifest_mismatch`` /
+    ``task12_artifact_identity_mismatch`` taxonomy + §7 deterministic
+    payload contract).
 
-    Awaiting Slice D (prediction binding and artifact verification).
-    The schema-level ``training_manifest_semantic_hash`` field exists in
-    ``ReplayTrainedModelIdentity`` today.
+    The Slice D ``verify_replay_trained_artifact_identity`` helper
+    compares every canonical §6 identity field across the two sides
+    and rejects on any mismatch.
     """
+    from backend.app.rolling_backtest.replay_trained_identity import (
+        ModelConfigPayload,
+        TrainingManifestPayload,
+        project_replay_trained_identity,
+    )
+    from backend.app.rolling_backtest.replay_trained_prediction import (
+        ArtifactIdentityPair,
+        ReplayTrainedArtifactIdentityMismatchError,
+        verify_replay_trained_artifact_identity,
+    )
 
-    pytest.skip(
-        "JSON / manifest identity mismatch rejection awaits Slice D "
-        "implementation per TASK-012 design §5.4 upstream replay binding + "
-        "§11 #10 + §12."
+    # Build a canonical projection whose JSON-side and manifest-side
+    # agree.
+    manifest = TrainingManifestPayload(
+        replay_attempt_id="attempt-slice-d-1",
+        replay_node_id="node-slice-d-1",
+        scenario_id="scenario-slice-d-1",
+        forecast_cutoff_at=_utc(2026, 3, 15),
+        training_cutoff_at=_utc(2026, 3, 10),
+        allowed_training_season_ids=(2026,),
+        feature_visibility_policy_version="task11-feature-visibility-v1",
+        label_visibility_policy_version="task11-label-visibility-v1",
+        artifact_visibility_policy_version="task11-artifact-visibility-v1",
+        validation_policy_version="task11-validation-v1",
+        training_dataset_hash="a" * 64,
+        task8_curve_identity=None,
+        task9_replay_binding_identity=None,
+        row_count=100,
+        excluded_row_count=0,
+    )
+    config = ModelConfigPayload(
+        algorithm_family="slice_d_artifact_v1",
+        hyperparameters={"lr": "0.01"},
+        random_seed=42,
+        deterministic_serialization_version="slice-d-v1",
+    )
+    projection = project_replay_trained_identity(
+        manifest=manifest,
+        config=config,
+        model_code_version="slice-d-code-v1",
+        task12_policy_version="task-012-slice-d-v1",
+    )
+
+    # Construct a JSON-side payload that intentionally disagrees on
+    # ``model_artifact_hash`` (one of the canonical §6 hash fields).
+    json_side = {
+        "model_policy": "replay_trained_model",
+        "task12_policy_version": "task-012-slice-d-v1",
+        "replay_attempt_id": "attempt-slice-d-1",
+        "replay_node_id": "node-slice-d-1",
+        "forecast_cutoff_at": _utc(2026, 3, 15),
+        "training_cutoff_at": _utc(2026, 3, 10),
+        "training_manifest_hash": projection.training_manifest_hash,
+        "training_dataset_hash": "a" * 64,
+        "model_config_hash": projection.model_config_hash,
+        "model_artifact_hash": "f" * 64,  # mismatched!
+        "model_code_version": "slice-d-code-v1",
+    }
+    manifest_side = {
+        "model_policy": "replay_trained_model",
+        "task12_policy_version": "task-012-slice-d-v1",
+        "replay_attempt_id": "attempt-slice-d-1",
+        "replay_node_id": "node-slice-d-1",
+        "forecast_cutoff_at": _utc(2026, 3, 15),
+        "training_cutoff_at": _utc(2026, 3, 10),
+        "training_manifest_hash": projection.training_manifest_hash,
+        "training_dataset_hash": "a" * 64,
+        "model_config_hash": projection.model_config_hash,
+        "model_artifact_hash": projection.model_artifact_hash,
+        "model_code_version": "slice-d-code-v1",
+    }
+
+    # Mismatch MUST raise the structured error.
+    with pytest.raises(ReplayTrainedArtifactIdentityMismatchError) as exc_info:
+        verify_replay_trained_artifact_identity(
+            ArtifactIdentityPair(json_side=json_side, manifest_side=manifest_side),
+            projection=projection,
+        )
+    assert exc_info.value.mismatched_fields == ("model_artifact_hash",)
+    assert exc_info.value.blocker_code == "task12_artifact_identity_mismatch"
+    # §7: payload must be deterministic canonical-JSON.
+    assert '"blocker":"task12_artifact_identity_mismatch"' in exc_info.value.payload
+    assert '"projection_hash"' in exc_info.value.payload
+
+    # Sanity: when both sides agree, the helper returns an empty
+    # mismatched-fields tuple (no exception).
+    agree = dict(manifest_side)
+    assert (
+        verify_replay_trained_artifact_identity(
+            ArtifactIdentityPair(json_side=agree, manifest_side=manifest_side),
+            projection=projection,
+        )
+        == ()
     )
 
 
 # ── §11 #11: replay-trained prediction carries model_policy string ───────────
-# Classification: OBLIGATION_PLACEHOLDER (awaits Slice D; enum literal active)
+# Classification: ACTIVE_SLICE_D
+
+
+def _binding_payload_for(binding: object) -> dict[str, object]:
+    """Project the canonical binding payload used by the prediction hash.
+
+    Mirrors the field set assembled inside
+    ``bind_replay_trained_prediction`` so the contract test can
+    recompute the hash without coupling to the private helper.
+    Private (leading underscore) so Slice A's no-implementation
+    meta-check does not reject it as a top-level non-test definition.
+    """
+    from backend.app.rolling_backtest.replay_trained_prediction import (
+        ReplayTrainedPredictionBinding,
+    )
+
+    assert isinstance(binding, ReplayTrainedPredictionBinding)
+    return {
+        "model_policy": "replay_trained_model",
+        "task9_run_id": binding.task9_run_id,
+        "task9_result_hash": binding.task9_result_hash,
+        "is_replay": binding.is_replay,
+        "replay_attempt_id": binding.replay_attempt_id,
+        "replay_node_id": binding.replay_node_id,
+        "replay_code_version": binding.replay_code_version,
+        "forecast_cutoff_at": binding.forecast_cutoff_at,
+        "training_cutoff_at": binding.training_cutoff_at,
+        "training_manifest_hash": binding.training_manifest_hash,
+        "model_artifact_hash": binding.model_artifact_hash,
+        "task12_policy_version": "task-012-slice-d-v1",
+        "model_code_version": binding.replay_code_version,
+    }
 
 
 def test_replay_trained_prediction_carries_model_policy_string() -> None:
-    """§11 #11 — OBLIGATION_PLACEHOLDER (awaits Slice D).
+    """§11 #11 — ACTIVE_SLICE_D.
 
-    Every prediction emitted by a ``replay_trained_model`` path MUST carry
-    ``model_policy = "replay_trained_model"`` on the result record.
-
-    The Task10ModelPolicy enum value ``REPLAY_TRAINED_MODEL =
-    "replay_trained_model"`` is already frozen (active pin below).
-    Result-record emission awaits Slice D.
+    Every prediction emitted by a ``replay_trained_model`` path MUST
+    carry ``model_policy = "replay_trained_model"`` on the result
+    record. The ``model_policy`` field MUST be a first-class field on
+    the bound record (not just a request parameter or transient
+    in-memory flag).
     """
+    from backend.app.rolling_backtest.replay_trained_identity import (
+        ModelConfigPayload,
+        TrainingManifestPayload,
+        project_replay_trained_identity,
+    )
+    from backend.app.rolling_backtest.replay_trained_prediction import (
+        ReplayTrainedBindingInput,
+        ReplayTrainedPredictionBinding,
+        bind_replay_trained_prediction,
+    )
 
-    # Enum-level pin (active): what Slice B/C/D will write into the
-    # result record's model_policy field.
+    # Enum-level pin (active since Slice A).
     assert Task10ModelPolicy.REPLAY_TRAINED_MODEL.value == "replay_trained_model"
 
-    pytest.skip(
-        "Replay-trained prediction result carrying model_policy = "
-        "'replay_trained_model' awaits Slice D implementation per "
-        "TASK-012 design §6 identity model + §11 #11 + §12."
+    # Build a canonical projection to drive the binding.
+    manifest = TrainingManifestPayload(
+        replay_attempt_id="attempt-slice-d-2",
+        replay_node_id="node-slice-d-2",
+        scenario_id="scenario-slice-d-2",
+        forecast_cutoff_at=_utc(2026, 4, 20),
+        training_cutoff_at=_utc(2026, 4, 15),
+        allowed_training_season_ids=(2026,),
+        feature_visibility_policy_version="task11-feature-visibility-v1",
+        label_visibility_policy_version="task11-label-visibility-v1",
+        artifact_visibility_policy_version="task11-artifact-visibility-v1",
+        validation_policy_version="task11-validation-v1",
+        training_dataset_hash="b" * 64,
+        task8_curve_identity=None,
+        task9_replay_binding_identity=None,
+        row_count=120,
+        excluded_row_count=0,
     )
+    config = ModelConfigPayload(
+        algorithm_family="slice_d_policy_v1",
+        hyperparameters={"lr": "0.02"},
+        random_seed=99,
+        deterministic_serialization_version="slice-d-v1",
+    )
+    projection = project_replay_trained_identity(
+        manifest=manifest,
+        config=config,
+        model_code_version="slice-d-code-v1",
+        task12_policy_version="task-012-slice-d-v1",
+    )
+
+    binding_input = ReplayTrainedBindingInput(
+        prediction_run_id=42,
+        projection=projection,
+        task9_run_id=7,
+        task9_result_hash="c" * 64,
+        replay_code_version="slice-d-code-v1",
+        is_replay=True,
+        replay_attempt_id="attempt-slice-d-2",
+        replay_node_id="node-slice-d-2",
+    )
+    binding = bind_replay_trained_prediction(binding_input)
+
+    # Type-level: the returned record is a ReplayTrainedPredictionBinding.
+    assert isinstance(binding, ReplayTrainedPredictionBinding)
+
+    # The model_policy field is locked to REPLAY_TRAINED_MODEL.
+    assert binding.model_policy is Task10ModelPolicy.REPLAY_TRAINED_MODEL
+    assert binding.model_policy.value == "replay_trained_model"
+
+    # The model_policy string participates in the prediction_hash
+    # identity (so swapping the policy would change the binding hash).
+    payload_with_replay = dict(_binding_payload_for(binding))
+    payload_with_historical = dict(_binding_payload_for(binding))
+    payload_with_historical["model_policy"] = "historically_available_model"
+    from backend.app.rolling_backtest.replay_trained_prediction import (
+        compute_prediction_hash,
+    )
+
+    assert compute_prediction_hash(payload_with_replay) == binding.prediction_hash
+    assert compute_prediction_hash(payload_with_replay) != compute_prediction_hash(
+        payload_with_historical
+    )
+
+    # Lock guard: construction with a different policy MUST raise.
+    with pytest.raises(ValueError, match="REPLAY_TRAINED_MODEL"):
+        ReplayTrainedPredictionBinding(
+            prediction_run_id=43,
+            model_policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
+            task9_run_id=7,
+            task9_result_hash="c" * 64,
+            is_replay=True,
+            replay_attempt_id="attempt-slice-d-2",
+            replay_node_id="node-slice-d-2",
+            replay_code_version="slice-d-code-v1",
+            forecast_cutoff_at=_utc(2026, 4, 20),
+            training_cutoff_at=_utc(2026, 4, 15),
+            training_manifest_hash=projection.training_manifest_hash,
+            model_artifact_hash=projection.model_artifact_hash,
+            task9_replay_binding_identity="d" * 64,
+            prediction_hash="e" * 64,
+        )
 
 
 # ── §11 #12: comparison runs produce separate prediction identities ─────────
-# Classification: OBLIGATION_PLACEHOLDER (awaits Slice D; discriminator active)
+# Classification: ACTIVE_SLICE_D
 
 
 def test_historical_and_replay_trained_comparison_runs_produce_separate_identities() -> None:
-    """§11 #12 — OBLIGATION_PLACEHOLDER (awaits Slice D).
+    """§11 #12 — ACTIVE_SLICE_D.
 
     When a comparison run evaluates both ``HISTORICALLY_AVAILABLE_MODEL``
-    and ``REPLAY_TRAINED_MODEL`` on the same scenario, the two prediction
-    runs MUST carry separate prediction identities (separate
-    ``prediction_run_id``, separate ``prediction_hash``, separate
-    ``model_policy``).
-
-    Schema-level mutual-exclusion (active below) is frozen in §8.4.
-    Per-run identity separation awaits Slice D.
+    and ``REPLAY_TRAINED_MODEL`` on the same scenario, the two
+    prediction runs MUST carry separate prediction identities
+    (separate ``prediction_run_id``, separate ``prediction_hash``,
+    separate ``model_policy``, separate artifact identity, separate
+    audit identity). Sharing a single prediction row across policies
+    is itself a cross-run substitution and is rejected.
     """
+    from pydantic import ValidationError
+
+    from backend.app.rolling_backtest.enums import Task10ModelPolicy
+    from backend.app.rolling_backtest.replay_trained_prediction import (
+        ComparisonRunIdentity,
+        verify_comparison_run_separation,
+    )
+    from backend.app.rolling_backtest.schemas import (
+        HistoricalAvailableModelIdentity,
+        ReplayTrainedModelIdentity,
+    )
 
     # §8.4 schema-level mutual-exclusion pin: a single RollingNodeDefinition
     # MUST NOT carry both policy types — they are different policy tags
@@ -917,15 +1145,6 @@ def test_historical_and_replay_trained_comparison_runs_produce_separate_identiti
     # branch uses HistoricalAvailableModelIdentity; the replay-trained
     # branch uses ReplayTrainedModelIdentity. Pydantic enforces the
     # discriminator at construction time.
-    from pydantic import ValidationError
-
-    from backend.app.rolling_backtest.schemas import (
-        HistoricalAvailableModelIdentity,
-        ReplayTrainedModelIdentity,
-    )
-
-    # HistoricalAvailableModelIdentity rejects the replay_trained_model
-    # discriminator literal.
     with pytest.raises(ValidationError):
         HistoricalAvailableModelIdentity(
             policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL,
@@ -933,8 +1152,6 @@ def test_historical_and_replay_trained_comparison_runs_produce_separate_identiti
             artifact_semantic_identities=("d" * 64,),
             authority_visibility_identity="e" * 64,
         )
-
-    # ReplayTrainedModelIdentity rejects the historical discriminator literal.
     with pytest.raises(ValidationError):
         ReplayTrainedModelIdentity(
             policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
@@ -947,11 +1164,59 @@ def test_historical_and_replay_trained_comparison_runs_produce_separate_identiti
             training_manifest_semantic_hash="f" * 64,
         )
 
-    # Per-run identity separation awaits Slice D.
-    pytest.skip(
-        "Per-comparison-run prediction identity separation awaits Slice D "
-        "implementation per TASK-012 design §8.4 mutual-exclusion + §11 #12 + §12."
+    # §11 #12 — per-comparison-run identity separation. The two
+    # prediction bindings MUST differ on every axis.
+    from backend.app.rolling_backtest.replay_trained_prediction import (
+        ReplayTrainedPredictionBindingMismatchError,
     )
+
+    identity = ComparisonRunIdentity(
+        historical_prediction_run_id=1,
+        historical_prediction_hash="h" * 64,
+        historical_model_policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
+        historical_artifact_identity="hist-artifact-identity-1",
+        replay_trained_prediction_run_id=2,
+        replay_trained_prediction_hash="r" * 64,
+        replay_trained_model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL,
+        replay_trained_artifact_identity="replay-artifact-identity-2",
+        audit_identity="audit-identity-1",
+    )
+    # Independent identities: no exception.
+    verify_comparison_run_separation(identity)
+
+    # Sharing the prediction_run_id MUST be rejected.
+    with pytest.raises(ReplayTrainedPredictionBindingMismatchError) as exc_info:
+        verify_comparison_run_separation(
+            ComparisonRunIdentity(
+                historical_prediction_run_id=1,
+                historical_prediction_hash="h" * 64,
+                historical_model_policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
+                historical_artifact_identity="hist-artifact-identity-1",
+                replay_trained_prediction_run_id=1,  # shared!
+                replay_trained_prediction_hash="r" * 64,
+                replay_trained_model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL,
+                replay_trained_artifact_identity="replay-artifact-identity-2",
+                audit_identity="audit-identity-1",
+            )
+        )
+    assert "prediction_run_id_must_be_distinct" in exc_info.value.mismatched_fields
+
+    # Sharing the prediction_hash MUST also be rejected.
+    with pytest.raises(ReplayTrainedPredictionBindingMismatchError) as exc_info:
+        verify_comparison_run_separation(
+            ComparisonRunIdentity(
+                historical_prediction_run_id=1,
+                historical_prediction_hash="shared" * 13,  # 64 hex chars
+                historical_model_policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
+                historical_artifact_identity="hist-artifact-identity-1",
+                replay_trained_prediction_run_id=2,
+                replay_trained_prediction_hash="shared" * 13,  # shared!
+                replay_trained_model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL,
+                replay_trained_artifact_identity="replay-artifact-identity-2",
+                audit_identity="audit-identity-1",
+            )
+        )
+    assert "prediction_hash_must_be_distinct" in exc_info.value.mismatched_fields
 
 
 # ── Slice A meta-checks ──────────────────────────────────────────────────────
@@ -1042,6 +1307,7 @@ def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
     active_a_count = 0
     active_b_count = 0
     active_c_count = 0
+    active_d_count = 0
     obligation_count = 0
     for entry in _SECTION_11_REGISTRY:
         classification = entry["classification"]
@@ -1049,6 +1315,7 @@ def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
             SliceClassification.ACTIVE_SLICE_A.value,
             SliceClassification.ACTIVE_SLICE_B.value,
             SliceClassification.ACTIVE_SLICE_C.value,
+            SliceClassification.ACTIVE_SLICE_D.value,
             SliceClassification.OBLIGATION_PLACEHOLDER.value,
         ), f"§11 registry entry {entry['name']!r} has invalid classification"
         if classification == SliceClassification.ACTIVE_SLICE_A.value:
@@ -1076,6 +1343,15 @@ def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
                 f"ACTIVE_SLICE_C entry {entry['name']!r} should not carry "
                 f"future_slice (Slice C has landed; the obligation is now active)"
             )
+        elif classification == SliceClassification.ACTIVE_SLICE_D.value:
+            active_d_count += 1
+            # ACTIVE_SLICE_D entries were originally OBLIGATION_PLACEHOLDER
+            # entries tagged with future_slice="Slice D". After Slice D
+            # lands, those entries should drop the future_slice label.
+            assert "future_slice" not in entry, (
+                f"ACTIVE_SLICE_D entry {entry['name']!r} should not carry "
+                f"future_slice (Slice D has landed; the obligation is now active)"
+            )
         else:
             obligation_count += 1
             assert "future_slice" in entry, (
@@ -1089,35 +1365,39 @@ def test_slice_a_active_vs_obligation_classification_is_complete() -> None:
                 f"OBLIGATION_PLACEHOLDER entry {entry['name']!r} has "
                 f"non-canonical future_slice label {entry['future_slice']!r}; "
                 f"future_slice='Slice B' is no longer valid (Slice B landed); "
-                f"future_slice='Slice C' is no longer valid (Slice C landed)"
+                f"future_slice='Slice C' is no longer valid (Slice C landed); "
+                f"future_slice='Slice D' is no longer valid (Slice D landed)"
             )
 
     # Slice A is contract-tests-only per §12; the count of
     # ACTIVE_SLICE_A + ACTIVE_SLICE_B + ACTIVE_SLICE_C +
-    # OBLIGATION_PLACEHOLDER must total exactly 12 (the §11 contract
-    # surface).
-    total = active_a_count + active_b_count + active_c_count + obligation_count
+    # ACTIVE_SLICE_D + OBLIGATION_PLACEHOLDER must total exactly 12
+    # (the §11 contract surface).
+    total = active_a_count + active_b_count + active_c_count + active_d_count + obligation_count
     assert total == 12, (
         f"§11 registry must total 12 tests (got {total}: "
         f"{active_a_count} ACTIVE_SLICE_A + {active_b_count} ACTIVE_SLICE_B "
-        f"+ {active_c_count} ACTIVE_SLICE_C + {obligation_count} "
-        f"OBLIGATION_PLACEHOLDER)"
+        f"+ {active_c_count} ACTIVE_SLICE_C + {active_d_count} ACTIVE_SLICE_D "
+        f"+ {obligation_count} OBLIGATION_PLACEHOLDER)"
     )
 
-    # Hardened visibility assertion: there MUST be at least 3 obligation
-    # placeholders so that the test runner output can NEVER be misread as
-    # "12/12 §11 contract tests passing today". Once Slice B landed,
-    # 2 placeholders (#8 + #9) were reclassified to ACTIVE_SLICE_B.
-    # Once Slice C landed, 3 more placeholders (#3 execution portion +
-    # #4 + #5) were reclassified to ACTIVE_SLICE_C, leaving 3 obligation
-    # placeholders awaiting Slice D (#10, #11, #12). The `>= 3` guard
-    # remains valid; it is the minimum lower bound that prevents
-    # "all silent" misreading.
-    assert obligation_count >= 3, (
-        f"Expected ≥3 obligation placeholders awaiting future slices "
-        f"(got {obligation_count}). Slice A is contract-tests-only per §12; "
-        f"if obligation_count has dropped below 3, an unauthorized "
-        f"reclassification has occurred."
+    # Hardened visibility assertion: the obligation_count lower bound
+    # tracks the count of remaining future slices that the §11 contract
+    # surface has not yet activated. Once Slice B landed, the bound
+    # moved from >= 6 to >= 3. Once Slice C landed, the bound stayed
+    # at >= 3 (the three Slice D placeholders remained). Once Slice D
+    # landed, the bound moved to >= 0 — the §11 contract surface is
+    # complete; Slice E is API/CLI exposure and lives outside the
+    # §11 test-contract surface (per §12 Slice E: "Allowed only
+    # after Slices A-D are green and a separate API / CLI amendment
+    # opens that surface"). The `>= 0` lower bound remains valid
+    # as a guard against negative-count miscount, and the
+    # `total == 12` guard above continues to enforce the §11
+    # contract surface size.
+    assert obligation_count >= 0, (
+        f"Expected ≥0 obligation placeholders awaiting future slices "
+        f"(got {obligation_count}). §11 contract surface is complete "
+        f"after TASK-012 Slices A-D landed; Slice E is out of §11 scope."
     )
 
 
