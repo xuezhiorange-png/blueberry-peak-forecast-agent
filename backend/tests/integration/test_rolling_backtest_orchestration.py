@@ -2880,3 +2880,16 @@ async def test_integrity_reload_failure_rolls_back_completed_execution() -> None
     assert completed_attempts == 0
     assert completed_snapshots == 0
     assert run_status != "forecast_completed"
+
+
+# CI's PostgreSQL domain shard uses an explicit file list. Re-export the
+# TASK-012 E2 evidence here so that shard executes the dedicated PG tests
+# without changing workflow ownership.
+from backend.tests.integration.test_task012_slice_e2_postgres import (  # noqa: E402, F401, I001
+    test_postgres_slice_e2_changed_dataset_blocks_before_training,
+    test_postgres_slice_e2_concurrent_exact_requests_share_persisted_result,
+    test_postgres_slice_e2_non_replay_task9_authority_blocks,
+    test_postgres_slice_e2_same_key_conflict_is_durable,
+    test_postgres_slice_e2_task9_hash_mismatch_blocks,
+    test_postgres_slice_e2_real_success_and_fresh_reload,
+)
