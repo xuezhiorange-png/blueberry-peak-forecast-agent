@@ -370,6 +370,74 @@ def _service_request(*, idempotency_key: str) -> ReplayTrainedExecutionRequest:
     )
 
 
+def _install_fake_task10_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
+    from backend.app.residual_model.config import load_residual_model_config
+    from backend.app.residual_model.schemas import ResidualTrainingExecutionResult
+    from backend.app.residual_model.service import structural_only_prediction
+    from backend.app.rolling_backtest import replay_trained_service
+
+    config = load_residual_model_config(Path("configs/residual_model.yaml"))
+
+    def train_delegate(**_: object) -> tuple[ResidualTrainingExecutionResult, list[object]]:
+        return (
+            ResidualTrainingExecutionResult(
+                execution_status="completed",
+                eligibility_status="eligible",
+                model_family=config.rules.model_family,
+                model_version=config.rules.model_version,
+                feature_schema_version=config.rules.feature_schema_version,
+                artifact_schema_version=config.rules.artifact_schema_version,
+                training_signature="a" * 64,
+                config_hash=config.config_hash,
+                manifest_hash="b" * 64,
+                sample_count=3,
+                distinct_season_count=3,
+                distinct_factory_count=1,
+                warnings=(),
+                blockers=(),
+                feature_audit_summary={},
+                metrics={},
+                eligibility_reasons=(),
+                input_snapshot={},
+                artifacts=(),
+            ),
+            [],
+        )
+
+    def predict_delegate(**kwargs: object):
+        return structural_only_prediction(
+            model_run_id=None,
+            task9_run_id=int(kwargs["task9_run_id"]),
+            task9_result_hash=str(kwargs["task9_result_hash"]),
+            config_hash=config.config_hash,
+            structural_rows=[],
+            fallback_reason="e2-contract-delegate",
+            input_snapshot={
+                "training_signature": str(kwargs["training_signature_override"]),
+                "feature_actual_snapshot": kwargs["feature_actual_snapshot"],
+                "feature_schema_version": config.rules.feature_schema_version,
+                "feature_schema_hash": "c" * 64,
+                "artifact_hashes": [],
+                "feature_rows": [],
+                "feature_audit_hashes": [],
+                "supplemental_feature_values": [],
+                "projection_version": config.rules.projection_version,
+                "fallback_policy": config.rules.categorical_unknown_policy,
+            },
+        )
+
+    monkeypatch.setattr(
+        replay_trained_service,
+        "train_residual_model_from_contract_payload",
+        train_delegate,
+    )
+    monkeypatch.setattr(
+        replay_trained_service,
+        "predict_residual_model_from_contract_payload",
+        predict_delegate,
+    )
+
+
 def _skip_obligation(*, section: str, future_slice: str, requirement: str) -> None:
     pytest.skip(
         f"{section} contract pin awaits separately authorized {future_slice}: "
@@ -386,9 +454,12 @@ def test_pre_slice_e_call_paths_still_reject_replay_trained_model() -> None:
         )
 
 
-async def test_explicit_slice_e_service_accepts_only_replay_trained_model() -> None:
+async def test_explicit_slice_e_service_accepts_only_replay_trained_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """§10 #2 — service policy acceptance is activated in Slice E2."""
 
+    _install_fake_task10_delegates(monkeypatch)
     result = await execute_replay_trained_prediction(
         session=None,
         request=_service_request(idempotency_key="e2-policy"),
@@ -542,18 +613,24 @@ def test_identical_requests_produce_same_canonical_identities() -> None:
     assert _artifact_identity_payload(first) == _artifact_identity_payload(second)
 
 
-async def test_idempotent_reexecution_returns_same_semantic_result() -> None:
+async def test_idempotent_reexecution_returns_same_semantic_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """§10 #10 — service idempotency activates in Slice E2."""
 
+    _install_fake_task10_delegates(monkeypatch)
     request = _service_request(idempotency_key="e2-idempotent")
     first = await execute_replay_trained_prediction(session=None, request=request)
     second = await execute_replay_trained_prediction(session=None, request=request)
     assert first.to_payload() == second.to_payload()
 
 
-async def test_same_idempotency_key_with_different_payload_conflicts() -> None:
+async def test_same_idempotency_key_with_different_payload_conflicts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """§10 #11 — service conflict semantics activate in Slice E2."""
 
+    _install_fake_task10_delegates(monkeypatch)
     request = _service_request(idempotency_key="e2-conflict")
     await execute_replay_trained_prediction(session=None, request=request)
     with pytest.raises(ReplayTrainedServiceConflictError) as exc_info:
@@ -638,11 +715,15 @@ def test_cli_rejects_relative_request_and_output_paths() -> None:
     )
 
 
-def test_cli_output_is_byte_identical_for_identical_requests(tmp_path: Path) -> None:
+def test_cli_output_is_byte_identical_for_identical_requests(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """§10 #15 — CLI deterministic serialization activates in Slice E2."""
 
     from backend.app.rolling_backtest.cli import EXIT_SUCCESS, main
 
+    _install_fake_task10_delegates(monkeypatch)
     request_path = tmp_path / "request.json"
     output_path = tmp_path / "output.json"
     request = _service_request(idempotency_key="e2-cli")
