@@ -2917,6 +2917,8 @@ from httpx import ASGITransport  # noqa: E402
 from backend.app.main import create_app  # noqa: E402
 from backend.app.rolling_backtest.replay_trained_service import (  # noqa: E402
     ReplayTrainedExecutionRequest,
+    ReplayTrainedPersistedIdentityIntegrityError,
+    load_replay_trained_prediction,
 )
 from backend.tests.integration._e3_fixtures import (  # noqa: E402
     make_replay_trained_request,
@@ -3090,7 +3092,7 @@ async def test_postgres_post_task9_authority_missing_returns_404(
     assert response.status_code == 404, response.text
     payload = response.json()
     assert payload["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
-    assert payload["error"]["details"]["task9_run_id"] == new_task9_run_id
+    assert payload["error"]["identity"]["task9_run_id"] == new_task9_run_id
 
 
 @pytest.mark.integration
@@ -3165,9 +3167,31 @@ async def test_postgres_post_task9_authority_hash_mismatch_returns_409_blocker(
 async def test_postgres_get_exact_prediction_returns_200_with_persisted_identity(
     e3_client: httpx.AsyncClient,
 ) -> None:
+    """Baseline evidence that a non-corrupted persisted row returns 200.
+
+    Per P0-#3 spec this test is the gate that all corruption tests
+    reference — it proves the loader's audit redetermination,
+    prediction hash reload, and strict-required checks are all
+    consistent with a non-corrupted row. If this test fails, the
+    corruption tests' 500 outcomes are NOT meaningful.
+
+    Verification surface (per P0-#3 spec):
+
+    * POST + service creates the prediction.
+    * GET on the exact ``prediction_run_id`` returns 200.
+    * ``prediction_run_id`` matches the POST outcome.
+    * ``prediction_hash`` matches the canonical persisted value.
+    * ``audit_identity`` matches the canonical persisted value.
+    * All required GET identity fields are non-null.
+    * GET does NOT re-execute: a second GET on the same id is a
+      no-op (returns 200 with the same payload).
+    * GET does NOT mutate the database (audit_identity, prediction
+      row, and child rows are unchanged after GET).
+    """
     request = await make_replay_trained_request(idempotency_key="task12-e3-get-200")
     prediction_run_id = await post_via_service(request)
 
+    # First GET — the baseline.
     response = await e3_client.get(
         f"/api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}"
     )
@@ -3177,6 +3201,57 @@ async def test_postgres_get_exact_prediction_returns_200_with_persisted_identity
     assert payload["model_policy"] == "replay_trained_model"
     assert payload["task9_run_id"] == request.task9_run_id
     assert payload["audit_identity"]
+    # All required GET identity fields MUST be non-null and type-correct
+    # (this is the explicit gate that proves the loader never returns
+    # None for a required field — see the strict-required checks).
+    for required_field in (
+        "prediction_run_id",
+        "prediction_hash",
+        "request_payload_hash",
+        "training_manifest_hash",
+        "model_config_hash",
+        "model_artifact_hash",
+        "task9_run_id",
+        "task9_result_hash",
+        "task10_training_run_id",
+        "task10_training_signature",
+        "task10_manifest_hash",
+        "task10_config_hash",
+        "task10_artifact_hashes",
+        "filtered_training_row_count",
+        "filtered_label_row_count",
+        "training_execution_status",
+        "training_eligibility_status",
+        "prediction_execution_status",
+        "prediction_mode",
+        "idempotency_key",
+        "caller_identity",
+        "audit_identity",
+    ):
+        assert payload[required_field] is not None, (required_field, payload)
+
+    # Snapshot the canonical persisted identity for the "GET does not
+    # mutate" guarantee.
+    async with AsyncSessionMaker() as session:
+        row_before = await session.get(ResidualModelPredictionRun, prediction_run_id)
+        assert row_before is not None
+        assert row_before.prediction_hash == payload["prediction_hash"]
+        snapshot_audit = str(row_before.typed_attempt["task12_replay"]["audit_identity"])
+        assert snapshot_audit == payload["audit_identity"]
+
+    # Second GET — must be a stable no-op.
+    response2 = await e3_client.get(
+        f"/api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}"
+    )
+    assert response2.status_code == 200, response2.text
+    assert response2.json() == payload
+
+    # Database state is unchanged after GET.
+    async with AsyncSessionMaker() as session:
+        row_after = await session.get(ResidualModelPredictionRun, prediction_run_id)
+        assert row_after is not None
+        assert row_after.prediction_hash == row_before.prediction_hash
+        assert row_after.typed_attempt["task12_replay"]["audit_identity"] == snapshot_audit
 
 
 @pytest.mark.integration
@@ -3188,9 +3263,10 @@ async def test_postgres_get_missing_prediction_returns_404(
     body = response.json()
     assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
     # The error envelope from ReplayTrainedServiceNotFoundError wraps the
-    # identity dict in ``error.details.prediction_run_id`` (not
-    # ``error.identity.prediction_run_id``).
-    assert body["error"]["details"]["prediction_run_id"] == 999999
+    # identity dict in ``error.identity.prediction_run_id`` (the
+    # frozen four-key envelope ``{code, message, blocker, identity}``
+    # has NO ``details`` key at the top level).
+    assert body["error"]["identity"]["prediction_run_id"] == 999999
 
 
 @pytest.mark.integration
@@ -3350,12 +3426,28 @@ async def _corrupt_typed_attempt(
 
 
 async def _expect_500(e3_client: httpx.AsyncClient, prediction_run_id: int) -> None:
+    """Assert that GET yields a stable 500 envelope.
+
+    The public envelope is the EXACT four-key set
+    ``{code, message, blocker, identity}`` with no ``details`` /
+    ``mismatched_fields`` keys at the top level; the public code
+    for integrity failures is the full frozen string
+    ``TASK012_REPLAY_TRAINED_INTEGRITY_ERROR`` (with the ``_ERROR``
+    suffix). Prior rounds asserted the legacy
+    ``TASK012_REPLAY_TRAINED_INTEGRITY`` code; the new envelope
+    contract is locked to the full string and the four-key shape.
+    """
     response = await e3_client.get(
         f"/api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}"
     )
     assert response.status_code == 500, response.text
     body = response.json()
-    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY"
+    assert set(body) == {"error"}, body
+    error = body["error"]
+    assert set(error) == {"code", "message", "blocker", "identity"}, error
+    assert error["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR", error["code"]
+    assert error["blocker"] is None
+    assert isinstance(error["identity"], dict)
 
 
 @pytest.mark.integration
@@ -3363,7 +3455,7 @@ async def test_postgres_get_corruption_missing_request_payload_hash(
     e3_client: httpx.AsyncClient,
 ) -> None:
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-rph")
-    await _corrupt_input_snapshot(pid, drop="request_payload_hash")
+    await _corrupt_typed_attempt(pid, drop="request_payload_hash")
     await _expect_500(e3_client, pid)
 
 
@@ -3372,7 +3464,7 @@ async def test_postgres_get_corruption_missing_model_policy(
     e3_client: httpx.AsyncClient,
 ) -> None:
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-mp")
-    await _corrupt_input_snapshot(pid, drop="model_policy")
+    await _corrupt_typed_attempt(pid, drop="model_policy")
     await _expect_500(e3_client, pid)
 
 
@@ -3381,7 +3473,7 @@ async def test_postgres_get_corruption_missing_task9_run_id(
     e3_client: httpx.AsyncClient,
 ) -> None:
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-t9id")
-    await _corrupt_input_snapshot(pid, drop="task9_run_id")
+    await _corrupt_typed_attempt(pid, drop="task9_run_id")
     await _expect_500(e3_client, pid)
 
 
@@ -3390,7 +3482,7 @@ async def test_postgres_get_corruption_missing_training_manifest_hash(
     e3_client: httpx.AsyncClient,
 ) -> None:
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-tmh")
-    await _corrupt_input_snapshot(pid, drop="training_manifest_hash")
+    await _corrupt_typed_attempt(pid, drop="training_manifest_hash")
     await _expect_500(e3_client, pid)
 
 
@@ -3399,7 +3491,7 @@ async def test_postgres_get_corruption_malformed_model_artifact_hash(
     e3_client: httpx.AsyncClient,
 ) -> None:
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-mah")
-    await _corrupt_input_snapshot(pid, replace={"model_artifact_hash": "not-a-hash"})
+    await _corrupt_typed_attempt(pid, replace={"model_artifact_hash": "not-a-hash"})
     await _expect_500(e3_client, pid)
 
 
@@ -3408,7 +3500,7 @@ async def test_postgres_get_corruption_wrong_model_policy(
     e3_client: httpx.AsyncClient,
 ) -> None:
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-wmp")
-    await _corrupt_input_snapshot(pid, replace={"model_policy": "historically_available_model"})
+    await _corrupt_typed_attempt(pid, replace={"model_policy": "historically_available_model"})
     await _expect_500(e3_client, pid)
 
 
@@ -3444,7 +3536,7 @@ async def test_postgres_get_corruption_missing_audit_identity(
 
 
 @pytest.mark.integration
-async def test_postgres_get_corruption_audit_identity_mismatch(
+async def test_postgres_get_corruption_audit_identity_malformed(
     e3_client: httpx.AsyncClient,
 ) -> None:
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-aim")
@@ -3485,6 +3577,7 @@ async def test_postgres_get_corruption_audit_identity_mismatch(
 # ``full-suite-canary`` shard each execute every E3 node exactly once.
 
 
+@pytest.mark.integration
 async def test_postgres_get_corruption_valid_but_wrong_audit_identity(
     e3_client: httpx.AsyncClient,
 ) -> None:
@@ -3492,12 +3585,14 @@ async def test_postgres_get_corruption_valid_but_wrong_audit_identity(
     # Replace the persisted audit_identity with a DIFFERENT valid
     # 64-character lowercase-hex string. The format check passes,
     # but the semantic recompute (audit_identity = sha256 over the
-    # persisted typed_attempt.task12_replay payload with
-    # audit_identity + prediction_run_id excluded) MUST fail.
+    # 31-key audit payload produced by ``_task12_audit_payload``
+    # with ``audit_identity`` + ``prediction_run_id`` excluded)
+    # MUST fail.
     await _corrupt_typed_attempt(pid, replace={"audit_identity": "f" * 64})
     await _expect_500(e3_client, pid)
 
 
+@pytest.mark.integration
 async def test_postgres_get_corruption_valid_but_wrong_prediction_hash(
     e3_client: httpx.AsyncClient,
 ) -> None:
@@ -3508,7 +3603,9 @@ async def test_postgres_get_corruption_valid_but_wrong_prediction_hash(
     rows + ``canonical_output``, recomputes the canonical prediction
     hash, and compares it byte-for-byte with the persisted
     ``row.prediction_hash``. Replacing ``canonical_payload_hash``
-    with another valid 64-hex value produces a semantic mismatch.
+    with another valid 64-hex value produces a semantic mismatch
+    in the residual-model persistence layer, which the loader
+    normalizes to ``prediction_hash_mismatch``.
     """
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-prediction-hash")
     async with AsyncSessionMaker() as session:
@@ -3538,7 +3635,7 @@ async def test_postgres_get_required_field_missing_returns_500(
 ) -> None:
     """Each required GET identity field MUST be present; absence → 500."""
     pid, _ = await _seed_known_prediction(idempotency_key=f"task12-e3-corrupt-missing-{drop_key}")
-    await _corrupt_input_snapshot(pid, drop=drop_key)
+    await _corrupt_typed_attempt(pid, drop=drop_key)
     await _expect_500(e3_client, pid)
 
 
@@ -3550,5 +3647,211 @@ async def test_postgres_get_corruption_task9_run_id_numeric_string(
     is integrity failure — only a native integer is accepted.
     """
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-task9-str")
-    await _corrupt_input_snapshot(pid, replace={"task9_run_id": "91"})
+    await _corrupt_typed_attempt(pid, replace={"task9_run_id": "91"})
     await _expect_500(e3_client, pid)
+
+
+# ---------------------------------------------------------------------------
+# TASK-012 Slice E3 final contract — LOADER-LEVEL direct-call tests
+# ---------------------------------------------------------------------------
+#
+# These tests bypass the HTTP layer and call ``load_replay_trained_prediction``
+# directly. Their purpose is to prove that each corruption hits the
+# SPECIFIC integrity branch the loader implements — not just "some 500".
+# Each test proves (in order):
+#
+#   1. The same un-corrupted row loads successfully (loader is wired
+#      up correctly).
+#   2. A targeted single-field corruption surfaces a
+#      ``ReplayTrainedPersistedIdentityIntegrityError`` with an
+#      EXACT ``mismatched_fields`` entry that identifies the branch.
+#   3. An HTTP 500 envelope contract assertion (the public envelope
+#      is still the four-key frozen shape with the full
+#      ``TASK012_REPLAY_TRAINED_INTEGRITY_ERROR`` code).
+#
+# This pattern is the loader-level equivalent of the existing
+# HTTP-only corruption tests above. The loader-level tests are
+# load-bearing for the final-round review; without them a passing
+# HTTP 500 only proves "the loader raised SOME exception" rather
+# than "the loader raised the EXPECTED exception".
+
+
+@pytest.mark.integration
+async def test_postgres_loader_corruption_valid_but_wrong_audit_identity(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """Targeted audit-identity mismatch reason."""
+
+    pid, request = await _seed_known_prediction(idempotency_key="task12-e3-loader-aim")
+
+    # Step 1: prove the un-corrupted row loads successfully.
+    async with AsyncSessionMaker() as session:
+        baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert baseline.audit_identity
+
+    # Step 2: targeted single-field corruption → exact reason.
+    await _corrupt_typed_attempt(pid, replace={"audit_identity": "f" * 64})
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
+            await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert exc_info.value.mismatched_fields == ("audit_identity_mismatch",), (
+        exc_info.value.mismatched_fields
+    )
+
+    # Step 3: HTTP 500 envelope is still the frozen four-key shape.
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_loader_corruption_valid_but_wrong_prediction_hash(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """Targeted prediction-hash mismatch reason.
+
+    The loader calls ``load_residual_prediction_run_by_id`` to rebuild
+    the ``ResidualPredictionExecutionResult`` from child rows +
+    ``canonical_output``. Replacing ``canonical_payload_hash`` with
+    a different valid 64-hex value is detected at the
+    residual-model persistence layer; the loader normalizes the
+    error to ``prediction_hash_mismatch`` (NOT ``audit_identity_mismatch``).
+    """
+
+    pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-loader-prediction-hash")
+
+    async with AsyncSessionMaker() as session:
+        baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert baseline.prediction_hash
+
+    async with AsyncSessionMaker() as session:
+        row = await session.get(ResidualModelPredictionRun, pid)
+        assert row is not None
+        row.canonical_payload_hash = "f" * 64
+        await session.commit()
+
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
+            await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert exc_info.value.mismatched_fields == ("prediction_hash_mismatch",), (
+        exc_info.value.mismatched_fields
+    )
+
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_loader_corruption_task9_run_id_numeric_string(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """Persisted ``task9_run_id`` numeric string is rejected by the strict loader."""
+
+    pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-loader-task9-str")
+
+    async with AsyncSessionMaker() as session:
+        baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert isinstance(baseline.task9_run_id, int)
+
+    await _corrupt_typed_attempt(pid, replace={"task9_run_id": "91"})
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
+            await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert exc_info.value.mismatched_fields == ("task9_run_id_type",), (
+        exc_info.value.mismatched_fields
+    )
+
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_loader_corruption_missing_task10_training_run_id(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """Missing required ``task10_training_run_id`` is rejected."""
+
+    pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-loader-task10-runid")
+
+    async with AsyncSessionMaker() as session:
+        baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert baseline.task10_training_run_id is not None
+
+    await _corrupt_typed_attempt(pid, drop="task10_training_run_id")
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
+            await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert exc_info.value.mismatched_fields == ("task10_training_run_id_missing",), (
+        exc_info.value.mismatched_fields
+    )
+
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_loader_corruption_missing_idempotency_key(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """Missing required ``idempotency_key`` is rejected."""
+
+    pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-loader-idem")
+
+    async with AsyncSessionMaker() as session:
+        baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert baseline.idempotency_key
+
+    await _corrupt_typed_attempt(pid, drop="idempotency_key")
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
+            await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert exc_info.value.mismatched_fields == ("idempotency_key_missing",), (
+        exc_info.value.mismatched_fields
+    )
+
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_loader_corruption_unmodified_row_loads_clean(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """The unmodified baseline MUST pass all strict-required checks.
+
+    This is the integrity gate for the loader-level tests above:
+    if the unmodified row fails to load, the targeted corruption
+    tests' PASSING 500 outcomes are not meaningful. This test
+    asserts the un-corrupted baseline returns a fully-populated
+    ``ReplayTrainedPersistedIdentity`` with audit_identity +
+    prediction_hash that match the canonical write-time values.
+    """
+
+    pid, request = await _seed_known_prediction(idempotency_key="task12-e3-loader-baseline")
+
+    async with AsyncSessionMaker() as session:
+        baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
+
+    assert baseline.prediction_run_id == pid
+    assert baseline.task9_run_id == request.task9_run_id
+    assert baseline.audit_identity
+    assert baseline.prediction_hash
+    # All required fields MUST be populated (no None).
+    for field_name in (
+        "prediction_hash",
+        "request_payload_hash",
+        "training_manifest_hash",
+        "model_config_hash",
+        "model_artifact_hash",
+        "task9_result_hash",
+        "task10_training_run_id",
+        "task10_training_signature",
+        "task10_manifest_hash",
+        "task10_config_hash",
+        "task10_artifact_hashes",
+        "filtered_training_row_count",
+        "filtered_label_row_count",
+        "training_execution_status",
+        "training_eligibility_status",
+        "prediction_execution_status",
+        "prediction_mode",
+        "idempotency_key",
+        "caller_identity",
+        "audit_identity",
+    ):
+        value = getattr(baseline, field_name)
+        assert value is not None, (field_name, value)
