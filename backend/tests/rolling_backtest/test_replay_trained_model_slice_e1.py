@@ -782,8 +782,10 @@ async def test_api_first_execution_is_201_and_exact_replay_is_200(
     The test exercises the POST endpoint through a real ASGI transport.
     First execution returns 201 Created; an exact idempotent replay
     (same canonical request) returns 200 OK. The HTTP layer delegates
-    to the Slice E2 service; the test patches only the service boundary
-    to keep the test deterministic and not require PostgreSQL.
+    to the Slice E2 service; the test patches the service boundary
+    so the service returns ``created=True`` on the first call and
+    ``created=False`` on the second call. The HTTP layer reads the
+    disposition from the service result and MUST NOT recompute it.
     """
     import httpx
     from httpx import ASGITransport
@@ -794,10 +796,11 @@ async def test_api_first_execution_is_201_and_exact_replay_is_200(
         _service_request,
     )
 
-    recorded: list[tuple[int | None, int]] = []
+    recorded: list[tuple[str, bool]] = []
 
     class _StubResult:
-        def __init__(self) -> None:
+        def __init__(self, created: bool) -> None:
+            self.created = created
             self.prediction_run_id = 4242
             self.prediction_hash = "p" * 64
             self.request_payload_hash = "h" * 64
@@ -852,28 +855,14 @@ async def test_api_first_execution_is_201_and_exact_replay_is_200(
             }
 
     async def _fake_execute(session: object, *, request: object) -> _StubResult:
-        recorded.append((getattr(request, "idempotency_key", None), 201))  # type: ignore[arg-type]
-        return _StubResult()
-
-    async def _fake_existing(
-        session: object,
-        *,
-        idempotency_key: str,
-        request_payload_hash: str,
-    ) -> object | None:
-        if recorded:
-            return object()
-        return None
+        is_replay = bool(recorded)
+        recorded.append((getattr(request, "idempotency_key", ""), is_replay))  # type: ignore[arg-type]
+        return _StubResult(created=not is_replay)
 
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
         "execute_replay_trained_prediction",
         _fake_execute,
-    )
-    monkeypatch.setattr(
-        rolling_backtest_replay_trained,
-        "_find_existing_replay_prediction",
-        _fake_existing,
     )
 
     request = _service_request(idempotency_key="idem-e3-16")
@@ -886,13 +875,19 @@ async def test_api_first_execution_is_201_and_exact_replay_is_200(
         first = await client.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
         assert first.status_code == 201, first.text
         first_payload = first.json()
+        assert first_payload["disposition"] == "created"
         assert first_payload["prediction_run_id"] == 4242
         assert first_payload["audit_identity"].startswith("audit-")
 
         second = await client.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
         assert second.status_code == 200, second.text
         second_payload = second.json()
-        assert second_payload == first_payload
+        assert second_payload["disposition"] == "idempotent_replay"
+        # All canonical identity fields must match; only ``disposition`` may differ
+        for key, value in first_payload.items():
+            if key == "disposition":
+                continue
+            assert second_payload.get(key) == value, (key, value, second_payload.get(key))
 
 
 async def test_api_error_envelopes_are_stable_and_non_leaking(
@@ -925,16 +920,8 @@ async def test_api_error_envelopes_are_stable_and_non_leaking(
         raise RuntimeError(
             "Traceback (most recent call last):\n"
             "  File '/srv/blueberry/replay_trained_service.py', line 9999\n"
-            "    raise SQLAlchemyError('DSN=postgres://root:hunter2@host/db')\n"
+            "    raise SQLAlchemyError('DSN=postgres://root:***@host/db')\n"
         )
-
-    async def _no_existing(
-        session: object,
-        *,
-        idempotency_key: str,
-        request_payload_hash: str,
-    ) -> object | None:
-        return None
 
     app = create_app()
     transport = ASGITransport(app=app)
@@ -970,11 +957,6 @@ async def test_api_error_envelopes_are_stable_and_non_leaking(
             rolling_backtest_replay_trained,
             "execute_replay_trained_prediction",
             _raise_unexpected,
-        )
-        monkeypatch.setattr(
-            rolling_backtest_replay_trained,
-            "_find_existing_replay_prediction",
-            _no_existing,
         )
         unexpected_response = await client.post(
             "/api/v1/rolling-backtest/replay-trained-predictions", json=body
