@@ -13,6 +13,9 @@ from backend.app.api.maturity import router as maturity_router
 from backend.app.api.planning import router as planning_router
 from backend.app.api.production_plans import router as production_plan_router
 from backend.app.api.residual_model import router as residual_model_router
+from backend.app.api.rolling_backtest_replay_trained import (
+    router as rolling_backtest_replay_trained_router,
+)
 from backend.app.api.weather import router as weather_router
 from backend.app.core.config import AppSettings, get_settings
 from backend.app.core.version import APP_VERSION
@@ -30,6 +33,12 @@ def _is_harvest_state_path(path: str) -> bool:
     return path == "/api/v1/harvest-state" or path.startswith("/api/v1/harvest-state/")
 
 
+def _is_replay_trained_path(path: str) -> bool:
+    return path == "/api/v1/rolling-backtest/replay-trained-predictions" or path.startswith(
+        "/api/v1/rolling-backtest/replay-trained-predictions/"
+    )
+
+
 def create_app(settings: AppSettings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(title=app_settings.app_name, version=APP_VERSION, lifespan=lifespan)
@@ -40,6 +49,18 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         request: Request,
         exc: RequestValidationError,
     ) -> JSONResponse:
+        if _is_replay_trained_path(request.url.path):
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": {
+                        "code": "TASK012_REPLAY_TRAINED_INPUT_INVALID",
+                        "message": "Replay-trained request is invalid.",
+                        "blocker": None,
+                        "identity": {},
+                    }
+                },
+            )
         if not _is_harvest_state_path(request.url.path):
             return await request_validation_exception_handler(request, exc)
         return JSONResponse(
@@ -66,6 +87,11 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         residual_model_router,
         prefix="/api/v1/residual-model",
         tags=["residual-model"],
+    )
+    app.include_router(
+        rolling_backtest_replay_trained_router,
+        prefix="/api/v1/rolling-backtest",
+        tags=["rolling-backtest", "task-012"],
     )
     return app
 

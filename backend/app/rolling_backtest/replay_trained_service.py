@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, replace
@@ -35,7 +36,11 @@ from backend.app.residual_model.application import (
     execute_residual_prediction,
     execute_residual_training,
 )
-from backend.app.residual_model.canonical import canonical_json_dumps, canonical_payload_hash
+from backend.app.residual_model.canonical import (
+    canonical_json_dumps,
+    canonical_json_value,
+    canonical_payload_hash,
+)
 from backend.app.residual_model.config import load_residual_model_config_from_snapshot
 from backend.app.residual_model.manifest import manifest_hash, manifest_row_payload
 from backend.app.residual_model.persistence import (
@@ -86,7 +91,17 @@ _TASK12_PERSISTENCE_INTEGRITY: Final[str] = "task12_persistence_integrity_failur
 
 
 class ReplayTrainedServiceError(ValueError):
-    """Base error with stable machine-readable service metadata."""
+    """Base error with stable machine-readable service metadata.
+
+    The frozen public envelope is ``{code, message, blocker, identity}``
+    (amendment §7.3 + §7.4). The HTTP layer builds this envelope
+    explicitly from the public attributes of the exception class; the
+    internal ``to_payload`` helper is a JSON-canonical snapshot for
+    service-level logging / audit and is NOT forwarded verbatim to the
+    HTTP client. The internal payload preserves ``mismatched_fields``
+    and ``details`` for log forensics but those fields MUST NOT leak
+    into the public envelope.
+    """
 
     def __init__(
         self,
@@ -96,19 +111,31 @@ class ReplayTrainedServiceError(ValueError):
         blocker_code: str | None = None,
         mismatched_fields: tuple[str, ...] = (),
         details: Mapping[str, object] | None = None,
+        identity: Mapping[str, object] | None = None,
     ) -> None:
         super().__init__(message)
-        self.code = code
-        self.blocker_code = blocker_code
-        self.mismatched_fields = mismatched_fields
-        payload: dict[str, object] = {
+        # Public attributes (HTTP transport reads these).
+        self.message: str = message
+        self.code: str = code
+        self.blocker_code: str | None = blocker_code
+        self.identity: dict[str, object] = dict(identity) if identity else {}
+        # Internal-only attributes (service-layer logging / audit).
+        self.mismatched_fields: tuple[str, ...] = mismatched_fields
+        self._internal_details: dict[str, object] = dict(details) if details else {}
+        # Canonical-JSON payload is a service-internal snapshot of the
+        # full exception metadata (including internal mismatched-fields
+        # and details); it is NEVER forwarded verbatim to the wire.
+        internal_payload: dict[str, object] = {
             "code": code,
+            "message": message,
             "blocker": blocker_code,
             "mismatched_fields": list(mismatched_fields),
         }
-        if details:
-            payload["details"] = dict(details)
-        self.payload = canonical_json_dumps(payload)
+        if self._internal_details:
+            internal_payload["details"] = dict(self._internal_details)
+        if self.identity:
+            internal_payload["identity"] = dict(self.identity)
+        self.payload = canonical_json_dumps(internal_payload)
 
     def to_payload(self) -> dict[str, object]:
         return cast(dict[str, object], json.loads(self.payload))
@@ -154,6 +181,707 @@ class ReplayTrainedServiceConflictError(ReplayTrainedServiceError):
             code="TASK012_REPLAY_TRAINED_CONFLICT",
             mismatched_fields=mismatched_fields,
         )
+
+
+class ReplayTrainedServiceNotFoundError(ReplayTrainedServiceError):
+    """The referenced Task 9 / Task 8 / training / artifact authority does not exist.
+
+    This is distinct from ``ReplayTrainedServiceBlockerError`` (409): the
+    authority is missing entirely. The HTTP layer maps this to a 404
+    response with a stable ``TASK012_REPLAY_TRAINED_NOT_FOUND`` envelope.
+    The constructor takes a public ``identity`` mapping that the HTTP
+    transport layer surfaces under ``error.identity`` (frozen envelope
+    key set).
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        identity: Mapping[str, object] | None = None,
+    ) -> None:
+        super().__init__(
+            message,
+            code="TASK012_REPLAY_TRAINED_NOT_FOUND",
+            identity=identity,
+        )
+
+
+class ReplayTrainedPersistedIdentityIntegrityError(ReplayTrainedServiceError):
+    """Strict persisted identity loader detected a missing or malformed field.
+
+    The HTTP layer maps this to a 500 response with the stable
+    ``TASK012_REPLAY_TRAINED_INTEGRITY_ERROR`` envelope (amendment §7.4
+    — the canonical public code includes the ``_ERROR`` suffix; the
+    no-suffix form is forbidden by the §7 contract tests). The loader
+    is fail-closed: it NEVER returns ``None`` for a required identity
+    field and NEVER substitutes a default value.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        mismatched_fields: tuple[str, ...] = (),
+    ) -> None:
+        super().__init__(
+            message,
+            code="TASK012_REPLAY_TRAINED_INTEGRITY_ERROR",
+            mismatched_fields=mismatched_fields,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ReplayTrainedPersistedIdentity:
+    """Strict typed envelope built by the application-level loader.
+
+    ALL fields are non-None required identity fields read from the
+    persisted ORM row (P0-#5 spec). The HTTP GET endpoint MUST return
+    this object as a 200 response without any dict reconstruction,
+    default values, or fallback identities. The loader raises
+    :class:`ReplayTrainedPersistedIdentityIntegrityError` if any
+    required field is missing, malformed, or fails
+    deterministic-redeterminism verification.
+
+    The fields are exhaustive with respect to amendment §7: every
+    required GET identity is declared here (no nullable identity
+    field). The previously-permissive ``Optional[...]`` shape is
+    deleted; the loader is fail-closed on any missing required field.
+    """
+
+    prediction_run_id: int
+    prediction_hash: str
+    request_payload_hash: str
+    model_policy: str
+    task12_policy_version: str
+    replay_attempt_id: str
+    replay_node_id: str
+    scenario_id: str
+    training_manifest_hash: str
+    training_dataset_hash: str
+    model_config_hash: str
+    model_artifact_hash: str
+    model_code_version: str
+    forecast_cutoff_at: str
+    training_cutoff_at: str
+    task9_run_id: int
+    task9_result_hash: str
+    task10_training_run_id: int
+    task10_training_signature: str
+    task10_manifest_hash: str
+    task10_config_hash: str
+    task10_artifact_hashes: tuple[str, ...]
+    filtered_training_row_count: int
+    filtered_label_row_count: int
+    training_execution_status: str
+    training_eligibility_status: str
+    prediction_execution_status: str
+    prediction_mode: str
+    idempotency_key: str
+    caller_identity: str
+    audit_identity: str
+
+    def to_response_payload(self) -> dict[str, object]:
+        """Return the wire envelope.
+
+        The HTTP layer MUST NOT add, remove, default, or rename
+        fields. The loader is the single source of truth for the
+        response shape.
+        """
+        return {
+            "prediction_run_id": self.prediction_run_id,
+            "prediction_hash": self.prediction_hash,
+            "request_payload_hash": self.request_payload_hash,
+            "model_policy": self.model_policy,
+            "task12_policy_version": self.task12_policy_version,
+            "replay_attempt_id": self.replay_attempt_id,
+            "replay_node_id": self.replay_node_id,
+            "scenario_id": self.scenario_id,
+            "training_manifest_hash": self.training_manifest_hash,
+            "training_dataset_hash": self.training_dataset_hash,
+            "model_config_hash": self.model_config_hash,
+            "model_artifact_hash": self.model_artifact_hash,
+            "model_code_version": self.model_code_version,
+            "forecast_cutoff_at": self.forecast_cutoff_at,
+            "training_cutoff_at": self.training_cutoff_at,
+            "task9_run_id": self.task9_run_id,
+            "task9_result_hash": self.task9_result_hash,
+            "task10_training_run_id": self.task10_training_run_id,
+            "task10_training_signature": self.task10_training_signature,
+            "task10_manifest_hash": self.task10_manifest_hash,
+            "task10_config_hash": self.task10_config_hash,
+            "task10_artifact_hashes": list(self.task10_artifact_hashes),
+            "filtered_training_row_count": self.filtered_training_row_count,
+            "filtered_label_row_count": self.filtered_label_row_count,
+            "training_execution_status": self.training_execution_status,
+            "training_eligibility_status": self.training_eligibility_status,
+            "prediction_execution_status": self.prediction_execution_status,
+            "prediction_mode": self.prediction_mode,
+            "idempotency_key": self.idempotency_key,
+            "caller_identity": self.caller_identity,
+            "audit_identity": self.audit_identity,
+        }
+
+
+# Lowercase 64-character hex hash. Used for ALL frozen TASK-012 identity
+# hash fields. The strict loader uses this regex to fail-closed if a
+# persisted hash is malformed.
+_LOWERCASE_64_HEX: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _strict_required_str(
+    context: Mapping[str, object],
+    key: str,
+) -> str:
+    """Read a required string field; raise integrity error if missing/malformed.
+
+    The P0-#5 spec requires the loader to fail-closed on EVERY
+    required identity field: missing → 500, type mismatch → 500,
+    empty string → 500. NEVER a fallback default value.
+    """
+    if key not in context:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity is missing required field {key!r}",
+            mismatched_fields=(f"{key}_missing",),
+        )
+    value = context[key]
+    if not isinstance(value, str) or not value:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be a non-empty string",
+            mismatched_fields=(f"{key}_type",),
+        )
+    return value
+
+
+def _strict_required_int(
+    context: Mapping[str, object],
+    key: str,
+) -> int:
+    """Read a required integer field; raise integrity error if missing/malformed.
+
+    The persisted type MUST be a native ``int``; ``bool`` is rejected
+    (Python ``bool`` is a subclass of ``int`` but represents a flag,
+    not a count), numeric strings are rejected, and ``float`` is
+    rejected. Persisted type drift is integrity failure, not silent
+    coercion.
+    """
+    if key not in context:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity is missing required field {key!r}",
+            mismatched_fields=(f"{key}_missing",),
+        )
+    value = context[key]
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be a native integer "
+            "(bool / numeric string / float are not accepted)",
+            mismatched_fields=(f"{key}_type",),
+        )
+    return value
+
+
+def _strict_required_non_empty_str_list(
+    context: Mapping[str, object],
+    key: str,
+) -> tuple[str, ...]:
+    """Read a required non-empty list of non-empty strings.
+
+    The persisted list MUST contain at least one item; each item
+    MUST be a non-empty string. ``None`` items, ``int`` items, and
+    empty strings are integrity failures.
+    """
+    if key not in context:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity is missing required field {key!r}",
+            mismatched_fields=(f"{key}_missing",),
+        )
+    value = context[key]
+    if (
+        not isinstance(value, list)
+        or not value
+        or not all(isinstance(item, str) and item for item in value)
+    ):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be a non-empty list of non-empty strings",
+            mismatched_fields=(f"{key}_type",),
+        )
+    return tuple(value)
+
+
+def _strict_required_lowercase_64_hex(context: Mapping[str, object], key: str) -> str:
+    value = _strict_required_str(context, key)
+    if not _LOWERCASE_64_HEX.match(value):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be a lowercase 64-character hex hash",
+            mismatched_fields=(f"{key}_format",),
+        )
+    return value
+
+
+def _strict_required_true_bool(
+    context: Mapping[str, object],
+    key: str,
+) -> bool:
+    """Read a required boolean flag; raise integrity error on drift.
+
+    The persisted type MUST be a native ``bool``; strings (``"true"`` /
+    ``"false"``), integers (``0`` / ``1``), and ``None`` are all
+    rejected. The flag value MUST be ``True`` — a persisted ``False``
+    is an integrity failure (not silent acceptance + later audit
+    mismatch). Missing keys, wrong types, and wrong values all fail
+    closed with precise ``{key}_missing`` / ``{key}_type`` /
+    ``{key}_mismatch`` ``mismatched_fields`` reasons.
+
+    This helper is the strict-required successor to silent
+    ``bool(value or False)`` coercion. Silent coercion allowed
+    ``"false"`` (a non-empty string) to be coerced to ``True`` and
+    then re-serialized into the audit payload, producing an audit
+    hash that was internally consistent with the WRONG boolean
+    value — a corruption that the byte-for-byte equality check
+    could not detect. The strict helper closes that gap.
+    """
+    if key not in context:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted audit field {key!r} is missing",
+            mismatched_fields=(f"{key}_missing",),
+        )
+    value = context[key]
+    # ``bool`` MUST be a real ``bool`` — strings / ints / ``None`` are
+    # wrong-type and must not silently coerce.
+    if not isinstance(value, bool):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted audit field {key!r} must be a native boolean",
+            mismatched_fields=(f"{key}_type",),
+        )
+    if value is not True:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted audit field {key!r} must remain true",
+            mismatched_fields=(f"{key}_mismatch",),
+        )
+    return value
+
+
+def _recompute_audit_payload(typed_audit: Mapping[str, object]) -> dict[str, object]:
+    """Rebuild the canonical 31-field audit payload from a persisted
+    ``typed_attempt.task12_replay`` dict.
+
+    The persisted form is byte-identical to the 31-field dict
+    produced by :func:`_task12_audit_payload` (write-time). The
+    loader reconstructs the same dict here (without ``audit_identity``)
+    and computes :func:`_audit_identity` against it.
+
+    This is the SAME canonical function used at write time by the
+    Slice E2 service (``_task12_audit_payload``); the loader MUST
+    rebuild the audit payload from the persisted canonical payload
+    and compare exact equality with the persisted
+    ``typed_attempt.task12_replay.audit_identity`` (P0-#2 spec).
+
+    Any tampering that replaces ANY of the 31 audit fields — including
+    a different valid-but-wrong 64-hex ``audit_identity`` — is caught
+    by the byte-for-byte equality check below.
+    """
+    return _task12_audit_payload(
+        service_version=str(typed_audit.get("service_version") or ""),
+        model_policy=str(typed_audit.get("model_policy") or ""),
+        task12_policy_version=str(typed_audit.get("task12_policy_version") or ""),
+        replay_attempt_id=str(typed_audit.get("replay_attempt_id") or ""),
+        replay_node_id=str(typed_audit.get("replay_node_id") or ""),
+        scenario_id=str(typed_audit.get("scenario_id") or ""),
+        training_manifest_hash=str(typed_audit.get("training_manifest_hash") or ""),
+        training_dataset_hash=str(typed_audit.get("training_dataset_hash") or ""),
+        model_config_hash=str(typed_audit.get("model_config_hash") or ""),
+        model_artifact_hash=str(typed_audit.get("model_artifact_hash") or ""),
+        model_code_version=str(typed_audit.get("model_code_version") or ""),
+        forecast_cutoff_at=str(typed_audit.get("forecast_cutoff_at") or ""),
+        training_cutoff_at=str(typed_audit.get("training_cutoff_at") or ""),
+        task9_run_id=_coerce_int_strict(typed_audit.get("task9_run_id"), field_name="task9_run_id"),
+        task9_result_hash=str(typed_audit.get("task9_result_hash") or ""),
+        prediction_hash=str(typed_audit.get("prediction_hash") or ""),
+        request_payload_hash=str(typed_audit.get("request_payload_hash") or ""),
+        filtered_training_row_count=_coerce_int_strict(
+            typed_audit.get("filtered_training_row_count"),
+            field_name="filtered_training_row_count",
+        ),
+        filtered_label_row_count=_coerce_int_strict(
+            typed_audit.get("filtered_label_row_count"),
+            field_name="filtered_label_row_count",
+        ),
+        training_execution_status=str(typed_audit.get("training_execution_status") or ""),
+        training_eligibility_status=str(typed_audit.get("training_eligibility_status") or ""),
+        prediction_execution_status=str(typed_audit.get("prediction_execution_status") or ""),
+        prediction_mode=str(typed_audit.get("prediction_mode") or ""),
+        task10_training_run_id=_coerce_int_strict(
+            typed_audit.get("task10_training_run_id"),
+            field_name="task10_training_run_id",
+        ),
+        task10_training_signature=str(typed_audit.get("task10_training_signature") or ""),
+        task10_manifest_hash=str(typed_audit.get("task10_manifest_hash") or ""),
+        task10_config_hash=str(typed_audit.get("task10_config_hash") or ""),
+        task10_artifact_hashes=tuple(
+            cast(Sequence[str], typed_audit.get("task10_artifact_hashes") or ())
+        ),
+        idempotency_key=str(typed_audit.get("idempotency_key") or ""),
+        caller_identity=str(typed_audit.get("caller_identity") or ""),
+        no_implicit_selection=_strict_required_true_bool(
+            typed_audit,
+            "no_implicit_selection",
+        ),
+        no_cross_run_substitution=_strict_required_true_bool(
+            typed_audit,
+            "no_cross_run_substitution",
+        ),
+    )
+
+
+def _coerce_int_strict(value: object, *, field_name: str) -> int:
+    """Coerce ``value`` to a native ``int``.
+
+    Native ``int`` is accepted; ``bool`` is rejected (Python ``bool``
+    is a subclass of ``int`` but a flag is not a numeric identity);
+    numeric strings are rejected; ``float`` is rejected; missing
+    values raise ``{field_name}_missing``. Type drift is a
+    redetermination failure, not a silent coercion.
+    """
+    if value is None or isinstance(value, (str, float)):
+        # ``None`` / numeric-string / float: missing-OR-wrong-type —
+        # emit the dedicated ``_missing`` reason when there's no key
+        # and ``_type`` when the key exists but is the wrong type.
+        # From the loader's point of view the field name is the same.
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted audit payload field {field_name!r} is missing or has the wrong type",
+            mismatched_fields=(f"{field_name}_missing",),
+        )
+    if isinstance(value, bool):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted audit payload integer field {field_name!r} is a bool, not an int",
+            mismatched_fields=(f"{field_name}_type",),
+        )
+    if isinstance(value, int):
+        return value
+    raise ReplayTrainedPersistedIdentityIntegrityError(
+        f"persisted audit payload integer field {field_name!r} is not a native int",
+        mismatched_fields=(f"{field_name}_type",),
+    )
+
+
+def _recompute_prediction_hash(loaded: ResidualPredictionExecutionResult) -> str:
+    """Recompute the canonical prediction hash for a persisted result.
+
+    This mirrors the write-time
+    :func:`backend.app.residual_model.persistence._prediction_hash_from_result`
+    helper: the payload is the canonical-JSON dump of the result,
+    then ``prediction_hash`` is replaced with ``None``, then the
+    payload is hashed. We re-implement the helper locally (rather
+    than import the private function from residual_model.persistence)
+    so that the TASK-012 loader has no cross-module dependency on
+    the residual-model persistence layer's private API. The
+    canonical-JSON dump goes through :func:`canonical_json_value`
+    which is the same dump used at write time.
+    """
+    payload = canonical_json_value(loaded.model_dump(mode="python"))
+    cast_dict = cast(dict[str, object], payload)
+    cast_dict["prediction_hash"] = None
+    return canonical_payload_hash(cast_dict)
+
+
+async def load_replay_trained_prediction(
+    session: AsyncSession,
+    *,
+    prediction_run_id: int,
+) -> ReplayTrainedPersistedIdentity:
+    """Strict application-level loader for the TASK-012 GET endpoint.
+
+    Reads the persisted ORM row at the exact ``prediction_run_id``
+    and projects every frozen TASK-012 identity field. Fails
+    closed with :class:`ReplayTrainedPersistedIdentityIntegrityError`
+    (mapped by HTTP to 500) if any of the 14 required integrity
+    conditions below is violated. Fails closed with
+    :class:`ReplayTrainedServiceNotFoundError` (mapped by HTTP to
+    404) if the row is absent. The HTTP layer MUST NOT add
+    fallback defaults or skip fields; this function is the single
+    source of truth.
+
+    Integrity conditions (P0-#5 / §3 spec):
+
+    1.  Exact ``prediction_run_id`` row exists.
+    2.  ``input_snapshot.task12_replay`` dict is present.
+    3.  ``typed_attempt.task12_replay`` dict is present.
+    4.  All required fields (model_policy, task9_run_id,
+        request_payload_hash, training_manifest_hash, etc.) are
+        present in the persisted context.
+    5.  Each required field has the correct Python type
+        (string, int, list-of-string, etc.).
+    6.  All frozen hash fields are lowercase 64-character hex.
+    7.  ``model_policy`` is exactly ``"replay_trained_model"``.
+    8.  ``prediction_hash`` matches
+        ``row.canonical_payload_hash``.
+    9.  ``task9_run_id`` matches the Task 9 authority referenced
+        in the persisted context.
+    10. ``task9_result_hash`` matches the persisted authority.
+    11. Training / config / artifact identity hashes are consistent
+        with the persisted projection.
+    12. ``audit_identity`` is deterministic-redeterminism: the
+        redetermined identity MUST equal the persisted identity.
+    13. The loader NEVER returns ``None`` for a required field; it
+        raises an integrity error instead.
+    14. The loader NEVER fabricates fallback identities ("", "0",
+        "[]", or default values).
+    """
+    row = await get_residual_prediction_run(session, run_id=prediction_run_id)
+    if row is None:
+        raise ReplayTrainedServiceNotFoundError(
+            "the requested replay-trained prediction was not found",
+            identity={"prediction_run_id": prediction_run_id},
+        )
+
+    input_snapshot = row.input_snapshot or {}
+    if not isinstance(input_snapshot, Mapping):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted input_snapshot must be a mapping",
+            mismatched_fields=("input_snapshot_type",),
+        )
+    # The ``input_snapshot.task12_replay`` field holds the
+    # EXECUTION-PASS lightweight context from :func:`_task12_context`
+    # (~22 fields, no ``audit_identity``). The full audit-critical
+    # 32-field payload lives in ``typed_attempt.task12_replay`` —
+    # written by :func:`_finalize_task12_audit_payload` after the
+    # prediction commits. ``input_snapshot`` participates in the
+    # residual-model persistence layer's parent-payload hash; we
+    # therefore keep it stable and never overwrite it post-write.
+    legacy_context_obj = input_snapshot.get("task12_replay")
+    if not isinstance(legacy_context_obj, Mapping):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted input_snapshot.task12_replay is missing",
+            mismatched_fields=("input_snapshot_task12_replay_missing",),
+        )
+    # ``legacy_context_obj`` is only checked for presence + type —
+    # its content is no longer read by the loader (see below). The
+    # presence check is the audit trail that the lightweight
+    # execution-pass form is intact.
+
+    typed_attempt = row.typed_attempt or {}
+    if not isinstance(typed_attempt, Mapping):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted typed_attempt must be a mapping",
+            mismatched_fields=("typed_attempt_type",),
+        )
+    typed_audit_obj = typed_attempt.get("task12_replay")
+    if not isinstance(typed_audit_obj, Mapping):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted typed_attempt.task12_replay is missing",
+            mismatched_fields=("typed_attempt_task12_replay_missing",),
+        )
+    typed_audit = cast(Mapping[str, object], typed_audit_obj)
+    # SINGLE source of truth for the strict-required identity fields
+    # below. ``typed_audit`` is the full audit-critical 32-field dict
+    # produced by :func:`_task12_audit_payload` at write time and is
+    # the exact dict the audit-identity recomputation step uses.
+    # Reading from ``legacy_context`` (input_snapshot.task12_replay)
+    # would either miss audit-only fields or — worse — see a
+    # different lightweight dict whose hash is computed over a
+    # different shape, breaking the byte-for-byte equality required
+    # by P0-#2 (write-time hash == read-time hash).
+    context = typed_audit
+
+    # Required identity fields. The strict loader treats every one
+    # of these as load-bearing; any missing or malformed value is
+    # an integrity error (500), not a default-substituted success.
+    request_payload_hash = _strict_required_lowercase_64_hex(context, "request_payload_hash")
+    model_policy = _strict_required_str(context, "model_policy")
+    if model_policy != "replay_trained_model":
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted model_policy is not replay_trained_model",
+            mismatched_fields=("model_policy_mismatch",),
+        )
+    # The ``task9_run_id`` is persisted by the E2 service as a native
+    # integer. The strict loader accepts ONLY native ``int``; ``bool``
+    # is rejected (Python ``bool`` is a subclass of ``int`` but a flag
+    # is not a Task 9 run identifier), numeric strings are rejected,
+    # and ``float`` is rejected. Persisted type drift is integrity
+    # failure, not silent coercion.
+    task9_run_id = _strict_required_int(context, "task9_run_id")
+    task9_result_hash = _strict_required_lowercase_64_hex(context, "task9_result_hash")
+    training_manifest_hash = _strict_required_lowercase_64_hex(context, "training_manifest_hash")
+    training_dataset_hash = _strict_required_lowercase_64_hex(context, "training_dataset_hash")
+    model_config_hash = _strict_required_lowercase_64_hex(context, "model_config_hash")
+    model_artifact_hash = _strict_required_lowercase_64_hex(context, "model_artifact_hash")
+    model_code_version = _strict_required_str(context, "model_code_version")
+    task12_policy_version = _strict_required_str(context, "task12_policy_version")
+    replay_attempt_id = _strict_required_str(context, "replay_attempt_id")
+    replay_node_id = _strict_required_str(context, "replay_node_id")
+    scenario_id = _strict_required_str(context, "scenario_id")
+    forecast_cutoff_at = _strict_required_str(context, "forecast_cutoff_at")
+    training_cutoff_at = _strict_required_str(context, "training_cutoff_at")
+
+    # P0-#5: every audit-payload field is strict-required BEFORE we
+    # recompute the audit identity. This guarantees that missing /
+    # malformed fields surface as ``{field}_missing`` / ``{field}_type``
+    # reasons, NOT as ``audit_identity_mismatch`` (which would mask
+    # the real corruption reason under a generic integrity failure).
+    # The strict-required calls have side effects (raise integrity
+    # error on missing / wrong-type) but their return values are not
+    # used downstream — they are pure validators. ``_ =`` discards
+    # silence the F841 unused-variable warnings without losing the
+    # validation.
+    _ = _strict_required_str(context, "service_version")
+    _ = _strict_required_int(context, "task10_training_run_id")
+    _ = _strict_required_lowercase_64_hex(context, "task10_training_signature")
+    _ = _strict_required_lowercase_64_hex(context, "task10_manifest_hash")
+    _ = _strict_required_lowercase_64_hex(context, "task10_config_hash")
+    _ = _strict_required_non_empty_str_list(context, "task10_artifact_hashes")
+    _ = _strict_required_int(context, "filtered_training_row_count")
+    _ = _strict_required_int(context, "filtered_label_row_count")
+    _ = _strict_required_str(context, "training_execution_status")
+    _ = _strict_required_str(context, "training_eligibility_status")
+    _ = _strict_required_str(context, "prediction_execution_status")
+    _ = _strict_required_str(context, "prediction_mode")
+    _ = _strict_required_str(context, "idempotency_key")
+    _ = _strict_required_str(context, "caller_identity")
+
+    # Identity consistency: prediction_hash must match the row's
+    # canonical_payload_hash AND must match the independently
+    # recomputed prediction hash for the persisted
+    # ``ResidualPredictionExecutionResult`` (P0-#4 spec).
+    #
+    # A 64-hex format constraint on ``canonical_payload_hash`` does
+    # NOT prove semantic correctness — replacing it with a different
+    # valid 64-hex value would pass a format-only check. The loader
+    # therefore re-reads the persisted prediction result via
+    # ``load_residual_prediction_run_by_id`` (which rebuilds the
+    # ``ResidualPredictionExecutionResult`` from child rows + the
+    # ``canonical_output`` blob), recomputes
+    # ``_prediction_hash_from_result(loaded)``, and compares it
+    # byte-for-byte with the stored ``row.prediction_hash``. Any
+    # mismatch — including a valid-but-wrong 64-hex replacement —
+    # raises a 500 integrity error.
+    prediction_hash = str(row.prediction_hash or "")
+    if not _LOWERCASE_64_HEX.match(prediction_hash):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted prediction_hash must be a lowercase 64-character hex hash",
+            mismatched_fields=("prediction_hash_format",),
+        )
+    canonical_payload_hash = str(row.canonical_payload_hash or "")
+    if not _LOWERCASE_64_HEX.match(canonical_payload_hash):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted canonical_payload_hash must be a lowercase 64-character hex hash",
+            mismatched_fields=("canonical_payload_hash_format",),
+        )
+
+    # Independent persisted prediction hash verification. We rebuild
+    # the prediction result from the persisted ``canonical_output``
+    # blob + child rows, recompute the canonical prediction hash, and
+    # require it to equal the stored ``prediction_hash``. This
+    # catches a valid-but-wrong 64-hex replacement that the format
+    # check alone would miss. ``load_residual_prediction_run_by_id``
+    # itself verifies ``_prediction_payload_hash(loaded) ==
+    # canonical_payload_hash`` so the two cross-checks combine to
+    # validate ``prediction_hash == _prediction_hash_from_result(loaded)
+    # == _prediction_payload_hash(loaded) == canonical_payload_hash``.
+    try:
+        reloaded_prediction = await load_residual_prediction_run_by_id(
+            session, run_id=prediction_run_id
+        )
+    except ResidualModelPersistenceIntegrityError as exc:
+        # The residual-model persistence layer detected a prediction
+        # integrity failure (typically a tampered ``canonical_output``
+        # blob that no longer matches ``canonical_payload_hash``).
+        # Normalize to the TASK-012 envelope so the HTTP 500 surface
+        # is consistent and the internal mismatched-field detail does
+        # not leak to clients.
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted prediction canonical payload failed integrity "
+            "verification during reload (semantic integrity failure)",
+            mismatched_fields=("prediction_hash_mismatch",),
+        ) from exc
+    if reloaded_prediction is None:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted prediction could not be reloaded for hash verification",
+            mismatched_fields=("prediction_hash_reload_missing",),
+        )
+    rebuilt_prediction_hash = _recompute_prediction_hash(reloaded_prediction)
+    if rebuilt_prediction_hash != prediction_hash:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted prediction_hash does not match the independently recomputed "
+            "prediction hash (semantic integrity failure)",
+            mismatched_fields=("prediction_hash_mismatch",),
+        )
+
+    # Task 9 / artifact / training / config / model identity
+    # consistency: the persisted run / result / artifact identity
+    # MUST equal the values the request body asserted at write time.
+    persisted_task9_run = await session.get(HarvestStateRun, task9_run_id)
+    if persisted_task9_run is None:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted task9_run_id references a missing Task 9 run",
+            mismatched_fields=("task9_run_missing",),
+        )
+    if str(persisted_task9_run.result_hash or "") != task9_result_hash:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted task9_result_hash does not match the Task 9 run authority",
+            mismatched_fields=("task9_result_hash_mismatch",),
+        )
+
+    # The audit identity is the deterministic-redeterminism
+    # fingerprint stored in ``typed_attempt.task12_replay.audit_identity``.
+    # The loader MUST recompute the audit identity from the
+    # persisted canonical payload using the SAME canonical function
+    # that wrote it (``_audit_identity_for``), then compare
+    # exact-string equality (P0-#2 spec).
+    #
+    # The recomputation deliberately excludes the two
+    # non-authoritative fields ``audit_identity`` (the value being
+    # recomputed) and ``prediction_run_id`` (the persisted row
+    # identifier). Any tampering that replaces the persisted
+    # ``audit_identity`` with a different valid 64-hex string is
+    # caught by exact-string equality; replacing it with a malformed
+    # string is caught by the well-formedness check below.
+    persisted_audit_identity = _strict_required_lowercase_64_hex(typed_audit, "audit_identity")
+    recomputed_audit_payload = _recompute_audit_payload(typed_audit)
+    recomputed_audit_identity = _audit_identity(recomputed_audit_payload)
+    if recomputed_audit_identity != persisted_audit_identity:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted TASK-012 audit_identity does not match the recomputed "
+            "canonical audit identity (semantic integrity failure)",
+            mismatched_fields=("audit_identity_mismatch",),
+        )
+
+    return ReplayTrainedPersistedIdentity(
+        prediction_run_id=prediction_run_id,
+        prediction_hash=prediction_hash,
+        request_payload_hash=request_payload_hash,
+        model_policy=model_policy,
+        task12_policy_version=task12_policy_version,
+        replay_attempt_id=replay_attempt_id,
+        replay_node_id=replay_node_id,
+        scenario_id=scenario_id,
+        training_manifest_hash=training_manifest_hash,
+        training_dataset_hash=training_dataset_hash,
+        model_config_hash=model_config_hash,
+        model_artifact_hash=model_artifact_hash,
+        model_code_version=model_code_version,
+        forecast_cutoff_at=forecast_cutoff_at,
+        training_cutoff_at=training_cutoff_at,
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        task10_training_run_id=_strict_required_int(context, "task10_training_run_id"),
+        task10_training_signature=_strict_required_lowercase_64_hex(
+            context, "task10_training_signature"
+        ),
+        task10_manifest_hash=_strict_required_lowercase_64_hex(context, "task10_manifest_hash"),
+        task10_config_hash=_strict_required_lowercase_64_hex(context, "task10_config_hash"),
+        task10_artifact_hashes=_strict_required_non_empty_str_list(
+            context, "task10_artifact_hashes"
+        ),
+        filtered_training_row_count=_strict_required_int(context, "filtered_training_row_count"),
+        filtered_label_row_count=_strict_required_int(context, "filtered_label_row_count"),
+        training_execution_status=_strict_required_str(context, "training_execution_status"),
+        training_eligibility_status=_strict_required_str(context, "training_eligibility_status"),
+        prediction_execution_status=_strict_required_str(context, "prediction_execution_status"),
+        prediction_mode=_strict_required_str(context, "prediction_mode"),
+        idempotency_key=_strict_required_str(context, "idempotency_key"),
+        caller_identity=_strict_required_str(context, "caller_identity"),
+        audit_identity=persisted_audit_identity,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -298,6 +1026,7 @@ class ReplayTrainedExecutionRequest:
             source_run_ids={
                 str(key): _int_value(value)
                 for key, value in cast(Mapping[str, object], required("source_run_ids")).items()
+                if value is not None
             },
             artifact_identity_json=cast(dict[str, object], required("artifact_identity_json")),
             artifact_identity_manifest=cast(
@@ -380,10 +1109,15 @@ class ReplayTrainedExecutionResult:
     prediction_execution_status: str
     prediction_mode: str
     audit_identity: str
-    _payload: dict[str, object]
+    #: True iff this invocation persisted a NEW prediction row (HTTP 201);
+    #: False iff the service re-loaded the prior prediction for the same
+    #: (idempotency_key, request_payload_hash) pair (HTTP 200). The HTTP
+    #: adapter MUST consume this disposition and MUST NOT recompute it.
+    created: bool
+    audit_payload: dict[str, object]
 
     def to_payload(self) -> dict[str, object]:
-        return dict(self._payload)
+        return dict(self.audit_payload)
 
 
 def _enum_value(value: object) -> object:
@@ -621,19 +1355,42 @@ async def _verify_persisted_task9(
     *,
     request: ReplayTrainedExecutionRequest,
 ) -> None:
+    """Verify the Task 9 authority for a TASK-012 replay-trained request.
+
+    Splits the previously combined "missing or not-replay" blocker
+    into two distinct HTTP statuses per the P0-#4 spec:
+
+    * ``run is None`` (Task 9 run does not exist) → 404
+      (:class:`ReplayTrainedServiceNotFoundError`);
+    * ``output is None`` (Task 9 run exists but its output is
+      missing) → 404 (the run's replay authority IS its output;
+      the output is missing entirely);
+    * ``run.is_replay is not True`` (run present, not a replay)
+      → 409 (:class:`ReplayTrainedServiceBlockerError`,
+      mismatched_fields=``task9_replay_run_missing_or_not_replay``);
+    * ``output.result_hash != request.task9_result_hash``
+      (present but identity mismatch) → 409, mismatched_fields=
+      ``task9_result_hash_mismatch``.
+    """
     run = await session.get(HarvestStateRun, request.task9_run_id)
-    if run is None or run.is_replay is not True:
+    if run is None:
+        raise ReplayTrainedServiceNotFoundError(
+            "the referenced Task 9 run does not exist",
+            identity={"task9_run_id": request.task9_run_id},
+        )
+    if run.is_replay is not True:
         raise ReplayTrainedServiceBlockerError(
             "the exact replay-produced Task 9 run is not available",
             blocker_code=OrchestrationBlocker.TASK12_CROSS_RUN_SUBSTITUTION.value,
             mismatched_fields=("task9_replay_run_missing_or_not_replay",),
         )
     output = await load_harvest_state_output_by_id(session, run_id=request.task9_run_id)
-    if (
-        output is None
-        or output.status != "completed"
-        or output.result_hash != request.task9_result_hash
-    ):
+    if output is None:
+        raise ReplayTrainedServiceNotFoundError(
+            "the referenced Task 9 run has no persisted output",
+            identity={"task9_run_id": request.task9_run_id},
+        )
+    if output.status != "completed" or output.result_hash != request.task9_result_hash:
         raise ReplayTrainedServiceBlockerError(
             "the exact Task 9 result hash does not match persisted authority",
             blocker_code=OrchestrationBlocker.TASK12_CROSS_RUN_SUBSTITUTION.value,
@@ -774,6 +1531,19 @@ def _task12_context(
     task10_training_signature: str | None = None,
     task10_artifact_hashes: Sequence[str] = (),
 ) -> dict[str, object]:
+    """Lightweight TASK-012 replay context for Task 10 execution passes.
+
+    This dict is the EXECUTION-PASS context (passed as
+    ``execution_context`` / ``typed_attempt`` to
+    ``execute_residual_training`` and ``execute_residual_prediction``).
+    It is NOT the audit-critical form; the persisted row's
+    ``input_snapshot.task12_replay`` and ``typed_attempt.task12_replay``
+    are OVERWRITTEN with the full :func:`_task12_audit_context` form
+    after prediction completes — see ``_finalize_task12_audit_payload``
+    below — so that the audit-identity redetermination step at
+    read time rebuilds the EXACT same 31-field payload that wrote
+    it.
+    """
     return {
         "model_policy": Task10ModelPolicy.REPLAY_TRAINED_MODEL.value,
         "task12_policy_version": projection.task12_policy_version,
@@ -802,6 +1572,103 @@ def _task12_context(
     }
 
 
+def _task12_audit_payload(
+    *,
+    service_version: str,
+    model_policy: str,
+    task12_policy_version: str,
+    replay_attempt_id: str,
+    replay_node_id: str,
+    scenario_id: str,
+    training_manifest_hash: str,
+    training_dataset_hash: str,
+    model_config_hash: str,
+    model_artifact_hash: str,
+    model_code_version: str,
+    forecast_cutoff_at: str,
+    training_cutoff_at: str,
+    task9_run_id: int,
+    task9_result_hash: str,
+    prediction_hash: str,
+    request_payload_hash: str,
+    filtered_training_row_count: int,
+    filtered_label_row_count: int,
+    training_execution_status: str,
+    training_eligibility_status: str,
+    prediction_execution_status: str,
+    prediction_mode: str,
+    task10_training_run_id: int,
+    task10_training_signature: str,
+    task10_manifest_hash: str,
+    task10_config_hash: str,
+    task10_artifact_hashes: Sequence[str],
+    idempotency_key: str,
+    caller_identity: str,
+    no_implicit_selection: bool,
+    no_cross_run_substitution: bool,
+) -> dict[str, object]:
+    """Build the canonical TASK-012 audit payload.
+
+    Single source of truth for BOTH the write-time audit-identity
+    computation (``_result_payload`` → ``_audit_identity``) AND the
+    read-time redetermination path
+    (``load_replay_trained_prediction``). The two callers MUST call
+    this builder with byte-identical field values; the field names,
+    field set, field ordering, and canonical serialization are frozen
+    by this function and any drift between write-time and read-time
+    is reported as ``audit_identity_mismatch`` (HTTP 500).
+
+    Deliberately EXCLUDED fields (NOT in audit hash):
+
+    * ``audit_identity`` — the value being recomputed; including it
+      would create a circular hash that excludes any tampering of
+      the audit_identity field itself.
+    * ``prediction_run_id`` — the persisted row identifier that
+      the write-time payload did NOT include; the read-time path
+      loads this from the row primary key, not from the payload.
+
+    All other persisted fields — ``service_version``,
+    ``no_implicit_selection``, ``no_cross_run_substitution``, the
+    row counts, the execution / eligibility / mode statuses — are
+    LOAD-BEARING for audit. Removing or defaulting them on the
+    read-time path is an integrity violation.
+    """
+    return {
+        "service_version": service_version,
+        "model_policy": model_policy,
+        "task12_policy_version": task12_policy_version,
+        "replay_attempt_id": replay_attempt_id,
+        "replay_node_id": replay_node_id,
+        "scenario_id": scenario_id,
+        "training_manifest_hash": training_manifest_hash,
+        "training_dataset_hash": training_dataset_hash,
+        "model_config_hash": model_config_hash,
+        "model_artifact_hash": model_artifact_hash,
+        "model_code_version": model_code_version,
+        "forecast_cutoff_at": forecast_cutoff_at,
+        "training_cutoff_at": training_cutoff_at,
+        "task9_run_id": task9_run_id,
+        "task9_result_hash": task9_result_hash,
+        "prediction_hash": prediction_hash,
+        "request_payload_hash": request_payload_hash,
+        "filtered_training_row_count": filtered_training_row_count,
+        "filtered_label_row_count": filtered_label_row_count,
+        "training_execution_status": training_execution_status,
+        "training_eligibility_status": training_eligibility_status,
+        "prediction_execution_status": prediction_execution_status,
+        "prediction_mode": prediction_mode,
+        "task10_training_run_id": task10_training_run_id,
+        "task10_training_signature": task10_training_signature,
+        "task10_manifest_hash": task10_manifest_hash,
+        "task10_config_hash": task10_config_hash,
+        "task10_artifact_hashes": sorted(task10_artifact_hashes),
+        "idempotency_key": idempotency_key,
+        "caller_identity": caller_identity,
+        "no_implicit_selection": no_implicit_selection,
+        "no_cross_run_substitution": no_cross_run_substitution,
+    }
+
+
 def _audit_identity(payload: Mapping[str, object]) -> str:
     audit_payload = {
         key: value
@@ -826,42 +1693,42 @@ def _result_payload(
     task10_artifact_hashes: Sequence[str],
     filtered_training_row_count: int,
     filtered_label_row_count: int,
+    created: bool,
 ) -> ReplayTrainedExecutionResult:
-    payload: dict[str, object] = {
-        "service_version": _SERVICE_VERSION,
-        "model_policy": Task10ModelPolicy.REPLAY_TRAINED_MODEL.value,
-        "task12_policy_version": projection.task12_policy_version,
-        "replay_attempt_id": request.replay_attempt_id,
-        "replay_node_id": request.replay_node_id,
-        "scenario_id": request.scenario_id,
-        "training_manifest_hash": projection.training_manifest_hash,
-        "training_dataset_hash": projection.manifest.training_dataset_hash,
-        "model_config_hash": projection.model_config_hash,
-        "model_artifact_hash": projection.model_artifact_hash,
-        "model_code_version": projection.model_code_version,
-        "forecast_cutoff_at": _datetime_string(request.forecast_cutoff_at),
-        "training_cutoff_at": _datetime_string(request.training_cutoff_at),
-        "task9_run_id": request.task9_run_id,
-        "task9_result_hash": request.task9_result_hash,
-        "prediction_run_id": prediction_run_id,
-        "prediction_hash": prediction_result.prediction_hash,
-        "request_payload_hash": request_payload_hash,
-        "filtered_training_row_count": filtered_training_row_count,
-        "filtered_label_row_count": filtered_label_row_count,
-        "training_execution_status": training_result.execution_status.value,
-        "training_eligibility_status": training_result.eligibility_status.value,
-        "prediction_execution_status": prediction_result.execution_status.value,
-        "prediction_mode": prediction_result.mode.value,
-        "task10_training_run_id": task10_training_run_id,
-        "task10_training_signature": task10_training_signature,
-        "task10_manifest_hash": task10_manifest_hash,
-        "task10_config_hash": task10_config_hash,
-        "task10_artifact_hashes": sorted(task10_artifact_hashes),
-        "idempotency_key": request.idempotency_key,
-        "caller_identity": request.caller_identity,
-        "no_implicit_selection": True,
-        "no_cross_run_substitution": True,
-    }
+    payload: dict[str, object] = _task12_audit_payload(
+        service_version=_SERVICE_VERSION,
+        model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL.value,
+        task12_policy_version=projection.task12_policy_version,
+        replay_attempt_id=request.replay_attempt_id,
+        replay_node_id=request.replay_node_id,
+        scenario_id=request.scenario_id,
+        training_manifest_hash=projection.training_manifest_hash,
+        training_dataset_hash=projection.manifest.training_dataset_hash,
+        model_config_hash=projection.model_config_hash,
+        model_artifact_hash=projection.model_artifact_hash,
+        model_code_version=projection.model_code_version,
+        forecast_cutoff_at=_datetime_string(request.forecast_cutoff_at),
+        training_cutoff_at=_datetime_string(request.training_cutoff_at),
+        task9_run_id=request.task9_run_id,
+        task9_result_hash=request.task9_result_hash,
+        prediction_hash=prediction_result.prediction_hash,
+        request_payload_hash=request_payload_hash,
+        filtered_training_row_count=filtered_training_row_count,
+        filtered_label_row_count=filtered_label_row_count,
+        training_execution_status=training_result.execution_status.value,
+        training_eligibility_status=training_result.eligibility_status.value,
+        prediction_execution_status=prediction_result.execution_status.value,
+        prediction_mode=prediction_result.mode.value,
+        task10_training_run_id=task10_training_run_id,
+        task10_training_signature=task10_training_signature,
+        task10_manifest_hash=task10_manifest_hash,
+        task10_config_hash=task10_config_hash,
+        task10_artifact_hashes=task10_artifact_hashes,
+        idempotency_key=request.idempotency_key,
+        caller_identity=request.caller_identity,
+        no_implicit_selection=True,
+        no_cross_run_substitution=True,
+    )
     audit_identity = _audit_identity(payload)
     payload["audit_identity"] = audit_identity
     return ReplayTrainedExecutionResult(
@@ -881,7 +1748,8 @@ def _result_payload(
         prediction_execution_status=prediction_result.execution_status.value,
         prediction_mode=prediction_result.mode.value,
         audit_identity=audit_identity,
-        _payload=payload,
+        created=created,
+        audit_payload=payload,
     )
 
 
@@ -955,28 +1823,66 @@ async def _fresh_prediction_reload(
     return loaded
 
 
-async def _persist_task12_audit_identity(
+async def _finalize_task12_audit_payload(
     session: AsyncSession,
     *,
     prediction_run_id: int,
-    audit_identity: str,
+    audit_payload: Mapping[str, object],
 ) -> None:
+    """Persist the FINAL audit payload to ``typed_attempt.task12_replay``.
+
+    The audit payload is the AUTHORITATIVE 32-field dict (31 audit
+    fields + ``audit_identity``) produced by
+    :func:`_task12_audit_payload` at write time. The write-time
+    ``canonical_payload_hash`` was computed over the original
+    ``input_snapshot`` (which holds the lightweight execution-pass
+    ``task12_replay`` from :func:`_task12_context` and is the
+    payload bound by the residual-model persistence layer's
+    parent-payload hash). Therefore this finalizer MUST NOT mutate
+    ``input_snapshot`` — doing so would invalidate
+    ``canonical_payload_hash`` and the persistence layer would raise
+    ``ResidualModelPersistenceIntegrityError("prediction parent
+    payload mismatch")`` on every reload, including every uncorrupted
+    GET.
+
+    Instead the finalizer writes the audit payload to a single
+    location — ``typed_attempt.task12_replay`` — and updates the
+    persisted row in place. The read-time loader
+    (:func:`load_replay_trained_prediction`) reads the audit
+    payload from ``typed_attempt.task12_replay`` ONLY. The
+    strict-required identity fields used for the persisted identity
+    dataclass are read from the SAME dict.
+
+    A previously persisted lightweight ``task12_replay`` in
+    ``typed_attempt`` (the execution-pass form from
+    :func:`_task12_context`) is fully OVERWRITTEN — the audit-critical
+    form is authoritative.
+
+    Why NOT mutate ``input_snapshot``:
+      * ``input_snapshot`` participates in
+        ``prediction_parent_payload_from_columns`` →
+        ``canonical_payload_hash`` (residual_model.persistence).
+        Mutating it without recomputing ``canonical_payload_hash``
+        silently invalidates every persisted prediction's reload.
+      * The audit payload is logically a write-time signature, not a
+        snapshot of the request input. It belongs with the
+        ``typed_attempt`` (the post-execution state), not the input.
+    """
     row = await get_residual_prediction_run(session, run_id=prediction_run_id)
     if row is None:
         raise ReplayTrainedServiceBlockerError(
-            "the persisted prediction is missing while recording TASK-012 audit identity",
+            "the persisted prediction is missing while finalizing TASK-012 audit payload",
+            blocker_code=_TASK12_PERSISTENCE_INTEGRITY,
+        )
+    audit_payload_dict = dict(audit_payload)
+    persisted_audit_identity = str(audit_payload_dict.get("audit_identity") or "")
+    if not persisted_audit_identity:
+        raise ReplayTrainedServiceBlockerError(
+            "the audit payload is missing audit_identity at finalize time",
             blocker_code=_TASK12_PERSISTENCE_INTEGRITY,
         )
     typed_attempt = dict(row.typed_attempt or {})
-    context = dict(cast(dict[str, object], typed_attempt.get("task12_replay", {})))
-    existing_audit = context.get("audit_identity")
-    if existing_audit is not None and existing_audit != audit_identity:
-        raise ReplayTrainedServiceBlockerError(
-            "persisted TASK-012 audit identity conflicts with the canonical result",
-            blocker_code=_TASK12_PERSISTENCE_INTEGRITY,
-        )
-    context["audit_identity"] = audit_identity
-    typed_attempt["task12_replay"] = context
+    typed_attempt["task12_replay"] = dict(audit_payload_dict)
     row.typed_attempt = typed_attempt
     await session.commit()
 
@@ -1063,6 +1969,7 @@ async def execute_replay_trained_prediction(
                 task10_artifact_hashes=cast(list[str], context["task10_artifact_hashes"]),
                 filtered_training_row_count=int(context["filtered_training_row_count"]),
                 filtered_label_row_count=int(context["filtered_label_row_count"]),
+                created=False,
             )
             persisted_context = cast(dict[str, object], existing.typed_attempt or {}).get(
                 "task12_replay"
@@ -1321,10 +2228,11 @@ async def execute_replay_trained_prediction(
             task10_artifact_hashes=artifact_hashes,
             filtered_training_row_count=len(filtered_training),
             filtered_label_row_count=len(filtered_labels),
+            created=True,
         )
-        await _persist_task12_audit_identity(
+        await _finalize_task12_audit_payload(
             session,
             prediction_run_id=prediction_run_id,
-            audit_identity=result.audit_identity,
+            audit_payload=result.audit_payload,
         )
         return result
