@@ -3412,26 +3412,17 @@ async def test_postgres_get_corruption_wrong_model_policy(
     await _expect_500(e3_client, pid)
 
 
-@pytest.mark.integration
-async def test_postgres_get_corruption_prediction_hash_mismatch(
-    e3_client: httpx.AsyncClient,
-) -> None:
-    pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-phm")
-
-    # The prediction hash lives on the row itself (canonical_payload_hash).
-    # Corrupt it to a non-lowercase-hex value so the strict loader's
-    # ``_LOWERCASE_64_HEX`` validation fails. (The loader's
-    # well-formedness check is the proxy for "prediction_hash
-    # does not match the deterministic-redeterminism projection":
-    # a corrupted ``canonical_payload_hash`` cannot be the canonical
-    # hash of any valid persisted context.)
-    async with AsyncSessionMaker() as session:
-        row = await session.get(ResidualModelPredictionRun, pid)
-        assert row is not None
-        row.canonical_payload_hash = "not-a-valid-lowercase-64-hex-hash"  # noqa: E501
-        await session.commit()
-
-    await _expect_500(e3_client, pid)
+# NOTE: ``prediction_hash_mismatch`` corruption test is NOT
+# included because the ``ck_residual_model_prediction_run_payload_hash``
+# check constraint on ``canonical_payload_hash`` already enforces
+# a lowercase 64-character hex format. The DB rejects any
+# corruption to a non-hex value BEFORE the strict loader can
+# read the row; the only way to make ``canonical_payload_hash``
+# well-formed-but-incorrect is to replace it with a different
+# 64-hex value, which the strict loader cannot detect without
+# re-running the entire prediction pipeline. The DB constraint
+# is therefore the canonical guarantee that this field is
+# well-formed.
 
 
 @pytest.mark.integration
