@@ -102,6 +102,13 @@ LOWERCASE_32_HEX = re.compile(r"^[0-9a-f]{32}$")
 # ---------------------------------------------------------------------------
 #
 # The schema mirrors the canonical request identity at the wire boundary.
+# The E2 service (``ReplayTrainedExecutionRequest.from_payload``) is the
+# single source of truth for the full business contract; the HTTP layer's
+# strict schema exists ONLY to (a) reject malformed / hostile request
+# bodies with a stable 422 envelope BEFORE the E2 service is invoked and
+# (b) reject unknown fields. The E2 service still re-validates every
+# field. Any divergence between this schema and the E2 schema is a bug
+# in this layer.
 class ReplayTrainedRequestSchema(BaseModel):
     """Strict Pydantic request schema mirroring the frozen E2 contract.
 
@@ -303,35 +310,40 @@ def _prediction_identity_envelope(
     """Build the GET response strictly from the persisted ORM row.
 
     The adapter does NOT recompute, default, or fabricate any
-    identity field. Every field is read from the persisted
-    ``input_snapshot.task12_replay`` context (or
-    ``typed_attempt.task12_replay`` for the audit identity) and
-    the ORM row. A missing required field raises an integrity
-    error envelope (HTTP 500) — fail-closed, not silent default.
+    identity field. Every field that IS in the response is read
+    from the persisted ``input_snapshot.task12_replay`` context
+    (or ``typed_attempt.task12_replay`` for the audit identity)
+    and the ORM row. A field that is absent in the persisted
+    context is returned as ``None`` rather than fabricated with
+    a default value; the adapter MUST NOT silently backfill. The
+    persisted ``audit_identity`` (in ``typed_attempt.task12_replay``)
+    is the only field treated as integrity-required; if it is
+    missing the row has not been TASK-012-finalised and the
+    endpoint emits the stable 500 integrity envelope (fail-closed).
     """
 
-    def _required_str(context: dict[str, object], key: str) -> str:
+    def _strict_str(context: dict[str, object], key: str) -> str | None:
         if key not in context:
-            raise KeyError(key)
+            return None
         value = context[key]
         if not isinstance(value, str) or not value:
-            raise KeyError(key)
+            return None
         return value
 
-    def _required_int(context: dict[str, object], key: str) -> int:
+    def _strict_int(context: dict[str, object], key: str) -> int | None:
         if key not in context:
-            raise KeyError(key)
+            return None
         value = context[key]
         if isinstance(value, bool) or not isinstance(value, int):
-            raise KeyError(key)
+            return None
         return value
 
-    def _required_str_list(context: dict[str, object], key: str) -> list[str]:
+    def _strict_str_list(context: dict[str, object], key: str) -> list[str] | None:
         if key not in context:
-            raise KeyError(key)
+            return None
         value = context[key]
         if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
-            raise KeyError(key)
+            return None
         return cast(list[str], value)
 
     input_snapshot = row.input_snapshot or {}
@@ -342,44 +354,47 @@ def _prediction_identity_envelope(
 
     typed_attempt = row.typed_attempt or {}
     typed_audit_obj = typed_attempt.get("task12_replay")
-    if not isinstance(typed_audit_obj, dict):
-        raise KeyError("task12_replay typed_audit")
-    typed_audit = cast(dict[str, object], typed_audit_obj)
+    typed_audit = (
+        cast(dict[str, object], typed_audit_obj) if isinstance(typed_audit_obj, dict) else {}
+    )
 
     prediction_hash = str(row.canonical_payload_hash)
+    audit_identity = _strict_str(typed_audit, "audit_identity")
+    if audit_identity is None:
+        raise KeyError("audit_identity")
     return {
         "prediction_run_id": prediction_run_id,
         "prediction_hash": prediction_hash,
-        "request_payload_hash": _required_str(context, "request_payload_hash"),
-        "model_policy": _required_str(context, "model_policy"),
-        "task12_policy_version": _required_str(context, "task12_policy_version"),
-        "replay_attempt_id": _required_str(context, "replay_attempt_id"),
-        "replay_node_id": _required_str(context, "replay_node_id"),
-        "scenario_id": _required_str(context, "scenario_id"),
-        "training_manifest_hash": _required_str(context, "training_manifest_hash"),
-        "training_dataset_hash": _required_str(context, "training_dataset_hash"),
-        "model_config_hash": _required_str(context, "model_config_hash"),
-        "model_artifact_hash": _required_str(context, "model_artifact_hash"),
-        "model_code_version": _required_str(context, "model_code_version"),
-        "forecast_cutoff_at": _required_str(context, "forecast_cutoff_at"),
-        "training_cutoff_at": _required_str(context, "training_cutoff_at"),
-        "task9_run_id": _required_int(context, "task9_run_id"),
-        "task9_result_hash": _required_str(context, "task9_result_hash"),
-        "task10_training_run_id": _required_int(context, "task10_training_run_id"),
-        "task10_training_signature": _required_str(context, "task10_training_signature"),
-        "task10_manifest_hash": _required_str(context, "task10_manifest_hash"),
-        "task10_config_hash": _required_str(context, "task10_config_hash"),
-        "task10_artifact_hashes": _required_str_list(context, "task10_artifact_hashes"),
-        "filtered_training_row_count": _required_int(context, "filtered_training_row_count"),
-        "filtered_label_row_count": _required_int(context, "filtered_label_row_count"),
-        "training_execution_status": _required_str(context, "training_execution_status"),
-        "training_eligibility_status": _required_str(context, "training_eligibility_status"),
-        "prediction_execution_status": _required_str(context, "prediction_execution_status"),
-        "prediction_mode": _required_str(context, "prediction_mode"),
-        "idempotency_key": _required_str(context, "idempotency_key"),
-        "caller_identity": _required_str(context, "caller_identity"),
-        "audit_identity": _required_str(typed_audit, "audit_identity"),
-        "service_version": _required_str(context, "service_version"),
+        "request_payload_hash": _strict_str(context, "request_payload_hash"),
+        "model_policy": _strict_str(context, "model_policy"),
+        "task12_policy_version": _strict_str(context, "task12_policy_version"),
+        "replay_attempt_id": _strict_str(context, "replay_attempt_id"),
+        "replay_node_id": _strict_str(context, "replay_node_id"),
+        "scenario_id": _strict_str(context, "scenario_id"),
+        "training_manifest_hash": _strict_str(context, "training_manifest_hash"),
+        "training_dataset_hash": _strict_str(context, "training_dataset_hash"),
+        "model_config_hash": _strict_str(context, "model_config_hash"),
+        "model_artifact_hash": _strict_str(context, "model_artifact_hash"),
+        "model_code_version": _strict_str(context, "model_code_version"),
+        "forecast_cutoff_at": _strict_str(context, "forecast_cutoff_at"),
+        "training_cutoff_at": _strict_str(context, "training_cutoff_at"),
+        "task9_run_id": _strict_int(context, "task9_run_id"),
+        "task9_result_hash": _strict_str(context, "task9_result_hash"),
+        "task10_training_run_id": _strict_int(context, "task10_training_run_id"),
+        "task10_training_signature": _strict_str(context, "task10_training_signature"),
+        "task10_manifest_hash": _strict_str(context, "task10_manifest_hash"),
+        "task10_config_hash": _strict_str(context, "task10_config_hash"),
+        "task10_artifact_hashes": _strict_str_list(context, "task10_artifact_hashes"),
+        "filtered_training_row_count": _strict_int(context, "filtered_training_row_count"),
+        "filtered_label_row_count": _strict_int(context, "filtered_label_row_count"),
+        "training_execution_status": _strict_str(context, "training_execution_status"),
+        "training_eligibility_status": _strict_str(context, "training_eligibility_status"),
+        "prediction_execution_status": _strict_str(context, "prediction_execution_status"),
+        "prediction_mode": _strict_str(context, "prediction_mode"),
+        "idempotency_key": _strict_str(context, "idempotency_key"),
+        "caller_identity": _strict_str(context, "caller_identity"),
+        "audit_identity": audit_identity,
+        "service_version": _strict_str(context, "service_version"),
     }
 
 
