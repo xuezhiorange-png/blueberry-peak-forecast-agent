@@ -3855,3 +3855,124 @@ async def test_postgres_loader_corruption_unmodified_row_loads_clean(
     ):
         value = getattr(baseline, field_name)
         assert value is not None, (field_name, value)
+
+    # The two persisted boolean flags MUST also be ``True`` — the
+    # baseline row's write-time path produced ``no_implicit_selection
+    # = True`` and ``no_cross_run_substitution = True`` and the loader
+    # must reject any other persisted value.
+    assert baseline.no_implicit_selection is True
+    assert baseline.no_cross_run_substitution is True
+
+
+# ---------------------------------------------------------------------------
+# TASK-012 Slice E3 strict persisted boolean — final-round corruption tests
+# ---------------------------------------------------------------------------
+#
+# The previous round replaced silent ``bool(value or False)`` coercion
+# with a strict ``_strict_required_true_bool`` helper that fails closed
+# on three separate axes:
+#
+#   - missing key  → ``{field}_missing``
+#   - wrong type   → ``{field}_type`` (string / int / None rejected)
+#   - wrong value  → ``{field}_mismatch`` (native ``False`` rejected)
+#
+# The corruption tests below exercise each axis against the LIVE
+# PostgreSQL domain-2 shard, prove the EXACT ``mismatched_fields``
+# reason via a direct ``load_replay_trained_prediction`` call, and
+# confirm the public 500 envelope still exposes the
+# ``TASK012_REPLAY_TRAINED_INTEGRITY_ERROR`` public code (with the
+# full ``_ERROR`` suffix) under the frozen four-key shape
+# ``{code, message, blocker, identity}``.
+#
+# Without these tests, a passing 500 only proves "the loader raised
+# SOME exception" — not "the loader raised the EXPECTED exception
+# for THIS persisted corruption".
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("corrupted_value", "expected_reason"),
+    [
+        ("false", "no_implicit_selection_type"),
+        (1, "no_implicit_selection_type"),
+        (False, "no_implicit_selection_mismatch"),
+    ],
+)
+async def test_postgres_loader_corruption_no_implicit_selection_wrong(
+    corrupted_value: object,
+    expected_reason: str,
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """Persisted ``no_implicit_selection`` must be a native ``True``.
+
+    A non-empty string (``"false"``), an integer (``1``), or a native
+    ``False`` are all rejected. The reason MUST be one of the three
+    strict-required reasons — never silent acceptance + audit hash
+    mismatch.
+    """
+
+    pid, _ = await _seed_known_prediction(
+        idempotency_key=f"task12-e3-loader-implsel-{expected_reason}",
+    )
+
+    # Step 1: prove the un-corrupted row loads successfully.
+    async with AsyncSessionMaker() as session:
+        baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert baseline.no_implicit_selection is True
+
+    # Step 2: targeted single-field corruption → exact reason.
+    await _corrupt_typed_attempt(pid, replace={"no_implicit_selection": corrupted_value})
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
+            await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert exc_info.value.mismatched_fields == (expected_reason,), (
+        exc_info.value.mismatched_fields,
+    )
+
+    # Step 3: HTTP 500 envelope is still the frozen four-key shape with
+    # the full ``TASK012_REPLAY_TRAINED_INTEGRITY_ERROR`` public code.
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("corrupted_value", "expected_reason"),
+    [
+        ("false", "no_cross_run_substitution_type"),
+        (1, "no_cross_run_substitution_type"),
+        (False, "no_cross_run_substitution_mismatch"),
+    ],
+)
+async def test_postgres_loader_corruption_no_cross_run_substitution_wrong(
+    corrupted_value: object,
+    expected_reason: str,
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """Persisted ``no_cross_run_substitution`` must be a native ``True``.
+
+    Mirror of ``test_postgres_loader_corruption_no_implicit_selection_wrong``
+    for the second persisted boolean flag. The strict-required helper
+    treats the two fields symmetrically.
+    """
+
+    pid, _ = await _seed_known_prediction(
+        idempotency_key=f"task12-e3-loader-crsub-{expected_reason}",
+    )
+
+    # Step 1: prove the un-corrupted row loads successfully.
+    async with AsyncSessionMaker() as session:
+        baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert baseline.no_cross_run_substitution is True
+
+    # Step 2: targeted single-field corruption → exact reason.
+    await _corrupt_typed_attempt(pid, replace={"no_cross_run_substitution": corrupted_value})
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
+            await load_replay_trained_prediction(session, prediction_run_id=pid)
+    assert exc_info.value.mismatched_fields == (expected_reason,), (
+        exc_info.value.mismatched_fields,
+    )
+
+    # Step 3: HTTP 500 envelope is still the frozen four-key shape with
+    # the full ``TASK012_REPLAY_TRAINED_INTEGRITY_ERROR`` public code.
+    await _expect_500(e3_client, pid)
