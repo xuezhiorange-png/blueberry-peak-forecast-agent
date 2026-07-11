@@ -7,7 +7,8 @@ the Slice E2 application service in
 ``backend.app.rolling_backtest.replay_trained_service``.
 
 Hard prohibitions (enforced by tests in
-``backend/tests/rolling_backtest/test_replay_trained_model_slice_e3.py``):
+``backend/tests/rolling_backtest/test_replay_trained_model_slice_e3.py``
+and the E3 PG contracts):
 
 * NO business logic (no cutoff filtering, no Task 9 authority
   verification, no manifest / dataset rebuilding, no artifact
@@ -24,8 +25,10 @@ Hard prohibitions (enforced by tests in
   ``prediction_run_id`` is the ONLY retrieval selector.
 * NO duplicate of validation, idempotency, or hash logic that the
   E2 service already performs. The HTTP layer uses a strict
-  Pydantic request schema and forwards the parsed payload to the
-  E2 service, which is the single source of truth.
+  Pydantic request schema (``extra="forbid"`` +
+  ``StrictBool``/``StrictInt``/``Literal``) and forwards the
+  parsed payload to the E2 service, which is the single source
+  of truth.
 
 Frozen endpoints (amendment §7.2):
 
@@ -33,28 +36,37 @@ Frozen endpoints (amendment §7.2):
     - 201 first successful execution (service ``result.created == True``);
     - 200 exact idempotent replay (service ``result.created == False``);
     - 404 explicitly named replay / Task 8 / Task 9 / training /
-      artifact / prediction authority missing (frozen blocker
-      ``TASK12_***_NOT_FOUND``-class envelope);
+      artifact / prediction authority missing (frozen
+      ``TASK012_REPLAY_TRAINED_NOT_FOUND`` envelope via
+      :class:`ReplayTrainedServiceNotFoundError`);
     - 409 idempotency / canonical-hash mismatch (service
-      ``ReplayTrainedServiceConflictError``);
+      :class:`ReplayTrainedServiceConflictError`);
     - 409 structured TASK-012 blocker with stable ``blocker_code``
-      field (service ``ReplayTrainedServiceBlockerError``);
+      field (service :class:`ReplayTrainedServiceBlockerError`);
     - 422 request schema, cutoff, policy, or visibility contract
       violation (request schema validation OR service
-      ``ReplayTrainedServiceInputError``);
+      :class:`ReplayTrainedServiceInputError`);
     - 500 unexpected internal failure with stable non-leaking
       envelope.
 
 * ``GET /api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}``
     - 200 persisted prediction identity (exact retrieval only);
-    - 404 not found;
-    - 500 integrity failure.
+    - 404 not found (via :class:`ReplayTrainedServiceNotFoundError`);
+    - 500 strict persisted identity loader detected a missing or
+      malformed required field (via
+      :class:`ReplayTrainedPersistedIdentityIntegrityError`).
 
-The HTTP layer reads the service's ``result.created`` boolean
-disposition to choose between 201 and 200, and reads the service's
-canonical payload (via ``result.to_payload()``) to build the
-response envelope. It MUST NOT pre-check, recompute, or
-re-classify the disposition.
+The strict Pydantic request schema (per P0-#2 spec) rejects:
+
+* unknown top-level field and unknown nested field (→ 422);
+* ``is_replay`` set to a string ``"false"`` or integer ``1``
+  (StrictBool → 422);
+* integer fields receiving bool, float, or numeric string
+  (StrictInt → 422);
+* string fields receiving number / bool auto-conversion
+  (StrictStr → 422);
+* naive datetimes in datetime fields (custom validator → 422);
+* non-lowercase / wrong-length hash fields (pattern regex → 422).
 """
 
 from __future__ import annotations
@@ -63,23 +75,33 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Annotated, Any, ClassVar, cast
+from typing import Annotated, Any, ClassVar, Literal, cast
 
 from fastapi import APIRouter, Depends, Path, Response
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+    field_validator,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import get_db_session
-from backend.app.models.residual_model import ResidualModelPredictionRun
-from backend.app.repositories.residual_model import get_residual_prediction_run
 from backend.app.rolling_backtest.replay_trained_service import (
     ReplayTrainedExecutionRequest,
     ReplayTrainedExecutionResult,
+    ReplayTrainedPersistedIdentity,
+    ReplayTrainedPersistedIdentityIntegrityError,
     ReplayTrainedServiceBlockerError,
     ReplayTrainedServiceConflictError,
     ReplayTrainedServiceError,
     ReplayTrainedServiceInputError,
+    ReplayTrainedServiceNotFoundError,
     execute_replay_trained_prediction,
+    load_replay_trained_prediction,
 )
 
 logger = logging.getLogger(__name__)
@@ -93,74 +115,201 @@ PredictionRunIdPath = Annotated[int, Path(..., ge=1)]
 #: task9_result_hash, model_config_hash, model_artifact_hash, training_manifest_hash,
 #: training_dataset_hash, task10_manifest_hash, task10_config_hash.
 LOWERCASE_64_HEX = re.compile(r"^[0-9a-f]{64}$")
-#: Lowercase 32-character hex hash. Used for config_hash.
-LOWERCASE_32_HEX = re.compile(r"^[0-9a-f]{32}$")
 
 
 # ---------------------------------------------------------------------------
-# Strict request schema (amendment §7.1, §4.3, §6, §8)
+# Strict nested Pydantic models (P0-#2 spec)
 # ---------------------------------------------------------------------------
 #
-# The schema mirrors the canonical request identity at the wire boundary.
-# The E2 service (``ReplayTrainedExecutionRequest.from_payload``) is the
-# single source of truth for the full business contract; the HTTP layer's
-# strict schema exists ONLY to (a) reject malformed / hostile request
-# bodies with a stable 422 envelope BEFORE the E2 service is invoked and
-# (b) reject unknown fields. The E2 service still re-validates every
-# field. Any divergence between this schema and the E2 schema is a bug
-# in this layer.
-class ReplayTrainedRequestSchema(BaseModel):
-    """Strict Pydantic request schema mirroring the frozen E2 contract.
+# Every nested model is built with
+# ``ConfigDict(extra="forbid", populate_by_name=True)``. Combined with
+# the field-level ``StrictBool`` / ``StrictInt`` / ``StrictStr`` and
+# ``Literal`` types, the schema rejects:
+#
+#   - unknown top-level and unknown nested fields (→ 422);
+#   - bool / float / numeric string in integer fields (StrictInt);
+#   - number / bool auto-conversion in string fields (StrictStr);
+#   - naive datetimes in datetime fields (custom validator);
+#   - non-lowercase / wrong-length hash fields (pattern regex).
+#
+# The schema mirrors the canonical request identity at the wire
+# boundary. The E2 service
+# (``ReplayTrainedExecutionRequest.from_payload``) is the single
+# source of truth for the full business contract; this layer's
+# strict schema exists ONLY as a fast-fail barrier BEFORE the E2
+# service is invoked. The E2 service still re-validates every field.
 
-    All fields are required (no defaults). ``extra="forbid"`` rejects
-    unknown fields. Datetime fields are parsed by Pydantic v2 and
-    MUST be timezone-aware (naive datetimes raise a 422).
+
+class _StrictBaseModel(BaseModel):
+    """Base for every strict nested model.
+
+    Rejects unknown fields (via ``extra="forbid"``) and accepts
+    either the JSON field name OR the Python attribute name
+    (via ``populate_by_name=True``). Datetime / list / tuple /
+    nested-dict fields still parse from JSON strings/lists via
+    Pydantic v2's standard validation; the field-level
+    ``StrictBool``/``StrictInt``/``StrictStr`` types enforce the
+    no-auto-coerce rule on the scalar fields the spec requires.
     """
 
-    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+
+
+class TrainingManifestSchema(_StrictBaseModel):
+    replay_attempt_id: StrictStr = Field(..., min_length=1)
+    replay_node_id: StrictStr = Field(..., min_length=1)
+    scenario_id: StrictStr = Field(..., min_length=1)
+    forecast_cutoff_at: datetime
+    training_cutoff_at: datetime
+    allowed_training_season_ids: list[StrictInt] = Field(..., min_length=1)
+    feature_visibility_policy_version: StrictStr = Field(..., min_length=1)
+    label_visibility_policy_version: StrictStr = Field(..., min_length=1)
+    artifact_visibility_policy_version: StrictStr = Field(..., min_length=1)
+    validation_policy_version: StrictStr = Field(..., min_length=1)
+    training_dataset_hash: StrictStr = Field(
+        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
+    )
+    task8_curve_identity: StrictStr | None = None
+    task9_replay_binding_identity: StrictStr | None = None
+    row_count: StrictInt = Field(..., ge=0)
+    excluded_row_count: StrictInt = Field(..., ge=0)
+
+
+class ModelConfigSchema(_StrictBaseModel):
+    algorithm_family: StrictStr = Field(..., min_length=1)
+    hyperparameters: dict[StrictStr, StrictStr | StrictInt | StrictBool]
+    random_seed: StrictInt = Field(..., ge=0)
+    deterministic_serialization_version: StrictStr = Field(..., min_length=1)
+
+
+class SourceRunIdsSchema(_StrictBaseModel):
+    task9a_run_id: StrictInt = Field(..., ge=1)
+    task9b_run_id: StrictInt | None = Field(default=None, ge=1)
+    task10_training_run_id: StrictInt | None = Field(default=None, ge=1)
+
+
+class ArtifactIdentitySchema(_StrictBaseModel):
+    model_policy: Literal["replay_trained_model"]
+    task12_policy_version: StrictStr = Field(..., min_length=1)
+    replay_attempt_id: StrictStr = Field(..., min_length=1)
+    replay_node_id: StrictStr = Field(..., min_length=1)
+    forecast_cutoff_at: datetime
+    training_cutoff_at: datetime
+    training_manifest_hash: StrictStr = Field(
+        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
+    )
+    training_dataset_hash: StrictStr = Field(
+        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
+    )
+    model_config_hash: StrictStr = Field(
+        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
+    )
+    model_artifact_hash: StrictStr = Field(
+        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
+    )
+    model_code_version: StrictStr = Field(..., min_length=1)
+
+
+class _RowPassthroughBaseModel(BaseModel):
+    """Base for per-row passthrough schemas.
+
+    The E2 service's :class:`ReplayTrainedExecutionRequest` accepts
+    row payloads (``manifest_rows_payload``, ``training_rows``,
+    ``label_rows``, ``training_samples``,
+    ``supplemental_feature_values``) as ``tuple[dict[str, object], ...]``
+    (generic per-row dicts). The HTTP layer mirrors this contract
+    at the wire boundary: every row is required to be a JSON
+    object (non-object → 422), and the inner keys are
+    transparently forwarded to the E2 service which performs the
+    full per-row validation.
+
+    The per-row model deliberately uses ``extra="allow"`` and
+    does NOT define explicit fields. This is the spec-compliant
+    passthrough pattern: the strict nested model for the per-row
+    structured payload IS the E2 service's
+    :class:`ReplayTrainedExecutionRequest`. Pydantic v2 stores
+    the extra fields in ``__pydantic_extra__``; the
+    :meth:`model_dump` call returns them as-is.
+    """
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+
+
+class ManifestRowSchema(_RowPassthroughBaseModel):
+    """See :class:`_RowPassthroughBaseModel`."""
+
+
+class TrainingRowSchema(_RowPassthroughBaseModel):
+    """See :class:`_RowPassthroughBaseModel`."""
+
+
+class LabelRowSchema(_RowPassthroughBaseModel):
+    """See :class:`_RowPassthroughBaseModel`."""
+
+
+class TrainingSampleSchema(_RowPassthroughBaseModel):
+    """See :class:`_RowPassthroughBaseModel`."""
+
+
+class SupplementalFeatureValueSchema(_RowPassthroughBaseModel):
+    """See :class:`_RowPassthroughBaseModel`."""
+
+
+class ReplayTrainedRequestSchema(_StrictBaseModel):
+    """Strict Pydantic request schema mirroring the frozen E2 contract.
+
+    All fields are required unless explicitly typed ``None``-able.
+    ``extra="forbid"`` rejects unknown fields. ``StrictBool``,
+    ``StrictInt``, and ``StrictStr`` fields disable Pydantic's
+    automatic type coercion for the specific scalar types the
+    spec requires to be strict. Datetime fields are parsed by
+    Pydantic v2 and MUST be timezone-aware (naive datetimes
+    raise a 422).
+    """
 
     # NOTE: the JSON field name is ``model_config`` (frozen at the wire
     # boundary by amendment §7.1) but the Python attribute name is
     # ``model_config_payload`` to avoid colliding with Pydantic's
     # ``model_config`` class variable.
-    model_config_payload: dict[str, object] = Field(
+    model_config_payload: ModelConfigSchema = Field(
         ...,
         validation_alias="model_config",
         serialization_alias="model_config",
     )
-    model_policy: str = Field(..., min_length=1)
-    task12_policy_version: str = Field(..., min_length=1)
-    replay_attempt_id: str = Field(..., min_length=1)
-    replay_node_id: str = Field(..., min_length=1)
-    scenario_id: str = Field(..., min_length=1)
+    model_policy: Literal["replay_trained_model"]
+    task12_policy_version: StrictStr = Field(..., min_length=1)
+    replay_attempt_id: StrictStr = Field(..., min_length=1)
+    replay_node_id: StrictStr = Field(..., min_length=1)
+    scenario_id: StrictStr = Field(..., min_length=1)
     forecast_cutoff_at: datetime
     training_cutoff_at: datetime
-    allowed_training_season_ids: tuple[int, ...] = Field(..., min_length=1)
-    training_manifest: dict[str, object]
-    model_code_version: str = Field(..., min_length=1)
-    replay_code_version: str = Field(..., min_length=1)
-    task9_run_id: int = Field(..., ge=1)
-    task9_result_hash: str = Field(..., min_length=1)
-    is_replay: bool
-    task10_config_snapshot: dict[str, object]
-    manifest_rows_payload: list[dict[str, object]] = Field(..., min_length=1)
-    training_rows: list[dict[str, object]] = Field(..., min_length=1)
-    label_rows: list[dict[str, object]]
-    source_run_ids: dict[str, int]
-    artifact_identity_json: dict[str, object]
-    artifact_identity_manifest: dict[str, object]
-    feature_actual_snapshot: dict[str, object] | None
-    idempotency_key: str = Field(..., min_length=1)
-    caller_identity: str = Field(..., min_length=1)
-    training_samples: list[dict[str, object]] = Field(..., min_length=1)
-    supplemental_feature_values: list[dict[str, object]]
-
-    @field_validator("task9_result_hash")
-    @classmethod
-    def _validate_hash_fields(cls, value: str) -> str:
-        if not LOWERCASE_64_HEX.match(value):
-            raise ValueError("task9_result_hash must be a lowercase 64-character hex hash")
-        return value
+    allowed_training_season_ids: list[StrictInt] = Field(..., min_length=1)
+    training_manifest: TrainingManifestSchema
+    model_code_version: StrictStr = Field(..., min_length=1)
+    replay_code_version: StrictStr = Field(..., min_length=1)
+    task9_run_id: StrictInt = Field(..., ge=1)
+    task9_result_hash: StrictStr = Field(
+        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
+    )
+    is_replay: StrictBool
+    task10_config_snapshot: dict[StrictStr, object]
+    manifest_rows_payload: list[ManifestRowSchema] = Field(..., min_length=1)
+    training_rows: list[TrainingRowSchema] = Field(..., min_length=1)
+    label_rows: list[LabelRowSchema]
+    source_run_ids: dict[StrictStr, StrictInt]
+    artifact_identity_json: ArtifactIdentitySchema
+    artifact_identity_manifest: ArtifactIdentitySchema
+    feature_actual_snapshot: dict[StrictStr, object] | None
+    idempotency_key: StrictStr = Field(..., min_length=1)
+    caller_identity: StrictStr = Field(..., min_length=1)
+    training_samples: list[TrainingSampleSchema] = Field(..., min_length=1)
+    supplemental_feature_values: list[SupplementalFeatureValueSchema]
 
     @field_validator("forecast_cutoff_at", "training_cutoff_at")
     @classmethod
@@ -226,7 +375,7 @@ def _blocked_payload(
 def _integrity_error_payload() -> dict[str, Any]:
     return {
         "error": {
-            "code": "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR",
+            "code": "TASK012_REPLAY_TRAINED_INTEGRITY",
             "message": "TASK-012 replay-trained prediction integrity check failed.",
             "blocker": None,
             "identity": {},
@@ -249,7 +398,7 @@ def _json_error_response(payload: dict[str, Any], status_code: int) -> Response:
 
 
 def _response_envelope(result: ReplayTrainedExecutionResult) -> dict[str, Any]:
-    """Return the stable public response body.
+    """Return the stable public POST response body.
 
     The E2 service is the single source of truth for the canonical
     payload (``result.to_payload()``) and the 201/200 disposition
@@ -298,104 +447,8 @@ def _response_envelope(result: ReplayTrainedExecutionResult) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# GET endpoint (amendment §7.2) — strict persisted identity loader
+# GET endpoint (amendment §7.2) — application-level strict persisted loader
 # ---------------------------------------------------------------------------
-
-
-def _prediction_identity_envelope(
-    *,
-    prediction_run_id: int,
-    row: ResidualModelPredictionRun,
-) -> dict[str, Any]:
-    """Build the GET response strictly from the persisted ORM row.
-
-    The adapter does NOT recompute, default, or fabricate any
-    identity field. Every field that IS in the response is read
-    from the persisted ``input_snapshot.task12_replay`` context
-    (or ``typed_attempt.task12_replay`` for the audit identity)
-    and the ORM row. A field that is absent in the persisted
-    context is returned as ``None`` rather than fabricated with
-    a default value; the adapter MUST NOT silently backfill. The
-    persisted ``audit_identity`` (in ``typed_attempt.task12_replay``)
-    is the only field treated as integrity-required; if it is
-    missing the row has not been TASK-012-finalised and the
-    endpoint emits the stable 500 integrity envelope (fail-closed).
-    """
-
-    def _strict_str(context: dict[str, object], key: str) -> str | None:
-        if key not in context:
-            return None
-        value = context[key]
-        if not isinstance(value, str) or not value:
-            return None
-        return value
-
-    def _strict_int(context: dict[str, object], key: str) -> int | None:
-        if key not in context:
-            return None
-        value = context[key]
-        if isinstance(value, bool) or not isinstance(value, int):
-            return None
-        return value
-
-    def _strict_str_list(context: dict[str, object], key: str) -> list[str] | None:
-        if key not in context:
-            return None
-        value = context[key]
-        if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
-            return None
-        return cast(list[str], value)
-
-    input_snapshot = row.input_snapshot or {}
-    context_obj = input_snapshot.get("task12_replay")
-    if not isinstance(context_obj, dict):
-        raise KeyError("task12_replay context")
-    context = cast(dict[str, object], context_obj)
-
-    typed_attempt = row.typed_attempt or {}
-    typed_audit_obj = typed_attempt.get("task12_replay")
-    typed_audit = (
-        cast(dict[str, object], typed_audit_obj) if isinstance(typed_audit_obj, dict) else {}
-    )
-
-    prediction_hash = str(row.canonical_payload_hash)
-    audit_identity = _strict_str(typed_audit, "audit_identity")
-    if audit_identity is None:
-        raise KeyError("audit_identity")
-    return {
-        "prediction_run_id": prediction_run_id,
-        "prediction_hash": prediction_hash,
-        "request_payload_hash": _strict_str(context, "request_payload_hash"),
-        "model_policy": _strict_str(context, "model_policy"),
-        "task12_policy_version": _strict_str(context, "task12_policy_version"),
-        "replay_attempt_id": _strict_str(context, "replay_attempt_id"),
-        "replay_node_id": _strict_str(context, "replay_node_id"),
-        "scenario_id": _strict_str(context, "scenario_id"),
-        "training_manifest_hash": _strict_str(context, "training_manifest_hash"),
-        "training_dataset_hash": _strict_str(context, "training_dataset_hash"),
-        "model_config_hash": _strict_str(context, "model_config_hash"),
-        "model_artifact_hash": _strict_str(context, "model_artifact_hash"),
-        "model_code_version": _strict_str(context, "model_code_version"),
-        "forecast_cutoff_at": _strict_str(context, "forecast_cutoff_at"),
-        "training_cutoff_at": _strict_str(context, "training_cutoff_at"),
-        "task9_run_id": _strict_int(context, "task9_run_id"),
-        "task9_result_hash": _strict_str(context, "task9_result_hash"),
-        "task10_training_run_id": _strict_int(context, "task10_training_run_id"),
-        "task10_training_signature": _strict_str(context, "task10_training_signature"),
-        "task10_manifest_hash": _strict_str(context, "task10_manifest_hash"),
-        "task10_config_hash": _strict_str(context, "task10_config_hash"),
-        "task10_artifact_hashes": _strict_str_list(context, "task10_artifact_hashes"),
-        "filtered_training_row_count": _strict_int(context, "filtered_training_row_count"),
-        "filtered_label_row_count": _strict_int(context, "filtered_label_row_count"),
-        "training_execution_status": _strict_str(context, "training_execution_status"),
-        "training_eligibility_status": _strict_str(context, "training_eligibility_status"),
-        "prediction_execution_status": _strict_str(context, "prediction_execution_status"),
-        "prediction_mode": _strict_str(context, "prediction_mode"),
-        "idempotency_key": _strict_str(context, "idempotency_key"),
-        "caller_identity": _strict_str(context, "caller_identity"),
-        "audit_identity": audit_identity,
-        "service_version": _strict_str(context, "service_version"),
-    }
 
 
 @router.get(
@@ -411,26 +464,37 @@ async def get_replay_trained_prediction(
     The path parameter is the ONLY selector. The endpoint MUST NOT
     accept ``latest`` / ``current`` / ``most_recent`` / ``now()``
     shortcuts and MUST NOT re-execute the Slice E2 service. It
-    reads the existing persisted ORM row and projects the strict
-    TASK-012 identity fields. Any missing required field fails
-    closed with the stable 500 integrity envelope.
+    delegates to the application-level
+    :func:`load_replay_trained_prediction` loader which is
+    fail-closed on every required identity field. The HTTP layer
+    has only THREE possible outcomes:
+
+    * typed result → 200 with the loader's response envelope;
+    * :class:`ReplayTrainedServiceNotFoundError` → 404;
+    * :class:`ReplayTrainedPersistedIdentityIntegrityError` →
+      500 (loader detected a missing or malformed required field).
     """
     try:
-        row = await get_residual_prediction_run(session, run_id=prediction_run_id)
-        if row is None:
-            return _json_error_response(
-                _not_found_payload(prediction_run_id),
-                status_code=404,
-            )
-        envelope = _prediction_identity_envelope(
-            prediction_run_id=prediction_run_id,
-            row=row,
+        identity: ReplayTrainedPersistedIdentity = await load_replay_trained_prediction(
+            session, prediction_run_id=prediction_run_id
         )
-    except KeyError as exc:
-        logger.error(
-            "replay_trained_api.get_integrity_missing_field prediction_run_id=%r missing_key=%r",
+    except ReplayTrainedServiceNotFoundError as exc:
+        return _json_error_response(
+            {"error": exc.to_payload()}, status_code=404
+        )
+    except ReplayTrainedPersistedIdentityIntegrityError:
+        logger.exception(
+            "replay_trained_api.get_integrity_error prediction_run_id=%r",
             prediction_run_id,
-            exc.args[0] if exc.args else "<unknown>",
+        )
+        return _json_error_response(
+            _integrity_error_payload(),
+            status_code=500,
+        )
+    except ReplayTrainedServiceError:
+        logger.exception(
+            "replay_trained_api.get_service_error prediction_run_id=%r",
+            prediction_run_id,
         )
         return _json_error_response(
             _integrity_error_payload(),
@@ -445,7 +509,7 @@ async def get_replay_trained_prediction(
             _integrity_error_payload(),
             status_code=500,
         )
-    return _json_error_response(envelope, status_code=200)
+    return _json_error_response(identity.to_response_payload(), status_code=200)
 
 
 # ---------------------------------------------------------------------------
@@ -481,7 +545,13 @@ async def post_replay_trained_prediction(
        between 201 (first execution) and 200 (exact idempotent
        replay). The HTTP layer does NOT pre-check or recompute
        the disposition.
-    5. Maps service errors to the stable transport envelope.
+    5. Maps service errors to the stable transport envelope:
+
+       * :class:`ReplayTrainedServiceInputError` → 422;
+       * :class:`ReplayTrainedServiceConflictError` → 409;
+       * :class:`ReplayTrainedServiceBlockerError` → 409;
+       * :class:`ReplayTrainedServiceNotFoundError` → 404;
+       * any other service / unexpected error → 500.
     """
     try:
         payload_for_service = cast(
@@ -500,6 +570,10 @@ async def post_replay_trained_prediction(
         return _json_error_response(
             _input_invalid_payload(),
             status_code=422,
+        )
+    except ReplayTrainedServiceNotFoundError as exc:
+        return _json_error_response(
+            {"error": exc.to_payload()}, status_code=404
         )
     except ReplayTrainedServiceConflictError as exc:
         return _json_error_response(
