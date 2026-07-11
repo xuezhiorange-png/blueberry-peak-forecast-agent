@@ -169,9 +169,7 @@ class TrainingManifestSchema(_StrictBaseModel):
     label_visibility_policy_version: StrictStr = Field(..., min_length=1)
     artifact_visibility_policy_version: StrictStr = Field(..., min_length=1)
     validation_policy_version: StrictStr = Field(..., min_length=1)
-    training_dataset_hash: StrictStr = Field(
-        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
-    )
+    training_dataset_hash: StrictStr = Field(..., min_length=1, pattern=LOWERCASE_64_HEX.pattern)
     task8_curve_identity: StrictStr | None = None
     task9_replay_binding_identity: StrictStr | None = None
     row_count: StrictInt = Field(..., ge=0)
@@ -198,18 +196,10 @@ class ArtifactIdentitySchema(_StrictBaseModel):
     replay_node_id: StrictStr = Field(..., min_length=1)
     forecast_cutoff_at: datetime
     training_cutoff_at: datetime
-    training_manifest_hash: StrictStr = Field(
-        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
-    )
-    training_dataset_hash: StrictStr = Field(
-        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
-    )
-    model_config_hash: StrictStr = Field(
-        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
-    )
-    model_artifact_hash: StrictStr = Field(
-        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
-    )
+    training_manifest_hash: StrictStr = Field(..., min_length=1, pattern=LOWERCASE_64_HEX.pattern)
+    training_dataset_hash: StrictStr = Field(..., min_length=1, pattern=LOWERCASE_64_HEX.pattern)
+    model_config_hash: StrictStr = Field(..., min_length=1, pattern=LOWERCASE_64_HEX.pattern)
+    model_artifact_hash: StrictStr = Field(..., min_length=1, pattern=LOWERCASE_64_HEX.pattern)
     model_code_version: StrictStr = Field(..., min_length=1)
 
 
@@ -294,9 +284,7 @@ class ReplayTrainedRequestSchema(_StrictBaseModel):
     model_code_version: StrictStr = Field(..., min_length=1)
     replay_code_version: StrictStr = Field(..., min_length=1)
     task9_run_id: StrictInt = Field(..., ge=1)
-    task9_result_hash: StrictStr = Field(
-        ..., min_length=1, pattern=LOWERCASE_64_HEX.pattern
-    )
+    task9_result_hash: StrictStr = Field(..., min_length=1, pattern=LOWERCASE_64_HEX.pattern)
     is_replay: StrictBool
     task10_config_snapshot: dict[StrictStr, object]
     manifest_rows_payload: list[ManifestRowSchema] = Field(..., min_length=1)
@@ -479,9 +467,7 @@ async def get_replay_trained_prediction(
             session, prediction_run_id=prediction_run_id
         )
     except ReplayTrainedServiceNotFoundError as exc:
-        return _json_error_response(
-            {"error": exc.to_payload()}, status_code=404
-        )
+        return _json_error_response({"error": exc.to_payload()}, status_code=404)
     except ReplayTrainedPersistedIdentityIntegrityError:
         logger.exception(
             "replay_trained_api.get_integrity_error prediction_run_id=%r",
@@ -572,9 +558,7 @@ async def post_replay_trained_prediction(
             status_code=422,
         )
     except ReplayTrainedServiceNotFoundError as exc:
-        return _json_error_response(
-            {"error": exc.to_payload()}, status_code=404
-        )
+        return _json_error_response({"error": exc.to_payload()}, status_code=404)
     except ReplayTrainedServiceConflictError as exc:
         return _json_error_response(
             _conflict_payload(exc.mismatched_fields),
