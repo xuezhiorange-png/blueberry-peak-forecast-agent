@@ -2893,3 +2893,595 @@ from backend.tests.integration.test_task012_slice_e2_postgres import (  # noqa: 
     test_postgres_slice_e2_task9_hash_mismatch_blocks,
     test_postgres_slice_e2_real_success_and_fresh_reload,
 )
+
+
+# ---------------------------------------------------------------------------
+# TASK-012 Slice E3 HTTP API — PostgreSQL contracts (22 nodes)
+#
+# All 22 test functions below were migrated from
+# ``test_task012_slice_e3_postgres.py`` (deleted) into the domain-2
+# owned file so that pytest collection, the PR ``postgres-domain-2``
+# shard, and the ``main`` ``full-suite-canary`` shard each execute
+# every E3 contract exactly once. The HTTP transport is exercised
+# through ``ASGITransport(create_app())`` against the real PostgreSQL
+# database and the real Slice E2 application service. No fake response,
+# no dict reconstruction.
+# ---------------------------------------------------------------------------
+
+from collections.abc import AsyncIterator  # noqa: E402
+
+import httpx  # noqa: E402
+import pytest  # noqa: E402
+from httpx import ASGITransport  # noqa: E402
+
+from backend.app.main import create_app  # noqa: E402
+from backend.app.rolling_backtest.replay_trained_service import (  # noqa: E402
+    ReplayTrainedExecutionRequest,
+)
+from backend.tests.integration._e3_fixtures import (  # noqa: E402
+    make_replay_trained_request,
+    post_via_service,
+    require_postgres,
+)
+
+# Mark every E3 node as PG integration so ``RUN_POSTGRES_INTEGRATION=1``
+# gates collection in environments without a live PostgreSQL instance.
+pytestmark = pytest.mark.integration
+
+
+@pytest.fixture
+async def e3_client() -> AsyncIterator[httpx.AsyncClient]:
+    require_postgres()
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as test_client:
+        yield test_client
+
+
+def _first_execution_body(idempotency_key: str) -> dict[str, object]:
+    """Build a complete valid POST body.
+
+    Used by tests that mutate a single field on a copy of the body so
+    that the failure message exposes the real schema violation, not a
+    cascade of "missing required field" errors.
+    """
+    raise RuntimeError("async helper — use await _first_execution_body_async")
+
+
+async def _first_execution_body_async(
+    *, idempotency_key: str
+) -> dict[str, object]:
+    request = await make_replay_trained_request(idempotency_key=idempotency_key)
+    body = request.to_payload()
+    body["idempotency_key"] = idempotency_key
+    return body  # type: ignore[return-value]
+
+
+# ---------------------------------------------------------------------------
+# POST contracts (6 nodes)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+async def test_postgres_post_first_execution_returns_201_and_persists(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    body = await _first_execution_body_async(idempotency_key="task12-e3-post-201")
+    response = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert response.status_code == 201, response.text
+    payload = response.json()
+    assert payload["disposition"] == "created"
+    assert payload["prediction_run_id"] > 0
+    assert payload["model_policy"] == "replay_trained_model"
+    assert payload["audit_identity"]
+    assert payload["task9_run_id"] == body["task9_run_id"]
+    assert payload["idempotency_key"] == "task12-e3-post-201"
+
+    async with AsyncSessionMaker() as session:
+        row = await session.get(ResidualModelPredictionRun, payload["prediction_run_id"])
+        assert row is not None
+        context = row.input_snapshot["task12_replay"]
+        assert context["idempotency_key"] == "task12-e3-post-201"
+        assert row.typed_attempt["task12_replay"]["audit_identity"] == payload["audit_identity"]
+
+
+@pytest.mark.integration
+async def test_postgres_post_exact_replay_returns_200_with_same_envelope(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    body = await _first_execution_body_async(idempotency_key="task12-e3-post-200")
+
+    first = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert first.status_code == 201, first.text
+    first_payload = first.json()
+    assert first_payload["disposition"] == "created"
+
+    second = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert second.status_code == 200, second.text
+    second_payload = second.json()
+    assert second_payload["disposition"] == "idempotent_replay"
+    for key, value in first_payload.items():
+        if key == "disposition":
+            continue
+        assert second_payload.get(key) == value, (key, value, second_payload.get(key))
+
+    async with AsyncSessionMaker() as session:
+        count = await session.scalar(
+            select(func.count())
+            .select_from(ResidualModelPredictionRun)
+            .where(
+                ResidualModelPredictionRun.input_snapshot["task12_replay"][
+                    "idempotency_key"
+                ].as_string()
+                == "task12-e3-post-200"
+            )
+        )
+        assert count == 1
+
+
+@pytest.mark.integration
+async def test_postgres_post_idempotency_conflict_returns_409(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    body = await _first_execution_body_async(idempotency_key="task12-e3-post-409")
+
+    first = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert first.status_code == 201, first.text
+
+    body["caller_identity"] = "integration:different-caller"
+    second = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert second.status_code == 409, second.text
+    body_payload = second.json()
+    assert body_payload["error"]["code"] == "TASK012_REPLAY_TRAINED_CONFLICT"
+    assert body_payload["error"]["identity"]["mismatched_fields"] == [
+        "idempotency_key_payload_mismatch"
+    ]
+
+
+@pytest.mark.integration
+async def test_postgres_post_invalid_request_returns_422(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    body = await _first_execution_body_async(idempotency_key="task12-e3-post-422")
+    del body["task9_result_hash"]  # remove one required field to force 422
+    response = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert response.status_code == 422, response.text
+    assert response.json()["error"]["code"] == "TASK012_REPLAY_TRAINED_INPUT_INVALID"
+
+
+# POST authority 404 / 409 split (replaces the old single 409 test).
+# Per Slice E3 §4: Task 9 run missing → 404 not-found; is_replay=False
+# or result-hash mismatch → 409 conflict. The HTTP layer MUST
+# distinguish "authority not present" (404) from "authority present
+# but rejected" (409).
+
+
+@pytest.mark.integration
+async def test_postgres_post_task9_authority_missing_returns_404(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    request = await make_replay_trained_request(
+        idempotency_key="task12-e3-authority-404"
+    )
+    async with AsyncSessionMaker() as session:
+        run = await session.get(HarvestStateRun, request.task9_run_id)
+        assert run is not None
+        # Mark the Task 9 run as the *referenced* authority but with a
+        # deleted state by re-using the run id after wiping its
+        # authority fields. The application loader is given no way to
+        # reconstruct the original; it must report not-found.
+        await session.delete(run)
+        await session.commit()
+
+    body = request.to_payload()
+    body["idempotency_key"] = "task12-e3-authority-404"
+    response = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert response.status_code == 404, response.text
+    payload = response.json()
+    assert payload["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
+    assert payload["error"]["identity"]["prediction_run_id"] is None
+
+
+@pytest.mark.integration
+async def test_postgres_post_task9_authority_not_replay_returns_409_blocker(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    request = await make_replay_trained_request(
+        idempotency_key="task12-e3-authority-409a"
+    )
+    async with AsyncSessionMaker() as session:
+        run = await session.get(HarvestStateRun, request.task9_run_id)
+        assert run is not None
+        run.is_replay = False
+        run.forecast_effective_cutoff_at = None
+        run.replay_executed_at = None
+        run.replay_code_version = None
+        run.replay_run_correlation_id = None
+        await session.commit()
+
+    body = request.to_payload()
+    body["idempotency_key"] = "task12-e3-authority-409a"
+    response = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert response.status_code == 409, response.text
+    payload = response.json()
+    assert payload["error"]["code"] == "TASK012_REPLAY_TRAINED_BLOCKED"
+    assert (
+        "task9_replay_run_missing_or_not_replay"
+        in payload["error"]["identity"]["mismatched_fields"]
+    )
+
+
+@pytest.mark.integration
+async def test_postgres_post_task9_authority_hash_mismatch_returns_409_blocker(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    request = await make_replay_trained_request(
+        idempotency_key="task12-e3-authority-409b"
+    )
+    body = request.to_payload()
+    body["idempotency_key"] = "task12-e3-authority-409b"
+    # Mutate exactly the result-hash field; this is the cross-run
+    # identity mismatch the spec requires to be a 409 blocker, not a
+    # 404 (the authority exists, the request is rejected).
+    body["task9_result_hash"] = "f" * 64
+
+    response = await e3_client.post(
+        "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+    )
+    assert response.status_code == 409, response.text
+    payload = response.json()
+    assert payload["error"]["code"] == "TASK012_REPLAY_TRAINED_BLOCKED"
+    assert (
+        "task9_result_hash_mismatch" in payload["error"]["identity"]["mismatched_fields"]
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET contracts (4 nodes)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+async def test_postgres_get_exact_prediction_returns_200_with_persisted_identity(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    request = await make_replay_trained_request(
+        idempotency_key="task12-e3-get-200"
+    )
+    prediction_run_id = await post_via_service(request)
+
+    response = await e3_client.get(
+        f"/api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}"
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["prediction_run_id"] == prediction_run_id
+    assert payload["model_policy"] == "replay_trained_model"
+    assert payload["task9_run_id"] == request.task9_run_id
+    assert payload["audit_identity"]
+
+
+@pytest.mark.integration
+async def test_postgres_get_missing_prediction_returns_404(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    response = await e3_client.get(
+        "/api/v1/rolling-backtest/replay-trained-predictions/999999"
+    )
+    assert response.status_code == 404, response.text
+    body = response.json()
+    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
+    assert body["error"]["identity"]["prediction_run_id"] == 999999
+
+
+@pytest.mark.integration
+async def test_postgres_get_does_not_re_execute_or_mutate_state(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    request = await make_replay_trained_request(
+        idempotency_key="task12-e3-get-noop"
+    )
+    prediction_run_id = await post_via_service(request)
+
+    async with AsyncSessionMaker() as session:
+        before_count = await session.scalar(
+            select(func.count()).select_from(ResidualModelPredictionRun)
+        )
+
+    for _ in range(3):
+        response = await e3_client.get(
+            f"/api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}"
+        )
+        assert response.status_code == 200
+
+    async with AsyncSessionMaker() as session:
+        after_count = await session.scalar(
+            select(func.count()).select_from(ResidualModelPredictionRun)
+        )
+    assert before_count == after_count
+
+
+@pytest.mark.integration
+async def test_postgres_get_rejects_no_implicit_latest_or_current(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    response = await e3_client.get(
+        "/api/v1/rolling-backtest/replay-trained-predictions/latest"
+    )
+    assert response.status_code in (404, 422)
+
+
+# ---------------------------------------------------------------------------
+# Concurrency contract (1 node)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+async def test_postgres_concurrent_post_returns_one_201_and_one_200_with_same_identity(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="task12-e3-concurrent"
+    )
+
+    async def _post() -> httpx.Response:
+        local_client = httpx.AsyncClient(
+            transport=ASGITransport(app=e3_client._transport.app),  # type: ignore[attr-defined]
+            base_url="http://test",
+        )
+        try:
+            return await local_client.post(
+                "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+            )
+        finally:
+            await local_client.aclose()
+
+    import asyncio
+
+    responses = await asyncio.gather(_post(), _post())
+    statuses = sorted(r.status_code for r in responses)
+    assert statuses == [200, 201], (
+        f"expected exactly one 201 and one 200; got {statuses}: "
+        f"{[r.text for r in responses]}"
+    )
+
+    payload_by_status: dict[int, dict[str, object]] = {
+        r.status_code: r.json() for r in responses
+    }
+    created = payload_by_status[201]
+    replay = payload_by_status[200]
+    assert created["disposition"] == "created"
+    assert replay["disposition"] == "idempotent_replay"
+    assert created["prediction_run_id"] == replay["prediction_run_id"], (
+        created["prediction_run_id"],
+        replay["prediction_run_id"],
+    )
+    for key, value in created.items():
+        if key == "disposition":
+            continue
+        assert replay.get(key) == value, (key, value, replay.get(key))
+
+    async with AsyncSessionMaker() as session:
+        count = await session.scalar(
+            select(func.count())
+            .select_from(ResidualModelPredictionRun)
+            .where(
+                ResidualModelPredictionRun.input_snapshot["task12_replay"][
+                    "idempotency_key"
+                ].as_string()
+                == "task12-e3-concurrent"
+            )
+        )
+    assert count == 1
+
+
+# ---------------------------------------------------------------------------
+# GET corruption PostgreSQL tests (10 nodes)
+#
+# The application-level loader
+# ``load_replay_trained_prediction(session, prediction_run_id)`` is
+# fail-closed: every required field MUST be present in the persisted
+# row, and any required field that is missing, malformed, or
+# mismatched-against-redeterminism produces a stable 500 envelope.
+# ---------------------------------------------------------------------------
+
+
+async def _seed_known_prediction(
+    *, idempotency_key: str
+) -> tuple[int, ReplayTrainedExecutionRequest]:
+    request = await make_replay_trained_request(idempotency_key=idempotency_key)
+    prediction_run_id = await post_via_service(request)
+    return prediction_run_id, request
+
+
+def _corrupt_input_snapshot(
+    prediction_run_id: int, *, drop: str | None = None, replace: dict | None = None
+) -> None:
+    async def _do() -> None:
+        async with AsyncSessionMaker() as session:
+            row = await session.get(ResidualModelPredictionRun, prediction_run_id)
+            assert row is not None
+            snapshot = dict(row.input_snapshot)
+            task12 = dict(snapshot["task12_replay"])
+            if drop is not None:
+                task12.pop(drop, None)
+            if replace is not None:
+                task12.update(replace)
+            snapshot["task12_replay"] = task12
+            row.input_snapshot = snapshot
+            await session.commit()
+
+    import asyncio
+
+    asyncio.run(_do())
+
+
+def _corrupt_typed_attempt(
+    prediction_run_id: int, *, drop: str | None = None, replace: dict | None = None
+) -> None:
+    async def _do() -> None:
+        async with AsyncSessionMaker() as session:
+            row = await session.get(ResidualModelPredictionRun, prediction_run_id)
+            assert row is not None
+            typed = dict(row.typed_attempt)
+            task12 = dict(typed.get("task12_replay", {}))
+            if drop is not None:
+                task12.pop(drop, None)
+            if replace is not None:
+                task12.update(replace)
+            typed["task12_replay"] = task12
+            row.typed_attempt = typed
+            await session.commit()
+
+    import asyncio
+
+    asyncio.run(_do())
+
+
+async def _expect_500(
+    e3_client: httpx.AsyncClient, prediction_run_id: int
+) -> None:
+    response = await e3_client.get(
+        f"/api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}"
+    )
+    assert response.status_code == 500, response.text
+    body = response.json()
+    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY"
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_missing_request_payload_hash(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-rph"
+    )
+    _corrupt_input_snapshot(pid, drop="request_payload_hash")
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_missing_model_policy(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-mp"
+    )
+    _corrupt_input_snapshot(pid, drop="model_policy")
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_missing_task9_run_id(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-t9id"
+    )
+    _corrupt_input_snapshot(pid, drop="task9_run_id")
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_missing_training_manifest_hash(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-tmh"
+    )
+    _corrupt_input_snapshot(pid, drop="training_manifest_hash")
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_malformed_model_artifact_hash(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-mah"
+    )
+    _corrupt_input_snapshot(pid, replace={"model_artifact_hash": "not-a-hash"})
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_wrong_model_policy(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-wmp"
+    )
+    _corrupt_input_snapshot(
+        pid, replace={"model_policy": "historically_available_model"}
+    )
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_prediction_hash_mismatch(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-phm"
+    )
+    # The prediction hash lives on the row itself (canonical_payload_hash).
+    async def _do() -> None:
+        async with AsyncSessionMaker() as session:
+            row = await session.get(ResidualModelPredictionRun, pid)
+            assert row is not None
+            row.canonical_payload_hash = "0" * 64  # wrong but well-formed
+            await session.commit()
+
+    import asyncio
+
+    asyncio.run(_do())
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_missing_typed_audit_context(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-tac"
+    )
+    _corrupt_typed_attempt(pid, drop="task12_replay")
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_missing_audit_identity(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-ai"
+    )
+    _corrupt_typed_attempt(pid, drop="audit_identity")
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_audit_identity_mismatch(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(
+        idempotency_key="task12-e3-corrupt-aim"
+    )
+    _corrupt_typed_attempt(pid, replace={"audit_identity": "deadbeef" * 8})
+    await _expect_500(e3_client, pid)
