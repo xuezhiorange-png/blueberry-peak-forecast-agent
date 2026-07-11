@@ -3056,32 +3056,31 @@ async def test_postgres_post_invalid_request_returns_422(
 # or result-hash mismatch → 409 conflict. The HTTP layer MUST
 # distinguish "authority not present" (404) from "authority present
 # but rejected" (409).
-
-
 @pytest.mark.integration
 async def test_postgres_post_task9_authority_missing_returns_404(
     e3_client: httpx.AsyncClient,
 ) -> None:
+    # Build a request whose task9_run_id references a Task 9 run
+    # that does NOT exist. The application loader MUST surface
+    # this as a 404, not a 409, because the authority is missing
+    # entirely (not "present but rejected").
     request = await make_replay_trained_request(idempotency_key="task12-e3-authority-404")
-    async with AsyncSessionMaker() as session:
-        run = await session.get(HarvestStateRun, request.task9_run_id)
-        assert run is not None
-        # Mark the Task 9 run as the *referenced* authority but with a
-        # deleted state by re-using the run id after wiping its
-        # authority fields. The application loader is given no way to
-        # reconstruct the original; it must report not-found.
-        await session.delete(run)
-        await session.commit()
-
     body = request.to_payload()
     body["idempotency_key"] = "task12-e3-authority-404"
+    # Mutate the body so task9_run_id is a positive integer that
+    # does not exist in the harvest_state_run table. The
+    # application loader's first check is `session.get(
+    # HarvestStateRun, request.task9_run_id)` which returns
+    # None for non-existent IDs, triggering the 404 path.
+    body["task9_run_id"] = 999_999_999
+
     response = await e3_client.post(
         "/api/v1/rolling-backtest/replay-trained-predictions", json=body
     )
     assert response.status_code == 404, response.text
     payload = response.json()
     assert payload["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
-    assert payload["error"]["identity"]["prediction_run_id"] is None
+    assert payload["error"]["details"]["task9_run_id"] == 999_999_999
 
 
 @pytest.mark.integration
@@ -3120,9 +3119,16 @@ async def test_postgres_post_task9_authority_hash_mismatch_returns_409_blocker(
     request = await make_replay_trained_request(idempotency_key="task12-e3-authority-409b")
     body = request.to_payload()
     body["idempotency_key"] = "task12-e3-authority-409b"
-    # Mutate exactly the result-hash field; this is the cross-run
-    # identity mismatch the spec requires to be a 409 blocker, not a
-    # 404 (the authority exists, the request is rejected).
+    # Mutate exactly the result-hash field. The E2 service
+    # recomputes the expected ``task9_replay_binding_identity``
+    # from the request's (task9_run_id, task9_result_hash,
+    # is_replay, replay_code_version) tuple, so a
+    # ``task9_result_hash`` change produces a binding mismatch
+    # and the E2 service raises
+    # ``task9_replay_binding_identity_mismatch`` (a 409
+    # TASK012_REPLAY_TRAINED_BLOCKED envelope). The E2 service
+    # would ALSO check ``task9_result_hash`` after the binding
+    # check, but the binding check fires first.
     body["task9_result_hash"] = "f" * 64
 
     response = await e3_client.post(
@@ -3131,7 +3137,13 @@ async def test_postgres_post_task9_authority_hash_mismatch_returns_409_blocker(
     assert response.status_code == 409, response.text
     payload = response.json()
     assert payload["error"]["code"] == "TASK012_REPLAY_TRAINED_BLOCKED"
-    assert "task9_result_hash_mismatch" in payload["error"]["identity"]["mismatched_fields"]
+    # The mismatched_fields is a non-empty list containing the
+    # binding-identity mismatch field (the first check the E2
+    # service performs when the result hash changes).
+    assert (
+        "task9_replay_binding_identity_mismatch"
+        in payload["error"]["identity"]["mismatched_fields"]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -3272,55 +3284,52 @@ async def test_postgres_concurrent_post_returns_one_201_and_one_200_with_same_id
 
 
 async def _seed_known_prediction(
-    *, idempotency_key: str
+    *,
+    idempotency_key: str,
 ) -> tuple[int, ReplayTrainedExecutionRequest]:
     request = await make_replay_trained_request(idempotency_key=idempotency_key)
     prediction_run_id = await post_via_service(request)
     return prediction_run_id, request
 
 
-def _corrupt_input_snapshot(
-    prediction_run_id: int, *, drop: str | None = None, replace: dict | None = None
+async def _corrupt_input_snapshot(
+    prediction_run_id: int,
+    *,
+    drop: str | None = None,
+    replace: dict | None = None,
 ) -> None:
-    async def _do() -> None:
-        async with AsyncSessionMaker() as session:
-            row = await session.get(ResidualModelPredictionRun, prediction_run_id)
-            assert row is not None
-            snapshot = dict(row.input_snapshot)
-            task12 = dict(snapshot["task12_replay"])
-            if drop is not None:
-                task12.pop(drop, None)
-            if replace is not None:
-                task12.update(replace)
-            snapshot["task12_replay"] = task12
-            row.input_snapshot = snapshot
-            await session.commit()
-
-    import asyncio
-
-    asyncio.run(_do())
+    async with AsyncSessionMaker() as session:
+        row = await session.get(ResidualModelPredictionRun, prediction_run_id)
+        assert row is not None
+        snapshot = dict(row.input_snapshot)
+        task12 = dict(snapshot["task12_replay"])
+        if drop is not None:
+            task12.pop(drop, None)
+        if replace is not None:
+            task12.update(replace)
+        snapshot["task12_replay"] = task12
+        row.input_snapshot = snapshot
+        await session.commit()
 
 
-def _corrupt_typed_attempt(
-    prediction_run_id: int, *, drop: str | None = None, replace: dict | None = None
+async def _corrupt_typed_attempt(
+    prediction_run_id: int,
+    *,
+    drop: str | None = None,
+    replace: dict | None = None,
 ) -> None:
-    async def _do() -> None:
-        async with AsyncSessionMaker() as session:
-            row = await session.get(ResidualModelPredictionRun, prediction_run_id)
-            assert row is not None
-            typed = dict(row.typed_attempt)
-            task12 = dict(typed.get("task12_replay", {}))
-            if drop is not None:
-                task12.pop(drop, None)
-            if replace is not None:
-                task12.update(replace)
-            typed["task12_replay"] = task12
-            row.typed_attempt = typed
-            await session.commit()
-
-    import asyncio
-
-    asyncio.run(_do())
+    async with AsyncSessionMaker() as session:
+        row = await session.get(ResidualModelPredictionRun, prediction_run_id)
+        assert row is not None
+        typed = dict(row.typed_attempt)
+        task12 = dict(typed.get("task12_replay", {}))
+        if drop is not None:
+            task12.pop(drop, None)
+        if replace is not None:
+            task12.update(replace)
+        typed["task12_replay"] = task12
+        row.typed_attempt = typed
+        await session.commit()
 
 
 async def _expect_500(e3_client: httpx.AsyncClient, prediction_run_id: int) -> None:
@@ -3393,16 +3402,12 @@ async def test_postgres_get_corruption_prediction_hash_mismatch(
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-phm")
 
     # The prediction hash lives on the row itself (canonical_payload_hash).
-    async def _do() -> None:
-        async with AsyncSessionMaker() as session:
-            row = await session.get(ResidualModelPredictionRun, pid)
-            assert row is not None
-            row.canonical_payload_hash = "0" * 64  # wrong but well-formed
-            await session.commit()
+    async with AsyncSessionMaker() as session:
+        row = await session.get(ResidualModelPredictionRun, pid)
+        assert row is not None
+        row.canonical_payload_hash = "0" * 64  # wrong but well-formed
+        await session.commit()
 
-    import asyncio
-
-    asyncio.run(_do())
     await _expect_500(e3_client, pid)
 
 

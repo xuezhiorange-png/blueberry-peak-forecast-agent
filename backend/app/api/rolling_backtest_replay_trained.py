@@ -468,10 +468,11 @@ async def get_replay_trained_prediction(
         )
     except ReplayTrainedServiceNotFoundError as exc:
         return _json_error_response({"error": exc.to_payload()}, status_code=404)
-    except ReplayTrainedPersistedIdentityIntegrityError:
+    except ReplayTrainedPersistedIdentityIntegrityError as exc:
         logger.exception(
-            "replay_trained_api.get_integrity_error prediction_run_id=%r",
+            "replay_trained_api.get_integrity_error prediction_run_id=%r mismatched_fields=%r",
             prediction_run_id,
+            exc.mismatched_fields,
         )
         return _json_error_response(
             _integrity_error_payload(),
