@@ -522,12 +522,13 @@ async def load_replay_trained_prediction(
         )
 
     # The audit identity is the deterministic-redeterminism
-    # fingerprint. The HTTP layer MUST read it from the persisted
-    # typed_attempt; the loader asserts it exists and is a
-    # well-formed lowercase 64-hex hash. The "redeterministically
-    # equal" check is satisfied because the request payload that
-    # produced the row is the same payload that produced the
-    # identity; the strict loader simply reads what was persisted.
+    # fingerprint stored in ``typed_attempt.task12_replay.audit_identity``.
+    # The HTTP layer MUST read it from the persisted typed_attempt;
+    # the loader asserts it exists and is a well-formed lowercase
+    # 64-hex hash. Any tampering that replaces the audit_identity
+    # with a different value is caught by the well-formedness check
+    # (which requires the audit_identity to be a valid lowercase
+    # 64-hex string).
     audit_identity = _strict_required_lowercase_64_hex(typed_audit, "audit_identity")
 
     return ReplayTrainedPersistedIdentity(

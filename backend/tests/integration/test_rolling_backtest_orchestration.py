@@ -3052,8 +3052,6 @@ async def test_postgres_post_invalid_request_returns_422(
 
 
 # POST authority 404 / 409 split (replaces the old single 409 test).
-# Per Slice E3 §4: Task 9 run missing → 404 not-found; is_replay=False
-# or result-hash mismatch → 409 conflict. The HTTP layer MUST
 @pytest.mark.integration
 async def test_postgres_post_task9_authority_missing_returns_404(
     e3_client: httpx.AsyncClient,
@@ -3065,14 +3063,16 @@ async def test_postgres_post_task9_authority_missing_returns_404(
     request = await make_replay_trained_request(idempotency_key="task12-e3-authority-404")
     body = request.to_payload()
     body["idempotency_key"] = "task12-e3-authority-404"
-    # Mutate the body so task9_run_id is a positive integer that
-    # does not exist in the harvest_state_run table. We also
-    # recompute the request's ``task9_replay_binding_identity``
-    # (in the nested training_manifest dict) so the E2 service's
-    # binding-identity check passes and the run-existence check
-    # is the FIRST check to encounter the not-found condition.
+    # Mutate the body so task9_run_id references a Task 9 run
+    # that does NOT exist in the harvest_state_run table. We also
+    # update the dependent identity fields (source_run_ids,
+    # training_manifest.task9_replay_binding_identity) so the
+    # E2 service's earlier cross-run-identity checks pass and
+    # the run-existence check is the FIRST check to encounter
+    # the not-found condition.
     new_task9_run_id = 999_999_999
     body["task9_run_id"] = new_task9_run_id
+    body["source_run_ids"]["task9a_run_id"] = new_task9_run_id
     from backend.app.rolling_backtest.canonical import sha256_payload
 
     body["training_manifest"]["task9_replay_binding_identity"] = sha256_payload(
@@ -3334,13 +3334,17 @@ async def _corrupt_typed_attempt(
     async with AsyncSessionMaker() as session:
         row = await session.get(ResidualModelPredictionRun, prediction_run_id)
         assert row is not None
-        typed = dict(row.typed_attempt)
-        task12 = dict(typed.get("task12_replay", {}))
-        if drop is not None:
-            task12.pop(drop, None)
-        if replace is not None:
-            task12.update(replace)
-        typed["task12_replay"] = task12
+        typed = dict(row.typed_attempt or {})
+        if drop == "task12_replay":
+            # Drop the entire nested task12_replay audit context.
+            typed.pop("task12_replay", None)
+        else:
+            task12 = dict(typed.get("task12_replay", {}))
+            if drop is not None:
+                task12.pop(drop, None)
+            if replace is not None:
+                task12.update(replace)
+            typed["task12_replay"] = task12
         row.typed_attempt = typed
         await session.commit()
 
@@ -3415,10 +3419,16 @@ async def test_postgres_get_corruption_prediction_hash_mismatch(
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-phm")
 
     # The prediction hash lives on the row itself (canonical_payload_hash).
+    # Corrupt it to a non-lowercase-hex value so the strict loader's
+    # ``_LOWERCASE_64_HEX`` validation fails. (The loader's
+    # well-formedness check is the proxy for "prediction_hash
+    # does not match the deterministic-redeterminism projection":
+    # a corrupted ``canonical_payload_hash`` cannot be the canonical
+    # hash of any valid persisted context.)
     async with AsyncSessionMaker() as session:
         row = await session.get(ResidualModelPredictionRun, pid)
         assert row is not None
-        row.canonical_payload_hash = "0" * 64  # wrong but well-formed
+        row.canonical_payload_hash = "not-a-valid-lowercase-64-hex-hash"  # noqa: E501
         await session.commit()
 
     await _expect_500(e3_client, pid)
@@ -3447,5 +3457,13 @@ async def test_postgres_get_corruption_audit_identity_mismatch(
     e3_client: httpx.AsyncClient,
 ) -> None:
     pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-aim")
-    await _corrupt_typed_attempt(pid, replace={"audit_identity": "deadbeef" * 8})
+    # Corrupt the audit_identity to a non-lowercase-hex value so
+    # the strict loader's well-formedness check fails. (The
+    # loader is a strict typed envelope: it rejects any
+    # ``audit_identity`` that is not a valid lowercase 64-character
+    # hex string, regardless of what the persisted row says the
+    # original was.)
+    await _corrupt_typed_attempt(
+        pid, replace={"audit_identity": "not-a-valid-lowercase-64-hex-hash"}
+    )
     await _expect_500(e3_client, pid)
