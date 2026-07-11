@@ -463,13 +463,27 @@ async def load_replay_trained_prediction(
             "persisted model_policy is not replay_trained_model",
             mismatched_fields=("model_policy_mismatch",),
         )
-    task9_run_id_value = _strict_required_str(context, "task9_run_id")
-    if not task9_run_id_value.isdigit():
+    # The ``task9_run_id`` is persisted by the E2 service as a
+    # native integer (not a string). The strict loader accepts
+    # both JSON-int and numeric-string forms to be tolerant of
+    # hypothetical alternate encoders, but rejects any other type.
+    if "task9_run_id" not in context:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted identity is missing required field 'task9_run_id'",
+            mismatched_fields=("task9_run_id_missing",),
+        )
+    raw_task9_run_id = context["task9_run_id"]
+    if isinstance(raw_task9_run_id, bool) or not isinstance(raw_task9_run_id, (int, str)):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted task9_run_id must be an integer or numeric string",
+            mismatched_fields=("task9_run_id_type",),
+        )
+    if isinstance(raw_task9_run_id, str) and not raw_task9_run_id.isdigit():
         raise ReplayTrainedPersistedIdentityIntegrityError(
             "persisted task9_run_id must be a positive integer string",
             mismatched_fields=("task9_run_id_format",),
         )
-    task9_run_id = int(task9_run_id_value)
+    task9_run_id = int(raw_task9_run_id)
     task9_result_hash = _strict_required_lowercase_64_hex(context, "task9_result_hash")
     training_manifest_hash = _strict_required_lowercase_64_hex(context, "training_manifest_hash")
     training_dataset_hash = _strict_required_lowercase_64_hex(context, "training_dataset_hash")
