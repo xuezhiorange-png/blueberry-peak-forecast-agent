@@ -380,6 +380,11 @@ class ReplayTrainedExecutionResult:
     prediction_execution_status: str
     prediction_mode: str
     audit_identity: str
+    #: True iff this invocation persisted a NEW prediction row (HTTP 201);
+    #: False iff the service re-loaded the prior prediction for the same
+    #: (idempotency_key, request_payload_hash) pair (HTTP 200). The HTTP
+    #: adapter MUST consume this disposition and MUST NOT recompute it.
+    created: bool
     _payload: dict[str, object]
 
     def to_payload(self) -> dict[str, object]:
@@ -826,6 +831,7 @@ def _result_payload(
     task10_artifact_hashes: Sequence[str],
     filtered_training_row_count: int,
     filtered_label_row_count: int,
+    created: bool,
 ) -> ReplayTrainedExecutionResult:
     payload: dict[str, object] = {
         "service_version": _SERVICE_VERSION,
@@ -881,6 +887,7 @@ def _result_payload(
         prediction_execution_status=prediction_result.execution_status.value,
         prediction_mode=prediction_result.mode.value,
         audit_identity=audit_identity,
+        created=created,
         _payload=payload,
     )
 
@@ -1063,6 +1070,7 @@ async def execute_replay_trained_prediction(
                 task10_artifact_hashes=cast(list[str], context["task10_artifact_hashes"]),
                 filtered_training_row_count=int(context["filtered_training_row_count"]),
                 filtered_label_row_count=int(context["filtered_label_row_count"]),
+                created=False,
             )
             persisted_context = cast(dict[str, object], existing.typed_attempt or {}).get(
                 "task12_replay"
@@ -1321,6 +1329,7 @@ async def execute_replay_trained_prediction(
             task10_artifact_hashes=artifact_hashes,
             filtered_training_row_count=len(filtered_training),
             filtered_label_row_count=len(filtered_labels),
+            created=True,
         )
         await _persist_task12_audit_identity(
             session,

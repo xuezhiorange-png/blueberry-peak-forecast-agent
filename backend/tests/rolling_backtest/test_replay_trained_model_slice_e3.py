@@ -46,10 +46,19 @@ def client(app: Any) -> Any:
     return httpx.AsyncClient(transport=transport, base_url="http://test")
 
 
-def _stub_result() -> ReplayTrainedExecutionResult:
-    """Build a deterministic E2 result object for unit testing."""
+def _stub_result(*, created: bool = True) -> ReplayTrainedExecutionResult:
+    """Build a deterministic E2 result object for unit testing.
+
+    The ``created`` flag controls the 201/200 disposition that the
+    HTTP layer reads from the service result. ``created=True`` means
+    the service persisted a new prediction row (HTTP 201); ``created=False``
+    means the service re-loaded a prior prediction for the same
+    idempotency key + canonical request hash (HTTP 200).
+    """
+    created_flag = created
 
     class _Result:
+        created = created_flag
         prediction_run_id = 4242
         prediction_hash = "p" * 64
         request_payload_hash = "h" * 64
@@ -246,7 +255,9 @@ def _stub_request(
 
 
 # ---------------------------------------------------------------------------
-# POST: 201 first execution, 200 exact idempotent replay
+# POST: 201 first execution (service returns created=True), 200 exact replay
+# (service returns created=False). The HTTP layer MUST NOT recompute the
+# disposition; it MUST read result.created from the service.
 # ---------------------------------------------------------------------------
 
 
@@ -256,35 +267,21 @@ async def test_post_returns_201_then_200_for_exact_replay(
 ) -> None:
     """POST first-execution returns 201; the same exact canonical request
     returns 200 with the same envelope. The service is the single source
-    of truth for the canonical payload.
+    of truth for the canonical payload AND the 201/200 disposition.
     """
-    recorded: list[tuple[str, int]] = []
-
-    async def _fake_existing(
-        session: object,
-        *,
-        idempotency_key: str,
-        request_payload_hash: str,
-    ) -> object | None:
-        if recorded:
-            return object()
-        return None
+    recorded: list[bool] = []
 
     async def _fake_execute(
         session: object, *, request: ReplayTrainedExecutionRequest
     ) -> ReplayTrainedExecutionResult:
-        recorded.append((request.idempotency_key, 201))
-        return _stub_result()
+        is_replay = bool(recorded)
+        recorded.append(is_replay)
+        return _stub_result(created=not is_replay)
 
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
         "execute_replay_trained_prediction",
         _fake_execute,
-    )
-    monkeypatch.setattr(
-        rolling_backtest_replay_trained,
-        "_find_existing_replay_prediction",
-        _fake_existing,
     )
 
     request = _stub_request(idempotency_key="idem-post-201-then-200")
@@ -295,16 +292,23 @@ async def test_post_returns_201_then_200_for_exact_replay(
         first = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
         assert first.status_code == 201, first.text
         first_payload = first.json()
+        assert first_payload["disposition"] == "created"
         assert first_payload["prediction_run_id"] == 4242
         assert first_payload["model_policy"] == "replay_trained_model"
 
         second = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
         assert second.status_code == 200, second.text
-        assert second.json() == first_payload
+        second_payload = second.json()
+        assert second_payload["disposition"] == "idempotent_replay"
+        # All canonical identity fields must match; only ``disposition`` may differ
+        for key, value in first_payload.items():
+            if key == "disposition":
+                continue
+            assert second_payload.get(key) == value, (key, value, second_payload.get(key))
 
 
 # ---------------------------------------------------------------------------
-# POST: 422 for invalid request body (not a JSON object)
+# POST: 422 for non-object body (Pydantic schema validation)
 # ---------------------------------------------------------------------------
 
 
@@ -321,7 +325,7 @@ async def test_post_returns_422_for_non_object_body(client: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# POST: 422 for missing identity (uses service input error)
+# POST: 422 for missing identity (Pydantic strict schema)
 # ---------------------------------------------------------------------------
 
 
@@ -329,14 +333,6 @@ async def test_post_returns_422_for_missing_identity(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    async def _no_existing(
-        session: object,
-        *,
-        idempotency_key: str,
-        request_payload_hash: str,
-    ) -> object | None:
-        return None
-
     async def _fake_execute(
         session: object, *, request: ReplayTrainedExecutionRequest
     ) -> ReplayTrainedExecutionResult:
@@ -346,11 +342,6 @@ async def test_post_returns_422_for_missing_identity(
         rolling_backtest_replay_trained,
         "execute_replay_trained_prediction",
         _fake_execute,
-    )
-    monkeypatch.setattr(
-        rolling_backtest_replay_trained,
-        "_find_existing_replay_prediction",
-        _no_existing,
     )
 
     async with client as c:
@@ -363,7 +354,7 @@ async def test_post_returns_422_for_missing_identity(
 
 
 # ---------------------------------------------------------------------------
-# POST: 409 for idempotency / canonical hash conflict
+# POST: 409 for idempotency / canonical hash conflict (service raises)
 # ---------------------------------------------------------------------------
 
 
@@ -372,11 +363,8 @@ async def test_post_returns_409_for_idempotency_conflict(
     client: Any,
 ) -> None:
     async def _raise_conflict(
-        session: object,
-        *,
-        idempotency_key: str,
-        request_payload_hash: str,
-    ) -> object:
+        session: object, *, request: ReplayTrainedExecutionRequest
+    ) -> ReplayTrainedExecutionResult:
         raise ReplayTrainedServiceConflictError(
             "idempotency_key_payload_mismatch: internal stack trace /var/secrets/creds",
             mismatched_fields=("idempotency_key_payload_mismatch",),
@@ -384,7 +372,7 @@ async def test_post_returns_409_for_idempotency_conflict(
 
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
-        "_find_existing_replay_prediction",
+        "execute_replay_trained_prediction",
         _raise_conflict,
     )
 
@@ -406,7 +394,7 @@ async def test_post_returns_409_for_idempotency_conflict(
 
 
 # ---------------------------------------------------------------------------
-# POST: 409 for structured TASK-012 blocker
+# POST: 409 for structured TASK-012 blocker (service raises)
 # ---------------------------------------------------------------------------
 
 
@@ -414,14 +402,6 @@ async def test_post_returns_409_for_blocker(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    async def _no_existing(
-        session: object,
-        *,
-        idempotency_key: str,
-        request_payload_hash: str,
-    ) -> object | None:
-        return None
-
     async def _raise_blocker(
         session: object, *, request: ReplayTrainedExecutionRequest
     ) -> ReplayTrainedExecutionResult:
@@ -435,11 +415,6 @@ async def test_post_returns_409_for_blocker(
         rolling_backtest_replay_trained,
         "execute_replay_trained_prediction",
         _raise_blocker,
-    )
-    monkeypatch.setattr(
-        rolling_backtest_replay_trained,
-        "_find_existing_replay_prediction",
-        _no_existing,
     )
 
     request = _stub_request(idempotency_key="idem-blocker")
@@ -457,7 +432,7 @@ async def test_post_returns_409_for_blocker(
 
 
 # ---------------------------------------------------------------------------
-# POST: 500 for unexpected internal failure
+# POST: 500 for unexpected internal failure (no leak of traceback / SQL)
 # ---------------------------------------------------------------------------
 
 
@@ -465,32 +440,19 @@ async def test_post_returns_500_for_unexpected_failure(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    async def _no_existing(
-        session: object,
-        *,
-        idempotency_key: str,
-        request_payload_hash: str,
-    ) -> object | None:
-        return None
-
     async def _raise_unexpected(
         session: object, *, request: ReplayTrainedExecutionRequest
     ) -> ReplayTrainedExecutionResult:
         raise RuntimeError(
             "Traceback (most recent call last):\n"
             "  File '/srv/blueberry/replay_trained_service.py', line 1\n"
-            "    raise SQLAlchemyError('DSN=postgres://root:hunter2@host/db')\n"
+            "    raise SQLAlchemyError('DSN=postgres://root:***@host/db')\n"
         )
 
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
         "execute_replay_trained_prediction",
         _raise_unexpected,
-    )
-    monkeypatch.setattr(
-        rolling_backtest_replay_trained,
-        "_find_existing_replay_prediction",
-        _no_existing,
     )
 
     request = _stub_request(idempotency_key="idem-500")
@@ -515,31 +477,35 @@ async def test_post_returns_500_for_unexpected_failure(
 
 
 # ---------------------------------------------------------------------------
-# GET: 200 for exact prediction_run_id, 404 for missing
+# GET: 200 exact retrieval
 # ---------------------------------------------------------------------------
 
 
-async def test_get_returns_200_for_exact_prediction_run_id(
+async def test_get_returns_200_with_persisted_identity(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
+    """GET returns 200 with the persisted TASK-012 identity for the exact
+    ``prediction_run_id`` it is asked for. The endpoint does NOT re-execute
+    the E2 service.
+    """
+
     class _StubRow:
         canonical_payload_hash = "z" * 64
         input_snapshot = {
             "task12_replay": {
-                "idempotency_key": "idem-get-200",
-                "prediction_hash": "p" * 64,
+                "idempotency_key": "idem-e3-get-200",
                 "request_payload_hash": "h" * 64,
                 "model_policy": "replay_trained_model",
-                "task12_policy_version": "task12-policy-unit",
-                "replay_attempt_id": "attempt-unit",
-                "replay_node_id": "node-unit",
-                "scenario_id": "scenario-unit",
+                "task12_policy_version": "task12-policy-e3",
+                "replay_attempt_id": "attempt-e3",
+                "replay_node_id": "node-e3",
+                "scenario_id": "scenario-e3",
                 "training_manifest_hash": "m" * 64,
                 "training_dataset_hash": "d" * 64,
                 "model_config_hash": "c" * 64,
                 "model_artifact_hash": "a" * 64,
-                "model_code_version": "task10-code-unit",
+                "model_code_version": "task10-code-e3",
                 "forecast_cutoff_at": "2026-03-15T12:00:00Z",
                 "training_cutoff_at": "2026-03-14T12:00:00Z",
                 "task9_run_id": 91,
@@ -555,15 +521,14 @@ async def test_get_returns_200_for_exact_prediction_run_id(
                 "training_eligibility_status": "eligible",
                 "prediction_execution_status": "completed",
                 "prediction_mode": "residual_corrected",
-                "caller_identity": "test:unit",
+                "caller_identity": "test:e3-get-200",
                 "service_version": "task12-slice-e3-unit",
             }
         }
         typed_attempt = {"task12_replay": {"audit_identity": "audit-" + "y" * 56}}
 
-    async def _fake_get(session: object, *, run_id: int) -> Any:
-        assert run_id == 4242
-        return _StubRow()
+    async def _fake_get(session: object, *, run_id: int) -> _StubRow | None:
+        return _StubRow() if run_id == 4242 else None
 
     async def _service_should_not_run(
         session: object, *, request: ReplayTrainedExecutionRequest
@@ -583,18 +548,24 @@ async def test_get_returns_200_for_exact_prediction_run_id(
 
     async with client as c:
         response = await c.get("/api/v1/rolling-backtest/replay-trained-predictions/4242")
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     body = response.json()
     assert body["prediction_run_id"] == 4242
     assert body["model_policy"] == "replay_trained_model"
     assert body["audit_identity"].startswith("audit-")
+    assert body["idempotency_key"] == "idem-e3-get-200"
 
 
-async def test_get_returns_404_for_missing_prediction_run_id(
+# ---------------------------------------------------------------------------
+# GET: 404 missing
+# ---------------------------------------------------------------------------
+
+
+async def test_get_returns_404_for_missing_prediction(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    async def _fake_get(session: object, *, run_id: int) -> Any:
+    async def _fake_get(session: object, *, run_id: int) -> None:
         return None
 
     monkeypatch.setattr(
@@ -612,6 +583,38 @@ async def test_get_returns_404_for_missing_prediction_run_id(
 
 
 # ---------------------------------------------------------------------------
+# GET: 500 integrity failure (missing required persisted field)
+# ---------------------------------------------------------------------------
+
+
+async def test_get_returns_500_for_missing_required_field(
+    monkeypatch: pytest.MonkeyPatch,
+    client: Any,
+) -> None:
+    class _StubRow:
+        canonical_payload_hash = "z" * 64
+        # The persisted row is missing the ``task12_replay`` context;
+        # the strict loader MUST fail closed (not silently default).
+        input_snapshot = {}
+        typed_attempt = {}
+
+    async def _fake_get(session: object, *, run_id: int) -> _StubRow | None:
+        return _StubRow()
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "get_residual_prediction_run",
+        _fake_get,
+    )
+
+    async with client as c:
+        response = await c.get("/api/v1/rolling-backtest/replay-trained-predictions/4242")
+    assert response.status_code == 500
+    body = response.json()
+    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
+
+
+# ---------------------------------------------------------------------------
 # GET: 500 for unexpected internal failure
 # ---------------------------------------------------------------------------
 
@@ -620,11 +623,11 @@ async def test_get_returns_500_for_unexpected_failure(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    async def _raise_unexpected(session: object, *, run_id: int) -> Any:
+    async def _raise_unexpected(session: object, *, run_id: int) -> object:
         raise RuntimeError(
             "Traceback (most recent call last):\n"
             "  File '/srv/blueberry/replay_trained_service.py', line 1\n"
-            "    raise SQLAlchemyError('DSN=postgres://root:hunter2@host/db')\n"
+            "    raise SQLAlchemyError('DSN=postgres://root:***@host/db')\n"
         )
 
     monkeypatch.setattr(
@@ -651,7 +654,7 @@ async def test_get_returns_500_for_unexpected_failure(
 
 
 # ---------------------------------------------------------------------------
-# No implicit latest/current/most-recent selector
+# No implicit latest/current/most-recent selector in source code
 # ---------------------------------------------------------------------------
 
 

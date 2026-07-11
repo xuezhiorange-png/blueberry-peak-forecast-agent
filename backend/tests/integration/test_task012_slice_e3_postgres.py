@@ -9,6 +9,7 @@ prediction retrieval without any fake response.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
@@ -215,6 +216,7 @@ async def test_postgres_post_first_execution_returns_201_and_persists(
     response = await client.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
     assert response.status_code == 201, response.text
     payload = response.json()
+    assert payload["disposition"] == "created"
     assert payload["prediction_run_id"] > 0
     assert payload["model_policy"] == "replay_trained_model"
     assert payload["audit_identity"]
@@ -241,10 +243,17 @@ async def test_postgres_post_exact_replay_returns_200_with_same_envelope(
     first = await client.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
     assert first.status_code == 201, first.text
     first_payload = first.json()
+    assert first_payload["disposition"] == "created"
 
     second = await client.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
     assert second.status_code == 200, second.text
-    assert second.json() == first_payload
+    second_payload = second.json()
+    assert second_payload["disposition"] == "idempotent_replay"
+    # All canonical identity fields must match; only ``disposition`` may differ
+    for key, value in first_payload.items():
+        if key == "disposition":
+            continue
+        assert second_payload.get(key) == value, (key, value, second_payload.get(key))
 
     async with AsyncSessionMaker() as session:
         count = await session.scalar(
@@ -416,3 +425,77 @@ async def test_postgres_get_rejects_no_implicit_latest_or_current(
     response = await client.get("/api/v1/rolling-backtest/replay-trained-predictions/latest")
     # FastAPI Path(..., ge=1) coerces; the request is rejected.
     assert response.status_code in (404, 422)
+
+
+@pytest.mark.integration
+async def test_postgres_concurrent_post_returns_one_201_and_one_200_with_same_identity(
+    client: httpx.AsyncClient,
+) -> None:
+    """P0 fix #4: real PG concurrent POST test.
+
+    Two concurrent POSTs with the same idempotency_key + canonical
+    request must produce:
+    * exactly one HTTP 201 (disposition=created) and one HTTP 200
+      (disposition=idempotent_replay), in any order;
+    * the same ``prediction_run_id`` in both responses;
+    * the same canonical identity (prediction_hash, request_payload_hash,
+      audit_identity, model_policy, etc.) in both responses;
+    * exactly one persisted prediction row in the database.
+    """
+
+    request = await _make_request(idempotency_key="task12-e3-concurrent")
+    body = request.to_payload()
+    body["idempotency_key"] = "task12-e3-concurrent"
+
+    # Fire two concurrent POSTs at the same ASGITransport-bound app.
+    # Each POST uses its own httpx.AsyncClient because httpx clients
+    # are not safe to share across concurrent requests.
+    async def _post() -> httpx.Response:
+        local_client = httpx.AsyncClient(
+            transport=ASGITransport(app=client._transport.app), base_url="http://test"
+        )  # type: ignore[attr-defined]
+        try:
+            return await local_client.post(
+                "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+            )
+        finally:
+            await local_client.aclose()
+
+    responses = await asyncio.gather(_post(), _post())
+    statuses = sorted(r.status_code for r in responses)
+    assert statuses == [200, 201], (
+        f"expected exactly one 201 and one 200; got {statuses}: {[r.text for r in responses]}"
+    )
+
+    # Build id→payload map
+    payload_by_status: dict[int, dict[str, object]] = {r.status_code: r.json() for r in responses}
+    created = payload_by_status[201]
+    replay = payload_by_status[200]
+    assert created["disposition"] == "created"
+    assert replay["disposition"] == "idempotent_replay"
+
+    # Same prediction_run_id
+    assert created["prediction_run_id"] == replay["prediction_run_id"], (
+        created["prediction_run_id"],
+        replay["prediction_run_id"],
+    )
+
+    # Same canonical identity (all fields except disposition)
+    for key, value in created.items():
+        if key == "disposition":
+            continue
+        assert replay.get(key) == value, (key, value, replay.get(key))
+
+    # Exactly one persisted prediction row for this idempotency_key
+    async with AsyncSessionMaker() as session:
+        count = await session.scalar(
+            select(__import__("sqlalchemy").func.count())
+            .select_from(ResidualModelPredictionRun)
+            .where(
+                ResidualModelPredictionRun.input_snapshot["task12_replay"][
+                    "idempotency_key"
+                ].as_string()
+                == "task12-e3-concurrent"
+            )
+        )
+    assert count == 1, f"expected exactly 1 persisted prediction row; got {count}"
