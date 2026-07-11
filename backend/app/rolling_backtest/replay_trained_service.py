@@ -322,9 +322,7 @@ def _strict_required_str(
     return value
 
 
-def _strict_optional_str(
-    context: Mapping[str, object], key: str
-) -> str | None:
+def _strict_optional_str(context: Mapping[str, object], key: str) -> str | None:
     """Read an optional string field; returns ``None`` if absent.
 
     Used for fields that are NOT persistence-required (e.g. fields
@@ -343,9 +341,7 @@ def _strict_optional_str(
     return value
 
 
-def _strict_optional_int(
-    context: Mapping[str, object], key: str
-) -> int | None:
+def _strict_optional_int(context: Mapping[str, object], key: str) -> int | None:
     if key not in context:
         return None
     value = context[key]
@@ -357,15 +353,11 @@ def _strict_optional_int(
     return value
 
 
-def _strict_optional_str_list(
-    context: Mapping[str, object], key: str
-) -> tuple[str, ...] | None:
+def _strict_optional_str_list(context: Mapping[str, object], key: str) -> tuple[str, ...] | None:
     if key not in context:
         return None
     value = context[key]
-    if not isinstance(value, list) or not all(
-        isinstance(item, str) and item for item in value
-    ):
+    if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
         raise ReplayTrainedPersistedIdentityIntegrityError(
             f"persisted identity field {key!r} must be a list of non-empty strings",
             mismatched_fields=(f"{key}_type",),
@@ -373,9 +365,7 @@ def _strict_optional_str_list(
     return tuple(value)
 
 
-def _strict_required_lowercase_64_hex(
-    context: Mapping[str, object], key: str
-) -> str:
+def _strict_required_lowercase_64_hex(context: Mapping[str, object], key: str) -> str:
     value = _strict_required_str(context, key)
     if not _LOWERCASE_64_HEX.match(value):
         raise ReplayTrainedPersistedIdentityIntegrityError(
@@ -466,9 +456,7 @@ async def load_replay_trained_prediction(
     # Required identity fields. The strict loader treats every one
     # of these as load-bearing; any missing or malformed value is
     # an integrity error (500), not a default-substituted success.
-    request_payload_hash = _strict_required_lowercase_64_hex(
-        context, "request_payload_hash"
-    )
+    request_payload_hash = _strict_required_lowercase_64_hex(context, "request_payload_hash")
     model_policy = _strict_required_str(context, "model_policy")
     if model_policy != "replay_trained_model":
         raise ReplayTrainedPersistedIdentityIntegrityError(
@@ -483,12 +471,8 @@ async def load_replay_trained_prediction(
         )
     task9_run_id = int(task9_run_id_value)
     task9_result_hash = _strict_required_lowercase_64_hex(context, "task9_result_hash")
-    training_manifest_hash = _strict_required_lowercase_64_hex(
-        context, "training_manifest_hash"
-    )
-    training_dataset_hash = _strict_required_lowercase_64_hex(
-        context, "training_dataset_hash"
-    )
+    training_manifest_hash = _strict_required_lowercase_64_hex(context, "training_manifest_hash")
+    training_dataset_hash = _strict_required_lowercase_64_hex(context, "training_dataset_hash")
     model_config_hash = _strict_required_lowercase_64_hex(context, "model_config_hash")
     model_artifact_hash = _strict_required_lowercase_64_hex(context, "model_artifact_hash")
     model_code_version = _strict_required_str(context, "model_code_version")
@@ -551,29 +535,15 @@ async def load_replay_trained_prediction(
         task9_run_id=task9_run_id,
         task9_result_hash=task9_result_hash,
         task10_training_run_id=_strict_optional_int(context, "task10_training_run_id"),
-        task10_training_signature=_strict_optional_str(
-            context, "task10_training_signature"
-        ),
+        task10_training_signature=_strict_optional_str(context, "task10_training_signature"),
         task10_manifest_hash=_strict_optional_str(context, "task10_manifest_hash"),
         task10_config_hash=_strict_optional_str(context, "task10_config_hash"),
-        task10_artifact_hashes=_strict_optional_str_list(
-            context, "task10_artifact_hashes"
-        ),
-        filtered_training_row_count=_strict_optional_int(
-            context, "filtered_training_row_count"
-        ),
-        filtered_label_row_count=_strict_optional_int(
-            context, "filtered_label_row_count"
-        ),
-        training_execution_status=_strict_optional_str(
-            context, "training_execution_status"
-        ),
-        training_eligibility_status=_strict_optional_str(
-            context, "training_eligibility_status"
-        ),
-        prediction_execution_status=_strict_optional_str(
-            context, "prediction_execution_status"
-        ),
+        task10_artifact_hashes=_strict_optional_str_list(context, "task10_artifact_hashes"),
+        filtered_training_row_count=_strict_optional_int(context, "filtered_training_row_count"),
+        filtered_label_row_count=_strict_optional_int(context, "filtered_label_row_count"),
+        training_execution_status=_strict_optional_str(context, "training_execution_status"),
+        training_eligibility_status=_strict_optional_str(context, "training_eligibility_status"),
+        prediction_execution_status=_strict_optional_str(context, "prediction_execution_status"),
         prediction_mode=_strict_optional_str(context, "prediction_mode"),
         idempotency_key=_strict_optional_str(context, "idempotency_key"),
         caller_identity=_strict_optional_str(context, "caller_identity"),
@@ -1086,10 +1056,7 @@ async def _verify_persisted_task9(
             "the referenced Task 9 run has no persisted output",
             identity={"task9_run_id": request.task9_run_id},
         )
-    if (
-        output.status != "completed"
-        or output.result_hash != request.task9_result_hash
-    ):
+    if output.status != "completed" or output.result_hash != request.task9_result_hash:
         raise ReplayTrainedServiceBlockerError(
             "the exact Task 9 result hash does not match persisted authority",
             blocker_code=OrchestrationBlocker.TASK12_CROSS_RUN_SUBSTITUTION.value,

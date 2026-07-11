@@ -628,9 +628,7 @@ async def test_get_returns_500_for_unexpected_failure(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    async def _raise_unexpected(
-        session: object, *, prediction_run_id: int
-    ) -> object:
+    async def _raise_unexpected(session: object, *, prediction_run_id: int) -> object:
         raise RuntimeError(
             "Traceback (most recent call last):\n"
             "  File '/srv/blueberry/replay_trained_service.py', line 1\n"
@@ -699,9 +697,7 @@ def test_http_adapter_source_uses_no_implicit_latest_selection() -> None:
         )
 
 
-async def _first_execution_body_async(
-    *, idempotency_key: str
-) -> dict[str, object]:
+async def _first_execution_body_async(*, idempotency_key: str) -> dict[str, object]:
     """Build a complete valid POST body for strict-schema tests.
 
     The P0-#2 spec requires each single-field mutation test to
@@ -729,13 +725,9 @@ async def _first_execution_body_async(
 # "missing required field" errors that would mask the real cause.
 
 
-async def _assert_schema_422(
-    client: Any, body: dict[str, object]
-) -> None:
+async def _assert_schema_422(client: Any, body: dict[str, object]) -> None:
     async with client as c:
-        response = await c.post(
-            "/api/v1/rolling-backtest/replay-trained-predictions", json=body
-        )
+        response = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
     assert response.status_code == 422, response.text
     assert response.json()["error"]["code"] == "TASK012_REPLAY_TRAINED_INPUT_INVALID"
 
@@ -751,9 +743,7 @@ async def test_schema_rejects_unknown_top_level_field(
 async def test_schema_rejects_unknown_training_manifest_field(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-unknown-manifest"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-unknown-manifest")
     body["training_manifest"]["totally_unknown_manifest_field"] = "x"
     await _assert_schema_422(client, body)
 
@@ -761,9 +751,7 @@ async def test_schema_rejects_unknown_training_manifest_field(
 async def test_schema_rejects_unknown_model_config_field(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-unknown-mc"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-unknown-mc")
     body["model_config"]["totally_unknown_mc_field"] = "x"
     await _assert_schema_422(client, body)
 
@@ -787,9 +775,7 @@ async def test_schema_rejects_is_replay_int_one(
 async def test_schema_rejects_task9_run_id_bool(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-t9id-bool"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-t9id-bool")
     body["task9_run_id"] = True
     await _assert_schema_422(client, body)
 
@@ -797,9 +783,7 @@ async def test_schema_rejects_task9_run_id_bool(
 async def test_schema_rejects_task9_run_id_numeric_string(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-t9id-str"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-t9id-str")
     body["task9_run_id"] = "91"
     await _assert_schema_422(client, body)
 
@@ -807,9 +791,7 @@ async def test_schema_rejects_task9_run_id_numeric_string(
 async def test_schema_rejects_caller_identity_int(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-caller-int"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-caller-int")
     body["caller_identity"] = 123
     await _assert_schema_422(client, body)
 
@@ -817,9 +799,7 @@ async def test_schema_rejects_caller_identity_int(
 async def test_schema_rejects_uppercase_task9_result_hash(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-t9hash-upper"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-t9hash-upper")
     body["task9_result_hash"] = "A" * 64
     await _assert_schema_422(client, body)
 
@@ -827,9 +807,7 @@ async def test_schema_rejects_uppercase_task9_result_hash(
 async def test_schema_rejects_nested_training_dataset_hash_malformed(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-nested-tdh"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-nested-tdh")
     body["training_manifest"]["training_dataset_hash"] = "z" * 64
     await _assert_schema_422(client, body)
 
@@ -837,9 +815,7 @@ async def test_schema_rejects_nested_training_dataset_hash_malformed(
 async def test_schema_rejects_nested_model_artifact_hash_malformed(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-nested-mah"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-nested-mah")
     body["model_config"]["deterministic_serialization_version"] = ""  # empty
     await _assert_schema_422(client, body)
 
@@ -847,9 +823,7 @@ async def test_schema_rejects_nested_model_artifact_hash_malformed(
 async def test_schema_rejects_naive_forecast_cutoff_at(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-naive-fc"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-naive-fc")
     body["forecast_cutoff_at"] = "2026-03-15T12:00:00"  # no tz
     await _assert_schema_422(client, body)
 
@@ -857,8 +831,6 @@ async def test_schema_rejects_naive_forecast_cutoff_at(
 async def test_schema_rejects_naive_nested_forecast_cutoff_at(
     client: Any,
 ) -> None:
-    body = await _first_execution_body_async(
-        idempotency_key="idem-schema-naive-nested-fc"
-    )
+    body = await _first_execution_body_async(idempotency_key="idem-schema-naive-nested-fc")
     body["training_manifest"]["forecast_cutoff_at"] = "2026-03-15T12:00:00"
     await _assert_schema_422(client, body)

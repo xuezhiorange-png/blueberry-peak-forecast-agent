@@ -69,9 +69,7 @@ def relaxed_task10_config():
     return load_residual_model_config_from_snapshot(snapshot)
 
 
-async def make_replay_trained_request(
-    *, idempotency_key: str
-) -> ReplayTrainedExecutionRequest:
+async def make_replay_trained_request(*, idempotency_key: str) -> ReplayTrainedExecutionRequest:
     """Build a complete valid :class:`ReplayTrainedExecutionRequest`.
 
     Used by the Slice E3 PG tests in
