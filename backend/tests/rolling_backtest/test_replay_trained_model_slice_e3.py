@@ -30,6 +30,7 @@ from backend.app.rolling_backtest.replay_trained_service import (
     ReplayTrainedPersistedIdentityIntegrityError,
     ReplayTrainedServiceBlockerError,
     ReplayTrainedServiceConflictError,
+    ReplayTrainedServiceError,
     ReplayTrainedServiceNotFoundError,
 )
 
@@ -125,8 +126,16 @@ def _stub_request(
     """Build a minimal E2 request whose ``to_payload()`` round-trips a
     complete valid request body. We instantiate a frozen dataclass by
     going through the same payload path the E2 service uses.
+
+    The request body MUST satisfy the HTTP transport's strict nested
+    schemas (P0-#5 spec): each manifest row carries every required
+    field, each training sample / supplemental feature is fully
+    typed, ``task10_config_snapshot`` and ``feature_actual_snapshot``
+    are JSON-compatible, and ``source_run_ids`` uses the frozen
+    ``SourceRunIdsSchema``. The E2 service dataclass still accepts
+    the loose ``dict[str, object]`` shape internally — the strict
+    contract is enforced at the wire boundary by the HTTP schema.
     """
-    from dataclasses import fields
     from datetime import UTC, datetime
 
     from backend.app.residual_model.config import load_residual_model_config
@@ -141,7 +150,7 @@ def _stub_request(
 
     # Compute the expected task9_replay_binding_identity from the same
     # inputs the E2 _validate_request recomputes (see
-    # replay_trained_service._validate_request:573-582).
+    # replay_trained_service._validate_request).
     expected_binding = sha256_payload(
         {
             "task9_run_id": 91,
@@ -198,6 +207,45 @@ def _stub_request(
         "model_artifact_hash": "a" * 64,
         "model_code_version": "task10-code-unit",
     }
+    # Build the strict manifest row payload (one minimal row that
+    # satisfies every required field of :class:`ManifestRowSchema`).
+    manifest_row_dict: dict[str, object] = {
+        "season_id": 2025,
+        "destination_factory_id": 1,
+        "task9_run_id": 91,
+        "task9_result_hash": "9" * 64,
+        "as_of_date": "2026-03-13",
+        "target_arrival_local_date": "2026-03-14",
+        "forecast_horizon_days": 1,
+        "label_actual_snapshot": {
+            "build_run_id": 1,
+            "source_max_raw_id": 100,
+            "aggregation_version": "task12-unit-agg-v1",
+            "config_hash": "a" * 64,
+            "source_cutoff": "2026-03-13T00:00:00Z",
+        },
+        "feature_actual_snapshot": {
+            "build_run_id": 2,
+            "source_max_raw_id": 100,
+            "aggregation_version": "task12-unit-agg-v1",
+            "config_hash": "b" * 64,
+            "source_cutoff": "2026-03-13T00:00:00Z",
+        },
+        "observed_effective_receipt_kg": 10.0,
+        "structural_p50_kg": 1.0,
+        "structural_p80_kg": 2.0,
+        "structural_p90_kg": 3.0,
+        "residual_label_kg": 0.0,
+        "feature_values": [],
+        "feature_visibility_audit": None,
+        "feature_vector_hash": "a" * 64,
+        "feature_visibility_audit_hash": "b" * 64,
+        "split": "train",
+        "include": True,
+        "sample_weight": 1.0,
+        "exclusion_reason": None,
+        "source_refs": ["unit"],
+    }
     sample_request = ReplayTrainedExecutionRequest(
         model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL,
         task12_policy_version="task12-policy-unit",
@@ -215,10 +263,7 @@ def _stub_request(
         task9_result_hash="9" * 64,
         is_replay=True,
         task10_config_snapshot=snapshot,
-        manifest_rows_payload=(
-            {"season_id": 2025, "destination_factory_id": 1, "split": "train"},
-            {"season_id": 2024, "destination_factory_id": 1, "split": "validation"},
-        ),
+        manifest_rows_payload=(manifest_row_dict,),
         training_rows=(
             {"observation_date": "2026-03-13", "value": 1},
             {"observation_date": "2026-03-14", "value": 2},
@@ -248,11 +293,6 @@ def _stub_request(
             ),
         ),
         supplemental_feature_values=cast(tuple[FeatureValue, ...], ()),
-    )
-    # Sanity: the dataclass has all fields populated.
-    assert all(
-        getattr(sample_request, f.name, None) is not None
-        for f in fields(ReplayTrainedExecutionRequest)
     )
     return sample_request
 
@@ -466,7 +506,7 @@ async def test_post_returns_500_for_unexpected_failure(
         response = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
     assert response.status_code == 500
     body_payload = response.json()
-    assert body_payload["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY"
+    assert body_payload["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
     for forbidden in (
         "Traceback",
         "SQLAlchemy",
@@ -581,12 +621,13 @@ async def test_get_returns_404_for_missing_prediction(
         response = await c.get("/api/v1/rolling-backtest/replay-trained-predictions/9999")
     assert response.status_code == 404
     body = response.json()
-    # The error envelope from ReplayTrainedServiceNotFoundError wraps the
-    # identity dict in ``error.details.prediction_run_id`` (not
-    # ``error.identity.prediction_run_id``); the test asserts the
-    # contract is stable and exposes the not-found prediction_run_id.
+    # Frozen §7.3 envelope: exactly {code, message, blocker, identity};
+    # the not-found selector is exposed under ``error.identity`` (NOT
+    # ``error.details`` — that key was a contract regression in the
+    # prior round).
     assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
-    assert body["error"]["details"]["prediction_run_id"] == 9999
+    assert set(body["error"].keys()) == {"code", "message", "blocker", "identity"}
+    assert body["error"]["identity"]["prediction_run_id"] == 9999
 
 
 # ---------------------------------------------------------------------------
@@ -616,7 +657,8 @@ async def test_get_returns_500_for_missing_required_field(
         response = await c.get("/api/v1/rolling-backtest/replay-trained-predictions/4242")
     assert response.status_code == 500
     body = response.json()
-    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY"
+    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
+    assert set(body["error"].keys()) == {"code", "message", "blocker", "identity"}
 
 
 # ---------------------------------------------------------------------------
@@ -645,7 +687,8 @@ async def test_get_returns_500_for_unexpected_failure(
         response = await c.get("/api/v1/rolling-backtest/replay-trained-predictions/4242")
     assert response.status_code == 500
     body = response.json()
-    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY"
+    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
+    assert set(body["error"].keys()) == {"code", "message", "blocker", "identity"}
     for forbidden in (
         "Traceback",
         "SQLAlchemy",
@@ -834,3 +877,311 @@ async def test_schema_rejects_naive_nested_forecast_cutoff_at(
     body = await _first_execution_body_async(idempotency_key="idem-schema-naive-nested-fc")
     body["training_manifest"]["forecast_cutoff_at"] = "2026-03-15T12:00:00"
     await _assert_schema_422(client, body)
+
+
+# ---------------------------------------------------------------------------
+# Frozen §7.3 envelope exact key set + full code string (P0-#1 spec)
+# ---------------------------------------------------------------------------
+#
+# The public error envelope MUST contain EXACTLY four keys:
+# ``code``, ``message``, ``blocker``, ``identity``. No ``details``,
+# no ``mismatched_fields``, no other top-level keys. The public
+# integrity code MUST be ``TASK012_REPLAY_TRAINED_INTEGRITY_ERROR``
+# (with the ``_ERROR`` suffix — the no-suffix form is forbidden
+# by the §7.4 contract).
+#
+# These tests run a single representative case for each error class
+# and pin both the exact key set and the full code string.
+
+
+async def test_post_envelope_keys_and_code_are_exact(
+    monkeypatch: pytest.MonkeyPatch,
+    client: Any,
+) -> None:
+    """POST service-error envelope carries exactly the §7.3 keys and
+    the frozen §7.4 integrity code string.
+    """
+
+    async def _raise_service(
+        session: object, *, request: ReplayTrainedExecutionRequest
+    ) -> ReplayTrainedExecutionResult:
+        raise ReplayTrainedServiceConflictError(
+            "test conflict",
+            mismatched_fields=("a",),
+        )
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "execute_replay_trained_prediction",
+        _raise_service,
+    )
+
+    request = _stub_request(idempotency_key="idem-envelope-conflict")
+    body = request.to_payload()
+    body["idempotency_key"] = "idem-envelope-conflict"
+    async with client as c:
+        response = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
+    assert response.status_code == 409
+    err = response.json()["error"]
+    assert set(err.keys()) == {"code", "message", "blocker", "identity"}
+    assert err["code"] == "TASK012_REPLAY_TRAINED_CONFLICT"
+    assert err["message"]
+    assert err["blocker"] is None
+    assert err["identity"]["mismatched_fields"] == ["a"]
+
+
+async def test_post_blocker_envelope_keys_and_code_are_exact(
+    monkeypatch: pytest.MonkeyPatch,
+    client: Any,
+) -> None:
+    async def _raise_blocker(
+        session: object, *, request: ReplayTrainedExecutionRequest
+    ) -> ReplayTrainedExecutionResult:
+        raise ReplayTrainedServiceBlockerError(
+            "test blocker",
+            blocker_code="task12_xyz",
+            mismatched_fields=("b",),
+        )
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "execute_replay_trained_prediction",
+        _raise_blocker,
+    )
+
+    request = _stub_request(idempotency_key="idem-envelope-blocker")
+    body = request.to_payload()
+    body["idempotency_key"] = "idem-envelope-blocker"
+    async with client as c:
+        response = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
+    assert response.status_code == 409
+    err = response.json()["error"]
+    assert set(err.keys()) == {"code", "message", "blocker", "identity"}
+    assert err["code"] == "TASK012_REPLAY_TRAINED_BLOCKED"
+    assert err["blocker"] == "task12_xyz"
+
+
+async def test_post_not_found_envelope_keys_and_code_are_exact(
+    monkeypatch: pytest.MonkeyPatch,
+    client: Any,
+) -> None:
+    async def _raise_nf(
+        session: object, *, request: ReplayTrainedExecutionRequest
+    ) -> ReplayTrainedExecutionResult:
+        raise ReplayTrainedServiceNotFoundError(
+            "missing",
+            identity={"task9_run_id": 999},
+        )
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "execute_replay_trained_prediction",
+        _raise_nf,
+    )
+
+    request = _stub_request(idempotency_key="idem-envelope-nf")
+    body = request.to_payload()
+    body["idempotency_key"] = "idem-envelope-nf"
+    async with client as c:
+        response = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
+    assert response.status_code == 404
+    err = response.json()["error"]
+    assert set(err.keys()) == {"code", "message", "blocker", "identity"}
+    assert err["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
+    assert err["identity"]["task9_run_id"] == 999
+
+
+async def test_post_integrity_envelope_keys_and_code_are_exact(
+    monkeypatch: pytest.MonkeyPatch,
+    client: Any,
+) -> None:
+    async def _raise_unexpected(
+        session: object, *, request: ReplayTrainedExecutionRequest
+    ) -> ReplayTrainedExecutionResult:
+        raise RuntimeError("internal: boom")
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "execute_replay_trained_prediction",
+        _raise_unexpected,
+    )
+
+    request = _stub_request(idempotency_key="idem-envelope-500")
+    body = request.to_payload()
+    body["idempotency_key"] = "idem-envelope-500"
+    async with client as c:
+        response = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
+    assert response.status_code == 500
+    err = response.json()["error"]
+    assert set(err.keys()) == {"code", "message", "blocker", "identity"}
+    # Frozen §7.4 public integrity code (with ``_ERROR`` suffix).
+    assert err["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
+    assert "boom" not in response.text
+
+
+async def test_post_422_envelope_keys_and_code_are_exact(client: Any) -> None:
+    async with client as c:
+        response = await c.post(
+            "/api/v1/rolling-backtest/replay-trained-predictions",
+            json={"idempotency_key": "idem-422"},
+        )
+    assert response.status_code == 422
+    err = response.json()["error"]
+    assert set(err.keys()) == {"code", "message", "blocker", "identity"}
+    assert err["code"] == "TASK012_REPLAY_TRAINED_INPUT_INVALID"
+    assert err["blocker"] is None
+    assert err["identity"] == {}
+
+
+# ---------------------------------------------------------------------------
+# Strict nested request structure — unknown-field mutation tests (P0-#5 spec)
+# ---------------------------------------------------------------------------
+#
+# Each test below takes a complete valid request body and mutates EXACTLY
+# one nested field. The strict Pydantic schema MUST reject unknown
+# fields with a 422 envelope. This replaces the prior
+# ``_RowPassthroughBaseModel(extra="allow")`` passthrough which silently
+# accepted unknown nested keys.
+
+
+async def test_schema_rejects_unknown_manifest_row_field(client: Any) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-mr-unknown")
+    body["manifest_rows_payload"][0]["unknown_manifest_row_field"] = "x"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_unknown_training_row_field(client: Any) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-tr-unknown")
+    body["training_rows"][0]["unknown_training_row_field"] = "x"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_unknown_label_row_field(client: Any) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-lr-unknown")
+    body["label_rows"][0]["unknown_label_row_field"] = "x"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_unknown_training_sample_field(client: Any) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-ts-unknown")
+    body["training_samples"][0]["unknown_training_sample_field"] = "x"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_unknown_supplemental_feature_field(client: Any) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-sf-unknown")
+    # Inject one supplemental feature value then add an unknown field.
+    body["supplemental_feature_values"].append(
+        {
+            "feature_name": "x",
+            "value": 1,
+            "known_at": "2026-03-13T00:00:00Z",
+            "source_ref": {"k": "v"},
+            "source_version": "v1",
+            "source_available_at": "2026-03-13T00:00:00Z",
+        }
+    )
+    body["supplemental_feature_values"][0]["unknown_supplemental_field"] = "x"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_unknown_source_run_ids_field(client: Any) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-sri-unknown")
+    body["source_run_ids"]["unknown_source_run_id"] = 1
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_wrong_nested_integer_type(client: Any) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-ts-int")
+    # task9_run_id is StrictInt; numeric-string rejected.
+    body["training_samples"][0]["task9_run_id"] = "91"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_wrong_nested_boolean_type(client: Any) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-mr-bool")
+    # include is StrictBool; string rejected.
+    body["manifest_rows_payload"][0]["include"] = "true"
+    await _assert_schema_422(client, body)
+
+
+# ---------------------------------------------------------------------------
+# Log redaction (P0-#6 spec): no raw idempotency_key in log lines.
+# ---------------------------------------------------------------------------
+
+
+async def test_post_service_error_does_not_log_raw_idempotency_key(
+    monkeypatch: pytest.MonkeyPatch,
+    client: Any,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The transport layer MUST NOT log the raw ``idempotency_key``.
+
+    The sentinel raw key ``RAW_IDEMPOTENCY_SENTINEL_5e2b`` MUST NOT
+    appear anywhere in the captured log output. A non-reversible
+    SHA-256[:12] correlation prefix MAY appear.
+    """
+
+    raw_sentinel = "RAW_IDEMPOTENCY_SENTINEL_5e2b"
+
+    async def _raise_service(
+        session: object, *, request: ReplayTrainedExecutionRequest
+    ) -> ReplayTrainedExecutionResult:
+        raise ReplayTrainedServiceError("test service error")
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "execute_replay_trained_prediction",
+        _raise_service,
+    )
+
+    request = _stub_request(idempotency_key=raw_sentinel)
+    body = request.to_payload()
+    body["idempotency_key"] = raw_sentinel
+    with caplog.at_level("ERROR"):
+        async with client as c:
+            response = await c.post(
+                "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+            )
+    assert response.status_code == 500
+    assert raw_sentinel not in caplog.text
+    # SHA-256[:12] of the sentinel prefix MUST be present so two log
+    # lines about the same execution can still be correlated.
+    import hashlib
+
+    prefix = hashlib.sha256(raw_sentinel.encode("utf-8")).hexdigest()[:12]
+    assert prefix in caplog.text
+
+
+async def test_post_unexpected_error_does_not_log_raw_idempotency_key(
+    monkeypatch: pytest.MonkeyPatch,
+    client: Any,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    raw_sentinel = "RAW_IDEMPOTENCY_SENTINEL_unexpected"
+
+    async def _raise_unexpected(
+        session: object, *, request: ReplayTrainedExecutionRequest
+    ) -> ReplayTrainedExecutionResult:
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(
+        rolling_backtest_replay_trained,
+        "execute_replay_trained_prediction",
+        _raise_unexpected,
+    )
+
+    request = _stub_request(idempotency_key=raw_sentinel)
+    body = request.to_payload()
+    body["idempotency_key"] = raw_sentinel
+    with caplog.at_level("ERROR"):
+        async with client as c:
+            response = await c.post(
+                "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+            )
+    assert response.status_code == 500
+    assert raw_sentinel not in caplog.text
+    import hashlib
+
+    prefix = hashlib.sha256(raw_sentinel.encode("utf-8")).hexdigest()[:12]
+    assert prefix in caplog.text
