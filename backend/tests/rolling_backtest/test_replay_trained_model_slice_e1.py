@@ -963,7 +963,7 @@ async def test_api_error_envelopes_are_stable_and_non_leaking(
         )
         assert unexpected_response.status_code == 500
         unexpected_body = unexpected_response.json()
-        assert unexpected_body["error"]["code"] == ("TASK012_REPLAY_TRAINED_INTEGRITY_ERROR")
+        assert unexpected_body["error"]["code"] == ("TASK012_REPLAY_TRAINED_INTEGRITY")
         leaked_text = unexpected_response.text
         for forbidden in (
             "Traceback",
@@ -1010,62 +1010,62 @@ async def test_get_requires_exact_prediction_run_id(
 
     from backend.app.api import rolling_backtest_replay_trained
     from backend.app.main import create_app
+    from backend.app.rolling_backtest.replay_trained_service import (
+        ReplayTrainedPersistedIdentity,
+        ReplayTrainedServiceNotFoundError,
+    )
 
-    class _StubRow:
-        def __init__(self) -> None:
-            self.canonical_payload_hash = "z" * 64
-            self.input_snapshot = {
-                "task12_replay": {
-                    "idempotency_key": "idem-e3-18",
-                    "prediction_hash": "p" * 64,
-                    "request_payload_hash": "h" * 64,
-                    "model_policy": "replay_trained_model",
-                    "task12_policy_version": "task12-policy-e3",
-                    "replay_attempt_id": "attempt-e3",
-                    "replay_node_id": "node-e3",
-                    "scenario_id": "scenario-e3",
-                    "training_manifest_hash": "m" * 64,
-                    "training_dataset_hash": "d" * 64,
-                    "model_config_hash": "c" * 64,
-                    "model_artifact_hash": "a" * 64,
-                    "model_code_version": "task10-code-e3",
-                    "forecast_cutoff_at": "2026-03-15T12:00:00Z",
-                    "training_cutoff_at": "2026-03-14T12:00:00Z",
-                    "task9_run_id": 91,
-                    "task9_result_hash": "9" * 64,
-                    "task10_training_run_id": 7,
-                    "task10_training_signature": "s" * 64,
-                    "task10_manifest_hash": "mh" * 32,
-                    "task10_config_hash": "ch" * 32,
-                    "task10_artifact_hashes": ["ah" * 32],
-                    "filtered_training_row_count": 3,
-                    "filtered_label_row_count": 2,
-                    "training_execution_status": "completed",
-                    "training_eligibility_status": "eligible",
-                    "prediction_execution_status": "completed",
-                    "prediction_mode": "residual_corrected",
-                    "caller_identity": "test:e3-18",
-                    "service_version": "task12-slice-e3-test",
-                }
-            }
-            self.typed_attempt = {"task12_replay": {"audit_identity": "audit-" + "y" * 56}}
-
-    found_rows: dict[int, _StubRow | None] = {4242: _StubRow()}
-    called_ids: list[int] = []
-    service_called: list[bool] = []
-
-    async def _fake_get(session: object, *, run_id: int) -> _StubRow | None:
-        called_ids.append(run_id)
-        return found_rows.get(run_id)
+    async def _fake_load(
+        session: object, *, prediction_run_id: int
+    ) -> ReplayTrainedPersistedIdentity:
+        if prediction_run_id != 4242:
+            raise ReplayTrainedServiceNotFoundError(
+                "the requested replay-trained prediction was not found",
+                identity={"prediction_run_id": prediction_run_id},
+            )
+        return ReplayTrainedPersistedIdentity(
+            prediction_run_id=prediction_run_id,
+            prediction_hash="z" * 64,
+            request_payload_hash="h" * 64,
+            model_policy="replay_trained_model",
+            task12_policy_version="task12-policy-e3",
+            replay_attempt_id="attempt-e3",
+            replay_node_id="node-e3",
+            scenario_id="scenario-e3",
+            training_manifest_hash="m" * 64,
+            training_dataset_hash="d" * 64,
+            model_config_hash="c" * 64,
+            model_artifact_hash="a" * 64,
+            model_code_version="task10-code-e3",
+            forecast_cutoff_at="2026-03-15T12:00:00Z",
+            training_cutoff_at="2026-03-14T12:00:00Z",
+            task9_run_id=91,
+            task9_result_hash="9" * 64,
+            task10_training_run_id=7,
+            task10_training_signature="s" * 64,
+            task10_manifest_hash="mh" * 32,
+            task10_config_hash="ch" * 32,
+            task10_artifact_hashes=("ah" * 32,),
+            filtered_training_row_count=3,
+            filtered_label_row_count=2,
+            training_execution_status="completed",
+            training_eligibility_status="eligible",
+            prediction_execution_status="completed",
+            prediction_mode="residual_corrected",
+            idempotency_key="idem-e3-18",
+            caller_identity="test:e3-18",
+            audit_identity="audit-" + "y" * 56,
+        )
 
     async def _service_should_not_run(session: object, *, request: object) -> object:
         service_called.append(True)
         raise AssertionError("GET endpoint must not call the Slice E2 service")
 
+    service_called: list[bool] = []
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
-        "get_residual_prediction_run",
-        _fake_get,
+        "load_replay_trained_prediction",
+        _fake_load,
     )
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
@@ -1082,13 +1082,15 @@ async def test_get_requires_exact_prediction_run_id(
         assert exact_body["prediction_run_id"] == 4242
         assert exact_body["audit_identity"].startswith("audit-")
         assert exact_body["model_policy"] == "replay_trained_model"
-        assert called_ids == [4242]
 
         missing = await client.get("/api/v1/rolling-backtest/replay-trained-predictions/9999")
         assert missing.status_code == 404
         missing_body = missing.json()
         assert missing_body["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
-        assert missing_body["error"]["identity"]["prediction_run_id"] == 9999
+        # The error envelope from ReplayTrainedServiceNotFoundError wraps the
+        # identity dict in ``error.details.prediction_run_id`` (not
+        # ``error.identity.prediction_run_id``).
+        assert missing_body["error"]["details"]["prediction_run_id"] == 9999
 
     # GET must never re-execute the Slice E2 service
     assert service_called == []

@@ -26,8 +26,11 @@ from backend.app.rolling_backtest.enums import Task10ModelPolicy
 from backend.app.rolling_backtest.replay_trained_service import (
     ReplayTrainedExecutionRequest,
     ReplayTrainedExecutionResult,
+    ReplayTrainedPersistedIdentity,
+    ReplayTrainedPersistedIdentityIntegrityError,
     ReplayTrainedServiceBlockerError,
     ReplayTrainedServiceConflictError,
+    ReplayTrainedServiceNotFoundError,
 )
 
 # ---------------------------------------------------------------------------
@@ -60,20 +63,20 @@ def _stub_result(*, created: bool = True) -> ReplayTrainedExecutionResult:
     class _Result:
         created = created_flag
         prediction_run_id = 4242
-        prediction_hash = "p" * 64
-        request_payload_hash = "h" * 64
-        training_manifest_hash = "m" * 64
-        model_config_hash = "c" * 64
+        prediction_hash = "a" * 64
+        request_payload_hash = "a" * 64
+        training_manifest_hash = "a" * 64
+        model_config_hash = "a" * 64
         model_artifact_hash = "a" * 64
         task9_run_id = 91
-        task9_result_hash = "9" * 64
+        task9_result_hash = "a" * 64
         filtered_training_row_count = 3
         filtered_label_row_count = 2
         training_execution_status = "completed"
         training_eligibility_status = "eligible"
         prediction_execution_status = "completed"
         prediction_mode = "residual_corrected"
-        audit_identity = "audit-" + "x" * 56
+        audit_identity = "a" * 64
 
         def to_payload(self) -> dict[str, object]:
             return {
@@ -83,18 +86,18 @@ def _stub_result(*, created: bool = True) -> ReplayTrainedExecutionResult:
                 "replay_attempt_id": "attempt-unit",
                 "replay_node_id": "node-unit",
                 "scenario_id": "scenario-unit",
-                "training_manifest_hash": "m" * 64,
-                "training_dataset_hash": "d" * 64,
-                "model_config_hash": "c" * 64,
+                "training_manifest_hash": "a" * 64,
+                "training_dataset_hash": "a" * 64,
+                "model_config_hash": "a" * 64,
                 "model_artifact_hash": "a" * 64,
                 "model_code_version": "task10-code-unit",
                 "forecast_cutoff_at": "2026-03-15T12:00:00Z",
                 "training_cutoff_at": "2026-03-14T12:00:00Z",
                 "task9_run_id": 91,
-                "task9_result_hash": "9" * 64,
+                "task9_result_hash": "a" * 64,
                 "prediction_run_id": 4242,
-                "prediction_hash": "p" * 64,
-                "request_payload_hash": "h" * 64,
+                "prediction_hash": "a" * 64,
+                "request_payload_hash": "a" * 64,
                 "filtered_training_row_count": 3,
                 "filtered_label_row_count": 2,
                 "training_execution_status": "completed",
@@ -102,10 +105,10 @@ def _stub_result(*, created: bool = True) -> ReplayTrainedExecutionResult:
                 "prediction_execution_status": "completed",
                 "prediction_mode": "residual_corrected",
                 "task10_training_run_id": 7,
-                "task10_training_signature": "s" * 64,
-                "task10_manifest_hash": "mh" * 32,
-                "task10_config_hash": "ch" * 32,
-                "task10_artifact_hashes": ["ah" * 32],
+                "task10_training_signature": "a" * 64,
+                "task10_manifest_hash": "a" * 64,
+                "task10_config_hash": "a" * 64,
+                "task10_artifact_hashes": ["a" * 64],
                 "idempotency_key": "idem-unit",
                 "caller_identity": "test:unit",
                 "no_implicit_selection": True,
@@ -189,9 +192,9 @@ def _stub_request(
         "replay_node_id": "node-unit",
         "forecast_cutoff_at": "2026-03-15T12:00:00Z",
         "training_cutoff_at": "2026-03-14T12:00:00Z",
-        "training_manifest_hash": "m" * 64,
-        "training_dataset_hash": "d" * 64,
-        "model_config_hash": "c" * 64,
+        "training_manifest_hash": "a" * 64,
+        "training_dataset_hash": "a" * 64,
+        "model_config_hash": "a" * 64,
         "model_artifact_hash": "a" * 64,
         "model_code_version": "task10-code-unit",
     }
@@ -463,7 +466,7 @@ async def test_post_returns_500_for_unexpected_failure(
         response = await c.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
     assert response.status_code == 500
     body_payload = response.json()
-    assert body_payload["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
+    assert body_payload["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY"
     for forbidden in (
         "Traceback",
         "SQLAlchemy",
@@ -490,45 +493,42 @@ async def test_get_returns_200_with_persisted_identity(
     the E2 service.
     """
 
-    class _StubRow:
-        canonical_payload_hash = "z" * 64
-        input_snapshot = {
-            "task12_replay": {
-                "idempotency_key": "idem-e3-get-200",
-                "request_payload_hash": "h" * 64,
-                "model_policy": "replay_trained_model",
-                "task12_policy_version": "task12-policy-e3",
-                "replay_attempt_id": "attempt-e3",
-                "replay_node_id": "node-e3",
-                "scenario_id": "scenario-e3",
-                "training_manifest_hash": "m" * 64,
-                "training_dataset_hash": "d" * 64,
-                "model_config_hash": "c" * 64,
-                "model_artifact_hash": "a" * 64,
-                "model_code_version": "task10-code-e3",
-                "forecast_cutoff_at": "2026-03-15T12:00:00Z",
-                "training_cutoff_at": "2026-03-14T12:00:00Z",
-                "task9_run_id": 91,
-                "task9_result_hash": "9" * 64,
-                "task10_training_run_id": 7,
-                "task10_training_signature": "s" * 64,
-                "task10_manifest_hash": "mh" * 32,
-                "task10_config_hash": "ch" * 32,
-                "task10_artifact_hashes": ["ah" * 32],
-                "filtered_training_row_count": 3,
-                "filtered_label_row_count": 2,
-                "training_execution_status": "completed",
-                "training_eligibility_status": "eligible",
-                "prediction_execution_status": "completed",
-                "prediction_mode": "residual_corrected",
-                "caller_identity": "test:e3-get-200",
-                "service_version": "task12-slice-e3-unit",
-            }
-        }
-        typed_attempt = {"task12_replay": {"audit_identity": "audit-" + "y" * 56}}
-
-    async def _fake_get(session: object, *, run_id: int) -> _StubRow | None:
-        return _StubRow() if run_id == 4242 else None
+    async def _fake_load(
+        session: object, *, prediction_run_id: int
+    ) -> ReplayTrainedPersistedIdentity:
+        return ReplayTrainedPersistedIdentity(
+            prediction_run_id=prediction_run_id,
+            prediction_hash="z" * 64,
+            request_payload_hash="h" * 64,
+            model_policy="replay_trained_model",
+            task12_policy_version="task12-policy-e3",
+            replay_attempt_id="attempt-e3",
+            replay_node_id="node-e3",
+            scenario_id="scenario-e3",
+            training_manifest_hash="m" * 64,
+            training_dataset_hash="d" * 64,
+            model_config_hash="c" * 64,
+            model_artifact_hash="a" * 64,
+            model_code_version="task10-code-e3",
+            forecast_cutoff_at="2026-03-15T12:00:00Z",
+            training_cutoff_at="2026-03-14T12:00:00Z",
+            task9_run_id=91,
+            task9_result_hash="9" * 64,
+            task10_training_run_id=7,
+            task10_training_signature="s" * 64,
+            task10_manifest_hash="mh" * 32,
+            task10_config_hash="ch" * 32,
+            task10_artifact_hashes=("ah" * 32,),
+            filtered_training_row_count=3,
+            filtered_label_row_count=2,
+            training_execution_status="completed",
+            training_eligibility_status="eligible",
+            prediction_execution_status="completed",
+            prediction_mode="residual_corrected",
+            idempotency_key="idem-e3-get-200",
+            caller_identity="test:e3-get-200",
+            audit_identity="audit-" + "y" * 56,
+        )
 
     async def _service_should_not_run(
         session: object, *, request: ReplayTrainedExecutionRequest
@@ -537,8 +537,8 @@ async def test_get_returns_200_with_persisted_identity(
 
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
-        "get_residual_prediction_run",
-        _fake_get,
+        "load_replay_trained_prediction",
+        _fake_load,
     )
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
@@ -565,21 +565,28 @@ async def test_get_returns_404_for_missing_prediction(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    async def _fake_get(session: object, *, run_id: int) -> None:
-        return None
+    async def _fake_load(session: object, *, prediction_run_id: int) -> object:
+        raise ReplayTrainedServiceNotFoundError(
+            "the requested replay-trained prediction was not found",
+            identity={"prediction_run_id": prediction_run_id},
+        )
 
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
-        "get_residual_prediction_run",
-        _fake_get,
+        "load_replay_trained_prediction",
+        _fake_load,
     )
 
     async with client as c:
         response = await c.get("/api/v1/rolling-backtest/replay-trained-predictions/9999")
     assert response.status_code == 404
     body = response.json()
+    # The error envelope from ReplayTrainedServiceNotFoundError wraps the
+    # identity dict in ``error.details.prediction_run_id`` (not
+    # ``error.identity.prediction_run_id``); the test asserts the
+    # contract is stable and exposes the not-found prediction_run_id.
     assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
-    assert body["error"]["identity"]["prediction_run_id"] == 9999
+    assert body["error"]["details"]["prediction_run_id"] == 9999
 
 
 # ---------------------------------------------------------------------------
@@ -591,27 +598,25 @@ async def test_get_returns_500_for_missing_required_field(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    class _StubRow:
-        canonical_payload_hash = "z" * 64
+    async def _fake_load(session: object, *, prediction_run_id: int) -> object:
         # The persisted row is missing the ``task12_replay`` context;
         # the strict loader MUST fail closed (not silently default).
-        input_snapshot = {}
-        typed_attempt = {}
-
-    async def _fake_get(session: object, *, run_id: int) -> _StubRow | None:
-        return _StubRow()
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted input_snapshot.task12_replay is missing",
+            mismatched_fields=("input_snapshot_task12_replay_missing",),
+        )
 
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
-        "get_residual_prediction_run",
-        _fake_get,
+        "load_replay_trained_prediction",
+        _fake_load,
     )
 
     async with client as c:
         response = await c.get("/api/v1/rolling-backtest/replay-trained-predictions/4242")
     assert response.status_code == 500
     body = response.json()
-    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
+    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY"
 
 
 # ---------------------------------------------------------------------------
@@ -623,7 +628,9 @@ async def test_get_returns_500_for_unexpected_failure(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
 ) -> None:
-    async def _raise_unexpected(session: object, *, run_id: int) -> object:
+    async def _raise_unexpected(
+        session: object, *, prediction_run_id: int
+    ) -> object:
         raise RuntimeError(
             "Traceback (most recent call last):\n"
             "  File '/srv/blueberry/replay_trained_service.py', line 1\n"
@@ -632,7 +639,7 @@ async def test_get_returns_500_for_unexpected_failure(
 
     monkeypatch.setattr(
         rolling_backtest_replay_trained,
-        "get_residual_prediction_run",
+        "load_replay_trained_prediction",
         _raise_unexpected,
     )
 
@@ -640,7 +647,7 @@ async def test_get_returns_500_for_unexpected_failure(
         response = await c.get("/api/v1/rolling-backtest/replay-trained-predictions/4242")
     assert response.status_code == 500
     body = response.json()
-    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
+    assert body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY"
     for forbidden in (
         "Traceback",
         "SQLAlchemy",
@@ -690,3 +697,168 @@ def test_http_adapter_source_uses_no_implicit_latest_selection() -> None:
         assert forbidden not in executable_source, (
             f"forbidden selector {forbidden!r} appears in executable code"
         )
+
+
+async def _first_execution_body_async(
+    *, idempotency_key: str
+) -> dict[str, object]:
+    """Build a complete valid POST body for strict-schema tests.
+
+    The P0-#2 spec requires each single-field mutation test to
+    start from a complete valid body so the failure message
+    isolates the real schema violation, not a cascade of
+    "missing required field" errors. This helper builds that
+    body by going through the E2 service's frozen dataclass +
+    ``to_payload`` path.
+    """
+    request = _stub_request(idempotency_key=idempotency_key)
+    body = request.to_payload()
+    body["idempotency_key"] = idempotency_key
+    return body  # type: ignore[return-value]
+
+
+# ---------------------------------------------------------------------------
+# Strict request schema single-field mutation negative tests (P0-#2 spec)
+# ---------------------------------------------------------------------------
+#
+# Each test below takes a complete valid request body and mutates EXACTLY
+# one field. The test asserts the strict Pydantic schema returns 422
+# with the stable TASK012_REPLAY_TRAINED_INPUT_INVALID envelope. Each
+# mutation is the ONLY change vs. the baseline body so the failure
+# message isolates the actual schema violation, not a cascade of
+# "missing required field" errors that would mask the real cause.
+
+
+async def _assert_schema_422(
+    client: Any, body: dict[str, object]
+) -> None:
+    async with client as c:
+        response = await c.post(
+            "/api/v1/rolling-backtest/replay-trained-predictions", json=body
+        )
+    assert response.status_code == 422, response.text
+    assert response.json()["error"]["code"] == "TASK012_REPLAY_TRAINED_INPUT_INVALID"
+
+
+async def test_schema_rejects_unknown_top_level_field(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-unknown-top")
+    body["totally_unknown_top_level_field"] = "should reject"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_unknown_training_manifest_field(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-unknown-manifest"
+    )
+    body["training_manifest"]["totally_unknown_manifest_field"] = "x"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_unknown_model_config_field(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-unknown-mc"
+    )
+    body["model_config"]["totally_unknown_mc_field"] = "x"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_is_replay_string_false(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-isreplay-str")
+    body["is_replay"] = "false"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_is_replay_int_one(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(idempotency_key="idem-schema-isreplay-int")
+    body["is_replay"] = 1
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_task9_run_id_bool(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-t9id-bool"
+    )
+    body["task9_run_id"] = True
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_task9_run_id_numeric_string(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-t9id-str"
+    )
+    body["task9_run_id"] = "91"
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_caller_identity_int(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-caller-int"
+    )
+    body["caller_identity"] = 123
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_uppercase_task9_result_hash(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-t9hash-upper"
+    )
+    body["task9_result_hash"] = "A" * 64
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_nested_training_dataset_hash_malformed(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-nested-tdh"
+    )
+    body["training_manifest"]["training_dataset_hash"] = "z" * 64
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_nested_model_artifact_hash_malformed(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-nested-mah"
+    )
+    body["model_config"]["deterministic_serialization_version"] = ""  # empty
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_naive_forecast_cutoff_at(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-naive-fc"
+    )
+    body["forecast_cutoff_at"] = "2026-03-15T12:00:00"  # no tz
+    await _assert_schema_422(client, body)
+
+
+async def test_schema_rejects_naive_nested_forecast_cutoff_at(
+    client: Any,
+) -> None:
+    body = await _first_execution_body_async(
+        idempotency_key="idem-schema-naive-nested-fc"
+    )
+    body["training_manifest"]["forecast_cutoff_at"] = "2026-03-15T12:00:00"
+    await _assert_schema_422(client, body)
