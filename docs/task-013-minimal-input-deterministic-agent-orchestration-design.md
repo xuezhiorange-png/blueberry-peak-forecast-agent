@@ -196,7 +196,7 @@ The ordinary user MVP **must not** require any of the following as input:
 - explicit replay-trained selection
 - explicit backtest selection
 
-These may be supplied as **advanced overrides** — specifically through `AdvancedOverrides.authority_overrides[].target = TASK8_FORECAST_RUN | TASK10_TRAINING_RUN | TASK11_BACKTEST_RUN | TASK12_PREDICTION_RUN` (typed, integer-valued row ids; see §8.1). The ordinary user MVP does not require these.
+These may be supplied as **advanced overrides** — specifically through `AdvancedOverrides.authority_overrides[].target = TASK8_FORECAST_RUN | TASK9_HARVEST_STATE_RUN | TASK10_PREDICTION_RUN | TASK11_BACKTEST_RUN | TASK12_PREDICTION_RUN` (typed, integer-valued row ids; see §8.1). `TASK10_TRAINING_RUN` is a separate optional override for surfacing the upstream training artifact and **MUST NOT** be used as a substitute for the prediction-run selector (§8.1 / §9.3.3). The ordinary user MVP does not require these.
 
 ---
 
@@ -356,6 +356,8 @@ AdvancedOverrides:
     - override_kind: AUTHORITY_OVERRIDE_KIND
       target: enum [
         "TASK8_FORECAST_RUN",
+        "TASK9_HARVEST_STATE_RUN",
+        "TASK10_PREDICTION_RUN",
         "TASK10_TRAINING_RUN",
         "TASK11_BACKTEST_RUN",
         "TASK12_PREDICTION_RUN",
@@ -364,10 +366,15 @@ AdvancedOverrides:
       unit: null
       source_attestation: string
       source_ref: object | null
-  as_of: date | null                      # OPTIONAL caller-supplied override of requested_as_of_date; if present, MUST be carried as an AsOfOverride object (NOT a bare scalar) — see §8.4 for the typed override
+  as_of_overrides:
+    - override_kind: AS_OF_OVERRIDE       # at most one entry may be supplied (see §8.4)
+      value: date                         # ISO-8601 date
+      unit: "date"
+      source_attestation: string          # required; participates in universal attestation rule (§8.1)
+      source_ref: object | null
 ```
 
-**Universal attestation rule.** Every override — parameter, scenario, execution, or authority — MUST carry `source_attestation`. The phrase "every override needs `source_attestation`, but only parameter overrides contain it" is rejected; the schema above applies the same envelope to all four kinds.
+**Universal attestation rule.** Every override — parameter, scenario, execution, authority, **or `as_of_overrides[AS_OF_OVERRIDE]`** — MUST carry `source_attestation`. The schema above applies the same envelope to all override kinds. Bare scalars (`as_of: date | null` or any other un-typed scalar) MUST NOT appear inside `AdvancedOverrides`. A bare `as_of` is rejected as bypass of the universal attestation envelope.
 
 #### §8.1.1 Per-parameter override value types
 
@@ -409,39 +416,38 @@ ProcessorCapacityOverride:
   unit: "t_per_day"
 ```
 
-### §8.4 `AsOfOverride` — typed override for the as-of date
+### §8.2 `AsOfOverride` — typed override for the as-of date
 
-A bare `as_of: date | null` scalar in `AdvancedOverrides` is **forbidden** because it bypasses the universal attestation envelope. Two equivalent paths are accepted:
+A bare `as_of: date | null` scalar in `AdvancedOverrides` is **forbidden**; the only typed override path for the as-of date is `as_of_overrides[].override_kind = AS_OF_OVERRIDE` (schema above). The `AsOfOverride` envelope is consumed by the normalization step and replaces `requested_as_of_date` before the season-calendar policy resolves `effective_as_of_date`. The resulting `effective_as_of_date` and `season_resolution_policy_version` + `season_calendar_config_hash` are recorded as for any other request.
 
-**Path A — caller uses `requested_as_of_date` in `MinimalInputRequest`.** This is the preferred path. The caller puts the value on the typed stage-1 schema and lets the season-calendar policy produce `effective_as_of_date` on `NormalizedAgentRequest`. No override envelope is needed.
+**Path A — caller uses `requested_as_of_date` in `MinimalInputRequest`** (the **preferred ordinary-user path**): the caller puts the value on the typed stage-1 schema and lets the season-calendar policy produce `effective_as_of_date` on `NormalizedAgentRequest`. No `as_of_overrides` entry is needed.
 
-**Path B — caller supplies a typed `AsOfOverride`.** Used when the caller wants to override `requested_as_of_date` after the stage-1 schema was already assembled (e.g. re-running with a different as-of). The override is:
+**Path B — caller supplies an `AsOfOverride`** (typed envelope above): used when the caller wants to override `requested_as_of_date` after the stage-1 schema was already assembled (e.g. re-running with a different as-of). The envelope carries `source_attestation` per the universal attestation rule (§8.1).
 
-```yaml
-AsOfOverride:
-  override_kind: AS_OF_OVERRIDE
-  value: date                    # ISO-8601 date
-  unit: "date"
-  source_attestation: string     # required
-  source_ref: object | null
-```
+**At-most-one and conflict rules.**
 
-`AsOfOverride` is consumed by the normalization step and replaces `requested_as_of_date` before the season-calendar policy resolves `effective_as_of_date`. The resulting `effective_as_of_date` and `season_resolution_policy_version` + `season_calendar_config_hash` are recorded as for any other request.
+1. `AdvancedOverrides.as_of_overrides` MUST contain **at most one** entry whose `override_kind = AS_OF_OVERRIDE`. If more than one `AS_OF_OVERRIDE` is supplied → request fails with `OVERRIDE_CONFLICT` (§26.1).
+2. If the caller supplies BOTH `MinimalInputRequest.requested_as_of_date` AND one `AdvancedOverrides.as_of_overrides[AS_OF_OVERRIDE]`:
+   - the **typed `AsOfOverride` wins**, and the caller-supplied `requested_as_of_date` is recorded only as `requested_as_of_date_provenance` (the original caller preference is preserved for audit, not used for season-calendar resolution).
+   - This precedence rule is deterministic and frozen. Any future request to invert precedence requires a separate amendment and a re-frozen §8.2.
+3. `AsOfOverride` is NOT an `authority_overrides` entry and does NOT consume the `AUTHORITY_CONFLICT` resolution path.
 
-### §8.2 Override authority rules
+### §8.3 Override authority rules
 
-- Every override (parameter, scenario, execution, authority) MUST carry `source_attestation`.
+- Every override (parameter, scenario, execution, authority, `as_of_overrides[AS_OF_OVERRIDE]`) MUST carry `source_attestation`.
 - Every override MUST be reflected in the output's citation block with `OVERRIDE_APPLIED` tag.
 - Algorithm / model / replay selection overrides are **not** accepted as `algorithm_override`. They MUST go through `authority_overrides.*`, and if no matching persisted run exists → `AUTHORITY_NOT_FOUND` blocker.
 - `execution_overrides` where `target = REQUEST_BACKTEST` or `target = REQUEST_REPLAY_TRAINED_RUN` are **advanced execution** flags. In the first implementation Slice they MUST be rejected with `EXECUTION_DEFERRED` blocker; a future amendment may unlock them with explicit confirmation token. Slice D does NOT include any confirmation-token mechanism; that requires a separate amendment (§18, §22.4).
+- `as_of_overrides[AS_OF_OVERRIDE]` MUST NOT change any authority selection. It only shifts the as-of date consumed by normalization; selection rules in §9 are unchanged.
 
-### §8.3 Override MUST NOT
+### §8.4 Override MUST NOT
 
 - inject raw SQL / shell / Python
 - inject arbitrary URLs
 - inject credentials
 - request any side-effect outside the allowlist (§11)
 - request access to `.hermes` / shell history / secrets
+- bypass the universal attestation rule (§8.1)
 
 ---
 
@@ -933,7 +939,7 @@ authorities_consumed:
 
 ### §15.8 MVP scope
 
-For MVP, this tool consumes existing TASK-008/009/010 services; TASK-012 is consulted only when an explicit `TASK12_PREDICTION_RUN` authority override is supplied (advanced override). Default path does NOT call TASK-012.
+TASK-012 is **NOT consulted** in any default or advanced MVP path. The TASK-012 read path is reachable **only** when an explicit `AdvancedOverrides.authority_overrides[target = TASK12_PREDICTION_RUN].value` is supplied, per §22.1. There is no TASK-012 default branch in this design.
 
 ---
 
@@ -973,10 +979,14 @@ forecast_peak_output:
     p50: decimal_string
     p80: decimal_string
     p90: decimal_string
-  peak_duration_days:                      # per §16.5.8 (high_load_threshold_ratio from policy)
+  peak_duration_days:                      # per §16.5.8 (high_load_reference + high_load_threshold_ratio from policy)
     p50: integer
     p80: integer
     p90: integer
+  high_load_threshold:                     # decimal-string threshold per quantile, per §16.5.8
+    p50: decimal_string
+    p80: decimal_string
+    p90: decimal_string
   dominant_variety:
     p50: { variety_id: string, contribution_rate: decimal_string, numerator_kg: decimal_string, denominator_kg: decimal_string }
     p80: { ... }
@@ -997,10 +1007,13 @@ PeakMetricPolicy:
   tie_break: EARLIEST_START_DATE                      # stable tie-break that always resolves a winner
   peak_window_days_before: 7
   peak_window_days_after: 7
-  high_load_threshold_ratio: decimal_string            # per-day volume ≥ ratio × season_p90_daily triggers peak-duration extension
+  high_load_reference: SINGLE_DAY_PEAK                # defines the reference statistic used to compute high_load_threshold[q] below
+  high_load_threshold_ratio: decimal_string           # dimensionless; high_load_threshold[q] = ratio × reference_volume[q]
 ```
 
 The peak policy is **deterministic and versioned**. It is NOT a hidden "3-day" prose rule; its `policy_version` and `policy_config_hash` are recorded in the output.
+
+**`high_load_reference` is a frozen policy field.** `SINGLE_DAY_PEAK` is the frozen default and means `high_load_threshold[q] = high_load_threshold_ratio × single_day_peak[q].volume_kg`. If a future amendment chooses another reference statistic (e.g. `SUSTAINED_3DAY_PEAK`), that amendment MUST also freeze its exact formula, ordering, rounding rule, and tie-break in this section; until such an amendment is merged, `high_load_reference = SINGLE_DAY_PEAK` is the only allowed value.
 
 ### §16.5 Frozen formulas
 
@@ -1011,7 +1024,7 @@ The peak policy is **deterministic and versioned**. It is NOT a hidden "3-day" p
 5. **Window continuity rule.** A sustained window MUST contain three **actual consecutive calendar dates** present in `per_day`. If the daily row sequence has gaps, the window is not eligible.
 6. **±7-day window cumulative.** An inclusive 15-day window (`peak_window_days_before=7` calendar dates before the single-day-peak date plus `peak_window_days_after=7` calendar dates after) is taken around `single_day_peak[q].date`. The window is clipped to the forecast boundaries (season start and April 30, or the explicit `forecast_window` if one is supplied). The cumulative quantity of `final_corrected_arrival_quantity_kg.q` over that window is output as `peak_window_cumulative_quantity_kg[q]`.
 7. **Per-quantile separation.** Every peak / window / sustained value is output separately for P50, P80, P90. Mixing quantiles inside a single field is rejected.
-8. **`peak_duration_days[q]`** uses `high_load_threshold_ratio` from `PeakMetricPolicy`. A day is in the peak duration window if its `final_corrected_arrival_quantity_kg.q ≥ high_load_threshold_ratio × season_p90_daily[q]`. The peak duration is the maximum consecutive run of such days around `single_day_peak[q].date`, with `tie_break = EARLIEST_START_DATE`.
+8. **`peak_duration_days[q]`** uses `high_load_threshold_ratio` and `high_load_reference` from `PeakMetricPolicy`. With the frozen default `high_load_reference = SINGLE_DAY_PEAK`, `high_load_threshold[q] = high_load_threshold_ratio × single_day_peak[q].volume_kg` (decimal-string arithmetic, canonical round-half-to-even at 18 fractional digits, no float). A day is in the peak duration window if its `final_corrected_arrival_quantity_kg.q ≥ high_load_threshold[q]`. `peak_duration_days[q]` is the length of the **maximum consecutive run** of such days **containing** `single_day_peak[q].date`, with `tie_break = EARLIEST_START_DATE`. The `high_load_threshold[q]` value itself is output as a decimal string in `forecast_peak_output.high_load_threshold[q]` for auditability.
 9. **Dominant variety** is computed for the **selected peak window and quantile** (`single_day_peak[q]` or `sustained_3day_peak[q]` per the call site). The dominant variety is the variety with the largest sum of `per_variety_contribution[*].volume_kg_q` over the window. The output discloses both `numerator_kg` (that variety's sum) and `denominator_kg` (the window total) so the contribution rate is independently verifiable.
 10. **Stable tie-break, no extra blocker.** The stable tie-break in the policy always resolves a winner; no extra blocker is raised on equal maxima. The historical equal-maxima blocker code (a separate code raised when equal maxima could not be resolved) is removed.
 
@@ -1053,16 +1066,26 @@ simulate_scenario_input:
 
 ```yaml
 simulate_scenario_output:
-  scenario_id: string  # deterministic hash of the scenario config
+  scenario_id: sha256                      # sha256 of canonical JSON of scenario_overrides (frozen to sha256, not "string")
+  scenario_config_hash: sha256             # sha256 of canonical JSON of simulate_scenario_input.scenario_overrides
   forecast_daily_curve: forecast_daily_curve_output
   forecast_peak: forecast_peak_output
   delta_vs_baseline:
-    peak_volume_delta_p50: number
-    peak_volume_delta_p80: number
-    peak_volume_delta_p90: number
-    sustained_3day_delta: number
-  scenario_config_hash: string
+    single_day_peak_volume_delta_kg:       # per-day peak volume difference vs baseline, decimal_string, per quantile
+      p50: decimal_string
+      p80: decimal_string
+      p90: decimal_string
+    sustained_3day_daily_average_delta_kg_per_day:  # rolling 3-day mean delta vs baseline, decimal_string, per quantile
+      p50: decimal_string
+      p80: decimal_string
+      p90: decimal_string
+    sustained_3day_cumulative_delta_kg:    # 3-day cumulative delta vs baseline, decimal_string, per quantile
+      p50: decimal_string
+      p80: decimal_string
+      p90: decimal_string
 ```
+
+All authoritative quantities in `delta_vs_baseline` are **decimal strings** (no Python `float`, no generic JSON number); arithmetic uses canonical decimal-string arithmetic per §16.5.8 conventions. `scenario_id` and `scenario_config_hash` are sha256 strings over the canonical JSON.
 
 ### §17.4 Authority contract
 
@@ -1141,16 +1164,34 @@ explain_forecast_output:
       paragraphs:
         - kind: enum [AUTHORITATIVE_VALUE, DETERMINISTIC_EXPLANATION, DETERMINISTIC_RECOMMENDATION, NON_AUTHORITATIVE_PRESENTATION]
           text: string  # for AUTHORITATIVE_VALUE, the exact value reference must be a structured cite, not a number string
-          citation:
-            source_task: enum [TASK_008, TASK_009, TASK_010, TASK_011, TASK_012]
-            source_tool: enum [RESOLVE_LOCATION, INFER_PARAMETERS, FORECAST_DAILY_CURVE, FORECAST_PEAK, SIMULATE_SCENARIO, EXPLAIN_FORECAST, GENERATE_RECOMMENDATIONS]
-            authority_type: enum [TASK_8_AUTHORITY, TASK_9_AUTHORITY, TASK_10_AUTHORITY, TASK_11_AUTHORITY, TASK_12_AUTHORITY]
-            authority: Task8Authority | Task9Authority | Task10Authority | Task11Authority | Task12Authority | null
-            agent_artifact_hash: sha256 | null
-            field_path: string  # e.g. "daily_curve.per_day[7].final_corrected_arrival_quantity_kg.p50"
+          citation:                                     # canonical Citation schema; the single source of truth for all citations in this design
+            source_tasks:                                # list (composite fields may depend on multiple source tasks simultaneously)
+              - enum [TASK_008, TASK_009, TASK_010, TASK_011, TASK_012, TASK_013]
+            source_tool: enum [
+              RESOLVE_LOCATION,
+              INFER_PARAMETERS,
+              FORECAST_DAILY_CURVE,
+              FORECAST_PEAK,
+              SIMULATE_SCENARIO,
+              EXPLAIN_FORECAST,
+              GENERATE_RECOMMENDATIONS
+            ]
+            authorities:                                  # list (one per source task actually consumed)
+              - authority_type: enum [
+                  TASK_8_AUTHORITY,
+                  TASK_9_AUTHORITY,
+                  TASK_10_AUTHORITY,
+                  TASK_11_AUTHORITY,
+                  TASK_12_AUTHORITY
+                ]
+                authority: Task8Authority | Task9Authority | Task10Authority | Task11Authority | Task12Authority
+            agent_artifact_hash: sha256 | null           # adapter-introduced canonical hash (e.g. agent_daily_curve_hash); never aliases a real task hash
+            field_path: string                           # e.g. "daily_curve.per_day[7].final_corrected_arrival_quantity_kg.p50"
             effective_as_of_date: date
-            confidence_evidence: object | null
+            confidence_evidence: object | null           # structured object, not free text
 ```
+
+**Single source of truth.** The `Citation` schema above is the canonical citation contract; it is the only citation shape allowed in §19 / §20 / §24.2. Universal shorthands `run_id` / `result_hash` / `manifest_hash` / `forecast_cutoff` / `as_of` MUST NOT appear as top-level citation fields; if any such value is needed, it MUST appear only inside the typed authority envelope (`Task8Authority` / `Task9Authority` / `Task10Authority` / `Task11Authority` / `Task12Authority` per §9.3).
 
 ### §19.4 Authority contract
 
@@ -1219,13 +1260,29 @@ generate_recommendations_output:
       text: string                            # deterministic template output
       rule_id: string                         # identifies the exact rule used
       evidence:
-        - citation:
-            source_task: enum [TASK_008, TASK_009, TASK_010, TASK_011, TASK_012]
-            source_tool: enum [RESOLVE_LOCATION, INFER_PARAMETERS, FORECAST_DAILY_CURVE, FORECAST_PEAK, SIMULATE_SCENARIO, EXPLAIN_FORECAST, GENERATE_RECOMMENDATIONS]
-            authority_type: enum [TASK_8_AUTHORITY, TASK_9_AUTHORITY, TASK_10_AUTHORITY, TASK_11_AUTHORITY, TASK_12_AUTHORITY]
-            authority: Task8Authority | Task9Authority | Task10Authority | Task11Authority | Task12Authority | null
+        - citation:                                     # canonical Citation schema per §19.3 (single source of truth)
+            source_tasks:
+              - enum [TASK_008, TASK_009, TASK_010, TASK_011, TASK_012, TASK_013]
+            source_tool: enum [
+              RESOLVE_LOCATION,
+              INFER_PARAMETERS,
+              FORECAST_DAILY_CURVE,
+              FORECAST_PEAK,
+              SIMULATE_SCENARIO,
+              EXPLAIN_FORECAST,
+              GENERATE_RECOMMENDATIONS
+            ]
+            authorities:
+              - authority_type: enum [
+                  TASK_8_AUTHORITY,
+                  TASK_9_AUTHORITY,
+                  TASK_10_AUTHORITY,
+                  TASK_11_AUTHORITY,
+                  TASK_12_AUTHORITY
+                ]
+                authority: Task8Authority | Task9Authority | Task10Authority | Task11Authority | Task12Authority
             agent_artifact_hash: sha256 | null
-            field_path: string  # e.g. "daily_curve.per_day[7].final_corrected_arrival_quantity_kg.p50"
+            field_path: string                           # e.g. "peak.sustained_3day_peak.p90.rolling_daily_average_kg_per_day"
             effective_as_of_date: date
             confidence_evidence: object | null
         - threshold: {parameter, value, unit}
@@ -1282,13 +1339,16 @@ The composition MUST NOT:
 
 ## §22 TASK-012 replay-trained model boundary
 
-### §22.1 Read path (always allowed, identity-bearing)
+### §22.1 Read path (explicit override only)
 
-TASK-013 MAY read TASK-012's persisted artifacts through `GET /api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}` when:
-- an explicit `TASK12_PREDICTION_RUN` authority override (`AdvancedOverrides.authority_overrides[target = TASK12_PREDICTION_RUN].value` = integer `prediction_run_id`) is supplied; OR
-- the deterministic authority resolver (§9) returns a TASK-012 authority for the requested `effective_as_of_date` (this is an advanced path, not MVP).
+**Frozen rule.** TASK-013 MAY read TASK-012's persisted artifacts through `GET /api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}` **only** when an explicit `TASK12_PREDICTION_RUN` authority override is supplied (`AdvancedOverrides.authority_overrides[target = TASK12_PREDICTION_RUN].value` = integer `prediction_run_id`).
 
-In both cases the Agent MUST carry the `Task12Authority` envelope (§9.3.5) — including `prediction_run_id`, `scenario_id`, `training_manifest_hash`, `model_config_hash`, `task9_result_hash`, `task10_manifest_hash`, `task10_config_hash`, `model_code_version`, and `model_artifact_hash` when present — into the output's provenance block. No field is fabricated; the Agent reads them from the persisted row and the request payload.
+No other TASK-013 path is permitted to consume TASK-012:
+
+- The deterministic authority resolver (§9) MUST NOT auto-select a TASK-012 authority for any `effective_as_of_date`. There is no automatic TASK-012 resolution path.
+- The MVP default path MUST NOT call TASK-012. §15.8, §21, §22.1, §22.4, and §34.1 are synchronized to this rule.
+
+When the explicit `TASK12_PREDICTION_RUN` authority override is supplied, the Agent MUST carry the `Task12Authority` envelope (§9.3.5) — including `prediction_run_id`, `scenario_id`, `training_manifest_hash`, `model_config_hash`, `task9_result_hash`, `task10_manifest_hash`, `task10_config_hash`, `model_code_version`, and `model_artifact_hash` when present — into the output's provenance block. No field is fabricated; the Agent reads them from the persisted row and the request payload. If the supplied `prediction_run_id` is not found in the persisted TASK-012 prediction rows → `TASK12_AUTHORITY_NOT_FOUND` blocker (§26.1); the Agent MUST NOT silently substitute a different `prediction_run_id`.
 
 ### §22.2 Forbidden actions
 
@@ -1320,7 +1380,7 @@ The TASK-012 read path is allowed under §22.1. The TASK-012 POST (creation) pat
 | D (HTTP API + optional CLI) | Read path only — TASK-012 POST creation remains **NOT** part of Slice D |
 | E (LLM adapter) | Read path only |
 
-`POST /api/v1/rolling-backtest/replay-trained-predictions` and the corresponding `GET /api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}` are real TASK-012 endpoints, but **TASK-013 does not invoke the POST in any frozen slice**. TASK-013 only consumes existing `prediction_run_id` results via GET (read path) when explicitly requested through the advanced `TASK12_PREDICTION_RUN` authority override.
+`POST /api/v1/rolling-backtest/replay-trained-predictions` and the corresponding `GET /api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}` are real TASK-012 endpoints, but **TASK-013 does not invoke the POST in any frozen slice** and **TASK-013 does not invoke the GET automatically**. TASK-013 only consumes existing `prediction_run_id` results via GET when an explicit `AdvancedOverrides.authority_overrides[target = TASK12_PREDICTION_RUN].value` is supplied. The deterministic resolver (§9) MUST NOT auto-discover or auto-select a TASK-012 authority for any `effective_as_of_date`; TASK-012 reads are gated by explicit override only (frozen in §22.1).
 
 TASK-012 POST may enter TASK-013 only after a **separately merged amendment** — which will introduce the confirmation-token mechanism, the per-tenant rate-limit / cost / latency budget, and a re-frozen §22.4. **This design does NOT include confirmation-token support.** Slice D does NOT ship with confirmation-token gating, and this PR must not imply otherwise.
 
@@ -1410,16 +1470,17 @@ AgentForecastOutput:
 
 ### §24.2 Citation discipline
 
-Every authoritative numerical value in the output MUST carry:
-- `field_name`
-- `value`
-- `unit`
-- `source_task` / `source_tool`
-- resolved `authority` / `run_id` identity
-- `result_hash` / `manifest_hash` when applicable
-- `forecast_cutoff` / `as_of`
-- `parameter_source`
-- `confidence_evidence` (sample count, covered seasons, historical MAPE, P90 coverage, key missing)
+The **canonical Citation schema** is defined in §19.3 and is the **single source of truth** for all citations in this design (used by §19 `explain_forecast`, §20 `generate_recommendations`, and §24 itself). Every authoritative numerical value in the output MUST carry a `Citation` block in the §19.3 shape, which means:
+
+- `source_tasks` (list, not scalar) — the source tasks that produced the value (composite fields MAY depend on multiple tasks simultaneously).
+- `source_tool` — the logical tool that produced the value.
+- `authorities` (list, not scalar) — one typed envelope per source task actually consumed; each entry pairs an `authority_type` enum with its `authority` typed object from §9.3.
+- `agent_artifact_hash` (sha256 | null) — adapter-introduced canonical hash (e.g. `agent_daily_curve_hash`), never aliases a real task hash.
+- `field_path` — the precise JSON pointer to the field being cited (e.g. `daily_curve.per_day[7].final_corrected_arrival_quantity_kg.p50`).
+- `effective_as_of_date` (date).
+- `confidence_evidence` (object | null) — structured object (not free text).
+
+**Universal shorthands forbidden.** The strings `run_id`, `result_hash`, `manifest_hash`, `forecast_cutoff`, and `as_of` MUST NOT appear as top-level fields of a citation. When such a value is required by a downstream consumer, it MUST appear **only** inside the applicable typed authority envelope (`Task8Authority` / `Task9Authority` / `Task10Authority` / `Task11Authority` / `Task12Authority`) as defined in §9.3.
 
 Natural-language sections MUST be classified as one of the four kinds in §19.1.
 
@@ -1497,6 +1558,7 @@ The Agent MUST NOT:
 | `TASK11_AUTHORITY_NOT_FOUND` | only when advanced override requests backtest |
 | `TASK12_AUTHORITY_NOT_FOUND` | only when advanced `TASK12_PREDICTION_RUN` authority override is supplied and not found |
 | `AUTHORITY_CONFLICT` | two persisted artifacts both satisfy the selector → do NOT auto-pick |
+| `OVERRIDE_CONFLICT` | `AdvancedOverrides.as_of_overrides` contains more than one `AS_OF_OVERRIDE` entry, OR the precedence between `MinimalInputRequest.requested_as_of_date` and `AsOfOverride` is broken in a way not covered by §8.2 |
 | `EXECUTION_DEFERRED` | caller requested backtest or replay-trained run creation (not allowed in this slice; no confirmation-token mechanism in any frozen slice) |
 | `CITATION_MISSING_FIELD_PATH` | AUTHORITATIVE_VALUE paragraph missing field_path |
 | `CITATION_HASH_MISMATCH` | cited hash does not match the artifact actually consumed |
@@ -1750,7 +1812,13 @@ This design PR is acceptable when:
 - ✅ `PeakMetricPolicy` (versioned, frozen formulas) governs all peak computations (§16); the historical equal-maxima blocker is removed (replaced by the stable tie-break in the policy).
 - ✅ `UncertaintyWideningPolicy` (versioned, monotonically increasing factors) governs widening (§10.4); step 1 widens only when HIGH evidence requirements are not met; step 5 has maximum widening and always LOW confidence.
 - ✅ Per-day `ForecastDailyRow` preserves TASK-009 P50/P80/P90 quantiles in `DailyQuantiles` shape (§15.3); `harvested_quantity_kg`, `closing_mature_inventory_kg`, `unharvested_backlog_kg`, `arrival_quantity_kg`, `final_corrected_arrival_quantity_kg` are NOT collapsed.
-- ✅ Discriminated typed overrides (`AdvancedOverrides` + per-target types) carry `source_attestation` universally across parameter / scenario / execution / authority overrides (§8.1).
+- ✅ Discriminated typed overrides (`AdvancedOverrides` + per-target types) carry `source_attestation` universally across parameter / scenario / execution / authority / `as_of_overrides` overrides (§8.1).
+- ✅ Bare `as_of: date | null` scalar is **forbidden** inside `AdvancedOverrides`; the only typed as-of path is `as_of_overrides[].override_kind = AS_OF_OVERRIDE` (§8.1 / §8.2). At-most-one rule and `OVERRIDE_CONFLICT` blocker enforced.
+- ✅ `Citation` is the canonical citation contract — single source of truth in §19.3; `source_tasks` (list) + `authorities` (list of typed envelopes) replaces generic `run_id` / `result_hash` / `manifest_hash` / `forecast_cutoff` / `as_of` top-level fields (§19 / §20 / §24.2).
+- ✅ TASK-012 read path is gated by explicit `TASK12_PREDICTION_RUN` authority override only (§15.8 / §22.1 / §22.4). No automatic TASK-012 authority resolution exists in any frozen slice.
+- ✅ Authority override registry covers all five `AUTHORITY_CONFLICT` candidate types: `TASK8_FORECAST_RUN`, `TASK9_HARVEST_STATE_RUN`, `TASK10_PREDICTION_RUN`, `TASK11_BACKTEST_RUN`, `TASK12_PREDICTION_RUN`. `TASK10_TRAINING_RUN` is a separate optional override that MUST NOT substitute for `TASK10_PREDICTION_RUN` (§8.1 / §9.3.3).
+- ✅ `simulate_scenario_output` deltas are structured per quantile and typed as `decimal_string` (no Python `float`, no generic JSON number); `scenario_id` / `scenario_config_hash` are `sha256` (§17.3).
+- ✅ `peak_duration_days[q]` uses frozen `PeakMetricPolicy.high_load_reference = SINGLE_DAY_PEAK` + `high_load_threshold_ratio`; `high_load_threshold[q] = ratio × single_day_peak[q].volume_kg` is output for auditability (§16.3 / §16.4 / §16.5.8).
 - ✅ Aggregate confidence = worst confidence among all required parameters (§25.1); the "overdetermined upgrade" rule is removed.
 - ✅ All authoritative values are provenance-linked (§24).
 - ✅ Recommendations are deterministic with 7 categories total = 6 operational + 1 data-quality (MISSING_DATA_IMPACT) (§20).
