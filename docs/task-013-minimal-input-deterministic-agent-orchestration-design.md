@@ -49,9 +49,9 @@ LLM is not introduced in this design round. The first implementation Slice (A/B/
 
 The following incorrect inferences must be removed from any reader's mental model:
 
-- ❌ **The claim that `Issue #35` is the TASK-012 tracking issue** — **WRONG**.
-  - ✅ `Issue #35` title = `[TASK-011][Phase 4a] Design amendment: evaluation materialization and mask foundation`. `Issue #35` belongs to **TASK-011 Phase 4a**, not TASK-012.
-  - ✅ TASK-012 had no standalone tracking Issue. Its work was driven by PRs #82–#90 plus Issue #35's downstream evaluation-mask amendment.
+- ❌ **The claim that `PR #35` is the TASK-012 tracking issue/PR** — **WRONG**.
+  - ✅ `PR #35` is a TASK-011 Phase 4a change (`[TASK-011][Phase 4a] Design amendment: evaluation materialization and mask foundation`). It belongs to **TASK-011 Phase 4a**, not TASK-012.
+  - ✅ TASK-012 had no standalone tracking Issue; its work was driven by PRs #82–#90 plus `PR #35`'s downstream evaluation-mask amendment.
 - ❌ **"TASK-012 = frontend + API" (per `CODEX_TASKS.md` 任务 12)** — **WRONG for current code**.
   - ✅ Current `main` TASK-012 = **replay-trained model** (`backend/app/rolling_backtest/replay_trained_*.py` + `backend/app/api/rolling_backtest_replay_trained.py`). It is a numerical service, not a frontend.
 - ❌ **"8 个工具名 = 8 个同名 Python function"** — **WRONG**.
@@ -133,7 +133,7 @@ The Agent MUST execute the following deterministic steps, in this order:
    - per-variety contribution
 5. **Scenario calculation** — default scenario is the planning scenario (no actual arrivals, no live staffing). Optional scenarios (e.g. add staffing, change Spring-Festival intensity) are exposed as advanced overrides.
 6. **Forecast explanation** — assemble a structured explanation payload containing every numerical value with its source task, run identity, and hash.
-7. **Deterministic recommendation** — apply deterministic rules + scenario outputs to produce the recommendation payload (6 categories per `docs/10` §5.5).
+- 7. **Deterministic recommendation** — apply deterministic rules + scenario outputs to produce the recommendation payload (7 categories total = 6 operational + 1 data-quality per §20).
 
 The output **must include**:
 - per-day P50/P80/P90 from season start to April 30;
@@ -146,7 +146,7 @@ The output **must include**:
 - model + backtest performance summary;
 - confidence ladder (高 / 中 / 低) with evidence;
 - primary uncertainties + missing-data list;
-- deterministic recommendations (6 categories).
+- deterministic recommendations (7 categories total = 6 operational + 1 data-quality per §20).
 
 ---
 
@@ -157,7 +157,7 @@ The output **must include**:
 - Logical orchestration of the 8 logical tools listed in `CODEX_TASKS.md` 任务 13.
 - Versioned deterministic authority resolution for location, parameters, model selection, replay-trained result.
 - Structured explanation payload (machine-readable) that the future LLM adapter (Slice E) may rephrase without changing authoritative values.
-- Deterministic recommendation rules (6 categories per `docs/10` §5.5).
+- Deterministic recommendation rules (7 categories total = 6 operational + 1 data-quality per §20).
 - Minimal-input MVP request contract (location + variety-area rows).
 - Advanced override contract for power users.
 - Provenance / hash / confidence / uncertainty output contract.
@@ -190,13 +190,13 @@ The output **must include**:
 ### §5.3 The "minimal-input" non-negotiable
 
 The ordinary user MVP **must not** require any of the following as input:
-- `prediction_run_id` / `model_run_id` / `scenario_id` / `forecast_cutoff_at` / `task8_run_id` / `task9_run_id` / `task10_run_id` / `task11_run_id`
+- explicit run IDs (`prediction_run_id` / `task8_run_id` / `task9_run_id` / `task10_run_id` / `task11_run_id`)
 - explicit algorithm selection
 - explicit model version selection
 - explicit replay-trained selection
 - explicit backtest selection
 
-These may be supplied as **advanced overrides**(§8) only.
+These may be supplied as **advanced overrides** — specifically through `AdvancedOverrides.authority_overrides[].target = TASK8_FORECAST_RUN | TASK10_TRAINING_RUN | TASK11_BACKTEST_RUN | TASK12_PREDICTION_RUN` (typed, integer-valued row ids). The ordinary user MVP does not require these.
 
 ---
 
@@ -217,13 +217,26 @@ These may be supplied as **advanced overrides**(§8) only.
 | **Confidence ladder** | 高 / 中 / 低 + required evidence (sample count, historical MAPE, date MAE, P90 coverage, key missing items) per `docs/10` §7 |
 | **Blocker** | A structured error code that names the reason the Agent cannot proceed (input invalid, authority not found, etc.) |
 | **Confirmation token** | An explicit human-issued token that authorizes a write-class action (NOT introduced in this design round; reserved for future advanced-execution amendment) |
+| **NormalizedAgentRequest** | The deterministic, server-resolved request produced by applying the season-calendar policy to `MinimalInputRequest`; consumed by all tools |
+| **`effective_as_of_date`** | The date used for authority resolution; resolved from `requested_as_of_date` via the versioned season-calendar policy, never silently defaulted to a wall-clock value |
+| **`effective_forecast_season`** | The season used for authority resolution; resolved from `requested_forecast_season` via the versioned season-calendar policy |
+| **`season_resolution_policy_version`** | Version identifier of the season-calendar policy used to resolve `effective_*` fields |
+| **`season_calendar_config_hash`** | sha256 of the season-calendar policy config consulted; included in canonical request hash and provenance |
+| **`PeakMetricPolicy`** | Versioned rule object defining `sustained_window_days`, `sustained_metric`, `tie_break`, `peak_window_days_before/after`, `high_load_threshold_ratio` |
+| **`UncertaintyWideningPolicy`** | Versioned rule object defining widening factors per inference priority step (steps 2–5 widen; step 1 does not when HIGH evidence requirements are met; step 5 max widening, always LOW confidence) |
+| **`DailyQuantiles`** | `{p50: decimal_string, p80: decimal_string, p90: decimal_string}`; the canonical shape for any TASK-009-derived per-day scalar in the daily curve |
+| **Typed authority envelope** | A schema (`Task8Authority` / `Task9Authority` / `Task10Authority` / `Task11Authority` / `Task12Authority`) carrying only fields the underlying real main contract exposes, each cited to its source path/class |
+| **`PARTIAL` request status** | Overall request status when at least one variety (or other per-variety / per-tool outcome) was blocked but the rest of the request could proceed; per-blocked-item carries its own blocker code |
+| **`agent_*` hash** | Adapter-introduced canonical-output hash with explicit `agent_` prefix; never aliases an existing task hash |
 | **Citation block** | A JSON sub-payload attached to every authoritative numerical value, listing source task / run id / hash / cutoff / parameter source / confidence evidence |
 
 ---
 
 ## §7 Minimal-input request contract
 
-### §7.1 Request schema (Pydantic / JSON Schema, both acceptable)
+### §7.1 Request schema — Stage 1: caller-supplied `MinimalInputRequest`
+
+`MinimalInputRequest` is the **caller-supplied** request as received from the transport. It carries exactly the fields the caller may set; it MUST NOT silently inject wall-clock or current-season defaults.
 
 ```yaml
 MinimalInputRequest:
@@ -235,20 +248,60 @@ MinimalInputRequest:
   varieties:
     - variety_id: string          # e.g. "Dx", "D12"
       planting_area_mu: number    # > 0, NUMERIC precision
-  as_of: date | null              # forecast cutoff; defaults to "today" in UTC
-  forecast_season: integer | null # e.g. 2026; defaults to current planning season
+  requested_as_of_date: date | null         # caller-supplied; null means "no caller preference"
+  requested_forecast_season: integer | null # caller-supplied; null means "no caller preference"
   advanced_overrides: AdvancedOverrides | null  # see §8
   presentation_locale: string | null  # e.g. "zh-CN"; default "zh-CN"
 ```
 
-### §7.2 Validation rules
+The fields `requested_as_of_date` and `requested_forecast_season` are the **only** date / season inputs the caller controls. They are explicit `null` when the caller has no preference — they MUST NOT be silently rewritten to a wall-clock value inside `MinimalInputRequest`.
+
+`request_received_at` is **not** part of `MinimalInputRequest`. It is injected by the transport / runtime as an aware UTC `datetime` at the moment the orchestrator begins processing, and is recorded in `NormalizedAgentRequest` (§7.2).
+
+### §7.2 Request schema — Stage 2: server-normalized `NormalizedAgentRequest`
+
+`NormalizedAgentRequest` is the **deterministic, fully-resolved** request that the orchestrator's tools consume. It is produced by a single explicit normalization step from `MinimalInputRequest` and `request_received_at`.
+
+```yaml
+NormalizedAgentRequest:
+  request_id: string
+  request_received_at: aware_datetime  # injected by transport; UTC; not caller-supplied
+  effective_as_of_date: date           # resolved from requested_as_of_date via §7.3
+  effective_forecast_season: integer   # resolved from requested_forecast_season via §7.3
+  season_resolution_policy_version: string  # exact policy used to resolve season (e.g. "season-calendar/v1")
+  season_calendar_config_hash: sha256      # sha256 of the season-calendar policy config consulted
+  normalized_location: ResolvedLocation  # produced by resolve_location
+  varieties:
+    - variety_id: string
+      planting_area_mu: number
+  advanced_overrides: AdvancedOverrides | null
+  canonical_request_hash: sha256  # hash of canonical JSON of this entire structure
+```
+
+### §7.3 Two-stage normalization — season-calendar policy
+
+When the caller leaves `requested_as_of_date` or `requested_forecast_season` as `null`, the orchestrator resolves the effective values via a **versioned season-calendar policy**:
+
+1. The orchestrator consults a registered `season_calendar` policy object carrying:
+   - `policy_version` (e.g. `"season-calendar/v1"`),
+   - `config_hash` (sha256 of the policy's canonical JSON config),
+   - the policy's deterministic `as_of → season` and `received_at → as_of` rules.
+2. The resolved `effective_as_of_date` and `effective_forecast_season` are recorded.
+3. `season_resolution_policy_version` and `season_calendar_config_hash` are recorded.
+4. Both effective values are included in the **canonical request hash** (§24) and the output's `provenance` block.
+5. The orchestrator MUST NOT use any undocumented wall-clock / current-season fallback. If the policy cannot resolve (e.g. no policy registered for the runtime), the request fails with `SEASON_CALENDAR_POLICY_MISSING` (§26).
+
+The season-calendar policy itself is a deterministic, versioned rule object. It is **not** a hidden `today()` call; its source must be inspectable from `season_calendar_config_hash`.
+
+### §7.4 Validation rules (on `MinimalInputRequest`)
 
 - `location` must have **at least one** of `raw_text`, `coordinates`, `map_pick_token`. Else → `INPUT_INVALID_LOCATION`.
 - `varieties` must be a non-empty list. Else → `INPUT_INVALID_VARIETIES`.
 - Each `planting_area_mu > 0`. Else → `INPUT_INVALID_PLANTING_AREA`.
-- `variety_id` must be a known catalog variety. Unknown variety → `UNKNOWN_VARIETY` (still proceeds with explicit `LOW_CONFIDENCE` for that variety, never silently drops).
-- `as_of` if supplied must be a valid date in UTC; if `as_of > today + 1 day` → `INPUT_INVALID_AS_OF`.
-- `forecast_season` if supplied must be a known season; else → `INPUT_INVALID_SEASON`.
+- `variety_id` known-unknown behavior is governed by §26 — `UNKNOWN_VARIETY` is a per-variety blocked outcome, not an overall request blocker; known varieties continue; overall request status becomes `PARTIAL`; no numerical prediction for the unknown variety.
+- `requested_as_of_date`, if supplied, MUST be a valid `date`. Out-of-policy values → `INPUT_INVALID_AS_OF`.
+- `requested_forecast_season`, if supplied, MUST be a value the season-calendar policy recognizes. Unknown season → `INPUT_INVALID_SEASON`.
+- After normalization, `effective_as_of_date` and `effective_forecast_season` are recorded in `NormalizedAgentRequest.effective_*` and appear in the output's provenance.
 
 ### §7.3 What MUST NOT be in the minimal input
 
@@ -263,45 +316,104 @@ If any of these appear in the input, they MUST be moved into `advanced_overrides
 
 ## §8 Advanced override contract
 
-### §8.1 Override schema
+### §8.1 Override schema — discriminated typed overrides
+
+Overrides are **discriminated typed objects**, not a single `value: number | distribution_ref` blob. Each override carries `override_kind`, a typed `value`, an explicit `unit`, a `source_attestation`, and an optional `source_ref`. Date / ratio / kg-per-mu / capacity / distribution overrides each have their own concrete type.
 
 ```yaml
 AdvancedOverrides:
   parameter_overrides:
-    - variety_id: string
-      parameter: enum [
-        "expected_per_mu_yield",
-        "commodity_fruit_rate",
-        "first_harvest_date",
-        "maturity_curve",
-        "spring_festival_harvest_rate",
-        "weather_adjustment",
+    - override_kind: PARAMETER_OVERRIDE_KIND
+      variety_id: string
+      target_parameter: enum [
+        "expected_per_mu_yield",            # YieldPerMuOverride
+        "commodity_fruit_rate",             # RateOverride
+        "first_harvest_date",               # DateOverride
+        "maturity_curve",                   # DistributionOverride
+        "spring_festival_harvest_rate",     # RateOverride
+        "weather_adjustment",               # WeatherAdjustmentOverride
       ]
-      value: number | distribution_ref | null
-      source_attestation: string  # free-text justification; NOT machine-validated in this slice
+      value: <typed per target_parameter, see §8.1.1>
+      unit: string | null
+      source_attestation: string           # required; free text, not machine-validated in this slice
+      source_ref: object | null            # optional structured pointer (e.g. {kind: "internal_doc", path: "..."})
   scenario_overrides:
-    staffing_override: number | null
-    spring_festival_intensity: enum [NONE, LOW, MEDIUM, HIGH] | null
-    processor_capacity_t_per_day: number | null
+    - override_kind: SCENARIO_OVERRIDE_KIND
+      target: enum [STAFFING, SPRING_FESTIVAL_INTENSITY, PROCESSOR_CAPACITY]
+      value: <typed per target, see §8.1.2>
+      unit: string | null
+      source_attestation: string
+      source_ref: object | null
   execution_overrides:
-    request_backtest: bool | null  # MUST default to false; backtest is advanced execution
-    request_replay_trained_run: bool | null  # MUST default to false; creation is advanced execution
-    request_simulation_id: string | null  # re-run an existing simulation
+    - override_kind: EXECUTION_OVERRIDE_KIND
+      target: enum [REQUEST_BACKTEST, REQUEST_REPLAY_TRAINED_RUN, REQUEST_SIMULATION]
+      value: bool | string                 # bool for toggles; string for simulation id
+      unit: null
+      source_attestation: string
+      source_ref: object | null
   authority_overrides:
-    task8_run_id: string | null
-    task9_run_id: string | null
-    task10_run_id: string | null
-    task11_run_id: string | null
-    task12_prediction_run_id: string | null
-  as_of: date | null  # overrides §7.1 as_of
+    - override_kind: AUTHORITY_OVERRIDE_KIND
+      target: enum [
+        "TASK8_FORECAST_RUN",
+        "TASK10_TRAINING_RUN",
+        "TASK11_BACKTEST_RUN",
+        "TASK12_PREDICTION_RUN",
+      ]
+      value: integer                       # real persisted row id; never a synthetic alias
+      unit: null
+      source_attestation: string
+      source_ref: object | null
+  as_of: date | null                      # caller-supplied override of requested_as_of_date
+```
+
+**Universal attestation rule.** Every override — parameter, scenario, execution, or authority — MUST carry `source_attestation`. The phrase "every override needs `source_attestation`, but only parameter overrides contain it" is rejected; the schema above applies the same envelope to all four kinds.
+
+#### §8.1.1 Per-parameter override value types
+
+```yaml
+YieldPerMuOverride:        # kg / mu
+  value: number
+  unit: "kg_per_mu"
+
+RateOverride:              # dimensionless ratio in [0, 1]
+  value: decimal_string    # canonical decimal string
+  unit: "ratio"
+
+DateOverride:
+  value: date              # ISO-8601 date
+  unit: "date"
+
+DistributionOverride:
+  value: { type: enum [NORMAL, BETA, HISTORICAL_EMPIRICAL], parameters: object }
+  unit: "distribution"
+
+WeatherAdjustmentOverride:
+  value: { temperature_delta_c: decimal_string | null, rainfall_scale: decimal_string | null, gdd_scale: decimal_string | null }
+  unit: "weather_adjustment"
+```
+
+#### §8.1.2 Per-scenario override value types
+
+```yaml
+StaffingOverride:
+  value: number
+  unit: "person_per_day"
+
+SpringFestivalIntensityOverride:
+  value: enum [NONE, LOW, MEDIUM, HIGH]
+  unit: null
+
+ProcessorCapacityOverride:
+  value: number
+  unit: "t_per_day"
 ```
 
 ### §8.2 Override authority rules
 
-- Every override **MUST** carry `source_attestation` (free text, but required).
-- Every override **MUST** be reflected in the output's citation block with `OVERRIDE_APPLIED` tag.
-- Algorithm / model / replay selection overrides are **not** accepted as `algorithm_override`. They MUST go through `authority_overrides.*_run_id`, and if no matching persisted run exists → `AUTHORITY_NOT_FOUND` blocker.
-- `request_backtest = true` and `request_replay_trained_run = true` are **advanced execution** flags. In the first implementation Slice they MUST be rejected with `EXECUTION_DEFERRED` blocker; a future amendment may unlock them with explicit confirmation token.
+- Every override (parameter, scenario, execution, authority) MUST carry `source_attestation`.
+- Every override MUST be reflected in the output's citation block with `OVERRIDE_APPLIED` tag.
+- Algorithm / model / replay selection overrides are **not** accepted as `algorithm_override`. They MUST go through `authority_overrides.*`, and if no matching persisted run exists → `AUTHORITY_NOT_FOUND` blocker.
+- `execution_overrides` where `target = REQUEST_BACKTEST` or `target = REQUEST_REPLAY_TRAINED_RUN` are **advanced execution** flags. In the first implementation Slice they MUST be rejected with `EXECUTION_DEFERRED` blocker; a future amendment may unlock them with explicit confirmation token. Slice D does NOT include any confirmation-token mechanism; that requires a separate amendment (§18, §22.4).
 
 ### §8.3 Override MUST NOT
 
@@ -341,23 +453,102 @@ The Agent MUST NOT use any of the following as a default selector:
 | `unrecorded authority substitution` | must be replaced by `recorded authority identity in output citation` |
 | `cross-run substitution` | forbidden unconditionally — see §22 |
 
-### §9.3 Output must disclose resolved identities
+### §9.3 Output must disclose resolved identities — typed authority envelopes
 
-Even for the minimal-input MVP, the Agent MUST disclose, in the output citation block, the actual resolved authorities it consumed:
+The Agent MUST disclose, in the output's `provenance` block, the actual resolved authorities it consumed. Authority identities are **typed envelopes** aligned to the real main contracts; generic `taskX_run_id` aliases are NOT frozen as current persisted fields.
 
-| Field | Source |
-|---|---|
-| `task8_authority` | resolved natural-maturity run id + manifest hash |
-| `task9_authority` | resolved harvest-state run id + result hash |
-| `task10_authority` | resolved residual-model run id + manifest hash |
-| `task11_authority` | resolved backtest run id + manifest hash (if any was consumed) |
-| `task12_authority` | resolved replay-trained `prediction_run_id` + result hash (if any was consumed) |
-| `manifest_hashes` | full list of manifests consulted |
-| `result_hashes` | full list of results consumed |
-| `parameter_version_identities` | versioned prior identities used per parameter |
-| `location_catalog_version` | version of the location-mapping catalog consumed |
+#### §9.3.1 `Task8Authority` (TASK-008 natural maturity curve)
 
-These MUST be machine-readable in the output's `provenance` block.
+Source contract: `backend/app/models/maturity.py` — `MaturityModelRun` (L26), `MaturityModelArtifact` (L71), `MaturityForecastRun` (L99); fields also referenced in `backend/app/rolling_backtest/node_orchestration.py` (L40–L42, L863–L994).
+
+```yaml
+Task8Authority:
+  maturity_model_run_id: integer            # MaturityModelRun.id
+  maturity_model_version: string            # MaturityModelRun.model_version
+  maturity_model_config_hash: sha256        # MaturityModelRun.config_hash
+  maturity_model_source_signature: string   # MaturityModelRun.source_signature
+  maturity_model_artifact_id: integer       # MaturityModelArtifact.id
+  maturity_model_artifact_hash: sha256      # MaturityModelArtifact.artifact_hash
+  maturity_forecast_run_id: integer         # MaturityForecastRun.id
+  maturity_forecast_source_signature: string # MaturityForecastRun.source_signature
+  maturity_forecast_as_of_date: date        # MaturityForecastRun.forecast_as_of_date
+```
+
+#### §9.3.2 `Task9Authority` (TASK-009 / TASK-009A harvest state)
+
+Source contract: `backend/app/models/harvest_state.py` — `HarvestStateRun` (L109); `backend/app/harvest_state/schemas.py` — `Task8PredictionSourceRef` (L114), `Task8PredictionVerificationSnapshot` (L136), `InitialInventorySourceRef` (L165).
+
+```yaml
+Task9Authority:
+  harvest_state_run_id: integer                # HarvestStateRun.id
+  harvest_state_run_config_hash: sha256        # HarvestStateRun.config_hash
+  harvest_state_run_result_hash: sha256        # HarvestStateRun.result_hash (computed at persistence)
+  harvest_state_output_schema_version: string  # HarvestStateRun.output_schema_version
+  task8_prediction_source_ref: Task8PredictionSourceRef  # reference to TASK-008 forecast run used
+  task8_verification_snapshot: Task8PredictionVerificationSnapshot | null
+  initial_inventory_source_ref: InitialInventorySourceRef | null
+  source_ref_schema_version: string            # HarvestStateRun.source_ref_schema_version
+```
+
+#### §9.3.3 `Task10Authority` (TASK-010 residual model)
+
+Source contract: `backend/app/models/residual_model.py` — `ResidualModelTrainingRun` (L41), `ResidualModelManifestRow` (L189), `ResidualModelArtifact` (L325), `ResidualModelPredictionRun` (L416), `ResidualModelPredictionRow` (L529), `ResidualModelExecutionAttempt` (L652); `backend/app/baseline/schemas.py` — fields `config_hash` (L17, L85).
+
+```yaml
+Task10Authority:
+  model_run_id: integer                  # ResidualModelTrainingRun.id
+  prediction_run_id: integer             # ResidualModelPredictionRun.id
+  task9_run_id: integer                  # ResidualModelPredictionRun.task9_run_id (FK to HarvestStateRun)
+  task9_result_hash: sha256              # referenced task9 result hash consumed at training time
+  prediction_hash: sha256                # ResidualModelPredictionRun.prediction_hash
+  config_hash: sha256                    # ResidualModelPredictionRun.config_hash (or ResidualModelTrainingRun.config_hash)
+  manifest_hash: sha256 | null           # ResidualModelManifestRow.manifest_hash, only when a manifest row is referenced
+```
+
+Note: `manifest_hash` is **only present** when the existing TASK-010 contract actually supplies one. When the chosen prediction path does not include a manifest row, the field is `null` (encoded in the type), not absent.
+
+#### §9.3.4 `Task11Authority` (TASK-011 rolling backtest)
+
+Source contract: `backend/app/models/rolling_backtest.py` — `RollingBacktestRun` (L49), `RollingBacktestNode` (L107), `RollingBacktestAttempt` (L186), `RollingBacktestStageEvent` (L254), `RollingBacktestOrchestrationSnapshot` (L331), `RollingBacktestResolvedInput` (L392), `RollingBacktestAvailabilityAudit` (L450), `RollingBacktestDagSnapshot` (L491).
+
+```yaml
+Task11Authority:
+  rolling_backtest_run_id: integer            # RollingBacktestRun.id
+  rolling_backtest_run_config_hash: sha256    # RollingBacktestRun.config_hash
+  rolling_backtest_run_result_hash: sha256    # RollingBacktestRun.result_hash
+  node_count: integer                         # count of RollingBacktestNode rows
+  attempt_count: integer                      # count of RollingBacktestAttempt rows
+  orchestration_snapshot_id: integer | null   # RollingBacktestOrchestrationSnapshot.id when present
+  resolved_input_id: integer | null           # RollingBacktestResolvedInput.id when present
+  source_ref_schema_version: string           # captured from the orchestration row at consumption time
+```
+
+#### §9.3.5 `Task12Authority` (TASK-012 replay-trained model)
+
+Source contract: `backend/app/rolling_backtest/replay_trained_identity.py` (L64, L231–L260) — `ReplayTrainedModelIdentity` carries `scenario_id`; `ReplayedTrainedModelManifestPayload` carries `training_manifest_hash` + `model_config_hash`. `backend/app/rolling_backtest/replay_trained_prediction.py` (L275, L316) — `prediction_run_id`. `backend/app/api/rolling_backtest_replay_trained.py` (L117–L118, L244–L325, L685–L705) — request/response fields include `task9_result_hash`, `task10_manifest_hash`, `task10_config_hash`.
+
+```yaml
+Task12Authority:
+  prediction_run_id: integer                # replay_trained_prediction row id
+  scenario_id: string                       # ReplayTrainedModelIdentity.scenario_id
+  training_manifest_hash: sha256            # training_manifest_hash
+  model_config_hash: sha256                 # model_config_hash
+  task9_result_hash: sha256                 # task9_result_hash carried into the request
+  task10_manifest_hash: sha256 | null       # task10_manifest_hash carried into the request, null if upstream path didn't supply one
+  task10_config_hash: sha256                # task10_config_hash carried into the request
+  model_code_version: string                # ReplayTrainedModelIdentity.model_code_version
+  model_artifact_hash: sha256 | null        # present iff replay_trained_identity surfaces it for the chosen prediction
+```
+
+#### §9.3.6 Provenance-block composition rule
+
+The output `provenance` block MUST include **exactly one** of each typed envelope above when its source service was actually consumed, and `null` (typed) otherwise. Adapter-supplied canonical-output hashes (introduced by the TASK-013 orchestrator) MUST be named with an explicit `agent_*` prefix (e.g. `agent_daily_curve_hash`, `agent_normalized_request_hash`) so they cannot impersonate an existing task's hash.
+
+Rules:
+- No generic `taskX_run_id` alias is frozen as an existing persisted field. The `*_run_id` keys in the typed envelopes above are adapter references to real main-contract row ids, each cited to its source class/path.
+- No manifest / result hash appears in a typed envelope where the source task does not expose one; "when applicable" is encoded in the type (`sha256 | null`), not in prose.
+- Every field in a typed envelope cites its source path/class in §21 and §22.
+- Adapter-introduced hashes are prefixed `agent_*` and never alias a real task hash.
 
 ### §9.4 Authority conflict
 
@@ -389,11 +580,40 @@ When inferring a parameter for `(location × variety)`, the Agent MUST apply thi
 
 Every prior MUST carry a **version identifier** (catalog version + season version). The output MUST include the exact prior version used.
 
-### §10.3 Confidence widening
+### §10.3 Confidence widening — corrected rule
 
-If the matching-priority step is ≤ step 4, P80/P90 intervals MUST be widened by a documented factor (per parameter), and the confidence MUST be downgraded. The widening factor table is part of the implementation; this design freezes the principle.
+Widening is governed by a versioned **`UncertaintyWideningPolicy`** (§10.4). The corrected rule:
 
-### §10.4 Required evidence per confidence level
+| Step | Behavior |
+|---|---|
+| **Step 1** — same-farm + same-variety | No mandatory widening **when HIGH evidence requirements are met** (per `docs/10` §7). If HIGH requirements are not all met, treat as step 2 for widening purposes. |
+| **Step 2** — same-township / similar-altitude | Widening required. Factor monotonically > 1 (greater than step 1's no-widening case). |
+| **Step 3** — same-county / same-agro-climate-zone | Widening required. Factor strictly greater than step 2's factor. |
+| **Step 4** — Yunnan province-level same-variety | Widening required. Factor strictly greater than step 3's factor. |
+| **Step 5** — variety-document prior only | **Maximum widening.** Confidence is **always LOW**. Factor strictly greater than step 4's factor. |
+
+The factor must **monotonically increase with fallback depth** — this is a hard monotonicity property, not a hint. The exact factor values live in `UncertaintyWideningPolicy.factors_by_source_level` (§10.4).
+
+The historical rule "widen whenever the priority fallback depth is at or above step 4" is **deleted**. The new rule says: step 1 widens only when HIGH evidence is missing; steps 2–5 always widen with monotonically increasing factors; step 5 has maximum widening and always LOW confidence.
+
+### §10.4 `UncertaintyWideningPolicy` (versioned)
+
+```yaml
+UncertaintyWideningPolicy:
+  policy_version: string                          # e.g. "uncertainty-widening/v1"
+  config_hash: sha256                             # sha256 of canonical JSON of this policy
+  factors_by_source_level:
+    step_1_same_farm_same_variety_high_evidence: decimal_string  # 1.000 (no widening)
+    step_2_same_township_similar_altitude: decimal_string        # > 1.000
+    step_3_same_county_same_climate_zone: decimal_string         # > step_2
+    step_4_province_level_same_variety: decimal_string           # > step_3
+    step_5_variety_document_prior_only: decimal_string           # > step_4 (maximum)
+  monotonicity_invariant: true                    # frozen property, asserted at policy registration
+```
+
+The exact factor per `(variety_id, parameter_name, source_level)` is resolved from this policy and is included in the output's provenance block. The factors are not exposed as runtime-configurable knobs in this slice.
+
+### §10.5 Required evidence per confidence level
 
 | Level | Required evidence (per `docs/10` §7) |
 |---|---|
@@ -414,7 +634,7 @@ The 8 logical tools defined by `CODEX_TASKS.md` 任务 13 are listed below. Each
 | 1 | `resolve_location` | Convert raw location to standard `ResolvedLocation` | `EXISTING_DIRECT` |
 | 2 | `infer_parameters` | Per-(location×variety) parameter prior with confidence + source | `EXISTING_COMPOSITE` |
 | 3 | `forecast_daily_curve` | Per-day natural maturity + harvest-state + residual composition | `EXISTING_COMPOSITE` |
-| 4 | `forecast_peak` | Peak metrics derived deterministically from the daily curve | `EXISTING_COMPOSITE` |
+| 4 | `forecast_peak` | Peak metrics derived deterministically from the daily curve (governed by `PeakMetricPolicy`) | `NEW_DETERMINISTIC_RULE_TOOL` | ✅ |
 | 5 | `simulate_scenario` | Re-run with a modified scenario (staffing, Spring-Festival intensity, etc.) | `NEW_DETERMINISTIC_ADAPTER` (no full existing service) |
 | 6 | `run_backtest` | TASK-011 backtest execution | `DEFERRED_ADVANCED_TOOL` |
 | 7 | `explain_forecast` | Structured explanation payload | `NEW_DETERMINISTIC_RULE_TOOL` |
@@ -486,7 +706,7 @@ resolve_location_output:
 
 - `LOCATION_UNRESOLVED` — input too ambiguous.
 - `LOCATION_CATALOG_STALE` — `as_of` is before the catalog's effective date.
-- `LOCATION_AM BIGUOUS` — multiple zone candidates with same score → return top-N candidates; do NOT auto-pick.
+- `LOCATION_AMBIGUOUS` — multiple zone candidates with same score → return top-N candidates; do NOT auto-pick.
 
 ### §13.6 Read/Write / Idempotency
 
@@ -567,58 +787,76 @@ forecast_daily_curve_input:
   advanced_overrides: AdvancedOverrides | null
 ```
 
-### §15.3 Output
+### §15.3 Output — quantile-preserving per-day row
 
 ```yaml
-forecast_daily_curve_output:
-  per_day:
-    - date: date
-      natural_maturity_volume_p50: number
-      natural_maturity_volume_p80: number
-      natural_maturity_volume_p90: number
-      harvest_implementation_volume: number
-      estimated_backlog_volume: number
-      final_arrival_volume_p50: number
-      final_arrival_volume_p80: number
-      final_arrival_volume_p90: number
-      weather_tags: [string]
-      spring_festival_phase: enum [PRE, DURING, POST, NONE]
-      per_variety_contribution:
-        - variety_id: string
-          volume_p50: number
-          volume_p80: number
-          volume_p90: number
-  authorities_consumed:
-    task8_authority: {run_id, manifest_hash, result_hash}
-    task9_authority: {run_id, manifest_hash, result_hash}
-    task10_authority: {run_id, manifest_hash, result_hash}
-    task12_authority: {run_id, manifest_hash, result_hash} | null
+ForecastDailyRow:
+  date: date
+  natural_maturity_quantity_kg: DailyQuantiles           # P50/P80/P90 kg, canonical decimal strings
+  harvested_quantity_kg: DailyQuantiles                  # TASK-009 derived; quantile-preserving
+  closing_mature_inventory_kg: DailyQuantiles            # TASK-009 derived end-of-day inventory
+  unharvested_backlog_kg: DailyQuantiles                 # TASK-009 derived backlog
+  arrival_quantity_kg: DailyQuantiles                    # TASK-009 derived daily arrival (kg)
+  final_corrected_arrival_quantity_kg: DailyQuantiles    # TASK-008/010 corrected
+  per_variety_contribution:
+    - variety_id: string
+      volume_kg_p50: decimal_string
+      volume_kg_p80: decimal_string
+      volume_kg_p90: decimal_string
+  weather_tags: [string]
+  spring_festival_phase: enum [PRE, DURING, POST, NONE]
 ```
+
+Where `DailyQuantiles` is the canonical shape:
+
+```yaml
+DailyQuantiles:
+  p50: decimal_string    # canonical decimal string, e.g. "1234.567"
+  p80: decimal_string
+  p90: decimal_string
+```
+
+Rules:
+- All per-day scalar fields derived from TASK-009 MUST preserve the P50/P80/P90 triplet. Collapsing any of `harvested_quantity_kg`, `closing_mature_inventory_kg`, `unharvested_backlog_kg`, `arrival_quantity_kg`, `final_corrected_arrival_quantity_kg` into a single unqualified number is rejected.
+- Quantile values are emitted as canonical decimal strings (NUMERIC precision; never Python `float`).
+- The unit for all per-day quantity fields is **kilograms (kg)**. `per_variety_contribution[*].volume_kg_*` are also kg.
+- A per-day row carries an `agent_daily_row_hash: sha256` (prefixed `agent_*` per §9.3.6) so the orchestrator can prove byte-equality on reload.
 
 ### §15.4 Authority contract
 
 - Composes TASK-008 natural maturity + TASK-009 harvest state + TASK-010 residual adjustment.
-- Composition MUST be deterministic: given the same inputs + same authorities + same `as_of`, the output MUST be byte-identical.
+- Composition MUST be deterministic: given the same inputs + same authorities + same `effective_as_of_date`, the output MUST be byte-identical.
+- Consumed authorities are reported as **typed envelopes** per §9.3 — not as `task8_authority: {run_id, manifest_hash, result_hash}` shorthand.
+
+```yaml
+authorities_consumed:
+  task8_authority: Task8Authority | null            # typed envelope, §9.3.1
+  task9_authority: Task9Authority | null            # typed envelope, §9.3.2
+  task10_authority: Task10Authority | null          # typed envelope, §9.3.3
+  task12_authority: Task12Authority | null          # typed envelope, §9.3.5; null when not consulted
+  agent_daily_curve_hash: sha256                    # adapter-introduced hash, never aliases a real task hash
+```
 
 ### §15.5 Blockers
 
-- `TASK8_AUTHORITY_NOT_FOUND` — no task8 run matches `(location, varieties, as_of)`.
-- `TASK9_AUTHORITY_NOT_FOUND` — analogous.
-- `TASK10_AUTHORITY_NOT_FOUND` — analogous.
-- `TASK12_AUTHORITY_NOT_FOUND` — only when an explicit `task12_prediction_run_id` is supplied and not found.
-- `FORECAST_CUTOFF_IN_FUTURE` — `as_of > today + grace_days`.
+- `TASK8_AUTHORITY_NOT_FOUND` — no TASK-008 run matches `(effective_as_of_date, effective_forecast_season, normalized_location, varieties)`.
+- `TASK9_AUTHORITY_NOT_FOUND` — analogous; typed per §9.3.2.
+- `TASK10_AUTHORITY_NOT_FOUND` — analogous; typed per §9.3.3.
+- `TASK12_AUTHORITY_NOT_FOUND` — only when an explicit `TASK12_PREDICTION_RUN` authority override is supplied and not found.
+- `EFFECTIVE_AS_OF_OUT_OF_POLICY` — `effective_as_of_date` falls outside the season-calendar policy window.
+- `SEASON_CALENDAR_POLICY_MISSING` — no season-calendar policy registered at runtime.
 
 ### §15.6 Read/Write / Idempotency
 
-- Read-only (composes existing reads). Idempotent on `(input, as_of, authorities)`.
+- Read-only (composes existing reads). Idempotent on `(normalized_request.canonical_request_hash, effective_as_of_date, authorities)`.
 
 ### §15.7 Citation identity
 
-- All consumed `*_authority` identities + hashes + `forecast_cutoff`.
+- All consumed typed authority envelopes (§9.3) + `effective_as_of_date` + `effective_forecast_season` + `season_resolution_policy_version` + `season_calendar_config_hash`.
 
 ### §15.8 MVP scope
 
-For MVP, this tool consumes existing TASK-008/009/010 services; TASK-012 is consulted only when an explicit `task12_prediction_run_id` is supplied (advanced override). Default path does NOT call TASK-012.
+For MVP, this tool consumes existing TASK-008/009/010 services; TASK-012 is consulted only when an explicit `TASK12_PREDICTION_RUN` authority override is supplied (advanced override). Default path does NOT call TASK-012.
 
 ---
 
@@ -626,47 +864,97 @@ For MVP, this tool consumes existing TASK-008/009/010 services; TASK-012 is cons
 
 ### §16.1 Purpose
 
-Derive peak metrics deterministically from `forecast_daily_curve_output`.
+Derive peak metrics deterministically from `ForecastDailyRow[]` produced by `forecast_daily_curve`. All rules live in a versioned **`PeakMetricPolicy`** object (§16.4) — no rule is implicit.
 
 ### §16.2 Input
 
-`forecast_daily_curve_output.per_day`.
+`forecast_daily_curve_output.per_day: ForecastDailyRow[]`.
 
 ### §16.3 Output
 
 ```yaml
 forecast_peak_output:
+  peak_metric_policy_version: string       # exact PeakMetricPolicy version used
+  peak_metric_policy_config_hash: sha256   # sha256 of the policy config
+  agent_peak_hash: sha256                  # adapter-introduced; never aliases a real task hash
   single_day_peak:
-    p50: {date, volume}
-    p80: {date, volume}
-    p90: {date, volume}
+    p50: { date: date, volume_kg: decimal_string }
+    p80: { date: date, volume_kg: decimal_string }
+    p90: { date: date, volume_kg: decimal_string }
+  sustained_window_days: 3                # from PeakMetricPolicy
   sustained_3day_peak:
-    p50: {start_date, end_date, volume}
-    p80: {start_date, end_date, volume}
-    p90: {start_date, end_date, volume}
-  peak_duration_days: integer
-  peak_window_cumulative_volume: number  # ±7-day cumulative
-  dominant_variety: {variety_id, contribution_rate}
-  peak_formation_explanation_ref: string  # pointer into explain_forecast output
+    p50:
+      start_date: date
+      end_date: date                       # inclusive; 3 consecutive calendar dates
+      rolling_daily_average_kg_per_day: decimal_string
+      cumulative_quantity_kg: decimal_string  # also output (formula §16.5.4)
+    p80: { ... }
+    p90: { ... }
+  peak_window_days_before: 7               # from PeakMetricPolicy
+  peak_window_days_after: 7                # from PeakMetricPolicy
+  peak_window_cumulative_quantity_kg:      # ±7-day inclusive 15-day window, clipped to forecast boundaries (§16.5.6)
+    p50: decimal_string
+    p80: decimal_string
+    p90: decimal_string
+  peak_duration_days:                      # per §16.5.8 (high_load_threshold_ratio from policy)
+    p50: integer
+    p80: integer
+    p90: integer
+  dominant_variety:
+    p50: { variety_id: string, contribution_rate: decimal_string, numerator_kg: decimal_string, denominator_kg: decimal_string }
+    p80: { ... }
+    p90: { ... }
+  peak_formation_explanation_ref: string   # pointer into explain_forecast output
 ```
 
-### §16.4 Authority contract
+Every peak / window / sustained value is output separately for P50, P80, and P90 (§16.5.7).
 
-- Pure deterministic derivation. **LLM MUST NOT compute peak values.**
-- Authoritative numbers in the output carry the same citation identity as the underlying `forecast_daily_curve_output`.
+### §16.4 `PeakMetricPolicy` (versioned)
 
-### §16.5 Blockers
+```yaml
+PeakMetricPolicy:
+  policy_version: string                              # e.g. "peak-metric/v1"
+  policy_config_hash: sha256                          # sha256 of canonical JSON of this policy
+  sustained_window_days: 3
+  sustained_metric: ROLLING_DAILY_AVERAGE             # mean over the window
+  tie_break: EARLIEST_START_DATE                      # stable tie-break that always resolves a winner
+  peak_window_days_before: 7
+  peak_window_days_after: 7
+  high_load_threshold_ratio: decimal_string            # per-day volume ≥ ratio × season_p90_daily triggers peak-duration extension
+```
 
-- `EMPTY_CURVE` — `per_day` is empty (season start > April 30 or all days had zero data).
-- `PEAK_TIE_BREAK_FAILED` — multiple equal-volume peak candidates and tie-break order produced no unique answer → return top-N with stable ordering, do not auto-pick.
+The peak policy is **deterministic and versioned**. It is NOT a hidden "3-day" prose rule; its `policy_version` and `policy_config_hash` are recorded in the output.
 
-### §16.6 Read/Write / Idempotency
+### §16.5 Frozen formulas
 
-- Read-only. Idempotent on input.
+1. **`single_day_peak[q]`** = maximum `final_corrected_arrival_quantity_kg.q` over all rows of `per_day`. Equal maxima resolve to the **earliest date** (the `tie_break` from `PeakMetricPolicy` always resolves a winner).
+2. **Tie-break** = earliest date. Stable. Always resolves a winner. The tie-break is part of the policy; no extra blocker code is raised on equal maxima.
+3. **`sustained_3day_peak[q]`** = maximum rolling three-day arithmetic mean of `final_corrected_arrival_quantity_kg.q`, in **kg/day**. The rolling window is computed over `per_day` ordered by `date`.
+4. **Sustained cumulative quantity.** For the same three-day window that produced `sustained_3day_peak[q]`, the cumulative sum of `final_corrected_arrival_quantity_kg.q` over the three days is also output as `sustained_3day_peak[q].cumulative_quantity_kg`.
+5. **Window continuity rule.** A sustained window MUST contain three **actual consecutive calendar dates** present in `per_day`. If the daily row sequence has gaps, the window is not eligible.
+6. **±7-day window cumulative.** An inclusive 15-day window (`peak_window_days_before=7` calendar dates before the single-day-peak date plus `peak_window_days_after=7` calendar dates after) is taken around `single_day_peak[q].date`. The window is clipped to the forecast boundaries (season start and April 30, or the explicit `forecast_window` if one is supplied). The cumulative quantity of `final_corrected_arrival_quantity_kg.q` over that window is output as `peak_window_cumulative_quantity_kg[q]`.
+7. **Per-quantile separation.** Every peak / window / sustained value is output separately for P50, P80, P90. Mixing quantiles inside a single field is rejected.
+8. **`peak_duration_days[q]`** uses `high_load_threshold_ratio` from `PeakMetricPolicy`. A day is in the peak duration window if its `final_corrected_arrival_quantity_kg.q ≥ high_load_threshold_ratio × season_p90_daily[q]`. The peak duration is the maximum consecutive run of such days around `single_day_peak[q].date`, with `tie_break = EARLIEST_START_DATE`.
+9. **Dominant variety** is computed for the **selected peak window and quantile** (`single_day_peak[q]` or `sustained_3day_peak[q]` per the call site). The dominant variety is the variety with the largest sum of `per_variety_contribution[*].volume_kg_q` over the window. The output discloses both `numerator_kg` (that variety's sum) and `denominator_kg` (the window total) so the contribution rate is independently verifiable.
+10. **Stable tie-break, no extra blocker.** The stable tie-break in the policy always resolves a winner; no extra blocker is raised on equal maxima. The historical equal-maxima blocker code (a separate code raised when equal maxima could not be resolved) is removed.
 
-### §16.7 Citation identity
+### §16.6 Authority contract
 
-- Inherits from `forecast_daily_curve_output`.
+- Pure deterministic derivation from `ForecastDailyRow[]`. **LLM MUST NOT compute peak values.**
+- Authoritative numbers in the output carry the same citation identity as the underlying daily curve (§15.7) + `peak_metric_policy_version` + `peak_metric_policy_config_hash`.
+
+### §16.7 Blockers
+
+- `EMPTY_CURVE` — `per_day` is empty (season start > April 30 or all days had zero data) → `forecast_peak` cannot run; downstream `explain_forecast` emits a no-peak explanation.
+- `PEAK_POLICY_MISSING` — no `PeakMetricPolicy` registered at runtime → request fails before any peak computation. This is a different error from the historical equal-maxima blocker that has been removed.
+
+### §16.8 Read/Write / Idempotency
+
+- Read-only. Idempotent on `(per_day, peak_metric_policy_version, peak_metric_policy_config_hash)`.
+
+### §16.9 Citation identity
+
+- `peak_metric_policy_version` + `peak_metric_policy_config_hash` + `agent_peak_hash` + inherited from `forecast_daily_curve_output`.
 
 ---
 
@@ -812,17 +1100,21 @@ explain_forecast_output:
 
 ## §20 `generate_recommendations` contract
 
-### §20.1 Purpose
+### §20.1 Purpose — 7 categories total (6 operational + 1 data-quality)
 
-Produce deterministic recommendations for the 6 categories listed in `docs/10` §5.5:
+Produce deterministic recommendations for **7 categories total = 6 operational recommendation categories + 1 MISSING_DATA_IMPACT category (data-quality)**:
 
-1. Recommended sustained processing capacity (推荐持续处理能力)
-2. Recommended receiving / temporary-storage / pre-cooling peak capacity (推荐收货/暂存/预冷瞬时能力)
-3. Peak-period shift recommendation (高峰期班次建议)
-4. Spring-Festival staffing preparation (春节人员准备)
-5. Variety stagger / pruning batch recommendation (品种错峰或修剪批次建议)
-6. Cross-plant dispatch necessity (是否需要跨厂分流)
-7. (extra) Which additional data would most improve accuracy (哪些额外数据最能提升准确性)
+| # | Category | Kind |
+|---|---|---|
+| 1 | Recommended sustained processing capacity (推荐持续处理能力) | operational |
+| 2 | Recommended receiving / temporary-storage / pre-cooling peak capacity (推荐收货/暂存/预冷瞬时能力) | operational |
+| 3 | Peak-period shift recommendation (高峰期班次建议) | operational |
+| 4 | Spring-Festival staffing preparation (春节人员准备) | operational |
+| 5 | Variety stagger / pruning batch recommendation (品种错峰或修剪批次建议) | operational |
+| 6 | Cross-plant dispatch necessity (是否需要跨厂分流) | operational |
+| 7 | Which additional data would most improve accuracy (哪些额外数据最能提升准确性) | **data-quality** — `MISSING_DATA_IMPACT` |
+
+Every recommendation is tagged with its `kind` (`OPERATIONAL` or `DATA_QUALITY`) so downstream consumers can filter or rank them.
 
 ### §20.2 Authority contract
 
@@ -839,9 +1131,18 @@ Produce deterministic recommendations for the 6 categories listed in `docs/10` �
 ```yaml
 generate_recommendations_output:
   recommendations:
-    - category: enum [SUSTAINED_PROCESSING_CAPACITY, RECEIVING_PEAK_CAPACITY, SHIFT_STAFFING, SPRING_FESTIVAL_STAFFING, VARIETY_STAGGER, CROSS_PLANT_DISPATCH, MISSING_DATA_IMPACT]
-      text: string  # deterministic template output
-      rule_id: string  # identifies the exact rule used
+    - category: enum [
+        SUSTAINED_PROCESSING_CAPACITY,
+        RECEIVING_PEAK_CAPACITY,
+        SHIFT_STAFFING,
+        SPRING_FESTIVAL_STAFFING,
+        VARIETY_STAGGER,
+        CROSS_PLANT_DISPATCH,
+        MISSING_DATA_IMPACT,
+      ]
+      kind: enum [OPERATIONAL, DATA_QUALITY]   # OPERATIONAL for #1–#6, DATA_QUALITY for #7
+      text: string                            # deterministic template output
+      rule_id: string                         # identifies the exact rule used
       evidence:
         - citation:
             source_task: string
@@ -872,19 +1173,21 @@ Any recommendation text MUST contain at least one `evidence` block; else the rec
 
 ## §21 TASK-008 through TASK-012 integration
 
-| Task | What TASK-013 consumes | Authority identity used | Notes |
+TASK-013 consumes TASK-008–012 services through the typed authority envelopes in §9.3. The integration table below cites, for each task, the real field names that surface in the orchestrator's provenance and citation blocks. Generic `taskX_run_id` aliases are NOT used; each entry is the real field.
+
+| Task | What TASK-013 consumes | Authority envelope used (§9.3) | Real fields that surface in citation |
 |---|---|---|---|
-| TASK-008 natural maturity curve | `backend/app/maturity/service.py` outputs (per-day natural maturity distribution) | `task8_run_id`, `maturity_manifest_hash`, `maturity_result_hash` | Carried into `forecast_daily_curve_output.per_day.natural_maturity_volume_*` |
-| TASK-009 / TASK-009A harvest state | `backend/app/harvest_state/service.py` outputs (backlog, release, arrival, harvest-implementation rate) | `task9_run_id`, `harvest_state_manifest_hash` | Carried into `forecast_daily_curve_output.per_day.harvest_implementation_volume` + `estimated_backlog_volume` |
-| TASK-010 residual model | `backend/app/residual_model/` + `backend/app/baseline/` outputs (residual adjustment, fallback semantics) | `task10_run_id`, `residual_model_manifest_hash`, `residual_model_result_hash` | Carried into `forecast_daily_curve_output.per_day.final_arrival_volume_*` (combined with TASK-008 + TASK-009) |
-| TASK-011 rolling backtest | `backend/app/rolling_backtest/` outputs (when explicitly requested via advanced override) | `task11_run_id`, `backtest_manifest_hash` | NOT in MVP path; deferred per §18 |
-| TASK-012 replay-trained model | `backend/app/rolling_backtest/replay_trained_*.py` outputs (only when explicit `task12_prediction_run_id` override) | `task12_prediction_run_id`, `prediction_result_hash`, `prediction_manifest_hash` | NOT in MVP path; see §22 |
+| TASK-008 natural maturity curve | `backend/app/maturity/service.py` outputs (per-day natural maturity distribution) | `Task8Authority` (§9.3.1) | `maturity_model_run_id`, `maturity_model_version`, `maturity_model_config_hash`, `maturity_model_source_signature`, `maturity_model_artifact_id`, `maturity_model_artifact_hash`, `maturity_forecast_run_id`, `maturity_forecast_source_signature`, `maturity_forecast_as_of_date` |
+| TASK-009 / TASK-009A harvest state | `backend/app/harvest_state/service.py` outputs (backlog, release, arrival, harvest-implementation rate, end-of-day inventory) | `Task9Authority` (§9.3.2) | `harvest_state_run_id`, `harvest_state_run_config_hash`, `harvest_state_run_result_hash`, `harvest_state_output_schema_version`, `task8_prediction_source_ref`, `task8_verification_snapshot`, `initial_inventory_source_ref`, `source_ref_schema_version` |
+| TASK-010 residual model | `backend/app/residual_model/` + `backend/app/baseline/` outputs (residual adjustment, fallback semantics) | `Task10Authority` (§9.3.3) | `model_run_id`, `prediction_run_id`, `task9_run_id`, `task9_result_hash`, `prediction_hash`, `config_hash`, `manifest_hash` (only when a manifest row is referenced) |
+| TASK-011 rolling backtest | `backend/app/rolling_backtest/` outputs (when explicitly requested via advanced override) | `Task11Authority` (§9.3.4) | `rolling_backtest_run_id`, `rolling_backtest_run_config_hash`, `rolling_backtest_run_result_hash`, `node_count`, `attempt_count`, `orchestration_snapshot_id`, `resolved_input_id`, `source_ref_schema_version` |
+| TASK-012 replay-trained model | `backend/app/rolling_backtest/replay_trained_*.py` outputs (only when explicit `TASK12_PREDICTION_RUN` authority override is supplied) | `Task12Authority` (§9.3.5) | `prediction_run_id`, `scenario_id`, `training_manifest_hash`, `model_config_hash`, `task9_result_hash`, `task10_manifest_hash`, `task10_config_hash`, `model_code_version`, `model_artifact_hash` |
 
 ### §21.1 Composition order (deterministic)
 
 The composition order in `forecast_daily_curve` MUST be:
 1. TASK-008 produces natural maturity per-day.
-2. TASK-009 produces harvest-implementation / backlog per-day from TASK-008.
+2. TASK-009 produces harvest-implementation / backlog / end-of-day inventory / arrival per-day from TASK-008.
 3. TASK-010 produces residual adjustment per-day and combines with TASK-008 + TASK-009.
 4. TASK-012 (only if explicitly requested) provides a replay-trained overlay; the overlay MUST NOT replace steps 1–3; it MAY add a residual signal that is itself cited.
 
@@ -901,38 +1204,45 @@ The composition MUST NOT:
 
 ### §22.1 Read path (always allowed, identity-bearing)
 
-TASK-013 MAY read TASK-012's persisted artifacts (`prediction_run_id` + `result_hash` + `manifest_hash`) when:
-- an explicit `task12_prediction_run_id` is supplied in `advanced_overrides.authority_overrides`; OR
-- the deterministic authority resolver (§9) returns a TASK-012 authority for the requested `as_of` (this is an advanced path, not MVP).
+TASK-013 MAY read TASK-012's persisted artifacts through `GET /api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}` when:
+- an explicit `TASK12_PREDICTION_RUN` authority override (`AdvancedOverrides.authority_overrides[target = TASK12_PREDICTION_RUN].value` = integer `prediction_run_id`) is supplied; OR
+- the deterministic authority resolver (§9) returns a TASK-012 authority for the requested `effective_as_of_date` (this is an advanced path, not MVP).
 
-In both cases the Agent MUST carry the `prediction_run_id` + `result_hash` + `manifest_hash` into the output's citation block.
+In both cases the Agent MUST carry the `Task12Authority` envelope (§9.3.5) — including `prediction_run_id`, `scenario_id`, `training_manifest_hash`, `model_config_hash`, `task9_result_hash`, `task10_manifest_hash`, `task10_config_hash`, `model_code_version`, and `model_artifact_hash` when present — into the output's provenance block. No field is fabricated; the Agent reads them from the persisted row and the request payload.
 
 ### §22.2 Forbidden actions
 
 The Agent MUST NOT:
-- forge a `prediction_run_id`, `result_hash`, or `manifest_hash` for TASK-012;
+- call `POST /api/v1/rolling-backtest/replay-trained-predictions` in the default MVP path or any other frozen slice (§22.4);
+- forge any field of the `Task12Authority` envelope (`prediction_run_id`, `scenario_id`, `training_manifest_hash`, `model_config_hash`, `task9_result_hash`, `task10_manifest_hash`, `task10_config_hash`, `model_code_version`, `model_artifact_hash`);
 - substitute one TASK-012 run's result for another (cross-run substitution);
-- call TASK-012 POST (`POST /rolling_backtest/replay-trained`) in the default MVP path;
 - treat a TASK-012 result as "latest historical observation";
 - replace TASK-008 / TASK-010 outputs with a TASK-012 overlay without explicit caller opt-in.
 
 ### §22.3 Write path (always deferred)
 
 Creating a new replay-trained run is **advanced execution**. It:
-- MUST NOT be triggered by the default MVP path;
-- MUST require an explicit `advanced_overrides.execution_overrides.request_replay_trained_run = true`;
+- MUST NOT be triggered by the default MVP path or any frozen slice (§22.4);
+- MUST NOT be triggered by `POST /api/v1/rolling-backtest/replay-trained-predictions` from TASK-013 in any frozen slice;
+- MUST require an explicit `AdvancedOverrides.execution_overrides[target = REQUEST_REPLAY_TRAINED_RUN]` flag;
 - MUST be guarded by a future confirmation-token mechanism (out of scope here);
-- MUST be authorized by a separate TASK-013 amendment.
+- MUST be authorized by a separate TASK-013 amendment that also re-opens §22.4.
 
-### §22.4 Slice gating
+### §22.4 Slice gating — TASK-012 POST is outside all currently frozen slices
+
+The TASK-012 read path is allowed under §22.1. The TASK-012 POST (creation) path is **outside every currently frozen implementation slice**:
 
 | Slice | TASK-012 role |
 |---|---|
 | A (logical tool schemas + adapters) | Read path only; no POST |
 | B (minimal-input orchestration) | Read path only via advanced override |
 | C (explanation + recommendations) | Read path only |
-| D (HTTP API + optional CLI) | Read path exposed; write path exposed under confirmation gate (separate amendment) |
+| D (HTTP API + optional CLI) | Read path only — TASK-012 POST creation remains **NOT** part of Slice D |
 | E (LLM adapter) | Read path only |
+
+`POST /api/v1/rolling-backtest/replay-trained-predictions` and the corresponding `GET /api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}` are real TASK-012 endpoints, but **TASK-013 does not invoke the POST in any frozen slice**. TASK-013 only consumes existing `prediction_run_id` results via GET (read path) when explicitly requested through the advanced `TASK12_PREDICTION_RUN` authority override.
+
+TASK-012 POST may enter TASK-013 only after a **separately merged amendment** — which will introduce the confirmation-token mechanism, the per-tenant rate-limit / cost / latency budget, and a re-frozen §22.4. **This design does NOT include confirmation-token support.** Slice D does NOT ship with confirmation-token gating, and this PR must not imply otherwise.
 
 ---
 
@@ -974,26 +1284,46 @@ This design explicitly permits the first implementation Slice to ship without an
 ```yaml
 AgentForecastOutput:
   request_id: string
+  request_status: enum [OK, PARTIAL, BLOCKED]   # PARTIAL when UNKNOWN_VARIETY or per-tool partial outcomes (§26.1.1)
+  normalized_request:
+    request_id: string
+    request_received_at: aware_datetime
+    effective_as_of_date: date
+    effective_forecast_season: integer
+    season_resolution_policy_version: string
+    season_calendar_config_hash: sha256
+    canonical_request_hash: sha256
   resolved_location: ResolvedLocation
   parameters: [ParameterEstimate]  # from infer_parameters
   daily_curve: forecast_daily_curve_output
   peak: forecast_peak_output
   recommendations: generate_recommendations_output
   explanation: explain_forecast_output
-  confidence: {level, evidence}
+  confidence: {level: enum [HIGH, MEDIUM, LOW], evidence: object}  # aggregate per §25.1
+  uncertainty_widening_policy_version: string
+  uncertainty_widening_policy_config_hash: sha256
+  peak_metric_policy_version: string
+  peak_metric_policy_config_hash: sha256
   provenance:
-    task8_authority: {run_id, manifest_hash, result_hash, forecast_cutoff}
-    task9_authority: {run_id, manifest_hash, result_hash, forecast_cutoff}
-    task10_authority: {run_id, manifest_hash, result_hash, forecast_cutoff}
-    task11_authority: {run_id | null, manifest_hash | null}
-    task12_authority: {prediction_run_id | null, result_hash | null, manifest_hash | null}
-    manifest_hashes: [string]
-    result_hashes: [string]
+    task8_authority: Task8Authority | null            # typed envelope, §9.3.1
+    task9_authority: Task9Authority | null            # typed envelope, §9.3.2
+    task10_authority: Task10Authority | null          # typed envelope, §9.3.3
+    task11_authority: Task11Authority | null          # typed envelope, §9.3.4
+    task12_authority: Task12Authority | null          # typed envelope, §9.3.5
     parameter_version_identities: [string]
     location_catalog_version: string
     prior_versions_used: [string]
     scenario_config_hash: string | null
-    as_of: date
+    effective_as_of_date: date
+    effective_forecast_season: integer
+    season_resolution_policy_version: string
+    season_calendar_config_hash: sha256
+    uncertainty_widening_policy_version: string
+    uncertainty_widening_policy_config_hash: sha256
+    peak_metric_policy_version: string
+    peak_metric_policy_config_hash: sha256
+    agent_daily_curve_hash: sha256                    # adapter-introduced
+    agent_peak_hash: sha256                           # adapter-introduced
   blockers: [Blocker]
   warnings: [string]
 ```
@@ -1024,9 +1354,13 @@ Only paragraphs tagged `DETERMINISTIC_EXPLANATION` and `NON_AUTHORITATIVE_PRESEN
 
 ## §25 Confidence and uncertainty contract
 
-### §25.1 Per-parameter confidence
+### §25.1 Aggregate confidence — frozen rule
 
-Each parameter estimate carries its own confidence level + evidence (`docs/10` §7). Aggregate confidence is the worst confidence of all parameters, **unless** the parameter set is overdetermined (e.g. one `LOW_CONFIDENCE` parameter is dominated by a `HIGH_CONFIDENCE` parameter) — in which case a documented rule may upgrade the aggregate. The rule table is part of the implementation.
+Aggregate confidence = **worst confidence among all required parameters**.
+
+This is a frozen rule. The earlier prose allowing aggregate confidence to be upgraded because a parameter set is "overdetermined" is **removed**. Until an exact upgrade rule is separately frozen (and only via a future amendment), no upgrade may be applied. Any implementation that would otherwise be tempted to upgrade aggregate confidence MUST NOT.
+
+The aggregate is computed once per request and reported in the output envelope.
 
 ### §25.2 Required evidence disclosure
 
@@ -1046,7 +1380,7 @@ When the inference priority (§10.1) is at step ≤ 4, P80/P90 intervals MUST be
 
 The Agent MUST NOT:
 - emit a single high-level confidence label without the required evidence fields;
-- silently absorb a low-confidence parameter into a high-confidence aggregate;
+- silently absorb a low-confidence parameter into a high-confidence aggregate (no overdetermined upgrade; §25.1);
 - substitute "average historical yield" for an explicit prior version.
 
 ---
@@ -1060,29 +1394,42 @@ The Agent MUST NOT:
 | `INPUT_INVALID_LOCATION` | `location` field missing all three of raw_text / coordinates / map_pick_token |
 | `INPUT_INVALID_VARIETIES` | empty varieties list |
 | `INPUT_INVALID_PLANTING_AREA` | planting_area_mu ≤ 0 |
-| `INPUT_INVALID_AS_OF` | `as_of` malformed or in distant future |
-| `INPUT_INVALID_SEASON` | `forecast_season` not in known seasons |
-| `UNKNOWN_VARIETY` | variety_id not in catalog → still proceeds with `LOW_CONFIDENCE` for that variety |
+| `INPUT_INVALID_AS_OF` | `requested_as_of_date` malformed or out of season-calendar policy window |
+| `INPUT_INVALID_SEASON` | `requested_forecast_season` not recognized by the season-calendar policy |
+| `SEASON_CALENDAR_POLICY_MISSING` | no season-calendar policy registered at runtime — `effective_as_of_date` / `effective_forecast_season` cannot be resolved |
+| `EFFECTIVE_AS_OF_OUT_OF_POLICY` | `effective_as_of_date` falls outside the season-calendar policy window |
+| `UNKNOWN_VARIETY` | **Per-variety blocked outcome.** The unknown variety produces no numerical prediction; known varieties in the same request continue; overall request status becomes `PARTIAL`. |
 | `LOCATION_UNRESOLVED` | location could not be resolved to any zone |
-| `LOCATION_AM BIGUOUS` | multiple zone candidates with same score → return top-N |
-| `LOCATION_CATALOG_STALE` | as_of is before catalog effective date |
+| `LOCATION_AMBIGUOUS` | multiple zone candidates with same score → return top-N candidates; do NOT auto-pick |
+| `LOCATION_CATALOG_STALE` | `effective_as_of_date` is before the catalog's effective date |
 | `INSUFFICIENT_HISTORY` | no historical data at any priority step |
 | `PARAMETER_OVERRIDE_INVALID` | advanced override references unknown parameter |
-| `VARIETY_PRIOR_STALE` | prior effective date before as_of |
-| `TASK8_AUTHORITY_NOT_FOUND` | no task8 run matches selector |
-| `TASK9_AUTHORITY_NOT_FOUND` | analogous |
-| `TASK10_AUTHORITY_NOT_FOUND` | analogous |
+| `VARIETY_PRIOR_NOT_VISIBLE_AT_AS_OF` | **No prior version is valid and visible at `effective_as_of_date`** for the requested variety+parameter. The specific prior whose effective date is on/after `effective_as_of_date` does not exist. Differs from "old prior exists but is not the latest": this code is reserved for the case where the requested `(variety_id, parameter)` has **no** valid+visible prior at the effective as-of. |
+| `TASK8_AUTHORITY_NOT_FOUND` | no TASK-008 run matches the typed selector (§9.3.1) |
+| `TASK9_AUTHORITY_NOT_FOUND` | analogous; typed per §9.3.2 |
+| `TASK10_AUTHORITY_NOT_FOUND` | analogous; typed per §9.3.3 |
 | `TASK11_AUTHORITY_NOT_FOUND` | only when advanced override requests backtest |
-| `TASK12_AUTHORITY_NOT_FOUND` | only when advanced override supplies prediction_run_id |
+| `TASK12_AUTHORITY_NOT_FOUND` | only when advanced `TASK12_PREDICTION_RUN` authority override is supplied and not found |
 | `AUTHORITY_CONFLICT` | two persisted artifacts both satisfy the selector → do NOT auto-pick |
-| `EXECUTION_DEFERRED` | caller requested backtest or replay-trained run creation (not allowed in this slice) |
+| `EXECUTION_DEFERRED` | caller requested backtest or replay-trained run creation (not allowed in this slice; no confirmation-token mechanism in any frozen slice) |
 | `CITATION_MISSING_FIELD_PATH` | AUTHORITATIVE_VALUE paragraph missing field_path |
 | `CITATION_HASH_MISMATCH` | cited hash does not match the artifact actually consumed |
+| `PEAK_POLICY_MISSING` | no `PeakMetricPolicy` registered at runtime |
+| `UNCERTAINTY_WIDENING_POLICY_MISSING` | no `UncertaintyWideningPolicy` registered at runtime |
 | `SCENARIO_INVALID` | scenario_overrides invalid (negative staffing, negative capacity, etc.) |
 | `SCENARIO_INCOMPATIBLE_WITH_BASE` | scenario requires absent parameter |
 | `RULE_NOT_APPLICABLE` | no recommendation rule matched |
 | `RULE_THRESHOLD_MISSING` | required threshold parameter absent |
 | `INTERNAL_FAILURE` | internal exception (must include a stable error code, never a raw traceback) |
+
+### §26.1.1 Per-variety partial-result behavior (UNKNOWN_VARIETY)
+
+When `UNKNOWN_VARIETY` is raised for one or more varieties in a request:
+- The affected varieties are removed from `forecast_daily_curve_output.per_day[*].per_variety_contribution` and from `forecast_peak_output.dominant_variety`.
+- No numerical prediction (no P50/P80/P90) is emitted for the unknown variety.
+- The remaining known varieties proceed normally; their `agent_daily_row_hash` and `agent_peak_hash` are computed only over the known-variety subset.
+- The output's overall `request_status` is `PARTIAL`, and the `UNKNOWN_VARIETY` blocker is recorded against the affected `variety_id` only.
+- `explain_forecast` MUST NOT mention the unknown variety in any `AUTHORITATIVE_VALUE` paragraph; if a recommendation depends on the unknown variety, it is suppressed with `RULE_THRESHOLD_MISSING` rather than fabricated.
 
 ### §26.2 Stable error envelope
 
@@ -1157,9 +1504,13 @@ The first implementation Slice MUST NOT add an Alembic migration for TASK-013.
 
 ### §28.4 What the first slice uses for traceability
 
-- Existing business run identities (`*_run_id`, `prediction_run_id`, etc.).
-- Existing model / result / manifest hashes.
-- Request-scoped structured provenance in the response body.
+- Existing business run identities (typed authority envelopes in §9.3: `Task8Authority` / `Task9Authority` / `Task10Authority` / `Task11Authority` / `Task12Authority`).
+- Existing model / result / manifest hashes carried by those typed envelopes.
+- Versioned policy identities and hashes:
+  - `season_resolution_policy_version` + `season_calendar_config_hash` (§7.3);
+  - `peak_metric_policy_version` + `peak_metric_policy_config_hash` (§16.4);
+  - `uncertainty_widening_policy_version` + `uncertainty_widening_policy_config_hash` (§10.4).
+- Request-scoped structured provenance in the response body: `agent_normalized_request_hash` (= `canonical_request_hash`), `agent_daily_curve_hash`, `agent_peak_hash`.
 - Standard application logs with a stable `correlation_id` per request (NOT persisted to a TASK-013-owned table).
 
 ### §28.5 What MUST NOT be logged
@@ -1303,23 +1654,32 @@ This design PR is acceptable when:
 
 - ✅ Exactly one repository file changed (this document).
 - ✅ Source reconciliation (§2) is explicit.
-- ✅ Issue-tracker misclassification for the TASK-011/TASK-012 boundary is explicitly corrected (§2.2).
+- ✅ Issue-tracker misclassification for the TASK-011/TASK-012 boundary is explicitly corrected (§2.2); references use `PR #35` correctly.
 - ✅ Minimal-input planning is the core MVP (§4 + §7).
 - ✅ Option A read-only-only positioning is rejected (§1).
 - ✅ 8 logical tools are mapped to current services (§12) — no same-name-function assumption.
-- ✅ Deterministic authority resolution is frozen (§9).
-- ✅ No implicit `latest` / `current` (§9.2 + §18 + §22).
-- ✅ Versioned prior fallback is frozen (§10).
+- ✅ Two-stage request normalization (`MinimalInputRequest` + `NormalizedAgentRequest`) is frozen (§7.1–§7.3); `requested_as_of_date` / `requested_forecast_season` carry the caller preference; `effective_as_of_date` / `effective_forecast_season` are produced by a versioned season-calendar policy with `season_resolution_policy_version` + `season_calendar_config_hash` recorded in provenance.
+- ✅ No hidden wall-clock defaults; no `as_of > today + N` rules.
+- ✅ Typed authority envelopes (`Task8Authority` / `Task9Authority` / `Task10Authority` / `Task11Authority` / `Task12Authority`) are defined in §9.3 and cited to real main-contract paths; no generic `taskX_run_id` alias is frozen as an existing persisted field.
+- ✅ `PeakMetricPolicy` (versioned, frozen formulas) governs all peak computations (§16); the historical equal-maxima blocker is removed (replaced by the stable tie-break in the policy).
+- ✅ `UncertaintyWideningPolicy` (versioned, monotonically increasing factors) governs widening (§10.4); step 1 widens only when HIGH evidence requirements are not met; step 5 has maximum widening and always LOW confidence.
+- ✅ Per-day `ForecastDailyRow` preserves TASK-009 P50/P80/P90 quantiles in `DailyQuantiles` shape (§15.3); `harvested_quantity_kg`, `closing_mature_inventory_kg`, `unharvested_backlog_kg`, `arrival_quantity_kg`, `final_corrected_arrival_quantity_kg` are NOT collapsed.
+- ✅ Discriminated typed overrides (`AdvancedOverrides` + per-target types) carry `source_attestation` universally across parameter / scenario / execution / authority overrides (§8.1).
+- ✅ Aggregate confidence = worst confidence among all required parameters (§25.1); the "overdetermined upgrade" rule is removed.
 - ✅ All authoritative values are provenance-linked (§24).
-- ✅ Recommendations are deterministic (§20).
-- ✅ TASK-012 POST is excluded from default MVP path (§22).
+- ✅ Recommendations are deterministic with 7 categories total = 6 operational + 1 data-quality (MISSING_DATA_IMPACT) (§20).
+- ✅ `UNKNOWN_VARIETY` is a per-variety blocked outcome; known varieties continue; overall request status becomes `PARTIAL` (§26.1.1).
+- ✅ `LOCATION_AMBIGUOUS` (correct spelling) is the blocker; the old mis-spelled code (with a stray space) is removed.
+- ✅ `VARIETY_PRIOR_NOT_VISIBLE_AT_AS_OF` is the correct stale-prior semantics (§26.1).
+- ✅ TASK-012 endpoint path is `POST /api/v1/rolling-backtest/replay-trained-predictions` / `GET /api/v1/rolling-backtest/replay-trained-predictions/{prediction_run_id}`; the old wrong path is removed (§22).
+- ✅ TASK-012 POST is **outside** every currently frozen slice; confirmation-token support is NOT included (§22.4).
 - ✅ No migration (§28).
 - ✅ No Agent persistence tables (§28).
 - ✅ No frontend (§29).
 - ✅ No LLM dependency required (§23 + §29).
 - ✅ Implementation slices are frozen (§29.3 + §32).
-- ✅ Implementation is NOT authorized (this PR is design-only).
-- ✅ Ready / Merge are NOT authorized (this PR is Draft).
+- ✅ Implementation is NOT authorized.
+- ✅ Ready / Merge are NOT authorized.
 
 ---
 
