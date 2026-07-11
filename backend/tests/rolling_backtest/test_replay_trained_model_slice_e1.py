@@ -320,6 +320,45 @@ def _service_request(*, idempotency_key: str) -> ReplayTrainedExecutionRequest:
         task12_policy_version="task12-policy-e2",
     )
     artifact_payload = _artifact_identity_payload(projection)
+    # Build a strict manifest row payload (full set of required
+    # fields per :class:`ManifestRowSchema`).
+    manifest_row_dict: dict[str, object] = {
+        "season_id": 2025,
+        "destination_factory_id": 1,
+        "task9_run_id": 91,
+        "task9_result_hash": "9" * 64,
+        "as_of_date": "2026-03-13",
+        "target_arrival_local_date": "2026-03-14",
+        "forecast_horizon_days": 1,
+        "label_actual_snapshot": {
+            "build_run_id": 1,
+            "source_max_raw_id": 100,
+            "aggregation_version": "task12-e2-agg-v1",
+            "config_hash": "a" * 64,
+            "source_cutoff": "2026-03-13T00:00:00Z",
+        },
+        "feature_actual_snapshot": {
+            "build_run_id": 2,
+            "source_max_raw_id": 100,
+            "aggregation_version": "task12-e2-agg-v1",
+            "config_hash": "b" * 64,
+            "source_cutoff": "2026-03-13T00:00:00Z",
+        },
+        "observed_effective_receipt_kg": 10.0,
+        "structural_p50_kg": 1.0,
+        "structural_p80_kg": 2.0,
+        "structural_p90_kg": 3.0,
+        "residual_label_kg": 0.0,
+        "feature_values": [],
+        "feature_visibility_audit": None,
+        "feature_vector_hash": "a" * 64,
+        "feature_visibility_audit_hash": "b" * 64,
+        "split": "train",
+        "include": True,
+        "sample_weight": 1.0,
+        "exclusion_reason": None,
+        "source_refs": ["e2-fixture"],
+    }
     return ReplayTrainedExecutionRequest(
         model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL,
         task12_policy_version="task12-policy-e2",
@@ -337,11 +376,7 @@ def _service_request(*, idempotency_key: str) -> ReplayTrainedExecutionRequest:
         task9_result_hash="9" * 64,
         is_replay=True,
         task10_config_snapshot=_task10_config_snapshot(),
-        manifest_rows_payload=(
-            {"season_id": 2025, "destination_factory_id": 1, "split": "train"},
-            {"season_id": 2024, "destination_factory_id": 1, "split": "validation"},
-            {"season_id": 2023, "destination_factory_id": 1, "split": "test"},
-        ),
+        manifest_rows_payload=(manifest_row_dict,),
         training_rows=(
             {"observation_date": "2026-03-13", "value": 1},
             {"observation_date": "2026-03-14", "value": 2},
@@ -963,7 +998,15 @@ async def test_api_error_envelopes_are_stable_and_non_leaking(
         )
         assert unexpected_response.status_code == 500
         unexpected_body = unexpected_response.json()
-        assert unexpected_body["error"]["code"] == ("TASK012_REPLAY_TRAINED_INTEGRITY")
+        # Frozen §7.4 public integrity code (with ``_ERROR`` suffix).
+        assert unexpected_body["error"]["code"] == "TASK012_REPLAY_TRAINED_INTEGRITY_ERROR"
+        # Frozen §7.3 envelope: exactly {code, message, blocker, identity}.
+        assert set(unexpected_body["error"].keys()) == {
+            "code",
+            "message",
+            "blocker",
+            "identity",
+        }
         leaked_text = unexpected_response.text
         for forbidden in (
             "Traceback",
@@ -1087,10 +1130,12 @@ async def test_get_requires_exact_prediction_run_id(
         assert missing.status_code == 404
         missing_body = missing.json()
         assert missing_body["error"]["code"] == "TASK012_REPLAY_TRAINED_NOT_FOUND"
-        # The error envelope from ReplayTrainedServiceNotFoundError wraps the
-        # identity dict in ``error.details.prediction_run_id`` (not
-        # ``error.identity.prediction_run_id``).
-        assert missing_body["error"]["details"]["prediction_run_id"] == 9999
+        # Frozen §7.3 envelope: exactly {code, message, blocker, identity};
+        # the not-found selector is exposed under ``error.identity``
+        # (NOT ``error.details`` — that key was a contract regression
+        # in the prior round).
+        assert set(missing_body["error"].keys()) == {"code", "message", "blocker", "identity"}
+        assert missing_body["error"]["identity"]["prediction_run_id"] == 9999
 
     # GET must never re-execute the Slice E2 service
     assert service_called == []
