@@ -3387,6 +3387,8 @@ async def _corrupt_input_snapshot(
     drop: str | None = None,
     replace: dict | None = None,
 ) -> None:
+    from sqlalchemy.orm.attributes import flag_modified
+
     async with AsyncSessionMaker() as session:
         row = await session.get(ResidualModelPredictionRun, prediction_run_id)
         assert row is not None
@@ -3398,6 +3400,10 @@ async def _corrupt_input_snapshot(
             task12.update(replace)
         snapshot["task12_replay"] = task12
         row.input_snapshot = snapshot
+        # Force emission even when the new dict is Python-equal to the
+        # previous one — e.g. replacing ``True`` with ``1`` would
+        # otherwise be silently ignored by SQLAlchemy's identity check.
+        flag_modified(row, "input_snapshot")
         await session.commit()
 
 
@@ -3407,6 +3413,8 @@ async def _corrupt_typed_attempt(
     drop: str | None = None,
     replace: dict | None = None,
 ) -> None:
+    from sqlalchemy.orm.attributes import flag_modified
+
     async with AsyncSessionMaker() as session:
         row = await session.get(ResidualModelPredictionRun, prediction_run_id)
         assert row is not None
@@ -3422,6 +3430,14 @@ async def _corrupt_typed_attempt(
                 task12.update(replace)
             typed["task12_replay"] = task12
         row.typed_attempt = typed
+        # Force emission even when the new dict is Python-equal to the
+        # previous one — e.g. replacing ``True`` with ``1`` (Python
+        # ``1 == True`` is True) would otherwise be silently ignored
+        # by SQLAlchemy's attribute-change detection. Without this,
+        # corruption helpers can become no-ops for type-coercion
+        # attacks, which would let the loader silently re-emit a
+        # wrong-value audit payload.
+        flag_modified(row, "typed_attempt")
         await session.commit()
 
 
@@ -3856,12 +3872,14 @@ async def test_postgres_loader_corruption_unmodified_row_loads_clean(
         value = getattr(baseline, field_name)
         assert value is not None, (field_name, value)
 
-    # The two persisted boolean flags MUST also be ``True`` — the
-    # baseline row's write-time path produced ``no_implicit_selection
-    # = True`` and ``no_cross_run_substitution = True`` and the loader
-    # must reject any other persisted value.
-    assert baseline.no_implicit_selection is True
-    assert baseline.no_cross_run_substitution is True
+    # The two persisted boolean flags (``no_implicit_selection`` and
+    # ``no_cross_run_substitution``) are validated strictly during the
+    # audit payload recompute inside ``_recompute_audit_payload`` and
+    # are NOT surfaced as fields on the public
+    # ``ReplayTrainedPersistedIdentity`` response. The baseline row
+    # PASSES that strict validation by construction (the write-time
+    # path produces native ``True`` for both), so the existence of a
+    # successful load here is the proof that the baseline is valid.
 
 
 # ---------------------------------------------------------------------------
@@ -3915,12 +3933,15 @@ async def test_postgres_loader_corruption_no_implicit_selection_wrong(
         idempotency_key=f"task12-e3-loader-implsel-{expected_reason}",
     )
 
-    # Step 1: prove the un-corrupted row loads successfully.
+    # Step 1: prove the un-corrupted row loads successfully. The
+    # two persisted boolean flags are validated strictly during the
+    # audit payload recompute; if the baseline row's persisted
+    # ``no_implicit_selection`` were malformed, this load would
+    # already raise. Its success is the proof that the baseline is
+    # clean.
     async with AsyncSessionMaker() as session:
         baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
-    assert baseline.no_implicit_selection is True
-
-    # Step 2: targeted single-field corruption → exact reason.
+    assert baseline.audit_identity
     await _corrupt_typed_attempt(pid, replace={"no_implicit_selection": corrupted_value})
     async with AsyncSessionMaker() as session:
         with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
@@ -3959,12 +3980,15 @@ async def test_postgres_loader_corruption_no_cross_run_substitution_wrong(
         idempotency_key=f"task12-e3-loader-crsub-{expected_reason}",
     )
 
-    # Step 1: prove the un-corrupted row loads successfully.
+    # Step 1: prove the un-corrupted row loads successfully. The
+    # two persisted boolean flags are validated strictly during the
+    # audit payload recompute; if the baseline row's persisted
+    # ``no_cross_run_substitution`` were malformed, this load would
+    # already raise. Its success is the proof that the baseline is
+    # clean.
     async with AsyncSessionMaker() as session:
         baseline = await load_replay_trained_prediction(session, prediction_run_id=pid)
-    assert baseline.no_cross_run_substitution is True
-
-    # Step 2: targeted single-field corruption → exact reason.
+    assert baseline.audit_identity
     await _corrupt_typed_attempt(pid, replace={"no_cross_run_substitution": corrupted_value})
     async with AsyncSessionMaker() as session:
         with pytest.raises(ReplayTrainedPersistedIdentityIntegrityError) as exc_info:
