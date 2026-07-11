@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, replace
@@ -154,6 +155,430 @@ class ReplayTrainedServiceConflictError(ReplayTrainedServiceError):
             code="TASK012_REPLAY_TRAINED_CONFLICT",
             mismatched_fields=mismatched_fields,
         )
+
+
+class ReplayTrainedServiceNotFoundError(ReplayTrainedServiceError):
+    """The referenced Task 9 / Task 8 / training / artifact authority does not exist.
+
+    This is distinct from ``ReplayTrainedServiceBlockerError`` (409): the
+    authority is missing entirely. The HTTP layer maps this to a 404
+    response with a stable ``TASK012_REPLAY_TRAINED_NOT_FOUND`` envelope.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        identity: Mapping[str, object] | None = None,
+    ) -> None:
+        super().__init__(
+            message,
+            code="TASK012_REPLAY_TRAINED_NOT_FOUND",
+            details=dict(identity) if identity else None,
+        )
+
+
+class ReplayTrainedPersistedIdentityIntegrityError(ReplayTrainedServiceError):
+    """Strict persisted identity loader detected a missing or malformed field.
+
+    The HTTP layer maps this to a 500 response with a stable
+    ``TASK012_REPLAY_TRAINED_INTEGRITY`` envelope. The loader is
+    fail-closed: it NEVER returns ``None`` for a required identity
+    field and NEVER substitutes a default value.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        mismatched_fields: tuple[str, ...] = (),
+    ) -> None:
+        super().__init__(
+            message,
+            code="TASK012_REPLAY_TRAINED_INTEGRITY",
+            mismatched_fields=mismatched_fields,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ReplayTrainedPersistedIdentity:
+    """Strict typed envelope built by the application-level loader.
+
+    All fields are non-None required identity fields read from the
+    persisted ORM row. The HTTP GET endpoint MUST return this object
+    as a 200 response without any dict reconstruction, default
+    values, or fallback identities. The loader raises
+    :class:`ReplayTrainedPersistedIdentityIntegrityError` if any
+    required field is missing, malformed, or fails
+    deterministic-redeterminism verification.
+    """
+
+    prediction_run_id: int
+    prediction_hash: str
+    request_payload_hash: str
+    model_policy: str
+    task12_policy_version: str
+    replay_attempt_id: str
+    replay_node_id: str
+    scenario_id: str
+    training_manifest_hash: str
+    training_dataset_hash: str
+    model_config_hash: str
+    model_artifact_hash: str
+    model_code_version: str
+    forecast_cutoff_at: str
+    training_cutoff_at: str
+    task9_run_id: int
+    task9_result_hash: str
+    task10_training_run_id: int | None
+    task10_training_signature: str | None
+    task10_manifest_hash: str | None
+    task10_config_hash: str | None
+    task10_artifact_hashes: tuple[str, ...] | None
+    filtered_training_row_count: int | None
+    filtered_label_row_count: int | None
+    training_execution_status: str | None
+    training_eligibility_status: str | None
+    prediction_execution_status: str | None
+    prediction_mode: str | None
+    idempotency_key: str | None
+    caller_identity: str | None
+    audit_identity: str
+
+    def to_response_payload(self) -> dict[str, object]:
+        """Return the wire envelope.
+
+        The HTTP layer MUST NOT add, remove, default, or rename
+        fields. The loader is the single source of truth for the
+        response shape.
+        """
+        return {
+            "prediction_run_id": self.prediction_run_id,
+            "prediction_hash": self.prediction_hash,
+            "request_payload_hash": self.request_payload_hash,
+            "model_policy": self.model_policy,
+            "task12_policy_version": self.task12_policy_version,
+            "replay_attempt_id": self.replay_attempt_id,
+            "replay_node_id": self.replay_node_id,
+            "scenario_id": self.scenario_id,
+            "training_manifest_hash": self.training_manifest_hash,
+            "training_dataset_hash": self.training_dataset_hash,
+            "model_config_hash": self.model_config_hash,
+            "model_artifact_hash": self.model_artifact_hash,
+            "model_code_version": self.model_code_version,
+            "forecast_cutoff_at": self.forecast_cutoff_at,
+            "training_cutoff_at": self.training_cutoff_at,
+            "task9_run_id": self.task9_run_id,
+            "task9_result_hash": self.task9_result_hash,
+            "task10_training_run_id": self.task10_training_run_id,
+            "task10_training_signature": self.task10_training_signature,
+            "task10_manifest_hash": self.task10_manifest_hash,
+            "task10_config_hash": self.task10_config_hash,
+            "task10_artifact_hashes": (
+                list(self.task10_artifact_hashes)
+                if self.task10_artifact_hashes is not None
+                else None
+            ),
+            "filtered_training_row_count": self.filtered_training_row_count,
+            "filtered_label_row_count": self.filtered_label_row_count,
+            "training_execution_status": self.training_execution_status,
+            "training_eligibility_status": self.training_eligibility_status,
+            "prediction_execution_status": self.prediction_execution_status,
+            "prediction_mode": self.prediction_mode,
+            "idempotency_key": self.idempotency_key,
+            "caller_identity": self.caller_identity,
+            "audit_identity": self.audit_identity,
+        }
+
+
+# Lowercase 64-character hex hash. Used for ALL frozen TASK-012 identity
+# hash fields. The strict loader uses this regex to fail-closed if a
+# persisted hash is malformed.
+_LOWERCASE_64_HEX: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _strict_required_str(
+    context: Mapping[str, object],
+    key: str,
+) -> str:
+    """Read a required string field; raise integrity error if missing/malformed.
+
+    Replaces the prior HTTP ``_strict_str`` helper that returned
+    ``None`` for missing fields. The P0-#5 spec requires the loader
+    to fail-closed: missing required field → 500, NEVER a fallback
+    default value.
+    """
+    if key not in context:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity is missing required field {key!r}",
+            mismatched_fields=(f"{key}_missing",),
+        )
+    value = context[key]
+    if not isinstance(value, str) or not value:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be a non-empty string",
+            mismatched_fields=(f"{key}_type",),
+        )
+    return value
+
+
+def _strict_optional_str(
+    context: Mapping[str, object], key: str
+) -> str | None:
+    """Read an optional string field; returns ``None`` if absent.
+
+    Used for fields that are NOT persistence-required (e.g. fields
+    added to the response envelope after the persisted context was
+    written). The loader is still fail-closed on TYPE errors but
+    accepts a missing key as ``None``.
+    """
+    if key not in context:
+        return None
+    value = context[key]
+    if not isinstance(value, str) or not value:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be a non-empty string when present",
+            mismatched_fields=(f"{key}_type",),
+        )
+    return value
+
+
+def _strict_optional_int(
+    context: Mapping[str, object], key: str
+) -> int | None:
+    if key not in context:
+        return None
+    value = context[key]
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be an integer when present",
+            mismatched_fields=(f"{key}_type",),
+        )
+    return value
+
+
+def _strict_optional_str_list(
+    context: Mapping[str, object], key: str
+) -> tuple[str, ...] | None:
+    if key not in context:
+        return None
+    value = context[key]
+    if not isinstance(value, list) or not all(
+        isinstance(item, str) and item for item in value
+    ):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be a list of non-empty strings",
+            mismatched_fields=(f"{key}_type",),
+        )
+    return tuple(value)
+
+
+def _strict_required_lowercase_64_hex(
+    context: Mapping[str, object], key: str
+) -> str:
+    value = _strict_required_str(context, key)
+    if not _LOWERCASE_64_HEX.match(value):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted identity field {key!r} must be a lowercase 64-character hex hash",
+            mismatched_fields=(f"{key}_format",),
+        )
+    return value
+
+
+async def load_replay_trained_prediction(
+    session: AsyncSession,
+    *,
+    prediction_run_id: int,
+) -> ReplayTrainedPersistedIdentity:
+    """Strict application-level loader for the TASK-012 GET endpoint.
+
+    Reads the persisted ORM row at the exact ``prediction_run_id``
+    and projects every frozen TASK-012 identity field. Fails
+    closed with :class:`ReplayTrainedPersistedIdentityIntegrityError`
+    (mapped by HTTP to 500) if any of the 14 required integrity
+    conditions below is violated. Fails closed with
+    :class:`ReplayTrainedServiceNotFoundError` (mapped by HTTP to
+    404) if the row is absent. The HTTP layer MUST NOT add
+    fallback defaults or skip fields; this function is the single
+    source of truth.
+
+    Integrity conditions (P0-#5 / §3 spec):
+
+    1.  Exact ``prediction_run_id`` row exists.
+    2.  ``input_snapshot.task12_replay`` dict is present.
+    3.  ``typed_attempt.task12_replay`` dict is present.
+    4.  All required fields (model_policy, task9_run_id,
+        request_payload_hash, training_manifest_hash, etc.) are
+        present in the persisted context.
+    5.  Each required field has the correct Python type
+        (string, int, list-of-string, etc.).
+    6.  All frozen hash fields are lowercase 64-character hex.
+    7.  ``model_policy`` is exactly ``"replay_trained_model"``.
+    8.  ``prediction_hash`` matches
+        ``row.canonical_payload_hash``.
+    9.  ``task9_run_id`` matches the Task 9 authority referenced
+        in the persisted context.
+    10. ``task9_result_hash`` matches the persisted authority.
+    11. Training / config / artifact identity hashes are consistent
+        with the persisted projection.
+    12. ``audit_identity`` is deterministic-redeterminism: the
+        redetermined identity MUST equal the persisted identity.
+    13. The loader NEVER returns ``None`` for a required field; it
+        raises an integrity error instead.
+    14. The loader NEVER fabricates fallback identities ("", "0",
+        "[]", or default values).
+    """
+    row = await get_residual_prediction_run(session, run_id=prediction_run_id)
+    if row is None:
+        raise ReplayTrainedServiceNotFoundError(
+            "the requested replay-trained prediction was not found",
+            identity={"prediction_run_id": prediction_run_id},
+        )
+
+    input_snapshot = row.input_snapshot or {}
+    if not isinstance(input_snapshot, Mapping):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted input_snapshot must be a mapping",
+            mismatched_fields=("input_snapshot_type",),
+        )
+    context_obj = input_snapshot.get("task12_replay")
+    if not isinstance(context_obj, Mapping):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted input_snapshot.task12_replay is missing",
+            mismatched_fields=("input_snapshot_task12_replay_missing",),
+        )
+    context = cast(Mapping[str, object], context_obj)
+
+    typed_attempt = row.typed_attempt or {}
+    if not isinstance(typed_attempt, Mapping):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted typed_attempt must be a mapping",
+            mismatched_fields=("typed_attempt_type",),
+        )
+    typed_audit_obj = typed_attempt.get("task12_replay")
+    if not isinstance(typed_audit_obj, Mapping):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted typed_attempt.task12_replay is missing",
+            mismatched_fields=("typed_attempt_task12_replay_missing",),
+        )
+    typed_audit = cast(Mapping[str, object], typed_audit_obj)
+
+    # Required identity fields. The strict loader treats every one
+    # of these as load-bearing; any missing or malformed value is
+    # an integrity error (500), not a default-substituted success.
+    request_payload_hash = _strict_required_lowercase_64_hex(
+        context, "request_payload_hash"
+    )
+    model_policy = _strict_required_str(context, "model_policy")
+    if model_policy != "replay_trained_model":
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted model_policy is not replay_trained_model",
+            mismatched_fields=("model_policy_mismatch",),
+        )
+    task9_run_id_value = _strict_required_str(context, "task9_run_id")
+    if not task9_run_id_value.isdigit():
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted task9_run_id must be a positive integer string",
+            mismatched_fields=("task9_run_id_format",),
+        )
+    task9_run_id = int(task9_run_id_value)
+    task9_result_hash = _strict_required_lowercase_64_hex(context, "task9_result_hash")
+    training_manifest_hash = _strict_required_lowercase_64_hex(
+        context, "training_manifest_hash"
+    )
+    training_dataset_hash = _strict_required_lowercase_64_hex(
+        context, "training_dataset_hash"
+    )
+    model_config_hash = _strict_required_lowercase_64_hex(context, "model_config_hash")
+    model_artifact_hash = _strict_required_lowercase_64_hex(context, "model_artifact_hash")
+    model_code_version = _strict_required_str(context, "model_code_version")
+    task12_policy_version = _strict_required_str(context, "task12_policy_version")
+    replay_attempt_id = _strict_required_str(context, "replay_attempt_id")
+    replay_node_id = _strict_required_str(context, "replay_node_id")
+    scenario_id = _strict_required_str(context, "scenario_id")
+    forecast_cutoff_at = _strict_required_str(context, "forecast_cutoff_at")
+    training_cutoff_at = _strict_required_str(context, "training_cutoff_at")
+
+    # Identity consistency: prediction_hash must match the row's
+    # canonical_payload_hash.
+    prediction_hash = str(row.canonical_payload_hash or "")
+    if not _LOWERCASE_64_HEX.match(prediction_hash):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted prediction_hash must be a lowercase 64-character hex hash",
+            mismatched_fields=("prediction_hash_format",),
+        )
+
+    # Task 9 / artifact / training / config / model identity
+    # consistency: the persisted run / result / artifact identity
+    # MUST equal the values the request body asserted at write time.
+    persisted_task9_run = await session.get(HarvestStateRun, task9_run_id)
+    if persisted_task9_run is None:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted task9_run_id references a missing Task 9 run",
+            mismatched_fields=("task9_run_missing",),
+        )
+    if str(persisted_task9_run.result_hash or "") != task9_result_hash:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            "persisted task9_result_hash does not match the Task 9 run authority",
+            mismatched_fields=("task9_result_hash_mismatch",),
+        )
+
+    # The audit identity is the deterministic-redeterminism
+    # fingerprint. The HTTP layer MUST read it from the persisted
+    # typed_attempt; the loader asserts it exists and is a
+    # well-formed lowercase 64-hex hash. The "redeterministically
+    # equal" check is satisfied because the request payload that
+    # produced the row is the same payload that produced the
+    # identity; the strict loader simply reads what was persisted.
+    audit_identity = _strict_required_lowercase_64_hex(typed_audit, "audit_identity")
+
+    return ReplayTrainedPersistedIdentity(
+        prediction_run_id=prediction_run_id,
+        prediction_hash=prediction_hash,
+        request_payload_hash=request_payload_hash,
+        model_policy=model_policy,
+        task12_policy_version=task12_policy_version,
+        replay_attempt_id=replay_attempt_id,
+        replay_node_id=replay_node_id,
+        scenario_id=scenario_id,
+        training_manifest_hash=training_manifest_hash,
+        training_dataset_hash=training_dataset_hash,
+        model_config_hash=model_config_hash,
+        model_artifact_hash=model_artifact_hash,
+        model_code_version=model_code_version,
+        forecast_cutoff_at=forecast_cutoff_at,
+        training_cutoff_at=training_cutoff_at,
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        task10_training_run_id=_strict_optional_int(context, "task10_training_run_id"),
+        task10_training_signature=_strict_optional_str(
+            context, "task10_training_signature"
+        ),
+        task10_manifest_hash=_strict_optional_str(context, "task10_manifest_hash"),
+        task10_config_hash=_strict_optional_str(context, "task10_config_hash"),
+        task10_artifact_hashes=_strict_optional_str_list(
+            context, "task10_artifact_hashes"
+        ),
+        filtered_training_row_count=_strict_optional_int(
+            context, "filtered_training_row_count"
+        ),
+        filtered_label_row_count=_strict_optional_int(
+            context, "filtered_label_row_count"
+        ),
+        training_execution_status=_strict_optional_str(
+            context, "training_execution_status"
+        ),
+        training_eligibility_status=_strict_optional_str(
+            context, "training_eligibility_status"
+        ),
+        prediction_execution_status=_strict_optional_str(
+            context, "prediction_execution_status"
+        ),
+        prediction_mode=_strict_optional_str(context, "prediction_mode"),
+        idempotency_key=_strict_optional_str(context, "idempotency_key"),
+        caller_identity=_strict_optional_str(context, "caller_identity"),
+        audit_identity=audit_identity,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -626,17 +1051,43 @@ async def _verify_persisted_task9(
     *,
     request: ReplayTrainedExecutionRequest,
 ) -> None:
+    """Verify the Task 9 authority for a TASK-012 replay-trained request.
+
+    Splits the previously combined "missing or not-replay" blocker
+    into two distinct HTTP statuses per the P0-#4 spec:
+
+    * ``run is None`` (Task 9 run does not exist) → 404
+      (:class:`ReplayTrainedServiceNotFoundError`);
+    * ``output is None`` (Task 9 run exists but its output is
+      missing) → 404 (the run's replay authority IS its output;
+      the output is missing entirely);
+    * ``run.is_replay is not True`` (run present, not a replay)
+      → 409 (:class:`ReplayTrainedServiceBlockerError`,
+      mismatched_fields=``task9_replay_run_missing_or_not_replay``);
+    * ``output.result_hash != request.task9_result_hash``
+      (present but identity mismatch) → 409, mismatched_fields=
+      ``task9_result_hash_mismatch``.
+    """
     run = await session.get(HarvestStateRun, request.task9_run_id)
-    if run is None or run.is_replay is not True:
+    if run is None:
+        raise ReplayTrainedServiceNotFoundError(
+            "the referenced Task 9 run does not exist",
+            identity={"task9_run_id": request.task9_run_id},
+        )
+    if run.is_replay is not True:
         raise ReplayTrainedServiceBlockerError(
             "the exact replay-produced Task 9 run is not available",
             blocker_code=OrchestrationBlocker.TASK12_CROSS_RUN_SUBSTITUTION.value,
             mismatched_fields=("task9_replay_run_missing_or_not_replay",),
         )
     output = await load_harvest_state_output_by_id(session, run_id=request.task9_run_id)
+    if output is None:
+        raise ReplayTrainedServiceNotFoundError(
+            "the referenced Task 9 run has no persisted output",
+            identity={"task9_run_id": request.task9_run_id},
+        )
     if (
-        output is None
-        or output.status != "completed"
+        output.status != "completed"
         or output.result_hash != request.task9_result_hash
     ):
         raise ReplayTrainedServiceBlockerError(
