@@ -418,6 +418,49 @@ def _strict_required_lowercase_64_hex(context: Mapping[str, object], key: str) -
     return value
 
 
+def _strict_required_true_bool(
+    context: Mapping[str, object],
+    key: str,
+) -> bool:
+    """Read a required boolean flag; raise integrity error on drift.
+
+    The persisted type MUST be a native ``bool``; strings (``"true"`` /
+    ``"false"``), integers (``0`` / ``1``), and ``None`` are all
+    rejected. The flag value MUST be ``True`` — a persisted ``False``
+    is an integrity failure (not silent acceptance + later audit
+    mismatch). Missing keys, wrong types, and wrong values all fail
+    closed with precise ``{key}_missing`` / ``{key}_type`` /
+    ``{key}_mismatch`` ``mismatched_fields`` reasons.
+
+    This helper is the strict-required successor to silent
+    ``bool(value or False)`` coercion. Silent coercion allowed
+    ``"false"`` (a non-empty string) to be coerced to ``True`` and
+    then re-serialized into the audit payload, producing an audit
+    hash that was internally consistent with the WRONG boolean
+    value — a corruption that the byte-for-byte equality check
+    could not detect. The strict helper closes that gap.
+    """
+    if key not in context:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted audit field {key!r} is missing",
+            mismatched_fields=(f"{key}_missing",),
+        )
+    value = context[key]
+    # ``bool`` MUST be a real ``bool`` — strings / ints / ``None`` are
+    # wrong-type and must not silently coerce.
+    if not isinstance(value, bool):
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted audit field {key!r} must be a native boolean",
+            mismatched_fields=(f"{key}_type",),
+        )
+    if value is not True:
+        raise ReplayTrainedPersistedIdentityIntegrityError(
+            f"persisted audit field {key!r} must remain true",
+            mismatched_fields=(f"{key}_mismatch",),
+        )
+    return value
+
+
 def _recompute_audit_payload(typed_audit: Mapping[str, object]) -> dict[str, object]:
     """Rebuild the canonical 31-field audit payload from a persisted
     ``typed_attempt.task12_replay`` dict.
@@ -479,8 +522,14 @@ def _recompute_audit_payload(typed_audit: Mapping[str, object]) -> dict[str, obj
         ),
         idempotency_key=str(typed_audit.get("idempotency_key") or ""),
         caller_identity=str(typed_audit.get("caller_identity") or ""),
-        no_implicit_selection=bool(typed_audit.get("no_implicit_selection") or False),
-        no_cross_run_substitution=bool(typed_audit.get("no_cross_run_substitution") or False),
+        no_implicit_selection=_strict_required_true_bool(
+            typed_audit,
+            "no_implicit_selection",
+        ),
+        no_cross_run_substitution=_strict_required_true_bool(
+            typed_audit,
+            "no_cross_run_substitution",
+        ),
     )
 
 
