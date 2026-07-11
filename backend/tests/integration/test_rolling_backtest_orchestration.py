@@ -3458,3 +3458,97 @@ async def test_postgres_get_corruption_audit_identity_mismatch(
         pid, replace={"audit_identity": "not-a-valid-lowercase-64-hex-hash"}
     )
     await _expect_500(e3_client, pid)
+
+
+# ---------------------------------------------------------------------------
+# TASK-012 Slice E3 final-contract corruption tests (P0-#2 / #3 / #4 specs)
+# ---------------------------------------------------------------------------
+#
+# Round review required the following NEW corruption tests to prove the
+# loader now enforces semantic integrity, not just format:
+#
+#   - valid-but-wrong 64-hex audit_identity (NOT just malformed);
+#     the loader must recompute audit_identity from persisted fields
+#     and reject any byte-different 64-hex string;
+#   - valid-but-wrong 64-hex canonical_payload_hash; the loader must
+#     independently recompute the prediction hash from the rebuilt
+#     ``ResidualPredictionExecutionResult``;
+#   - all required GET identity fields missing (one test per field)
+#     must yield a stable 500, never a 200 with null;
+#   - task9_run_id persisted as a numeric string must be rejected
+#     (native integer required).
+#
+# These tests run against the real PostgreSQL domain-2 shard
+# (RUN_POSTGRES_INTEGRATION=1 + a live database). They live in
+# :mod:`test_rolling_backtest_orchestration` so that pytest collection,
+# the PR ``postgres-domain-2`` shard, and the ``main``
+# ``full-suite-canary`` shard each execute every E3 node exactly once.
+
+
+async def test_postgres_get_corruption_valid_but_wrong_audit_identity(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-aim2")
+    # Replace the persisted audit_identity with a DIFFERENT valid
+    # 64-character lowercase-hex string. The format check passes,
+    # but the semantic recompute (audit_identity = sha256 over the
+    # persisted typed_attempt.task12_replay payload with
+    # audit_identity + prediction_run_id excluded) MUST fail.
+    await _corrupt_typed_attempt(pid, replace={"audit_identity": "f" * 64})
+    await _expect_500(e3_client, pid)
+
+
+async def test_postgres_get_corruption_valid_but_wrong_prediction_hash(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """A different valid 64-hex canonical_payload_hash is rejected.
+
+    The loader calls ``load_residual_prediction_run_by_id`` to
+    rebuild the ``ResidualPredictionExecutionResult`` from child
+    rows + ``canonical_output``, recomputes the canonical prediction
+    hash, and compares it byte-for-byte with the persisted
+    ``row.prediction_hash``. Replacing ``canonical_payload_hash``
+    with another valid 64-hex value produces a semantic mismatch.
+    """
+    pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-prediction-hash")
+    async with AsyncSessionMaker() as session:
+        row = await session.get(ResidualModelPredictionRun, pid)
+        assert row is not None
+        row.canonical_payload_hash = "f" * 64
+        await session.commit()
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "drop_key",
+    [
+        "task10_training_run_id",
+        "task10_training_signature",
+        "task10_manifest_hash",
+        "task10_config_hash",
+        "task10_artifact_hashes",
+        "idempotency_key",
+        "caller_identity",
+    ],
+)
+async def test_postgres_get_required_field_missing_returns_500(
+    drop_key: str,
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """Each required GET identity field MUST be present; absence → 500."""
+    pid, _ = await _seed_known_prediction(idempotency_key=f"task12-e3-corrupt-missing-{drop_key}")
+    await _corrupt_input_snapshot(pid, drop=drop_key)
+    await _expect_500(e3_client, pid)
+
+
+@pytest.mark.integration
+async def test_postgres_get_corruption_task9_run_id_numeric_string(
+    e3_client: httpx.AsyncClient,
+) -> None:
+    """A persisted ``task9_run_id`` of the numeric string ``"91"``
+    is integrity failure — only a native integer is accepted.
+    """
+    pid, _ = await _seed_known_prediction(idempotency_key="task12-e3-corrupt-task9-str")
+    await _corrupt_input_snapshot(pid, replace={"task9_run_id": "91"})
+    await _expect_500(e3_client, pid)
