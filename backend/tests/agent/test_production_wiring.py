@@ -92,10 +92,11 @@ def _build_harvest_state_run(
         resolved_parameter_snapshot_schema_version="v1",
         source_ref_schema_version="v1",
         stable_cohort_key_schema_version="v1",
-        # Round 7 (review 4680214102): real persisted season identity
-        # required; the legacy empty-dict default was equivalent to
-        # accepting the date-guess as_of_date.year path.
-        input_snapshot=input_snapshot if input_snapshot is not None else {"forecast_season": 2026},
+        # Round 8 (review 4680340321): real TASK-009 persistence
+        # (``_sorted_request_snapshot``) does NOT write
+        # ``forecast_season`` into ``input_snapshot``.  Test
+        # fixtures must use the real shape — empty dict by default.
+        input_snapshot=input_snapshot if input_snapshot is not None else {},
         resolved_parameter_snapshot={},
         source_ref_catalog=[],
         warnings=[],
@@ -509,6 +510,7 @@ async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_ses
         destination_factory_id=1,
         maturity_forecast_run_id=1,  # present; the lineage is satisfied
         pool_row_count=9,
+        input_snapshot={"forecast_season": 2026},
     )
     await sqlite_session.flush()
     # Three days × three quantiles = 9 pool rows.
@@ -601,6 +603,7 @@ async def test_default_daily_curve_emits_real_typed_authorities(sqlite_session):
         destination_factory_id=1,
         maturity_forecast_run_id=1,
         pool_row_count=3,
+        input_snapshot={"forecast_season": 2026},
     )
     await sqlite_session.flush()
     for d in (date(2026, 3, 1), date(2026, 3, 2)):
@@ -1315,6 +1318,7 @@ async def test_scenario_preserves_authority_overrides(sqlite_session):
         destination_factory_id=1,
         maturity_forecast_run_id=1,
         pool_row_count=3,
+        input_snapshot={"forecast_season": 2026},
     )
     await sqlite_session.flush()
     for d in (date(2026, 3, 1), date(2026, 3, 2)):
@@ -1575,6 +1579,7 @@ async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
         destination_factory_id=1,
         maturity_forecast_run_id=1,
         pool_row_count=3,
+        input_snapshot={"forecast_season": 2026},
     )
     hsr2 = _build_harvest_state_run(
         sqlite_session,
@@ -1585,6 +1590,7 @@ async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
         destination_factory_id=1,
         maturity_forecast_run_id=1,
         pool_row_count=3,
+        input_snapshot={"forecast_season": 2026},
     )
     await sqlite_session.flush()
     # P0-3 #11 round 5: insert member rows covering the requested

@@ -21,23 +21,60 @@ selector is permitted.  Each authority selection MUST:
    * lineage integrity: TASK-9 ``harvest_state_run_result_hash`` MUST
      equal TASK-10 ``task9_result_hash``; TASK-10 ``task9_run_id`` MUST
      equal the selected TASK-9 ``id``.
-2. Distinguish three outcomes:
-   * Zero candidates → :data:`BlockerCode.TASK{N}_AUTHORITY_NOT_FOUND`
-   * One candidate → use that candidate.
-   * Multiple candidates → :data:`BlockerCode.AUTHORITY_CONFLICT` with
-     full disclosure of candidate IDs + hashes; do NOT auto tie-break.
+2. Distinguish a discriminated set of outcomes via
+   :class:`AuthoritySelectionResult` (candidates XOR blockers — never
+   both, never bare-empty).  Each failure mode maps to a typed
+   ``BlockerCode``:
+   * :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND` — no row matches the
+     base scope (status / destination / date coverage).
+   * :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` — candidate rows
+     exist but fail scope (no persisted season identity, season
+     mismatch, date coverage, destination, variety-scope mismatch).
+   * :data:`BlockerCode.AUTHORITY_HASH_MALFORMED` — ``result_hash`` /
+     ``config_hash`` / ``prediction_hash`` / etc. malformed.
+   * :data:`BlockerCode.AUTHORITY_IDENTITY_MALFORMED` — required
+     identity column missing or wrong type.
+   * :data:`BlockerCode.AUTHORITY_LINEAGE_MISMATCH` — TASK-010 lineage
+     does not bind to the selected TASK-009 run.
+   * :data:`BlockerCode.UPSTREAM_READ_FAILURE` — ORM query raised an
+     unexpected exception (fail-closed; not silently NOT_FOUND).
+   * :data:`BlockerCode.AUTHORITY_CONFLICT` — multiple fully-valid
+     candidates; disclose every candidate ID + hash; do NOT auto
+     tie-break.
 3. The destination_factory_id passed to the selector MUST appear in the
    WHERE clause; if the upstream query is unable to apply the filter, the
    loader fails closed with :data:`BlockerCode.AUTHORITY_IDENTITY_MALFORMED`.
 
-**Per-variety contribution from real member rows (P0-4)**
+**TASK-009 season identity (P0-1 review 4680340321)**
 
-Per-variety contributions are read from
+The legacy ``HarvestStateRun.as_of_date.year`` derivation is FORBIDDEN —
+it is a date-guess, not a persisted identity.  Real TASK-009 rows
+written by ``_sorted_request_snapshot()`` do NOT carry
+``input_snapshot["forecast_season"]``.  When the request asks for an
+explicit season and the candidate row has no persisted season binding,
+the selector MUST return an ``AUTHORITY_SCOPE_MISMATCH`` blocker with
+``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE`` — NOT a
+silent ``TASK9_AUTHORITY_NOT_FOUND`` collapse.
+
+**Per-variety contribution (P0-4 / P0-5 review 4680340321)**
+
+Per-variety contribution is read from
 :class:`~backend.app.models.harvest_state.HarvestStateDailyMemberRowModel`
-when the per-variety grain is available; otherwise the loader fails
-closed with :data:`BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING`.  No
-equal-split fallback, no P80=P50 approximation, no contribution_rate=1.0
-sentinel.
+and composed in three strict phases:
+
+* **Phase 1 (matrix prevalidation):** for every requested variety ×
+  P50/P80/P90 × target date, verify a real member row exists BEFORE
+  creating any :class:`VarietyContribution`.  A later variety missing
+  P90 MUST NOT silently drop the earlier variety's contribution.
+* **Phase 2 (denominator scope):** the persisted member-variety set
+  for the selected TASK-009 run MUST equal the requested variety set
+  (exact).  An extra persisted variety with non-zero volume is a scope
+  mismatch (no mixed-semantic denominator / requested-only output
+  truncation).
+* **Phase 3 (compute + reconcile):** build contributions, validate
+  per-quantile sum-of-member-volume = pool-arrival total, sum-of-rate
+  = 1 (pool > 0) or all-zero (pool = 0).  Any reconciliation failure
+  returns ``[]`` + typed blockers — never partial contribution.
 
 **Single selection — single envelope (P0-5)**
 
@@ -108,6 +145,54 @@ class BaselineCompositionResult:
     blockers: list[Blocker] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class AuthoritySelectionResult:
+    """Discriminated selector result (review 4680340321 P0-2 / P0-3).
+
+    Selectors MUST return this type instead of a bare
+    ``list[dict[str, Any]]``.  Either ``candidates`` is non-empty and
+    ``blockers`` is empty, OR ``blockers`` is non-empty and
+    ``candidates`` is empty.  Empty-empty or both-non-empty is a
+    programming error.
+    """
+
+    candidates: tuple[dict[str, Any], ...] = ()
+    blockers: tuple[Blocker, ...] = ()
+
+    def __post_init__(self) -> None:
+        if bool(self.candidates) == bool(self.blockers):
+            raise ValueError(
+                "AuthoritySelectionResult: candidates and blockers are "
+                "mutually exclusive; exactly one must be non-empty "
+                f"(candidates={len(self.candidates)}, "
+                f"blockers={len(self.blockers)})."
+            )
+
+    @property
+    def is_empty(self) -> bool:
+        return not self.candidates and not self.blockers
+
+    @property
+    def first_blocker(self) -> Blocker | None:
+        return self.blockers[0] if self.blockers else None
+
+
+# --- Identity-mismatch reason codes (round 8 / review 4680340321) --------
+#
+# TASK-009 / TASK-010 selectors surface a typed ``reason`` value
+# inside ``AUTHORITY_SCOPE_MISMATCH`` ``Blocker.details`` so callers
+# can disambiguate root-cause classes without inventing a new
+# ``BlockerCode`` per case (per the round 8 directive: "use existing
+# blocker taxonomy; do not add a parallel duplicate taxonomy").
+
+SEASON_BINDING_UNAVAILABLE = "PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE"
+FALLBACK_RUN_NOT_AUTHORITATIVE = "FALLBACK_RUN_NOT_AUTHORITATIVE"
+MEMBER_VARIETY_SET_MISMATCH = "TASK9_MEMBER_VARIETY_SET_MISMATCH"
+EXECUTION_STATUS_NOT_COMPLETED = "EXECUTION_STATUS_NOT_COMPLETED"
+DESTINATION_MISMATCH = "DESTINATION_MISMATCH"
+DATE_COVERAGE_MISMATCH = "DATE_COVERAGE_MISMATCH"
+
+
 class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
     """Production baseline composition.
 
@@ -168,60 +253,70 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
             )
 
         # ---- TASK-009 selector (strict scope, no latest) --------------
+        # P0-2 / P0-3 (review 4680340321): the selector returns a
+        # discriminated :class:`AuthoritySelectionResult`; consumers
+        # dispatch on ``.candidates`` / ``.blockers`` and never
+        # collapse distinct failure modes into a single NOT_FOUND
+        # blob.
         task9_run_id_override = _select_authority_run_id(
             advanced_overrides, "TASK9_HARVEST_STATE_RUN"
         )
         requested_variety_codes = tuple(str(v.variety_id) for v in normalized_request.varieties)
-        try:
-            task9_candidates = await _select_harvest_state_run_candidates(
-                session,
-                as_of=normalized_request.effective_as_of_date,
-                run_id_override=task9_run_id_override,
-                destination_factory_id=getattr(resolved_location, "location_reference_id", None),
-                requested_variety_codes=requested_variety_codes,
-                effective_forecast_season=(
-                    int(normalized_request.effective_forecast_season)
-                    if getattr(normalized_request, "effective_forecast_season", None) is not None
-                    else None
-                ),
+        task9_selection = await _select_harvest_state_run_candidates(
+            session,
+            as_of=normalized_request.effective_as_of_date,
+            run_id_override=task9_run_id_override,
+            destination_factory_id=getattr(resolved_location, "location_reference_id", None),
+            requested_variety_codes=requested_variety_codes,
+            effective_forecast_season=(
+                int(normalized_request.effective_forecast_season)
+                if getattr(normalized_request, "effective_forecast_season", None) is not None
+                else None
+            ),
+        )
+        if task9_selection.blockers:
+            blockers.extend(task9_selection.blockers)
+            # The TASK-010 lineage is bound to TASK-009; if the
+            # TASK-009 selection did not produce a candidate, emit a
+            # TASK-010_AUTHORITY_NOT_FOUND to disclose the downstream
+            # gap, while preserving the upstream typed blockers.
+            # Only add it when the TASK-009 failure was
+            # "not found" / "scope mismatch" / "upstream read
+            # failure" (i.e. the lineage is not just contested);
+            # when the upstream returned a conflicting but
+            # "complete" set, the downstream TASK-010 is
+            # intentionally not surfaced (the conflict is the
+            # actionable signal).
+            task9_codes = {b.code for b in task9_selection.blockers}
+            task9_precludes_lineage = bool(
+                task9_codes
+                & {
+                    BlockerCode.TASK9_AUTHORITY_NOT_FOUND,
+                    BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+                    BlockerCode.UPSTREAM_READ_FAILURE,
+                    BlockerCode.AUTHORITY_IDENTITY_MALFORMED,
+                    BlockerCode.AUTHORITY_HASH_MALFORMED,
+                }
             )
-        except UpstreamReadFailure as exc:
-            blockers.append(
-                Blocker(
-                    code=BlockerCode.UPSTREAM_READ_FAILURE,
-                    message=(f"TASK-009 selector raised an upstream read failure: {exc}"),
-                    details={"field": "harvest_state_run_selector"},
-                    retry_hint="WAIT_FOR_DATA",
-                )
-            )
-            return BaselineCompositionResult(rows=[], blockers=blockers)
-        if not task9_candidates:
-            blockers.append(
-                Blocker(
-                    code=BlockerCode.TASK9_AUTHORITY_NOT_FOUND,
-                    message=(
-                        "No TASK-009 harvest-state run found for the resolved authority scope."
-                    ),
-                    details={
-                        "effective_as_of_date": str(normalized_request.effective_as_of_date),
-                        "destination_factory_id": getattr(
-                            resolved_location, "location_reference_id", None
+            if task9_precludes_lineage and not any(
+                b.code == BlockerCode.TASK10_AUTHORITY_NOT_FOUND for b in blockers
+            ):
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.TASK10_AUTHORITY_NOT_FOUND,
+                        message=(
+                            "No TASK-010 residual prediction run available: "
+                            "the TASK-009 lineage required to bind TASK-010 "
+                            "is missing or invalid."
                         ),
-                    },
-                    retry_hint="WAIT_FOR_DATA",
+                        retry_hint="WAIT_FOR_DATA",
+                    )
                 )
-            )
-            # TASK-010 is blocked because the TASK-009 lineage is missing.
-            blockers.append(
-                Blocker(
-                    code=BlockerCode.TASK10_AUTHORITY_NOT_FOUND,
-                    message=(
-                        "No TASK-010 residual prediction run available: the "
-                        "TASK-009 lineage required to bind TASK-010 is missing."
-                    ),
-                    retry_hint="WAIT_FOR_DATA",
-                )
-            )
+            return BaselineCompositionResult(rows=[], blockers=blockers)
+        task9_candidates = list(task9_selection.candidates)
+        if not task9_candidates:
+            # Defensive: should be unreachable (selector invariant
+            # is candidates XOR blockers, never both empty).
             return BaselineCompositionResult(rows=[], blockers=blockers)
 
         if len(task9_candidates) > 1:
@@ -241,41 +336,25 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
         task9_result_hash = str(harvest_state_run["result_hash"])
 
         # ---- TASK-010 selector (lineage-validated) ---------------------
+        # P0-3 (review 4680340321): the selector returns
+        # :class:`AuthoritySelectionResult`; failures are preserved
+        # with their typed discriminator (not collapsed to
+        # TASK10_AUTHORITY_NOT_FOUND).
         task10_run_id_override = _select_authority_run_id(
             advanced_overrides, "TASK10_PREDICTION_RUN"
         )
-        try:
-            task10_candidates = await _select_residual_prediction_run_candidates(
-                session,
-                task9_run_id=task9_run_id,
-                task9_result_hash=task9_result_hash,
-                prediction_run_id_override=task10_run_id_override,
-            )
-        except UpstreamReadFailure as exc:
-            blockers.append(
-                Blocker(
-                    code=BlockerCode.UPSTREAM_READ_FAILURE,
-                    message=(f"TASK-010 selector raised an upstream read failure: {exc}"),
-                    details={"field": "residual_prediction_run_selector"},
-                    retry_hint="WAIT_FOR_DATA",
-                )
-            )
+        task10_selection = await _select_residual_prediction_run_candidates(
+            session,
+            task9_run_id=task9_run_id,
+            task9_result_hash=task9_result_hash,
+            prediction_run_id_override=task10_run_id_override,
+        )
+        if task10_selection.blockers:
+            blockers.extend(task10_selection.blockers)
             return BaselineCompositionResult(rows=[], blockers=blockers)
+        task10_candidates = list(task10_selection.candidates)
         if not task10_candidates:
-            blockers.append(
-                Blocker(
-                    code=BlockerCode.TASK10_AUTHORITY_NOT_FOUND,
-                    message=(
-                        "No TASK-010 residual prediction run found for the "
-                        "selected TASK-009 lineage."
-                    ),
-                    details={
-                        "task9_run_id": task9_run_id,
-                        "task9_result_hash": task9_result_hash,
-                    },
-                    retry_hint="WAIT_FOR_DATA",
-                )
-            )
+            # Defensive: should be unreachable.
             return BaselineCompositionResult(rows=[], blockers=blockers)
 
         if len(task10_candidates) > 1:
@@ -297,40 +376,10 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
         residual = task10_candidates[0]
         task10_prediction_run_id = int(residual["id"])
 
-        # Lineage integrity (defensive): task9_run_id + task9_result_hash
-        # on the residual row must match the selected TASK-009 row.
-        if int(residual["task9_run_id"]) != task9_run_id:
-            blockers.append(
-                Blocker(
-                    code=BlockerCode.AUTHORITY_LINEAGE_MISMATCH,
-                    message=(
-                        "TASK-010 lineage mismatch: residual.task9_run_id "
-                        "differs from selected TASK-009 run id."
-                    ),
-                    details={
-                        "selected_task9_run_id": task9_run_id,
-                        "residual_task9_run_id": int(residual["task9_run_id"]),
-                    },
-                    retry_hint="FIX_INPUT",
-                )
-            )
-            return BaselineCompositionResult(rows=[], blockers=blockers)
-        if str(residual["task9_result_hash"]) != task9_result_hash:
-            blockers.append(
-                Blocker(
-                    code=BlockerCode.AUTHORITY_LINEAGE_MISMATCH,
-                    message=(
-                        "TASK-010 lineage mismatch: residual.task9_result_hash "
-                        "differs from selected TASK-009 result hash."
-                    ),
-                    details={
-                        "selected_task9_result_hash": task9_result_hash,
-                        "residual_task9_result_hash": str(residual["task9_result_hash"]),
-                    },
-                    retry_hint="FIX_INPUT",
-                )
-            )
-            return BaselineCompositionResult(rows=[], blockers=blockers)
+        # P0-3 (review 4680340321): lineage integrity is enforced
+        # inside the selector's shared validator
+        # :func:`_evaluate_task10_row_against_scope`; no duplicate
+        # post-hoc re-check is needed here.
 
         # ---- TASK-008 selector (lineage-validated) ---------------------
         task8_overrides = _select_authority_runs(advanced_overrides, "TASK8_FORECAST_RUN")
@@ -487,70 +536,98 @@ async def _select_harvest_state_run_candidates(
     destination_factory_id: int | None,
     requested_variety_codes: tuple[str, ...] = (),
     effective_forecast_season: int | None = None,
-) -> list[dict[str, Any]]:
+) -> AuthoritySelectionResult:
     """Strict-scope TASK-009 selector.  No implicit latest.
 
-    Returns the full list of candidate rows satisfying the scope; the
-    caller is responsible for raising AUTHORITY_CONFLICT when more than
-    one candidate is returned.
+    Returns a discriminated :class:`AuthoritySelectionResult`:
 
-    P0-3 round 5:
+    * ``candidates`` non-empty → one or more fully-valid TASK-009 rows
+      pass the strict scope; caller disambiguates ``len > 1`` via
+      :data:`BlockerCode.AUTHORITY_CONFLICT`.
+    * ``blockers`` non-empty → zero fully-valid candidates; the
+      blocker tuple is exhaustive (each entry carries a typed reason).
 
-    * When ``run_id_override`` is supplied, the override row is
-      validated against the full strict scope: row exists, status ==
-      'completed', destination matches, as-of visibility, forecast
-      coverage, hash integrity, AND — when ``requested_variety_codes``
-      is non-empty — the persisted member-row variety set covers the
-      request.
-    * When the override fails any of these checks, the selector
-      returns ``[]`` (NOT the row) so the caller emits the typed
-      AUTHORITY_NOT_FOUND / AUTHORITY_IDENTITY_MALFORMED blocker.
+    P0-3 (review 4680340321): the default path now performs the SAME
+    identity / hash / datetime / season-scope validation as the
+    override path.  Override and default share
+    :func:`_evaluate_task9_row_against_scope` so a row that fails any
+    check in one path also fails in the other.
 
-    P0-4 round 7 (review 4680214102):
+    P0-1 (review 4680340321): the season identity check is performed
+    against the REAL persisted identity (a JSON dict the row carries
+    in ``input_snapshot``).  The legacy
+    ``HarvestStateRun.as_of_date.year`` derivation is FORBIDDEN.  When
+    a candidate row has no ``input_snapshot["forecast_season"]`` and
+    the request asked for a season, the row is EXCLUDED with a typed
+    ``AUTHORITY_SCOPE_MISMATCH`` blocker carrying
+    ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE``.
 
-    * ``effective_forecast_season`` (when non-None) MUST match the
-      real persisted identity
-      ``HarvestStateRun.input_snapshot["forecast_season"]`` of the
-      candidate (a JSON dict every row writes).  The legacy
-      ``HarvestStateRun.as_of_date.year`` derivation is FORBIDDEN
-      — it is a date-guess, not a persisted identity.  When the
-      requested season is supplied but no candidate matches it, the
-      selector returns ``[]`` (typed AUTHORITY_NOT_FOUND via the
-      caller).
+    Failure mode taxonomy (P0-2):
+
+    * no base-scope row at all (status / destination / date coverage)
+      → :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND`
+    * candidate row exists but ``result_hash`` / ``config_hash`` is
+      not 64-char lowercase hex → :data:`BlockerCode.AUTHORITY_HASH_MALFORMED`
+    * candidate row exists but required identity field is missing
+      or wrong type → :data:`BlockerCode.AUTHORITY_IDENTITY_MALFORMED`
+    * candidate row exists but no persisted season binding matches
+      the requested season → :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH`
+    * member-variety ORM query raised an unexpected exception →
+      :data:`BlockerCode.UPSTREAM_READ_FAILURE`
+    * multiple fully-valid candidates → caller emits
+      :data:`BlockerCode.AUTHORITY_CONFLICT` (not this function).
     """
 
-    from backend.app.models.harvest_state import (
-        HarvestStateRun,
-    )
+    from backend.app.models.harvest_state import HarvestStateRun
 
+    candidate_dicts: list[dict[str, Any]] = []
+    collected_blockers: list[Blocker] = []
+
+    # ---- Override path: validate the explicit run id -----------------
     if run_id_override is not None:
         try:
             row = await session.get(HarvestStateRun, int(run_id_override))
         except Exception as exc:  # noqa: BLE001
-            raise UpstreamReadFailure(
-                f"TASK-009 override read failed: {type(exc).__name__}: {exc}"
-            ) from exc
+            return AuthoritySelectionResult(
+                blockers=(
+                    Blocker(
+                        code=BlockerCode.UPSTREAM_READ_FAILURE,
+                        message=(f"TASK-009 override read failed: {type(exc).__name__}: {exc}"),
+                        details={
+                            "field": "harvest_state_run_override_read",
+                            "run_id_override": int(run_id_override),
+                        },
+                        retry_hint="WAIT_FOR_DATA",
+                    ),
+                )
+            )
         if row is None:
-            return []
-        # P0-3 #12: validate the override against the full scope.
-        if not await _validate_task9_row_against_scope(
+            return AuthoritySelectionResult(
+                blockers=(
+                    Blocker(
+                        code=BlockerCode.TASK9_AUTHORITY_NOT_FOUND,
+                        message=(
+                            f"TASK-009 override run id {int(run_id_override)} does not exist."
+                        ),
+                        details={"run_id_override": int(run_id_override)},
+                        retry_hint="WAIT_FOR_DATA",
+                    ),
+                )
+            )
+        outcome = await _evaluate_task9_row_against_scope(
             row=row,
             as_of=as_of,
             destination_factory_id=destination_factory_id,
             requested_variety_codes=requested_variety_codes,
             session=session,
             effective_forecast_season=effective_forecast_season,
-        ):
-            return []
-        return [
-            {
-                "id": int(row.id),
-                "result_hash": str(row.result_hash),
-            }
-        ]
+        )
+        if outcome.candidates:
+            return outcome
+        # Override path returns the row's typed failure blockers.
+        return outcome
 
-    # Build the strict-scope filter.  The destination_factory_id MUST
-    # enter the WHERE clause when supplied.
+    # ---- Default path: strict scope + full identity validation -------
     filters = [
         HarvestStateRun.status == "completed",
         HarvestStateRun.as_of_date <= as_of,
@@ -558,51 +635,98 @@ async def _select_harvest_state_run_candidates(
     ]
     if destination_factory_id is not None:
         filters.append(HarvestStateRun.destination_factory_id == int(destination_factory_id))
-    # Round 7 (review 4680214102): season filter is enforced in
-    # Python against the REAL persisted identity
-    # ``input_snapshot["forecast_season"]`` (a JSON dict).  The
-    # ``as_of_date.year`` derivation is intentionally NOT used.
-    # SQL-level season filter is too dialect-sensitive (SQLite
-    # ``json_extract`` returns INT for ``input_snapshot[2026]``
-    # while ``->>`` returns TEXT for the same value); the Python
-    # post-filter is the portable, deterministic surface.
-
     stmt = select(
         HarvestStateRun.id,
+        HarvestStateRun.status,
+        HarvestStateRun.destination_factory_id,
+        HarvestStateRun.as_of_date,
+        HarvestStateRun.forecast_end_date,
         HarvestStateRun.result_hash,
+        HarvestStateRun.config_hash,
         HarvestStateRun.input_snapshot,
     ).where(*filters)
     try:
         rows = (await session.execute(stmt)).all()
     except Exception as exc:  # noqa: BLE001
-        raise UpstreamReadFailure(
-            f"TASK-009 scope read failed: {type(exc).__name__}: {exc}"
-        ) from exc
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.UPSTREAM_READ_FAILURE,
+                    message=(f"TASK-009 base-scope read failed: {type(exc).__name__}: {exc}"),
+                    details={"field": "harvest_state_run_scope"},
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+            )
+        )
 
-    candidates: list[dict[str, Any]] = []
+    if not rows:
+        # No row matches the base scope (status / destination / date).
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.TASK9_AUTHORITY_NOT_FOUND,
+                    message=(
+                        "No TASK-009 harvest-state run found for the "
+                        "resolved base authority scope "
+                        "(status='completed' + destination + as-of visibility)."
+                    ),
+                    details={
+                        "effective_as_of_date": as_of.isoformat(),
+                        "destination_factory_id": (
+                            int(destination_factory_id)
+                            if destination_factory_id is not None
+                            else None
+                        ),
+                    },
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+            )
+        )
+
+    # P0-1 / P0-2: every base-scope row must be evaluated through the
+    # same validator (hashes, identity, season, variety scope).  Rows
+    # that fail validation are EXCLUDED with typed blockers; rows
+    # that pass are appended as candidates.
     for r in rows:
-        # Round 7: season filter in Python against the real
-        # persisted identity (input_snapshot.forecast_season).
-        # The as_of_date.year derivation is forbidden.
-        if effective_forecast_season is not None:
-            persisted_season = _extract_persisted_season_identity(r.input_snapshot)
-            if persisted_season is None or int(persisted_season) != int(effective_forecast_season):
-                continue
-        # P0-3 #11: when variety scope is requested, filter to TASK-9
-        # runs whose member rows cover the requested variety set.
-        if requested_variety_codes:
-            try:
-                covered = await _member_variety_codes_for_run(
-                    session=session, harvest_state_run_id=int(r.id)
-                )
-            except Exception as exc:  # noqa: BLE001
-                raise UpstreamReadFailure(
-                    f"TASK-009 variety-scope read failed: {type(exc).__name__}: {exc}"
-                ) from exc
-            if not set(requested_variety_codes).issubset(covered):
-                continue
-        candidates.append({"id": int(r.id), "result_hash": str(r.result_hash)})
-    return candidates
+        outcome = await _evaluate_task9_row_against_scope(
+            row=r,
+            as_of=as_of,
+            destination_factory_id=destination_factory_id,
+            requested_variety_codes=requested_variety_codes,
+            session=session,
+            effective_forecast_season=effective_forecast_season,
+        )
+        if outcome.candidates:
+            candidate_dicts.extend(outcome.candidates)
+        elif outcome.blockers:
+            # Collect typed-failure blockers (e.g. season-scope,
+            # hash-malformed, identity-malformed, upstream-read
+            # failure).  We do NOT collapse them to a single
+            # TASK9_AUTHORITY_NOT_FOUND; each one is preserved with
+            # its discriminator.
+            collected_blockers.extend(outcome.blockers)
+
+    if candidate_dicts:
+        return AuthoritySelectionResult(candidates=tuple(candidate_dicts))
+    if collected_blockers:
+        return AuthoritySelectionResult(blockers=tuple(collected_blockers))
+    # Defensive: rows existed but every one was excluded for a reason
+    # not yet wired (should be unreachable).  Return a typed
+    # AUTHORITY_SCOPE_MISMATCH so the failure is never silent.
+    return AuthoritySelectionResult(
+        blockers=(
+            Blocker(
+                code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+                message=(
+                    "TASK-009 base-scope rows existed but all were "
+                    "excluded by scope/identity checks; see aggregated "
+                    "blockers for details."
+                ),
+                details={"effective_as_of_date": as_of.isoformat()},
+                retry_hint="FIX_INPUT",
+            ),
+        )
+    )
 
 
 class UpstreamReadFailure(RuntimeError):
@@ -613,7 +737,7 @@ class UpstreamReadFailure(RuntimeError):
     """
 
 
-async def _validate_task9_row_against_scope(
+async def _evaluate_task9_row_against_scope(
     *,
     row: Any,
     as_of: date,
@@ -621,70 +745,240 @@ async def _validate_task9_row_against_scope(
     requested_variety_codes: tuple[str, ...],
     session: AsyncSession,
     effective_forecast_season: int | None = None,
-) -> bool:
-    """P0-3 #12 + P0-4 round 6: validate a TASK-009 override row against
-    the strict scope.
+) -> AuthoritySelectionResult:
+    """Validate a TASK-009 candidate row against the strict scope.
 
-    Returns True iff all of the following hold:
+    Returns a discriminated :class:`AuthoritySelectionResult`.  On
+    success the row appears as a single-element ``candidates`` tuple.
+    On failure the result carries ONE typed blocker describing the
+    root cause (hash-malformed, identity-malformed, season-scope,
+    date-coverage, destination, upstream-read-failure).  Multiple
+    blockers are NOT combined — the FIRST failure is reported so the
+    caller can disambiguate deterministically.
 
-    * ``row.status == 'completed'``
-    * ``row.destination_factory_id == destination_factory_id`` when supplied
-    * ``row.as_of_date <= as_of <= row.forecast_end_date``
-    * ``row.result_hash`` is a 64-char lowercase hex string
-    * ``row.config_hash`` is a 64-char lowercase hex string
-    * when ``effective_forecast_season`` is supplied,
-      ``row.input_snapshot["forecast_season"]`` (the real persisted
-      identity) MUST equal the requested season.  The legacy
-      ``row.as_of_date.year`` derivation is FORBIDDEN.
-    * when ``requested_variety_codes`` is non-empty, the
-      persisted member-row variety set covers the request (this
-      checks the member-row coverage of THIS specific row, not
-      the default-scope coverage).
+    P0-1 / P0-2 (review 4680340321): the season identity check is
+    performed against the REAL persisted identity — a JSON dict the
+    row carries in ``input_snapshot``.  The legacy
+    ``HarvestStateRun.as_of_date.year`` derivation is FORBIDDEN.  When
+    a candidate row has no ``input_snapshot["forecast_season"]`` and
+    the request asked for a season, this function returns an
+    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` blocker carrying
+    ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE`` — NOT
+    a silent NOT_FOUND collapse.
     """
 
-    from backend.app.agent.adapters.task_loaders import (
-        _SHA256_HEX_RE,
-    )
+    from backend.app.agent.adapters.task_loaders import _SHA256_HEX_RE
 
-    if str(getattr(row, "status", "")) != "completed":
-        return False
-    if destination_factory_id is not None and int(
-        getattr(row, "destination_factory_id", -1) or -1
-    ) != int(destination_factory_id):
-        return False
+    row_id = int(getattr(row, "id", 0) or 0)
+
+    def _hash_malformed(field: str, value: Any) -> Blocker:
+        return Blocker(
+            code=BlockerCode.AUTHORITY_HASH_MALFORMED,
+            message=(
+                f"TASK-009 candidate row {row_id} has malformed "
+                f"{field}: not a 64-char lowercase hex string"
+            ),
+            details={
+                "field": field,
+                "row_id": row_id,
+                "value_kind": type(value).__name__,
+            },
+            retry_hint="WAIT_FOR_DATA",
+        )
+
+    def _identity_malformed(field: str, reason: str) -> Blocker:
+        return Blocker(
+            code=BlockerCode.AUTHORITY_IDENTITY_MALFORMED,
+            message=(
+                f"TASK-009 candidate row {row_id} is missing or has "
+                f"a wrong-type identity field {field!r}: {reason}"
+            ),
+            details={"field": field, "row_id": row_id, "reason": reason},
+            retry_hint="WAIT_FOR_DATA",
+        )
+
+    def _scope_mismatch(reason: str, extra: dict[str, Any] | None = None) -> Blocker:
+        details: dict[str, Any] = {
+            "authority": "TASK9_HARVEST_STATE_RUN",
+            "row_id": row_id,
+            "requested_effective_forecast_season": (
+                int(effective_forecast_season) if effective_forecast_season is not None else None
+            ),
+            "persisted_season_identity": None,
+            "reason": reason,
+        }
+        if extra:
+            details.update(extra)
+        return Blocker(
+            code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+            message=(f"TASK-009 candidate row {row_id} fails scope check: {reason}"),
+            details=details,
+            retry_hint="FIX_INPUT",
+        )
+
+    # --- status ---
+    status_value = getattr(row, "status", None)
+    if not isinstance(status_value, str) or status_value != "completed":
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.AUTHORITY_IDENTITY_MALFORMED,
+                    message=(
+                        f"TASK-009 candidate row {row_id} has "
+                        f"status={status_value!r}, expected 'completed'"
+                    ),
+                    details={
+                        "field": "status",
+                        "row_id": row_id,
+                        "value": status_value,
+                    },
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+            )
+        )
+
+    # --- destination_factory_id ---
+    if destination_factory_id is not None:
+        row_dest = getattr(row, "destination_factory_id", None)
+        if row_dest is None or int(row_dest) != int(destination_factory_id):
+            return AuthoritySelectionResult(
+                blockers=(
+                    _scope_mismatch(
+                        DESTINATION_MISMATCH,
+                        extra={
+                            "row_destination_factory_id": (
+                                int(row_dest) if row_dest is not None else None
+                            ),
+                            "requested_destination_factory_id": int(destination_factory_id),
+                        },
+                    ),
+                )
+            )
+
+    # --- date coverage ---
     row_as_of = getattr(row, "as_of_date", None)
     row_end = getattr(row, "forecast_end_date", None)
-    if row_as_of is None or row_end is None:
-        return False
+    if not isinstance(row_as_of, date) or not isinstance(row_end, date):
+        return AuthoritySelectionResult(
+            blockers=(
+                _identity_malformed(
+                    "as_of_date" if not isinstance(row_as_of, date) else "forecast_end_date",
+                    "expected datetime.date",
+                ),
+            )
+        )
     if not (row_as_of <= as_of <= row_end):
-        return False
-    result_hash = str(getattr(row, "result_hash", "") or "")
-    config_hash = str(getattr(row, "config_hash", "") or "")
-    if not _SHA256_HEX_RE.match(result_hash):
-        return False
-    if not _SHA256_HEX_RE.match(config_hash):
-        return False
-    # Round 7 (review 4680214102): season validation against the
-    # REAL persisted identity ``input_snapshot["forecast_season"]``
-    # (a JSON dict, every row carries it).  The legacy
-    # ``as_of_date.year`` derivation is intentionally NOT used —
-    # it would silently treat a date as a season identity.
+        return AuthoritySelectionResult(
+            blockers=(
+                _scope_mismatch(
+                    DATE_COVERAGE_MISMATCH,
+                    extra={
+                        "row_as_of_date": row_as_of.isoformat(),
+                        "row_forecast_end_date": row_end.isoformat(),
+                        "requested_as_of_date": as_of.isoformat(),
+                    },
+                ),
+            )
+        )
+
+    # --- result_hash / config_hash ---
+    result_hash = getattr(row, "result_hash", None)
+    if not isinstance(result_hash, str) or not _SHA256_HEX_RE.match(result_hash):
+        return AuthoritySelectionResult(blockers=(_hash_malformed("result_hash", result_hash),))
+    config_hash = getattr(row, "config_hash", None)
+    if not isinstance(config_hash, str) or not _SHA256_HEX_RE.match(config_hash):
+        return AuthoritySelectionResult(blockers=(_hash_malformed("config_hash", config_hash),))
+
+    # --- season identity (P0-1 review 4680340321) ---
+    # The TASK-009 production persistence path
+    # (``_sorted_request_snapshot``) does NOT write
+    # ``forecast_season`` into ``input_snapshot``.  When the request
+    # asks for a season but the candidate row's ``input_snapshot``
+    # has no ``forecast_season`` key, this row is EXCLUDED with a
+    # typed AUTHORITY_SCOPE_MISMATCH blocker.  The legacy
+    # ``row.as_of_date.year`` derivation is FORBIDDEN — it would
+    # silently treat a date as a season identity.
     if effective_forecast_season is not None:
         persisted_season = _extract_persisted_season_identity(getattr(row, "input_snapshot", None))
-        if persisted_season is None or int(persisted_season) != int(effective_forecast_season):
-            return False
-    # P0-4 round 6: variety coverage — the persisted member-row
-    # variety set of THIS row must cover the requested codes.
+        if persisted_season is None:
+            return AuthoritySelectionResult(
+                blockers=(
+                    _scope_mismatch(
+                        SEASON_BINDING_UNAVAILABLE,
+                        extra={
+                            "requested_effective_forecast_season": int(effective_forecast_season),
+                            "persisted_season_identity": None,
+                        },
+                    ),
+                )
+            )
+        if int(persisted_season) != int(effective_forecast_season):
+            return AuthoritySelectionResult(
+                blockers=(
+                    _scope_mismatch(
+                        SEASON_BINDING_UNAVAILABLE,
+                        extra={
+                            "requested_effective_forecast_season": int(effective_forecast_season),
+                            "persisted_season_identity": int(persisted_season),
+                        },
+                    ),
+                )
+            )
+
+    # --- variety coverage ---
     if requested_variety_codes:
         try:
             covered = await _member_variety_codes_for_run(
-                session=session, harvest_state_run_id=int(getattr(row, "id", 0) or 0)
+                session=session, harvest_state_run_id=row_id
             )
-        except Exception:
-            return False
+        except Exception as exc:  # noqa: BLE001
+            return AuthoritySelectionResult(
+                blockers=(
+                    Blocker(
+                        code=BlockerCode.UPSTREAM_READ_FAILURE,
+                        message=(
+                            f"TASK-009 member-variety ORM query raised "
+                            f"for row {row_id}: "
+                            f"{type(exc).__name__}: {exc}"
+                        ),
+                        details={
+                            "field": "member_variety_scope",
+                            "row_id": row_id,
+                        },
+                        retry_hint="WAIT_FOR_DATA",
+                    ),
+                )
+            )
         if not set(requested_variety_codes).issubset(covered):
-            return False
-    return True
+            return AuthoritySelectionResult(
+                blockers=(
+                    Blocker(
+                        code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+                        message=(
+                            f"TASK-009 candidate row {row_id} member-row "
+                            f"variety set does not cover the requested "
+                            f"variety set."
+                        ),
+                        details={
+                            "field": "member_variety_scope",
+                            "row_id": row_id,
+                            "requested_variety_codes": list(requested_variety_codes),
+                            "persisted_variety_codes": sorted(covered),
+                            "reason": MEMBER_VARIETY_SET_MISMATCH,
+                        },
+                        retry_hint="FIX_INPUT",
+                    ),
+                )
+            )
+
+    return AuthoritySelectionResult(
+        candidates=(
+            {
+                "id": row_id,
+                "result_hash": str(result_hash),
+            },
+        )
+    )
 
 
 async def _member_variety_codes_for_run(
@@ -722,116 +1016,364 @@ async def _select_residual_prediction_run_candidates(
     task9_run_id: int,
     task9_result_hash: str,
     prediction_run_id_override: int | None,
-) -> list[dict[str, Any]]:
+) -> AuthoritySelectionResult:
     """Strict-scope TASK-010 selector.  No implicit latest.
 
     Bind to TASK-009 by ``task9_run_id`` AND ``task9_result_hash``.
 
-    P0-3 round 5:
+    P0-3 (review 4680340321):
 
-    * When ``prediction_run_id_override`` is supplied, the override
-      row is validated: row exists, ``execution_status == 'completed'``,
-      ``task9_run_id`` matches the selected TASK-9, ``task9_result_hash``
-      matches the selected TASK-9 result hash, and all required
-      hash / datetime fields are present.  Failure returns ``[]``
-      (NOT the row).
+    * The default path now performs the SAME full identity / hash /
+      execution-status / fallback / lineage validation as the
+      override path.  Both paths share
+      :func:`_evaluate_task10_row_against_scope` so a row that fails
+      any check in one path also fails in the other.
+    * When a candidate row is excluded, the typed-failure
+      ``Blocker`` is returned (with ``reason=`` discriminator) — NOT
+      a silent ``TASK10_AUTHORITY_NOT_FOUND`` collapse.
 
-    P0-5 round 6: the override validator now checks the full identity
-    surface carried by :class:`ResidualModelPredictionRun`:
+    Failure mode taxonomy (P0-3):
 
-    * ``prediction_hash`` is 64-char lowercase hex
-    * ``config_hash`` is 64-char lowercase hex
-    * ``prediction_input_signature`` is 64-char lowercase hex
-    * ``canonical_payload_hash`` is 64-char lowercase hex
-    * ``feature_schema_hash`` is 64-char lowercase hex
-    * ``artifact_hashes`` (if present) are all 64-char lowercase hex
-    * no fabricated fallback (a row whose ``fallback_reason`` is
-      set is treated as not-completed-equivalent — explicit
-      fallback_reason triggers AUTHORITY_NOT_FOUND via the caller)
-    * execution_status is exactly 'completed' (not 'failed',
-      not 'running', not 'unavailable')
-
-    Any of the above checks failing returns ``[]`` so the caller
-    surfaces the typed blocker (NOT FOUND, HASH MALFORMED, IDENTITY
-    MALFORMED, LINEAGE MISMATCH, UPSTREAM READ FAILURE).
+    * no base-scope row at all → :data:`BlockerCode.TASK10_AUTHORITY_NOT_FOUND`
+    * row exists but ``execution_status != 'completed'`` →
+      :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH`
+      ``reason=EXECUTION_STATUS_NOT_COMPLETED``
+    * row's ``task9_run_id`` or ``task9_result_hash`` does not bind
+      to the selected TASK-009 lineage →
+      :data:`BlockerCode.AUTHORITY_LINEAGE_MISMATCH`
+    * any of ``prediction_hash`` / ``config_hash`` /
+      ``prediction_input_signature`` / ``canonical_payload_hash`` /
+      ``feature_schema_hash`` / ``artifact_hashes`` is malformed →
+      :data:`BlockerCode.AUTHORITY_HASH_MALFORMED`
+    * required identity column missing or wrong type →
+      :data:`BlockerCode.AUTHORITY_IDENTITY_MALFORMED`
+    * ``fallback_reason`` is set →
+      :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH`
+      ``reason=FALLBACK_RUN_NOT_AUTHORITATIVE`
+    * ORM query raised an unexpected exception →
+      :data:`BlockerCode.UPSTREAM_READ_FAILURE`
+    * multiple fully-valid candidates → caller emits
+      :data:`BlockerCode.AUTHORITY_CONFLICT` (not this function).
     """
 
-    from backend.app.agent.adapters.task_loaders import _SHA256_HEX_RE
     from backend.app.models.residual_model import ResidualModelPredictionRun
 
-    def _strict_hex(value: Any, field: str) -> str | None:
-        s = str(value or "")
-        if not s or not _SHA256_HEX_RE.match(s):
-            return None
-        return s
-
+    # ---- Override path: validate the explicit run id -----------------
     if prediction_run_id_override is not None:
         try:
             row = await session.get(ResidualModelPredictionRun, int(prediction_run_id_override))
         except Exception as exc:  # noqa: BLE001
-            raise UpstreamReadFailure(
-                f"TASK-010 override read failed: {type(exc).__name__}: {exc}"
-            ) from exc
+            return AuthoritySelectionResult(
+                blockers=(
+                    Blocker(
+                        code=BlockerCode.UPSTREAM_READ_FAILURE,
+                        message=(f"TASK-010 override read failed: {type(exc).__name__}: {exc}"),
+                        details={
+                            "field": "residual_prediction_run_override_read",
+                            "prediction_run_id_override": int(prediction_run_id_override),
+                        },
+                        retry_hint="WAIT_FOR_DATA",
+                    ),
+                )
+            )
         if row is None:
-            return []
-        if str(getattr(row, "execution_status", "")) != "completed":
-            return []
-        if int(getattr(row, "task9_run_id", -1) or -1) != int(task9_run_id):
-            return []
-        if str(getattr(row, "task9_result_hash", "")) != str(task9_result_hash):
-            return []
-        # P0-5 round 6: full identity check.
-        if _strict_hex(getattr(row, "prediction_hash", None), "prediction_hash") is None:
-            return []
-        if _strict_hex(getattr(row, "config_hash", None), "config_hash") is None:
-            return []
-        input_sig = getattr(row, "prediction_input_signature", None)
-        if _strict_hex(input_sig, "prediction_input_signature") is None:
-            return []
-        cp_hash = getattr(row, "canonical_payload_hash", None)
-        if _strict_hex(cp_hash, "canonical_payload_hash") is None:
-            return []
-        fs_hash = getattr(row, "feature_schema_hash", None)
-        if _strict_hex(fs_hash, "feature_schema_hash") is None:
-            return []
-        artifact_hashes = list(getattr(row, "artifact_hashes", []) or [])
-        for h in artifact_hashes:
-            if _strict_hex(h, "artifact_hashes[]") is None:
-                return []
-        # P0-5: explicit fallback_reason disqualifies the run.
-        if getattr(row, "fallback_reason", None) is not None:
-            return []
-        return [
-            {
-                "id": int(row.id),
-                "task9_run_id": int(row.task9_run_id),
-                "task9_result_hash": str(row.task9_result_hash),
-            }
-        ]
+            return AuthoritySelectionResult(
+                blockers=(
+                    Blocker(
+                        code=BlockerCode.TASK10_AUTHORITY_NOT_FOUND,
+                        message=(
+                            f"TASK-010 override run id "
+                            f"{int(prediction_run_id_override)} does "
+                            f"not exist."
+                        ),
+                        details={"prediction_run_id_override": int(prediction_run_id_override)},
+                        retry_hint="WAIT_FOR_DATA",
+                    ),
+                )
+            )
+        return await _evaluate_task10_row_against_scope(
+            row=row,
+            task9_run_id=task9_run_id,
+            task9_result_hash=task9_result_hash,
+        )
 
+    # ---- Default path: load the FULL identity surface and validate --
+    # The default path MUST read the same columns the override path
+    # validates — prediction_hash, config_hash, prediction_input_signature,
+    # canonical_payload_hash, feature_schema_hash, artifact_hashes,
+    # fallback_reason, execution_status, task9_run_id, task9_result_hash.
     stmt = select(
         ResidualModelPredictionRun.id,
+        ResidualModelPredictionRun.execution_status,
         ResidualModelPredictionRun.task9_run_id,
         ResidualModelPredictionRun.task9_result_hash,
+        ResidualModelPredictionRun.prediction_hash,
+        ResidualModelPredictionRun.config_hash,
+        ResidualModelPredictionRun.prediction_input_signature,
+        ResidualModelPredictionRun.canonical_payload_hash,
+        ResidualModelPredictionRun.feature_schema_hash,
+        ResidualModelPredictionRun.artifact_hashes,
+        ResidualModelPredictionRun.fallback_reason,
     ).where(
         ResidualModelPredictionRun.task9_run_id == int(task9_run_id),
-        ResidualModelPredictionRun.task9_result_hash == task9_result_hash,
-        ResidualModelPredictionRun.execution_status == "completed",
+        ResidualModelPredictionRun.task9_result_hash == str(task9_result_hash),
     )
     try:
         rows = (await session.execute(stmt)).all()
     except Exception as exc:  # noqa: BLE001
-        raise UpstreamReadFailure(
-            f"TASK-010 scope read failed: {type(exc).__name__}: {exc}"
-        ) from exc
-    return [
-        {
-            "id": int(r.id),
-            "task9_run_id": int(r.task9_run_id),
-            "task9_result_hash": str(r.task9_result_hash),
-        }
-        for r in rows
-    ]
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.UPSTREAM_READ_FAILURE,
+                    message=(f"TASK-010 base-scope read failed: {type(exc).__name__}: {exc}"),
+                    details={"field": "residual_prediction_run_scope"},
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+            )
+        )
+
+    if not rows:
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.TASK10_AUTHORITY_NOT_FOUND,
+                    message=(
+                        "No TASK-010 residual prediction run found for "
+                        "the selected TASK-009 lineage."
+                    ),
+                    details={
+                        "task9_run_id": int(task9_run_id),
+                        "task9_result_hash": str(task9_result_hash),
+                    },
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+            )
+        )
+
+    candidate_dicts: list[dict[str, Any]] = []
+    collected_blockers: list[Blocker] = []
+    for r in rows:
+        outcome = await _evaluate_task10_row_against_scope(
+            row=r,
+            task9_run_id=task9_run_id,
+            task9_result_hash=task9_result_hash,
+        )
+        if outcome.candidates:
+            candidate_dicts.extend(outcome.candidates)
+        elif outcome.blockers:
+            collected_blockers.extend(outcome.blockers)
+    if candidate_dicts:
+        return AuthoritySelectionResult(candidates=tuple(candidate_dicts))
+    if collected_blockers:
+        return AuthoritySelectionResult(blockers=tuple(collected_blockers))
+    return AuthoritySelectionResult(
+        blockers=(
+            Blocker(
+                code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+                message=(
+                    "TASK-010 base-scope rows existed but all were "
+                    "excluded by scope/identity checks; see aggregated "
+                    "blockers for details."
+                ),
+                details={
+                    "task9_run_id": int(task9_run_id),
+                    "task9_result_hash": str(task9_result_hash),
+                },
+                retry_hint="FIX_INPUT",
+            ),
+        )
+    )
+
+
+async def _evaluate_task10_row_against_scope(
+    *,
+    row: Any,
+    task9_run_id: int,
+    task9_result_hash: str,
+) -> AuthoritySelectionResult:
+    """Validate a TASK-010 candidate row against the strict scope.
+
+    Returns a discriminated :class:`AuthoritySelectionResult`.  On
+    success the row appears as a single-element ``candidates`` tuple.
+    On failure the result carries ONE typed blocker describing the
+    root cause.  Multiple blockers are NOT combined.
+
+    P0-3 (review 4680340321): the default and override paths share
+    this function so a row that fails any check in one path also
+    fails in the other.
+    """
+
+    from backend.app.agent.adapters.task_loaders import _SHA256_HEX_RE
+
+    row_id = int(getattr(row, "id", 0) or 0)
+
+    def _hash_malformed(field: str, value: Any) -> Blocker:
+        return Blocker(
+            code=BlockerCode.AUTHORITY_HASH_MALFORMED,
+            message=(
+                f"TASK-010 candidate row {row_id} has malformed "
+                f"{field}: not a 64-char lowercase hex string"
+            ),
+            details={
+                "field": field,
+                "row_id": row_id,
+                "value_kind": type(value).__name__,
+            },
+            retry_hint="WAIT_FOR_DATA",
+        )
+
+    def _identity_malformed(field: str, reason: str) -> Blocker:
+        return Blocker(
+            code=BlockerCode.AUTHORITY_IDENTITY_MALFORMED,
+            message=(
+                f"TASK-010 candidate row {row_id} is missing or has "
+                f"a wrong-type identity field {field!r}: {reason}"
+            ),
+            details={"field": field, "row_id": row_id, "reason": reason},
+            retry_hint="WAIT_FOR_DATA",
+        )
+
+    # --- execution_status ---
+    execution_status = getattr(row, "execution_status", None)
+    if not isinstance(execution_status, str) or execution_status != "completed":
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+                    message=(
+                        f"TASK-010 candidate row {row_id} has "
+                        f"execution_status={execution_status!r}, "
+                        f"expected 'completed'"
+                    ),
+                    details={
+                        "field": "execution_status",
+                        "row_id": row_id,
+                        "value": execution_status,
+                        "reason": EXECUTION_STATUS_NOT_COMPLETED,
+                    },
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+            )
+        )
+
+    # --- lineage: task9_run_id / task9_result_hash ---
+    row_task9_run_id = getattr(row, "task9_run_id", None)
+    if row_task9_run_id is None or int(row_task9_run_id) != int(task9_run_id):
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.AUTHORITY_LINEAGE_MISMATCH,
+                    message=(
+                        f"TASK-010 candidate row {row_id} task9_run_id "
+                        f"does not bind to the selected TASK-009 run."
+                    ),
+                    details={
+                        "field": "task9_run_id",
+                        "row_id": row_id,
+                        "row_task9_run_id": (
+                            int(row_task9_run_id) if row_task9_run_id is not None else None
+                        ),
+                        "selected_task9_run_id": int(task9_run_id),
+                    },
+                    retry_hint="FIX_INPUT",
+                ),
+            )
+        )
+    row_task9_result_hash = getattr(row, "task9_result_hash", None)
+    if not isinstance(row_task9_result_hash, str) or row_task9_result_hash != str(
+        task9_result_hash
+    ):
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.AUTHORITY_LINEAGE_MISMATCH,
+                    message=(
+                        f"TASK-010 candidate row {row_id} "
+                        f"task9_result_hash does not bind to the "
+                        f"selected TASK-009 result hash."
+                    ),
+                    details={
+                        "field": "task9_result_hash",
+                        "row_id": row_id,
+                        "row_task9_result_hash": row_task9_result_hash,
+                        "selected_task9_result_hash": str(task9_result_hash),
+                    },
+                    retry_hint="FIX_INPUT",
+                ),
+            )
+        )
+
+    # --- full identity: prediction_hash, config_hash, etc. ---
+    def _strict_hex(value: Any, field: str) -> str | None:
+        if not isinstance(value, str) or not _SHA256_HEX_RE.match(value):
+            return None
+        return value
+
+    for field_name in (
+        "prediction_hash",
+        "config_hash",
+        "prediction_input_signature",
+        "canonical_payload_hash",
+        "feature_schema_hash",
+    ):
+        v = getattr(row, field_name, None)
+        if _strict_hex(v, field_name) is None:
+            return AuthoritySelectionResult(blockers=(_hash_malformed(field_name, v),))
+
+    artifact_hashes = getattr(row, "artifact_hashes", None)
+    if artifact_hashes is None:
+        return AuthoritySelectionResult(
+            blockers=(
+                _identity_malformed(
+                    "artifact_hashes",
+                    "expected a list of 64-char lowercase hex strings",
+                ),
+            )
+        )
+    if not isinstance(artifact_hashes, (list, tuple)):
+        return AuthoritySelectionResult(
+            blockers=(
+                _identity_malformed(
+                    "artifact_hashes",
+                    f"expected list/tuple, got {type(artifact_hashes).__name__}",
+                ),
+            )
+        )
+    for h in artifact_hashes:
+        if not isinstance(h, str) or not _SHA256_HEX_RE.match(h):
+            return AuthoritySelectionResult(blockers=(_hash_malformed("artifact_hashes[]", h),))
+
+    # --- fallback_reason disqualifies the run ---
+    fallback_reason = getattr(row, "fallback_reason", None)
+    if fallback_reason is not None:
+        return AuthoritySelectionResult(
+            blockers=(
+                Blocker(
+                    code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+                    message=(
+                        f"TASK-010 candidate row {row_id} carries a "
+                        f"fallback_reason; not authoritative."
+                    ),
+                    details={
+                        "field": "fallback_reason",
+                        "row_id": row_id,
+                        "value": str(fallback_reason),
+                        "reason": FALLBACK_RUN_NOT_AUTHORITATIVE,
+                    },
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+            )
+        )
+
+    return AuthoritySelectionResult(
+        candidates=(
+            {
+                "id": row_id,
+                "task9_run_id": int(task9_run_id),
+                "task9_result_hash": str(task9_result_hash),
+            },
+        )
+    )
 
 
 async def _select_maturity_forecast_run_id(
@@ -1092,58 +1634,42 @@ def _per_variety_contribution_from_member_rows(
     input uses STRING variety codes (e.g. "Dx"), while the member row
     stores an INT PK — ``variety_pk_by_code`` provides the mapping.
 
-    P0-4 round 5:
+    P0-4 / P0-5 (review 4680340321) — three strict phases:
 
-    * Missing member row for any (date, quantile, variety) → typed
-      TASK9_PER_VARIETY_GRAIN_MISSING blocker carrying the exact
-      (date, quantile, variety_id) keys.  The day's
-      ``per_variety_contribution`` is EMPTY (no partial
-      contribution, no equal-split fallback, no 0/1 placeholders).
-    * Sum-of-member-volume reconciliation against the pool total per
-      quantile: when ``pool_total > 0`` the sum of member volumes
-      for that quantile MUST equal the pool total; when
-      ``pool_total == 0`` all member volumes MUST be 0.  Failure
-      returns a typed integrity blocker.
-    * Sum-of-contribution-rate = 1 within the frozen tolerance per
-      quantile (when pool total > 0).
-    * Duplicate member rows for the same (date, quantile, variety)
-      are aggregated (not overwritten).
+    **Phase 1: matrix prevalidation.**  For every requested variety ×
+    P50/P80/P90 × target date, verify a real member row exists BEFORE
+    any :class:`VarietyContribution` is created.  A later variety
+    missing P90 MUST NOT silently drop the earlier variety's
+    contribution (the round-7 "late missing grain" defect).  The
+    matrix MUST be complete before phase 2 starts.
+
+    **Phase 2: denominator scope.**  The persisted member-variety
+    set for the selected TASK-009 run MUST equal the requested
+    variety set (exact).  An extra persisted variety with non-zero
+    volume is a scope mismatch
+    (reason=TASK9_MEMBER_VARIETY_SET_MISMATCH) — no
+    mixed-semantic denominator / requested-only output truncation.
+
+    **Phase 3: compute + reconcile.**  Build contributions, validate
+    per-quantile:
+
+    * sum(member_v) over requested varieties == pool arrival total
+    * pool_total > 0 → sum(emitted rates) == 1
+    * pool_total == 0 → all member volumes == 0
+
+    Any reconciliation failure returns ``[]`` + typed blockers
+    (never partial contribution).  All grain / reconciliation
+    blockers carry ``task9_run_id`` + ``date`` + ``quantile`` +
+    ``variety_id`` (where applicable).
     """
 
     if not varieties:
         return [], []
 
-    contributions: list[VarietyContribution] = []
-    blockers: list[Blocker] = []
+    task9_run_id_value: int | None = int(task9_run_id) if task9_run_id is not None else None
 
-    any_member = any(md == d for (md, _, _) in variety_member_rows)
-    if not any_member:
-        # Round 7 (review 4680214102): the no-member blocker MUST
-        # carry the real task9_run_id (not just date).  The caller
-        # passes the real task9_run_id explicitly; we MUST include
-        # it in the blocker details for traceability and to satisfy
-        # the contract that every grain-blocker carries the full
-        # task9_run_id + date + quantile + variety_id identity.
-        blockers.append(
-            Blocker(
-                code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
-                message=(
-                    f"No HarvestStateDailyMemberRowModel rows available for date "
-                    f"{d.isoformat()}; per-variety grain is missing."
-                ),
-                details={
-                    "date": d.isoformat(),
-                    "task9_run_id": int(task9_run_id) if task9_run_id is not None else None,
-                },
-                retry_hint="WAIT_FOR_DATA",
-            )
-        )
-        return [], blockers
-
-    # Build a per-(date, quantile) "member view" aggregated across all
-    # rows: the keys we walk are (date, quantile) -> {variety_pk -> total
-    # arrival_quantity_kg}.  This automatically aggregates duplicate
-    # member rows.
+    # ----- Phase 1: matrix prevalidation -------------------------------
+    # Build a per-(date, quantile) view of the persisted member rows.
     member_by_q: dict[str, dict[int, Decimal]] = {"P50": {}, "P80": {}, "P90": {}}
     for (md, q, member_variety_pk), arrival_kg in variety_member_rows.items():
         if md != d:
@@ -1153,146 +1679,263 @@ def _per_variety_contribution_from_member_rows(
         member_by_q[q].setdefault(int(member_variety_pk), Decimal("0"))
         member_by_q[q][int(member_variety_pk)] += Decimal(arrival_kg)
 
+    # Resolve string variety code -> int PK.  Emit a typed
+    # UNKNOWN_VARIETY blocker (with task9_run_id) and surface the
+    # whole-day fail-closed verdict (no partial contribution).
+    requested_variety_pks: list[int] = []
+    requested_variety_codes: list[str] = []
+    unknown_blockers: list[Blocker] = []
     for v in varieties:
         vid_code = str(v.variety_id)
-        vid_pk: int | None = variety_pk_by_code.get(vid_code)
+        vid_pk = variety_pk_by_code.get(vid_code)
         if vid_pk is None:
-            # Variety code not in catalog; emit a blocker for this (date,
-            # variety) pair.
-            blockers.append(
+            unknown_blockers.append(
                 Blocker(
                     code=BlockerCode.UNKNOWN_VARIETY,
                     message=(
                         f"variety code {vid_code!r} not present in Variety "
                         f"catalog; per-variety grain is unavailable."
                     ),
-                    details={"variety_id": vid_code, "date": d.isoformat()},
+                    details={
+                        "variety_id": vid_code,
+                        "date": d.isoformat(),
+                        "task9_run_id": task9_run_id_value,
+                    },
                     retry_hint="FIX_INPUT",
                 )
             )
             continue
+        requested_variety_pks.append(int(vid_pk))
+        requested_variety_codes.append(vid_code)
+    if unknown_blockers:
+        # Whole-day fail-closed: any unknown variety excludes ALL
+        # contributions for this date.
+        return [], unknown_blockers
 
-        per_variety_missing: list[str] = []
-        per_quantile_volume: dict[str, Decimal] = {}
-        per_quantile_rate: dict[str, Decimal] = {}
-        per_quantile_total: dict[str, Decimal] = {}
+    # Persisted member-variety set for THIS date.
+    persisted_pks_for_date: set[int] = set()
+    for q in ("P50", "P80", "P90"):
+        persisted_pks_for_date.update(member_by_q[q].keys())
 
+    requested_pks_set: set[int] = set(requested_variety_pks)
+
+    # Phase 1 check 1: NO member rows at all for this date — emit
+    # one blocker carrying the real task9_run_id + date.
+    if not persisted_pks_for_date:
+        return [], [
+            Blocker(
+                code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
+                message=(
+                    f"No HarvestStateDailyMemberRowModel rows available "
+                    f"for date {d.isoformat()}; per-variety grain is missing."
+                ),
+                details={
+                    "date": d.isoformat(),
+                    "task9_run_id": task9_run_id_value,
+                },
+                retry_hint="WAIT_FOR_DATA",
+            )
+        ]
+
+    # Phase 1 check 2: every requested variety × P50/P80/P90 must have
+    # a real member row BEFORE any contribution is created.
+    phase1_blockers: list[Blocker] = []
+    for vid_code, vid_pk in zip(requested_variety_codes, requested_variety_pks, strict=True):
         for q in ("P50", "P80", "P90"):
-            pool_total = _d(pool_arrival.get(f"{q}_arrival", Decimal("0")))
-            member_v = member_by_q[q].get(int(vid_pk))
-            if member_v is None:
-                per_variety_missing.append(q)
-                per_quantile_volume[q] = Decimal("0")
-                per_quantile_rate[q] = Decimal("0")
-                per_quantile_total[q] = pool_total
-                continue
-            volume = _d(member_v)
-            if pool_total > 0:
-                rate = volume / pool_total
-            else:
-                rate = Decimal("0")
-            per_quantile_volume[q] = volume
-            per_quantile_rate[q] = rate
-            per_quantile_total[q] = pool_total
-
-        if per_variety_missing:
-            # Typed per-(date, quantile, variety) blocker (P0-4 #14).
-            for q in per_variety_missing:
-                blockers.append(
+            if int(vid_pk) not in member_by_q[q]:
+                phase1_blockers.append(
                     Blocker(
                         code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
                         message=(
-                            f"per-variety grain missing for date={d.isoformat()} "
-                            f"variety={vid_code} quantile={q} task9_run_id="
-                            f"{task9_run_id}"
+                            f"per-variety grain missing for date="
+                            f"{d.isoformat()} variety={vid_code} "
+                            f"quantile={q} task9_run_id={task9_run_id_value}"
                         ),
                         details={
                             "date": d.isoformat(),
                             "quantile": q,
                             "variety_id": vid_code,
-                            "task9_run_id": int(task9_run_id) if task9_run_id is not None else None,
+                            "task9_run_id": task9_run_id_value,
                         },
                         retry_hint="WAIT_FOR_DATA",
                     )
                 )
-            # Per-day per-variety_contribution is empty for THIS day
-            # when ANY quantile is missing.  Per Charles's spec, the
-            # day's contribution MUST be empty (no partial
-            # contribution, no 0 placeholders).
-            continue
+    if phase1_blockers:
+        # Whole-day fail-closed: any missing-grain cell excludes ALL
+        # contributions for this date (no partial Dx output).
+        return [], phase1_blockers
 
-        # Reconciliation: per quantile, sum(member_v) over all
-        # varieties for this (date, quantile) should equal the pool
-        # total; when pool_total > 0 the contribution rates must sum
-        # to 1 within tolerance.
-        # P0-7 round 6: when ANY quantile fails reconciliation, the
-        # WHOLE day's contribution list is cleared (no
-        # zero-rates-and-append fallback).  The day is reported as
-        # integrity-blocked.
-        reconciliation_failed = False
+    # ----- Phase 2: denominator scope (exact match) --------------------
+    # Persisted member-variety set for this date MUST equal the
+    # requested set.  An extra persisted variety (even with volume
+    # zero) is a scope mismatch.  Per round 8: "do not depend on the
+    # extra variety's volume being zero".
+    if persisted_pks_for_date != requested_pks_set:
+        return [], [
+            Blocker(
+                code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+                message=(
+                    f"TASK-009 member-variety set for date "
+                    f"{d.isoformat()} does not exactly match the "
+                    f"requested variety set."
+                ),
+                details={
+                    "task9_run_id": task9_run_id_value,
+                    "date": d.isoformat(),
+                    "requested_variety_ids": requested_variety_codes,
+                    "persisted_variety_ids": sorted(
+                        variety_pk_by_code_inv(persisted_pks_for_date, variety_pk_by_code)
+                    ),
+                    "reason": MEMBER_VARIETY_SET_MISMATCH,
+                },
+                retry_hint="FIX_INPUT",
+            )
+        ]
+
+    # ----- Phase 3: compute contributions + reconcile ------------------
+    contributions: list[VarietyContribution] = []
+    per_variety_data: dict[str, dict[str, Decimal]] = {}
+
+    for vid_code, vid_pk in zip(requested_variety_codes, requested_variety_pks, strict=True):
+        per_quantile_volume: dict[str, Decimal] = {}
+        per_quantile_rate: dict[str, Decimal] = {}
+        per_quantile_total: dict[str, Decimal] = {}
         for q in ("P50", "P80", "P90"):
-            pool_total = per_quantile_total[q]
-            sum_member_volume = sum(_d(v) for v in member_by_q[q].values())
-            if pool_total > 0 and sum_member_volume != pool_total:
-                blockers.append(
-                    Blocker(
-                        code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
-                        message=(
-                            f"member volume sum reconciliation failure for "
-                            f"date={d.isoformat()} quantile={q}: "
-                            f"sum_member={sum_member_volume} != pool_total={pool_total}"
-                        ),
-                        details={
-                            "date": d.isoformat(),
-                            "quantile": q,
-                            "sum_member_volume": format(sum_member_volume, "f"),
-                            "pool_total": format(pool_total, "f"),
-                        },
-                        retry_hint="WAIT_FOR_DATA",
-                    )
-                )
-                reconciliation_failed = True
-            elif pool_total == 0 and sum_member_volume != 0:
-                blockers.append(
-                    Blocker(
-                        code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
-                        message=(
-                            f"member volume non-zero with zero pool total for "
-                            f"date={d.isoformat()} quantile={q}: "
-                            f"sum_member={sum_member_volume} pool_total=0"
-                        ),
-                        details={
-                            "date": d.isoformat(),
-                            "quantile": q,
-                            "sum_member_volume": format(sum_member_volume, "f"),
-                            "pool_total": "0",
-                        },
-                        retry_hint="WAIT_FOR_DATA",
-                    )
-                )
-                reconciliation_failed = True
-        if reconciliation_failed:
-            # P0-7 #10: the day's per-variety_contribution list is
-            # CLEARED.  We do NOT append zero-rate VarietyContribution
-            # records.  The day is reported as integrity-blocked.
-            return [], blockers
+            pool_total = _d(pool_arrival.get(f"{q}_arrival", Decimal("0")))
+            member_v = _d(member_by_q[q].get(int(vid_pk), Decimal("0")))
+            if pool_total > 0:
+                rate = member_v / pool_total
+            else:
+                rate = Decimal("0")
+            per_quantile_volume[q] = member_v
+            per_quantile_rate[q] = rate
+            per_quantile_total[q] = pool_total
+        per_variety_data[vid_code] = {
+            **{f"volume_{q}": per_quantile_volume[q] for q in ("P50", "P80", "P90")},
+            **{f"rate_{q}": per_quantile_rate[q] for q in ("P50", "P80", "P90")},
+        }
 
+    # Reconciliation per quantile.  pool_total > 0 → sum(emitted
+    # rates) must equal 1 (Decimal, exact).  pool_total == 0 → all
+    # member volumes must be 0.  Failure -> whole-day fail-closed.
+    reconciliation_blockers: list[Blocker] = []
+    for q in ("P50", "P80", "P90"):
+        pool_total = _d(pool_arrival.get(f"{q}_arrival", Decimal("0")))
+        sum_member_volume = sum(
+            per_variety_data[code][f"volume_{q}"] for code in requested_variety_codes
+        )
+        if pool_total > 0 and sum_member_volume != pool_total:
+            reconciliation_blockers.append(
+                Blocker(
+                    code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
+                    message=(
+                        f"member volume sum reconciliation failure for "
+                        f"date={d.isoformat()} quantile={q}: "
+                        f"sum_member={sum_member_volume} != "
+                        f"pool_total={pool_total} task9_run_id="
+                        f"{task9_run_id_value}"
+                    ),
+                    details={
+                        "date": d.isoformat(),
+                        "quantile": q,
+                        "sum_member_volume": format(sum_member_volume, "f"),
+                        "pool_total": format(pool_total, "f"),
+                        "task9_run_id": task9_run_id_value,
+                    },
+                    retry_hint="WAIT_FOR_DATA",
+                )
+            )
+        elif pool_total == 0 and sum_member_volume != 0:
+            reconciliation_blockers.append(
+                Blocker(
+                    code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
+                    message=(
+                        f"member volume non-zero with zero pool total "
+                        f"for date={d.isoformat()} quantile={q}: "
+                        f"sum_member={sum_member_volume} pool_total=0 "
+                        f"task9_run_id={task9_run_id_value}"
+                    ),
+                    details={
+                        "date": d.isoformat(),
+                        "quantile": q,
+                        "sum_member_volume": format(sum_member_volume, "f"),
+                        "pool_total": "0",
+                        "task9_run_id": task9_run_id_value,
+                    },
+                    retry_hint="WAIT_FOR_DATA",
+                )
+            )
+        elif pool_total > 0:
+            sum_rates = sum(per_variety_data[code][f"rate_{q}"] for code in requested_variety_codes)
+            if sum_rates != Decimal("1"):
+                reconciliation_blockers.append(
+                    Blocker(
+                        code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
+                        message=(
+                            f"emitted contribution-rate sum != 1 for "
+                            f"date={d.isoformat()} quantile={q}: "
+                            f"sum_rate={sum_rates} task9_run_id="
+                            f"{task9_run_id_value}"
+                        ),
+                        details={
+                            "date": d.isoformat(),
+                            "quantile": q,
+                            "sum_rates": format(sum_rates, "f"),
+                            "pool_total": format(pool_total, "f"),
+                            "task9_run_id": task9_run_id_value,
+                        },
+                        retry_hint="WAIT_FOR_DATA",
+                    )
+                )
+    if reconciliation_blockers:
+        # Whole-day fail-closed.
+        return [], reconciliation_blockers
+
+    # All phases passed — emit the contributions.
+    for vid_code in requested_variety_codes:
+        data = per_variety_data[vid_code]
         contributions.append(
             VarietyContribution(
                 variety_id=vid_code,
-                volume_kg_p50=_ds(per_quantile_volume["P50"]),
-                volume_kg_p80=_ds(per_quantile_volume["P80"]),
-                volume_kg_p90=_ds(per_quantile_volume["P90"]),
-                contribution_rate_p50=_ds(per_quantile_rate["P50"]),
-                contribution_rate_p80=_ds(per_quantile_rate["P80"]),
-                contribution_rate_p90=_ds(per_quantile_rate["P90"]),
+                volume_kg_p50=_ds(data["volume_P50"]),
+                volume_kg_p80=_ds(data["volume_P80"]),
+                volume_kg_p90=_ds(data["volume_P90"]),
+                contribution_rate_p50=_ds(data["rate_P50"]),
+                contribution_rate_p80=_ds(data["rate_P80"]),
+                contribution_rate_p90=_ds(data["rate_P90"]),
             )
         )
 
-    return contributions, blockers
+    return contributions, []
+
+
+def variety_pk_by_code_inv(
+    persisted_pks: set[int],
+    variety_pk_by_code: dict[str, int],
+) -> list[str]:
+    """Reverse map a set of variety PKs to their string codes.
+
+    PKs that are not present in the catalog are returned as their
+    string form ``"pk:<n>"`` so the blocker detail stays deterministic
+    without losing information.
+    """
+
+    code_by_pk: dict[int, str] = {pk: code for code, pk in variety_pk_by_code.items()}
+    out: list[str] = []
+    for pk in sorted(persisted_pks):
+        out.append(code_by_pk.get(int(pk), f"pk:{int(pk)}"))
+    return out
 
 
 __all__ = [
     "DefaultTaskCompositionBaseline",
     "BaselineCompositionResult",
+    "AuthoritySelectionResult",
+    "UpstreamReadFailure",
+    "SEASON_BINDING_UNAVAILABLE",
+    "FALLBACK_RUN_NOT_AUTHORITATIVE",
+    "MEMBER_VARIETY_SET_MISMATCH",
+    "EXECUTION_STATUS_NOT_COMPLETED",
+    "DESTINATION_MISMATCH",
+    "DATE_COVERAGE_MISMATCH",
 ]
