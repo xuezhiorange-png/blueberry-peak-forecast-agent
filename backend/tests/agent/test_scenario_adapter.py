@@ -214,10 +214,10 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
     out2 = await adapter.execute(sqlite_session, input=inp)
     assert out1.scenario_id == out2.scenario_id
     assert out1.scenario_config_hash == out2.scenario_config_hash
-    # All three delta fields must be quantile-bearing
-    assert hasattr(out1.delta_vs_baseline, "single_day_peak_volume_delta_kg")
-    assert hasattr(out1.delta_vs_baseline, "sustained_3day_daily_average_delta_kg_per_day")
-    assert hasattr(out1.delta_vs_baseline, "sustained_3day_cumulative_delta_kg")
-    assert not hasattr(
-        out1.delta_vs_baseline, "sustained_3day_delta"
-    )  # single scalar MUST NOT exist
+    # P0-8 round 6: when scenario_overrides are supplied but
+    # scenario execution capability is not available, the result
+    # MUST be status=BLOCKED with all three result fields None.
+    assert out1.status == "BLOCKED"
+    assert out1.forecast_daily_curve is None
+    assert out1.forecast_peak is None
+    assert out1.delta_vs_baseline is None

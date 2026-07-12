@@ -222,6 +222,20 @@ def _make_blocker(
     return Blocker(code=code, message=message, details=payload, retry_hint=retry_hint)
 
 
+def _not_implemented_blocker(task_label: str, run_id: int) -> Blocker:
+    """Typed NOT_FOUND blocker for unimplemented loader paths (e.g. TASK-011)."""
+    return _make_blocker(
+        code=BlockerCode.AUTHORITY_NOT_FOUND,
+        field=task_label,
+        message=(
+            f"{task_label} override supplied but the loader is not yet implemented "
+            f"in Slice A (run_id={run_id})."
+        ),
+        details={"override_value": run_id},
+        retry_hint="WAIT_FOR_DATA",
+    )
+
+
 def _blocker_for_identity_error(*, field: str, exc: AuthorityIdentityError) -> Blocker:
     """Map an :class:`AuthorityIdentityError` to the most-specific blocker code.
 
@@ -739,12 +753,27 @@ class DefaultTask10PredictionPort:
 class DefaultTask11BacktestPort:
     """Default TASK-011 loader.  Slice A: stub (TASK-011 not yet wired)."""
 
+    async def load_typed(
+        self,
+        *,
+        session: AsyncSession,
+        rolling_backtest_run_id: int,
+    ) -> AuthorityLoadResult[Any]:
+        # Slice A does not implement TASK-011 lookup.  Always return a
+        # typed NOT_FOUND so the production adapter propagates the
+        # failure (P0-1 round 6).
+        return AuthorityLoadResult(
+            authority=None,
+            blockers=(_not_implemented_blocker("TASK-011", rolling_backtest_run_id),),
+        )
+
     async def load_by_id(
         self,
         *,
         session: AsyncSession,
         rolling_backtest_run_id: int,
     ) -> None:
+        # Backwards-compatible shim.  Production path uses load_typed().
         return None
 
 

@@ -135,10 +135,16 @@ def test_round5_default_path_does_not_use_agent_default_rules():
 @pytest.mark.asyncio
 async def test_round5_missing_location_reference_fails_closed(sqlite_session):
     """When no LocationReference is present, the default prior port
-    surfaces a per-variety prior with
-    ``missing_evidence=("location_source_capability_missing",)`` and
-    does NOT call :func:`infer_parameter`."""
+    raises :class:`LocationSourceCapabilityMissingError` (round 6
+    P0-2 typed failure) and the adapter surfaces the
+    ``LOCATION_SOURCE_CAPABILITY_MISSING`` blocker (NOT a generic
+    ``NO_PERSISTED_PRIOR_SOURCE``)."""
 
+    from backend.app.agent.adapters.parameters import (
+        DefaultParameterPriorPort,
+        LocationSourceCapabilityMissingError,
+    )
+    from backend.app.agent.enums import BlockerCode
     from backend.app.agent.schemas import ResolvedLocation
     from backend.app.models.master_data import Variety
 
@@ -147,19 +153,20 @@ async def test_round5_missing_location_reference_fails_closed(sqlite_session):
 
     rl = ResolvedLocation(status="unresolved", matched_location_method="TEXT")
     port = DefaultParameterPriorPort()
-    prior = await port.resolve_parameter(
-        session=sqlite_session,
-        variety_id="Dx",
-        parameter_name="expected_per_mu_yield",
-        resolved_location=rl,
-        effective_as_of_date=date(2026, 3, 1),
-        widening_factor=Decimal("1.0"),
-        monotonic_step=1,
+    with pytest.raises(LocationSourceCapabilityMissingError):
+        await port.resolve_parameter(
+            session=sqlite_session,
+            variety_id="Dx",
+            parameter_name="expected_per_mu_yield",
+            resolved_location=rl,
+            effective_as_of_date=date(2026, 3, 1),
+            widening_factor=Decimal("1.0"),
+            monotonic_step=1,
+        )
+    # The blocker code used by the adapter layer must be the typed one.
+    assert (
+        BlockerCode.LOCATION_SOURCE_CAPABILITY_MISSING.value == "LOCATION_SOURCE_CAPABILITY_MISSING"
     )
-    # p50 must be None and missing_evidence must include
-    # "location_source_capability_missing" (P0-1 #6).
-    assert prior.p50 is None
-    assert "location_source_capability_missing" in prior.missing_evidence
 
 
 # ============================================================================
@@ -503,9 +510,11 @@ async def test_round5_scenario_override_without_execution_returns_blocked(sqlite
     assert out.status == "BLOCKED"
     codes = [b.code for b in out.blockers]
     assert BlockerCode.SCENARIO_OVERRIDE_EXECUTION_NOT_AVAILABLE in codes
-    # Zero delta (no fabricated scenario curve)
-    assert out.delta_vs_baseline is not None
-    assert out.delta_vs_baseline.single_day_peak_volume_delta_kg.p50 == "0"
+    # P0-8 round 6: blocked scenario MUST NOT carry fabricated result
+    # fields.  No scenario curve, no scenario peak, no delta.
+    assert out.forecast_daily_curve is None
+    assert out.forecast_peak is None
+    assert out.delta_vs_baseline is None
 
 
 # ============================================================================

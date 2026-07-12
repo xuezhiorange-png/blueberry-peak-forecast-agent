@@ -673,6 +673,33 @@ async def test_daily_curve_emits_real_typed_authorities_from_composition(sqlite_
     await sqlite_session.flush()
 
     class _FakeTask9Port:
+        async def load_typed(self, *, session, harvest_state_run_id):
+            from backend.app.agent.adapters.task_loaders import AuthorityLoadResult
+            from backend.app.agent.schemas import Task9Authority
+
+            return AuthorityLoadResult(
+                authority=Task9Authority(
+                    harvest_state_run_id=harvest_state_run_id,
+                    harvest_state_run_config_hash="a" * 64,
+                    harvest_state_run_result_hash="b" * 64,
+                    harvest_state_run_canonical_payload_hash="c" * 64,
+                    harvest_state_output_schema_version="v1",
+                    harvest_state_as_of_date=date(2026, 3, 1),
+                    harvest_state_forecast_start_date=date(2026, 3, 1),
+                    harvest_state_forecast_end_date=date(2026, 3, 2),
+                    destination_factory_id=1,
+                    pool_row_count=0,
+                    member_row_count=0,
+                    cohort_row_count=0,
+                    future_arrival_row_count=0,
+                    source_ref_schema_version="v1",
+                    result_hash_schema_version="v1",
+                    stable_cohort_key_schema_version="v1",
+                    resolved_parameter_snapshot_schema_version="v1",
+                ),
+                blockers=(),
+            )
+
         async def load_by_id(self, *, session, harvest_state_run_id):
             from backend.app.agent.schemas import Task9Authority
 
