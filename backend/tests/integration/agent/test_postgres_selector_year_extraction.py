@@ -1,43 +1,53 @@
-"""TASK-013 Slice A — PostgreSQL selector year-extraction integration test.
+"""TASK-013 Slice A — Round 8 PostgreSQL selector integration test.
 
-This module is a Round 7 (review 4680214102) test-first probe.  It
-exercises the TASK-009 selector against a real PostgreSQL database to
-verify the season-identity filter is applied at the SQL level using
-``json_extract`` (PG-side).  The SQLite-level test
-``test_default_selector_rejects_wrong_season_via_persisted_identity``
-probes the same defect at the Python post-filter level; this test
-probes the PG-side SQL surface (the ``func.strftime`` legacy is
-forbidden — PG would reject it).
+This module exercises the TASK-009 selector against a real PostgreSQL
+database to verify the round 8 typed-failure surface under real
+JSONB semantics:
+
+* The TASK-009 production persistence path
+  (``_sorted_request_snapshot()``) does NOT write
+  ``forecast_season`` into ``input_snapshot``.  The legacy
+  ``func.strftime`` SQL extraction and the round-7 fabricated
+  ``input_snapshot["forecast_season"]`` are both FORBIDDEN.
+
+* When the request asks for an explicit season but the candidate
+  row's ``input_snapshot`` has no ``forecast_season`` key, the
+  selector MUST return an
+  :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` blocker with
+  ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE`` — NOT a
+  silent ``TASK9_AUTHORITY_NOT_FOUND`` collapse.
+
+* The default path performs the same identity / hash / season
+  validation as the override path.  Both paths share
+  :func:`_evaluate_task9_row_against_scope`.
 
 Test gating (per Charles's spec):
 
 * MUST run against a real PostgreSQL instance (no SQLite session
   masquerading as PG).
-* MUST exercise the actual ``_select_harvest_state_run_candidates``
-  production function.
+* MUST exercise the actual production
+  :func:`_select_harvest_state_run_candidates` selector.
 * MUST insert a real ``HarvestStateRun`` row whose
-  ``input_snapshot`` carries a persisted ``forecast_season``
-  identity, then assert the selector returns / excludes the row
-  based on the REAL persisted identity (NOT ``as_of_date.year``).
-* MUST use a ``postgres`` marker so PR-CI shards the test under the
-  ``postgres-task11`` (or equivalent) shard that already runs in CI.
+  ``input_snapshot`` carries the **real persistence shape** (no
+  fabricated ``forecast_season`` key) and assert the selector
+  returns the typed ``AUTHORITY_SCOPE_MISMATCH`` blocker.
+* MUST use a ``postgres`` marker so PR-CI shards the test under
+  the ``postgres-task11`` (or equivalent) shard that already runs
+  in CI.
 
 The test is skipped unless ``RUN_POSTGRES_INTEGRATION=1`` is set AND
 ``BLUEBERRY_PG_DSN`` points to a valid test DSN.  The default DSN
-targets the local dev PG on ``localhost:5432`` with the
-``blueberry_peak_test_p0fix`` database (created by the Slice 2C
-test-harness).
+targets a local dev PG on ``localhost:5432`` with the
+``blueberry_peak_test_r7_round8`` database.
 """
 # ruff: noqa: E501, I001, F401, F841, F811, F821, ASYNC240
 
 from __future__ import annotations
 
-import asyncio
 import os
 import uuid
 from collections.abc import AsyncIterator
 from datetime import date
-from decimal import Decimal
 
 import pytest
 import pytest_asyncio
@@ -45,8 +55,10 @@ from sqlalchemy import Table, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.app.agent.adapters.baseline_composer import (
+    SEASON_BINDING_UNAVAILABLE,
     _select_harvest_state_run_candidates,
 )
+from backend.app.agent.enums import BlockerCode
 from backend.app.models.harvest_state import (
     HarvestStateDailyMemberRowModel,
     HarvestStateRun,
@@ -56,7 +68,7 @@ from backend.app.models.master_data import Variety
 
 POSTGRES_TEST_DSN = os.getenv(
     "BLUEBERRY_PG_DSN",
-    "postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/blueberry_peak_test_r7",
+    "postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/blueberry_peak_test_r7_round8",
 )
 
 PG_INTEGRATION_ENABLED = os.getenv("RUN_POSTGRES_INTEGRATION") == "1"
@@ -83,12 +95,12 @@ async def pg_selector_session() -> AsyncIterator[AsyncSession]:
     Creates a per-test ``harvest_state_run`` table subset and
     truncates after the test.  The schema subset uses the
     ``create_all`` ORM model for ``HarvestStateRun``,
-    ``HarvestStateDailyMemberRowModel``, and ``Variety`` —
-    sufficient to exercise ``_select_harvest_state_run_candidates``
+    ``HarvestStateDailyMemberRowModel``, and ``Variety`` — sufficient
+    to exercise ``_select_harvest_state_run_candidates``
     end-to-end.
 
-    The session is bound to an engine scoped to this test; no
-    global state is mutated.
+    The session is bound to an engine scoped to this test; no global
+    state is mutated.
     """
     if not PG_INTEGRATION_ENABLED:
         pytest.skip("PG integration disabled")
@@ -103,15 +115,7 @@ async def pg_selector_session() -> AsyncIterator[AsyncSession]:
     engine = create_async_engine(POSTGRES_TEST_DSN, future=True)
     sm = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with sm() as session:
-        # Use the ORM metadata.create_all to ensure the schema
-        # matches the real HarvestStateRun / Variety / member
-        # row tables (including every additive nullable column
-        # added by later migrations).
         from backend.app.models.master_data import Variety as _Variety
-        from backend.app.models.harvest_state import (
-            HarvestStateDailyMemberRowModel,
-            HarvestStateRun,
-        )
 
         async with engine.begin() as conn:
             await conn.run_sync(
@@ -154,9 +158,6 @@ def _pg_reachable(dsn: str) -> bool:
     """Quick TCP-level reachability check (no DSN parsing)."""
     try:
         import socket
-
-        # Best-effort: parse host:port from the DSN.
-        # Format: postgresql+asyncpg://user:pass@host:port/db
         from urllib.parse import urlparse
 
         u = urlparse(dsn)
@@ -168,94 +169,148 @@ def _pg_reachable(dsn: str) -> bool:
         return False
 
 
+# ---------------------------------------------------------------------------
+# Real TASK-009 persistence shape: NO forecast_season key.  The
+# production code MUST return AUTHORITY_SCOPE_MISMATCH (not silent
+# NOT_FOUND, not as_of_date.year guess) when season is requested.
+# ---------------------------------------------------------------------------
+
+_REAL_PERSISTENCE_INPUT_SNAPSHOT: dict = {
+    "as_of_date": "2026-01-10",
+    "forecast_start_date": "2026-01-01",
+    "forecast_end_date": "2026-01-31",
+    "forecast_quantiles": ["P50", "P80", "P90"],
+    "destination_factory_id": 1,
+}
+
+
 @pytest.mark.postgres
-async def test_postgres_selector_year_extraction_real_pg(
+async def test_postgres_real_persistence_no_season_binding_emits_scope_mismatch(
     pg_selector_session: AsyncSession,
 ) -> None:
-    """Real PostgreSQL: insert a TASK-009 row whose
-    ``input_snapshot.forecast_season=2025`` but
-    ``as_of_date=2026-01-10``.  The legacy
-    ``func.strftime("%Y", ...)`` filter would NOT match because
-    ``as_of_date.year != 2025``; the round-7 production code uses
-    ``input_snapshot["forecast_season"]`` (real persisted identity)
-    and the row is accepted."""
-    suffix = uuid.uuid4().hex[:8]
-    pg_selector_session.add(Variety(id=1, code=f"Dx_{suffix}", name="Test Dx"))
-    await pg_selector_session.flush()
-    # Real persisted season = 2025; as_of_date.year = 2026.
-    # The selector MUST match by input_snapshot.forecast_season, not
-    # by as_of_date.year.
-    hsr_id = await _insert_hsr(
+    """Round 8 (review 4680340321): under the real TASK-009
+    persistence shape, a candidate row's ``input_snapshot`` does NOT
+    carry a ``forecast_season`` key.  When the request asks for an
+    explicit season, the selector MUST return an
+    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` blocker with
+    ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE`` (NOT
+    a silent ``TASK9_AUTHORITY_NOT_FOUND`` collapse).  The legacy
+    ``func.strftime`` / ``as_of_date.year`` SQL filter is FORBIDDEN.
+    """
+    hsr_id = await _insert_hsr_real_shape(
         pg_selector_session,
-        suffix=suffix,
         result_hash="a" * 64,
         config_hash="b" * 64,
-        forecast_season=2025,
         as_of_date=date(2026, 1, 10),
     )
-    candidates = await _select_harvest_state_run_candidates(
+    selection = await _select_harvest_state_run_candidates(
         pg_selector_session,
         as_of=date(2026, 1, 15),
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=2025,
+        effective_forecast_season=2026,
     )
-    assert any(c["id"] == hsr_id for c in candidates), (
-        "PostgreSQL selector must accept the row when "
-        "input_snapshot.forecast_season=2025 even though "
-        "as_of_date.year=2026; the legacy as_of_date.year filter "
-        "would have rejected it"
+    assert selection.candidates == (), (
+        f"row {hsr_id} must be excluded (no persisted season identity); got {selection.candidates}"
     )
+    assert selection.blockers, "selector must surface typed blockers, not silent empty"
+    scope_blks = [b for b in selection.blockers if b.code == BlockerCode.AUTHORITY_SCOPE_MISMATCH]
+    assert scope_blks, (
+        f"expected AUTHORITY_SCOPE_MISMATCH (real row, no persisted season); "
+        f"got {[b.code.value for b in selection.blockers]}"
+    )
+    details = scope_blks[0].details or {}
+    assert details.get("reason") == SEASON_BINDING_UNAVAILABLE
+    assert details.get("persisted_season_identity") is None
+    assert details.get("requested_effective_forecast_season") == 2026
 
 
 @pytest.mark.postgres
-async def test_postgres_selector_season_mismatch_excludes_row(
+async def test_postgres_real_persistence_no_season_request_returns_candidate(
     pg_selector_session: AsyncSession,
 ) -> None:
-    """Real PostgreSQL: row with input_snapshot.forecast_season=2024
-    must be EXCLUDED when the request asks for 2025, even though
-    as_of_date.year=2025 would have accepted it under the legacy
-    round-6 derivation."""
-    suffix = uuid.uuid4().hex[:8]
-    pg_selector_session.add(Variety(id=1, code=f"Dx_{suffix}", name="Test Dx"))
-    await pg_selector_session.flush()
-    hsr_id = await _insert_hsr(
+    """Round 8: when the request does NOT ask for a season
+    (``effective_forecast_season=None``), the real-persistence row
+    (no ``forecast_season`` in ``input_snapshot``) IS a valid
+    candidate.  The selector's default path returns it as a
+    candidate (no scope blocker).
+    """
+    hsr_id = await _insert_hsr_real_shape(
         pg_selector_session,
-        suffix=suffix,
-        result_hash="c" * 64,
-        config_hash="d" * 64,
-        forecast_season=2024,  # request asks for 2025
-        as_of_date=date(2025, 12, 1),
+        result_hash="a" * 64,
+        config_hash="b" * 64,
+        as_of_date=date(2026, 1, 10),
     )
-    candidates = await _select_harvest_state_run_candidates(
+    selection = await _select_harvest_state_run_candidates(
         pg_selector_session,
-        as_of=date(2025, 12, 15),
+        as_of=date(2026, 1, 15),
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=2025,
+        effective_forecast_season=None,
     )
-    assert all(c["id"] != hsr_id for c in candidates), (
-        "PostgreSQL selector must exclude the row whose "
-        "input_snapshot.forecast_season=2024 when the request asks "
-        "for 2025; the legacy as_of_date.year derivation would have "
-        "accepted the row"
+    assert selection.candidates, (
+        "default path must return the real-persistence row as a "
+        "candidate when no season is requested"
+    )
+    assert any(c["id"] == hsr_id for c in selection.candidates)
+
+
+@pytest.mark.postgres
+async def test_postgres_default_path_no_strftime_no_year_extraction(
+    pg_selector_session: AsyncSession,
+) -> None:
+    """Round 8: under no circumstances does the production code use
+    ``func.strftime`` or any ``as_of_date.year`` derivation to
+    resolve the season identity.  The real persisted JSONB
+    ``input_snapshot`` (no ``forecast_season`` key) is the
+    authoritative surface.  This test verifies that PostgreSQL
+    does NOT raise a "strftime" / "no such function" error when
+    the request asks for a season — i.e. the production SQL
+    surface does not use the SQLite-specific ``strftime``.
+    """
+    await _insert_hsr_real_shape(
+        pg_selector_session,
+        result_hash="a" * 64,
+        config_hash="b" * 64,
+        as_of_date=date(2026, 1, 10),
+    )
+    # If the SQL used strftime, PostgreSQL would raise
+    # "function strftime(...) does not exist" — by NOT raising,
+    # this test confirms the production code does not use it.
+    selection = await _select_harvest_state_run_candidates(
+        pg_selector_session,
+        as_of=date(2026, 1, 15),
+        run_id_override=None,
+        destination_factory_id=1,
+        requested_variety_codes=(),
+        effective_forecast_season=2026,
+    )
+    assert selection.candidates == ()
+    assert selection.blockers
+    # The blocker MUST be AUTHORITY_SCOPE_MISMATCH (real-persistence
+    # no persisted season), NOT TASK9_AUTHORITY_NOT_FOUND (silent
+    # base-scope collapse).
+    assert any(b.code == BlockerCode.AUTHORITY_SCOPE_MISMATCH for b in selection.blockers), (
+        f"expected AUTHORITY_SCOPE_MISMATCH, got {[b.code.value for b in selection.blockers]}"
     )
 
 
-async def _insert_hsr(
+async def _insert_hsr_real_shape(
     session: AsyncSession,
     *,
-    suffix: str,
     result_hash: str,
     config_hash: str,
-    forecast_season: int,
     as_of_date: date,
 ) -> int:
-    """Insert a real ``HarvestStateRun`` row whose
-    ``input_snapshot`` JSONB column carries the season as a JSONB
-    scalar (not a TEXT-cast of an SQL filter)."""
+    """Insert a real ``HarvestStateRun`` row whose ``input_snapshot``
+    uses the production persistence shape (no ``forecast_season``).
+
+    Per round 8 directive: do NOT fabricate
+    ``input_snapshot["forecast_season"]`` in the PG test — the test
+    must use the real shape ``_sorted_request_snapshot()`` writes.
+    """
     row = HarvestStateRun(
         status="completed",
         output_schema_version="v1",
@@ -263,8 +318,8 @@ async def _insert_hsr(
         resolved_parameter_snapshot_schema_version="v1",
         source_ref_schema_version="v1",
         stable_cohort_key_schema_version="v1",
-        input_snapshot={"forecast_season": forecast_season},
-        resolved_parameter_snapshot={"forecast_season": forecast_season},
+        input_snapshot=dict(_REAL_PERSISTENCE_INPUT_SNAPSHOT),
+        resolved_parameter_snapshot={},
         source_ref_catalog=[],
         warnings=[],
         blockers=[],
@@ -290,6 +345,7 @@ async def _insert_hsr(
 
 
 __all__ = [
-    "test_postgres_selector_year_extraction_real_pg",
-    "test_postgres_selector_season_mismatch_excludes_row",
+    "test_postgres_real_persistence_no_season_binding_emits_scope_mismatch",
+    "test_postgres_real_persistence_no_season_request_returns_candidate",
+    "test_postgres_default_path_no_strftime_no_year_extraction",
 ]

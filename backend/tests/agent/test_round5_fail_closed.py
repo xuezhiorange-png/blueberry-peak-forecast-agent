@@ -337,7 +337,14 @@ async def test_round5_task9_override_cannot_bypass_destination_scope(sqlite_sess
         run_id_override=1,
         destination_factory_id=1,
     )
-    assert candidates == []
+    # Round 8: discriminated ``AuthoritySelectionResult``.  When
+    # the override row's destination_factory_id differs from the
+    # request's destination, the selector MUST emit
+    # AUTHORITY_SCOPE_MISMATCH (DESTINATION_MISMATCH reason) — not
+    # silently return a flat ``[]``.
+    assert candidates.candidates == ()
+    assert candidates.blockers
+    assert any(b.code == BlockerCode.AUTHORITY_SCOPE_MISMATCH for b in candidates.blockers)
 
 
 @pytest.mark.asyncio
@@ -393,7 +400,11 @@ async def test_round5_task9_override_cannot_bypass_status(sqlite_session):
         run_id_override=1,
         destination_factory_id=1,
     )
-    assert candidates == []
+    # Round 8: discriminated AuthoritySelectionResult.  Override
+    # with non-completed status MUST emit AUTHORITY_IDENTITY_MALFORMED.
+    assert candidates.candidates == ()
+    assert candidates.blockers
+    assert any(b.code == BlockerCode.AUTHORITY_IDENTITY_MALFORMED for b in candidates.blockers)
 
 
 # ============================================================================

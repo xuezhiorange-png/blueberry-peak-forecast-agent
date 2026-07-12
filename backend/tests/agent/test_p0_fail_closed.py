@@ -95,12 +95,13 @@ def _build_harvest_state_run(
         resolved_parameter_snapshot_schema_version="v1",
         source_ref_schema_version="v1",
         stable_cohort_key_schema_version="v1",
-        # Round 7 (review 4680214102): every TASK-009 fixture row
-        # MUST carry the real persisted season identity in
-        # ``input_snapshot``; the legacy empty-dict default was
-        # equivalent to silently accepting the date-guess
-        # ``as_of_date.year`` path.
-        input_snapshot=input_snapshot if input_snapshot is not None else {"forecast_season": 2026},
+        # Round 8 (review 4680340321): real TASK-009 persistence
+        # (``_sorted_request_snapshot``) does NOT write
+        # ``forecast_season`` into ``input_snapshot``.  Test
+        # fixtures must use the real shape — empty dict by default —
+        # and tests asserting season behavior must pass an explicit
+        # ``input_snapshot`` if they want to set a season.
+        input_snapshot=input_snapshot if input_snapshot is not None else {},
         resolved_parameter_snapshot={},
         source_ref_catalog=[],
         warnings=[],
@@ -557,6 +558,7 @@ async def test_composer_returns_authority_conflict_for_multiple_candidates(sqlit
         destination_factory_id=1,
         maturity_forecast_run_id=1,
         pool_row_count=0,
+        input_snapshot={"forecast_season": 2026},
     )
     _build_harvest_state_run(
         sqlite_session,
@@ -567,6 +569,7 @@ async def test_composer_returns_authority_conflict_for_multiple_candidates(sqlit
         destination_factory_id=1,
         maturity_forecast_run_id=1,
         pool_row_count=0,
+        input_snapshot={"forecast_season": 2026},
     )
     # P0-3 #11 round 5: each run's member rows must cover the
     # requested variety set, otherwise the run is filtered out of the
