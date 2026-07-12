@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from backend.app.agent.adapters.location import DefaultLocationAdapter, LOCATION_CATALOG_VERSION
+from backend.app.agent.adapters.location import LOCATION_CATALOG_VERSION, DefaultLocationAdapter
 from backend.app.agent.enums import BlockerCode
 from backend.app.agent.ports import LocationResolverPort
 from backend.app.agent.schemas import (
@@ -58,7 +58,14 @@ def _mk_nr(
 class _StaticPort(LocationResolverPort):
     """Returns a pre-canned ResolvedLocation per-test."""
 
-    def __init__(self, *, status: str, candidates: list[dict] | None = None, warning: str | None = None, location_reference_id: int | None = None):
+    def __init__(
+        self,
+        *,
+        status: str,
+        candidates: list[dict] | None = None,
+        warning: str | None = None,
+        location_reference_id: int | None = None,
+    ):
         self._resolved = ResolvedLocation(
             status=status,
             location_reference_id=location_reference_id,
@@ -67,14 +74,18 @@ class _StaticPort(LocationResolverPort):
             candidates=candidates or [],
         )
 
-    async def resolve(self, *, session: Any, location: dict[str, Any], as_of_date: Any) -> ResolvedLocation:
+    async def resolve(
+        self, *, session: Any, location: dict[str, Any], as_of_date: Any
+    ) -> ResolvedLocation:
         return self._resolved
 
 
 @pytest.mark.asyncio
 async def test_resolve_location_unresolved_emits_blocker(sqlite_session):
     adapter = DefaultLocationAdapter(resolver=_StaticPort(status="unresolved"))
-    out = await adapter.execute(sqlite_session, input=ResolveLocationInput(normalized_request=_mk_nr(status="unresolved")))
+    out = await adapter.execute(
+        sqlite_session, input=ResolveLocationInput(normalized_request=_mk_nr(status="unresolved"))
+    )
     assert out.location_catalog_version == LOCATION_CATALOG_VERSION
     codes = {b.code for b in out.blockers}
     assert BlockerCode.LOCATION_UNRESOLVED in codes
@@ -82,8 +93,12 @@ async def test_resolve_location_unresolved_emits_blocker(sqlite_session):
 
 @pytest.mark.asyncio
 async def test_resolve_location_emits_no_blocker_for_resolved_status(sqlite_session):
-    adapter = DefaultLocationAdapter(resolver=_StaticPort(status="resolved", location_reference_id=1))
-    out = await adapter.execute(sqlite_session, input=ResolveLocationInput(normalized_request=_mk_nr(status="resolved")))
+    adapter = DefaultLocationAdapter(
+        resolver=_StaticPort(status="resolved", location_reference_id=1)
+    )
+    out = await adapter.execute(
+        sqlite_session, input=ResolveLocationInput(normalized_request=_mk_nr(status="resolved"))
+    )
     codes = {b.code for b in out.blockers}
     assert BlockerCode.LOCATION_UNRESOLVED not in codes
     assert BlockerCode.LOCATION_AMBIGUOUS not in codes
@@ -99,7 +114,9 @@ async def test_resolve_location_ambiguous_emits_blocker_and_top_n(sqlite_session
     adapter = DefaultLocationAdapter(resolver=port, ambiguous_top_n=5)
     out = await adapter.execute(
         sqlite_session,
-        input=ResolveLocationInput(normalized_request=_mk_nr(status="ambiguous", candidates=candidates)),
+        input=ResolveLocationInput(
+            normalized_request=_mk_nr(status="ambiguous", candidates=candidates)
+        ),
     )
     codes = {b.code for b in out.blockers}
     assert BlockerCode.LOCATION_AMBIGUOUS in codes
@@ -112,7 +129,11 @@ async def test_resolve_location_stale_catalog_warning(sqlite_session):
     adapter = DefaultLocationAdapter(resolver=port)
     out = await adapter.execute(
         sqlite_session,
-        input=ResolveLocationInput(normalized_request=_mk_nr(status="resolved", warning="location_catalog_stale", location_reference_id=1)),
+        input=ResolveLocationInput(
+            normalized_request=_mk_nr(
+                status="resolved", warning="location_catalog_stale", location_reference_id=1
+            )
+        ),
     )
     codes = {b.code for b in out.blockers}
     assert BlockerCode.LOCATION_CATALOG_STALE in codes

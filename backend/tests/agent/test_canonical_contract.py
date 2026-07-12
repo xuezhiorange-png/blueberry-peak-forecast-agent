@@ -99,10 +99,15 @@ def test_parameters_hash_differs_for_different_lists():
         parameter_name="expected_per_mu_yield",
         variety_id="101",
         p50="1.50",
-        source_level=1, confidence="HIGH",
+        source_level=1,
+        confidence="HIGH",
         confidence_score=None,
-        sample_count=10, season_count=2, farm_count=1,
-        source_observation_ids=[], fallback_below_minimum=False, missing_evidence=[],
+        sample_count=10,
+        season_count=2,
+        farm_count=1,
+        source_observation_ids=[],
+        fallback_below_minimum=False,
+        missing_evidence=[],
     )
     pe2 = pe1.model_copy(update={"p50": "1.60"})
     assert parameters_hash([pe1]) != parameters_hash([pe2])

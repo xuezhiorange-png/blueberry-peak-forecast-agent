@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, UTC
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -77,11 +77,12 @@ def test_scenario_id_changes_when_overrides_change():
 def test_scenario_delta_quantiles_no_single_scalar():
     """The output contract MUST NOT carry a single ``sustained_3day_delta`` scalar."""
 
+    from decimal import Decimal
+
     from backend.app.agent.adapters.scenario import (
         _delta_quantiles,
     )
     from backend.app.agent.schemas import ScenarioDeltaQuantiles
-    from decimal import Decimal
 
     baseline = {"P50": Decimal("100"), "P80": Decimal("120"), "P90": Decimal("140")}
     scenario = {"P50": Decimal("110"), "P80": Decimal("125"), "P90": Decimal("145")}
@@ -97,12 +98,15 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
     """End-to-end: same scenario twice → same scenario_id/hash and identical deltas."""
 
     from datetime import date as _date
-    from backend.app.agent.adapters.scenario import DefaultScenarioAdapter
+
     from backend.app.agent.adapters.daily_curve import DefaultDailyCurveAdapter
     from backend.app.agent.adapters.peak import DefaultPeakAdapter
+    from backend.app.agent.adapters.scenario import DefaultScenarioAdapter
     from backend.app.agent.ports import ScenarioBaselinePort
     from backend.app.agent.schemas import (
         AdvancedOverrides as AO,
+    )
+    from backend.app.agent.schemas import (
         DailyQuantiles,
         ForecastDailyRow,
         NormalizedAgentRequest,
@@ -114,7 +118,9 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
     )
 
     class _StaticBaseline(ScenarioBaselinePort):
-        async def compute_baseline(self, *, session, normalized_request, resolved_location, parameters, advanced_overrides):
+        async def compute_baseline(
+            self, *, session, normalized_request, resolved_location, parameters, advanced_overrides
+        ):
             r = ForecastDailyRow(
                 date=_date(2026, 3, 1),
                 natural_maturity_quantity_kg=DailyQuantiles(p50="100.0", p80="100.0", p90="100.0"),
@@ -122,11 +128,17 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
                 closing_mature_inventory_kg=DailyQuantiles(p50="0.0", p80="0.0", p90="0.0"),
                 unharvested_backlog_kg=DailyQuantiles(p50="0.0", p80="0.0", p90="0.0"),
                 arrival_quantity_kg=DailyQuantiles(p50="100.0", p80="100.0", p90="100.0"),
-                final_corrected_arrival_quantity_kg=DailyQuantiles(p50="100.0", p80="100.0", p90="100.0"),
+                final_corrected_arrival_quantity_kg=DailyQuantiles(
+                    p50="100.0", p80="100.0", p90="100.0"
+                ),
                 per_variety_contribution=[],
                 agent_daily_row_hash="0" * 64,
             )
-            return [r, r.model_copy(update={"date": _date(2026, 3, 2)}), r.model_copy(update={"date": _date(2026, 3, 3)})], []
+            return [
+                r,
+                r.model_copy(update={"date": _date(2026, 3, 2)}),
+                r.model_copy(update={"date": _date(2026, 3, 3)}),
+            ], []
 
     nr = NormalizedAgentRequest(
         request_id="r",
@@ -143,18 +155,23 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
             source_attestation=None,
             source_ref=None,
         ),
-        normalized_location=ResolvedLocation(status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"),
+        normalized_location=ResolvedLocation(
+            status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
         varieties=[NormalizedVarietyInput(variety_id="101", planting_area_mu="100.0")],
         advanced_overrides=AO(),
         canonical_request_hash="0" * 64,
     )
     inp = SimulateScenarioInput(
         normalized_request=nr,
-        resolved_location=ResolvedLocation(status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"),
+        resolved_location=ResolvedLocation(
+            status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
         parameters=[],
         scenario_overrides=[_ov_staffing("10.0")],
         uncertainty_widening_policy=UncertaintyWideningPolicy(
-            policy_version="v1", config_hash="b" * 64,
+            policy_version="v1",
+            config_hash="b" * 64,
             factors_by_source_level={
                 "step_1_same_farm_same_variety_high_evidence": "1.000",
                 "step_2_same_township_similar_altitude": "1.250",
@@ -188,4 +205,6 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
     assert hasattr(out1.delta_vs_baseline, "single_day_peak_volume_delta_kg")
     assert hasattr(out1.delta_vs_baseline, "sustained_3day_daily_average_delta_kg_per_day")
     assert hasattr(out1.delta_vs_baseline, "sustained_3day_cumulative_delta_kg")
-    assert not hasattr(out1.delta_vs_baseline, "sustained_3day_delta")  # single scalar MUST NOT exist
+    assert not hasattr(
+        out1.delta_vs_baseline, "sustained_3day_delta"
+    )  # single scalar MUST NOT exist

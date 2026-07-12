@@ -27,20 +27,19 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.enums import BlockerCode
+from backend.app.agent.ports import LocationResolverPort
 from backend.app.agent.schemas import (
     Blocker,
+    ResolvedLocation,
     ResolveLocationCandidate,
     ResolveLocationInput,
     ResolveLocationOutput,
-    ResolvedLocation,
 )
-from backend.app.agent.ports import LocationResolverPort
+from backend.app.planning.config import ParameterInferenceRules
 
 # Reuse the production location service directly.  Per the design, no fuzzy
 # matching may be invented in Agent code; we delegate to the existing callable.
 from backend.app.planning.location import resolve_location_input as _upstream_resolve
-from backend.app.planning.config import ParameterInferenceRules
-
 
 # --- Location catalog identity --------------------------------------------
 # Slice A picks a frozen catalog-version identifier; later rounds may move
@@ -68,7 +67,9 @@ class DefaultLocationAdapter:
         self._rules = rules
         self._ambiguous_top_n = ambiguous_top_n
 
-    async def execute(self, session: AsyncSession, *, input: ResolveLocationInput) -> ResolveLocationOutput:
+    async def execute(
+        self, session: AsyncSession, *, input: ResolveLocationInput
+    ) -> ResolveLocationOutput:
         nr = input.normalized_request
         if self._resolver is None:
             if self._rules is None:
@@ -99,7 +100,9 @@ class DefaultLocationAdapter:
             blockers.append(
                 Blocker(
                     code=BlockerCode.LOCATION_AMBIGUOUS,
-                    message="Multiple locations matched with identical score; caller must disambiguate.",
+                    message=(
+                        "Multiple locations matched with identical score; caller must disambiguate."
+                    ),
                     details={
                         "top_n": self._ambiguous_top_n,
                         "effective_as_of_date": str(nr.effective_as_of_date),

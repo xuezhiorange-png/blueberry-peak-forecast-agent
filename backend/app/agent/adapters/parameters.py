@@ -38,6 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.canonical import parameters_hash as _parameters_hash_fn
 from backend.app.agent.enums import BlockerCode, Confidence
+from backend.app.agent.ports import ParameterPriorPort
 from backend.app.agent.schemas import (
     Blocker,
     Citation,
@@ -47,7 +48,6 @@ from backend.app.agent.schemas import (
     ResolvedLocation,
     UncertaintyWideningPolicy,
 )
-from backend.app.agent.ports import ParameterPriorPort
 
 
 class SourceCapabilityGapError(RuntimeError):
@@ -60,6 +60,7 @@ class SourceCapabilityGapError(RuntimeError):
 
 
 # --- Visibility predicates (frozen §10 / §26.1) --------------------------
+
 
 def is_visible_prior(
     *,
@@ -112,9 +113,7 @@ def widening_factor_for(step: int, policy: UncertaintyWideningPolicy) -> Decimal
     }[step]
     raw = policy.factors_by_source_level.get(key)
     if raw is None:
-        raise SourceCapabilityGapError(
-            f"UncertaintyWideningPolicy is missing factor for {key}"
-        )
+        raise SourceCapabilityGapError(f"UncertaintyWideningPolicy is missing factor for {key}")
     return Decimal(raw)
 
 
@@ -127,6 +126,7 @@ def confidence_for_step(step: int) -> Confidence:
 
 
 # --- Default port (delegates to upstream planning inference) ------------
+
 
 @dataclass(frozen=True)
 class ParameterPrior:
@@ -168,9 +168,7 @@ class DefaultParameterPriorPort:
         monotonic_step: int,
     ) -> ParameterPrior:
         if monotonic_step not in STEP_RANK:
-            raise SourceCapabilityGapError(
-                f"unknown monotonic step: {monotonic_step}"
-            )
+            raise SourceCapabilityGapError(f"unknown monotonic step: {monotonic_step}")
 
         # The upstream ``infer_parameter`` requires a CandidateObservation
         # list.  In Slice A we do not perform candidate observation loading;
@@ -263,6 +261,7 @@ def _to_decimal(value: Any) -> Decimal | None:
 
 # --- Top-level adapter ----------------------------------------------------
 
+
 class DefaultParameterAdapter:
     """Default ``infer_parameters`` adapter wiring the upstream pipeline."""
 
@@ -309,7 +308,9 @@ class DefaultParameterAdapter:
                         parameter_name="expected_per_mu_yield",
                         resolved_location=input.resolved_location,
                         effective_as_of_date=nr.effective_as_of_date,
-                        widening_factor=widening_factor_for(step, input.uncertainty_widening_policy),
+                        widening_factor=widening_factor_for(
+                            step, input.uncertainty_widening_policy
+                        ),
                         monotonic_step=step,
                     )
                 except SourceCapabilityGapError as exc:
@@ -413,7 +414,6 @@ def _build_citation(*, prior: ParameterPrior, effective_as_of_date: date) -> Cit
     is attached unless an override materially affected the value.
     """
 
-    authority_type: str = "TASK_8_AUTHORITY"
     # The Agent does NOT fabricate an authority envelope; we surface the
     # link as a citation with the source task but an empty authorities list.
     # Downstream orchestrator fills in the typed authority from the

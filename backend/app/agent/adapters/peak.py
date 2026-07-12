@@ -47,8 +47,8 @@ from backend.app.agent.schemas import (
     SustainedPeakEntry,
 )
 
-
 # --- Decimal arithmetic (canonical, no float) ----------------------------
+
 
 def _to_decimal(value: str) -> Decimal:
     return Decimal(value)
@@ -61,6 +61,7 @@ def _quantize(dec: Decimal) -> Decimal:
 
 
 # --- Peak finding ---------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class _Peak:
@@ -150,7 +151,9 @@ def _peak_window_cumulative(
     clipped to ``[season_start, season_end]``."""
 
     field = {"P50": "p50", "P80": "p80", "P90": "p90"}[quantile]
-    by_date = {r.date: _to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows}
+    by_date = {
+        r.date: _to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows
+    }
     window_start = max(peak_date - timedelta(days=before_days), season_start)
     window_end = min(peak_date + timedelta(days=after_days), season_end)
     total = Decimal("0")
@@ -189,8 +192,6 @@ def _peak_duration_days(
     max_run = 0
     current_run = 0
     run_start_idx: int | None = None
-    max_run_start: int | None = None
-    max_run_end: int | None = None
     for i, d in enumerate(sorted_dates):
         if by_date[d] >= threshold:
             if current_run == 0:
@@ -200,8 +201,6 @@ def _peak_duration_days(
             if run_start_idx is not None and sorted_dates[run_start_idx] <= peak_date <= d:
                 if current_run > max_run:
                     max_run = current_run
-                    max_run_start = run_start_idx
-                    max_run_end = i
         else:
             current_run = 0
             run_start_idx = None
@@ -245,6 +244,7 @@ def _dominant_variety(
 
 
 # --- Top-level adapter ----------------------------------------------------
+
 
 class DefaultPeakAdapter:
     """Default ``forecast_peak`` deterministic rule adapter."""
@@ -318,7 +318,10 @@ class DefaultPeakAdapter:
         peak_hash_payload = {
             "policy_version": policy.policy_version,
             "policy_config_hash": policy.policy_config_hash,
-            "single_day_peak": {q: {"date": str(v.date), "volume_kg": v.volume_kg} for q, v in single_day_peak.items()},
+            "single_day_peak": {
+                q: {"date": str(v.date), "volume_kg": v.volume_kg}
+                for q, v in single_day_peak.items()
+            },
             "sustained_3day_peak": {
                 q: {
                     "start_date": str(v.start_date),
