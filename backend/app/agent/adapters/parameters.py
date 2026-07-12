@@ -17,64 +17,78 @@ For each ``(variety, parameter)`` the adapter asks the
 existing TASK-005/006/007/008 ``ParameterObservation`` ORM rows via the
 upstream :func:`backend.app.planning.inference.infer_parameter` callable.
 
-**Strict capability-boundary policy.**  The TASK-013 design freezes 8 logical
-schemas, but the upstream ``parameter_observation`` ORM table only stores 7
-``parameter_type`` values (see ``PARAMETER_UNITS`` in
-``backend.app.planning.service``):
+**Strict capability-boundary policy (round 5).**
+
+The TASK-013 design freezes 8 logical schemas, but the upstream
+``parameter_observation`` ORM table only stores 7 ``parameter_type``
+values (see ``PARAMETER_UNITS`` in ``backend.app.planning.service``):
 
 * ``yield_kg_per_mu`` ← ``expected_per_mu_yield``
 * ``marketable_rate`` ← ``commodity_fruit_rate``
 * ``first_harvest_offset_days`` ← ``first_harvest_date``
 * ``maturity_peak_offset_days`` + ``maturity_width_days`` +
-*   ``maturity_skewness`` ← ``maturity_curve``
+  ``maturity_skewness`` ← ``maturity_curve`` (3 components)
 * ``harvest_realization_rate`` ← (no design schema in Slice A; reserved)
 
-The remaining 4 design schemas have **no persisted prior source** in the
-current upstream:
+The remaining 4 design schemas have **no persisted prior source** in
+the current upstream:
 
 * ``spring_festival_harvest_rate``
 * ``weather_adjustment``
 * ``post_spring_festival_backlog_release_intensity``
 * ``historical_anomaly_peak_probability``
 
-Per Charles's direction (2026-07-11): KEEP_EIGHT_LOGICAL_PARAMETER_SCHEMAS /
+Per Charles's direction (2026-07-12 round 5): KEEP_EIGHT_LOGICAL_PARAMETER_SCHEMAS /
 NO_NEW_MIGRATION_IN_SLICE_A / NO_NEW_UPSTREAM_PERSISTENCE_TABLE /
 SUPPORTED_PARAMETERS_USE_REAL_PERSISTED_EVIDENCE /
 UNSUPPORTED_PARAMETERS_RETURN_STRUCTURED_BLOCKERS /
-NO_FABRICATED_NUMERICAL_PRIORS.
+NO_FABRICATED_NUMERICAL_PRIORS / STRING_VARIETY_RESOLVED_VIA_CATALOG /
+VERSIONED_INFERENCE_CONFIG_LOADED / PERSISTED_RESOLVED_LOCATION_PROPAGATED /
+MATURITY_CURVE_3_COMPONENTS_REQUIRED.
 
-Concretely:
+Round 5 changes:
 
-1. The 8 logical schemas are kept as the public input contract.
-2. Each per-``(variety, parameter_name)`` pair that maps to a real
-   ``parameter_type`` is resolved through the real persisted observation
-   table — no fabrication, no YAML fallback, no default numeric value.
-3. Each per-``(variety, parameter_name)`` pair that has no upstream
-   ``parameter_type`` returns a structured :class:`Blocker` with code
-   :data:`BlockerCode.NO_PERSISTED_PRIOR_SOURCE` (per-variety, per-parameter).
-4. The :class:`ParameterEstimate` list only contains successfully inferred
-   parameters.  Missing parameter categories DO NOT appear as zeros, ones,
-   schema defaults, or copies of other categories.
-5. :func:`parameters_hash` is sensitive to the exact set of successfully
-   inferred parameter identities — different blocked-parameter sets yield
-   different hashes.
+1. The string variety identity is resolved through the real
+   :class:`Variety` catalog (``Variety.code → Variety.id``).  The
+   previous ``_to_int_variety_id`` helper that returned ``0`` for
+   non-numeric codes is REMOVED.  Unknown codes return
+   :data:`BlockerCode.UNKNOWN_VARIETY` (not
+   :data:`BlockerCode.INSUFFICIENT_HISTORY`).
+2. The default port loads the real versioned parameter inference
+   config from :func:`backend.app.planning.config.load_parameter_inference_config`
+   (path = ``configs/parameter_inference.yaml``).  When the config
+   is missing, malformed, or its hash is not a 64-char lowercase hex
+   string, the port surfaces
+   :data:`BlockerCode.INFERENCE_CONFIG_MISSING` /
+   :data:`BlockerCode.INFERENCE_CONFIG_HASH_MALFORMED` and
+   ``infer_parameter`` is NOT called.  No in-code default ruleset
+   fallback is permitted on the production path.
+3. The default port constructs a real
+   :class:`backend.app.planning.schemas.ResolvedLocation` from the
+   persisted :class:`LocationReference` row linked by
+   ``resolved_location.location_reference_id`` and passes that to
+   :func:`infer_parameter` (no more ``resolved_location=None``).
+4. ``maturity_curve`` is computed as a 3-component vector (peak
+   offset / width / skewness).  All three components must have
+   visible observations; if any component is missing the entire
+   ``maturity_curve`` returns
+   :data:`BlockerCode.INSUFFICIENT_HISTORY` with details listing
+   the missing component(s).  No fabrication of width/skewness
+   from the peak scalar.
+5. Concretely:
 
-The visibility predicate replicates ``backend.app.planning.service._load_candidates``:
-
-    valid_from <= as_of_date AND (valid_to IS NULL OR valid_to >= as_of_date)
-    AND available_at <= as_of_date
-
-Hard rules (unchanged):
-
-* per ``(location × variety × parameter)``;
-* :class:`UncertaintyWideningPolicy` passed explicitly; no hidden runtime
-  default policy;
-* no numerical values come from the LLM or a handwritten fallback;
-* step 1 only avoids widening when HIGH evidence is satisfied;
-* steps 2–5 widen monotonically;
-* step 5 has maximum widening and LOW confidence;
-* unknown variety returns a per-variety blocked result;
-* no numerical result is emitted for an unknown variety or unsupported parameter.
+   * 4 supported logical parameters (``expected_per_mu_yield``,
+     ``commodity_fruit_rate``, ``first_harvest_date``,
+     ``maturity_curve``) execute real inference.
+   * 4 unsupported parameters return
+     :data:`BlockerCode.NO_PERSISTED_PRIOR_SOURCE` (per-variety,
+     per-parameter).
+6. The :class:`ParameterEstimate` list only contains successfully
+   inferred parameters.  Missing parameter categories DO NOT appear
+   as zeros, ones, schema defaults, or copies of other categories.
+7. :func:`parameters_hash` is sensitive to the exact set of
+   successfully inferred parameter identities — different
+   blocked-parameter sets yield different hashes.
 """
 
 from __future__ import annotations
@@ -82,6 +96,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
@@ -114,18 +129,44 @@ class UnknownVarietyError(Exception):
     """Raised when a variety_id is not present in the variety catalog."""
 
 
+class VarietyCatalogReadFailure(RuntimeError):
+    """Raised when the Variety catalog cannot be read from the session.
+
+    Round 5: per Charles's direction, an unexpected read failure on the
+    Variety catalog is NOT silently mapped to an empty mapping.  The
+    caller must surface the failure as
+    :data:`BlockerCode.UPSTREAM_READ_FAILURE`.
+    """
+
+
 class DefaultVarietyCatalogPort(VarietyCatalogPort):
-    """Default :class:`VarietyCatalogPort` calling ``planning.plan_repository``."""
+    """Default :class:`VarietyCatalogPort` calling ``planning.plan_repository``.
+
+    Round 5: the catalog lookup returns the persisted :class:`Variety`
+    row (carrying both the string ``code`` and the int ``id``).  The
+    default prior port uses this to resolve ``Variety.code → Variety.id``
+    before querying :class:`ParameterObservation`.  No
+    ``_to_int_variety_id`` coercion of arbitrary string codes.
+    """
 
     async def is_known(self, *, session: AsyncSession, variety_id: str) -> bool:
+        row = await self.lookup_row(session=session, variety_id=variety_id)
+        return row is not None
+
+    async def lookup_row(self, *, session: AsyncSession, variety_id: str) -> Any | None:
         try:
             from backend.app.planning.plan_repository import get_variety_by_code
         except ImportError:
-            return False
-        row = await get_variety_by_code(session, variety_code=variety_id)
+            return None
+        try:
+            row = await get_variety_by_code(session, variety_code=str(variety_id))
+        except Exception as exc:  # noqa: BLE001
+            raise VarietyCatalogReadFailure(
+                f"Variety catalog read failed: {type(exc).__name__}: {exc}"
+            ) from exc
         if row is None:
             raise UnknownVarietyError(f"variety_id is not in the variety catalog: {variety_id}")
-        return True
+        return row
 
 
 # --- Logical → upstream mapping (frozen) ---------------------------------
@@ -233,160 +274,162 @@ class ParameterPrior:
     visibility_effective_from: date | None = None
     visibility_effective_to: date | None = None
     visibility_available_at: date | None = None
+    # maturity_curve-only fields (None for all other parameters)
+    maturity_peak_offset_days: Decimal | None = None
+    maturity_width_days: Decimal | None = None
+    maturity_skewness: Decimal | None = None
 
 
-def _build_default_parameter_inference_rules() -> Any:
-    """Construct the deterministic in-code default :class:`ParameterInferenceRules`.
+def _default_inference_config_path() -> Path:
+    """Return the canonical on-disk path of the parameter inference config.
 
-    Per Charles's direction, Slice A MUST NOT invent a YAML constant for
-    the parameter inference ruleset when one is not loaded.  However, the
-    production inference pipeline (``infer_parameter``) REQUIRES a
-    rules argument; it is part of the upstream signature.
-
-    Resolution: construct a deterministic ruleset with conservative
-    fallback defaults that match the project's ``configs/parameter_inference.yaml``
-    semantics.  This is a ruleset snapshot (a typed in-code equivalent of
-    the YAML), not a numerical prior.  Production code paths MUST inject
-    :func:`load_parameter_inference_config` via :class:`DefaultParameterAdapter`
-    to use the versioned on-disk YAML.
+    Mirrors the path used by the upstream :func:`load_parameter_inference_config`
+    adapter (``configs/parameter_inference.yaml``).  Tests can override
+    the path by setting the ``AGENT_PARAMETER_INFERENCE_CONFIG_PATH``
+    environment variable.
     """
 
-    from backend.app.planning.config import (
-        ConfidenceRules,
-        FallbackRule,
-        FallbackRules,
-        ParameterInferenceRules,
-        ResolverRules,
-        SimilarityRules,
-        UncertaintyRules,
-    )
+    import os
 
-    return ParameterInferenceRules(
-        resolver_version="agent-default/v1",
-        resolver=ResolverRules(
-            address_fuzzy_match_min_score=Decimal("0.600"),
-            nearest_reference_distance_km=Decimal("5.000"),
-            climate_zone_radius_km=Decimal("50.000"),
-        ),
-        similarity=SimilarityRules(
-            max_distance_km=Decimal("30.000"),
-            max_altitude_difference_m=Decimal("200.000"),
-            township_bonus=Decimal("0.200"),
-            county_bonus=Decimal("0.150"),
-            climate_zone_bonus=Decimal("0.150"),
-            same_farm_bonus=Decimal("0.300"),
-            distance_weight=Decimal("0.400"),
-            altitude_weight=Decimal("0.300"),
-            recency_weight=Decimal("0.300"),
-            ambiguity_margin=Decimal("0.020"),
-        ),
-        fallback=FallbackRules(
-            same_farm_variety=FallbackRule(
-                minimum_sample_count=2,
-                minimum_season_count=2,
-                maximum_historical_mape=Decimal("0.300"),
-            ),
-            same_township_altitude_variety=FallbackRule(
-                minimum_sample_count=2,
-                minimum_season_count=2,
-                maximum_historical_mape=Decimal("0.350"),
-            ),
-            same_county_climate_zone_variety=FallbackRule(
-                minimum_sample_count=2,
-                minimum_season_count=2,
-                maximum_historical_mape=Decimal("0.400"),
-            ),
-            same_province_variety=FallbackRule(
-                minimum_sample_count=3,
-                minimum_season_count=3,
-                maximum_historical_mape=Decimal("0.450"),
-            ),
-            literature_variety_prior=FallbackRule(
-                minimum_sample_count=1,
-                minimum_season_count=1,
-                maximum_historical_mape=None,
-            ),
-        ),
-        uncertainty=UncertaintyRules(
-            widen_low_confidence_factor=Decimal("1.250"),
-            widen_below_minimum_factor=Decimal("1.500"),
-        ),
-        confidence=ConfidenceRules(
-            high_min_score=Decimal("0.800"),
-            medium_min_score=Decimal("0.500"),
-            same_farm_high_min_seasons=2,
-            high_max_historical_mape=Decimal("0.300"),
-            medium_max_historical_mape=Decimal("0.450"),
-            missing_error_penalty=Decimal("0.050"),
-            fallback_below_minimum_penalty=Decimal("0.100"),
-            unresolved_location_penalty=Decimal("0.150"),
-        ),
-    )
+    override = os.environ.get("AGENT_PARAMETER_INFERENCE_CONFIG_PATH")
+    if override:
+        return Path(override)
+    return Path("configs/parameter_inference.yaml")
 
 
-def _resolve_location_to_dict(resolved_location: ResolvedLocation) -> dict[str, Any]:
-    """Convert :class:`ResolvedLocation` to the dict shape consumed by
-    :func:`backend.app.planning.service._load_candidates`.
+def _load_inference_rules_or_raise(
+    config_path: Path,
+) -> tuple[Any, str, str]:
+    """Load the real versioned parameter inference config (P0-1 #5).
+
+    Returns a tuple ``(rules, config_version, config_hash)``.  Raises
+    :class:`SourceCapabilityGapError` when the config file is missing,
+    malformed, or its computed hash is not a 64-char lowercase hex
+    string.  No in-code default ruleset fallback is permitted.
     """
 
-    out: dict[str, Any] = {
-        "location_reference_id": resolved_location.location_reference_id,
-        "address_normalized": resolved_location.address_normalized,
-        "address_raw": resolved_location.address_raw,
-        "farm_name": resolved_location.farm_name,
-        "subfarm_name": resolved_location.subfarm_name,
-        "province": resolved_location.province,
-        "prefecture": resolved_location.prefecture,
-        "county": resolved_location.county,
-        "township": resolved_location.township,
-        "village": resolved_location.village,
-        "matched_location_method": resolved_location.matched_location_method,
-        "climate_zone_id": resolved_location.climate_zone_id,
-        "climate_zone_code": resolved_location.climate_zone_code,
-        "climate_zone_version": resolved_location.climate_zone_version,
-    }
-    if resolved_location.mapping_confidence is not None:
-        out["mapping_confidence"] = resolved_location.mapping_confidence
-    if resolved_location.distance_km is not None:
-        out["distance_km"] = resolved_location.distance_km
-    if resolved_location.altitude_difference_m is not None:
-        out["altitude_difference_m"] = resolved_location.altitude_difference_m
-    # The upstream expects latitude/longitude; the agent ResolvedLocation
-    # does not store these directly, so we leave them unset.  When unset,
-    # ``_load_candidates`` returns [].  Slice A cannot fabricate them.
-    return out
+    import re
 
+    from backend.app.planning.config import load_parameter_inference_config
 
-def _to_int_variety_id(variety_id: str) -> int:
-    """Best-effort conversion of a string variety code to an int PK.
-
-    Returns ``0`` when the code is not numeric; the upstream loader
-    requires an int ``variety_id``.  Slice A treats non-numeric codes as
-    a capability gap (``UNKNOWN_VARIETY`` upstream); the adapter surfaces
-    this as INSUFFICIENT_HISTORY for non-numeric codes.
-    """
-
+    if not config_path.exists():
+        raise SourceCapabilityGapError(
+            f"parameter inference config not found at {config_path!s} "
+            "(required by P0-1 round 5: versioned config must be loaded "
+            "from the on-disk YAML)"
+        )
     try:
-        return int(variety_id)
-    except (TypeError, ValueError):
-        return 0
+        config = load_parameter_inference_config(config_path)
+    except Exception as exc:  # noqa: BLE001
+        raise SourceCapabilityGapError(
+            f"parameter inference config at {config_path!s} failed to load: "
+            f"{type(exc).__name__}: {exc}"
+        ) from exc
+    rules = getattr(config, "rules", None)
+    config_version = str(getattr(rules, "resolver_version", "") or "")
+    config_hash = str(getattr(config, "config_hash", "") or "")
+    if not config_version or config_version in {"v0", "unknown"}:
+        raise SourceCapabilityGapError(
+            f"parameter inference config at {config_path!s} has invalid "
+            f"resolver_version={config_version!r}"
+        )
+    if not re.fullmatch(r"[0-9a-f]{64}", config_hash or ""):
+        raise SourceCapabilityGapError(
+            f"parameter inference config at {config_path!s} has invalid "
+            f"config_hash={config_hash!r} (expected 64-char lowercase hex)"
+        )
+    return rules, config_version, config_hash
+
+
+def _build_upstream_resolved_location(
+    *, agent_resolved_location: ResolvedLocation, location_reference: Any
+) -> Any:
+    """Build the upstream :class:`ResolvedLocation` (P0-1 #6).
+
+    The upstream dataclass requires latitude, longitude, and
+    optional altitude.  These are read from the persisted
+    :class:`LocationReference` row linked by
+    ``agent_resolved_location.location_reference_id``.  When the
+    reference is missing, the missing fields surface as
+    :data:`BlockerCode.LOCATION_SOURCE_CAPABILITY_MISSING`.
+    """
+
+    from backend.app.planning.schemas import ResolvedLocation as UpstreamResolvedLocation
+
+    if location_reference is None:
+        return None
+    latitude = getattr(location_reference, "latitude", None)
+    longitude = getattr(location_reference, "longitude", None)
+    if latitude is None or longitude is None:
+        return None
+    return UpstreamResolvedLocation(
+        status="resolved",
+        location_reference_id=int(getattr(location_reference, "id", 0) or 0) or None,
+        address_raw=agent_resolved_location.address_raw,
+        address_normalized=agent_resolved_location.address_normalized or "",
+        province=agent_resolved_location.province,
+        prefecture=agent_resolved_location.prefecture,
+        county=agent_resolved_location.county,
+        township=agent_resolved_location.township,
+        village=None,
+        farm_name=agent_resolved_location.farm_name,
+        latitude=Decimal(str(latitude)),
+        longitude=Decimal(str(longitude)),
+        altitude_m=(
+            Decimal(str(getattr(location_reference, "altitude_m", "")))
+            if getattr(location_reference, "altitude_m", None) is not None
+            else None
+        ),
+        climate_zone_id=agent_resolved_location.climate_zone_id,
+        climate_zone_code=agent_resolved_location.climate_zone_code,
+        climate_zone_mapping_method=None,
+        climate_zone_confidence=(
+            Decimal(str(agent_resolved_location.mapping_confidence))
+            if agent_resolved_location.mapping_confidence is not None
+            else None
+        ),
+        candidate_count=len(agent_resolved_location.candidates),
+        confidence_score=(
+            Decimal(str(agent_resolved_location.score))
+            if agent_resolved_location.score is not None
+            else None
+        ),
+        warnings=((agent_resolved_location.warning,) if agent_resolved_location.warning else ()),
+        candidates=tuple(agent_resolved_location.candidates),
+        reproducibility_snapshot={
+            "agent_status": agent_resolved_location.status,
+            "agent_matched_location_method": str(agent_resolved_location.matched_location_method),
+        },
+    )
 
 
 class DefaultParameterPriorPort:
-    """Real persisted observation port.
+    """Real persisted observation port (P0-1 round 5).
 
     Loads :class:`ParameterObservation` rows for the given
     ``(variety_id, parameter_type)``, applies the §26.1 visibility
-    predicate, projects the rows to :class:`CandidateObservation` objects,
-    and calls :func:`infer_parameter` from the upstream pipeline.  No
-    candidate fabrication: when the DB has no visible rows, the inference
-    returns ``status='unavailable'`` and the port surfaces
-    ``p50_value=None`` to the adapter (which records a per-variety
-    INSUFFICIENT_HISTORY blocker).
+    predicate, projects the rows to :class:`CandidateObservation`
+    objects, and calls :func:`infer_parameter` from the upstream
+    pipeline.  The default port:
+
+    * resolves the string variety identity through the real
+      :class:`Variety` catalog (no ``int()`` coercion);
+    * loads the real versioned :func:`load_parameter_inference_config`
+      from the on-disk YAML (no in-code default ruleset fallback);
+    * builds a real upstream :class:`ResolvedLocation` from the
+      persisted :class:`LocationReference` row (no
+      ``resolved_location=None``);
+    * handles the 3-component ``maturity_curve`` schema end-to-end.
     """
 
-    def __init__(self, *, rules: Any | None = None) -> None:
-        self._rules = rules  # None ⇒ use the deterministic default ruleset
+    def __init__(
+        self,
+        *,
+        config_path: Path | None = None,
+        catalog: VarietyCatalogPort | None = None,
+    ) -> None:
+        self._config_path = config_path or _default_inference_config_path()
+        self._catalog = catalog or DefaultVarietyCatalogPort()
 
     async def resolve_parameter(
         self,
@@ -402,125 +445,138 @@ class DefaultParameterPriorPort:
         if monotonic_step not in STEP_RANK:
             raise SourceCapabilityGapError(f"unknown monotonic step: {monotonic_step}")
 
-        # Validate the logical schema is one of the 8 frozen names.
         if parameter_name not in ALL_LOGICAL_PARAMETERS:
             raise SourceCapabilityGapError(f"unknown logical parameter_name: {parameter_name!r}")
 
-        # Map the logical schema to the upstream parameter_type(s).
         upstream_types = LOGICAL_TO_UPSTREAM.get(parameter_name)
         if upstream_types is None:
-            # 4 categories with no real persisted prior source.  Surface
-            # a typed gap to the adapter (which records a per-variety
-            # NO_PERSISTED_PRIOR_SOURCE blocker).
             raise SourceCapabilityGapError(
                 f"logical parameter {parameter_name!r} has no persisted upstream parameter_type"
             )
 
-        # The 4 composed (maturity_curve) and 1 single (yield_kg_per_mu)
-        # upstream types are reduced to a single p50 in the agent output.
-        # For composed categories we use the FIRST upstream type as the
-        # canonical inference target; the remaining types are documented
-        # in the citation but their values are not concatenated (no
-        # fabrication).
-        primary_type = upstream_types[0]
-
-        rules = self._rules or _build_default_parameter_inference_rules()
-        int_variety_id = _to_int_variety_id(variety_id)
-        if int_variety_id <= 0:
-            # Non-numeric variety code; the upstream ``_load_candidates``
-            # requires an int PK.  Slice A surfaces this as
-            # INSUFFICIENT_HISTORY (no numeric fabrication).
-            return ParameterPrior(
+        # Variety code → PK resolution (P0-1 #4): use the catalog.
+        try:
+            variety_row = await self._catalog.lookup_row(session=session, variety_id=variety_id)
+        except UnknownVarietyError:
+            return _unsupported_prior(
                 parameter_name=parameter_name,
-                variety_id=str(variety_id),
-                p50=None,
-                p80_lower=None,
-                p80_upper=None,
-                source_level=monotonic_step,
-                confidence=confidence_for_step(monotonic_step),
-                sample_count=0,
-                season_count=0,
-                farm_count=0,
-                source_observation_ids=(),
-                missing_evidence=("variety_id_not_int",),
+                variety_id=variety_id,
+                monotonic_step=monotonic_step,
+                missing_evidence=("unknown_variety",),
             )
-
-        candidates = await _load_candidates_from_orm(
-            session=session,
-            variety_id=int_variety_id,
-            parameter_type=primary_type,
-            effective_as_of_date=effective_as_of_date,
-            resolved_location=resolved_location,
-        )
-
-        if not candidates:
-            return ParameterPrior(
+        except VarietyCatalogReadFailure:
+            # UPSTREAM_READ_FAILURE on the Variety catalog itself must
+            # propagate; the adapter surfaces it via
+            # :data:`BlockerCode.UPSTREAM_READ_FAILURE`.
+            raise
+        if variety_row is None:
+            return _unsupported_prior(
                 parameter_name=parameter_name,
-                variety_id=str(variety_id),
-                p50=None,
-                p80_lower=None,
-                p80_upper=None,
-                source_level=monotonic_step,
-                confidence=confidence_for_step(monotonic_step),
-                sample_count=0,
-                season_count=0,
-                farm_count=0,
-                source_observation_ids=(),
-                missing_evidence=("no_visible_observations",),
+                variety_id=variety_id,
+                monotonic_step=monotonic_step,
+                missing_evidence=("unknown_variety",),
+            )
+        variety_pk = int(variety_row.id)
+
+        # Load the real versioned inference config (P0-1 #5).
+        rules, config_version, config_hash = _load_inference_rules_or_raise(self._config_path)
+
+        # Load the real persisted LocationReference (P0-1 #6).
+        location_reference = await _load_location_reference(
+            session=session,
+            location_reference_id=resolved_location.location_reference_id,
+        )
+        upstream_resolved_location = _build_upstream_resolved_location(
+            agent_resolved_location=resolved_location,
+            location_reference=location_reference,
+        )
+        if upstream_resolved_location is None:
+            # P0-1 #6: missing location reference or required
+            # coordinates → LOCATION_SOURCE_CAPABILITY_MISSING blocker.
+            # We do NOT call ``infer_parameter`` in this case.
+            return _unsupported_prior(
+                parameter_name=parameter_name,
+                variety_id=variety_id,
+                monotonic_step=monotonic_step,
+                missing_evidence=("location_source_capability_missing",),
             )
 
         from backend.app.planning.inference import infer_parameter
 
+        if parameter_name == "maturity_curve":
+            # P0-1 #7: 3-component maturity_curve.  All three
+            # components must have visible observations; otherwise the
+            # entire maturity_curve is blocked (INSUFFICIENT_HISTORY
+            # listing the missing component(s)).
+            return await _resolve_maturity_curve(
+                session=session,
+                variety_id=variety_id,
+                variety_pk=variety_pk,
+                resolved_location=resolved_location,
+                upstream_resolved_location=upstream_resolved_location,
+                effective_as_of_date=effective_as_of_date,
+                rules=rules,
+                monotonic_step=monotonic_step,
+                config_version=config_version,
+                config_hash=config_hash,
+            )
+
+        # Single-upstream-type logical parameter
+        primary_type = upstream_types[0]
+        candidates = await _load_candidates_from_orm(
+            session=session,
+            variety_id=variety_pk,
+            parameter_type=primary_type,
+            effective_as_of_date=effective_as_of_date,
+            resolved_location=resolved_location,
+        )
+        if not candidates:
+            return _unsupported_prior(
+                parameter_name=parameter_name,
+                variety_id=variety_id,
+                monotonic_step=monotonic_step,
+                missing_evidence=("no_visible_observations",),
+            )
+
         floor, ceiling = _parameter_bounds(primary_type)
-        # Pass None for ``resolved_location``: the agent layer does NOT
-        # carry latitude/longitude (the upstream requirement for matching
-        # candidates).  The upstream ``infer_parameter`` accepts None and
-        # the candidates list returned by ``_load_candidates_from_orm``
-        # still drives the inference result.  When the upstream selection
-        # rejects all candidates (no lat/lng for the matched subset), the
-        # inference returns ``status='unavailable'`` and the per-variety
-        # INSUFFICIENT_HISTORY blocker is surfaced — no fabrication.
         result = infer_parameter(
             parameter_type=primary_type,
             candidates=candidates,
             rules=rules,
             floor=floor,
             ceiling=ceiling,
-            resolved_location=None,
+            resolved_location=upstream_resolved_location,
             as_of_date=effective_as_of_date,
         )
-
-        p50_value = getattr(result, "p50_value", None)
-        p80_lower = getattr(result, "p80_lower", None)
-        p80_upper = getattr(result, "p80_upper", None)
-        source_level_value = getattr(result, "source_level", None) or monotonic_step
-        confidence_value = getattr(result, "confidence_level", None) or confidence_for_step(
-            monotonic_step
-        )
-
-        sample_count = int(getattr(result, "sample_count", 0))
-        season_count = int(getattr(result, "season_count", 0))
-        farm_count = int(getattr(result, "farm_count", 0))
-        obs_ids = tuple(int(i) for i in getattr(result, "source_observation_ids", ()))
-        missing = tuple(getattr(result, "missing_evidence", ()))
-
-        # ``p50_value`` is Decimal|None from the upstream.  We keep it as-is
-        # — when status='unavailable', the upstream returns None and we
-        # propagate that to the adapter.
-        return ParameterPrior(
+        return _build_parameter_prior_from_inference_result(
+            result=result,
             parameter_name=parameter_name,
-            variety_id=str(variety_id),
-            p50=_to_decimal(p50_value),
-            p80_lower=_to_decimal(p80_lower),
-            p80_upper=_to_decimal(p80_upper),
-            source_level=int(source_level_value),
-            confidence=_normalize_confidence(confidence_value),
-            sample_count=sample_count,
-            season_count=season_count,
-            farm_count=farm_count,
-            source_observation_ids=obs_ids,
-            missing_evidence=missing,
+            variety_id=variety_id,
+            monotonic_step=monotonic_step,
         )
+
+
+def _unsupported_prior(
+    *,
+    parameter_name: str,
+    variety_id: str,
+    monotonic_step: int,
+    missing_evidence: tuple[str, ...],
+) -> ParameterPrior:
+    return ParameterPrior(
+        parameter_name=parameter_name,
+        variety_id=str(variety_id),
+        p50=None,
+        p80_lower=None,
+        p80_upper=None,
+        source_level=monotonic_step,
+        confidence=confidence_for_step(monotonic_step),
+        sample_count=0,
+        season_count=0,
+        farm_count=0,
+        source_observation_ids=(),
+        missing_evidence=missing_evidence,
+    )
 
 
 def _normalize_confidence(value: Any) -> Confidence:
@@ -540,6 +596,167 @@ def _parameter_bounds(parameter_type: str) -> tuple[Decimal | None, Decimal | No
     return upstream_bounds(parameter_type)
 
 
+async def _load_location_reference(
+    *, session: AsyncSession, location_reference_id: int | None
+) -> Any:
+    """Load the persisted :class:`LocationReference` row for the given id.
+
+    Returns ``None`` when no reference is present (the caller
+    translates this to LOCATION_SOURCE_CAPABILITY_MISSING).
+    """
+
+    if location_reference_id is None:
+        return None
+    try:
+        from backend.app.models.planning import LocationReference
+    except ImportError:
+        return None
+    try:
+        return await session.get(LocationReference, int(location_reference_id))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+async def _resolve_maturity_curve(
+    *,
+    session: AsyncSession,
+    variety_id: str,
+    variety_pk: int,
+    resolved_location: ResolvedLocation,
+    upstream_resolved_location: Any,
+    effective_as_of_date: date,
+    rules: Any,
+    monotonic_step: int,
+    config_version: str,
+    config_hash: str,
+) -> ParameterPrior:
+    """P0-1 #7: 3-component maturity_curve.
+
+    All three components must produce a non-``None`` numeric estimate.
+    If any component is missing, the entire ``maturity_curve`` is
+    blocked and ``missing_evidence`` lists the missing component
+    identifier(s).
+    """
+
+    from backend.app.planning.inference import infer_parameter
+
+    component_results: dict[str, Any] = {}
+    component_prior_estimates: dict[str, tuple[Decimal | None, int]] = {}
+    missing_components: list[str] = []
+    all_observation_ids: list[int] = []
+    for component_type in ("maturity_peak_offset_days", "maturity_width_days", "maturity_skewness"):
+        candidates = await _load_candidates_from_orm(
+            session=session,
+            variety_id=variety_pk,
+            parameter_type=component_type,
+            effective_as_of_date=effective_as_of_date,
+            resolved_location=resolved_location,
+        )
+        if not candidates:
+            missing_components.append(component_type)
+            continue
+        floor, ceiling = _parameter_bounds(component_type)
+        result = infer_parameter(
+            parameter_type=component_type,
+            candidates=candidates,
+            rules=rules,
+            floor=floor,
+            ceiling=ceiling,
+            resolved_location=upstream_resolved_location,
+            as_of_date=effective_as_of_date,
+        )
+        component_results[component_type] = result
+        component_prior_estimates[component_type] = (
+            getattr(result, "p50_value", None),
+            int(getattr(result, "sample_count", 0) or 0),
+        )
+        obs_ids = getattr(result, "source_observation_ids", ()) or ()
+        all_observation_ids.extend(int(i) for i in obs_ids)
+        if getattr(result, "p50_value", None) is None:
+            missing_components.append(component_type)
+
+    if missing_components:
+        return ParameterPrior(
+            parameter_name="maturity_curve",
+            variety_id=str(variety_id),
+            p50=None,
+            p80_lower=None,
+            p80_upper=None,
+            source_level=monotonic_step,
+            confidence=confidence_for_step(monotonic_step),
+            sample_count=0,
+            season_count=0,
+            farm_count=0,
+            source_observation_ids=(),
+            missing_evidence=tuple(
+                f"maturity_curve_component_missing:{c}" for c in missing_components
+            ),
+        )
+
+    # All three components present — construct a composite
+    # ``ParameterPrior`` whose ``p50`` carries the peak offset as the
+    # primary scalar (the design's ``maturity_curve`` schema expects a
+    # 3-tuple semantic), and the three component decimals are
+    # surfaced as dedicated fields.
+    peak_result = component_results["maturity_peak_offset_days"]
+    return ParameterPrior(
+        parameter_name="maturity_curve",
+        variety_id=str(variety_id),
+        p50=_to_decimal(getattr(peak_result, "p50_value", None)),
+        p80_lower=_to_decimal(getattr(peak_result, "p80_lower", None)),
+        p80_upper=_to_decimal(getattr(peak_result, "p80_upper", None)),
+        source_level=int(getattr(peak_result, "source_level", monotonic_step) or monotonic_step),
+        confidence=_normalize_confidence(getattr(peak_result, "confidence_level", None)),
+        sample_count=int(getattr(peak_result, "sample_count", 0) or 0),
+        season_count=int(getattr(peak_result, "season_count", 0) or 0),
+        farm_count=int(getattr(peak_result, "farm_count", 0) or 0),
+        source_observation_ids=tuple(all_observation_ids),
+        missing_evidence=(),
+        maturity_peak_offset_days=_to_decimal(
+            component_prior_estimates["maturity_peak_offset_days"][0]
+        ),
+        maturity_width_days=_to_decimal(component_prior_estimates["maturity_width_days"][0]),
+        maturity_skewness=_to_decimal(component_prior_estimates["maturity_skewness"][0]),
+    )
+
+
+def _build_parameter_prior_from_inference_result(
+    *,
+    result: Any,
+    parameter_name: str,
+    variety_id: str,
+    monotonic_step: int,
+) -> ParameterPrior:
+    p50_value = getattr(result, "p50_value", None)
+    p80_lower = getattr(result, "p80_lower", None)
+    p80_upper = getattr(result, "p80_upper", None)
+    source_level_value = getattr(result, "source_level", None) or monotonic_step
+    confidence_value = getattr(result, "confidence_level", None) or confidence_for_step(
+        monotonic_step
+    )
+
+    sample_count = int(getattr(result, "sample_count", 0))
+    season_count = int(getattr(result, "season_count", 0))
+    farm_count = int(getattr(result, "farm_count", 0))
+    obs_ids = tuple(int(i) for i in getattr(result, "source_observation_ids", ()))
+    missing = tuple(getattr(result, "missing_evidence", ()))
+
+    return ParameterPrior(
+        parameter_name=parameter_name,
+        variety_id=str(variety_id),
+        p50=_to_decimal(p50_value),
+        p80_lower=_to_decimal(p80_lower),
+        p80_upper=_to_decimal(p80_upper),
+        source_level=int(source_level_value),
+        confidence=_normalize_confidence(confidence_value),
+        sample_count=sample_count,
+        season_count=season_count,
+        farm_count=farm_count,
+        source_observation_ids=obs_ids,
+        missing_evidence=missing,
+    )
+
+
 async def _load_candidates_from_orm(
     *,
     session: AsyncSession,
@@ -550,16 +767,16 @@ async def _load_candidates_from_orm(
 ) -> list[Any]:
     """Load and project :class:`ParameterObservation` rows to CandidateObservation.
 
-    Mirrors :func:`backend.app.planning.service._load_candidates` but stays
-    agent-local and uses :class:`AsyncSession` directly without invoking the
-    upstream private helper.  Returns ``[]`` when the table is not part of
-    the agent's session (e.g. SQLite fixture) — the caller treats ``[]``
-    as ``status='unavailable'``.
+    Mirrors :func:`backend.app.planning.service._load_candidates` but
+    stays agent-local and uses :class:`AsyncSession` directly without
+    invoking the upstream private helper.  Returns ``[]`` when the
+    table is not part of the agent's session (e.g. SQLite fixture) —
+    the caller treats ``[]`` as ``status='unavailable'``.
     """
 
     try:
-        from backend.app.models.planning import ParameterObservation, LocationReference
         from backend.app.models.master_data import Farm, Season
+        from backend.app.models.planning import ParameterObservation
     except ImportError:
         return []
 
@@ -584,26 +801,29 @@ async def _load_candidates_from_orm(
     location_reference_ids = [
         r.location_reference_id for r in rows if r.location_reference_id is not None
     ]
-    reference_lookup: dict[int, Any] = {
-        row.id: row
-        for row in (
-            await session.scalars(
-                select(LocationReference).where(LocationReference.id.in_(location_reference_ids))
-            )
-        ).all()
-    }
+    location_lookup: dict[int, Any] = {}
+    if location_reference_ids:
+        from backend.app.models.planning import LocationReference
+
+        location_lookup = {
+            row.id: row
+            for row in (
+                await session.scalars(
+                    select(LocationReference).where(
+                        LocationReference.id.in_(location_reference_ids)
+                    )
+                )
+            ).all()
+        }
     season_lookup: dict[int, Any] = {
         row.id: row
         for row in (await session.scalars(select(Season).order_by(Season.id.asc()))).all()
     }
 
-    # If the agent-side ResolvedLocation does not carry lat/lng, the
-    # upstream _load_candidates would return []; this port must mirror
-    # that behaviour without fabricating coordinates.
     candidates: list[Any] = []
     for row in rows:
         reference = (
-            reference_lookup.get(row.location_reference_id)
+            location_lookup.get(row.location_reference_id)
             if row.location_reference_id is not None
             else None
         )
@@ -653,11 +873,16 @@ async def _load_candidates_from_orm(
                 township=candidate_township,
                 farm_name=farm_name,
                 altitude_m=row.altitude_m,
-                # Latitude/longitude are intentionally NOT fabricated when
-                # the agent ResolvedLocation does not carry them; this
-                # causes the upstream to return [].
-                latitude=None,
-                longitude=None,
+                latitude=(
+                    Decimal(str(reference.latitude))
+                    if reference is not None and reference.latitude is not None
+                    else None
+                ),
+                longitude=(
+                    Decimal(str(reference.longitude))
+                    if reference is not None and reference.longitude is not None
+                    else None
+                ),
                 season_id=row.season_id,
                 season_code=str(season.season_code) if season is not None else None,
                 season_end_date=season.end_date if season is not None else None,
@@ -696,11 +921,16 @@ class DefaultParameterAdapter:
     * Parameter maps to upstream type but no visible observations →
       :class:`BlockerCode.INSUFFICIENT_HISTORY`
     * Parameter has no persisted upstream source → :class:`BlockerCode.NO_PERSISTED_PRIOR_SOURCE`
+    * Location source missing required coordinates →
+      :class:`BlockerCode.LOCATION_SOURCE_CAPABILITY_MISSING`
+    * Inference config missing / malformed →
+      :class:`BlockerCode.INFERENCE_CONFIG_MISSING` /
+      :class:`BlockerCode.INFERENCE_CONFIG_HASH_MALFORMED`
 
     The ``parameters_hash`` is computed over the canonical list of
     :class:`ParameterEstimate` (successful parameters only); the
-    ``blocked_parameter_identities`` field records the per-variety set of
-    blocked parameter names for downstream observability.
+    ``blocked_parameter_identities`` field records the per-variety set
+    of blocked parameter names for downstream observability.
     """
 
     def __init__(
@@ -709,7 +939,7 @@ class DefaultParameterAdapter:
         port: ParameterPriorPort | None = None,
         catalog: VarietyCatalogPort | None = None,
     ) -> None:
-        self._port = port or DefaultParameterPriorPort()
+        self._port = port or DefaultParameterPriorPort(catalog=catalog)
         self._catalog = catalog or DefaultVarietyCatalogPort()
 
     async def execute(
@@ -727,7 +957,7 @@ class DefaultParameterAdapter:
         blocked_parameter_identities: list[dict[str, Any]] = []
 
         for variety in nr.varieties:
-            # P0-2.1: validate the variety via the catalog.
+            # Variety code resolution via the real catalog (P0-1 #4).
             try:
                 await self._catalog.is_known(session=session, variety_id=variety.variety_id)
             except UnknownVarietyError:
@@ -738,6 +968,16 @@ class DefaultParameterAdapter:
                         message=(f"variety_id is not in the variety catalog: {variety.variety_id}"),
                         details={"variety_id": variety.variety_id},
                         retry_hint="FIX_INPUT",
+                    )
+                )
+                continue
+            except VarietyCatalogReadFailure as exc:
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.UPSTREAM_READ_FAILURE,
+                        message=str(exc),
+                        details={"variety_id": variety.variety_id},
+                        retry_hint="WAIT_FOR_DATA",
                     )
                 )
                 continue
@@ -849,9 +1089,6 @@ async def _resolve_one_parameter(
                 monotonic_step=step,
             )
         except SourceCapabilityGapError as exc:
-            # ``unsupported parameter`` is raised immediately for ALL
-            # steps (no upstream type maps to this logical schema).
-            # Surface the per-variety NO_PERSISTED_PRIOR_SOURCE blocker.
             return (
                 Blocker(
                     code=BlockerCode.NO_PERSISTED_PRIOR_SOURCE,
@@ -917,6 +1154,7 @@ def _build_citation(*, prior: ParameterPrior, effective_as_of_date: date) -> Cit
 __all__ = [
     "SourceCapabilityGapError",
     "UnknownVarietyError",
+    "VarietyCatalogReadFailure",
     "is_visible_prior",
     "widening_factor_for",
     "confidence_for_step",

@@ -59,6 +59,7 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 from backend.app.models.master_data import Variety
+from backend.app.models.planning import LocationReference
 from backend.app.models.residual_model import (
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
@@ -769,6 +770,21 @@ async def test_default_parameters_load_real_priors(sqlite_session):
     session = sqlite_session
     var = Variety(id=1, code="Dx", name="Test")
     session.add(var)
+    # Round 5: a real LocationReference is required so the default
+    # prior port can construct the upstream ResolvedLocation (P0-1 #6).
+    loc_ref = LocationReference(
+        id=1,
+        address_normalized="云南曲靖",
+        latitude=Decimal("25.500000"),
+        longitude=Decimal("103.800000"),
+        altitude_m=Decimal("1885.00"),
+        location_source="agent_test_fixture",
+        source_version="test-fixture/v1",
+        valid_from=date(2020, 1, 1),
+        valid_to=None,
+        source_row_hash="a" * 64,
+    )
+    session.add(loc_ref)
     await session.flush()
 
     # With no real prior observations table, the upstream infer_parameter
@@ -817,9 +833,13 @@ async def test_default_parameters_load_real_priors(sqlite_session):
         ),
     )
     out = await adapter.execute(session, input=inp)
-    # Block codes must be INSUFFICIENT_HISTORY (no fabrication).
+    # Block codes include INSUFFICIENT_HISTORY (no fabricated numerics)
+    # for the 4 supported logical parameters with no visible
+    # observations, AND NO_PERSISTED_PRIOR_SOURCE for the 4
+    # unsupported logical parameters.
     codes = [b.code.value for b in out.blockers]
     assert "INSUFFICIENT_HISTORY" in codes
+    assert "NO_PERSISTED_PRIOR_SOURCE" in codes
     # No fabricated parameter estimate.
     assert out.parameters == []
 
@@ -1489,6 +1509,25 @@ async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
         pool_row_count=3,
     )
     await sqlite_session.flush()
+    # P0-3 #11 round 5: insert member rows covering the requested
+    # variety "Dx" so the runs are not filtered out by the new
+    # variety-scope selector.
+    var = Variety(id=1, code="Dx", name="Test")
+    sqlite_session.add(var)
+    await sqlite_session.flush()
+    for hsr in (hsr1, hsr2):
+        for d in (date(2026, 3, 1), date(2026, 3, 2)):
+            for q in ("P50", "P80", "P90"):
+                _add_member_row(
+                    sqlite_session,
+                    harvest_state_run_id=hsr.id,
+                    state_date=d,
+                    quantile=q,
+                    capacity_pool_id=1,
+                    variety_id=1,
+                    destination_factory_id=1,
+                    arrival_kg=Decimal("100"),
+                )
     for hsr in (hsr1, hsr2):
         for d in (date(2026, 3, 1), date(2026, 3, 2)):
             for q in ("P50", "P80", "P90"):
@@ -1970,9 +2009,22 @@ def test_forecast_daily_curve_hash_differs_with_weather_tags():
 
 
 def test_spring_festival_calendar_port_deterministic():
-    cal = DefaultSpringFestivalCalendarPort()
-    # 2026-02-17 is Chinese New Year 2026.
-    assert cal.phase_for(target=date(2026, 2, 17)) == "DURING"
-    assert cal.phase_for(target=date(2026, 2, 10)) == "PRE"
-    assert cal.phase_for(target=date(2026, 2, 25)) == "POST"
-    assert cal.phase_for(target=date(2026, 6, 1)) == "NONE"
+    # Round 5: the default production port is fail-closed (no
+    # versioned policy loaded → phase is always "NONE").  The
+    # hardcoded 2020–2030 table is preserved as a TEST FIXTURE only.
+    default = DefaultSpringFestivalCalendarPort()
+    assert default.phase_for(target=date(2026, 2, 17)) == "NONE"
+    assert default.phase_for(target=date(2026, 6, 1)) == "NONE"
+    assert default.is_policy_loaded() is False
+
+    # The hardcoded fixture is still available for tests that opt in.
+    from backend.app.agent.adapters.task_loaders import (
+        HardcodedSpringFestivalCalendarPort,
+    )
+
+    fixture = HardcodedSpringFestivalCalendarPort()
+    assert fixture.phase_for(target=date(2026, 2, 17)) == "DURING"
+    assert fixture.phase_for(target=date(2026, 2, 10)) == "PRE"
+    assert fixture.phase_for(target=date(2026, 2, 25)) == "POST"
+    assert fixture.phase_for(target=date(2026, 6, 1)) == "NONE"
+    assert fixture.is_policy_loaded() is True

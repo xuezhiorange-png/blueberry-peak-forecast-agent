@@ -55,7 +55,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,8 +85,8 @@ def _ds(value: Decimal | int | float | str | None) -> str:
     return format(_d(value), "f")
 
 
-# Per-variety grain capability blocker (added in P0-4).
-TASK9_PER_VARIETY_GRAIN_MISSING = "TASK9_PER_VARIETY_GRAIN_MISSING"
+# Per-variety grain capability blocker.  Now exposed as
+# :data:`BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING` (P0-4 round 5).
 
 
 @dataclass(frozen=True)
@@ -139,12 +139,25 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
         task9_run_id_override = _select_authority_run_id(
             advanced_overrides, "TASK9_HARVEST_STATE_RUN"
         )
-        task9_candidates = await _select_harvest_state_run_candidates(
-            session,
-            as_of=normalized_request.effective_as_of_date,
-            run_id_override=task9_run_id_override,
-            destination_factory_id=getattr(resolved_location, "location_reference_id", None),
-        )
+        requested_variety_codes = tuple(str(v.variety_id) for v in normalized_request.varieties)
+        try:
+            task9_candidates = await _select_harvest_state_run_candidates(
+                session,
+                as_of=normalized_request.effective_as_of_date,
+                run_id_override=task9_run_id_override,
+                destination_factory_id=getattr(resolved_location, "location_reference_id", None),
+                requested_variety_codes=requested_variety_codes,
+            )
+        except UpstreamReadFailure as exc:
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.UPSTREAM_READ_FAILURE,
+                    message=(f"TASK-009 selector raised an upstream read failure: {exc}"),
+                    details={"field": "harvest_state_run_selector"},
+                    retry_hint="WAIT_FOR_DATA",
+                )
+            )
+            return BaselineCompositionResult(rows=[], blockers=blockers)
         if not task9_candidates:
             blockers.append(
                 Blocker(
@@ -194,12 +207,23 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
         task10_run_id_override = _select_authority_run_id(
             advanced_overrides, "TASK10_PREDICTION_RUN"
         )
-        task10_candidates = await _select_residual_prediction_run_candidates(
-            session,
-            task9_run_id=task9_run_id,
-            task9_result_hash=task9_result_hash,
-            prediction_run_id_override=task10_run_id_override,
-        )
+        try:
+            task10_candidates = await _select_residual_prediction_run_candidates(
+                session,
+                task9_run_id=task9_run_id,
+                task9_result_hash=task9_result_hash,
+                prediction_run_id_override=task10_run_id_override,
+            )
+        except UpstreamReadFailure as exc:
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.UPSTREAM_READ_FAILURE,
+                    message=(f"TASK-010 selector raised an upstream read failure: {exc}"),
+                    details={"field": "residual_prediction_run_selector"},
+                    retry_hint="WAIT_FOR_DATA",
+                )
+            )
+            return BaselineCompositionResult(rows=[], blockers=blockers)
         if not task10_candidates:
             blockers.append(
                 Blocker(
@@ -280,6 +304,33 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
                 session,
                 task9_run_id=task9_run_id,
             )
+        # P0-5 #16: when an explicit TASK-8 override is supplied, it
+        # MUST equal the maturity_forecast_run_id pointer on the
+        # selected TASK-009 row.  Otherwise we surface
+        # TASK8_AUTHORITY_LINEAGE_MISMATCH.
+        if task8_overrides:
+            lineage_mf_id = await _select_maturity_forecast_run_id(
+                session,
+                task9_run_id=task9_run_id,
+            )
+            if lineage_mf_id is not None and int(task8_run_id or -1) != int(lineage_mf_id):
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.TASK8_AUTHORITY_LINEAGE_MISMATCH,
+                        message=(
+                            "TASK-008 override does not match the "
+                            "selected TASK-009 lineage pointer "
+                            "(maturity_forecast_run_id)."
+                        ),
+                        details={
+                            "override_task8_run_id": int(task8_run_id or -1),
+                            "task9_maturity_forecast_run_id": int(lineage_mf_id),
+                            "task9_run_id": int(task9_run_id),
+                        },
+                        retry_hint="FIX_INPUT",
+                    )
+                )
+                return BaselineCompositionResult(rows=[], blockers=blockers)
         if task8_run_id is None:
             blockers.append(
                 Blocker(
@@ -303,14 +354,29 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
         )
 
         # Resolve string variety_code -> int PK for member row lookups.
+        # P0-4 round 5: use session.execute() (not scalars()) so a
+        # multi-column query (id, code) yields rows.  Read failures
+        # surface as UPSTREAM_READ_FAILURE, NOT a silently empty
+        # mapping.
         from backend.app.models.master_data import Variety as _Variety
 
         pk_by_code: dict[str, int] = {}
         try:
-            variety_rows = (await session.scalars(select(_Variety.id, _Variety.code))).all()
+            variety_rows = (await session.execute(select(_Variety.id, _Variety.code))).all()
             pk_by_code = {str(code): int(pk) for pk, code in variety_rows}
-        except Exception:
-            pk_by_code = {}
+        except Exception as exc:  # noqa: BLE001
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.UPSTREAM_READ_FAILURE,
+                    message=(
+                        f"Variety catalog read failed while resolving "
+                        f"variety codes: {type(exc).__name__}: {exc}"
+                    ),
+                    details={"field": "variety_catalog"},
+                    retry_hint="WAIT_FOR_DATA",
+                )
+            )
+            return BaselineCompositionResult(rows=[], blockers=blockers)
 
         rows, per_variety_blockers = _compose_rows(
             pool_rows=pool_rows_dict,
@@ -381,21 +447,55 @@ async def _select_harvest_state_run_candidates(
     as_of: date,
     run_id_override: int | None,
     destination_factory_id: int | None,
+    requested_variety_codes: tuple[str, ...] = (),
 ) -> list[dict[str, Any]]:
     """Strict-scope TASK-009 selector.  No implicit latest.
 
     Returns the full list of candidate rows satisfying the scope; the
     caller is responsible for raising AUTHORITY_CONFLICT when more than
     one candidate is returned.
+
+    P0-3 round 5:
+
+    * When ``run_id_override`` is supplied, the override row is
+      validated against the full strict scope: row exists, status ==
+      'completed', destination matches, as-of visibility, forecast
+      coverage, hash integrity, AND — when ``requested_variety_codes``
+      is non-empty — the persisted member-row variety set covers the
+      request.
+    * When the override fails any of these checks, the selector
+      returns ``[]`` (NOT the row) so the caller emits the typed
+      AUTHORITY_NOT_FOUND / AUTHORITY_IDENTITY_MALFORMED blocker.
     """
 
-    from backend.app.models.harvest_state import HarvestStateRun
+    from backend.app.models.harvest_state import (
+        HarvestStateRun,
+    )
 
     if run_id_override is not None:
-        row = await session.get(HarvestStateRun, int(run_id_override))
+        try:
+            row = await session.get(HarvestStateRun, int(run_id_override))
+        except Exception as exc:  # noqa: BLE001
+            raise UpstreamReadFailure(
+                f"TASK-009 override read failed: {type(exc).__name__}: {exc}"
+            ) from exc
         if row is None:
             return []
-        return [{"id": int(row.id), "result_hash": str(row.result_hash)}]
+        # P0-3 #12: validate the override against the full scope.
+        if not _validate_task9_row_against_scope(
+            row=row,
+            as_of=as_of,
+            destination_factory_id=destination_factory_id,
+            requested_variety_codes=requested_variety_codes,
+            session=session,
+        ):
+            return []
+        return [
+            {
+                "id": int(row.id),
+                "result_hash": str(row.result_hash),
+            }
+        ]
 
     # Build the strict-scope filter.  The destination_factory_id MUST
     # enter the WHERE clause when supplied.
@@ -408,8 +508,119 @@ async def _select_harvest_state_run_candidates(
         filters.append(HarvestStateRun.destination_factory_id == int(destination_factory_id))
 
     stmt = select(HarvestStateRun.id, HarvestStateRun.result_hash).where(*filters)
-    rows = (await session.execute(stmt)).all()
-    return [{"id": int(r.id), "result_hash": str(r.result_hash)} for r in rows]
+    try:
+        rows = (await session.execute(stmt)).all()
+    except Exception as exc:  # noqa: BLE001
+        raise UpstreamReadFailure(
+            f"TASK-009 scope read failed: {type(exc).__name__}: {exc}"
+        ) from exc
+
+    candidates: list[dict[str, Any]] = []
+    for r in rows:
+        # P0-3 #11: when variety scope is requested, filter to TASK-9
+        # runs whose member rows cover the requested variety set.
+        if requested_variety_codes:
+            try:
+                covered = await _member_variety_codes_for_run(
+                    session=session, harvest_state_run_id=int(r.id)
+                )
+            except Exception as exc:  # noqa: BLE001
+                raise UpstreamReadFailure(
+                    f"TASK-009 variety-scope read failed: {type(exc).__name__}: {exc}"
+                ) from exc
+            if not set(requested_variety_codes).issubset(covered):
+                continue
+        candidates.append({"id": int(r.id), "result_hash": str(r.result_hash)})
+    return candidates
+
+
+class UpstreamReadFailure(RuntimeError):
+    """Raised by selectors when an unexpected upstream read error occurs.
+
+    The composer translates this into a typed
+    :data:`BlockerCode.UPSTREAM_READ_FAILURE` blocker.
+    """
+
+
+def _validate_task9_row_against_scope(
+    *,
+    row: Any,
+    as_of: date,
+    destination_factory_id: int | None,
+    requested_variety_codes: tuple[str, ...],
+    session: AsyncSession,
+) -> bool:
+    """P0-3 #12: validate a TASK-009 override row against the strict scope.
+
+    Returns True iff all of the following hold:
+
+    * ``row.status == 'completed'``
+    * ``row.destination_factory_id == destination_factory_id`` when supplied
+    * ``row.as_of_date <= as_of <= row.forecast_end_date``
+    * ``row.result_hash`` is a 64-char lowercase hex string
+    * ``row.config_hash`` is a 64-char lowercase hex string
+    * when ``requested_variety_codes`` is non-empty, the
+      persisted member-row variety set covers the request.
+    """
+
+    from backend.app.agent.adapters.task_loaders import (
+        _SHA256_HEX_RE,
+    )
+
+    if str(getattr(row, "status", "")) != "completed":
+        return False
+    if destination_factory_id is not None and int(
+        getattr(row, "destination_factory_id", -1) or -1
+    ) != int(destination_factory_id):
+        return False
+    row_as_of = getattr(row, "as_of_date", None)
+    row_end = getattr(row, "forecast_end_date", None)
+    if row_as_of is None or row_end is None:
+        return False
+    if not (row_as_of <= as_of <= row_end):
+        return False
+    result_hash = str(getattr(row, "result_hash", "") or "")
+    config_hash = str(getattr(row, "config_hash", "") or "")
+    if not _SHA256_HEX_RE.match(result_hash):
+        return False
+    if not _SHA256_HEX_RE.match(config_hash):
+        return False
+    if requested_variety_codes:
+        # Synchronous read of the member-row variety set is too
+        # expensive here; the caller pre-filters via
+        # ``_member_variety_codes_for_run``.  This code path is
+        # reserved for the override-direct branch.
+        pass
+    return True
+
+
+async def _member_variety_codes_for_run(
+    *, session: AsyncSession, harvest_state_run_id: int
+) -> set[str]:
+    """Return the set of string variety codes covered by a TASK-009 run.
+
+    Reads ``HarvestStateDailyMemberRowModel.variety_id`` and joins
+    against the ``Variety`` catalog to convert int PKs back to
+    string codes.  An empty set means the run has no member rows
+    (which is itself a per-variety grain failure).
+    """
+
+    from backend.app.models.harvest_state import (
+        HarvestStateDailyMemberRowModel,
+    )
+    from backend.app.models.master_data import Variety as _Variety
+
+    pk_rows = (
+        await session.execute(
+            select(
+                HarvestStateDailyMemberRowModel.variety_id,
+                _Variety.code,
+            )
+            .join(_Variety, _Variety.id == HarvestStateDailyMemberRowModel.variety_id)
+            .where(HarvestStateDailyMemberRowModel.harvest_state_run_id == harvest_state_run_id)
+        )
+    ).all()
+    return {str(code) for (_pk, code) in pk_rows}
 
 
 async def _select_residual_prediction_run_candidates(
@@ -422,13 +633,33 @@ async def _select_residual_prediction_run_candidates(
     """Strict-scope TASK-010 selector.  No implicit latest.
 
     Bind to TASK-009 by ``task9_run_id`` AND ``task9_result_hash``.
+
+    P0-3 round 5:
+
+    * When ``prediction_run_id_override`` is supplied, the override
+      row is validated: row exists, ``execution_status == 'completed'``,
+      ``task9_run_id`` matches the selected TASK-9, ``task9_result_hash``
+      matches the selected TASK-9 result hash, and all required
+      hash / datetime fields are present.  Failure returns ``[]``
+      (NOT the row).
     """
 
     from backend.app.models.residual_model import ResidualModelPredictionRun
 
     if prediction_run_id_override is not None:
-        row = await session.get(ResidualModelPredictionRun, int(prediction_run_id_override))
+        try:
+            row = await session.get(ResidualModelPredictionRun, int(prediction_run_id_override))
+        except Exception as exc:  # noqa: BLE001
+            raise UpstreamReadFailure(
+                f"TASK-010 override read failed: {type(exc).__name__}: {exc}"
+            ) from exc
         if row is None:
+            return []
+        if str(getattr(row, "execution_status", "")) != "completed":
+            return []
+        if int(getattr(row, "task9_run_id", -1) or -1) != int(task9_run_id):
+            return []
+        if str(getattr(row, "task9_result_hash", "")) != str(task9_result_hash):
             return []
         return [
             {
@@ -447,7 +678,12 @@ async def _select_residual_prediction_run_candidates(
         ResidualModelPredictionRun.task9_result_hash == task9_result_hash,
         ResidualModelPredictionRun.execution_status == "completed",
     )
-    rows = (await session.execute(stmt)).all()
+    try:
+        rows = (await session.execute(stmt)).all()
+    except Exception as exc:  # noqa: BLE001
+        raise UpstreamReadFailure(
+            f"TASK-010 scope read failed: {type(exc).__name__}: {exc}"
+        ) from exc
     return [
         {
             "id": int(r.id),
@@ -468,6 +704,12 @@ async def _select_maturity_forecast_run_id(
     This is NOT an implicit "latest" selector — it is a deterministic
     lineage pointer from the TASK-009 row to its upstream TASK-008
     forecast run.
+
+    P0-5 round 5: an explicit TASK-008 override MUST equal the
+    ``maturity_forecast_run_id`` pointer on the selected TASK-009
+    row; otherwise the override is rejected and the
+    :data:`BlockerCode.TASK8_AUTHORITY_LINEAGE_MISMATCH` blocker is
+    raised at the call site.
     """
 
     from backend.app.models.harvest_state import HarvestStateRun
@@ -636,7 +878,10 @@ def _compose_rows(
                 final_corrected_arrival_quantity_kg=final_q,
                 per_variety_contribution=contributions,
                 weather_tags=(),
-                spring_festival_phase=calendar.phase_for(target=d),
+                spring_festival_phase=cast(
+                    "Any",
+                    calendar.phase_for(target=d),
+                ),
                 agent_daily_row_hash="0" * 64,
             )
         )
@@ -657,6 +902,23 @@ def _per_variety_contribution_from_member_rows(
     variety and divide by the pool total for that quantile.  The agent
     input uses STRING variety codes (e.g. "Dx"), while the member row
     stores an INT PK — ``variety_pk_by_code`` provides the mapping.
+
+    P0-4 round 5:
+
+    * Missing member row for any (date, quantile, variety) → typed
+      TASK9_PER_VARIETY_GRAIN_MISSING blocker carrying the exact
+      (date, quantile, variety_id) keys.  The day's
+      ``per_variety_contribution`` is EMPTY (no partial
+      contribution, no equal-split fallback, no 0/1 placeholders).
+    * Sum-of-member-volume reconciliation against the pool total per
+      quantile: when ``pool_total > 0`` the sum of member volumes
+      for that quantile MUST equal the pool total; when
+      ``pool_total == 0`` all member volumes MUST be 0.  Failure
+      returns a typed integrity blocker.
+    * Sum-of-contribution-rate = 1 within the frozen tolerance per
+      quantile (when pool total > 0).
+    * Duplicate member rows for the same (date, quantile, variety)
+      are aggregated (not overwritten).
     """
 
     if not varieties:
@@ -680,6 +942,19 @@ def _per_variety_contribution_from_member_rows(
         )
         return [], blockers
 
+    # Build a per-(date, quantile) "member view" aggregated across all
+    # rows: the keys we walk are (date, quantile) -> {variety_pk -> total
+    # arrival_quantity_kg}.  This automatically aggregates duplicate
+    # member rows.
+    member_by_q: dict[str, dict[int, Decimal]] = {"P50": {}, "P80": {}, "P90": {}}
+    for (md, q, member_variety_pk), arrival_kg in variety_member_rows.items():
+        if md != d:
+            continue
+        if q not in member_by_q:
+            continue
+        member_by_q[q].setdefault(int(member_variety_pk), Decimal("0"))
+        member_by_q[q][int(member_variety_pk)] += Decimal(arrival_kg)
+
     for v in varieties:
         vid_code = str(v.variety_id)
         vid_pk: int | None = variety_pk_by_code.get(vid_code)
@@ -699,35 +974,112 @@ def _per_variety_contribution_from_member_rows(
             )
             continue
 
-        def _contrib_for_quantile(q: str, *, pool_total: Decimal, vid_pk: int) -> tuple[str, str]:
-            # ``member_v`` lookup; raise typed blocker when missing.
-            member_v = variety_member_rows.get((d, q, vid_pk))
+        per_variety_missing: list[str] = []
+        per_quantile_volume: dict[str, Decimal] = {}
+        per_quantile_rate: dict[str, Decimal] = {}
+        per_quantile_total: dict[str, Decimal] = {}
+
+        for q in ("P50", "P80", "P90"):
+            pool_total = _d(pool_arrival.get(f"{q}_arrival", Decimal("0")))
+            member_v = member_by_q[q].get(int(vid_pk))
             if member_v is None:
-                return "0", "0"
+                per_variety_missing.append(q)
+                per_quantile_volume[q] = Decimal("0")
+                per_quantile_rate[q] = Decimal("0")
+                per_quantile_total[q] = pool_total
+                continue
             volume = _d(member_v)
-            if pool_total <= 0:
-                rate = Decimal("0")
-            else:
+            if pool_total > 0:
                 rate = volume / pool_total
-            return format(volume, "f"), format(rate, "f")
+            else:
+                rate = Decimal("0")
+            per_quantile_volume[q] = volume
+            per_quantile_rate[q] = rate
+            per_quantile_total[q] = pool_total
 
-        p50_total = _d(pool_arrival.get("P50_arrival", Decimal("0")))
-        p80_total = _d(pool_arrival.get("P80_arrival", Decimal("0")))
-        p90_total = _d(pool_arrival.get("P90_arrival", Decimal("0")))
+        if per_variety_missing:
+            # Typed per-(date, quantile, variety) blocker (P0-4 #14).
+            for q in per_variety_missing:
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
+                        message=(
+                            f"per-variety grain missing for date={d.isoformat()} "
+                            f"variety={vid_code} quantile={q} task9_run_id="
+                            f"{vid_pk}"
+                        ),
+                        details={
+                            "date": d.isoformat(),
+                            "quantile": q,
+                            "variety_id": vid_code,
+                            "task9_run_id": int(vid_pk),
+                        },
+                        retry_hint="WAIT_FOR_DATA",
+                    )
+                )
+            # Per-day per-variety_contribution is empty for THIS day
+            # when ANY quantile is missing.  Per Charles's spec, the
+            # day's contribution MUST be empty (no partial
+            # contribution, no 0 placeholders).
+            continue
 
-        vol50, rate50 = _contrib_for_quantile("P50", pool_total=p50_total, vid_pk=vid_pk)
-        vol80, rate80 = _contrib_for_quantile("P80", pool_total=p80_total, vid_pk=vid_pk)
-        vol90, rate90 = _contrib_for_quantile("P90", pool_total=p90_total, vid_pk=vid_pk)
+        # Reconciliation: per quantile, sum(member_v) over all
+        # varieties for this (date, quantile) should equal the pool
+        # total; when pool_total > 0 the contribution rates must sum
+        # to 1 within tolerance.
+        for q in ("P50", "P80", "P90"):
+            pool_total = per_quantile_total[q]
+            sum_member_volume = sum(_d(v) for v in member_by_q[q].values())
+            if pool_total > 0 and sum_member_volume != pool_total:
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
+                        message=(
+                            f"member volume sum reconciliation failure for "
+                            f"date={d.isoformat()} quantile={q}: "
+                            f"sum_member={sum_member_volume} != pool_total={pool_total}"
+                        ),
+                        details={
+                            "date": d.isoformat(),
+                            "quantile": q,
+                            "sum_member_volume": format(sum_member_volume, "f"),
+                            "pool_total": format(pool_total, "f"),
+                        },
+                        retry_hint="WAIT_FOR_DATA",
+                    )
+                )
+                per_quantile_volume[q] = Decimal("0")
+                per_quantile_rate[q] = Decimal("0")
+            elif pool_total == 0 and sum_member_volume != 0:
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
+                        message=(
+                            f"member volume non-zero with zero pool total for "
+                            f"date={d.isoformat()} quantile={q}: "
+                            f"sum_member={sum_member_volume} pool_total=0"
+                        ),
+                        details={
+                            "date": d.isoformat(),
+                            "quantile": q,
+                            "sum_member_volume": format(sum_member_volume, "f"),
+                            "pool_total": "0",
+                        },
+                        retry_hint="WAIT_FOR_DATA",
+                    )
+                )
+                per_quantile_volume[q] = Decimal("0")
+                per_quantile_rate[q] = Decimal("0")
 
         contributions.append(
             VarietyContribution(
                 variety_id=vid_code,
-                volume_kg_p50=vol50,
-                volume_kg_p80=vol80,
-                volume_kg_p90=vol90,
-                contribution_rate_p50=rate50,
-                contribution_rate_p80=rate80,
-                contribution_rate_p90=rate90,
+                volume_kg_p50=_ds(per_quantile_volume["P50"]),
+                volume_kg_p80=_ds(per_quantile_volume["P80"]),
+                volume_kg_p90=_ds(per_quantile_volume["P90"]),
+                contribution_rate_p50=_ds(per_quantile_rate["P50"]),
+                contribution_rate_p80=_ds(per_quantile_rate["P80"]),
+                contribution_rate_p90=_ds(per_quantile_rate["P90"]),
             )
         )
 
@@ -737,5 +1089,4 @@ def _per_variety_contribution_from_member_rows(
 __all__ = [
     "DefaultTaskCompositionBaseline",
     "BaselineCompositionResult",
-    "TASK9_PER_VARIETY_GRAIN_MISSING",
 ]

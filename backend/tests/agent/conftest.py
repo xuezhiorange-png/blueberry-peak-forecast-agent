@@ -129,6 +129,26 @@ async def sqlite_session() -> AsyncSession:
                 sync_conn, tables=_planning_tables()
             )
         )
+        # Round 5: create the LocationReference and ParameterObservation
+        # tables so the default prior port can load real persisted
+        # evidence in integration tests.
+        from backend.app.models.planning import (
+            LocationReference as _LR,
+        )
+        from backend.app.models.planning import (
+            ParameterObservation as _PO,
+        )
+
+        await conn.run_sync(
+            lambda sync_conn: _LR.metadata.create_all(
+                sync_conn, tables=[_LR.__table__], checkfirst=True
+            )
+        )
+        await conn.run_sync(
+            lambda sync_conn: _PO.metadata.create_all(
+                sync_conn, tables=[_PO.__table__], checkfirst=True
+            )
+        )
         await conn.run_sync(
             lambda sync_conn: ResidualModelTrainingRun.metadata.create_all(
                 sync_conn, tables=_residual_tables()

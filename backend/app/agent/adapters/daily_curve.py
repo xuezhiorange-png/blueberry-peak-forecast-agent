@@ -231,15 +231,20 @@ class DefaultDailyCurveAdapter:
                 )
 
         # --- TASK-011 / TASK-012 envelopes: explicit override only ----------
-        task11_authority = None
+        task11_authority: Any = None
         task11_overrides = _select_authority_overrides(overrides, "TASK11_BACKTEST_RUN")
         if task11_overrides:
             task11_overridden_id = int(task11_overrides[0].value)
-            task11_authority = await self._task11.load_by_id(
+            # DefaultTask11BacktestPort.load_by_id always returns None
+            # in Slice A; mypy's `func-returns-value` is suppressed
+            # because the runtime contract is "None or envelope".
+            loaded = await self._task11.load_by_id(  # type: ignore[func-returns-value]
                 session=session,
                 rolling_backtest_run_id=task11_overridden_id,
             )
-            if task11_authority is None:
+            if loaded is not None:
+                task11_authority = loaded
+            else:
                 blockers.append(
                     Blocker(
                         code=BlockerCode.TASK11_AUTHORITY_NOT_FOUND,
@@ -249,15 +254,17 @@ class DefaultDailyCurveAdapter:
                     )
                 )
 
-        task12_authority = None
+        task12_authority: Any = None
         task12_overrides = _select_authority_overrides(overrides, "TASK12_PREDICTION_RUN")
         if task12_overrides:
             task12_overridden_id = int(task12_overrides[0].value)
-            task12_authority = await self._task12.load_by_id(
+            loaded_12 = await self._task12.load_by_id(
                 session=session,
                 prediction_run_id=task12_overridden_id,
             )
-            if task12_authority is None:
+            if loaded_12 is not None:
+                task12_authority = loaded_12
+            else:
                 blockers.append(
                     Blocker(
                         code=BlockerCode.TASK12_AUTHORITY_NOT_FOUND,

@@ -22,6 +22,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 
 from backend.app.agent.adapters.baseline_composer import (
     BaselineCompositionResult,
@@ -35,9 +36,6 @@ from backend.app.agent.adapters.parameters import (
     DefaultParameterPriorPort,
     ParameterPrior,
     SourceCapabilityGapError,
-    _build_default_parameter_inference_rules,
-    _resolve_location_to_dict,
-    _to_int_variety_id,
 )
 from backend.app.agent.adapters.scenario import (
     _authority_identities_match,
@@ -126,6 +124,45 @@ def _build_harvest_state_run(
     )
     session.add(run)
     return run
+
+
+async def _populate_member_rows_matching_pool(
+    session,
+    *,
+    harvest_state_run_id: int,
+    pool_rows: list[tuple[date, str, str]],
+    varieties: list[tuple[str, int]],
+) -> None:
+    """Insert member rows that cover the given pool rows + varieties.
+
+    ``pool_rows``: list of ``(date, quantile, harvested_quantity_kg_string)``.
+    ``varieties``: list of ``(variety_code, arrival_kg_int)`` — one
+    member row is inserted per pool row × variety.  The variety code
+    is resolved to its int PK via the test's existing
+    :class:`Variety` rows.
+    """
+
+    from backend.app.models.master_data import Variety as _V
+
+    pk_by_code: dict[str, int] = {}
+    result = await session.execute(select(_V.id, _V.code))
+    rows = result.all()
+    pk_by_code = {str(code): int(pk) for pk, code in rows}
+    for d, q, _ in pool_rows:
+        for code, arrival_kg in varieties:
+            vid_pk = pk_by_code.get(code)
+            if vid_pk is None:
+                continue
+            _add_member_row(
+                session,
+                harvest_state_run_id=harvest_state_run_id,
+                state_date=d,
+                quantile=q,
+                capacity_pool_id=harvest_state_run_id,
+                variety_id=vid_pk,
+                destination_factory_id=1,
+                arrival_kg=Decimal(str(arrival_kg)),
+            )
 
 
 def _add_member_row(
@@ -262,32 +299,32 @@ def test_logical_to_upstream_maps_supported_categories():
 
 
 def test_resolve_location_to_dict_returns_persisted_keys_only():
-    rl = ResolvedLocation(
-        status="resolved",
-        location_reference_id=1,
-        province="Yunnan",
-        matched_location_method="REFERENCE_ID",
-    )
-    d = _resolve_location_to_dict(rl)
-    # The dict contains ONLY fields ResolvedLocation actually carries;
-    # no fabricated latitude/longitude.
-    assert "location_reference_id" in d
-    assert "province" in d
-    assert "latitude" not in d
-    assert "longitude" not in d
+    # Round 5: the ``_resolve_location_to_dict`` helper has been
+    # REMOVED.  The real production path now builds the upstream
+    # ``ResolvedLocation`` from the persisted ``LocationReference``
+    # (see ``_build_upstream_resolved_location``).  The downstream
+    # contract is verified in
+    # ``test_round5_real_location_propagation`` / ``*_location_*``.
+    pass
 
 
 def test_to_int_variety_id_returns_zero_for_non_numeric():
-    assert _to_int_variety_id("Dx") == 0
-    assert _to_int_variety_id("1702") == 1702
-    assert _to_int_variety_id("") == 0
+    # Round 5: the ``_to_int_variety_id`` helper has been REMOVED.
+    # String variety codes like ``"Dx"`` are now resolved through the
+    # real :class:`Variety` catalog (not coerced via ``int()``).  The
+    # downstream contract is verified in
+    # ``test_round5_string_variety_catalog_resolution``.
+    pass
 
 
 def test_build_default_parameter_inference_rules_is_deterministic():
-    r1 = _build_default_parameter_inference_rules()
-    r2 = _build_default_parameter_inference_rules()
-    assert r1 == r2
-    assert r1.resolver_version == "agent-default/v1"
+    # Round 5: the in-code ``_build_default_parameter_inference_rules``
+    # helper has been REMOVED.  The default production path now loads
+    # the real versioned
+    # :func:`load_parameter_inference_config` from the on-disk YAML.
+    # The downstream contract is verified in
+    # ``test_round5_versioned_inference_config_loaded``.
+    pass
 
 
 @pytest.mark.asyncio
@@ -497,8 +534,9 @@ async def test_composer_returns_no_rows_when_zero_candidates(sqlite_session):
 
 @pytest.mark.asyncio
 async def test_composer_returns_authority_conflict_for_multiple_candidates(sqlite_session):
-    """When two harvest_state_runs satisfy the strict scope, the composer
-    emits AUTHORITY_CONFLICT with full candidate disclosure."""
+    """When two harvest_state_runs satisfy the strict scope AND both
+    cover the requested variety set, the composer emits
+    AUTHORITY_CONFLICT with full candidate disclosure."""
 
     var = Variety(id=1, code="Dx", name="Test")
     sqlite_session.add(var)
@@ -523,6 +561,25 @@ async def test_composer_returns_authority_conflict_for_multiple_candidates(sqlit
         destination_factory_id=1,
         maturity_forecast_run_id=1,
         pool_row_count=0,
+    )
+    # P0-3 #11 round 5: each run's member rows must cover the
+    # requested variety set, otherwise the run is filtered out of the
+    # candidate set.  Insert one member row per run for variety "Dx".
+    await _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=1,
+        pool_rows=[
+            (date(2026, 3, 1), "P50", "100"),
+        ],
+        varieties=[("Dx", 100)],
+    )
+    await _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=2,
+        pool_rows=[
+            (date(2026, 3, 1), "P50", "100"),
+        ],
+        varieties=[("Dx", 100)],
     )
     await sqlite_session.flush()
 
