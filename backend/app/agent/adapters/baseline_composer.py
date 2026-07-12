@@ -57,7 +57,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, cast
 
-from sqlalchemy import Integer, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.adapters.task_loaders import DefaultSpringFestivalCalendarPort
@@ -506,17 +506,17 @@ async def _select_harvest_state_run_candidates(
       returns ``[]`` (NOT the row) so the caller emits the typed
       AUTHORITY_NOT_FOUND / AUTHORITY_IDENTITY_MALFORMED blocker.
 
-    P0-4 round 6:
+    P0-4 round 7 (review 4680214102):
 
     * ``effective_forecast_season`` (when non-None) MUST match the
-      persisted ``as_of_date.year`` of the candidate.  This is a
-      real persisted identity (every HarvestStateRun has
-      ``as_of_date``); the selector does NOT auto-derive season from
-      a date guess — it requires the request to supply an explicit
-      integer season and the row to carry an ``as_of_date.year`` that
-      matches.  When the requested season is supplied but no
-      candidate matches it, the selector returns ``[]`` (typed
-      AUTHORITY_NOT_FOUND via the caller).
+      real persisted identity
+      ``HarvestStateRun.input_snapshot["forecast_season"]`` of the
+      candidate (a JSON dict every row writes).  The legacy
+      ``HarvestStateRun.as_of_date.year`` derivation is FORBIDDEN
+      — it is a date-guess, not a persisted identity.  When the
+      requested season is supplied but no candidate matches it, the
+      selector returns ``[]`` (typed AUTHORITY_NOT_FOUND via the
+      caller).
     """
 
     from backend.app.models.harvest_state import (
@@ -558,16 +558,20 @@ async def _select_harvest_state_run_candidates(
     ]
     if destination_factory_id is not None:
         filters.append(HarvestStateRun.destination_factory_id == int(destination_factory_id))
-    # P0-4 round 6: season filter uses the real persisted
-    # as_of_date.year (every row carries it).  extract('year', ...)
-    # is portable across SQLite + Postgres in SQLAlchemy 2.x.
-    if effective_forecast_season is not None:
-        filters.append(
-            func.cast(func.strftime("%Y", HarvestStateRun.as_of_date), Integer)
-            == int(effective_forecast_season)
-        )
+    # Round 7 (review 4680214102): season filter is enforced in
+    # Python against the REAL persisted identity
+    # ``input_snapshot["forecast_season"]`` (a JSON dict).  The
+    # ``as_of_date.year`` derivation is intentionally NOT used.
+    # SQL-level season filter is too dialect-sensitive (SQLite
+    # ``json_extract`` returns INT for ``input_snapshot[2026]``
+    # while ``->>`` returns TEXT for the same value); the Python
+    # post-filter is the portable, deterministic surface.
 
-    stmt = select(HarvestStateRun.id, HarvestStateRun.result_hash).where(*filters)
+    stmt = select(
+        HarvestStateRun.id,
+        HarvestStateRun.result_hash,
+        HarvestStateRun.input_snapshot,
+    ).where(*filters)
     try:
         rows = (await session.execute(stmt)).all()
     except Exception as exc:  # noqa: BLE001
@@ -577,6 +581,13 @@ async def _select_harvest_state_run_candidates(
 
     candidates: list[dict[str, Any]] = []
     for r in rows:
+        # Round 7: season filter in Python against the real
+        # persisted identity (input_snapshot.forecast_season).
+        # The as_of_date.year derivation is forbidden.
+        if effective_forecast_season is not None:
+            persisted_season = _extract_persisted_season_identity(r.input_snapshot)
+            if persisted_season is None or int(persisted_season) != int(effective_forecast_season):
+                continue
         # P0-3 #11: when variety scope is requested, filter to TASK-9
         # runs whose member rows cover the requested variety set.
         if requested_variety_codes:
@@ -622,7 +633,9 @@ async def _validate_task9_row_against_scope(
     * ``row.result_hash`` is a 64-char lowercase hex string
     * ``row.config_hash`` is a 64-char lowercase hex string
     * when ``effective_forecast_season`` is supplied,
-      ``row.as_of_date.year == effective_forecast_season``
+      ``row.input_snapshot["forecast_season"]`` (the real persisted
+      identity) MUST equal the requested season.  The legacy
+      ``row.as_of_date.year`` derivation is FORBIDDEN.
     * when ``requested_variety_codes`` is non-empty, the
       persisted member-row variety set covers the request (this
       checks the member-row coverage of THIS specific row, not
@@ -651,11 +664,14 @@ async def _validate_task9_row_against_scope(
         return False
     if not _SHA256_HEX_RE.match(config_hash):
         return False
-    # P0-4 round 6: season validation against the real persisted
-    # as_of_date.year.  Required when the caller supplied
-    # effective_forecast_season.
+    # Round 7 (review 4680214102): season validation against the
+    # REAL persisted identity ``input_snapshot["forecast_season"]``
+    # (a JSON dict, every row carries it).  The legacy
+    # ``as_of_date.year`` derivation is intentionally NOT used —
+    # it would silently treat a date as a season identity.
     if effective_forecast_season is not None:
-        if int(row_as_of.year) != int(effective_forecast_season):
+        persisted_season = _extract_persisted_season_identity(getattr(row, "input_snapshot", None))
+        if persisted_season is None or int(persisted_season) != int(effective_forecast_season):
             return False
     # P0-4 round 6: variety coverage — the persisted member-row
     # variety set of THIS row must cover the requested codes.
@@ -845,6 +861,36 @@ async def _select_maturity_forecast_run_id(
     if mf_id is None:
         return None
     return int(mf_id)
+
+
+def _extract_persisted_season_identity(input_snapshot: Any) -> int | None:
+    """Round 7 (review 4680214102): extract the REAL persisted
+    TASK-009 season identity from ``input_snapshot``.
+
+    The legacy derivation ``HarvestStateRun.as_of_date.year`` is
+    forbidden — it is a date-guess, not a persisted identity.
+
+    Returns the integer season if present (int or numeric str),
+    ``None`` if the key is missing or the type is wrong.
+    """
+    if not isinstance(input_snapshot, dict):
+        return None
+    raw = input_snapshot.get("forecast_season")
+    if raw is None:
+        return None
+    if isinstance(raw, bool):
+        # bool is a subclass of int; reject explicitly.
+        return None
+    if isinstance(raw, int):
+        return int(raw)
+    if isinstance(raw, str):
+        s = raw.strip()
+        if s.lstrip("-").isdigit():
+            try:
+                return int(s)
+            except (TypeError, ValueError):
+                return None
+    return None
 
 
 # --- ORM loaders ----------------------------------------------------------
@@ -1072,10 +1118,12 @@ def _per_variety_contribution_from_member_rows(
 
     any_member = any(md == d for (md, _, _) in variety_member_rows)
     if not any_member:
-        # P0-7 round 6: typed TASK9_PER_VARIETY_GRAIN_MISSING (not
-        # INTERNAL_FAILURE) so the per-day contribution is empty
-        # and the blocker carries the real task9_run_id, not a
-        # variety_pk.  Caller will pass the real task9_run_id.
+        # Round 7 (review 4680214102): the no-member blocker MUST
+        # carry the real task9_run_id (not just date).  The caller
+        # passes the real task9_run_id explicitly; we MUST include
+        # it in the blocker details for traceability and to satisfy
+        # the contract that every grain-blocker carries the full
+        # task9_run_id + date + quantile + variety_id identity.
         blockers.append(
             Blocker(
                 code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
@@ -1083,7 +1131,10 @@ def _per_variety_contribution_from_member_rows(
                     f"No HarvestStateDailyMemberRowModel rows available for date "
                     f"{d.isoformat()}; per-variety grain is missing."
                 ),
-                details={"date": d.isoformat()},
+                details={
+                    "date": d.isoformat(),
+                    "task9_run_id": int(task9_run_id) if task9_run_id is not None else None,
+                },
                 retry_hint="WAIT_FOR_DATA",
             )
         )
