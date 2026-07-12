@@ -16,6 +16,7 @@ from backend.app.agent.schemas import (
     ForecastDailyCurveOutput,
     ForecastPeakOutput,
     GenerateRecommendationsInput,
+    LocationInput,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
     Recommendation,
@@ -45,6 +46,10 @@ def _mk_nr() -> NormalizedAgentRequest:
         ),
         normalized_location=ResolvedLocation(
             status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
+        location_input=LocationInput(
+            raw_text="云南曲靖",
+            location_reference_id=1,
         ),
         varieties=[NormalizedVarietyInput(variety_id="101", planting_area_mu="100.0")],
         advanced_overrides=AdvancedOverrides(),

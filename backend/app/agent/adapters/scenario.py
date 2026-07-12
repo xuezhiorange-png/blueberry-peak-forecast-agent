@@ -270,43 +270,42 @@ class DefaultScenarioAdapter:
 
         # Compute quantile-preserving deltas from peak entries directly
         # (these are the authoritative post-scenario single-day peak volumes).
+        # When the curve is empty, peak entries may not be populated — use 0.
+        def _single_day_value(peak_output: Any, q: str) -> Decimal:
+            if q not in peak_output.single_day_peak:
+                return Decimal("0")
+            return _to_decimal(peak_output.single_day_peak[cast(ForecastQuantile, q)].volume_kg)
+
         baseline_peak_volume: dict[str, Decimal] = {
-            q: _to_decimal(baseline_peak.single_day_peak[cast(ForecastQuantile, q)].volume_kg)
-            for q in ("P50", "P80", "P90")
+            q: _single_day_value(baseline_peak, q) for q in ("P50", "P80", "P90")
         }
         scenario_peak_volume: dict[str, Decimal] = {
-            q: _to_decimal(scenario_peak.single_day_peak[cast(ForecastQuantile, q)].volume_kg)
-            for q in ("P50", "P80", "P90")
+            q: _single_day_value(scenario_peak, q) for q in ("P50", "P80", "P90")
         }
 
         # The sustained 3-day average/cumulative come from the underlying
-        # daily curves (the peak output already contains them).
+        # daily curves (the peak output already contains them).  When the
+        # curve is empty, the peak output may not have an entry — use 0.
+        def _sustained_value(peak_output: Any, q: str, attr: str) -> Decimal:
+            sus = peak_output.sustained_3day_peak
+            if q not in sus:
+                return Decimal("0")
+            return _to_decimal(getattr(sus[q], attr))
+
         baseline_sustained_avg: dict[str, Decimal] = {
-            q: _to_decimal(
-                baseline_peak.sustained_3day_peak[
-                    cast(ForecastQuantile, q)
-                ].rolling_daily_average_kg_per_day
-            )
+            q: _sustained_value(baseline_peak, q, "rolling_daily_average_kg_per_day")
             for q in ("P50", "P80", "P90")
         }
         scenario_sustained_avg: dict[str, Decimal] = {
-            q: _to_decimal(
-                scenario_peak.sustained_3day_peak[
-                    cast(ForecastQuantile, q)
-                ].rolling_daily_average_kg_per_day
-            )
+            q: _sustained_value(scenario_peak, q, "rolling_daily_average_kg_per_day")
             for q in ("P50", "P80", "P90")
         }
         baseline_sustained_cum: dict[str, Decimal] = {
-            q: _to_decimal(
-                baseline_peak.sustained_3day_peak[cast(ForecastQuantile, q)].cumulative_quantity_kg
-            )
+            q: _sustained_value(baseline_peak, q, "cumulative_quantity_kg")
             for q in ("P50", "P80", "P90")
         }
         scenario_sustained_cum: dict[str, Decimal] = {
-            q: _to_decimal(
-                scenario_peak.sustained_3day_peak[cast(ForecastQuantile, q)].cumulative_quantity_kg
-            )
+            q: _sustained_value(scenario_peak, q, "cumulative_quantity_kg")
             for q in ("P50", "P80", "P90")
         }
 

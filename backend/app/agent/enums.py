@@ -69,6 +69,7 @@ class BlockerCode(str, Enum):  # noqa: UP042 — kept as str+Enum for explicit s
     AUTHORITY_NOT_FOUND = "AUTHORITY_NOT_FOUND"
     AUTHORITY_CONFLICT = "AUTHORITY_CONFLICT"
     TASK8_AUTHORITY_NOT_FOUND = "TASK8_AUTHORITY_NOT_FOUND"
+    TASK8_AUTHORITY_LINEAGE_MISMATCH = "TASK8_AUTHORITY_LINEAGE_MISMATCH"
     TASK9_AUTHORITY_NOT_FOUND = "TASK9_AUTHORITY_NOT_FOUND"
     TASK10_AUTHORITY_NOT_FOUND = "TASK10_AUTHORITY_NOT_FOUND"
     TASK11_AUTHORITY_NOT_FOUND = "TASK11_AUTHORITY_NOT_FOUND"
@@ -77,6 +78,7 @@ class BlockerCode(str, Enum):  # noqa: UP042 — kept as str+Enum for explicit s
     SEASON_CALENDAR_POLICY_MISSING = "SEASON_CALENDAR_POLICY_MISSING"
     UNCERTAINTY_WIDENING_POLICY_MISSING = "UNCERTAINTY_WIDENING_POLICY_MISSING"
     PEAK_POLICY_MISSING = "PEAK_POLICY_MISSING"
+    EMPTY_CURVE = "EMPTY_CURVE"
     EXECUTION_DEFERRED = "EXECUTION_DEFERRED"
     EXECUTION_NOT_AUTHORIZED = "EXECUTION_NOT_AUTHORIZED"
     SCENARIO_INVALID = "SCENARIO_INVALID"
@@ -112,11 +114,19 @@ MatchedLocationMethod = Literal[
 
 # --- §10 / §20 Spring-Festival phase --------------------------------------
 
+# Two distinct enums live in this module:
+#
+# * ``SpringFestivalPhase`` — the per-day calendar phase used by the Agent
+#   (NONE / PRE / DURING / POST).
+# * ``SpringFestivalIntensity`` (handled via
+#   :class:`~backend.app.agent.schemas.SpringFestivalIntensityOverrideValue`)
+#   — the scenario override intensity used by simulate_scenario.
+
 SpringFestivalPhase = Literal[
     "NONE",
-    "LOW",
-    "MEDIUM",
-    "HIGH",
+    "PRE",
+    "DURING",
+    "POST",
 ]
 
 

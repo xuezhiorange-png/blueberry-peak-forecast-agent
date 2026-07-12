@@ -73,17 +73,22 @@ def _residual_tables() -> list:
     ]
 
 
+def _variety_tables() -> list:
+    """Variety ORM table only (no JSONB columns)."""
+
+    from backend.app.models.master_data import Variety
+
+    return [Variety.__table__]
+
+
 @pytest_asyncio.fixture
 async def sqlite_session() -> AsyncSession:
-    """SQLite-backed AsyncSession with the TASK-009/010 tables created.
-
-    Slice A does not introduce any new tables or migrations; we only create
-    the existing ORM tables that the upstream services already query.
-    """
+    """SQLite-backed AsyncSession with the TASK-009/010 + Variety tables created."""
 
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
 
     from backend.app.models.harvest_state import HarvestStateRun
+    from backend.app.models.master_data import Variety
     from backend.app.models.residual_model import ResidualModelTrainingRun
 
     async with engine.begin() as conn:
@@ -96,6 +101,9 @@ async def sqlite_session() -> AsyncSession:
             lambda sync_conn: ResidualModelTrainingRun.metadata.create_all(
                 sync_conn, tables=_residual_tables()
             )
+        )
+        await conn.run_sync(
+            lambda sync_conn: Variety.metadata.create_all(sync_conn, tables=_variety_tables())
         )
 
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
@@ -132,6 +140,10 @@ def sample_normalized_request() -> NormalizedAgentRequest:
             status="resolved",
             location_reference_id=1,
             matched_location_method="REFERENCE_ID",
+        ),
+        location_input=LocationInput(
+            raw_text="云南曲靖",
+            location_reference_id=1,
         ),
         varieties=[NormalizedVarietyInput(variety_id="101", planting_area_mu="100.0")],
         advanced_overrides=AdvancedOverrides(),

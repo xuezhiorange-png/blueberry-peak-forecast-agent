@@ -11,7 +11,6 @@ from backend.app.agent.enums import BlockerCode
 from backend.app.agent.schemas import (
     AdvancedOverrides,
     AsOfOverride,
-    AuthorityOverride,
     Blocker,
     DecimalString,
     ExplainForecastInput,
@@ -25,6 +24,7 @@ from backend.app.agent.schemas import (
     InferParametersInput,
     InferParametersOutput,
     IntId,
+    LocationInput,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
     ParameterOverride,
@@ -39,6 +39,7 @@ from backend.app.agent.schemas import (
     SimulateScenarioInput,
     SimulateScenarioOutput,
     Task8Authority,
+    Task12PredictionRunAuthorityOverride,
     YieldPerMuOverrideValue,
 )
 
@@ -106,7 +107,7 @@ def test_int_id_rejects_string():
 
 def test_authority_override_rejects_str_row_id():
     with pytest.raises(ValidationError):
-        AuthorityOverride(
+        Task12PredictionRunAuthorityOverride(
             override_kind="AUTHORITY_OVERRIDE_KIND",
             target="TASK12_PREDICTION_RUN",
             value="42",  # type: ignore[arg-type]
@@ -178,6 +179,10 @@ def test_naive_datetime_rejected_for_request_received_at():
                 status="resolved",
                 location_reference_id=1,
                 matched_location_method="REFERENCE_ID",
+            ),
+            location_input=LocationInput(
+                raw_text="云南曲靖",
+                location_reference_id=1,
             ),
             varieties=[NormalizedVarietyInput(variety_id="101", planting_area_mu="100.0")],
             advanced_overrides=AdvancedOverrides(),

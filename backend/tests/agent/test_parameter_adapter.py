@@ -20,6 +20,7 @@ from backend.app.agent.adapters.parameters import (
 from backend.app.agent.schemas import (
     AdvancedOverrides,
     InferParametersInput,
+    LocationInput,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
     RequestedAsOfDateProvenance,
@@ -135,6 +136,17 @@ class _FakePort(DefaultParameterPriorPort):
         )
 
 
+class _FakeCatalog:
+    """Default-fake VarietyCatalogPort used by the tests below.
+
+    All string variety codes are considered known so the adapter proceeds
+    to the inference stage.
+    """
+
+    async def is_known(self, *, session: Any, variety_id: str) -> bool:
+        return True
+
+
 def _mk_nr(variety_ids: list[str] | None = None) -> NormalizedAgentRequest:
     return NormalizedAgentRequest(
         request_id="r1",
@@ -157,6 +169,10 @@ def _mk_nr(variety_ids: list[str] | None = None) -> NormalizedAgentRequest:
             status="resolved",
             location_reference_id=1,
             matched_location_method="REFERENCE_ID",
+        ),
+        location_input=LocationInput(
+            raw_text="云南曲靖",
+            location_reference_id=1,
         ),
         varieties=[
             NormalizedVarietyInput(variety_id=v, planting_area_mu="100.0")
@@ -190,7 +206,7 @@ def _mk_input() -> InferParametersInput:
 
 @pytest.mark.asyncio
 async def test_infer_parameters_step1_high_confidence(sqlite_session):
-    adapter = DefaultParameterAdapter(port=_FakePort())
+    adapter = DefaultParameterAdapter(port=_FakePort(), catalog=_FakeCatalog())
     out = await adapter.execute(sqlite_session, input=_mk_input())
     assert len(out.parameters) == 1
     pe = out.parameters[0]
@@ -221,7 +237,16 @@ async def test_infer_parameters_unknown_variety_no_numerical_output(sqlite_sessi
             monotonicity_invariant=True,
         ),
     )
-    adapter = DefaultParameterAdapter(port=_FakePort())
+
+    class _RejectCatalog:
+        async def is_known(self, *, session, variety_id):
+            from backend.app.agent.adapters.parameters import (
+                UnknownVarietyError,
+            )
+
+            raise UnknownVarietyError(f"unknown: {variety_id}")
+
+    adapter = DefaultParameterAdapter(port=_FakePort(), catalog=_RejectCatalog())
     out = await adapter.execute(sqlite_session, input=inp)
     assert "variety-x" in out.blocked_variety_ids
     assert out.parameters == []
@@ -231,7 +256,7 @@ async def test_infer_parameters_unknown_variety_no_numerical_output(sqlite_sessi
 async def test_infer_parameters_no_visible_prior_raises_blocker(sqlite_session):
     # Port that raises SourceCapabilityGapError -> adapter records an
     # INSUFFICIENT_HISTORY blocker.
-    adapter = DefaultParameterAdapter(port=_FakePort(raise_gap=True))
+    adapter = DefaultParameterAdapter(port=_FakePort(raise_gap=True), catalog=_FakeCatalog())
     out = await adapter.execute(sqlite_session, input=_mk_input())
     assert "101" in out.blocked_variety_ids
     assert any(b.code.value == "INSUFFICIENT_HISTORY" for b in out.blockers)
@@ -240,7 +265,7 @@ async def test_infer_parameters_no_visible_prior_raises_blocker(sqlite_session):
 
 @pytest.mark.asyncio
 async def test_infer_parameters_deterministic(sqlite_session):
-    adapter = DefaultParameterAdapter(port=_FakePort())
+    adapter = DefaultParameterAdapter(port=_FakePort(), catalog=_FakeCatalog())
     out1 = await adapter.execute(sqlite_session, input=_mk_input())
     out2 = await adapter.execute(sqlite_session, input=_mk_input())
     assert out1.parameters_hash == out2.parameters_hash

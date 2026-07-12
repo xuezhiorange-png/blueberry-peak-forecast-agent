@@ -7,11 +7,12 @@ from typing import Any
 
 import pytest
 
-from backend.app.agent.adapters.location import LOCATION_CATALOG_VERSION, DefaultLocationAdapter
+from backend.app.agent.adapters.location import DefaultLocationAdapter
 from backend.app.agent.enums import BlockerCode
 from backend.app.agent.ports import LocationResolverPort
 from backend.app.agent.schemas import (
     AdvancedOverrides,
+    LocationInput,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
     RequestedAsOfDateProvenance,
@@ -48,6 +49,10 @@ def _mk_nr(
             matched_location_method="REFERENCE_ID",
             warning=warning,
             candidates=candidates or [],
+        ),
+        location_input=LocationInput(
+            raw_text="云南曲靖",
+            location_reference_id=location_reference_id,
         ),
         varieties=[NormalizedVarietyInput(variety_id="101", planting_area_mu="100.0")],
         advanced_overrides=AdvancedOverrides(),
@@ -86,7 +91,10 @@ async def test_resolve_location_unresolved_emits_blocker(sqlite_session):
     out = await adapter.execute(
         sqlite_session, input=ResolveLocationInput(normalized_request=_mk_nr(status="unresolved"))
     )
-    assert out.location_catalog_version == LOCATION_CATALOG_VERSION
+    # P0-3.6: catalog_version is now derived per-resolution (sha256), not a
+    # hardcoded constant.  Confirm it is a 64-char lowercase hex string.
+    assert len(out.location_catalog_version) == 64
+    assert all(c in "0123456789abcdef" for c in out.location_catalog_version)
     codes = {b.code for b in out.blockers}
     assert BlockerCode.LOCATION_UNRESOLVED in codes
 

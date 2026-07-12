@@ -11,14 +11,15 @@ from backend.app.agent.adapters.daily_curve import DefaultDailyCurveAdapter
 from backend.app.agent.ports import ScenarioBaselinePort
 from backend.app.agent.schemas import (
     AdvancedOverrides,
-    AuthorityOverride,
     DailyQuantiles,
     ForecastDailyCurveInput,
     ForecastDailyRow,
+    LocationInput,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
     RequestedAsOfDateProvenance,
     ResolvedLocation,
+    Task12PredictionRunAuthorityOverride,
     UncertaintyWideningPolicy,
 )
 
@@ -43,6 +44,10 @@ def _mk_nr() -> NormalizedAgentRequest:
             status="resolved",
             location_reference_id=1,
             matched_location_method="REFERENCE_ID",
+        ),
+        location_input=LocationInput(
+            raw_text="云南曲靖",
+            location_reference_id=1,
         ),
         varieties=[
             NormalizedVarietyInput(variety_id="101", planting_area_mu="100.000000000000000000")
@@ -167,7 +172,7 @@ async def test_daily_curve_explicit_task12_runid_mismatch_rejected(sqlite_sessio
     # Override points to run_id=42 but no port supplies an authority → mismatch.
     overrides = AdvancedOverrides(
         authority_overrides=[
-            AuthorityOverride(
+            Task12PredictionRunAuthorityOverride(
                 override_kind="AUTHORITY_OVERRIDE_KIND",
                 target="TASK12_PREDICTION_RUN",
                 value=42,

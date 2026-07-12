@@ -38,7 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.canonical import parameters_hash as _parameters_hash_fn
 from backend.app.agent.enums import BlockerCode, Confidence
-from backend.app.agent.ports import ParameterPriorPort
+from backend.app.agent.ports import ParameterPriorPort, VarietyCatalogPort
 from backend.app.agent.schemas import (
     Blocker,
     Citation,
@@ -57,6 +57,24 @@ class SourceCapabilityGapError(RuntimeError):
     priors.  If a parameter category has no concrete persisted prior source,
     this error is raised and the round is required to STOP and report.
     """
+
+
+class UnknownVarietyError(Exception):
+    """Raised when a variety_id is not present in the variety catalog."""
+
+
+class DefaultVarietyCatalogPort(VarietyCatalogPort):
+    """Default :class:`VarietyCatalogPort` calling ``planning.plan_repository``."""
+
+    async def is_known(self, *, session: AsyncSession, variety_id: str) -> bool:
+        try:
+            from backend.app.planning.plan_repository import get_variety_by_code
+        except ImportError:
+            return False
+        row = await get_variety_by_code(session, variety_code=variety_id)
+        if row is None:
+            raise UnknownVarietyError(f"variety_id is not in the variety catalog: {variety_id}")
+        return True
 
 
 # --- Visibility predicates (frozen §10 / §26.1) --------------------------
@@ -160,7 +178,7 @@ class DefaultParameterPriorPort:
         self,
         *,
         session: AsyncSession,
-        variety_id: int,
+        variety_id: str,
         parameter_name: str,
         resolved_location: ResolvedLocation,
         effective_as_of_date: date,
@@ -265,8 +283,14 @@ def _to_decimal(value: Any) -> Decimal | None:
 class DefaultParameterAdapter:
     """Default ``infer_parameters`` adapter wiring the upstream pipeline."""
 
-    def __init__(self, *, port: ParameterPriorPort | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        port: ParameterPriorPort | None = None,
+        catalog: VarietyCatalogPort | None = None,
+    ) -> None:
         self._port = port or DefaultParameterPriorPort()
+        self._catalog = catalog or DefaultVarietyCatalogPort()
 
     async def execute(
         self,
@@ -280,14 +304,17 @@ class DefaultParameterAdapter:
         blockers: list[Blocker] = []
 
         for variety in nr.varieties:
+            # P0-2.1: variety_id is a string (e.g. "Dx", "D12", "1702").
+            # Use VarietyCatalogPort to validate; if the catalog has no
+            # matching variety, surface UNKNOWN_VARIETY blocker.
             try:
-                variety_id_int = int(variety.variety_id)
-            except ValueError:
+                await self._catalog.is_known(session=session, variety_id=variety.variety_id)
+            except UnknownVarietyError:
                 blocked_variety_ids.append(variety.variety_id)
                 blockers.append(
                     Blocker(
                         code=BlockerCode.UNKNOWN_VARIETY,
-                        message=f"variety_id is not numeric: {variety.variety_id}",
+                        message=(f"variety_id is not in the variety catalog: {variety.variety_id}"),
                         details={"variety_id": variety.variety_id},
                         retry_hint="FIX_INPUT",
                     )
@@ -304,7 +331,7 @@ class DefaultParameterAdapter:
                 try:
                     prior: ParameterPrior | None = await self._port.resolve_parameter(
                         session=session,
-                        variety_id=variety_id_int,
+                        variety_id=variety.variety_id,
                         parameter_name="expected_per_mu_yield",
                         resolved_location=input.resolved_location,
                         effective_as_of_date=nr.effective_as_of_date,

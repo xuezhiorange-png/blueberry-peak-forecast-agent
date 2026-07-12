@@ -35,8 +35,9 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal
 
 from backend.app.agent.canonical import sha256_payload
-from backend.app.agent.enums import ForecastQuantile
+from backend.app.agent.enums import BlockerCode, ForecastQuantile
 from backend.app.agent.schemas import (
+    Blocker,
     DominantVarietyEntry,
     ForecastDailyCurveOutput,
     ForecastDailyRow,
@@ -188,16 +189,26 @@ def _peak_duration_days(
     above = [d for d in sorted_dates if by_date[d] >= threshold]
     if not above:
         return 0
-    # Find the maximum consecutive segment containing peak_date.
+    # Find the maximum calendar-consecutive segment containing peak_date.
     max_run = 0
     current_run = 0
     run_start_idx: int | None = None
     for i, d in enumerate(sorted_dates):
         if by_date[d] >= threshold:
+            # Continuity check: a new run starts if the previous above-threshold
+            # date was not the day before (i.e. there's a calendar gap or a
+            # below-threshold day in between).
+            if current_run > 0 and i > 0:
+                prev_d = sorted_dates[i - 1]
+                if by_date[prev_d] >= threshold and (d - prev_d).days == 1:
+                    # Continues the current run.
+                    pass
+                else:
+                    current_run = 0
+                    run_start_idx = None
             if current_run == 0:
                 run_start_idx = i
             current_run += 1
-            # If this run contains peak_date, record it as a candidate.
             if run_start_idx is not None and sorted_dates[run_start_idx] <= peak_date <= d:
                 if current_run > max_run:
                     max_run = current_run
@@ -252,14 +263,56 @@ class DefaultPeakAdapter:
     def execute(self, *, input: ForecastPeakInput) -> ForecastPeakOutput:
         daily: ForecastDailyCurveOutput = input.daily_curve
         policy: PeakMetricPolicy = input.peak_metric_policy
+        blockers: list[Blocker] = []
 
-        # Empty curve → EMPTY_CURVE blocker.  We still return a partial
-        # output so the orchestrator can carry the policy version + hash.
+        # P1 forecast_peak: peak_policy_version check
+        if not policy.policy_version:
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.PEAK_POLICY_MISSING,
+                    message="PeakMetricPolicy.policy_version is empty.",
+                    retry_hint="FIX_INPUT",
+                )
+            )
+
+        # P1 forecast_peak: empty curve → EMPTY_CURVE blocker (no exception)
         if not daily.per_day:
-            raise ValueError("per_day is empty; cannot compute peak")
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.EMPTY_CURVE,
+                    message="per_day is empty; cannot compute peak",
+                    retry_hint="FIX_INPUT",
+                )
+            )
 
-        season_start = daily.per_day[0].date
-        season_end = daily.per_day[-1].date
+        season_start = daily.per_day[0].date if daily.per_day else None
+        season_end = daily.per_day[-1].date if daily.per_day else None
+
+        # Sort rows by date at entry; reject duplicates.
+        seen_dates: set[date] = set()
+        sorted_rows: list[ForecastDailyRow] = []
+        for r in sorted(daily.per_day, key=lambda row: row.date):
+            if r.date in seen_dates:
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.INTERNAL_FAILURE,
+                        message=f"duplicate date in per_day: {r.date}",
+                        retry_hint="FIX_INPUT",
+                    )
+                )
+                continue
+            seen_dates.add(r.date)
+            sorted_rows.append(r)
+
+        # P1 forecast_peak: strict 3-day window only in Slice A
+        if policy.strict_three_day_window and policy.sustained_window_days != 3:
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.PEAK_POLICY_MISSING,
+                    message=("strict_three_day_window=True requires sustained_window_days == 3"),
+                    retry_hint="FIX_INPUT",
+                )
+            )
 
         single_day_peak: dict[ForecastQuantile, SingleDayPeakEntry] = {}
         sustained_3day: dict[ForecastQuantile, SustainedPeakEntry] = {}
@@ -268,53 +321,65 @@ class DefaultPeakAdapter:
         high_load_threshold: dict[ForecastQuantile, str] = {}
         dominant_variety: dict[ForecastQuantile, DominantVarietyEntry] = {}
 
-        for q in ("P50", "P80", "P90"):
-            peak = _single_day_peak(
-                daily.per_day,
-                quantile=q,
-                tie_break=policy.tie_break,
-            )
-            single_day_peak[q] = SingleDayPeakEntry(
-                date=peak.date,
-                volume_kg=format(peak.volume, "f"),
-            )
+        if sorted_rows:
+            season_start_eff = season_start if season_start is not None else sorted_rows[0].date
+            season_end_eff = season_end if season_end is not None else sorted_rows[-1].date
+            for q in ("P50", "P80", "P90"):
+                peak = _single_day_peak(
+                    sorted_rows,
+                    quantile=q,
+                    tie_break=policy.tie_break,
+                )
+                single_day_peak[q] = SingleDayPeakEntry(
+                    date=peak.date,
+                    volume_kg=format(peak.volume, "f"),
+                )
 
-            sus = _sustained_3day_peak(daily.per_day, quantile=q)
-            sustained_3day[q] = sus
+                try:
+                    sus = _sustained_3day_peak(sorted_rows, quantile=q)
+                except ValueError as exc:
+                    blockers.append(
+                        Blocker(
+                            code=BlockerCode.PEAK_POLICY_MISSING,
+                            message=str(exc),
+                            retry_hint="FIX_INPUT",
+                        )
+                    )
+                    continue
+                sustained_3day[q] = sus
 
-            cum = _peak_window_cumulative(
-                daily.per_day,
-                quantile=q,
-                peak_date=peak.date,
-                before_days=policy.peak_window_days_before,
-                after_days=policy.peak_window_days_after,
-                season_start=season_start,
-                season_end=season_end,
-            )
-            peak_window_cum[q] = format(cum, "f")
+                cum = _peak_window_cumulative(
+                    sorted_rows,
+                    quantile=q,
+                    peak_date=peak.date,
+                    before_days=policy.peak_window_days_before,
+                    after_days=policy.peak_window_days_after,
+                    season_start=season_start_eff,
+                    season_end=season_end_eff,
+                )
+                peak_window_cum[q] = format(cum, "f")
 
-            threshold = _high_load_threshold(
-                ratio=_to_decimal(policy.high_load_threshold_ratio),
-                single_day_peak_volume_kg=peak.volume,
-            )
-            high_load_threshold[q] = format(threshold, "f")
-            peak_duration[q] = _peak_duration_days(
-                daily.per_day,
-                quantile=q,
-                threshold=threshold,
-                peak_date=peak.date,
-            )
-            dv = _dominant_variety(
-                daily.per_day,
-                quantile=q,
-                window_start=sus.start_date,
-                window_end=sus.end_date,
-            )
-            if dv is not None:
-                dominant_variety[q] = dv
+                threshold = _high_load_threshold(
+                    ratio=_to_decimal(policy.high_load_threshold_ratio),
+                    single_day_peak_volume_kg=peak.volume,
+                )
+                high_load_threshold[q] = format(threshold, "f")
+                peak_duration[q] = _peak_duration_days(
+                    sorted_rows,
+                    quantile=q,
+                    threshold=threshold,
+                    peak_date=peak.date,
+                )
+                dv = _dominant_variety(
+                    sorted_rows,
+                    quantile=q,
+                    window_start=sus.start_date,
+                    window_end=sus.end_date,
+                )
+                if dv is not None:
+                    dominant_variety[q] = dv
 
-        # agent_peak_hash over a stable payload that includes policy version
-        # + per-quantile peak entries.
+        # P1 forecast_peak: hash completeness — include all structured fields.
         peak_hash_payload = {
             "policy_version": policy.policy_version,
             "policy_config_hash": policy.policy_config_hash,
@@ -331,8 +396,21 @@ class DefaultPeakAdapter:
                 }
                 for q, v in sustained_3day.items()
             },
+            "peak_window_cumulative_quantity_kg": dict(peak_window_cum),
             "peak_duration_days": dict(peak_duration),
             "high_load_threshold": high_load_threshold,
+            "dominant_variety": {
+                q: {
+                    "variety_id": v.variety_id,
+                    "contribution_rate": v.contribution_rate,
+                    "numerator_kg": v.numerator_kg,
+                    "denominator_kg": v.denominator_kg,
+                }
+                for q, v in dominant_variety.items()
+            },
+            "sustained_window_days": policy.sustained_window_days,
+            "peak_window_days_before": policy.peak_window_days_before,
+            "peak_window_days_after": policy.peak_window_days_after,
         }
         agent_peak_hash = sha256_payload(peak_hash_payload)
 
@@ -350,6 +428,7 @@ class DefaultPeakAdapter:
             high_load_threshold=high_load_threshold,
             dominant_variety=dominant_variety,
             peak_formation_explanation_ref=None,
+            blockers=blockers,
         )
 
 
