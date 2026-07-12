@@ -94,7 +94,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, cast
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.adapters.task_loaders import DefaultSpringFestivalCalendarPort
@@ -508,8 +508,14 @@ def _authority_conflict_blocker(target: str, candidates: list[dict[str, Any]]) -
     Per Charles's direction, the loader MUST NOT auto tie-break.  Every
     candidate ID + hash is disclosed; the orchestrator (or the human
     caller) selects one explicitly via an authority override.
+
+    The candidate list is sorted by ``id`` ascending (P0-2 review
+    4680912426) so the disclosure has a stable total order across
+    cross-DB (SQLite / PostgreSQL) execution and across opposite
+    insertion order on equivalent content.
     """
 
+    sorted_candidates = sorted(candidates, key=lambda c: int(c.get("id", 0) or 0))
     return Blocker(
         code=BlockerCode.AUTHORITY_CONFLICT,
         message=(
@@ -518,11 +524,43 @@ def _authority_conflict_blocker(target: str, candidates: list[dict[str, Any]]) -
         ),
         details={
             "target": target,
-            "candidate_count": len(candidates),
-            "candidates": candidates,
+            "candidate_count": len(sorted_candidates),
+            "candidates": sorted_candidates,
         },
         retry_hint="PROVIDE_OVERRIDE",
     )
+
+
+def _blocker_sort_key(blocker: Blocker) -> tuple[str, str, str]:
+    """Stable total-order key for :class:`Blocker` (P0-2 review 4680912426).
+
+    Returns a tuple ``(code, reason, field)`` that produces a
+    deterministic cross-DB (SQLite / PostgreSQL) ordering of
+    blockers regardless of the underlying DB row-return order
+    AND regardless of row-id assignment.  The key is content-based
+    (not row-id-based) so equal semantic content produces equal
+    order even when the underlying row ids differ across
+    executions.  When ``reason`` / ``field`` are absent, the empty
+    string is used for stable lexicographic comparison.
+    """
+    details = blocker.details or {}
+    return (
+        str(getattr(blocker.code, "value", str(blocker.code))),
+        str(details.get("reason", "") or ""),
+        str(details.get("field", "") or ""),
+    )
+
+
+def _sort_blockers_deterministically(blockers: list[Blocker]) -> list[Blocker]:
+    """Sort blockers by the stable total-order key.
+
+    Python-level sort (P0-2 review 4680912426) is preferred over
+    SQL ``ORDER BY`` because the latter cannot guarantee a
+    cross-database (SQLite / PostgreSQL) tie-break for the same
+    semantic content.  Sorting here is a *display* decision; it
+    does NOT auto-select any single authority.
+    """
+    return sorted(blockers, key=_blocker_sort_key)
 
 
 # --- Strict-scope ORM selectors -----------------------------------------
@@ -654,28 +692,30 @@ async def _select_harvest_state_run_candidates(
     # selection.  The composer's downstream ``len > 1`` dispatch
     # surfaces :data:`BlockerCode.AUTHORITY_CONFLICT` when more than
     # one row passes the validator.
-    from sqlalchemy import or_
 
-    # Stage A related-candidate filters: a row is "diagnostically
-    # relevant" if EITHER
-    #   (a) its date window overlaps the request's ``as_of``
-    #       (``as_of_date <= as_of AND forecast_end_date >= as_of``);
-    #   OR
-    #   (b) its ``destination_factory_id`` matches the requested
-    #       destination.
-    # Either condition surfaces the row for the shared validator
-    # Status, hash, season, variety scope, and exact date bounds
-    # are NOT applied here so the validator can surface them as
-    # typed failures.
-    date_window_clause = and_(
-        HarvestStateRun.as_of_date <= as_of,
-        HarvestStateRun.forecast_end_date >= as_of,
-    )
-    related_clauses: list[Any] = [date_window_clause]
+    # Stage A related-candidate query (P0-1 review 4680912426):
+    # the global as-of visibility cutoff is enforced AS A TOP-LEVEL
+    # AND before any destination broadening.  A future TASK-009
+    # row (row.as_of_date > request.as_of) MUST be completely
+    # invisible to the default path: no candidate, no scope
+    # mismatch, no blocker message/details, no conflict
+    # disclosure.  The destination broadening is a SCOPE-widening
+    # diagnostic helper (it surfaces destination-mismatched
+    # visible rows) — it is NOT a permission to bypass the as-of
+    # visibility cutoff.
+    #
+    # Semantic equivalent:
+    #     HarvestStateRun.as_of_date <= request_as_of
+    #     AND (
+    #         HarvestStateRun.forecast_end_date >= request_as_of
+    #         OR HarvestStateRun.destination_factory_id == requested_destination
+    #     )
+    # When ``destination_factory_id is None`` the destination
+    # broadening is omitted; only the date-window clause is used.
+    visibility_clause = HarvestStateRun.as_of_date <= as_of
+    scope_clauses: list[Any] = [HarvestStateRun.forecast_end_date >= as_of]
     if destination_factory_id is not None:
-        related_clauses.append(
-            HarvestStateRun.destination_factory_id == int(destination_factory_id)
-        )
+        scope_clauses.append(HarvestStateRun.destination_factory_id == int(destination_factory_id))
     related_stmt = select(
         HarvestStateRun.id,
         HarvestStateRun.status,
@@ -685,7 +725,7 @@ async def _select_harvest_state_run_candidates(
         HarvestStateRun.result_hash,
         HarvestStateRun.config_hash,
         HarvestStateRun.input_snapshot,
-    ).where(or_(*related_clauses))
+    ).where(visibility_clause, or_(*scope_clauses))
     try:
         rows = (await session.execute(related_stmt)).all()
     except Exception as exc:  # noqa: BLE001
@@ -751,10 +791,21 @@ async def _select_harvest_state_run_candidates(
             # its discriminator.
             collected_blockers.extend(outcome.blockers)
 
+    # P0-2 (review 4680912426): sort candidates by ``id`` ascending
+    # so the public ``candidates`` tuple has a stable total order
+    # across cross-DB (SQLite / PostgreSQL) execution and across
+    # opposite insertion order on equivalent content.  This is a
+    # DISPLAY decision, not an authority auto-selection.
+    candidate_dicts.sort(key=lambda c: int(c.get("id", 0) or 0))
+
     if candidate_dicts:
         return AuthoritySelectionResult(candidates=tuple(candidate_dicts))
     if collected_blockers:
-        return AuthoritySelectionResult(blockers=tuple(collected_blockers))
+        # Stable-sort blockers by (code, row_id, reason, field) so
+        # the public blocker surface is deterministic.
+        return AuthoritySelectionResult(
+            blockers=tuple(_sort_blockers_deterministically(collected_blockers))
+        )
     # Defensive: rows existed but every one was excluded for a reason
     # not yet wired (should be unreachable).  Return a typed
     # AUTHORITY_SCOPE_MISMATCH so the failure is never silent.
@@ -1244,10 +1295,17 @@ async def _select_residual_prediction_run_candidates(
             candidate_dicts.extend(outcome.candidates)
         elif outcome.blockers:
             collected_blockers.extend(outcome.blockers)
+
+    # P0-2 (review 4680912426): stable sort candidates and
+    # blockers before returning.  Same total-order discipline as
+    # the TASK-009 selector.
+    candidate_dicts.sort(key=lambda c: int(c.get("id", 0) or 0))
     if candidate_dicts:
         return AuthoritySelectionResult(candidates=tuple(candidate_dicts))
     if collected_blockers:
-        return AuthoritySelectionResult(blockers=tuple(collected_blockers))
+        return AuthoritySelectionResult(
+            blockers=tuple(_sort_blockers_deterministically(collected_blockers))
+        )
     return AuthoritySelectionResult(
         blockers=(
             Blocker(
