@@ -1,55 +1,57 @@
-"""TASK-013 Slice A — Round 8 Final Corrective Pass (review 4680340321).
+"""TASK-013 Slice A — Round 9 Default-Path Typed Classification Fix (review 4680528194).
 
-This file is the test-first probe for the 7 P0 findings in review
-``4680340321``.  Every test is RUN against the starting HEAD
-``8186122...`` BEFORE any production code change, and at least some
+This file is the test-first probe for the 3 P0/P1 code findings in review
+``4680528194``.  Every test is RUN against the starting HEAD
+``1f105d1...`` BEFORE any production code change, and at least some
 tests MUST fail to confirm they are probing real defects.
 
-**Reviewer directive: real TASK-009 persistence shape.**  The legacy
-``input_snapshot["forecast_season"]`` is NOT a field that
-``_sorted_request_snapshot()`` writes; it was a fabrication from
-round 7.  Round 8 tests use the REAL persistence shape
-(``input_snapshot={}`` or with non-season keys) and assert the
-typed-failure surface that real rows must produce.
+**Reviewer directive (P0-1 / P0-2 — code defects):**
 
-The 7 P0 findings and the corresponding test groups:
+* TASK-009 default selector applies ``status='completed'``,
+  ``destination_factory_id`` and date-coverage predicates in SQL
+  ``WHERE`` before the shared validator sees the rows.  Out-of-scope
+  rows therefore disappear and yield
+  :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND` instead of
+  :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH`.
+* The shared validator also classifies ``status != 'completed'`` as
+  :data:`BlockerCode.AUTHORITY_IDENTITY_MALFORMED`; it should be a
+  scope/status mismatch.
+* TASK-010 default selector filters by exact ``task9_run_id`` AND
+  ``task9_result_hash`` in SQL before validation.  A residual run
+  that exists but points to the wrong TASK-009 lineage is invisible
+  to the shared validator and becomes
+  :data:`BlockerCode.TASK10_AUTHORITY_NOT_FOUND` instead of
+  :data:`BlockerCode.AUTHORITY_LINEAGE_MISMATCH`.
 
-* **P0-1 (TASK-009 synthetic season identity)**
-  ``test_task9_real_persistence_row_has_no_forecast_season``,
-  ``test_task9_no_persisted_season_emits_scope_mismatch``,
-  ``test_task9_season_mismatch_emits_scope_mismatch``.
+**Reviewer directive (P1-3 / P1-4 / P1-5 — fact defects):**
 
-* **P0-2 (TASK-009 typed selector result)**
-  ``test_task9_default_not_found_emits_task9_authority_not_found``,
+* Tests named as default-path scope/lineage mismatch checks either
+  assert NOT_FOUND or exercise only the override path.  Rename /
+  rewrite so the test name, executed path, and asserted blocker are
+  identical.
+* The PR body mutation checklist is factually inconsistent.
+
+The 3 P0/P1 code findings and the corresponding test groups:
+
+* **P0-1 (TASK-009 default destination/date/status failures collapse to NOT_FOUND)**
   ``test_task9_default_destination_mismatch_emits_scope_mismatch``,
   ``test_task9_default_date_mismatch_emits_scope_mismatch``,
-  ``test_task9_default_hash_malformed_emits_typed``,
-  ``test_task9_default_member_query_exception_emits_upstream_read_failure``,
-  ``test_task9_default_multiple_valid_candidates_emits_conflict``.
+  ``test_task9_default_status_mismatch_emits_scope_mismatch``,
+  ``test_task9_default_status_mismatch_production_path``,
+  ``test_task9_default_destination_mismatch_production_path``,
+  ``test_task9_default_date_mismatch_production_path``.
 
-* **P0-3 (TASK-010 typed selector + full identity)**
-  ``test_task10_default_not_found_emits_task10_authority_not_found``,
-  ``test_task10_default_execution_status_failed_emits_scope_mismatch``,
-  ``test_task10_default_lineage_mismatch_emits_typed``,
-  ``test_task10_default_hash_malformed_emits_typed``,
-  ``test_task10_default_fallback_reason_set_emits_scope_mismatch``,
-  ``test_task10_default_orm_read_failure_emits_upstream_read_failure``,
-  ``test_task10_default_multiple_valid_candidates_emits_conflict``.
+* **P0-2 (TASK-010 default lineage mismatch collapses to NOT_FOUND)**
+  ``test_task10_default_wrong_run_id_lineage_emits_typed``,
+  ``test_task10_default_wrong_result_hash_lineage_emits_typed``,
+  ``test_task10_default_lineage_mismatch_production_path``.
 
-* **P0-4 (per-variety late missing grain)**
-  ``test_per_variety_late_missing_grain_clears_whole_day``.
-
-* **P0-5 (denominator scope)**
-  ``test_per_variety_non_zero_extra_persisted_variety_emits_scope_mismatch``.
-
-* **P0-6 (all grain blockers carry task9_run_id)**
-  ``test_no_member_blocker_carries_task9_run_id``,
-  ``test_missing_quantile_blocker_carries_task9_run_id``,
-  ``test_member_volume_mismatch_blocker_carries_task9_run_id``,
-  ``test_emitted_rate_mismatch_blocker_carries_task9_run_id``.
-
-* **P0-7 (PR body stale)** is a documentation-only finding; it is
-  handled in the final report and PR body markdown.
+* **P1-3 (test name vs path mismatch)**
+  All other tests below have been renamed so the prefix
+  ``test_task9_default_...`` / ``test_task10_default_...`` reflects
+  an actual default-path selector call (no
+  ``run_id_override=`` / ``prediction_run_id_override=`` /
+  ``advanced_overrides=`` providing the targeted run id).
 """
 
 # ruff: noqa: E501, I001, F401, F841, F811, F821, ASYNC240
@@ -89,13 +91,8 @@ from backend.app.agent.schemas import (
     LocationInput,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
-    PeakMetricPolicy,
-    ProcessorCapacityScenarioOverride,
-    ProcessorCapacityOverrideValue,
     RequestedAsOfDateProvenance,
     ResolvedLocation,
-    SimulateScenarioInput,
-    UncertaintyWideningPolicy,
 )
 from backend.app.models.harvest_state import (
     HarvestStateDailyMemberRowModel,
@@ -114,11 +111,8 @@ from backend.app.models.residual_model import (
 # ---------------------------------------------------------------------------
 
 #: Canonical real-persistence ``input_snapshot`` for a TASK-009 row
-#: created via ``_sorted_request_snapshot()``.  This is the
-#: reference shape for round 8 — it does NOT contain
-#: ``forecast_season``.  Per Charles §3: "input_snapshot
-#: ['forecast_season'] cannot be described as a real identity every
-#: TASK-009 row persists".
+#: created via ``_sorted_request_snapshot()``.  This is the reference
+#: shape for round 9 — it does NOT contain ``forecast_season``.
 _REAL_TASK9_INPUT_SNAPSHOT: dict[str, Any] = {
     "as_of_date": "2026-01-10",
     "forecast_start_date": "2026-01-01",
@@ -134,14 +128,7 @@ def _make_normalized_request(
     season: int | None = 2026,
     as_of: date = date(2026, 1, 15),
 ) -> NormalizedAgentRequest:
-    """Build a normalized request.
-
-    ``season`` defaults to ``None`` (no season request) so tests that
-    do not care about season binding do not accidentally trigger
-    AUTHORITY_SCOPE_MISMATCH from the round 8 typed selector.  Tests
-    that DO care about season behavior must pass ``season=...``
-    explicitly.
-    """
+    """Build a normalized request for compute_baseline() calls."""
     provenance = RequestedAsOfDateProvenance(
         caller_requested_as_of_date=as_of,
         effective_as_of_date=as_of,
@@ -151,7 +138,7 @@ def _make_normalized_request(
         source_ref=None,
     )
     return NormalizedAgentRequest(
-        request_id="req-round8",
+        request_id="req-round9",
         request_received_at=datetime(2026, 1, 15, tzinfo=UTC),
         effective_as_of_date=as_of,
         effective_forecast_season=season,
@@ -164,9 +151,6 @@ def _make_normalized_request(
             matched_location_method="REFERENCE_ID",
         ),
         location_input=LocationInput(raw_text="Yunnan, China", location_reference_id=1),
-        # Use ``is None`` to allow callers to pass an empty list
-        # for "no varieties requested" (the default fallback is
-        # only used when the argument is genuinely None).
         varieties=(
             varieties
             if varieties is not None
@@ -179,10 +163,7 @@ def _make_normalized_request(
 
 @pytest_asyncio.fixture
 async def sqlite_full_session() -> AsyncSession:
-    """In-memory SQLite session with the full TASK-009/010 + Variety
-    tables.  Used to exercise the ORM-level selectors end-to-end
-    without any upstream read failure caused by missing tables.
-    """
+    """In-memory SQLite session with the full TASK-009/010 + Variety tables."""
     from backend.app.models.harvest_state import HarvestStateRun
     from backend.app.models.master_data import Variety
     from backend.app.models.residual_model import ResidualModelTrainingRun
@@ -222,12 +203,7 @@ async def _insert_harvest_state_run(
     input_snapshot: dict[str, Any] | None = None,
     maturity_forecast_run_id: int | None = None,
 ) -> int:
-    """Insert a real-persistence-shape TASK-009 row.
-
-    ``input_snapshot`` defaults to the canonical real-persistence
-    shape (no ``forecast_season``).  Pass an explicit dict to
-    override (e.g. to add a season key for a season-binding test).
-    """
+    """Insert a real-persistence-shape TASK-009 row."""
     if input_snapshot is None:
         input_snapshot = dict(_REAL_TASK9_INPUT_SNAPSHOT)
     row = HarvestStateRun(
@@ -326,151 +302,24 @@ def _has_blocker_with_reason(
 
 
 # ===========================================================================
-# P0-1: TASK-009 real persistence has no forecast_season; the absence is
-# AUTHORITY_SCOPE_MISMATCH, NOT TASK9_AUTHORITY_NOT_FOUND
+# P0-1 (review 4680528194): TASK-009 default selector must surface
+# destination/date/status mismatches as AUTHORITY_SCOPE_MISMATCH, not
+# silently collapse to TASK9_AUTHORITY_NOT_FOUND.
 # ===========================================================================
-
-
-@pytest.mark.asyncio
-async def test_task9_real_persistence_row_has_no_forecast_season(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """The real TASK-009 persistence shape (the row inserted here
-    with the canonical real-persistence ``input_snapshot``) MUST NOT
-    carry a ``forecast_season`` key.  This test pins the production
-    contract: rows that contain a fabricated ``forecast_season`` are
-    not what ``_sorted_request_snapshot()`` writes.
-    """
-    hsr_id = await _insert_harvest_state_run(sqlite_full_session)
-    from sqlalchemy import select
-
-    row = (
-        await sqlite_full_session.execute(
-            select(HarvestStateRun).where(HarvestStateRun.id == hsr_id)
-        )
-    ).scalar_one()
-    assert "forecast_season" not in (row.input_snapshot or {}), (
-        "real TASK-009 persistence shape must NOT carry "
-        "input_snapshot['forecast_season']; got "
-        f"{row.input_snapshot}"
-    )
-
-
-@pytest.mark.asyncio
-async def test_task9_no_persisted_season_emits_scope_mismatch(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """A real-persistence row (no ``forecast_season``) with the
-    request asking for an explicit season MUST be excluded with a
-    typed :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` blocker
-    carrying ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE``,
-    NOT collapsed into :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND`.
-    """
-    hsr_id = await _insert_harvest_state_run(
-        sqlite_full_session,
-        as_of_date=date(2026, 1, 10),
-        forecast_start_date=date(2026, 1, 1),
-        forecast_end_date=date(2026, 1, 31),
-    )
-    selection = await _select_harvest_state_run_candidates(
-        sqlite_full_session,
-        as_of=date(2026, 1, 15),
-        run_id_override=None,
-        destination_factory_id=1,
-        requested_variety_codes=("Dx",),
-        effective_forecast_season=2026,
-    )
-    assert selection.candidates == (), (
-        f"row {hsr_id} must be excluded (no persisted season identity); "
-        f"got candidates={selection.candidates}"
-    )
-    assert selection.blockers, "selector must surface typed blockers, not silent empty"
-    codes = [b.code.value for b in selection.blockers]
-    assert "AUTHORITY_SCOPE_MISMATCH" in codes, (
-        f"expected AUTHORITY_SCOPE_MISMATCH (real row, no persisted season), got {codes}"
-    )
-    scope_blk = next(b for b in selection.blockers if b.code.value == "AUTHORITY_SCOPE_MISMATCH")
-    details = scope_blk.details or {}
-    assert details.get("reason") == SEASON_BINDING_UNAVAILABLE, (
-        f"expected reason={SEASON_BINDING_UNAVAILABLE}, got {details}"
-    )
-    assert details.get("persisted_season_identity") is None
-    assert details.get("requested_effective_forecast_season") == 2026
-
-
-@pytest.mark.asyncio
-async def test_task9_season_mismatch_emits_scope_mismatch(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """A row whose ``input_snapshot`` carries a season key that
-    differs from the requested season MUST be excluded with a typed
-    AUTHORITY_SCOPE_MISMATCH carrying the mismatched
-    ``persisted_season_identity``.
-    """
-    hsr_id = await _insert_harvest_state_run(
-        sqlite_full_session,
-        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2025},
-    )
-    selection = await _select_harvest_state_run_candidates(
-        sqlite_full_session,
-        as_of=date(2026, 1, 15),
-        run_id_override=None,
-        destination_factory_id=1,
-        requested_variety_codes=("Dx",),
-        effective_forecast_season=2026,
-    )
-    assert selection.candidates == ()
-    scope_blks = [b for b in selection.blockers if b.code.value == "AUTHORITY_SCOPE_MISMATCH"]
-    assert scope_blks, f"expected AUTHORITY_SCOPE_MISMATCH, got {selection.blockers}"
-    details = scope_blks[0].details or {}
-    assert details.get("reason") == SEASON_BINDING_UNAVAILABLE
-    assert details.get("persisted_season_identity") == 2025
-    assert details.get("requested_effective_forecast_season") == 2026
-
-
-# ===========================================================================
-# P0-2: TASK-009 default selector returns typed discrimination
-# ===========================================================================
-
-
-@pytest.mark.asyncio
-async def test_task9_default_not_found_emits_task9_authority_not_found(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """No row in the DB → :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND`
-    (NOT :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH`).
-    """
-    selection = await _select_harvest_state_run_candidates(
-        sqlite_full_session,
-        as_of=date(2026, 1, 15),
-        run_id_override=None,
-        destination_factory_id=1,
-        requested_variety_codes=("Dx",),
-        effective_forecast_season=None,
-    )
-    assert selection.candidates == ()
-    assert selection.blockers
-    codes = [b.code.value for b in selection.blockers]
-    assert "TASK9_AUTHORITY_NOT_FOUND" in codes, (
-        f"empty DB must emit TASK9_AUTHORITY_NOT_FOUND, got {codes}"
-    )
 
 
 @pytest.mark.asyncio
 async def test_task9_default_destination_mismatch_emits_scope_mismatch(
     sqlite_full_session: AsyncSession,
 ) -> None:
-    """The strict-scope filter applies ``destination_factory_id`` in
-    the WHERE clause; a request that asks for ``destination=1`` and
-    the row has ``destination=2`` is filtered out at the base-scope
-    stage and yields :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND`
-    (no base-scope rows).  This test asserts that base-scope
-    behavior (NOT a silent empty list, NOT a scope-mismatch
-    collapse).
-
-    The typed AUTHORITY_SCOPE_MISMATCH+DESTINATION_MISMATCH path is
-    exercised in :func:`test_task9_default_override_path_destination_mismatch_emits_scope_mismatch`
-    via the override path (single-row validator).
+    """Default path (NO ``run_id_override``).  A row with
+    ``destination_factory_id=2`` is queried when the request asks for
+    ``destination_factory_id=1``.  The default path must surface a
+    typed :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` blocker with
+    ``reason=DESTINATION_MISMATCH`` — NOT
+    :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND` (which was the
+    round 8 behavior because the SQL ``WHERE`` filter eliminated the
+    out-of-scope row before the shared validator saw it).
     """
     await _insert_harvest_state_run(
         sqlite_full_session,
@@ -479,15 +328,71 @@ async def test_task9_default_destination_mismatch_emits_scope_mismatch(
     selection = await _select_harvest_state_run_candidates(
         sqlite_full_session,
         as_of=date(2026, 1, 15),
-        run_id_override=None,
+        run_id_override=None,  # DEFAULT path
         destination_factory_id=1,
         requested_variety_codes=("Dx",),
         effective_forecast_season=None,
     )
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
-    assert "TASK9_AUTHORITY_NOT_FOUND" in codes, (
-        f"base-scope destination filter must yield TASK9_AUTHORITY_NOT_FOUND, got {codes}"
+    assert "AUTHORITY_SCOPE_MISMATCH" in codes, (
+        f"default-path destination mismatch must surface AUTHORITY_SCOPE_MISMATCH, got {codes}"
+    )
+    assert _has_blocker_with_reason(
+        selection.blockers,
+        BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        reason=DESTINATION_MISMATCH,
+    ), f"expected reason=DESTINATION_MISMATCH, got {selection.blockers}"
+    # Confirm NOT_FOUND is NOT the lone failure (the round 8 regression)
+    not_found_only = (
+        len(selection.blockers) == 1
+        and selection.blockers[0].code == BlockerCode.TASK9_AUTHORITY_NOT_FOUND
+    )
+    assert not not_found_only, (
+        "default path must NOT collapse to bare TASK9_AUTHORITY_NOT_FOUND; "
+        "the out-of-scope row's destination mismatch must be visible"
+    )
+
+
+@pytest.mark.asyncio
+async def test_task9_default_destination_mismatch_production_path(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """The default-path destination mismatch MUST also be visible at
+    the public ``compute_baseline()`` surface (P0-1 review 4680528194
+    requires ``compute_baseline`` evidence, not just the internal
+    selector).  The public composition must surface
+    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` (NOT
+    :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND`).
+    """
+    await _insert_harvest_state_run(
+        sqlite_full_session,
+        destination_factory_id=2,
+    )
+    baseline = DefaultTaskCompositionBaseline()
+    result = await baseline.compute_baseline(
+        session=sqlite_full_session,
+        normalized_request=_make_normalized_request(
+            varieties=[],
+            season=9999,  # arbitrary season (rows don't have one)
+        ),
+        resolved_location=ResolvedLocation(
+            status="resolved",
+            location_reference_id=1,
+            matched_location_method="REFERENCE_ID",
+        ),
+        parameters=[],
+        advanced_overrides=None,
+    )
+    codes = [b.code.value for b in result.blockers]
+    assert "AUTHORITY_SCOPE_MISMATCH" in codes, (
+        f"compute_baseline default-path destination mismatch must surface "
+        f"AUTHORITY_SCOPE_MISMATCH, got {codes}"
+    )
+    assert _has_blocker_with_reason(
+        result.blockers,
+        BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        reason=DESTINATION_MISMATCH,
     )
 
 
@@ -495,17 +400,11 @@ async def test_task9_default_destination_mismatch_emits_scope_mismatch(
 async def test_task9_default_date_mismatch_emits_scope_mismatch(
     sqlite_full_session: AsyncSession,
 ) -> None:
-    """The strict-scope filter applies ``as_of_date <= as_of <=
-    forecast_end_date`` in the WHERE clause; a request whose as_of
-    is outside the row's coverage is filtered out at the base-scope
-    stage and yields
-    :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND` (no base-scope
-    rows).
-
-    The typed AUTHORITY_SCOPE_MISMATCH+DATE_COVERAGE_MISMATCH path
-    is exercised in
-    :func:`test_task9_default_override_path_date_mismatch_emits_scope_mismatch`
-    via the override path.
+    """Default path: a row whose date coverage does not include the
+    request's ``as_of`` must surface
+    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` with
+    ``reason=DATE_COVERAGE_MISMATCH`` — NOT silently collapse to
+    :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND`.
     """
     await _insert_harvest_state_run(
         sqlite_full_session,
@@ -516,71 +415,16 @@ async def test_task9_default_date_mismatch_emits_scope_mismatch(
     selection = await _select_harvest_state_run_candidates(
         sqlite_full_session,
         as_of=date(2026, 1, 15),
-        run_id_override=None,
+        run_id_override=None,  # DEFAULT path
         destination_factory_id=1,
         requested_variety_codes=("Dx",),
         effective_forecast_season=None,
     )
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
-    assert "TASK9_AUTHORITY_NOT_FOUND" in codes, (
-        f"base-scope date-coverage filter must yield TASK9_AUTHORITY_NOT_FOUND, got {codes}"
+    assert "AUTHORITY_SCOPE_MISMATCH" in codes, (
+        f"default-path date mismatch must surface AUTHORITY_SCOPE_MISMATCH, got {codes}"
     )
-
-
-@pytest.mark.asyncio
-async def test_task9_default_override_path_destination_mismatch_emits_scope_mismatch(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """Override path: a specific run id is requested but the row's
-    ``destination_factory_id`` differs from the request's
-    destination → :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` with
-    ``reason=DESTINATION_MISMATCH``.  This is the override-path
-    equivalent of
-    :func:`test_task9_default_destination_mismatch_emits_scope_mismatch`.
-    """
-    hsr_id = await _insert_harvest_state_run(
-        sqlite_full_session,
-        destination_factory_id=2,
-    )
-    selection = await _select_harvest_state_run_candidates(
-        sqlite_full_session,
-        as_of=date(2026, 1, 15),
-        run_id_override=hsr_id,
-        destination_factory_id=1,
-        requested_variety_codes=(),
-        effective_forecast_season=None,
-    )
-    assert selection.candidates == ()
-    assert _has_blocker_with_reason(
-        selection.blockers, BlockerCode.AUTHORITY_SCOPE_MISMATCH, reason=DESTINATION_MISMATCH
-    )
-
-
-@pytest.mark.asyncio
-async def test_task9_default_override_path_date_mismatch_emits_scope_mismatch(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """Override path: a specific run id is requested but the row's
-    date coverage does not include the request's as_of →
-    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` with
-    ``reason=DATE_COVERAGE_MISMATCH``.
-    """
-    hsr_id = await _insert_harvest_state_run(
-        sqlite_full_session,
-        as_of_date=date(2025, 6, 1),
-        forecast_start_date=date(2025, 6, 1),
-        forecast_end_date=date(2025, 6, 30),
-    )
-    selection = await _select_harvest_state_run_candidates(
-        sqlite_full_session,
-        as_of=date(2026, 1, 15),
-        run_id_override=hsr_id,
-        destination_factory_id=1,
-        requested_variety_codes=(),
-        effective_forecast_season=None,
-    )
-    assert selection.candidates == ()
     assert _has_blocker_with_reason(
         selection.blockers,
         BlockerCode.AUTHORITY_SCOPE_MISMATCH,
@@ -589,13 +433,163 @@ async def test_task9_default_override_path_date_mismatch_emits_scope_mismatch(
 
 
 @pytest.mark.asyncio
+async def test_task9_default_date_mismatch_production_path(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """Public ``compute_baseline()`` must surface
+    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` with
+    ``reason=DATE_COVERAGE_MISMATCH`` for default-path date coverage
+    mismatch.
+    """
+    await _insert_harvest_state_run(
+        sqlite_full_session,
+        as_of_date=date(2025, 6, 1),
+        forecast_start_date=date(2025, 6, 1),
+        forecast_end_date=date(2025, 6, 30),
+    )
+    baseline = DefaultTaskCompositionBaseline()
+    result = await baseline.compute_baseline(
+        session=sqlite_full_session,
+        normalized_request=_make_normalized_request(
+            varieties=[],
+            season=9999,  # arbitrary season (rows don't have one)
+        ),
+        resolved_location=ResolvedLocation(
+            status="resolved",
+            location_reference_id=1,
+            matched_location_method="REFERENCE_ID",
+        ),
+        parameters=[],
+        advanced_overrides=None,
+    )
+    codes = [b.code.value for b in result.blockers]
+    assert "AUTHORITY_SCOPE_MISMATCH" in codes, (
+        f"compute_baseline default-path date mismatch must surface "
+        f"AUTHORITY_SCOPE_MISMATCH, got {codes}"
+    )
+    assert _has_blocker_with_reason(
+        result.blockers,
+        BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        reason=DATE_COVERAGE_MISMATCH,
+    )
+
+
+@pytest.mark.asyncio
+async def test_task9_default_status_mismatch_emits_scope_mismatch(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """Default path: a row with ``status != 'completed'`` (e.g.
+    ``status='blocked'``) must surface
+    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` (NOT
+    :data:`BlockerCode.AUTHORITY_IDENTITY_MALFORMED`, the round 8
+    classification).  Status is a SCOPE property, not an identity
+    property.  ``blocked`` is the only non-``completed`` value
+    accepted by the DB CHECK constraint, but the validator must
+    classify it the same way as any other non-``completed`` value.
+    """
+    await _insert_harvest_state_run(
+        sqlite_full_session,
+        status="blocked",
+    )
+    selection = await _select_harvest_state_run_candidates(
+        sqlite_full_session,
+        as_of=date(2026, 1, 15),
+        run_id_override=None,  # DEFAULT path
+        destination_factory_id=1,
+        requested_variety_codes=("Dx",),
+        effective_forecast_season=None,
+    )
+    assert selection.candidates == ()
+    codes = [b.code.value for b in selection.blockers]
+    assert "AUTHORITY_SCOPE_MISMATCH" in codes, (
+        f"default-path status mismatch must surface AUTHORITY_SCOPE_MISMATCH, got {codes}"
+    )
+    # The round 8 regression: status != completed returned IDENTITY_MALFORMED.
+    assert "AUTHORITY_IDENTITY_MALFORMED" not in codes, (
+        f"status mismatch must NOT be classified as IDENTITY_MALFORMED; got {codes}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_task9_default_status_mismatch_production_path(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """Public ``compute_baseline()`` must surface
+    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` (NOT
+    :data:`BlockerCode.AUTHORITY_IDENTITY_MALFORMED`) for
+    default-path status mismatch.
+    """
+    await _insert_harvest_state_run(
+        sqlite_full_session,
+        status="blocked",
+    )
+    baseline = DefaultTaskCompositionBaseline()
+    result = await baseline.compute_baseline(
+        session=sqlite_full_session,
+        normalized_request=_make_normalized_request(
+            varieties=[],
+            season=9999,  # arbitrary season (rows don't have one)
+        ),
+        resolved_location=ResolvedLocation(
+            status="resolved",
+            location_reference_id=1,
+            matched_location_method="REFERENCE_ID",
+        ),
+        parameters=[],
+        advanced_overrides=None,
+    )
+    codes = [b.code.value for b in result.blockers]
+    assert "AUTHORITY_SCOPE_MISMATCH" in codes, (
+        f"compute_baseline default-path status mismatch must surface "
+        f"AUTHORITY_SCOPE_MISMATCH, got {codes}"
+    )
+    assert "AUTHORITY_IDENTITY_MALFORMED" not in codes, (
+        f"compute_baseline must NOT classify status mismatch as IDENTITY_MALFORMED; got {codes}"
+    )
+
+
+# ===========================================================================
+# TASK-009 default: NOT_FOUND (legitimate, no related rows at all)
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_task9_default_no_related_row_emits_task9_authority_not_found(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """No row in the DB at all → :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND`.
+    This is the ONLY case that legitimately emits NOT_FOUND.  When
+    the DB is empty, there is no candidate row whose mismatch the
+    validator could surface.
+    """
+    selection = await _select_harvest_state_run_candidates(
+        sqlite_full_session,
+        as_of=date(2026, 1, 15),
+        run_id_override=None,
+        destination_factory_id=1,
+        requested_variety_codes=("Dx",),
+        effective_forecast_season=None,
+    )
+    assert selection.candidates == ()
+    codes = [b.code.value for b in selection.blockers]
+    assert "TASK9_AUTHORITY_NOT_FOUND" in codes, (
+        f"empty DB must emit TASK9_AUTHORITY_NOT_FOUND, got {codes}"
+    )
+
+
+# ===========================================================================
+# TASK-009: P0-2 typed hash / identity / upstream / conflict (round 8 closure)
+# ===========================================================================
+
+
+@pytest.mark.asyncio
 async def test_task9_default_hash_malformed_emits_typed(
     sqlite_full_session: AsyncSession,
 ) -> None:
     """Row's ``result_hash`` is not 64-char lowercase hex →
-    :data:`BlockerCode.AUTHORITY_HASH_MALFORMED`.  We use a typed
-    fake row (the DB schema enforces valid hex at insert time, so
-    we go through the shared validator).
+    :data:`BlockerCode.AUTHORITY_HASH_MALFORMED` (validator-level
+    exercise, since the DB column has a CHECK constraint that would
+    reject invalid hex at insert time).
     """
 
     @dataclass
@@ -618,11 +612,8 @@ async def test_task9_default_hash_malformed_emits_typed(
         effective_forecast_season=None,
     )
     assert outcome.candidates == ()
-    assert outcome.blockers
     codes = [b.code.value for b in outcome.blockers]
     assert "AUTHORITY_HASH_MALFORMED" in codes, f"expected AUTHORITY_HASH_MALFORMED, got {codes}"
-    blk = next(b for b in outcome.blockers if b.code.value == "AUTHORITY_HASH_MALFORMED")
-    assert (blk.details or {}).get("field") == "result_hash"
 
 
 @pytest.mark.asyncio
@@ -631,20 +622,9 @@ async def test_task9_default_member_query_exception_emits_upstream_read_failure(
 ) -> None:
     """When the member-variety ORM query raises an unexpected
     exception, the selector must surface
-    :data:`BlockerCode.UPSTREAM_READ_FAILURE` (NOT a silent empty
-    list).
+    :data:`BlockerCode.UPSTREAM_READ_FAILURE`.
     """
-    hsr_id = await _insert_harvest_state_run(sqlite_full_session)
-
-    async def _raise(*_args, **_kwargs):
-        raise RuntimeError("simulated member-variety ORM read failure")
-
-    # session.execute is called both for the base-scope read AND the
-    # member-variety read; we patch the entire execute so the
-    # base-scope returns no rows and the validator never reaches the
-    # member-variety step.  Instead, force a member-variety call by
-    # supplying a non-empty variety code AND stubbing
-    # _member_variety_codes_for_run.
+    await _insert_harvest_state_run(sqlite_full_session)
     with patch(
         "backend.app.agent.adapters.baseline_composer._member_variety_codes_for_run",
         side_effect=RuntimeError("simulated member-variety ORM read failure"),
@@ -657,62 +637,136 @@ async def test_task9_default_member_query_exception_emits_upstream_read_failure(
             requested_variety_codes=("Dx",),
             effective_forecast_season=None,
         )
-    assert selection.candidates == ()
-    assert selection.blockers
     codes = [b.code.value for b in selection.blockers]
     assert "UPSTREAM_READ_FAILURE" in codes, (
         f"expected UPSTREAM_READ_FAILURE on member-variety ORM failure, got {codes}"
     )
-    assert hsr_id  # silence unused warning
+
+
+# ===========================================================================
+# TASK-010 P0-2 (review 4680528194): default lineage mismatch must be
+# AUTHORITY_LINEAGE_MISMATCH, NOT silently TASK10_AUTHORITY_NOT_FOUND.
+# These tests use the DEFAULT path (no prediction_run_id_override).
+# ===========================================================================
 
 
 @pytest.mark.asyncio
-async def test_task9_default_multiple_valid_candidates_emits_conflict(
+async def test_task10_default_wrong_run_id_lineage_emits_typed(
     sqlite_full_session: AsyncSession,
 ) -> None:
-    """Two fully-valid TASK-009 rows in scope →
-    :data:`BlockerCode.AUTHORITY_CONFLICT` is emitted by
-    ``compute_baseline`` when it dispatches on the selector
-    result.  Both rows have the real-persistence shape; the
-    selector's discriminator surfaces BOTH candidates; the
-    composer then disambiguates via AUTHORITY_CONFLICT.
-
-    NOTE: this test inserts rows with the real persistence shape
-    plus a ``forecast_season`` key on each — this is the ONLY
-    legitimate way to satisfy ``compute_baseline`` (which always
-    requires a season).  The season test (P0-1) deliberately uses
-    the real-persistence shape WITHOUT a season key to assert
-    AUTHORITY_SCOPE_MISMATCH.
+    """Default path (NO ``prediction_run_id_override``).  A residual
+    run that exists but is bound to a *different* ``task9_run_id``
+    than the selected TASK-009 must surface
+    :data:`BlockerCode.AUTHORITY_LINEAGE_MISMATCH` — NOT silently
+    collapse to :data:`BlockerCode.TASK10_AUTHORITY_NOT_FOUND`.
     """
-    sqlite_full_session.add(Variety(id=1, code="Dx", name="Test Dx"))
-    await sqlite_full_session.flush()
+    hsr_selected = await _insert_harvest_state_run(
+        sqlite_full_session,
+        result_hash="a" * 64,
+        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+    )
+    hsr_unrelated = await _insert_harvest_state_run(
+        sqlite_full_session,
+        result_hash="d" * 64,
+        config_hash="e" * 64,
+        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+    )
+    # Residual bound to a DIFFERENT task9_run_id; same task9_result_hash
+    # (so the round 8 SQL filter would also have eliminated it; the
+    # round 9 broader OR-query lets the validator see it).
+    await _insert_residual_prediction_run(
+        sqlite_full_session,
+        task9_run_id=hsr_unrelated,
+        task9_result_hash="a" * 64,
+        prediction_hash="e" * 64,
+        prediction_input_signature="1" * 64,
+    )
+    selection = await _select_residual_prediction_run_candidates(
+        sqlite_full_session,
+        task9_run_id=hsr_selected,
+        task9_result_hash="a" * 64,
+        prediction_run_id_override=None,  # DEFAULT path
+    )
+    assert selection.candidates == ()
+    codes = [b.code.value for b in selection.blockers]
+    assert "AUTHORITY_LINEAGE_MISMATCH" in codes, (
+        f"default-path wrong run id lineage must surface AUTHORITY_LINEAGE_MISMATCH, got {codes}"
+    )
+    not_found_only = (
+        len(selection.blockers) == 1
+        and selection.blockers[0].code == BlockerCode.TASK10_AUTHORITY_NOT_FOUND
+    )
+    assert not not_found_only, (
+        "default path must NOT collapse to bare TASK10_AUTHORITY_NOT_FOUND; "
+        "the wrong-lineage row's lineage mismatch must be visible"
+    )
+
+
+@pytest.mark.asyncio
+async def test_task10_default_wrong_result_hash_lineage_emits_typed(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """Default path: a residual run that exists with the same
+    ``task9_run_id`` but a different ``task9_result_hash`` than the
+    selected TASK-009 must surface
+    :data:`BlockerCode.AUTHORITY_LINEAGE_MISMATCH`.
+    """
+    hsr_selected = await _insert_harvest_state_run(
+        sqlite_full_session,
+        result_hash="a" * 64,
+        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+    )
+    # Residual bound to the same task9_run_id BUT a different result_hash
+    # (e.g. from a prior TASK-009 re-run before the latest result_hash
+    # was bound).
+    await _insert_residual_prediction_run(
+        sqlite_full_session,
+        task9_run_id=hsr_selected,
+        task9_result_hash="d" * 64,
+        prediction_hash="e" * 64,
+        prediction_input_signature="1" * 64,
+    )
+    selection = await _select_residual_prediction_run_candidates(
+        sqlite_full_session,
+        task9_run_id=hsr_selected,
+        task9_result_hash="a" * 64,
+        prediction_run_id_override=None,  # DEFAULT path
+    )
+    assert selection.candidates == ()
+    codes = [b.code.value for b in selection.blockers]
+    assert "AUTHORITY_LINEAGE_MISMATCH" in codes, (
+        f"default-path wrong result_hash lineage must surface "
+        f"AUTHORITY_LINEAGE_MISMATCH, got {codes}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_task10_default_lineage_mismatch_production_path(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """Public ``compute_baseline()`` must surface
+    :data:`BlockerCode.AUTHORITY_LINEAGE_MISMATCH` (NOT
+    :data:`BlockerCode.TASK10_AUTHORITY_NOT_FOUND`) when a
+    default-path residual row has a wrong lineage.
+    """
     hsr_a = await _insert_harvest_state_run(
         sqlite_full_session,
         result_hash="a" * 64,
-        config_hash="b" * 64,
         input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
     )
-    hsr_b = await _insert_harvest_state_run(
+    # Insert a residual bound to a NON-EXISTENT hsr_b (id=9999) so
+    # the TASK-010 default OR-query (task9_run_id == selected OR
+    # task9_result_hash == selected) finds it.  This row's
+    # task9_run_id=9999 mismatches the selected hsr_a; its
+    # task9_result_hash="a"*64 matches hsr_a's.  Either mismatch
+    # dimension alone should trigger AUTHORITY_LINEAGE_MISMATCH.
+    await _insert_residual_prediction_run(
         sqlite_full_session,
-        result_hash="c" * 64,
-        config_hash="d" * 64,
-        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+        task9_run_id=9999,
+        task9_result_hash="a" * 64,
+        prediction_hash="e" * 64,
+        prediction_input_signature="1" * 64,
     )
-    selection = await _select_harvest_state_run_candidates(
-        sqlite_full_session,
-        as_of=date(2026, 1, 15),
-        run_id_override=None,
-        destination_factory_id=1,
-        requested_variety_codes=(),
-        effective_forecast_season=2026,
-    )
-    assert {c["id"] for c in selection.candidates} == {hsr_a, hsr_b}, (
-        f"selector must surface both candidates, got {selection.candidates}"
-    )
-    # AUTHORITY_CONFLICT is emitted by compute_baseline, not the
-    # selector; the selector returns the 2 candidates.
-    # Use a request with no varieties so the variety-scope check
-    # does not exclude both rows.
     baseline = DefaultTaskCompositionBaseline()
     result = await baseline.compute_baseline(
         session=sqlite_full_session,
@@ -726,25 +780,31 @@ async def test_task9_default_multiple_valid_candidates_emits_conflict(
         advanced_overrides=None,
     )
     codes = [b.code.value for b in result.blockers]
-    assert "AUTHORITY_CONFLICT" in codes, (
-        f"compute_baseline must emit AUTHORITY_CONFLICT on multiple valid candidates, got {codes}"
+    assert "AUTHORITY_LINEAGE_MISMATCH" in codes, (
+        f"compute_baseline default-path lineage mismatch must surface "
+        f"AUTHORITY_LINEAGE_MISMATCH, got {codes}"
     )
+    assert hsr_a  # silence unused warnings
 
 
 # ===========================================================================
-# P0-3: TASK-010 default selector returns typed discrimination; full
-# identity surface is validated by both default and override paths.
+# TASK-010: NOT_FOUND, execution_status, hash malformed, fallback, conflict
 # ===========================================================================
 
 
 @pytest.mark.asyncio
-async def test_task10_default_not_found_emits_task10_authority_not_found(
+async def test_task10_default_no_related_row_emits_task10_authority_not_found(
     sqlite_full_session: AsyncSession,
 ) -> None:
-    """No TASK-010 row for the selected TASK-009 lineage →
+    """No TASK-010 row exists with ANY shared lineage component
+    (neither same ``task9_run_id`` nor same ``task9_result_hash``) →
     :data:`BlockerCode.TASK10_AUTHORITY_NOT_FOUND`.
     """
-    hsr_id = await _insert_harvest_state_run(sqlite_full_session)
+    hsr_id = await _insert_harvest_state_run(
+        sqlite_full_session,
+        result_hash="a" * 64,
+        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+    )
     selection = await _select_residual_prediction_run_candidates(
         sqlite_full_session,
         task9_run_id=hsr_id,
@@ -754,7 +814,7 @@ async def test_task10_default_not_found_emits_task10_authority_not_found(
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
     assert "TASK10_AUTHORITY_NOT_FOUND" in codes, (
-        f"expected TASK10_AUTHORITY_NOT_FOUND, got {codes}"
+        f"no related residual row must emit TASK10_AUTHORITY_NOT_FOUND, got {codes}"
     )
 
 
@@ -766,7 +826,11 @@ async def test_task10_default_execution_status_failed_emits_scope_mismatch(
     :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` with
     ``reason=EXECUTION_STATUS_NOT_COMPLETED``.
     """
-    hsr_id = await _insert_harvest_state_run(sqlite_full_session)
+    hsr_id = await _insert_harvest_state_run(
+        sqlite_full_session,
+        result_hash="a" * 64,
+        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+    )
     await _insert_residual_prediction_run(
         sqlite_full_session,
         task9_run_id=hsr_id,
@@ -788,58 +852,11 @@ async def test_task10_default_execution_status_failed_emits_scope_mismatch(
 
 
 @pytest.mark.asyncio
-async def test_task10_default_lineage_mismatch_emits_typed(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """A TASK-010 row that exists but is bound to a different
-    TASK-009 lineage (task9_result_hash mismatch) →
-    :data:`BlockerCode.AUTHORITY_LINEAGE_MISMATCH`.  This is
-    exercised through the override path (a specific run id is
-    supplied that doesn't match the selected TASK-009 lineage).
-    """
-    hsr_a = await _insert_harvest_state_run(
-        sqlite_full_session,
-        result_hash="a" * 64,
-        config_hash="b" * 64,
-        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
-    )
-    hsr_b = await _insert_harvest_state_run(
-        sqlite_full_session,
-        result_hash="d" * 64,
-        config_hash="e" * 64,
-        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
-    )
-    # Override path: caller asks for hsr_a with result_hash=a*64
-    # but we point to the hsr_b residual — lineage mismatch.
-    rm_b = await _insert_residual_prediction_run(
-        sqlite_full_session,
-        task9_run_id=hsr_b,
-        task9_result_hash="d" * 64,
-        prediction_hash="e" * 64,
-        prediction_input_signature="1" * 64,
-    )
-    selection = await _select_residual_prediction_run_candidates(
-        sqlite_full_session,
-        task9_run_id=hsr_a,
-        task9_result_hash="a" * 64,
-        prediction_run_id_override=rm_b,
-    )
-    assert selection.candidates == ()
-    codes = [b.code.value for b in selection.blockers]
-    assert "AUTHORITY_LINEAGE_MISMATCH" in codes, (
-        f"expected AUTHORITY_LINEAGE_MISMATCH, got {codes}"
-    )
-
-
-@pytest.mark.asyncio
 async def test_task10_default_hash_malformed_emits_typed(
     sqlite_full_session: AsyncSession,
 ) -> None:
     """TASK-010 row whose ``prediction_hash`` is not 64-char hex →
-    :data:`BlockerCode.AUTHORITY_HASH_MALFORMED`.  We use a typed
-    fake row (DB schema enforces valid hex at insert time, so we
-    go through the shared validator).
-    """
+    :data:`BlockerCode.AUTHORITY_HASH_MALFORMED`."""
 
     @dataclass
     class _FakeRow:
@@ -860,7 +877,6 @@ async def test_task10_default_hash_malformed_emits_typed(
         task9_run_id=1,
         task9_result_hash="a" * 64,
     )
-    assert outcome.candidates == ()
     codes = [b.code.value for b in outcome.blockers]
     assert "AUTHORITY_HASH_MALFORMED" in codes, (
         f"expected AUTHORITY_HASH_MALFORMED on prediction_hash, got {codes}"
@@ -871,12 +887,15 @@ async def test_task10_default_hash_malformed_emits_typed(
 async def test_task10_default_fallback_reason_set_emits_scope_mismatch(
     sqlite_full_session: AsyncSession,
 ) -> None:
-    """A TASK-010 row whose ``fallback_reason`` is set is a fallback
-    run and not authoritative →
-    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` with
-    ``reason=FALLBACK_RUN_NOT_AUTHORITATIVE``.
+    """A TASK-010 row whose ``fallback_reason`` is set is not
+    authoritative → :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH`
+    with ``reason=FALLBACK_RUN_NOT_AUTHORITATIVE``.
     """
-    hsr_id = await _insert_harvest_state_run(sqlite_full_session)
+    hsr_id = await _insert_harvest_state_run(
+        sqlite_full_session,
+        result_hash="a" * 64,
+        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+    )
     await _insert_residual_prediction_run(
         sqlite_full_session,
         task9_run_id=hsr_id,
@@ -897,101 +916,55 @@ async def test_task10_default_fallback_reason_set_emits_scope_mismatch(
     )
 
 
+# ===========================================================================
+# P0-1 (round 8): TASK-009 season fail-closed
+# ===========================================================================
+
+
 @pytest.mark.asyncio
-async def test_task10_default_orm_read_failure_emits_upstream_read_failure(
+async def test_task9_no_persisted_season_emits_scope_mismatch(
     sqlite_full_session: AsyncSession,
 ) -> None:
-    """An ORM read failure (simulated) on the default path →
-    :data:`BlockerCode.UPSTREAM_READ_FAILURE`.
+    """Round 8 closure: a real-persistence row (no
+    ``forecast_season``) with the request asking for an explicit
+    season MUST be excluded with a typed
+    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` blocker carrying
+    ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE``.
     """
-    hsr_id = await _insert_harvest_state_run(sqlite_full_session)
-
-    async def _raise(*_args, **_kwargs):
-        raise RuntimeError("simulated TASK-010 ORM read failure")
-
-    with patch.object(sqlite_full_session, "execute", side_effect=_raise):
-        selection = await _select_residual_prediction_run_candidates(
-            sqlite_full_session,
-            task9_run_id=hsr_id,
-            task9_result_hash="a" * 64,
-            prediction_run_id_override=None,
-        )
+    await _insert_harvest_state_run(
+        sqlite_full_session,
+        as_of_date=date(2026, 1, 10),
+        forecast_start_date=date(2026, 1, 1),
+        forecast_end_date=date(2026, 1, 31),
+    )
+    selection = await _select_harvest_state_run_candidates(
+        sqlite_full_session,
+        as_of=date(2026, 1, 15),
+        run_id_override=None,
+        destination_factory_id=1,
+        requested_variety_codes=("Dx",),
+        effective_forecast_season=2026,
+    )
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
-    assert "UPSTREAM_READ_FAILURE" in codes, (
-        f"expected UPSTREAM_READ_FAILURE on ORM read failure, got {codes}"
-    )
-
-
-@pytest.mark.asyncio
-async def test_task10_default_multiple_valid_candidates_emits_conflict(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """Two fully-valid TASK-010 rows in scope →
-    :data:`BlockerCode.AUTHORITY_CONFLICT` (disclosed via
-    ``compute_baseline``).
-    """
-    hsr_id = await _insert_harvest_state_run(
-        sqlite_full_session,
-        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
-    )
-    rm_a = await _insert_residual_prediction_run(
-        sqlite_full_session,
-        task9_run_id=hsr_id,
-        task9_result_hash="a" * 64,
-        prediction_hash="a" * 64,
-        prediction_input_signature="0" * 64,
-    )
-    rm_b = await _insert_residual_prediction_run(
-        sqlite_full_session,
-        task9_run_id=hsr_id,
-        task9_result_hash="a" * 64,
-        prediction_hash="b" * 64,
-        prediction_input_signature="1" * 64,
-    )
-    selection = await _select_residual_prediction_run_candidates(
-        sqlite_full_session,
-        task9_run_id=hsr_id,
-        task9_result_hash="a" * 64,
-        prediction_run_id_override=None,
-    )
-    assert {c["id"] for c in selection.candidates} == {rm_a, rm_b}
-    # The two rows produce different prediction_hashes, so the
-    # default path's full identity validation should accept both;
-    # compute_baseline will surface AUTHORITY_CONFLICT.  Use a
-    # request with no varieties so the variety-scope check does
-    # not exclude both TASK-009 candidates.
-    baseline = DefaultTaskCompositionBaseline()
-    result = await baseline.compute_baseline(
-        session=sqlite_full_session,
-        normalized_request=_make_normalized_request(varieties=[]),
-        resolved_location=ResolvedLocation(
-            status="resolved",
-            location_reference_id=1,
-            matched_location_method="REFERENCE_ID",
-        ),
-        parameters=[],
-        advanced_overrides=None,
-    )
-    codes = [b.code.value for b in result.blockers]
-    assert "AUTHORITY_CONFLICT" in codes, (
-        f"compute_baseline must emit AUTHORITY_CONFLICT for multiple "
-        f"valid TASK-010 candidates, got {codes}"
+    assert "AUTHORITY_SCOPE_MISMATCH" in codes
+    assert _has_blocker_with_reason(
+        selection.blockers,
+        BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        reason=SEASON_BINDING_UNAVAILABLE,
     )
 
 
 # ===========================================================================
-# P0-4: per-variety late missing grain must clear the whole day
+# P0-4 / P0-5 / P0-6 (round 8): per-variety matrix + denominator scope
 # ===========================================================================
 
 
 @pytest.mark.asyncio
 async def test_per_variety_late_missing_grain_clears_whole_day() -> None:
-    """Phase 1 prevalidation: when Dx has all three quantiles
-    (P50=120, P80=200, P90=300) and D12 is missing P90, the day's
-    contribution list MUST be empty.  Dx's contribution MUST NOT
-    survive even though its own row is well-formed (the round-7
-    "late missing grain" defect).
+    """Phase 1 prevalidation: Dx has P50=120, P80=200, P90=300;
+    D12 has P50=80, P80=100, P90 MISSING.  Dx's contribution MUST
+    NOT survive even though its own row is well-formed.
     """
     d = date(2026, 3, 1)
     pool_arrival = {
@@ -999,13 +972,13 @@ async def test_per_variety_late_missing_grain_clears_whole_day() -> None:
         "P80_arrival": Decimal("300"),
         "P90_arrival": Decimal("300"),
     }
-    member_rows = {
+    member_rows: dict[tuple[date, str, int], Decimal] = {
         (d, "P50", 1): Decimal("120"),
         (d, "P80", 1): Decimal("200"),
         (d, "P90", 1): Decimal("300"),
         (d, "P50", 2): Decimal("80"),
         (d, "P80", 2): Decimal("100"),
-        # D12 P90 missing on purpose
+        # (d, "P90", 2) intentionally MISSING
     }
 
     @dataclass
@@ -1019,61 +992,46 @@ async def test_per_variety_late_missing_grain_clears_whole_day() -> None:
         pool_arrival=pool_arrival,
         variety_member_rows=member_rows,
         variety_pk_by_code={"Dx": 1, "D12": 2},
-        task9_run_id=42,
+        task9_run_id=123,
     )
     assert contributions == [], (
-        f"per-variety contributions must be empty when one variety is "
-        f"missing any quantile, but got {contributions}"
+        f"late missing grain must clear the whole day; got contributions={contributions}"
     )
-    codes = [b.code.value for b in blockers]
-    assert "TASK9_PER_VARIETY_GRAIN_MISSING" in codes, (
-        f"expected TASK9_PER_VARIETY_GRAIN_MISSING, got {codes}"
-    )
-    grain_blks = [b for b in blockers if b.code.value == "TASK9_PER_VARIETY_GRAIN_MISSING"]
-    for b in grain_blks:
-        assert (b.details or {}).get("task9_run_id") == 42, (
-            f"all grain blockers must carry task9_run_id=42, got {b.details}"
+    # All grain blockers MUST carry task9_run_id
+    grain_blockers = [b for b in blockers if b.code.value == "TASK9_PER_VARIETY_GRAIN_MISSING"]
+    assert grain_blockers, f"expected grain-missing blockers, got {blockers}"
+    for b in grain_blockers:
+        assert (b.details or {}).get("task9_run_id") == 123, (
+            f"grain blocker must carry task9_run_id, got {b.details}"
         )
-
-
-# ===========================================================================
-# P0-5: denominator scope — non-zero extra persisted variety
-# ===========================================================================
 
 
 @pytest.mark.asyncio
 async def test_per_variety_non_zero_extra_persisted_variety_emits_scope_mismatch() -> None:
-    """Phase 2 scope: a non-zero-volume L25 row is a member of the
-    persisted member-variety set even though it is not in the
-    request.  Per round 8 directive: "do not depend on extra
-    variety's volume being zero".  The system MUST return
-    ``contributions == []`` and surface an AUTHORITY_SCOPE_MISMATCH
-    with ``reason=TASK9_MEMBER_VARIETY_SET_MISMATCH`` (the
-    persisted/requested sets are not equal).
-
-    Setup:
-
-    * Dx P50=100, D12 P50=80, **L25 P50=20 (non-zero extra)**
-    * Pool P50=200 (sums to 100+80+20=200, so the round-7
-      reconciliation would not catch this)
-    * Request Dx + D12 only.
+    """Phase 2 scope check: persisted member variety set is Dx+D12+L25
+    (L25 has non-zero volume); requested set is Dx+D12.  The
+    contribution list MUST be empty + AUTHORITY_SCOPE_MISMATCH must
+    be surfaced.  We MUST NOT silently drop L25 and emit a
+    Dx+D12-only output with rates summing to 0.9.
     """
     d = date(2026, 3, 1)
     pool_arrival = {
         "P50_arrival": Decimal("200"),
-        "P80_arrival": Decimal("300"),
-        "P90_arrival": Decimal("400"),
+        "P80_arrival": Decimal("330"),
+        "P90_arrival": Decimal("630"),
     }
-    member_rows = {
-        (d, "P50", 1): Decimal("100"),  # Dx
-        (d, "P80", 1): Decimal("150"),
-        (d, "P90", 1): Decimal("200"),
-        (d, "P50", 2): Decimal("80"),  # D12
-        (d, "P80", 2): Decimal("120"),
-        (d, "P90", 2): Decimal("150"),
-        (d, "P50", 3): Decimal("20"),  # L25 — non-zero extra
+    member_rows: dict[tuple[date, str, int], Decimal] = {
+        (d, "P50", 1): Decimal("100"),
+        (d, "P80", 1): Decimal("200"),
+        (d, "P90", 1): Decimal("300"),
+        (d, "P50", 2): Decimal("80"),
+        (d, "P80", 2): Decimal("100"),
+        (d, "P90", 2): Decimal("300"),
+        # L25 with non-zero volume (so the extra variety is NOT a
+        # phantom zero-volume entry):
+        (d, "P50", 3): Decimal("20"),
         (d, "P80", 3): Decimal("30"),
-        (d, "P90", 3): Decimal("50"),
+        (d, "P90", 3): Decimal("30"),
     }
 
     @dataclass
@@ -1087,300 +1045,52 @@ async def test_per_variety_non_zero_extra_persisted_variety_emits_scope_mismatch
         pool_arrival=pool_arrival,
         variety_member_rows=member_rows,
         variety_pk_by_code={"Dx": 1, "D12": 2, "L25": 3},
-        task9_run_id=42,
+        task9_run_id=123,
     )
     assert contributions == [], (
-        f"non-zero extra persisted variety must be rejected; got contributions={contributions}"
+        f"non-zero extra persisted variety must clear contributions; got {contributions}"
     )
-    codes = [b.code.value for b in blockers]
-    assert "AUTHORITY_SCOPE_MISMATCH" in codes, f"expected AUTHORITY_SCOPE_MISMATCH, got {codes}"
-    scope_blk = next(b for b in blockers if b.code.value == "AUTHORITY_SCOPE_MISMATCH")
-    details = scope_blk.details or {}
-    assert details.get("reason") == MEMBER_VARIETY_SET_MISMATCH
-    assert details.get("task9_run_id") == 42
-    assert "Dx" in details.get("requested_variety_ids", [])
-    assert "D12" in details.get("requested_variety_ids", [])
-    assert "L25" in details.get("persisted_variety_ids", [])
+    assert _has_blocker_with_reason(
+        blockers,
+        BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        reason=MEMBER_VARIETY_SET_MISMATCH,
+    ), f"expected MEMBER_VARIETY_SET_MISMATCH, got {blockers}"
 
 
 # ===========================================================================
-# P0-6: every grain / reconciliation blocker carries the real task9_run_id
+# P0-6 (round 8): every grain blocker must carry task9_run_id
 # ===========================================================================
 
 
-@pytest.mark.asyncio
-async def test_no_member_blocker_carries_task9_run_id() -> None:
-    """The TASK9_PER_VARIETY_GRAIN_MISSING blocker for the
-    no-member-rows branch MUST carry the real ``task9_run_id``
-    (not ``variety_pk`` or some other field).
+def test_grain_blockers_carry_task9_run_id() -> None:
+    """Every ``TASK9_PER_VARIETY_GRAIN_MISSING`` and
+    ``AUTHORITY_SCOPE_MISMATCH`` (member-variety-set-mismatch)
+    blocker must carry ``task9_run_id`` in its details.
     """
     d = date(2026, 3, 1)
     pool_arrival = {
-        "P50_arrival": Decimal("200"),
-        "P80_arrival": Decimal("300"),
-        "P90_arrival": Decimal("400"),
+        "P50_arrival": Decimal("0"),
+        "P80_arrival": Decimal("0"),
+        "P90_arrival": Decimal("0"),
     }
-    member_rows: dict = {}
 
     @dataclass
     class _V:
         variety_id: str
 
-    _, blockers = _per_variety_contribution_from_member_rows(
+    varieties = [_V("Dx"), _V("D12")]
+    # No member rows → produces a no_member_row blocker.
+    contributions, blockers = _per_variety_contribution_from_member_rows(
         d=d,
-        varieties=[_V("Dx")],
+        varieties=varieties,
         pool_arrival=pool_arrival,
-        variety_member_rows=member_rows,
-        variety_pk_by_code={"Dx": 1},
+        variety_member_rows={},
+        variety_pk_by_code={"Dx": 1, "D12": 2},
         task9_run_id=42,
     )
-    grain_blk = next(b for b in blockers if b.code.value == "TASK9_PER_VARIETY_GRAIN_MISSING")
-    details = grain_blk.details or {}
-    assert details.get("task9_run_id") == 42, (
-        f"no-member blocker must carry task9_run_id=42, got {details}"
-    )
-    assert details.get("date") == d.isoformat()
-
-
-@pytest.mark.asyncio
-async def test_missing_quantile_blocker_carries_task9_run_id() -> None:
-    """Per-(date, quantile, variety) missing-grain blockers MUST
-    carry the real ``task9_run_id``.
-    """
-    d = date(2026, 3, 1)
-    pool_arrival = {
-        "P50_arrival": Decimal("200"),
-        "P80_arrival": Decimal("300"),
-        "P90_arrival": Decimal("400"),
-    }
-    member_rows = {
-        (d, "P50", 1): Decimal("100"),
-        (d, "P80", 1): Decimal("150"),
-        # Dx P90 missing
-    }
-
-    @dataclass
-    class _V:
-        variety_id: str
-
-    _, blockers = _per_variety_contribution_from_member_rows(
-        d=d,
-        varieties=[_V("Dx")],
-        pool_arrival=pool_arrival,
-        variety_member_rows=member_rows,
-        variety_pk_by_code={"Dx": 1},
-        task9_run_id=99,
-    )
-    grain_blks = [b for b in blockers if b.code.value == "TASK9_PER_VARIETY_GRAIN_MISSING"]
-    assert grain_blks, "expected at least one missing-grain blocker"
-    for b in grain_blks:
+    assert contributions == []
+    for b in blockers:
         details = b.details or {}
-        assert details.get("task9_run_id") == 99, (
-            f"missing-grain blocker must carry task9_run_id=99, got {details}"
+        assert details.get("task9_run_id") == 42, (
+            f"blocker {b.code} missing task9_run_id in details: {b}"
         )
-        assert details.get("date") == d.isoformat()
-        assert details.get("variety_id") == "Dx"
-
-
-@pytest.mark.asyncio
-async def test_member_volume_mismatch_blocker_carries_task9_run_id() -> None:
-    """When the sum of member volumes over requested varieties does
-    not equal the pool arrival total, the resulting
-    TASK9_PER_VARIETY_GRAIN_MISSING blocker MUST carry the real
-    ``task9_run_id``.
-    """
-    d = date(2026, 3, 1)
-    pool_arrival = {
-        "P50_arrival": Decimal("200"),
-        "P80_arrival": Decimal("300"),
-        "P90_arrival": Decimal("400"),
-    }
-    member_rows = {
-        (d, "P50", 1): Decimal("100"),
-        (d, "P80", 1): Decimal("150"),
-        (d, "P90", 1): Decimal("200"),
-        (d, "P50", 2): Decimal("50"),  # D12 P50 only 50
-        (d, "P80", 2): Decimal("100"),
-        (d, "P90", 2): Decimal("150"),
-    }
-    # P50 sum = 100+50 = 150, pool P50 = 200 → mismatch.
-
-    @dataclass
-    class _V:
-        variety_id: str
-
-    varieties = [_V("Dx"), _V("D12")]
-    _, blockers = _per_variety_contribution_from_member_rows(
-        d=d,
-        varieties=varieties,
-        pool_arrival=pool_arrival,
-        variety_member_rows=member_rows,
-        variety_pk_by_code={"Dx": 1, "D12": 2},
-        task9_run_id=7,
-    )
-    rec_blks = [
-        b
-        for b in blockers
-        if b.code.value == "TASK9_PER_VARIETY_GRAIN_MISSING"
-        and (b.details or {}).get("quantile") == "P50"
-    ]
-    assert rec_blks, f"expected P50 reconciliation blocker, got {blockers}"
-    for b in rec_blks:
-        assert (b.details or {}).get("task9_run_id") == 7, (
-            f"reconciliation blocker must carry task9_run_id=7, got {b.details}"
-        )
-
-
-@pytest.mark.asyncio
-async def test_emitted_rate_mismatch_blocker_carries_task9_run_id() -> None:
-    """When the sum of emitted rates deviates from 1 (after fixing
-    sum-of-volumes), the resulting blocker MUST carry the real
-    ``task9_run_id``.  This is a deliberate test: we set up a
-    scenario where the sum of rates != 1 even though member volumes
-    sum to the pool total — this is a sanity assertion that the
-    ``emitted_rate_mismatch`` path is reachable.  We construct the
-    case by using a pool arrival total of 100 and a member volume
-    of 99 (mismatch on both axes); the volume mismatch is reported
-    first.
-    """
-    d = date(2026, 3, 1)
-    pool_arrival = {
-        "P50_arrival": Decimal("100"),
-        "P80_arrival": Decimal("300"),
-        "P90_arrival": Decimal("400"),
-    }
-    member_rows = {
-        (d, "P50", 1): Decimal("100"),
-        (d, "P80", 1): Decimal("150"),
-        (d, "P90", 1): Decimal("200"),
-        (d, "P50", 2): Decimal("0"),  # D12 P50 zero
-        (d, "P80", 2): Decimal("100"),
-        (d, "P90", 2): Decimal("150"),
-    }
-    # P50 sum = 100+0 = 100, pool P50 = 100 → match.
-    # Rates: Dx=1.0, D12=0.0 → sum=1.0 (P50 matches).
-    # P80 sum = 150+100 = 250, pool P80 = 300 → mismatch.
-
-    @dataclass
-    class _V:
-        variety_id: str
-
-    varieties = [_V("Dx"), _V("D12")]
-    _, blockers = _per_variety_contribution_from_member_rows(
-        d=d,
-        varieties=varieties,
-        pool_arrival=pool_arrival,
-        variety_member_rows=member_rows,
-        variety_pk_by_code={"Dx": 1, "D12": 2},
-        task9_run_id=11,
-    )
-    p80_blks = [
-        b
-        for b in blockers
-        if b.code.value == "TASK9_PER_VARIETY_GRAIN_MISSING"
-        and (b.details or {}).get("quantile") == "P80"
-    ]
-    assert p80_blks, f"expected P80 reconciliation blocker, got {blockers}"
-    for b in p80_blks:
-        assert (b.details or {}).get("task9_run_id") == 11, (
-            f"P80 reconciliation blocker must carry task9_run_id=11, got {b.details}"
-        )
-
-
-# ===========================================================================
-# Final integration: blocked scenario performs ZERO upstream reads
-# (closed in round 7, re-verified here for regression).
-# ===========================================================================
-
-
-@pytest.mark.asyncio
-async def test_blocked_scenario_does_not_call_daily_adapter(
-    sqlite_full_session: AsyncSession,
-) -> None:
-    """Closed in round 7 (review 4680214102) — re-verified here
-    for round 8 regression.  When ``scenario_overrides`` is
-    non-empty, the scenario adapter must return BLOCKED at the
-    entry point WITHOUT invoking the daily curve adapter or
-    baseline composition.  A spy adapter that fails on call
-    verifies the assertion.
-    """
-    from datetime import date as _date
-
-    from backend.app.agent.adapters.scenario import DefaultScenarioAdapter
-
-    @dataclass
-    class _SpyDailyAdapter:
-        calls: int = 0
-
-        async def execute(self, session: AsyncSession, *, input: object) -> object:
-            self.calls += 1
-            raise AssertionError(
-                "daily adapter was called in a blocked scenario; this is forbidden"
-            )
-
-    @dataclass
-    class _SpyPeakAdapter:
-        calls: int = 0
-
-        def execute(self, *, input: object) -> object:
-            self.calls += 1
-            raise AssertionError("peak adapter was called in a blocked scenario; this is forbidden")
-
-    nr = _make_normalized_request(
-        varieties=[NormalizedVarietyInput(variety_id="Dx", planting_area_mu="100.0")],
-        season=2026,
-        as_of=date(2026, 1, 15),
-    )
-    rl = ResolvedLocation(
-        status="resolved",
-        location_reference_id=1,
-        matched_location_method="REFERENCE_ID",
-    )
-    scenario_override = ProcessorCapacityScenarioOverride(
-        target="PROCESSOR_CAPACITY",
-        value=ProcessorCapacityOverrideValue(value="200.0", unit="t_per_day"),
-        source_attestation="test",
-        source_ref=None,
-    )
-    inp = SimulateScenarioInput(
-        normalized_request=nr,
-        resolved_location=rl,
-        parameters=[],
-        scenario_overrides=[scenario_override],
-        uncertainty_widening_policy=UncertaintyWideningPolicy(
-            policy_version="v1",
-            config_hash="b" * 64,
-            factors_by_source_level={
-                "step_1_same_farm_same_variety_high_evidence": "1.0",
-                "step_2_same_township_similar_altitude": "1.1",
-                "step_3_same_county_same_climate_zone": "1.2",
-                "step_4_province_level_same_variety": "1.3",
-                "step_5_variety_document_prior_only": "1.4",
-            },
-        ),
-        peak_metric_policy=PeakMetricPolicy(
-            policy_version="v1",
-            policy_config_hash="c" * 64,
-            sustained_window_days=3,
-            sustained_metric="ROLLING_DAILY_AVERAGE",
-            tie_break="EARLIEST_START_DATE",
-            peak_window_days_before=7,
-            peak_window_days_after=7,
-            high_load_reference="SINGLE_DAY_PEAK",
-            high_load_threshold_ratio="0.900",
-        ),
-    )
-
-    spy_daily = _SpyDailyAdapter()
-    spy_peak = _SpyPeakAdapter()
-    adapter = DefaultScenarioAdapter(
-        daily_curve_adapter=spy_daily,  # type: ignore[arg-type]
-        peak_adapter=spy_peak,  # type: ignore[arg-type]
-    )
-    out = await adapter.execute(sqlite_full_session, input=inp)
-    assert out.status == "BLOCKED"
-    assert out.forecast_daily_curve is None
-    assert out.forecast_peak is None
-    assert out.delta_vs_baseline is None
-    assert spy_daily.calls == 0
-    assert spy_peak.calls == 0

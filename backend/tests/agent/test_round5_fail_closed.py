@@ -400,11 +400,13 @@ async def test_round5_task9_override_cannot_bypass_status(sqlite_session):
         run_id_override=1,
         destination_factory_id=1,
     )
-    # Round 8: discriminated AuthoritySelectionResult.  Override
-    # with non-completed status MUST emit AUTHORITY_IDENTITY_MALFORMED.
+    # Round 9 (review 4680528194): status != 'completed' is a SCOPE
+    # mismatch, not an identity-misformed.  The shared validator
+    # classifies it as AUTHORITY_SCOPE_MISMATCH with
+    # reason=EXECUTION_STATUS_NOT_COMPLETED.
     assert candidates.candidates == ()
     assert candidates.blockers
-    assert any(b.code == BlockerCode.AUTHORITY_IDENTITY_MALFORMED for b in candidates.blockers)
+    assert any(b.code == BlockerCode.AUTHORITY_SCOPE_MISMATCH for b in candidates.blockers)
 
 
 # ============================================================================
