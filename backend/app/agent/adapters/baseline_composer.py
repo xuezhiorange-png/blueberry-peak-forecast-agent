@@ -108,6 +108,7 @@ from backend.app.agent.schemas import (
     ResolvedLocation,
     VarietyContribution,
 )
+from backend.app.residual_model.canonical import canonical_json_dumps
 
 
 def _d(value: Decimal | int | float | str | None) -> Decimal:
@@ -502,6 +503,39 @@ def _select_authority_run_id(overrides: Any, target: str) -> int | None:
     return runs[0] if runs else None
 
 
+def _conflict_candidate_id(candidate: dict[str, Any]) -> int:
+    """Extract the deterministic identity of an AUTHORITY_CONFLICT candidate.
+
+    Conflict candidates arrive from the upstream selectors in
+    field shapes that differ between TASK-009 and TASK-010:
+
+    * TASK-009 callers use ``{"harvest_state_run_id": ..., "result_hash": ...}``.
+    * TASK-010 callers use ``{"prediction_run_id": ..., ...}``.
+
+    A conflict candidate MUST carry exactly one supported identity
+    field.  Empty, ambiguous or unsupported payloads fail-closed
+    via :class:`ValueError` (no silent ``0`` fallback).  The set of
+    supported identity keys is fixed and explicit:
+
+    * ``id``  — generic selection (kept for backward compatibility)
+    * ``harvest_state_run_id``  — TASK-009 conflict
+    * ``prediction_run_id``  — TASK-010 conflict
+    """
+
+    supported = (
+        "id",
+        "harvest_state_run_id",
+        "prediction_run_id",
+    )
+    present = [candidate[key] for key in supported if candidate.get(key) is not None]
+    if len(present) != 1:
+        raise ValueError(
+            "conflict candidate must contain exactly one supported identity "
+            f"(id, harvest_state_run_id, prediction_run_id); got {len(present)}"
+        )
+    return int(present[0])
+
+
 def _authority_conflict_blocker(target: str, candidates: list[dict[str, Any]]) -> Blocker:
     """Build a typed AUTHORITY_CONFLICT blocker with full candidate disclosure.
 
@@ -509,13 +543,15 @@ def _authority_conflict_blocker(target: str, candidates: list[dict[str, Any]]) -
     candidate ID + hash is disclosed; the orchestrator (or the human
     caller) selects one explicitly via an authority override.
 
-    The candidate list is sorted by ``id`` ascending (P0-2 review
-    4680912426) so the disclosure has a stable total order across
-    cross-DB (SQLite / PostgreSQL) execution and across opposite
-    insertion order on equivalent content.
+    The candidate list is sorted by the real identity field
+    (``harvest_state_run_id`` for TASK-009 conflicts, ``prediction_run_id``
+    for TASK-010 conflicts) ascending (Round 11 review 4680976947) so
+    the disclosure has a stable total order across cross-DB
+    (SQLite / PostgreSQL) execution and across opposite insertion
+    order on equivalent content.
     """
 
-    sorted_candidates = sorted(candidates, key=lambda c: int(c.get("id", 0) or 0))
+    sorted_candidates = sorted(candidates, key=_conflict_candidate_id)
     return Blocker(
         code=BlockerCode.AUTHORITY_CONFLICT,
         message=(
@@ -531,23 +567,33 @@ def _authority_conflict_blocker(target: str, candidates: list[dict[str, Any]]) -
     )
 
 
-def _blocker_sort_key(blocker: Blocker) -> tuple[str, str, str]:
-    """Stable total-order key for :class:`Blocker` (P0-2 review 4680912426).
+def _blocker_sort_key(blocker: Blocker) -> tuple[str, str, str, str]:
+    """Strict total-order key for :class:`Blocker` (Round 11 review 4680976947).
 
-    Returns a tuple ``(code, reason, field)`` that produces a
-    deterministic cross-DB (SQLite / PostgreSQL) ordering of
-    blockers regardless of the underlying DB row-return order
-    AND regardless of row-id assignment.  The key is content-based
-    (not row-id-based) so equal semantic content produces equal
-    order even when the underlying row ids differ across
-    executions.  When ``reason`` / ``field`` are absent, the empty
-    string is used for stable lexicographic comparison.
+    The Round 10 key ``(code, reason, field)`` was content-based but
+    not a strict total order: two blockers with the same
+    ``(code, reason, field)`` but different ``row_id`` / ``message`` /
+    ``details`` produced identical keys, so their order was a
+    function of the input list order (NOT of the public payload
+    content).  That allowed reverse-order inputs to produce
+    different public payloads.
+
+    Round 11 appends the full canonical public payload
+    (:func:`canonical_json_dumps` of
+    :meth:`Blocker.model_dump(mode="json")`) as the final tie-break.
+    Two blockers with distinct public content now produce
+    distinct sort keys; the resulting order is a strict total order
+    over the public surface and is byte-identical across reverse
+    input orders and across SQLite / PostgreSQL execution.
     """
+
     details = blocker.details or {}
+    public_payload = canonical_json_dumps(blocker.model_dump(mode="json"))
     return (
         str(getattr(blocker.code, "value", str(blocker.code))),
         str(details.get("reason", "") or ""),
         str(details.get("field", "") or ""),
+        public_payload,
     )
 
 
