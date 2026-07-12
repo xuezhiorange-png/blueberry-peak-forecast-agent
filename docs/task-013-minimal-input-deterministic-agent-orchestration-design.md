@@ -281,7 +281,7 @@ NormalizedAgentRequest:
 
 ```yaml
 RequestedAsOfDateProvenance:            # frozen schema; both NormalizedAgentRequest and AgentForecastOutput.provenance carry this object
-  caller_requested_as_of_date: date      # original value from MinimalInputRequest.requested_as_of_date (or null-equivalent canonical)
+  caller_requested_as_of_date: date | null  # original value from MinimalInputRequest.requested_as_of_date; JSON null when caller supplied no as-of preference (no sentinel date)
   effective_as_of_date: date             # post-normalization effective date
   override_applied: boolean              # true iff an AdvancedOverrides.as_of_overrides[AS_OF_OVERRIDE] was supplied for this request
   override_kind: AS_OF_OVERRIDE | null   # discriminator for the override kind (only AS_OF_OVERRIDE is recognized on the as-of axis)
@@ -289,7 +289,7 @@ RequestedAsOfDateProvenance:            # frozen schema; both NormalizedAgentReq
   source_ref: object | null              # copied verbatim from the AsOfOverride envelope; null when override_applied=false
 ```
 
-**Provenance-preservation rule.** `RequestedAsOfDateProvenance` preserves BOTH the original caller preference (`caller_requested_as_of_date`) AND the post-normalization effective value (`effective_as_of_date`). The `override_applied` flag and the `override_kind` / `source_attestation` / `source_ref` triple record whether the precedence rule in §8.2 fired. The object participates in the canonical request hash (§24) and is also surfaced in `AgentForecastOutput.provenance` (§24.1) so a downstream reader can answer, for any effective-as-of, what the caller originally asked for and whether an override shifted the value.
+**Provenance-preservation rule.** `RequestedAsOfDateProvenance` preserves BOTH the original caller preference (`caller_requested_as_of_date`) AND the post-normalization effective value (`effective_as_of_date`). The `caller_requested_as_of_date` field is `date | null`: a JSON `null` value means the caller supplied no as-of preference — there is no sentinel date and no substitute sentinel; the canonical JSON serialization preserves the JSON `null` verbatim. The `override_applied` flag and the `override_kind` / `source_attestation` / `source_ref` triple record whether the precedence rule in §8.2 fired. The object participates in the canonical request hash (§24) and is also surfaced in `AgentForecastOutput.provenance` (§24.1) so a downstream reader can answer, for any effective-as-of, what the caller originally asked for and whether an override shifted the value.
 
 ### §7.3 Two-stage normalization — season-calendar policy
 
@@ -449,7 +449,7 @@ A bare `as_of: date | null` scalar in `AdvancedOverrides` is **forbidden**; the 
 
 - The typed `AsOfOverride` carries **no** `run_id`, `prediction_run_id`, `training_run_id`, `forecast_run_id`, `harvest_state_run_id`, `backtest_run_id`, or any other authority-pointer field. If such a field appears inside the override envelope, the request fails with `OVERRIDE_CONFLICT`.
 - After normalization, the resulting `effective_as_of_date` is fed into the existing authority resolver (§9) under the same selectors, visibility rules, versioned policies, and stable tie-breaks as any other request. No selector, visibility rule, or tie-break in §9 is altered by the override.
-- Because `effective_as_of_date` IS an input to authority selection, two requests that differ ONLY by their `AsOfOverride` MAY resolve different historically visible authorities (e.g. a TASK-008 forecast run whose `as_of_date ≤ effective_as_of_date` and which was previously below the visibility horizon becomes a candidate). This is a *derived effect* of the as-of shift, not a direct override of authority selection. The resolved authority identities are disclosed in `AgentForecastOutput.provenance` and every authority-bearing citation carries `RequestedAsOfDateProvenance` + `OVERRIDE_APPLIED` per the citation schema (§19.3).
+- Because `effective_as_of_date` IS an input to authority selection, two requests that differ ONLY by their `AsOfOverride` MAY resolve different historically visible authorities (e.g. a TASK-008 forecast run whose `as_of_date ≤ effective_as_of_date` and which was previously below the visibility horizon becomes a candidate). This is a *derived effect* of the as-of shift, not a direct override of authority selection. The resolved authority identities are disclosed in `AgentForecastOutput.provenance`, and every authority-bearing citation carries `effective_as_of_date` + `tags = [OVERRIDE_APPLIED]` (when an `AsOfOverride` materially affected the value) + the matching `AS_OF_OVERRIDE` entry in `override_refs[]` per the citation schema (§19.3). The full as-of provenance object is carried once at the request level (see §24); citations are linked to it via the request's `canonical_request_hash` + `effective_as_of_date` and do **not** embed the full object.
 - Cross-run substitution, cross-run aliasing, and any other bypass of the authority override targets (`TASK8_FORECAST_RUN` / `TASK9_HARVEST_STATE_RUN` / `TASK10_PREDICTION_RUN` / `TASK11_BACKTEST_RUN` / `TASK12_PREDICTION_RUN`) remain forbidden when triggered via an as-of shift.
 
 #### §8.2.1 Design-only test matrix for future implementation
@@ -459,7 +459,7 @@ This round is design-only; no test code is written. The following matrix is froz
 | # | Property | Frozen expectation |
 |---|---|---|
 | 1 | Same `MinimalInputRequest` + different `AsOfOverride` MAY resolve different historically visible authorities | True iff the candidate set under the new `effective_as_of_date` differs from the candidate set under the original; the difference is fully recorded in `provenance` + citation `OVERRIDE_APPLIED`. |
-| 2 | The authority candidate-set change is deterministic and fully provenance-linked | The new resolved authorities are stable under repeated calls with the same `MinimalInputRequest` + same `AsOfOverride` + same versioned policies + same `request_received_at`; every resolved identity is disclosed in `provenance` and `RequestedAsOfDateProvenance`. |
+| 2 | The authority candidate-set change is deterministic and fully provenance-linked | The new resolved authorities are stable under repeated calls with the same `MinimalInputRequest` + same `AsOfOverride` + same versioned policies + same `request_received_at`; every resolved identity is disclosed in `provenance` (typed authority envelopes) and linked to the request-level `requested_as_of_date_provenance` via `canonical_request_hash` + `effective_as_of_date` per §24. Citations carry `effective_as_of_date` + the `AS_OF_OVERRIDE` `override_refs` entry (with `override_ref_id` per §8.3); they do **not** embed the full `RequestedAsOfDateProvenance` object. |
 | 3 | `AsOfOverride` envelope cannot contain a `run_id` or any field that bypasses `authority_overrides.*` targets | Any such field is rejected with `OVERRIDE_CONFLICT` (§26.1) and the request fails before normalization. |
 | 4 | Cross-run substitution via an as-of shift remains forbidden | The resolved authorities are produced by the §9 selector under the new `effective_as_of_date`; the orchestrator MUST NOT pick a `prediction_run_id` / `training_run_id` / etc. that the selector would not otherwise have produced under the same as-of. |
 
@@ -1223,7 +1223,8 @@ explain_forecast_output:
             tags:                                        # empty list when no override affected the cited value
               - enum [OVERRIDE_APPLIED]                  # MUST contain OVERRIDE_APPLIED iff any override materially affected the value
             override_refs:                               # identifies every override that materially affected the value; empty list when none
-              - override_kind: enum [
+              - override_ref_id: sha256                  # sha256(canonical JSON of the complete validated override envelope); identical envelopes → identical ids; materially different envelopes → different ids
+                override_kind: enum [
                   PARAMETER_OVERRIDE_KIND,
                   SCENARIO_OVERRIDE_KIND,
                   EXECUTION_OVERRIDE_KIND,
@@ -1235,9 +1236,21 @@ explain_forecast_output:
                 source_ref: object | null                # copied verbatim from the override envelope
 ```
 
+**`override_ref_id` formula (frozen).** `override_ref_id = sha256(canonical JSON of the complete validated override envelope)`. The complete envelope includes all type-specific identity fields:
+
+- For `PARAMETER_OVERRIDE_KIND`: `variety_id` + `target_parameter` (and `value`, `unit`, `source_attestation`, `source_ref`). The parameter override identity includes `variety_id` (which distinguishes same-target-parameter overrides across varieties).
+- For `SCENARIO_OVERRIDE_KIND`: its scenario `target` (and `value`, `unit`, `source_attestation`, `source_ref`). The scenario override identity includes its scenario target (`STAFFING` / `SPRING_FESTIVAL_INTENSITY` / `PROCESSOR_CAPACITY`).
+- For `EXECUTION_OVERRIDE_KIND`: its `target` + `value` (bool/string) + `source_attestation` + `source_ref`.
+- For `AUTHORITY_OVERRIDE_KIND`: its `target` (authority override enum) + the row id (integer) + `source_attestation` + `source_ref`. The authority override identity includes both the authority target and the row id (e.g. `target = TASK12_PREDICTION_RUN`, `value = 42`).
+- For `AS_OF_OVERRIDE`: the `value: date` + `unit` + `source_attestation` + `source_ref`. The AsOfOverride identity includes its date.
+
+The canonical Citation MAY expose only `override_ref_id` + the current summary fields (override_kind / target / source_attestation / source_ref) in the wire form, but `override_ref_id` MUST be the sha256 over the **full validated envelope** — not over the summary fields. Repeated identical envelopes (same `override_kind`, same `target`, same identity fields, same `source_attestation`, same `source_ref`) produce identical `override_ref_id`; materially different envelopes (different identity field, different value, or different attestation) cannot share an `override_ref_id`.
+
 **Single source of truth.** The `Citation` schema above is the canonical citation contract; it is the only citation shape allowed in §19 / §20 / §24.2. Universal shorthands `run_id` / `result_hash` / `manifest_hash` / `forecast_cutoff` / `as_of` MUST NOT appear as top-level citation fields; if any such value is needed, it MUST appear only inside the typed authority envelope (`Task8Authority` / `Task9Authority` / `Task10Authority` / `Task11Authority` / `Task12Authority` per §9.3).
 
-**`OVERRIDE_APPLIED` discipline.** The `tags` list MUST contain `OVERRIDE_APPLIED` whenever any override (parameter, scenario, execution, authority, or as-of) materially affected the cited value; `override_refs` MUST enumerate every such override with its `override_kind`, `target`, `source_attestation`, and `source_ref`. When no override affected the value, `tags = []` and `override_refs = []`. This contract is identical in §19.3, §20.3, and §24.2 (no second citation schema).
+**Citation ↔ request-level provenance linkage.** The canonical Citation carries `effective_as_of_date` + the matching `override_refs[]` entry (with `override_ref_id`) — it does **NOT** embed the full `RequestedAsOfDateProvenance` object. The complete `RequestedAsOfDateProvenance` is carried once at the request level in `AgentForecastOutput.provenance.requested_as_of_date_provenance` (§24.1). A downstream reader links the citation to the request-level provenance by joining on the request's `canonical_request_hash` + `effective_as_of_date`.
+
+**`OVERRIDE_APPLIED` discipline.** The `tags` list MUST contain `OVERRIDE_APPLIED` whenever any override (parameter, scenario, execution, authority, or as-of) materially affected the cited value; `override_refs` MUST enumerate every such override with `override_ref_id` + `override_kind` + `target` + `source_attestation` + `source_ref`. When no override affected the value, `tags = []` and `override_refs = []`. This contract is identical in §19.3, §20.3, and §24.2 (no second citation schema).
 
 ### §19.4 Authority contract
 
@@ -1334,7 +1347,8 @@ generate_recommendations_output:
             tags:                                        # empty list when no override affected the recommendation value
               - enum [OVERRIDE_APPLIED]
             override_refs:
-              - override_kind: enum [
+              - override_ref_id: sha256                  # sha256(canonical JSON of the complete validated override envelope); see §19.3 for the type-specific identity fields
+                override_kind: enum [
                   PARAMETER_OVERRIDE_KIND,
                   SCENARIO_OVERRIDE_KIND,
                   EXECUTION_OVERRIDE_KIND,
@@ -1513,7 +1527,7 @@ AgentForecastOutput:
     parameter_version_identities: [string]
     location_catalog_version: string
     prior_versions_used: [string]
-    scenario_config_hash: string | null
+    scenario_config_hash: sha256 | null       # sha256 of canonical JSON of simulate_scenario_input.scenario_overrides (§17.3); null when no scenario was simulated
     effective_as_of_date: date
     effective_forecast_season: integer
     season_resolution_policy_version: string
@@ -1540,7 +1554,9 @@ The **canonical Citation schema** is defined in §19.3 and is the **single sourc
 - `effective_as_of_date` (date).
 - `confidence_evidence` (object | null) — structured object (not free text).
 - `tags` — list. MUST contain `OVERRIDE_APPLIED` iff any override (parameter, scenario, execution, authority, or as-of) materially affected the cited value. Empty list otherwise.
-- `override_refs` — list. MUST enumerate every override that materially affected the cited value, with `override_kind` + `target` + `source_attestation` + `source_ref`. Empty list otherwise.
+- `override_refs` — list. MUST enumerate every override that materially affected the cited value, with `override_ref_id` (sha256 over the complete validated override envelope per §19.3) + `override_kind` + `target` + `source_attestation` + `source_ref`. Empty list otherwise.
+
+**Citation ↔ request-level provenance linkage.** Each Citation carries `effective_as_of_date` and (when an override materially affected the value) the matching `override_refs[]` entry with `override_ref_id`. The full `RequestedAsOfDateProvenance` object is **not** embedded inside any citation; it is carried once at the request level in `AgentForecastOutput.provenance.requested_as_of_date_provenance` (§24.1). A downstream reader links the citation to the request-level provenance via the request's `canonical_request_hash` + `effective_as_of_date`.
 
 **Universal shorthands forbidden.** The strings `run_id`, `result_hash`, `manifest_hash`, `forecast_cutoff`, and `as_of` MUST NOT appear as top-level fields of a citation. When such a value is required by a downstream consumer, it MUST appear **only** inside the applicable typed authority envelope (`Task8Authority` / `Task9Authority` / `Task10Authority` / `Task11Authority` / `Task12Authority`) as defined in §9.3.
 
@@ -1881,8 +1897,10 @@ This design PR is acceptable when:
 - ✅ Authority override registry covers all five `AUTHORITY_CONFLICT` candidate types: `TASK8_FORECAST_RUN`, `TASK9_HARVEST_STATE_RUN`, `TASK10_PREDICTION_RUN`, `TASK11_BACKTEST_RUN`, `TASK12_PREDICTION_RUN`. `TASK10_TRAINING_RUN` is a separate optional override that MUST NOT substitute for `TASK10_PREDICTION_RUN` (§8.1 / §9.3.3).
 - ✅ `simulate_scenario_output` deltas are structured per quantile and typed as `decimal_string` (no Python `float`, no generic JSON number); `scenario_id` / `scenario_config_hash` are `sha256` (§17.3).
 - ✅ `peak_duration_days[q]` uses frozen `PeakMetricPolicy.high_load_reference = SINGLE_DAY_PEAK` + `high_load_threshold_ratio`; `high_load_threshold[q] = ratio × single_day_peak[q].volume_kg` is output for auditability (§16.3 / §16.4 / §16.5.8).
-- ✅ `RequestedAsOfDateProvenance` is a frozen schema surfaced both on `NormalizedAgentRequest.requested_as_of_date_provenance` (§7.2) and on `AgentForecastOutput.provenance.requested_as_of_date_provenance` (§24.1); preserves `caller_requested_as_of_date` + `effective_as_of_date` + `override_applied` + override attestation triple; participates in `canonical_request_hash` (§24).
-- ✅ `Citation.tags` + `Citation.override_refs` are part of the canonical Citation schema (§19.3); `OVERRIDE_APPLIED` is the single tag value; `override_refs` enumerates every override that materially affected the cited value (§8.3 / §19.3 / §20.3 / §24.2).
+- ✅ `RequestedAsOfDateProvenance` is a frozen schema surfaced both on `NormalizedAgentRequest.requested_as_of_date_provenance` (§7.2) and on `AgentForecastOutput.provenance.requested_as_of_date_provenance` (§24.1); `caller_requested_as_of_date: date | null` (JSON `null` when caller supplied no preference — no sentinel date); preserves caller preference + effective value + `override_applied` + override attestation triple; participates in `canonical_request_hash` (§24).
+- ✅ `Citation.tags` + `Citation.override_refs` are part of the canonical Citation schema (§19.3); `OVERRIDE_APPLIED` is the single tag value; `override_refs` enumerates every override that materially affected the cited value with `override_ref_id` (sha256 over the complete validated override envelope per §19.3) + `override_kind` + `target` + `source_attestation` + `source_ref` (§8.3 / §19.3 / §20.3 / §24.2).
+- ✅ Citation ↔ request-level provenance linkage is frozen: the canonical Citation does NOT embed the full `RequestedAsOfDateProvenance` object; the full object is carried once in `AgentForecastOutput.provenance.requested_as_of_date_provenance` and citations are linked via `canonical_request_hash` + `effective_as_of_date` (§8.2 / §19.3 / §24.1 / §24.2).
+- ✅ `AgentForecastOutput.provenance.scenario_config_hash` is `sha256 | null` (aligned with §17.3 `scenario_config_hash` / `scenario_id`); null when no scenario was simulated (§24.1).
 - ✅ `AsOfOverride` authority-effect semantics are corrected: cannot directly nominate / substitute / pin an authority; effect is mediated exclusively through the resulting `effective_as_of_date`; no authority-pointer fields allowed in the envelope (§8.2 / §8.3); design-only test matrix frozen in §8.2.1.
 - ✅ Aggregate confidence = worst confidence among all required parameters (§25.1); the "overdetermined upgrade" rule is removed.
 - ✅ All authoritative values are provenance-linked (§24).
