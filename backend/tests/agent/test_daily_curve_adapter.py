@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, UTC
+from datetime import UTC, date, datetime
 from typing import Any
 
 import pytest
@@ -44,7 +44,9 @@ def _mk_nr() -> NormalizedAgentRequest:
             location_reference_id=1,
             matched_location_method="REFERENCE_ID",
         ),
-        varieties=[NormalizedVarietyInput(variety_id="101", planting_area_mu="100.000000000000000000")],
+        varieties=[
+            NormalizedVarietyInput(variety_id="101", planting_area_mu="100.000000000000000000")
+        ],
         advanced_overrides=AdvancedOverrides(),
         canonical_request_hash="0" * 64,
     )
@@ -55,8 +57,12 @@ def _row(d, p50, p80, p90, contributions=None):
         date=d,
         natural_maturity_quantity_kg=DailyQuantiles(p50=p50, p80=p80, p90=p90),
         harvested_quantity_kg=DailyQuantiles(p50=p50, p80=p80, p90=p90),
-        closing_mature_inventory_kg=DailyQuantiles(p50="0.000000000000000000", p80="0.000000000000000000", p90="0.000000000000000000"),
-        unharvested_backlog_kg=DailyQuantiles(p50="0.000000000000000000", p80="0.000000000000000000", p90="0.000000000000000000"),
+        closing_mature_inventory_kg=DailyQuantiles(
+            p50="0.000000000000000000", p80="0.000000000000000000", p90="0.000000000000000000"
+        ),
+        unharvested_backlog_kg=DailyQuantiles(
+            p50="0.000000000000000000", p80="0.000000000000000000", p90="0.000000000000000000"
+        ),
         arrival_quantity_kg=DailyQuantiles(p50=p50, p80=p80, p90=p90),
         final_corrected_arrival_quantity_kg=DailyQuantiles(p50=p50, p80=p80, p90=p90),
         per_variety_contribution=contributions or [],
@@ -68,7 +74,15 @@ class _FakeBaseline(ScenarioBaselinePort):
     def __init__(self, rows: list[ForecastDailyRow]):
         self._rows = rows
 
-    async def compute_baseline(self, *, session: Any, normalized_request: Any, resolved_location: Any, parameters: list[Any], advanced_overrides: Any):
+    async def compute_baseline(
+        self,
+        *,
+        session: Any,
+        normalized_request: Any,
+        resolved_location: Any,
+        parameters: list[Any],
+        advanced_overrides: Any,
+    ):
         return self._rows, []
 
 
@@ -81,7 +95,8 @@ def _mk_input(rows: list[ForecastDailyRow]) -> ForecastDailyCurveInput:
         parameters=[],
         advanced_overrides=AdvancedOverrides(),
         uncertainty_widening_policy=UncertaintyWideningPolicy(
-            policy_version="v1", config_hash="b" * 64,
+            policy_version="v1",
+            config_hash="b" * 64,
             factors_by_source_level={
                 "step_1_same_farm_same_variety_high_evidence": "1.000",
                 "step_2_same_township_similar_altitude": "1.250",
@@ -96,9 +111,17 @@ def _mk_input(rows: list[ForecastDailyRow]) -> ForecastDailyCurveInput:
 
 # --- p50/p80/p90 preserved for all six daily fields -------------------
 
+
 @pytest.mark.asyncio
 async def test_daily_curve_p50_p80_p90_preserved(sqlite_session):
-    rows = [_row(date(2026, 3, 1), "100.000000000000000000", "200.000000000000000000", "300.000000000000000000")]
+    rows = [
+        _row(
+            date(2026, 3, 1),
+            "100.000000000000000000",
+            "200.000000000000000000",
+            "300.000000000000000000",
+        )
+    ]
     adapter = DefaultDailyCurveAdapter(baseline=_FakeBaseline(rows))
     out = await adapter.execute(sqlite_session, input=_mk_input(rows))
     assert len(out.per_day) == 1
@@ -112,9 +135,17 @@ async def test_daily_curve_p50_p80_p90_preserved(sqlite_session):
 
 # --- TASK-012 absent by default ----------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_daily_curve_task12_absent_by_default(sqlite_session):
-    rows = [_row(date(2026, 3, 1), "100.000000000000000000", "100.000000000000000000", "100.000000000000000000")]
+    rows = [
+        _row(
+            date(2026, 3, 1),
+            "100.000000000000000000",
+            "100.000000000000000000",
+            "100.000000000000000000",
+        )
+    ]
     adapter = DefaultDailyCurveAdapter(baseline=_FakeBaseline(rows))
     out = await adapter.execute(sqlite_session, input=_mk_input(rows))
     assert out.task12_authority is None
@@ -122,17 +153,27 @@ async def test_daily_curve_task12_absent_by_default(sqlite_session):
 
 # --- explicit TASK-012 run-ID mismatch rejected ------------------------
 
+
 @pytest.mark.asyncio
 async def test_daily_curve_explicit_task12_runid_mismatch_rejected(sqlite_session):
-    rows = [_row(date(2026, 3, 1), "100.000000000000000000", "100.000000000000000000", "100.000000000000000000")]
+    rows = [
+        _row(
+            date(2026, 3, 1),
+            "100.000000000000000000",
+            "100.000000000000000000",
+            "100.000000000000000000",
+        )
+    ]
     # Override points to run_id=42 but no port supplies an authority → mismatch.
     overrides = AdvancedOverrides(
-        authority_overrides=[AuthorityOverride(
-            override_kind="AUTHORITY_OVERRIDE_KIND",
-            target="TASK12_PREDICTION_RUN",
-            value=42,
-            source_attestation="op",
-        )],
+        authority_overrides=[
+            AuthorityOverride(
+                override_kind="AUTHORITY_OVERRIDE_KIND",
+                target="TASK12_PREDICTION_RUN",
+                value=42,
+                source_attestation="op",
+            )
+        ],
     )
     inp = _mk_input(rows)
     inp = inp.model_copy(update={"advanced_overrides": overrides})
@@ -145,9 +186,17 @@ async def test_daily_curve_explicit_task12_runid_mismatch_rejected(sqlite_sessio
 
 # --- identical input produces byte-identical output ---------------------
 
+
 @pytest.mark.asyncio
 async def test_daily_curve_identical_input_identical_output(sqlite_session):
-    rows = [_row(date(2026, 3, 1), "100.000000000000000000", "100.000000000000000000", "100.000000000000000000")]
+    rows = [
+        _row(
+            date(2026, 3, 1),
+            "100.000000000000000000",
+            "100.000000000000000000",
+            "100.000000000000000000",
+        )
+    ]
     adapter = DefaultDailyCurveAdapter(baseline=_FakeBaseline(rows))
     inp = _mk_input(rows)
     out1 = await adapter.execute(sqlite_session, input=inp)
@@ -157,9 +206,17 @@ async def test_daily_curve_identical_input_identical_output(sqlite_session):
 
 # --- agent_daily_row_hash is deterministic ------------------------------
 
+
 @pytest.mark.asyncio
 async def test_daily_row_hash_deterministic(sqlite_session):
-    rows = [_row(date(2026, 3, 1), "100.000000000000000000", "100.000000000000000000", "100.000000000000000000")]
+    rows = [
+        _row(
+            date(2026, 3, 1),
+            "100.000000000000000000",
+            "100.000000000000000000",
+            "100.000000000000000000",
+        )
+    ]
     adapter = DefaultDailyCurveAdapter(baseline=_FakeBaseline(rows))
     out = await adapter.execute(sqlite_session, input=_mk_input(rows))
     assert out.per_day[0].agent_daily_row_hash != "0" * 64

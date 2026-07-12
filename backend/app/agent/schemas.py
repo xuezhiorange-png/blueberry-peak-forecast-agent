@@ -64,7 +64,6 @@ from backend.app.agent.enums import (
     SpringFestivalPhase,
 )
 
-
 # --- Strict scalar constraints --------------------------------------------
 
 SHA256Hex = Annotated[
@@ -91,6 +90,7 @@ class _StrictBase(BaseModel):
 
 # --- §26.2 Blocker ----------------------------------------------------------
 
+
 class Blocker(_StrictBase):
     code: BlockerCode
     message: str = Field(min_length=1, max_length=2000)
@@ -100,6 +100,7 @@ class Blocker(_StrictBase):
 
 
 # --- §7.1 Minimal-input request -------------------------------------------
+
 
 class MinimalVarietyInput(_StrictBase):
     variety_id: str = Field(min_length=1)
@@ -116,7 +117,7 @@ class LocationInput(_StrictBase):
     altitude_m: DecimalString | None = None
 
     @model_validator(mode="after")
-    def _at_least_one_locator(self) -> "LocationInput":
+    def _at_least_one_locator(self) -> LocationInput:
         if (
             self.raw_text is None
             and self.latitude is None
@@ -125,7 +126,10 @@ class LocationInput(_StrictBase):
             and self.location_reference_id is None
             and self.address is None
         ):
-            raise ValueError("location must supply at least one of raw_text/coordinates/map_pick_token/reference_id/address")
+            raise ValueError(
+                "location must supply at least one of: raw_text / coordinates / "
+                "map_pick_token / location_reference_id / address"
+            )
         return self
 
 
@@ -135,7 +139,7 @@ class MinimalInputRequest(_StrictBase):
     varieties: list[MinimalVarietyInput]
     requested_as_of_date: date | None = None
     requested_forecast_season: IntId | None = None
-    advanced_overrides: "AdvancedOverrides | None" = None
+    advanced_overrides: AdvancedOverrides | None = None
 
     @field_validator("varieties")
     @classmethod
@@ -145,8 +149,8 @@ class MinimalInputRequest(_StrictBase):
         return v
 
 
-
 # --- §9.3.1 Task8Authority -------------------------------------------------
+
 
 class Task8Authority(_StrictBase):
     maturity_model_run_id: IntId
@@ -161,6 +165,7 @@ class Task8Authority(_StrictBase):
 
 
 # --- §9.3.2 Task9Authority -------------------------------------------------
+
 
 class Task9Authority(_StrictBase):
     harvest_state_run_id: IntId
@@ -184,6 +189,7 @@ class Task9Authority(_StrictBase):
 
 # --- §9.3.3 Task10Authority ------------------------------------------------
 
+
 class Task10Authority(_StrictBase):
     training_run_id: IntId | None
     training_manifest_hash: SHA256Hex | None
@@ -199,6 +205,7 @@ class Task10Authority(_StrictBase):
 
 
 # --- §9.3.4 Task11Authority ------------------------------------------------
+
 
 class Task11Authority(_StrictBase):
     rolling_backtest_run_id: IntId
@@ -219,6 +226,7 @@ class Task11Authority(_StrictBase):
 
 
 # --- §9.3.5 Task12Authority ------------------------------------------------
+
 
 class Task12Authority(_StrictBase):
     prediction_run_id: IntId
@@ -243,6 +251,7 @@ class Task12Authority(_StrictBase):
 
 
 # --- §8 Advanced overrides -----------------------------------------------
+
 
 class AsOfOverride(_StrictBase):
     override_kind: Literal["AS_OF_OVERRIDE"] = "AS_OF_OVERRIDE"
@@ -354,14 +363,14 @@ class AdvancedOverrides(_StrictBase):
     as_of_overrides: list[AsOfOverride] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _at_most_one_as_of(self) -> "AdvancedOverrides":
+    def _at_most_one_as_of(self) -> AdvancedOverrides:
         if len(self.as_of_overrides) > 1:
             raise ValueError("at most one AS_OF_OVERRIDE may be supplied")
         return self
 
 
-
 # --- §7.2 NormalizedAgentRequest + §8.2 RequestedAsOfDateProvenance ------
+
 
 class RequestedAsOfDateProvenance(_StrictBase):
     caller_requested_as_of_date: date | None
@@ -417,6 +426,7 @@ class NormalizedAgentRequest(_StrictBase):
 
 # --- §19.3 Citation (canonical single source of truth) -------------------
 
+
 class CitationOverrideRef(_StrictBase):
     override_ref_id: SHA256Hex
     override_kind: OverrideKind
@@ -427,13 +437,7 @@ class CitationOverrideRef(_StrictBase):
 
 class CitationAuthorityEntry(_StrictBase):
     authority_type: AuthorityEnvelopeType
-    authority: (
-        Task8Authority
-        | Task9Authority
-        | Task10Authority
-        | Task11Authority
-        | Task12Authority
-    )
+    authority: Task8Authority | Task9Authority | Task10Authority | Task11Authority | Task12Authority
 
 
 class Citation(_StrictBase):
@@ -449,6 +453,7 @@ class Citation(_StrictBase):
 
 
 # --- §15.3 DailyQuantiles + ForecastDailyRow -----------------------------
+
 
 class DailyQuantiles(_StrictBase):
     p50: DecimalString
@@ -480,6 +485,7 @@ class ForecastDailyRow(_StrictBase):
 
 # --- §10.4 UncertaintyWideningPolicy -------------------------------------
 
+
 class UncertaintyWideningPolicy(_StrictBase):
     policy_version: str = Field(min_length=1)
     config_hash: SHA256Hex
@@ -488,6 +494,7 @@ class UncertaintyWideningPolicy(_StrictBase):
 
 
 # --- §16.4 PeakMetricPolicy ---------------------------------------------
+
 
 class PeakMetricPolicy(_StrictBase):
     policy_version: str = Field(min_length=1)
@@ -502,6 +509,7 @@ class PeakMetricPolicy(_StrictBase):
 
 
 # --- §24.1 AgentForecastOutput + Provenance -------------------------------
+
 
 class ParameterEstimate(_StrictBase):
     parameter_name: str = Field(min_length=1)
@@ -543,6 +551,7 @@ class AgentForecastOutput(_StrictBase):
 
 # --- §13 resolve_location -------------------------------------------------
 
+
 class ResolveLocationInput(_StrictBase):
     normalized_request: NormalizedAgentRequest
 
@@ -565,6 +574,7 @@ class ResolveLocationOutput(_StrictBase):
 
 # --- §14 infer_parameters ------------------------------------------------
 
+
 class InferParametersInput(_StrictBase):
     normalized_request: NormalizedAgentRequest
     resolved_location: ResolvedLocation
@@ -581,6 +591,7 @@ class InferParametersOutput(_StrictBase):
 
 
 # --- §15 forecast_daily_curve --------------------------------------------
+
 
 class ForecastDailyCurveInput(_StrictBase):
     normalized_request: NormalizedAgentRequest
@@ -602,6 +613,7 @@ class ForecastDailyCurveOutput(_StrictBase):
 
 
 # --- §16 forecast_peak ---------------------------------------------------
+
 
 class SingleDayPeakEntry(_StrictBase):
     date: date
@@ -646,6 +658,7 @@ class ForecastPeakInput(_StrictBase):
 
 # --- §17 simulate_scenario -----------------------------------------------
 
+
 class SimulateScenarioInput(_StrictBase):
     normalized_request: NormalizedAgentRequest
     resolved_location: ResolvedLocation
@@ -678,6 +691,7 @@ class SimulateScenarioOutput(_StrictBase):
 
 # --- §18 run_backtest (deferred; schema + EXECUTION_DEFERRED only) -------
 
+
 class RunBacktestInput(_StrictBase):
     normalized_request: NormalizedAgentRequest
     execution_override: ExecutionOverride | None = None
@@ -689,6 +703,7 @@ class RunBacktestOutput(_StrictBase):
 
 
 # --- §19 explain_forecast (schema only) ----------------------------------
+
 
 class ExplainParagraph(_StrictBase):
     kind: Literal[
@@ -720,6 +735,7 @@ class ExplainForecastOutput(_StrictBase):
 
 
 # --- §20 generate_recommendations (schema only; 7 categories) -----------
+
 
 class RecommendationEvidenceThreshold(_StrictBase):
     parameter: str = Field(min_length=1)

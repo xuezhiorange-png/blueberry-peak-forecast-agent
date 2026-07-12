@@ -70,9 +70,7 @@ def _validate_overrides(overrides: list[Any]) -> list[Blocker]:
                 blockers.append(
                     Blocker(
                         code=BlockerCode.SCENARIO_INVALID,
-                        message=(
-                            f"negative value for {ov.target} override: {numeric}"
-                        ),
+                        message=(f"negative value for {ov.target} override: {numeric}"),
                         retry_hint="FIX_INPUT",
                     )
                 )
@@ -118,7 +116,10 @@ def _single_day_peak_volume(rows: list[ForecastDailyRow]) -> dict[ForecastQuanti
     out: dict[ForecastQuantile, Decimal] = {}
     for q in ("P50", "P80", "P90"):
         field = {"P50": "p50", "P80": "p80", "P90": "p90"}[q]
-        out[q] = max((_to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows), default=Decimal("0"))
+        out[q] = max(
+            (_to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows),
+            default=Decimal("0"),
+        )
     return out
 
 
@@ -132,11 +133,17 @@ def _sustained_3day_daily_average(
         return out
     for q in ("P50", "P80", "P90"):
         field = {"P50": "p50", "P80": "p80", "P90": "p90"}[q]
-        by_date = {r.date: _to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows}
+        by_date = {
+            r.date: _to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows
+        }
         sorted_dates = sorted(by_date.keys())
         best = Decimal("0")
         for i in range(len(sorted_dates) - 2):
-            v = (by_date[sorted_dates[i]] + by_date[sorted_dates[i + 1]] + by_date[sorted_dates[i + 2]]) / Decimal(3)
+            v = (
+                by_date[sorted_dates[i]]
+                + by_date[sorted_dates[i + 1]]
+                + by_date[sorted_dates[i + 2]]
+            ) / Decimal(3)
             if v > best:
                 best = v
         out[cast(ForecastQuantile, q)] = best
@@ -153,11 +160,17 @@ def _sustained_3day_cumulative(
         return out
     for q in ("P50", "P80", "P90"):
         field = {"P50": "p50", "P80": "p80", "P90": "p90"}[q]
-        by_date = {r.date: _to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows}
+        by_date = {
+            r.date: _to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows
+        }
         sorted_dates = sorted(by_date.keys())
         best = Decimal("0")
         for i in range(len(sorted_dates) - 2):
-            v = by_date[sorted_dates[i]] + by_date[sorted_dates[i + 1]] + by_date[sorted_dates[i + 2]]
+            v = (
+                by_date[sorted_dates[i]]
+                + by_date[sorted_dates[i + 1]]
+                + by_date[sorted_dates[i + 2]]
+            )
             if v > best:
                 best = v
         out[cast(ForecastQuantile, q)] = best
@@ -165,6 +178,7 @@ def _sustained_3day_cumulative(
 
 
 # --- Top-level adapter ----------------------------------------------------
+
 
 class DefaultScenarioAdapter:
     """Default ``simulate_scenario`` deterministic adapter."""
@@ -256,22 +270,44 @@ class DefaultScenarioAdapter:
 
         # Compute quantile-preserving deltas from peak entries directly
         # (these are the authoritative post-scenario single-day peak volumes).
-        baseline_peak_volume: dict[str, Decimal] = {q: _to_decimal(baseline_peak.single_day_peak[cast(ForecastQuantile, q)].volume_kg) for q in ("P50", "P80", "P90")}
-        scenario_peak_volume: dict[str, Decimal] = {q: _to_decimal(scenario_peak.single_day_peak[cast(ForecastQuantile, q)].volume_kg) for q in ("P50", "P80", "P90")}
+        baseline_peak_volume: dict[str, Decimal] = {
+            q: _to_decimal(baseline_peak.single_day_peak[cast(ForecastQuantile, q)].volume_kg)
+            for q in ("P50", "P80", "P90")
+        }
+        scenario_peak_volume: dict[str, Decimal] = {
+            q: _to_decimal(scenario_peak.single_day_peak[cast(ForecastQuantile, q)].volume_kg)
+            for q in ("P50", "P80", "P90")
+        }
 
         # The sustained 3-day average/cumulative come from the underlying
         # daily curves (the peak output already contains them).
         baseline_sustained_avg: dict[str, Decimal] = {
-            q: _to_decimal(baseline_peak.sustained_3day_peak[cast(ForecastQuantile, q)].rolling_daily_average_kg_per_day) for q in ("P50", "P80", "P90")
+            q: _to_decimal(
+                baseline_peak.sustained_3day_peak[
+                    cast(ForecastQuantile, q)
+                ].rolling_daily_average_kg_per_day
+            )
+            for q in ("P50", "P80", "P90")
         }
         scenario_sustained_avg: dict[str, Decimal] = {
-            q: _to_decimal(scenario_peak.sustained_3day_peak[cast(ForecastQuantile, q)].rolling_daily_average_kg_per_day) for q in ("P50", "P80", "P90")
+            q: _to_decimal(
+                scenario_peak.sustained_3day_peak[
+                    cast(ForecastQuantile, q)
+                ].rolling_daily_average_kg_per_day
+            )
+            for q in ("P50", "P80", "P90")
         }
         baseline_sustained_cum: dict[str, Decimal] = {
-            q: _to_decimal(baseline_peak.sustained_3day_peak[cast(ForecastQuantile, q)].cumulative_quantity_kg) for q in ("P50", "P80", "P90")
+            q: _to_decimal(
+                baseline_peak.sustained_3day_peak[cast(ForecastQuantile, q)].cumulative_quantity_kg
+            )
+            for q in ("P50", "P80", "P90")
         }
         scenario_sustained_cum: dict[str, Decimal] = {
-            q: _to_decimal(scenario_peak.sustained_3day_peak[cast(ForecastQuantile, q)].cumulative_quantity_kg) for q in ("P50", "P80", "P90")
+            q: _to_decimal(
+                scenario_peak.sustained_3day_peak[cast(ForecastQuantile, q)].cumulative_quantity_kg
+            )
+            for q in ("P50", "P80", "P90")
         }
 
         return SimulateScenarioOutput(
@@ -280,7 +316,9 @@ class DefaultScenarioAdapter:
             forecast_daily_curve=scenario_curve,
             forecast_peak=scenario_peak,
             delta_vs_baseline=SimulateScenarioDelta(
-                single_day_peak_volume_delta_kg=_delta_quantiles(baseline_peak_volume, scenario_peak_volume),
+                single_day_peak_volume_delta_kg=_delta_quantiles(
+                    baseline_peak_volume, scenario_peak_volume
+                ),
                 sustained_3day_daily_average_delta_kg_per_day=_delta_quantiles(
                     baseline_sustained_avg, scenario_sustained_avg
                 ),

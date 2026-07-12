@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 # --- §13 resolve_location -------------------------------------------------
 
+
 class LocationResolverPort(Protocol):
     """Adapter to ``backend.app.planning.location.resolve_location_input``."""
 
@@ -46,11 +47,11 @@ class LocationResolverPort(Protocol):
         session: AsyncSession,
         location: dict[str, Any],
         as_of_date: date,
-    ) -> ResolvedLocation:
-        ...
+    ) -> ResolvedLocation: ...
 
 
 # --- §14 infer_parameters -------------------------------------------------
+
 
 class ParameterPriorPort(Protocol):
     """Adapter that runs the parameter inference pipeline per variety."""
@@ -65,11 +66,11 @@ class ParameterPriorPort(Protocol):
         effective_as_of_date: date,
         widening_factor: Decimal,
         monotonic_step: int,
-    ) -> "ParameterPrior":
-        ...
+    ) -> ParameterPrior: ...
 
 
 # --- §15 forecast_daily_curve composition --------------------------------
+
 
 class Task8ForecastPort(Protocol):
     """Adapter that loads a TASK-008 forecast persisted row by id."""
@@ -79,8 +80,7 @@ class Task8ForecastPort(Protocol):
         *,
         session: AsyncSession,
         forecast_run_id: int,
-    ) -> Task8Authority | None:
-        ...
+    ) -> Task8Authority | None: ...
 
 
 class Task9HarvestStatePort(Protocol):
@@ -91,8 +91,7 @@ class Task9HarvestStatePort(Protocol):
         *,
         session: AsyncSession,
         harvest_state_run_id: int,
-    ) -> Task9Authority | None:
-        ...
+    ) -> Task9Authority | None: ...
 
 
 class Task10PredictionPort(Protocol):
@@ -103,8 +102,7 @@ class Task10PredictionPort(Protocol):
         *,
         session: AsyncSession,
         prediction_run_id: int,
-    ) -> Task10Authority | None:
-        ...
+    ) -> Task10Authority | None: ...
 
 
 class Task11BacktestPort(Protocol):
@@ -115,8 +113,7 @@ class Task11BacktestPort(Protocol):
         *,
         session: AsyncSession,
         rolling_backtest_run_id: int,
-    ) -> Task11Authority | None:
-        ...
+    ) -> Task11Authority | None: ...
 
 
 class Task12PredictionPort(Protocol):
@@ -132,11 +129,11 @@ class Task12PredictionPort(Protocol):
         *,
         session: AsyncSession,
         prediction_run_id: int,
-    ) -> Task12Authority | None:
-        ...
+    ) -> Task12Authority | None: ...
 
 
 # --- §17 simulate_scenario helpers ---------------------------------------
+
 
 class ScenarioBaselinePort(Protocol):
     """Adapter that produces the deterministic baseline curve + peak."""
@@ -149,8 +146,7 @@ class ScenarioBaselinePort(Protocol):
         resolved_location: ResolvedLocation,
         parameters: list[Any],
         advanced_overrides: AdvancedOverrides | None,
-    ) -> tuple[list[ForecastDailyRow], Any]:
-        ...
+    ) -> tuple[list[ForecastDailyRow], Any]: ...
 
 
 __all__ = [

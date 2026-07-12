@@ -16,7 +16,6 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-
 # --- §11 Logical tool registry ---------------------------------------------
 
 LogicalToolName = Literal[
@@ -53,7 +52,8 @@ RequestStatus = Literal["OK", "PARTIAL", "BLOCKED"]
 
 # --- §26.1 Blocker codes (canonical subset implemented in Slice A) --------
 
-class BlockerCode(str, Enum):
+
+class BlockerCode(str, Enum):  # noqa: UP042 — kept as str+Enum for explicit string identity
     LOCATION_UNRESOLVED = "LOCATION_UNRESOLVED"
     LOCATION_AMBIGUOUS = "LOCATION_AMBIGUOUS"
     LOCATION_CATALOG_STALE = "LOCATION_CATALOG_STALE"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, UTC
+from datetime import UTC, date, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -43,7 +43,9 @@ def _mk_nr() -> NormalizedAgentRequest:
             source_attestation=None,
             source_ref=None,
         ),
-        normalized_location=ResolvedLocation(status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"),
+        normalized_location=ResolvedLocation(
+            status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
         varieties=[NormalizedVarietyInput(variety_id="101", planting_area_mu="100.0")],
         advanced_overrides=AdvancedOverrides(),
         canonical_request_hash="0" * 64,
@@ -51,6 +53,7 @@ def _mk_nr() -> NormalizedAgentRequest:
 
 
 # --- run_backtest: schema + EXECUTION_DEFERRED only ----------------------
+
 
 def test_run_backtest_output_must_be_execution_deferred():
     out = RunBacktestOutput(
@@ -76,10 +79,10 @@ def test_run_backtest_output_rejects_non_deferred_status():
 def test_run_backtest_never_invokes_task11():
     """The adapter does not exist in Slice A; ``run_backtest`` has NO runtime entry point."""
 
-    import backend.app.agent.adapters  # noqa: F401
-
     # No "run_backtest" adapter module exists.
     import importlib.util
+
+    import backend.app.agent.adapters  # noqa: F401
 
     spec = importlib.util.find_spec("backend.app.agent.adapters.run_backtest")
     assert spec is None, "run_backtest adapter must NOT exist in Slice A"
@@ -94,19 +97,30 @@ def test_run_backtest_input_schema_validates():
 
 # --- explain_forecast: schema only --------------------------------------
 
+
 def test_explain_forecast_input_validates_with_daily_curve():
     inp = ExplainForecastInput(
         normalized_request=_mk_nr(),
-        resolved_location=ResolvedLocation(status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"),
+        resolved_location=ResolvedLocation(
+            status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
         parameters=[],
         daily_curve=ForecastDailyCurveOutput(per_day=[], agent_daily_curve_hash="a" * 64),
         peak=ForecastPeakOutput(
             peak_metric_policy_version="v1",
             peak_metric_policy_config_hash="c" * 64,
             agent_peak_hash="a" * 64,
-            single_day_peak={"P50": _sdp(date(2026, 3, 1), "100.0"), "P80": _sdp(date(2026, 3, 1), "200.0"), "P90": _sdp(date(2026, 3, 1), "300.0")},
+            single_day_peak={
+                "P50": _sdp(date(2026, 3, 1), "100.0"),
+                "P80": _sdp(date(2026, 3, 1), "200.0"),
+                "P90": _sdp(date(2026, 3, 1), "300.0"),
+            },
             sustained_window_days=3,
-            sustained_3day_peak={"P50": _sp(date(2026, 3, 1), date(2026, 3, 3), "100.0", "300.0"), "P80": _sp(date(2026, 3, 1), date(2026, 3, 3), "200.0", "600.0"), "P90": _sp(date(2026, 3, 1), date(2026, 3, 3), "300.0", "900.0")},
+            sustained_3day_peak={
+                "P50": _sp(date(2026, 3, 1), date(2026, 3, 3), "100.0", "300.0"),
+                "P80": _sp(date(2026, 3, 1), date(2026, 3, 3), "200.0", "600.0"),
+                "P90": _sp(date(2026, 3, 1), date(2026, 3, 3), "300.0", "900.0"),
+            },
             peak_window_days_before=7,
             peak_window_days_after=7,
             peak_window_cumulative_quantity_kg={"P50": "100.0", "P80": "200.0", "P90": "300.0"},
@@ -127,6 +141,7 @@ def test_explain_forecast_output_empty_payload_allowed():
 
 
 # --- generate_recommendations: schema only, 7 categories ----------------
+
 
 def test_recommendation_seven_categories_allowed():
     """All 7 categories must be valid (6 operational + 1 data-quality)."""
@@ -160,16 +175,26 @@ def test_recommendation_rejects_invalid_category():
 def test_generate_recommendations_input_validates():
     GenerateRecommendationsInput(
         normalized_request=_mk_nr(),
-        resolved_location=ResolvedLocation(status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"),
+        resolved_location=ResolvedLocation(
+            status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
         parameters=[],
         daily_curve=ForecastDailyCurveOutput(per_day=[], agent_daily_curve_hash="a" * 64),
         peak=ForecastPeakOutput(
             peak_metric_policy_version="v1",
             peak_metric_policy_config_hash="c" * 64,
             agent_peak_hash="a" * 64,
-            single_day_peak={"P50": _sdp(date(2026, 3, 1), "100.0"), "P80": _sdp(date(2026, 3, 1), "200.0"), "P90": _sdp(date(2026, 3, 1), "300.0")},
+            single_day_peak={
+                "P50": _sdp(date(2026, 3, 1), "100.0"),
+                "P80": _sdp(date(2026, 3, 1), "200.0"),
+                "P90": _sdp(date(2026, 3, 1), "300.0"),
+            },
             sustained_window_days=3,
-            sustained_3day_peak={"P50": _sp(date(2026, 3, 1), date(2026, 3, 3), "100.0", "300.0"), "P80": _sp(date(2026, 3, 1), date(2026, 3, 3), "200.0", "600.0"), "P90": _sp(date(2026, 3, 1), date(2026, 3, 3), "300.0", "900.0")},
+            sustained_3day_peak={
+                "P50": _sp(date(2026, 3, 1), date(2026, 3, 3), "100.0", "300.0"),
+                "P80": _sp(date(2026, 3, 1), date(2026, 3, 3), "200.0", "600.0"),
+                "P90": _sp(date(2026, 3, 1), date(2026, 3, 3), "300.0", "900.0"),
+            },
             peak_window_days_before=7,
             peak_window_days_after=7,
             peak_window_cumulative_quantity_kg={"P50": "100.0", "P80": "200.0", "P90": "300.0"},
@@ -193,13 +218,16 @@ def test_no_deterministic_recommendation_engine_in_slice_a():
 
 # --- helpers ---------------------------------------------------------------
 
+
 def _sdp(d, v):
     from backend.app.agent.schemas import SingleDayPeakEntry
+
     return SingleDayPeakEntry(date=d, volume_kg=v)
 
 
 def _sp(s, e, m, c):
     from backend.app.agent.schemas import SustainedPeakEntry
+
     return SustainedPeakEntry(
         start_date=s,
         end_date=e,

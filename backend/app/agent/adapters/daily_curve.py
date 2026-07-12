@@ -38,6 +38,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.canonical import sha256_payload
 from backend.app.agent.enums import BlockerCode, ForecastQuantile
+from backend.app.agent.ports import (
+    ScenarioBaselinePort,
+    Task8ForecastPort,
+    Task9HarvestStatePort,
+    Task10PredictionPort,
+    Task11BacktestPort,
+    Task12PredictionPort,
+)
 from backend.app.agent.schemas import (
     AdvancedOverrides,
     AuthorityOverride,
@@ -46,15 +54,6 @@ from backend.app.agent.schemas import (
     ForecastDailyCurveOutput,
     ForecastDailyRow,
 )
-from backend.app.agent.ports import (
-    ScenarioBaselinePort,
-    Task10PredictionPort,
-    Task11BacktestPort,
-    Task12PredictionPort,
-    Task8ForecastPort,
-    Task9HarvestStatePort,
-)
-
 
 QUANTILES: tuple[ForecastQuantile, ...] = ("P50", "P80", "P90")
 QUANTILE_FIELD: dict[ForecastQuantile, str] = {"P50": "p50", "P80": "p80", "P90": "p90"}
@@ -87,6 +86,7 @@ def _select_authority_overrides(
 
 # --- Default upstream ports -----------------------------------------------
 
+
 class _NoopTaskPort:
     """Default task port: no row exists, returns ``None`` (no fabricated identity)."""
 
@@ -95,6 +95,7 @@ class _NoopTaskPort:
 
 
 # --- Top-level adapter ----------------------------------------------------
+
 
 class DefaultDailyCurveAdapter:
     """Default ``forecast_daily_curve`` deterministic adapter."""
@@ -134,7 +135,9 @@ class DefaultDailyCurveAdapter:
                 session=session,
                 forecast_run_id=int(task8_overrides[0].value),
             )
-            if task8_authority is None or int(task8_authority.maturity_forecast_run_id) != int(task8_overrides[0].value):
+            if task8_authority is None or int(task8_authority.maturity_forecast_run_id) != int(
+                task8_overrides[0].value
+            ):
                 blockers.append(
                     Blocker(
                         code=BlockerCode.CITATION_HASH_MISMATCH,
@@ -155,7 +158,9 @@ class DefaultDailyCurveAdapter:
                 session=session,
                 harvest_state_run_id=int(task9_overrides[0].value),
             )
-            if task9_authority is None or int(task9_authority.harvest_state_run_id) != int(task9_overrides[0].value):
+            if task9_authority is None or int(task9_authority.harvest_state_run_id) != int(
+                task9_overrides[0].value
+            ):
                 blockers.append(
                     Blocker(
                         code=BlockerCode.CITATION_HASH_MISMATCH,
@@ -176,7 +181,9 @@ class DefaultDailyCurveAdapter:
                 session=session,
                 prediction_run_id=int(task10_overrides[0].value),
             )
-            if task10_authority is None or int(task10_authority.prediction_run_id) != int(task10_overrides[0].value):
+            if task10_authority is None or int(task10_authority.prediction_run_id) != int(
+                task10_overrides[0].value
+            ):
                 blockers.append(
                     Blocker(
                         code=BlockerCode.CITATION_HASH_MISMATCH,
@@ -197,7 +204,9 @@ class DefaultDailyCurveAdapter:
                 session=session,
                 rolling_backtest_run_id=int(task11_overrides[0].value),
             )
-            if task11_authority is None or int(task11_authority.rolling_backtest_run_id) != int(task11_overrides[0].value):
+            if task11_authority is None or int(task11_authority.rolling_backtest_run_id) != int(
+                task11_overrides[0].value
+            ):
                 blockers.append(
                     Blocker(
                         code=BlockerCode.CITATION_HASH_MISMATCH,
@@ -218,7 +227,9 @@ class DefaultDailyCurveAdapter:
                 session=session,
                 prediction_run_id=int(task12_overrides[0].value),
             )
-            if task12_authority is None or int(task12_authority.prediction_run_id) != int(task12_overrides[0].value):
+            if task12_authority is None or int(task12_authority.prediction_run_id) != int(
+                task12_overrides[0].value
+            ):
                 blockers.append(
                     Blocker(
                         code=BlockerCode.CITATION_HASH_MISMATCH,

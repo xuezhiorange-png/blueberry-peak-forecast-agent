@@ -27,12 +27,14 @@ from backend.app.agent.schemas import (
     UncertaintyWideningPolicy,
 )
 
-
 # --- Unit tests on pure helpers -----------------------------------------
+
 
 def test_is_visible_prior_no_bounds():
     assert is_visible_prior(
-        effective_from=None, effective_to=None, available_at=None,
+        effective_from=None,
+        effective_to=None,
+        available_at=None,
         effective_as_of_date=date(2026, 3, 1),
     )
 
@@ -40,7 +42,8 @@ def test_is_visible_prior_no_bounds():
 def test_is_visible_prior_effective_from_future():
     assert not is_visible_prior(
         effective_from=date(2026, 4, 1),
-        effective_to=None, available_at=None,
+        effective_to=None,
+        available_at=None,
         effective_as_of_date=date(2026, 3, 1),
     )
 
@@ -56,7 +59,8 @@ def test_is_visible_prior_effective_to_past():
 
 def test_is_visible_prior_available_at_future():
     assert not is_visible_prior(
-        effective_from=None, effective_to=None,
+        effective_from=None,
+        effective_to=None,
         available_at=date(2026, 4, 1),
         effective_as_of_date=date(2026, 3, 1),
     )
@@ -104,6 +108,7 @@ def test_widening_factor_missing_raises():
 
 # --- Adapter tests with a deterministic fake port -------------------------
 
+
 class _FakePort(DefaultParameterPriorPort):
     def __init__(self, *, prior: ParameterPrior | None = None, raise_gap: bool = False):
         self._prior = prior
@@ -133,7 +138,9 @@ class _FakePort(DefaultParameterPriorPort):
 def _mk_nr(variety_ids: list[str] | None = None) -> NormalizedAgentRequest:
     return NormalizedAgentRequest(
         request_id="r1",
-        request_received_at=__import__("datetime").datetime(2026, 3, 1, tzinfo=__import__("datetime").UTC),
+        request_received_at=__import__("datetime").datetime(
+            2026, 3, 1, tzinfo=__import__("datetime").UTC
+        ),
         effective_as_of_date=date(2026, 3, 1),
         effective_forecast_season=2026,
         season_resolution_policy_version="season-calendar/v1",
@@ -152,7 +159,8 @@ def _mk_nr(variety_ids: list[str] | None = None) -> NormalizedAgentRequest:
             matched_location_method="REFERENCE_ID",
         ),
         varieties=[
-            NormalizedVarietyInput(variety_id=v, planting_area_mu="100.0") for v in (variety_ids or ["101"])
+            NormalizedVarietyInput(variety_id=v, planting_area_mu="100.0")
+            for v in (variety_ids or ["101"])
         ],
         advanced_overrides=AdvancedOverrides(),
         canonical_request_hash="0" * 64,
@@ -201,7 +209,8 @@ async def test_infer_parameters_unknown_variety_no_numerical_output(sqlite_sessi
             status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
         ),
         uncertainty_widening_policy=UncertaintyWideningPolicy(
-            policy_version="v1", config_hash="b" * 64,
+            policy_version="v1",
+            config_hash="b" * 64,
             factors_by_source_level={
                 "step_1_same_farm_same_variety_high_evidence": "1.000",
                 "step_2_same_township_similar_altitude": "1.250",

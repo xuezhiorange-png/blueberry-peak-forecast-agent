@@ -32,8 +32,8 @@ from backend.app.agent.schemas import (
     UncertaintyWideningPolicy,
 )
 
-
 # --- Tables included in the SQLite fixture --------------------------------
+
 
 def _harvest_state_tables() -> list:
     from backend.app.models.harvest_state import (
@@ -106,6 +106,7 @@ async def sqlite_session() -> AsyncSession:
 
 
 # --- Deterministic fixtures ---------------------------------------------
+
 
 @pytest.fixture
 def sample_normalized_request() -> NormalizedAgentRequest:
