@@ -303,10 +303,16 @@ class Task12Authority(_StrictBase):
     training_cutoff_at: AwareDatetime
     model_code_version: str = Field(min_length=1)
     task12_policy_version: str = Field(min_length=1)
-    validation_policy_version: str = Field(min_length=1)
-    label_visibility_policy_version: str = Field(min_length=1)
-    feature_visibility_policy_version: str = Field(min_length=1)
-    artifact_visibility_policy_version: str = Field(min_length=1)
+    # P0-2 round 5: the four policy-version fields are OPTIONAL.  When
+    # the upstream schema does not expose a real persisted
+    # ``*_policy_version`` column, the loader surfaces
+    # AUTHORITY_POLICY_VERSION_MISSING and leaves these as None.  The
+    # previous implementation mapped status / mode / policy-enum fields
+    # into these slots, which violated the P0-2 provenance discipline.
+    validation_policy_version: str | None = None
+    label_visibility_policy_version: str | None = None
+    feature_visibility_policy_version: str | None = None
+    artifact_visibility_policy_version: str | None = None
     model_artifact_hash: SHA256Hex | None
     task9_replay_binding_identity: SHA256Hex
     task10_manifest_hash: SHA256Hex | None
@@ -1012,11 +1018,24 @@ class SimulateScenarioDelta(_StrictBase):
 
 
 class SimulateScenarioOutput(_StrictBase):
+    """Discriminated scenario result (P0-6 round 5).
+
+    When the scenario override cannot be executed by any upstream
+    service in Slice A, ``status`` is ``"BLOCKED"`` and the
+    ``forecast_daily_curve`` / ``forecast_peak`` / ``delta_vs_baseline``
+    fields are NOT populated with fabricated values.  The ``blockers``
+    list carries the typed capability/incompatibility blocker(s) that
+    caused the BLOCKED status.  When ``status`` is ``"SUCCESS"`` the
+    scenario was executed end-to-end against the real upstream pipeline.
+    """
+
     scenario_id: SHA256Hex
     scenario_config_hash: SHA256Hex
-    forecast_daily_curve: ForecastDailyCurveOutput
-    forecast_peak: ForecastPeakOutput
-    delta_vs_baseline: SimulateScenarioDelta
+    status: Literal["SUCCESS", "BLOCKED"]
+    forecast_daily_curve: ForecastDailyCurveOutput | None = None
+    forecast_peak: ForecastPeakOutput | None = None
+    delta_vs_baseline: SimulateScenarioDelta | None = None
+    blockers: list[Blocker] = Field(default_factory=list)
 
 
 class RunBacktestInput(_StrictBase):

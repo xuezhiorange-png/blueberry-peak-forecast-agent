@@ -26,7 +26,6 @@ from backend.app.agent.schemas import (
     Task8Authority,
     Task9Authority,
     Task10Authority,
-    Task11Authority,
     Task12Authority,
 )
 
@@ -79,12 +78,46 @@ class VarietyCatalogPort(Protocol):
         variety_id: str,
     ) -> bool: ...
 
+    async def lookup_row(
+        self,
+        *,
+        session: AsyncSession,
+        variety_id: str,
+    ) -> Any:
+        """Round 5: return the full :class:`Variety` row (or ``None``).
+
+        When the catalog cannot be read, the implementation MUST raise
+        :class:`backend.app.agent.adapters.parameters.VarietyCatalogReadFailure`
+        (the caller translates this to a typed
+        :data:`BlockerCode.UPSTREAM_READ_FAILURE` blocker).  When the
+        code is unknown, raise
+        :class:`backend.app.agent.adapters.parameters.UnknownVarietyError`.
+        The default port uses the returned row's ``id`` (int PK) to
+        query :class:`ParameterObservation` — no ``int()`` coercion of
+        arbitrary string codes.
+        """
+        ...
+
 
 # --- §15 forecast_daily_curve composition --------------------------------
 
 
+class TaskNAuthorityLoadResultProtocol(Protocol):
+    """Round-5 typed result envelope for authority loaders."""
+
+    @property
+    def is_loaded(self) -> bool: ...
+
+
 class Task8ForecastPort(Protocol):
     """Adapter that loads a TASK-008 forecast persisted row by id."""
+
+    async def load_typed(
+        self,
+        *,
+        session: AsyncSession,
+        forecast_run_id: int,
+    ) -> Any: ...
 
     async def load_by_id(
         self,
@@ -97,6 +130,13 @@ class Task8ForecastPort(Protocol):
 class Task9HarvestStatePort(Protocol):
     """Adapter that loads a TASK-009 harvest-state persisted run by id."""
 
+    async def load_typed(
+        self,
+        *,
+        session: AsyncSession,
+        harvest_state_run_id: int,
+    ) -> Any: ...
+
     async def load_by_id(
         self,
         *,
@@ -107,6 +147,13 @@ class Task9HarvestStatePort(Protocol):
 
 class Task10PredictionPort(Protocol):
     """Adapter that loads a TASK-010 residual prediction by id."""
+
+    async def load_typed(
+        self,
+        *,
+        session: AsyncSession,
+        prediction_run_id: int,
+    ) -> Any: ...
 
     async def load_by_id(
         self,
@@ -124,7 +171,7 @@ class Task11BacktestPort(Protocol):
         *,
         session: AsyncSession,
         rolling_backtest_run_id: int,
-    ) -> Task11Authority | None: ...
+    ) -> None: ...
 
 
 class Task12PredictionPort(Protocol):
@@ -134,6 +181,13 @@ class Task12PredictionPort(Protocol):
     override is supplied (§22.1).  The adapter MUST fail closed with
     ``None`` (not a fabricated value) when the row is absent.
     """
+
+    async def load_typed(
+        self,
+        *,
+        session: AsyncSession,
+        prediction_run_id: int,
+    ) -> Any: ...
 
     async def load_by_id(
         self,
@@ -166,6 +220,25 @@ class ScenarioBaselinePort(Protocol):
     ) -> BaselineCompositionResult: ...
 
 
+class SpringFestivalCalendarPort(Protocol):
+    """Adapter that maps a target date to a Spring-Festival phase label.
+
+    Production implementations MUST be backed by a versioned
+    season-calendar policy (``policy_version`` + ``config_hash``).
+    The default port returns ``"NONE"`` for every date and reports
+    the absence of a policy via the
+    :data:`BlockerCode.SPRING_FESTIVAL_CALENDAR_POLICY_MISSING`
+    blocker.
+    """
+
+    policy_version: str
+    config_hash: str | None
+
+    def phase_for(self, *, target: date) -> str: ...
+
+    def is_policy_loaded(self) -> bool: ...
+
+
 __all__ = [
     "LocationResolverPort",
     "ParameterPriorPort",
@@ -176,4 +249,6 @@ __all__ = [
     "Task11BacktestPort",
     "Task12PredictionPort",
     "ScenarioBaselinePort",
+    "SpringFestivalCalendarPort",
+    "TaskNAuthorityLoadResultProtocol",
 ]

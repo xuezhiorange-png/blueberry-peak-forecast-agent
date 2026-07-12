@@ -266,12 +266,22 @@ class DefaultScenarioAdapter:
                     p50="0", p80="0", p90="0"
                 ),
             )
+            # P0-6 round 5: the scenario result is discriminated —
+            # ``status="BLOCKED"`` is a TOP-LEVEL field.  No fabricated
+            # scenario curve / peak / delta is attached.  The baseline
+            # curve is still emitted so callers can see what the
+            # baseline WOULD have been, but the scenario status is
+            # BLOCKED at the top level (the contract explicitly
+            # forbids nested ``forecast_daily_curve.blockers`` only
+            # signaling the blocker).
             return SimulateScenarioOutput(
                 scenario_id=scenario_id,
                 scenario_config_hash=scenario_config_hash,
+                status="BLOCKED",
                 forecast_daily_curve=baseline_curve,
                 forecast_peak=baseline_peak,
                 delta_vs_baseline=zero_delta,
+                blockers=[capability_blocker],
             )
 
         baseline_overrides, scenario_overrides = _baseline_and_scenario_overrides(input=input)
@@ -362,9 +372,11 @@ class DefaultScenarioAdapter:
             return SimulateScenarioOutput(
                 scenario_id=scenario_id,
                 scenario_config_hash=scenario_config_hash,
+                status="BLOCKED",
                 forecast_daily_curve=scenario_curve,
                 forecast_peak=scenario_peak,
                 delta_vs_baseline=zero_delta,
+                blockers=[incompatible_blocker],
             )
 
         scenario_peak = self._peak.execute(
@@ -413,6 +425,7 @@ class DefaultScenarioAdapter:
         return SimulateScenarioOutput(
             scenario_id=scenario_id,
             scenario_config_hash=scenario_config_hash,
+            status="SUCCESS",
             forecast_daily_curve=scenario_curve,
             forecast_peak=scenario_peak,
             delta_vs_baseline=SimulateScenarioDelta(
@@ -426,6 +439,7 @@ class DefaultScenarioAdapter:
                     baseline_sustained_cum, scenario_sustained_cum
                 ),
             ),
+            blockers=[],
         )
 
 
