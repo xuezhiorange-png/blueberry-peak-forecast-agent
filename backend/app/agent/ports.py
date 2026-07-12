@@ -166,6 +166,13 @@ class Task10PredictionPort(Protocol):
 class Task11BacktestPort(Protocol):
     """Adapter that loads a TASK-011 rolling-backtest run by id."""
 
+    async def load_typed(
+        self,
+        *,
+        session: AsyncSession,
+        rolling_backtest_run_id: int,
+    ) -> Any: ...
+
     async def load_by_id(
         self,
         *,

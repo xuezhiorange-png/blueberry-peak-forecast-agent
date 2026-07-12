@@ -57,7 +57,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import Integer, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.adapters.task_loaders import DefaultSpringFestivalCalendarPort
@@ -135,6 +135,38 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
     ) -> BaselineCompositionResult:
         blockers: list[Blocker] = []
 
+        # ---- Spring Festival policy disclosure (P0-9 round 6) -----------
+        # The default calendar port reports is_policy_loaded() == False and
+        # returns phase = "NONE" for every date.  "NONE" is NOT a confirmed
+        # "outside the Spring Festival window" assertion — it means the
+        # policy source is absent.  Emit a typed
+        # SPRING_FESTIVAL_CALENDAR_POLICY_MISSING blocker so downstream
+        # consumers know the per-day phase is unaudited, and continue
+        # composition (the curve still has value; the phase is a tag, not
+        # a gate).  Version/hash use None — not "unknown" or "v0".
+        if not self._calendar.is_policy_loaded():
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.SPRING_FESTIVAL_CALENDAR_POLICY_MISSING,
+                    message=(
+                        "Default Spring Festival calendar port has no versioned "
+                        "policy loaded; per-day phase is set to 'NONE' as a "
+                        "non-authoritative placeholder, not a confirmed phase."
+                    ),
+                    details={
+                        "effective_forecast_season": str(
+                            normalized_request.effective_forecast_season
+                        )
+                        if getattr(normalized_request, "effective_forecast_season", None)
+                        is not None
+                        else None,
+                        "calendar_policy_version": None,
+                        "calendar_config_hash": None,
+                    },
+                    retry_hint="PROVIDE_OVERRIDE",
+                )
+            )
+
         # ---- TASK-009 selector (strict scope, no latest) --------------
         task9_run_id_override = _select_authority_run_id(
             advanced_overrides, "TASK9_HARVEST_STATE_RUN"
@@ -147,6 +179,11 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
                 run_id_override=task9_run_id_override,
                 destination_factory_id=getattr(resolved_location, "location_reference_id", None),
                 requested_variety_codes=requested_variety_codes,
+                effective_forecast_season=(
+                    int(normalized_request.effective_forecast_season)
+                    if getattr(normalized_request, "effective_forecast_season", None) is not None
+                    else None
+                ),
             )
         except UpstreamReadFailure as exc:
             blockers.append(
@@ -385,6 +422,7 @@ class DefaultTaskCompositionBaseline(ScenarioBaselinePort):
             variety_member_rows=variety_member_rows,
             variety_pk_by_code=pk_by_code,
             calendar=self._calendar,
+            task9_run_id=task9_run_id,
         )
         blockers.extend(per_variety_blockers)
 
@@ -448,6 +486,7 @@ async def _select_harvest_state_run_candidates(
     run_id_override: int | None,
     destination_factory_id: int | None,
     requested_variety_codes: tuple[str, ...] = (),
+    effective_forecast_season: int | None = None,
 ) -> list[dict[str, Any]]:
     """Strict-scope TASK-009 selector.  No implicit latest.
 
@@ -466,6 +505,18 @@ async def _select_harvest_state_run_candidates(
     * When the override fails any of these checks, the selector
       returns ``[]`` (NOT the row) so the caller emits the typed
       AUTHORITY_NOT_FOUND / AUTHORITY_IDENTITY_MALFORMED blocker.
+
+    P0-4 round 6:
+
+    * ``effective_forecast_season`` (when non-None) MUST match the
+      persisted ``as_of_date.year`` of the candidate.  This is a
+      real persisted identity (every HarvestStateRun has
+      ``as_of_date``); the selector does NOT auto-derive season from
+      a date guess — it requires the request to supply an explicit
+      integer season and the row to carry an ``as_of_date.year`` that
+      matches.  When the requested season is supplied but no
+      candidate matches it, the selector returns ``[]`` (typed
+      AUTHORITY_NOT_FOUND via the caller).
     """
 
     from backend.app.models.harvest_state import (
@@ -482,12 +533,13 @@ async def _select_harvest_state_run_candidates(
         if row is None:
             return []
         # P0-3 #12: validate the override against the full scope.
-        if not _validate_task9_row_against_scope(
+        if not await _validate_task9_row_against_scope(
             row=row,
             as_of=as_of,
             destination_factory_id=destination_factory_id,
             requested_variety_codes=requested_variety_codes,
             session=session,
+            effective_forecast_season=effective_forecast_season,
         ):
             return []
         return [
@@ -506,6 +558,14 @@ async def _select_harvest_state_run_candidates(
     ]
     if destination_factory_id is not None:
         filters.append(HarvestStateRun.destination_factory_id == int(destination_factory_id))
+    # P0-4 round 6: season filter uses the real persisted
+    # as_of_date.year (every row carries it).  extract('year', ...)
+    # is portable across SQLite + Postgres in SQLAlchemy 2.x.
+    if effective_forecast_season is not None:
+        filters.append(
+            func.cast(func.strftime("%Y", HarvestStateRun.as_of_date), Integer)
+            == int(effective_forecast_season)
+        )
 
     stmt = select(HarvestStateRun.id, HarvestStateRun.result_hash).where(*filters)
     try:
@@ -542,15 +602,17 @@ class UpstreamReadFailure(RuntimeError):
     """
 
 
-def _validate_task9_row_against_scope(
+async def _validate_task9_row_against_scope(
     *,
     row: Any,
     as_of: date,
     destination_factory_id: int | None,
     requested_variety_codes: tuple[str, ...],
     session: AsyncSession,
+    effective_forecast_season: int | None = None,
 ) -> bool:
-    """P0-3 #12: validate a TASK-009 override row against the strict scope.
+    """P0-3 #12 + P0-4 round 6: validate a TASK-009 override row against
+    the strict scope.
 
     Returns True iff all of the following hold:
 
@@ -559,8 +621,12 @@ def _validate_task9_row_against_scope(
     * ``row.as_of_date <= as_of <= row.forecast_end_date``
     * ``row.result_hash`` is a 64-char lowercase hex string
     * ``row.config_hash`` is a 64-char lowercase hex string
+    * when ``effective_forecast_season`` is supplied,
+      ``row.as_of_date.year == effective_forecast_season``
     * when ``requested_variety_codes`` is non-empty, the
-      persisted member-row variety set covers the request.
+      persisted member-row variety set covers the request (this
+      checks the member-row coverage of THIS specific row, not
+      the default-scope coverage).
     """
 
     from backend.app.agent.adapters.task_loaders import (
@@ -585,12 +651,23 @@ def _validate_task9_row_against_scope(
         return False
     if not _SHA256_HEX_RE.match(config_hash):
         return False
+    # P0-4 round 6: season validation against the real persisted
+    # as_of_date.year.  Required when the caller supplied
+    # effective_forecast_season.
+    if effective_forecast_season is not None:
+        if int(row_as_of.year) != int(effective_forecast_season):
+            return False
+    # P0-4 round 6: variety coverage — the persisted member-row
+    # variety set of THIS row must cover the requested codes.
     if requested_variety_codes:
-        # Synchronous read of the member-row variety set is too
-        # expensive here; the caller pre-filters via
-        # ``_member_variety_codes_for_run``.  This code path is
-        # reserved for the override-direct branch.
-        pass
+        try:
+            covered = await _member_variety_codes_for_run(
+                session=session, harvest_state_run_id=int(getattr(row, "id", 0) or 0)
+            )
+        except Exception:
+            return False
+        if not set(requested_variety_codes).issubset(covered):
+            return False
     return True
 
 
@@ -642,9 +719,35 @@ async def _select_residual_prediction_run_candidates(
       matches the selected TASK-9 result hash, and all required
       hash / datetime fields are present.  Failure returns ``[]``
       (NOT the row).
+
+    P0-5 round 6: the override validator now checks the full identity
+    surface carried by :class:`ResidualModelPredictionRun`:
+
+    * ``prediction_hash`` is 64-char lowercase hex
+    * ``config_hash`` is 64-char lowercase hex
+    * ``prediction_input_signature`` is 64-char lowercase hex
+    * ``canonical_payload_hash`` is 64-char lowercase hex
+    * ``feature_schema_hash`` is 64-char lowercase hex
+    * ``artifact_hashes`` (if present) are all 64-char lowercase hex
+    * no fabricated fallback (a row whose ``fallback_reason`` is
+      set is treated as not-completed-equivalent — explicit
+      fallback_reason triggers AUTHORITY_NOT_FOUND via the caller)
+    * execution_status is exactly 'completed' (not 'failed',
+      not 'running', not 'unavailable')
+
+    Any of the above checks failing returns ``[]`` so the caller
+    surfaces the typed blocker (NOT FOUND, HASH MALFORMED, IDENTITY
+    MALFORMED, LINEAGE MISMATCH, UPSTREAM READ FAILURE).
     """
 
+    from backend.app.agent.adapters.task_loaders import _SHA256_HEX_RE
     from backend.app.models.residual_model import ResidualModelPredictionRun
+
+    def _strict_hex(value: Any, field: str) -> str | None:
+        s = str(value or "")
+        if not s or not _SHA256_HEX_RE.match(s):
+            return None
+        return s
 
     if prediction_run_id_override is not None:
         try:
@@ -660,6 +763,27 @@ async def _select_residual_prediction_run_candidates(
         if int(getattr(row, "task9_run_id", -1) or -1) != int(task9_run_id):
             return []
         if str(getattr(row, "task9_result_hash", "")) != str(task9_result_hash):
+            return []
+        # P0-5 round 6: full identity check.
+        if _strict_hex(getattr(row, "prediction_hash", None), "prediction_hash") is None:
+            return []
+        if _strict_hex(getattr(row, "config_hash", None), "config_hash") is None:
+            return []
+        input_sig = getattr(row, "prediction_input_signature", None)
+        if _strict_hex(input_sig, "prediction_input_signature") is None:
+            return []
+        cp_hash = getattr(row, "canonical_payload_hash", None)
+        if _strict_hex(cp_hash, "canonical_payload_hash") is None:
+            return []
+        fs_hash = getattr(row, "feature_schema_hash", None)
+        if _strict_hex(fs_hash, "feature_schema_hash") is None:
+            return []
+        artifact_hashes = list(getattr(row, "artifact_hashes", []) or [])
+        for h in artifact_hashes:
+            if _strict_hex(h, "artifact_hashes[]") is None:
+                return []
+        # P0-5: explicit fallback_reason disqualifies the run.
+        if getattr(row, "fallback_reason", None) is not None:
             return []
         return [
             {
@@ -787,21 +911,37 @@ async def _load_variety_member_rows(
     where ``variety_pk`` is the int PK stored in the member row's
     ``variety_id`` column.  The caller is responsible for mapping back
     to the agent-side string variety code via the ``Variety`` catalog.
-    """
 
+    P0-6 round 6: duplicate member rows for the same
+    ``(state_date, forecast_quantile, variety_pk)`` key are SUMMED
+    via SQL ``SUM(arrival_quantity_kg) GROUP BY (state_date,
+    forecast_quantile, variety_id)`` — the freeze TASK-009 grain
+    considers duplicate rows a valid aggregation, not an integrity
+    conflict.  The resulting dict carries the aggregated quantity
+    for each unique key.
+    """
     from backend.app.models.harvest_state import HarvestStateDailyMemberRowModel
 
     rows = (
-        await session.scalars(
-            select(HarvestStateDailyMemberRowModel).where(
-                HarvestStateDailyMemberRowModel.harvest_state_run_id == harvest_state_run_id
+        await session.execute(
+            select(
+                HarvestStateDailyMemberRowModel.state_date,
+                HarvestStateDailyMemberRowModel.forecast_quantile,
+                HarvestStateDailyMemberRowModel.variety_id,
+                func.sum(HarvestStateDailyMemberRowModel.arrival_quantity_kg),
+            )
+            .where(HarvestStateDailyMemberRowModel.harvest_state_run_id == harvest_state_run_id)
+            .group_by(
+                HarvestStateDailyMemberRowModel.state_date,
+                HarvestStateDailyMemberRowModel.forecast_quantile,
+                HarvestStateDailyMemberRowModel.variety_id,
             )
         )
     ).all()
     out: dict[tuple[date, str, int], Decimal] = {}
-    for r in rows:
-        key = (r.state_date, str(r.forecast_quantile), int(r.variety_id))
-        out[key] = r.arrival_quantity_kg
+    for state_date, forecast_quantile, variety_pk, total_kg in rows:
+        key = (state_date, str(forecast_quantile), int(variety_pk))
+        out[key] = Decimal(str(total_kg)) if total_kg is not None else Decimal("0")
     return out
 
 
@@ -816,6 +956,7 @@ def _compose_rows(
     variety_member_rows: dict[tuple[date, str, int], Decimal],
     variety_pk_by_code: dict[str, int],
     calendar: DefaultSpringFestivalCalendarPort,
+    task9_run_id: int | None = None,
 ) -> tuple[list[ForecastDailyRow], list[Blocker]]:
     """Compose per-day :class:`ForecastDailyRow` from TASK-009 + TASK-010.
 
@@ -860,6 +1001,7 @@ def _compose_rows(
             pool_arrival=pool,
             variety_member_rows=variety_member_rows,
             variety_pk_by_code=variety_pk_by_code,
+            task9_run_id=task9_run_id,
         )
         blockers.extend(contrib_blockers)
 
@@ -895,6 +1037,7 @@ def _per_variety_contribution_from_member_rows(
     pool_arrival: dict[str, Decimal],
     variety_member_rows: dict[tuple[date, str, int], Decimal],
     variety_pk_by_code: dict[str, int],
+    task9_run_id: int | None = None,
 ) -> tuple[list[VarietyContribution], list[Blocker]]:
     """Per-variety contribution from :class:`HarvestStateDailyMemberRowModel`.
 
@@ -929,9 +1072,13 @@ def _per_variety_contribution_from_member_rows(
 
     any_member = any(md == d for (md, _, _) in variety_member_rows)
     if not any_member:
+        # P0-7 round 6: typed TASK9_PER_VARIETY_GRAIN_MISSING (not
+        # INTERNAL_FAILURE) so the per-day contribution is empty
+        # and the blocker carries the real task9_run_id, not a
+        # variety_pk.  Caller will pass the real task9_run_id.
         blockers.append(
             Blocker(
-                code=BlockerCode.INTERNAL_FAILURE,
+                code=BlockerCode.TASK9_PER_VARIETY_GRAIN_MISSING,
                 message=(
                     f"No HarvestStateDailyMemberRowModel rows available for date "
                     f"{d.isoformat()}; per-variety grain is missing."
@@ -1006,13 +1153,13 @@ def _per_variety_contribution_from_member_rows(
                         message=(
                             f"per-variety grain missing for date={d.isoformat()} "
                             f"variety={vid_code} quantile={q} task9_run_id="
-                            f"{vid_pk}"
+                            f"{task9_run_id}"
                         ),
                         details={
                             "date": d.isoformat(),
                             "quantile": q,
                             "variety_id": vid_code,
-                            "task9_run_id": int(vid_pk),
+                            "task9_run_id": int(task9_run_id) if task9_run_id is not None else None,
                         },
                         retry_hint="WAIT_FOR_DATA",
                     )
@@ -1027,6 +1174,11 @@ def _per_variety_contribution_from_member_rows(
         # varieties for this (date, quantile) should equal the pool
         # total; when pool_total > 0 the contribution rates must sum
         # to 1 within tolerance.
+        # P0-7 round 6: when ANY quantile fails reconciliation, the
+        # WHOLE day's contribution list is cleared (no
+        # zero-rates-and-append fallback).  The day is reported as
+        # integrity-blocked.
+        reconciliation_failed = False
         for q in ("P50", "P80", "P90"):
             pool_total = per_quantile_total[q]
             sum_member_volume = sum(_d(v) for v in member_by_q[q].values())
@@ -1048,8 +1200,7 @@ def _per_variety_contribution_from_member_rows(
                         retry_hint="WAIT_FOR_DATA",
                     )
                 )
-                per_quantile_volume[q] = Decimal("0")
-                per_quantile_rate[q] = Decimal("0")
+                reconciliation_failed = True
             elif pool_total == 0 and sum_member_volume != 0:
                 blockers.append(
                     Blocker(
@@ -1068,8 +1219,12 @@ def _per_variety_contribution_from_member_rows(
                         retry_hint="WAIT_FOR_DATA",
                     )
                 )
-                per_quantile_volume[q] = Decimal("0")
-                per_quantile_rate[q] = Decimal("0")
+                reconciliation_failed = True
+        if reconciliation_failed:
+            # P0-7 #10: the day's per-variety_contribution list is
+            # CLEARED.  We do NOT append zero-rate VarietyContribution
+            # records.  The day is reported as integrity-blocked.
+            return [], blockers
 
         contributions.append(
             VarietyContribution(

@@ -250,37 +250,20 @@ class DefaultScenarioAdapter:
                 retry_hint="WAIT_FOR_DATA",
             )
             baseline_curve.blockers.append(capability_blocker)
-            baseline_peak = self._peak.execute(
-                input=ForecastPeakInput(
-                    normalized_request=input.normalized_request,
-                    daily_curve=baseline_curve,
-                    peak_metric_policy=input.peak_metric_policy,
-                )
-            )
-            zero_delta = SimulateScenarioDelta(
-                single_day_peak_volume_delta_kg=ScenarioDeltaQuantiles(p50="0", p80="0", p90="0"),
-                sustained_3day_daily_average_delta_kg_per_day=ScenarioDeltaQuantiles(
-                    p50="0", p80="0", p90="0"
-                ),
-                sustained_3day_cumulative_delta_kg=ScenarioDeltaQuantiles(
-                    p50="0", p80="0", p90="0"
-                ),
-            )
-            # P0-6 round 5: the scenario result is discriminated —
-            # ``status="BLOCKED"`` is a TOP-LEVEL field.  No fabricated
-            # scenario curve / peak / delta is attached.  The baseline
-            # curve is still emitted so callers can see what the
-            # baseline WOULD have been, but the scenario status is
-            # BLOCKED at the top level (the contract explicitly
-            # forbids nested ``forecast_daily_curve.blockers`` only
-            # signaling the blocker).
+            # P0-8 round 6: blocked scenario MUST NOT carry any
+            # fabricated result fields.  The baseline curve and
+            # peak are computed ONLY so the caller can see what the
+            # baseline would have been — they are NOT attached to
+            # the SimulateScenarioOutput (the top-level blockers
+            # field carries the capability reason).  We do not
+            # construct a zero delta here (no fabricated result).
             return SimulateScenarioOutput(
                 scenario_id=scenario_id,
                 scenario_config_hash=scenario_config_hash,
                 status="BLOCKED",
-                forecast_daily_curve=baseline_curve,
-                forecast_peak=baseline_peak,
-                delta_vs_baseline=zero_delta,
+                forecast_daily_curve=None,
+                forecast_peak=None,
+                delta_vs_baseline=None,
                 blockers=[capability_blocker],
             )
 
@@ -353,29 +336,17 @@ class DefaultScenarioAdapter:
                 retry_hint="FIX_INPUT",
             )
             scenario_curve.blockers.append(incompatible_blocker)
-            scenario_peak = self._peak.execute(
-                input=ForecastPeakInput(
-                    normalized_request=input.normalized_request,
-                    daily_curve=scenario_curve,
-                    peak_metric_policy=input.peak_metric_policy,
-                )
-            )
-            zero_delta = SimulateScenarioDelta(
-                single_day_peak_volume_delta_kg=ScenarioDeltaQuantiles(p50="0", p80="0", p90="0"),
-                sustained_3day_daily_average_delta_kg_per_day=ScenarioDeltaQuantiles(
-                    p50="0", p80="0", p90="0"
-                ),
-                sustained_3day_cumulative_delta_kg=ScenarioDeltaQuantiles(
-                    p50="0", p80="0", p90="0"
-                ),
-            )
+            # P0-8 round 6: SCENARIO_INCOMPATIBLE_WITH_BASE branch
+            # also returns None for the result fields.  No
+            # scenario_curve / peak / delta.  The blocker is
+            # surfaced at the top level.
             return SimulateScenarioOutput(
                 scenario_id=scenario_id,
                 scenario_config_hash=scenario_config_hash,
                 status="BLOCKED",
-                forecast_daily_curve=scenario_curve,
-                forecast_peak=scenario_peak,
-                delta_vs_baseline=zero_delta,
+                forecast_daily_curve=None,
+                forecast_peak=None,
+                delta_vs_baseline=None,
                 blockers=[incompatible_blocker],
             )
 

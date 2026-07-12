@@ -194,7 +194,14 @@ async def test_daily_curve_explicit_task12_runid_mismatch_rejected(sqlite_sessio
     out = await adapter.execute(sqlite_session, input=inp)
     assert out.task12_authority is None
     codes = [b.code.value for b in out.blockers]
-    assert "TASK12_AUTHORITY_NOT_FOUND" in codes
+    # Round 6: P0-1 — typed NOT_FOUND preserves the loader's classification;
+    # the task identity is in blocker.details["field"] = "TASK-012".
+    assert "AUTHORITY_NOT_FOUND" in codes
+    # Either details.field or details.override_value carries the task identity.
+    assert any(
+        (b.details or {}).get("field") == "TASK-012" or "TASK-012" in b.message
+        for b in out.blockers
+    )
 
 
 # --- identical input produces byte-identical output ---------------------

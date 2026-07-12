@@ -218,9 +218,11 @@ def _mk_input() -> InferParametersInput:
 async def test_infer_parameters_step1_high_confidence(sqlite_session):
     adapter = DefaultParameterAdapter(port=_FakePort(), catalog=_FakeCatalog())
     out = await adapter.execute(sqlite_session, input=_mk_input())
-    # The adapter walks all 8 logical schemas; the fake returns a prior
-    # for the 4 supported categories and raises SourceCapabilityGapError
-    # for the 4 unsupported ones.
+    # Round 6 (P0-3): the frozen public ParameterEstimate schema
+    # cannot carry the 3-component maturity_curve.  The adapter
+    # excludes ``maturity_curve`` from the public output and surfaces
+    # MATURITY_CURVE_OUTPUT_SCHEMA_CAPABILITY_MISSING.  The other 3
+    # supported categories remain in the public output.
     supported = [
         p
         for p in out.parameters
@@ -229,18 +231,22 @@ async def test_infer_parameters_step1_high_confidence(sqlite_session):
             "expected_per_mu_yield",
             "commodity_fruit_rate",
             "first_harvest_date",
-            "maturity_curve",
         }
     ]
-    assert len(supported) == 4
+    assert len(supported) == 3
     pe = supported[0]
     assert pe.source_level == 1
     assert pe.confidence == "HIGH"
     assert pe.p50 == "1.50"
     # The 4 unsupported categories must surface NO_PERSISTED_PRIOR_SOURCE
-    # blockers (one per variety × parameter).
+    # blockers (one per variety × parameter), AND maturity_curve must
+    # surface MATURITY_CURVE_OUTPUT_SCHEMA_CAPABILITY_MISSING.
     unsupported_blockers = [b for b in out.blockers if b.code.value == "NO_PERSISTED_PRIOR_SOURCE"]
     assert len(unsupported_blockers) == 4
+    maturity_curve_blockers = [
+        b for b in out.blockers if b.code.value == "MATURITY_CURVE_OUTPUT_SCHEMA_CAPABILITY_MISSING"
+    ]
+    assert len(maturity_curve_blockers) == 1
 
 
 @pytest.mark.asyncio

@@ -125,6 +125,72 @@ class SourceCapabilityGapError(RuntimeError):
     """
 
 
+# --- Round 6 typed parameter-failure exceptions (P0-2) --------------------
+#
+# Each error class maps to exactly ONE :class:`BlockerCode` in the
+# adapter layer.  Catching the broad :class:`SourceCapabilityGapError`
+# is no longer acceptable — the round-5 review required the agent to
+# preserve the typed failure mode so consumers can distinguish:
+#
+# * missing config (infrastructure gap) — INFERENCE_CONFIG_MISSING
+# * malformed config hash (data corruption) — INFERENCE_CONFIG_HASH_MALFORMED
+# * missing location reference (infrastructure gap) — LOCATION_SOURCE_CAPABILITY_MISSING
+# * unknown variety code (input gap) — UNKNOWN_VARIETY
+# * insufficient observations (data gap) — INSUFFICIENT_HISTORY
+# * upstream read failure (infrastructure failure) — UPSTREAM_READ_FAILURE
+# * truly unsupported parameter category (slice-A scope gap) — NO_PERSISTED_PRIOR_SOURCE
+#
+# All exceptions are subclasses of :class:`SourceCapabilityGapError` so
+# legacy call sites that catch the base class still work; new code should
+# catch the specific subclass to preserve the typed blocker identity.
+
+
+class InferenceConfigMissingError(SourceCapabilityGapError):
+    """Versioned parameter-inference config file is missing on disk.
+
+    Maps to :data:`BlockerCode.INFERENCE_CONFIG_MISSING`.
+    """
+
+
+class InferenceConfigHashMalformedError(SourceCapabilityGapError):
+    """Versioned parameter-inference config hash is malformed.
+
+    Maps to :data:`BlockerCode.INFERENCE_CONFIG_HASH_MALFORMED`.
+    """
+
+
+class LocationSourceCapabilityMissingError(SourceCapabilityGapError):
+    """Persisted LocationReference row is absent or missing required
+    coordinates (latitude / longitude).
+
+    Maps to :data:`BlockerCode.LOCATION_SOURCE_CAPABILITY_MISSING`.
+    """
+
+
+class UnknownVarietyCapabilityError(SourceCapabilityGapError):
+    """Variety code is not present in the catalog.
+
+    Maps to :data:`BlockerCode.UNKNOWN_VARIETY`.  Distinct from
+    :class:`UnknownVarietyError` which is a programmatic catalog-level
+    exception (re-raised by ports); this one is the parameter-adapter
+    typed gap.
+    """
+
+
+class InsufficientHistoryError(SourceCapabilityGapError):
+    """No visible prior observations at any priority step.
+
+    Maps to :data:`BlockerCode.INSUFFICIENT_HISTORY`.
+    """
+
+
+class UpstreamReadFailureError(SourceCapabilityGapError):
+    """Unrecoverable upstream read failure (config / catalog / observation).
+
+    Maps to :data:`BlockerCode.UPSTREAM_READ_FAILURE`.
+    """
+
+
 class UnknownVarietyError(Exception):
     """Raised when a variety_id is not present in the variety catalog."""
 
@@ -303,9 +369,11 @@ def _load_inference_rules_or_raise(
     """Load the real versioned parameter inference config (P0-1 #5).
 
     Returns a tuple ``(rules, config_version, config_hash)``.  Raises
-    :class:`SourceCapabilityGapError` when the config file is missing,
-    malformed, or its computed hash is not a 64-char lowercase hex
-    string.  No in-code default ruleset fallback is permitted.
+    :class:`InferenceConfigMissingError` when the config file is
+    missing, :class:`InferenceConfigHashMalformedError` when the
+    config_hash field is malformed, and :class:`UpstreamReadFailureError`
+    on any other load failure.  No in-code default ruleset fallback is
+    permitted.
     """
 
     import re
@@ -313,7 +381,7 @@ def _load_inference_rules_or_raise(
     from backend.app.planning.config import load_parameter_inference_config
 
     if not config_path.exists():
-        raise SourceCapabilityGapError(
+        raise InferenceConfigMissingError(
             f"parameter inference config not found at {config_path!s} "
             "(required by P0-1 round 5: versioned config must be loaded "
             "from the on-disk YAML)"
@@ -321,7 +389,7 @@ def _load_inference_rules_or_raise(
     try:
         config = load_parameter_inference_config(config_path)
     except Exception as exc:  # noqa: BLE001
-        raise SourceCapabilityGapError(
+        raise UpstreamReadFailureError(
             f"parameter inference config at {config_path!s} failed to load: "
             f"{type(exc).__name__}: {exc}"
         ) from exc
@@ -329,12 +397,12 @@ def _load_inference_rules_or_raise(
     config_version = str(getattr(rules, "resolver_version", "") or "")
     config_hash = str(getattr(config, "config_hash", "") or "")
     if not config_version or config_version in {"v0", "unknown"}:
-        raise SourceCapabilityGapError(
+        raise InferenceConfigHashMalformedError(
             f"parameter inference config at {config_path!s} has invalid "
             f"resolver_version={config_version!r}"
         )
     if not re.fullmatch(r"[0-9a-f]{64}", config_hash or ""):
-        raise SourceCapabilityGapError(
+        raise InferenceConfigHashMalformedError(
             f"parameter inference config at {config_path!s} has invalid "
             f"config_hash={config_hash!r} (expected 64-char lowercase hex)"
         )
@@ -458,34 +526,37 @@ class DefaultParameterPriorPort:
         try:
             variety_row = await self._catalog.lookup_row(session=session, variety_id=variety_id)
         except UnknownVarietyError:
-            return _unsupported_prior(
-                parameter_name=parameter_name,
-                variety_id=variety_id,
-                monotonic_step=monotonic_step,
-                missing_evidence=("unknown_variety",),
-            )
-        except VarietyCatalogReadFailure:
+            raise UnknownVarietyCapabilityError(
+                f"variety_id is not in the variety catalog: {variety_id!r}"
+            ) from None
+        except VarietyCatalogReadFailure as exc:
             # UPSTREAM_READ_FAILURE on the Variety catalog itself must
             # propagate; the adapter surfaces it via
             # :data:`BlockerCode.UPSTREAM_READ_FAILURE`.
-            raise
+            raise UpstreamReadFailureError(str(exc)) from exc
         if variety_row is None:
-            return _unsupported_prior(
-                parameter_name=parameter_name,
-                variety_id=variety_id,
-                monotonic_step=monotonic_step,
-                missing_evidence=("unknown_variety",),
+            raise UnknownVarietyCapabilityError(
+                f"variety_id is not in the variety catalog: {variety_id!r}"
             )
         variety_pk = int(variety_row.id)
 
         # Load the real versioned inference config (P0-1 #5).
+        # Raises InferenceConfigMissingError / InferenceConfigHashMalformedError /
+        # UpstreamReadFailureError on failure.
         rules, config_version, config_hash = _load_inference_rules_or_raise(self._config_path)
 
         # Load the real persisted LocationReference (P0-1 #6).
-        location_reference = await _load_location_reference(
-            session=session,
-            location_reference_id=resolved_location.location_reference_id,
-        )
+        try:
+            location_reference = await _load_location_reference(
+                session=session,
+                location_reference_id=resolved_location.location_reference_id,
+            )
+        except LocationSourceCapabilityMissingError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise UpstreamReadFailureError(
+                f"location_reference read failed: {type(exc).__name__}: {exc}"
+            ) from exc
         upstream_resolved_location = _build_upstream_resolved_location(
             agent_resolved_location=resolved_location,
             location_reference=location_reference,
@@ -494,11 +565,9 @@ class DefaultParameterPriorPort:
             # P0-1 #6: missing location reference or required
             # coordinates → LOCATION_SOURCE_CAPABILITY_MISSING blocker.
             # We do NOT call ``infer_parameter`` in this case.
-            return _unsupported_prior(
-                parameter_name=parameter_name,
-                variety_id=variety_id,
-                monotonic_step=monotonic_step,
-                missing_evidence=("location_source_capability_missing",),
+            raise LocationSourceCapabilityMissingError(
+                f"persisted LocationReference id={resolved_location.location_reference_id} "
+                f"is absent or missing required coordinates (latitude / longitude)"
             )
 
         from backend.app.planning.inference import infer_parameter
@@ -523,19 +592,22 @@ class DefaultParameterPriorPort:
 
         # Single-upstream-type logical parameter
         primary_type = upstream_types[0]
-        candidates = await _load_candidates_from_orm(
-            session=session,
-            variety_id=variety_pk,
-            parameter_type=primary_type,
-            effective_as_of_date=effective_as_of_date,
-            resolved_location=resolved_location,
-        )
+        try:
+            candidates = await _load_candidates_from_orm(
+                session=session,
+                variety_id=variety_pk,
+                parameter_type=primary_type,
+                effective_as_of_date=effective_as_of_date,
+                resolved_location=resolved_location,
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise UpstreamReadFailureError(
+                f"ParameterObservation read failed: {type(exc).__name__}: {exc}"
+            ) from exc
         if not candidates:
-            return _unsupported_prior(
-                parameter_name=parameter_name,
-                variety_id=variety_id,
-                monotonic_step=monotonic_step,
-                missing_evidence=("no_visible_observations",),
+            raise InsufficientHistoryError(
+                f"no visible observations for variety_id={variety_id} "
+                f"parameter_type={primary_type} as_of={effective_as_of_date.isoformat()}"
             )
 
         floor, ceiling = _parameter_bounds(primary_type)
@@ -604,17 +676,22 @@ async def _load_location_reference(
     Returns ``None`` when no reference is present (the caller
     translates this to LOCATION_SOURCE_CAPABILITY_MISSING).
     """
-
     if location_reference_id is None:
-        return None
+        raise LocationSourceCapabilityMissingError(
+            "resolved location has no location_reference_id (P0-1 #6)"
+        )
     try:
         from backend.app.models.planning import LocationReference
-    except ImportError:
-        return None
+    except ImportError as exc:
+        raise LocationSourceCapabilityMissingError(
+            f"persisted LocationReference ORM not importable: {type(exc).__name__}: {exc}"
+        ) from exc
     try:
         return await session.get(LocationReference, int(location_reference_id))
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        raise UpstreamReadFailureError(
+            f"LocationReference read failed: {type(exc).__name__}: {exc}"
+        ) from exc
 
 
 async def _resolve_maturity_curve(
@@ -1005,6 +1082,56 @@ class DefaultParameterAdapter:
                     )
                     continue
                 assert prior is not None
+                # P0-3 round 6: the frozen public ``ParameterEstimate``
+                # schema only carries p50 / p80_lower / p80_upper
+                # scalars; it cannot express the 3-component
+                # ``maturity_curve`` (peak_offset / width / skewness).
+                # The internal prior HAS the 3 components (see
+                # ``_resolve_maturity_curve``), but emitting a
+                # ``maturity_curve`` ParameterEstimate whose ``p50``
+                # holds only the peak-offset scalar would falsely claim
+                # the logical parameter is complete.  Round 6 design
+                # contract: exclude ``maturity_curve`` from the public
+                # output and surface
+                # ``MATURITY_CURVE_OUTPUT_SCHEMA_CAPABILITY_MISSING``.
+                if prior.parameter_name == "maturity_curve":
+                    blockers.append(
+                        Blocker(
+                            code=BlockerCode.MATURITY_CURVE_OUTPUT_SCHEMA_CAPABILITY_MISSING,
+                            message=(
+                                "logical parameter 'maturity_curve' has all "
+                                "three components inferred (peak_offset / "
+                                "width / skewness) but the frozen public "
+                                "ParameterEstimate schema cannot carry a "
+                                "composite 3-component value.  Slice A "
+                                "output contract is unable to expose the "
+                                "complete maturity_curve estimate.  Awaiting "
+                                "design amendment to add a composite "
+                                "ParameterEstimate variant."
+                            ),
+                            details={
+                                "variety_id": variety.variety_id,
+                                "parameter_name": prior.parameter_name,
+                                "inferred_components": [
+                                    "maturity_peak_offset_days",
+                                    "maturity_width_days",
+                                    "maturity_skewness",
+                                ],
+                                "blocked_via": "schema_capability_gap",
+                            },
+                            retry_hint="WAIT_FOR_DATA",
+                        )
+                    )
+                    blocked_parameter_identities.append(
+                        {
+                            "variety_id": variety.variety_id,
+                            "parameter_name": prior.parameter_name,
+                            "blocker_code": (
+                                BlockerCode.MATURITY_CURVE_OUTPUT_SCHEMA_CAPABILITY_MISSING.value
+                            ),
+                        }
+                    )
+                    continue
                 widened.append(
                     ParameterEstimate(
                         parameter_name=prior.parameter_name,
@@ -1071,11 +1198,17 @@ async def _resolve_one_parameter(
 
     Walks the priority steps 1..5 and picks the highest step for which
     the prior port returns a successful prior (p50 not None).  When the
-    port raises :class:`SourceCapabilityGapError` for ALL steps
-    (``unsupported parameter``), the per-variety NO_PERSISTED_PRIOR_SOURCE
-    blocker is returned.  When the port returns a prior with p50=None,
-    the per-variety INSUFFICIENT_HISTORY blocker is returned.
+    port raises one of the typed :class:`SourceCapabilityGapError`
+    subclasses, the blocker is the matching typed
+    :class:`BlockerCode` (round 6 P0-2: no coarse
+    ``NO_PERSISTED_PRIOR_SOURCE`` re-mapping).
     """
+
+    details_base = {
+        "variety_id": variety_id,
+        "parameter_name": parameter_name,
+        "effective_as_of_date": effective_as_of_date.isoformat(),
+    }
 
     for step in (1, 2, 3, 4, 5):
         try:
@@ -1088,16 +1221,74 @@ async def _resolve_one_parameter(
                 widening_factor=widening_factor_for(step, uncertainty_widening_policy),
                 monotonic_step=step,
             )
+        except UnknownVarietyCapabilityError as exc:
+            return (
+                Blocker(
+                    code=BlockerCode.UNKNOWN_VARIETY,
+                    message=str(exc),
+                    details=dict(details_base),
+                    retry_hint="FIX_INPUT",
+                ),
+                None,
+            )
+        except InferenceConfigMissingError as exc:
+            return (
+                Blocker(
+                    code=BlockerCode.INFERENCE_CONFIG_MISSING,
+                    message=str(exc),
+                    details=dict(details_base),
+                    retry_hint="CONTACT_OPS",
+                ),
+                None,
+            )
+        except InferenceConfigHashMalformedError as exc:
+            return (
+                Blocker(
+                    code=BlockerCode.INFERENCE_CONFIG_HASH_MALFORMED,
+                    message=str(exc),
+                    details=dict(details_base),
+                    retry_hint="CONTACT_OPS",
+                ),
+                None,
+            )
+        except LocationSourceCapabilityMissingError as exc:
+            return (
+                Blocker(
+                    code=BlockerCode.LOCATION_SOURCE_CAPABILITY_MISSING,
+                    message=str(exc),
+                    details=dict(details_base),
+                    retry_hint="PROVIDE_OVERRIDE",
+                ),
+                None,
+            )
+        except UpstreamReadFailureError as exc:
+            return (
+                Blocker(
+                    code=BlockerCode.UPSTREAM_READ_FAILURE,
+                    message=str(exc),
+                    details=dict(details_base),
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+                None,
+            )
+        except InsufficientHistoryError as exc:
+            return (
+                Blocker(
+                    code=BlockerCode.INSUFFICIENT_HISTORY,
+                    message=str(exc),
+                    details=dict(details_base),
+                    retry_hint="WAIT_FOR_DATA",
+                ),
+                None,
+            )
         except SourceCapabilityGapError as exc:
+            # Truly unsupported parameter category (no persisted
+            # upstream source) — slice-A scope gap.
             return (
                 Blocker(
                     code=BlockerCode.NO_PERSISTED_PRIOR_SOURCE,
                     message=str(exc),
-                    details={
-                        "variety_id": variety_id,
-                        "parameter_name": parameter_name,
-                        "effective_as_of_date": effective_as_of_date.isoformat(),
-                    },
+                    details=dict(details_base),
                     retry_hint="WAIT_FOR_DATA",
                 ),
                 None,
@@ -1153,6 +1344,12 @@ def _build_citation(*, prior: ParameterPrior, effective_as_of_date: date) -> Cit
 
 __all__ = [
     "SourceCapabilityGapError",
+    "InferenceConfigMissingError",
+    "InferenceConfigHashMalformedError",
+    "LocationSourceCapabilityMissingError",
+    "UnknownVarietyCapabilityError",
+    "InsufficientHistoryError",
+    "UpstreamReadFailureError",
     "UnknownVarietyError",
     "VarietyCatalogReadFailure",
     "is_visible_prior",

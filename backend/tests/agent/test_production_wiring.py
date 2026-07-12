@@ -262,6 +262,25 @@ class _StubTask8Port:
     def __init__(self, *, forecast_run_id: int = 1) -> None:
         self._forecast_run_id = forecast_run_id
 
+    async def load_typed(self, *, session, forecast_run_id: int):
+        from backend.app.agent.adapters.task_loaders import AuthorityLoadResult
+        from backend.app.agent.schemas import Task8Authority
+
+        return AuthorityLoadResult(
+            authority=Task8Authority(
+                maturity_model_run_id=1,
+                maturity_model_version="v1",
+                maturity_model_config_hash="a" * 64,
+                maturity_model_source_signature="sig",
+                maturity_model_artifact_id=1,
+                maturity_model_artifact_hash="a" * 64,
+                maturity_forecast_run_id=forecast_run_id,
+                maturity_forecast_source_signature="fsig",
+                maturity_forecast_as_of_date=date(2026, 3, 1),
+            ),
+            blockers=(),
+        )
+
     async def load_by_id(self, *, session, forecast_run_id: int):
         from backend.app.agent.schemas import Task8Authority
 
@@ -275,6 +294,59 @@ class _StubTask8Port:
             maturity_forecast_run_id=forecast_run_id,
             maturity_forecast_source_signature="fsig",
             maturity_forecast_as_of_date=date(2026, 3, 1),
+        )
+
+
+class _StubTask10Port:
+    """Stub :class:`Task10PredictionPort` for end-to-end wiring tests.
+
+    The default TASK-010 loader requires the upstream
+    :func:`load_residual_prediction_run_by_id` to succeed — including
+    the strict persistence integrity checks (row count, hash, training
+    signature).  The fixture in this test focuses on the daily-curve
+    wiring path and does not materialise the full residual_model
+    integrity surface, so we inject this stub to bypass the upstream
+    check while still constructing a valid :class:`Task10Authority`
+    envelope.  Tests that specifically exercise the strict TASK-010
+    loader do NOT inject this stub.
+    """
+
+    async def load_typed(self, *, session, prediction_run_id: int):
+        from backend.app.agent.adapters.task_loaders import AuthorityLoadResult
+        from backend.app.agent.schemas import Task10Authority
+
+        return AuthorityLoadResult(
+            authority=Task10Authority(
+                training_run_id=None,
+                training_manifest_hash=None,
+                task9_run_id=1,
+                task9_result_hash=_hash("res-1"),
+                prediction_run_id=prediction_run_id,
+                prediction_hash=_hash(f"ph-{prediction_run_id}"),
+                prediction_config_hash=_hash(f"cfg-r{prediction_run_id}"),
+                prediction_input_signature=_hash(f"pis-{prediction_run_id}"),
+                artifact_hashes=[_hash(f"ah-{prediction_run_id}")],
+                feature_schema_hash=_hash(f"fsh-{prediction_run_id}"),
+                prediction_canonical_payload_hash=_hash(f"cph-{prediction_run_id}"),
+            ),
+            blockers=(),
+        )
+
+    async def load_by_id(self, *, session, prediction_run_id: int):
+        from backend.app.agent.schemas import Task10Authority
+
+        return Task10Authority(
+            training_run_id=None,
+            training_manifest_hash=None,
+            task9_run_id=1,
+            task9_result_hash=_hash("res-1"),
+            prediction_run_id=prediction_run_id,
+            prediction_hash=_hash(f"ph-{prediction_run_id}"),
+            prediction_config_hash=_hash(f"cfg-r{prediction_run_id}"),
+            prediction_input_signature=_hash(f"pis-{prediction_run_id}"),
+            artifact_hashes=[_hash(f"ah-{prediction_run_id}")],
+            feature_schema_hash=_hash(f"fsh-{prediction_run_id}"),
+            prediction_canonical_payload_hash=_hash(f"cph-{prediction_run_id}"),
         )
 
 
@@ -302,7 +374,7 @@ def _add_residual_prediction_run(
         warnings=[],
         blockers=[],
         fallback_reason=None,
-        expected_prediction_row_count=0,
+        expected_prediction_row_count=3,
         input_snapshot={},
         canonical_output={},
         canonical_payload_hash=_hash(f"cph-{prediction_run_id}"),
@@ -489,7 +561,9 @@ async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_ses
     await sqlite_session.flush()
 
     adapter = DefaultDailyCurveAdapter(
-        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+        baseline=DefaultTaskCompositionBaseline(),
+        task8=_StubTask8Port(),
+        task10=_StubTask10Port(),
     )
     out = await adapter.execute(sqlite_session, input=_mk_input())
     assert out.agent_daily_curve_hash != "0" * 64
