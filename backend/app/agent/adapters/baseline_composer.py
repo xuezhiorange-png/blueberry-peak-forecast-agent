@@ -94,7 +94,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, cast
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.adapters.task_loaders import DefaultSpringFestivalCalendarPort
@@ -627,15 +627,56 @@ async def _select_harvest_state_run_candidates(
         # Override path returns the row's typed failure blockers.
         return outcome
 
-    # ---- Default path: strict scope + full identity validation -------
-    filters = [
-        HarvestStateRun.status == "completed",
+    # ---- Default path: two-stage related-candidate query ----------
+    # P0-1 (review 4680528194): the previous default path applied
+    # ``status='completed'``, ``destination_factory_id``, and the
+    # full date-coverage window in the SQL ``WHERE`` clause.  Out-of-
+    # scope rows therefore disappeared before the shared validator
+    # could surface them, collapsing to
+    # :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND` instead of a
+    # typed :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH`.
+    #
+    # Stage A (related-candidate query): load any row that is
+    # *diagnostically relevant* to the request — i.e. overlaps the
+    # requested date window (``as_of_date <= as_of <= forecast_end_date``)
+    # OR the requested ``destination_factory_id``.  This is the
+    # minimal relation surface that lets the shared validator classify
+    # a row's status, destination, date coverage, hash, season, and
+    # variety scope uniformly.
+    #
+    # Stage B (shared validator): every related row is fed through
+    # :func:`_evaluate_task9_row_against_scope`.  Rows that pass are
+    # returned as candidates; rows that fail surface their typed
+    # blockers.  The selector returns ``TASK9_AUTHORITY_NOT_FOUND``
+    # ONLY when no related row exists at all.
+    #
+    # Determinism: no ``ORDER BY`` / ``LIMIT`` / implicit-latest
+    # selection.  The composer's downstream ``len > 1`` dispatch
+    # surfaces :data:`BlockerCode.AUTHORITY_CONFLICT` when more than
+    # one row passes the validator.
+    from sqlalchemy import or_
+
+    # Stage A related-candidate filters: a row is "diagnostically
+    # relevant" if EITHER
+    #   (a) its date window overlaps the request's ``as_of``
+    #       (``as_of_date <= as_of AND forecast_end_date >= as_of``);
+    #   OR
+    #   (b) its ``destination_factory_id`` matches the requested
+    #       destination.
+    # Either condition surfaces the row for the shared validator
+    # Status, hash, season, variety scope, and exact date bounds
+    # are NOT applied here so the validator can surface them as
+    # typed failures.
+    date_window_clause = and_(
         HarvestStateRun.as_of_date <= as_of,
         HarvestStateRun.forecast_end_date >= as_of,
-    ]
+    )
+    related_clauses: list[Any] = [date_window_clause]
     if destination_factory_id is not None:
-        filters.append(HarvestStateRun.destination_factory_id == int(destination_factory_id))
-    stmt = select(
+        related_clauses.append(
+            HarvestStateRun.destination_factory_id == int(destination_factory_id)
+        )
+    related_stmt = select(
         HarvestStateRun.id,
         HarvestStateRun.status,
         HarvestStateRun.destination_factory_id,
@@ -644,31 +685,35 @@ async def _select_harvest_state_run_candidates(
         HarvestStateRun.result_hash,
         HarvestStateRun.config_hash,
         HarvestStateRun.input_snapshot,
-    ).where(*filters)
+    ).where(or_(*related_clauses))
     try:
-        rows = (await session.execute(stmt)).all()
+        rows = (await session.execute(related_stmt)).all()
     except Exception as exc:  # noqa: BLE001
         return AuthoritySelectionResult(
             blockers=(
                 Blocker(
                     code=BlockerCode.UPSTREAM_READ_FAILURE,
-                    message=(f"TASK-009 base-scope read failed: {type(exc).__name__}: {exc}"),
-                    details={"field": "harvest_state_run_scope"},
+                    message=(
+                        f"TASK-009 related-candidate read failed: {type(exc).__name__}: {exc}"
+                    ),
+                    details={"field": "harvest_state_run_related_scope"},
                     retry_hint="WAIT_FOR_DATA",
                 ),
             )
         )
 
     if not rows:
-        # No row matches the base scope (status / destination / date).
+        # No related row exists at all → this is the ONLY case that
+        # legitimately emits :data:`BlockerCode.TASK9_AUTHORITY_NOT_FOUND`.
         return AuthoritySelectionResult(
             blockers=(
                 Blocker(
                     code=BlockerCode.TASK9_AUTHORITY_NOT_FOUND,
                     message=(
-                        "No TASK-009 harvest-state run found for the "
-                        "resolved base authority scope "
-                        "(status='completed' + destination + as-of visibility)."
+                        "No TASK-009 harvest-state run is related to the "
+                        "request's date window or destination; cannot "
+                        "classify scope / status / identity without a "
+                        "candidate row to validate."
                     ),
                     details={
                         "effective_as_of_date": as_of.isoformat(),
@@ -817,22 +862,29 @@ async def _evaluate_task9_row_against_scope(
         )
 
     # --- status ---
+    # P0-1 (review 4680528194): ``status`` is a SCOPE property, NOT
+    # an identity property.  A row with ``status != 'completed'``
+    # (e.g. ``status='failed'``) is a scope/status mismatch, not
+    # a malformed identity.  Classification changed from
+    # :data:`BlockerCode.AUTHORITY_IDENTITY_MALFORMED` to
+    # :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` with
+    # ``reason=EXECUTION_STATUS_NOT_COMPLETED``.  Identity-misformed
+    # is reserved for "field is missing or has a wrong type" (see
+    # the type-check below).
     status_value = getattr(row, "status", None)
-    if not isinstance(status_value, str) or status_value != "completed":
+    if status_value is None or not isinstance(status_value, str):
+        return AuthoritySelectionResult(
+            blockers=(_identity_malformed("status", "expected non-empty string"),)
+        )
+    if status_value != "completed":
         return AuthoritySelectionResult(
             blockers=(
-                Blocker(
-                    code=BlockerCode.AUTHORITY_IDENTITY_MALFORMED,
-                    message=(
-                        f"TASK-009 candidate row {row_id} has "
-                        f"status={status_value!r}, expected 'completed'"
-                    ),
-                    details={
-                        "field": "status",
-                        "row_id": row_id,
-                        "value": status_value,
+                _scope_mismatch(
+                    EXECUTION_STATUS_NOT_COMPLETED,
+                    extra={
+                        "row_status": str(status_value),
+                        "expected_status": "completed",
                     },
-                    retry_hint="WAIT_FOR_DATA",
                 ),
             )
         )
@@ -1097,12 +1149,35 @@ async def _select_residual_prediction_run_candidates(
             task9_result_hash=task9_result_hash,
         )
 
-    # ---- Default path: load the FULL identity surface and validate --
-    # The default path MUST read the same columns the override path
-    # validates — prediction_hash, config_hash, prediction_input_signature,
-    # canonical_payload_hash, feature_schema_hash, artifact_hashes,
-    # fallback_reason, execution_status, task9_run_id, task9_result_hash.
-    stmt = select(
+    # ---- Default path: two-stage related-lineage query ----------
+    # P0-2 (review 4680528194): the previous default path filtered
+    # by exact ``task9_run_id == selected AND task9_result_hash ==
+    # selected`` in the SQL ``WHERE`` clause.  A residual run that
+    # exists but has a partial lineage mismatch (e.g. same run id
+    # but different result hash, or different run id but same
+    # result hash) was invisible to the shared validator and
+    # collapsed to :data:`BlockerCode.TASK10_AUTHORITY_NOT_FOUND`.
+    #
+    # Stage A (related-lineage query): load any residual row that
+    # shares AT LEAST ONE lineage component with the selected
+    # TASK-009 — i.e. ``task9_run_id == selected`` OR
+    # ``task9_result_hash == selected``.  This is the minimal
+    # relation surface that lets the shared validator classify the
+    # row's lineage (both components), execution status, hashes,
+    # artifact hashes, and fallback reason uniformly.
+    #
+    # Stage B (shared validator): every related-lineage row is fed
+    # through :func:`_evaluate_task10_row_against_scope`.  Rows
+    # that pass are returned as candidates; rows that fail surface
+    # their typed blockers.  The selector returns
+    # ``TASK10_AUTHORITY_NOT_FOUND`` ONLY when no related-lineage
+    # row exists at all.
+    #
+    # Determinism: no ``ORDER BY`` / ``LIMIT`` / implicit-latest
+    # selection.  The composer's downstream ``len > 1`` dispatch
+    # surfaces :data:`BlockerCode.AUTHORITY_CONFLICT` when more than
+    # one row passes the validator.
+    related_lineage_stmt = select(
         ResidualModelPredictionRun.id,
         ResidualModelPredictionRun.execution_status,
         ResidualModelPredictionRun.task9_run_id,
@@ -1115,31 +1190,38 @@ async def _select_residual_prediction_run_candidates(
         ResidualModelPredictionRun.artifact_hashes,
         ResidualModelPredictionRun.fallback_reason,
     ).where(
-        ResidualModelPredictionRun.task9_run_id == int(task9_run_id),
-        ResidualModelPredictionRun.task9_result_hash == str(task9_result_hash),
+        or_(
+            ResidualModelPredictionRun.task9_run_id == int(task9_run_id),
+            ResidualModelPredictionRun.task9_result_hash == str(task9_result_hash),
+        )
     )
     try:
-        rows = (await session.execute(stmt)).all()
+        rows = (await session.execute(related_lineage_stmt)).all()
     except Exception as exc:  # noqa: BLE001
         return AuthoritySelectionResult(
             blockers=(
                 Blocker(
                     code=BlockerCode.UPSTREAM_READ_FAILURE,
-                    message=(f"TASK-010 base-scope read failed: {type(exc).__name__}: {exc}"),
-                    details={"field": "residual_prediction_run_scope"},
+                    message=(f"TASK-010 related-lineage read failed: {type(exc).__name__}: {exc}"),
+                    details={"field": "residual_prediction_run_related_lineage"},
                     retry_hint="WAIT_FOR_DATA",
                 ),
             )
         )
 
     if not rows:
+        # No related-lineage row exists at all → this is the ONLY
+        # case that legitimately emits
+        # :data:`BlockerCode.TASK10_AUTHORITY_NOT_FOUND`.
         return AuthoritySelectionResult(
             blockers=(
                 Blocker(
                     code=BlockerCode.TASK10_AUTHORITY_NOT_FOUND,
                     message=(
-                        "No TASK-010 residual prediction run found for "
-                        "the selected TASK-009 lineage."
+                        "No TASK-010 residual prediction run shares a "
+                        "lineage component with the selected TASK-009 "
+                        "run; cannot classify lineage / status / "
+                        "identity without a candidate row to validate."
                     ),
                     details={
                         "task9_run_id": int(task9_run_id),
