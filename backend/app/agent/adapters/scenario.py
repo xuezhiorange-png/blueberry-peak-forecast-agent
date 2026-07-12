@@ -214,32 +214,22 @@ class DefaultScenarioAdapter:
 
         scenario_id, scenario_config_hash = _scenario_id_and_hash(input.scenario_overrides)
 
-        # P0-6: scenario overrides have no real upstream execution
-        # capability in Slice A.  When ANY scenario override is supplied,
-        # surface SCENARIO_OVERRIDE_EXECUTION_NOT_AVAILABLE rather than
-        # emitting a fabricated scenario curve.
+        # Round 7 (review 4680214102): scenario overrides have no
+        # real upstream execution capability in Slice A.  When ANY
+        # scenario override is supplied, the adapter must
+        # SHORT-CIRCUIT at entry: return BLOCKED without invoking
+        # the daily curve adapter, the peak adapter, the baseline
+        # composition, or any TASK-008/009/010 loader.  The
+        # previous round-6 code still called ``self._daily_curve
+        # .execute(...)`` to compute a baseline curve; per Charles's
+        # spec, this is forbidden.
         if input.scenario_overrides:
-            # Still compute the baseline to preserve the contract, but
-            # emit a typed capability blocker for the scenario.
-            baseline_overrides, _ = _baseline_and_scenario_overrides(input=input)
-            baseline_curve = await self._daily_curve.execute(
-                session,
-                input=__import__(
-                    "backend.app.agent.schemas", fromlist=["ForecastDailyCurveInput"]
-                ).ForecastDailyCurveInput(
-                    normalized_request=input.normalized_request,
-                    resolved_location=input.resolved_location,
-                    parameters=input.parameters,
-                    advanced_overrides=baseline_overrides,
-                    uncertainty_widening_policy=input.uncertainty_widening_policy,
-                ),
-            )
             capability_blocker = Blocker(
                 code=BlockerCode.SCENARIO_OVERRIDE_EXECUTION_NOT_AVAILABLE,
                 message=(
                     "scenario override execution is not available in Slice A; "
                     "no upstream scenario-capable service exists to apply the "
-                    "supplied scenario override."
+                    "supplied scenario override.  No upstream reads were performed."
                 ),
                 details={
                     "scenario_override_count": len(input.scenario_overrides),
@@ -249,14 +239,6 @@ class DefaultScenarioAdapter:
                 },
                 retry_hint="WAIT_FOR_DATA",
             )
-            baseline_curve.blockers.append(capability_blocker)
-            # P0-8 round 6: blocked scenario MUST NOT carry any
-            # fabricated result fields.  The baseline curve and
-            # peak are computed ONLY so the caller can see what the
-            # baseline would have been — they are NOT attached to
-            # the SimulateScenarioOutput (the top-level blockers
-            # field carries the capability reason).  We do not
-            # construct a zero delta here (no fabricated result).
             return SimulateScenarioOutput(
                 scenario_id=scenario_id,
                 scenario_config_hash=scenario_config_hash,

@@ -85,6 +85,7 @@ def _build_harvest_state_run(
     destination_factory_id: int,
     maturity_forecast_run_id: int | None,
     pool_row_count: int = 0,
+    input_snapshot: dict | None = None,
 ) -> HarvestStateRun:
     run = HarvestStateRun(
         id=run_id,
@@ -94,7 +95,12 @@ def _build_harvest_state_run(
         resolved_parameter_snapshot_schema_version="v1",
         source_ref_schema_version="v1",
         stable_cohort_key_schema_version="v1",
-        input_snapshot={},
+        # Round 7 (review 4680214102): every TASK-009 fixture row
+        # MUST carry the real persisted season identity in
+        # ``input_snapshot``; the legacy empty-dict default was
+        # equivalent to silently accepting the date-guess
+        # ``as_of_date.year`` path.
+        input_snapshot=input_snapshot if input_snapshot is not None else {"forecast_season": 2026},
         resolved_parameter_snapshot={},
         source_ref_catalog=[],
         warnings=[],
