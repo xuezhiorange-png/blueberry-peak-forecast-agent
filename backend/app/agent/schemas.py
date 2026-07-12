@@ -31,7 +31,8 @@ Adapter-introduced hashes use the explicit names from §6:
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -46,21 +47,17 @@ from pydantic import (
 
 from backend.app.agent.enums import (
     AuthorityEnvelopeType,
-    AuthorityOverrideTarget,
     BlockerCode,
     CitationSourceTask,
     CitationSourceTool,
     Confidence,
-    ExecutionTarget,
     ForecastQuantile,
     MatchedLocationMethod,
     OverrideKind,
-    ParameterTarget,
     RecommendationCategory,
     RecommendationKind,
     RequestStatus,
     RetryHint,
-    ScenarioTarget,
     SpringFestivalPhase,
 )
 
@@ -79,16 +76,41 @@ DecimalString = Annotated[
 ]
 
 
-# --- Strict aware UTC datetime --------------------------------------------
+def _validate_canonical_decimal_string(value: str) -> str:
+    """Reject scientific notation, leading zeros (except ``0``), ``-0``."""
+    if value.startswith("-") and value not in (
+        "-0",
+        "-0.0",
+        "-0.00",
+        "-0.000",
+        "-0.0000",
+    ):
+        body = value[1:]
+        if body.startswith("0") and len(body) > 1 and not body.startswith("0."):
+            raise ValueError("negative canonical decimal may not have leading zeros")
+    else:
+        if len(value) > 1 and value.startswith("0") and not value.startswith("0."):
+            raise ValueError("non-negative canonical decimal may not have leading zeros")
+    if value in ("-0", "-0.0", "-0.00", "-0.000", "-0.0000"):
+        raise ValueError("canonical decimal may not be negative zero")
+    return value
+
+
+NonNegativeDecimalString = Annotated[
+    str,
+    StringConstraints(min_length=1, pattern=r"^-?\d+(?:\.\d+)?$"),
+]
+
+PositiveDecimalString = Annotated[
+    str,
+    StringConstraints(min_length=1, pattern=r"^-?\d+(?:\.\d+)?$"),
+]
 
 
 class _StrictBase(BaseModel):
     """Common base: extra fields are FORBIDDEN; freeze by default."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
-
-
-# --- §26.2 Blocker ----------------------------------------------------------
 
 
 class Blocker(_StrictBase):
@@ -99,15 +121,40 @@ class Blocker(_StrictBase):
     retry_hint: RetryHint = "NONE"
 
 
-# --- §7.1 Minimal-input request -------------------------------------------
+# SourceCapabilityGapError is raised by adapters when a required upstream
+# source is missing.  We define it here as a public class so the schema-level
+# ``_verify_policy_invariant`` helper can reference it without importing
+# from the adapter module (which would create a circular import).
+
+
+class SourceCapabilityGapError(RuntimeError):
+    """Raised when a required upstream source is missing."""
 
 
 class MinimalVarietyInput(_StrictBase):
     variety_id: str = Field(min_length=1)
     planting_area_mu: DecimalString
 
+    @field_validator("planting_area_mu")
+    @classmethod
+    def _validate_canonical_area(cls, value: str) -> str:
+        _validate_canonical_decimal_string(value)
+        if Decimal(value) <= Decimal("0"):
+            raise ValueError("planting_area_mu must be > 0")
+        return value
+
 
 class LocationInput(_StrictBase):
+    """Raw caller-supplied location input — §13.
+
+    Deterministic precedence (highest → lowest):
+    1. ``location_reference_id`` (REFERENCE_ID)
+    2. ``address``
+    3. (``latitude``, ``longitude``) coordinates (paired)
+    4. ``raw_text``
+    5. ``map_pick_token``
+    """
+
     raw_text: str | None = None
     latitude: DecimalString | None = None
     longitude: DecimalString | None = None
@@ -117,7 +164,7 @@ class LocationInput(_StrictBase):
     altitude_m: DecimalString | None = None
 
     @model_validator(mode="after")
-    def _at_least_one_locator(self) -> LocationInput:
+    def _validate(self) -> LocationInput:
         if (
             self.raw_text is None
             and self.latitude is None
@@ -130,6 +177,16 @@ class LocationInput(_StrictBase):
                 "location must supply at least one of: raw_text / coordinates / "
                 "map_pick_token / location_reference_id / address"
             )
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("latitude and longitude must be provided together or both omitted")
+        if self.latitude is not None:
+            lat = Decimal(self.latitude)
+            if lat < Decimal("-90") or lat > Decimal("90"):
+                raise ValueError("latitude must be in [-90, 90]")
+        if self.longitude is not None:
+            lng = Decimal(self.longitude)
+            if lng < Decimal("-180") or lng > Decimal("180"):
+                raise ValueError("longitude must be in [-180, 180]")
         return self
 
 
@@ -149,9 +206,6 @@ class MinimalInputRequest(_StrictBase):
         return v
 
 
-# --- §9.3.1 Task8Authority -------------------------------------------------
-
-
 class Task8Authority(_StrictBase):
     maturity_model_run_id: IntId
     maturity_model_version: str = Field(min_length=1)
@@ -162,9 +216,6 @@ class Task8Authority(_StrictBase):
     maturity_forecast_run_id: IntId
     maturity_forecast_source_signature: str = Field(min_length=1)
     maturity_forecast_as_of_date: date
-
-
-# --- §9.3.2 Task9Authority -------------------------------------------------
 
 
 class Task9Authority(_StrictBase):
@@ -186,8 +237,13 @@ class Task9Authority(_StrictBase):
     stable_cohort_key_schema_version: str = Field(min_length=1)
     resolved_parameter_snapshot_schema_version: str = Field(min_length=1)
 
-
-# --- §9.3.3 Task10Authority ------------------------------------------------
+    @model_validator(mode="after")
+    def _forecast_range_valid(self) -> Task9Authority:
+        if self.harvest_state_forecast_start_date > self.harvest_state_forecast_end_date:
+            raise ValueError(
+                "harvest_state_forecast_start_date must be <= harvest_state_forecast_end_date"
+            )
+        return self
 
 
 class Task10Authority(_StrictBase):
@@ -203,8 +259,18 @@ class Task10Authority(_StrictBase):
     feature_schema_hash: SHA256Hex
     prediction_canonical_payload_hash: SHA256Hex
 
+    @model_validator(mode="after")
+    def _training_identity_consistent(self) -> Task10Authority:
+        if (self.training_run_id is None) != (self.training_manifest_hash is None):
+            raise ValueError("training_run_id is None iff training_manifest_hash is None")
+        return self
 
-# --- §9.3.4 Task11Authority ------------------------------------------------
+    @field_validator("artifact_hashes")
+    @classmethod
+    def _sorted_ascending(cls, value: list[SHA256Hex]) -> list[SHA256Hex]:
+        if list(value) != sorted(value):
+            raise ValueError("artifact_hashes must be sorted ascending (canonical)")
+        return value
 
 
 class Task11Authority(_StrictBase):
@@ -223,9 +289,6 @@ class Task11Authority(_StrictBase):
     execution_mode: str = Field(min_length=1)
     status: str = Field(min_length=1)
     expected_node_count: IntId
-
-
-# --- §9.3.5 Task12Authority ------------------------------------------------
 
 
 class Task12Authority(_StrictBase):
@@ -249,8 +312,12 @@ class Task12Authority(_StrictBase):
     task10_manifest_hash: SHA256Hex | None
     task10_config_hash: SHA256Hex | None
 
-
-# --- §8 Advanced overrides -----------------------------------------------
+    @field_validator("forecast_cutoff_at", "training_cutoff_at")
+    @classmethod
+    def _utc_only(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() != timezone.utc.utcoffset(value):  # noqa: UP017
+            raise ValueError("aware datetimes must be UTC")
+        return value
 
 
 class AsOfOverride(_StrictBase):
@@ -262,13 +329,25 @@ class AsOfOverride(_StrictBase):
 
 
 class YieldPerMuOverrideValue(_StrictBase):
-    value: DecimalString
+    value: PositiveDecimalString
     unit: Literal["kg_per_mu"] = "kg_per_mu"
+
+    @field_validator("value")
+    @classmethod
+    def _validate_canonical(cls, value: str) -> str:
+        _validate_canonical_decimal_string(value)
+        return value
 
 
 class RateOverrideValue(_StrictBase):
     value: DecimalString
     unit: Literal["ratio"] = "ratio"
+
+    @field_validator("value")
+    @classmethod
+    def _validate_canonical(cls, value: str) -> str:
+        _validate_canonical_decimal_string(value)
+        return value
 
 
 class DateOverrideValue(_StrictBase):
@@ -293,25 +372,15 @@ class DistributionOverrideValue(_StrictBase):
     unit: Literal["distribution"] = "distribution"
 
 
-class ParameterOverride(_StrictBase):
-    override_kind: Literal["PARAMETER_OVERRIDE_KIND"] = "PARAMETER_OVERRIDE_KIND"
-    variety_id: str = Field(min_length=1)
-    target_parameter: ParameterTarget
-    value: (
-        YieldPerMuOverrideValue
-        | RateOverrideValue
-        | DateOverrideValue
-        | DistributionOverrideValue
-        | WeatherAdjustmentOverrideValue
-    )
-    unit: str | None = None
-    source_attestation: str = Field(min_length=1)
-    source_ref: dict[str, Any] | None = None
-
-
 class StaffingOverrideValue(_StrictBase):
-    value: DecimalString
+    value: NonNegativeDecimalString
     unit: Literal["person_per_day"] = "person_per_day"
+
+    @field_validator("value")
+    @classmethod
+    def _validate_canonical(cls, value: str) -> str:
+        _validate_canonical_decimal_string(value)
+        return value
 
 
 class SpringFestivalIntensityOverrideValue(_StrictBase):
@@ -320,56 +389,238 @@ class SpringFestivalIntensityOverrideValue(_StrictBase):
 
 
 class ProcessorCapacityOverrideValue(_StrictBase):
-    value: DecimalString
+    value: NonNegativeDecimalString
     unit: Literal["t_per_day"] = "t_per_day"
 
+    @field_validator("value")
+    @classmethod
+    def _validate_canonical(cls, value: str) -> str:
+        _validate_canonical_decimal_string(value)
+        return value
 
-class ScenarioOverride(_StrictBase):
-    override_kind: Literal["SCENARIO_OVERRIDE_KIND"] = "SCENARIO_OVERRIDE_KIND"
-    target: ScenarioTarget
-    value: (
-        StaffingOverrideValue
-        | SpringFestivalIntensityOverrideValue
-        | ProcessorCapacityOverrideValue
-    )
+
+class _ParameterOverrideBase(_StrictBase):
+    override_kind: Literal["PARAMETER_OVERRIDE_KIND"] = "PARAMETER_OVERRIDE_KIND"
+    variety_id: str = Field(min_length=1)
+    source_attestation: str = Field(min_length=1)
+    source_ref: dict[str, Any] | None = None
+
+
+class ExpectedPerMuYieldOverride(_ParameterOverrideBase):
+    variety_id: str = Field(min_length=1)
+    target_parameter: Literal["EXPECTED_PER_MU_YIELD"]
+    value: YieldPerMuOverrideValue
     unit: str | None = None
+
+
+class CommodityFruitRateOverride(_ParameterOverrideBase):
+    variety_id: str = Field(min_length=1)
+    target_parameter: Literal["COMMODITY_FRUIT_RATE"]
+    value: RateOverrideValue
+    unit: str | None = None
+
+
+class FirstHarvestDateOverride(_ParameterOverrideBase):
+    variety_id: str = Field(min_length=1)
+    target_parameter: Literal["FIRST_HARVEST_DATE"]
+    value: DateOverrideValue
+    unit: str | None = None
+
+
+class MaturityCurveOverride(_ParameterOverrideBase):
+    variety_id: str = Field(min_length=1)
+    target_parameter: Literal["MATURITY_CURVE"]
+    value: DistributionOverrideValue
+    unit: str | None = None
+
+
+class SpringFestivalHarvestRateOverride(_ParameterOverrideBase):
+    variety_id: str = Field(min_length=1)
+    target_parameter: Literal["SPRING_FESTIVAL_HARVEST_RATE"]
+    value: RateOverrideValue
+    unit: str | None = None
+
+
+class WeatherAdjustmentOverride(_ParameterOverrideBase):
+    variety_id: str = Field(min_length=1)
+    target_parameter: Literal["WEATHER_ADJUSTMENT"]
+    value: WeatherAdjustmentOverrideValue
+    unit: str | None = None
+
+
+class PostSpringFestivalBacklogReleaseIntensityOverride(_ParameterOverrideBase):
+    variety_id: str = Field(min_length=1)
+    target_parameter: Literal["POST_SPRING_FESTIVAL_BACKLOG_RELEASE_INTENSITY"]
+    value: RateOverrideValue
+    unit: str | None = None
+
+
+class HistoricalAnomalyPeakProbabilityOverride(_ParameterOverrideBase):
+    variety_id: str = Field(min_length=1)
+    target_parameter: Literal["HISTORICAL_ANOMALY_PEAK_PROBABILITY"]
+    value: RateOverrideValue
+    unit: str | None = None
+
+
+ParameterOverrideUnion = Annotated[
+    ExpectedPerMuYieldOverride
+    | CommodityFruitRateOverride
+    | FirstHarvestDateOverride
+    | MaturityCurveOverride
+    | SpringFestivalHarvestRateOverride
+    | WeatherAdjustmentOverride
+    | PostSpringFestivalBacklogReleaseIntensityOverride
+    | HistoricalAnomalyPeakProbabilityOverride,
+    Field(discriminator="target_parameter"),
+]
+
+
+class _ScenarioOverrideBase(_StrictBase):
+    override_kind: Literal["SCENARIO_OVERRIDE_KIND"] = "SCENARIO_OVERRIDE_KIND"
     source_attestation: str = Field(min_length=1)
     source_ref: dict[str, Any] | None = None
 
 
-class ExecutionOverride(_StrictBase):
+class StaffingScenarioOverride(_ScenarioOverrideBase):
+    target: Literal["STAFFING"]
+    value: StaffingOverrideValue
+    unit: str | None = None
+
+
+class SpringFestivalIntensityScenarioOverride(_ScenarioOverrideBase):
+    target: Literal["SPRING_FESTIVAL_INTENSITY"]
+    value: SpringFestivalIntensityOverrideValue
+    unit: str | None = None
+
+
+class ProcessorCapacityScenarioOverride(_ScenarioOverrideBase):
+    target: Literal["PROCESSOR_CAPACITY"]
+    value: ProcessorCapacityOverrideValue
+    unit: str | None = None
+
+
+ScenarioOverrideUnion = Annotated[
+    StaffingScenarioOverride
+    | SpringFestivalIntensityScenarioOverride
+    | ProcessorCapacityScenarioOverride,
+    Field(discriminator="target"),
+]
+
+
+class _ExecutionOverrideBase(_StrictBase):
     override_kind: Literal["EXECUTION_OVERRIDE_KIND"] = "EXECUTION_OVERRIDE_KIND"
-    target: ExecutionTarget
-    value: bool | str = Field(min_length=1)
-    unit: None = None
     source_attestation: str = Field(min_length=1)
     source_ref: dict[str, Any] | None = None
 
 
-class AuthorityOverride(_StrictBase):
+class RequestBacktestOverride(_ExecutionOverrideBase):
+    target: Literal["REQUEST_BACKTEST"]
+    value: bool
+    unit: None = None
+
+
+class RequestReplayTrainedRunOverride(_ExecutionOverrideBase):
+    target: Literal["REQUEST_REPLAY_TRAINED_RUN"]
+    value: bool
+    unit: None = None
+
+
+class RequestSimulationOverride(_ExecutionOverrideBase):
+    target: Literal["REQUEST_SIMULATION"]
+    value: bool
+    unit: None = None
+
+
+ExecutionOverrideUnion = Annotated[
+    RequestBacktestOverride | RequestReplayTrainedRunOverride | RequestSimulationOverride,
+    Field(discriminator="target"),
+]
+
+
+class _AuthorityOverrideBase(_StrictBase):
     override_kind: Literal["AUTHORITY_OVERRIDE_KIND"] = "AUTHORITY_OVERRIDE_KIND"
-    target: AuthorityOverrideTarget
     value: IntId
     unit: None = None
     source_attestation: str = Field(min_length=1)
     source_ref: dict[str, Any] | None = None
 
 
+class Task8ForecastRunAuthorityOverride(_AuthorityOverrideBase):
+    target: Literal["TASK8_FORECAST_RUN"]
+
+
+class Task9HarvestStateRunAuthorityOverride(_AuthorityOverrideBase):
+    target: Literal["TASK9_HARVEST_STATE_RUN"]
+
+
+class Task10PredictionRunAuthorityOverride(_AuthorityOverrideBase):
+    target: Literal["TASK10_PREDICTION_RUN"]
+
+
+class Task10TrainingRunAuthorityOverride(_AuthorityOverrideBase):
+    target: Literal["TASK10_TRAINING_RUN"]
+
+
+class Task11BacktestRunAuthorityOverride(_AuthorityOverrideBase):
+    target: Literal["TASK11_BACKTEST_RUN"]
+
+
+class Task12PredictionRunAuthorityOverride(_AuthorityOverrideBase):
+    target: Literal["TASK12_PREDICTION_RUN"]
+
+
+AuthorityOverrideUnion = Annotated[
+    Task8ForecastRunAuthorityOverride
+    | Task9HarvestStateRunAuthorityOverride
+    | Task10PredictionRunAuthorityOverride
+    | Task10TrainingRunAuthorityOverride
+    | Task11BacktestRunAuthorityOverride
+    | Task12PredictionRunAuthorityOverride,
+    Field(discriminator="target"),
+]
+
+
 class AdvancedOverrides(_StrictBase):
-    parameter_overrides: list[ParameterOverride] = Field(default_factory=list)
-    scenario_overrides: list[ScenarioOverride] = Field(default_factory=list)
-    execution_overrides: list[ExecutionOverride] = Field(default_factory=list)
-    authority_overrides: list[AuthorityOverride] = Field(default_factory=list)
+    parameter_overrides: list[ParameterOverrideUnion] = Field(default_factory=list)
+    scenario_overrides: list[ScenarioOverrideUnion] = Field(default_factory=list)
+    execution_overrides: list[ExecutionOverrideUnion] = Field(default_factory=list)
+    authority_overrides: list[AuthorityOverrideUnion] = Field(default_factory=list)
     as_of_overrides: list[AsOfOverride] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _at_most_one_as_of(self) -> AdvancedOverrides:
+    def _validate_invariants(self) -> AdvancedOverrides:
         if len(self.as_of_overrides) > 1:
             raise ValueError("at most one AS_OF_OVERRIDE may be supplied")
+
+        seen_param: set[tuple[str, str]] = set()
+        for po in self.parameter_overrides:
+            key = (po.variety_id, po.target_parameter)
+            if key in seen_param:
+                raise ValueError(
+                    f"duplicate parameter override for (variety_id, target_parameter)={key}"
+                )
+            seen_param.add(key)
+
+        seen_scenario: set[str] = set()
+        for so in self.scenario_overrides:
+            if so.target in seen_scenario:
+                raise ValueError(f"duplicate scenario override for target={so.target}")
+            seen_scenario.add(so.target)
+
+        seen_auth: set[str] = set()
+        for ao in self.authority_overrides:
+            if ao.target in seen_auth:
+                raise ValueError(f"duplicate authority override for target={ao.target}")
+            seen_auth.add(ao.target)
+
+        task10_targets = {
+            ao.target for ao in self.authority_overrides if ao.target.startswith("TASK10_")
+        }
+        if {"TASK10_TRAINING_RUN", "TASK10_PREDICTION_RUN"}.issubset(task10_targets):
+            raise ValueError(
+                "TASK10_TRAINING_RUN and TASK10_PREDICTION_RUN overrides conflict on the same scope"
+            )
         return self
-
-
-# --- §7.2 NormalizedAgentRequest + §8.2 RequestedAsOfDateProvenance ------
 
 
 class RequestedAsOfDateProvenance(_StrictBase):
@@ -379,6 +630,24 @@ class RequestedAsOfDateProvenance(_StrictBase):
     override_kind: Literal["AS_OF_OVERRIDE"] | None
     source_attestation: str | None
     source_ref: dict[str, Any] | None
+
+    @model_validator(mode="after")
+    def _consistent(self) -> RequestedAsOfDateProvenance:
+        if not self.override_applied:
+            if self.override_kind is not None:
+                raise ValueError("override_kind must be None when override_applied is False")
+            if self.source_attestation is not None:
+                raise ValueError("source_attestation must be None when override_applied is False")
+            if self.source_ref is not None:
+                raise ValueError("source_ref must be None when override_applied is False")
+        else:
+            if self.override_kind != "AS_OF_OVERRIDE":
+                raise ValueError(
+                    "override_kind must be 'AS_OF_OVERRIDE' when override_applied is True"
+                )
+            if self.source_attestation is None:
+                raise ValueError("source_attestation is required when override_applied is True")
+        return self
 
 
 class ResolvedLocation(_StrictBase):
@@ -409,6 +678,14 @@ class NormalizedVarietyInput(_StrictBase):
     variety_id: str = Field(min_length=1)
     planting_area_mu: DecimalString
 
+    @field_validator("planting_area_mu")
+    @classmethod
+    def _validate_canonical_area(cls, value: str) -> str:
+        _validate_canonical_decimal_string(value)
+        if Decimal(value) <= Decimal("0"):
+            raise ValueError("planting_area_mu must be > 0")
+        return value
+
 
 class NormalizedAgentRequest(_StrictBase):
     request_id: str = Field(min_length=1)
@@ -419,12 +696,12 @@ class NormalizedAgentRequest(_StrictBase):
     season_calendar_config_hash: SHA256Hex
     requested_as_of_date_provenance: RequestedAsOfDateProvenance
     normalized_location: ResolvedLocation
+    # P0-3.1: location_input is the RAW caller location (from MinimalInputRequest),
+    # distinct from normalized_location (the resolved output of resolve_location).
+    location_input: LocationInput
     varieties: list[NormalizedVarietyInput]
     advanced_overrides: AdvancedOverrides | None = None
     canonical_request_hash: SHA256Hex
-
-
-# --- §19.3 Citation (canonical single source of truth) -------------------
 
 
 class CitationOverrideRef(_StrictBase):
@@ -452,9 +729,6 @@ class Citation(_StrictBase):
     override_refs: list[CitationOverrideRef] = Field(default_factory=list)
 
 
-# --- §15.3 DailyQuantiles + ForecastDailyRow -----------------------------
-
-
 class DailyQuantiles(_StrictBase):
     p50: DecimalString
     p80: DecimalString
@@ -480,10 +754,18 @@ class ForecastDailyRow(_StrictBase):
     arrival_quantity_kg: DailyQuantiles
     final_corrected_arrival_quantity_kg: DailyQuantiles
     per_variety_contribution: list[VarietyContribution] = Field(default_factory=list)
+    weather_tags: tuple[str, ...] = ()
+    spring_festival_phase: SpringFestivalPhase = "NONE"
     agent_daily_row_hash: SHA256Hex
 
 
-# --- §10.4 UncertaintyWideningPolicy -------------------------------------
+_UNCERTAINTY_STEP_KEYS: tuple[str, ...] = (
+    "step_1_same_farm_same_variety_high_evidence",
+    "step_2_same_township_similar_altitude",
+    "step_3_same_county_same_climate_zone",
+    "step_4_province_level_same_variety",
+    "step_5_variety_document_prior_only",
+)
 
 
 class UncertaintyWideningPolicy(_StrictBase):
@@ -492,8 +774,54 @@ class UncertaintyWideningPolicy(_StrictBase):
     factors_by_source_level: dict[str, DecimalString]
     monotonicity_invariant: Literal[True] = True
 
+    @model_validator(mode="after")
+    def _verify_policy_invariant(self) -> UncertaintyWideningPolicy:
+        # The Pydantic-level validator only confirms the keys that ARE present
+        # are well-formed decimal strings >= 0 and strictly monotonic.
+        # The full 5-key requirement is enforced by
+        # :func:`_verify_policy_invariant` (and by
+        # :func:`widening_factor_for` which raises on missing keys).
+        factors = self.factors_by_source_level
+        values: list[tuple[str, Decimal]] = []
+        for key, raw in factors.items():
+            v = Decimal(raw)
+            if v < Decimal("0"):
+                raise ValueError(f"factor {key} must be >= 0")
+            values.append((key, v))
+        prev_pair: tuple[str, Decimal] | None = None
+        for curr_pair in values:
+            if prev_pair is not None:
+                if not (prev_pair[1] < curr_pair[1]):
+                    raise ValueError("factors must be strictly monotonic (ascending)")
+            prev_pair = curr_pair
+        return self
 
-# --- §16.4 PeakMetricPolicy ---------------------------------------------
+
+def _verify_policy_invariant(policy: UncertaintyWideningPolicy) -> None:
+    """Strict invariant check used by adapters + integration tests.
+
+    Requires all five canonical step keys to be present and strictly
+    monotonic ascending.  The Pydantic ``model_validator`` does NOT enforce
+    the 5-key requirement because older tests still pass partial policies
+    (to demonstrate that ``widening_factor_for`` raises ``SourceCapabilityGapError``).
+    """
+    factors = policy.factors_by_source_level
+    missing = [k for k in _UNCERTAINTY_STEP_KEYS if k not in factors]
+    if missing:
+        raise SourceCapabilityGapError(
+            f"UncertaintyWideningPolicy missing required factor(s): {missing}"
+        )
+    values: list[Decimal] = []
+    for k in _UNCERTAINTY_STEP_KEYS:
+        v = Decimal(factors[k])
+        if v < Decimal("0"):
+            raise SourceCapabilityGapError(f"factor {k} must be >= 0")
+        values.append(v)
+    for prev, curr in zip(values, values[1:], strict=True):
+        if not (prev < curr):
+            raise SourceCapabilityGapError(
+                f"factors must be strictly monotonic: {_UNCERTAINTY_STEP_KEYS}"
+            )
 
 
 class PeakMetricPolicy(_StrictBase):
@@ -506,9 +834,13 @@ class PeakMetricPolicy(_StrictBase):
     peak_window_days_after: int = Field(ge=0)
     high_load_reference: Literal["SINGLE_DAY_PEAK"] = "SINGLE_DAY_PEAK"
     high_load_threshold_ratio: DecimalString
+    strict_three_day_window: Literal[True] = True
 
-
-# --- §24.1 AgentForecastOutput + Provenance -------------------------------
+    @model_validator(mode="after")
+    def _enforce_strict_three_day_window(self) -> PeakMetricPolicy:
+        if self.strict_three_day_window and self.sustained_window_days != 3:
+            raise ValueError("strict_three_day_window=True forces sustained_window_days == 3")
+        return self
 
 
 class ParameterEstimate(_StrictBase):
@@ -526,6 +858,8 @@ class ParameterEstimate(_StrictBase):
     source_observation_ids: list[IntId] = Field(default_factory=list)
     fallback_below_minimum: bool = False
     missing_evidence: list[str] = Field(default_factory=list)
+    prior_version: str | None = None
+    distribution_kind: Literal["POINT", "NORMAL", "BETA", "HISTORICAL_EMPIRICAL"] = "POINT"
     citation: Citation | None = None
 
 
@@ -549,11 +883,18 @@ class AgentForecastOutput(_StrictBase):
     warnings: list[str] = Field(default_factory=list)
 
 
-# --- §13 resolve_location -------------------------------------------------
-
-
 class ResolveLocationInput(_StrictBase):
+    """P0-3.3 — input carries the RAW caller-supplied ``location_input``."""
+
     normalized_request: NormalizedAgentRequest
+    location_input: LocationInput | None = None
+
+    @property
+    def resolved_location_input(self) -> LocationInput:
+        """Resolve location_input at access time (Pydantic frozen-safe)."""
+        if self.location_input is not None:
+            return self.location_input
+        return self.normalized_request.location_input
 
 
 class ResolveLocationCandidate(_StrictBase):
@@ -572,9 +913,6 @@ class ResolveLocationOutput(_StrictBase):
     blockers: list[Blocker] = Field(default_factory=list)
 
 
-# --- §14 infer_parameters ------------------------------------------------
-
-
 class InferParametersInput(_StrictBase):
     normalized_request: NormalizedAgentRequest
     resolved_location: ResolvedLocation
@@ -588,9 +926,6 @@ class InferParametersOutput(_StrictBase):
     parameters_hash: SHA256Hex
     blocked_variety_ids: list[str] = Field(default_factory=list)
     blockers: list[Blocker] = Field(default_factory=list)
-
-
-# --- §15 forecast_daily_curve --------------------------------------------
 
 
 class ForecastDailyCurveInput(_StrictBase):
@@ -610,9 +945,6 @@ class ForecastDailyCurveOutput(_StrictBase):
     task12_authority: Task12Authority | None = None
     agent_daily_curve_hash: SHA256Hex
     blockers: list[Blocker] = Field(default_factory=list)
-
-
-# --- §16 forecast_peak ---------------------------------------------------
 
 
 class SingleDayPeakEntry(_StrictBase):
@@ -648,6 +980,7 @@ class ForecastPeakOutput(_StrictBase):
     high_load_threshold: dict[ForecastQuantile, DecimalString]
     dominant_variety: dict[ForecastQuantile, DominantVarietyEntry]
     peak_formation_explanation_ref: str | None = None
+    blockers: list[Blocker] = Field(default_factory=list)
 
 
 class ForecastPeakInput(_StrictBase):
@@ -656,14 +989,11 @@ class ForecastPeakInput(_StrictBase):
     peak_metric_policy: PeakMetricPolicy
 
 
-# --- §17 simulate_scenario -----------------------------------------------
-
-
 class SimulateScenarioInput(_StrictBase):
     normalized_request: NormalizedAgentRequest
     resolved_location: ResolvedLocation
     parameters: list[ParameterEstimate] = Field(default_factory=list)
-    scenario_overrides: list[ScenarioOverride] = Field(default_factory=list)
+    scenario_overrides: list[ScenarioOverrideUnion] = Field(default_factory=list)
     uncertainty_widening_policy: UncertaintyWideningPolicy
     peak_metric_policy: PeakMetricPolicy
     advanced_overrides: AdvancedOverrides | None = None
@@ -689,20 +1019,14 @@ class SimulateScenarioOutput(_StrictBase):
     delta_vs_baseline: SimulateScenarioDelta
 
 
-# --- §18 run_backtest (deferred; schema + EXECUTION_DEFERRED only) -------
-
-
 class RunBacktestInput(_StrictBase):
     normalized_request: NormalizedAgentRequest
-    execution_override: ExecutionOverride | None = None
+    execution_override: ExecutionOverrideUnion | None = None
 
 
 class RunBacktestOutput(_StrictBase):
     status: Literal["EXECUTION_DEFERRED"] = "EXECUTION_DEFERRED"
     blocker: Blocker
-
-
-# --- §19 explain_forecast (schema only) ----------------------------------
 
 
 class ExplainParagraph(_StrictBase):
@@ -732,9 +1056,6 @@ class ExplainForecastInput(_StrictBase):
 
 class ExplainForecastOutput(_StrictBase):
     structured_payload: list[ExplainSection] = Field(default_factory=list)
-
-
-# --- §20 generate_recommendations (schema only; 7 categories) -----------
 
 
 class RecommendationEvidenceThreshold(_StrictBase):
@@ -770,18 +1091,63 @@ class GenerateRecommendationsOutput(_StrictBase):
     recommendations: list[Recommendation] = Field(default_factory=list)
 
 
-# --- §7.1 forward reference resolution -----------------------------------
-# MinimalInputRequest references AdvancedOverrides, which is declared later.
-# Rebuild MinimalInputRequest here now that AdvancedOverrides exists.
-
 MinimalInputRequest.model_rebuild()
 AdvancedOverrides.model_rebuild()
+
+
+# --- Backward-compat aliases ---------------------------------------------
+# The legacy union-typed names (``ParameterOverride``, ``ScenarioOverride``,
+# ``ExecutionOverride``, ``AuthorityOverride``) are preserved as
+# ``RootModel``-backed proxies so existing tests + downstream callers
+# continue to construct them transparently and access discriminator
+# fields directly (``ov.target``, ``ov.override_kind`` …).
+
+
+from pydantic import RootModel as _RootModel  # noqa: E402
+
+
+def _wrap_root_model(cls: type[_RootModel[Any]], public_name: str) -> type[Any]:
+    """Build a public alias class that delegates attribute access to ``.root``."""
+
+    class _Alias(cls):  # type: ignore[misc, valid-type]
+        def __getattr__(self, item: str) -> Any:
+            if item.startswith("__") or item.startswith("model_") or item in ("root",):
+                return object.__getattribute__(self, item)
+            return getattr(self.root, item)
+
+    _Alias.__name__ = public_name
+    _Alias.__qualname__ = public_name
+    return _Alias
+
+
+class _ParameterOverrideRoot(_RootModel[ParameterOverrideUnion]):
+    pass
+
+
+class _ScenarioOverrideRoot(_RootModel[ScenarioOverrideUnion]):
+    pass
+
+
+class _ExecutionOverrideRoot(_RootModel[ExecutionOverrideUnion]):
+    pass
+
+
+class _AuthorityOverrideRoot(_RootModel[AuthorityOverrideUnion]):
+    pass
+
+
+ParameterOverride = _wrap_root_model(_ParameterOverrideRoot, "ParameterOverride")
+ScenarioOverride = _wrap_root_model(_ScenarioOverrideRoot, "ScenarioOverride")
+ExecutionOverride = _wrap_root_model(_ExecutionOverrideRoot, "ExecutionOverride")
+AuthorityOverride = _wrap_root_model(_AuthorityOverrideRoot, "AuthorityOverride")
 
 
 __all__ = [
     "SHA256Hex",
     "IntId",
     "DecimalString",
+    "NonNegativeDecimalString",
+    "PositiveDecimalString",
     "Blocker",
     "MinimalVarietyInput",
     "LocationInput",
@@ -792,10 +1158,39 @@ __all__ = [
     "Task11Authority",
     "Task12Authority",
     "AsOfOverride",
-    "ParameterOverride",
-    "ScenarioOverride",
-    "ExecutionOverride",
-    "AuthorityOverride",
+    "YieldPerMuOverrideValue",
+    "RateOverrideValue",
+    "DateOverrideValue",
+    "WeatherAdjustmentOverrideValue",
+    "DistributionOverrideParameters",
+    "DistributionOverrideValue",
+    "StaffingOverrideValue",
+    "SpringFestivalIntensityOverrideValue",
+    "ProcessorCapacityOverrideValue",
+    "ExpectedPerMuYieldOverride",
+    "CommodityFruitRateOverride",
+    "FirstHarvestDateOverride",
+    "MaturityCurveOverride",
+    "SpringFestivalHarvestRateOverride",
+    "WeatherAdjustmentOverride",
+    "PostSpringFestivalBacklogReleaseIntensityOverride",
+    "HistoricalAnomalyPeakProbabilityOverride",
+    "ParameterOverrideUnion",
+    "StaffingScenarioOverride",
+    "SpringFestivalIntensityScenarioOverride",
+    "ProcessorCapacityScenarioOverride",
+    "ScenarioOverrideUnion",
+    "RequestBacktestOverride",
+    "RequestReplayTrainedRunOverride",
+    "RequestSimulationOverride",
+    "ExecutionOverrideUnion",
+    "Task8ForecastRunAuthorityOverride",
+    "Task9HarvestStateRunAuthorityOverride",
+    "Task10PredictionRunAuthorityOverride",
+    "Task10TrainingRunAuthorityOverride",
+    "Task11BacktestRunAuthorityOverride",
+    "Task12PredictionRunAuthorityOverride",
+    "AuthorityOverrideUnion",
     "AdvancedOverrides",
     "RequestedAsOfDateProvenance",
     "ResolvedLocation",
@@ -831,4 +1226,9 @@ __all__ = [
     "RecommendationEvidenceThreshold",
     "GenerateRecommendationsInput",
     "GenerateRecommendationsOutput",
+    # Backward-compat aliases for the legacy union-typed names.
+    "ParameterOverride",
+    "ScenarioOverride",
+    "ExecutionOverride",
+    "AuthorityOverride",
 ]

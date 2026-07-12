@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from datetime import date
 
-import pytest
-
 from backend.app.agent.adapters.peak import DefaultPeakAdapter
 from backend.app.agent.canonical import sha256_payload
+from backend.app.agent.enums import BlockerCode
 from backend.app.agent.schemas import (
     AdvancedOverrides,
     DailyQuantiles,
     ForecastDailyCurveOutput,
     ForecastDailyRow,
     ForecastPeakInput,
+    LocationInput,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
     PeakMetricPolicy,
@@ -82,6 +82,10 @@ def _input(rows, policy=None):
         ),
         normalized_location=ResolvedLocation(
             status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
+        location_input=LocationInput(
+            raw_text="云南曲靖",
+            location_reference_id=1,
         ),
         varieties=[
             NormalizedVarietyInput(variety_id="101", planting_area_mu="100.000000000000000000")
@@ -209,8 +213,11 @@ def test_no_incomplete_3day_window():
             "200.000000000000000000",
         ),
     ]
-    with pytest.raises(ValueError):
-        DefaultPeakAdapter().execute(input=_input(rows))
+    # P1 forecast_peak: incomplete 3-day window → PEAK_POLICY_MISSING blocker
+    # (no longer a ValueError).
+    out = DefaultPeakAdapter().execute(input=_input(rows))
+    codes = [b.code for b in out.blockers]
+    assert BlockerCode.PEAK_POLICY_MISSING in codes
 
 
 # --- 5. boundary-clipped ±7 window ---

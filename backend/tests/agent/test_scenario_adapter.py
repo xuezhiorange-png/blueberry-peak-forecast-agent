@@ -8,15 +8,17 @@ import pytest
 
 from backend.app.agent.enums import BlockerCode
 from backend.app.agent.schemas import (
+    LocationInput,
     ProcessorCapacityOverrideValue,
-    ScenarioOverride,
+    ProcessorCapacityScenarioOverride,
     SimulateScenarioInput,
     StaffingOverrideValue,
+    StaffingScenarioOverride,
 )
 
 
-def _ov_staffing(value: str) -> ScenarioOverride:
-    return ScenarioOverride(
+def _ov_staffing(value: str) -> StaffingScenarioOverride:
+    return StaffingScenarioOverride(
         override_kind="SCENARIO_OVERRIDE_KIND",
         target="STAFFING",
         value=StaffingOverrideValue(value=value),
@@ -24,8 +26,8 @@ def _ov_staffing(value: str) -> ScenarioOverride:
     )
 
 
-def _ov_capacity(value: str) -> ScenarioOverride:
-    return ScenarioOverride(
+def _ov_capacity(value: str) -> ProcessorCapacityScenarioOverride:
+    return ProcessorCapacityScenarioOverride(
         override_kind="SCENARIO_OVERRIDE_KIND",
         target="PROCESSOR_CAPACITY",
         value=ProcessorCapacityOverrideValue(value=value),
@@ -157,6 +159,10 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
         ),
         normalized_location=ResolvedLocation(
             status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
+        location_input=LocationInput(
+            raw_text="云南曲靖",
+            location_reference_id=1,
         ),
         varieties=[NormalizedVarietyInput(variety_id="101", planting_area_mu="100.0")],
         advanced_overrides=AO(),

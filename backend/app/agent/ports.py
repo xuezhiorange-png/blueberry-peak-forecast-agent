@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.schemas import (
     AdvancedOverrides,
+    Blocker,
     ForecastDailyRow,
     NormalizedAgentRequest,
     ResolvedLocation,
@@ -60,13 +61,24 @@ class ParameterPriorPort(Protocol):
         self,
         *,
         session: AsyncSession,
-        variety_id: int,
+        variety_id: str,
         parameter_name: str,
         resolved_location: ResolvedLocation,
         effective_as_of_date: date,
         widening_factor: Decimal,
         monotonic_step: int,
     ) -> ParameterPrior: ...
+
+
+class VarietyCatalogPort(Protocol):
+    """Adapter to ``planning.plan_repository.get_variety_by_code``."""
+
+    async def is_known(
+        self,
+        *,
+        session: AsyncSession,
+        variety_id: str,
+    ) -> bool: ...
 
 
 # --- §15 forecast_daily_curve composition --------------------------------
@@ -146,12 +158,13 @@ class ScenarioBaselinePort(Protocol):
         resolved_location: ResolvedLocation,
         parameters: list[Any],
         advanced_overrides: AdvancedOverrides | None,
-    ) -> tuple[list[ForecastDailyRow], Any]: ...
+    ) -> tuple[list[ForecastDailyRow], list[Blocker]]: ...
 
 
 __all__ = [
     "LocationResolverPort",
     "ParameterPriorPort",
+    "VarietyCatalogPort",
     "Task8ForecastPort",
     "Task9HarvestStatePort",
     "Task10PredictionPort",
