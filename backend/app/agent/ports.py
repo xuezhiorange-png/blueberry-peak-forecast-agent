@@ -21,8 +21,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.schemas import (
     AdvancedOverrides,
-    Blocker,
-    ForecastDailyRow,
     NormalizedAgentRequest,
     ResolvedLocation,
     Task8Authority,
@@ -33,6 +31,7 @@ from backend.app.agent.schemas import (
 )
 
 if TYPE_CHECKING:
+    from backend.app.agent.adapters.baseline_composer import BaselineCompositionResult
     from backend.app.agent.adapters.parameters import ParameterPrior
 
 
@@ -148,7 +147,13 @@ class Task12PredictionPort(Protocol):
 
 
 class ScenarioBaselinePort(Protocol):
-    """Adapter that produces the deterministic baseline curve + peak."""
+    """Adapter that produces the deterministic baseline curve + peak.
+
+    Returns a :class:`BaselineCompositionResult` carrying the per-day
+    rows AND the single selected TASK-008/009/010 run IDs so downstream
+    consumers can populate the typed authority envelopes without
+    re-running the selector.
+    """
 
     async def compute_baseline(
         self,
@@ -158,7 +163,7 @@ class ScenarioBaselinePort(Protocol):
         resolved_location: ResolvedLocation,
         parameters: list[Any],
         advanced_overrides: AdvancedOverrides | None,
-    ) -> tuple[list[ForecastDailyRow], list[Blocker]]: ...
+    ) -> BaselineCompositionResult: ...
 
 
 __all__ = [

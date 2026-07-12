@@ -25,6 +25,15 @@ Hard rules enforced:
 * produces deterministic ``agent_daily_row_hash`` (per row) and
   ``agent_daily_curve_hash`` (over all rows).
 
+**Single-source authority envelope discipline (P0-5)**
+
+The :class:`DefaultDailyCurveAdapter` consumes the
+:class:`BaselineCompositionResult` returned by the baseline composer and
+populates the typed ``task8_authority`` / ``task9_authority`` /
+``task10_authority`` envelopes using the EXACT run IDs selected by the
+composer.  No second-query drift: the adapter never re-runs the
+selector to "discover" the run IDs.
+
 Slice A does not implement any new maturity, inventory, backlog, arrival,
 residual, or weather formula.
 """
@@ -34,7 +43,6 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.adapters.baseline_composer import (
@@ -75,10 +83,6 @@ def _to_decimal_string(value: Any) -> str:
     return format(_to_decimal(value), "f")
 
 
-def _zero_quantiles() -> dict[ForecastQuantile, Decimal]:
-    return {q: Decimal("0") for q in QUANTILES}
-
-
 def _select_authority_overrides(
     overrides: AdvancedOverrides | None,
     target: str,
@@ -86,16 +90,6 @@ def _select_authority_overrides(
     if overrides is None:
         return []
     return [o for o in overrides.authority_overrides if o.target == target]
-
-
-# --- Default upstream ports -----------------------------------------------
-
-
-class _NoopTaskPort:
-    """Default task port: no row exists, returns ``None`` (no fabricated identity)."""
-
-    async def load_by_id(self, *, session: AsyncSession, **kwargs: Any) -> None:
-        return None
 
 
 # --- Top-level adapter ----------------------------------------------------
@@ -139,192 +133,145 @@ class DefaultDailyCurveAdapter:
         overrides = input.advanced_overrides or nr.advanced_overrides
         blockers: list[Blocker] = []
 
-        # P0-1: default wiring — always invoke the production ports so the
-        # typed authority envelopes are populated even without explicit
-        # overrides.  The baseline composer below decides whether to use
-        # the override IDs or fall back to deterministic lookup.
-
-        # --- TASK-008 ----------------------------------------------------
-        task8_authority = None
-        task8_overrides = _select_authority_overrides(overrides, "TASK8_FORECAST_RUN")
-        task8_overridden_id = int(task8_overrides[0].value) if task8_overrides else None
-        if task8_overridden_id is not None:
-            task8_authority = await self._task8.load_by_id(
-                session=session,
-                forecast_run_id=task8_overridden_id,
-            )
-            if (
-                task8_authority is None
-                or int(task8_authority.maturity_forecast_run_id) != task8_overridden_id
-            ):
-                blockers.append(
-                    Blocker(
-                        code=BlockerCode.CITATION_HASH_MISMATCH,
-                        message=(
-                            "TASK-008 authority override supplied but the loaded envelope "
-                            "maturity_forecast_run_id does not match the override value."
-                        ),
-                        details={"override_value": task8_overridden_id},
-                        retry_hint="FIX_INPUT",
-                    )
-                )
-
-        # --- TASK-009 ----------------------------------------------------
-        task9_authority = None
-        task9_overrides = _select_authority_overrides(overrides, "TASK9_HARVEST_STATE_RUN")
-        task9_overridden_id = int(task9_overrides[0].value) if task9_overrides else None
-        if task9_overridden_id is not None:
-            task9_authority = await self._task9.load_by_id(
-                session=session,
-                harvest_state_run_id=task9_overridden_id,
-            )
-            if (
-                task9_authority is None
-                or int(task9_authority.harvest_state_run_id) != task9_overridden_id
-            ):
-                blockers.append(
-                    Blocker(
-                        code=BlockerCode.CITATION_HASH_MISMATCH,
-                        message=(
-                            "TASK-009 authority override supplied but the loaded envelope "
-                            "harvest_state_run_id does not match the override value."
-                        ),
-                        details={"override_value": task9_overridden_id},
-                        retry_hint="FIX_INPUT",
-                    )
-                )
-
-        # --- TASK-010 ----------------------------------------------------
-        task10_authority = None
-        task10_overrides = _select_authority_overrides(overrides, "TASK10_PREDICTION_RUN")
-        task10_overridden_id = int(task10_overrides[0].value) if task10_overrides else None
-        if task10_overridden_id is not None:
-            task10_authority = await self._task10.load_by_id(
-                session=session,
-                prediction_run_id=task10_overridden_id,
-            )
-            if (
-                task10_authority is None
-                or int(task10_authority.prediction_run_id) != task10_overridden_id
-            ):
-                blockers.append(
-                    Blocker(
-                        code=BlockerCode.CITATION_HASH_MISMATCH,
-                        message=(
-                            "TASK-010 authority override supplied but the loaded envelope "
-                            "prediction_run_id does not match the override value."
-                        ),
-                        details={"override_value": task10_overridden_id},
-                        retry_hint="FIX_INPUT",
-                    )
-                )
-
-        # --- TASK-011 ----------------------------------------------------
-        task11_authority = None
-        task11_overrides = _select_authority_overrides(overrides, "TASK11_BACKTEST_RUN")
-        task11_overridden_id = int(task11_overrides[0].value) if task11_overrides else None
-        if task11_overridden_id is not None:
-            task11_authority = await self._task11.load_by_id(
-                session=session,
-                rolling_backtest_run_id=task11_overridden_id,
-            )
-            if (
-                task11_authority is None
-                or int(task11_authority.rolling_backtest_run_id) != task11_overridden_id
-            ):
-                blockers.append(
-                    Blocker(
-                        code=BlockerCode.CITATION_HASH_MISMATCH,
-                        message=(
-                            "TASK-011 authority override supplied but the loaded envelope "
-                            "rolling_backtest_run_id does not match the override value."
-                        ),
-                        details={"override_value": task11_overridden_id},
-                        retry_hint="FIX_INPUT",
-                    )
-                )
-
-        # --- TASK-012 (only via explicit override, §22.1) ---------------
-        task12_authority = None
-        task12_overrides = _select_authority_overrides(overrides, "TASK12_PREDICTION_RUN")
-        task12_overridden_id = int(task12_overrides[0].value) if task12_overrides else None
-        if task12_overridden_id is not None:
-            task12_authority = await self._task12.load_by_id(
-                session=session,
-                prediction_run_id=task12_overridden_id,
-            )
-            if (
-                task12_authority is None
-                or int(task12_authority.prediction_run_id) != task12_overridden_id
-            ):
-                blockers.append(
-                    Blocker(
-                        code=BlockerCode.CITATION_HASH_MISMATCH,
-                        message=(
-                            "TASK-012 authority override supplied but the loaded envelope "
-                            "prediction_run_id does not match the override value."
-                        ),
-                        details={"override_value": task12_overridden_id},
-                        retry_hint="FIX_INPUT",
-                    )
-                )
-        else:
-            # Per §22.1 / §15.8, no TASK-012 default path.  Block if any
-            # downstream code expects a TASK-012 authority; here we simply
-            # leave ``task12_authority = None`` which downstream consumers
-            # must handle.
-            pass
-
-        # --- Compose per-day rows -------------------------------------------
-        # In Slice A we use the injected baseline port to obtain the
-        # authoritative per-day rows.  The baseline is itself a deterministic
-        # composition of TASK-008/009/010 services and is supplied by the
-        # production adapter (or by a test fake).  If no rows are available,
-        # we return an empty curve with a ``PEAK_POLICY_MISSING``-style note
-        # recorded as a blocker for traceability.
-        per_day, baseline_blockers = await self._baseline.compute_baseline(
+        # --- Baseline composition: selects TASK-008/009/010 ONCE ----------
+        composition = await self._baseline.compute_baseline(
             session=session,
             normalized_request=nr,
             resolved_location=input.resolved_location,
             parameters=input.parameters,
             advanced_overrides=overrides,
         )
-        blockers.extend(baseline_blockers)
+        blockers.extend(composition.blockers)
 
-        # Recompute per-row agent_daily_row_hash; compute curve hash over rows.
+        # --- TASK-008 envelope: use the composer-selected run_id ------------
+        task8_authority = None
+        if composition.task8_run_id is not None:
+            # When an explicit override is supplied we MUST honor it; the
+            # composer uses the override when present and otherwise falls
+            # back to the lineage pointer on the TASK-009 row.
+            task8_overrides = _select_authority_overrides(overrides, "TASK8_FORECAST_RUN")
+            if task8_overrides:
+                expected_id = int(task8_overrides[0].value)
+            else:
+                expected_id = int(composition.task8_run_id)
+            task8_authority = await self._task8.load_by_id(
+                session=session,
+                forecast_run_id=expected_id,
+            )
+            if (
+                task8_authority is not None
+                and int(task8_authority.maturity_forecast_run_id) != expected_id
+            ):
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.CITATION_HASH_MISMATCH,
+                        message=(
+                            "TASK-008 envelope forecast_run_id does not match "
+                            "the composer-selected run id."
+                        ),
+                        details={"override_value": expected_id},
+                        retry_hint="FIX_INPUT",
+                    )
+                )
+
+        # --- TASK-009 envelope: use the composer-selected run_id ------------
+        task9_authority = None
+        if composition.task9_run_id is not None:
+            task9_overrides = _select_authority_overrides(overrides, "TASK9_HARVEST_STATE_RUN")
+            expected_id = (
+                int(task9_overrides[0].value) if task9_overrides else int(composition.task9_run_id)
+            )
+            task9_authority = await self._task9.load_by_id(
+                session=session,
+                harvest_state_run_id=expected_id,
+            )
+            if (
+                task9_authority is not None
+                and int(task9_authority.harvest_state_run_id) != expected_id
+            ):
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.CITATION_HASH_MISMATCH,
+                        message=(
+                            "TASK-009 envelope harvest_state_run_id does not "
+                            "match the composer-selected run id."
+                        ),
+                        details={"override_value": expected_id},
+                        retry_hint="FIX_INPUT",
+                    )
+                )
+
+        # --- TASK-010 envelope: use the composer-selected prediction_run_id -
+        task10_authority = None
+        if composition.task10_prediction_run_id is not None:
+            task10_overrides = _select_authority_overrides(overrides, "TASK10_PREDICTION_RUN")
+            expected_id = (
+                int(task10_overrides[0].value)
+                if task10_overrides
+                else int(composition.task10_prediction_run_id)
+            )
+            task10_authority = await self._task10.load_by_id(
+                session=session,
+                prediction_run_id=expected_id,
+            )
+            if (
+                task10_authority is not None
+                and int(task10_authority.prediction_run_id) != expected_id
+            ):
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.CITATION_HASH_MISMATCH,
+                        message=(
+                            "TASK-010 envelope prediction_run_id does not "
+                            "match the composer-selected run id."
+                        ),
+                        details={"override_value": expected_id},
+                        retry_hint="FIX_INPUT",
+                    )
+                )
+
+        # --- TASK-011 / TASK-012 envelopes: explicit override only ----------
+        task11_authority = None
+        task11_overrides = _select_authority_overrides(overrides, "TASK11_BACKTEST_RUN")
+        if task11_overrides:
+            task11_overridden_id = int(task11_overrides[0].value)
+            task11_authority = await self._task11.load_by_id(
+                session=session,
+                rolling_backtest_run_id=task11_overridden_id,
+            )
+            if task11_authority is None:
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.TASK11_AUTHORITY_NOT_FOUND,
+                        message=("TASK-011 override supplied but the loader returned None."),
+                        details={"override_value": task11_overridden_id},
+                        retry_hint="WAIT_FOR_DATA",
+                    )
+                )
+
+        task12_authority = None
+        task12_overrides = _select_authority_overrides(overrides, "TASK12_PREDICTION_RUN")
+        if task12_overrides:
+            task12_overridden_id = int(task12_overrides[0].value)
+            task12_authority = await self._task12.load_by_id(
+                session=session,
+                prediction_run_id=task12_overridden_id,
+            )
+            if task12_authority is None:
+                blockers.append(
+                    Blocker(
+                        code=BlockerCode.TASK12_AUTHORITY_NOT_FOUND,
+                        message=("TASK-012 override supplied but the loader returned None."),
+                        details={"override_value": task12_overridden_id},
+                        retry_hint="WAIT_FOR_DATA",
+                    )
+                )
+
+        # --- Compose per-day rows + hashes -----------------------------------
         rows: list[ForecastDailyRow] = []
-        for row in per_day:
+        for row in composition.rows:
             row_hash = _row_hash(row)
             rows.append(row.model_copy(update={"agent_daily_row_hash": row_hash}))
-
-        # P0-1: in default-wiring mode (no explicit overrides), the baseline
-        # composer has already selected the authoritative runs.  Load the
-        # typed authority envelopes from the same runs so the output
-        # surfaces real PK + hashes from the persisted rows.
-        if task9_authority is None:
-            # Find the harvest_state_run_id used by the baseline composer.
-            from backend.app.models.harvest_state import HarvestStateRun
-
-            stmt = (
-                select(HarvestStateRun)
-                .where(
-                    HarvestStateRun.as_of_date <= nr.effective_as_of_date,
-                    HarvestStateRun.forecast_end_date >= nr.effective_as_of_date,
-                )
-                .order_by(
-                    HarvestStateRun.forecast_end_date.desc(),
-                    HarvestStateRun.id.asc(),
-                )
-                .limit(1)
-            )
-            harvest_state_row = (await session.scalars(stmt)).first()
-            if harvest_state_row is not None:
-                loaded = await self._task9.load_by_id(
-                    session=session,
-                    harvest_state_run_id=int(harvest_state_row.id),
-                )
-                if loaded is not None:
-                    task9_authority = loaded
 
         curve_hash_payload = {
             "request_id": nr.request_id,
@@ -405,38 +352,6 @@ def _row_hash(row: ForecastDailyRow) -> str:
         "spring_festival_phase": row.spring_festival_phase,
     }
     return sha256_payload(payload)
-
-
-class _NoopScenarioBaseline:
-    """Default baseline: empty curve + a single ``INTERNAL_FAILURE`` blocker.
-
-    The production wiring replaces this with a deterministic composition
-    adapter that reads TASK-008/009/010 outputs.  Slice A tests inject
-    deterministic fakes per the design.
-    """
-
-    async def compute_baseline(
-        self,
-        *,
-        session: AsyncSession,
-        normalized_request: Any,
-        resolved_location: Any,
-        parameters: list[Any],
-        advanced_overrides: AdvancedOverrides | None,
-    ) -> tuple[list[ForecastDailyRow], list[Blocker]]:
-        return (
-            [],
-            [
-                Blocker(
-                    code=BlockerCode.INTERNAL_FAILURE,
-                    message=(
-                        "No baseline composition adapter wired.  Inject a "
-                        "ScenarioBaselinePort implementation in production."
-                    ),
-                    retry_hint="CONTACT_OPS",
-                )
-            ],
-        )
 
 
 __all__ = ["DefaultDailyCurveAdapter"]

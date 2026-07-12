@@ -101,6 +101,7 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
 
     from datetime import date as _date
 
+    from backend.app.agent.adapters.baseline_composer import BaselineCompositionResult
     from backend.app.agent.adapters.daily_curve import DefaultDailyCurveAdapter
     from backend.app.agent.adapters.peak import DefaultPeakAdapter
     from backend.app.agent.adapters.scenario import DefaultScenarioAdapter
@@ -136,11 +137,17 @@ async def test_simulate_scenario_quantile_preserving_deltas(sqlite_session):
                 per_variety_contribution=[],
                 agent_daily_row_hash="0" * 64,
             )
-            return [
-                r,
-                r.model_copy(update={"date": _date(2026, 3, 2)}),
-                r.model_copy(update={"date": _date(2026, 3, 3)}),
-            ], []
+            return BaselineCompositionResult(
+                rows=[
+                    r,
+                    r.model_copy(update={"date": _date(2026, 3, 2)}),
+                    r.model_copy(update={"date": _date(2026, 3, 3)}),
+                ],
+                task8_run_id=None,
+                task9_run_id=None,
+                task10_prediction_run_id=None,
+                blockers=[],
+            )
 
     nr = NormalizedAgentRequest(
         request_id="r",

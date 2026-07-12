@@ -53,6 +53,33 @@ def _harvest_state_tables() -> list:
     ]
 
 
+def _maturity_tables() -> list:
+    """MaturityForecastRun + MaturityModelRun required by TASK-008 loader.
+
+    The maturity tables contain Postgres-only JSONB columns; tests that
+    require a real TASK-008 loader must inject a stub :class:`Task8ForecastPort`
+    instead of letting the agent instantiate the default loader (which
+    reads from these tables).
+    """
+
+    # No-op: callers that need the maturity tables create them on demand.
+    return []
+
+
+def _planning_tables() -> list:
+    """ParameterObservation tables required by the real prior port.
+
+    ParameterObservation has no JSONB columns, so it compiles cleanly
+    under SQLite.  Other planning tables (parameter_inference_run /
+    parameter_inference_result) include JSONB columns and are NOT
+    materialised here — they are not required by the Slice A prior port.
+    """
+
+    from backend.app.models.planning import ParameterObservation
+
+    return [ParameterObservation.__table__]
+
+
 def _residual_tables() -> list:
     from backend.app.models.residual_model import (
         ResidualModelArtifact,
@@ -95,6 +122,11 @@ async def sqlite_session() -> AsyncSession:
         await conn.run_sync(
             lambda sync_conn: HarvestStateRun.metadata.create_all(
                 sync_conn, tables=_harvest_state_tables()
+            )
+        )
+        await conn.run_sync(
+            lambda sync_conn: ResidualModelTrainingRun.metadata.create_all(
+                sync_conn, tables=_planning_tables()
             )
         )
         await conn.run_sync(

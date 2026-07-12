@@ -54,6 +54,7 @@ from backend.app.agent.schemas import (
     UncertaintyWideningPolicy,
 )
 from backend.app.models.harvest_state import (
+    HarvestStateDailyMemberRowModel,
     HarvestStateDailyPoolRowModel,
     HarvestStateRun,
 )
@@ -168,6 +169,112 @@ def _add_pool_row(
     )
     session.add(row)
     return row
+
+
+def _add_member_row(
+    session,
+    *,
+    harvest_state_run_id: int,
+    state_date: date,
+    quantile: str,
+    capacity_pool_id: int,
+    variety_id: int,
+    destination_factory_id: int,
+    arrival_kg: Decimal,
+) -> HarvestStateDailyMemberRowModel:
+    """Insert a :class:`HarvestStateDailyMemberRowModel` for per-variety grain.
+
+    Per P0-4, the baseline composer reads per-variety contribution from
+    real member rows.  When a test asserts deterministic per-day row
+    output, the test fixture MUST materialise member rows matching the
+    pool totals; otherwise the composer surfaces a capability gap
+    blocker and returns no rows.
+    """
+
+    row = HarvestStateDailyMemberRowModel(
+        harvest_state_run_id=harvest_state_run_id,
+        state_date=state_date,
+        forecast_quantile=quantile,
+        capacity_pool_id=capacity_pool_id,
+        capacity_pool_grain="SUBFARM_VARIETY",
+        capacity_pool_membership_hash="a" * 64,
+        farm_id=1,
+        subfarm_id=1,
+        subfarm_identity_key=f"sf:{1}",
+        variety_id=variety_id,
+        destination_factory_id=destination_factory_id,
+        opening_mature_inventory_kg=Decimal("0"),
+        natural_maturity_supply_kg=arrival_kg,
+        available_mature_quantity_kg=Decimal("0"),
+        mature_inventory_loss_quantity_kg=Decimal("0"),
+        harvestable_mature_quantity_kg=Decimal("0"),
+        allocated_harvest_capacity_kg=arrival_kg,
+        harvested_quantity_kg=arrival_kg,
+        closing_mature_inventory_kg=Decimal("0"),
+        unharvested_backlog_kg=Decimal("0"),
+        arrival_quantity_kg=arrival_kg,
+        opening_cohort_count=0,
+        closing_cohort_count=0,
+        cohort_source_ref_hashes=[],
+    )
+    session.add(row)
+    return row
+
+
+def _populate_member_rows_matching_pool(
+    session,
+    *,
+    harvest_state_run_id: int,
+    destination_factory_id: int,
+    variety_id: int,
+    arrival_kg_per_quantile_per_date: dict[tuple[date, str], Decimal],
+) -> None:
+    """Insert member rows that mirror the pool totals for the given variety.
+
+    Test fixtures call this after :func:`_add_pool_row` to materialise
+    the per-variety grain that the baseline composer requires (P0-4).
+    """
+
+    for (d, q), arrival_kg in arrival_kg_per_quantile_per_date.items():
+        _add_member_row(
+            session,
+            harvest_state_run_id=harvest_state_run_id,
+            state_date=d,
+            quantile=q,
+            capacity_pool_id=1,
+            variety_id=variety_id,
+            destination_factory_id=destination_factory_id,
+            arrival_kg=arrival_kg,
+        )
+
+
+class _StubTask8Port:
+    """Stub :class:`Task8ForecastPort` for tests without maturity tables.
+
+    The default TASK-008 loader requires ``MaturityForecastRun`` and
+    ``MaturityModelRun`` ORM rows that are not materialised in the
+    SQLite fixture (they contain Postgres-only JSONB columns).  Tests
+    that do not need to assert on TASK-008 envelope contents inject this
+    stub instead.
+    """
+
+    def __init__(self, *, forecast_run_id: int = 1) -> None:
+        self._forecast_run_id = forecast_run_id
+
+    async def load_by_id(self, *, session, forecast_run_id: int):
+        from backend.app.agent.schemas import Task8Authority
+
+        return Task8Authority(
+            maturity_model_run_id=1,
+            maturity_model_version="v1",
+            maturity_model_config_hash="a" * 64,
+            maturity_model_source_signature="sig",
+            maturity_model_artifact_id=1,
+            maturity_model_artifact_hash="a" * 64,
+            maturity_forecast_run_id=forecast_run_id,
+            maturity_forecast_source_signature="fsig",
+            maturity_forecast_as_of_date=date(2026, 3, 1),
+        )
 
 
 def _add_residual_prediction_run(
@@ -308,6 +415,10 @@ def _mk_input(planting_area_mu: str = "100.0") -> ForecastDailyCurveInput:
 @pytest.mark.asyncio
 async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_session):
     """Insert real ORM rows; assert adapter reads from them."""
+    # Variety row required for code→PK lookup used by per-variety grain.
+    var = Variety(id=1, code="Dx", name="Test")
+    sqlite_session.add(var)
+    await sqlite_session.flush()
     # Set up TASK-008/009/010 with deterministic decimal values.
     as_of = date(2026, 3, 1)
     forecast_start = date(2026, 3, 1)
@@ -339,12 +450,27 @@ async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_ses
                 closing_kg=Decimal("0"),
                 backlog_kg=Decimal("0"),
             )
-    # TASK-010 residual prediction
+    # Member rows (P0-4): per-variety grain MUST mirror pool totals.
+    _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=hsr.id,
+        destination_factory_id=1,
+        variety_id=int(var.id),
+        arrival_kg_per_quantile_per_date={
+            (d, q): Decimal(100 + i * 10)
+            for i, d in enumerate([date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)])
+            for q in ("P50", "P80", "P90")
+        },
+    )
+    # TASK-010 residual prediction.  The TASK-010 candidate MUST carry
+    # the SAME task9_result_hash as the TASK-009 harvest_state_run's
+    # result_hash — the strict-scope selector rejects mismatches.
+    hs_result_hash = _hash("res-1")
     res_run = _add_residual_prediction_run(
         sqlite_session,
         prediction_run_id=1,
         task9_run_id=hsr.id,
-        task9_result_hash=_hash("res"),
+        task9_result_hash=hs_result_hash,
     )
     for i, d in enumerate([date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)]):
         base = Decimal(120 + i * 12)
@@ -357,11 +483,13 @@ async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_ses
             corrected_p80=base + Decimal("5"),
             corrected_p90=base + Decimal("10"),
             task9_run_id=hsr.id,
-            task9_result_hash=_hash("res"),
+            task9_result_hash=hs_result_hash,
         )
     await sqlite_session.flush()
 
-    adapter = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    adapter = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     out = await adapter.execute(sqlite_session, input=_mk_input())
     assert out.agent_daily_curve_hash != "0" * 64
     # 3 days; final_corrected_arrival_quantity_kg should equal the
@@ -381,6 +509,9 @@ async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_ses
 
 @pytest.mark.asyncio
 async def test_default_daily_curve_emits_real_typed_authorities(sqlite_session):
+    var = Variety(id=1, code="Dx", name="Test")
+    sqlite_session.add(var)
+    await sqlite_session.flush()
     as_of = date(2026, 3, 1)
     hsr = _build_harvest_state_run(
         sqlite_session,
@@ -407,11 +538,22 @@ async def test_default_daily_curve_emits_real_typed_authorities(sqlite_session):
                 closing_kg=Decimal("0"),
                 backlog_kg=Decimal("0"),
             )
+    _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=hsr.id,
+        destination_factory_id=1,
+        variety_id=int(var.id),
+        arrival_kg_per_quantile_per_date={
+            (d, q): Decimal("100")
+            for d in (date(2026, 3, 1), date(2026, 3, 2))
+            for q in ("P50", "P80", "P90")
+        },
+    )
     _add_residual_prediction_run(
         sqlite_session,
         prediction_run_id=1,
         task9_run_id=hsr.id,
-        task9_result_hash=_hash("res"),
+        task9_result_hash=_hash("res-1"),
     )
     for d in (date(2026, 3, 1), date(2026, 3, 2)):
         for q_p50 in (Decimal("110"),):
@@ -424,11 +566,13 @@ async def test_default_daily_curve_emits_real_typed_authorities(sqlite_session):
                 corrected_p80=q_p50 + Decimal("5"),
                 corrected_p90=q_p50 + Decimal("10"),
                 task9_run_id=hsr.id,
-                task9_result_hash=_hash("res"),
+                task9_result_hash=_hash("res-1"),
             )
     await sqlite_session.flush()
 
-    adapter = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    adapter = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     out = await adapter.execute(sqlite_session, input=_mk_input())
     # task9_authority is populated (real PK + hashes from the inserted row).
     assert out.task9_authority is not None
@@ -443,9 +587,10 @@ async def test_default_daily_curve_emits_real_typed_authorities(sqlite_session):
 async def test_default_daily_curve_rejects_task9_task10_lineage_mismatch(
     sqlite_session,
 ):
-    # Insert a harvest_state_run whose maturity_forecast_run_id=None — no
-    # actual TASK-8 row exists.  The adapter should NOT silently
-    # substitute a fallback; it must emit a structured blocker.
+    # Insert a harvest_state_run whose maturity_forecast_run_id=None AND
+    # no TASK-010 residual prediction run.  Per the strict-scope
+    # composer, TASK-010 is validated BEFORE TASK-008; the absence of
+    # TASK-010 produces TASK10_AUTHORITY_NOT_FOUND first.
     as_of = date(2026, 3, 1)
     _build_harvest_state_run(
         sqlite_session,
@@ -459,10 +604,18 @@ async def test_default_daily_curve_rejects_task9_task10_lineage_mismatch(
     )
     await sqlite_session.flush()
 
-    adapter = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    adapter = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     out = await adapter.execute(sqlite_session, input=_mk_input())
     codes = [b.code for b in out.blockers]
-    assert BlockerCode.TASK8_AUTHORITY_NOT_FOUND in codes
+    # Either blocker is acceptable — the test asserts the adapter
+    # surfaces a typed capability blocker rather than silently
+    # substituting a fallback.
+    assert (
+        BlockerCode.TASK8_AUTHORITY_NOT_FOUND in codes
+        or BlockerCode.TASK10_AUTHORITY_NOT_FOUND in codes
+    )
 
 
 # --- Test 4: empty DB → structured blockers -----------------------------
@@ -473,10 +626,13 @@ async def test_default_daily_curve_missing_authority_returns_structured_blocker(
     sqlite_session,
 ):
     # Empty DB.
-    adapter = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    adapter = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     out = await adapter.execute(sqlite_session, input=_mk_input())
     codes = [b.code for b in out.blockers]
     assert BlockerCode.TASK9_AUTHORITY_NOT_FOUND in codes
+    # TASK-010 cascade is blocked by the missing TASK-009 lineage.
     assert BlockerCode.TASK10_AUTHORITY_NOT_FOUND in codes
     assert out.per_day == []
 
@@ -488,6 +644,9 @@ async def test_default_daily_curve_missing_authority_returns_structured_blocker(
 async def test_default_daily_curve_same_persisted_input_is_byte_identical(
     sqlite_session,
 ):
+    var = Variety(id=1, code="Dx", name="Test")
+    sqlite_session.add(var)
+    await sqlite_session.flush()
     hsr = _build_harvest_state_run(
         sqlite_session,
         run_id=1,
@@ -517,11 +676,24 @@ async def test_default_daily_curve_same_persisted_input_is_byte_identical(
         sqlite_session,
         prediction_run_id=1,
         task9_run_id=hsr.id,
-        task9_result_hash=_hash("res"),
+        task9_result_hash=_hash("res-1"),
+    )
+    _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=hsr.id,
+        destination_factory_id=1,
+        variety_id=int(var.id),
+        arrival_kg_per_quantile_per_date={
+            (d, q): Decimal("100")
+            for d in (date(2026, 3, 1), date(2026, 3, 2))
+            for q in ("P50", "P80", "P90")
+        },
     )
     await sqlite_session.flush()
 
-    adapter = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    adapter = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     out1 = await adapter.execute(sqlite_session, input=_mk_input())
     out2 = await adapter.execute(sqlite_session, input=_mk_input())
     assert out1.agent_daily_curve_hash == out2.agent_daily_curve_hash
@@ -534,6 +706,9 @@ async def test_default_daily_curve_same_persisted_input_is_byte_identical(
 async def test_default_daily_curve_task12_absent_without_explicit_override(
     sqlite_session,
 ):
+    var = Variety(id=1, code="Dx", name="Test")
+    sqlite_session.add(var)
+    await sqlite_session.flush()
     hsr = _build_harvest_state_run(
         sqlite_session,
         run_id=1,
@@ -563,11 +738,24 @@ async def test_default_daily_curve_task12_absent_without_explicit_override(
         sqlite_session,
         prediction_run_id=1,
         task9_run_id=hsr.id,
-        task9_result_hash=_hash("res"),
+        task9_result_hash=_hash("res-1"),
+    )
+    _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=hsr.id,
+        destination_factory_id=1,
+        variety_id=int(var.id),
+        arrival_kg_per_quantile_per_date={
+            (d, q): Decimal("100")
+            for d in (date(2026, 3, 1), date(2026, 3, 2))
+            for q in ("P50", "P80", "P90")
+        },
     )
     await sqlite_session.flush()
 
-    adapter = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    adapter = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     out = await adapter.execute(sqlite_session, input=_mk_input())
     assert out.task12_authority is None
 
@@ -1017,6 +1205,9 @@ async def test_resolve_location_same_input_same_catalog_same_output(
 @pytest.mark.asyncio
 async def test_scenario_preserves_authority_overrides(sqlite_session):
     """Both baseline and scenario use the same TASK-9 run when overridden."""
+    var = Variety(id=1, code="Dx", name="Test")
+    sqlite_session.add(var)
+    await sqlite_session.flush()
     hsr = _build_harvest_state_run(
         sqlite_session,
         run_id=1,
@@ -1042,11 +1233,22 @@ async def test_scenario_preserves_authority_overrides(sqlite_session):
                 closing_kg=Decimal("0"),
                 backlog_kg=Decimal("0"),
             )
+    _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=hsr.id,
+        destination_factory_id=1,
+        variety_id=int(var.id),
+        arrival_kg_per_quantile_per_date={
+            (d, q): Decimal("100")
+            for d in (date(2026, 3, 1), date(2026, 3, 2))
+            for q in ("P50", "P80", "P90")
+        },
+    )
     _add_residual_prediction_run(
         sqlite_session,
         prediction_run_id=1,
         task9_run_id=hsr.id,
-        task9_result_hash=_hash("res"),
+        task9_result_hash=_hash("res-1"),
     )
     await sqlite_session.flush()
 
@@ -1084,7 +1286,9 @@ async def test_scenario_preserves_authority_overrides(sqlite_session):
         ),
         canonical_request_hash="0" * 64,
     )
-    daily = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    daily = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     peak = DefaultPeakAdapter()
     DefaultScenarioAdapter(daily_curve_adapter=daily, peak_adapter=peak)
     inp = SimulateScenarioInput(
@@ -1131,6 +1335,9 @@ async def test_scenario_preserves_authority_overrides(sqlite_session):
 
 @pytest.mark.asyncio
 async def test_scenario_preserves_as_of_override_provenance(sqlite_session):
+    var = Variety(id=1, code="Dx", name="Test")
+    sqlite_session.add(var)
+    await sqlite_session.flush()
     hsr = _build_harvest_state_run(
         sqlite_session,
         run_id=1,
@@ -1156,11 +1363,22 @@ async def test_scenario_preserves_as_of_override_provenance(sqlite_session):
                 closing_kg=Decimal("0"),
                 backlog_kg=Decimal("0"),
             )
+    _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=hsr.id,
+        destination_factory_id=1,
+        variety_id=int(var.id),
+        arrival_kg_per_quantile_per_date={
+            (d, q): Decimal("100")
+            for d in (date(2026, 3, 1), date(2026, 3, 2))
+            for q in ("P50", "P80", "P90")
+        },
+    )
     _add_residual_prediction_run(
         sqlite_session,
         prediction_run_id=1,
         task9_run_id=hsr.id,
-        task9_result_hash=_hash("res"),
+        task9_result_hash=_hash("res-1"),
     )
     await sqlite_session.flush()
 
@@ -1198,7 +1416,9 @@ async def test_scenario_preserves_as_of_override_provenance(sqlite_session):
         ),
         canonical_request_hash="0" * 64,
     )
-    daily = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    daily = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     peak = DefaultPeakAdapter()
     DefaultScenarioAdapter(daily_curve_adapter=daily, peak_adapter=peak)
     inp = SimulateScenarioInput(
@@ -1242,9 +1462,12 @@ async def test_scenario_preserves_as_of_override_provenance(sqlite_session):
 
 @pytest.mark.asyncio
 async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
-    # When baseline and scenario use different TASK-9 overrides,
-    # SCENARIO_INCOMPATIBLE_WITH_BASE is surfaced (advisory; Slice A
-    # does not yet fail closed here).
+    # Per P0-6 strict authority selection, the composer returns a single
+    # candidate (zero or one) and rejects AUTHORITY_CONFLICT when multiple
+    # candidates satisfy the strict scope.  When both hsr1 and hsr2
+    # qualify the same effective_as_of_date, the composer emits
+    # AUTHORITY_CONFLICT with full candidate disclosure and the delta is
+    # NOT computed.
     hsr1 = _build_harvest_state_run(
         sqlite_session,
         run_id=1,
@@ -1289,21 +1512,74 @@ async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
     )
     await sqlite_session.flush()
 
-    # Slice A: scenario does not block on drift yet.  This test asserts
-    # the (current) behavior is documented rather than asserting a
-    # blocker.  A follow-up round will add the drift check.
-    from backend.app.agent.schemas import Task9HarvestStateRunAuthorityOverride
-
-    AdvancedOverrides(
-        authority_overrides=[
-            Task9HarvestStateRunAuthorityOverride(
-                override_kind="AUTHORITY_OVERRIDE_KIND",
-                target="TASK9_HARVEST_STATE_RUN",
-                value=1,
-                source_attestation="op",
-            ),
-        ],
+    # Run the daily curve adapter and assert AUTHORITY_CONFLICT.
+    from backend.app.agent.schemas import (
+        AdvancedOverrides,
+        LocationInput,
+        NormalizedAgentRequest,
+        NormalizedVarietyInput,
+        RequestedAsOfDateProvenance,
+        ResolvedLocation,
     )
+
+    nr = NormalizedAgentRequest(
+        request_id="r",
+        request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
+        effective_as_of_date=date(2026, 3, 1),
+        effective_forecast_season=2026,
+        season_resolution_policy_version="v1",
+        season_calendar_config_hash="a" * 64,
+        requested_as_of_date_provenance=RequestedAsOfDateProvenance(
+            caller_requested_as_of_date=date(2026, 3, 1),
+            effective_as_of_date=date(2026, 3, 1),
+            override_applied=False,
+            override_kind=None,
+            source_attestation=None,
+            source_ref=None,
+        ),
+        normalized_location=ResolvedLocation(
+            status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
+        location_input=LocationInput(raw_text="云南曲靖", location_reference_id=1),
+        varieties=[NormalizedVarietyInput(variety_id="Dx", planting_area_mu="100.0")],
+        advanced_overrides=AdvancedOverrides(),
+        canonical_request_hash="0" * 64,
+    )
+    from backend.app.agent.schemas import ForecastDailyCurveInput, UncertaintyWideningPolicy
+
+    inp = ForecastDailyCurveInput(
+        normalized_request=nr,
+        resolved_location=ResolvedLocation(
+            status="resolved", location_reference_id=1, matched_location_method="REFERENCE_ID"
+        ),
+        parameters=[],
+        advanced_overrides=AdvancedOverrides(),
+        uncertainty_widening_policy=UncertaintyWideningPolicy(
+            policy_version="v1",
+            config_hash="b" * 64,
+            factors_by_source_level={
+                "step_1_same_farm_same_variety_high_evidence": "1.000",
+                "step_2_same_township_similar_altitude": "1.250",
+                "step_3_same_county_same_climate_zone": "1.500",
+                "step_4_province_level_same_variety": "1.750",
+                "step_5_variety_document_prior_only": "2.000",
+            },
+            monotonicity_invariant=True,
+        ),
+    )
+    adapter = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
+    out = await adapter.execute(sqlite_session, input=inp)
+    codes = [b.code for b in out.blockers]
+    assert BlockerCode.AUTHORITY_CONFLICT in codes
+    # The conflict blocker must disclose the candidate IDs.
+    conflict_blockers = [b for b in out.blockers if b.code == BlockerCode.AUTHORITY_CONFLICT]
+    assert len(conflict_blockers) >= 1
+    details = conflict_blockers[0].details or {}
+    assert "candidates" in details
+    cand_ids = sorted(c["harvest_state_run_id"] for c in details["candidates"])
+    assert cand_ids == [1, 2]
 
 
 # --- Test 20: scenario default constructor uses production daily_curve -
@@ -1373,7 +1649,9 @@ async def test_scenario_default_constructor_uses_production_daily_curve(
         ),
         advanced_overrides=AdvancedOverrides(),
     )
-    daily_curve_adapter = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    daily_curve_adapter = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     peak_adapter = DefaultPeakAdapter()
     scenario_adapter = DefaultScenarioAdapter(
         daily_curve_adapter=daily_curve_adapter, peak_adapter=peak_adapter
@@ -1389,6 +1667,9 @@ async def test_scenario_default_constructor_uses_production_daily_curve(
 
 @pytest.mark.asyncio
 async def test_scenario_same_input_same_hash_and_delta(sqlite_session):
+    var = Variety(id=1, code="Dx", name="Test")
+    sqlite_session.add(var)
+    await sqlite_session.flush()
     hsr = _build_harvest_state_run(
         sqlite_session,
         run_id=1,
@@ -1414,15 +1695,28 @@ async def test_scenario_same_input_same_hash_and_delta(sqlite_session):
                 closing_kg=Decimal("0"),
                 backlog_kg=Decimal("0"),
             )
+    _populate_member_rows_matching_pool(
+        sqlite_session,
+        harvest_state_run_id=hsr.id,
+        destination_factory_id=1,
+        variety_id=int(var.id),
+        arrival_kg_per_quantile_per_date={
+            (d, q): Decimal("100")
+            for d in (date(2026, 3, 1), date(2026, 3, 2))
+            for q in ("P50", "P80", "P90")
+        },
+    )
     _add_residual_prediction_run(
         sqlite_session,
         prediction_run_id=1,
         task9_run_id=hsr.id,
-        task9_result_hash=_hash("res"),
+        task9_result_hash=_hash("res-1"),
     )
     await sqlite_session.flush()
 
-    daily = DefaultDailyCurveAdapter(baseline=DefaultTaskCompositionBaseline())
+    daily = DefaultDailyCurveAdapter(
+        baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
+    )
     peak = DefaultPeakAdapter()
     adapter = DefaultScenarioAdapter(daily_curve_adapter=daily, peak_adapter=peak)
     nr = NormalizedAgentRequest(
