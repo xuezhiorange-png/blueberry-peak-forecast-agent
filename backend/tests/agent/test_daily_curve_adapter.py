@@ -88,7 +88,15 @@ class _FakeBaseline(ScenarioBaselinePort):
         parameters: list[Any],
         advanced_overrides: Any,
     ):
-        return self._rows, []
+        from backend.app.agent.adapters.baseline_composer import BaselineCompositionResult
+
+        return BaselineCompositionResult(
+            rows=self._rows,
+            task8_run_id=None,
+            task9_run_id=None,
+            task10_prediction_run_id=None,
+            blockers=[],
+        )
 
 
 def _mk_input(rows: list[ForecastDailyRow]) -> ForecastDailyCurveInput:
@@ -186,7 +194,7 @@ async def test_daily_curve_explicit_task12_runid_mismatch_rejected(sqlite_sessio
     out = await adapter.execute(sqlite_session, input=inp)
     assert out.task12_authority is None
     codes = [b.code.value for b in out.blockers]
-    assert "CITATION_HASH_MISMATCH" in codes
+    assert "TASK12_AUTHORITY_NOT_FOUND" in codes
 
 
 # --- identical input produces byte-identical output ---------------------

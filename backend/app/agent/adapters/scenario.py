@@ -4,9 +4,22 @@ This adapter wraps the existing TASK-008/009/010 services via injected ports
 and computes a deterministic baseline + scenario curve pair, then emits the
 quantile-preserving delta summary required by §17.
 
-Hard rules enforced:
+Hard rules enforced (P0-6):
 
-* accepts the typed :class:`~backend.app.agent.schemas.ScenarioOverride`
+* The baseline preserves the input ``parameter_overrides`` /
+  ``authority_overrides`` / ``as_of_overrides`` / ``execution_overrides`` —
+  it only clears ``scenario_overrides``.
+* The scenario preserves the same non-scenario override families and
+  applies the current ``scenario_overrides``.
+* Both baseline and scenario use the SAME TASK-008/009/010 authority
+  set.  Any drift between the two returns
+  :data:`BlockerCode.SCENARIO_INCOMPATIBLE_WITH_BASE` and the delta is
+  NOT computed.
+* Scenario overrides have no upstream execution capability in Slice A.
+  When a scenario override is supplied, the adapter emits
+  :data:`BlockerCode.SCENARIO_OVERRIDE_EXECUTION_NOT_AVAILABLE` and
+  does NOT return a fabricated scenario curve.
+* Accepts the typed :class:`~backend.app.agent.schemas.ScenarioOverride`
   union;
 * validates staffing/capacity non-negativity;
 * wraps the actual existing services — does NOT create a new numerical
@@ -31,8 +44,8 @@ from backend.app.agent.adapters.peak import DefaultPeakAdapter
 from backend.app.agent.canonical import sha256_payload
 from backend.app.agent.enums import BlockerCode, ForecastQuantile
 from backend.app.agent.schemas import (
+    AdvancedOverrides,
     Blocker,
-    ForecastDailyRow,
     ForecastPeakInput,
     ScenarioDeltaQuantiles,
     SimulateScenarioDelta,
@@ -112,7 +125,7 @@ def _delta_quantiles(
     return ScenarioDeltaQuantiles(p50=p50, p80=p80, p90=p90)
 
 
-def _single_day_peak_volume(rows: list[ForecastDailyRow]) -> dict[ForecastQuantile, Decimal]:
+def _single_day_peak_volume(rows: list[Any]) -> dict[ForecastQuantile, Decimal]:
     out: dict[ForecastQuantile, Decimal] = {}
     for q in ("P50", "P80", "P90"):
         field = {"P50": "p50", "P80": "p80", "P90": "p90"}[q]
@@ -123,58 +136,52 @@ def _single_day_peak_volume(rows: list[ForecastDailyRow]) -> dict[ForecastQuanti
     return out
 
 
-def _sustained_3day_daily_average(
-    rows: list[ForecastDailyRow],
-) -> dict[ForecastQuantile, Decimal]:
-    out: dict[ForecastQuantile, Decimal] = {}
-    if len(rows) < 3:
-        for q in ("P50", "P80", "P90"):
-            out[q] = Decimal("0")
-        return out
-    for q in ("P50", "P80", "P90"):
-        field = {"P50": "p50", "P80": "p80", "P90": "p90"}[q]
-        by_date = {
-            r.date: _to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows
-        }
-        sorted_dates = sorted(by_date.keys())
-        best = Decimal("0")
-        for i in range(len(sorted_dates) - 2):
-            v = (
-                by_date[sorted_dates[i]]
-                + by_date[sorted_dates[i + 1]]
-                + by_date[sorted_dates[i + 2]]
-            ) / Decimal(3)
-            if v > best:
-                best = v
-        out[cast(ForecastQuantile, q)] = best
-    return out
+def _authority_identities_match(baseline_curve: Any, scenario_curve: Any) -> bool:
+    """Compare TASK-008/009/010 authority envelope IDs across the two curves."""
+
+    pairs = (
+        ("task8_authority", "maturity_forecast_run_id"),
+        ("task9_authority", "harvest_state_run_id"),
+        ("task10_authority", "prediction_run_id"),
+    )
+    for attr, id_field in pairs:
+        b_env = getattr(baseline_curve, attr, None)
+        s_env = getattr(scenario_curve, attr, None)
+        if b_env is None and s_env is None:
+            continue
+        if b_env is None or s_env is None:
+            return False
+        if getattr(b_env, id_field) != getattr(s_env, id_field):
+            return False
+    return True
 
 
-def _sustained_3day_cumulative(
-    rows: list[ForecastDailyRow],
-) -> dict[ForecastQuantile, Decimal]:
-    out: dict[ForecastQuantile, Decimal] = {}
-    if len(rows) < 3:
-        for q in ("P50", "P80", "P90"):
-            out[q] = Decimal("0")
-        return out
-    for q in ("P50", "P80", "P90"):
-        field = {"P50": "p50", "P80": "p80", "P90": "p90"}[q]
-        by_date = {
-            r.date: _to_decimal(getattr(r.final_corrected_arrival_quantity_kg, field)) for r in rows
-        }
-        sorted_dates = sorted(by_date.keys())
-        best = Decimal("0")
-        for i in range(len(sorted_dates) - 2):
-            v = (
-                by_date[sorted_dates[i]]
-                + by_date[sorted_dates[i + 1]]
-                + by_date[sorted_dates[i + 2]]
-            )
-            if v > best:
-                best = v
-        out[cast(ForecastQuantile, q)] = best
-    return out
+def _baseline_and_scenario_overrides(
+    *,
+    input: SimulateScenarioInput,
+) -> tuple[AdvancedOverrides, AdvancedOverrides]:
+    """Build baseline + scenario ``AdvancedOverrides`` preserving provenance.
+
+    Baseline: keep input non-scenario overrides; clear scenario_overrides.
+    Scenario: keep input non-scenario overrides; apply input scenario_overrides.
+    """
+
+    input_overrides = input.advanced_overrides or AdvancedOverrides()
+    baseline_overrides = AdvancedOverrides(
+        parameter_overrides=list(input_overrides.parameter_overrides),
+        authority_overrides=list(input_overrides.authority_overrides),
+        as_of_overrides=list(input_overrides.as_of_overrides),
+        execution_overrides=list(input_overrides.execution_overrides),
+        scenario_overrides=[],
+    )
+    scenario_overrides = AdvancedOverrides(
+        parameter_overrides=list(input_overrides.parameter_overrides),
+        authority_overrides=list(input_overrides.authority_overrides),
+        as_of_overrides=list(input_overrides.as_of_overrides),
+        execution_overrides=list(input_overrides.execution_overrides),
+        scenario_overrides=list(input.scenario_overrides),
+    )
+    return baseline_overrides, scenario_overrides
 
 
 # --- Top-level adapter ----------------------------------------------------
@@ -198,25 +205,77 @@ class DefaultScenarioAdapter:
         *,
         input: SimulateScenarioInput,
     ) -> SimulateScenarioOutput:
-        blockers = _validate_overrides(input.scenario_overrides)
-        if blockers:
+        validation_blockers = _validate_overrides(input.scenario_overrides)
+        if validation_blockers:
             raise ValueError(
-                "scenario overrides failed validation: " + "; ".join(b.code.value for b in blockers)
+                "scenario overrides failed validation: "
+                + "; ".join(b.code.value for b in validation_blockers)
             )
 
         scenario_id, scenario_config_hash = _scenario_id_and_hash(input.scenario_overrides)
 
-        # Baseline (no scenario overrides): reuse the daily_curve adapter
-        # with a no-scenario advanced_overrides.
-        from backend.app.agent.schemas import AdvancedOverrides
+        # P0-6: scenario overrides have no real upstream execution
+        # capability in Slice A.  When ANY scenario override is supplied,
+        # surface SCENARIO_OVERRIDE_EXECUTION_NOT_AVAILABLE rather than
+        # emitting a fabricated scenario curve.
+        if input.scenario_overrides:
+            # Still compute the baseline to preserve the contract, but
+            # emit a typed capability blocker for the scenario.
+            baseline_overrides, _ = _baseline_and_scenario_overrides(input=input)
+            baseline_curve = await self._daily_curve.execute(
+                session,
+                input=__import__(
+                    "backend.app.agent.schemas", fromlist=["ForecastDailyCurveInput"]
+                ).ForecastDailyCurveInput(
+                    normalized_request=input.normalized_request,
+                    resolved_location=input.resolved_location,
+                    parameters=input.parameters,
+                    advanced_overrides=baseline_overrides,
+                    uncertainty_widening_policy=input.uncertainty_widening_policy,
+                ),
+            )
+            capability_blocker = Blocker(
+                code=BlockerCode.SCENARIO_OVERRIDE_EXECUTION_NOT_AVAILABLE,
+                message=(
+                    "scenario override execution is not available in Slice A; "
+                    "no upstream scenario-capable service exists to apply the "
+                    "supplied scenario override."
+                ),
+                details={
+                    "scenario_override_count": len(input.scenario_overrides),
+                    "scenario_override_targets": sorted(
+                        {ov.target for ov in input.scenario_overrides}
+                    ),
+                },
+                retry_hint="WAIT_FOR_DATA",
+            )
+            baseline_curve.blockers.append(capability_blocker)
+            baseline_peak = self._peak.execute(
+                input=ForecastPeakInput(
+                    normalized_request=input.normalized_request,
+                    daily_curve=baseline_curve,
+                    peak_metric_policy=input.peak_metric_policy,
+                )
+            )
+            zero_delta = SimulateScenarioDelta(
+                single_day_peak_volume_delta_kg=ScenarioDeltaQuantiles(p50="0", p80="0", p90="0"),
+                sustained_3day_daily_average_delta_kg_per_day=ScenarioDeltaQuantiles(
+                    p50="0", p80="0", p90="0"
+                ),
+                sustained_3day_cumulative_delta_kg=ScenarioDeltaQuantiles(
+                    p50="0", p80="0", p90="0"
+                ),
+            )
+            return SimulateScenarioOutput(
+                scenario_id=scenario_id,
+                scenario_config_hash=scenario_config_hash,
+                forecast_daily_curve=baseline_curve,
+                forecast_peak=baseline_peak,
+                delta_vs_baseline=zero_delta,
+            )
 
-        baseline_overrides = AdvancedOverrides(
-            parameter_overrides=[],
-            scenario_overrides=[],
-            execution_overrides=[],
-            authority_overrides=[],
-            as_of_overrides=[],
-        )
+        baseline_overrides, scenario_overrides = _baseline_and_scenario_overrides(input=input)
+
         baseline_curve = await self._daily_curve.execute(
             session,
             input=__import__(
@@ -238,9 +297,6 @@ class DefaultScenarioAdapter:
             )
         )
 
-        # Scenario curve: same adapter, but with the scenario overrides
-        # applied via the baseline port (the baseline port is responsible
-        # for applying scenario-specific adjustments).
         scenario_curve = await self._daily_curve.execute(
             session,
             input=__import__(
@@ -249,16 +305,67 @@ class DefaultScenarioAdapter:
                 normalized_request=input.normalized_request,
                 resolved_location=input.resolved_location,
                 parameters=input.parameters,
-                advanced_overrides=AdvancedOverrides(
-                    parameter_overrides=[],
-                    scenario_overrides=input.scenario_overrides,
-                    execution_overrides=[],
-                    authority_overrides=[],
-                    as_of_overrides=[],
-                ),
+                advanced_overrides=scenario_overrides,
                 uncertainty_widening_policy=input.uncertainty_widening_policy,
             ),
         )
+
+        # Authority compatibility: baseline and scenario MUST share the
+        # same TASK-008/009/010 authority set.  Any drift returns
+        # SCENARIO_INCOMPATIBLE_WITH_BASE and we do not compute the delta.
+        if not _authority_identities_match(baseline_curve, scenario_curve):
+            incompatible_blocker = Blocker(
+                code=BlockerCode.SCENARIO_INCOMPATIBLE_WITH_BASE,
+                message=(
+                    "scenario curve's TASK-008/009/010 authority identities "
+                    "differ from baseline; cannot compute a meaningful delta."
+                ),
+                details={
+                    "baseline_task8_run_id": (
+                        getattr(baseline_curve.task8_authority, "maturity_forecast_run_id", None)
+                    ),
+                    "scenario_task8_run_id": (
+                        getattr(scenario_curve.task8_authority, "maturity_forecast_run_id", None)
+                    ),
+                    "baseline_task9_run_id": (
+                        getattr(baseline_curve.task9_authority, "harvest_state_run_id", None)
+                    ),
+                    "scenario_task9_run_id": (
+                        getattr(scenario_curve.task9_authority, "harvest_state_run_id", None)
+                    ),
+                    "baseline_task10_run_id": (
+                        getattr(baseline_curve.task10_authority, "prediction_run_id", None)
+                    ),
+                    "scenario_task10_run_id": (
+                        getattr(scenario_curve.task10_authority, "prediction_run_id", None)
+                    ),
+                },
+                retry_hint="FIX_INPUT",
+            )
+            scenario_curve.blockers.append(incompatible_blocker)
+            scenario_peak = self._peak.execute(
+                input=ForecastPeakInput(
+                    normalized_request=input.normalized_request,
+                    daily_curve=scenario_curve,
+                    peak_metric_policy=input.peak_metric_policy,
+                )
+            )
+            zero_delta = SimulateScenarioDelta(
+                single_day_peak_volume_delta_kg=ScenarioDeltaQuantiles(p50="0", p80="0", p90="0"),
+                sustained_3day_daily_average_delta_kg_per_day=ScenarioDeltaQuantiles(
+                    p50="0", p80="0", p90="0"
+                ),
+                sustained_3day_cumulative_delta_kg=ScenarioDeltaQuantiles(
+                    p50="0", p80="0", p90="0"
+                ),
+            )
+            return SimulateScenarioOutput(
+                scenario_id=scenario_id,
+                scenario_config_hash=scenario_config_hash,
+                forecast_daily_curve=scenario_curve,
+                forecast_peak=scenario_peak,
+                delta_vs_baseline=zero_delta,
+            )
 
         scenario_peak = self._peak.execute(
             input=ForecastPeakInput(
@@ -268,9 +375,6 @@ class DefaultScenarioAdapter:
             )
         )
 
-        # Compute quantile-preserving deltas from peak entries directly
-        # (these are the authoritative post-scenario single-day peak volumes).
-        # When the curve is empty, peak entries may not be populated — use 0.
         def _single_day_value(peak_output: Any, q: str) -> Decimal:
             if q not in peak_output.single_day_peak:
                 return Decimal("0")
@@ -283,9 +387,6 @@ class DefaultScenarioAdapter:
             q: _single_day_value(scenario_peak, q) for q in ("P50", "P80", "P90")
         }
 
-        # The sustained 3-day average/cumulative come from the underlying
-        # daily curves (the peak output already contains them).  When the
-        # curve is empty, the peak output may not have an entry — use 0.
         def _sustained_value(peak_output: Any, q: str, attr: str) -> Decimal:
             sus = peak_output.sustained_3day_peak
             if q not in sus:
