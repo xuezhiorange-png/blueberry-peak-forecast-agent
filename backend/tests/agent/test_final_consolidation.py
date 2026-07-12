@@ -1635,3 +1635,359 @@ async def test_task9_valid_candidate_coexists_with_invalid_related_row(
     assert [c["id"] for c in selection.candidates] == [valid], (
         f"valid row must be the sole candidate; got {selection.candidates}"
     )
+
+
+# ===========================================================================
+# P0 (Round 11 review 4680976947): strict total-order public payload
+#
+# The Round 10 sort key ``(code, reason, field)`` was content-based
+# but NOT a strict total order: two distinct-content blockers with
+# the same prefix produced identical keys, so reverse-order inputs
+# could yield different public payloads.  Round 11 extends the key
+# with the full canonical public payload as the final tie-break.
+# The conflict helper previously keyed on the non-existent
+# ``id`` field; it now extracts the real identity field
+# (``harvest_state_run_id`` or ``prediction_run_id``) and fail-closes
+# on missing/ambiguous payloads.
+#
+# These tests assert byte-identical canonical output (no test-only
+# redaction) and the conflict-helper identity fields are
+# exercised directly.
+# ===========================================================================
+
+
+def _build_round11_blocker(
+    *,
+    code: BlockerCode,
+    row_id: int,
+    row_destination_factory_id: int,
+    reason: str = "DESTINATION_MISMATCH",
+    field: str = "",
+    message_suffix: str = "",
+) -> Blocker:
+    """Build a :class:`Blocker` with a public-content discriminator.
+
+    The ``row_id`` / ``row_destination_factory_id`` /
+    ``message_suffix`` are part of the public payload, so two
+    blockers constructed with the same ``code`` / ``reason`` /
+    ``field`` but different combinations of these three fields
+    produce **different** full public payloads.
+    """
+
+    return Blocker(
+        code=code,
+        message=(
+            f"TASK-009 candidate row {row_id} (destination="
+            f"{row_destination_factory_id}) fails scope check"
+            f"{message_suffix}"
+        ),
+        details={
+            "row_id": row_id,
+            "row_destination_factory_id": row_destination_factory_id,
+            "reason": reason,
+            "field": field,
+        },
+        retry_hint="PROVIDE_OVERRIDE",
+    )
+
+
+def test_task9_same_type_blocker_total_order_canonical_byte_identical() -> None:
+    """Two distinct-content blockers with the same
+    ``(code, reason, field)`` MUST sort to the same total order
+    regardless of input order.  The Round 10 sort key
+    ``(code, reason, field)`` collapses them, so the public payload
+    diverges on reverse inputs.  Round 11's strict total-order key
+    guarantees byte-identical canonical output.
+
+    Test contract (Round 11):
+        * SAME blocker objects (no fabrication between runs).
+        * REVERSE input order.
+        * Compare **unredacted** full canonical bytes + hash.
+    """
+
+    from backend.app.residual_model.canonical import (
+        canonical_json_dumps,
+        canonical_payload_hash,
+    )
+
+    a = _build_round11_blocker(
+        code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        row_id=7,
+        row_destination_factory_id=1,
+    )
+    b = _build_round11_blocker(
+        code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        row_id=11,
+        row_destination_factory_id=2,
+    )
+
+    from backend.app.agent.adapters.baseline_composer import (
+        _blocker_sort_key,
+        _sort_blockers_deterministically,
+    )
+
+    sorted_ab = _sort_blockers_deterministically([a, b])
+    sorted_ba = _sort_blockers_deterministically([b, a])
+
+    payload_ab = canonical_json_dumps([b.model_dump(mode="json") for b in sorted_ab])
+    payload_ba = canonical_json_dumps([b.model_dump(mode="json") for b in sorted_ba])
+
+    assert payload_ab == payload_ba, (
+        f"strict-total-order sort must produce byte-identical canonical "
+        f"payload across reverse input orders; got\n  ab: {payload_ab}\n"
+        f"  ba: {payload_ba}"
+    )
+    assert canonical_payload_hash(payload_ab) == canonical_payload_hash(payload_ba)
+
+    # The sort key must be a strict total order: distinct-content
+    # blockers produce distinct keys.
+    assert _blocker_sort_key(a) != _blocker_sort_key(b), (
+        f"distinct-content blockers must produce distinct sort keys; "
+        f"a={_blocker_sort_key(a)}\nb={_blocker_sort_key(b)}"
+    )
+
+
+def test_task9_mixed_blocker_total_order_canonical_byte_identical() -> None:
+    """Four distinct blockers (different code/reason/field/row_id)
+    sorted in reverse input orders MUST produce byte-identical
+    canonical payload.  The strict-total-order key in Round 11
+    covers every (code, reason, field) group with canonical-payload
+    as the final tie-break.
+    """
+
+    from backend.app.residual_model.canonical import (
+        canonical_json_dumps,
+        canonical_payload_hash,
+    )
+    from backend.app.agent.adapters.baseline_composer import (
+        _sort_blockers_deterministically,
+    )
+
+    a = _build_round11_blocker(
+        code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        row_id=1,
+        row_destination_factory_id=99,
+        reason="DESTINATION_MISMATCH",
+    )
+    b = _build_round11_blocker(
+        code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        row_id=2,
+        row_destination_factory_id=1,
+        reason="EXECUTION_STATUS_NOT_COMPLETED",
+    )
+    c = _build_round11_blocker(
+        code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        row_id=3,
+        row_destination_factory_id=1,
+        reason="DATE_COVERAGE_MISMATCH",
+    )
+    d = _build_round11_blocker(
+        code=BlockerCode.AUTHORITY_HASH_MALFORMED,
+        row_id=4,
+        row_destination_factory_id=1,
+        reason="HASH_MALFORMED",
+    )
+
+    forward = [a, b, c, d]
+    reverse = [d, c, b, a]
+    sorted_fwd = _sort_blockers_deterministically(forward)
+    sorted_rev = _sort_blockers_deterministically(reverse)
+
+    payload_fwd = canonical_json_dumps([b.model_dump(mode="json") for b in sorted_fwd])
+    payload_rev = canonical_json_dumps([b.model_dump(mode="json") for b in sorted_rev])
+    assert payload_fwd == payload_rev
+    assert canonical_payload_hash(payload_fwd) == canonical_payload_hash(payload_rev)
+
+
+def test_task10_default_blocker_payload_is_stable_for_reversed_result_order() -> None:
+    """Round 11 requires a non-vacuous TASK-010 blocker ordering test.
+
+    Construct the same payload via the production helper with
+    different input orders and assert the **unredacted** full
+    public-payload canonical bytes / hash are byte-identical.  This
+    proves the sort key is a strict total order over the public
+    payload.
+    """
+
+    from backend.app.residual_model.canonical import (
+        canonical_json_dumps,
+        canonical_payload_hash,
+    )
+    from backend.app.agent.adapters.baseline_composer import (
+        _blocker_sort_key,
+        _sort_blockers_deterministically,
+    )
+
+    lineage_a = Blocker(
+        code=BlockerCode.AUTHORITY_LINEAGE_MISMATCH,
+        message=(
+            "TASK-010 candidate row 1 has task9_result_hash="
+            "0000000000000000000000000000000000000000000000000000000000000000"
+            " but selected TASK-009 row has different hash"
+        ),
+        details={
+            "row_id": 1,
+            "reason": "PERSISTED_TASK9_RESULT_HASH_MISMATCH",
+            "field": "task9_result_hash",
+            "persisted_task9_result_hash": ("0" * 64),
+        },
+        retry_hint="PROVIDE_OVERRIDE",
+    )
+    lineage_b = Blocker(
+        code=BlockerCode.AUTHORITY_LINEAGE_MISMATCH,
+        message=(
+            "TASK-010 candidate row 2 has task9_result_hash="
+            "1111111111111111111111111111111111111111111111111111111111111111"
+            " but selected TASK-009 row has different hash"
+        ),
+        details={
+            "row_id": 2,
+            "reason": "PERSISTED_TASK9_RESULT_HASH_MISMATCH",
+            "field": "task9_result_hash",
+            "persisted_task9_result_hash": ("1" * 64),
+        },
+        retry_hint="PROVIDE_OVERRIDE",
+    )
+    status_mismatch = Blocker(
+        code=BlockerCode.AUTHORITY_SCOPE_MISMATCH,
+        message="TASK-010 candidate row 3 has execution_status=blocked",
+        details={
+            "row_id": 3,
+            "reason": "EXECUTION_STATUS_NOT_COMPLETED",
+            "field": "execution_status",
+        },
+        retry_hint="PROVIDE_OVERRIDE",
+    )
+    hash_malformed = Blocker(
+        code=BlockerCode.AUTHORITY_HASH_MALFORMED,
+        message=("TASK-010 candidate row 4 has malformed prediction_hash"),
+        details={
+            "row_id": 4,
+            "reason": "HASH_MALFORMED",
+            "field": "prediction_hash",
+        },
+        retry_hint="PROVIDE_OVERRIDE",
+    )
+
+    forward = [lineage_a, lineage_b, status_mismatch, hash_malformed]
+    reverse = [hash_malformed, status_mismatch, lineage_b, lineage_a]
+    sorted_fwd = _sort_blockers_deterministically(forward)
+    sorted_rev = _sort_blockers_deterministically(reverse)
+
+    # Strict-total-order key: distinct content produces distinct keys.
+    assert _blocker_sort_key(lineage_a) != _blocker_sort_key(lineage_b), (
+        "two lineage-mismatch blockers with different public content "
+        "must produce distinct sort keys"
+    )
+
+    payload_fwd = canonical_json_dumps([b.model_dump(mode="json") for b in sorted_fwd])
+    payload_rev = canonical_json_dumps([b.model_dump(mode="json") for b in sorted_rev])
+    assert payload_fwd == payload_rev
+    assert canonical_payload_hash(payload_fwd) == canonical_payload_hash(payload_rev)
+
+
+def test_conflict_helper_task9_sorts_by_harvest_state_run_id() -> None:
+    """The AUTHORITY_CONFLICT candidate disclosure for TASK-009
+    uses ``harvest_state_run_id`` as the public identity.  Reverse
+    input order MUST sort to the same byte-identical public payload.
+    """
+
+    from backend.app.agent.adapters.baseline_composer import (
+        _authority_conflict_blocker,
+    )
+
+    candidates = [
+        {
+            "harvest_state_run_id": 9,
+            "result_hash": "f" * 64,
+        },
+        {
+            "harvest_state_run_id": 2,
+            "result_hash": "a" * 64,
+        },
+    ]
+    reverse = list(reversed(candidates))
+    blocker = _authority_conflict_blocker("TASK9_HARVEST_STATE_RUN", candidates)
+    reverse_blocker = _authority_conflict_blocker("TASK9_HARVEST_STATE_RUN", reverse)
+    ids = [c["harvest_state_run_id"] for c in blocker.details["candidates"]]
+    reverse_ids = [c["harvest_state_run_id"] for c in reverse_blocker.details["candidates"]]
+    assert ids == [2, 9]
+    assert reverse_ids == [2, 9]
+    # Full public payload must be byte-identical.
+    assert blocker.model_dump(mode="json") == reverse_blocker.model_dump(mode="json")
+
+
+def test_conflict_helper_task10_sorts_by_prediction_run_id() -> None:
+    """Same contract for TASK-010, with ``prediction_run_id``."""
+
+    from backend.app.agent.adapters.baseline_composer import (
+        _authority_conflict_blocker,
+    )
+
+    candidates = [
+        {
+            "prediction_run_id": 12,
+            "task9_run_id": 1,
+            "task9_result_hash": "a" * 64,
+        },
+        {
+            "prediction_run_id": 4,
+            "task9_run_id": 1,
+            "task9_result_hash": "a" * 64,
+        },
+    ]
+    reverse = list(reversed(candidates))
+    blocker = _authority_conflict_blocker("TASK10_PREDICTION_RUN", candidates)
+    reverse_blocker = _authority_conflict_blocker("TASK10_PREDICTION_RUN", reverse)
+    ids = [c["prediction_run_id"] for c in blocker.details["candidates"]]
+    reverse_ids = [c["prediction_run_id"] for c in reverse_blocker.details["candidates"]]
+    assert ids == [4, 12]
+    assert reverse_ids == [4, 12]
+    assert blocker.model_dump(mode="json") == reverse_blocker.model_dump(mode="json")
+
+
+def test_conflict_helper_invalid_identity_fails_closed() -> None:
+    """Conflict candidates with missing, ambiguous, or no
+    supported identity MUST raise :class:`ValueError` — no silent
+    ``0`` fallback (Round 11 review 4680976947).
+    """
+
+    from backend.app.agent.adapters.baseline_composer import (
+        _authority_conflict_blocker,
+    )
+
+    # 1) No supported identity present at all.
+    with pytest.raises(ValueError, match="conflict candidate must contain"):
+        _authority_conflict_blocker(
+            "TASK9_HARVEST_STATE_RUN",
+            [
+                {"result_hash": "a" * 64},
+            ],
+        )
+
+    # 2) Both ``id`` and ``harvest_state_run_id`` present.
+    with pytest.raises(ValueError, match="conflict candidate must contain"):
+        _authority_conflict_blocker(
+            "TASK9_HARVEST_STATE_RUN",
+            [
+                {
+                    "id": 5,
+                    "harvest_state_run_id": 5,
+                    "result_hash": "a" * 64,
+                },
+            ],
+        )
+
+    # 3) Both ``harvest_state_run_id`` and ``prediction_run_id``
+    # present (cross-task identity ambiguity).
+    with pytest.raises(ValueError, match="conflict candidate must contain"):
+        _authority_conflict_blocker(
+            "TASK10_PREDICTION_RUN",
+            [
+                {
+                    "harvest_state_run_id": 5,
+                    "prediction_run_id": 5,
+                    "task9_result_hash": "a" * 64,
+                },
+            ],
+        )
