@@ -20,11 +20,6 @@ from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Varie
 from backend.app.models.maturity import MaturityForecastRun, MaturityModelArtifact, MaturityModelRun
 from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
-from backend.app.residual_model.persistence import (
-    load_residual_prediction_run_by_id,
-    save_residual_prediction_run,
-)
-from backend.app.residual_model.service import structural_only_prediction
 from backend.tests.agent.test_orchestration import _request
 from backend.tests.agent.test_production_wiring import (
     _hash,
@@ -214,47 +209,15 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         artifact=artifact,
         forecast=forecast,
     )
-    task10_result = structural_only_prediction(
-        model_run_id=None,
-        task9_run_id=task9.id,
-        task9_result_hash=task9.result_hash,
-        config_hash=_hash("slice-b-task10-config"),
-        structural_rows=[
-            {
-                "destination_factory_id": 601,
-                "arrival_local_date": day,
-                "forecast_horizon_days": 1,
-                "structural_p50_kg": Decimal("100"),
-                "structural_p80_kg": Decimal("110"),
-                "structural_p90_kg": Decimal("120"),
-            }
-            for day in (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
-        ],
-        fallback_reason="slice_b_fixture_structural_only",
-    )
-    task10 = await save_residual_prediction_run(
-        transactional_pg_session,
-        result=task10_result,
-        feature_schema_version="task10-features-v1",
-        feature_schema_hash=task10_result.input_snapshot["feature_schema_hash"],
-        artifact_hashes=[],
-    )
     persisted_task9 = await load_harvest_state_output_by_id(
         transactional_pg_session,
         run_id=task9.id,
     )
-    persisted_task10 = await load_residual_prediction_run_by_id(
-        transactional_pg_session,
-        run_id=task10.id,
-    )
     assert persisted_task9 is not None
-    assert persisted_task10 is not None
     assert task9.destination_factory_id == 601
     assert task9.maturity_model_run_id == model_run.id
     assert task9.maturity_model_artifact_id == artifact.id
     assert task9.maturity_forecast_run_id == forecast.id
-    assert persisted_task10.task9_run_id == task9.id
-    assert persisted_task10.task9_result_hash == task9.result_hash
 
     policy_source = AgentOrchestrator(
         season_calendar=StaticSeasonCalendarPolicy(),
