@@ -21,19 +21,23 @@ from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Varie
 from backend.app.models.maturity import MaturityForecastRun, MaturityModelArtifact, MaturityModelRun
 from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
+from backend.app.residual_model.config import load_residual_model_config
 from backend.app.residual_model.persistence import (
     load_residual_prediction_run_by_id,
     save_residual_prediction_run,
+    save_residual_training_run,
 )
 from backend.app.residual_model.service import (
     finalize_prediction_result,
     structural_only_prediction,
+    train_residual_model_from_manifest,
 )
 from backend.tests.agent.test_orchestration import _request
 from backend.tests.agent.test_production_wiring import (
     _hash,
 )
 from backend.tests.harvest_state.conftest import make_request
+from backend.tests.residual_model.support import residual_model_config_path
 
 
 async def _seed_valid_task9(
@@ -109,6 +113,15 @@ async def _seed_valid_task10(
     task9: HarvestStateRun,
     persisted_task9: object,
 ) -> object:
+    training_result = train_residual_model_from_manifest(
+        rows=[],
+        config=load_residual_model_config(residual_model_config_path()),
+    )
+    training_run = await save_residual_training_run(
+        session,
+        result=training_result,
+        manifest_rows=[],
+    )
     rows_by_date: dict[date, dict[str, Decimal]] = {}
     for row in persisted_task9.daily_pool_state_rows:
         rows_by_date.setdefault(row.state_date, {})[row.forecast_quantile] = Decimal(
@@ -126,20 +139,37 @@ async def _seed_valid_task10(
         for row_date, quantiles in sorted(rows_by_date.items())
     ]
     structural_prediction = structural_only_prediction(
-        model_run_id=None,
+        model_run_id=training_run.id,
         task9_run_id=task9.id,
         task9_result_hash=task9.result_hash,
-        config_hash=_hash("slice-b-task10-config"),
+        config_hash=training_run.config_hash,
         structural_rows=structural_rows,
         fallback_reason="fixture_structural_seed",
+        input_snapshot={
+            "task9_run_id": task9.id,
+            "task9_result_hash": task9.result_hash,
+            "structural_row_count": len(structural_rows),
+            "model_run_id": training_run.id,
+            "training_signature": training_run.training_signature,
+            "feature_analytics_build_run_id": None,
+            "feature_actual_snapshot": None,
+            "supplemental_feature_values": [],
+            "feature_audit_hashes": [],
+            "feature_rows": [],
+            "artifact_hashes": [],
+            "feature_schema_version": training_run.feature_schema_version,
+            "feature_schema_hash": training_run.feature_schema_hash,
+            "projection_version": "task10-projection-v1",
+            "fallback_policy": "structural_only_fallback",
+        },
     )
     prediction = finalize_prediction_result(
         execution_status="completed",
         mode="residual_corrected",
-        model_run_id=None,
+        model_run_id=training_run.id,
         task9_run_id=task9.id,
         task9_result_hash=task9.result_hash,
-        config_hash=_hash("slice-b-task10-config"),
+        config_hash=training_run.config_hash,
         warnings=(),
         blockers=(),
         fallback_reason=None,
@@ -156,8 +186,8 @@ async def _seed_valid_task10(
     run = await save_residual_prediction_run(
         session,
         result=prediction,
-        feature_schema_version="task10-features-v1",
-        feature_schema_hash=_hash("slice-b-task10-feature-schema"),
+        feature_schema_version=training_run.feature_schema_version,
+        feature_schema_hash=training_run.feature_schema_hash,
         artifact_hashes=[],
     )
     loaded = await load_residual_prediction_run_by_id(session, run_id=run.id)
