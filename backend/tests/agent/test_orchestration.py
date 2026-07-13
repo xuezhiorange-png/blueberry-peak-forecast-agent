@@ -3,12 +3,14 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.compiler import compiles
 
 from backend.app.agent.canonical import sha256_payload
 from backend.app.agent.enums import BlockerCode
 from backend.app.agent.orchestration import (
     AgentOrchestrator,
-    StaticSeasonCalendarPolicy,
     UnsupportedToolError,
 )
 from backend.app.agent.schemas import (
@@ -21,10 +23,63 @@ from backend.app.agent.schemas import (
     MinimalInputRequest,
     MinimalVarietyInput,
     PeakMetricPolicy,
+    ResolvedForecastSeasonIdentity,
     ResolvedLocation,
     ResolveLocationOutput,
     UncertaintyWideningPolicy,
 )
+from backend.app.agent.season_resolution import (
+    SEASON_RESOLUTION_POLICY_CONFIG_HASH,
+    SEASON_RESOLUTION_POLICY_VERSION,
+    SeasonResolutionResult,
+)
+from backend.app.harvest_state.canonical import make_season_record_hash
+from backend.app.harvest_state.schemas import ForecastSeasonIdentitySnapshot
+
+
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_for_sqlite(_type, _compiler, **_kwargs) -> str:
+    return "JSON"
+
+
+class _SeasonResolver:
+    def __init__(self, *, policy_hash: str = SEASON_RESOLUTION_POLICY_CONFIG_HASH) -> None:
+        self.policy_hash = policy_hash
+
+    async def resolve(
+        self,
+        session: object,
+        *,
+        effective_as_of_date: date,
+        requested_forecast_season: int | str | None,
+    ) -> SeasonResolutionResult:
+        if requested_forecast_season == 2027 or (
+            requested_forecast_season is None and effective_as_of_date >= date(2027, 1, 1)
+        ):
+            season_id, code = 2, "2027"
+            start_date, end_date = date(2027, 1, 1), date(2027, 4, 30)
+        else:
+            season_id, code = 1, "2026"
+            start_date, end_date = date(2026, 1, 1), date(2026, 4, 30)
+        snapshot = ForecastSeasonIdentitySnapshot(
+            season_id=season_id,
+            season_code=code,
+            start_date=start_date,
+            end_date=end_date,
+            season_record_hash=make_season_record_hash(
+                season_id=season_id,
+                season_code=code,
+                start_date=start_date,
+                end_date=end_date,
+            ),
+        )
+        return SeasonResolutionResult(
+            identity=ResolvedForecastSeasonIdentity(
+                season_snapshot=snapshot,
+                season_resolution_policy_version=SEASON_RESOLUTION_POLICY_VERSION,
+                season_resolution_policy_config_hash=self.policy_hash,
+            )
+        )
 
 
 class _Location:
@@ -127,9 +182,11 @@ def _request() -> MinimalInputRequest:
     )
 
 
-def _orchestrator(calls: list[str]) -> AgentOrchestrator:
+def _orchestrator(
+    calls: list[str], *, season_resolver: _SeasonResolver | None = None
+) -> AgentOrchestrator:
     return AgentOrchestrator(
-        season_calendar=StaticSeasonCalendarPolicy(),
+        season_resolver=season_resolver or _SeasonResolver(),
         location_adapter=_Location(calls),
         parameter_adapter=_Parameters(calls),
         daily_curve_adapter=_Daily(calls),
@@ -178,21 +235,75 @@ async def test_orchestration_is_ordered_and_byte_stable() -> None:
     ]
     assert first.model_dump_json() == second.model_dump_json()
     assert first.provenance["agent_forecast_output_hash"]
+    assert first.normalized_request.effective_forecast_season_id == 1
+
+
+@pytest.mark.asyncio
+async def test_production_wiring_output_matches_full_golden() -> None:
+    from backend.app.models.harvest_state import HarvestStateRun
+    from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
+    from backend.app.models.maturity import (
+        MaturityForecastRun,
+        MaturityModelArtifact,
+        MaturityModelRun,
+    )
+    from backend.app.models.planning import (
+        AgroClimateZone,
+        LocationReference,
+        ParameterLibraryVersion,
+        ParameterObservation,
+    )
+    from backend.app.models.production_plan import FarmSeasonVarietyPlan
+    from backend.tests.agent.conftest import _harvest_state_tables, _residual_tables
+    from backend.tests.integration.agent.test_orchestration_postgres import (
+        _production_orchestrator,
+        _production_request,
+        test_slice_b_orchestration_uses_real_postgres_session,
+    )
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    tables = [
+        AgroClimateZone.__table__,
+        Farm.__table__,
+        Subfarm.__table__,
+        Season.__table__,
+        Variety.__table__,
+        Factory.__table__,
+        LocationReference.__table__,
+        ParameterLibraryVersion.__table__,
+        ParameterObservation.__table__,
+        FarmSeasonVarietyPlan.__table__,
+        MaturityModelRun.__table__,
+        MaturityModelArtifact.__table__,
+        MaturityForecastRun.__table__,
+        *_harvest_state_tables(),
+        *_residual_tables(),
+    ]
+    async with engine.begin() as connection:
+        await connection.run_sync(
+            lambda sync_connection: HarvestStateRun.metadata.create_all(
+                sync_connection,
+                tables=list(dict.fromkeys(tables)),
+            )
+        )
+    session_factory = async_sessionmaker(
+        engine,
+        expire_on_commit=False,
+        class_=AsyncSession,
+    )
+    async with session_factory() as session:
+        await test_slice_b_orchestration_uses_real_postgres_session(session)
+        output = await _production_orchestrator().execute(
+            session,
+            request=_production_request(),
+            request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
+        )
+    await engine.dispose()
+
     golden = json.loads(
         (Path(__file__).parent / "golden" / "slice_b_ordinary_user.json").read_text()
     )
-    assert json.loads(first.model_dump_json()) == golden
-
-
-def test_static_calendar_policy_is_not_wall_clock_dependent() -> None:
-    policy = StaticSeasonCalendarPolicy()
-    kwargs = {
-        "request_received_at": datetime(2026, 3, 1, tzinfo=UTC),
-        "requested_as_of_date": date(2026, 2, 28),
-        "requested_forecast_season": 2026,
-    }
-    assert policy.resolve(**kwargs) == policy.resolve(**kwargs)
-    assert len(policy.config_hash) == 64
+    assert json.loads(output.model_dump_json()) == golden
 
 
 def test_policy_hashes_are_derived_from_policy_payload() -> None:
@@ -250,19 +361,47 @@ async def test_as_of_override_is_applied_before_season_resolution() -> None:
             ),
         }
     )
-    normalized, _ = await _orchestrator([])._normalize(
+    normalized, _, blocker = await _orchestrator([])._normalize(
         None, request, datetime(2026, 12, 31, tzinfo=UTC)
     )
+    assert blocker is None
     assert normalized.effective_as_of_date == date(2027, 1, 1)
-    assert normalized.effective_forecast_season == 2027
+    assert normalized.effective_forecast_season_id == 2
+    assert normalized.effective_forecast_season_code == "2027"
     assert normalized.requested_as_of_date_provenance.override_applied is True
+
+
+@pytest.mark.asyncio
+async def test_resolver_policy_provenance_changes_agent_hash() -> None:
+    received_at = datetime(2026, 3, 1, tzinfo=UTC)
+    first = await _orchestrator([]).execute(
+        None,
+        request=_request(),
+        request_received_at=received_at,
+    )
+    second = await _orchestrator([], season_resolver=_SeasonResolver(policy_hash="f" * 64)).execute(
+        None,
+        request=_request(),
+        request_received_at=received_at,
+    )
+    assert (
+        first.normalized_request.effective_forecast_season_id
+        == second.normalized_request.effective_forecast_season_id
+    )
+    assert (
+        first.normalized_request.season_record_hash == second.normalized_request.season_record_hash
+    )
+    assert (
+        first.normalized_request.canonical_request_hash
+        != second.normalized_request.canonical_request_hash
+    )
 
 
 @pytest.mark.asyncio
 async def test_missing_runtime_policies_are_blockers() -> None:
     calls: list[str] = []
     orchestrator = AgentOrchestrator(
-        season_calendar=StaticSeasonCalendarPolicy(),
+        season_resolver=_SeasonResolver(),
         location_adapter=_Location(calls),
         parameter_adapter=_Parameters(calls),
         daily_curve_adapter=_Daily(calls),
