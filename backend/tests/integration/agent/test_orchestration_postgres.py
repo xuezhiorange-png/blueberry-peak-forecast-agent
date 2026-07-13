@@ -3,7 +3,6 @@
 import os
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import cast
 
 import pytest
 from sqlalchemy import text
@@ -11,25 +10,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.orchestration import AgentOrchestrator, StaticSeasonCalendarPolicy
 from backend.app.agent.schemas import LocationInput, PeakMetricPolicy, UncertaintyWideningPolicy
-from backend.app.harvest_state.canonical import canonical_json_value, sha256_hex
 from backend.app.harvest_state.persistence import (
-    _canonical_output_storage_payload,
-    _extract_task8_identity,
-    _subfarm_identity_key,
+    load_harvest_state_output_by_id,
+    save_harvest_state_output,
 )
 from backend.app.harvest_state.service import run_harvest_state_model
-from backend.app.models.harvest_state import (
-    HarvestStateCohortTransitionRowModel,
-    HarvestStateDailyMemberRowModel,
-    HarvestStateDailyPoolRowModel,
-    HarvestStateFutureArrivalRowModel,
-    HarvestStateRun,
-)
+from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import MaturityForecastRun, MaturityModelArtifact, MaturityModelRun
 from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
-from backend.app.residual_model.persistence import save_residual_prediction_run
+from backend.app.residual_model.persistence import (
+    load_residual_prediction_run_by_id,
+    save_residual_prediction_run,
+)
 from backend.app.residual_model.service import structural_only_prediction
 from backend.tests.agent.test_orchestration import _request
 from backend.tests.agent.test_production_wiring import (
@@ -38,107 +32,58 @@ from backend.tests.agent.test_production_wiring import (
 from backend.tests.harvest_state.conftest import make_request
 
 
-async def _seed_valid_task9(session: AsyncSession) -> HarvestStateRun:
-    """Persist a production-generated Task 9 output with a stable test id."""
-    output = run_harvest_state_model(make_request())
+async def _seed_valid_task9(
+    session: AsyncSession,
+    *,
+    model_run: MaturityModelRun,
+    artifact: MaturityModelArtifact,
+    forecast: MaturityForecastRun,
+) -> HarvestStateRun:
+    """Generate and persist Task 9 through its public production entrypoint."""
+    request = make_request()
+    request["destination_factory_id"] = 601
+    for prediction in request["task8_daily_predictions"]:
+        source_ref = prediction["source_ref"]
+        verification = prediction["verification_snapshot"]
+        source_ref.update(
+            {
+                "maturity_model_run_id": model_run.id,
+                "maturity_model_version": model_run.model_version,
+                "maturity_model_config_hash": model_run.config_hash,
+                "maturity_model_source_signature": model_run.source_signature,
+                "maturity_model_artifact_id": artifact.id,
+                "maturity_model_artifact_hash": artifact.artifact_hash,
+                "maturity_forecast_run_id": forecast.id,
+                "maturity_forecast_source_signature": forecast.source_signature,
+                "maturity_forecast_as_of_date": forecast.as_of_date,
+                "plan_id": forecast.plan_id,
+                "location_reference_id": forecast.location_reference_id,
+            }
+        )
+        verification.update(
+            {
+                "maturity_model_run_id": model_run.id,
+                "maturity_model_version": model_run.model_version,
+                "maturity_model_config_hash": model_run.config_hash,
+                "maturity_model_source_signature": model_run.source_signature,
+                "maturity_model_artifact_id": artifact.id,
+                "maturity_model_artifact_run_id": model_run.id,
+                "maturity_model_artifact_hash": artifact.artifact_hash,
+                "maturity_forecast_run_id": forecast.id,
+                "maturity_forecast_model_run_id": model_run.id,
+                "maturity_forecast_artifact_id": artifact.id,
+                "maturity_forecast_source_signature": forecast.source_signature,
+                "maturity_forecast_as_of_date": forecast.as_of_date,
+                "maturity_forecast_prediction_start_date": forecast.prediction_start_date,
+                "maturity_forecast_prediction_end_date": forecast.prediction_end_date,
+                "maturity_daily_prediction_forecast_run_id": forecast.id,
+                "plan_id": forecast.plan_id,
+                "location_reference_id": forecast.location_reference_id,
+            }
+        )
+    output = run_harvest_state_model(request)
     assert output.status == "completed"
-    identity = _extract_task8_identity(output)
-    canonical_output = _canonical_output_storage_payload(output)
-    run = HarvestStateRun(
-        id=9009,
-        status=output.status,
-        output_schema_version=output.output_schema_version,
-        result_hash_schema_version="task9a-result-hash-v1",
-        resolved_parameter_snapshot_schema_version="task9a-resolved-parameters-v1",
-        source_ref_schema_version="task9a-source-ref-v1",
-        stable_cohort_key_schema_version="task9a-cohort-key-v1",
-        input_snapshot=cast(dict, canonical_json_value(output.input_snapshot)),
-        resolved_parameter_snapshot=cast(
-            dict,
-            canonical_json_value(output.resolved_parameter_snapshot.model_dump(mode="python")),
-        ),
-        source_ref_catalog=cast(
-            list,
-            canonical_json_value(
-                [item.model_dump(mode="python") for item in output.source_ref_catalog]
-            ),
-        ),
-        warnings=list(output.warnings),
-        blockers=list(output.blockers),
-        mass_balance_result=cast(dict, canonical_json_value(output.mass_balance_result)),
-        continuity_result=cast(dict, canonical_json_value(output.continuity_result)),
-        canonical_output=canonical_output,
-        config_hash=output.config_hash,
-        result_hash=output.result_hash,
-        canonical_payload_hash=sha256_hex(canonical_output),
-        forecast_start_date=output.input_snapshot["forecast_start_date"],
-        forecast_end_date=output.input_snapshot["forecast_end_date"],
-        as_of_date=output.input_snapshot["as_of_date"],
-        destination_factory_id=output.input_snapshot["destination_factory_id"],
-        pool_row_count=len(output.daily_pool_state_rows),
-        member_row_count=len(output.daily_member_state_rows),
-        cohort_row_count=len(output.cohort_transition_rows),
-        future_arrival_row_count=len(output.future_arrival_schedule),
-        maturity_model_run_id=identity.maturity_model_run_id,
-        maturity_model_version=identity.maturity_model_version,
-        maturity_model_config_hash=identity.maturity_model_config_hash,
-        maturity_model_source_signature=identity.maturity_model_source_signature,
-        maturity_model_artifact_id=identity.maturity_model_artifact_id,
-        maturity_model_artifact_hash=identity.maturity_model_artifact_hash,
-        maturity_forecast_run_id=identity.maturity_forecast_run_id,
-        maturity_forecast_source_signature=identity.maturity_forecast_source_signature,
-    )
-    session.add(run)
-    await session.flush()
-    catalog = {item.source_ref_hash: item.source_ref_payload for item in output.source_ref_catalog}
-    membership = {
-        (
-            row.state_date,
-            row.capacity_pool_id,
-            row.forecast_quantile.value,
-        ): row.capacity_pool_membership_hash
-        for row in output.daily_pool_state_rows
-    }
-    for row in output.daily_pool_state_rows:
-        session.add(
-            HarvestStateDailyPoolRowModel(
-                harvest_state_run_id=run.id,
-                **row.model_dump(mode="python"),
-            )
-        )
-    for row in output.daily_member_state_rows:
-        session.add(
-            HarvestStateDailyMemberRowModel(
-                harvest_state_run_id=run.id,
-                subfarm_identity_key=_subfarm_identity_key(row.subfarm_id),
-                **row.model_dump(mode="python"),
-            )
-        )
-    for row in output.cohort_transition_rows:
-        session.add(
-            HarvestStateCohortTransitionRowModel(
-                harvest_state_run_id=run.id,
-                source_ref=catalog[row.source_ref_hash],
-                capacity_pool_membership_hash=membership[
-                    (row.state_date, row.capacity_pool_id, row.forecast_quantile.value)
-                ],
-                **row.model_dump(mode="python"),
-            )
-        )
-    lag_days = output.resolved_parameter_snapshot.run_parameters.harvest_to_arrival_lag_days
-    for row in output.future_arrival_schedule:
-        session.add(
-            HarvestStateFutureArrivalRowModel(
-                harvest_state_run_id=run.id,
-                subfarm_identity_key=_subfarm_identity_key(row.subfarm_id),
-                harvest_to_arrival_lag_days=lag_days,
-                farm_timezone=output.resolved_parameter_snapshot.run_parameters.farm_timezone,
-                destination_factory_timezone=output.resolved_parameter_snapshot.run_parameters.destination_factory_timezone,
-                **row.model_dump(mode="python"),
-            )
-        )
-    await session.flush()
-    return run
+    return await save_harvest_state_output(session, output=output)
 
 
 @pytest.mark.postgres
@@ -264,7 +209,12 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
     transactional_pg_session.add(forecast)
     await transactional_pg_session.flush()
 
-    task9 = await _seed_valid_task9(transactional_pg_session)
+    task9 = await _seed_valid_task9(
+        transactional_pg_session,
+        model_run=model_run,
+        artifact=artifact,
+        forecast=forecast,
+    )
     task10_result = structural_only_prediction(
         model_run_id=None,
         task9_run_id=task9.id,
@@ -290,6 +240,22 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         feature_schema_hash=task10_result.input_snapshot["feature_schema_hash"],
         artifact_hashes=[],
     )
+    persisted_task9 = await load_harvest_state_output_by_id(
+        transactional_pg_session,
+        run_id=task9.id,
+    )
+    persisted_task10 = await load_residual_prediction_run_by_id(
+        transactional_pg_session,
+        run_id=task10.id,
+    )
+    assert persisted_task9 is not None
+    assert persisted_task10 is not None
+    assert task9.destination_factory_id == 601
+    assert task9.maturity_model_run_id == model_run.id
+    assert task9.maturity_model_artifact_id == artifact.id
+    assert task9.maturity_forecast_run_id == forecast.id
+    assert persisted_task10.task9_run_id == task9.id
+    assert persisted_task10.task9_result_hash == task9.result_hash
 
     policy_source = AgentOrchestrator(
         season_calendar=StaticSeasonCalendarPolicy(),
@@ -334,49 +300,20 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
     blocker_codes = {blocker.code.value for blocker in output.blockers}
     assert "INTERNAL_FAILURE" not in blocker_codes
     assert blocker_codes == {
+        "AUTHORITY_SCOPE_MISMATCH",
+        "EMPTY_CURVE",
         "INSUFFICIENT_HISTORY",
         "NO_PERSISTED_PRIOR_SOURCE",
         "SPRING_FESTIVAL_CALENDAR_POLICY_MISSING",
+        "TASK10_AUTHORITY_NOT_FOUND",
     }
-    assert output.provenance["task8_authority"]["maturity_forecast_run_id"] == 9008
-    assert output.provenance["task8_authority"] is not None
-    assert output.provenance["task9_authority"] is not None
-    assert output.provenance["task10_authority"] is not None
-    assert (
-        output.provenance["task8_authority"]["maturity_model_config_hash"] == model_run.config_hash
+    scope_blocker = next(
+        blocker for blocker in output.blockers if blocker.code.value == "AUTHORITY_SCOPE_MISMATCH"
     )
-    assert (
-        output.provenance["task8_authority"]["maturity_model_artifact_hash"]
-        == artifact.artifact_hash
-    )
-    assert (
-        output.provenance["task8_authority"]["maturity_forecast_source_signature"]
-        == forecast.source_signature
-    )
-    assert output.provenance["task9_authority"]["harvest_state_run_id"] == 9009
-    assert (
-        output.provenance["task9_authority"]["harvest_state_run_config_hash"] == task9.config_hash
-    )
-    assert (
-        output.provenance["task9_authority"]["harvest_state_run_canonical_payload_hash"]
-        == task9.canonical_payload_hash
-    )
-    assert output.provenance["task9_authority"]["pool_row_count"] == 9
-    assert output.provenance["task9_authority"]["member_row_count"] == 9
-    assert output.provenance["task10_authority"]["prediction_run_id"] == 9010
-    assert output.provenance["task10_authority"]["prediction_hash"] == task10.prediction_hash
-    assert output.provenance["task10_authority"]["prediction_config_hash"] == task10.config_hash
-    assert (
-        output.provenance["task10_authority"]["prediction_input_signature"]
-        == task10.prediction_input_signature
-    )
-    assert (
-        output.provenance["task10_authority"]["prediction_canonical_payload_hash"]
-        == task10.canonical_payload_hash
-    )
-    assert (
-        output.provenance["task9_authority"]["harvest_state_run_result_hash"] == task9.result_hash
-    )
-    assert output.provenance["task10_authority"]["task9_result_hash"] == task9.result_hash
+    assert scope_blocker.details["reason"] == "PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE"
+    assert scope_blocker.details["row_id"] == task9.id
+    assert output.provenance["task8_authority"] is None
+    assert output.provenance["task9_authority"] is None
+    assert output.provenance["task10_authority"] is None
     assert output.normalized_request.canonical_request_hash != "0" * 64
     assert len(output.provenance["agent_forecast_output_hash"]) == 64
