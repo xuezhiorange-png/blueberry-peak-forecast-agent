@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -32,70 +31,14 @@ from backend.app.agent.schemas import (
     SimulateScenarioInput,
     UncertaintyWideningPolicy,
 )
+from backend.app.agent.season_resolution import (
+    DatabaseForecastSeasonResolver,
+    ForecastSeasonResolver,
+)
 
 
 class UnsupportedToolError(ValueError):
     """Raised when a tool is outside the Slice B allowlist."""
-
-
-class SeasonCalendarPolicy(Protocol):
-    policy_version: str
-    config_hash: str
-
-    def resolve(
-        self,
-        *,
-        request_received_at: datetime,
-        requested_as_of_date: date | None,
-        requested_forecast_season: int | None,
-    ) -> SeasonResolution: ...
-
-
-@dataclass(frozen=True)
-class SeasonResolution:
-    effective_as_of_date: date
-    effective_forecast_season: int
-    policy_version: str
-    config_hash: str
-
-
-@dataclass(frozen=True)
-class StaticSeasonCalendarPolicy:
-    """Explicit deterministic fallback policy; never reads the wall clock."""
-
-    policy_version: str = "season-calendar/v1"
-    config_hash: str = ""
-
-    def __post_init__(self) -> None:
-        if not self.config_hash:
-            object.__setattr__(
-                self,
-                "config_hash",
-                sha256_payload(
-                    {
-                        "policy_version": self.policy_version,
-                        "as_of_source": "request_received_at.date",
-                        "season_source": "effective_as_of_date.year",
-                    }
-                ),
-            )
-
-    def resolve(
-        self,
-        *,
-        request_received_at: datetime,
-        requested_as_of_date: date | None,
-        requested_forecast_season: int | None,
-    ) -> SeasonResolution:
-        if request_received_at.tzinfo is None or request_received_at.utcoffset() != UTC.utcoffset(
-            request_received_at
-        ):
-            raise ValueError("request_received_at must be aware UTC")
-        as_of = requested_as_of_date or request_received_at.date()
-        season = requested_forecast_season or as_of.year
-        if season < 1:
-            raise ValueError("effective_forecast_season must be positive")
-        return SeasonResolution(as_of, season, self.policy_version, self.config_hash)
 
 
 _TOOLS = frozenset(
@@ -119,7 +62,7 @@ class AgentOrchestrator:
     def __init__(
         self,
         *,
-        season_calendar: SeasonCalendarPolicy | None = None,
+        season_resolver: ForecastSeasonResolver | None = None,
         location_adapter: _AsyncAdapter | None = None,
         parameter_adapter: _AsyncAdapter | None = None,
         daily_curve_adapter: _AsyncAdapter | None = None,
@@ -128,7 +71,7 @@ class AgentOrchestrator:
         uncertainty_widening_policy: UncertaintyWideningPolicy | None = None,
         peak_metric_policy: PeakMetricPolicy | None = None,
     ) -> None:
-        self._season_calendar = season_calendar
+        self._season_resolver = season_resolver or DatabaseForecastSeasonResolver()
         if location_adapter is None:
             from backend.app.planning.config import load_parameter_inference_config
 
@@ -173,14 +116,21 @@ class AgentOrchestrator:
         request: MinimalInputRequest,
         request_received_at: datetime,
     ) -> AgentForecastOutput:
-        if self._season_calendar is None:
-            return self._internal_failure_output(
-                request,
-                request_received_at,
-                code=BlockerCode.SEASON_CALENDAR_POLICY_MISSING,
-                message="season calendar policy is not registered",
+        normalized, location, season_blocker = await self._normalize(
+            session, request, request_received_at
+        )
+        if season_blocker is not None:
+            return self._output(
+                normalized,
+                normalized.normalized_location,
+                [],
+                None,
+                None,
+                [season_blocker],
+                "unresolved",
+                scenario=None,
             )
-        normalized, location = await self._normalize(session, request, request_received_at)
+        assert location is not None
         blockers = list(location.blockers)
         if location.resolved_location.status != "resolved":
             fallback_code = (
@@ -295,14 +245,11 @@ class AgentOrchestrator:
             else request_received_at.replace(tzinfo=UTC)
         )
         effective_as_of = request.requested_as_of_date or safe_received_at.date()
-        season = request.requested_forecast_season or effective_as_of.year
         normalized = NormalizedAgentRequest(
             request_id=request.request_id,
             request_received_at=safe_received_at,
             effective_as_of_date=effective_as_of,
-            effective_forecast_season=season,
-            season_resolution_policy_version="unresolved",
-            season_calendar_config_hash=sha256_payload({"status": "unresolved"}),
+            requested_forecast_season=request.requested_forecast_season,
             requested_as_of_date_provenance=RequestedAsOfDateProvenance(
                 caller_requested_as_of_date=request.requested_as_of_date,
                 effective_as_of_date=effective_as_of,
@@ -347,20 +294,19 @@ class AgentOrchestrator:
 
     async def _normalize(
         self, session: AsyncSession, request: MinimalInputRequest, received_at: datetime
-    ) -> tuple[NormalizedAgentRequest, Any]:
+    ) -> tuple[NormalizedAgentRequest, Any | None, Blocker | None]:
         override = (
             request.advanced_overrides.as_of_overrides[0]
             if request.advanced_overrides and request.advanced_overrides.as_of_overrides
             else None
         )
-        if self._season_calendar is None:
-            raise ValueError("season calendar policy is not registered")
-        resolution = self._season_calendar.resolve(
-            request_received_at=received_at,
-            requested_as_of_date=override.value if override else request.requested_as_of_date,
+        effective_as_of = override.value if override else request.requested_as_of_date
+        effective_as_of = effective_as_of or received_at.date()
+        resolution = await self._season_resolver.resolve(
+            session,
+            effective_as_of_date=effective_as_of,
             requested_forecast_season=request.requested_forecast_season,
         )
-        effective_as_of = resolution.effective_as_of_date
         provenance = RequestedAsOfDateProvenance(
             caller_requested_as_of_date=request.requested_as_of_date,
             effective_as_of_date=effective_as_of,
@@ -369,13 +315,27 @@ class AgentOrchestrator:
             source_attestation=override.source_attestation if override else None,
             source_ref=override.source_ref if override else None,
         )
+        season_identity = resolution.identity
         provisional = NormalizedAgentRequest(
             request_id=request.request_id,
             request_received_at=received_at,
             effective_as_of_date=effective_as_of,
-            effective_forecast_season=resolution.effective_forecast_season,
-            season_resolution_policy_version=resolution.policy_version,
-            season_calendar_config_hash=resolution.config_hash,
+            requested_forecast_season=request.requested_forecast_season,
+            effective_forecast_season_id=(
+                season_identity.season_snapshot.season_id if season_identity else None
+            ),
+            effective_forecast_season_code=(
+                season_identity.season_snapshot.season_code if season_identity else None
+            ),
+            season_record_hash=(
+                season_identity.season_snapshot.season_record_hash if season_identity else None
+            ),
+            season_resolution_policy_version=(
+                season_identity.season_resolution_policy_version if season_identity else None
+            ),
+            season_resolution_policy_config_hash=(
+                season_identity.season_resolution_policy_config_hash if season_identity else None
+            ),
             requested_as_of_date_provenance=provenance,
             normalized_location=ResolvedLocation(
                 status="unresolved", matched_location_method="REFERENCE_ID"
@@ -390,6 +350,13 @@ class AgentOrchestrator:
             advanced_overrides=request.advanced_overrides,
             canonical_request_hash="0" * 64,
         )
+        if resolution.blocker is not None:
+            normalized = provisional.model_copy(
+                update={
+                    "canonical_request_hash": sha256_payload(provisional.model_dump(mode="python"))
+                }
+            )
+            return normalized, None, resolution.blocker
         output = await self._location.execute(
             session,
             input=ResolveLocationInput(
@@ -402,7 +369,7 @@ class AgentOrchestrator:
         normalized = normalized.model_copy(
             update={"canonical_request_hash": sha256_payload(normalized.model_dump(mode="python"))}
         )
-        return normalized, output
+        return normalized, output, None
 
     def _output(
         self,
@@ -460,9 +427,14 @@ class AgentOrchestrator:
                 scenario.scenario_config_hash if scenario is not None else None
             ),
             "effective_as_of_date": normalized.effective_as_of_date,
-            "effective_forecast_season": normalized.effective_forecast_season,
+            "requested_forecast_season": normalized.requested_forecast_season,
+            "effective_forecast_season_id": normalized.effective_forecast_season_id,
+            "effective_forecast_season_code": normalized.effective_forecast_season_code,
+            "season_record_hash": normalized.season_record_hash,
             "season_resolution_policy_version": normalized.season_resolution_policy_version,
-            "season_calendar_config_hash": normalized.season_calendar_config_hash,
+            "season_resolution_policy_config_hash": (
+                normalized.season_resolution_policy_config_hash
+            ),
             "uncertainty_widening_policy_version": uncertainty_version,
             "uncertainty_widening_policy_config_hash": uncertainty_hash,
             "peak_metric_policy_version": peak_version,
@@ -614,7 +586,5 @@ class AgentOrchestrator:
 
 __all__ = [
     "AgentOrchestrator",
-    "SeasonResolution",
-    "StaticSeasonCalendarPolicy",
     "UnsupportedToolError",
 ]
