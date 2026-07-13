@@ -36,9 +36,11 @@ Test gating (per Charles's spec):
   in CI.
 
 The test is skipped unless ``RUN_POSTGRES_INTEGRATION=1`` is set AND
-``BLUEBERRY_PG_DSN`` points to a valid test DSN.  The default DSN
-targets a local dev PG on ``localhost:5432`` with the
-``blueberry_peak_test_r7_round8`` database.
+``BLUEBERRY_PG_DSN`` points to a valid test DSN.  When
+``BLUEBERRY_PG_DSN`` is absent, the shared resolver derives the DSN
+from ``POSTGRES_*`` and defaults to the standard ``blueberry_peak``
+test database (the legacy ``blueberry_peak_test_r7_round8`` default
+is forbidden).
 """
 # ruff: noqa: E501, I001, F401, F841, F811, F821, ASYNC240
 
@@ -64,12 +66,15 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 from backend.app.models.master_data import Variety
-
-
-POSTGRES_TEST_DSN = os.getenv(
-    "BLUEBERRY_PG_DSN",
-    "postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/blueberry_peak_test_r7_round8",
+from backend.tests.integration.agent._pg_dsn import (
+    PostgresTestDSNError,
+    describe_postgres_target,
+    resolve_postgres_test_dsn,
+    verify_postgres_database_exists,
 )
+
+
+POSTGRES_TEST_DSN = resolve_postgres_test_dsn()
 
 PG_INTEGRATION_ENABLED = os.getenv("RUN_POSTGRES_INTEGRATION") == "1"
 
@@ -105,12 +110,26 @@ async def pg_selector_session() -> AsyncIterator[AsyncSession]:
     if not PG_INTEGRATION_ENABLED:
         pytest.skip("PG integration disabled")
     if not _pg_dialect_compiles():
-        pytest.skip("BLUEBERRY_PG_DSN is not a PostgreSQL URL")
+        pytest.skip("resolved DSN is not a PostgreSQL URL")
     if not _pg_reachable(POSTGRES_TEST_DSN):
+        target = describe_postgres_target(POSTGRES_TEST_DSN)
         pytest.skip(
-            f"PostgreSQL is not reachable at {POSTGRES_TEST_DSN}; "
-            "set BLUEBERRY_PG_DSN to a running test instance"
+            f"PostgreSQL is not reachable ({target}); "
+            "check POSTGRES_HOST/POSTGRES_PORT or "
+            "set BLUEBERRY_PG_DSN"
         )
+    # Real database preflight: confirm the database named in the
+    # DSN actually exists AND credentials are accepted.  A TCP-only
+    # probe can pass even when the database name is wrong
+    # (e.g. legacy ``blueberry_peak_test_r7_round8`` not in the
+    # canary container).  Fail-closed with a host/port/db hint.
+    try:
+        await verify_postgres_database_exists(POSTGRES_TEST_DSN)
+    except ConnectionError as exc:
+        target = describe_postgres_target(POSTGRES_TEST_DSN)
+        pytest.skip(f"PostgreSQL is not reachable ({target}): {type(exc).__name__}")
+    except PostgresTestDSNError as exc:
+        pytest.fail(str(exc))
 
     engine = create_async_engine(POSTGRES_TEST_DSN, future=True)
     sm = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
