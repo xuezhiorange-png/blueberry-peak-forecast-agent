@@ -12,7 +12,7 @@ from backend.app.agent.orchestration import AgentOrchestrator, StaticSeasonCalen
 from backend.app.agent.schemas import LocationInput, PeakMetricPolicy, UncertaintyWideningPolicy
 from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import MaturityForecastRun, MaturityModelArtifact, MaturityModelRun
-from backend.app.models.planning import LocationReference
+from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.tests.agent.test_orchestration import _request
 from backend.tests.agent.test_production_wiring import (
@@ -37,6 +37,23 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
     result = await transactional_pg_session.execute(text("SELECT 1"))
     assert result.scalar_one() == 1
 
+    zone = AgroClimateZone(
+        id=1601,
+        code="slice-b-zone",
+        name="Slice B Zone",
+        country="CN",
+        province="云南省",
+        prefecture="红河州",
+        county="弥勒市",
+        centroid_latitude=Decimal("24.400000"),
+        centroid_longitude=Decimal("103.400000"),
+        min_altitude_m=Decimal("1700"),
+        max_altitude_m=Decimal("1900"),
+        zone_version="slice-b-v1",
+        valid_from=date(2020, 1, 1),
+        source_name="slice-b-fixture",
+        source_version="slice-b-v1",
+    )
     location = LocationReference(
         id=601,
         address_normalized="云南省红河州弥勒市西三镇",
@@ -45,6 +62,10 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         longitude=Decimal("103.400000"),
         altitude_m=Decimal("1800"),
         farm_name="slice-b-farm",
+        province="云南省",
+        prefecture="红河州",
+        county="弥勒市",
+        climate_zone_id=1601,
         location_source="slice-b-fixture",
         source_version="slice-b-v1",
         valid_from=date(2020, 1, 1),
@@ -117,8 +138,10 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         input_snapshot={},
     )
     transactional_pg_session.add_all(
-        [location, farm, subfarm, season, variety, factory, plan, model_run]
+        [zone, farm, subfarm, season, variety, factory, plan, model_run]
     )
+    await transactional_pg_session.flush()
+    transactional_pg_session.add(location)
     await transactional_pg_session.flush()
     transactional_pg_session.add(artifact)
     await transactional_pg_session.flush()
@@ -224,6 +247,7 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
     assert output.request_status == "BLOCKED"
     assert output.normalized_request.normalized_location.status == "resolved"
     assert output.normalized_request.normalized_location.location_reference_id == 601
+    assert output.normalized_request.normalized_location.climate_zone_id == 1601
     blocker_codes = {blocker.code.value for blocker in output.blockers}
     assert "INTERNAL_FAILURE" not in blocker_codes
     assert blocker_codes == {
@@ -232,6 +256,9 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         "SPRING_FESTIVAL_CALENDAR_POLICY_MISSING",
     }
     assert output.provenance["task8_authority"]["maturity_forecast_run_id"] == 9008
+    assert output.provenance["task8_authority"] is not None
+    assert output.provenance["task9_authority"] is not None
+    assert output.provenance["task10_authority"] is not None
     assert (
         output.provenance["task8_authority"]["maturity_model_config_hash"] == model_run.config_hash
     )

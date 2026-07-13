@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from backend.app.agent.canonical import sha256_payload
+from backend.app.agent.enums import BlockerCode
 from backend.app.agent.orchestration import (
     AgentOrchestrator,
     StaticSeasonCalendarPolicy,
@@ -13,6 +14,7 @@ from backend.app.agent.orchestration import (
 from backend.app.agent.schemas import (
     AdvancedOverrides,
     AsOfOverride,
+    Blocker,
     ForecastDailyCurveOutput,
     InferParametersOutput,
     LocationInput,
@@ -44,6 +46,28 @@ class _Location:
 class _BrokenLocation:
     async def execute(self, session: object, *, input: object) -> ResolveLocationOutput:
         raise RuntimeError("secret traceback must not escape")
+
+
+class _BlockedLocation:
+    def __init__(self, *, status: str, code: BlockerCode) -> None:
+        self.status = status
+        self.code = code
+
+    async def execute(self, session: object, *, input: object) -> ResolveLocationOutput:
+        return ResolveLocationOutput(
+            resolved_location=ResolvedLocation(
+                status=self.status,
+                matched_location_method="REFERENCE_ID",
+            ),
+            location_catalog_version="catalog/v1",
+            blockers=[
+                Blocker(
+                    code=self.code,
+                    message="location adapter blocker",
+                    retry_hint="FIX_INPUT",
+                )
+            ],
+        )
 
 
 class _Parameters:
@@ -270,3 +294,32 @@ async def test_unexpected_adapter_error_is_stable_internal_failure() -> None:
     assert output.request_status == "BLOCKED"
     assert [blocker.code.value for blocker in output.blockers] == ["INTERNAL_FAILURE"]
     assert "secret traceback" not in output.blockers[0].message
+
+
+@pytest.mark.parametrize(
+    ("status", "code"),
+    [
+        ("unresolved", BlockerCode.LOCATION_UNRESOLVED),
+        ("ambiguous", BlockerCode.LOCATION_AMBIGUOUS),
+    ],
+)
+@pytest.mark.asyncio
+async def test_location_blocker_is_not_duplicated(
+    status: str,
+    code: BlockerCode,
+) -> None:
+    orchestrator = _orchestrator([])
+    orchestrator._location = _BlockedLocation(status=status, code=code)
+    output = await orchestrator.execute(
+        None,
+        request=_request(),
+        request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
+    )
+    repeated = await orchestrator.execute(
+        None,
+        request=_request(),
+        request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
+    )
+    matching = [blocker for blocker in output.blockers if blocker.code == code]
+    assert len(matching) == 1
+    assert output.model_dump_json() == repeated.model_dump_json()

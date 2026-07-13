@@ -626,14 +626,9 @@ def test_repeated_export_byte_identical_for_identical_inputs(
     artifacts2 = write_export_artifacts(
         _make_export_request(result, tmp_path / "b", overwrite_policy=ExportOverwritePolicy.NEVER)
     )
-    # JSON and manifest carry the wall-clock write timestamp required by
-    # the export envelope. Compare the deterministic payload after removing
-    # that explicitly non-semantic field; CSV has no timestamp.
-    json1 = json.loads(artifacts1.json_path.read_text(encoding="utf-8"))
-    json2 = json.loads(artifacts2.json_path.read_text(encoding="utf-8"))
-    json1.pop("written_at_utc")
-    json2.pop("written_at_utc")
-    assert json1 == json2
+    # The JSON / CSV / manifest files must be byte-identical for
+    # identical inputs (modulo file system metadata).
+    assert artifacts1.json_path.read_bytes() == artifacts2.json_path.read_bytes()
     assert artifacts1.csv_path.read_bytes() == artifacts2.csv_path.read_bytes()
     # Manifest: written_at_utc is the same timestamp because the
     # two writes happen back-to-back within the same second. If

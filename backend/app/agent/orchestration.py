@@ -183,18 +183,20 @@ class AgentOrchestrator:
         normalized, location = await self._normalize(session, request, request_received_at)
         blockers = list(location.blockers)
         if location.resolved_location.status != "resolved":
-            blockers.append(
-                Blocker(
-                    code=(
-                        BlockerCode.LOCATION_AMBIGUOUS
-                        if location.resolved_location.status == "ambiguous"
-                        else BlockerCode.LOCATION_UNRESOLVED
-                    ),
-                    message="location did not resolve to exactly one authoritative location",
-                    details={"status": location.resolved_location.status},
-                    retry_hint="FIX_INPUT",
-                )
+            fallback_code = (
+                BlockerCode.LOCATION_AMBIGUOUS
+                if location.resolved_location.status == "ambiguous"
+                else BlockerCode.LOCATION_UNRESOLVED
             )
+            if not any(blocker.code == fallback_code for blocker in blockers):
+                blockers.append(
+                    Blocker(
+                        code=fallback_code,
+                        message="location did not resolve to exactly one authoritative location",
+                        details={"status": location.resolved_location.status},
+                        retry_hint="FIX_INPUT",
+                    )
+                )
             return self._output(
                 normalized,
                 location.resolved_location,
