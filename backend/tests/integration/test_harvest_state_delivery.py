@@ -4,6 +4,7 @@ import io
 import os
 import zipfile
 from collections.abc import AsyncIterator
+from datetime import date
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -21,6 +22,7 @@ from backend.app.models.harvest_state import (
     HarvestStateFutureArrivalRowModel,
     HarvestStateRun,
 )
+from backend.app.models.master_data import Season
 from backend.tests.harvest_state.conftest import make_request
 
 pytestmark = pytest.mark.integration
@@ -34,6 +36,16 @@ def _require_postgres() -> None:
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     _require_postgres()
+    async with AsyncSessionMaker() as session:
+        session.add(
+            Season(
+                id=2026,
+                code="2026",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 4, 30),
+            )
+        )
+        await session.commit()
     app = create_app()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as test_client:
         yield test_client
