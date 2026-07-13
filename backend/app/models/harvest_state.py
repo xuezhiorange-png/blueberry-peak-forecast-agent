@@ -129,6 +129,15 @@ class HarvestStateRun(Base):
             "forecast_end_date >= forecast_start_date",
             name="ck_harvest_state_run_forecast_date_range",
         ),
+        CheckConstraint(
+            "forecast_season_id IS NULL OR forecast_season_id > 0",
+            name="ck_harvest_state_run_forecast_season_positive",
+        ),
+        CheckConstraint(
+            "result_hash_schema_version != 'task9a-result-hash-v2' "
+            "OR forecast_season_id IS NOT NULL",
+            name="ck_harvest_state_run_v2_forecast_season_required",
+        ),
         *_non_negative_check_sql(
             "hsr",
             "pool_row_count",
@@ -146,6 +155,14 @@ class HarvestStateRun(Base):
         Index(
             "ix_harvest_state_run_maturity_model_run_id",
             "maturity_model_run_id",
+        ),
+        Index(
+            "ix_harvest_state_run_forecast_season_scope",
+            "forecast_season_id",
+            "status",
+            "destination_factory_id",
+            "as_of_date",
+            "forecast_end_date",
         ),
     )
 
@@ -183,6 +200,15 @@ class HarvestStateRun(Base):
     forecast_end_date: Mapped[date] = mapped_column(Date, nullable=False)
     as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
     destination_factory_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    forecast_season_id: Mapped[int | None] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "dim_season.id",
+            name="fk_harvest_state_run_forecast_season_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+    )
     pool_row_count: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     member_row_count: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
     cohort_row_count: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
