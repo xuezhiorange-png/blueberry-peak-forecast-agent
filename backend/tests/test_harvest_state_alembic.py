@@ -43,6 +43,8 @@ def test_task9_v2_forecast_season_migration_contract() -> None:
     assert '"forecast_season_id", sa.BigInteger(), nullable=True' in source
     assert '"dim_season"' in source
     assert 'ondelete="RESTRICT"' in source
+    assert '"alembic_version"' in source
+    assert "type_=sa.String(length=64)" in source
     assert '"ix_harvest_state_run_forecast_season_scope"' in source
     assert "task9a-result-hash-v2" in source
     assert "refuse to downgrade" in source
