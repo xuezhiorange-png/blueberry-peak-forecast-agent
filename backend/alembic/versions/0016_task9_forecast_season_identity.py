@@ -23,6 +23,15 @@ def _forecast_season_column() -> sa.Column[int]:
 
 def upgrade() -> None:
     bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        # The frozen revision ID exceeds Alembic's default VARCHAR(32).
+        op.alter_column(
+            "alembic_version",
+            "version_num",
+            existing_type=sa.String(length=32),
+            type_=sa.String(length=64),
+            existing_nullable=False,
+        )
     if bind.dialect.name == "sqlite":
         with op.batch_alter_table(_TABLE, recreate="always") as batch_op:
             batch_op.add_column(_forecast_season_column())
@@ -122,3 +131,7 @@ def downgrade() -> None:
             type_="foreignkey",
         )
         op.drop_column(_TABLE, "forecast_season_id")
+
+    # Keep alembic_version at VARCHAR(64). Alembic updates the revision row
+    # after this function returns, so narrowing it here would truncate the
+    # current frozen revision ID before it can be replaced by down_revision.
