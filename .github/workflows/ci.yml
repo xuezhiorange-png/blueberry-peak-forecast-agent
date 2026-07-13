@@ -522,7 +522,7 @@ jobs:
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         ports:
-          - 5432:5432
+          - 55432:5432
         options: >-
           --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
           --health-interval 5s
@@ -572,7 +572,7 @@ jobs:
       - name: Wait for PostgreSQL service
         env:
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
+          POSTGRES_PORT: "55432"
           POSTGRES_DB: blueberry_peak
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
@@ -622,7 +622,7 @@ jobs:
       - name: Create isolated test database
         env:
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
+          POSTGRES_PORT: "55432"
           POSTGRES_DB: blueberry_peak
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
@@ -659,22 +659,22 @@ jobs:
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
+          POSTGRES_PORT: "55432"
           POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
-          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
         run: alembic -c backend/alembic.ini upgrade head
 
       - name: Postgres domain-1 tests
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
+          POSTGRES_PORT: "55432"
           POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
-          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
           RUN_POSTGRES_INTEGRATION: "1"
         run: |
           mkdir -p reports/test-results
