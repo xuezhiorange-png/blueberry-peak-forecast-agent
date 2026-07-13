@@ -10,8 +10,10 @@ These tests do NOT require a real PostgreSQL instance.  They cover:
   and re-parseable to the same fields).
 * Invalid ``POSTGRES_PORT`` (non-integer) → :class:`PostgresTestDSNError`.
 * Empty ``POSTGRES_DB`` / ``POSTGRES_USER`` → :class:`PostgresTestDSNError`.
-* Forbidden legacy database ``blueberry_peak_test_r7_round8`` →
-  :class:`PostgresTestDSNError` even when explicitly named.
+* Forbidden legacy database ``blueberry_peak_test_r7_round8`` supplied
+  through ``POSTGRES_DB`` → :class:`PostgresTestDSNError`.  The same
+  database name remains allowed when supplied through the trimmed
+  explicit ``BLUEBERRY_PG_DSN`` override.
 * Whitespace-only ``BLUEBERRY_PG_DSN`` falls through to the env path.
 * :func:`render_dsn_for_log` never prints the password.
 * Both PG test modules import the **same** resolver (no duplication).
