@@ -59,6 +59,7 @@ from backend.app.harvest_state.authority_schemas import (
 )
 from backend.app.harvest_state.canonical import (
     make_membership_hash,
+    make_season_record_hash,
     make_stable_cohort_key,
     sha256_hex,
 )
@@ -71,6 +72,7 @@ from backend.app.harvest_state.enums import (
 )
 from backend.app.harvest_state.schemas import (
     DailyWeatherFeatureInput,
+    ForecastSeasonIdentitySnapshot,
     ParameterSourceRef,
     Task8DailyPredictionInput,
     Task8PredictionSourceRef,
@@ -172,6 +174,18 @@ def _assembly_context(
 ) -> Task9AuthorityAssemblyContext:
     return Task9AuthorityAssemblyContext(
         mode=mode,
+        forecast_season_identity=ForecastSeasonIdentitySnapshot(
+            season_id=_IDS["season"],
+            season_code="test-season",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 12, 31),
+            season_record_hash=make_season_record_hash(
+                season_id=_IDS["season"],
+                season_code="test-season",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 12, 31),
+            ),
+        ),
         as_of_date=AS_OF,
         forecast_start_date=FORECAST_DATE,
         forecast_end_date=FORECAST_DATE,
@@ -424,6 +438,7 @@ def _task8_predictions(
     daily_prediction_id: int = 4,
 ) -> tuple[Task8DailyPredictionInput, ...]:
     verification = Task8PredictionVerificationSnapshot(
+        season_id=_IDS["season"],
         maturity_model_run_id=1,
         maturity_model_version="maturity-v1",
         maturity_model_config_hash="c" * 64,
