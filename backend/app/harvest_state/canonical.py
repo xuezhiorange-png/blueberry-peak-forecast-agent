@@ -8,13 +8,12 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation, localcontext
 from enum import Enum
 from typing import Any, cast
 
-from backend.app.harvest_state.enums import RESULT_HASH_SCHEMA_VERSION
-
 type JsonScalar = None | str | bool | int | float
 type JsonValue = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
 
 _CANONICAL_DECIMAL_RE = re.compile(r"^(0|[-]?[1-9][0-9]*)(\.[0-9]+)?$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+SEASON_RECORD_SCHEMA_VERSION = "season-record-v1"
 
 
 def parse_decimal(value: object) -> Decimal:
@@ -170,9 +169,31 @@ def make_task9a_config_hash(
     )
 
 
-def make_result_hash(payload: dict[str, Any]) -> str:
+def make_season_record_hash(
+    *,
+    season_id: int,
+    season_code: str,
+    start_date: date,
+    end_date: date,
+) -> str:
+    return sha256_hex(
+        {
+            "schema_version": SEASON_RECORD_SCHEMA_VERSION,
+            "season_id": season_id,
+            "season_code": season_code,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+    )
+
+
+def make_result_hash(
+    payload: dict[str, Any],
+    *,
+    result_hash_schema_version: str,
+) -> str:
     filtered = {key: value for key, value in payload.items() if key != "result_hash"}
-    filtered["result_hash_schema_version"] = RESULT_HASH_SCHEMA_VERSION
+    filtered["result_hash_schema_version"] = result_hash_schema_version
     return sha256_hex(filtered)
 
 

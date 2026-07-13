@@ -6,7 +6,11 @@ from datetime import date
 
 from backend.app.harvest_state.authority_resolution_types import AuthorityResolutionMode
 from backend.app.harvest_state.enums import AuthorityFamily
-from backend.app.harvest_state.schemas import ParameterSourceRef, Task9ARequest
+from backend.app.harvest_state.schemas import (
+    ForecastSeasonIdentitySnapshot,
+    ParameterSourceRef,
+    Task9ARequest,
+)
 
 type ImmutableJsonScalar = None | str | bool | int | float
 type ImmutableJsonValue = (
@@ -27,6 +31,7 @@ class ResolvedAuthorityBinding:
 @dataclass(frozen=True, slots=True)
 class Task9AuthorityAssemblyContext:
     mode: AuthorityResolutionMode
+    forecast_season_identity: ForecastSeasonIdentitySnapshot
     as_of_date: date
     forecast_start_date: date
     forecast_end_date: date

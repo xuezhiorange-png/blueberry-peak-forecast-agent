@@ -43,6 +43,7 @@ from backend.app.harvest_state.canonical import (
     canonical_json_dumps,
     make_holiday_calendar_hash,
     make_membership_hash,
+    make_season_record_hash,
     make_stable_cohort_key,
     make_weather_rule_config_hash,
     sha256_hex,
@@ -57,6 +58,7 @@ from backend.app.harvest_state.enums import (
 )
 from backend.app.harvest_state.schemas import (
     DailyWeatherFeatureInput,
+    ForecastSeasonIdentitySnapshot,
     InitialInventorySourceRef,
     ParameterSourceRef,
     Task8DailyPredictionInput,
@@ -569,6 +571,7 @@ def _task8_predictions(
     daily_prediction_id: int = 4,
 ) -> tuple[Task8DailyPredictionInput, ...]:
     verification = Task8PredictionVerificationSnapshot(
+        season_id=1,
         maturity_model_run_id=1,
         maturity_model_version="maturity-v1",
         maturity_model_config_hash="c" * 64,
@@ -661,6 +664,18 @@ def _context(
 ) -> Task9AuthorityAssemblyContext:
     return Task9AuthorityAssemblyContext(
         mode=mode,
+        forecast_season_identity=ForecastSeasonIdentitySnapshot(
+            season_id=1,
+            season_code="test-season",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 12, 31),
+            season_record_hash=make_season_record_hash(
+                season_id=1,
+                season_code="test-season",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 12, 31),
+            ),
+        ),
         as_of_date=as_of_date,
         forecast_start_date=forecast_start,
         forecast_end_date=forecast_end,
@@ -834,6 +849,7 @@ def test_assembly_hash_ignores_all_task8_persistent_ids() -> None:
                 + 1000,
             ),
             verification_snapshot=Task8PredictionVerificationSnapshot(
+                season_id=pred.verification_snapshot.season_id,
                 maturity_model_run_id=pred.verification_snapshot.maturity_model_run_id + 1000,
                 maturity_model_version=pred.verification_snapshot.maturity_model_version,
                 maturity_model_config_hash=pred.verification_snapshot.maturity_model_config_hash,
@@ -1421,6 +1437,44 @@ def test_cross_season_holiday_fails_closed() -> None:
             daily_weather_features=_weather_features(),
         )
     assert exc_info.value.details["reason"] == "authority_scope_mismatch"
+
+
+def test_authority_scope_must_match_forecast_season_snapshot() -> None:
+    context = replace(
+        _context(),
+        forecast_season_identity=ForecastSeasonIdentitySnapshot(
+            season_id=999,
+            season_code="other-season",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 12, 31),
+            season_record_hash=make_season_record_hash(
+                season_id=999,
+                season_code="other-season",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 12, 31),
+            ),
+        ),
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(context=context)
+    assert exc_info.value.details["reason"] == "authority_scope_mismatch"
+
+
+def test_task8_plan_lineage_season_mismatch_fails_before_model_execution() -> None:
+    predictions = tuple(
+        prediction.model_copy(
+            update={
+                "verification_snapshot": prediction.verification_snapshot.model_copy(
+                    update={"season_id": 999}
+                )
+            }
+        )
+        for prediction in _task8_predictions()
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(task8_predictions=predictions)
+    assert exc_info.value.details["reason"] == "authority_scope_mismatch"
+    assert exc_info.value.details["error"] == "Task 8 forecast season mismatch"
 
 
 def test_cross_factory_pool_fails_closed() -> None:
@@ -2574,6 +2628,7 @@ def test_db_id_independence_proof() -> None:
                 + 9000,
             ),
             verification_snapshot=Task8PredictionVerificationSnapshot(
+                season_id=p.verification_snapshot.season_id,
                 maturity_model_run_id=p.verification_snapshot.maturity_model_run_id + 9000,
                 maturity_model_version=p.verification_snapshot.maturity_model_version,
                 maturity_model_config_hash=p.verification_snapshot.maturity_model_config_hash,
@@ -2637,6 +2692,7 @@ def test_db_id_independence_proof() -> None:
                 + 9000,
             ),
             verification_snapshot=Task8PredictionVerificationSnapshot(
+                season_id=p.verification_snapshot.season_id,
                 maturity_model_run_id=p.verification_snapshot.maturity_model_run_id + 9000,
                 maturity_model_version=p.verification_snapshot.maturity_model_version,
                 maturity_model_config_hash=p.verification_snapshot.maturity_model_config_hash,

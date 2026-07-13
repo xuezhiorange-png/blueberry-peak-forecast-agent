@@ -30,9 +30,12 @@ from backend.app.harvest_state.capacity import (
     resolve_harvest_arrival,
 )
 from backend.app.harvest_state.enums import (
+    INPUT_SNAPSHOT_SCHEMA_VERSION_V2,
     OUTPUT_SCHEMA_VERSION,
+    OUTPUT_SCHEMA_VERSION_V1,
     RESOLVED_PARAMETER_SNAPSHOT_SCHEMA_VERSION,
     RESULT_HASH_SCHEMA_VERSION,
+    RESULT_HASH_SCHEMA_VERSION_V1,
     SOURCE_REF_SCHEMA_VERSION,
     STABLE_COHORT_KEY_SCHEMA_VERSION,
     BlockerCode,
@@ -46,6 +49,7 @@ from backend.app.harvest_state.schemas import (
     DailyMemberStateRow,
     DailyPoolResolvedParameters,
     DailyPoolStateRow,
+    ForecastSeasonIdentitySnapshot,
     FutureArrivalScheduleRow,
     InitialInventoryCohortInput,
     MatureInventoryLossInput,
@@ -264,6 +268,8 @@ def _sorted_request_snapshot(
         ),
     )
     snapshot = {
+        "input_snapshot_schema_version": INPUT_SNAPSHOT_SCHEMA_VERSION_V2,
+        "forecast_season_identity": request.forecast_season_identity.model_dump(mode="python"),
         "as_of_date": request.as_of_date,
         "forecast_start_date": request.forecast_start_date,
         "forecast_end_date": request.forecast_end_date,
@@ -545,9 +551,29 @@ def _blocked_from_raw_payload(
     blockers: list[str],
 ) -> Task9ABlockedOutput:
     input_snapshot = _normalize_raw_snapshot(payload)
+    try:
+        season_identity = ForecastSeasonIdentitySnapshot.model_validate(
+            payload.get("forecast_season_identity")
+        )
+    except ValidationError:
+        season_identity = None
+    if season_identity is None:
+        input_snapshot.pop("forecast_season_identity", None)
+        output_schema_version = OUTPUT_SCHEMA_VERSION_V1
+        result_hash_schema_version = RESULT_HASH_SCHEMA_VERSION_V1
+        forecast_season_id = None
+    else:
+        input_snapshot["input_snapshot_schema_version"] = INPUT_SNAPSHOT_SCHEMA_VERSION_V2
+        input_snapshot["forecast_season_identity"] = canonical_json_value(
+            season_identity.model_dump(mode="python")
+        )
+        output_schema_version = OUTPUT_SCHEMA_VERSION
+        result_hash_schema_version = RESULT_HASH_SCHEMA_VERSION
+        forecast_season_id = season_identity.season_id
     response_payload = {
-        "output_schema_version": OUTPUT_SCHEMA_VERSION,
+        "output_schema_version": output_schema_version,
         "status": "blocked",
+        **({"forecast_season_id": forecast_season_id} if forecast_season_id is not None else {}),
         "input_snapshot": input_snapshot,
         "resolved_parameter_snapshot": None,
         "daily_pool_state_rows": [],
@@ -557,16 +583,24 @@ def _blocked_from_raw_payload(
         "source_ref_catalog": [],
         "warnings": [],
         "blockers": _sorted_blockers(blockers),
-        "config_hash": make_result_hash({"raw_input_snapshot": input_snapshot}),
+        "config_hash": make_result_hash(
+            {"raw_input_snapshot": input_snapshot},
+            result_hash_schema_version=result_hash_schema_version,
+        ),
     }
     return Task9ABlockedOutput(
+        output_schema_version=output_schema_version,
+        forecast_season_id=forecast_season_id,
         input_snapshot=input_snapshot,
         resolved_parameter_snapshot=None,
         source_ref_catalog=[],
         warnings=[],
         blockers=_sorted_blockers(blockers),
         config_hash=response_payload["config_hash"],
-        result_hash=make_result_hash(response_payload),
+        result_hash=make_result_hash(
+            response_payload,
+            result_hash_schema_version=result_hash_schema_version,
+        ),
     )
 
 
@@ -1153,6 +1187,7 @@ def _blocked_output(
     payload = {
         "output_schema_version": OUTPUT_SCHEMA_VERSION,
         "status": "blocked",
+        "forecast_season_id": request.forecast_season_identity.season_id,
         "input_snapshot": validated.input_snapshot,
         "resolved_parameter_snapshot": None,
         "daily_pool_state_rows": [],
@@ -1165,13 +1200,17 @@ def _blocked_output(
         "config_hash": validated.config_hash,
     }
     return Task9ABlockedOutput(
+        forecast_season_id=request.forecast_season_identity.season_id,
         input_snapshot=validated.input_snapshot,
         resolved_parameter_snapshot=None,
         source_ref_catalog=source_ref_catalog,
         warnings=[],
         blockers=blockers,
         config_hash=validated.config_hash,
-        result_hash=make_result_hash(payload),
+        result_hash=make_result_hash(
+            payload,
+            result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION,
+        ),
     )
 
 
@@ -2236,6 +2275,7 @@ def run_harvest_state_model(
     payload = {
         "output_schema_version": OUTPUT_SCHEMA_VERSION,
         "status": "completed",
+        "forecast_season_id": request.forecast_season_identity.season_id,
         "forecast_start_date": request.forecast_start_date,
         "forecast_end_date": request.forecast_end_date,
         "forecast_quantiles": list(request.forecast_quantiles),
@@ -2260,6 +2300,7 @@ def run_harvest_state_model(
         "config_hash": validated.config_hash,
     }
     return Task9ACompletedOutput(
+        forecast_season_id=request.forecast_season_identity.season_id,
         forecast_start_date=request.forecast_start_date,
         forecast_end_date=request.forecast_end_date,
         forecast_quantiles=list(request.forecast_quantiles),
@@ -2280,5 +2321,8 @@ def run_harvest_state_model(
         },
         continuity_result={"passed": continuity_passed},
         config_hash=validated.config_hash,
-        result_hash=make_result_hash(payload),
+        result_hash=make_result_hash(
+            payload,
+            result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION,
+        ),
     )

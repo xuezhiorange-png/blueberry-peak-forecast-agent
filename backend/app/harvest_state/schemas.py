@@ -134,6 +134,7 @@ class Task8PredictionSourceRef(_BaseModel):
 
 
 class Task8PredictionVerificationSnapshot(_BaseModel):
+    season_id: int = Field(gt=0)
     maturity_model_run_id: int
     maturity_model_version: str = Field(min_length=1)
     maturity_model_config_hash: str = Field(min_length=1)
@@ -375,7 +376,41 @@ class SourceRefCatalogEntry(_BaseModel):
     source_ref_payload: dict[str, Any]
 
 
+class ForecastSeasonIdentitySnapshot(_BaseModel):
+    season_id: int
+    season_code: str
+    start_date: date
+    end_date: date
+    season_record_hash: str
+
+    @model_validator(mode="after")
+    def _validate_identity(self) -> ForecastSeasonIdentitySnapshot:
+        from backend.app.harvest_state.canonical import (
+            is_sha256_hex,
+            make_season_record_hash,
+        )
+
+        if self.season_id <= 0:
+            raise ValueError("season_id must be > 0")
+        if self.season_code == "":
+            raise ValueError("season_code must be non-empty")
+        if self.end_date < self.start_date:
+            raise ValueError("end_date must be >= start_date")
+        if not is_sha256_hex(self.season_record_hash):
+            raise ValueError("season_record_hash must be lowercase SHA-256")
+        expected = make_season_record_hash(
+            season_id=self.season_id,
+            season_code=self.season_code,
+            start_date=self.start_date,
+            end_date=self.end_date,
+        )
+        if self.season_record_hash != expected:
+            raise ValueError("season_record_hash does not match season identity")
+        return self
+
+
 class Task9ARequest(_BaseModel):
+    forecast_season_identity: ForecastSeasonIdentitySnapshot
     as_of_date: date
     forecast_start_date: date
     forecast_end_date: date
@@ -414,12 +449,18 @@ class Task9ARequest(_BaseModel):
             raise ValueError("forecast_end_date must be >= forecast_start_date")
         if self.harvest_to_arrival_lag_days < 0:
             raise ValueError("harvest_to_arrival_lag_days must be >= 0")
+        if any(
+            prediction.verification_snapshot.season_id != self.forecast_season_identity.season_id
+            for prediction in self.task8_daily_predictions
+        ):
+            raise ValueError("Task 8 forecast season must match forecast_season_identity.season_id")
         return self
 
 
 class Task9ACompletedOutput(_BaseModel):
-    output_schema_version: Literal["task9a-output-v1"] = "task9a-output-v1"
+    output_schema_version: Literal["task9a-output-v1", "task9a-output-v2"] = "task9a-output-v2"
     status: Literal["completed"] = "completed"
+    forecast_season_id: int | None = None
     forecast_start_date: date
     forecast_end_date: date
     forecast_quantiles: list[ForecastQuantile]
@@ -437,10 +478,20 @@ class Task9ACompletedOutput(_BaseModel):
     config_hash: str
     result_hash: str
 
+    @model_validator(mode="after")
+    def _validate_season_version(self) -> Task9ACompletedOutput:
+        _validate_output_season_version(
+            self.output_schema_version,
+            self.forecast_season_id,
+            self.input_snapshot,
+        )
+        return self
+
 
 class Task9ABlockedOutput(_BaseModel):
-    output_schema_version: Literal["task9a-output-v1"] = "task9a-output-v1"
+    output_schema_version: Literal["task9a-output-v1", "task9a-output-v2"] = "task9a-output-v2"
     status: Literal["blocked"] = "blocked"
+    forecast_season_id: int | None = None
     input_snapshot: dict[str, Any]
     resolved_parameter_snapshot: ResolvedParameterSnapshot | None = None
     daily_pool_state_rows: list[DailyPoolStateRow] = Field(default_factory=list)
@@ -452,3 +503,36 @@ class Task9ABlockedOutput(_BaseModel):
     blockers: list[str]
     config_hash: str
     result_hash: str
+
+    @model_validator(mode="after")
+    def _validate_season_version(self) -> Task9ABlockedOutput:
+        _validate_output_season_version(
+            self.output_schema_version,
+            self.forecast_season_id,
+            self.input_snapshot,
+        )
+        return self
+
+
+def _validate_output_season_version(
+    output_schema_version: str,
+    forecast_season_id: int | None,
+    input_snapshot: dict[str, Any],
+) -> None:
+    snapshot_version = input_snapshot.get("input_snapshot_schema_version")
+    identity_payload = input_snapshot.get("forecast_season_identity")
+    if output_schema_version == "task9a-output-v1":
+        if (
+            forecast_season_id is not None
+            or identity_payload is not None
+            or snapshot_version is not None
+        ):
+            raise ValueError("Task 9A v1 output cannot contain v2 season identity")
+        return
+    if forecast_season_id is None or forecast_season_id <= 0:
+        raise ValueError("Task 9A v2 output requires forecast_season_id > 0")
+    if snapshot_version != "task9a-input-snapshot-v2":
+        raise ValueError("Task 9A v2 output requires task9a-input-snapshot-v2")
+    identity = ForecastSeasonIdentitySnapshot.model_validate(identity_payload)
+    if identity.season_id != forecast_season_id:
+        raise ValueError("Task 9A top-level and nested forecast season IDs must match")
