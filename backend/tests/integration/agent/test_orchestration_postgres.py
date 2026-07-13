@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.orchestration import AgentOrchestrator, StaticSeasonCalendarPolicy
 from backend.app.agent.schemas import LocationInput, PeakMetricPolicy, UncertaintyWideningPolicy
-from backend.app.models.master_data import Factory, Farm, Season, Variety
+from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import MaturityForecastRun, MaturityModelArtifact, MaturityModelRun
 from backend.app.models.planning import LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
@@ -21,6 +21,7 @@ from backend.tests.agent.test_production_wiring import (
     _add_residual_prediction_run,
     _build_harvest_state_run,
     _hash,
+    _populate_member_rows_matching_pool,
 )
 
 
@@ -50,6 +51,7 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         source_row_hash=_hash("slice-b-location"),
     )
     farm = Farm(id=1, name="slice-b-farm")
+    subfarm = Subfarm(id=1, farm_id=1, name="slice-b-subfarm")
     season = Season(id=1, code="2026", start_date=date(2026, 1, 1), end_date=date(2026, 4, 30))
     variety = Variety(id=101, code="101", name="slice-b-variety")
     factory = Factory(id=601, name="slice-b-factory")
@@ -114,7 +116,9 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         blockers=[],
         input_snapshot={},
     )
-    transactional_pg_session.add_all([location, farm, season, variety, factory, plan, model_run])
+    transactional_pg_session.add_all(
+        [location, farm, subfarm, season, variety, factory, plan, model_run]
+    )
     await transactional_pg_session.flush()
     transactional_pg_session.add(artifact)
     await transactional_pg_session.flush()
@@ -140,13 +144,24 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
                 harvest_state_run_id=task9.id,
                 state_date=day,
                 quantile=quantile,
-                capacity_pool_id=1,
+                capacity_pool_id="pool-1",
                 harvested_kg=Decimal("100"),
                 arrival_kg=Decimal("100"),
                 natural_kg=Decimal("100"),
                 closing_kg=Decimal("0"),
                 backlog_kg=Decimal("0"),
             )
+    _populate_member_rows_matching_pool(
+        transactional_pg_session,
+        harvest_state_run_id=task9.id,
+        destination_factory_id=601,
+        variety_id=101,
+        arrival_kg_per_quantile_per_date={
+            (day, quantile): Decimal("100")
+            for day in (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
+            for quantile in ("P50", "P80", "P90")
+        },
+    )
     task10 = _add_residual_prediction_run(
         transactional_pg_session,
         prediction_run_id=9010,
@@ -208,9 +223,44 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
     assert output.normalized_request.normalized_location.location_reference_id == 601
     blocker_codes = {blocker.code.value for blocker in output.blockers}
     assert "INTERNAL_FAILURE" not in blocker_codes
+    assert blocker_codes == {
+        "INSUFFICIENT_HISTORY",
+        "NO_PERSISTED_PRIOR_SOURCE",
+        "SPRING_FESTIVAL_CALENDAR_POLICY_MISSING",
+    }
     assert output.provenance["task8_authority"]["maturity_forecast_run_id"] == 9008
+    assert (
+        output.provenance["task8_authority"]["maturity_model_config_hash"] == model_run.config_hash
+    )
+    assert (
+        output.provenance["task8_authority"]["maturity_model_artifact_hash"]
+        == artifact.artifact_hash
+    )
+    assert (
+        output.provenance["task8_authority"]["maturity_forecast_source_signature"]
+        == forecast.source_signature
+    )
     assert output.provenance["task9_authority"]["harvest_state_run_id"] == 9009
+    assert (
+        output.provenance["task9_authority"]["harvest_state_run_config_hash"] == task9.config_hash
+    )
+    assert (
+        output.provenance["task9_authority"]["harvest_state_run_canonical_payload_hash"]
+        == task9.canonical_payload_hash
+    )
+    assert output.provenance["task9_authority"]["pool_row_count"] == 9
+    assert output.provenance["task9_authority"]["member_row_count"] == 0
     assert output.provenance["task10_authority"]["prediction_run_id"] == 9010
+    assert output.provenance["task10_authority"]["prediction_hash"] == task10.prediction_hash
+    assert output.provenance["task10_authority"]["prediction_config_hash"] == task10.config_hash
+    assert (
+        output.provenance["task10_authority"]["prediction_input_signature"]
+        == task10.prediction_input_signature
+    )
+    assert (
+        output.provenance["task10_authority"]["prediction_canonical_payload_hash"]
+        == task10.canonical_payload_hash
+    )
     assert (
         output.provenance["task9_authority"]["harvest_state_run_result_hash"] == task9.result_hash
     )
