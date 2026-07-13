@@ -11,10 +11,12 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.canonical import canonical_json_dumps, make_result_hash
+from backend.app.harvest_state.enums import RESULT_HASH_SCHEMA_VERSION_V2
 from backend.app.harvest_state.persistence import (
     HarvestStateHashConflictError,
     HarvestStatePersistenceIntegrityError,
     HarvestStateResultHashMismatchError,
+    HarvestStateSeasonRegistryDriftError,
     load_harvest_state_output_by_id,
     load_harvest_state_output_by_result_hash,
     save_harvest_state_output,
@@ -27,9 +29,25 @@ from backend.app.models.harvest_state import (
     HarvestStateFutureArrivalRowModel,
     HarvestStateRun,
 )
+from backend.app.models.master_data import Season
 from backend.tests.harvest_state.conftest import make_request
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture(autouse=True)
+async def task9_v2_season_fixture(isolate_master_data_tables: None) -> None:
+    _require_postgres()
+    async with AsyncSessionMaker() as session:
+        session.add(
+            Season(
+                id=2026,
+                code="2026",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 4, 30),
+            )
+        )
+        await session.commit()
 
 
 def _require_postgres() -> None:
@@ -60,7 +78,14 @@ def _blocked_output() -> object:
 def _with_valid_result_hash(output: object) -> object:
     payload = output.model_dump(mode="python")
     payload.pop("result_hash", None)
-    return output.model_copy(update={"result_hash": make_result_hash(payload)})
+    return output.model_copy(
+        update={
+            "result_hash": make_result_hash(
+                payload,
+                result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+            )
+        }
+    )
 
 
 @pytest.mark.integration
@@ -89,6 +114,7 @@ async def test_persist_and_load_completed_harvest_state_output_round_trip() -> N
 
         assert loaded is not None
         assert loaded.status == "completed"
+        assert run.forecast_season_id == 2026
         assert _canonical_output_json(loaded) == _canonical_output_json(output)
         assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 1
         assert await session.scalar(
@@ -116,6 +142,7 @@ async def test_persist_and_load_blocked_harvest_state_output_round_trip() -> Non
 
         assert loaded is not None
         assert loaded.status == "blocked"
+        assert run.forecast_season_id == 2026
         assert _canonical_output_json(loaded) == _canonical_output_json(output)
         assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 1
         assert (
@@ -233,6 +260,23 @@ async def test_harvest_state_jsonb_numeric_and_timezone_round_trip() -> None:
             select(HarvestStateRun.result_hash).where(HarvestStateRun.id == run.id)
         )
         assert stored_hash == output.result_hash
+
+
+@pytest.mark.integration
+async def test_harvest_state_registry_drift_fails_closed_on_postgres() -> None:
+    _require_postgres()
+    async with AsyncSessionMaker() as session:
+        run = await save_harvest_state_output(session, output=_completed_output())
+        original_output = run.canonical_output
+        await session.execute(text("UPDATE dim_season SET code = '2026-drift' WHERE id = 2026"))
+        await session.commit()
+
+        with pytest.raises(HarvestStateSeasonRegistryDriftError) as exc_info:
+            await load_harvest_state_output_by_id(session, run_id=run.id)
+
+        assert exc_info.value.reason == "PERSISTED_FORECAST_SEASON_REGISTRY_DRIFT"
+        await session.refresh(run)
+        assert run.canonical_output == original_output
 
 
 @pytest.mark.integration
