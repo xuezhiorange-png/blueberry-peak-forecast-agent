@@ -1799,14 +1799,21 @@ def test_task9_mixed_blocker_total_order_canonical_byte_identical() -> None:
     assert canonical_payload_hash(payload_fwd) == canonical_payload_hash(payload_rev)
 
 
-def test_task10_default_blocker_payload_is_stable_for_reversed_result_order() -> None:
-    """Round 11 requires a non-vacuous TASK-010 blocker ordering test.
+def test_task10_blocker_sort_helper_is_stable_for_reversed_input() -> None:
+    """Helper-only ordering evidence (not a default-selector test).
 
-    Construct the same payload via the production helper with
-    different input orders and assert the **unredacted** full
-    public-payload canonical bytes / hash are byte-identical.  This
-    proves the sort key is a strict total order over the public
-    payload.
+    This test directly exercises the production sort helper
+    :func:`_sort_blockers_deterministically` on hand-constructed
+    :class:`Blocker` objects.  It does NOT call the default
+    selector; it only proves the sort key is a strict total order
+    over the public payload when applied to the same blocker
+    objects in opposite orders.
+
+    For the **real default-selector** same-prefix evidence, see
+    :func:`test_task10_default_selector_returns_total_ordered_nonempty_blockers`
+    (which uses the production
+    :func:`_select_residual_prediction_run_candidates` with
+    ``prediction_run_id_override=None``).
     """
 
     from backend.app.residual_model.canonical import (
@@ -1991,3 +1998,269 @@ def test_conflict_helper_invalid_identity_fails_closed() -> None:
                 },
             ],
         )
+
+
+# ===========================================================================
+# Round 11 evidence fix (review 4681067112): real TASK-010 default-selector
+# same-prefix collision evidence + reverse-row-delivery determinism.
+#
+# The Round 11 fresh implementation is correct, but the
+# ``test_task10_default_blocker_payload_is_stable_for_reversed_result_order``
+# test only exercised the ``_sort_blockers_deterministically`` HELPER on
+# hand-constructed ``Blocker`` objects — it did NOT actually call the
+# real default-selector.  This Round 11 evidence-fix round provides the
+# real default-selector evidence required by review 4681067112:
+#
+# * ``test_task10_default_selector_returns_total_ordered_nonempty_blockers``
+#   — calls the production
+#   ``_select_residual_prediction_run_candidates`` with
+#   ``prediction_run_id_override=None`` (default path), inserts two
+#   production-shaped ``ResidualModelPredictionRun`` rows that share the
+#   same ``(code, reason, field)`` prefix but have different public
+#   content, and asserts the returned blockers are in strict-total-order
+#   over the unredacted public payload.
+#
+# * ``test_task10_default_selector_byte_identical_with_reversed_row_delivery``
+#   — uses a real session proxy that flips the ``.all()`` order of the
+#   actual SQLAlchemy result, runs the production selector twice on the
+#   SAME persisted rows + SAME authority IDs, and asserts byte-identical
+#   canonical payload + hash across reverse row-delivery.
+# ===========================================================================
+
+
+class _ReverseAllResult:
+    """Wrap a SQLAlchemy result so ``.all()`` returns the rows in
+    REVERSE order.  The wrapped result is real; only the
+    consumption order is changed.  This lets us prove the
+    production selector is byte-deterministic regardless of the
+    underlying DB row-return order.
+    """
+
+    def __init__(self, result: Any) -> None:
+        self._result = result
+        self._reversed_rows: list[Any] | None = None
+
+    def all(self) -> list[Any]:
+        if self._reversed_rows is None:
+            self._reversed_rows = list(reversed(self._result.all()))
+        return list(self._reversed_rows)
+
+    def scalars(self) -> Any:
+        return self._result.scalars()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._result, name)
+
+
+class _ReverseResultSession:
+    """Async session proxy that flips ``.all()`` on every
+    :func:`session.execute` call.  All other attributes are
+    delegated to the underlying real session.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def execute(self, statement: Any, *args: Any, **kwargs: Any) -> Any:
+        result = await self._session.execute(statement, *args, **kwargs)
+        return _ReverseAllResult(result)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._session, name)
+
+
+@pytest.mark.asyncio
+async def test_task10_default_selector_returns_total_ordered_nonempty_blockers(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """Real default-selector evidence for the same-prefix collision.
+
+    Calls the production
+    :func:`_select_residual_prediction_run_candidates` with
+    ``prediction_run_id_override=None`` (i.e. the **default** path)
+    and asserts the returned blockers are in strict-total-order
+    over the unredacted public payload.  Two production-shaped
+    :class:`ResidualModelPredictionRun` rows are inserted: both
+    bind to the selected TASK-009 by ``task9_run_id`` but
+    deliberately carry wrong ``task9_result_hash`` values.  Both
+    rows produce the SAME ``(code, reason, field)`` prefix in
+    the public blocker (``AUTHORITY_LINEAGE_MISMATCH /
+    PERSISTED_TASK9_RESULT_HASH_MISMATCH / task9_result_hash``)
+    but differ in ``row_id``, ``persisted_task9_result_hash``,
+    ``message``, and the rest of the public details.
+    """
+
+    from backend.app.residual_model.canonical import (
+        canonical_json_dumps,
+        canonical_payload_hash,
+    )
+    from backend.app.agent.adapters.baseline_composer import (
+        _blocker_sort_key,
+    )
+
+    # Selected TASK-009 authority identity.
+    selected_task9_run_id = await _insert_harvest_state_run(
+        sqlite_full_session,
+        result_hash="a" * 64,
+        config_hash="b" * 64,
+        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+    )
+    selected_task9_result_hash = "a" * 64
+
+    # Two residual runs bound to the same task9_run_id but with
+    # deliberately wrong task9_result_hash values.  Both will
+    # surface AUTHORITY_LINEAGE_MISMATCH in the default path.
+    residual_a = await _insert_residual_prediction_run(
+        sqlite_full_session,
+        task9_run_id=selected_task9_run_id,
+        task9_result_hash="0" * 64,  # WRONG hash → lineage mismatch
+        prediction_hash="e" * 64,
+        prediction_input_signature="1" * 64,
+    )
+    residual_b = await _insert_residual_prediction_run(
+        sqlite_full_session,
+        task9_run_id=selected_task9_run_id,
+        task9_result_hash="1" * 64,  # WRONG hash → lineage mismatch
+        prediction_hash="f" * 64,
+        prediction_input_signature="2" * 64,
+    )
+
+    selection = await _select_residual_prediction_run_candidates(
+        sqlite_full_session,
+        task9_run_id=selected_task9_run_id,
+        task9_result_hash=selected_task9_result_hash,
+        prediction_run_id_override=None,  # DEFAULT path
+    )
+    assert selection.candidates == (), (
+        f"two lineage-mismatch rows must yield zero candidates; got {selection.candidates}"
+    )
+    assert len(selection.blockers) >= 2, (
+        f"default path must return ≥2 lineage-mismatch blockers "
+        f"(a={residual_a}, b={residual_b}); got {len(selection.blockers)}"
+    )
+
+    # At least two blockers must share the same (code, field) prefix.
+    lineage_blockers = [
+        b
+        for b in selection.blockers
+        if b.code == BlockerCode.AUTHORITY_LINEAGE_MISMATCH
+        and (b.details or {}).get("field") == "task9_result_hash"
+    ]
+    assert len(lineage_blockers) >= 2, (
+        f"expected ≥2 lineage-mismatch blockers with same (code, field) "
+        f"prefix; got "
+        f"{[(b.code.value, b.details.get('field'), b.details.get('row_id')) for b in selection.blockers]}"
+    )
+    # Same (code, field) prefix, distinct public content.
+    keys = [_blocker_sort_key(b) for b in lineage_blockers]
+    assert len(set(keys)) == len(keys), (
+        f"strict total order requires distinct keys for distinct-content "
+        f"lineage blockers; got duplicate keys: {keys}"
+    )
+    # The two lineage blockers must carry different row_ids
+    # (authority identity must be preserved, NOT collapsed).
+    row_ids = sorted(int((b.details or {}).get("row_id")) for b in lineage_blockers)
+    assert row_ids == sorted([residual_a, residual_b]), (
+        f"lineage blockers must carry their distinct real row_ids; "
+        f"got {row_ids} (a={residual_a}, b={residual_b})"
+    )
+    # The two lineage blockers must carry different row_task9_result_hash
+    # values (which is the public-content discriminator).
+    row_hashes = sorted((b.details or {}).get("row_task9_result_hash") for b in lineage_blockers)
+    assert row_hashes == ["0" * 64, "1" * 64], (
+        f"lineage blockers must carry their distinct row_task9_result_hash; got {row_hashes}"
+    )
+
+    # Full, unredacted canonical payload / hash on the entire
+    # production-returned blocker list (NOT a redaction subset).
+    payload = canonical_json_dumps([b.model_dump(mode="json") for b in selection.blockers])
+    payload_hash = canonical_payload_hash(payload)
+    assert isinstance(payload, str) and payload.startswith("[")
+    # Unredacted: row_id / message / details / retry_hint all present.
+    for b in lineage_blockers:
+        details = b.details or {}
+        assert "row_id" in details
+        assert "row_task9_result_hash" in details
+        assert "selected_task9_result_hash" in details
+        assert b.message
+        assert b.retry_hint
+    # Re-hash the payload to ensure determinism.
+    assert canonical_payload_hash(payload) == payload_hash
+
+
+@pytest.mark.asyncio
+async def test_task10_default_selector_byte_identical_with_reversed_row_delivery(
+    sqlite_full_session: AsyncSession,
+) -> None:
+    """Same TASK-010 default-selector evidence, but with the real
+    session proxy returning rows in REVERSE order.  Uses the
+    **same persisted rows + same authority IDs** — no
+    delete+reinsert, no row_id changes, no helper-only path.
+
+    Compares the full, unredacted canonical payload / hash of
+    the production-returned blockers across normal and reversed
+    row delivery.  This is the strict-total-order evidence
+    required by review 4681067112.
+    """
+
+    from backend.app.residual_model.canonical import (
+        canonical_json_dumps,
+        canonical_payload_hash,
+    )
+
+    selected_task9_run_id = await _insert_harvest_state_run(
+        sqlite_full_session,
+        result_hash="a" * 64,
+        config_hash="b" * 64,
+        input_snapshot={**_REAL_TASK9_INPUT_SNAPSHOT, "forecast_season": 2026},
+    )
+    selected_task9_result_hash = "a" * 64
+
+    residual_a = await _insert_residual_prediction_run(
+        sqlite_full_session,
+        task9_run_id=selected_task9_run_id,
+        task9_result_hash="0" * 64,
+        prediction_hash="e" * 64,
+        prediction_input_signature="1" * 64,
+    )
+    residual_b = await _insert_residual_prediction_run(
+        sqlite_full_session,
+        task9_run_id=selected_task9_run_id,
+        task9_result_hash="1" * 64,
+        prediction_hash="f" * 64,
+        prediction_input_signature="2" * 64,
+    )
+
+    # Normal delivery: real session, no proxy.
+    normal = await _select_residual_prediction_run_candidates(
+        sqlite_full_session,
+        task9_run_id=selected_task9_run_id,
+        task9_result_hash=selected_task9_result_hash,
+        prediction_run_id_override=None,
+    )
+    # Reversed delivery: SAME rows, SAME authority IDs, just
+    # flipping the .all() order of the underlying SQLAlchemy result.
+    reversed_session = _ReverseResultSession(sqlite_full_session)
+    reversed_result = await _select_residual_prediction_run_candidates(
+        reversed_session,
+        task9_run_id=selected_task9_run_id,
+        task9_result_hash=selected_task9_result_hash,
+        prediction_run_id_override=None,
+    )
+
+    assert normal.candidates == ()
+    assert reversed_result.candidates == ()
+    assert len(normal.blockers) >= 2
+    assert len(reversed_result.blockers) >= 2
+
+    normal_payload = canonical_json_dumps([b.model_dump(mode="json") for b in normal.blockers])
+    reversed_payload = canonical_json_dumps(
+        [b.model_dump(mode="json") for b in reversed_result.blockers]
+    )
+    assert normal_payload == reversed_payload, (
+        f"production default selector must return byte-identical public "
+        f"payload across reverse row delivery:\n  normal:   {normal_payload}\n"
+        f"  reversed: {reversed_payload}\n"
+        f"  residual_a={residual_a}, residual_b={residual_b}"
+    )
+    assert canonical_payload_hash(normal_payload) == canonical_payload_hash(reversed_payload)

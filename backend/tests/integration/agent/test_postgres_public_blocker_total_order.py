@@ -184,61 +184,101 @@ async def _insert_hsr_real_shape(
 
 
 @pytest.mark.postgres
-async def test_postgres_strict_total_order_blocker_canonical_byte_identical(
+async def test_postgres_same_prefix_blocker_collision_total_order(
     pg_round11_session: AsyncSession,
 ) -> None:
-    """Real PG execution of the production selector.  Insert three
-    rows with distinct failure modes (destination / status / date
-    coverage), run the real default-path selector, and assert the
-    produced blockers are returned in the SAME strict-total-order
-    regardless of the underlying PG row-return order.
+    """Real PG same-prefix collision evidence for the new
+    canonical-payload tie-break.
 
-    No redaction.  No mock.  Real PG.  Real production selector.
-    The full canonical public payload is compared byte-for-byte
-    against the deterministic sort key.
+    Inserts two TASK-009 rows that BOTH trigger the
+    destination-mismatch branch.  Both produce a
+    :class:`Blocker` with the SAME ``(code, reason, field)``
+    prefix — ``AUTHORITY_SCOPE_MISMATCH / DESTINATION_MISMATCH /
+    ""`` — but with different public content
+    (``row_id``, ``row_destination_factory_id``, ``message``,
+    ``details``).  Round 11's strict-total-order key produces
+    distinct sort keys; the production selector's returned order
+    must equal the deterministic sort order; the canonical
+    payload must NOT depend on the underlying PG row-return order.
     """
 
     from backend.app.residual_model.canonical import (
         canonical_json_dumps,
+        canonical_payload_hash,
     )
     from backend.app.agent.adapters.baseline_composer import (
         _select_harvest_state_run_candidates,
     )
 
-    a = await _insert_hsr_real_shape(
+    request_destination = 1
+    request_as_of = date(2026, 1, 15)
+
+    # Two rows that BOTH pass the visibility filter
+    # (``as_of_date <= request_as_of`` AND
+    #  ``forecast_end_date >= request_as_of``) but have different
+    # ``destination_factory_id`` (≠ requested).  Both surface
+    # the same `(code, reason, field)` prefix.
+    row_a = await _insert_hsr_real_shape(
         pg_round11_session,
         result_hash="a" * 64,
-        destination_factory_id=2,
+        destination_factory_id=2,  # ≠ requested_destination
         as_of_date=date(2026, 1, 10),
         forecast_start_date=date(2026, 1, 1),
         forecast_end_date=date(2026, 1, 31),
     )
-    b = await _insert_hsr_real_shape(
+    row_b = await _insert_hsr_real_shape(
         pg_round11_session,
         result_hash="b" * 64,
-        destination_factory_id=1,
+        destination_factory_id=3,  # ≠ requested_destination, ≠ row_a
         as_of_date=date(2026, 1, 10),
         forecast_start_date=date(2026, 1, 1),
         forecast_end_date=date(2026, 1, 31),
-        status="blocked",
     )
-    c = await _insert_hsr_real_shape(
-        pg_round11_session,
-        result_hash="c" * 64,
-        destination_factory_id=1,
-        as_of_date=date(2025, 6, 1),
-        forecast_start_date=date(2025, 6, 1),
-        forecast_end_date=date(2025, 6, 30),
-    )
+
     selection = await _select_harvest_state_run_candidates(
         pg_round11_session,
-        as_of=date(2026, 1, 15),
+        as_of=request_as_of,
         run_id_override=None,
-        destination_factory_id=1,
+        destination_factory_id=request_destination,
         requested_variety_codes=(),
         effective_forecast_season=None,
     )
-
+    assert selection.candidates == ()
+    # The selector must surface both visible-but-failing rows.
+    dest_blockers = [
+        b
+        for b in selection.blockers
+        if b.code == BlockerCode.AUTHORITY_SCOPE_MISMATCH
+        and (b.details or {}).get("reason") == "DESTINATION_MISMATCH"
+    ]
+    assert len(dest_blockers) >= 2, (
+        f"expected ≥2 destination-mismatch blockers (row_a={row_a}, "
+        f"row_b={row_b}); got {len(dest_blockers)} dest_blockers in "
+        f"{[b.code.value for b in selection.blockers]}"
+    )
+    # Filter to the two specific rows we inserted (the fixture
+    # may include the other test rows from the same session).
+    our_blockers = [
+        b for b in dest_blockers if int((b.details or {}).get("row_id")) in (row_a, row_b)
+    ]
+    assert len(our_blockers) == 2, (
+        f"expected exactly 2 same-prefix blockers for row_a/row_b; "
+        f"got {[(b.details or {}).get('row_id') for b in our_blockers]}"
+    )
+    a, b = sorted(our_blockers, key=lambda x: int(x.details["row_id"]))
+    # Same (code, reason, field) prefix — explicitly proven.
+    assert a.code == b.code
+    assert (a.details or {}).get("reason") == (b.details or {}).get("reason")
+    assert a.details.get("field", "") == b.details.get("field", "")
+    # Distinct public content (row_id, row_destination_factory_id).
+    assert a.details["row_id"] != b.details["row_id"]
+    assert a.details["row_destination_factory_id"] != b.details["row_destination_factory_id"]
+    # Distinct strict-total-order keys.
+    assert _blocker_sort_key(a) != _blocker_sort_key(b), (
+        "two same-prefix destination-mismatch blockers with distinct "
+        "public content must produce distinct sort keys"
+    )
+    # Production order must equal the strict-total-order sort.
     sorted_blockers = _sort_blockers_deterministically(list(selection.blockers))
     payload_sorted = canonical_json_dumps([b.model_dump(mode="json") for b in sorted_blockers])
     payload_production = canonical_json_dumps(
@@ -248,15 +288,130 @@ async def test_postgres_strict_total_order_blocker_canonical_byte_identical(
         f"production order must equal strict-total-order; "
         f"production=\n{payload_production}\nsorted=\n{payload_sorted}"
     )
-    keys = [_blocker_sort_key(b) for b in selection.blockers]
-    assert len(set(keys)) == len(keys), (
-        f"strict total order requires distinct keys for distinct content; "
-        f"got duplicate keys in {keys}"
+    assert canonical_payload_hash(payload_production) == canonical_payload_hash(payload_sorted)
+
+
+@pytest.mark.postgres
+async def test_postgres_same_prefix_reversed_row_delivery_byte_identical(
+    pg_round11_session: AsyncSession,
+) -> None:
+    """Real PG same-prefix collision evidence with reversed
+    row-delivery.  Uses the **same persisted rows + same authority
+    IDs** as
+    :func:`test_postgres_same_prefix_blocker_collision_total_order`
+    (no delete+reinsert, no row_id changes).  A session proxy
+    flips the ``.all()`` order of the underlying SQLAlchemy
+    result.  Both the normal and reversed deliveries MUST
+    produce byte-identical canonical payload + hash.
+    """
+
+    from backend.app.residual_model.canonical import (
+        canonical_json_dumps,
+        canonical_payload_hash,
     )
-    assert len(selection.blockers) >= 3, (
-        f"expected at least 3 visible-but-failing rows (a={a}, b={b}, c={c}); "
-        f"got {len(selection.blockers)} blockers"
+    from backend.app.agent.adapters.baseline_composer import (
+        _select_harvest_state_run_candidates,
     )
+
+    request_destination = 1
+    request_as_of = date(2026, 1, 15)
+
+    row_a = await _insert_hsr_real_shape(
+        pg_round11_session,
+        result_hash="c" * 64,
+        destination_factory_id=2,
+        as_of_date=date(2026, 1, 10),
+        forecast_start_date=date(2026, 1, 1),
+        forecast_end_date=date(2026, 1, 31),
+    )
+    row_b = await _insert_hsr_real_shape(
+        pg_round11_session,
+        result_hash="d" * 64,
+        destination_factory_id=3,
+        as_of_date=date(2026, 1, 10),
+        forecast_start_date=date(2026, 1, 1),
+        forecast_end_date=date(2026, 1, 31),
+    )
+
+    normal = await _select_harvest_state_run_candidates(
+        pg_round11_session,
+        as_of=request_as_of,
+        run_id_override=None,
+        destination_factory_id=request_destination,
+        requested_variety_codes=(),
+        effective_forecast_season=None,
+    )
+    # SAME rows, SAME authority IDs — only the consumption order
+    # of the underlying SQLAlchemy result is flipped.
+    reversed_session = _ReverseAllPgResultSession(pg_round11_session)
+    reversed_result = await _select_harvest_state_run_candidates(
+        reversed_session,
+        as_of=request_as_of,
+        run_id_override=None,
+        destination_factory_id=request_destination,
+        requested_variety_codes=(),
+        effective_forecast_season=None,
+    )
+
+    assert normal.candidates == ()
+    assert reversed_result.candidates == ()
+    normal_dest = [
+        b for b in normal.blockers if int((b.details or {}).get("row_id")) in (row_a, row_b)
+    ]
+    reversed_dest = [
+        b
+        for b in reversed_result.blockers
+        if int((b.details or {}).get("row_id")) in (row_a, row_b)
+    ]
+    assert len(normal_dest) == 2
+    assert len(reversed_dest) == 2
+
+    normal_payload = canonical_json_dumps([b.model_dump(mode="json") for b in normal.blockers])
+    reversed_payload = canonical_json_dumps(
+        [b.model_dump(mode="json") for b in reversed_result.blockers]
+    )
+    assert normal_payload == reversed_payload, (
+        f"production default selector must return byte-identical public "
+        f"payload across reverse row delivery:\n  normal:   {normal_payload}\n"
+        f"  reversed: {reversed_payload}\n"
+        f"  row_a={row_a}, row_b={row_b}"
+    )
+    assert canonical_payload_hash(normal_payload) == canonical_payload_hash(reversed_payload)
+
+
+class _ReverseAllPgResult:
+    """Wrap a SQLAlchemy result so ``.all()`` returns the rows in
+    REVERSE order.  Real result; only consumption order changes.
+    """
+
+    def __init__(self, result: Any) -> None:
+        self._result = result
+
+    def all(self) -> list[Any]:
+        return list(reversed(self._result.all()))
+
+    def scalars(self) -> Any:
+        return self._result.scalars()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._result, name)
+
+
+class _ReverseAllPgResultSession:
+    """Async session proxy that flips ``.all()`` on every
+    :func:`session.execute` call.  All other attributes
+    delegate to the underlying real session.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def execute(self, statement: Any, *args: Any, **kwargs: Any) -> Any:
+        result = await self._session.execute(statement, *args, **kwargs)
+        return _ReverseAllPgResult(result)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._session, name)
 
 
 @pytest.mark.postgres
