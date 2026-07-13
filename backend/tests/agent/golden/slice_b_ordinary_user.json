@@ -396,17 +396,17 @@
       "resolved_parameter_snapshot_schema_version": "task9a-resolved-parameters-v1"
     },
     "task10_authority": {
-      "training_run_id": null,
-      "training_manifest_hash": null,
+      "training_run_id": 1,
+      "training_manifest_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "prediction_run_id": 1,
       "task9_run_id": 1,
       "task9_result_hash": "b1af4562eb18cf66303c04b7f5e4bb42e53a1f4a2f95ae367d1ae123d6b81df4",
-      "prediction_hash": "a40a54f4686cb95451a932a982c7fee8a279eaa84425e51422c37e49a8404af0",
-      "prediction_config_hash": "e8a9b34ec71a20885dd249f1927db32435487b83f10dbba6158dbed40c330421",
-      "prediction_input_signature": "968c04af58a0b154b308c9411ca0b9fb2fed8a02342b38ae1907f995b73fb7b9",
+      "prediction_hash": "8f3f9d6c31dbbbdedf2432f833c58208362d8426d7676343cda8e2b494fbcba5",
+      "prediction_config_hash": "e3a3082513b28b7944a85bc3b38ea9a8f9ca06bd866c5ed46b18014b1cab4d12",
+      "prediction_input_signature": "25f014f489302bb0c2ab411a7bbd249e932bffe2352381c5791c49b805505ba1",
       "artifact_hashes": [],
-      "feature_schema_hash": "c25d047b8cf23427901d32da24dc9ccabfe6cbb7e5299fee482e0f2cd6c2e603",
-      "prediction_canonical_payload_hash": "26345670f990b0060837d00cd954f237454129622d9957c6cf452ad5715ea4e5"
+      "feature_schema_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "prediction_canonical_payload_hash": "825964e11d6e865d8ffcb816529c29362aa1017cd8ea7830606edb0daa1d0230"
     },
     "task11_authority": null,
     "task12_authority": null,
@@ -427,7 +427,7 @@
     "peak_metric_policy_config_hash": "971483c6590cd34d4d5b08668e6206c6b701a279a21321379c8ca0aaa248d5e6",
     "agent_daily_curve_hash": "4d7899bd265a6280e60cbb717481d3b47767a1c7be64592bbd90711da01565db",
     "agent_peak_hash": "84f4d6f10b9cb326fcad93fb88cfbef1bdd2c17bc99dccae9248b3ade96e7a12",
-    "agent_forecast_output_hash": "383c5bd3d6f762270563d9ab30f075c9431666420aa117da5da54fb581eb6b02"
+    "agent_forecast_output_hash": "69a315ad46abc03bd9cf702b0674e48b884af0f4cb92f0d2ff924026fbe853c3"
   },
   "blockers": [
     {

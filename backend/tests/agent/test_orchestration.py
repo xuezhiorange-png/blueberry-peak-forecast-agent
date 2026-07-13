@@ -238,8 +238,7 @@ async def test_orchestration_is_ordered_and_byte_stable() -> None:
     assert first.normalized_request.effective_forecast_season_id == 1
 
 
-@pytest.mark.asyncio
-async def test_production_wiring_output_matches_full_golden() -> None:
+async def _production_wiring_output():
     from backend.app.models.harvest_state import HarvestStateRun
     from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
     from backend.app.models.maturity import (
@@ -299,6 +298,12 @@ async def test_production_wiring_output_matches_full_golden() -> None:
             request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
         )
     await engine.dispose()
+    return output
+
+
+@pytest.mark.asyncio
+async def test_production_wiring_output_matches_full_golden() -> None:
+    output = await _production_wiring_output()
 
     golden = json.loads(
         (Path(__file__).parent / "golden" / "slice_b_ordinary_user.json").read_text()
