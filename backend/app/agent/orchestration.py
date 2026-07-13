@@ -13,6 +13,7 @@ from backend.app.agent.adapters.daily_curve import DefaultDailyCurveAdapter
 from backend.app.agent.adapters.location import DefaultLocationAdapter
 from backend.app.agent.adapters.parameters import DefaultParameterAdapter
 from backend.app.agent.adapters.peak import DefaultPeakAdapter
+from backend.app.agent.adapters.scenario import DefaultScenarioAdapter
 from backend.app.agent.canonical import canonical_json_dumps, sha256_payload
 from backend.app.agent.enums import BlockerCode
 from backend.app.agent.schemas import (
@@ -28,6 +29,7 @@ from backend.app.agent.schemas import (
     RequestedAsOfDateProvenance,
     ResolvedLocation,
     ResolveLocationInput,
+    SimulateScenarioInput,
     UncertaintyWideningPolicy,
 )
 
@@ -116,10 +118,11 @@ class AgentOrchestrator:
         parameter_adapter: _AsyncAdapter | None = None,
         daily_curve_adapter: _AsyncAdapter | None = None,
         peak_adapter: Any | None = None,
+        scenario_adapter: _AsyncAdapter | None = None,
         uncertainty_widening_policy: UncertaintyWideningPolicy | None = None,
         peak_metric_policy: PeakMetricPolicy | None = None,
     ) -> None:
-        self._season_calendar = season_calendar or StaticSeasonCalendarPolicy()
+        self._season_calendar = season_calendar
         if location_adapter is None:
             from backend.app.planning.config import load_parameter_inference_config
 
@@ -131,8 +134,9 @@ class AgentOrchestrator:
         self._parameters = parameter_adapter or DefaultParameterAdapter()
         self._daily_curve = daily_curve_adapter or DefaultDailyCurveAdapter()
         self._peak = peak_adapter or DefaultPeakAdapter()
-        self._uncertainty_policy = uncertainty_widening_policy
-        self._peak_policy = peak_metric_policy
+        self._scenario = scenario_adapter or DefaultScenarioAdapter()
+        self._uncertainty_policy = self._canonical_uncertainty_policy(uncertainty_widening_policy)
+        self._peak_policy = self._canonical_peak_policy(peak_metric_policy)
 
     @staticmethod
     def supported_tool(tool_name: str) -> str:
@@ -147,6 +151,29 @@ class AgentOrchestrator:
         request: MinimalInputRequest,
         request_received_at: datetime,
     ) -> AgentForecastOutput:
+        try:
+            return await self._execute(
+                session,
+                request=request,
+                request_received_at=request_received_at,
+            )
+        except Exception:
+            return self._internal_failure_output(request, request_received_at)
+
+    async def _execute(
+        self,
+        session: AsyncSession,
+        *,
+        request: MinimalInputRequest,
+        request_received_at: datetime,
+    ) -> AgentForecastOutput:
+        if self._season_calendar is None:
+            return self._internal_failure_output(
+                request,
+                request_received_at,
+                code=BlockerCode.SEASON_CALENDAR_POLICY_MISSING,
+                message="season calendar policy is not registered",
+            )
         normalized, location = await self._normalize(session, request, request_received_at)
         blockers = list(location.blockers)
         if location.resolved_location.status != "resolved":
@@ -170,9 +197,24 @@ class AgentOrchestrator:
                 None,
                 blockers,
                 location.location_catalog_version,
+                scenario=None,
             )
 
-        uncertainty = self._uncertainty_policy or self._default_uncertainty_policy()
+        missing_policy_blockers = self._missing_policy_blockers()
+        if missing_policy_blockers:
+            return self._output(
+                normalized,
+                location.resolved_location,
+                [],
+                None,
+                None,
+                missing_policy_blockers,
+                location.location_catalog_version,
+                scenario=None,
+            )
+
+        uncertainty = self._uncertainty_policy
+        assert uncertainty is not None
         parameter = await self._parameters.execute(
             session,
             input=InferParametersInput(
@@ -193,7 +235,8 @@ class AgentOrchestrator:
             ),
         )
         blockers.extend(daily.blockers)
-        peak_policy = self._peak_policy or self._default_peak_policy()
+        peak_policy = self._peak_policy
+        assert peak_policy is not None
         peak = self._peak.execute(
             input=ForecastPeakInput(
                 normalized_request=normalized,
@@ -202,6 +245,23 @@ class AgentOrchestrator:
             )
         )
         blockers.extend(peak.blockers)
+        scenario = await self._scenario.execute(
+            session,
+            input=SimulateScenarioInput(
+                normalized_request=normalized,
+                resolved_location=location.resolved_location,
+                parameters=parameter.parameters,
+                scenario_overrides=(
+                    request.advanced_overrides.scenario_overrides
+                    if request.advanced_overrides is not None
+                    else []
+                ),
+                uncertainty_widening_policy=uncertainty,
+                peak_metric_policy=peak_policy,
+                advanced_overrides=request.advanced_overrides,
+            ),
+        )
+        blockers.extend(scenario.blockers)
         return self._output(
             normalized,
             location.resolved_location,
@@ -210,22 +270,86 @@ class AgentOrchestrator:
             peak,
             blockers,
             location.location_catalog_version,
+            scenario=scenario,
+        )
+
+    def _internal_failure_output(
+        self,
+        request: MinimalInputRequest,
+        request_received_at: datetime,
+        *,
+        code: BlockerCode = BlockerCode.INTERNAL_FAILURE,
+        message: str = "agent orchestration failed",
+    ) -> AgentForecastOutput:
+        safe_received_at = (
+            request_received_at
+            if request_received_at.tzinfo is not None
+            else request_received_at.replace(tzinfo=UTC)
+        )
+        effective_as_of = request.requested_as_of_date or safe_received_at.date()
+        season = request.requested_forecast_season or effective_as_of.year
+        normalized = NormalizedAgentRequest(
+            request_id=request.request_id,
+            request_received_at=safe_received_at,
+            effective_as_of_date=effective_as_of,
+            effective_forecast_season=season,
+            season_resolution_policy_version="unresolved",
+            season_calendar_config_hash=sha256_payload({"status": "unresolved"}),
+            requested_as_of_date_provenance=RequestedAsOfDateProvenance(
+                caller_requested_as_of_date=request.requested_as_of_date,
+                effective_as_of_date=effective_as_of,
+                override_applied=False,
+                override_kind=None,
+                source_attestation=None,
+                source_ref=None,
+            ),
+            normalized_location=ResolvedLocation(
+                status="unresolved", matched_location_method="REFERENCE_ID"
+            ),
+            location_input=request.location,
+            varieties=[
+                NormalizedVarietyInput(
+                    variety_id=item.variety_id,
+                    planting_area_mu=item.planting_area_mu,
+                )
+                for item in request.varieties
+            ],
+            advanced_overrides=request.advanced_overrides,
+            canonical_request_hash="0" * 64,
+        )
+        blocker = Blocker(
+            code=code,
+            message=message,
+            details={"request_id": request.request_id},
+            retry_hint="CONTACT_OPS",
+        )
+        return self._output(
+            normalized,
+            normalized.normalized_location,
+            [],
+            None,
+            None,
+            [blocker],
+            "unresolved",
+            scenario=None,
         )
 
     async def _normalize(
         self, session: AsyncSession, request: MinimalInputRequest, received_at: datetime
     ) -> tuple[NormalizedAgentRequest, Any]:
-        resolution = self._season_calendar.resolve(
-            request_received_at=received_at,
-            requested_as_of_date=request.requested_as_of_date,
-            requested_forecast_season=request.requested_forecast_season,
-        )
         override = (
             request.advanced_overrides.as_of_overrides[0]
             if request.advanced_overrides and request.advanced_overrides.as_of_overrides
             else None
         )
-        effective_as_of = override.value if override else resolution.effective_as_of_date
+        if self._season_calendar is None:
+            raise ValueError("season calendar policy is not registered")
+        resolution = self._season_calendar.resolve(
+            request_received_at=received_at,
+            requested_as_of_date=override.value if override else request.requested_as_of_date,
+            requested_forecast_season=request.requested_forecast_season,
+        )
+        effective_as_of = resolution.effective_as_of_date
         provenance = RequestedAsOfDateProvenance(
             caller_requested_as_of_date=request.requested_as_of_date,
             effective_as_of_date=effective_as_of,
@@ -278,6 +402,7 @@ class AgentOrchestrator:
         peak: Any | None,
         blockers: list[Blocker],
         catalog_version: str,
+        scenario: Any | None,
     ) -> AgentForecastOutput:
         unique = {canonical_json_dumps(b.model_dump(mode="json")): b for b in blockers}
         ordered = [unique[key] for key in sorted(unique)]
@@ -298,15 +423,18 @@ class AgentOrchestrator:
             )
             for number in (8, 9, 10, 11, 12)
         }
-        uncertainty = self._uncertainty_policy or self._default_uncertainty_policy()
-        peak_policy = self._peak_policy or self._default_peak_policy()
+        uncertainty = self._uncertainty_policy or self._policy_placeholder_uncertainty()
+        peak_policy = self._peak_policy or self._policy_placeholder_peak()
         prior_versions = sorted(
             {
                 str(p.citation.confidence_evidence["prior_version"])
                 for p in parameters
-                if p.citation and p.citation.confidence_evidence.get("prior_version") is not None
+                if p.citation
+                and p.citation.confidence_evidence
+                and p.citation.confidence_evidence.get("prior_version") is not None
             }
         )
+        confidence_evidence = self._confidence_evidence(parameters)
         provenance: dict[str, Any] = {
             "requested_as_of_date_provenance": (
                 normalized.requested_as_of_date_provenance.model_dump(mode="json")
@@ -315,6 +443,9 @@ class AgentOrchestrator:
             "parameter_version_identities": prior_versions,
             "prior_versions_used": prior_versions,
             "location_catalog_version": catalog_version,
+            "scenario_config_hash": (
+                scenario.scenario_config_hash if scenario is not None else None
+            ),
             "effective_as_of_date": normalized.effective_as_of_date,
             "effective_forecast_season": normalized.effective_forecast_season,
             "season_resolution_policy_version": normalized.season_resolution_policy_version,
@@ -339,7 +470,7 @@ class AgentOrchestrator:
             explanation={},
             confidence={
                 "level": self._confidence(parameters),
-                "evidence": {"parameter_count": len(parameters)},
+                "evidence": confidence_evidence,
             },
             uncertainty_widening_policy_version=uncertainty.policy_version,
             uncertainty_widening_policy_config_hash=uncertainty.config_hash,
@@ -354,6 +485,32 @@ class AgentOrchestrator:
         return output.model_copy(update={"provenance": payload["provenance"]})
 
     @staticmethod
+    def _canonical_uncertainty_policy(
+        policy: UncertaintyWideningPolicy | None,
+    ) -> UncertaintyWideningPolicy | None:
+        if policy is None:
+            return None
+        return policy.model_copy(
+            update={
+                "config_hash": sha256_payload(
+                    policy.model_dump(mode="python", exclude={"config_hash"})
+                )
+            }
+        )
+
+    @staticmethod
+    def _canonical_peak_policy(policy: PeakMetricPolicy | None) -> PeakMetricPolicy | None:
+        if policy is None:
+            return None
+        return policy.model_copy(
+            update={
+                "policy_config_hash": sha256_payload(
+                    policy.model_dump(mode="python", exclude={"policy_config_hash"})
+                )
+            }
+        )
+
+    @staticmethod
     def _confidence(parameters: list[Any]) -> str:
         if not parameters:
             return "LOW"
@@ -361,10 +518,59 @@ class AgentOrchestrator:
         return str(max(parameters, key=lambda item: rank.get(item.confidence, 2)).confidence)
 
     @staticmethod
-    def _default_uncertainty_policy() -> UncertaintyWideningPolicy:
-        return UncertaintyWideningPolicy(
+    def _confidence_evidence(parameters: list[Any]) -> dict[str, Any]:
+        evidence: dict[str, Any] = {
+            "parameter_count": len(parameters),
+            "sample_count": sum(int(item.sample_count) for item in parameters),
+            "covered_seasons": sorted(
+                {
+                    season
+                    for item in parameters
+                    for season in (
+                        item.citation.confidence_evidence.get("covered_seasons", [])
+                        if item.citation and item.citation.confidence_evidence
+                        else []
+                    )
+                }
+            ),
+            "historical_mape": sorted(
+                {
+                    str(item.citation.confidence_evidence["historical_mape"])
+                    for item in parameters
+                    if item.citation
+                    and item.citation.confidence_evidence
+                    and item.citation.confidence_evidence.get("historical_mape") is not None
+                }
+            ),
+            "historical_date_mae": sorted(
+                {
+                    str(item.citation.confidence_evidence["historical_date_mae"])
+                    for item in parameters
+                    if item.citation
+                    and item.citation.confidence_evidence
+                    and item.citation.confidence_evidence.get("historical_date_mae") is not None
+                }
+            ),
+            "p90_coverage_rate": sorted(
+                {
+                    str(item.citation.confidence_evidence["p90_coverage_rate"])
+                    for item in parameters
+                    if item.citation
+                    and item.citation.confidence_evidence
+                    and item.citation.confidence_evidence.get("p90_coverage_rate") is not None
+                }
+            ),
+            "key_missing_items": sorted(
+                {missing for item in parameters for missing in item.missing_evidence}
+            ),
+        }
+        return evidence
+
+    @staticmethod
+    def _policy_placeholder_uncertainty() -> UncertaintyWideningPolicy:
+        policy = UncertaintyWideningPolicy(
             policy_version="uncertainty-widening/v1",
-            config_hash="b" * 64,
+            config_hash="0" * 64,
             factors_by_source_level={
                 "step_1_same_farm_same_variety_high_evidence": "1.000",
                 "step_2_same_township_similar_altitude": "1.250",
@@ -373,17 +579,51 @@ class AgentOrchestrator:
                 "step_5_variety_document_prior_only": "2.000",
             },
         )
+        return policy.model_copy(
+            update={
+                "config_hash": sha256_payload(
+                    policy.model_dump(mode="python", exclude={"config_hash"})
+                )
+            }
+        )
 
     @staticmethod
-    def _default_peak_policy() -> PeakMetricPolicy:
-        return PeakMetricPolicy(
+    def _policy_placeholder_peak() -> PeakMetricPolicy:
+        policy = PeakMetricPolicy(
             policy_version="peak-metric/v1",
-            policy_config_hash="c" * 64,
+            policy_config_hash="0" * 64,
             sustained_window_days=3,
             peak_window_days_before=7,
             peak_window_days_after=7,
             high_load_threshold_ratio="0.900",
         )
+        return policy.model_copy(
+            update={
+                "policy_config_hash": sha256_payload(
+                    policy.model_dump(mode="python", exclude={"policy_config_hash"})
+                )
+            }
+        )
+
+    def _missing_policy_blockers(self) -> list[Blocker]:
+        blockers: list[Blocker] = []
+        if self._uncertainty_policy is None:
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.UNCERTAINTY_WIDENING_POLICY_MISSING,
+                    message="uncertainty widening policy is not registered",
+                    retry_hint="CONTACT_OPS",
+                )
+            )
+        if self._peak_policy is None:
+            blockers.append(
+                Blocker(
+                    code=BlockerCode.PEAK_POLICY_MISSING,
+                    message="peak metric policy is not registered",
+                    retry_hint="CONTACT_OPS",
+                )
+            )
+        return blockers
 
 
 __all__ = [
