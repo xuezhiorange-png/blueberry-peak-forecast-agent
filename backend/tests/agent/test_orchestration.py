@@ -157,14 +157,7 @@ async def test_orchestration_is_ordered_and_byte_stable() -> None:
     golden = json.loads(
         (Path(__file__).parent / "golden" / "slice_b_ordinary_user.json").read_text()
     )
-    assert {
-        "effective_as_of_date": first.normalized_request.effective_as_of_date.isoformat(),
-        "effective_forecast_season": first.normalized_request.effective_forecast_season,
-        "request_id": first.request_id,
-        "request_status": first.request_status,
-        "scenario_config_hash": first.provenance["scenario_config_hash"],
-        "tool_order": first_calls,
-    } == golden
+    assert json.loads(first.model_dump_json()) == golden
 
 
 def test_static_calendar_policy_is_not_wall_clock_dependent() -> None:
@@ -179,7 +172,11 @@ def test_static_calendar_policy_is_not_wall_clock_dependent() -> None:
 
 
 def test_policy_hashes_are_derived_from_policy_payload() -> None:
-    uncertainty = AgentOrchestrator._policy_placeholder_uncertainty()
+    orchestrator = _orchestrator([])
+    uncertainty = orchestrator._uncertainty_policy
+    peak = orchestrator._peak_policy
+    assert uncertainty is not None
+    assert peak is not None
     changed_uncertainty = uncertainty.model_copy(
         update={
             "factors_by_source_level": {
@@ -195,7 +192,6 @@ def test_policy_hashes_are_derived_from_policy_payload() -> None:
             )
         }
     )
-    peak = AgentOrchestrator._policy_placeholder_peak()
     changed_peak = peak.model_copy(update={"high_load_threshold_ratio": "0.800"})
     changed_peak = changed_peak.model_copy(
         update={
@@ -209,6 +205,7 @@ def test_policy_hashes_are_derived_from_policy_payload() -> None:
 
 
 def test_unsupported_tool_is_blocked_before_dispatch() -> None:
+    assert AgentOrchestrator.supported_tool("SIMULATE_SCENARIO") == "SIMULATE_SCENARIO"
     with pytest.raises(UnsupportedToolError):
         AgentOrchestrator.supported_tool("RUN_BACKTEST")
 
@@ -255,6 +252,11 @@ async def test_missing_runtime_policies_are_blockers() -> None:
         "UNCERTAINTY_WIDENING_POLICY_MISSING",
         "PEAK_POLICY_MISSING",
     }
+    assert output.uncertainty_widening_policy_version == "unresolved"
+    assert output.peak_metric_policy_version == "unresolved"
+    assert output.provenance["uncertainty_widening_policy_version"] == "unresolved"
+    assert output.provenance["peak_metric_policy_version"] == "unresolved"
+    assert output.normalized_request.canonical_request_hash != "0" * 64
     assert calls == ["RESOLVE_LOCATION"]
 
 

@@ -99,7 +99,13 @@ class StaticSeasonCalendarPolicy:
 
 
 _TOOLS = frozenset(
-    {"RESOLVE_LOCATION", "INFER_PARAMETERS", "FORECAST_DAILY_CURVE", "FORECAST_PEAK"}
+    {
+        "RESOLVE_LOCATION",
+        "INFER_PARAMETERS",
+        "FORECAST_DAILY_CURVE",
+        "FORECAST_PEAK",
+        "SIMULATE_SCENARIO",
+    }
 )
 
 
@@ -317,6 +323,9 @@ class AgentOrchestrator:
             advanced_overrides=request.advanced_overrides,
             canonical_request_hash="0" * 64,
         )
+        normalized = normalized.model_copy(
+            update={"canonical_request_hash": sha256_payload(normalized.model_dump(mode="python"))}
+        )
         blocker = Blocker(
             code=code,
             message=message,
@@ -423,8 +432,10 @@ class AgentOrchestrator:
             )
             for number in (8, 9, 10, 11, 12)
         }
-        uncertainty = self._uncertainty_policy or self._policy_placeholder_uncertainty()
-        peak_policy = self._peak_policy or self._policy_placeholder_peak()
+        uncertainty_version, uncertainty_hash = self._policy_identity(
+            self._uncertainty_policy, kind="uncertainty"
+        )
+        peak_version, peak_hash = self._policy_identity(self._peak_policy, kind="peak")
         prior_versions = sorted(
             {
                 str(p.citation.confidence_evidence["prior_version"])
@@ -450,10 +461,10 @@ class AgentOrchestrator:
             "effective_forecast_season": normalized.effective_forecast_season,
             "season_resolution_policy_version": normalized.season_resolution_policy_version,
             "season_calendar_config_hash": normalized.season_calendar_config_hash,
-            "uncertainty_widening_policy_version": uncertainty.policy_version,
-            "uncertainty_widening_policy_config_hash": uncertainty.config_hash,
-            "peak_metric_policy_version": peak_policy.policy_version,
-            "peak_metric_policy_config_hash": peak_policy.policy_config_hash,
+            "uncertainty_widening_policy_version": uncertainty_version,
+            "uncertainty_widening_policy_config_hash": uncertainty_hash,
+            "peak_metric_policy_version": peak_version,
+            "peak_metric_policy_config_hash": peak_hash,
             "agent_daily_curve_hash": getattr(daily, "agent_daily_curve_hash", None),
             "agent_peak_hash": getattr(peak, "agent_peak_hash", None),
             "agent_forecast_output_hash": None,
@@ -472,10 +483,10 @@ class AgentOrchestrator:
                 "level": self._confidence(parameters),
                 "evidence": confidence_evidence,
             },
-            uncertainty_widening_policy_version=uncertainty.policy_version,
-            uncertainty_widening_policy_config_hash=uncertainty.config_hash,
-            peak_metric_policy_version=peak_policy.policy_version,
-            peak_metric_policy_config_hash=peak_policy.policy_config_hash,
+            uncertainty_widening_policy_version=uncertainty_version,
+            uncertainty_widening_policy_config_hash=uncertainty_hash,
+            peak_metric_policy_version=peak_version,
+            peak_metric_policy_config_hash=peak_hash,
             provenance=provenance,
             blockers=ordered,
             warnings=[],
@@ -567,43 +578,16 @@ class AgentOrchestrator:
         return evidence
 
     @staticmethod
-    def _policy_placeholder_uncertainty() -> UncertaintyWideningPolicy:
-        policy = UncertaintyWideningPolicy(
-            policy_version="uncertainty-widening/v1",
-            config_hash="0" * 64,
-            factors_by_source_level={
-                "step_1_same_farm_same_variety_high_evidence": "1.000",
-                "step_2_same_township_similar_altitude": "1.250",
-                "step_3_same_county_same_climate_zone": "1.500",
-                "step_4_province_level_same_variety": "1.750",
-                "step_5_variety_document_prior_only": "2.000",
-            },
-        )
-        return policy.model_copy(
-            update={
-                "config_hash": sha256_payload(
-                    policy.model_dump(mode="python", exclude={"config_hash"})
-                )
-            }
-        )
-
-    @staticmethod
-    def _policy_placeholder_peak() -> PeakMetricPolicy:
-        policy = PeakMetricPolicy(
-            policy_version="peak-metric/v1",
-            policy_config_hash="0" * 64,
-            sustained_window_days=3,
-            peak_window_days_before=7,
-            peak_window_days_after=7,
-            high_load_threshold_ratio="0.900",
-        )
-        return policy.model_copy(
-            update={
-                "policy_config_hash": sha256_payload(
-                    policy.model_dump(mode="python", exclude={"policy_config_hash"})
-                )
-            }
-        )
+    def _policy_identity(
+        policy: UncertaintyWideningPolicy | PeakMetricPolicy | None,
+        *,
+        kind: str,
+    ) -> tuple[str, str]:
+        if policy is None:
+            return "unresolved", sha256_payload({"kind": kind, "status": "unresolved"})
+        if isinstance(policy, UncertaintyWideningPolicy):
+            return policy.policy_version, policy.config_hash
+        return policy.policy_version, policy.policy_config_hash
 
     def _missing_policy_blockers(self) -> list[Blocker]:
         blockers: list[Blocker] = []
