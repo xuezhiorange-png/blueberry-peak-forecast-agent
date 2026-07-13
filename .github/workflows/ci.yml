@@ -621,7 +621,11 @@ jobs:
 
       - name: Create isolated test database
         env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
           POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           python - <<'PY'
           import asyncio
