@@ -134,6 +134,7 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         destination_factory_id=601,
         maturity_forecast_run_id=9008,
         pool_row_count=9,
+        member_row_count=9,
         input_snapshot={"forecast_season": 2026},
     )
     await transactional_pg_session.flush()
@@ -150,6 +151,7 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
                 natural_kg=Decimal("100"),
                 closing_kg=Decimal("0"),
                 backlog_kg=Decimal("0"),
+                member_count=1,
             )
     _populate_member_rows_matching_pool(
         transactional_pg_session,
@@ -168,6 +170,7 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         task9_run_id=task9.id,
         task9_result_hash=task9.result_hash,
     )
+    await transactional_pg_session.flush()
     for day in (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)):
         _add_residual_prediction_row(
             transactional_pg_session,
@@ -249,7 +252,7 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         == task9.canonical_payload_hash
     )
     assert output.provenance["task9_authority"]["pool_row_count"] == 9
-    assert output.provenance["task9_authority"]["member_row_count"] == 0
+    assert output.provenance["task9_authority"]["member_row_count"] == 9
     assert output.provenance["task10_authority"]["prediction_run_id"] == 9010
     assert output.provenance["task10_authority"]["prediction_hash"] == task10.prediction_hash
     assert output.provenance["task10_authority"]["prediction_config_hash"] == task10.config_hash

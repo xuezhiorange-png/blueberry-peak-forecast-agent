@@ -82,6 +82,7 @@ def _build_harvest_state_run(
     destination_factory_id: int,
     maturity_forecast_run_id: int | None,
     pool_row_count: int = 0,
+    member_row_count: int = 0,
     input_snapshot: dict | None = None,
 ) -> HarvestStateRun:
     run = HarvestStateRun(
@@ -112,7 +113,7 @@ def _build_harvest_state_run(
         as_of_date=as_of_date,
         destination_factory_id=destination_factory_id,
         pool_row_count=pool_row_count,
-        member_row_count=0,
+        member_row_count=member_row_count,
         cohort_row_count=0,
         future_arrival_row_count=0,
         maturity_model_run_id=None,
@@ -140,6 +141,7 @@ def _add_pool_row(
     natural_kg: Decimal,
     closing_kg: Decimal,
     backlog_kg: Decimal,
+    member_count: int = 0,
 ) -> HarvestStateDailyPoolRowModel:
     row = HarvestStateDailyPoolRowModel(
         harvest_state_run_id=harvest_state_run_id,
@@ -166,7 +168,7 @@ def _add_pool_row(
         arrival_quantity_kg=arrival_kg,
         opening_cohort_count=0,
         closing_cohort_count=0,
-        member_count=0,
+        member_count=member_count,
         mass_balance_passed=True,
         capacity_constraint_passed=True,
         continuity_passed=True,
