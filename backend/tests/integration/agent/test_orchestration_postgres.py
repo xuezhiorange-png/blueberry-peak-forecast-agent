@@ -114,9 +114,11 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         blockers=[],
         input_snapshot={},
     )
-    transactional_pg_session.add_all(
-        [location, farm, season, variety, factory, plan, model_run, artifact, forecast]
-    )
+    transactional_pg_session.add_all([location, farm, season, variety, factory, plan, model_run])
+    await transactional_pg_session.flush()
+    transactional_pg_session.add(artifact)
+    await transactional_pg_session.flush()
+    transactional_pg_session.add(forecast)
     await transactional_pg_session.flush()
 
     task9 = _build_harvest_state_run(
