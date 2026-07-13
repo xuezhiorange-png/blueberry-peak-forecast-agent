@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.orchestration import AgentOrchestrator, StaticSeasonCalendarPolicy
 from backend.app.agent.schemas import LocationInput, PeakMetricPolicy, UncertaintyWideningPolicy
@@ -17,7 +18,9 @@ from backend.tests.agent.test_orchestration import _request
     os.getenv("RUN_POSTGRES_INTEGRATION") != "1",
     reason="set RUN_POSTGRES_INTEGRATION=1 for real PostgreSQL evidence",
 )
-async def test_slice_b_orchestration_uses_real_postgres_session(transactional_pg_session) -> None:
+async def test_slice_b_orchestration_uses_real_postgres_session(
+    transactional_pg_session: AsyncSession,
+) -> None:
     result = await transactional_pg_session.execute(text("SELECT 1"))
     assert result.scalar_one() == 1
 
@@ -50,5 +53,14 @@ async def test_slice_b_orchestration_uses_real_postgres_session(transactional_pg
         request=request,
         request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
     )
+    assert output.request_status in {"OK", "PARTIAL", "BLOCKED"}
+    assert output.request_status != "INTERNAL_FAILURE"
+    assert output.normalized_request.normalized_location.status in {
+        "resolved",
+        "ambiguous",
+        "unresolved",
+    }
+    blocker_codes = {blocker.code.value for blocker in output.blockers}
+    assert "INTERNAL_FAILURE" not in blocker_codes
     assert output.normalized_request.canonical_request_hash != "0" * 64
     assert len(output.provenance["agent_forecast_output_hash"]) == 64
