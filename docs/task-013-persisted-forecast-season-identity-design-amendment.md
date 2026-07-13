@@ -1,6 +1,6 @@
 # TASK-013 Persisted Forecast-Season Identity Design Amendment
 
-Status: design clarifications complete; implementation and migration are not authorized.
+Status: Draft PR design fixup; implementation and migration are not authorized.
 
 ## §1 Context and current blocker
 
@@ -19,7 +19,8 @@ gate is stable; it does not complete Slice B.
 
 This amendment defines the source, persistence, versioning, selector,
 historical compatibility, and future test contracts. It authorizes no code,
-test, ORM, fixture, migration, PR, Ready, or Merge action.
+test, ORM, fixture, migration, Ready, or Merge action. The document is already
+published in independent Draft PR #97.
 
 ## §2 Frozen terminology and existing authority surfaces
 
@@ -31,7 +32,7 @@ The following fields have distinct meanings and MUST NOT be aliases:
 |---|---|---|---|
 | `requested_forecast_season` | `int \| str \| null` | Caller token, such as `2026` or a season code | Input only; never a database identity |
 | `effective_forecast_season_id` | positive `int` | Resolved `dim_season.id` | TASK-013 selector authority |
-| `effective_forecast_season_code` | `str \| null` | Human-readable resolved `Season.code` disclosure | Display/audit only |
+| `effective_forecast_season_code` | non-empty `str` after successful normalization | Resolved `Season.code` disclosure | Required hash-bound disclosure; never selector authority |
 | `HarvestStateRun.forecast_season_id` | nullable ORM `int`, FK to `dim_season.id` | Persisted TASK-009 season authority | Normal selector authority for eligible v2 rows |
 
 `effective_forecast_season` is retired as an authority-bearing field because it
@@ -171,7 +172,12 @@ Task 9 v2 canonical input snapshot contains:
   "input_snapshot_schema_version": "task9a-input-snapshot-v2",
   "forecast_season_identity": {
     "season_id": 123,
-    "season_code": "2026"
+    "season_code": "2026",
+    "start_date": "2026-01-01",
+    "end_date": "2026-04-30",
+    "season_resolution_policy_version": "task13-season-resolution-policy-v1",
+    "season_resolution_policy_config_hash": "7452669a4cc8723010b2276dbab714d6c218401d44f4aa948768524400ffe708",
+    "season_record_hash": "4ab22bae36fb53732b501957b90426e1cdc041e6923c85bf1052d8d576f22a3c"
   }
 }
 ```
@@ -195,10 +201,12 @@ The authoritative equality chain is:
 HarvestStateRun.forecast_season_id
 == canonical_output.forecast_season_id
 == canonical_output.input_snapshot.forecast_season_identity.season_id
+== ResolvedForecastSeasonIdentity.season_id
 ```
 
-`season_code` is optional display evidence and MUST NOT participate in selector
-equality.
+`season_code` is required, non-empty hash-bound evidence in Task 9 v2. It MUST
+NOT participate in selector equality, replace `forecast_season_id`, or be
+parsed to derive a database ID.
 
 ## §6 Option C — historical lineage only
 
@@ -251,19 +259,92 @@ Final definition:
 
 ### §8.1 Resolver output
 
-The season resolver returns exactly:
+After successful normalization, the season resolver returns one immutable
+`ResolvedForecastSeasonIdentity`:
 
 ```text
-effective_forecast_season_id: positive integer
-effective_forecast_season_code: string
-season_resolution_policy_version: non-empty string
-season_calendar_config_hash: sha256
+ResolvedForecastSeasonIdentity
+  season_id: positive int
+  season_code: non-empty str
+  start_date: date
+  end_date: date
+  season_resolution_policy_version: non-empty str
+  season_resolution_policy_config_hash: lowercase 64-character SHA-256 hex
+  season_record_hash: lowercase 64-character SHA-256 hex
 ```
 
-It records the original `requested_forecast_season` token separately. The
-resolver does not return an overloaded `effective_forecast_season` authority.
+TASK-013 maps `season_id` to `effective_forecast_season_id` and `season_code`
+to required `effective_forecast_season_code`. It records the original
+`requested_forecast_season` token separately. Before successful normalization,
+including blocker-envelope construction, these effective fields may be absent;
+a successful `NormalizedAgentRequest` MUST contain both. The resolver does not
+return an overloaded `effective_forecast_season` authority.
 
-### §8.2 Explicit token resolution
+### §8.2 Resolver policy identity
+
+The v1 policy version is frozen as:
+
+```text
+season_resolution_policy_version = task13-season-resolution-policy-v1
+```
+
+`season_resolution_policy_config_hash` is the repository-standard canonical
+JSON SHA-256 of exactly this payload:
+
+```json
+{
+  "schema_version": "task13-season-resolution-policy-config-v1",
+  "explicit_token_resolution": "exact_season_code",
+  "integer_token_canonicalization": "base10_text",
+  "string_token_normalization": "none",
+  "empty_token_policy": "reject",
+  "no_token_resolution": "inclusive_effective_as_of_date_range",
+  "required_match_cardinality": 1,
+  "date_range_start_operator": "less_than_or_equal",
+  "date_range_end_operator": "greater_than_or_equal",
+  "geographic_scope": "global",
+  "availability_filter": "none",
+  "season_id_derivation": "forbidden",
+  "date_year_derivation": "forbidden"
+}
+```
+
+Object keys are sorted by the existing canonical JSON rules before hashing.
+Implementations MUST NOT add unfrozen fields. Database row counts, query order,
+and current/latest state MUST NOT enter this hash. V1 defines no whole-table
+`dim_season` calendar hash. The exact canonical payload hashes to:
+
+```text
+7452669a4cc8723010b2276dbab714d6c218401d44f4aa948768524400ffe708
+```
+
+`season_record_hash` identifies the selected row snapshot, not the resolver
+rules. It is the canonical JSON SHA-256 of exactly:
+
+```json
+{
+  "schema_version": "season-record-v1",
+  "season_id": 123,
+  "season_code": "2026",
+  "start_date": "2026-01-01",
+  "end_date": "2026-04-30"
+}
+```
+
+`season_id` is a positive integer; `season_code` is required, non-empty, and
+preserved without normalization; dates use ISO `YYYY-MM-DD`; and `end_date`
+MUST be on or after `start_date`. The output is lowercase 64-character SHA-256
+hex. The example hashes to:
+
+```text
+4ab22bae36fb53732b501957b90426e1cdc041e6923c85bf1052d8d576f22a3c
+```
+
+The policy hash identifies deterministic resolver rules. The record hash
+identifies the exact Season row snapshot selected for this request. A single
+ambiguous `season_calendar_config_hash` is not part of this contract.
+
+### §8.3 Explicit token resolution
 
 When `requested_forecast_season` is supplied:
 
@@ -293,7 +374,7 @@ The unique `Season.code` database constraint should make ambiguity impossible
 in a valid store, but the resolver remains fail-closed if corrupt or joined
 data produces multiple rows.
 
-### §8.3 No-token formal date-range resolution
+### §8.4 No-token formal date-range resolution
 
 When the caller supplies no token, formal resolution by
 `effective_as_of_date` is allowed only through this query:
@@ -314,7 +395,7 @@ calendar, not `effective_as_of_date.year` inference.
 
 Resolution failure terminates normalization. TASK-009 selection MUST NOT run.
 
-### §8.4 Availability, validity, and scope
+### §8.5 Availability, validity, and scope
 
 Current `dim_season` has `start_date` and `end_date`; it does not have
 `available_at`, `valid_from`, or `valid_to`. The v2 resolver MUST NOT invent
@@ -330,20 +411,39 @@ calendar requires a separate contract and cannot be inferred from location.
 
 ### §9.1 Request and output fields
 
-Future `Task9ARequest` v2 requires:
+The application boundary order is frozen as:
 
 ```text
-forecast_season_id: positive integer
+requested_forecast_season
+-> TASK-013 formal season resolver
+-> load exactly one Season row
+-> build ResolvedForecastSeasonIdentity
+-> construct Task9ARequest v2
+-> execute deterministic Task 9 model
+-> construct canonical Task 9 v2 output
+-> calculate Task 9 v2 result_hash
+-> save_harvest_state_output()
+-> reload and integrity validation
 ```
 
-Task 9 execution validates that all selected season-scoped authorities agree
-with this ID before numerical execution. Both completed and blocked Task 9 v2
-outputs require:
+Future `Task9ARequest` v2 requires the complete immutable value object:
+
+```text
+forecast_season_identity: ResolvedForecastSeasonIdentity
+```
+
+`season_id` is the database authority. `season_code`, dates, policy version,
+policy-config hash, and record hash are required hash-bound snapshots. Task 9
+execution validates that all selected season-scoped authorities agree with the
+ID before numerical execution. Its numerical algorithm MUST NOT access the
+database or derive `season_id` from dates, years, or code.
+
+Both completed and blocked Task 9 v2 outputs require:
 
 ```text
 forecast_season_id: positive integer
 input_snapshot.input_snapshot_schema_version = task9a-input-snapshot-v2
-input_snapshot.forecast_season_identity.season_id = forecast_season_id
+input_snapshot.forecast_season_identity = ResolvedForecastSeasonIdentity
 ```
 
 A season-resolution failure occurs before Task 9 and therefore creates no Task
@@ -355,12 +455,28 @@ resolved request season remains mandatory.
 `save_harvest_state_output()` must:
 
 1. validate v2 output/result-hash version coupling;
-2. require a positive top-level `forecast_season_id`;
-3. require an equal canonical input-snapshot mirror;
-4. load the referenced `Season` and reject a missing FK target;
-5. write the same ID to `HarvestStateRun.forecast_season_id`;
-6. reject ORM/canonical conflicts;
-7. preserve idempotency using the v2 result hash.
+2. require a positive top-level `forecast_season_id` and a complete resolved
+   identity whose `season_code` is non-empty;
+3. require the authoritative equality chain:
+
+   ```text
+   HarvestStateRun.forecast_season_id
+   == canonical_output.forecast_season_id
+   == canonical_output.input_snapshot.forecast_season_identity.season_id
+   == ResolvedForecastSeasonIdentity.season_id
+   ```
+
+4. load the FK target and verify `Season.id`, `Season.code`,
+   `Season.start_date`, and `Season.end_date` equal the resolved snapshot;
+5. recompute and verify `season_record_hash` from the snapshot;
+6. recompute and verify `season_resolution_policy_config_hash` from the frozen
+   policy payload and verify the policy version;
+7. write the already hash-bound ID to `HarvestStateRun.forecast_season_id`;
+8. reject ORM/canonical/resolved conflicts;
+9. preserve idempotency using the v2 result hash.
+
+Persistence MUST NOT first resolve season, fill `season_code`, change dates, or
+alter either season hash after `result_hash` has been calculated.
 
 ### §9.3 Load contract
 
@@ -369,9 +485,16 @@ resolved request season remains mandatory.
 - continue to read and validate v1 rows under v1 rules;
 - for v2, require the expected output and result-hash versions;
 - require a non-null valid ORM FK;
-- validate top-level canonical ID, nested snapshot ID, and ORM ID equality;
+- validate ORM, top-level canonical, nested snapshot, and resolved ID equality;
+- validate required `season_code`, dates, policy version, policy-config hash,
+  and record hash;
 - validate canonical payload hash and result hash under v2 rules;
 - fail closed on missing, malformed, dangling, or conflicting identity.
+
+If the current `dim_season` row later differs from the historical canonical
+snapshot, loading MUST NOT rewrite the historical output or hashes. Registry
+drift must fail closed or be explicitly disclosed under a future frozen
+policy; it cannot silently replace the hash-bound historical snapshot.
 
 ### §9.4 Field-level hash surface
 
@@ -384,7 +507,12 @@ output_schema_version = task9a-output-v2
 forecast_season_id
 input_snapshot.input_snapshot_schema_version
 input_snapshot.forecast_season_identity.season_id
-input_snapshot.forecast_season_identity.season_code  # display snapshot
+input_snapshot.forecast_season_identity.season_code
+input_snapshot.forecast_season_identity.start_date
+input_snapshot.forecast_season_identity.end_date
+input_snapshot.forecast_season_identity.season_resolution_policy_version
+input_snapshot.forecast_season_identity.season_resolution_policy_config_hash
+input_snapshot.forecast_season_identity.season_record_hash
 all existing v1 result-hash fields
 ```
 
@@ -402,9 +530,9 @@ surface includes that version.
 
 | Surface | Exact v2 value | Decision and field effect |
 |---|---|---|
-| Input snapshot | `task9a-input-snapshot-v2` | New explicit key; includes canonical season identity mirror |
-| `output_schema_version` | `task9a-output-v2` | Upgrade; required top-level `forecast_season_id` changes output shape |
-| `result_hash_schema_version` | `task9a-result-hash-v2` | Upgrade; season identity is part of result-hash surface |
+| Input snapshot | `task9a-input-snapshot-v2` | Upgrade; includes required full `ResolvedForecastSeasonIdentity` mirror |
+| `output_schema_version` | `task9a-output-v2` | Upgrade; required top-level `forecast_season_id` and full canonical season snapshot change output shape |
+| `result_hash_schema_version` | `task9a-result-hash-v2` | Upgrade; ID, code, dates, policy version/config hash, and record hash enter the result-hash surface |
 | `resolved_parameter_snapshot_schema_version` | `task9a-resolved-parameters-v1` | Unchanged; season is request scope, not a resolved parameter |
 | `source_ref_schema_version` | `task9a-source-ref-v1` | Unchanged; existing source-reference meanings do not change |
 | `stable_cohort_key_schema_version` | `task9a-cohort-key-v1` | Unchanged; cohort-key semantics do not change |
@@ -415,6 +543,8 @@ Version coupling rules:
   `task9a-input-snapshot-v2`.
 - A v2 result-hash row cannot carry v1 output shape.
 - A v1 row cannot become v2 through column backfill.
+- Missing or empty `season_code`, incomplete dates, or invalid season hashes
+  make a v2 output invalid.
 - Selector eligibility requires v2 output version, v2 result-hash version,
   valid FK, matching canonical mirrors, valid hashes, completed status, and an
   exact request season-ID match.
@@ -546,13 +676,12 @@ Downgrade requirements:
 
 ```text
 effective_forecast_season_id: positive integer
+effective_forecast_season_code: non-empty string
 ```
 
-and optional disclosure:
-
-```text
-effective_forecast_season_code: string | null
-```
+Both are required after successful normalization. They may be absent only
+before normalization succeeds or in the preceding blocker envelope. Code is
+disclosure and hash-bound evidence; selector equality uses only the ID.
 
 Provenance must disclose:
 
@@ -561,7 +690,8 @@ requested_forecast_season
 effective_forecast_season_id
 effective_forecast_season_code
 season_resolution_policy_version
-season_calendar_config_hash
+season_resolution_policy_config_hash
+season_record_hash
 ```
 
 `Task9Authority` adds `forecast_season_id`. The Agent canonical request and
@@ -613,22 +743,32 @@ this design round:
 - no covering date-range Season returns `SEASON_DATE_RANGE_NOT_FOUND`;
 - overlapping date-range Seasons return `SEASON_DATE_RANGE_AMBIGUOUS`;
 - season registry read failure returns `UPSTREAM_READ_FAILURE`;
+- policy config hash matches the exact §8.2 Golden;
+- selected season record hash matches the exact §8.2 Golden;
+- identical Season snapshots produce identical record hashes;
+- changing season code or either date changes the record hash;
 - regression test proves no `as_of_date.year` derivation occurs.
 
 ### Task 9 v2 schema, persistence, and migration
 
 - completed v2 output requires forecast season;
 - blocked v2 output requires forecast season;
-- v2 ORM and both canonical mirrors match;
+- complete resolved identity exists before Task 9 result-hash generation;
+- persistence cannot supply or alter season code after hash generation;
+- missing season code is rejected;
+- empty season code is rejected;
+- v2 ORM, canonical, and resolved identities match;
 - ORM/top-level canonical mismatch fails closed;
 - top-level/nested snapshot mismatch fails closed;
 - v2 missing or dangling FK fails closed;
 - v2 result hash is deterministic and season-sensitive;
-- canonical payload hash includes season mirror;
+- canonical payload and result hashes include ID, code, dates, policy version,
+  policy-config hash, and record hash;
 - Task 9 v2 save/load PostgreSQL round trip;
 - Task 9 v2 save/load SQLite round trip;
 - PostgreSQL and SQLite migration round trips preserve v1 hashes;
 - v2 version coupling rejects mixed v1/v2 surfaces.
+- current registry-row drift never rewrites historical output or hashes.
 
 ### Historical v1 and rematerialization
 
@@ -644,6 +784,7 @@ this design round:
 ### TASK-013 and TASK-010 integration
 
 - matching v2 persisted season selects exactly;
+- season code differences do not participate in selector equality;
 - mismatched v2 season fails with `FORECAST_SEASON_ID_MISMATCH`;
 - multiple same-season authorities return full `AUTHORITY_CONFLICT`;
 - multiple different-season authorities filter by exact season ID;
@@ -662,23 +803,26 @@ this design round:
 
 ## §17 Explicit non-actions and authorization gates
 
-This design clarification does not:
+This design document has been committed, its design branch has been pushed,
+and independent Draft PR #97 has been created. The PR remains documentation
+only. This fixup does not:
 
 - modify Python, ORM, tests, fixtures, workflows, or PR #96;
 - create an Alembic migration or reserve a migration number;
 - implement a resolver or selector;
 - inject `input_snapshot["forecast_season"]`;
 - modify historical v1 output or hashes;
-- commit, push, create a PR, comment on GitHub, mark Ready, or merge;
+- mark Ready, merge, enable auto-merge, or modify PR #96;
 - start Slice C/D/E or TASK-014+;
 - claim Slice B completion.
 
-Implementation, migration, amendment PR publication, PR #96 Ready, and Merge
-all require separate explicit authorization.
+Implementation, migration, PR #96 or PR #97 Ready, and Merge all require
+separate explicit authorization.
 
 ```text
-TASK013_PERSISTED_SEASON_IDENTITY_DESIGN_CLARIFICATIONS_COMPLETED
-DESIGN_DOCUMENT_ONLY
+TASK013_PERSISTED_SEASON_IDENTITY_DESIGN_FIXUP_COMPLETED
+DESIGN_DOCUMENT_COMMITTED_AND_PUSHED
+AMENDMENT_DRAFT_PR_CREATED
 OPTION_A_DATABASE_FK_AUTHORITY_FROZEN
 OPTION_B_CANONICAL_HASH_MIRROR_FROZEN
 OPTION_C_HISTORICAL_LINEAGE_ONLY_FROZEN
@@ -686,10 +830,8 @@ V1_SELECTOR_INELIGIBILITY_FROZEN
 V2_REMATERIALIZATION_CONTRACT_FROZEN
 IMPLEMENTATION_NOT_AUTHORIZED
 MIGRATION_NOT_AUTHORIZED
-COMMIT_NOT_AUTHORIZED
-PUSH_NOT_AUTHORIZED
-AMENDMENT_PR_NOT_AUTHORIZED
 PR96_KEEP_DRAFT
+PR97_KEEP_DRAFT
 READY_NOT_AUTHORIZED
 MERGE_NOT_AUTHORIZED
 ```
