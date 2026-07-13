@@ -62,6 +62,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sqlalchemy import URL
+from sqlalchemy.engine import make_url
 
 
 #: Forbidden legacy fallback names.  These were used by Round 7 / Round 8
@@ -213,43 +214,60 @@ def resolve_postgres_test_dsn(
 
 def render_dsn_for_log(dsn: str) -> str:
     """Return ``dsn`` with the password redacted, suitable for
-    logging.  We never print the password.
+    logging.  The redaction uses SQLAlchemy's
+    :meth:`URL.render_as_string` with ``hide_password=True``, which
+    is the project's canonical redaction path and the one used by
+    SQLAlchemy itself when echoing connection strings.
 
-    Handles two DSN shapes:
-    * URL-style: ``postgresql+asyncpg://user:pass@host:port/db``
-    * Plain: not URL-style — returns it unchanged (still no
-      password printed).
+    Important security guarantees (per review 4681521607):
+
+    * If the DSN is unparseable, returns a constant
+      ``"<unparseable PostgreSQL DSN>"`` placeholder.  The raw
+      input is NEVER echoed back (it may contain credentials).
+    * The rendered output never contains the raw or
+      percent-encoded password.
+    * The original DSN is never echoed back verbatim.
     """
-    from urllib.parse import urlparse, urlunparse
+    if not isinstance(dsn, str) or not dsn:
+        return "<unparseable PostgreSQL DSN>"
 
     try:
-        u = urlparse(dsn)
+        url = make_url(dsn)
+        return url.render_as_string(hide_password=True)
     except Exception:
-        return "<unparseable DSN>"
+        return "<unparseable PostgreSQL DSN>"
 
-    if not u.scheme or not u.netloc:
-        return dsn
 
-    user = u.username or ""
-    # Reassemble without the password.
-    hostport = u.hostname or ""
-    if u.port is not None:
-        hostport = f"{hostport}:{u.port}"
-    userinfo = f"{user}@***" if user else ""
-    netloc = f"{userinfo}{hostport}"
+def describe_postgres_target(dsn: str) -> str:
+    """Return a *safe* short description of the PostgreSQL target.
+
+    The output contains ONLY ``host=``, ``port=``, and
+    ``database=`` — no username, no password, no userinfo, no
+    original DSN, no percent-encoded fragments.  This is the
+    descriptor fixtures must use in every ``pytest.skip`` /
+    ``pytest.fail`` / log message that refers to a PostgreSQL
+    target, so pytest output, GitHub Actions logs, and JUnit XML
+    never leak credentials.
+
+    The output is a stable string format:
+
+        host=<host> port=<port> database='<db>'
+
+    If the DSN is unparseable, returns the constant
+    ``"<unparseable PostgreSQL target>"`` placeholder.
+    """
+    if not isinstance(dsn, str) or not dsn:
+        return "<unparseable PostgreSQL target>"
+
     try:
-        return urlunparse(
-            (
-                u.scheme,
-                netloc,
-                u.path or "",
-                u.params or "",
-                u.query or "",
-                u.fragment or "",
-            )
-        )
+        url = make_url(dsn)
     except Exception:
-        return "<unparseable DSN>"
+        return "<unparseable PostgreSQL target>"
+
+    host = url.host or "localhost"
+    port = url.port or 5432
+    database = url.database or ""
+    return f"host={host} port={port} database={database!r}"
 
 
 async def verify_postgres_database_exists(
@@ -263,6 +281,17 @@ async def verify_postgres_database_exists(
     database named in the DSN actually exists AND the credentials
     are accepted.
 
+    Security contract (per review 4681521607):
+
+    * DSN parsing uses :func:`sqlalchemy.engine.make_url` (NOT
+      :func:`urllib.parse.urlparse`).  SQLAlchemy DECODES
+      percent-encoded username / password / database fields
+      before returning them, so credentials containing
+      ``@ : / #`` reach asyncpg in their original form.
+    * All exception messages use the safe descriptor from
+      :func:`describe_postgres_target` (host / port / database
+      only) — no raw DSN, no userinfo, no password.
+
     Raises:
 
     * :class:`ConnectionError` if the host/port is not reachable
@@ -273,16 +302,30 @@ async def verify_postgres_database_exists(
       the test fails closed with a host/port/database hint.
     """
     import asyncio
-    from urllib.parse import urlparse
 
     import asyncpg
 
-    u = urlparse(dsn)
-    host = u.hostname or "localhost"
-    port = u.port or 5432
-    database = (u.path or "").lstrip("/").split("?", 1)[0].split("/", 1)[0] or ""
-    user = u.username or ""
-    password = u.password or ""
+    try:
+        url = make_url(dsn)
+    except Exception as exc:
+        # Malformed DSN.  Do NOT echo the raw DSN (it may carry
+        # credentials); use the safe descriptor as a fallback.
+        safe = describe_postgres_target(dsn)
+        raise PostgresTestDSNError(
+            f"PostgreSQL DSN could not be parsed ({safe}): {type(exc).__name__}"
+        ) from exc
+
+    host = url.host or "localhost"
+    port = url.port or 5432
+    # SQLAlchemy decodes percent-encoded userinfo / database
+    # fields on access — these are the ORIGINAL values, NOT the
+    # percent-encoded form.  Passing the encoded form to asyncpg
+    # is the bug fixed in review 4681521607.
+    user = url.username or ""
+    password = url.password or ""
+    database = url.database or ""
+
+    safe_target = describe_postgres_target(dsn)
 
     try:
         conn = await asyncio.wait_for(
@@ -298,19 +341,23 @@ async def verify_postgres_database_exists(
         )
     except TimeoutError as exc:
         raise PostgresTestDSNError(
-            f"PostgreSQL {host}:{port} (db={database!r}) did not "
-            f"respond within {timeout_seconds}s; check the service is up"
+            f"PostgreSQL {safe_target} did not respond within "
+            f"{timeout_seconds}s; check the service is up"
         ) from exc
     except OSError as exc:
         # TCP-level failure (host down, port closed, refused).
         # Re-raise as ConnectionError so the caller can ``skip``.
-        raise ConnectionError(f"PostgreSQL {host}:{port} unreachable: {exc}") from exc
+        raise ConnectionError(
+            f"PostgreSQL {safe_target} unreachable: {type(exc).__name__}"
+        ) from exc
     except Exception as exc:
         # asyncpg.InvalidCatalogNameError (database does not exist),
-        # asyncpg.InvalidPasswordError, etc. — fail closed.
-        safe = render_dsn_for_log(dsn)
+        # asyncpg.InvalidPasswordError, etc. — fail closed.  Use
+        # only the safe target descriptor; never echo the raw DSN
+        # or the underlying asyncpg message verbatim (some of
+        # them include the original DSN).
         raise PostgresTestDSNError(
-            f"PostgreSQL connection to {safe} failed: {type(exc).__name__}: {exc}"
+            f"PostgreSQL {safe_target} connection failed: {type(exc).__name__}"
         ) from exc
     try:
         await asyncio.wait_for(conn.fetchval("SELECT 1"), timeout=timeout_seconds)

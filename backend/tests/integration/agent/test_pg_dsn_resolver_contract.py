@@ -172,21 +172,241 @@ def test_special_characters_in_password_are_url_escaped() -> None:
     assert (u.path or "").lstrip("/") == "blueberry_peak"
 
 
+def test_explicit_blueberry_pg_dsn_legacy_name_remains_verbatim() -> None:
+    """Security-fixup review 4681521607: an explicit, non-empty
+    ``BLUEBERRY_PG_DSN`` is the verbatim local override.  Even if
+    its database name happens to be the legacy forbidden name, the
+    explicit override is returned unchanged.  The forbidden-name
+    check applies ONLY to the ``POSTGRES_DB``-derived path.
+
+    The contract is dual:
+
+    * ``POSTGRES_DB=blueberry_peak_test_r7_round8`` → rejected
+      (see ``test_legacy_blueberry_peak_test_r7_round8_fails_closed``).
+    * ``BLUEBERRY_PG_DSN=...blueberry_peak_test_r7_round8`` →
+      returned verbatim (this test).
+
+    These are NOT contradictory: explicit override is a controlled
+    local-dev path; the legacy default fallback is the bug.
+    """
+    explicit = "postgresql+asyncpg://u:p@db:5432/blueberry_peak_test_r7_round8"
+    env = {
+        "BLUEBERRY_PG_DSN": explicit,
+        "POSTGRES_DB": "blueberry_peak",  # would be ignored
+    }
+    assert resolve_postgres_test_dsn(env) == explicit
+
+
+def test_describe_postgres_target_never_includes_userinfo_or_password() -> None:
+    """Security-fixup review 4681521607 — Test B.
+
+    ``describe_postgres_target(dsn)`` must return a string containing
+    ONLY host / port / database.  Username, password, raw userinfo,
+    percent-encoded credentials, and the original DSN must NOT
+    appear in the output.  This is the helper the fixtures use to
+    format skip / fail messages so pytest logs and JUnit XML never
+    leak credentials.
+    """
+    from backend.tests.integration.agent._pg_dsn import (
+        describe_postgres_target,
+    )
+
+    dsn = (
+        "postgresql+asyncpg://"
+        "user%40company%3Atest:p%40ss%3Aword%2Fwith%23chars"
+        "@db.internal:5544/blueberry_peak"
+    )
+    out = describe_postgres_target(dsn)
+    assert "host=db.internal" in out
+    assert "port=5544" in out
+    assert (
+        "database='blueberry_peak'" in out
+        or 'database="blueberry_peak"' in out
+        or "blueberry_peak" in out
+    )
+    # Forbidden tokens — must NOT appear in the safe descriptor.
+    assert "user%40company" not in out
+    assert "user@company" not in out
+    assert "company" not in out
+    assert "p%40ss" not in out
+    assert "p@ss" not in out
+    assert "p@ss:word" not in out
+    assert "password" not in out.lower()
+    assert "userinfo" not in out.lower()
+    # Raw DSN fragments must NOT appear in the safe descriptor.
+    assert "postgresql+asyncpg://" not in out
+    assert dsn not in out
+
+
+def test_describe_postgres_target_handles_unparseable_dsn() -> None:
+    """A malformed DSN must NOT be echoed back raw — the safe
+    descriptor must fall back to a constant placeholder so we never
+    accidentally emit userinfo we cannot parse.
+    """
+    from backend.tests.integration.agent._pg_dsn import (
+        describe_postgres_target,
+    )
+
+    out = describe_postgres_target("not-a-url")
+    assert "user" not in out.lower()
+    assert "password" not in out.lower()
+    # Must be a stable placeholder, not the raw input.
+    assert out != "not-a-url"
+
+
+def test_preflight_passes_decoded_credentials_to_asyncpg(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Security-fixup review 4681521607 — Test A.
+
+    ``verify_postgres_database_exists`` must call ``asyncpg.connect``
+    with the DECODED username / password / database (not the
+    percent-encoded form).  The starting-head implementation uses
+    :func:`urllib.parse.urlparse` which does NOT decode userinfo;
+    credentials containing ``@ : / #`` are sent incorrectly.
+    """
+    import asyncio
+    from typing import Any
+
+    from backend.tests.integration.agent._pg_dsn import (
+        verify_postgres_database_exists,
+    )
+
+    captured: dict[str, Any] = {}
+
+    class _FakeConnection:
+        async def fetchval(self, query: str) -> int:
+            assert query == "SELECT 1"
+            return 1
+
+        async def close(self) -> None:
+            pass
+
+    async def fake_connect(*args: Any, **kwargs: Any) -> _FakeConnection:
+        # Capture keyword arguments verbatim.
+        captured["kwargs"] = dict(kwargs)
+        captured["args"] = args
+        return _FakeConnection()
+
+    monkeypatch.setattr("asyncpg.connect", fake_connect)
+
+    env: dict[str, str] = {
+        "POSTGRES_HOST": "db.internal",
+        "POSTGRES_PORT": "5544",
+        "POSTGRES_DB": "blueberry/special",
+        "POSTGRES_USER": "user@company:test",
+        "POSTGRES_PASSWORD": "p@ss:word/with#chars",
+    }
+    dsn = resolve_postgres_test_dsn(env)
+    asyncio.run(verify_postgres_database_exists(dsn))
+
+    kwargs = captured["kwargs"]
+    assert kwargs["host"] == "db.internal"
+    assert kwargs["port"] == 5544
+    assert kwargs["database"] == "blueberry/special"
+    assert kwargs["user"] == "user@company:test"
+    assert kwargs["password"] == "p@ss:word/with#chars"
+    # No percent-encoded chars in the decoded credentials.
+    for token in ("%40", "%3A", "%2F", "%23"):
+        assert token not in kwargs["user"]
+        assert token not in kwargs["password"]
+        assert token not in kwargs["database"]
+
+
+def test_render_dsn_for_log_uses_sqlalchemy_hide_password() -> None:
+    """Security-fixup review 4681521607 — render helper.
+
+    The redaction helper must use SQLAlchemy's
+    ``render_as_string(hide_password=True)``.  Raw and encoded
+    password must never appear in the output, even for DSNs with
+    multiple ``@`` / special characters / unparseable input.
+    """
+    cases = [
+        "postgresql+asyncpg://u:p@ss@db:5432/db",
+        "postgresql+asyncpg://u%40h:p%40ss@db:5432/db",
+        "postgresql+asyncpg://u:p@ss:word/with#chars@db:5432/db",
+    ]
+    for dsn in cases:
+        out = render_dsn_for_log(dsn)
+        assert "p@ss" not in out
+        assert "p%40ss" not in out
+        assert "p%3Ass" not in out
+        assert "p%2F" not in out
+        assert "p%23" not in out
+
+    # Malformed DSN must NOT be echoed raw.
+    out = render_dsn_for_log("not a url with password=hunter2")
+    assert "hunter2" not in out
+
+
+def test_both_fixtures_use_safe_target_descriptor() -> None:
+    """Security-fixup review 4681521607 — Test C.
+
+    Both PG test modules MUST use the same safe target descriptor
+    in their ``pytest.skip`` / ``pytest.fail`` paths.  They MUST
+    NOT interpolate the raw ``POSTGRES_TEST_DSN`` (which carries
+    userinfo / password) into user-visible messages.
+    """
+    import inspect
+
+    modules = [
+        importlib.import_module(
+            "backend.tests.integration.agent.test_postgres_selector_year_extraction"
+        ),
+        importlib.import_module(
+            "backend.tests.integration.agent.test_postgres_public_blocker_total_order"
+        ),
+    ]
+    for mod in modules:
+        source = inspect.getsource(mod)
+        # The raw DSN must NOT be interpolated into a user-visible message.
+        assert "POSTGRES_TEST_DSN};" not in source, (
+            f"{mod.__name__} interpolates POSTGRES_TEST_DSN into a "
+            "user-visible message (password leak risk)"
+        )
+        assert "at {POSTGRES_TEST_DSN}" not in source
+        assert 'f"PostgreSQL is not reachable at {POSTGRES_TEST_DSN}"' not in source
+        # The safe descriptor helper must be the one used.
+        assert "describe_postgres_target" in source, (
+            f"{mod.__name__} does not use describe_postgres_target()"
+        )
+
+
 def test_render_dsn_for_log_redacts_password() -> None:
-    """The redaction helper must never include the password in
-    its output, even when the input DSN contains a non-trivial
-    password.
+    """The redaction helper must never include the raw or
+    percent-encoded password in its output, even when the input
+    DSN contains a non-trivial password.
+
+    Per the security fixup (review 4681521607) the redaction
+    helper uses SQLAlchemy's ``render_as_string(hide_password=True)``.
+    SQLAlchemy's canonical redaction format is
+    ``postgresql+asyncpg://user:***@host:port/db`` (the password
+    is replaced with literal ``***``).
     """
     dsn = "postgresql+asyncpg://u:p@ss@db:5432/db"
     out = render_dsn_for_log(dsn)
     assert "p@ss" not in out
     assert "p%40ss" not in out
-    assert "u:***@db" in out or "u@***db" in out
+    # SQLAlchemy's canonical redaction format:
+    assert "***" in out
+    # Host / port / db must still be present in the redacted URL.
+    assert "db" in out
+    assert "5432" in out
 
 
-def test_render_dsn_for_log_handles_plain_string() -> None:
-    """Non-URL DSNs are returned unchanged (no crash)."""
-    assert render_dsn_for_log("not a url") == "not a url"
+def test_render_dsn_for_log_handles_unparseable_dsn_fail_closed() -> None:
+    """A non-URL DSN must NOT be echoed back raw — the redaction
+    helper must return a constant placeholder so we never
+    accidentally emit userinfo we cannot parse.  This is the
+    security-fixup contract (review 4681521607).
+    """
+    out = render_dsn_for_log("not a url")
+    assert out == "<unparseable PostgreSQL DSN>"
+    # And the raw input is NOT echoed back.
+    assert "not a url" not in out
+    # Malformed DSN with embedded password must not leak the password.
+    out2 = render_dsn_for_log("not a url with password=hunter2")
+    assert "hunter2" not in out2
 
 
 def test_both_pg_test_modules_use_same_resolver() -> None:
