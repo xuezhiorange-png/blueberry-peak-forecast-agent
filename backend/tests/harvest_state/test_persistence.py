@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import json
+from copy import deepcopy
+from datetime import UTC, date, datetime
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -8,16 +11,26 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from backend.app.harvest_state.canonical import canonical_json_dumps, make_result_hash
+from backend.app.harvest_state.canonical import (
+    canonical_json_dumps,
+    make_result_hash,
+    sha256_hex,
+)
+from backend.app.harvest_state.enums import (
+    RESULT_HASH_SCHEMA_VERSION_V1,
+    RESULT_HASH_SCHEMA_VERSION_V2,
+)
 from backend.app.harvest_state.persistence import (
+    HarvestStateForbiddenResolverProvenanceError,
     HarvestStateHashConflictError,
     HarvestStatePersistenceIntegrityError,
     HarvestStateResultHashMismatchError,
+    HarvestStateSeasonRegistryDriftError,
     load_harvest_state_output_by_id,
     load_harvest_state_output_by_result_hash,
     save_harvest_state_output,
 )
-from backend.app.harvest_state.schemas import Task9ACompletedOutput
+from backend.app.harvest_state.schemas import Task9ABlockedOutput, Task9ACompletedOutput
 from backend.app.harvest_state.service import run_harvest_state_model
 from backend.app.models.harvest_state import (
     HarvestStateCohortTransitionRowModel,
@@ -26,9 +39,11 @@ from backend.app.models.harvest_state import (
     HarvestStateFutureArrivalRowModel,
     HarvestStateRun,
 )
+from backend.app.models.master_data import Season
 from backend.tests.harvest_state.conftest import make_request
 
 HARVEST_STATE_TABLES = [
+    Season.__table__,
     HarvestStateRun.__table__,
     HarvestStateDailyPoolRowModel.__table__,
     HarvestStateDailyMemberRowModel.__table__,
@@ -81,6 +96,15 @@ async def sqlite_session() -> AsyncSession:
         )
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with sessionmaker() as session:
+        session.add(
+            Season(
+                id=2026,
+                code="2026",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 4, 30),
+            )
+        )
+        await session.commit()
         yield session
     await engine.dispose()
 
@@ -102,7 +126,125 @@ def _blocked_output() -> object:
 def _with_valid_result_hash(output: Task9ACompletedOutput) -> Task9ACompletedOutput:
     payload = output.model_dump(mode="python")
     payload.pop("result_hash", None)
-    return output.model_copy(update={"result_hash": make_result_hash(payload)})
+    return output.model_copy(
+        update={
+            "result_hash": make_result_hash(
+                payload,
+                result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+            )
+        }
+    )
+
+
+def _rehashed_output_with_forbidden_provenance(
+    output: Task9ACompletedOutput | Task9ABlockedOutput,
+    *,
+    location: str,
+) -> Task9ACompletedOutput | Task9ABlockedOutput:
+    payload = output.model_dump(mode="python")
+    if location == "input_snapshot":
+        payload["input_snapshot"]["season_resolution_policy_version"] = "agent-policy-v1"
+    elif location == "nested":
+        payload["mass_balance_result"]["nested"] = {
+            "season_resolution_policy_config_hash": "a" * 64
+        }
+    elif location == "source_ref_payload":
+        payload["source_ref_catalog"][0]["source_ref_payload"][
+            "season_resolution_policy_version"
+        ] = "agent-policy-v1"
+    else:
+        raise AssertionError(f"unsupported location: {location}")
+    payload["result_hash"] = make_result_hash(
+        payload,
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+    )
+    model = Task9ACompletedOutput if output.status == "completed" else Task9ABlockedOutput
+    return model.model_validate(payload)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("location", ["input_snapshot", "nested", "source_ref_payload"])
+async def test_completed_save_recursively_rejects_task13_resolver_provenance(
+    sqlite_session: AsyncSession,
+    location: str,
+) -> None:
+    output = _rehashed_output_with_forbidden_provenance(
+        _completed_output(),
+        location=location,
+    )
+
+    with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+        await save_harvest_state_output(sqlite_session, output=output)
+
+    assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+    assert (await _table_counts(sqlite_session))["runs"] == 0
+
+
+@pytest.mark.asyncio
+async def test_blocked_save_rejects_correctly_rehashed_task13_resolver_provenance(
+    sqlite_session: AsyncSession,
+) -> None:
+    blocked = cast(Task9ABlockedOutput, _blocked_output())
+    payload = blocked.model_dump(mode="python")
+    payload["input_snapshot"]["nested"] = {"season_resolution_policy_config_hash": "b" * 64}
+    payload["result_hash"] = make_result_hash(
+        payload,
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+    )
+    malicious = Task9ABlockedOutput.model_validate(payload)
+
+    with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+        await save_harvest_state_output(sqlite_session, output=malicious)
+
+    assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+    assert (await _table_counts(sqlite_session))["runs"] == 0
+
+
+@pytest.mark.asyncio
+async def test_load_rejects_correctly_rehashed_task13_resolver_provenance(
+    sqlite_session: AsyncSession,
+) -> None:
+    run = await save_harvest_state_output(sqlite_session, output=_completed_output())
+    malicious = deepcopy(run.canonical_output)
+    malicious["continuity_result"]["nested"] = {
+        "season_resolution_policy_version": "agent-policy-v1"
+    }
+    malicious["result_hash"] = make_result_hash(
+        malicious,
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+    )
+    run.canonical_output = malicious
+    run.result_hash = malicious["result_hash"]
+    run.canonical_payload_hash = sha256_hex(malicious)
+    await sqlite_session.commit()
+
+    with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+        await load_harvest_state_output_by_id(sqlite_session, run_id=run.id)
+
+    assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+
+
+@pytest.mark.asyncio
+async def test_completed_v1_golden_save_load_preserves_canonical_bytes(
+    sqlite_session: AsyncSession,
+) -> None:
+    path = Path(__file__).with_name("golden") / "task9a_completed_v1_canonical.json"
+    payload = json.loads(path.read_text())
+    output = Task9ACompletedOutput.model_validate(payload)
+    expected_canonical = canonical_json_dumps(payload)
+
+    run = await save_harvest_state_output(sqlite_session, output=output)
+    loaded = await load_harvest_state_output_by_id(sqlite_session, run_id=run.id)
+
+    assert run.forecast_season_id is None
+    assert run.result_hash_schema_version == RESULT_HASH_SCHEMA_VERSION_V1
+    assert canonical_json_dumps(run.canonical_output) == expected_canonical
+    assert run.result_hash == payload["result_hash"]
+    assert run.canonical_payload_hash == sha256_hex(payload)
+    assert loaded is not None
+    loaded_payload = loaded.model_dump(mode="python")
+    loaded_payload.pop("forecast_season_id")
+    assert canonical_json_dumps(loaded_payload) == expected_canonical
 
 
 @pytest.mark.asyncio
@@ -585,3 +727,39 @@ async def test_canonical_payload_hash_is_stable(sqlite_session: AsyncSession) ->
     second = await save_harvest_state_output(sqlite_session, output=loaded)
 
     assert first.id == second.id
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("code", "2026-drift"),
+        ("start_date", date(2025, 12, 31)),
+        ("end_date", date(2026, 5, 1)),
+    ],
+)
+async def test_registry_drift_fails_closed_without_rewriting_history(
+    sqlite_session: AsyncSession,
+    field: str,
+    value: object,
+) -> None:
+    run = await save_harvest_state_output(sqlite_session, output=_completed_output())
+    original_output = run.canonical_output
+    original_result_hash = run.result_hash
+    original_payload_hash = run.canonical_payload_hash
+    season = await sqlite_session.get(Season, 2026)
+    assert season is not None
+    setattr(season, field, value)
+    await sqlite_session.commit()
+
+    with pytest.raises(
+        HarvestStateSeasonRegistryDriftError,
+        match="persisted forecast season identity does not match dim_season",
+    ) as exc_info:
+        await load_harvest_state_output_by_id(sqlite_session, run_id=run.id)
+
+    assert exc_info.value.reason == "PERSISTED_FORECAST_SEASON_REGISTRY_DRIFT"
+    await sqlite_session.refresh(run)
+    assert run.canonical_output == original_output
+    assert run.result_hash == original_result_hash
+    assert run.canonical_payload_hash == original_payload_hash

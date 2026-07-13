@@ -9,6 +9,7 @@ from backend.app.harvest_state.application import (
     get_harvest_state_run_by_result_hash,
 )
 from backend.app.harvest_state.persistence import (
+    HarvestStateForbiddenResolverProvenanceError,
     HarvestStateHashConflictError,
     HarvestStatePersistenceError,
     HarvestStatePersistenceIntegrityError,
@@ -30,6 +31,7 @@ __all__ = [
     "HarvestStateDeliveryInputError",
     "HarvestStateDeliveryIntegrityError",
     "HarvestStateHashConflictError",
+    "HarvestStateForbiddenResolverProvenanceError",
     "HarvestStatePersistenceIntegrityError",
     "HarvestStatePersistenceError",
     "HarvestStateResultHashMismatchError",

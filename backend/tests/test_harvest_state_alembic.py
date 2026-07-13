@@ -34,6 +34,23 @@ def test_harvest_state_migration_has_downgrade() -> None:
     assert "def downgrade() -> None:" in source
 
 
+def test_task9_v2_forecast_season_migration_contract() -> None:
+    revision_path = Path("backend/alembic/versions/0016_task9_forecast_season_identity.py")
+    source = revision_path.read_text()
+
+    assert 'revision: str = "0016_task9_forecast_season_identity"' in source
+    assert 'down_revision: str | None = "0015_task11_phase3_schema_gap"' in source
+    assert '"forecast_season_id", sa.BigInteger(), nullable=True' in source
+    assert '"dim_season"' in source
+    assert 'ondelete="RESTRICT"' in source
+    assert '"alembic_version"' in source
+    assert "type_=sa.String(length=64)" in source
+    assert '"ix_harvest_state_run_forecast_season_scope"' in source
+    assert "task9a-result-hash-v2" in source
+    assert "refuse to downgrade" in source
+    assert "UPDATE harvest_state_run" not in source
+
+
 def test_harvest_state_schema_contains_tables() -> None:
     schema_path = Path("sql/schema.sql")
     source = schema_path.read_text()
@@ -62,3 +79,22 @@ def test_harvest_state_postgres_constraint_names_fit_identifier_limit() -> None:
             if constraint.name:
                 assert len(constraint.name) <= 63, constraint.name
         CreateTable(table).compile(dialect=postgresql.dialect())
+
+
+def test_task9_v2_forecast_season_orm_contract() -> None:
+    column = HarvestStateRun.__table__.c.forecast_season_id
+    assert column.nullable is True
+    assert {foreign_key.target_fullname for foreign_key in column.foreign_keys} == {"dim_season.id"}
+    assert {foreign_key.ondelete for foreign_key in column.foreign_keys} == {"RESTRICT"}
+    index = next(
+        item
+        for item in HarvestStateRun.__table__.indexes
+        if item.name == "ix_harvest_state_run_forecast_season_scope"
+    )
+    assert tuple(column.name for column in index.columns) == (
+        "forecast_season_id",
+        "status",
+        "destination_factory_id",
+        "as_of_date",
+        "forecast_end_date",
+    )

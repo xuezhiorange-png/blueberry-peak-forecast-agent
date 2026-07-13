@@ -14,6 +14,12 @@ from backend.app.harvest_state.schemas import Task9ARequest
 from backend.tests.harvest_state.conftest import make_request
 
 
+@pytest.fixture
+def sqlite_session(harvest_state_sqlite_session: AsyncSession) -> AsyncSession:
+    """Isolate CLI tests from same-named fixtures registered by other domains."""
+    return harvest_state_sqlite_session
+
+
 def _session_factory(sqlite_session: AsyncSession) -> async_sessionmaker[AsyncSession]:
     assert sqlite_session.bind is not None
     return async_sessionmaker(sqlite_session.bind, expire_on_commit=False, class_=AsyncSession)

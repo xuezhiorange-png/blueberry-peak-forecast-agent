@@ -60,7 +60,10 @@ class HarvestStateDeliveryInputError(HarvestStateDeliveryError):
 
 
 def _canonical_output_json(output: Task9ACompletedOutput | Task9ABlockedOutput) -> str:
-    return canonical_json_dumps(output.model_dump(mode="python"))
+    payload = output.model_dump(mode="python")
+    if output.output_schema_version == "task9a-output-v1":
+        payload.pop("forecast_season_id", None)
+    return canonical_json_dumps(payload)
 
 
 def _build_envelope(
