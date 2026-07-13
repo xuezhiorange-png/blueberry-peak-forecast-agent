@@ -27,6 +27,7 @@ from backend.app.harvest_state.canonical import (
     canonical_json_dumps,
     make_result_hash,
 )
+from backend.app.harvest_state.enums import RESULT_HASH_SCHEMA_VERSION_V1
 from backend.tests.factories.identity import TestIdentity, build_test_identity
 
 
@@ -94,7 +95,10 @@ def harvest_state_factory(
         audit_payload=audit_input,
         extra_metadata=extra_metadata,
     )
-    result_hash = make_result_hash({"output": output_payload})
+    result_hash = make_result_hash(
+        {"output": output_payload},
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V1,
+    )
     return HarvestStateFactoryOutput(
         identity=identity,
         canonical_output_json=canonical_output,

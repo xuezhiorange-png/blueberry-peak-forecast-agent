@@ -43,6 +43,7 @@ from backend.app.harvest_state.canonical import (
     canonical_json_dumps,
     make_holiday_calendar_hash,
     make_membership_hash,
+    make_season_record_hash,
     make_stable_cohort_key,
     make_weather_rule_config_hash,
     sha256_hex,
@@ -57,6 +58,7 @@ from backend.app.harvest_state.enums import (
 )
 from backend.app.harvest_state.schemas import (
     DailyWeatherFeatureInput,
+    ForecastSeasonIdentitySnapshot,
     InitialInventorySourceRef,
     ParameterSourceRef,
     Task8DailyPredictionInput,
@@ -569,6 +571,7 @@ def _task8_predictions(
     daily_prediction_id: int = 4,
 ) -> tuple[Task8DailyPredictionInput, ...]:
     verification = Task8PredictionVerificationSnapshot(
+        season_id=1,
         maturity_model_run_id=1,
         maturity_model_version="maturity-v1",
         maturity_model_config_hash="c" * 64,
@@ -661,6 +664,18 @@ def _context(
 ) -> Task9AuthorityAssemblyContext:
     return Task9AuthorityAssemblyContext(
         mode=mode,
+        forecast_season_identity=ForecastSeasonIdentitySnapshot(
+            season_id=1,
+            season_code="test-season",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 12, 31),
+            season_record_hash=make_season_record_hash(
+                season_id=1,
+                season_code="test-season",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 12, 31),
+            ),
+        ),
         as_of_date=as_of_date,
         forecast_start_date=forecast_start,
         forecast_end_date=forecast_end,
@@ -834,6 +849,7 @@ def test_assembly_hash_ignores_all_task8_persistent_ids() -> None:
                 + 1000,
             ),
             verification_snapshot=Task8PredictionVerificationSnapshot(
+                season_id=pred.verification_snapshot.season_id,
                 maturity_model_run_id=pred.verification_snapshot.maturity_model_run_id + 1000,
                 maturity_model_version=pred.verification_snapshot.maturity_model_version,
                 maturity_model_config_hash=pred.verification_snapshot.maturity_model_config_hash,
@@ -1423,6 +1439,44 @@ def test_cross_season_holiday_fails_closed() -> None:
     assert exc_info.value.details["reason"] == "authority_scope_mismatch"
 
 
+def test_authority_scope_must_match_forecast_season_snapshot() -> None:
+    context = replace(
+        _context(),
+        forecast_season_identity=ForecastSeasonIdentitySnapshot(
+            season_id=999,
+            season_code="other-season",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 12, 31),
+            season_record_hash=make_season_record_hash(
+                season_id=999,
+                season_code="other-season",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 12, 31),
+            ),
+        ),
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(context=context)
+    assert exc_info.value.details["reason"] == "authority_scope_mismatch"
+
+
+def test_task8_plan_lineage_season_mismatch_fails_before_model_execution() -> None:
+    predictions = tuple(
+        prediction.model_copy(
+            update={
+                "verification_snapshot": prediction.verification_snapshot.model_copy(
+                    update={"season_id": 999}
+                )
+            }
+        )
+        for prediction in _task8_predictions()
+    )
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        _assembly(task8_predictions=predictions)
+    assert exc_info.value.details["reason"] == "authority_scope_mismatch"
+    assert exc_info.value.details["error"] == "Task 8 forecast season mismatch"
+
+
 def test_cross_factory_pool_fails_closed() -> None:
     """Pool with different factory than run_package → must reject."""
     pool_a = _pool(factory_id=2)
@@ -1538,12 +1592,74 @@ def test_canonical_payload_preserves_content() -> None:
     assembled = _assembly()
     assert (
         assembled.canonical_payload["assembly_schema_version"]
-        == "task9-authority-request-assembly-v1"
+        == "task9-authority-request-assembly-v2"
     )
+    request_payload = assembled.canonical_payload["request"]
+    assert request_payload["input_snapshot_schema_version"] == "task9a-input-snapshot-v2"
+    assert request_payload["forecast_season_identity"] == {
+        "season_id": 1,
+        "season_code": "test-season",
+        "start_date": "2026-01-01",
+        "end_date": "2026-12-31",
+        "season_record_hash": make_season_record_hash(
+            season_id=1,
+            season_code="test-season",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 12, 31),
+        ),
+    }
     assert "request" in assembled.canonical_payload
     assert "authority_manifest" in assembled.canonical_payload
 
     assert assembled.assembly_hash == sha256_hex(_immutable_to_plain(assembled.canonical_payload))
+
+
+@pytest.mark.parametrize(
+    "updates",
+    [
+        {"season_code": "test-season-v2"},
+        {"start_date": date(2025, 12, 31)},
+        {"end_date": date(2027, 1, 1)},
+    ],
+)
+def test_assembly_hash_binds_each_season_business_field(
+    updates: dict[str, object],
+) -> None:
+    baseline = _assembly()
+    original = _context().forecast_season_identity
+    values = {
+        "season_id": original.season_id,
+        "season_code": original.season_code,
+        "start_date": original.start_date,
+        "end_date": original.end_date,
+        **updates,
+    }
+    changed_identity = ForecastSeasonIdentitySnapshot(
+        **values,
+        season_record_hash=make_season_record_hash(**values),  # type: ignore[arg-type]
+    )
+    changed_predictions = tuple(
+        prediction.model_copy(
+            update={
+                "verification_snapshot": prediction.verification_snapshot.model_copy(
+                    update={"season_id": changed_identity.season_id}
+                )
+            }
+        )
+        for prediction in _task8_predictions()
+    )
+    changed = _assembly(
+        context=replace(_context(), forecast_season_identity=changed_identity),
+        task8_predictions=changed_predictions,
+    )
+
+    assert changed.assembly_hash != baseline.assembly_hash
+
+
+def test_assembly_hash_contains_no_agent_policy_provenance() -> None:
+    canonical = canonical_json_dumps(_immutable_to_plain(_assembly().canonical_payload))
+    assert "season_resolution_policy_version" not in canonical
+    assert "season_resolution_policy_config_hash" not in canonical
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1654,11 +1770,14 @@ def test_assemble_direct_capacity_uses_direct_mode_source_refs() -> None:
 def test_assembly_golden_hash() -> None:
     """Golden canonical JSON and hash must remain fixed."""
     assembled = _assembly()
-    expected_json = """{"assembly_schema_version":"task9-authority-request-assembly-v1","authority_manifest":[{"authority_family":"capacity_pool_definition","authority_stable_key":"capacity-pool:1:2:POOL-A","business_version":"pool-v1","revision":1,"row_hash":"1111111111111111111111111111111111111111111111111111111111111111"},{"authority_family":"daily_capacity","authority_stable_key":"daily-capacity:1:2:POOL-A:pool-v1:1:2026-06-15","business_version":"pool-v1","revision":1,"row_hash":"3333333333333333333333333333333333333333333333333333333333333333"},{"authority_family":"holiday_calendar_version","authority_stable_key":"holiday-calendar:1:CN:Asia/Shanghai","business_version":"cal-v1","revision":1,"row_hash":"4444444444444444444444444444444444444444444444444444444444444444"},{"authority_family":"initial_inventory_snapshot","authority_stable_key":"initial-inventory:1:2:2026-06-15","business_version":"inv-v1","revision":1,"row_hash":"7777777777777777777777777777777777777777777777777777777777777777"},{"authority_family":"mature_inventory_loss_authority","authority_stable_key":"mature-loss:1:2:POOL-A:2026-06-15:P50","business_version":"loss-v1","revision":1,"row_hash":"1111111111111111111111111111111111111111111111111111111111111111"},{"authority_family":"mature_inventory_loss_authority","authority_stable_key":"mature-loss:1:2:POOL-A:2026-06-15:P80","business_version":"loss-v1","revision":1,"row_hash":"2222222222222222222222222222222222222222222222222222222222222222"},{"authority_family":"mature_inventory_loss_authority","authority_stable_key":"mature-loss:1:2:POOL-A:2026-06-15:P90","business_version":"loss-v1","revision":1,"row_hash":"3333333333333333333333333333333333333333333333333333333333333333"},{"authority_family":"run_parameter_package","authority_stable_key":"run-package:1:2:farm-10","business_version":"pkg-v1","revision":1,"row_hash":"6666666666666666666666666666666666666666666666666666666666666666"},{"authority_family":"weather_rule_config_version","authority_stable_key":"weather-rule:WEATHER-STD:Asia/Shanghai","business_version":"weather-v1","revision":1,"row_hash":"5555555555555555555555555555555555555555555555555555555555555555"}],"request":{"as_of_date":"2026-06-01","capacity_pools":[{"capacity_pool_grain":"FARM","capacity_pool_id":"POOL-A","members":[{"farm_id":10,"subfarm_id":null,"variety_id":20}]}],"daily_capacity_inputs":[{"capacity_date":"2026-06-15","capacity_input_mode":"LABOR_DERIVED","capacity_parameter_source_ref_hashes":["6b81f9a37e531b480b07007ef821d0ffe7539e76ee737d2781db79389e6de07e","6b81f9a37e531b480b07007ef821d0ffe7539e76ee737d2781db79389e6de07e","6b81f9a37e531b480b07007ef821d0ffe7539e76ee737d2781db79389e6de07e","6b81f9a37e531b480b07007ef821d0ffe7539e76ee737d2781db79389e6de07e"],"capacity_pool_id":"POOL-A","direct_nominal_capacity_kg_per_day":null,"kg_per_person_per_day":"20","labor_availability_ratio":"0.8","operational_efficiency_ratio":"0.9","planned_picker_count":"10"}],"daily_weather_features":[{"capacity_date":"2026-06-15","capacity_pool_id":"POOL-A","feature_id":"TEMP","source_ref_hash":"63880fe0a010634b3fa0c4dc5e9769440ec122b01a2750c3d090b0e8c5ffc15a","value":"20"}],"destination_factory_id":2,"destination_factory_timezone":"Asia/Shanghai","farm_timezone":"Asia/Shanghai","forecast_end_date":"2026-06-15","forecast_quantiles":["P50","P80","P90"],"forecast_start_date":"2026-06-15","harvest_bucket_anchor_local_time":"06:00:00","harvest_to_arrival_lag_days":1,"holiday_calendar_hash":"1f2e6a1246f2d042e4e818d11aa85244d6d635a2696c2578dc30914e82808cd1","holiday_calendar_version":"cal-v1","holiday_dates":["2026-01-01"],"initial_inventory_cohorts":[{"cohort_date":"2026-06-15","farm_id":10,"forecast_quantile":"P50","remaining_quantity_kg":"10","source_ref_hash":"3b950f47e4a605f9fd1cae47964ba90d7a1f555a75cf007421a48fd4e46268fe","stable_cohort_key":"b4346197ec23d7032ce0fed7023d6d6437dd337e4fc42c551f8ac99eae2a47c3","stable_cohort_key_schema_version":"task9a-cohort-key-v1","subfarm_id":null,"variety_id":20},{"cohort_date":"2026-06-15","farm_id":10,"forecast_quantile":"P80","remaining_quantity_kg":"10","source_ref_hash":"3b950f47e4a605f9fd1cae47964ba90d7a1f555a75cf007421a48fd4e46268fe","stable_cohort_key":"28a00231a888266471e7287ca5294a518fb9a6d1a022a1b04301c66bfae39e54","stable_cohort_key_schema_version":"task9a-cohort-key-v1","subfarm_id":null,"variety_id":20},{"cohort_date":"2026-06-15","farm_id":10,"forecast_quantile":"P90","remaining_quantity_kg":"10","source_ref_hash":"3b950f47e4a605f9fd1cae47964ba90d7a1f555a75cf007421a48fd4e46268fe","stable_cohort_key":"2fd289d5a4f91a2fa74f4af5e936f2e25ba86c99701e4eb972388d9fbedacde3","stable_cohort_key_schema_version":"task9a-cohort-key-v1","subfarm_id":null,"variety_id":20}],"initial_opening_mature_inventory_kg":"30","mature_inventory_loss_inputs":[{"capacity_pool_id":"POOL-A","forecast_quantile":"P50","mature_inventory_loss_quantity_kg":"1","source_ref_hash":"e3ade1cc73f572fe3acdde4642a28be59015d8b80330db8c48f260ea636e10e5","state_date":"2026-06-15"},{"capacity_pool_id":"POOL-A","forecast_quantile":"P80","mature_inventory_loss_quantity_kg":"1","source_ref_hash":"95b0d0d1832f009adf366fb7ffc1137f37ff67ff36f80e0f24996e256555f3ae","state_date":"2026-06-15"},{"capacity_pool_id":"POOL-A","forecast_quantile":"P90","mature_inventory_loss_quantity_kg":"1","source_ref_hash":"d8f9e2852e36dc86c4e28cd754f5d3eab87442a1c158350a5e83ac2124f01bb2","state_date":"2026-06-15"}],"run_parameter_source_ref_hashes":["13d21fa892290f676407cfd76f0e4b7061b0f90da12de7de89412a7705934a76","84af8ad69852b40cc80147fb26acc1c14b8370ded823b04ba4ed559eb237ba35","906b1995ec6e6b5ec14b40dc6ceb7ba3fefd3f92d4615b6eb01eda817a8ef1b0","906b1995ec6e6b5ec14b40dc6ceb7ba3fefd3f92d4615b6eb01eda817a8ef1b0","906b1995ec6e6b5ec14b40dc6ceb7ba3fefd3f92d4615b6eb01eda817a8ef1b0"],"task8_daily_predictions":[{"farm_id":10,"prediction_date":"2026-06-15","source_ref_hash":"4c78349c2c520aad796aa8d2a3a68bf9980593a76c78f9cceace31a1c7f60228","subfarm_id":null,"variety_id":20,"verification_snapshot":{"farm_id":10,"maturity_forecast_as_of_date":"2026-06-01","maturity_forecast_prediction_end_date":"2026-06-15","maturity_forecast_prediction_start_date":"2026-06-15","maturity_forecast_run_status":"completed","maturity_forecast_source_signature":"forecast-source","maturity_model_artifact_hash":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","maturity_model_config_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","maturity_model_source_signature":"model-source","maturity_model_version":"maturity-v1","p50_kg":"10","p80_kg":"20","p90_kg":"30","prediction_date":"2026-06-15","subfarm_id":null,"variety_id":20},"verification_snapshot_hash":"a18c047a062c3c9bb458fab3694dc54ef3b521dcaa580cf8ffba832d1c8b127a"},{"farm_id":10,"prediction_date":"2026-06-15","source_ref_hash":"928c9c9d79bfd31324c5b22072d9681dd47fbd52d653a8b8daa7544676558205","subfarm_id":null,"variety_id":20,"verification_snapshot":{"farm_id":10,"maturity_forecast_as_of_date":"2026-06-01","maturity_forecast_prediction_end_date":"2026-06-15","maturity_forecast_prediction_start_date":"2026-06-15","maturity_forecast_run_status":"completed","maturity_forecast_source_signature":"forecast-source","maturity_model_artifact_hash":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","maturity_model_config_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","maturity_model_source_signature":"model-source","maturity_model_version":"maturity-v1","p50_kg":"10","p80_kg":"20","p90_kg":"30","prediction_date":"2026-06-15","subfarm_id":null,"variety_id":20},"verification_snapshot_hash":"a18c047a062c3c9bb458fab3694dc54ef3b521dcaa580cf8ffba832d1c8b127a"},{"farm_id":10,"prediction_date":"2026-06-15","source_ref_hash":"4a896cdd28b60de576b39079d10bfc7df5fa2ca2649672d9f90f523e7d5130f7","subfarm_id":null,"variety_id":20,"verification_snapshot":{"farm_id":10,"maturity_forecast_as_of_date":"2026-06-01","maturity_forecast_prediction_end_date":"2026-06-15","maturity_forecast_prediction_start_date":"2026-06-15","maturity_forecast_run_status":"completed","maturity_forecast_source_signature":"forecast-source","maturity_model_artifact_hash":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","maturity_model_config_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","maturity_model_source_signature":"model-source","maturity_model_version":"maturity-v1","p50_kg":"10","p80_kg":"20","p90_kg":"30","prediction_date":"2026-06-15","subfarm_id":null,"variety_id":20},"verification_snapshot_hash":"a18c047a062c3c9bb458fab3694dc54ef3b521dcaa580cf8ffba832d1c8b127a"}],"weather_rule_config":{"combination_method":"MULTIPLY","feature_rules":[{"bands":[{"lower_bound":"0","lower_inclusive":true,"multiplier":"1","upper_bound":"30","upper_inclusive":false}],"feature_id":"TEMP"}],"maximum_ratio":"1","minimum_ratio":"0","missing_feature_policy":"BLOCK","required_feature_ids":["TEMP"],"version":"weather-v1"}}}"""
-    assert canonical_json_dumps(_immutable_to_plain(assembled.canonical_payload)) == expected_json
+    _legacy_v1_assembly_hash = "fc056fe74f4ac12dd0e9925cebdb734794c43eedeee5b507bdb68c1222a7597d"
+    canonical = canonical_json_dumps(_immutable_to_plain(assembled.canonical_payload))
+    assert assembled.assembly_hash != _legacy_v1_assembly_hash
+    assert '"assembly_schema_version":"task9-authority-request-assembly-v2"' in canonical
+    assert '"input_snapshot_schema_version":"task9a-input-snapshot-v2"' in canonical
     assert (
         assembled.assembly_hash
-        == "fc056fe74f4ac12dd0e9925cebdb734794c43eedeee5b507bdb68c1222a7597d"
+        == "010119ce3f024b42196e69edc731d9f2205828ff0066b0e576af5836566f15b0"
     )
 
 
@@ -2574,6 +2693,7 @@ def test_db_id_independence_proof() -> None:
                 + 9000,
             ),
             verification_snapshot=Task8PredictionVerificationSnapshot(
+                season_id=p.verification_snapshot.season_id,
                 maturity_model_run_id=p.verification_snapshot.maturity_model_run_id + 9000,
                 maturity_model_version=p.verification_snapshot.maturity_model_version,
                 maturity_model_config_hash=p.verification_snapshot.maturity_model_config_hash,
@@ -2637,6 +2757,7 @@ def test_db_id_independence_proof() -> None:
                 + 9000,
             ),
             verification_snapshot=Task8PredictionVerificationSnapshot(
+                season_id=p.verification_snapshot.season_id,
                 maturity_model_run_id=p.verification_snapshot.maturity_model_run_id + 9000,
                 maturity_model_version=p.verification_snapshot.maturity_model_version,
                 maturity_model_config_hash=p.verification_snapshot.maturity_model_config_hash,

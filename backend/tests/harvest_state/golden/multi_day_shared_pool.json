@@ -578,7 +578,7 @@
       "variety_id": 102
     }
   ],
-  "config_hash": "2fb0a2e15fa1bab12c44ee127d8635bb0e7e6351da7ec39628157485ddb2d609",
+  "config_hash": "12841485e019d961471824f79570af425ea8c1ab4a1f3f84186956ca9f363de0",
   "continuity_result": {
     "passed": true
   },
@@ -1447,6 +1447,7 @@
     "P80",
     "P90"
   ],
+  "forecast_season_id": 2026,
   "forecast_start_date": "2026-03-01",
   "future_arrival_schedule": [
     {
@@ -1654,6 +1655,13 @@
       "P80",
       "P90"
     ],
+    "forecast_season_identity": {
+      "end_date": "2026-04-30",
+      "season_code": "2026",
+      "season_id": 2026,
+      "season_record_hash": "88a2a88b7edec72246e86e30fbd81b1fdc338a2312cd2acc0bbd75bafa961fb3",
+      "start_date": "2026-01-01"
+    },
     "forecast_start_date": "2026-03-01",
     "harvest_bucket_anchor_local_time": "18:00:00",
     "harvest_to_arrival_lag_days": 1,
@@ -1729,6 +1737,7 @@
       }
     ],
     "initial_opening_mature_inventory_kg": "30",
+    "input_snapshot_schema_version": "task9a-input-snapshot-v2",
     "mature_inventory_loss_inputs": [
       {
         "capacity_pool_id": "pool-a",
@@ -1836,10 +1845,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-01",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "00c427de0c9d6e9a3d7b8b94bc5602cc5ce8cc64ddd008d4249a87cbebfded99"
+        "verification_snapshot_hash": "c95121ceae8f9e1ff00729a02bf951b68a4627fe0e6780df0b15af59fbd5ee3e"
       },
       {
         "farm_id": 1,
@@ -1872,10 +1882,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-01",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "00c427de0c9d6e9a3d7b8b94bc5602cc5ce8cc64ddd008d4249a87cbebfded99"
+        "verification_snapshot_hash": "c95121ceae8f9e1ff00729a02bf951b68a4627fe0e6780df0b15af59fbd5ee3e"
       },
       {
         "farm_id": 1,
@@ -1908,10 +1919,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-01",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "00c427de0c9d6e9a3d7b8b94bc5602cc5ce8cc64ddd008d4249a87cbebfded99"
+        "verification_snapshot_hash": "c95121ceae8f9e1ff00729a02bf951b68a4627fe0e6780df0b15af59fbd5ee3e"
       },
       {
         "farm_id": 1,
@@ -1944,10 +1956,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-01",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "ea9843b104a0964a12d19915846ca5249bb33bc1a17f8d9cb617406f56127a6f"
+        "verification_snapshot_hash": "df16a157e419bef4d1f1f26048db7119cfcb9003fba89941fb967aff45ce4c20"
       },
       {
         "farm_id": 1,
@@ -1980,10 +1993,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-01",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "ea9843b104a0964a12d19915846ca5249bb33bc1a17f8d9cb617406f56127a6f"
+        "verification_snapshot_hash": "df16a157e419bef4d1f1f26048db7119cfcb9003fba89941fb967aff45ce4c20"
       },
       {
         "farm_id": 1,
@@ -2016,10 +2030,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-01",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "ea9843b104a0964a12d19915846ca5249bb33bc1a17f8d9cb617406f56127a6f"
+        "verification_snapshot_hash": "df16a157e419bef4d1f1f26048db7119cfcb9003fba89941fb967aff45ce4c20"
       },
       {
         "farm_id": 1,
@@ -2052,10 +2067,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-02",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "4deead068900c03332045c340a4e48ccaf2b1527e6681dc3a0321047fabf5890"
+        "verification_snapshot_hash": "abb805e3c451249b61fdf8e27c4b4cc0defd5eaaefdfdd9a4b3ee3d04fc17c3e"
       },
       {
         "farm_id": 1,
@@ -2088,10 +2104,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-02",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "4deead068900c03332045c340a4e48ccaf2b1527e6681dc3a0321047fabf5890"
+        "verification_snapshot_hash": "abb805e3c451249b61fdf8e27c4b4cc0defd5eaaefdfdd9a4b3ee3d04fc17c3e"
       },
       {
         "farm_id": 1,
@@ -2124,10 +2141,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-02",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "4deead068900c03332045c340a4e48ccaf2b1527e6681dc3a0321047fabf5890"
+        "verification_snapshot_hash": "abb805e3c451249b61fdf8e27c4b4cc0defd5eaaefdfdd9a4b3ee3d04fc17c3e"
       },
       {
         "farm_id": 1,
@@ -2160,10 +2178,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-02",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "3f07084dfc661ae51e884199c2f2a58d0b8c9df47e02b270bc7fa41e4c23bf5e"
+        "verification_snapshot_hash": "93ed17bb77017034f9777f5330c71e7f4e8ba65239929c9b359575ea1e98c205"
       },
       {
         "farm_id": 1,
@@ -2196,10 +2215,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-02",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "3f07084dfc661ae51e884199c2f2a58d0b8c9df47e02b270bc7fa41e4c23bf5e"
+        "verification_snapshot_hash": "93ed17bb77017034f9777f5330c71e7f4e8ba65239929c9b359575ea1e98c205"
       },
       {
         "farm_id": 1,
@@ -2232,10 +2252,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-02",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "3f07084dfc661ae51e884199c2f2a58d0b8c9df47e02b270bc7fa41e4c23bf5e"
+        "verification_snapshot_hash": "93ed17bb77017034f9777f5330c71e7f4e8ba65239929c9b359575ea1e98c205"
       },
       {
         "farm_id": 1,
@@ -2268,10 +2289,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-03",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "74550148e7353e17d0ffed30391d11e0a92f6af09ab8c4a2221970e79766f359"
+        "verification_snapshot_hash": "edf2e44b494ecfa5780bbc365a07e8232c00ed04ce1cbc8561d0896e68cbe258"
       },
       {
         "farm_id": 1,
@@ -2304,10 +2326,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-03",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "74550148e7353e17d0ffed30391d11e0a92f6af09ab8c4a2221970e79766f359"
+        "verification_snapshot_hash": "edf2e44b494ecfa5780bbc365a07e8232c00ed04ce1cbc8561d0896e68cbe258"
       },
       {
         "farm_id": 1,
@@ -2340,10 +2363,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-03",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 101
         },
-        "verification_snapshot_hash": "74550148e7353e17d0ffed30391d11e0a92f6af09ab8c4a2221970e79766f359"
+        "verification_snapshot_hash": "edf2e44b494ecfa5780bbc365a07e8232c00ed04ce1cbc8561d0896e68cbe258"
       },
       {
         "farm_id": 1,
@@ -2376,10 +2400,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-03",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "38ea933d3ba6c9b9acc94b41e93e3d09162b11847d33297cc8c54504526b3344"
+        "verification_snapshot_hash": "3d635259a4e3ff5f26725e8cf0fa7fbf5548d1b3664b543c1faa7aa51f5e6c8e"
       },
       {
         "farm_id": 1,
@@ -2412,10 +2437,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-03",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "38ea933d3ba6c9b9acc94b41e93e3d09162b11847d33297cc8c54504526b3344"
+        "verification_snapshot_hash": "3d635259a4e3ff5f26725e8cf0fa7fbf5548d1b3664b543c1faa7aa51f5e6c8e"
       },
       {
         "farm_id": 1,
@@ -2448,10 +2474,11 @@
           "p90_kg": "28",
           "plan_id": 501,
           "prediction_date": "2026-03-03",
+          "season_id": 2026,
           "subfarm_id": 11,
           "variety_id": 102
         },
-        "verification_snapshot_hash": "38ea933d3ba6c9b9acc94b41e93e3d09162b11847d33297cc8c54504526b3344"
+        "verification_snapshot_hash": "3d635259a4e3ff5f26725e8cf0fa7fbf5548d1b3664b543c1faa7aa51f5e6c8e"
       }
     ],
     "weather_rule_config": {
@@ -2532,7 +2559,7 @@
     "passed": true,
     "tolerance_kg": "0.001"
   },
-  "output_schema_version": "task9a-output-v1",
+  "output_schema_version": "task9a-output-v2",
   "resolved_parameter_snapshot": {
     "daily_pool_parameters": [
       {
@@ -2635,7 +2662,7 @@
       "holiday_calendar_version": "holiday-v1",
       "quantity_scale": "0.001",
       "ratio_scale": "0.000001",
-      "result_hash_schema_version": "task9a-result-hash-v1",
+      "result_hash_schema_version": "task9a-result-hash-v2",
       "rounding_mode": "ROUND_HALF_UP",
       "source_ref_schema_version": "task9a-source-ref-v1",
       "stable_cohort_key_schema_version": "task9a-cohort-key-v1",
@@ -2644,7 +2671,7 @@
     },
     "schema_version": "task9a-resolved-parameters-v1"
   },
-  "result_hash": "868e0c87ea7eb3414668f12f95483010e5dfe91e54e0275e05b93816b9de0591",
+  "result_hash": "5d130e23d90da8216bb34268660c6ed2161f37a1bd295326b3495e9fc1050a6d",
   "source_ref_catalog": [
     {
       "source_ref_hash": "02faa51a86be73c45f084f50bbfa9cca2a7f0c285017e8990930fbd9a7192eb5",

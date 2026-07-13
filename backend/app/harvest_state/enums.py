@@ -74,11 +74,17 @@ CANONICAL_FORECAST_QUANTILES: tuple[ForecastQuantile, ...] = (
     ForecastQuantile.P90,
 )
 
-OUTPUT_SCHEMA_VERSION = "task9a-output-v1"
+INPUT_SNAPSHOT_SCHEMA_VERSION_V2 = "task9a-input-snapshot-v2"
+OUTPUT_SCHEMA_VERSION_V1 = "task9a-output-v1"
+OUTPUT_SCHEMA_VERSION_V2 = "task9a-output-v2"
+RESULT_HASH_SCHEMA_VERSION_V1 = "task9a-result-hash-v1"
+RESULT_HASH_SCHEMA_VERSION_V2 = "task9a-result-hash-v2"
+
+OUTPUT_SCHEMA_VERSION = OUTPUT_SCHEMA_VERSION_V2
 SOURCE_REF_SCHEMA_VERSION = "task9a-source-ref-v1"
 STABLE_COHORT_KEY_SCHEMA_VERSION = "task9a-cohort-key-v1"
 RESOLVED_PARAMETER_SNAPSHOT_SCHEMA_VERSION = "task9a-resolved-parameters-v1"
-RESULT_HASH_SCHEMA_VERSION = "task9a-result-hash-v1"
+RESULT_HASH_SCHEMA_VERSION = RESULT_HASH_SCHEMA_VERSION_V2
 
 
 class BlockerCode:

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from backend.app.analytics.config import load_analytics_config
 from backend.app.analytics.daily_facts import build_daily_facts_for_season
 from backend.app.analytics.peak_metrics import build_analysis_calendar
+from backend.app.harvest_state.canonical import make_season_record_hash
 from backend.app.harvest_state.persistence import save_harvest_state_output
 from backend.app.harvest_state.service import run_harvest_state_model
 from backend.app.models.analytics import (
@@ -153,6 +154,22 @@ async def _persist_task9_run(
     payload_overrides: dict[str, object] | None = None,
 ) -> tuple[int, object]:
     payload = payload.copy() if payload is not None else make_request()
+    season = await session.get(Season, 1)
+    assert season is not None
+    payload["forecast_season_identity"] = {
+        "season_id": season.id,
+        "season_code": season.code,
+        "start_date": season.start_date,
+        "end_date": season.end_date,
+        "season_record_hash": make_season_record_hash(
+            season_id=season.id,
+            season_code=season.code,
+            start_date=season.start_date,
+            end_date=season.end_date,
+        ),
+    }
+    for prediction in payload["task8_daily_predictions"]:
+        prediction["verification_snapshot"]["season_id"] = season.id
     if payload_overrides:
         payload.update(payload_overrides)
     output = run_harvest_state_model(payload)
@@ -164,6 +181,22 @@ async def _persist_task9_run(
 
 async def _persist_blocked_task9_run(session: AsyncSession) -> int:
     payload = make_request()
+    season = await session.get(Season, 1)
+    assert season is not None
+    payload["forecast_season_identity"] = {
+        "season_id": season.id,
+        "season_code": season.code,
+        "start_date": season.start_date,
+        "end_date": season.end_date,
+        "season_record_hash": make_season_record_hash(
+            season_id=season.id,
+            season_code=season.code,
+            start_date=season.start_date,
+            end_date=season.end_date,
+        ),
+    }
+    for prediction in payload["task8_daily_predictions"]:
+        prediction["verification_snapshot"]["season_id"] = season.id
     payload["farm_timezone"] = "Bad/Timezone"
     output = run_harvest_state_model(payload)
     assert output.status == "blocked"

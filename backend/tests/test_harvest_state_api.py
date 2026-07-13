@@ -19,11 +19,13 @@ from backend.tests.harvest_state.conftest import make_request
 
 
 @pytest.fixture
-async def harvest_state_client(sqlite_session: AsyncSession) -> AsyncIterator[AsyncClient]:
+async def harvest_state_client(
+    harvest_state_sqlite_session: AsyncSession,
+) -> AsyncIterator[AsyncClient]:
     app = create_app()
 
     async def _override() -> AsyncIterator[AsyncSession]:
-        yield sqlite_session
+        yield harvest_state_sqlite_session
 
     app.dependency_overrides[get_db_session] = _override
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -41,7 +43,7 @@ async def test_post_completed_run(harvest_state_client: AsyncClient) -> None:
         json=_request_json(),
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["status"] == "completed"
     assert payload["output"]["status"] == "completed"
