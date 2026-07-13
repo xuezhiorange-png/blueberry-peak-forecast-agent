@@ -1,0 +1,695 @@
+# TASK-013 Persisted Forecast-Season Identity Design Amendment
+
+Status: design clarifications complete; implementation and migration are not authorized.
+
+## §1 Context and current blocker
+
+At reviewed PR #96 head `8de1d371e54a044c63e9f4bbb3fbb72b8dfa0864`,
+the PostgreSQL production-wiring path correctly fails closed with:
+
+```text
+AUTHORITY_SCOPE_MISMATCH
+reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE
+```
+
+Production TASK-009 does not persist a hash-bound forecast-season identity on
+`HarvestStateRun`. TASK-013 therefore cannot prove that a Task 9 candidate has
+the same season as the normalized request. CI success proves the capability
+gate is stable; it does not complete Slice B.
+
+This amendment defines the source, persistence, versioning, selector,
+historical compatibility, and future test contracts. It authorizes no code,
+test, ORM, fixture, migration, PR, Ready, or Merge action.
+
+## §2 Frozen terminology and existing authority surfaces
+
+### §2.1 Frozen terms and field types
+
+The following fields have distinct meanings and MUST NOT be aliases:
+
+| Field | Type | Meaning | Authority use |
+|---|---|---|---|
+| `requested_forecast_season` | `int \| str \| null` | Caller token, such as `2026` or a season code | Input only; never a database identity |
+| `effective_forecast_season_id` | positive `int` | Resolved `dim_season.id` | TASK-013 selector authority |
+| `effective_forecast_season_code` | `str \| null` | Human-readable resolved `Season.code` disclosure | Display/audit only |
+| `HarvestStateRun.forecast_season_id` | nullable ORM `int`, FK to `dim_season.id` | Persisted TASK-009 season authority | Normal selector authority for eligible v2 rows |
+
+`effective_forecast_season` is retired as an authority-bearing field because it
+has previously represented a year-like token. A future implementation may keep
+it temporarily as a deprecated caller-token disclosure, but it MUST NOT carry
+or imply a database ID and MUST NOT be read by selectors.
+
+### §2.2 TASK-008 season surface
+
+`Season` is the source object:
+
+```text
+dim_season.id          BIGINT primary key
+dim_season.code        TEXT unique
+dim_season.start_date  DATE
+dim_season.end_date    DATE
+```
+
+`Season.id` is opaque. It is not a year and MUST NOT be derived from a date or
+parsed from `Season.code`.
+
+`MaturityForecastRequest` carries `season_id`, but `MaturityForecastRun` has no
+direct season column. Its persisted season lineage is:
+
+```text
+MaturityForecastRun.plan_id
+  -> FarmSeasonVarietyPlan.id
+  -> FarmSeasonVarietyPlan.season_id
+  -> Season.id
+```
+
+`MaturityForecastRun.input_snapshot` stores `plan_id`, `plan_version`, and
+`plan_row_hash`, not a direct season ID. This lineage is suitable for audit and
+v2 rematerialization candidate identification. It is not the normal Task 9
+selector authority.
+
+Forecast season is a forecast/business-request scope. It is not a
+`MaturityModelRun` training identity because one model run may cover multiple
+seasons.
+
+### §2.3 TASK-009 season surface
+
+The current `Task9ARequest` contains neither `season_id` nor
+`forecast_season`. The gap begins at the Task 9 request contract; it is not
+merely a field dropped while constructing `input_snapshot`.
+
+Task 9 historical-authority input tables contain `season_id`, but those source
+rows do not automatically bind the resulting `HarvestStateRun`. The run must
+record, hash, persist, and reload-validate its own season identity.
+
+Current `HarvestStateRun` persists Task 8 lineage, date scope, destination,
+canonical snapshots, child-row counts, hashes, and schema versions. It has no
+direct season authority.
+
+### §2.4 TASK-010 season surface
+
+`ResidualModelPredictionRun` binds exact `task9_run_id` and
+`task9_result_hash`, along with its prediction signature and hashes. Task 10
+does not need a duplicate season field. New Task 9 v2 identity changes flow
+transitively through the Task 9 result hash into Task 10 prediction identity.
+
+### §2.5 TASK-013 current gap
+
+The current `effective_forecast_season` is an integer policy result and may be
+derived from `effective_as_of_date.year`. It is not a `Season.id`. The current
+selector probes non-production `input_snapshot["forecast_season"]`; production
+Task 9 never writes that key. Both default and explicit override paths already
+share one scope validator, which remains the required enforcement shape.
+
+Source-investigation answers:
+
+1. Task 9 request does not currently carry the identity.
+2. Task 8 lineage can prove some historical candidates but is indirect.
+3. No direct persisted Task 9 season identity exists today.
+4. Adding the identity to canonical Task 9 v2 output changes result and
+   canonical payload hashes.
+5. Task 9 input, output, and result-hash contracts require explicit v2
+   versions.
+
+## §3 Non-negotiable anti-guessing constraints
+
+- `Season.id` MUST NOT be assumed equal to a year.
+- `Season.code` MUST NOT be parsed into a database ID.
+- No season identity may be inferred from `as_of_date.year`, forecast dates,
+  prediction dates, timestamps, row IDs, insertion order, or current/latest
+  data.
+- A caller token is not authority until a formal resolver returns exactly one
+  existing `Season.id`.
+- Default and explicit override Task 9 selectors MUST run the same season,
+  schema, hash, and canonical-mirror checks.
+- Existing v1 canonical output and hashes MUST NOT be modified in place.
+- Plan/Task 8 lineage can identify rematerialization candidates only; it cannot
+  make a v1 row selector-eligible.
+- Resolution failure stops before the Task 9 selector.
+
+## §4 Option A — dedicated persisted column
+
+The normal selector authority is:
+
+```text
+harvest_state_run.forecast_season_id BIGINT NULL
+  REFERENCES dim_season(id) ON DELETE RESTRICT
+```
+
+It is physically nullable for historical v1 compatibility. Every new Task 9
+v2 completed or blocked write MUST have a non-null positive value.
+
+Recommended portable scope index:
+
+```text
+ix_harvest_state_run_forecast_season_scope
+  (forecast_season_id, status, destination_factory_id,
+   as_of_date, forecast_end_date)
+```
+
+Benefits:
+
+- real FK-backed `Season.id`;
+- efficient PostgreSQL and SQLite filtering;
+- typed equality without JSON extraction or Task 8 joins;
+- self-contained Task 9 authority;
+- direct disclosure in the TASK-013 Task 9 authority envelope.
+
+Costs:
+
+- Task 9 request/output/hash/ORM/persistence/reload changes;
+- Task 13 normalized request and selector changes;
+- a separately authorized migration;
+- explicit v1 compatibility handling.
+
+## §5 Option B — canonical hash mirror
+
+Task 9 v2 canonical input snapshot contains:
+
+```json
+{
+  "input_snapshot_schema_version": "task9a-input-snapshot-v2",
+  "forecast_season_identity": {
+    "season_id": 123,
+    "season_code": "2026"
+  }
+}
+```
+
+Task 9 v2 canonical output also contains required top-level:
+
+```json
+{
+  "forecast_season_id": 123
+}
+```
+
+These values bind season identity into `result_hash` and
+`canonical_payload_hash` and support load-time consistency checks. They are not
+the normal database selector surface because JSON alone has no FK, weaker type
+enforcement, dialect-specific indexing, and a higher malformed-shape risk.
+
+The authoritative equality chain is:
+
+```text
+HarvestStateRun.forecast_season_id
+== canonical_output.forecast_season_id
+== canonical_output.input_snapshot.forecast_season_identity.season_id
+```
+
+`season_code` is optional display evidence and MUST NOT participate in selector
+equality.
+
+## §6 Option C — historical lineage only
+
+The historical evidence path is:
+
+```text
+HarvestStateRun.maturity_forecast_run_id
+  -> MaturityForecastRun.plan_id
+  -> FarmSeasonVarietyPlan.season_id
+  -> Season.id
+```
+
+All Task 8 daily source refs and all season-scoped Task 9 authority inputs must
+agree before a v1 row can be proposed for rematerialization. The lineage MAY:
+
+- support audit reports;
+- identify deterministic v2 rematerialization candidates;
+- provide the proposed `forecast_season_id` to a new Task 9 v2 request after
+  explicit validation.
+
+It MUST NOT:
+
+- populate a selector-eligible v1 authority;
+- rewrite v1 canonical output or hashes;
+- replace the dedicated v2 FK during normal selection;
+- permit a join-time season fallback when the FK is missing.
+
+Optional predecessor/supersedes lineage between v1 and v2 runs is a future
+candidate only. It is not part of the authorized implementation scope.
+
+## §7 Decision matrix
+
+| Criterion | Option A: FK column | Option B: canonical mirror | Option C: lineage |
+|---|---|---|---|
+| Normal selector authority | Yes, unique authority | No | No |
+| Hash-bound | Via required Option B mirror | Yes | No for v1 |
+| FK/type integrity | Strong | Application validation | Indirect joins |
+| Query/index portability | Strong | Weak/medium | Complex |
+| Task 9 self-contained | Yes | Partial | No |
+| Historical audit | Explicitly disclosed | v1 missing | Strong evidence source |
+| Frozen role | Database authority | Hash/audit mirror | Audit/rematerialization only |
+
+Final definition:
+
+- Option A is the only normal selector authority.
+- Option B is required for hash binding and load-time consistency.
+- Option C is restricted to historical audit and v2 rematerialization proposal.
+
+## §8 Season resolution policy
+
+### §8.1 Resolver output
+
+The season resolver returns exactly:
+
+```text
+effective_forecast_season_id: positive integer
+effective_forecast_season_code: string
+season_resolution_policy_version: non-empty string
+season_calendar_config_hash: sha256
+```
+
+It records the original `requested_forecast_season` token separately. The
+resolver does not return an overloaded `effective_forecast_season` authority.
+
+### §8.2 Explicit token resolution
+
+When `requested_forecast_season` is supplied:
+
+1. An integer token such as `2026` is canonically represented as the text
+   token `"2026"`; it is not treated as `Season.id=2026`.
+2. A string token is compared as an exact `Season.code` after validating that
+   it is non-empty. No case folding, date parsing, year extraction, or fuzzy
+   matching is permitted.
+3. Query `dim_season` for exact `Season.code == canonical_token`.
+4. Exactly one row must match.
+5. Return that row's `Season.id` and `Season.code`.
+
+Therefore `requested_forecast_season=2026` resolves only a Season whose exact
+code is `"2026"`. It does not resolve a code such as `"2025-2026"` unless the
+caller explicitly supplies that code.
+
+Outcomes:
+
+| Condition | Existing blocker | Stable reason |
+|---|---|---|
+| No exact code match | `INPUT_INVALID_SEASON` | `SEASON_TOKEN_NOT_FOUND` |
+| More than one exact match | `INPUT_INVALID_SEASON` | `SEASON_TOKEN_AMBIGUOUS` |
+| Invalid/empty token | `INPUT_INVALID_SEASON` | `SEASON_TOKEN_INVALID` |
+| Season query failure | `UPSTREAM_READ_FAILURE` | `SEASON_REGISTRY_READ_FAILED` |
+
+The unique `Season.code` database constraint should make ambiguity impossible
+in a valid store, but the resolver remains fail-closed if corrupt or joined
+data produces multiple rows.
+
+### §8.3 No-token formal date-range resolution
+
+When the caller supplies no token, formal resolution by
+`effective_as_of_date` is allowed only through this query:
+
+```text
+Season.start_date <= effective_as_of_date
+AND Season.end_date >= effective_as_of_date
+```
+
+Exactly one row must match. This is a query of the authoritative Season
+calendar, not `effective_as_of_date.year` inference.
+
+| Condition | Existing blocker | Stable reason |
+|---|---|---|
+| No covering Season | `INPUT_INVALID_SEASON` | `SEASON_DATE_RANGE_NOT_FOUND` |
+| Multiple covering Seasons | `INPUT_INVALID_SEASON` | `SEASON_DATE_RANGE_AMBIGUOUS` |
+| Season query failure | `UPSTREAM_READ_FAILURE` | `SEASON_REGISTRY_READ_FAILED` |
+
+Resolution failure terminates normalization. TASK-009 selection MUST NOT run.
+
+### §8.4 Availability, validity, and scope
+
+Current `dim_season` has `start_date` and `end_date`; it does not have
+`available_at`, `valid_from`, or `valid_to`. The v2 resolver MUST NOT invent
+those fields or reuse unrelated timestamps. If season availability/versioning
+is later required, it needs a separate source-definition amendment and schema
+authorization.
+
+Current `Season` is global and has no farm, region, or country scope. The v2
+resolver therefore applies no geographic filter. A future scoped season
+calendar requires a separate contract and cannot be inferred from location.
+
+## §9 Task 9 v2 persistence and hash contract
+
+### §9.1 Request and output fields
+
+Future `Task9ARequest` v2 requires:
+
+```text
+forecast_season_id: positive integer
+```
+
+Task 9 execution validates that all selected season-scoped authorities agree
+with this ID before numerical execution. Both completed and blocked Task 9 v2
+outputs require:
+
+```text
+forecast_season_id: positive integer
+input_snapshot.input_snapshot_schema_version = task9a-input-snapshot-v2
+input_snapshot.forecast_season_identity.season_id = forecast_season_id
+```
+
+A season-resolution failure occurs before Task 9 and therefore creates no Task
+9 v2 run. A later Task 9 business blocker may be persisted as blocked, but its
+resolved request season remains mandatory.
+
+### §9.2 Save contract
+
+`save_harvest_state_output()` must:
+
+1. validate v2 output/result-hash version coupling;
+2. require a positive top-level `forecast_season_id`;
+3. require an equal canonical input-snapshot mirror;
+4. load the referenced `Season` and reject a missing FK target;
+5. write the same ID to `HarvestStateRun.forecast_season_id`;
+6. reject ORM/canonical conflicts;
+7. preserve idempotency using the v2 result hash.
+
+### §9.3 Load contract
+
+`load_harvest_state_output_by_id()` must:
+
+- continue to read and validate v1 rows under v1 rules;
+- for v2, require the expected output and result-hash versions;
+- require a non-null valid ORM FK;
+- validate top-level canonical ID, nested snapshot ID, and ORM ID equality;
+- validate canonical payload hash and result hash under v2 rules;
+- fail closed on missing, malformed, dangling, or conflicting identity.
+
+### §9.4 Field-level hash surface
+
+The v2 result-hash payload is the canonical Task 9 output excluding only its
+`result_hash` field and including:
+
+```text
+result_hash_schema_version = task9a-result-hash-v2
+output_schema_version = task9a-output-v2
+forecast_season_id
+input_snapshot.input_snapshot_schema_version
+input_snapshot.forecast_season_identity.season_id
+input_snapshot.forecast_season_identity.season_code  # display snapshot
+all existing v1 result-hash fields
+```
+
+The canonical payload hash covers the complete stored v2 canonical output,
+including the same season fields. The ORM column is a query surface and is not
+separately appended to the hash; equality to the canonical mirror is mandatory
+at save and load.
+
+The season value is request scope, not algorithm configuration. It does not
+become a direct Task 9 config-hash field. The config hash will nevertheless
+change when `output_schema_version` changes because the existing config-hash
+surface includes that version.
+
+## §10 Task 9 v2 schema/version matrix
+
+| Surface | Exact v2 value | Decision and field effect |
+|---|---|---|
+| Input snapshot | `task9a-input-snapshot-v2` | New explicit key; includes canonical season identity mirror |
+| `output_schema_version` | `task9a-output-v2` | Upgrade; required top-level `forecast_season_id` changes output shape |
+| `result_hash_schema_version` | `task9a-result-hash-v2` | Upgrade; season identity is part of result-hash surface |
+| `resolved_parameter_snapshot_schema_version` | `task9a-resolved-parameters-v1` | Unchanged; season is request scope, not a resolved parameter |
+| `source_ref_schema_version` | `task9a-source-ref-v1` | Unchanged; existing source-reference meanings do not change |
+| `stable_cohort_key_schema_version` | `task9a-cohort-key-v1` | Unchanged; cohort-key semantics do not change |
+
+Version coupling rules:
+
+- `task9a-output-v2` requires `task9a-result-hash-v2` and
+  `task9a-input-snapshot-v2`.
+- A v2 result-hash row cannot carry v1 output shape.
+- A v1 row cannot become v2 through column backfill.
+- Selector eligibility requires v2 output version, v2 result-hash version,
+  valid FK, matching canonical mirrors, valid hashes, completed status, and an
+  exact request season-ID match.
+- Resolved-parameter, source-ref, and stable-cohort-key versions remain v1 and
+  are still disclosed and validated.
+
+## §11 TASK-013 selector and blocker contract
+
+Both default and explicit override paths compare:
+
+```text
+NormalizedAgentRequest.effective_forecast_season_id: int
+==
+HarvestStateRun.forecast_season_id: int
+```
+
+Eligibility evaluation order:
+
+1. base scope/status/date/destination checks;
+2. Task 9 output/result-hash schema version checks;
+3. ORM season FK presence and validity;
+4. canonical top-level and snapshot season mirror validation;
+5. persisted ID versus requested effective ID equality;
+6. existing variety and Task 8/Task 10 lineage checks;
+7. deterministic conflict disclosure if multiple candidates remain.
+
+| Condition | Blocker | Stable reason |
+|---|---|---|
+| No related Task 9 row | `TASK9_AUTHORITY_NOT_FOUND` | Existing behavior |
+| v1 or null season binding | `AUTHORITY_SCOPE_MISMATCH` | `PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE` |
+| Unsupported Task 9 schema versions | `AUTHORITY_SCOPE_MISMATCH` | `TASK9_SEASON_IDENTITY_SCHEMA_UNSUPPORTED` |
+| Malformed/non-positive/dangling FK | `AUTHORITY_IDENTITY_MALFORMED` | `PERSISTED_FORECAST_SEASON_IDENTITY_MALFORMED` |
+| ORM/canonical mirror conflict | `AUTHORITY_IDENTITY_MALFORMED` | `PERSISTED_FORECAST_SEASON_IDENTITY_CONFLICT` |
+| Valid persisted ID differs from request | `AUTHORITY_SCOPE_MISMATCH` | `FORECAST_SEASON_ID_MISMATCH` |
+| Multiple fully eligible candidates | `AUTHORITY_CONFLICT` | Existing full candidate disclosure |
+| Registry or authority read error | `UPSTREAM_READ_FAILURE` | Stable field-specific details |
+
+An explicit `TASK9_HARVEST_STATE_RUN` override MUST NOT bypass any check. A Task
+8 override must still equal the Task 8 identity frozen by the selected Task 9
+run. No season mismatch, missing binding, or cross-run substitution is allowed.
+
+## §12 Historical v1 eligibility
+
+| Operation | Historical v1 row |
+|---|---|
+| Canonical load and audit | Allowed under v1 integrity rules |
+| Ordinary implicit Task 9 selector | Ineligible |
+| Explicit Task 9 authority override | Still ineligible |
+| Date/year-based backfill | Forbidden |
+| In-place canonical output/hash update | Forbidden |
+| Lineage audit | Allowed |
+| Rematerialization proposal generation | Allowed when proof is complete |
+| Normal authority eligibility | Only through a newly executed v2 run |
+
+A rematerialization proposal is provable only when:
+
+1. persisted Task 8 forecast lineage exists;
+2. forecast plan and Season exist;
+3. all Task 8 daily source refs agree on one season ID;
+4. all season-scoped Task 9 input authorities agree;
+5. no canonical or mirrored lineage value conflicts.
+
+Rematerialization MUST execute Task 9 v2 and create:
+
+- a new `HarvestStateRun.id`;
+- a new `result_hash` under `task9a-result-hash-v2`;
+- a new `canonical_payload_hash`;
+- a required `forecast_season_id` and canonical mirror.
+
+No v1 row is upgraded in place. Optional predecessor/supersedes fields are a
+future design candidate only and are not added by this amendment.
+
+## §13 Migration design constraints
+
+The migration revision identifier is deliberately not reserved here. It MUST
+be chosen only after implementation authorization and inspection of the then
+current `main` Alembic head.
+
+Required future migration operations:
+
+1. Add nullable `harvest_state_run.forecast_season_id` using the repository's
+   PostgreSQL/SQLite-compatible integer type.
+2. Add FK to `dim_season.id` with `ON DELETE RESTRICT`.
+3. Preserve `NULL` for historical v1 rows.
+4. Add `CHECK (forecast_season_id IS NULL OR forecast_season_id > 0)`.
+5. Add a version-aware check equivalent to:
+
+   ```text
+   result_hash_schema_version != 'task9a-result-hash-v2'
+   OR forecast_season_id IS NOT NULL
+   ```
+
+6. Couple v2 output and result-hash versions through application validation and,
+   where portable, a database check.
+7. Add the portable selector scope index defined in §4.
+8. Perform no date/year/plan-derived eligibility backfill.
+9. Modify no historical canonical output, `result_hash`, or
+   `canonical_payload_hash`.
+
+Both completed and blocked v2 writes require `forecast_season_id`. A request
+that cannot resolve season does not create a Task 9 v2 run.
+
+PostgreSQL migration requirements:
+
+- apply FK/check/index against an isolated migrated database;
+- verify existing v1 row counts and hashes before and after upgrade;
+- prove v2 null/dangling FK rejection;
+- run upgrade/downgrade round trip.
+
+SQLite migration requirements:
+
+- use Alembic batch-table recreation if required for FK/check alteration;
+- preserve all v1 data and hashes exactly;
+- enforce foreign keys in the test connection;
+- verify parity with PostgreSQL eligibility behavior.
+
+Downgrade requirements:
+
+- preflight for any v2 row or non-null season identity;
+- refuse operational downgrade when v2 data exists unless explicit destructive
+  data-loss authorization is supplied;
+- when safe, drop index, checks, FK, and column without rewriting v1 rows;
+- document that dropping the column destroys v2 selector capability even
+  though canonical v2 payloads still contain the mirror.
+
+## §14 TASK-013 contract changes
+
+`NormalizedAgentRequest` adds required:
+
+```text
+effective_forecast_season_id: positive integer
+```
+
+and optional disclosure:
+
+```text
+effective_forecast_season_code: string | null
+```
+
+Provenance must disclose:
+
+```text
+requested_forecast_season
+effective_forecast_season_id
+effective_forecast_season_code
+season_resolution_policy_version
+season_calendar_config_hash
+```
+
+`Task9Authority` adds `forecast_season_id`. The Agent canonical request and
+output shapes therefore change, and so do canonical request/output hashes.
+Byte-stability fixtures and the production-wiring Golden must be regenerated
+from production wiring rather than manually edited.
+
+The PostgreSQL orchestration acceptance test must use:
+
+- a real Season row and formal resolver;
+- real Task 9 v2 execution and public persistence/reload;
+- the real v2 selector;
+- exact Task 8 -> Task 9 -> Task 10 authority lineage;
+- non-empty daily curve and peak output.
+
+Tests MUST NOT inject `input_snapshot["forecast_season"]` or any other
+test-only field to imitate production persistence.
+
+## §15 TASK-009 / TASK-010 / TASK-013 implementation order
+
+1. Review and merge this design amendment independently.
+2. Implement TASK-009 ORM, request/output schemas, canonical hashing, and the
+   separately authorized migration.
+3. Add Task 9 v2 persistence, load, integrity, hash, and migration tests.
+4. Implement TASK-013 formal season resolver and normalized contract.
+5. Implement TASK-013 v2 selector eligibility for default and override paths.
+6. Prove Task 10 lineage/signature/hash regression behavior.
+7. Update PR #96 PostgreSQL production-wiring fixture to use the real v2 path.
+8. Replace the stub Golden with the production-wiring Golden.
+9. Obtain exact-head CI success.
+10. Obtain separate Charles authorization for Ready and Merge.
+
+PR #96 MUST remain Draft until every predecessor above is complete and separately
+reviewed. Green CI before those contracts exist does not close Slice B.
+
+## §16 Future test matrix
+
+These tests are required for future implementation but are not implemented in
+this design round:
+
+### Season resolver
+
+- requested integer token `2026` exactly resolves `Season.code == "2026"`;
+- requested string code exactly resolves one Season;
+- requested token with no match returns `SEASON_TOKEN_NOT_FOUND`;
+- ambiguous exact match returns `SEASON_TOKEN_AMBIGUOUS`;
+- invalid token returns `SEASON_TOKEN_INVALID`;
+- no requested token resolves exactly one formal date-range Season;
+- no covering date-range Season returns `SEASON_DATE_RANGE_NOT_FOUND`;
+- overlapping date-range Seasons return `SEASON_DATE_RANGE_AMBIGUOUS`;
+- season registry read failure returns `UPSTREAM_READ_FAILURE`;
+- regression test proves no `as_of_date.year` derivation occurs.
+
+### Task 9 v2 schema, persistence, and migration
+
+- completed v2 output requires forecast season;
+- blocked v2 output requires forecast season;
+- v2 ORM and both canonical mirrors match;
+- ORM/top-level canonical mismatch fails closed;
+- top-level/nested snapshot mismatch fails closed;
+- v2 missing or dangling FK fails closed;
+- v2 result hash is deterministic and season-sensitive;
+- canonical payload hash includes season mirror;
+- Task 9 v2 save/load PostgreSQL round trip;
+- Task 9 v2 save/load SQLite round trip;
+- PostgreSQL and SQLite migration round trips preserve v1 hashes;
+- v2 version coupling rejects mixed v1/v2 surfaces.
+
+### Historical v1 and rematerialization
+
+- v1 canonical audit remains readable;
+- v1 implicit selector is ineligible;
+- v1 explicit override remains ineligible;
+- v1 missing season returns the frozen unavailable reason;
+- lineage audit identifies only fully consistent candidates;
+- inconsistent Task 8/plan/input lineage produces no proposal;
+- v2 rematerialization creates new run ID, result hash, and canonical payload
+  hash without modifying v1.
+
+### TASK-013 and TASK-010 integration
+
+- matching v2 persisted season selects exactly;
+- mismatched v2 season fails with `FORECAST_SEASON_ID_MISMATCH`;
+- multiple same-season authorities return full `AUTHORITY_CONFLICT`;
+- multiple different-season authorities filter by exact season ID;
+- matching explicit override succeeds;
+- mismatched explicit override fails;
+- SQLite/PostgreSQL selector parity;
+- Task 10 input signature and prediction hash change when Task 9 v2 run/hash
+  changes;
+- Task 10 preserves exact Task 9 run/hash lineage without duplicate season;
+- repeated TASK-013 execution produces byte-identical canonical output;
+- production Golden includes non-null Task 8/9/10 authorities,
+  `effective_forecast_season_id`, non-empty daily curve, peak, provenance,
+  blockers, and output hash;
+- PostgreSQL orchestration uses real resolver, real Task 9 v2 persistence, and
+  real selector with no test-only snapshot injection.
+
+## §17 Explicit non-actions and authorization gates
+
+This design clarification does not:
+
+- modify Python, ORM, tests, fixtures, workflows, or PR #96;
+- create an Alembic migration or reserve a migration number;
+- implement a resolver or selector;
+- inject `input_snapshot["forecast_season"]`;
+- modify historical v1 output or hashes;
+- commit, push, create a PR, comment on GitHub, mark Ready, or merge;
+- start Slice C/D/E or TASK-014+;
+- claim Slice B completion.
+
+Implementation, migration, amendment PR publication, PR #96 Ready, and Merge
+all require separate explicit authorization.
+
+```text
+TASK013_PERSISTED_SEASON_IDENTITY_DESIGN_CLARIFICATIONS_COMPLETED
+DESIGN_DOCUMENT_ONLY
+OPTION_A_DATABASE_FK_AUTHORITY_FROZEN
+OPTION_B_CANONICAL_HASH_MIRROR_FROZEN
+OPTION_C_HISTORICAL_LINEAGE_ONLY_FROZEN
+V1_SELECTOR_INELIGIBILITY_FROZEN
+V2_REMATERIALIZATION_CONTRACT_FROZEN
+IMPLEMENTATION_NOT_AUTHORIZED
+MIGRATION_NOT_AUTHORIZED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+AMENDMENT_PR_NOT_AUTHORIZED
+PR96_KEEP_DRAFT
+READY_NOT_AUTHORIZED
+MERGE_NOT_AUTHORIZED
+```
