@@ -3,6 +3,7 @@
 import os
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import cast
 
 import pytest
 from sqlalchemy import text
@@ -10,19 +11,134 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.orchestration import AgentOrchestrator, StaticSeasonCalendarPolicy
 from backend.app.agent.schemas import LocationInput, PeakMetricPolicy, UncertaintyWideningPolicy
+from backend.app.harvest_state.canonical import canonical_json_value, sha256_hex
+from backend.app.harvest_state.persistence import (
+    _canonical_output_storage_payload,
+    _extract_task8_identity,
+    _subfarm_identity_key,
+)
+from backend.app.harvest_state.service import run_harvest_state_model
+from backend.app.models.harvest_state import (
+    HarvestStateCohortTransitionRowModel,
+    HarvestStateDailyMemberRowModel,
+    HarvestStateDailyPoolRowModel,
+    HarvestStateFutureArrivalRowModel,
+    HarvestStateRun,
+)
 from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import MaturityForecastRun, MaturityModelArtifact, MaturityModelRun
 from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
+from backend.app.residual_model.persistence import save_residual_prediction_run
+from backend.app.residual_model.service import structural_only_prediction
 from backend.tests.agent.test_orchestration import _request
 from backend.tests.agent.test_production_wiring import (
-    _add_pool_row,
-    _add_residual_prediction_row,
-    _add_residual_prediction_run,
-    _build_harvest_state_run,
     _hash,
-    _populate_member_rows_matching_pool,
 )
+from backend.tests.harvest_state.conftest import make_request
+
+
+async def _seed_valid_task9(session: AsyncSession) -> HarvestStateRun:
+    """Persist a production-generated Task 9 output with a stable test id."""
+    output = run_harvest_state_model(make_request())
+    assert output.status == "completed"
+    identity = _extract_task8_identity(output)
+    canonical_output = _canonical_output_storage_payload(output)
+    run = HarvestStateRun(
+        id=9009,
+        status=output.status,
+        output_schema_version=output.output_schema_version,
+        result_hash_schema_version="task9a-result-hash-v1",
+        resolved_parameter_snapshot_schema_version="task9a-resolved-parameters-v1",
+        source_ref_schema_version="task9a-source-ref-v1",
+        stable_cohort_key_schema_version="task9a-cohort-key-v1",
+        input_snapshot=cast(dict, canonical_json_value(output.input_snapshot)),
+        resolved_parameter_snapshot=cast(
+            dict,
+            canonical_json_value(output.resolved_parameter_snapshot.model_dump(mode="python")),
+        ),
+        source_ref_catalog=cast(
+            list,
+            canonical_json_value(
+                [item.model_dump(mode="python") for item in output.source_ref_catalog]
+            ),
+        ),
+        warnings=list(output.warnings),
+        blockers=list(output.blockers),
+        mass_balance_result=cast(dict, canonical_json_value(output.mass_balance_result)),
+        continuity_result=cast(dict, canonical_json_value(output.continuity_result)),
+        canonical_output=canonical_output,
+        config_hash=output.config_hash,
+        result_hash=output.result_hash,
+        canonical_payload_hash=sha256_hex(canonical_output),
+        forecast_start_date=output.input_snapshot["forecast_start_date"],
+        forecast_end_date=output.input_snapshot["forecast_end_date"],
+        as_of_date=output.input_snapshot["as_of_date"],
+        destination_factory_id=output.input_snapshot["destination_factory_id"],
+        pool_row_count=len(output.daily_pool_state_rows),
+        member_row_count=len(output.daily_member_state_rows),
+        cohort_row_count=len(output.cohort_transition_rows),
+        future_arrival_row_count=len(output.future_arrival_schedule),
+        maturity_model_run_id=identity.maturity_model_run_id,
+        maturity_model_version=identity.maturity_model_version,
+        maturity_model_config_hash=identity.maturity_model_config_hash,
+        maturity_model_source_signature=identity.maturity_model_source_signature,
+        maturity_model_artifact_id=identity.maturity_model_artifact_id,
+        maturity_model_artifact_hash=identity.maturity_model_artifact_hash,
+        maturity_forecast_run_id=identity.maturity_forecast_run_id,
+        maturity_forecast_source_signature=identity.maturity_forecast_source_signature,
+    )
+    session.add(run)
+    await session.flush()
+    catalog = {item.source_ref_hash: item.source_ref_payload for item in output.source_ref_catalog}
+    membership = {
+        (
+            row.state_date,
+            row.capacity_pool_id,
+            row.forecast_quantile.value,
+        ): row.capacity_pool_membership_hash
+        for row in output.daily_pool_state_rows
+    }
+    for row in output.daily_pool_state_rows:
+        session.add(
+            HarvestStateDailyPoolRowModel(
+                harvest_state_run_id=run.id,
+                **row.model_dump(mode="python"),
+            )
+        )
+    for row in output.daily_member_state_rows:
+        session.add(
+            HarvestStateDailyMemberRowModel(
+                harvest_state_run_id=run.id,
+                subfarm_identity_key=_subfarm_identity_key(row.subfarm_id),
+                **row.model_dump(mode="python"),
+            )
+        )
+    for row in output.cohort_transition_rows:
+        session.add(
+            HarvestStateCohortTransitionRowModel(
+                harvest_state_run_id=run.id,
+                source_ref=catalog[row.source_ref_hash],
+                capacity_pool_membership_hash=membership[
+                    (row.state_date, row.capacity_pool_id, row.forecast_quantile.value)
+                ],
+                **row.model_dump(mode="python"),
+            )
+        )
+    lag_days = output.resolved_parameter_snapshot.run_parameters.harvest_to_arrival_lag_days
+    for row in output.future_arrival_schedule:
+        session.add(
+            HarvestStateFutureArrivalRowModel(
+                harvest_state_run_id=run.id,
+                subfarm_identity_key=_subfarm_identity_key(row.subfarm_id),
+                harvest_to_arrival_lag_days=lag_days,
+                farm_timezone=output.resolved_parameter_snapshot.run_parameters.farm_timezone,
+                destination_factory_timezone=output.resolved_parameter_snapshot.run_parameters.destination_factory_timezone,
+                **row.model_dump(mode="python"),
+            )
+        )
+    await session.flush()
+    return run
 
 
 @pytest.mark.postgres
@@ -148,65 +264,32 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
     transactional_pg_session.add(forecast)
     await transactional_pg_session.flush()
 
-    task9 = _build_harvest_state_run(
-        transactional_pg_session,
-        run_id=9009,
-        as_of_date=date(2026, 3, 1),
-        forecast_start=date(2026, 3, 1),
-        forecast_end=date(2026, 3, 3),
-        destination_factory_id=601,
-        maturity_forecast_run_id=9008,
-        pool_row_count=9,
-        member_row_count=9,
-        input_snapshot={"forecast_season": 2026},
-    )
-    await transactional_pg_session.flush()
-    for day in (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)):
-        for quantile in ("P50", "P80", "P90"):
-            _add_pool_row(
-                transactional_pg_session,
-                harvest_state_run_id=task9.id,
-                state_date=day,
-                quantile=quantile,
-                capacity_pool_id="pool-1",
-                harvested_kg=Decimal("100"),
-                arrival_kg=Decimal("100"),
-                natural_kg=Decimal("100"),
-                closing_kg=Decimal("0"),
-                backlog_kg=Decimal("0"),
-                member_count=1,
-            )
-    _populate_member_rows_matching_pool(
-        transactional_pg_session,
-        harvest_state_run_id=task9.id,
-        destination_factory_id=601,
-        variety_id=101,
-        arrival_kg_per_quantile_per_date={
-            (day, quantile): Decimal("100")
-            for day in (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
-            for quantile in ("P50", "P80", "P90")
-        },
-    )
-    task10 = _add_residual_prediction_run(
-        transactional_pg_session,
-        prediction_run_id=9010,
+    task9 = await _seed_valid_task9(transactional_pg_session)
+    task10_result = structural_only_prediction(
+        model_run_id=None,
         task9_run_id=task9.id,
         task9_result_hash=task9.result_hash,
+        config_hash=_hash("slice-b-task10-config"),
+        structural_rows=[
+            {
+                "destination_factory_id": 601,
+                "arrival_local_date": day,
+                "forecast_horizon_days": 1,
+                "structural_p50_kg": Decimal("100"),
+                "structural_p80_kg": Decimal("110"),
+                "structural_p90_kg": Decimal("120"),
+            }
+            for day in (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3))
+        ],
+        fallback_reason="slice_b_fixture_structural_only",
     )
-    await transactional_pg_session.flush()
-    for day in (date(2026, 3, 1), date(2026, 3, 2), date(2026, 3, 3)):
-        _add_residual_prediction_row(
-            transactional_pg_session,
-            prediction_run_id=task10.id,
-            arrival_local_date=day,
-            destination_factory_id=601,
-            corrected_p50=Decimal("100"),
-            corrected_p80=Decimal("110"),
-            corrected_p90=Decimal("120"),
-            task9_run_id=task9.id,
-            task9_result_hash=task9.result_hash,
-        )
-    await transactional_pg_session.flush()
+    task10 = await save_residual_prediction_run(
+        transactional_pg_session,
+        result=task10_result,
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash=task10_result.input_snapshot["feature_schema_hash"],
+        artifact_hashes=[],
+    )
 
     policy_source = AgentOrchestrator(
         season_calendar=StaticSeasonCalendarPolicy(),
