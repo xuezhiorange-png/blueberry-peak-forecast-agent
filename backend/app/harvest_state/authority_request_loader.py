@@ -769,6 +769,35 @@ def _validate_scope(
     inventory = initial_inventory.semantic_bundle
     holiday = run_package.holiday_calendar.semantic_bundle
     weather = run_package.weather_rule.semantic_input
+    expected_season_id = context.forecast_season_identity.season_id
+
+    for authority_family, actual_season_id, stable_key in (
+        (
+            AuthorityFamily.CAPACITY_POOL_DEFINITION,
+            pool.season_id,
+            capacity_pools[0].authority_stable_key,
+        ),
+        (
+            AuthorityFamily.RUN_PARAMETER_PACKAGE,
+            package.season_id,
+            run_package.authority_stable_key,
+        ),
+        (
+            AuthorityFamily.INITIAL_INVENTORY_SNAPSHOT,
+            inventory.season_id,
+            initial_inventory.authority_stable_key,
+        ),
+    ):
+        if actual_season_id != expected_season_id:
+            _raise(
+                "authority_scope_mismatch",
+                authority_family=authority_family,
+                authority_stable_key=stable_key,
+                details={
+                    "expected_season_id": expected_season_id,
+                    "actual_season_id": actual_season_id,
+                },
+            )
 
     # Season / factory scope must match across all pools.
     for pool_auth in capacity_pools:
@@ -1548,6 +1577,14 @@ def assemble_task9_request_from_resolved_authorities(
     as_of_date = context.as_of_date
     forecast_start_date = context.forecast_start_date
     forecast_end_date = context.forecast_end_date
+
+    for prediction in task8_daily_predictions:
+        if prediction.verification_snapshot.season_id != context.forecast_season_identity.season_id:
+            _raise(
+                "authority_scope_mismatch",
+                authority_stable_key=prediction.source_ref.maturity_forecast_source_signature,
+                details={"error": "Task 8 forecast season mismatch"},
+            )
     forecast_dates = _date_range(forecast_start_date, forecast_end_date)
     quantiles = CANONICAL_FORECAST_QUANTILES
 
@@ -1654,6 +1691,7 @@ def assemble_task9_request_from_resolved_authorities(
 
     try:
         request = Task9ARequest(
+            forecast_season_identity=context.forecast_season_identity,
             as_of_date=as_of_date,
             forecast_start_date=forecast_start_date,
             forecast_end_date=forecast_end_date,

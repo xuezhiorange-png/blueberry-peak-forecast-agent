@@ -65,7 +65,7 @@ def test_result_hash_excludes_itself_and_is_order_invariant() -> None:
     assert result_a.result_hash == __import__(
         "backend.app.harvest_state.canonical",
         fromlist=["make_result_hash"],
-    ).make_result_hash(payload)
+    ).make_result_hash(payload, result_hash_schema_version="task9a-result-hash-v2")
 
 
 def test_input_position_does_not_change_initial_inventory_cohort_key() -> None:
