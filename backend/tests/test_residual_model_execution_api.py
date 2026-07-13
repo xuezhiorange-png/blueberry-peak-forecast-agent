@@ -46,7 +46,7 @@ Companion docs (read first):
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from datetime import UTC
+from datetime import UTC, date
 from typing import Any
 
 import pytest
@@ -76,6 +76,7 @@ LEAK_PATTERNS = (
     "Traceback (most recent call last)",
     "artifact_bytes",
 )
+TASK9_V2_RESULT_HASH = "5d130e23d90da8216bb34268660c6ed2161f37a1bd295326b3495e9fc1050a6d"
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +118,7 @@ async def residual_client() -> AsyncClient:
         HarvestStateFutureArrivalRowModel,
         HarvestStateRun,
     )
+    from backend.app.models.master_data import Season
     from backend.app.models.residual_model import (
         ResidualModelArtifact,
         ResidualModelExecutionAttempt,
@@ -136,6 +138,7 @@ async def residual_client() -> AsyncClient:
                 ResidualModelPredictionRun.__table__,
                 ResidualModelPredictionRow.__table__,
                 ResidualModelExecutionAttempt.__table__,
+                Season.__table__,
                 HarvestStateRun.__table__,
                 HarvestStateDailyPoolRowModel.__table__,
                 HarvestStateDailyMemberRowModel.__table__,
@@ -156,6 +159,15 @@ async def residual_client() -> AsyncClient:
         await conn.run_sync(_create_residual_tables)
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=_AsyncSession)
     async with sessionmaker() as session:
+        session.add(
+            Season(
+                id=2026,
+                code="2026",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 4, 30),
+            )
+        )
+        await session.commit()
         app = create_app()
 
         async def _override() -> AsyncIterator[_AsyncSession]:
@@ -171,19 +183,13 @@ async def residual_client() -> AsyncClient:
         # member / cohort / future-arrival rows); ``save_harvest_state_output``
         # then writes the canonical ``HarvestStateRun`` row + child rows +
         # canonical_payload_hash. The B1 contract tests intentionally
-        # reference ``task9_run_id=10`` and ``task9_result_hash="a"*64``,
-        # so after the production save we UPDATE the row to (a) pin the
-        # run id to 10 (so test payloads can address it deterministically),
-        # (b) replace ``result_hash`` with the literal "a"*64, and (c)
-        # recompute ``canonical_payload_hash`` from the canonical_output
-        # after the same result_hash mutation. This keeps
+        # reference ``task9_run_id=10`` and the deterministic Task 9 v2
+        # result hash, so after the production save we only UPDATE the row
+        # ID to 10. This keeps
         # ``load_harvest_state_output_by_id`` on the PRODUCTION
         # validation path — no canonical_output={} backdoor, no skipped
         # child-row-count check, no status/result_hash-only shortcut.
         from backend.app.harvest_state import persistence as _hs_persistence
-        from backend.app.harvest_state.canonical import (
-            canonical_json_dumps as _hs_canonical_json_dumps,
-        )
         from backend.app.harvest_state.service import (
             run_harvest_state_model as _hs_run_model,
         )
@@ -197,38 +203,17 @@ async def residual_client() -> AsyncClient:
             "B1 task9 fixture requires a completed Task9A output; "
             f"got status={_task9a_output.status!r}"
         )
+        assert _task9a_output.result_hash == TASK9_V2_RESULT_HASH
         _task9a_run = await _hs_persistence.save_harvest_state_output(
             session, output=_task9a_output
         )
 
-        # Pin task9 row id -> 10 + replace result_hash with the literal
-        # "a"*64 (the test contract hard-codes ``task9_run_id=10`` and
-        # ``task9_result_hash="a"*64``). Both edits are applied via SQL
-        # so we also keep ``canonical_payload_hash`` in sync with the
-        # canonical_output after the result_hash mutation.
-        _task9a_canonical_output = _task9a_output.model_dump(mode="python")
-        _task9a_canonical_output["result_hash"] = "a" * 64
-        _task9a_canonical_output_json = _hs_canonical_json_dumps(_task9a_canonical_output)
-        from backend.app.harvest_state.canonical import (
-            sha256_hex as _hs_sha256_hex,
-        )
-
-        _task9a_canonical_payload_hash = _hs_sha256_hex(_task9a_canonical_output_json)
-
+        # Pin the fixture's run ID while preserving the production-generated
+        # Task 9 v2 canonical payload and result hash.
         await session.execute(
-            text(
-                "UPDATE harvest_state_run "
-                "SET id = :new_id, "
-                "    result_hash = :new_result_hash, "
-                "    canonical_output = :new_canonical_output, "
-                "    canonical_payload_hash = :new_canonical_payload_hash "
-                "WHERE id = :old_id"
-            ),
+            text("UPDATE harvest_state_run SET id = :new_id WHERE id = :old_id"),
             {
                 "new_id": 10,
-                "new_result_hash": "a" * 64,
-                "new_canonical_output": _task9a_canonical_output_json,
-                "new_canonical_payload_hash": _task9a_canonical_payload_hash,
                 "old_id": _task9a_run.id,
             },
         )
@@ -380,7 +365,7 @@ def _prediction_request_payload() -> dict[str, Any]:
         "config": {"family": "test-model", "version": "1.0.0"},
         "prediction_mode": "residual_corrected",
         "task9_run_id": 10,
-        "task9_result_hash": "a" * 64,
+        "task9_result_hash": TASK9_V2_RESULT_HASH,
         "source_run_ids": {},
         "idempotency_key": None,
     }

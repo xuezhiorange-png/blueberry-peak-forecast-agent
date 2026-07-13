@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, cast
@@ -19,7 +19,8 @@ from backend.app.harvest_state.canonical import (
 )
 from backend.app.harvest_state.enums import (
     RESOLVED_PARAMETER_SNAPSHOT_SCHEMA_VERSION,
-    RESULT_HASH_SCHEMA_VERSION,
+    RESULT_HASH_SCHEMA_VERSION_V1,
+    RESULT_HASH_SCHEMA_VERSION_V2,
     SOURCE_REF_SCHEMA_VERSION,
     STABLE_COHORT_KEY_SCHEMA_VERSION,
 )
@@ -27,6 +28,7 @@ from backend.app.harvest_state.schemas import (
     CohortTransitionRow,
     DailyMemberStateRow,
     DailyPoolStateRow,
+    ForecastSeasonIdentitySnapshot,
     FutureArrivalScheduleRow,
     SourceRefCatalogEntry,
     Task9ABlockedOutput,
@@ -39,6 +41,7 @@ from backend.app.models.harvest_state import (
     HarvestStateFutureArrivalRowModel,
     HarvestStateRun,
 )
+from backend.app.models.master_data import Season
 from backend.app.repositories.harvest_state import (
     get_harvest_state_run,
     get_harvest_state_run_by_result_hash,
@@ -65,6 +68,36 @@ class HarvestStatePersistenceIntegrityError(HarvestStatePersistenceError):
     pass
 
 
+class HarvestStateSeasonRegistryDriftError(HarvestStatePersistenceIntegrityError):
+    reason = "PERSISTED_FORECAST_SEASON_REGISTRY_DRIFT"
+
+
+class HarvestStateForbiddenResolverProvenanceError(HarvestStatePersistenceIntegrityError):
+    reason = "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+
+
+_TASK13_RESOLVER_PROVENANCE_KEYS = frozenset(
+    {
+        "season_resolution_policy_version",
+        "season_resolution_policy_config_hash",
+    }
+)
+
+
+def _assert_no_task13_resolver_provenance(value: object) -> None:
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if key in _TASK13_RESOLVER_PROVENANCE_KEYS:
+                raise HarvestStateForbiddenResolverProvenanceError(
+                    "Task 13 resolver provenance is forbidden in Task 9 persistence"
+                )
+            _assert_no_task13_resolver_provenance(item)
+        return
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            _assert_no_task13_resolver_provenance(item)
+
+
 @dataclass(slots=True)
 class _Task8Identity:
     maturity_model_run_id: int | None
@@ -81,13 +114,19 @@ class _Task8Identity:
 def _canonical_output_payload(
     output: Task9ACompletedOutput | Task9ABlockedOutput,
 ) -> dict[str, Any]:
-    return cast(dict[str, Any], canonical_json_value(output.model_dump(mode="python")))
+    payload = output.model_dump(mode="python")
+    if output.output_schema_version == "task9a-output-v1":
+        payload.pop("forecast_season_id", None)
+    return cast(dict[str, Any], canonical_json_value(payload))
 
 
 def _canonical_output_storage_payload(
     output: Task9ACompletedOutput | Task9ABlockedOutput,
 ) -> dict[str, Any]:
-    return cast(dict[str, Any], canonical_json_value(output.model_dump(mode="json")))
+    payload = output.model_dump(mode="json")
+    if output.output_schema_version == "task9a-output-v1":
+        payload.pop("forecast_season_id", None)
+    return cast(dict[str, Any], canonical_json_value(payload))
 
 
 def _canonical_output_json(output: Task9ACompletedOutput | Task9ABlockedOutput) -> str:
@@ -169,6 +208,19 @@ def _validate_output_contract(output: Task9ACompletedOutput | Task9ABlockedOutpu
         raise HarvestStatePersistenceError("Task 9A output config_hash is not canonical SHA-256")
     if not is_sha256_hex(output.result_hash):
         raise HarvestStatePersistenceError("Task 9A output result_hash is not canonical SHA-256")
+    expected_result_version = (
+        RESULT_HASH_SCHEMA_VERSION_V2
+        if output.output_schema_version == "task9a-output-v2"
+        else RESULT_HASH_SCHEMA_VERSION_V1
+    )
+    if (
+        output.resolved_parameter_snapshot is not None
+        and output.resolved_parameter_snapshot.run_parameters.result_hash_schema_version
+        != expected_result_version
+    ):
+        raise HarvestStatePersistenceError(
+            "Task 9A output and result-hash schema versions are inconsistent"
+        )
 
     if output.status == "completed":
         if output.blockers:
@@ -206,7 +258,18 @@ def _validate_output_contract(output: Task9ACompletedOutput | Task9ABlockedOutpu
 
 
 def _validate_output_result_hash(output: Task9ACompletedOutput | Task9ABlockedOutput) -> None:
-    computed = make_result_hash(output.model_dump(mode="python"))
+    result_hash_schema_version = (
+        RESULT_HASH_SCHEMA_VERSION_V2
+        if output.output_schema_version == "task9a-output-v2"
+        else RESULT_HASH_SCHEMA_VERSION_V1
+    )
+    payload = output.model_dump(mode="python")
+    if output.output_schema_version == "task9a-output-v1":
+        payload.pop("forecast_season_id", None)
+    computed = make_result_hash(
+        payload,
+        result_hash_schema_version=result_hash_schema_version,
+    )
     if computed != output.result_hash:
         raise HarvestStateResultHashMismatchError(
             "Task 9A output result_hash does not match the canonical Task 9A payload"
@@ -219,7 +282,9 @@ def _run_versions(
     resolved = output.resolved_parameter_snapshot
     if resolved is None:
         return (
-            RESULT_HASH_SCHEMA_VERSION,
+            RESULT_HASH_SCHEMA_VERSION_V2
+            if output.output_schema_version == "task9a-output-v2"
+            else RESULT_HASH_SCHEMA_VERSION_V1,
             RESOLVED_PARAMETER_SNAPSHOT_SCHEMA_VERSION,
             SOURCE_REF_SCHEMA_VERSION,
             STABLE_COHORT_KEY_SCHEMA_VERSION,
@@ -230,6 +295,46 @@ def _run_versions(
         resolved.run_parameters.source_ref_schema_version,
         resolved.run_parameters.stable_cohort_key_schema_version,
     )
+
+
+def _season_snapshot(
+    output: Task9ACompletedOutput | Task9ABlockedOutput,
+) -> ForecastSeasonIdentitySnapshot | None:
+    if output.output_schema_version == "task9a-output-v1":
+        return None
+    return ForecastSeasonIdentitySnapshot.model_validate(
+        output.input_snapshot.get("forecast_season_identity")
+    )
+
+
+async def _validate_season_registry(
+    session: AsyncSession,
+    *,
+    snapshot: ForecastSeasonIdentitySnapshot,
+    drift_error: bool,
+) -> None:
+    season = await session.get(Season, snapshot.season_id)
+    mismatch = season is None
+    if season is not None:
+        from backend.app.harvest_state.canonical import make_season_record_hash
+
+        mismatch = (
+            season.code != snapshot.season_code
+            or season.start_date != snapshot.start_date
+            or season.end_date != snapshot.end_date
+            or make_season_record_hash(
+                season_id=season.id,
+                season_code=season.code,
+                start_date=season.start_date,
+                end_date=season.end_date,
+            )
+            != snapshot.season_record_hash
+        )
+    if mismatch:
+        error_type = (
+            HarvestStateSeasonRegistryDriftError if drift_error else HarvestStatePersistenceError
+        )
+        raise error_type("persisted forecast season identity does not match dim_season")
 
 
 def _catalog_payload_by_hash(
@@ -263,8 +368,21 @@ async def save_harvest_state_output(
     *,
     output: Task9ACompletedOutput | Task9ABlockedOutput,
 ) -> HarvestStateRun:
+    candidate_payload = output.model_dump(mode="python")
+    _assert_no_task13_resolver_provenance(candidate_payload)
     _validate_output_contract(output)
     _validate_output_result_hash(output)
+    season_snapshot = _season_snapshot(output)
+    if season_snapshot is not None:
+        if output.forecast_season_id != season_snapshot.season_id:
+            raise HarvestStatePersistenceError(
+                "Task 9A output forecast season identity is inconsistent"
+            )
+        await _validate_season_registry(
+            session,
+            snapshot=season_snapshot,
+            drift_error=False,
+        )
     canonical_json = _canonical_output_json(output)
     canonical_output = _canonical_output_storage_payload(output)
     canonical_payload_hash = sha256_hex(canonical_output)
@@ -341,6 +459,7 @@ async def save_harvest_state_output(
         forecast_end_date=_snapshot_date(output.input_snapshot, "forecast_end_date"),
         as_of_date=_snapshot_date(output.input_snapshot, "as_of_date"),
         destination_factory_id=cast(int, output.input_snapshot["destination_factory_id"]),
+        forecast_season_id=output.forecast_season_id,
         pool_row_count=pool_row_count,
         member_row_count=member_row_count,
         cohort_row_count=cohort_row_count,
@@ -569,6 +688,7 @@ async def load_harvest_state_output_by_id(
     if run is None:
         return None
 
+    _assert_no_task13_resolver_provenance(run.canonical_output)
     _validate_canonical_payload_hash(run)
     expected_counts = _expected_counts_from_run(run)
     actual_counts = await _actual_row_counts(session, run_id=run.id)
@@ -584,6 +704,8 @@ async def load_harvest_state_output_by_id(
             raise HarvestStatePersistenceIntegrityError(
                 "harvest-state canonical_output is not a valid completed payload"
             ) from exc
+        await _validate_loaded_season_identity(session, run=run, output=payload)
+        _validate_output_result_hash(payload)
         canonical_counts = _expected_row_counts(payload)
         if canonical_counts != expected_counts:
             raise HarvestStatePersistenceIntegrityError(
@@ -687,6 +809,8 @@ async def load_harvest_state_output_by_id(
         raise HarvestStatePersistenceIntegrityError(
             "harvest-state canonical_output is not a valid blocked payload"
         ) from exc
+    await _validate_loaded_season_identity(session, run=run, output=blocked_payload)
+    _validate_output_result_hash(blocked_payload)
     canonical_counts = _expected_row_counts(blocked_payload)
     if canonical_counts != (0, 0, 0, 0):
         raise HarvestStatePersistenceIntegrityError(
@@ -704,6 +828,39 @@ async def load_harvest_state_output_by_id(
             "blocked harvest-state canonical_output requires blockers"
         )
     return blocked_payload
+
+
+async def _validate_loaded_season_identity(
+    session: AsyncSession,
+    *,
+    run: HarvestStateRun,
+    output: Task9ACompletedOutput | Task9ABlockedOutput,
+) -> None:
+    expected_result_version = (
+        RESULT_HASH_SCHEMA_VERSION_V2
+        if output.output_schema_version == "task9a-output-v2"
+        else RESULT_HASH_SCHEMA_VERSION_V1
+    )
+    if run.result_hash_schema_version != expected_result_version:
+        raise HarvestStatePersistenceIntegrityError(
+            "harvest-state persisted schema versions are inconsistent"
+        )
+    snapshot = _season_snapshot(output)
+    if snapshot is None:
+        if run.forecast_season_id is not None:
+            raise HarvestStatePersistenceIntegrityError(
+                "legacy harvest-state run cannot carry forecast_season_id"
+            )
+        return
+    if (
+        run.result_hash_schema_version != RESULT_HASH_SCHEMA_VERSION_V2
+        or run.forecast_season_id != output.forecast_season_id
+        or output.forecast_season_id != snapshot.season_id
+    ):
+        raise HarvestStatePersistenceIntegrityError(
+            "harvest-state forecast season identity chain is inconsistent"
+        )
+    await _validate_season_registry(session, snapshot=snapshot, drift_error=True)
 
 
 async def load_harvest_state_output_by_result_hash(

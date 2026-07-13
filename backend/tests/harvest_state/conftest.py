@@ -17,6 +17,7 @@ from backend.app.models.harvest_state import (
     HarvestStateFutureArrivalRowModel,
     HarvestStateRun,
 )
+from backend.app.models.master_data import Season
 
 
 def canonical_hash_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -101,6 +102,7 @@ def make_task8_verification_snapshot(
     forecast_as_of_date: date | None = None,
     prediction_start_date: date | None = None,
     prediction_end_date: date | None = None,
+    season_id: int = 2026,
 ) -> dict[str, Any]:
     subfarm_component = 0 if subfarm_id is None else subfarm_id
     daily_prediction_id = (
@@ -110,6 +112,7 @@ def make_task8_verification_snapshot(
         + variety_id
     )
     return {
+        "season_id": season_id,
         "maturity_model_run_id": 101,
         "maturity_model_version": "task8-v1",
         "maturity_model_config_hash": "task8-model-config-hash",
@@ -373,6 +376,7 @@ def make_task8_supply(
     forecast_as_of_date: date | None = None,
     prediction_start_date: date | None = None,
     prediction_end_date: date | None = None,
+    season_id: int = 2026,
 ) -> dict[str, Any]:
     source_ref = make_task8_source_ref(
         prediction_date=prediction_date,
@@ -399,6 +403,7 @@ def make_task8_supply(
             forecast_as_of_date=forecast_as_of_date,
             prediction_start_date=prediction_start_date,
             prediction_end_date=prediction_end_date,
+            season_id=season_id,
         ),
     }
 
@@ -408,6 +413,15 @@ def make_request(
     season_id: int = 2026,
     destination_factory_id: int = 701,
 ) -> dict[str, Any]:
+    season_start_date = date(season_id, 1, 1)
+    season_end_date = date(season_id, 4, 30)
+    season_record = {
+        "schema_version": "season-record-v1",
+        "season_id": season_id,
+        "season_code": str(season_id),
+        "start_date": season_start_date.isoformat(),
+        "end_date": season_end_date.isoformat(),
+    }
     forecast_dates = [
         date(season_id, 3, 1),
         date(season_id, 3, 2),
@@ -441,6 +455,7 @@ def make_request(
                         forecast_as_of_date=date(season_id, 2, 28),
                         prediction_start_date=forecast_dates[0],
                         prediction_end_date=forecast_dates[-1],
+                        season_id=season_id,
                     ),
                     make_task8_supply(
                         prediction_date=prediction_date,
@@ -450,6 +465,7 @@ def make_request(
                         forecast_as_of_date=date(season_id, 2, 28),
                         prediction_start_date=forecast_dates[0],
                         prediction_end_date=forecast_dates[-1],
+                        season_id=season_id,
                     ),
                 ]
             )
@@ -524,6 +540,13 @@ def make_request(
         ),
     ]
     return {
+        "forecast_season_identity": {
+            "season_id": season_id,
+            "season_code": str(season_id),
+            "start_date": season_start_date,
+            "end_date": season_end_date,
+            "season_record_hash": sha256_hex(season_record),
+        },
         "as_of_date": date(season_id, 2, 28),
         "forecast_start_date": forecast_dates[0],
         "forecast_end_date": forecast_dates[-1],
@@ -685,6 +708,7 @@ def make_request(
 
 
 HARVEST_STATE_TABLES = [
+    Season.__table__,
     HarvestStateRun.__table__,
     HarvestStateDailyPoolRowModel.__table__,
     HarvestStateDailyMemberRowModel.__table__,
@@ -694,7 +718,7 @@ HARVEST_STATE_TABLES = [
 
 
 @pytest.fixture
-async def sqlite_session() -> AsyncSession:
+async def harvest_state_sqlite_session() -> AsyncSession:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
         await conn.run_sync(
@@ -705,8 +729,23 @@ async def sqlite_session() -> AsyncSession:
         )
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with sessionmaker() as session:
+        session.add(
+            Season(
+                id=2026,
+                code="2026",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 4, 30),
+            )
+        )
+        await session.commit()
         yield session
     await engine.dispose()
+
+
+@pytest.fixture
+def sqlite_session(harvest_state_sqlite_session: AsyncSession) -> AsyncSession:
+    """Keep the established fixture name for harvest-state-local tests."""
+    return harvest_state_sqlite_session
 
 
 @pytest.fixture
