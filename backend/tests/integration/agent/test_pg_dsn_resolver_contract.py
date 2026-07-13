@@ -2,7 +2,8 @@
 
 These tests do NOT require a real PostgreSQL instance.  They cover:
 
-* Explicit ``BLUEBERRY_PG_DSN`` override (returns the value verbatim).
+* Explicit ``BLUEBERRY_PG_DSN`` override (returns the trimmed
+  non-empty value — surrounding whitespace is removed).
 * Standard ``POSTGRES_*`` env (builds the canary DSN with database
   ``blueberry_peak`` and the standard test service defaults).
 * Special characters in username / password (must be URL-escaped
@@ -40,8 +41,9 @@ _CI_ENV: dict[str, str] = {
 }
 
 
-def test_explicit_blueberry_pg_dsn_override_preserved() -> None:
-    """A. Explicit override path.  The value must be returned verbatim
+def test_explicit_blueberry_pg_dsn_override_trimmed_and_preserved() -> None:
+    """A. Explicit override path.  The value must be returned after
+    surrounding whitespace is removed (trimmed non-empty override),
     and must NOT be rebuilt from the env.
     """
     env = dict(_CI_ENV)
@@ -172,19 +174,20 @@ def test_special_characters_in_password_are_url_escaped() -> None:
     assert (u.path or "").lstrip("/") == "blueberry_peak"
 
 
-def test_explicit_blueberry_pg_dsn_legacy_name_remains_verbatim() -> None:
+def test_explicit_blueberry_pg_dsn_legacy_name_remains_explicit_override() -> None:
     """Security-fixup review 4681521607: an explicit, non-empty
-    ``BLUEBERRY_PG_DSN`` is the verbatim local override.  Even if
-    its database name happens to be the legacy forbidden name, the
-    explicit override is returned unchanged.  The forbidden-name
-    check applies ONLY to the ``POSTGRES_DB``-derived path.
+    ``BLUEBERRY_PG_DSN`` is the trimmed non-empty local override.
+    Even if its database name happens to be the legacy forbidden
+    name, the explicit override is returned after surrounding
+    whitespace is removed.  The forbidden-name check applies ONLY
+    to the ``POSTGRES_DB``-derived path.
 
     The contract is dual:
 
     * ``POSTGRES_DB=blueberry_peak_test_r7_round8`` → rejected
       (see ``test_legacy_blueberry_peak_test_r7_round8_fails_closed``).
     * ``BLUEBERRY_PG_DSN=...blueberry_peak_test_r7_round8`` →
-      returned verbatim (this test).
+      returned after surrounding whitespace is removed (this test).
 
     These are NOT contradictory: explicit override is a controlled
     local-dev path; the legacy default fallback is the bug.
@@ -435,3 +438,125 @@ def test_both_pg_test_modules_use_same_resolver() -> None:
     # No legacy fallback anywhere.
     assert "blueberry_peak_test_r7_round8" not in year_mod.POSTGRES_TEST_DSN
     assert "blueberry_peak_test_r7_round8" not in round11_mod.POSTGRES_TEST_DSN
+
+
+# ---------------------------------------------------------------------------
+# Round 12 secret-hygiene fixup tests (review 4681746668).
+#
+# Three findings to close:
+#
+# * P0 — non-PostgreSQL explicit DSN error must NEVER echo the raw
+#   ``BLUEBERRY_PG_DSN`` value (collection-time secret leak).
+# * P1 — ``render_dsn_for_log()`` must remove ALL query parameters, not
+#   just the authority password, so credential values supplied via
+#   ``?password=`` / ``?token=`` / ``?sslpassword=`` cannot land in
+#   pytest / CI logs.
+# * P2 — explicit override is actually a TRIMMED non-empty value, not a
+#   strictly verbatim one.  The wording must reflect the real behaviour.
+# ---------------------------------------------------------------------------
+
+
+def test_invalid_explicit_dsn_scheme_never_echoes_secret() -> None:
+    """P0 from review 4681746668.
+
+    A non-PostgreSQL ``BLUEBERRY_PG_DSN`` MUST raise
+    :class:`PostgresTestDSNError` whose message contains neither the
+    raw input, the authority userinfo (password / username), the host,
+    the database, nor any recognizable fragment of the original DSN.
+
+    The original implementation interpolated ``{explicit!r}`` into the
+    error message, which leaks the password into pytest collection
+    output, GitHub Actions logs and JUnit XML.
+    """
+    secret = "real-secret"
+    dsn = f"mysql://user:{secret}@db.internal/test"
+    with pytest.raises(PostgresTestDSNError) as exc_info:
+        resolve_postgres_test_dsn({"BLUEBERRY_PG_DSN": dsn})
+    message = str(exc_info.value)
+    assert secret not in message
+    assert dsn not in message
+    assert "mysql://user" not in message
+    assert "db.internal/test" not in message
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "password=hunter2",
+        "sslpassword=hunter2",
+        "pass=hunter2",
+        "secret=hunter2",
+        "token=hunter2",
+        "access_token=hunter2",
+    ],
+)
+def test_render_dsn_for_log_redacts_sensitive_query_values(
+    query: str,
+) -> None:
+    """P1 from review 4681746668.
+
+    Even when ``render_dsn_for_log()`` redacts the authority password
+    via ``hide_password=True``, query-string credentials must NOT
+    survive into the safe-log output.  ``?password=``,
+    ``?sslpassword=``, ``?pass=``, ``?secret=``, ``?token=`` and
+    ``?access_token=`` are all sensitive query keys; a credential value
+    (here ``hunter2``) and the authority password (``authority-secret``)
+    must both be absent from the rendered string.
+    """
+    dsn = f"postgresql+asyncpg://user:authority-secret@db.internal:5432/blueberry_peak?{query}"
+    output = render_dsn_for_log(dsn)
+    assert "authority-secret" not in output
+    assert "hunter2" not in output
+
+
+def test_render_dsn_for_log_redacts_mixed_query() -> None:
+    """P1 mixed-query variant.
+
+    A realistic DSN mixes non-sensitive query parameters
+    (``sslmode=require``, ``application_name=agent-tests``) with
+    sensitive ones (``password=hunter2``, ``token=abc123``).  The
+    safe-log output must not contain either credential value.  Non-
+    sensitive query keys MAY be preserved, or ALL query parameters MAY
+    be removed wholesale; the contract only forbids credential leak.
+    """
+    dsn = (
+        "postgresql+asyncpg://user:authority-secret@"
+        "db.internal:5432/blueberry_peak"
+        "?sslmode=require&application_name=agent-tests"
+        "&password=hunter2&token=abc123"
+    )
+    output = render_dsn_for_log(dsn)
+    assert "authority-secret" not in output
+    assert "hunter2" not in output
+    assert "abc123" not in output
+
+
+def test_render_dsn_for_log_unparseable_fail_closed() -> None:
+    """P1 / existing contract: malformed input must yield the fixed
+    placeholder, NEVER echo the raw input.
+    """
+    assert render_dsn_for_log("not a url with password=hunter2") == "<unparseable PostgreSQL DSN>"
+
+
+def test_explicit_override_is_trimmed_non_empty_value() -> None:
+    """P2 from review 4681746668.
+
+    The explicit ``BLUEBERRY_PG_DSN`` override path strips surrounding
+    whitespace before returning the value.  The contract wording must
+    say "trimmed non-empty override", not "verbatim".
+    """
+    raw = " postgresql+asyncpg://u:p@db:5432/custom "
+    assert (
+        resolve_postgres_test_dsn({"BLUEBERRY_PG_DSN": raw})
+        == "postgresql+asyncpg://u:p@db:5432/custom"
+    )
+
+
+def test_explicit_override_legacy_name_remains_explicit_override() -> None:
+    """P2 follow-up: the legacy database name remains accepted ONLY
+    via the trimmed explicit override path (because the explicit
+    override bypasses the ``_FORBIDDEN_DATABASES`` check — the legacy
+    name is forbidden only when *derived* from ``POSTGRES_DB``).
+    """
+    explicit = "postgresql+asyncpg://u:p@db:5432/blueberry_peak_test_r7_round8"
+    assert resolve_postgres_test_dsn({"BLUEBERRY_PG_DSN": explicit}) == explicit

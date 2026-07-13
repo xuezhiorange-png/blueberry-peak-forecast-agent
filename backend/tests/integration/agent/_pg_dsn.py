@@ -17,8 +17,10 @@ already provides, while preserving an explicit
 **Contract** (per the post-merge hotfix authorization):
 
 A. **Explicit override** — when ``BLUEBERRY_PG_DSN`` is set to a
-   non-empty value, return that value verbatim.  This is the local
-   "use a dedicated test DB" path.
+   trimmed non-empty value, return that value after surrounding
+   whitespace is removed.  This is the local "use a dedicated test
+   DB" path.  The explicit override takes precedence over
+   ``POSTGRES_*`` env variables.
 B. **Standard CI environment** — when ``BLUEBERRY_PG_DSN`` is unset
    or blank, build the DSN from ``POSTGRES_HOST`` /
    ``POSTGRES_PORT`` / ``POSTGRES_DB`` / ``POSTGRES_USER`` /
@@ -115,8 +117,11 @@ def resolve_postgres_test_dsn(
 
     Resolution order:
 
-    1. If ``BLUEBERRY_PG_DSN`` is set to a non-empty value,
-       return it verbatim (explicit local override).
+    1. If ``BLUEBERRY_PG_DSN`` is set to a trimmed non-empty value,
+       return it after surrounding whitespace is removed (explicit
+       local override).  The explicit override takes precedence over
+       ``POSTGRES_*`` env variables; the caller is responsible for
+       whatever DSN shape they provide.
     2. Otherwise, build a DSN from ``POSTGRES_*`` environment
        variables using :class:`sqlalchemy.URL` (safe escaping).
        Standard CI defaults apply if a variable is unset.
@@ -125,6 +130,13 @@ def resolve_postgres_test_dsn(
     :class:`ValueError`) on:
         * ``BLUEBERRY_PG_DSN`` is whitespace-only and the
           ``POSTGRES_*`` env is also empty/invalid.
+        * ``BLUEBERRY_PG_DSN`` does not start with a PostgreSQL
+          scheme (``postgresql+``, ``postgresql://`` or
+          ``postgres://``).  The error message is a fixed string and
+          **never** echoes the raw input, host, database, username,
+          password, userinfo or query string — that prevents
+          collection-time secret leaks into pytest output, GitHub
+          Actions logs and JUnit XML.
         * ``POSTGRES_PORT`` is set to a value that cannot be parsed
           as a base-10 integer in ``[1, 65535]``.
         * ``POSTGRES_DB`` is empty after resolution.
@@ -141,12 +153,9 @@ def resolve_postgres_test_dsn(
     explicit = _get(env, "BLUEBERRY_PG_DSN")
     if explicit:
         if not explicit.startswith(("postgresql+", "postgresql://", "postgres://")):
-            raise PostgresTestDSNError(
-                "BLUEBERRY_PG_DSN must start with 'postgresql+', "
-                f"'postgresql://', or 'postgres://'; got {explicit!r}"
-            )
-        # Explicit override path: return verbatim.  Caller is
-        # responsible for whatever DSN shape they provide.
+            raise PostgresTestDSNError("BLUEBERRY_PG_DSN must be a PostgreSQL DSN")
+        # Explicit override path: return the trimmed non-empty value.
+        # Caller is responsible for whatever DSN shape they provide.
         return explicit
 
     # ---- Step 2: build from POSTGRES_* env ------------------------
@@ -213,19 +222,31 @@ def resolve_postgres_test_dsn(
 
 
 def render_dsn_for_log(dsn: str) -> str:
-    """Return ``dsn`` with the password redacted, suitable for
-    logging.  The redaction uses SQLAlchemy's
-    :meth:`URL.render_as_string` with ``hide_password=True``, which
-    is the project's canonical redaction path and the one used by
-    SQLAlchemy itself when echoing connection strings.
+    """Return a safe-log representation of ``dsn`` with both the
+    authority password and **all** query parameters removed, suitable
+    for logging.
 
-    Important security guarantees (per review 4681521607):
+    The redaction uses SQLAlchemy's :meth:`URL.set` with
+    ``query={}`` (which fully replaces the query mapping, dropping
+    every key) and then :meth:`URL.render_as_string` with
+    ``hide_password=True``.  Both call sites are the project's
+    canonical redaction paths and the same ones SQLAlchemy uses when
+    echoing connection strings.
+
+    Important security guarantees (per reviews 4681521607 and
+    4681746668):
 
     * If the DSN is unparseable, returns a constant
       ``"<unparseable PostgreSQL DSN>"`` placeholder.  The raw
       input is NEVER echoed back (it may contain credentials).
     * The rendered output never contains the raw or
-      percent-encoded password.
+      percent-encoded authority password.
+    * The rendered output never contains any query-string value.
+      This covers credential values supplied via ``?password=``,
+      ``?sslpassword=``, ``?pass=``, ``?secret=``, ``?token=``,
+      ``?access_token=`` and any other query key, since ALL query
+      parameters are removed wholesale rather than being
+      individually deny-listed.
     * The original DSN is never echoed back verbatim.
     """
     if not isinstance(dsn, str) or not dsn:
@@ -233,7 +254,8 @@ def render_dsn_for_log(dsn: str) -> str:
 
     try:
         url = make_url(dsn)
-        return url.render_as_string(hide_password=True)
+        safe_url = url.set(query={})
+        return safe_url.render_as_string(hide_password=True)
     except Exception:
         return "<unparseable PostgreSQL DSN>"
 
