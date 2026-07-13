@@ -1,18 +1,29 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+from copy import deepcopy
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
-from backend.app.harvest_state.canonical import canonical_json_dumps, make_result_hash
-from backend.app.harvest_state.enums import RESULT_HASH_SCHEMA_VERSION_V2
+from backend.app.harvest_state.canonical import (
+    canonical_json_dumps,
+    make_result_hash,
+    sha256_hex,
+)
+from backend.app.harvest_state.enums import (
+    RESULT_HASH_SCHEMA_VERSION_V1,
+    RESULT_HASH_SCHEMA_VERSION_V2,
+)
 from backend.app.harvest_state.persistence import (
+    HarvestStateForbiddenResolverProvenanceError,
     HarvestStateHashConflictError,
     HarvestStatePersistenceIntegrityError,
     HarvestStateResultHashMismatchError,
@@ -21,6 +32,7 @@ from backend.app.harvest_state.persistence import (
     load_harvest_state_output_by_result_hash,
     save_harvest_state_output,
 )
+from backend.app.harvest_state.schemas import Task9ABlockedOutput, Task9ACompletedOutput
 from backend.app.harvest_state.service import run_harvest_state_model
 from backend.app.models.harvest_state import (
     HarvestStateCohortTransitionRowModel,
@@ -33,6 +45,10 @@ from backend.app.models.master_data import Season
 from backend.tests.harvest_state.conftest import make_request
 
 pytestmark = pytest.mark.integration
+
+_COMPLETED_V1_GOLDEN = json.loads(
+    Path("backend/tests/harvest_state/golden/task9a_completed_v1_canonical.json").read_text()
+)
 
 
 @pytest.fixture(autouse=True)
@@ -165,6 +181,104 @@ async def test_persist_and_load_blocked_harvest_state_output_round_trip() -> Non
             )
             == 0
         )
+
+
+@pytest.mark.integration
+async def test_postgres_save_rejects_correctly_rehashed_task13_provenance() -> None:
+    _require_postgres()
+    output = _completed_output()
+    payload = output.model_dump(mode="python")
+    payload["source_ref_catalog"][0]["source_ref_payload"][
+        "season_resolution_policy_config_hash"
+    ] = "a" * 64
+    payload["result_hash"] = make_result_hash(
+        payload,
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+    )
+    malicious = Task9ACompletedOutput.model_validate(payload)
+
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+            await save_harvest_state_output(session, output=malicious)
+
+        assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+        assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 0
+
+
+@pytest.mark.integration
+async def test_postgres_blocked_save_rejects_correctly_rehashed_task13_provenance() -> None:
+    _require_postgres()
+    output = _blocked_output()
+    payload = output.model_dump(mode="python")
+    payload["input_snapshot"]["nested"] = {"season_resolution_policy_version": "agent-policy-v1"}
+    payload["result_hash"] = make_result_hash(
+        payload,
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+    )
+    malicious = Task9ABlockedOutput.model_validate(payload)
+
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+            await save_harvest_state_output(session, output=malicious)
+
+        assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+        assert await session.scalar(select(func.count()).select_from(HarvestStateRun)) == 0
+
+
+@pytest.mark.integration
+async def test_postgres_load_rejects_correctly_rehashed_task13_provenance() -> None:
+    _require_postgres()
+    async with AsyncSessionMaker() as session:
+        run = await save_harvest_state_output(session, output=_completed_output())
+        malicious = deepcopy(run.canonical_output)
+        malicious["mass_balance_result"]["nested"] = {
+            "season_resolution_policy_version": "agent-policy-v1"
+        }
+        malicious["result_hash"] = make_result_hash(
+            malicious,
+            result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+        )
+        await session.execute(
+            text(
+                "UPDATE harvest_state_run SET canonical_output = CAST(:payload AS jsonb), "
+                "result_hash = :result_hash, canonical_payload_hash = :payload_hash "
+                "WHERE id = :run_id"
+            ),
+            {
+                "payload": canonical_json_dumps(malicious),
+                "result_hash": malicious["result_hash"],
+                "payload_hash": sha256_hex(malicious),
+                "run_id": run.id,
+            },
+        )
+        await session.commit()
+
+        with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+            await load_harvest_state_output_by_id(session, run_id=run.id)
+
+        assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+
+
+@pytest.mark.integration
+async def test_postgres_completed_v1_golden_save_load_preserves_canonical_bytes() -> None:
+    _require_postgres()
+    payload = deepcopy(_COMPLETED_V1_GOLDEN)
+    output = Task9ACompletedOutput.model_validate(payload)
+    expected_canonical = canonical_json_dumps(payload)
+
+    async with AsyncSessionMaker() as session:
+        run = await save_harvest_state_output(session, output=output)
+        loaded = await load_harvest_state_output_by_id(session, run_id=run.id)
+
+        assert run.forecast_season_id is None
+        assert run.result_hash_schema_version == RESULT_HASH_SCHEMA_VERSION_V1
+        assert canonical_json_dumps(run.canonical_output) == expected_canonical
+        assert run.result_hash == payload["result_hash"]
+        assert run.canonical_payload_hash == sha256_hex(payload)
+        assert loaded is not None
+        loaded_payload = loaded.model_dump(mode="python")
+        loaded_payload.pop("forecast_season_id")
+        assert canonical_json_dumps(loaded_payload) == expected_canonical
 
 
 @pytest.mark.integration
