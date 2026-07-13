@@ -36,9 +36,11 @@ Test gating (per Charles's spec):
   in CI.
 
 The test is skipped unless ``RUN_POSTGRES_INTEGRATION=1`` is set AND
-``BLUEBERRY_PG_DSN`` points to a valid test DSN.  The default DSN
-targets a local dev PG on ``localhost:5432`` with the
-``blueberry_peak_test_r7_round8`` database.
+``BLUEBERRY_PG_DSN`` points to a valid test DSN.  When
+``BLUEBERRY_PG_DSN`` is absent, the shared resolver derives the DSN
+from ``POSTGRES_*`` and defaults to the standard ``blueberry_peak``
+test database (the legacy ``blueberry_peak_test_r7_round8`` default
+is forbidden).
 """
 # ruff: noqa: E501, I001, F401, F841, F811, F821, ASYNC240
 
