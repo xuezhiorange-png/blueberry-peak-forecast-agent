@@ -40,8 +40,7 @@ async def _seed_valid_task9(
     forecast: MaturityForecastRun,
 ) -> HarvestStateRun:
     """Generate and persist Task 9 through its public production entrypoint."""
-    request = make_request()
-    request["destination_factory_id"] = 601
+    request = make_request(destination_factory_id=601)
     for prediction in request["task8_daily_predictions"]:
         source_ref = prediction["source_ref"]
         verification = prediction["verification_snapshot"]
@@ -186,7 +185,7 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
         artifact_id=1,
         plan_id=1,
         location_reference_id=601,
-        as_of_date=date(2026, 3, 1),
+        as_of_date=date(2026, 2, 28),
         prediction_start_date=date(2026, 3, 1),
         prediction_end_date=date(2026, 3, 3),
         expected_marketable_total_kg=Decimal("300.000000"),
