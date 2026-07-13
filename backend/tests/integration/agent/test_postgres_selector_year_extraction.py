@@ -66,6 +66,7 @@ from backend.app.models.harvest_state import (
 from backend.app.models.master_data import Variety
 from backend.tests.integration.agent._pg_dsn import (
     PostgresTestDSNError,
+    describe_postgres_target,
     resolve_postgres_test_dsn,
     verify_postgres_database_exists,
 )
@@ -109,9 +110,11 @@ async def pg_selector_session() -> AsyncIterator[AsyncSession]:
     if not _pg_dialect_compiles():
         pytest.skip("resolved DSN is not a PostgreSQL URL")
     if not _pg_reachable(POSTGRES_TEST_DSN):
+        target = describe_postgres_target(POSTGRES_TEST_DSN)
         pytest.skip(
-            f"PostgreSQL is not reachable at {POSTGRES_TEST_DSN}; "
-            "check POSTGRES_HOST/POSTGRES_PORT or set BLUEBERRY_PG_DSN"
+            f"PostgreSQL is not reachable ({target}); "
+            "check POSTGRES_HOST/POSTGRES_PORT or "
+            "set BLUEBERRY_PG_DSN"
         )
     # Real database preflight: confirm the database named in the
     # DSN actually exists AND credentials are accepted.  A TCP-only
@@ -120,8 +123,9 @@ async def pg_selector_session() -> AsyncIterator[AsyncSession]:
     # canary container).  Fail-closed with a host/port/db hint.
     try:
         await verify_postgres_database_exists(POSTGRES_TEST_DSN)
-    except ConnectionError:
-        pytest.skip(f"PostgreSQL is not reachable at {POSTGRES_TEST_DSN}")
+    except ConnectionError as exc:
+        target = describe_postgres_target(POSTGRES_TEST_DSN)
+        pytest.skip(f"PostgreSQL is not reachable ({target}): {type(exc).__name__}")
     except PostgresTestDSNError as exc:
         pytest.fail(str(exc))
 
