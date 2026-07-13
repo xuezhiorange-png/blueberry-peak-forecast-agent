@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+from copy import deepcopy
 from datetime import UTC, date, datetime
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -8,9 +11,17 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from backend.app.harvest_state.canonical import canonical_json_dumps, make_result_hash
-from backend.app.harvest_state.enums import RESULT_HASH_SCHEMA_VERSION_V2
+from backend.app.harvest_state.canonical import (
+    canonical_json_dumps,
+    make_result_hash,
+    sha256_hex,
+)
+from backend.app.harvest_state.enums import (
+    RESULT_HASH_SCHEMA_VERSION_V1,
+    RESULT_HASH_SCHEMA_VERSION_V2,
+)
 from backend.app.harvest_state.persistence import (
+    HarvestStateForbiddenResolverProvenanceError,
     HarvestStateHashConflictError,
     HarvestStatePersistenceIntegrityError,
     HarvestStateResultHashMismatchError,
@@ -19,7 +30,7 @@ from backend.app.harvest_state.persistence import (
     load_harvest_state_output_by_result_hash,
     save_harvest_state_output,
 )
-from backend.app.harvest_state.schemas import Task9ACompletedOutput
+from backend.app.harvest_state.schemas import Task9ABlockedOutput, Task9ACompletedOutput
 from backend.app.harvest_state.service import run_harvest_state_model
 from backend.app.models.harvest_state import (
     HarvestStateCohortTransitionRowModel,
@@ -123,6 +134,117 @@ def _with_valid_result_hash(output: Task9ACompletedOutput) -> Task9ACompletedOut
             )
         }
     )
+
+
+def _rehashed_output_with_forbidden_provenance(
+    output: Task9ACompletedOutput | Task9ABlockedOutput,
+    *,
+    location: str,
+) -> Task9ACompletedOutput | Task9ABlockedOutput:
+    payload = output.model_dump(mode="python")
+    if location == "input_snapshot":
+        payload["input_snapshot"]["season_resolution_policy_version"] = "agent-policy-v1"
+    elif location == "nested":
+        payload["mass_balance_result"]["nested"] = {
+            "season_resolution_policy_config_hash": "a" * 64
+        }
+    elif location == "source_ref_payload":
+        payload["source_ref_catalog"][0]["source_ref_payload"][
+            "season_resolution_policy_version"
+        ] = "agent-policy-v1"
+    else:
+        raise AssertionError(f"unsupported location: {location}")
+    payload["result_hash"] = make_result_hash(
+        payload,
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+    )
+    model = Task9ACompletedOutput if output.status == "completed" else Task9ABlockedOutput
+    return model.model_validate(payload)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("location", ["input_snapshot", "nested", "source_ref_payload"])
+async def test_completed_save_recursively_rejects_task13_resolver_provenance(
+    sqlite_session: AsyncSession,
+    location: str,
+) -> None:
+    output = _rehashed_output_with_forbidden_provenance(
+        _completed_output(),
+        location=location,
+    )
+
+    with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+        await save_harvest_state_output(sqlite_session, output=output)
+
+    assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+    assert (await _table_counts(sqlite_session))["runs"] == 0
+
+
+@pytest.mark.asyncio
+async def test_blocked_save_rejects_correctly_rehashed_task13_resolver_provenance(
+    sqlite_session: AsyncSession,
+) -> None:
+    blocked = cast(Task9ABlockedOutput, _blocked_output())
+    payload = blocked.model_dump(mode="python")
+    payload["input_snapshot"]["nested"] = {"season_resolution_policy_config_hash": "b" * 64}
+    payload["result_hash"] = make_result_hash(
+        payload,
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+    )
+    malicious = Task9ABlockedOutput.model_validate(payload)
+
+    with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+        await save_harvest_state_output(sqlite_session, output=malicious)
+
+    assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+    assert (await _table_counts(sqlite_session))["runs"] == 0
+
+
+@pytest.mark.asyncio
+async def test_load_rejects_correctly_rehashed_task13_resolver_provenance(
+    sqlite_session: AsyncSession,
+) -> None:
+    run = await save_harvest_state_output(sqlite_session, output=_completed_output())
+    malicious = deepcopy(run.canonical_output)
+    malicious["continuity_result"]["nested"] = {
+        "season_resolution_policy_version": "agent-policy-v1"
+    }
+    malicious["result_hash"] = make_result_hash(
+        malicious,
+        result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V2,
+    )
+    run.canonical_output = malicious
+    run.result_hash = malicious["result_hash"]
+    run.canonical_payload_hash = sha256_hex(malicious)
+    await sqlite_session.commit()
+
+    with pytest.raises(HarvestStateForbiddenResolverProvenanceError) as exc_info:
+        await load_harvest_state_output_by_id(sqlite_session, run_id=run.id)
+
+    assert exc_info.value.reason == "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+
+
+@pytest.mark.asyncio
+async def test_completed_v1_golden_save_load_preserves_canonical_bytes(
+    sqlite_session: AsyncSession,
+) -> None:
+    path = Path(__file__).with_name("golden") / "task9a_completed_v1_canonical.json"
+    payload = json.loads(path.read_text())
+    output = Task9ACompletedOutput.model_validate(payload)
+    expected_canonical = canonical_json_dumps(payload)
+
+    run = await save_harvest_state_output(sqlite_session, output=output)
+    loaded = await load_harvest_state_output_by_id(sqlite_session, run_id=run.id)
+
+    assert run.forecast_season_id is None
+    assert run.result_hash_schema_version == RESULT_HASH_SCHEMA_VERSION_V1
+    assert canonical_json_dumps(run.canonical_output) == expected_canonical
+    assert run.result_hash == payload["result_hash"]
+    assert run.canonical_payload_hash == sha256_hex(payload)
+    assert loaded is not None
+    loaded_payload = loaded.model_dump(mode="python")
+    loaded_payload.pop("forecast_season_id")
+    assert canonical_json_dumps(loaded_payload) == expected_canonical
 
 
 @pytest.mark.asyncio

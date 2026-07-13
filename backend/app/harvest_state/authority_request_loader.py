@@ -74,6 +74,7 @@ _SEMANTIC_TASK8_SOURCE_REF_KEYS: tuple[str, ...] = (
 
 # Semantic fields for Task8PredictionVerificationSnapshot (exclude DB IDs).
 _SEMANTIC_TASK8_VERIFICATION_KEYS: tuple[str, ...] = (
+    "season_id",
     "maturity_model_version",
     "maturity_model_config_hash",
     "maturity_model_source_signature",
@@ -1365,6 +1366,8 @@ def _semantic_request_snapshot(request: Task9ARequest) -> dict[str, object]:
     )
 
     return {
+        "input_snapshot_schema_version": "task9a-input-snapshot-v2",
+        "forecast_season_identity": request.forecast_season_identity.model_dump(mode="python"),
         "as_of_date": request.as_of_date,
         "forecast_start_date": request.forecast_start_date,
         "forecast_end_date": request.forecast_end_date,
@@ -1543,7 +1546,7 @@ def _canonical_payload(
     """Build an immutable canonical payload excluding DB identity fields."""
     manifest_payload: list[JsonValue] = [_semantic_binding_payload(item) for item in manifest]
     raw: dict[str, object] = {
-        "assembly_schema_version": "task9-authority-request-assembly-v1",
+        "assembly_schema_version": "task9-authority-request-assembly-v2",
         "request": _semantic_request_snapshot(request),
         "authority_manifest": manifest_payload,
     }

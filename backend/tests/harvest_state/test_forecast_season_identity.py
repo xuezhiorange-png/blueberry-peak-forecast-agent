@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import ast
-from datetime import date
+import json
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
 from backend.app.harvest_state.canonical import (
+    canonical_json_dumps,
     make_result_hash,
     make_season_record_hash,
 )
@@ -22,6 +24,7 @@ from backend.app.harvest_state.schemas import (
     Task9ARequest,
 )
 from backend.app.harvest_state.service import run_harvest_state_model
+from backend.app.schemas.harvest_state import HarvestStateRunEnvelope
 from backend.tests.harvest_state.conftest import make_request
 
 
@@ -206,6 +209,44 @@ def test_v1_blocked_output_without_season_remains_readable() -> None:
         )
         == result_hash
     )
+
+
+def test_completed_v1_canonical_golden_remains_byte_compatible() -> None:
+    golden_path = Path(__file__).with_name("golden") / "task9a_completed_v1_canonical.json"
+    payload = json.loads(golden_path.read_text())
+
+    assert payload["output_schema_version"] == "task9a-output-v1"
+    assert "forecast_season_id" not in payload
+    assert "forecast_season_identity" not in payload["input_snapshot"]
+    assert (
+        payload["resolved_parameter_snapshot"]["run_parameters"]["result_hash_schema_version"]
+        == RESULT_HASH_SCHEMA_VERSION_V1
+    )
+    assert payload["result_hash"] == (
+        "4578d5244657f82eacdc8052388aa076cee3dbffa362b1d0b10edd036d6fcb21"
+    )
+
+    output = Task9ACompletedOutput.model_validate(payload)
+    assert output.forecast_season_id is None
+    serialized = output.model_dump(mode="python")
+    serialized.pop("forecast_season_id")
+    assert canonical_json_dumps(serialized) == canonical_json_dumps(payload)
+    assert (
+        make_result_hash(
+            serialized,
+            result_hash_schema_version=RESULT_HASH_SCHEMA_VERSION_V1,
+        )
+        == payload["result_hash"]
+    )
+    envelope = HarvestStateRunEnvelope(
+        run_id=1,
+        status="completed",
+        result_hash=output.result_hash,
+        config_hash=output.config_hash,
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        output=output,
+    )
+    assert "forecast_season_id" not in envelope.model_dump(mode="json")["output"]
 
 
 def test_harvest_state_has_no_agent_imports() -> None:

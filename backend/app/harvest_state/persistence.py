@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, cast
@@ -70,6 +70,32 @@ class HarvestStatePersistenceIntegrityError(HarvestStatePersistenceError):
 
 class HarvestStateSeasonRegistryDriftError(HarvestStatePersistenceIntegrityError):
     reason = "PERSISTED_FORECAST_SEASON_REGISTRY_DRIFT"
+
+
+class HarvestStateForbiddenResolverProvenanceError(HarvestStatePersistenceIntegrityError):
+    reason = "TASK13_RESOLVER_PROVENANCE_FORBIDDEN"
+
+
+_TASK13_RESOLVER_PROVENANCE_KEYS = frozenset(
+    {
+        "season_resolution_policy_version",
+        "season_resolution_policy_config_hash",
+    }
+)
+
+
+def _assert_no_task13_resolver_provenance(value: object) -> None:
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if key in _TASK13_RESOLVER_PROVENANCE_KEYS:
+                raise HarvestStateForbiddenResolverProvenanceError(
+                    "Task 13 resolver provenance is forbidden in Task 9 persistence"
+                )
+            _assert_no_task13_resolver_provenance(item)
+        return
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            _assert_no_task13_resolver_provenance(item)
 
 
 @dataclass(slots=True)
@@ -342,6 +368,8 @@ async def save_harvest_state_output(
     *,
     output: Task9ACompletedOutput | Task9ABlockedOutput,
 ) -> HarvestStateRun:
+    candidate_payload = output.model_dump(mode="python")
+    _assert_no_task13_resolver_provenance(candidate_payload)
     _validate_output_contract(output)
     _validate_output_result_hash(output)
     season_snapshot = _season_snapshot(output)
@@ -660,6 +688,7 @@ async def load_harvest_state_output_by_id(
     if run is None:
         return None
 
+    _assert_no_task13_resolver_provenance(run.canonical_output)
     _validate_canonical_payload_hash(run)
     expected_counts = _expected_counts_from_run(run)
     actual_counts = await _actual_row_counts(session, run_id=run.id)
