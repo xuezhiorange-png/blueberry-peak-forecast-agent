@@ -1,4 +1,4 @@
-"""Schema-only / deferred-contract tests for tools 6–8."""
+"""Deferred backtest and deterministic Slice C contract tests."""
 
 from __future__ import annotations
 
@@ -12,20 +12,19 @@ from backend.app.agent.schemas import (
     AdvancedOverrides,
     Blocker,
     ExplainForecastInput,
-    ExplainForecastOutput,
     ForecastDailyCurveOutput,
     ForecastPeakOutput,
     GenerateRecommendationsInput,
     LocationInput,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
-    Recommendation,
     RecommendationCategory,
     RequestedAsOfDateProvenance,
     ResolvedLocation,
     RunBacktestInput,
     RunBacktestOutput,
 )
+from backend.app.agent.slice_c.engine import build_slice_c_outputs
 
 
 def _mk_nr() -> NormalizedAgentRequest:
@@ -138,43 +137,24 @@ def test_explain_forecast_input_validates_with_daily_curve():
     assert inp.normalized_request.request_id == "r1"
 
 
-def test_explain_forecast_output_empty_payload_allowed():
-    """An empty structured_payload is allowed (no deterministic narrative in Slice A)."""
+def test_explain_forecast_output_has_frozen_empty_sections():
+    """All eight sections remain present even when no paragraph applies."""
 
-    out = ExplainForecastOutput()
-    assert out.structured_payload == []
+    out, _ = build_slice_c_outputs({})
+    assert len(out.structured_payload) == 8
+    assert all(section.paragraphs == [] for section in out.structured_payload)
 
 
 # --- generate_recommendations: schema only, 7 categories ----------------
 
 
 def test_recommendation_seven_categories_allowed():
-    """All 7 categories must be valid (6 operational + 1 data-quality)."""
+    """The C1 engine emits all seven categories in frozen order."""
 
     cats = list(RecommendationCategory.__args__)
     assert len(cats) == 7
-    for c in cats:
-        rec = Recommendation(
-            category=c,
-            kind=("OPERATIONAL" if c != "MISSING_DATA_IMPACT" else "DATA_QUALITY"),
-            text=f"{c} recommendation",
-            rule_id=f"rule-{c}",
-            evidence=[],
-            confidence="HIGH",
-        )
-        assert rec.category == c
-
-
-def test_recommendation_rejects_invalid_category():
-    with pytest.raises(ValidationError):
-        Recommendation(
-            category="INVALID_CATEGORY",
-            kind="OPERATIONAL",
-            text="x",
-            rule_id="r",
-            evidence=[],
-            confidence="HIGH",
-        )
+    _, output = build_slice_c_outputs({})
+    assert [decision.category for decision in output.decisions] == cats
 
 
 def test_generate_recommendations_input_validates():
@@ -211,14 +191,14 @@ def test_generate_recommendations_input_validates():
     )
 
 
-def test_no_deterministic_recommendation_engine_in_slice_a():
-    """There MUST be no rule_id registry or threshold engine in Slice A."""
+def test_no_c2_operational_threshold_adapter_exists():
+    """C1 does not add operational threshold or execution adapters."""
 
     import importlib.util
 
     for name in ("recommendation_engine", "rule_registry", "threshold_engine"):
         spec = importlib.util.find_spec(f"backend.app.agent.adapters.{name}")
-        assert spec is None, f"{name} MUST NOT exist in Slice A"
+        assert spec is None, f"{name} MUST NOT exist in C1"
 
 
 # --- helpers ---------------------------------------------------------------

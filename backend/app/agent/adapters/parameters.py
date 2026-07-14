@@ -295,6 +295,14 @@ def is_visible_prior(
 
 STEP_RANK = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}
 
+_UPSTREAM_SOURCE_LEVEL_STEP = {
+    "same_farm_variety": 1,
+    "same_township_altitude_variety": 2,
+    "same_county_climate_zone_variety": 3,
+    "same_province_variety": 4,
+    "literature_variety_prior": 5,
+}
+
 
 def widening_factor_for(step: int, policy: UncertaintyWideningPolicy) -> Decimal:
     if step not in STEP_RANK:
@@ -318,6 +326,18 @@ def confidence_for_step(step: int) -> Confidence:
     if step in (2, 3):
         return "MEDIUM"
     return "LOW"
+
+
+def source_level_step(value: Any, *, fallback_step: int) -> int:
+    """Map the upstream planning taxonomy to the Agent's stable step rank."""
+
+    if value is None:
+        return fallback_step
+    if isinstance(value, int) and not isinstance(value, bool) and value in STEP_RANK:
+        return value
+    if isinstance(value, str) and value in _UPSTREAM_SOURCE_LEVEL_STEP:
+        return _UPSTREAM_SOURCE_LEVEL_STEP[value]
+    raise SourceCapabilityGapError(f"unknown upstream source_level: {value!r}")
 
 
 # --- Default port (delegates to upstream planning inference) ------------
@@ -782,7 +802,9 @@ async def _resolve_maturity_curve(
         p50=_to_decimal(getattr(peak_result, "p50_value", None)),
         p80_lower=_to_decimal(getattr(peak_result, "p80_lower", None)),
         p80_upper=_to_decimal(getattr(peak_result, "p80_upper", None)),
-        source_level=int(getattr(peak_result, "source_level", monotonic_step) or monotonic_step),
+        source_level=source_level_step(
+            getattr(peak_result, "source_level", None), fallback_step=monotonic_step
+        ),
         confidence=_normalize_confidence(getattr(peak_result, "confidence_level", None)),
         sample_count=int(getattr(peak_result, "sample_count", 0) or 0),
         season_count=int(getattr(peak_result, "season_count", 0) or 0),
@@ -807,7 +829,9 @@ def _build_parameter_prior_from_inference_result(
     p50_value = getattr(result, "p50_value", None)
     p80_lower = getattr(result, "p80_lower", None)
     p80_upper = getattr(result, "p80_upper", None)
-    source_level_value = getattr(result, "source_level", None) or monotonic_step
+    source_level_value = source_level_step(
+        getattr(result, "source_level", None), fallback_step=monotonic_step
+    )
     confidence_value = getattr(result, "confidence_level", None) or confidence_for_step(
         monotonic_step
     )
@@ -824,7 +848,7 @@ def _build_parameter_prior_from_inference_result(
         p50=_to_decimal(p50_value),
         p80_lower=_to_decimal(p80_lower),
         p80_upper=_to_decimal(p80_upper),
-        source_level=int(source_level_value),
+        source_level=source_level_value,
         confidence=_normalize_confidence(confidence_value),
         sample_count=sample_count,
         season_count=season_count,
@@ -858,13 +882,17 @@ async def _load_candidates_from_orm(
         return []
 
     # Apply visibility predicate using ORM-level filtering.
-    visibility_stmt = select(ParameterObservation).where(
-        ParameterObservation.variety_id == variety_id,
-        ParameterObservation.parameter_type == parameter_type,
-        ParameterObservation.valid_from <= effective_as_of_date,
-        (ParameterObservation.valid_to.is_(None))
-        | (ParameterObservation.valid_to >= effective_as_of_date),
-        ParameterObservation.available_at <= effective_as_of_date,
+    visibility_stmt = (
+        select(ParameterObservation)
+        .where(
+            ParameterObservation.variety_id == variety_id,
+            ParameterObservation.parameter_type == parameter_type,
+            ParameterObservation.valid_from <= effective_as_of_date,
+            (ParameterObservation.valid_to.is_(None))
+            | (ParameterObservation.valid_to >= effective_as_of_date),
+            ParameterObservation.available_at <= effective_as_of_date,
+        )
+        .order_by(ParameterObservation.id.asc())
     )
     rows = (await session.scalars(visibility_stmt)).all()
     if not rows:
@@ -961,7 +989,7 @@ async def _load_candidates_from_orm(
                     else None
                 ),
                 season_id=row.season_id,
-                season_code=str(season.season_code) if season is not None else None,
+                season_code=str(season.code) if season is not None else None,
                 season_end_date=season.end_date if season is not None else None,
                 historical_mape=row.historical_mape,
                 date_mae_days=row.date_mae_days,
