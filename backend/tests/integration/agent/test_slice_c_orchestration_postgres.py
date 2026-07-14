@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.canonical import canonical_json_dumps, sha256_payload
-from backend.app.agent.slice_c.engine import validate_citation
+from backend.app.agent.slice_c.engine import build_slice_c_outputs, validate_citation
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.residual_model import ResidualModelPredictionRun
 from backend.tests.integration.agent.test_orchestration_postgres import (
@@ -70,17 +70,13 @@ async def test_slice_c_orchestration_uses_real_postgres_authorities(
     ]
     assert numerical_citations
     assert output.parameters
-    parameter_paragraph = next(
-        paragraph
+    assert output.parameters[0].citation is not None
+    assert all(
+        paragraph.template_id != "parameter-value-v1"
         for section in output.explanation.structured_payload
         for paragraph in section.paragraphs
-        if paragraph.template_id == "parameter-value-v1"
     )
-    assert parameter_paragraph.citation is not None
-    assert output.parameters[0].citation is not None
-    assert canonical_json_dumps(
-        parameter_paragraph.citation.model_dump(mode="json")
-    ) == canonical_json_dumps(output.parameters[0].citation.model_dump(mode="json"))
+    assert all(citation.field_path != "/parameters/0/p50" for citation in output.citations)
     assert all(citation.authorities for citation in numerical_citations)
     assert all("TASK_013" not in citation.source_tasks for citation in numerical_citations)
     assert all("TASK_012" not in citation.source_tasks for citation in numerical_citations)
@@ -135,3 +131,95 @@ async def test_slice_c_orchestration_uses_real_postgres_authorities(
     assert canonical_json_dumps(replay.model_dump(mode="json")) == canonical_json_dumps(
         output.model_dump(mode="json")
     )
+
+
+def _slice_c_source(output: object) -> dict:
+    dumped = output.model_dump(mode="json")
+    return {
+        key: dumped[key]
+        for key in (
+            "request_id",
+            "request_status",
+            "normalized_request",
+            "resolved_location",
+            "parameters",
+            "daily_curve",
+            "peak",
+            "citations",
+            "confidence",
+            "provenance",
+            "blockers",
+            "warnings",
+        )
+    }
+
+
+async def _run_counts(session: AsyncSession) -> tuple[int, int]:
+    return (
+        int(await session.scalar(select(func.count()).select_from(HarvestStateRun)) or 0),
+        int(
+            await session.scalar(select(func.count()).select_from(ResidualModelPredictionRun)) or 0
+        ),
+    )
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_postgres_missing_data_impact_applicable(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    output, _, _ = await _production_postgres_outputs(transactional_pg_session)
+    source = _slice_c_source(output)
+    source["parameters"] = []
+    before = await _run_counts(transactional_pg_session)
+    _, recommendations = build_slice_c_outputs(source)
+    after = await _run_counts(transactional_pg_session)
+    decision = recommendations.decisions[-1]
+    assert decision.status == "APPLICABLE"
+    assert decision.reason_code == "RULE_APPLICABLE"
+    assert decision.evidence
+    assert all(item.citation.source_tasks == ["TASK_013"] for item in decision.evidence)
+    assert all(item.citation.authorities == [] for item in decision.evidence)
+    assert before == after
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_postgres_missing_data_impact_not_applicable(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    output, _, _ = await _production_postgres_outputs(transactional_pg_session)
+    source = _slice_c_source(output)
+    source["parameters"] = []
+    source["blockers"] = []
+    source["citations"] = [
+        item for item in source["citations"] if not item["field_path"].startswith("/blockers/")
+    ]
+    before = await _run_counts(transactional_pg_session)
+    _, recommendations = build_slice_c_outputs(source)
+    after = await _run_counts(transactional_pg_session)
+    decision = recommendations.decisions[-1]
+    assert decision.status == "NOT_APPLICABLE"
+    assert decision.reason_code == "CONDITIONS_NOT_MET"
+    assert before == after
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_postgres_missing_data_impact_blocked(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    output, _, _ = await _production_postgres_outputs(transactional_pg_session)
+    source = _slice_c_source(output)
+    source["parameters"] = []
+    source["citations"] = [
+        item for item in source["citations"] if not item["field_path"].startswith("/blockers/")
+    ]
+    before = await _run_counts(transactional_pg_session)
+    _, recommendations = build_slice_c_outputs(source)
+    after = await _run_counts(transactional_pg_session)
+    decision = recommendations.decisions[-1]
+    assert decision.status == "BLOCKED"
+    assert decision.reason_code == "REQUIRED_EVIDENCE_MISSING"
+    assert decision.blocker_dependencies
+    assert before == after
