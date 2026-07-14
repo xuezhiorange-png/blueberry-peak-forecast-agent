@@ -1,0 +1,16 @@
+{
+    "prototype_version": "task-013-c2-concept-ui-v1",
+    "purpose": "visual_business_validation_only",
+    "production_data_connected": false,
+    "business_rules_configured": false,
+    "recommendation_execution_enabled": false,
+    "network_access_enabled": false,
+    "capabilities": [
+        "SUSTAINED_PROCESSING_CAPACITY",
+        "RECEIVING_PEAK_CAPACITY",
+        "SHIFT_STAFFING",
+        "SPRING_FESTIVAL_STAFFING",
+        "VARIETY_STAGGER",
+        "CROSS_PLANT_DISPATCH"
+    ]
+}

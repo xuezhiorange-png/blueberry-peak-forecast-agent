@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <title>TASK-013 C2 Concept UI Prototype v1</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="prototype-banner" role="status" aria-label="Prototype status banner">
+        <div class="banner-line banner-line-primary">
+            <span class="banner-tag">概念验证版</span>
+            <span class="banner-text">仅用于业务讨论</span>
+        </div>
+        <ul class="banner-status-list" aria-label="Operational status indicators">
+            <li>未接入生产数据</li>
+            <li>未配置正式业务规则</li>
+            <li>不生成可执行建议</li>
+        </ul>
+        <ul class="banner-status-list banner-status-list-secondary" aria-label="Governance status">
+            <li>C2 source definition：未完成</li>
+            <li>C2 design freeze：未完成</li>
+            <li>生产系统接入：未授权</li>
+        </ul>
+    </div>
+
+    <header class="app-header">
+        <div class="header-inner">
+            <h1 class="app-title">TASK-013 C2 业务能力概念验证</h1>
+            <p class="app-subtitle">六类业务能力的术语、信息层级与交互流程讨论版</p>
+        </div>
+        <nav class="primary-nav" aria-label="主导航">
+            <button type="button" class="nav-tab" data-view="overview" aria-pressed="true">能力总览</button>
+            <button type="button" class="nav-tab" data-view="peak" aria-pressed="false">峰值压力推演</button>
+            <button type="button" class="nav-tab" data-view="staff" aria-pressed="false">人员与节假日</button>
+            <button type="button" class="nav-tab" data-view="dispatch" aria-pressed="false">品种错峰与跨厂调度</button>
+            <button type="button" class="nav-tab nav-tab-feedback" data-view="feedback" aria-pressed="false">业务反馈</button>
+        </nav>
+    </header>
+
+    <main id="main-content" class="app-main">
+        <section class="view view-overview" data-view-panel="overview" aria-hidden="false">
+            <h2 class="view-title">能力总览</h2>
+            <p class="view-description">本视图展示 C2 六类业务能力的概念定义。所有数据来源、公式、阈值、单位与粒度均处于待业务来源确认状态。</p>
+            <div id="overview-grid" class="capability-grid" role="list" aria-label="六类业务能力卡片"></div>
+        </section>
+
+        <section class="view view-peak" data-view-panel="peak" aria-hidden="true" hidden>
+            <h2 class="view-title">峰值压力推演</h2>
+            <p class="view-description">本视图仅记录讨论草稿输入；正式压力判断不可生成，结果区固定显示待确认项。</p>
+            <form id="peak-form" class="peak-form" autocomplete="off" novalidate>
+                <div class="form-row">
+                    <label for="peak-location">基地或加工厂名称</label>
+                    <input type="text" id="peak-location" name="peak-location" placeholder="待业务来源确认">
+                </div>
+                <div class="form-row">
+                    <label for="peak-window">预测时段</label>
+                    <input type="text" id="peak-window" name="peak-window" placeholder="待业务来源确认">
+                </div>
+                <div class="form-row">
+                    <label for="peak-arrival">到货描述</label>
+                    <textarea id="peak-arrival" name="peak-arrival" rows="3" placeholder="草稿记录用，不参与任何计算"></textarea>
+                </div>
+                <div class="form-row">
+                    <label for="peak-receiving">当前接收条件描述</label>
+                    <textarea id="peak-receiving" name="peak-receiving" rows="3" placeholder="草稿记录用，不参与任何计算"></textarea>
+                </div>
+                <div class="form-row">
+                    <label for="peak-processing">当前加工条件描述</label>
+                    <textarea id="peak-processing" name="peak-processing" rows="3" placeholder="草稿记录用，不参与任何计算"></textarea>
+                </div>
+                <div class="form-row">
+                    <label for="peak-buffer">缓冲与冷库条件描述</label>
+                    <textarea id="peak-buffer" name="peak-buffer" rows="3" placeholder="草稿记录用，不参与任何计算"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="peak-save-draft" class="btn btn-primary">保存草稿到本地</button>
+                    <button type="reset" class="btn btn-secondary">清空草稿</button>
+                </div>
+            </form>
+
+            <aside class="result-block result-block-blocked" aria-live="polite">
+                <h3 class="result-title">正式压力判断不可生成</h3>
+                <p class="result-reason-intro">原因：</p>
+                <ul class="result-reason-list">
+                    <li>峰值定义尚未确认</li>
+                    <li>接收能力来源尚未配置</li>
+                    <li>加工能力来源尚未配置</li>
+                    <li>缓冲及冷库能力规则尚未配置</li>
+                </ul>
+                <p class="result-footnote">本视图不会根据输入计算正常 / 关注 / 预警 / 超载等任何状态，不会输出百分比、吨数或阈值判断。</p>
+            </aside>
+        </section>
+
+        <section class="view view-staff" data-view-panel="staff" aria-hidden="true" hidden>
+            <h2 class="view-title">人员与节假日</h2>
+            <p class="view-description">两个独立面板分别讨论班次人员维度与春节人员可用性。所有数值由业务来源确认，不做自动换算。</p>
+            <div class="staff-panels">
+                <article class="staff-panel" aria-labelledby="shift-staff-title">
+                    <h3 id="shift-staff-title" class="panel-title">班次人员</h3>
+                    <p class="panel-description">本面板列示待业务来源确认的维度。</p>
+                    <ul class="pending-dimension-list" aria-label="班次人员待确认维度">
+                        <li>人数</li>
+                        <li>工时</li>
+                        <li>班次结构</li>
+                        <li>岗位技能</li>
+                        <li>人员效率</li>
+                        <li>缺勤影响</li>
+                    </ul>
+                    <p class="status-pill status-pill-pending">待业务来源确认</p>
+                </article>
+                <article class="staff-panel" aria-labelledby="spring-staff-title">
+                    <h3 id="spring-staff-title" class="panel-title">春节人员</h3>
+                    <p class="panel-description">本面板列示待业务来源确认的维度，非简单比例。</p>
+                    <ul class="pending-dimension-list" aria-label="春节人员待确认维度">
+                        <li>节假日日历来源</li>
+                        <li>人员可用性</li>
+                        <li>班次变化</li>
+                        <li>生产计划变化</li>
+                        <li>采摘与运输影响</li>
+                    </ul>
+                    <p class="status-pill status-pill-pending">待业务来源确认</p>
+                </article>
+            </div>
+            <p class="staff-note">用户可在本视图下方业务反馈区记录看法，但反馈不会自动换算为产能、吨数或百分比。</p>
+        </section>
+
+        <section class="view view-dispatch" data-view-panel="dispatch" aria-hidden="true" hidden>
+            <h2 class="view-title">品种错峰与跨厂调度</h2>
+            <p class="view-description">本视图仅讨论概念定义，调度建议不可生成。</p>
+
+            <article class="dispatch-block" aria-labelledby="variety-stagger-title">
+                <h3 id="variety-stagger-title" class="panel-title">品种错峰</h3>
+                <p class="panel-description">三组概念定义当前尚未选择正式业务定义，三者不能混用。</p>
+                <ul class="pending-choice-list" aria-label="品种错峰候选定义">
+                    <li>
+                        <span class="choice-label">候选 A</span>
+                        <span class="choice-text">自然成熟时间差</span>
+                    </li>
+                    <li>
+                        <span class="choice-label">候选 B</span>
+                        <span class="choice-text">采摘计划错峰</span>
+                    </li>
+                    <li>
+                        <span class="choice-label">候选 C</span>
+                        <span class="choice-text">加工计划错峰</span>
+                    </li>
+                </ul>
+                <p class="warning-text">三种定义不能混用，当前尚未选择正式业务定义。</p>
+            </article>
+
+            <article class="dispatch-block" aria-labelledby="cross-plant-title">
+                <h3 id="cross-plant-title" class="panel-title">跨厂调度</h3>
+                <p class="panel-description">本面板列示候选讨论维度。</p>
+                <ul class="pending-dimension-list" aria-label="跨厂调度候选维度">
+                    <li>加工负荷</li>
+                    <li>接收条件</li>
+                    <li>冷链条件</li>
+                    <li>距离与时间</li>
+                    <li>品种和品质适配</li>
+                    <li>订单要求</li>
+                    <li>设备适配</li>
+                </ul>
+            </article>
+
+            <aside class="result-block result-block-blocked" aria-live="polite">
+                <h3 class="result-title">无法生成调度建议</h3>
+                <p class="result-reason-intro">正式目标函数、约束、候选工厂和选择规则尚未确认。</p>
+                <p class="result-footnote">本视图不会生成推荐目的地、调拨量、调拨距离、路线、优先级、成本或自动操作。</p>
+            </aside>
+        </section>
+
+        <section class="view view-feedback" data-view-panel="feedback" aria-hidden="true" hidden>
+            <h2 class="view-title">业务反馈</h2>
+            <p class="view-description">本视图用于收集对业务定义的理解、调整建议与可能数据来源。反馈仅保存至浏览器 localStorage，不上传任何外部系统。</p>
+
+            <div id="feedback-capability-list" class="feedback-capability-list" aria-label="按能力收集的反馈"></div>
+
+            <article class="feedback-general" aria-labelledby="general-feedback-title">
+                <h3 id="general-feedback-title" class="panel-title">整体反馈</h3>
+                <label class="visually-hidden" for="general-feedback">整体反馈</label>
+                <textarea id="general-feedback" rows="4" placeholder="对本 prototype 整体业务定义、术语或交互流程的反馈"></textarea>
+            </article>
+
+            <div class="feedback-actions">
+                <button type="button" id="feedback-save" class="btn btn-primary">保存本地反馈</button>
+                <button type="button" id="feedback-export" class="btn btn-secondary">导出反馈 JSON</button>
+                <button type="button" id="feedback-clear" class="btn btn-danger">清空本地反馈</button>
+            </div>
+
+            <p id="feedback-status" class="feedback-status" role="status" aria-live="polite"></p>
+        </section>
+    </main>
+
+    <aside id="feedback-drawer" class="feedback-drawer" aria-label="快速反馈抽屉" hidden>
+        <div class="drawer-header">
+            <h3 class="drawer-title">快速反馈</h3>
+            <button type="button" id="drawer-close" class="drawer-close" aria-label="关闭反馈抽屉">×</button>
+        </div>
+        <p class="drawer-description">将自动跳转到业务反馈视图，所有反馈仅写入浏览器 localStorage。</p>
+        <button type="button" id="drawer-goto" class="btn btn-primary">前往业务反馈视图</button>
+    </aside>
+
+    <button type="button" id="feedback-drawer-toggle" class="feedback-drawer-toggle" aria-controls="feedback-drawer" aria-expanded="false">业务反馈</button>
+
+    <footer class="app-footer">
+        <p>TASK-013 C2 Concept UI Prototype v1 — 本工具不连接生产系统、不执行业务规则、不输出可执行建议。</p>
+        <p>Issue #99 · C2_SOURCE_DEFINITION_COMPLETE=NO · C2_DESIGN_FROZEN=NO · C2_IMPLEMENTATION_AUTHORIZED=NO</p>
+    </footer>
+
+    <script src="content.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
