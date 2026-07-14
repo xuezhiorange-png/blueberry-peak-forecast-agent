@@ -332,6 +332,7 @@ shards:
       - backend/tests/integration/test_task9_authority_repository_postgres.py
       - backend/tests/integration/agent/test_orchestration_postgres.py
       - backend/tests/integration/agent/test_postgres_selector_year_extraction.py
+      - backend/tests/integration/agent/test_slice_c_orchestration_postgres.py
       - "-m"
       - "not postgres_concurrency"
       - "-q"
@@ -358,6 +359,7 @@ shards:
       - backend/tests/integration/test_task9_authority_repository_postgres.py
       - backend/tests/integration/agent/test_orchestration_postgres.py
       - backend/tests/integration/agent/test_postgres_selector_year_extraction.py
+      - backend/tests/integration/agent/test_slice_c_orchestration_postgres.py
     notes: |
       PR #55 §3 row 4. Integration domain tests, slice 1 of 2.
       Covers Task 7 / 9 / 10 (cutoff, authority, master data, residual

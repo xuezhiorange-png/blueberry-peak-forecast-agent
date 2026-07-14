@@ -705,6 +705,7 @@ jobs:
             backend/tests/integration/test_task9_authority_repository_postgres.py \
             backend/tests/integration/agent/test_orchestration_postgres.py \
             backend/tests/integration/agent/test_postgres_selector_year_extraction.py \
+            backend/tests/integration/agent/test_slice_c_orchestration_postgres.py \
             -m "not postgres_concurrency" -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \
