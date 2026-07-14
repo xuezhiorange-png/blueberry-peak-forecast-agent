@@ -242,6 +242,8 @@ ConditionResult = Literal["TRUE", "FALSE", "UNKNOWN"]
 ExplanationParagraphKind = Literal[
     "AUTHORITATIVE_VALUE",
     "DETERMINISTIC_EXPLANATION",
+    "DETERMINISTIC_RECOMMENDATION",
+    "NON_AUTHORITATIVE_PRESENTATION",
 ]
 
 ExplanationSectionCode = Literal[

@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.orchestration import AgentOrchestrator
 from backend.app.agent.schemas import (
+    AdvancedOverrides,
     AgentForecastOutput,
+    AsOfOverride,
     LocationInput,
     PeakMetricPolicy,
     UncertaintyWideningPolicy,
@@ -24,7 +26,12 @@ from backend.app.harvest_state.service import run_harvest_state_model
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import MaturityForecastRun, MaturityModelArtifact, MaturityModelRun
-from backend.app.models.planning import AgroClimateZone, LocationReference
+from backend.app.models.planning import (
+    AgroClimateZone,
+    LocationReference,
+    ParameterLibraryVersion,
+    ParameterObservation,
+)
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.residual_model.config import load_residual_model_config
 from backend.app.residual_model.persistence import (
@@ -232,8 +239,17 @@ def _production_request():
     return _request().model_copy(
         update={
             "location": LocationInput(location_reference_id=601),
-            "requested_as_of_date": date(2026, 3, 1),
+            "requested_as_of_date": date(2026, 2, 28),
             "requested_forecast_season": 2026,
+            "advanced_overrides": AdvancedOverrides(
+                as_of_overrides=[
+                    AsOfOverride(
+                        value=date(2026, 3, 1),
+                        source_attestation="slice-c-postgres-fixture",
+                        source_ref={"fixture": "task013-slice-c-c1"},
+                    )
+                ]
+            ),
             "varieties": [
                 _request().varieties[0].model_copy(update={"variety_id": "101"}),
                 _request().varieties[0].model_copy(update={"variety_id": "102"}),
@@ -288,6 +304,16 @@ async def _production_postgres_outputs(
     variety = Variety(id=101, code="101", name="slice-b-variety")
     second_variety = Variety(id=102, code="102", name="slice-b-variety-2")
     factory = Factory(id=601, name="slice-b-factory")
+    parameter_library = ParameterLibraryVersion(
+        id=701,
+        version_code="slice-c-parameter-library-v1",
+        status="active",
+        source_name="slice-c-postgres-fixture",
+        source_file_sha256=_hash("slice-c-parameter-source"),
+        config_hash=_hash("slice-c-parameter-config"),
+        record_count=3,
+        effective_from=date(2025, 1, 1),
+    )
     plan = FarmSeasonVarietyPlan(
         id=1,
         farm_id=1,
@@ -350,10 +376,56 @@ async def _production_postgres_outputs(
         input_snapshot={},
     )
     transactional_pg_session.add_all(
-        [zone, farm, subfarm, season, variety, second_variety, factory, plan, model_run]
+        [
+            zone,
+            farm,
+            subfarm,
+            season,
+            variety,
+            second_variety,
+            factory,
+            parameter_library,
+            plan,
+            model_run,
+        ]
     )
     await transactional_pg_session.flush()
     transactional_pg_session.add(location)
+    await transactional_pg_session.flush()
+    transactional_pg_session.add_all(
+        [
+            ParameterObservation(
+                id=710 + index,
+                library_version_id=parameter_library.id,
+                parameter_type="yield_kg_per_mu",
+                variety_id=variety.id,
+                farm_id=farm.id,
+                subfarm_id=None,
+                location_reference_id=location.id,
+                climate_zone_id=zone.id,
+                season_id=None,
+                province="云南省",
+                prefecture="红河州",
+                county="弥勒市",
+                township=None,
+                altitude_m=Decimal("1800"),
+                scalar_value=Decimal(value),
+                unit="kg_per_mu",
+                sample_weight=Decimal("1"),
+                source_level="same_farm_variety",
+                source_name="slice-c-postgres-fixture",
+                source_version="slice-c-parameter-v1",
+                historical_mape=Decimal("0.10"),
+                date_mae_days=Decimal("2"),
+                p90_coverage=Decimal("0.85"),
+                available_at=date(2026, 2, 28),
+                valid_from=date(2025, 1, 1),
+                valid_to=None,
+                source_row_hash=_hash(f"slice-c-parameter-{index}"),
+            )
+            for index, value in enumerate(("95", "100", "105"), start=1)
+        ]
+    )
     await transactional_pg_session.flush()
     transactional_pg_session.add(artifact)
     await transactional_pg_session.flush()
@@ -391,7 +463,9 @@ async def _production_postgres_outputs(
         request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
     )
     assert output.request_status == "BLOCKED"
-    assert output.normalized_request.normalized_location.status == "resolved"
+    assert output.normalized_request.normalized_location.status == "resolved", [
+        blocker.model_dump(mode="python") for blocker in output.blockers
+    ]
     assert output.normalized_request.normalized_location.location_reference_id == 601
     assert output.normalized_request.normalized_location.climate_zone_id == 1601
     assert output.normalized_request.effective_forecast_season_id == 1
@@ -407,7 +481,11 @@ async def _production_postgres_outputs(
         "INSUFFICIENT_HISTORY",
         "NO_PERSISTED_PRIOR_SOURCE",
         "SPRING_FESTIVAL_CALENDAR_POLICY_MISSING",
-    }
+    }, [
+        blocker.model_dump(mode="json")
+        for blocker in output.blockers
+        if blocker.code.value == "UPSTREAM_READ_FAILURE"
+    ]
     assert output.provenance["task8_authority"] is not None
     assert output.provenance["task9_authority"] is not None
     assert output.provenance["task10_authority"] is not None

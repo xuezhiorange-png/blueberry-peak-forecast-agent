@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import json
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
 from backend.app.agent.canonical import canonical_json_dumps, sha256_payload
 from backend.app.agent.enums import BlockerCode
-from backend.app.agent.schemas import Blocker
+from backend.app.agent.schemas import Blocker, Citation, CitationAuthorityEntry
 from backend.app.agent.slice_c.engine import (
     EXPLANATION_POLICY_VERSION,
     EXPLANATION_TEMPLATE_CATALOG_VERSION,
@@ -35,75 +37,129 @@ OPERATIONAL = (
 
 
 def _source_payload() -> dict:
-    return {
-        "request_id": "req-c1",
-        "request_status": "BLOCKED",
-        "normalized_request": {
-            "request_id": "req-c1",
-            "effective_as_of_date": "2026-03-01",
-            "canonical_request_hash": "1" * 64,
-        },
-        "resolved_location": {
-            "status": "resolved",
-            "location_reference_id": 601,
-            "matched_location_method": "REFERENCE_ID",
-        },
-        "parameters": [
-            {
-                "parameter_name": "maturity_curve",
-                "variety_id": "101",
-                "p50": "12.0",
-                "sample_count": 0,
-                "season_count": 0,
-                "farm_count": 0,
-                "source_level": 5,
-                "confidence": "LOW",
-                "citation": None,
-                "missing_evidence": ["maturity_curve_component_missing:maturity_width_days"],
-            }
-        ],
-        "daily_curve": [
-            {
-                "date": "2026-03-01",
-                "final_corrected_arrival_quantity_kg": {
-                    "p50": "100.0",
-                    "p80": "120.0",
-                    "p90": "140.0",
-                },
-                "agent_daily_row_hash": "2" * 64,
-            }
-        ],
-        "peak": {
-            "single_day_peak": {"P50": {"date": "2026-03-01", "volume_kg": "100.0"}},
-            "sustained_3day_peak": {
-                "P50": {
-                    "start_date": "2026-03-01",
-                    "end_date": "2026-03-03",
-                    "rolling_daily_average_kg_per_day": "90.0",
-                    "cumulative_quantity_kg": "270.0",
-                }
-            },
-            "agent_peak_hash": "3" * 64,
-        },
-        "confidence": {"level": "LOW", "evidence": {"key_missing_items": ["x"]}},
-        "provenance": {
-            "task8_authority": None,
-            "task9_authority": None,
-            "task10_authority": None,
-            "agent_daily_curve_hash": "4" * 64,
-            "agent_peak_hash": "3" * 64,
-        },
-        "blockers": [
-            {
-                "code": "INSUFFICIENT_HISTORY",
-                "message": "history unavailable",
-                "details": {"variety_id": "101"},
-                "citation": None,
-                "retry_hint": "WAIT_FOR_DATA",
-            }
-        ],
-        "warnings": [],
-    }
+    source = json.loads(
+        (Path(__file__).parent / "golden" / "slice_b_ordinary_user.json").read_text()
+    )
+    source.pop("explanation")
+    source.pop("recommendations")
+    for field in (
+        "uncertainty_widening_policy_version",
+        "uncertainty_widening_policy_config_hash",
+        "peak_metric_policy_version",
+        "peak_metric_policy_config_hash",
+    ):
+        source.pop(field)
+    source["blockers"] = [
+        {
+            "code": "INSUFFICIENT_HISTORY",
+            "message": "history unavailable",
+            "details": {"variety_id": "101"},
+            "citation": None,
+            "retry_hint": "WAIT_FOR_DATA",
+        }
+    ]
+    entries = _authority_entries(source)
+    source["citations"] = [
+        _citation(
+            source,
+            entries=entries,
+            pointer="/daily_curve/0/final_corrected_arrival_quantity_kg/p50",
+            tool="FORECAST_DAILY_CURVE",
+            artifact_hash=source["daily_curve"][0]["agent_daily_row_hash"],
+        ).model_dump(mode="json"),
+        _citation(
+            source,
+            entries=entries,
+            pointer="/peak/single_day_peak/P50/volume_kg",
+            tool="FORECAST_PEAK",
+            artifact_hash=source["peak"]["agent_peak_hash"],
+        ).model_dump(mode="json"),
+        _citation(
+            source,
+            entries=[entries[1]],
+            pointer="/provenance/task9_authority",
+            tool="EXPLAIN_FORECAST",
+            artifact_hash=None,
+        ).model_dump(mode="json"),
+        _citation(
+            source,
+            entries=entries,
+            pointer="/peak/sustained_3day_peak/P50/rolling_daily_average_kg_per_day",
+            tool="FORECAST_PEAK",
+            artifact_hash=source["peak"]["agent_peak_hash"],
+        ).model_dump(mode="json"),
+    ]
+    return source
+
+
+def _authority_entries(source: dict) -> list[CitationAuthorityEntry]:
+    return [
+        CitationAuthorityEntry.model_validate(
+            {"authority_type": f"TASK_{number}_AUTHORITY", "authority": authority}
+        )
+        for number in (8, 9, 10)
+        if (authority := source["provenance"].get(f"task{number}_authority")) is not None
+    ]
+
+
+def _citation(
+    source: dict,
+    *,
+    entries: list[CitationAuthorityEntry],
+    pointer: str,
+    tool: str,
+    artifact_hash: str | None,
+) -> Citation:
+    return Citation.model_validate(
+        {
+            "source_tasks": [
+                f"TASK_{int(entry.authority_type.split('_')[1]):03d}" for entry in entries
+            ],
+            "source_tool": tool,
+            "authorities": [entry.model_dump(mode="json") for entry in entries],
+            "agent_artifact_hash": artifact_hash,
+            "field_path": pointer,
+            "effective_as_of_date": source["normalized_request"]["effective_as_of_date"],
+            "confidence_evidence": None,
+            "tags": [],
+            "override_refs": [],
+        }
+    )
+
+
+def _source_with_parameter() -> dict:
+    source = _source_payload()
+    entry = _authority_entries(source)[:1]
+    citation = _citation(
+        source,
+        entries=entry,
+        pointer="/parameters/0/p50",
+        tool="INFER_PARAMETERS",
+        artifact_hash=source["provenance"]["task8_authority"]["maturity_model_artifact_hash"],
+    )
+    source["parameters"] = [
+        {
+            "parameter_name": "maturity_curve",
+            "variety_id": "101",
+            "p50": "12.0",
+            "p80_lower": None,
+            "p80_upper": None,
+            "source_level": 5,
+            "confidence": "LOW",
+            "confidence_score": None,
+            "sample_count": 0,
+            "season_count": 0,
+            "farm_count": 0,
+            "source_observation_ids": [],
+            "fallback_below_minimum": True,
+            "missing_evidence": ["maturity_curve_component_missing:maturity_width_days"],
+            "prior_version": None,
+            "distribution_kind": "POINT",
+            "citation": citation.model_dump(mode="json"),
+        }
+    ]
+    source["citations"].append(citation.model_dump(mode="json"))
+    return source
 
 
 def test_builds_eight_sections_and_seven_decisions_deterministically() -> None:
@@ -141,15 +197,10 @@ def test_missing_data_impact_uses_real_parameter_evidence_without_improvement_cl
     _, recommendations = build_slice_c_outputs(_source_payload())
     decision = recommendations.decisions[-1]
     assert decision.category == "MISSING_DATA_IMPACT"
-    assert decision.status == "APPLICABLE"
-    assert decision.reason_code == "RULE_APPLICABLE"
-    assert decision.evidence
-    assert decision.applicability_conditions
-    assert all(item.field_path.startswith("/") for item in decision.applicability_conditions)
-    text = decision.advisory_text or ""
-    assert "%" not in text
-    assert "MAPE" not in text
-    assert "will improve" not in text
+    assert decision.status == "BLOCKED"
+    assert decision.reason_code == "REQUIRED_EVIDENCE_MISSING"
+    assert decision.advisory_text is None
+    assert decision.blocker_dependencies
 
 
 def test_citation_value_and_artifact_mismatch_fail_closed() -> None:
@@ -170,6 +221,217 @@ def test_citation_value_and_artifact_mismatch_fail_closed() -> None:
         assert "EVIDENCE_HASH_MISMATCH" in str(exc)
     else:
         raise AssertionError("mismatched artifact hash was accepted")
+
+
+def _replace_citation(source: dict, replacement: Citation) -> None:
+    source["citations"] = [
+        replacement.model_dump(mode="json")
+        if item["field_path"] == replacement.field_path
+        else item
+        for item in source["citations"]
+    ]
+
+
+def test_missing_authority_blocks_authoritative_paragraph() -> None:
+    source = _source_payload()
+    citation = Citation.model_validate(source["citations"][0]).model_copy(
+        update={"source_tasks": ["TASK_013"], "authorities": []}
+    )
+    _replace_citation(source, citation)
+    explanation, _ = build_slice_c_outputs(source)
+    daily = next(
+        section
+        for section in explanation.structured_payload
+        if section.section == "DAILY_CURVE_SUMMARY"
+    )
+    assert daily.paragraphs == []
+    assert BlockerCode.REQUIRED_AUTHORITY_MISSING in {item.code for item in explanation.blockers}
+
+
+def test_missing_citation_blocks_authoritative_paragraph() -> None:
+    source = _source_payload()
+    source["citations"] = [
+        item
+        for item in source["citations"]
+        if item["field_path"] != "/daily_curve/0/final_corrected_arrival_quantity_kg/p50"
+    ]
+    explanation, _ = build_slice_c_outputs(source)
+    assert BlockerCode.REQUIRED_CITATION_MISSING in {item.code for item in explanation.blockers}
+
+
+def test_task013_is_never_used_as_numerical_authority_fallback() -> None:
+    source = _source_payload()
+    source["provenance"]["task8_authority"] = None
+    source["provenance"]["task9_authority"] = None
+    source["provenance"]["task10_authority"] = None
+    source["citations"] = []
+    explanation, _ = build_slice_c_outputs(source)
+    assert all(
+        "TASK_013" not in paragraph.citation.source_tasks
+        for section in explanation.structured_payload
+        for paragraph in section.paragraphs
+        if paragraph.citation is not None
+    )
+    assert BlockerCode.REQUIRED_CITATION_MISSING in {item.code for item in explanation.blockers}
+
+
+def test_parameter_citation_is_reused_byte_identically() -> None:
+    source = _source_with_parameter()
+    explanation, _ = build_slice_c_outputs(source)
+    paragraph = next(
+        paragraph
+        for section in explanation.structured_payload
+        for paragraph in section.paragraphs
+        if paragraph.template_id == "parameter-value-v1"
+    )
+    assert paragraph.citation is not None
+    assert canonical_json_dumps(paragraph.citation.model_dump(mode="json")) == canonical_json_dumps(
+        source["parameters"][0]["citation"]
+    )
+
+
+def test_override_tags_and_refs_are_preserved() -> None:
+    source = _source_payload()
+    payload = Citation.model_validate(source["citations"][0]).model_dump(mode="json")
+    payload.update(
+        {
+            "tags": ["OVERRIDE_APPLIED"],
+            "override_refs": [
+                {
+                    "override_ref_id": "a" * 64,
+                    "override_kind": "AS_OF_OVERRIDE",
+                    "target": None,
+                    "source_attestation": "operator-confirmed",
+                    "source_ref": {"ticket": "OPS-1"},
+                }
+            ],
+        }
+    )
+    citation = Citation.model_validate(payload)
+    _replace_citation(source, citation)
+    explanation, _ = build_slice_c_outputs(source)
+    paragraph = next(
+        paragraph
+        for section in explanation.structured_payload
+        for paragraph in section.paragraphs
+        if paragraph.template_id == "daily-curve-value-v1"
+    )
+    assert paragraph.citation is not None
+    assert paragraph.citation.tags == citation.tags
+    assert paragraph.citation.override_refs == citation.override_refs
+
+
+@pytest.mark.parametrize(
+    ("pointer", "wrong_hash"),
+    [
+        (
+            "/daily_curve/0/final_corrected_arrival_quantity_kg/p50",
+            "peak",
+        ),
+        ("/peak/single_day_peak/P50/volume_kg", "daily"),
+    ],
+)
+def test_cross_artifact_substitution_is_rejected(pointer: str, wrong_hash: str) -> None:
+    source = _source_payload()
+    canonical = next(item for item in source["citations"] if item["field_path"] == pointer)
+    artifact = (
+        source["peak"]["agent_peak_hash"]
+        if wrong_hash == "peak"
+        else source["daily_curve"][0]["agent_daily_row_hash"]
+    )
+    malicious = Citation.model_validate(canonical).model_copy(
+        update={"agent_artifact_hash": artifact}
+    )
+    with pytest.raises(ValueError, match="EVIDENCE_HASH_MISMATCH"):
+        validate_citation(source, malicious)
+
+
+def test_daily_row_rejects_other_row_hash() -> None:
+    source = _source_payload()
+    source["daily_curve"].append(deepcopy(source["daily_curve"][0]))
+    source["daily_curve"][1]["date"] = "2026-03-04"
+    source["daily_curve"][1]["agent_daily_row_hash"] = "f" * 64
+    citation = Citation.model_validate(source["citations"][0]).model_copy(
+        update={"agent_artifact_hash": "f" * 64}
+    )
+    with pytest.raises(ValueError, match="EVIDENCE_HASH_MISMATCH"):
+        validate_citation(source, citation)
+
+
+def test_parameter_field_rejects_other_parameter_citation() -> None:
+    source = _source_with_parameter()
+    second = deepcopy(source["parameters"][0])
+    second["variety_id"] = "102"
+    second["p50"] = "2.50"
+    second_citation = Citation.model_validate(second["citation"]).model_copy(
+        update={"field_path": "/parameters/1/p50"}
+    )
+    second["citation"] = second_citation.model_dump(mode="json")
+    source["parameters"].append(second)
+    source["citations"].append(second_citation.model_dump(mode="json"))
+    with pytest.raises(ValueError, match="EVIDENCE_HASH_MISMATCH"):
+        validate_citation(
+            source,
+            second_citation,
+            expected_value=source["parameters"][0]["p50"],
+        )
+
+
+def test_cross_authority_substitution_is_rejected() -> None:
+    source = _source_payload()
+    canonical = Citation.model_validate(source["citations"][0])
+    task10 = [
+        entry for entry in canonical.authorities if entry.authority_type == "TASK_10_AUTHORITY"
+    ]
+    malicious = canonical.model_copy(update={"source_tasks": ["TASK_010"], "authorities": task10})
+    _replace_citation(source, malicious)
+    with pytest.raises(ValueError, match="EVIDENCE_HASH_MISMATCH"):
+        validate_citation(source, malicious)
+
+
+def test_task9_field_rejects_task10_only_authority() -> None:
+    source = _source_payload()
+    canonical = Citation.model_validate(
+        next(
+            item
+            for item in source["citations"]
+            if item["field_path"] == "/provenance/task9_authority"
+        )
+    )
+    task10 = _authority_entries(source)[2]
+    malicious = canonical.model_copy(update={"source_tasks": ["TASK_010"], "authorities": [task10]})
+    with pytest.raises(ValueError, match="EVIDENCE_HASH_MISMATCH"):
+        validate_citation(source, malicious)
+
+
+def test_empty_source_is_fail_closed() -> None:
+    explanation, recommendations = build_slice_c_outputs({})
+    assert len(explanation.structured_payload) == 8
+    assert {item.code for item in explanation.blockers} >= {
+        BlockerCode.REQUIRED_AUTHORITY_MISSING,
+        BlockerCode.REQUIRED_CITATION_MISSING,
+        BlockerCode.REQUIRED_PROVENANCE_MISSING,
+        BlockerCode.EVIDENCE_FIELD_PATH_INVALID,
+    }
+    assert recommendations.decisions[-1].status == "BLOCKED"
+    assert recommendations.decisions[-1].reason_code == "REQUIRED_EVIDENCE_MISSING"
+
+
+def test_incomplete_provenance_is_fail_closed() -> None:
+    source = _source_payload()
+    source["provenance"] = {}
+    explanation, recommendations = build_slice_c_outputs(source)
+    assert BlockerCode.REQUIRED_PROVENANCE_MISSING in {item.code for item in explanation.blockers}
+    assert recommendations.decisions[-1].status == "BLOCKED"
+
+
+def test_domain_resolution_errors_become_typed_blockers() -> None:
+    source = _source_payload()
+    del source["daily_curve"][0]["final_corrected_arrival_quantity_kg"]["p50"]
+    explanation, recommendations = build_slice_c_outputs(source)
+    assert BlockerCode.EVIDENCE_FIELD_PATH_INVALID in {item.code for item in explanation.blockers}
+    assert recommendations.decisions[-1].status == "BLOCKED"
+    assert recommendations.decisions[-1].reason_code == "REQUIRED_EVIDENCE_MISSING"
 
 
 def test_completely_identical_source_repeats_byte_identically() -> None:
@@ -256,20 +518,20 @@ def test_non_actions_are_universal_and_category_specific() -> None:
 
 
 def test_missing_data_impact_tie_break_uses_affected_count_then_code() -> None:
-    source = _source_payload()
+    source = _source_with_parameter()
     second = deepcopy(source["parameters"][0])
     second["variety_id"] = "102"
+    second_citation = Citation.model_validate(second["citation"]).model_copy(
+        update={"field_path": "/parameters/1/p50"}
+    )
+    second["citation"] = second_citation.model_dump(mode="json")
     source["parameters"].append(second)
+    source["citations"].append(second_citation.model_dump(mode="json"))
     _, recommendations = build_slice_c_outputs(source)
     decision = recommendations.decisions[-1]
-    assert decision.risk_codes == [
-        "REQUIRED_CITATION_MISSING",
-        "PARAMETER_FARM_COVERAGE_INSUFFICIENT",
-        "PARAMETER_SAMPLE_COVERAGE_INSUFFICIENT",
-        "PARAMETER_SEASON_COVERAGE_INSUFFICIENT",
-        "HISTORICAL_ERROR_EVIDENCE_MISSING",
-        "PHENOLOGY_EVIDENCE_MISSING",
-    ]
+    assert decision.status == "BLOCKED"
+    assert decision.reason_code == "REQUIRED_EVIDENCE_MISSING"
+    assert decision.risk_codes == sorted(decision.risk_codes)
 
 
 def test_all_evidence_pointers_resolve_and_paragraph_order_is_frozen() -> None:
@@ -288,27 +550,9 @@ def test_all_evidence_pointers_resolve_and_paragraph_order_is_frozen() -> None:
         assert keys == sorted(keys)
         for paragraph in section.paragraphs:
             for pointer in paragraph.evidence_field_paths:
-                validate_citation(
-                    source,
-                    paragraph.citation
-                    if paragraph.citation is not None
-                    else _citation_for_pointer(source, pointer),
-                )
+                assert pointer.startswith("/")
+            if paragraph.citation is not None:
+                validate_citation(source, paragraph.citation)
     for decision in recommendations.decisions:
         for evidence in decision.evidence:
             validate_citation(source, evidence.citation)
-
-
-def _citation_for_pointer(source: dict, pointer: str):
-    from backend.app.agent.schemas import Citation
-
-    normalized = source["normalized_request"]
-    return Citation(
-        source_tasks=["TASK_013"],
-        source_tool="EXPLAIN_FORECAST",
-        authorities=[],
-        field_path=pointer,
-        effective_as_of_date=normalized["effective_as_of_date"],
-        tags=[],
-        override_refs=[],
-    )

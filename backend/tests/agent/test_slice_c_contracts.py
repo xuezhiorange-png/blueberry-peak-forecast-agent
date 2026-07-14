@@ -10,7 +10,11 @@ from pydantic import ValidationError
 from backend.app.agent.enums import BlockerCode
 from backend.app.agent.schemas import (
     Blocker,
+    Citation,
     ConditionEvaluation,
+    ExplainForecastOutput,
+    ExplainParagraph,
+    ExplainSection,
     GenerateRecommendationsOutput,
     NonAction,
     RecommendationDecision,
@@ -135,6 +139,84 @@ def test_slice_c_models_are_strict_and_frozen() -> None:
     decision = _decision("SUSTAINED_PROCESSING_CAPACITY")
     with pytest.raises(ValidationError):
         decision.priority_rank = 99  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "AUTHORITATIVE_VALUE",
+        "DETERMINISTIC_EXPLANATION",
+        "DETERMINISTIC_RECOMMENDATION",
+        "NON_AUTHORITATIVE_PRESENTATION",
+    ],
+)
+def test_wire_schema_retains_four_explanation_kinds(kind: str) -> None:
+    citation = Citation(
+        source_tasks=["TASK_013"],
+        source_tool="EXPLAIN_FORECAST",
+        authorities=[],
+        field_path="/confidence/level",
+        effective_as_of_date="2026-03-01",
+        tags=[],
+        override_refs=[],
+    )
+    paragraph = ExplainParagraph(
+        kind=kind,
+        text="frozen wire value",
+        template_id="wire-kind-test-v1",
+        evidence_field_paths=["/confidence/level"],
+        citation=citation if kind == "AUTHORITATIVE_VALUE" else None,
+    )
+    assert paragraph.kind == kind
+
+
+def test_slice_c_emission_rejects_reserved_kinds() -> None:
+    reserved = ExplainParagraph(
+        kind="NON_AUTHORITATIVE_PRESENTATION",
+        text="reserved for a later slice",
+        template_id="reserved-v1",
+        evidence_field_paths=["/confidence/level"],
+        citation=None,
+    )
+    sections = [
+        ExplainSection(
+            section=section,
+            paragraphs=[reserved] if index == 0 else [],
+        )
+        for index, section in enumerate(
+            (
+                "REQUEST_AND_RESOLVED_CONTEXT",
+                "PARAMETER_PROVENANCE",
+                "DAILY_CURVE_SUMMARY",
+                "PEAK_ANALYSIS",
+                "PEAK_FORMATION",
+                "CONFIDENCE_AND_UNCERTAINTY",
+                "MODEL_AND_AUTHORITY_EVIDENCE",
+                "BLOCKERS_AND_DATA_GAPS",
+            )
+        )
+    ]
+    with pytest.raises(ValidationError, match="Slice C may emit only"):
+        ExplainForecastOutput(
+            explanation_rule_policy_version="explanation-rule-policy-v1",
+            explanation_rule_policy_config_hash="a" * 64,
+            template_catalog_version="explanation-template-catalog-v1",
+            template_catalog_hash="b" * 64,
+            structured_payload=sections,
+            agent_explanation_hash="c" * 64,
+            blockers=[],
+        )
+
+
+def test_unknown_fifth_explanation_kind_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        ExplainParagraph(
+            kind="MODEL_GENERATED",
+            text="not frozen",
+            template_id="unknown-v1",
+            evidence_field_paths=["/confidence/level"],
+            citation=None,
+        )
 
 
 def test_hash_fields_reject_non_lowercase_sha256() -> None:

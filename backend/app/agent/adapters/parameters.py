@@ -295,6 +295,14 @@ def is_visible_prior(
 
 STEP_RANK = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}
 
+_UPSTREAM_SOURCE_LEVEL_STEP = {
+    "same_farm_variety": 1,
+    "same_township_altitude_variety": 2,
+    "same_county_climate_zone_variety": 3,
+    "same_province_variety": 4,
+    "literature_variety_prior": 5,
+}
+
 
 def widening_factor_for(step: int, policy: UncertaintyWideningPolicy) -> Decimal:
     if step not in STEP_RANK:
@@ -318,6 +326,18 @@ def confidence_for_step(step: int) -> Confidence:
     if step in (2, 3):
         return "MEDIUM"
     return "LOW"
+
+
+def source_level_step(value: Any, *, fallback_step: int) -> int:
+    """Map the upstream planning taxonomy to the Agent's stable step rank."""
+
+    if value is None:
+        return fallback_step
+    if isinstance(value, int) and not isinstance(value, bool) and value in STEP_RANK:
+        return value
+    if isinstance(value, str) and value in _UPSTREAM_SOURCE_LEVEL_STEP:
+        return _UPSTREAM_SOURCE_LEVEL_STEP[value]
+    raise SourceCapabilityGapError(f"unknown upstream source_level: {value!r}")
 
 
 # --- Default port (delegates to upstream planning inference) ------------
@@ -807,7 +827,9 @@ def _build_parameter_prior_from_inference_result(
     p50_value = getattr(result, "p50_value", None)
     p80_lower = getattr(result, "p80_lower", None)
     p80_upper = getattr(result, "p80_upper", None)
-    source_level_value = getattr(result, "source_level", None) or monotonic_step
+    source_level_value = source_level_step(
+        getattr(result, "source_level", None), fallback_step=monotonic_step
+    )
     confidence_value = getattr(result, "confidence_level", None) or confidence_for_step(
         monotonic_step
     )
@@ -824,7 +846,7 @@ def _build_parameter_prior_from_inference_result(
         p50=_to_decimal(p50_value),
         p80_lower=_to_decimal(p80_lower),
         p80_upper=_to_decimal(p80_upper),
-        source_level=int(source_level_value),
+        source_level=source_level_value,
         confidence=_normalize_confidence(confidence_value),
         sample_count=sample_count,
         season_count=season_count,

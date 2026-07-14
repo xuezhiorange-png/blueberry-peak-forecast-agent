@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from collections.abc import Mapping
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, cast, get_args
+
+from pydantic import ValidationError
 
 from backend.app.agent.canonical import canonical_json_dumps, sha256_payload
 from backend.app.agent.enums import (
@@ -28,6 +32,7 @@ from backend.app.agent.schemas import (
     RecommendationDecision,
     RecommendationEvidence,
     RecommendationRulePolicy,
+    SliceCSourcePayload,
 )
 from backend.app.agent.slice_c.json_pointer import (
     JsonPointerResolutionError,
@@ -43,6 +48,26 @@ FIELD_PATH_POLICY_VERSION = "slice-c-json-pointer-policy-v1"
 SECTION_ORDER = cast(tuple[ExplanationSectionCode, ...], get_args(ExplanationSectionCode))
 CATEGORY_ORDER = cast(tuple[RecommendationCategory, ...], get_args(RecommendationCategory))
 OPERATIONAL_CATEGORIES = CATEGORY_ORDER[:6]
+
+
+class SliceCEvidenceError(ValueError):
+    """Stable internal evidence failure converted to a typed Slice C blocker."""
+
+    def __init__(self, code: BlockerCode, message: str, *, field_path: str | None = None):
+        super().__init__(f"{code.value}: {message}")
+        self.code = code
+        self.field_path = field_path
+
+
+@dataclass(frozen=True)
+class ArtifactBinding:
+    owner_kind: str
+    owner_field_path: str
+    expected_artifact_hash: str | None
+    authority_identity: tuple[str, ...]
+    source_tasks: tuple[str, ...]
+    canonical_citation: Citation
+
 
 _CATEGORY_NON_ACTION = {
     "SUSTAINED_PROCESSING_CAPACITY": "NO_AUTOMATIC_PROCESSING_CAPACITY_CHANGE",
@@ -272,97 +297,280 @@ def canonical_blockers(blockers: list[Blocker]) -> list[Blocker]:
     )
 
 
-def _hashes(value: object) -> set[str]:
-    found: set[str] = set()
-    if isinstance(value, Mapping):
-        for key, child in value.items():
-            if (
-                isinstance(key, str)
-                and key.endswith("hash")
-                and isinstance(child, str)
-                and len(child) == 64
-            ):
-                found.add(child)
-            found.update(_hashes(child))
-    elif isinstance(value, list):
-        for child in value:
-            found.update(_hashes(child))
-    return found
+def _validated_source(source: SliceCSourcePayload | Mapping[str, Any]) -> SliceCSourcePayload:
+    if isinstance(source, SliceCSourcePayload):
+        return source
+    return SliceCSourcePayload.model_validate(source)
+
+
+def _source_dump(source: SliceCSourcePayload) -> dict[str, Any]:
+    return source.model_dump(mode="json")
+
+
+def _authority_identity(citation: Citation) -> tuple[str, ...]:
+    return tuple(
+        canonical_json_dumps(entry.model_dump(mode="json")) for entry in citation.authorities
+    )
+
+
+def _citation_owner_identity(citation: Citation) -> str:
+    return canonical_json_dumps(citation.model_dump(mode="json", exclude={"field_path"}))
+
+
+def _provenance_authority_entry(
+    source: SliceCSourcePayload, number: int
+) -> CitationAuthorityEntry | None:
+    authority = source.provenance.get(f"task{number}_authority")
+    if authority is None:
+        return None
+    try:
+        return CitationAuthorityEntry.model_validate(
+            {"authority_type": f"TASK_{number}_AUTHORITY", "authority": authority}
+        )
+    except ValidationError as exc:
+        raise SliceCEvidenceError(
+            BlockerCode.REQUIRED_PROVENANCE_MISSING,
+            f"Task {number} authority provenance is malformed",
+            field_path=f"/provenance/task{number}_authority",
+        ) from exc
+
+
+def _expected_authorities(
+    source: SliceCSourcePayload, numbers: tuple[int, ...]
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    entries = [
+        entry
+        for number in numbers
+        if (entry := _provenance_authority_entry(source, number)) is not None
+    ]
+    return (
+        tuple(canonical_json_dumps(entry.model_dump(mode="json")) for entry in entries),
+        tuple(
+            f"TASK_{number:03d}"
+            for number in numbers
+            if source.provenance.get(f"task{number}_authority") is not None
+        ),
+    )
+
+
+def _citation_index(source: SliceCSourcePayload) -> dict[str, Citation]:
+    indexed: dict[str, Citation] = {}
+    for citation in source.citations:
+        previous = indexed.get(citation.field_path)
+        if previous is not None and canonical_json_dumps(
+            previous.model_dump(mode="json")
+        ) != canonical_json_dumps(citation.model_dump(mode="json")):
+            raise SliceCEvidenceError(
+                BlockerCode.EVIDENCE_HASH_MISMATCH,
+                "multiple non-identical citations claim the same evidence field",
+                field_path=citation.field_path,
+            )
+        indexed[citation.field_path] = citation
+    return indexed
+
+
+def _canonical_citation(source: SliceCSourcePayload, field_path: str) -> Citation:
+    citation = _citation_index(source).get(field_path)
+    if citation is None:
+        raise SliceCEvidenceError(
+            BlockerCode.REQUIRED_CITATION_MISSING,
+            "required canonical upstream citation is missing",
+            field_path=field_path,
+        )
+    return citation
+
+
+def resolve_artifact_binding(
+    source: SliceCSourcePayload | Mapping[str, Any],
+    field_path: str,
+) -> ArtifactBinding:
+    """Resolve the one artifact and authority identity that owns ``field_path``."""
+
+    validated = _validated_source(source)
+    citation = _canonical_citation(validated, field_path)
+    parameter_match = re.fullmatch(r"/parameters/(\d+)/(?:[^/]+(?:/[^/]+)*)", field_path)
+    daily_match = re.fullmatch(r"/daily_curve/(\d+)/(?:[^/]+(?:/[^/]+)*)", field_path)
+    if parameter_match:
+        index = int(parameter_match.group(1))
+        if index >= len(validated.parameters):
+            raise SliceCEvidenceError(
+                BlockerCode.EVIDENCE_FIELD_PATH_INVALID,
+                "parameter evidence index is out of range",
+                field_path=field_path,
+            )
+        parameter_citation = validated.parameters[index].citation
+        if parameter_citation is None:
+            raise SliceCEvidenceError(
+                BlockerCode.REQUIRED_CITATION_MISSING,
+                "parameter value has no upstream citation",
+                field_path=field_path,
+            )
+        if _citation_owner_identity(parameter_citation) != _citation_owner_identity(citation):
+            raise SliceCEvidenceError(
+                BlockerCode.EVIDENCE_HASH_MISMATCH,
+                "parameter citation does not match its canonical upstream citation",
+                field_path=field_path,
+            )
+        task8 = _provenance_authority_entry(validated, 8)
+        if task8 is None:
+            raise SliceCEvidenceError(
+                BlockerCode.REQUIRED_AUTHORITY_MISSING,
+                "parameter evidence has no persisted Task 8 authority",
+                field_path=field_path,
+            )
+        task8_payload = validated.provenance.get("task8_authority")
+        artifact_hash = (
+            task8_payload.get("maturity_model_artifact_hash")
+            if isinstance(task8_payload, Mapping)
+            else None
+        )
+        if not isinstance(artifact_hash, str):
+            raise SliceCEvidenceError(
+                BlockerCode.REQUIRED_PROVENANCE_MISSING,
+                "Task 8 artifact identity is missing",
+                field_path=field_path,
+            )
+        return ArtifactBinding(
+            owner_kind="PARAMETER_ESTIMATE",
+            owner_field_path=f"/parameters/{index}/citation",
+            expected_artifact_hash=artifact_hash,
+            authority_identity=(canonical_json_dumps(task8.model_dump(mode="json")),),
+            source_tasks=("TASK_008",),
+            canonical_citation=parameter_citation,
+        )
+    if daily_match:
+        index = int(daily_match.group(1))
+        if index >= len(validated.daily_curve):
+            raise SliceCEvidenceError(
+                BlockerCode.EVIDENCE_FIELD_PATH_INVALID,
+                "daily evidence index is out of range",
+                field_path=field_path,
+            )
+        authority_identity, source_tasks = _expected_authorities(validated, (8, 9, 10, 11, 12))
+        return ArtifactBinding(
+            owner_kind="DAILY_CURVE_ROW",
+            owner_field_path=f"/daily_curve/{index}/agent_daily_row_hash",
+            expected_artifact_hash=validated.daily_curve[index].agent_daily_row_hash,
+            authority_identity=authority_identity,
+            source_tasks=source_tasks,
+            canonical_citation=citation,
+        )
+    if field_path.startswith("/peak/"):
+        artifact_hash = validated.peak.get("agent_peak_hash")
+        if not isinstance(artifact_hash, str):
+            raise SliceCEvidenceError(
+                BlockerCode.REQUIRED_PROVENANCE_MISSING,
+                "peak artifact identity is missing",
+                field_path=field_path,
+            )
+        authority_identity, source_tasks = _expected_authorities(validated, (8, 9, 10, 11, 12))
+        return ArtifactBinding(
+            owner_kind="PEAK_OUTPUT",
+            owner_field_path="/peak/agent_peak_hash",
+            expected_artifact_hash=artifact_hash,
+            authority_identity=authority_identity,
+            source_tasks=source_tasks,
+            canonical_citation=citation,
+        )
+    provenance_match = re.fullmatch(r"/provenance/task(8|9|10|11|12)_authority", field_path)
+    if provenance_match:
+        number = int(provenance_match.group(1))
+        entry = _provenance_authority_entry(validated, number)
+        if entry is None:
+            raise SliceCEvidenceError(
+                BlockerCode.REQUIRED_AUTHORITY_MISSING,
+                f"Task {number} authority provenance is missing",
+                field_path=field_path,
+            )
+        return ArtifactBinding(
+            owner_kind="PROVENANCE",
+            owner_field_path=field_path,
+            expected_artifact_hash=citation.agent_artifact_hash,
+            authority_identity=(canonical_json_dumps(entry.model_dump(mode="json")),),
+            source_tasks=(f"TASK_{number:03d}",),
+            canonical_citation=citation,
+        )
+    if field_path.startswith("/blockers/"):
+        return ArtifactBinding(
+            owner_kind="PROVENANCE",
+            owner_field_path=field_path,
+            expected_artifact_hash=citation.agent_artifact_hash,
+            authority_identity=_authority_identity(citation),
+            source_tasks=tuple(citation.source_tasks),
+            canonical_citation=citation,
+        )
+    raise SliceCEvidenceError(
+        BlockerCode.EVIDENCE_FIELD_PATH_INVALID,
+        "field path has no frozen artifact ownership rule",
+        field_path=field_path,
+    )
 
 
 def validate_citation(
-    source_payload: Mapping[str, Any],
+    source_payload: SliceCSourcePayload | Mapping[str, Any],
     citation: Citation,
     *,
     expected_value: object | None = None,
 ) -> object:
+    source = _validated_source(source_payload)
+    dumped = _source_dump(source)
     try:
-        resolved = resolve_json_pointer(source_payload, citation.field_path)
+        resolved = resolve_json_pointer(dumped, citation.field_path)
     except JsonPointerResolutionError as exc:
-        raise ValueError(f"EVIDENCE_FIELD_PATH_INVALID: {exc}") from exc
+        raise SliceCEvidenceError(
+            BlockerCode.EVIDENCE_FIELD_PATH_INVALID,
+            str(exc),
+            field_path=citation.field_path,
+        ) from exc
     if expected_value is not None and canonical_json_dumps(resolved) != canonical_json_dumps(
         expected_value
     ):
-        raise ValueError("EVIDENCE_HASH_MISMATCH: resolved value differs from rule input")
-    if citation.agent_artifact_hash is not None and citation.agent_artifact_hash not in _hashes(
-        source_payload
-    ):
-        raise ValueError("EVIDENCE_HASH_MISMATCH: citation artifact hash is not in source")
-    return resolved
-
-
-def _authority_entries(source: Mapping[str, Any]) -> list[CitationAuthorityEntry]:
-    provenance = source.get("provenance")
-    if not isinstance(provenance, Mapping):
-        return []
-    entries: list[CitationAuthorityEntry] = []
-    for number in (8, 9, 10, 11, 12):
-        authority = provenance.get(f"task{number}_authority")
-        if authority is None:
-            continue
-        entries.append(
-            CitationAuthorityEntry.model_validate(
-                {"authority_type": f"TASK_{number}_AUTHORITY", "authority": authority}
-            )
+        raise SliceCEvidenceError(
+            BlockerCode.EVIDENCE_HASH_MISMATCH,
+            "resolved value differs from the value consumed by the rule",
+            field_path=citation.field_path,
         )
-    return entries
-
-
-def _citation(
-    source: Mapping[str, Any],
-    *,
-    pointer: str,
-    source_tool: str,
-    artifact_hash: str | None = None,
-) -> Citation:
-    authorities = _authority_entries(source)
-    tasks = [
-        {
-            "TASK_8_AUTHORITY": "TASK_008",
-            "TASK_9_AUTHORITY": "TASK_009",
-            "TASK_10_AUTHORITY": "TASK_010",
-            "TASK_11_AUTHORITY": "TASK_011",
-            "TASK_12_AUTHORITY": "TASK_012",
-        }[entry.authority_type]
-        for entry in authorities
-    ]
-    normalized = source.get("normalized_request")
-    as_of = normalized.get("effective_as_of_date") if isinstance(normalized, Mapping) else None
-    citation = Citation.model_validate(
-        {
-            "source_tasks": tasks or ["TASK_013"],
-            "source_tool": source_tool,
-            "authorities": [entry.model_dump(mode="python") for entry in authorities],
-            "agent_artifact_hash": artifact_hash,
-            "field_path": pointer,
-            "effective_as_of_date": as_of,
-            "confidence_evidence": None,
-            "tags": [],
-            "override_refs": [],
-        }
-    )
-    validate_citation(source, citation)
-    return citation
+    binding = resolve_artifact_binding(source, citation.field_path)
+    if binding.owner_kind in {"PARAMETER_ESTIMATE", "DAILY_CURVE_ROW", "PEAK_OUTPUT"}:
+        if not citation.authorities:
+            raise SliceCEvidenceError(
+                BlockerCode.REQUIRED_AUTHORITY_MISSING,
+                "numerical evidence has no upstream authority envelope",
+                field_path=citation.field_path,
+            )
+        if "TASK_013" in citation.source_tasks:
+            raise SliceCEvidenceError(
+                BlockerCode.REQUIRED_AUTHORITY_MISSING,
+                "TASK-013 cannot be used as numerical authority",
+                field_path=citation.field_path,
+            )
+    if canonical_json_dumps(citation.model_dump(mode="json")) != canonical_json_dumps(
+        binding.canonical_citation.model_dump(mode="json")
+    ):
+        raise SliceCEvidenceError(
+            BlockerCode.EVIDENCE_HASH_MISMATCH,
+            "citation differs from the canonical upstream citation",
+            field_path=citation.field_path,
+        )
+    if citation.agent_artifact_hash != binding.expected_artifact_hash:
+        raise SliceCEvidenceError(
+            BlockerCode.EVIDENCE_HASH_MISMATCH,
+            "citation artifact hash does not match the field owner",
+            field_path=citation.field_path,
+        )
+    if _authority_identity(citation) != binding.authority_identity:
+        raise SliceCEvidenceError(
+            BlockerCode.EVIDENCE_HASH_MISMATCH,
+            "citation authority does not match the field owner",
+            field_path=citation.field_path,
+        )
+    if tuple(citation.source_tasks) != binding.source_tasks:
+        raise SliceCEvidenceError(
+            BlockerCode.EVIDENCE_HASH_MISMATCH,
+            "citation source tasks do not match the field owner",
+            field_path=citation.field_path,
+        )
+    return resolved
 
 
 def _paragraph_key(paragraph: ExplainParagraph) -> tuple[int, str, str]:
@@ -378,19 +586,17 @@ def _dedupe_paragraphs(paragraphs: list[ExplainParagraph]) -> list[ExplainParagr
 
 
 def _authoritative_paragraph(
-    source: Mapping[str, Any],
+    source: SliceCSourcePayload,
     *,
     pointer: str,
     template_id: str,
     text: str,
-    source_tool: str,
-    artifact_hash: str | None = None,
 ) -> ExplainParagraph:
-    citation = _citation(
+    citation = _canonical_citation(source, pointer)
+    validate_citation(
         source,
-        pointer=pointer,
-        source_tool=source_tool,
-        artifact_hash=artifact_hash,
+        citation,
+        expected_value=resolve_json_pointer(_source_dump(source), pointer),
     )
     return ExplainParagraph(
         kind="AUTHORITATIVE_VALUE",
@@ -401,26 +607,32 @@ def _authoritative_paragraph(
     )
 
 
-def build_explanation(source: Mapping[str, Any]) -> ExplainForecastOutput:
-    paragraphs: dict[str, list[ExplainParagraph]] = {section: [] for section in SECTION_ORDER}
-    normalized = source.get("normalized_request")
-    if isinstance(normalized, Mapping) and normalized.get("canonical_request_hash") is not None:
-        pointer = "/normalized_request/canonical_request_hash"
-        paragraphs["REQUEST_AND_RESOLVED_CONTEXT"].append(
-            ExplainParagraph(
-                kind="DETERMINISTIC_EXPLANATION",
-                text=_render_template("request-context-v1"),
-                template_id="request-context-v1",
-                evidence_field_paths=[pointer],
-            )
-        )
+def _evidence_blocker(error: SliceCEvidenceError) -> Blocker:
+    return Blocker(
+        code=error.code,
+        message=str(error),
+        details={"field_path": error.field_path} if error.field_path is not None else None,
+        retry_hint="PROVIDE_OVERRIDE",
+    )
 
-    parameters = source.get("parameters")
-    if isinstance(parameters, list):
-        for index, parameter in enumerate(parameters):
-            if not isinstance(parameter, Mapping) or parameter.get("p50") is None:
-                continue
-            pointer = f"/parameters/{index}/p50"
+
+def build_explanation(source: SliceCSourcePayload) -> ExplainForecastOutput:
+    paragraphs: dict[str, list[ExplainParagraph]] = {section: [] for section in SECTION_ORDER}
+    evidence_blockers: list[Blocker] = []
+    dumped = _source_dump(source)
+    pointer = "/normalized_request/canonical_request_hash"
+    paragraphs["REQUEST_AND_RESOLVED_CONTEXT"].append(
+        ExplainParagraph(
+            kind="DETERMINISTIC_EXPLANATION",
+            text=_render_template("request-context-v1"),
+            template_id="request-context-v1",
+            evidence_field_paths=[pointer],
+        )
+    )
+
+    for index, parameter in enumerate(source.parameters):
+        pointer = f"/parameters/{index}/p50"
+        try:
             paragraphs["PARAMETER_PROVENANCE"].append(
                 _authoritative_paragraph(
                     source,
@@ -428,101 +640,116 @@ def build_explanation(source: Mapping[str, Any]) -> ExplainForecastOutput:
                     template_id="parameter-value-v1",
                     text=_render_template(
                         "parameter-value-v1",
-                        parameter_name=parameter.get("parameter_name"),
-                        variety_id=parameter.get("variety_id"),
-                        p50=parameter.get("p50"),
+                        parameter_name=parameter.parameter_name,
+                        variety_id=parameter.variety_id,
+                        p50=parameter.p50,
                     ),
-                    source_tool="INFER_PARAMETERS",
                 )
             )
+        except SliceCEvidenceError as exc:
+            evidence_blockers.append(_evidence_blocker(exc))
 
-    daily = source.get("daily_curve")
-    if isinstance(daily, list) and daily:
+    if source.daily_curve:
         pointer = "/daily_curve/0/final_corrected_arrival_quantity_kg/p50"
-        first = daily[0]
-        artifact = first.get("agent_daily_row_hash") if isinstance(first, Mapping) else None
-        paragraphs["DAILY_CURVE_SUMMARY"].append(
-            _authoritative_paragraph(
-                source,
-                pointer=pointer,
-                template_id="daily-curve-value-v1",
-                text=_render_template(
-                    "daily-curve-value-v1",
-                    p50=resolve_json_pointer(source, pointer),
-                ),
-                source_tool="FORECAST_DAILY_CURVE",
-                artifact_hash=artifact if isinstance(artifact, str) else None,
+        try:
+            paragraphs["DAILY_CURVE_SUMMARY"].append(
+                _authoritative_paragraph(
+                    source,
+                    pointer=pointer,
+                    template_id="daily-curve-value-v1",
+                    text=_render_template(
+                        "daily-curve-value-v1",
+                        p50=resolve_json_pointer(dumped, pointer),
+                    ),
+                )
             )
-        )
+        except SliceCEvidenceError as exc:
+            evidence_blockers.append(_evidence_blocker(exc))
 
-    peak = source.get("peak")
-    if isinstance(peak, Mapping) and peak.get("single_day_peak"):
-        artifact = peak.get("agent_peak_hash")
+    if source.peak.get("single_day_peak"):
         pointer = "/peak/single_day_peak/P50/volume_kg"
-        paragraphs["PEAK_ANALYSIS"].append(
-            _authoritative_paragraph(
-                source,
-                pointer=pointer,
-                template_id="single-day-peak-v1",
-                text=_render_template(
-                    "single-day-peak-v1",
-                    volume_kg=resolve_json_pointer(source, pointer),
-                ),
-                source_tool="FORECAST_PEAK",
-                artifact_hash=artifact if isinstance(artifact, str) else None,
+        try:
+            paragraphs["PEAK_ANALYSIS"].append(
+                _authoritative_paragraph(
+                    source,
+                    pointer=pointer,
+                    template_id="single-day-peak-v1",
+                    text=_render_template(
+                        "single-day-peak-v1",
+                        volume_kg=resolve_json_pointer(dumped, pointer),
+                    ),
+                )
             )
-        )
-    if isinstance(peak, Mapping) and peak.get("sustained_3day_peak"):
+        except SliceCEvidenceError as exc:
+            evidence_blockers.append(_evidence_blocker(exc))
+    if source.peak.get("sustained_3day_peak"):
         pointer = "/peak/sustained_3day_peak/P50/rolling_daily_average_kg_per_day"
-        paragraphs["PEAK_FORMATION"].append(
-            ExplainParagraph(
-                kind="DETERMINISTIC_EXPLANATION",
-                text=_render_template("peak-formation-v1"),
-                template_id="peak-formation-v1",
-                evidence_field_paths=[pointer],
+        try:
+            citation = _canonical_citation(source, pointer)
+            validate_citation(source, citation)
+            paragraphs["PEAK_FORMATION"].append(
+                ExplainParagraph(
+                    kind="DETERMINISTIC_EXPLANATION",
+                    text=_render_template("peak-formation-v1"),
+                    template_id="peak-formation-v1",
+                    evidence_field_paths=[pointer],
+                    citation=citation,
+                )
             )
-        )
+        except SliceCEvidenceError as exc:
+            evidence_blockers.append(_evidence_blocker(exc))
 
-    confidence = source.get("confidence")
-    if isinstance(confidence, Mapping) and confidence.get("level") is not None:
+    if source.confidence.get("level") is not None:
         pointer = "/confidence/level"
         paragraphs["CONFIDENCE_AND_UNCERTAINTY"].append(
             ExplainParagraph(
                 kind="DETERMINISTIC_EXPLANATION",
                 text=_render_template(
                     "confidence-v1",
-                    confidence_level=confidence.get("level"),
+                    confidence_level=source.confidence.get("level"),
                 ),
                 template_id="confidence-v1",
                 evidence_field_paths=[pointer],
             )
         )
 
-    provenance = source.get("provenance")
-    if isinstance(provenance, Mapping):
-        for key in ("task10_authority", "task9_authority", "task8_authority"):
-            if provenance.get(key) is not None:
-                pointer = f"/provenance/{key}"
+    for key in ("task10_authority", "task9_authority", "task8_authority"):
+        if source.provenance.get(key) is not None:
+            pointer = f"/provenance/{key}"
+            try:
+                citation = _canonical_citation(source, pointer)
+                validate_citation(source, citation)
                 paragraphs["MODEL_AND_AUTHORITY_EVIDENCE"].append(
                     ExplainParagraph(
                         kind="DETERMINISTIC_EXPLANATION",
                         text=_render_template("authority-evidence-v1"),
                         template_id="authority-evidence-v1",
                         evidence_field_paths=[pointer],
+                        citation=citation,
                     )
                 )
-                break
+            except SliceCEvidenceError as exc:
+                evidence_blockers.append(_evidence_blocker(exc))
+            break
 
-    blockers = source.get("blockers")
-    if isinstance(blockers, list) and blockers:
-        paragraphs["BLOCKERS_AND_DATA_GAPS"].append(
-            ExplainParagraph(
-                kind="DETERMINISTIC_EXPLANATION",
-                text=_render_template("blocker-gap-v1"),
-                template_id="blocker-gap-v1",
-                evidence_field_paths=["/blockers/0/code"],
+    if source.blockers:
+        pointer = "/blockers/0/code"
+        try:
+            citation = _canonical_citation(source, pointer)
+            validate_citation(source, citation)
+            paragraphs["BLOCKERS_AND_DATA_GAPS"].append(
+                ExplainParagraph(
+                    kind="DETERMINISTIC_EXPLANATION",
+                    text=_render_template("blocker-gap-v1"),
+                    template_id="blocker-gap-v1",
+                    evidence_field_paths=[pointer],
+                    citation=citation,
+                )
             )
-        )
+        except SliceCEvidenceError as exc:
+            evidence_blockers.append(_evidence_blocker(exc))
+
+    all_blockers = canonical_blockers([*source.blockers, *evidence_blockers])
 
     sections = [
         ExplainSection(section=section, paragraphs=_dedupe_paragraphs(paragraphs[section]))
@@ -536,11 +763,7 @@ def build_explanation(source: Mapping[str, Any]) -> ExplainForecastOutput:
         template_catalog_hash=policy.template_catalog_hash,
         structured_payload=sections,
         agent_explanation_hash="0" * 64,
-        blockers=canonical_blockers(
-            [Blocker.model_validate(item) for item in blockers]
-            if isinstance(blockers, list)
-            else []
-        ),
+        blockers=all_blockers,
     )
     return output.model_copy(
         update={
@@ -578,49 +801,60 @@ def _operational_decision(category: RecommendationCategory, rank: int) -> Recomm
     )
 
 
-def _missing_items(source: Mapping[str, Any]) -> dict[MissingDataImpactCode, list[str]]:
+def _missing_items(source: SliceCSourcePayload) -> dict[MissingDataImpactCode, list[str]]:
     items: dict[MissingDataImpactCode, list[str]] = defaultdict(list)
-    parameters = source.get("parameters")
-    if isinstance(parameters, list):
-        for index, parameter in enumerate(parameters):
-            if not isinstance(parameter, Mapping):
-                continue
-            for field, code in (
-                ("sample_count", "PARAMETER_SAMPLE_COVERAGE_INSUFFICIENT"),
-                ("season_count", "PARAMETER_SEASON_COVERAGE_INSUFFICIENT"),
-                ("farm_count", "PARAMETER_FARM_COVERAGE_INSUFFICIENT"),
-            ):
-                if parameter.get(field) == 0:
-                    items[cast(MissingDataImpactCode, code)].append(f"/parameters/{index}/{field}")
-            missing = parameter.get("missing_evidence")
-            if isinstance(missing, list):
-                for missing_index, value in enumerate(missing):
-                    if isinstance(value, str) and "maturity" in value.lower():
-                        items["PHENOLOGY_EVIDENCE_MISSING"].append(
-                            f"/parameters/{index}/missing_evidence/{missing_index}"
-                        )
-            if parameter.get("citation") is None:
-                items["REQUIRED_CITATION_MISSING"].append(f"/parameters/{index}/citation")
+    for index, parameter in enumerate(source.parameters):
+        for field, code in (
+            ("sample_count", "PARAMETER_SAMPLE_COVERAGE_INSUFFICIENT"),
+            ("season_count", "PARAMETER_SEASON_COVERAGE_INSUFFICIENT"),
+            ("farm_count", "PARAMETER_FARM_COVERAGE_INSUFFICIENT"),
+        ):
+            if getattr(parameter, field) == 0:
+                items[cast(MissingDataImpactCode, code)].append(f"/parameters/{index}/{field}")
+        for missing_index, value in enumerate(parameter.missing_evidence):
+            if "maturity" in value.lower():
+                items["PHENOLOGY_EVIDENCE_MISSING"].append(
+                    f"/parameters/{index}/missing_evidence/{missing_index}"
+                )
+        if parameter.citation is None:
+            items["REQUIRED_CITATION_MISSING"].append(f"/parameters/{index}/citation")
 
-    blockers = source.get("blockers")
-    if isinstance(blockers, list):
-        for index, blocker in enumerate(blockers):
-            if not isinstance(blocker, Mapping):
-                continue
-            code = str(blocker.get("code", ""))
-            pointer = f"/blockers/{index}/code"
-            if "AUTHORITY" in code:
-                items["REQUIRED_AUTHORITY_MISSING"].append(pointer)
-            elif "CITATION" in code:
-                items["REQUIRED_CITATION_MISSING"].append(pointer)
-            elif code in {"INSUFFICIENT_HISTORY", "NO_PERSISTED_PRIOR_SOURCE"}:
-                items["HISTORICAL_ERROR_EVIDENCE_MISSING"].append(pointer)
-            elif "POLICY_MISSING" in code:
-                items["REQUIRED_PROVENANCE_MISSING"].append(pointer)
+    for index, blocker in enumerate(source.blockers):
+        code = blocker.code.value
+        pointer = f"/blockers/{index}/code"
+        if "AUTHORITY" in code:
+            items["REQUIRED_AUTHORITY_MISSING"].append(pointer)
+        elif "CITATION" in code:
+            items["REQUIRED_CITATION_MISSING"].append(pointer)
+        elif code in {"INSUFFICIENT_HISTORY", "NO_PERSISTED_PRIOR_SOURCE"}:
+            items["HISTORICAL_ERROR_EVIDENCE_MISSING"].append(pointer)
+        elif "POLICY_MISSING" in code:
+            items["REQUIRED_PROVENANCE_MISSING"].append(pointer)
     return {code: sorted(set(paths)) for code, paths in items.items()}
 
 
-def _missing_data_decision(source: Mapping[str, Any]) -> RecommendationDecision:
+def _blocked_missing_data_decision(blockers: list[Blocker]) -> RecommendationDecision:
+    return RecommendationDecision(
+        category="MISSING_DATA_IMPACT",
+        kind="DATA_QUALITY",
+        status="BLOCKED",
+        reason_code="REQUIRED_EVIDENCE_MISSING",
+        reason_details={"evidence_blocker_count": len(blockers)},
+        priority_rank=7,
+        rule_id="missing-data-impact-v1",
+        template_id="missing-data-impact-template-v1",
+        advisory_text=None,
+        applicability_conditions=[],
+        evidence=[],
+        risk_codes=sorted({blocker.code.value for blocker in blockers}),
+        confidence=None,
+        confidence_boundary=None,
+        blocker_dependencies=canonical_blockers(blockers),
+        non_action=NonAction(category_specific_code=_CATEGORY_NON_ACTION["MISSING_DATA_IMPACT"]),
+    )
+
+
+def _missing_data_decision(source: SliceCSourcePayload) -> RecommendationDecision:
     items = _missing_items(source)
     if not items:
         return RecommendationDecision(
@@ -650,14 +884,28 @@ def _missing_data_decision(source: Mapping[str, Any]) -> RecommendationDecision:
     )
     conditions: list[ConditionEvaluation] = []
     evidence: list[RecommendationEvidence] = []
+    evidence_blockers: list[Blocker] = []
+    dumped = _source_dump(source)
     for code, paths in ordered:
         for pointer in paths:
-            observed = resolve_json_pointer(source, pointer)
-            citation = _citation(
-                source,
-                pointer=pointer,
-                source_tool="GENERATE_RECOMMENDATIONS",
-            )
+            try:
+                observed = resolve_json_pointer(dumped, pointer)
+                citation = _canonical_citation(source, pointer)
+                validate_citation(source, citation, expected_value=observed)
+            except (JsonPointerResolutionError, SliceCEvidenceError) as exc:
+                if isinstance(exc, SliceCEvidenceError):
+                    evidence_blockers.append(_evidence_blocker(exc))
+                else:
+                    evidence_blockers.append(
+                        _evidence_blocker(
+                            SliceCEvidenceError(
+                                BlockerCode.EVIDENCE_FIELD_PATH_INVALID,
+                                str(exc),
+                                field_path=pointer,
+                            )
+                        )
+                    )
+                continue
             conditions.append(
                 ConditionEvaluation(
                     field_path=pointer,
@@ -677,6 +925,9 @@ def _missing_data_decision(source: Mapping[str, Any]) -> RecommendationDecision:
                     threshold=None,
                 )
             )
+
+    if evidence_blockers:
+        return _blocked_missing_data_decision(evidence_blockers)
 
     return RecommendationDecision(
         category="MISSING_DATA_IMPACT",
@@ -698,16 +949,15 @@ def _missing_data_decision(source: Mapping[str, Any]) -> RecommendationDecision:
     )
 
 
-def build_recommendations(source: Mapping[str, Any]) -> GenerateRecommendationsOutput:
+def build_recommendations(source: SliceCSourcePayload) -> GenerateRecommendationsOutput:
     decisions = [
         _operational_decision(category, rank)
         for rank, category in enumerate(OPERATIONAL_CATEGORIES, start=1)
     ]
     decisions.append(_missing_data_decision(source))
     policy = recommendation_policy()
-    upstream = source.get("blockers")
     blockers = canonical_blockers(
-        ([Blocker.model_validate(item) for item in upstream] if isinstance(upstream, list) else [])
+        source.blockers
         + [blocker for decision in decisions for blocker in decision.blocker_dependencies]
     )
     output = GenerateRecommendationsOutput(
@@ -728,12 +978,83 @@ def build_recommendations(source: Mapping[str, Any]) -> GenerateRecommendationsO
     )
 
 
+def _invalid_source_outputs(
+    error: ValidationError,
+) -> tuple[ExplainForecastOutput, GenerateRecommendationsOutput]:
+    details = {"validation_error_count": error.error_count()}
+    evidence_blockers = canonical_blockers(
+        [
+            Blocker(
+                code=code,
+                message=message,
+                details=details,
+                retry_hint="FIX_INPUT",
+            )
+            for code, message in (
+                (BlockerCode.REQUIRED_AUTHORITY_MISSING, "Slice B authority evidence is missing"),
+                (BlockerCode.REQUIRED_CITATION_MISSING, "Slice B citation evidence is missing"),
+                (BlockerCode.REQUIRED_PROVENANCE_MISSING, "Slice B provenance is incomplete"),
+                (BlockerCode.EVIDENCE_FIELD_PATH_INVALID, "Slice B source contract is invalid"),
+            )
+        ]
+    )
+    explanation_policy_value = explanation_policy()
+    explanation = ExplainForecastOutput(
+        explanation_rule_policy_version=explanation_policy_value.policy_version,
+        explanation_rule_policy_config_hash=explanation_policy_value.policy_config_hash,
+        template_catalog_version=explanation_policy_value.template_catalog_version,
+        template_catalog_hash=explanation_policy_value.template_catalog_hash,
+        structured_payload=[
+            ExplainSection(section=section, paragraphs=[]) for section in SECTION_ORDER
+        ],
+        agent_explanation_hash="0" * 64,
+        blockers=evidence_blockers,
+    )
+    explanation = explanation.model_copy(
+        update={
+            "agent_explanation_hash": sha256_payload(
+                explanation.model_dump(mode="python", exclude={"agent_explanation_hash"})
+            )
+        }
+    )
+    decisions = [
+        _operational_decision(category, rank)
+        for rank, category in enumerate(OPERATIONAL_CATEGORIES, start=1)
+    ]
+    decisions.append(_blocked_missing_data_decision(evidence_blockers))
+    recommendation_policy_value = recommendation_policy()
+    recommendations = GenerateRecommendationsOutput(
+        recommendation_rule_policy_version=recommendation_policy_value.policy_version,
+        recommendation_rule_policy_config_hash=recommendation_policy_value.policy_config_hash,
+        rule_catalog_version=recommendation_policy_value.rule_catalog_version,
+        rule_catalog_hash=recommendation_policy_value.rule_catalog_hash,
+        decisions=decisions,
+        agent_recommendations_hash="0" * 64,
+        blockers=canonical_blockers(
+            evidence_blockers
+            + [blocker for decision in decisions for blocker in decision.blocker_dependencies]
+        ),
+    )
+    recommendations = recommendations.model_copy(
+        update={
+            "agent_recommendations_hash": sha256_payload(
+                recommendations.model_dump(mode="python", exclude={"agent_recommendations_hash"})
+            )
+        }
+    )
+    return explanation, recommendations
+
+
 def build_slice_c_outputs(
-    source: Mapping[str, Any],
+    source: SliceCSourcePayload | Mapping[str, Any],
 ) -> tuple[ExplainForecastOutput, GenerateRecommendationsOutput]:
     """Build sibling outputs from the same immutable Slice B payload."""
 
-    return build_explanation(source), build_recommendations(source)
+    try:
+        validated = _validated_source(source)
+    except ValidationError as exc:
+        return _invalid_source_outputs(exc)
+    return build_explanation(validated), build_recommendations(validated)
 
 
 __all__ = [
@@ -752,5 +1073,6 @@ __all__ = [
     "recommendation_policy",
     "recommendation_policy_payload",
     "recommendation_rule_catalog",
+    "resolve_artifact_binding",
     "validate_citation",
 ]
