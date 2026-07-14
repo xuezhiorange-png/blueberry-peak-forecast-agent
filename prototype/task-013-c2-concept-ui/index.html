@@ -76,8 +76,9 @@
                 </div>
                 <div class="form-actions">
                     <button type="button" id="peak-save-draft" class="btn btn-primary">保存草稿到本地</button>
-                    <button type="reset" class="btn btn-secondary">清空草稿</button>
+                    <button type="reset" id="peak-clear-draft" class="btn btn-secondary">清空草稿</button>
                 </div>
+                <p id="peak-draft-status" class="peak-draft-status" role="status" aria-live="polite"></p>
             </form>
 
             <aside class="result-block result-block-blocked" aria-live="polite">
@@ -183,6 +184,12 @@
                 <textarea id="general-feedback" rows="4" placeholder="对本 prototype 整体业务定义、术语或交互流程的反馈"></textarea>
             </article>
 
+            <article class="feedback-question-section" aria-labelledby="question-feedback-title">
+                <h3 id="question-feedback-title" class="panel-title">逐问题反馈</h3>
+                <p class="panel-description">以下问题来自"能力总览 → 查看待确认问题"对话框中的同一份清单。每个问题可单独记录状态与备注。</p>
+                <div id="feedback-question-list" class="feedback-question-list" aria-label="逐问题反馈区"></div>
+            </article>
+
             <div class="feedback-actions">
                 <button type="button" id="feedback-save" class="btn btn-primary">保存本地反馈</button>
                 <button type="button" id="feedback-export" class="btn btn-secondary">导出反馈 JSON</button>
@@ -203,6 +210,17 @@
     </aside>
 
     <button type="button" id="feedback-drawer-toggle" class="feedback-drawer-toggle" aria-controls="feedback-drawer" aria-expanded="false">业务反馈</button>
+
+    <dialog id="capability-question-dialog" class="capability-dialog" aria-labelledby="capability-dialog-title">
+        <form method="dialog" class="capability-dialog-form">
+            <h2 id="capability-dialog-title" class="capability-dialog-title">待确认问题</h2>
+            <p id="capability-dialog-subtitle" class="capability-dialog-subtitle"></p>
+            <ul id="capability-dialog-list" class="capability-dialog-list" aria-label="待确认问题列表"></ul>
+            <div class="capability-dialog-actions">
+                <button type="submit" class="btn btn-primary" id="capability-dialog-close">关闭</button>
+            </div>
+        </form>
+    </dialog>
 
     <footer class="app-footer">
         <p>TASK-013 C2 Concept UI Prototype v1 — 本工具不连接生产系统、不执行业务规则、不输出可执行建议。</p>

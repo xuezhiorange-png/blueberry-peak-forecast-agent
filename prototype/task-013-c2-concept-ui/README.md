@@ -56,9 +56,19 @@ localStorage.removeItem("task013-c2-concept-ui-v1-peak-draft");
   "prototype_version": "task-013-c2-concept-ui-v1",
   "exported_at": "<browser generated ISO datetime>",
   "capability_feedback": [],
-  "general_feedback": ""
+  "general_feedback": "",
+  "question_feedback": [
+    {
+      "question_id": "C2-PROTOTYPE-SUSTAINED-001",
+      "capability_id": "SUSTAINED_PROCESSING_CAPACITY",
+      "status": "",
+      "comment": ""
+    }
+  ]
 }
 ```
+
+`question_feedback` 数组内每个对象对应 `content.js` 中以 `C2-PROTOTYPE-` 为前缀的 33 个 prototype-only 问题 ID 之一。这些 ID 不会与 v3 matrix 中已冻结的 decision ID 重叠。
 
 ## Non-production boundary
 
