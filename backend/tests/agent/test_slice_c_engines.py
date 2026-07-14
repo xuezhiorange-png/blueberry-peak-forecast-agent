@@ -88,6 +88,19 @@ def _source_payload() -> dict:
             tool="FORECAST_PEAK",
             artifact_hash=source["peak"]["agent_peak_hash"],
         ).model_dump(mode="json"),
+        Citation.model_validate(
+            {
+                "source_tasks": ["TASK_013"],
+                "source_tool": "GENERATE_RECOMMENDATIONS",
+                "authorities": [],
+                "agent_artifact_hash": None,
+                "field_path": "/blockers/0/code",
+                "effective_as_of_date": source["normalized_request"]["effective_as_of_date"],
+                "confidence_evidence": None,
+                "tags": [],
+                "override_refs": [],
+            }
+        ).model_dump(mode="json"),
     ]
     return source
 
@@ -158,7 +171,6 @@ def _source_with_parameter() -> dict:
             "citation": citation.model_dump(mode="json"),
         }
     ]
-    source["citations"].append(citation.model_dump(mode="json"))
     return source
 
 
@@ -193,14 +205,16 @@ def test_six_operational_categories_are_fail_closed_without_action_numbers() -> 
         assert "dispatch now" not in dumped
 
 
-def test_missing_data_impact_uses_real_parameter_evidence_without_improvement_claim() -> None:
+def test_missing_data_impact_applicable_with_cited_blocker_metadata() -> None:
     _, recommendations = build_slice_c_outputs(_source_payload())
     decision = recommendations.decisions[-1]
     assert decision.category == "MISSING_DATA_IMPACT"
-    assert decision.status == "BLOCKED"
-    assert decision.reason_code == "REQUIRED_EVIDENCE_MISSING"
-    assert decision.advisory_text is None
-    assert decision.blocker_dependencies
+    assert decision.status == "APPLICABLE"
+    assert decision.reason_code == "RULE_APPLICABLE"
+    assert decision.advisory_text is not None
+    assert decision.evidence[0].citation.source_tasks == ["TASK_013"]
+    assert decision.evidence[0].citation.authorities == []
+    assert "%" not in decision.advisory_text
 
 
 def test_citation_value_and_artifact_mismatch_fail_closed() -> None:
@@ -275,19 +289,36 @@ def test_task013_is_never_used_as_numerical_authority_fallback() -> None:
     assert BlockerCode.REQUIRED_CITATION_MISSING in {item.code for item in explanation.blockers}
 
 
-def test_parameter_citation_is_reused_byte_identically() -> None:
+def test_parameter_citation_is_not_rewritten_by_slice_c() -> None:
     source = _source_with_parameter()
+    original = deepcopy(source["parameters"][0]["citation"])
     explanation, _ = build_slice_c_outputs(source)
-    paragraph = next(
-        paragraph
+    assert source["parameters"][0]["citation"] == original
+    assert all(
+        paragraph.template_id != "parameter-value-v1"
         for section in explanation.structured_payload
         for paragraph in section.paragraphs
-        if paragraph.template_id == "parameter-value-v1"
     )
-    assert paragraph.citation is not None
-    assert canonical_json_dumps(paragraph.citation.model_dump(mode="json")) == canonical_json_dumps(
-        source["parameters"][0]["citation"]
+    assert BlockerCode.EVIDENCE_HASH_MISMATCH in {item.code for item in explanation.blockers}
+
+
+def test_expected_yield_is_not_bound_to_task8_maturity_authority() -> None:
+    source = _source_with_parameter()
+    source["parameters"][0]["parameter_name"] = "expected_per_mu_yield"
+    explanation, _ = build_slice_c_outputs(source)
+    assert all(
+        paragraph.template_id != "parameter-value-v1"
+        for section in explanation.structured_payload
+        for paragraph in section.paragraphs
     )
+    assert all(item["field_path"] != "/parameters/0/p50" for item in source["citations"])
+
+
+def test_wrong_task8_parameter_binding_is_rejected() -> None:
+    source = _source_with_parameter()
+    citation = Citation.model_validate(source["parameters"][0]["citation"])
+    with pytest.raises(ValueError, match="EVIDENCE_HASH_MISMATCH"):
+        validate_citation(source, citation, expected_value=source["parameters"][0]["p50"])
 
 
 def test_override_tags_and_refs_are_preserved() -> None:
@@ -408,13 +439,85 @@ def test_empty_source_is_fail_closed() -> None:
     explanation, recommendations = build_slice_c_outputs({})
     assert len(explanation.structured_payload) == 8
     assert {item.code for item in explanation.blockers} >= {
-        BlockerCode.REQUIRED_AUTHORITY_MISSING,
         BlockerCode.REQUIRED_CITATION_MISSING,
         BlockerCode.REQUIRED_PROVENANCE_MISSING,
         BlockerCode.EVIDENCE_FIELD_PATH_INVALID,
     }
     assert recommendations.decisions[-1].status == "BLOCKED"
     assert recommendations.decisions[-1].reason_code == "REQUIRED_EVIDENCE_MISSING"
+
+
+def test_missing_citations_maps_only_citation_blocker() -> None:
+    source = _source_payload()
+    del source["citations"]
+    explanation, _ = build_slice_c_outputs(source)
+    assert {item.code for item in explanation.blockers} == {BlockerCode.REQUIRED_CITATION_MISSING}
+
+
+def test_malformed_provenance_maps_only_supported_blockers() -> None:
+    source = _source_payload()
+    source["provenance"]["task8_authority"] = {"bad": "shape"}
+    explanation, _ = build_slice_c_outputs(source)
+    assert {item.code for item in explanation.blockers} == {BlockerCode.REQUIRED_AUTHORITY_MISSING}
+    assert all(
+        item.details and item.details["validation_location"] for item in explanation.blockers
+    )
+
+
+def test_bad_pointer_does_not_report_unrelated_authority_gap() -> None:
+    source = _source_payload()
+    citation = Citation.model_validate(source["citations"][0]).model_copy(
+        update={"field_path": "daily_curve[0].p50"}
+    )
+    with pytest.raises(ValueError, match="EVIDENCE_FIELD_PATH_INVALID") as captured:
+        validate_citation(source, citation)
+    assert "REQUIRED_AUTHORITY_MISSING" not in str(captured.value)
+
+
+def test_unknown_source_field_maps_to_exact_location() -> None:
+    source = _source_payload()
+    source["provenance"]["misspelled_authority"] = "invalid"
+    explanation, _ = build_slice_c_outputs(source)
+    assert {item.code for item in explanation.blockers} == {BlockerCode.EVIDENCE_FIELD_PATH_INVALID}
+    assert explanation.blockers[0].details == {
+        "validation_location": ["provenance", "misspelled_authority"],
+        "validation_type": "extra_forbidden",
+        "input_field": "misspelled_authority",
+    }
+
+
+def test_missing_data_impact_not_applicable_with_complete_source() -> None:
+    source = _source_payload()
+    source["blockers"] = []
+    source["citations"] = [
+        item for item in source["citations"] if not item["field_path"].startswith("/blockers/")
+    ]
+    _, recommendations = build_slice_c_outputs(source)
+    decision = recommendations.decisions[-1]
+    assert decision.status == "NOT_APPLICABLE"
+    assert decision.reason_code == "CONDITIONS_NOT_MET"
+
+
+def test_missing_data_impact_blocked_when_metadata_citation_missing() -> None:
+    source = _source_payload()
+    source["citations"] = [
+        item for item in source["citations"] if item["field_path"] != "/blockers/0/code"
+    ]
+    _, recommendations = build_slice_c_outputs(source)
+    decision = recommendations.decisions[-1]
+    assert decision.status == "BLOCKED"
+    assert decision.reason_code == "REQUIRED_EVIDENCE_MISSING"
+
+
+def test_task013_metadata_citation_cannot_validate_numerical_path() -> None:
+    source = _source_payload()
+    metadata = next(item for item in source["citations"] if item["source_tasks"] == ["TASK_013"])
+    malicious = Citation.model_validate(metadata).model_copy(
+        update={"field_path": "/daily_curve/0/final_corrected_arrival_quantity_kg/p50"}
+    )
+    _replace_citation(source, malicious)
+    with pytest.raises(ValueError, match="REQUIRED_AUTHORITY_MISSING|EVIDENCE_HASH_MISMATCH"):
+        validate_citation(source, malicious)
 
 
 def test_incomplete_provenance_is_fail_closed() -> None:

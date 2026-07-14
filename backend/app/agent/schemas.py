@@ -1102,6 +1102,48 @@ class RunBacktestOutput(_StrictBase):
     blocker: Blocker
 
 
+class SliceCConfidenceEvidence(_StrictBase):
+    parameter_count: IntId
+    sample_count: IntId
+    covered_seasons: list[int | str] = Field(default_factory=list)
+    historical_mape: list[str] = Field(default_factory=list)
+    historical_date_mae: list[str] = Field(default_factory=list)
+    p90_coverage_rate: list[str] = Field(default_factory=list)
+    key_missing_items: list[str] = Field(default_factory=list)
+
+
+class SliceCConfidencePayload(_StrictBase):
+    level: Confidence
+    evidence: SliceCConfidenceEvidence
+
+
+class SliceCProvenancePayload(_StrictBase):
+    requested_as_of_date_provenance: RequestedAsOfDateProvenance
+    task8_authority: Task8Authority | None
+    task9_authority: Task9Authority | None
+    task10_authority: Task10Authority | None
+    task11_authority: Task11Authority | None
+    task12_authority: Task12Authority | None
+    parameter_version_identities: list[str] = Field(default_factory=list)
+    prior_versions_used: list[str] = Field(default_factory=list)
+    location_catalog_version: str = Field(min_length=1)
+    scenario_config_hash: SHA256Hex | None
+    effective_as_of_date: date
+    requested_forecast_season: int | str | None
+    effective_forecast_season_id: Annotated[int, Field(strict=True, gt=0)] | None
+    effective_forecast_season_code: str | None
+    season_record_hash: SHA256Hex | None
+    season_resolution_policy_version: str | None
+    season_resolution_policy_config_hash: SHA256Hex | None
+    uncertainty_widening_policy_version: str = Field(min_length=1)
+    uncertainty_widening_policy_config_hash: SHA256Hex
+    peak_metric_policy_version: str | None
+    peak_metric_policy_config_hash: SHA256Hex | None
+    agent_daily_curve_hash: SHA256Hex | None
+    agent_peak_hash: SHA256Hex | None
+    agent_forecast_output_hash: SHA256Hex | None
+
+
 class SliceCSourcePayload(_StrictBase):
     """Validated, immutable Slice B evidence consumed by Slice C."""
 
@@ -1111,10 +1153,10 @@ class SliceCSourcePayload(_StrictBase):
     resolved_location: ResolvedLocation
     parameters: list[ParameterEstimate] = Field(default_factory=list)
     daily_curve: list[ForecastDailyRow] = Field(default_factory=list)
-    peak: dict[str, Any]
-    citations: list[Citation] = Field(default_factory=list)
-    confidence: dict[str, Any] = Field(min_length=1)
-    provenance: dict[str, Any] = Field(min_length=1)
+    peak: ForecastPeakOutput
+    citations: list[Citation]
+    confidence: SliceCConfidencePayload
+    provenance: SliceCProvenancePayload
     blockers: list[Blocker] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 

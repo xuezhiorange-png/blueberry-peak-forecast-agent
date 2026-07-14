@@ -378,28 +378,87 @@ async def test_slice_c_override_refs_preserve_only_material_override_kinds() -> 
         }
     )
     normalized = output.normalized_request.model_copy(update={"advanced_overrides": overrides})
-    baseline_refs = AgentOrchestrator._override_refs(normalized)
-    scenario_refs = AgentOrchestrator._override_refs(normalized, include_scenario=True)
-    parameter_refs = AgentOrchestrator._parameter_override_refs(
-        normalized,
-        parameter_name="expected_per_mu_yield",
-        variety_id="101",
-    )
-    assert {item.override_kind for item in baseline_refs} == {
+    task9_refs = AgentOrchestrator._artifact_override_refs(normalized, authority_numbers=(9,))
+    scenario_refs = AgentOrchestrator._scenario_override_refs(normalized)
+    assert {item.override_kind for item in task9_refs} == {
         "AS_OF_OVERRIDE",
-        "PARAMETER_OVERRIDE_KIND",
         "AUTHORITY_OVERRIDE_KIND",
     }
     assert {item.override_kind for item in scenario_refs} == {
-        "AS_OF_OVERRIDE",
-        "PARAMETER_OVERRIDE_KIND",
         "SCENARIO_OVERRIDE_KIND",
-        "AUTHORITY_OVERRIDE_KIND",
     }
-    assert {item.override_kind for item in parameter_refs} == {
-        "AS_OF_OVERRIDE",
-        "PARAMETER_OVERRIDE_KIND",
-    }
+
+
+@pytest.mark.asyncio
+async def test_no_override_applied_tag_without_materiality() -> None:
+    output = await _production_wiring_output()
+    provenance = output.normalized_request.requested_as_of_date_provenance.model_copy(
+        update={
+            "override_applied": False,
+            "override_kind": None,
+            "source_attestation": None,
+            "source_ref": None,
+        }
+    )
+    normalized = output.normalized_request.model_copy(
+        update={"requested_as_of_date_provenance": provenance}
+    )
+    assert AgentOrchestrator._artifact_override_refs(normalized, authority_numbers=()) == []
+
+
+@pytest.mark.asyncio
+async def test_unapplied_parameter_and_scenario_overrides_are_not_propagated() -> None:
+    output = await _production_wiring_output()
+    refs = AgentOrchestrator._artifact_override_refs(
+        output.normalized_request, authority_numbers=(8, 9, 10)
+    )
+    assert all(item.override_kind != "PARAMETER_OVERRIDE_KIND" for item in refs)
+    assert all(item.override_kind != "SCENARIO_OVERRIDE_KIND" for item in refs)
+
+
+@pytest.mark.asyncio
+async def test_authority_override_is_target_scoped() -> None:
+    output = await _production_wiring_output()
+    overrides = AdvancedOverrides.model_validate(
+        {
+            "authority_overrides": [
+                {
+                    "override_kind": "AUTHORITY_OVERRIDE_KIND",
+                    "target": "TASK9_HARVEST_STATE_RUN",
+                    "value": 1,
+                    "unit": None,
+                    "source_attestation": "authority-attestation",
+                }
+            ]
+        }
+    )
+    normalized = output.normalized_request.model_copy(update={"advanced_overrides": overrides})
+    task8_refs = AgentOrchestrator._artifact_override_refs(normalized, authority_numbers=(8,))
+    task9_refs = AgentOrchestrator._artifact_override_refs(normalized, authority_numbers=(9,))
+    assert all(item.target != "TASK9_HARVEST_STATE_RUN" for item in task8_refs)
+    assert any(item.target == "TASK9_HARVEST_STATE_RUN" for item in task9_refs)
+
+
+@pytest.mark.asyncio
+async def test_scenario_override_is_not_attached_to_baseline_outputs() -> None:
+    output = await _production_wiring_output()
+    overrides = AdvancedOverrides.model_validate(
+        {
+            "scenario_overrides": [
+                {
+                    "override_kind": "SCENARIO_OVERRIDE_KIND",
+                    "target": "STAFFING",
+                    "value": {"value": "10", "unit": "person_per_day"},
+                    "source_attestation": "scenario-attestation",
+                }
+            ]
+        }
+    )
+    normalized = output.normalized_request.model_copy(update={"advanced_overrides": overrides})
+    baseline = AgentOrchestrator._artifact_override_refs(normalized, authority_numbers=(8, 9, 10))
+    scenario = AgentOrchestrator._scenario_override_refs(normalized)
+    assert all(item.override_kind != "SCENARIO_OVERRIDE_KIND" for item in baseline)
+    assert all(item.override_kind == "SCENARIO_OVERRIDE_KIND" for item in scenario)
 
 
 def test_policy_hashes_are_derived_from_policy_payload() -> None:
