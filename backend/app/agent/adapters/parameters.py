@@ -882,13 +882,17 @@ async def _load_candidates_from_orm(
         return []
 
     # Apply visibility predicate using ORM-level filtering.
-    visibility_stmt = select(ParameterObservation).where(
-        ParameterObservation.variety_id == variety_id,
-        ParameterObservation.parameter_type == parameter_type,
-        ParameterObservation.valid_from <= effective_as_of_date,
-        (ParameterObservation.valid_to.is_(None))
-        | (ParameterObservation.valid_to >= effective_as_of_date),
-        ParameterObservation.available_at <= effective_as_of_date,
+    visibility_stmt = (
+        select(ParameterObservation)
+        .where(
+            ParameterObservation.variety_id == variety_id,
+            ParameterObservation.parameter_type == parameter_type,
+            ParameterObservation.valid_from <= effective_as_of_date,
+            (ParameterObservation.valid_to.is_(None))
+            | (ParameterObservation.valid_to >= effective_as_of_date),
+            ParameterObservation.available_at <= effective_as_of_date,
+        )
+        .order_by(ParameterObservation.id.asc())
     )
     rows = (await session.scalars(visibility_stmt)).all()
     if not rows:
