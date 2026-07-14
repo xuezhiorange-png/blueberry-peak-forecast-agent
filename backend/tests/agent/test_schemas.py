@@ -25,10 +25,11 @@ from backend.app.agent.schemas import (
     InferParametersOutput,
     IntId,
     LocationInput,
+    NonAction,
     NormalizedAgentRequest,
     NormalizedVarietyInput,
     ParameterOverride,
-    Recommendation,
+    RecommendationDecision,
     RequestedAsOfDateProvenance,
     ResolvedLocation,
     ResolveLocationInput,
@@ -147,13 +148,22 @@ def test_parameter_override_requires_variety_and_target():
 
 def test_unknown_enum_value_rejected():
     with pytest.raises(ValidationError):
-        Recommendation(
+        RecommendationDecision(
             category="NOT_A_VALID_CATEGORY",  # type: ignore[arg-type]
             kind="OPERATIONAL",
-            text="x",
+            status="NOT_APPLICABLE",
+            reason_code="CONDITIONS_NOT_MET",
+            priority_rank=1,
             rule_id="r",
+            template_id="t",
+            advisory_text=None,
+            applicability_conditions=[],
             evidence=[],
-            confidence="HIGH",
+            risk_codes=[],
+            confidence=None,
+            confidence_boundary=None,
+            blocker_dependencies=[],
+            non_action=NonAction(category_specific_code="NO_AUTOMATIC_ACTION"),
         )
 
 

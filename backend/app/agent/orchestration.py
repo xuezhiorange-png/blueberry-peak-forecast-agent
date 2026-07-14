@@ -35,6 +35,7 @@ from backend.app.agent.season_resolution import (
     DatabaseForecastSeasonResolver,
     ForecastSeasonResolver,
 )
+from backend.app.agent.slice_c.engine import build_slice_c_outputs
 
 
 class UnsupportedToolError(ValueError):
@@ -443,6 +444,24 @@ class AgentOrchestrator:
             "agent_peak_hash": getattr(peak, "agent_peak_hash", None),
             "agent_forecast_output_hash": None,
         }
+        confidence = {
+            "level": self._confidence(parameters),
+            "evidence": confidence_evidence,
+        }
+        source_payload: dict[str, Any] = {
+            "request_id": normalized.request_id,
+            "request_status": status,
+            "normalized_request": normalized.model_dump(mode="json"),
+            "resolved_location": location.model_dump(mode="json"),
+            "parameters": [parameter.model_dump(mode="json") for parameter in parameters],
+            "daily_curve": [row.model_dump(mode="json") for row in getattr(daily, "per_day", [])],
+            "peak": peak.model_dump(mode="json") if peak is not None else {},
+            "confidence": confidence,
+            "provenance": provenance,
+            "blockers": [blocker.model_dump(mode="json") for blocker in ordered],
+            "warnings": [],
+        }
+        explanation, recommendations = build_slice_c_outputs(source_payload)
         output = AgentForecastOutput(
             request_id=normalized.request_id,
             request_status=status,
@@ -451,12 +470,9 @@ class AgentOrchestrator:
             parameters=parameters,
             daily_curve=list(getattr(daily, "per_day", [])),
             peak=peak.model_dump(mode="json") if peak is not None else {},
-            recommendations=[],
-            explanation={},
-            confidence={
-                "level": self._confidence(parameters),
-                "evidence": confidence_evidence,
-            },
+            recommendations=recommendations,
+            explanation=explanation,
+            confidence=confidence,
             uncertainty_widening_policy_version=uncertainty_version,
             uncertainty_widening_policy_config_hash=uncertainty_hash,
             peak_metric_policy_version=peak_version,

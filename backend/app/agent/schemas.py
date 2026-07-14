@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, get_args
 
 from pydantic import (
     AwareDatetime,
@@ -50,12 +50,18 @@ from backend.app.agent.enums import (
     BlockerCode,
     CitationSourceTask,
     CitationSourceTool,
+    ConditionResult,
     Confidence,
+    ExplanationParagraphKind,
+    ExplanationSectionCode,
     ForecastQuantile,
     MatchedLocationMethod,
+    MissingDataImpactCode,
     OverrideKind,
     RecommendationCategory,
     RecommendationKind,
+    RecommendationReasonCode,
+    RecommendationStatus,
     RequestStatus,
     RetryHint,
     SpringFestivalPhase,
@@ -67,6 +73,14 @@ from backend.app.harvest_state.schemas import ForecastSeasonIdentitySnapshot
 SHA256Hex = Annotated[
     str,
     StringConstraints(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"),
+]
+
+RFC6901JsonPointer = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        pattern=r"^(?:/(?:[^~/]|~[01])*)+$",
+    ),
 ]
 
 IntId = Annotated[int, Field(ge=0, strict=True)]
@@ -916,8 +930,8 @@ class AgentForecastOutput(_StrictBase):
     parameters: list[ParameterEstimate] = Field(default_factory=list)
     daily_curve: list[ForecastDailyRow] = Field(default_factory=list)
     peak: dict[str, Any] = Field(default_factory=dict)
-    recommendations: list[dict[str, Any]] = Field(default_factory=list)
-    explanation: dict[str, Any] = Field(default_factory=dict)
+    recommendations: GenerateRecommendationsOutput
+    explanation: ExplainForecastOutput
     confidence: dict[str, Any] = Field(default_factory=dict)
     uncertainty_widening_policy_version: str = Field(min_length=1)
     uncertainty_widening_policy_config_hash: SHA256Hex
@@ -1087,19 +1101,36 @@ class RunBacktestOutput(_StrictBase):
     blocker: Blocker
 
 
+class ExplanationRulePolicy(_StrictBase):
+    policy_version: str = Field(min_length=1)
+    policy_config_hash: SHA256Hex
+    template_catalog_version: str = Field(min_length=1)
+    template_catalog_hash: SHA256Hex
+
+
+class RecommendationRulePolicy(_StrictBase):
+    policy_version: str = Field(min_length=1)
+    policy_config_hash: SHA256Hex
+    rule_catalog_version: str = Field(min_length=1)
+    rule_catalog_hash: SHA256Hex
+
+
 class ExplainParagraph(_StrictBase):
-    kind: Literal[
-        "AUTHORITATIVE_VALUE",
-        "DETERMINISTIC_EXPLANATION",
-        "DETERMINISTIC_RECOMMENDATION",
-        "NON_AUTHORITATIVE_PRESENTATION",
-    ]
+    kind: ExplanationParagraphKind
     text: str = Field(min_length=1)
+    template_id: str = Field(min_length=1)
+    evidence_field_paths: list[RFC6901JsonPointer] = Field(min_length=1)
     citation: Citation | None = None
+
+    @model_validator(mode="after")
+    def _authoritative_value_requires_citation(self) -> ExplainParagraph:
+        if self.kind == "AUTHORITATIVE_VALUE" and self.citation is None:
+            raise ValueError("AUTHORITATIVE_VALUE requires a canonical Citation")
+        return self
 
 
 class ExplainSection(_StrictBase):
-    section: str = Field(min_length=1)
+    section: ExplanationSectionCode
     paragraphs: list[ExplainParagraph] = Field(default_factory=list)
 
 
@@ -1113,7 +1144,21 @@ class ExplainForecastInput(_StrictBase):
 
 
 class ExplainForecastOutput(_StrictBase):
-    structured_payload: list[ExplainSection] = Field(default_factory=list)
+    explanation_rule_policy_version: str = Field(min_length=1)
+    explanation_rule_policy_config_hash: SHA256Hex
+    template_catalog_version: str = Field(min_length=1)
+    template_catalog_hash: SHA256Hex
+    structured_payload: list[ExplainSection]
+    agent_explanation_hash: SHA256Hex
+    blockers: list[Blocker] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _sections_are_complete_and_ordered(self) -> ExplainForecastOutput:
+        expected = list(get_args(ExplanationSectionCode))
+        actual = [section.section for section in self.structured_payload]
+        if actual != expected:
+            raise ValueError("explanation sections must contain the frozen eight-section order")
+        return self
 
 
 class RecommendationEvidenceThreshold(_StrictBase):
@@ -1124,16 +1169,69 @@ class RecommendationEvidenceThreshold(_StrictBase):
 
 class RecommendationEvidence(_StrictBase):
     citation: Citation
+    affected_field_paths: list[RFC6901JsonPointer] = Field(min_length=1)
+    missing_data_code: MissingDataImpactCode | None = None
     threshold: RecommendationEvidenceThreshold | None = None
 
 
-class Recommendation(_StrictBase):
+class ConditionEvaluation(_StrictBase):
+    field_path: RFC6901JsonPointer
+    operator: str = Field(min_length=1)
+    observed_value: str | int | bool | None
+    threshold_value: str | int | bool | None
+    unit: str | None = None
+    result: ConditionResult
+    citation: Citation | None = None
+
+
+class NonAction(_StrictBase):
+    required: Literal[True] = True
+    code: Literal["ADVISORY_ONLY_NO_AUTOMATIC_EXECUTION"] = "ADVISORY_ONLY_NO_AUTOMATIC_EXECUTION"
+    text: Literal["This output is advisory only and does not trigger any external action."] = (
+        "This output is advisory only and does not trigger any external action."
+    )
+    category_specific_code: str = Field(min_length=1)
+
+
+class RecommendationDecision(_StrictBase):
     category: RecommendationCategory
     kind: RecommendationKind
-    text: str = Field(min_length=1)
+    status: RecommendationStatus
+    reason_code: RecommendationReasonCode
+    reason_details: dict[str, Any] | None = None
+    priority_rank: int = Field(ge=1, le=7, strict=True)
     rule_id: str = Field(min_length=1)
+    template_id: str = Field(min_length=1)
+    advisory_text: str | None = None
+    applicability_conditions: list[ConditionEvaluation] = Field(default_factory=list)
     evidence: list[RecommendationEvidence] = Field(default_factory=list)
-    confidence: Confidence
+    risk_codes: list[str] = Field(default_factory=list)
+    confidence: Confidence | None = None
+    confidence_boundary: dict[str, Any] | None = None
+    blocker_dependencies: list[Blocker] = Field(default_factory=list)
+    non_action: NonAction
+
+    @model_validator(mode="after")
+    def _status_reason_contract(self) -> RecommendationDecision:
+        allowed = {
+            "APPLICABLE": {"RULE_APPLICABLE"},
+            "NOT_APPLICABLE": {"CONDITIONS_NOT_MET", "OUTSIDE_AUTHORIZED_SCOPE"},
+            "BLOCKED": {
+                "REQUIRED_THRESHOLD_MISSING",
+                "REQUIRED_EVIDENCE_MISSING",
+                "UPSTREAM_BLOCKED",
+                "POLICY_UNAVAILABLE",
+            },
+        }
+        if self.reason_code not in allowed[self.status]:
+            raise ValueError("reason_code is incompatible with recommendation status")
+        if self.status == "APPLICABLE" and self.advisory_text is None:
+            raise ValueError("APPLICABLE requires advisory_text")
+        if self.status != "APPLICABLE" and self.advisory_text is not None:
+            raise ValueError("non-APPLICABLE decisions must not contain advisory_text")
+        if self.status == "BLOCKED" and not self.blocker_dependencies:
+            raise ValueError("BLOCKED requires blocker_dependencies")
+        return self
 
 
 class GenerateRecommendationsInput(_StrictBase):
@@ -1146,11 +1244,26 @@ class GenerateRecommendationsInput(_StrictBase):
 
 
 class GenerateRecommendationsOutput(_StrictBase):
-    recommendations: list[Recommendation] = Field(default_factory=list)
+    recommendation_rule_policy_version: str = Field(min_length=1)
+    recommendation_rule_policy_config_hash: SHA256Hex
+    rule_catalog_version: str = Field(min_length=1)
+    rule_catalog_hash: SHA256Hex
+    decisions: list[RecommendationDecision]
+    agent_recommendations_hash: SHA256Hex
+    blockers: list[Blocker] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _decisions_are_complete_and_ordered(self) -> GenerateRecommendationsOutput:
+        expected = list(get_args(RecommendationCategory))
+        actual = [decision.category for decision in self.decisions]
+        if actual != expected:
+            raise ValueError("recommendations must contain exactly seven categories in order")
+        return self
 
 
 MinimalInputRequest.model_rebuild()
 AdvancedOverrides.model_rebuild()
+AgentForecastOutput.model_rebuild()
 
 
 # --- Backward-compat aliases ---------------------------------------------
@@ -1202,6 +1315,7 @@ AuthorityOverride = _wrap_root_model(_AuthorityOverrideRoot, "AuthorityOverride"
 
 __all__ = [
     "SHA256Hex",
+    "RFC6901JsonPointer",
     "IntId",
     "DecimalString",
     "NonNegativeDecimalString",
@@ -1277,9 +1391,15 @@ __all__ = [
     "SimulateScenarioOutput",
     "RunBacktestInput",
     "RunBacktestOutput",
+    "ExplanationRulePolicy",
+    "RecommendationRulePolicy",
+    "ExplainParagraph",
+    "ExplainSection",
     "ExplainForecastInput",
     "ExplainForecastOutput",
-    "Recommendation",
+    "ConditionEvaluation",
+    "NonAction",
+    "RecommendationDecision",
     "RecommendationEvidence",
     "RecommendationEvidenceThreshold",
     "GenerateRecommendationsInput",
