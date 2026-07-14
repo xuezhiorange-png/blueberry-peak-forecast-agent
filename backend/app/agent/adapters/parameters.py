@@ -802,7 +802,9 @@ async def _resolve_maturity_curve(
         p50=_to_decimal(getattr(peak_result, "p50_value", None)),
         p80_lower=_to_decimal(getattr(peak_result, "p80_lower", None)),
         p80_upper=_to_decimal(getattr(peak_result, "p80_upper", None)),
-        source_level=int(getattr(peak_result, "source_level", monotonic_step) or monotonic_step),
+        source_level=source_level_step(
+            getattr(peak_result, "source_level", None), fallback_step=monotonic_step
+        ),
         confidence=_normalize_confidence(getattr(peak_result, "confidence_level", None)),
         sample_count=int(getattr(peak_result, "sample_count", 0) or 0),
         season_count=int(getattr(peak_result, "season_count", 0) or 0),
@@ -983,7 +985,7 @@ async def _load_candidates_from_orm(
                     else None
                 ),
                 season_id=row.season_id,
-                season_code=str(season.season_code) if season is not None else None,
+                season_code=str(season.code) if season is not None else None,
                 season_end_date=season.end_date if season is not None else None,
                 historical_mape=row.historical_mape,
                 date_mae_days=row.date_mae_days,

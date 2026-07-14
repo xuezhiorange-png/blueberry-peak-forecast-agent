@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.canonical import canonical_json_dumps, sha256_payload
-from backend.app.agent.slice_c.engine import build_slice_c_outputs, validate_citation
+from backend.app.agent.slice_c.engine import validate_citation
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.residual_model import ResidualModelPredictionRun
 from backend.tests.integration.agent.test_orchestration_postgres import (
@@ -163,63 +163,113 @@ async def _run_counts(session: AsyncSession) -> tuple[int, int]:
     )
 
 
+async def _assert_unmodified_production_mdi_output(
+    session: AsyncSession,
+    *,
+    output: object,
+    repeated: object,
+    expected_status: str,
+    expected_reason: str,
+) -> None:
+    original = canonical_json_dumps(output.model_dump(mode="json"))
+    decision = output.recommendations.decisions[-1]
+    assert decision.category == "MISSING_DATA_IMPACT"
+    assert decision.status == expected_status
+    assert decision.reason_code == expected_reason
+    assert all(
+        item.status == "BLOCKED"
+        and item.reason_code == "REQUIRED_THRESHOLD_MISSING"
+        and item.advisory_text is None
+        and not item.applicability_conditions
+        for item in output.recommendations.decisions[:6]
+    )
+    assert output.provenance["task8_authority"] is not None
+    assert output.provenance["task9_authority"] is not None
+    assert output.provenance["task10_authority"] is not None
+    assert output.provenance["task12_authority"] is None
+    assert (
+        output.provenance["task10_authority"]["task9_run_id"]
+        == output.provenance["task9_authority"]["harvest_state_run_id"]
+    )
+    assert (
+        output.provenance["task10_authority"]["task9_result_hash"]
+        == output.provenance["task9_authority"]["harvest_state_run_result_hash"]
+    )
+
+    source = _slice_c_source(output)
+    assert all(
+        paragraph.citation is None or paragraph.citation.source_tool != "GENERATE_RECOMMENDATIONS"
+        for section in output.explanation.structured_payload
+        for paragraph in section.paragraphs
+    )
+    for section in output.explanation.structured_payload:
+        for paragraph in section.paragraphs:
+            if paragraph.citation is not None:
+                validate_citation(source, paragraph.citation)
+    for item in output.recommendations.decisions:
+        for evidence in item.evidence:
+            validate_citation(source, evidence.citation)
+
+    assert output.explanation.agent_explanation_hash == sha256_payload(
+        output.explanation.model_dump(mode="python", exclude={"agent_explanation_hash"})
+    )
+    assert output.recommendations.agent_recommendations_hash == sha256_payload(
+        output.recommendations.model_dump(mode="python", exclude={"agent_recommendations_hash"})
+    )
+    agent_payload = output.model_dump(mode="python")
+    agent_hash = agent_payload["provenance"]["agent_forecast_output_hash"]
+    agent_payload["provenance"]["agent_forecast_output_hash"] = None
+    assert agent_hash == sha256_payload(agent_payload)
+    assert canonical_json_dumps(repeated.model_dump(mode="json")) == original
+
+    before = await _run_counts(session)
+    replay = await _production_orchestrator().execute(
+        session,
+        request=_production_request(),
+        request_received_at=output.normalized_request.request_received_at,
+    )
+    after = await _run_counts(session)
+    assert before == after
+    assert canonical_json_dumps(replay.model_dump(mode="json")) == original
+    assert canonical_json_dumps(output.model_dump(mode="json")) == original
+
+
 @pytest.mark.postgres
 @pytest.mark.asyncio
-async def test_postgres_missing_data_impact_applicable(
+async def test_postgres_missing_data_impact_applicable_real_orchestrator_output(
     transactional_pg_session: AsyncSession,
 ) -> None:
-    output, _, _ = await _production_postgres_outputs(transactional_pg_session)
-    source = _slice_c_source(output)
-    source["parameters"] = []
-    before = await _run_counts(transactional_pg_session)
-    _, recommendations = build_slice_c_outputs(source)
-    after = await _run_counts(transactional_pg_session)
-    decision = recommendations.decisions[-1]
-    assert decision.status == "APPLICABLE"
-    assert decision.reason_code == "RULE_APPLICABLE"
+    output, repeated, _ = await _production_postgres_outputs(
+        transactional_pg_session,
+        complete_parameter_coverage=True,
+    )
+    decision = output.recommendations.decisions[-1]
     assert decision.evidence
     assert all(item.citation.source_tasks == ["TASK_013"] for item in decision.evidence)
     assert all(item.citation.authorities == [] for item in decision.evidence)
-    assert before == after
+    assert all(
+        item.citation.source_tool == "GENERATE_RECOMMENDATIONS" for item in decision.evidence
+    )
+    await _assert_unmodified_production_mdi_output(
+        transactional_pg_session,
+        output=output,
+        repeated=repeated,
+        expected_status="APPLICABLE",
+        expected_reason="RULE_APPLICABLE",
+    )
 
 
 @pytest.mark.postgres
 @pytest.mark.asyncio
-async def test_postgres_missing_data_impact_not_applicable(
+async def test_postgres_missing_data_impact_blocked_real_orchestrator_output(
     transactional_pg_session: AsyncSession,
 ) -> None:
-    output, _, _ = await _production_postgres_outputs(transactional_pg_session)
-    source = _slice_c_source(output)
-    source["parameters"] = []
-    source["blockers"] = []
-    source["citations"] = [
-        item for item in source["citations"] if not item["field_path"].startswith("/blockers/")
-    ]
-    before = await _run_counts(transactional_pg_session)
-    _, recommendations = build_slice_c_outputs(source)
-    after = await _run_counts(transactional_pg_session)
-    decision = recommendations.decisions[-1]
-    assert decision.status == "NOT_APPLICABLE"
-    assert decision.reason_code == "CONDITIONS_NOT_MET"
-    assert before == after
-
-
-@pytest.mark.postgres
-@pytest.mark.asyncio
-async def test_postgres_missing_data_impact_blocked(
-    transactional_pg_session: AsyncSession,
-) -> None:
-    output, _, _ = await _production_postgres_outputs(transactional_pg_session)
-    source = _slice_c_source(output)
-    source["parameters"] = []
-    source["citations"] = [
-        item for item in source["citations"] if not item["field_path"].startswith("/blockers/")
-    ]
-    before = await _run_counts(transactional_pg_session)
-    _, recommendations = build_slice_c_outputs(source)
-    after = await _run_counts(transactional_pg_session)
-    decision = recommendations.decisions[-1]
-    assert decision.status == "BLOCKED"
-    assert decision.reason_code == "REQUIRED_EVIDENCE_MISSING"
-    assert decision.blocker_dependencies
-    assert before == after
+    output, repeated, _ = await _production_postgres_outputs(transactional_pg_session)
+    assert output.recommendations.decisions[-1].blocker_dependencies
+    await _assert_unmodified_production_mdi_output(
+        transactional_pg_session,
+        output=output,
+        repeated=repeated,
+        expected_status="BLOCKED",
+        expected_reason="REQUIRED_EVIDENCE_MISSING",
+    )
