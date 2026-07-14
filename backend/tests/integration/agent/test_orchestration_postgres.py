@@ -521,6 +521,13 @@ async def _production_postgres_outputs(
         task9=task9,
         persisted_task9=persisted_task9,
     )
+    season_id = int(season.id)
+    task9_id = int(task9.id)
+    task9_result_hash = str(task9.result_hash)
+    task10_id = int(task10.id)
+
+    # Make the first orchestration read the same persisted NUMERIC values as replay.
+    transactional_pg_session.expire_all()
 
     policy_source = _production_orchestrator()
     request = _production_request()
@@ -565,11 +572,11 @@ async def _production_postgres_outputs(
     assert output.provenance["task8_authority"] is not None
     assert output.provenance["task9_authority"] is not None
     assert output.provenance["task10_authority"] is not None
-    assert output.provenance["task9_authority"]["forecast_season_id"] == season.id
-    assert output.provenance["task9_authority"]["harvest_state_run_id"] == task9.id
-    assert output.provenance["task10_authority"]["prediction_run_id"] == task10.id
-    assert output.provenance["task10_authority"]["task9_run_id"] == task9.id
-    assert output.provenance["task10_authority"]["task9_result_hash"] == task9.result_hash
+    assert output.provenance["task9_authority"]["forecast_season_id"] == season_id
+    assert output.provenance["task9_authority"]["harvest_state_run_id"] == task9_id
+    assert output.provenance["task10_authority"]["prediction_run_id"] == task10_id
+    assert output.provenance["task10_authority"]["task9_run_id"] == task9_id
+    assert output.provenance["task10_authority"]["task9_result_hash"] == task9_result_hash
     assert output.daily_curve
     assert output.peak
     assert output.normalized_request.canonical_request_hash != "0" * 64
@@ -580,8 +587,8 @@ async def _production_postgres_outputs(
         request=request.model_copy(update={"requested_forecast_season": None}),
         request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
     )
-    assert no_token_output.normalized_request.effective_forecast_season_id == season.id
-    assert no_token_output.normalized_request.effective_forecast_season_code == season.code
+    assert no_token_output.normalized_request.effective_forecast_season_id == season_id
+    assert no_token_output.normalized_request.effective_forecast_season_code == "2026"
     assert no_token_output.daily_curve
     assert no_token_output.peak
 
