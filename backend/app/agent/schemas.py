@@ -930,6 +930,7 @@ class AgentForecastOutput(_StrictBase):
     parameters: list[ParameterEstimate] = Field(default_factory=list)
     daily_curve: list[ForecastDailyRow] = Field(default_factory=list)
     peak: dict[str, Any] = Field(default_factory=dict)
+    citations: list[Citation] = Field(default_factory=list)
     recommendations: GenerateRecommendationsOutput
     explanation: ExplainForecastOutput
     confidence: dict[str, Any] = Field(default_factory=dict)
@@ -1101,6 +1102,23 @@ class RunBacktestOutput(_StrictBase):
     blocker: Blocker
 
 
+class SliceCSourcePayload(_StrictBase):
+    """Validated, immutable Slice B evidence consumed by Slice C."""
+
+    request_id: str = Field(min_length=1)
+    request_status: RequestStatus
+    normalized_request: NormalizedAgentRequest
+    resolved_location: ResolvedLocation
+    parameters: list[ParameterEstimate] = Field(default_factory=list)
+    daily_curve: list[ForecastDailyRow] = Field(default_factory=list)
+    peak: dict[str, Any]
+    citations: list[Citation] = Field(default_factory=list)
+    confidence: dict[str, Any] = Field(min_length=1)
+    provenance: dict[str, Any] = Field(min_length=1)
+    blockers: list[Blocker] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ExplanationRulePolicy(_StrictBase):
     policy_version: str = Field(min_length=1)
     policy_config_hash: SHA256Hex
@@ -1158,6 +1176,13 @@ class ExplainForecastOutput(_StrictBase):
         actual = [section.section for section in self.structured_payload]
         if actual != expected:
             raise ValueError("explanation sections must contain the frozen eight-section order")
+        emitted = {
+            paragraph.kind
+            for section in self.structured_payload
+            for paragraph in section.paragraphs
+        }
+        if not emitted <= {"AUTHORITATIVE_VALUE", "DETERMINISTIC_EXPLANATION"}:
+            raise ValueError("Slice C may emit only authoritative values and explanations")
         return self
 
 
@@ -1391,6 +1416,7 @@ __all__ = [
     "SimulateScenarioOutput",
     "RunBacktestInput",
     "RunBacktestOutput",
+    "SliceCSourcePayload",
     "ExplanationRulePolicy",
     "RecommendationRulePolicy",
     "ExplainParagraph",

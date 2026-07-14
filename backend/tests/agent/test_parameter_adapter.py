@@ -15,6 +15,7 @@ from backend.app.agent.adapters.parameters import (
     SourceCapabilityGapError,
     confidence_for_step,
     is_visible_prior,
+    source_level_step,
     widening_factor_for,
 )
 from backend.app.agent.schemas import (
@@ -73,6 +74,25 @@ def test_confidence_for_step():
     assert confidence_for_step(3) == "MEDIUM"
     assert confidence_for_step(4) == "LOW"
     assert confidence_for_step(5) == "LOW"
+
+
+@pytest.mark.parametrize(
+    ("source_level", "expected"),
+    [
+        ("same_farm_variety", 1),
+        ("same_township_altitude_variety", 2),
+        ("same_county_climate_zone_variety", 3),
+        ("same_province_variety", 4),
+        ("literature_variety_prior", 5),
+    ],
+)
+def test_source_level_step_maps_upstream_taxonomy(source_level: str, expected: int) -> None:
+    assert source_level_step(source_level, fallback_step=5) == expected
+
+
+def test_source_level_step_rejects_unknown_upstream_level() -> None:
+    with pytest.raises(SourceCapabilityGapError, match="unknown upstream source_level"):
+        source_level_step("same_farm_same_variety", fallback_step=1)
 
 
 def test_widening_factor_monotonic():

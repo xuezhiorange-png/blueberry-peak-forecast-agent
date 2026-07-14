@@ -336,6 +336,72 @@ async def test_production_wiring_slice_c_output_matches_golden() -> None:
     assert canonical_json_dumps(payload) == golden.read_text()
 
 
+@pytest.mark.asyncio
+async def test_slice_c_override_refs_preserve_only_material_override_kinds() -> None:
+    output = await _production_wiring_output()
+    overrides = AdvancedOverrides.model_validate(
+        {
+            "as_of_overrides": [
+                {
+                    "override_kind": "AS_OF_OVERRIDE",
+                    "value": "2026-03-01",
+                    "unit": "date",
+                    "source_attestation": "as-of-attestation",
+                }
+            ],
+            "parameter_overrides": [
+                {
+                    "override_kind": "PARAMETER_OVERRIDE_KIND",
+                    "variety_id": "101",
+                    "target_parameter": "EXPECTED_PER_MU_YIELD",
+                    "value": {"value": "100.0", "unit": "kg_per_mu"},
+                    "source_attestation": "parameter-attestation",
+                }
+            ],
+            "scenario_overrides": [
+                {
+                    "override_kind": "SCENARIO_OVERRIDE_KIND",
+                    "target": "STAFFING",
+                    "value": {"value": "10.0", "unit": "person_per_day"},
+                    "source_attestation": "scenario-attestation",
+                }
+            ],
+            "authority_overrides": [
+                {
+                    "override_kind": "AUTHORITY_OVERRIDE_KIND",
+                    "target": "TASK9_HARVEST_STATE_RUN",
+                    "value": 1,
+                    "unit": None,
+                    "source_attestation": "authority-attestation",
+                }
+            ],
+        }
+    )
+    normalized = output.normalized_request.model_copy(update={"advanced_overrides": overrides})
+    baseline_refs = AgentOrchestrator._override_refs(normalized)
+    scenario_refs = AgentOrchestrator._override_refs(normalized, include_scenario=True)
+    parameter_refs = AgentOrchestrator._parameter_override_refs(
+        normalized,
+        parameter_name="expected_per_mu_yield",
+        variety_id="101",
+    )
+    assert {item.override_kind for item in baseline_refs} == {
+        "AS_OF_OVERRIDE",
+        "PARAMETER_OVERRIDE_KIND",
+        "AUTHORITY_OVERRIDE_KIND",
+    }
+    assert {item.override_kind for item in scenario_refs} == {
+        "AS_OF_OVERRIDE",
+        "PARAMETER_OVERRIDE_KIND",
+        "SCENARIO_OVERRIDE_KIND",
+        "AUTHORITY_OVERRIDE_KIND",
+    }
+    assert {item.override_kind for item in parameter_refs} == {
+        "AS_OF_OVERRIDE",
+        "PARAMETER_OVERRIDE_KIND",
+    }
+
+
 def test_policy_hashes_are_derived_from_policy_payload() -> None:
     orchestrator = _orchestrator([])
     uncertainty = orchestrator._uncertainty_policy

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +18,9 @@ from backend.app.agent.enums import BlockerCode
 from backend.app.agent.schemas import (
     AgentForecastOutput,
     Blocker,
+    Citation,
+    CitationAuthorityEntry,
+    CitationOverrideRef,
     ForecastDailyCurveInput,
     ForecastPeakInput,
     InferParametersInput,
@@ -29,6 +32,7 @@ from backend.app.agent.schemas import (
     ResolvedLocation,
     ResolveLocationInput,
     SimulateScenarioInput,
+    Task8Authority,
     UncertaintyWideningPolicy,
 )
 from backend.app.agent.season_resolution import (
@@ -448,6 +452,18 @@ class AgentOrchestrator:
             "level": self._confidence(parameters),
             "evidence": confidence_evidence,
         }
+        parameters = self._slice_c_parameters(
+            normalized=normalized,
+            parameters=parameters,
+            daily=daily,
+        )
+        citations = self._slice_c_citations(
+            normalized=normalized,
+            parameters=parameters,
+            daily=daily,
+            peak=peak,
+            provenance=provenance,
+        )
         source_payload: dict[str, Any] = {
             "request_id": normalized.request_id,
             "request_status": status,
@@ -456,6 +472,7 @@ class AgentOrchestrator:
             "parameters": [parameter.model_dump(mode="json") for parameter in parameters],
             "daily_curve": [row.model_dump(mode="json") for row in getattr(daily, "per_day", [])],
             "peak": peak.model_dump(mode="json") if peak is not None else {},
+            "citations": [citation.model_dump(mode="json") for citation in citations],
             "confidence": confidence,
             "provenance": provenance,
             "blockers": [blocker.model_dump(mode="json") for blocker in ordered],
@@ -470,6 +487,7 @@ class AgentOrchestrator:
             parameters=parameters,
             daily_curve=list(getattr(daily, "per_day", [])),
             peak=peak.model_dump(mode="json") if peak is not None else {},
+            citations=citations,
             recommendations=recommendations,
             explanation=explanation,
             confidence=confidence,
@@ -484,6 +502,230 @@ class AgentOrchestrator:
         payload = output.model_dump(mode="python")
         payload["provenance"]["agent_forecast_output_hash"] = sha256_payload(payload)
         return output.model_copy(update={"provenance": payload["provenance"]})
+
+    @staticmethod
+    def _override_refs(
+        normalized: NormalizedAgentRequest,
+        *,
+        include_scenario: bool = False,
+    ) -> list[CitationOverrideRef]:
+        overrides = normalized.advanced_overrides
+        if overrides is None:
+            return []
+        values: list[Any] = [
+            *overrides.as_of_overrides,
+            *overrides.parameter_overrides,
+            *overrides.authority_overrides,
+        ]
+        if include_scenario:
+            values.extend(overrides.scenario_overrides)
+        return [
+            CitationOverrideRef(
+                override_ref_id=sha256_payload(value.model_dump(mode="python")),
+                override_kind=value.override_kind,
+                target=getattr(value, "target", getattr(value, "target_parameter", None)),
+                source_attestation=value.source_attestation,
+                source_ref=value.source_ref,
+            )
+            for value in values
+        ]
+
+    @staticmethod
+    def _parameter_override_refs(
+        normalized: NormalizedAgentRequest,
+        *,
+        parameter_name: str,
+        variety_id: str,
+    ) -> list[CitationOverrideRef]:
+        overrides = normalized.advanced_overrides
+        if overrides is None:
+            return []
+        values: list[Any] = [*overrides.as_of_overrides]
+        values.extend(
+            item
+            for item in overrides.parameter_overrides
+            if item.variety_id == variety_id and item.target_parameter.lower() == parameter_name
+        )
+        values.extend(
+            item for item in overrides.authority_overrides if item.target == "TASK8_FORECAST_RUN"
+        )
+        return [
+            CitationOverrideRef(
+                override_ref_id=sha256_payload(value.model_dump(mode="python")),
+                override_kind=value.override_kind,
+                target=getattr(value, "target", getattr(value, "target_parameter", None)),
+                source_attestation=value.source_attestation,
+                source_ref=value.source_ref,
+            )
+            for value in values
+        ]
+
+    @staticmethod
+    def _authority_entries(daily: Any | None) -> list[CitationAuthorityEntry]:
+        entries: list[CitationAuthorityEntry] = []
+        if daily is None:
+            return entries
+        for number in (8, 9, 10, 11, 12):
+            authority = getattr(daily, f"task{number}_authority", None)
+            if authority is not None:
+                entries.append(
+                    CitationAuthorityEntry.model_validate(
+                        {
+                            "authority_type": f"TASK_{number}_AUTHORITY",
+                            "authority": authority.model_dump(mode="python"),
+                        }
+                    )
+                )
+        return entries
+
+    @classmethod
+    def _slice_c_parameters(
+        cls,
+        *,
+        normalized: NormalizedAgentRequest,
+        parameters: list[Any],
+        daily: Any | None,
+    ) -> list[Any]:
+        task8 = next(
+            (
+                entry
+                for entry in cls._authority_entries(daily)
+                if entry.authority_type == "TASK_8_AUTHORITY"
+            ),
+            None,
+        )
+        if task8 is None:
+            return parameters
+        task8_authority = cast(Task8Authority, task8.authority)
+        artifact_hash = task8_authority.maturity_model_artifact_hash
+        enriched: list[Any] = []
+        for index, parameter in enumerate(parameters):
+            citation = getattr(parameter, "citation", None)
+            if citation is None:
+                enriched.append(parameter)
+                continue
+            override_refs = cls._parameter_override_refs(
+                normalized,
+                parameter_name=parameter.parameter_name,
+                variety_id=parameter.variety_id,
+            )
+            enriched_citation = citation.model_copy(
+                update={
+                    "source_tasks": ["TASK_008"],
+                    "authorities": [task8],
+                    "agent_artifact_hash": artifact_hash,
+                    "field_path": f"/parameters/{index}/p50",
+                    "tags": ["OVERRIDE_APPLIED"] if override_refs else [],
+                    "override_refs": override_refs,
+                }
+            )
+            enriched.append(parameter.model_copy(update={"citation": enriched_citation}))
+        return enriched
+
+    @classmethod
+    def _slice_c_citations(
+        cls,
+        *,
+        normalized: NormalizedAgentRequest,
+        parameters: list[Any],
+        daily: Any | None,
+        peak: Any | None,
+        provenance: dict[str, Any],
+    ) -> list[Citation]:
+        citations: list[Citation] = []
+        entries = cls._authority_entries(daily)
+        source_tasks = (
+            [
+                f"TASK_{number:03d}"
+                for number in range(8, 13)
+                if getattr(daily, f"task{number}_authority", None) is not None
+            ]
+            if daily is not None
+            else []
+        )
+        override_refs = cls._override_refs(normalized)
+        tags = ["OVERRIDE_APPLIED"] if override_refs else []
+
+        for index, parameter in enumerate(parameters):
+            citation = getattr(parameter, "citation", None)
+            if citation is not None and citation.field_path == f"/parameters/{index}/p50":
+                citations.append(citation)
+
+        if entries:
+            for index, row in enumerate(getattr(daily, "per_day", [])):
+                citations.append(
+                    Citation(
+                        source_tasks=source_tasks,
+                        source_tool="FORECAST_DAILY_CURVE",
+                        authorities=entries,
+                        agent_artifact_hash=row.agent_daily_row_hash,
+                        field_path=(
+                            f"/daily_curve/{index}/final_corrected_arrival_quantity_kg/p50"
+                        ),
+                        effective_as_of_date=normalized.effective_as_of_date,
+                        confidence_evidence=None,
+                        tags=tags,
+                        override_refs=override_refs,
+                    )
+                )
+            if peak is not None:
+                for field_path in (
+                    "/peak/single_day_peak/P50/volume_kg",
+                    "/peak/sustained_3day_peak/P50/rolling_daily_average_kg_per_day",
+                ):
+                    citations.append(
+                        Citation(
+                            source_tasks=source_tasks,
+                            source_tool="FORECAST_PEAK",
+                            authorities=entries,
+                            agent_artifact_hash=peak.agent_peak_hash,
+                            field_path=field_path,
+                            effective_as_of_date=normalized.effective_as_of_date,
+                            confidence_evidence=None,
+                            tags=tags,
+                            override_refs=override_refs,
+                        )
+                    )
+        for number in (8, 9, 10, 11, 12):
+            authority = provenance.get(f"task{number}_authority")
+            if authority is None:
+                continue
+            entry = CitationAuthorityEntry.model_validate(
+                {"authority_type": f"TASK_{number}_AUTHORITY", "authority": authority}
+            )
+            citations.append(
+                Citation(
+                    source_tasks=[f"TASK_{number:03d}"],
+                    source_tool="EXPLAIN_FORECAST",
+                    authorities=[entry],
+                    agent_artifact_hash=None,
+                    field_path=f"/provenance/task{number}_authority",
+                    effective_as_of_date=normalized.effective_as_of_date,
+                    confidence_evidence=None,
+                    tags=tags,
+                    override_refs=override_refs,
+                )
+            )
+        scenario_hash = provenance.get("scenario_config_hash")
+        scenario_refs = cls._override_refs(normalized, include_scenario=True)
+        scenario_refs = [
+            item for item in scenario_refs if item.override_kind == "SCENARIO_OVERRIDE_KIND"
+        ]
+        if isinstance(scenario_hash, str) and scenario_refs:
+            citations.append(
+                Citation(
+                    source_tasks=source_tasks,
+                    source_tool="SIMULATE_SCENARIO",
+                    authorities=entries,
+                    agent_artifact_hash=scenario_hash,
+                    field_path="/provenance/scenario_config_hash",
+                    effective_as_of_date=normalized.effective_as_of_date,
+                    confidence_evidence=None,
+                    tags=["OVERRIDE_APPLIED"],
+                    override_refs=scenario_refs,
+                )
+            )
+        return citations
 
     @staticmethod
     def _canonical_uncertainty_policy(
