@@ -18,6 +18,9 @@ from backend.app.agent.enums import BlockerCode
 from backend.app.agent.schemas import (
     AgentForecastOutput,
     Blocker,
+    Citation,
+    CitationAuthorityEntry,
+    CitationOverrideRef,
     ForecastDailyCurveInput,
     ForecastPeakInput,
     InferParametersInput,
@@ -35,6 +38,7 @@ from backend.app.agent.season_resolution import (
     DatabaseForecastSeasonResolver,
     ForecastSeasonResolver,
 )
+from backend.app.agent.slice_c.engine import build_slice_c_outputs
 
 
 class UnsupportedToolError(ValueError):
@@ -443,6 +447,33 @@ class AgentOrchestrator:
             "agent_peak_hash": getattr(peak, "agent_peak_hash", None),
             "agent_forecast_output_hash": None,
         }
+        confidence = {
+            "level": self._confidence(parameters),
+            "evidence": confidence_evidence,
+        }
+        citations = self._slice_c_citations(
+            normalized=normalized,
+            parameters=parameters,
+            daily=daily,
+            peak=peak,
+            provenance=provenance,
+            blockers=ordered,
+        )
+        source_payload: dict[str, Any] = {
+            "request_id": normalized.request_id,
+            "request_status": status,
+            "normalized_request": normalized.model_dump(mode="json"),
+            "resolved_location": location.model_dump(mode="json"),
+            "parameters": [parameter.model_dump(mode="json") for parameter in parameters],
+            "daily_curve": [row.model_dump(mode="json") for row in getattr(daily, "per_day", [])],
+            "peak": peak.model_dump(mode="json") if peak is not None else {},
+            "citations": [citation.model_dump(mode="json") for citation in citations],
+            "confidence": confidence,
+            "provenance": provenance,
+            "blockers": [blocker.model_dump(mode="json") for blocker in ordered],
+            "warnings": [],
+        }
+        explanation, recommendations = build_slice_c_outputs(source_payload)
         output = AgentForecastOutput(
             request_id=normalized.request_id,
             request_status=status,
@@ -451,12 +482,10 @@ class AgentOrchestrator:
             parameters=parameters,
             daily_curve=list(getattr(daily, "per_day", [])),
             peak=peak.model_dump(mode="json") if peak is not None else {},
-            recommendations=[],
-            explanation={},
-            confidence={
-                "level": self._confidence(parameters),
-                "evidence": confidence_evidence,
-            },
+            citations=citations,
+            recommendations=recommendations,
+            explanation=explanation,
+            confidence=confidence,
             uncertainty_widening_policy_version=uncertainty_version,
             uncertainty_widening_policy_config_hash=uncertainty_hash,
             peak_metric_policy_version=peak_version,
@@ -468,6 +497,200 @@ class AgentOrchestrator:
         payload = output.model_dump(mode="python")
         payload["provenance"]["agent_forecast_output_hash"] = sha256_payload(payload)
         return output.model_copy(update={"provenance": payload["provenance"]})
+
+    @staticmethod
+    def _override_ref(value: Any) -> CitationOverrideRef:
+        return CitationOverrideRef(
+            override_ref_id=sha256_payload(value.model_dump(mode="python")),
+            override_kind=value.override_kind,
+            target=getattr(value, "target", getattr(value, "target_parameter", None)),
+            source_attestation=value.source_attestation,
+            source_ref=value.source_ref,
+        )
+
+    @classmethod
+    def _applied_as_of_override_ref(
+        cls, normalized: NormalizedAgentRequest
+    ) -> CitationOverrideRef | None:
+        provenance = normalized.requested_as_of_date_provenance
+        overrides = normalized.advanced_overrides
+        if not provenance.override_applied or overrides is None or not overrides.as_of_overrides:
+            return None
+        return cls._override_ref(overrides.as_of_overrides[0])
+
+    @classmethod
+    def _artifact_override_refs(
+        cls,
+        normalized: NormalizedAgentRequest,
+        *,
+        authority_numbers: tuple[int, ...] = (),
+    ) -> list[CitationOverrideRef]:
+        values: list[CitationOverrideRef] = []
+        as_of = cls._applied_as_of_override_ref(normalized)
+        if as_of is not None:
+            values.append(as_of)
+        overrides = normalized.advanced_overrides
+        if overrides is None:
+            return values
+        targets = {
+            8: {"TASK8_FORECAST_RUN"},
+            9: {"TASK9_HARVEST_STATE_RUN"},
+            10: {"TASK10_TRAINING_RUN", "TASK10_PREDICTION_RUN"},
+            11: {"TASK11_BACKTEST_RUN"},
+            12: {"TASK12_PREDICTION_RUN"},
+        }
+        allowed = {target for number in authority_numbers for target in targets[number]}
+        values.extend(
+            cls._override_ref(item)
+            for item in overrides.authority_overrides
+            if item.target in allowed
+        )
+        return values
+
+    @classmethod
+    def _scenario_override_refs(
+        cls, normalized: NormalizedAgentRequest
+    ) -> list[CitationOverrideRef]:
+        overrides = normalized.advanced_overrides
+        if overrides is None:
+            return []
+        return [cls._override_ref(item) for item in overrides.scenario_overrides]
+
+    @staticmethod
+    def _authority_entries(daily: Any | None) -> list[CitationAuthorityEntry]:
+        entries: list[CitationAuthorityEntry] = []
+        if daily is None:
+            return entries
+        for number in (8, 9, 10, 11, 12):
+            authority = getattr(daily, f"task{number}_authority", None)
+            if authority is not None:
+                entries.append(
+                    CitationAuthorityEntry.model_validate(
+                        {
+                            "authority_type": f"TASK_{number}_AUTHORITY",
+                            "authority": authority.model_dump(mode="python"),
+                        }
+                    )
+                )
+        return entries
+
+    @classmethod
+    def _slice_c_citations(
+        cls,
+        *,
+        normalized: NormalizedAgentRequest,
+        parameters: list[Any],
+        daily: Any | None,
+        peak: Any | None,
+        provenance: dict[str, Any],
+        blockers: list[Blocker],
+    ) -> list[Citation]:
+        citations: list[Citation] = []
+        entries = cls._authority_entries(daily)
+        source_tasks = (
+            [
+                f"TASK_{number:03d}"
+                for number in range(8, 13)
+                if getattr(daily, f"task{number}_authority", None) is not None
+            ]
+            if daily is not None
+            else []
+        )
+        authority_numbers = tuple(
+            number
+            for number in range(8, 13)
+            if daily is not None and getattr(daily, f"task{number}_authority", None) is not None
+        )
+        override_refs = cls._artifact_override_refs(normalized, authority_numbers=authority_numbers)
+        tags = ["OVERRIDE_APPLIED"] if override_refs else []
+
+        if entries:
+            for index, row in enumerate(getattr(daily, "per_day", [])):
+                citations.append(
+                    Citation(
+                        source_tasks=source_tasks,
+                        source_tool="FORECAST_DAILY_CURVE",
+                        authorities=entries,
+                        agent_artifact_hash=row.agent_daily_row_hash,
+                        field_path=(
+                            f"/daily_curve/{index}/final_corrected_arrival_quantity_kg/p50"
+                        ),
+                        effective_as_of_date=normalized.effective_as_of_date,
+                        confidence_evidence=None,
+                        tags=tags,
+                        override_refs=override_refs,
+                    )
+                )
+            if peak is not None:
+                for field_path in (
+                    "/peak/single_day_peak/P50/volume_kg",
+                    "/peak/sustained_3day_peak/P50/rolling_daily_average_kg_per_day",
+                ):
+                    citations.append(
+                        Citation(
+                            source_tasks=source_tasks,
+                            source_tool="FORECAST_PEAK",
+                            authorities=entries,
+                            agent_artifact_hash=peak.agent_peak_hash,
+                            field_path=field_path,
+                            effective_as_of_date=normalized.effective_as_of_date,
+                            confidence_evidence=None,
+                            tags=tags,
+                            override_refs=override_refs,
+                        )
+                    )
+        for number in (8, 9, 10, 11, 12):
+            authority = provenance.get(f"task{number}_authority")
+            if authority is None:
+                continue
+            entry = CitationAuthorityEntry.model_validate(
+                {"authority_type": f"TASK_{number}_AUTHORITY", "authority": authority}
+            )
+            provenance_refs = cls._artifact_override_refs(normalized, authority_numbers=(number,))
+            citations.append(
+                Citation(
+                    source_tasks=[f"TASK_{number:03d}"],
+                    source_tool="EXPLAIN_FORECAST",
+                    authorities=[entry],
+                    agent_artifact_hash=None,
+                    field_path=f"/provenance/task{number}_authority",
+                    effective_as_of_date=normalized.effective_as_of_date,
+                    confidence_evidence=None,
+                    tags=["OVERRIDE_APPLIED"] if provenance_refs else [],
+                    override_refs=provenance_refs,
+                )
+            )
+        for index, _blocker in enumerate(blockers):
+            citations.append(
+                Citation(
+                    source_tasks=["TASK_013"],
+                    source_tool="GENERATE_RECOMMENDATIONS",
+                    authorities=[],
+                    agent_artifact_hash=None,
+                    field_path=f"/blockers/{index}/code",
+                    effective_as_of_date=normalized.effective_as_of_date,
+                    confidence_evidence=None,
+                    tags=[],
+                    override_refs=[],
+                )
+            )
+        scenario_hash = provenance.get("scenario_config_hash")
+        scenario_refs = cls._scenario_override_refs(normalized)
+        if isinstance(scenario_hash, str) and scenario_refs:
+            citations.append(
+                Citation(
+                    source_tasks=source_tasks,
+                    source_tool="SIMULATE_SCENARIO",
+                    authorities=entries,
+                    agent_artifact_hash=scenario_hash,
+                    field_path="/provenance/scenario_config_hash",
+                    effective_as_of_date=normalized.effective_as_of_date,
+                    confidence_evidence=None,
+                    tags=["OVERRIDE_APPLIED"],
+                    override_refs=scenario_refs,
+                )
+            )
+        return citations
 
     @staticmethod
     def _canonical_uncertainty_policy(
