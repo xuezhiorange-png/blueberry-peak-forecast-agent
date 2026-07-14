@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -7,7 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.compiler import compiles
 
-from backend.app.agent.canonical import sha256_payload
+from backend.app.agent.canonical import canonical_json_dumps, sha256_payload
 from backend.app.agent.enums import BlockerCode
 from backend.app.agent.orchestration import (
     AgentOrchestrator,
@@ -320,13 +319,21 @@ async def _production_wiring_output():
 
 
 @pytest.mark.asyncio
-async def test_production_wiring_output_matches_full_golden() -> None:
+async def test_production_wiring_output_matches_composed_golden() -> None:
     output = await _production_wiring_output()
+    golden = (Path(__file__).parent / "golden" / "task013_composed_agent_output.json").read_text()
+    assert canonical_json_dumps(output.model_dump(mode="json")) == golden
 
-    golden = json.loads(
-        (Path(__file__).parent / "golden" / "slice_b_ordinary_user.json").read_text()
-    )
-    assert json.loads(output.model_dump_json()) == golden
+
+@pytest.mark.asyncio
+async def test_production_wiring_slice_c_output_matches_golden() -> None:
+    output = await _production_wiring_output()
+    payload = {
+        "explanation": output.explanation.model_dump(mode="json"),
+        "recommendations": output.recommendations.model_dump(mode="json"),
+    }
+    golden = Path(__file__).parent / "golden" / "task013_slice_c_output.json"
+    assert canonical_json_dumps(payload) == golden.read_text()
 
 
 def test_policy_hashes_are_derived_from_policy_payload() -> None:
