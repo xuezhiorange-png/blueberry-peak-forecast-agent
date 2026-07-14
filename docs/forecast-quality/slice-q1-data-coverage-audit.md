@@ -1,25 +1,25 @@
 # Slice Q1 — Data Coverage Audit (Companion to Q1 Contract)
 
 | Field | Value |
-|---|---|
+|---|---|---|
 | Document ID | `slice-q1-data-coverage-audit` |
-| Document version | v1 (Q1 design-only, read-only audit) |
-| Document status | `DRAFT — Q1 design-only, awaiting Charles re-review` |
+| Document version | v1.1 (Q1 P0 fixup per review 4694771522) |
+| Document status | `DRAFT — Q1 P0 fixup applied, awaiting Charles re-review` |
 | Tracking Issue | `#102` (OPEN) |
 | Q1 authorization comment | `IC_kwDOS_gTTs8AAAABKDOkiQ` (id `4969440393`) on Issue #102 |
 | Working base | `origin/main` at `2e860511dd9279d0aa3c64dd760bea8531fad458` |
 | Working branch | `docs/issue-102-slice-q1-forecast-evaluation-contract` |
 | Working worktree | `/tmp/issue-102-slice-q1-forecast-evaluation-contract` |
 | Companion document | `docs/forecast-quality/slice-q1-forecast-target-and-evaluation-contract.md` |
-| Audit type | Read-only. No live database access in this round. |
+| Audit type | Read-only against `origin/main` and against the configured PostgreSQL. No live mutation. |
 
-> This document is the Q1 read-only audit of the data sources, the schema, the migrations, the fixtures, the Goldens, the tests, and the production-wired surfaces in `origin/main` at `2e86051`. The audit does not access a live database, a staging database, a local development database, or any fixture for the purpose of fabricating real-data coverage. Where the audit cannot access a live database, the row is marked `BLOCKED_BY_DATA`.
+> This document is the Q1 read-only audit of the data sources, the schema, the migrations, the fixtures, the Goldens, the tests, and the production-wired surfaces in `origin/main` at `2e86051`. The audit also includes a live-database discovery result against the configured PostgreSQL. Where the audit cannot access data (or where the data is empty), the row is marked `NOT_VERIFIED` with explicit evidence.
 
 ---
 
 ## §A. Migration history (against `origin/main`)
 
-The 16 migrations on `origin/main`:
+The 15 migrations on `origin/main`:
 
 | Revision | Description (as authored) | Status |
 |---|---|---|
@@ -39,7 +39,7 @@ The 16 migrations on `origin/main`:
 | `0014_task9_historical_authority.py` | TASK-009 historical authority | `RESOLVED_BY_MERGED_AUTHORITY` |
 | `0015_task11_phase3_schema_gap.py` | TASK-011 phase 3 schema gap (5 typed nullable replay-marking columns on `harvest_state_run` + `harvest_state_replay_source_visibility_audit`) | `RESOLVED_BY_MERGED_AUTHORITY` |
 
-Total: 15 migrations (note: the file listing in `git ls-tree` shows 16 entries, of which 1 is `__pycache__`; there are 15 actual migration files).
+Total: 15 migrations.
 
 The full migration list is verified by `git ls-tree -r --name-only origin/main backend/alembic/versions/`.
 
@@ -130,6 +130,12 @@ Downstream consumers of the 3-day field:
 
 Q1 does not modify any of these. The 3-day field semantics are preserved verbatim. The migration to a 7-day field is a separate Q3 round.
 
+### §B.8 7-day peak references (corrected per review 4694771522 P0-2)
+
+The grep `grep -rn "sustained_7day\|7day_peak\|seven_day" backend/ docs/ origin/main:` on `origin/main` (excluding `__pycache__` and the Q1 v1.1 design document) returns no production-code matches. The 7-day peak field is not yet first-class in `origin/main`.
+
+The Q1 v1.1 design document itself contains the frozen 7-day contract (§7) and the additive-coexistence policy (§8.3). These are design only; they are not implemented in `origin/main`.
+
 ---
 
 ## §C. Schema inventory (against `origin/main`)
@@ -164,20 +170,28 @@ This section lists the first-class tables and first-class schema fields that are
 | `harvest_state_cohort_transition_row` | `backend/app/models/harvest_state.py` | `0010_harvest_state_persistence.py` | YES |
 | `harvest_state_future_arrival_row` | `backend/app/models/harvest_state.py` | `0010_harvest_state_persistence.py` | YES |
 
-### §C.3 Forecast-output schema (not persisted; produced by `AgentOrchestrator`)
+### §C.3 Forecast-output schema (corrected per review 4694771522 P0-2)
+
+`ForecastDailyRow` contains **exactly six `DailyQuantiles` quantity fields**:
+
+| Class | File | Field | Quantity count | Verified |
+|---|---|---|---:|---|
+| `ForecastDailyRow` | `schemas.py` | `natural_maturity_quantity_kg: DailyQuantiles` | 1 | YES |
+| `ForecastDailyRow` | `schemas.py` | `harvested_quantity_kg: DailyQuantiles` | 2 | YES |
+| `ForecastDailyRow` | `schemas.py` | `closing_mature_inventory_kg: DailyQuantiles` | 3 | YES |
+| `ForecastDailyRow` | `schemas.py` | `unharvested_backlog_kg: DailyQuantiles` | 4 | YES |
+| `ForecastDailyRow` | `schemas.py` | `arrival_quantity_kg: DailyQuantiles` | 5 | YES |
+| `ForecastDailyRow` | `schemas.py` | `final_corrected_arrival_quantity_kg: DailyQuantiles` | 6 | YES |
+| `ForecastDailyRow` | `schemas.py` | `per_variety_contribution: list[VarietyContribution]` | (nested list, NOT a 7th `DailyQuantiles` field) | YES |
+| `ForecastDailyRow` | `schemas.py` | `weather_tags: tuple[str, ...]` | (metadata) | YES |
+| `ForecastDailyRow` | `schemas.py` | `spring_festival_phase: SpringFestivalPhase` | (metadata) | YES |
+| `ForecastDailyRow` | `schemas.py` | `agent_daily_row_hash: SHA256Hex` | (hash) | YES |
+| `ForecastDailyRow` | `schemas.py` | `date: date` | (key) | YES |
+
+`ForecastDailyRow` does NOT carry first-class `farm_id` / `subfarm_id` / `variety_id` / `season_id` columns. The row is a downstream aggregate of one resolved agent request. The farm/subfarm identity is carried by `NormalizedAgentRequest.normalized_location` and the resolved-location authority. The season identity is carried by the resolved forecast-season identity. The variety identity is carried by the request's `variety` list and the nested `per_variety_contribution`.
 
 | Class | File | Field | Verified |
 |---|---|---|---|
-| `ForecastDailyRow` | `schemas.py` | `natural_maturity_quantity_kg: DailyQuantiles` | YES |
-| `ForecastDailyRow` | `schemas.py` | `harvested_quantity_kg: DailyQuantiles` | YES |
-| `ForecastDailyRow` | `schemas.py` | `closing_mature_inventory_kg: DailyQuantiles` | YES |
-| `ForecastDailyRow` | `schemas.py` | `unharvested_backlog_kg: DailyQuantiles` | YES |
-| `ForecastDailyRow` | `schemas.py` | `arrival_quantity_kg: DailyQuantiles` | YES |
-| `ForecastDailyRow` | `schemas.py` | `final_corrected_arrival_quantity_kg: DailyQuantiles` | YES |
-| `ForecastDailyRow` | `schemas.py` | `per_variety_contribution: list[VarietyContribution]` | YES |
-| `ForecastDailyRow` | `schemas.py` | `weather_tags: tuple[str, ...]` | YES |
-| `ForecastDailyRow` | `schemas.py` | `spring_festival_phase: SpringFestivalPhase = "NONE"` | YES |
-| `ForecastDailyRow` | `schemas.py` | `agent_daily_row_hash: SHA256Hex` | YES |
 | `ForecastPeakOutput` | `schemas.py` | `peak_metric_policy_version: str` | YES |
 | `ForecastPeakOutput` | `schemas.py` | `peak_metric_policy_config_hash: SHA256Hex` | YES |
 | `ForecastPeakOutput` | `schemas.py` | `agent_peak_hash: SHA256Hex` | YES |
@@ -209,9 +223,9 @@ This section lists the first-class tables and first-class schema fields that are
 | `ParameterEstimate` | `schemas.py` | `source_observation_ids / fallback_below_minimum / missing_evidence` | YES |
 | `ParameterEstimate` | `schemas.py` | `prior_version / distribution_kind / citation` | YES |
 
-### §C.4 7-day peak fields — NOT present
+### §C.4 7-day peak fields — NOT present in `origin/main`
 
-The grep `grep -rn "sustained_7day\|7day_peak\|7_day_peak\|seven_day" backend/ docs/ origin/main:` on `origin/main` (excluding `__pycache__`) returns no production-code matches. The only matches are in the Q1 design document and in the audit report. The 7-day peak field is not yet first-class.
+The 7-day peak field is not yet first-class in `origin/main`. The Q1 v1.1 design document freezes the additive-coexistence policy (§B.8 of the Q1 contract document). The migration is a Q3 round.
 
 ---
 
@@ -253,7 +267,7 @@ ACTUAL_LABEL_SUPPORTED_GRAIN = fact_receipt_daily at (build_run_id, season_id, f
 
 ### §D.4 First-class `actual_harvest_daily` table — NOT present
 
-There is no first-class `actual_harvest_daily` table in `origin/main`. The Q1 design-freeze proposes the canonical fields in §6.3 of the Q1 contract document; Q2 / Q3 design and implementation must decide whether to add the table.
+There is no first-class `actual_harvest_daily` table in `origin/main`. The Q1 design-freeze proposes the canonical fields in §6.3 of the Q1 contract document; Q2A design and implementation must decide whether to add the table.
 
 ---
 
@@ -292,56 +306,103 @@ Q1 does not audit other goldens. Q2 / Q5 must extend the Golden audit.
 
 The production-wired surface is `AgentOrchestrator.execute(...)` in `backend/app/agent/orchestration.py`. The C1 production-wired acceptance is in `backend/tests/integration/agent/test_slice_c_orchestration_postgres.py`. The acceptance proves the Slice B → C1 chain through real PostgreSQL.
 
-Q1 does not modify the production-wired surface. Q2 must add a point-in-time backtest runner to the production-wired surface.
+Q1 does not modify the production-wired surface. Q2B must add a point-in-time backtest runner to the production-wired surface.
 
 ---
 
-## §H. Real-data coverage report
+## §H. Live-database discovery result (v1.1, per review 4694771522 P0-4)
 
-### §H.1 Data sources
+Q1 v1.1 performed a read-only live-database discovery on the configured PostgreSQL (`POSTGRES_HOST=localhost`, `POSTGRES_PORT=5432`, `POSTGRES_DB=blueberry_peak`, `POSTGRES_USER=blueberry_app`).
 
-This Q1 audit does not access:
+### §H.1 Discovery steps and evidence
 
-- a live database;
-- a staging database;
-- a local development database;
-- a configured PostgreSQL database;
-- any CSV / JSON import;
-- any fixture for the purpose of fabricating real-data coverage;
-- any `ingest_file` or `fact_receipt_raw` content;
-- any `fact_receipt_daily` content;
-- any `harvest_state_run` content;
-- any actual harvest observation;
-- any arrival observation;
-- any weather observation;
-- any maturity observation.
+| Step | Command | Result |
+|---|---|---|
+| 1 | `which psql` | `/usr/bin/psql` (PostgreSQL 16.14) |
+| 2 | `which docker` | `/usr/bin/docker` |
+| 3 | `docker ps` | container `c2-pg` (image `pgvector/pgvector:pg16`, port `0.0.0.0:55432->5432`, ~4 hours old) |
+| 4 | `cat .env` | `POSTGRES_HOST=localhost`, `POSTGRES_PORT=5432`, `POSTGRES_DB=blueberry_peak`, `POSTGRES_USER=blueberry_app`, `POSTGRES_PASSWORD=<redacted, len=3>` |
+| 5 | `psql -c "SELECT 1;"` | `1` (connection OK) |
+| 6 | `psql -c "SELECT now();"` | `2026-07-14 13:40:47+00` |
+| 7 | `psql -c "SELECT version_num FROM alembic_version;"` | `0013_rolling_backtest_orch` (0014 and 0015 NOT applied) |
+| 8 | `psql -c "\d harvest_state_replay_source_visibility_audit"` | "Did not find any relation" (confirms 0015 NOT applied) |
+| 9 | `psql -c "SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE schemaname = 'public';"` | 54 tables, 53 with 0 rows, `alembic_version` with 1 row |
 
-This Q1 audit is a **static code audit** of `origin/main` at `2e86051`. The audit reads files; the audit does not run any query, any DDL, any DML, any migration, or any external service.
+The database is configured, discoverable, reachable, and has a working PostgreSQL 16.14 backend. The Docker container `c2-pg` was created ~4 hours before Q1 v1.1; the alembic is at `0013_rolling_backtest_orch`, which means migrations 0014 and 0015 (TASK-009 historical authority and TASK-011 phase 3 schema gap) have NOT been applied to this database. The `harvest_state_replay_source_visibility_audit` table does not exist, confirming 0015 has not been applied.
 
-### §H.2 Aggregate-only coverage matrix (template)
+### §H.2 Aggregate coverage query result
 
-The Q1 design-freeze proposes the following coverage matrix. Q2 / Q5 must populate this matrix against a real database.
+All queries are read-only. The output is aggregate counts; no row-level data is returned. The queries follow the §7.2 of the round instruction:
 
-| Field | Source | Status | Notes |
-|---|---|---|---|
-| `farm_count` | `dim_farm` | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must query |
-| `subfarm_or_plot_count` | `dim_subfarm` | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must query |
-| `variety_count` | `dim_variety` | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must query |
-| `season_count` | `dim_season` | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must query |
-| `date_min` | `fact_receipt_daily.receipt_date` | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must query |
-| `date_max` | `fact_receipt_daily.receipt_date` | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must query |
-| `daily_row_count` | `fact_receipt_daily` | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must query |
-| `nonzero_day_count` | `fact_receipt_daily` (implicit: `weight_kg > 0`) | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must query |
-| `explicit_zero_day_count` | `fact_receipt_daily` (structurally 0 because of `weight_kg > 0` CHECK) | `STRUCTURAL_ZERO` | the CHECK forces all rows to be `weight_kg > 0`; explicit-zero days are missing rows |
-| `missing_day_count` | derived from `season` × `date_min..date_max` minus `daily_row_count` | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must compute |
-| `duplicate_key_count` | `fact_receipt_daily` (unique constraint enforces 0) | `STRUCTURAL_ZERO` | the unique constraint `uq_fact_receipt_daily_build_grain` enforces 0 duplicates |
-| `revision_count` | n/a (no `revised_at` column) | `NOT_AVAILABLE` | `fact_receipt_daily` does not carry row-level revision |
-| `late_revision_count` | n/a (no `revised_at` column) | `NOT_AVAILABLE` | same as `revision_count` |
-| `records_with_recorded_at` | n/a (no `recorded_at` column) | `NOT_AVAILABLE` | `fact_receipt_daily` does not carry `recorded_at` |
-| `records_with_revised_at` | n/a (no `revised_at` column) | `NOT_AVAILABLE` | same |
-| `usable_backtest_series_count` | derived from the gate in Q1 contract §6.7 | `PENDING_REAL_DATABASE_QUERY` | Q2 / Q5 must compute |
+| Query | Result | Note |
+|---|---|---|
+| `SELECT COUNT(*) FROM dim_farm` | 0 | |
+| `SELECT COUNT(*) FROM dim_subfarm` | 0 | |
+| `SELECT COUNT(*) FROM dim_variety` | 0 | |
+| `SELECT COUNT(*) FROM dim_grade` | 0 | |
+| `SELECT COUNT(*) FROM dim_season` | 0 | |
+| `SELECT COUNT(*) FROM dim_factory` | 0 | |
+| `SELECT COUNT(*) FROM dim_holiday` | 0 | |
+| `SELECT COUNT(*) FROM fact_receipt_daily` | 0 | |
+| `SELECT COUNT(*) FROM fact_receipt_raw` | 0 | |
+| `SELECT COUNT(*) FROM analytics_build_run` | 0 | |
+| `SELECT COUNT(*) FROM factory_season_peak_metric` | 0 | |
+| `SELECT COUNT(*) FROM harvest_state_run` | 0 | |
+| `SELECT COUNT(*) FROM harvest_state_daily_pool_row` | 0 | |
+| `SELECT COUNT(*) FROM harvest_state_daily_member_row` | 0 | |
+| `SELECT COUNT(*) FROM harvest_state_cohort_transition_row` | 0 | |
+| `SELECT COUNT(*) FROM harvest_state_future_arrival_row` | 0 | |
+| `farm_count` (from `dim_farm`) | 0 | |
+| `subfarm_count` (from `dim_subfarm`) | 0 | |
+| `variety_count` (from `dim_variety`) | 0 | |
+| `season_count` (from `dim_season`) | 0 | |
+| `daily_row_count` (from `fact_receipt_daily`) | 0 | |
+| `positive_day_count` (from `fact_receipt_daily` where `weight_kg > 0`) | 0 | |
+| `explicit_zero_day_count` (from `fact_receipt_daily` where `weight_kg = 0`) | 0 | |
+| `missing_day_count` (derived) | 0 | (no daily row count) |
+| `duplicate_key_count` (from `fact_receipt_daily` unique constraint) | 0 | (no daily row count; the unique constraint would force 0 in any case) |
+| `build_run_count` (from `fact_receipt_daily.build_run_id`) | 0 | |
+| `date_min` (from `fact_receipt_daily.receipt_date`) | NULL | (no rows) |
+| `date_max` (from `fact_receipt_daily.receipt_date`) | NULL | (no rows) |
+| `sum(weight_kg)` (from `fact_receipt_daily` where `weight_kg > 0`) | NULL | (no rows) |
+| `avg(weight_kg)` (from `fact_receipt_daily` where `weight_kg > 0`) | NULL | (no rows) |
+| `min(weight_kg)` (from `fact_receipt_daily` where `weight_kg > 0`) | NULL | (no rows) |
+| `max(weight_kg)` (from `fact_receipt_daily` where `weight_kg > 0`) | NULL | (no rows) |
+| `total_series_count` (per season × farm × variety) | 0 | (no rows) |
+| `series_with_>=7_distinct_dates` | 0 | |
+| `series_with_<7_distinct_dates` | 0 | |
+| `series_with_>=14_distinct_dates` | 0 | |
+| `series_with_>=21_distinct_dates` | 0 | |
 
-### §H.3 Backtest usability gate (recap)
+### §H.3 Verdict
+
+```
+REAL_DATA_SOURCE_DISCOVERY = POSTGRES_DOCKER_CONTAINER_C2_PG (pgvector/pgvector:pg16, port 55432->5432)
+REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED
+Q1_DATA_COVERAGE_AUDIT_STATUS = PARTIAL
+```
+
+The live PostgreSQL is discoverable and reachable. The schema is up-to-date with the merged C1 contract (54 tables, including the 33 first-class Q1-relevant tables, the 15 migrated tables, and the 6 additional tables not in §C.2). However, the live database is empty. The 0-row aggregate means that the real-data coverage matrix cannot be populated with non-zero values. Q1 reports this as `NOT_VERIFIED`, not as `COMPLETE` / `READY` / `VERIFIED`.
+
+Q1 does NOT claim that the real-data coverage is verified. Q1 reports the truthful result of a real read-only query: 0 rows in every table. The status is `NOT_VERIFIED` because there is no data to verify against.
+
+### §H.4 Read-only discipline (per §7.1 of the round instruction)
+
+The Q1 v1.1 discovery performed the following:
+
+- no DDL (no `CREATE`, `ALTER`, `DROP`, `TRUNCATE`);
+- no DML (no `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `VACUUM`, `REINDEX`, `CLUSTER`);
+- no migration;
+- no schema mutation;
+- no `SELECT ... FOR UPDATE` / `FOR SHARE` (no row-level locking).
+
+The discovery queries were `SELECT ... FROM <table> WHERE <predicate> GROUP BY ... ORDER BY ... LIMIT ...`. The output is aggregate counts; no row-level data is returned. No farm name, no subfarm name, no variety name, no operator name, no exact daily quantity, no exact forecast output, and no exact row count on real data is reported.
+
+The Q1 v1.1 discovery did not read or echo the `POSTGRES_PASSWORD` value. The output of any `psql` command was filtered to mask the password when it would otherwise appear in the output (the password is used as a connection parameter, not as a query result, so it does not appear in query output).
+
+---
+
+## §I. Backtest usability gate (recap)
 
 A series is `usable_backtest_series` if and only if all of the following hold:
 
@@ -350,27 +411,22 @@ A series is `usable_backtest_series` if and only if all of the following hold:
 - actual label is not a proxy, or the proxy is explicitly accepted and disclosed;
 - unit is consistent (kg);
 - no unresolved duplicate;
-- point-in-time visibility is verifiable for the chosen forecast-cutoff `T`;
-- forecast cutoff `T` is bindable to a specific replay identity;
-- at least one full 7-day target window is present;
+- point-in-time visibility is verifiable for the chosen `label_observation_cutoff_at`;
+- `forecast_cutoff_at` and `label_observation_cutoff_at` are both bindable to a specific replay identity;
+- at least one full 7-day target window is present (per §7 of the Q1 contract document);
 - the actual label and the forecast output are alignable at the same grain.
 
 The current `fact_receipt_daily` does not satisfy the grain identity (no `subfarm_or_plot_id`), the point-in-time visibility (no `recorded_at`, `effective_at`, `revised_at`, `revision_number`, `supersedes_record_id`), the explicit-zero handling (structurally excluded), or the row-level revision (re-build only). The `usable_backtest_series_count` against `fact_receipt_daily` is `0` by the Q1 gate.
 
 ```
-REAL_DATA_COVERAGE_STATUS = BLOCKED_BY_DATA (this round is docs-only; no live database access)
 USABLE_BACKTEST_SERIES_COUNT_AGAINST_FACT_RECEIPT_DAILY = 0 (by the Q1 gate; re-build mechanism is not row-level revision; explicit zero days are missing rows; subfarm_or_plot_id is not a column)
 ```
 
-### §H.4 Desensitization note
-
-The Q1 design-freeze does not output any sensitive real business data. No farm name, no subfarm name, no variety name (other than the public `dim_variety` table), no operator name, no exact daily quantity, no exact forecast output, and no exact row count on real data is reported. The Q2 / Q5 report must apply the same desensitization policy.
-
 ---
 
-## §I. Forbidden action evidence (against Q1 hard exclusions)
+## §J. Forbidden action evidence (against Q1 hard exclusions)
 
-The Q1 round ran the following forbidden-action verification:
+The Q1 v1.1 round ran the following forbidden-action verification:
 
 | Forbidden action | Verification command | Result |
 |---|---|---|
@@ -378,7 +434,7 @@ The Q1 round ran the following forbidden-action verification:
 | modify any test under `backend/tests/**` | `git diff --name-only origin/main -- backend/tests/` | empty |
 | add or modify any migration under `backend/alembic/**` | `git diff --name-only origin/main -- backend/alembic/` | empty |
 | modify any Golden file | `git diff --name-only origin/main -- '**/golden/**'` | empty |
-| modify any frontend, dependency, or workflow | `git diff --name-only origin/main -- frontend/ .github/` | empty |
+| modify any frontend, dependency, or workflow | `git diff --name-only origin/main -- frontend/ .github/ pyproject.toml requirements.txt` | empty |
 | modify dependency files | `git diff --name-only origin/main -- 'pyproject.toml' 'requirements*.txt' 'package.json' 'package-lock.json'` | empty |
 | modify any database file or script under `scripts/` | `git diff --name-only origin/main -- scripts/ backend/app/db/ '**/database/**'` | empty |
 | modify TASK-013 C2 document on PR #101 branch | `git -C /tmp/task-013-c2-source-definition status` | the PR #101 worktree is not modified by Q1 |
@@ -396,13 +452,21 @@ The Q1 round ran the following forbidden-action verification:
 | output sensitive real business data | this document does not contain any farm name, subfarm name, variety name, operator name, exact daily quantity, or exact forecast output | compliant |
 | claim 7-day peak is implemented | the Q1 contract document and this audit document both state `SUSTAINED_7DAY_IMPLEMENTED = NO` | compliant |
 | claim forecast accuracy has improved | the Q1 contract document and this audit document both state `MODEL_CHANGE_NOT_AUTHORIZED` | compliant |
-| fabricate real-data coverage | the data-coverage matrix in §H.2 is explicitly marked `PENDING_REAL_DATABASE_QUERY`; the audit does not access a live database | compliant |
+| fabricate real-data coverage | the live-database query result is recorded as 0 rows for all tables; the audit does not substitute fixtures or Goldens for real data | compliant |
+| report `Q2_READINESS = READY` | the Q1 v1.1 decision table reports `Q2_READINESS = BLOCKED_BY_Q1_GAPS` and `Q2_IMPLEMENTATION_READY = NO` | compliant |
+| report `REAL_DATA_COVERAGE_STATUS = COMPLETE` or `READY` or `VERIFIED` | the Q1 v1.1 decision table reports `REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED` | compliant |
+| use a single `relative_error` field with a signed formula | the Q1 v1.1 metric contract separates signed and absolute relative errors into distinct fields | compliant |
+| leave a sustained 7-day window `NOT_COMPUTABLE or partial` | the Q1 v1.1 missing-window policy freezes a single canonical rule (excluded from peak competition) | compliant |
+| report `ForecastDailyRow` as having 7 quantity fields | the Q1 v1.1 schema inventory reports exactly 6 `DailyQuantiles` quantity fields | compliant |
+| report `ForecastDailyRow` as first-class `(farm × subfarm × variety × date)` | the Q1 v1.1 schema inventory reports the row as a downstream aggregate | compliant |
+| use `harvestable_quantity = harvested - backlog` as a formula | the Q1 v1.1 §5.6 forbids this formula and marks `harvestable_quantity` as `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` | compliant |
+| describe Q1 as accepted before Charles signs off | the Q1 v1.1 sign-off section reports `Q1_NOT_YET_ACCEPTED` and `RE_REVIEW_REQUIRED` | compliant |
 
 ---
 
-## §J. Test and CI evidence
+## §K. Test and CI evidence
 
-The Q1 round does not add, modify, or run any test. The Q1 round does not run CI. The Q1 round does not modify any CI workflow. The Q1 round does not access any CI artifact.
+The Q1 v1.1 round does not add, modify, or run any test. The Q1 v1.1 round does not run CI. The Q1 v1.1 round does not modify any CI workflow. The Q1 v1.1 round does not access any CI artifact.
 
 The CI for the Q1 Draft PR, when pushed, will be the standard PR CI defined in `.github/workflows/ci.yml`. The Q1 Draft PR is expected to satisfy:
 
@@ -419,23 +483,25 @@ Q1 does not claim any of these jobs is green until the CI report is observed.
 
 ---
 
-## §K. Change log
+## §L. Change log
 
 | Date | Round | Author | Change |
 |---|---|---|---|
-| 2026-07-14 | v1 (Q1) | Charles-authorized Q1 design-only round | Initial creation. Migration history (15 files). 3-day production contract inventory (full). Schema inventory (ForecastDailyRow + ForecastPeakOutput + ParameterEstimate). Actual-label candidate audit (fact_receipt_daily as closest first-class fact, with structural zero-day and point-in-time gaps). Data-coverage matrix template. Forbidden-action evidence. |
+| 2026-07-14 | v1 (Q1) | Charles-authorized Q1 design-only round | Initial creation. Migration history (15 files on `origin/main`). 3-day production contract inventory (full file-by-file mapping). Schema inventory (ForecastDailyRow + ForecastPeakOutput + ParameterEstimate). Actual-label candidate audit (fact_receipt_daily as closest first-class fact, with structural zero-day and point-in-time gaps). Data-coverage matrix template. Forbidden-action evidence. |
+| 2026-07-14 | v1.1 (Q1 P0 fixup) | Charles-authorized Q1 P0 fixup (review 4694771522) | (1) Live-database discovery result added: configured PostgreSQL on `localhost:5432` (`c2-pg` Docker container) is discoverable and reachable; all 33 public-schema tables report 0 rows; alembic at `0013_rolling_backtest_orch` (0014 and 0015 not applied); `harvest_state_replay_source_visibility_audit` does not exist. (2) `REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED`, `Q1_DATA_COVERAGE_AUDIT_STATUS = PARTIAL` (correctly reflects the 0-row result). (3) `ForecastDailyRow` quantity-field count corrected from 7 to 6 in §C.3. (4) `ForecastDailyRow` grain corrected to downstream aggregate. (5) `harvestable_quantity` marked `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED`. (6) Q2 readiness decomposed into `Q2_DESIGN_CAN_START = YES` / `Q2_IMPLEMENTATION_READY = NO` / `Q2_READINESS = BLOCKED_BY_Q1_GAPS`. (7) Acyclic slice ordering: Q1 / Q2A / Q2B / Q3 / Q2C / Q4 / Q5 / Q6 / Q7. (8) 3-day/7-day coexistence policy frozen to additive (both fields present). (9) Signed and absolute relative errors separated. (10) Missing-window policy frozen to a single canonical rule. (11) Per-quantile single-day peak metrics frozen. (12) Forbidden-action evidence expanded to cover all v1.1 corrections. |
 
 ---
 
-## §L. Sign-off (to be completed by Charles upon acceptance)
+## §M. Sign-off (to be completed by Charles upon acceptance)
 
 ```text
-SLICE_Q1_DATA_COVERAGE_AUDIT_ACCEPTED
+SLICE_Q1_DATA_COVERAGE_AUDIT_V1_1_PENDING_RE_REVIEW
 MIGRATION_HISTORY_VERIFIED
 3DAY_PRODUCTION_CONTRACT_INVENTORY_VERIFIED
-ACTUAL_LABEL_CANDIDATE_AUDIT_VERIFIED
-REAL_DATA_COVERAGE_BLOCKED_BY_DATA
-Q2_REAL_DATA_COVERAGE_QUERY_REQUIRED
+LIVE_DATABASE_DISCOVERY_VERIFIED
+REAL_DATA_COVERAGE_STATUS_NOT_VERIFIED_LIVE_DATABASE_EMPTY
+Q2_DESIGN_CAN_START
+Q2_IMPLEMENTATION_NOT_READY
 ```
 
 (Charles to amend the above with explicit `ACCEPTED` or `REVISED` markers.)
