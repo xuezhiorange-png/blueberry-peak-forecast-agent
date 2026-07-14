@@ -346,6 +346,147 @@ a {
     gap: var(--space-sm);
 }
 
+.peak-draft-status {
+    margin: 0;
+    padding: var(--space-sm);
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    min-height: 1.4em;
+    border-radius: var(--radius-sm);
+}
+.peak-draft-status.success {
+    background: rgba(26, 188, 156, 0.15);
+    color: var(--color-confirmed);
+    border-left: 3px solid var(--color-confirmed);
+}
+.peak-draft-status.error {
+    background: rgba(225, 90, 90, 0.15);
+    color: var(--color-blocked);
+    border-left: 3px solid var(--color-blocked);
+}
+
+/* ---- Capability question dialog ---- */
+.capability-dialog {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 0;
+    background: var(--color-bg-elevated);
+    color: var(--color-text-primary);
+    max-width: 560px;
+    width: 90vw;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+.capability-dialog::backdrop {
+    background: rgba(10, 15, 25, 0.7);
+}
+.capability-dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+}
+.capability-dialog-title {
+    margin: 0;
+    font-size: 18px;
+    color: var(--color-text-primary);
+}
+.capability-dialog-subtitle {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+.capability-dialog-list {
+    margin: 0;
+    padding-left: var(--space-lg);
+    color: var(--color-text-primary);
+    max-height: 50vh;
+    overflow-y: auto;
+}
+.capability-dialog-list li {
+    margin-bottom: var(--space-xs);
+    line-height: 1.5;
+}
+.capability-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}
+
+/* ---- Highlight for target capability section ---- */
+.feedback-capability.highlight-target {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    transition: outline-color 0.2s;
+    animation: highlight-pulse 1.5s ease-out;
+}
+@keyframes highlight-pulse {
+    0% { background: rgba(108, 92, 231, 0.3); }
+    100% { background: var(--color-bg-card); }
+}
+
+/* ---- Question-level feedback section ---- */
+.feedback-question-section {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+.feedback-question-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+.feedback-question-item {
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+.feedback-question-item .question-id {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+.feedback-question-item .question-text {
+    color: var(--color-text-primary);
+    font-size: 13px;
+}
+.feedback-question-item .question-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+.feedback-question-item .question-controls .status-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+.feedback-question-item .question-controls .status-group button {
+    font-size: 12px;
+    padding: 4px var(--space-sm);
+}
+.feedback-question-item .question-controls .status-group button[aria-pressed="true"] {
+    background: var(--color-accent);
+    color: #ffffff;
+    border-color: var(--color-accent);
+}
+.feedback-question-item .question-controls textarea {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    resize: vertical;
+    min-height: 36px;
+    font-size: 13px;
+}
+
 /* ---- Result block (always-blocked) ---- */
 .result-block {
     border-radius: var(--radius-md);

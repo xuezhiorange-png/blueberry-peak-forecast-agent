@@ -13,16 +13,31 @@
     var STORAGE_KEY = content.storageKey;
     var DRAFT_STORAGE_KEY = content.draftStorageKey;
     var FEEDBACK_VIEW = "feedback";
+    var PENDING_TRIGGER = null; // last button that opened the question dialog, for focus return
+    if (typeof window !== "undefined") {
+        window.__PROTOTYPE_DEBUG__ = {
+            getPendingTrigger: function () { return PENDING_TRIGGER; }
+        };
+    }
 
+    /* ---- Storage helpers ---- */
     function loadFeedback() {
         try {
             var raw = window.localStorage.getItem(STORAGE_KEY);
             if (!raw) {
-                return { capability_feedback: [], general_feedback: "" };
+                return {
+                    capability_feedback: [],
+                    general_feedback: "",
+                    question_feedback: []
+                };
             }
             var parsed = JSON.parse(raw);
             if (!parsed || typeof parsed !== "object") {
-                return { capability_feedback: [], general_feedback: "" };
+                return {
+                    capability_feedback: [],
+                    general_feedback: "",
+                    question_feedback: []
+                };
             }
             if (!Array.isArray(parsed.capability_feedback)) {
                 parsed.capability_feedback = [];
@@ -30,9 +45,16 @@
             if (typeof parsed.general_feedback !== "string") {
                 parsed.general_feedback = "";
             }
+            if (!Array.isArray(parsed.question_feedback)) {
+                parsed.question_feedback = [];
+            }
             return parsed;
         } catch (err) {
-            return { capability_feedback: [], general_feedback: "" };
+            return {
+                capability_feedback: [],
+                general_feedback: "",
+                question_feedback: []
+            };
         }
     }
 
@@ -81,8 +103,18 @@
         }
     }
 
+    /* ---- Peak draft status helper (visible in current page) ---- */
+    function setPeakDraftStatus(text, cls) {
+        var el = document.getElementById("peak-draft-status");
+        if (!el) {
+            return;
+        }
+        el.textContent = text;
+        el.className = "peak-draft-status" + (cls ? " " + cls : "");
+    }
+
     /* ---- View routing ---- */
-    function switchView(targetView) {
+    function switchView(targetView, options) {
         var tabs = document.querySelectorAll(".nav-tab");
         tabs.forEach(function (tab) {
             var isActive = tab.getAttribute("data-view") === targetView;
@@ -101,12 +133,34 @@
         });
         if (targetView === FEEDBACK_VIEW) {
             closeDrawer();
+            hydrateFeedbackForm();
+            if (options && options.focusCapabilityId) {
+                window.setTimeout(function () {
+                    focusAndHighlightCapability(options.focusCapabilityId);
+                }, 50);
+            }
         }
         if (targetView === "peak") {
             hydratePeakDraft();
         }
-        if (targetView === "feedback") {
-            hydrateFeedbackForm();
+    }
+
+    function focusAndHighlightCapability(capabilityId) {
+        var section = document.querySelector(".feedback-capability[data-capability-id=\"" + capabilityId + "\"]");
+        if (!section) {
+            return;
+        }
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+        section.classList.remove("highlight-target");
+        // Force reflow to restart animation
+        void section.offsetWidth;
+        section.classList.add("highlight-target");
+        window.setTimeout(function () {
+            section.classList.remove("highlight-target");
+        }, 1600);
+        var firstControl = section.querySelector("button, textarea, input, select");
+        if (firstControl) {
+            firstControl.focus();
         }
     }
 
@@ -156,7 +210,7 @@
             viewQuestionsBtn.className = "btn btn-secondary";
             viewQuestionsBtn.textContent = "查看待确认问题";
             viewQuestionsBtn.addEventListener("click", function () {
-                showCapabilityQuestions(cap);
+                openCapabilityQuestionDialog(cap, viewQuestionsBtn);
             });
             actions.appendChild(viewQuestionsBtn);
 
@@ -165,7 +219,7 @@
             recordFeedbackBtn.className = "btn btn-primary";
             recordFeedbackBtn.textContent = "记录反馈";
             recordFeedbackBtn.addEventListener("click", function () {
-                switchView(FEEDBACK_VIEW);
+                switchView(FEEDBACK_VIEW, { focusCapabilityId: cap.id });
             });
             actions.appendChild(recordFeedbackBtn);
 
@@ -174,72 +228,144 @@
         });
     }
 
-    function showCapabilityQuestions(cap) {
-        var questions = {
-            "SUSTAINED_PROCESSING_CAPACITY": [
-                "持续加工能力的业务定义是什么？",
-                "时间粒度是日 / 周 / 旬 / 月？",
-                "位置粒度是工厂 / 产线 / 班组？",
-                "是否受品种影响？",
-                "是否纳入设备约束？",
-                "是否纳入人员约束？",
-                "是否纳入冷库约束？"
-            ],
-            "RECEIVING_PEAK_CAPACITY": [
-                "峰值接收能力 = 到达能力 / 加工能力 / 缓冲能力 / 冷库接收能力？",
-                "四者是否分别定义？",
-                "峰值定义：绝对峰值 / 滚动窗口 / 持续时段？",
-                "统计窗口是日 / 时段 / 周？",
-                "数据来源：现场统计 / 业务记录 / 外部系统？",
-                "是否包含异常峰值？"
-            ],
-            "SHIFT_STAFFING": [
-                "人员数据来源：HR 系统 / 生产排班 / 现场统计？",
-                "覆盖范围：单班 / 全天 / 全周？",
-                "是否区分岗位技能？",
-                "人员效率如何度量？",
-                "缺勤因素如何纳入？"
-            ],
-            "SPRING_FESTIVAL_STAFFING": [
-                "节假日日历来源：国家公告 / 企业内部？",
-                "春节期间人员可用性如何度量？",
-                "班次是否变化？",
-                "生产计划是否调整？",
-                "采摘与运输是否影响？"
-            ],
-            "VARIETY_STAGGER": [
-                "品种错峰 = 自然成熟时间差 / 采摘计划错峰 / 加工计划错峰？",
-                "三者是否可混用？",
-                "统计口径：日 / 周 / 旬？",
-                "地点口径：单厂 / 跨厂？",
-                "品种口径：单一 / 多品种组合？"
-            ],
-            "CROSS_PLANT_DISPATCH": [
-                "目标函数：降低加工峰值 / 降低运输 / 提高设备利用率 / 降低人员压力？",
-                "约束：产能 / 距离 / 冷链 / 品种 / 订单 / 设备？",
-                "候选工厂是否已确定？",
-                "选择规则是否已确定？",
-                "成本与优先级是否纳入？"
-            ]
-        };
-        var list = questions[cap.id] || ["该能力的待确认问题列表尚未配置。"];
-        var message = cap.name + " — 待确认问题：\n\n" + list.map(function (q) { return "• " + q; }).join("\n");
-        window.alert(message);
+    /* ---- Capability question dialog ---- */
+    function bindCapabilityDialog() {
+        var dialog = document.getElementById("capability-question-dialog");
+        if (!dialog) {
+            return;
+        }
+        // Use the native <dialog> close flow: when Escape is pressed (or form submitted
+        // with method="dialog"), the browser dispatches a cancel event followed by close.
+        // We rely on the browser's built-in focus restoration to the opener, but capture
+        // PENDING_TRIGGER to verify behavior.
+        dialog.addEventListener("close", function () {
+            if (window.__PROTOTYPE_DEBUG__) {
+                window.__PROTOTYPE_DEBUG__.lastCloseFired = true;
+                window.__PROTOTYPE_DEBUG__.closePENDING = PENDING_TRIGGER ? PENDING_TRIGGER.textContent : "null";
+            }
+            if (PENDING_TRIGGER && typeof PENDING_TRIGGER.focus === "function") {
+                // Defer focus restoration to next microtask so the browser's own
+                // post-close focus restore does not race with ours.
+                window.requestAnimationFrame(function () {
+                    try {
+                        PENDING_TRIGGER.focus({ preventScroll: true });
+                    } catch (err) {
+                        PENDING_TRIGGER.focus();
+                    }
+                });
+            }
+            PENDING_TRIGGER = null;
+        });
+    }
+
+    function openCapabilityQuestionDialog(cap, triggerButton) {
+        var dialog = document.getElementById("capability-question-dialog");
+        if (!dialog || typeof dialog.showModal !== "function") {
+            return;
+        }
+        var title = document.getElementById("capability-dialog-title");
+        var subtitle = document.getElementById("capability-dialog-subtitle");
+        var list = document.getElementById("capability-dialog-list");
+        if (!title || !subtitle || !list) {
+            return;
+        }
+        title.textContent = cap.name + " — 待确认问题";
+        subtitle.textContent = "以下问题仅用于业务讨论；勾选后可在「业务反馈 → 逐问题反馈」中记录状态与备注。";
+        list.textContent = "";
+        var questions = getQuestionsForCapability(cap.id);
+        if (questions.length === 0) {
+            var li = document.createElement("li");
+            li.textContent = "该能力的待确认问题列表尚未配置。";
+            list.appendChild(li);
+        } else {
+            questions.forEach(function (q) {
+                var li = document.createElement("li");
+                li.textContent = q.text;
+                list.appendChild(li);
+            });
+        }
+        PENDING_TRIGGER = triggerButton || null;
+        dialog.showModal();
+        // Focus management: focus the close button after open
+        var closeBtn = document.getElementById("capability-dialog-close");
+        if (closeBtn) {
+            window.setTimeout(function () { closeBtn.focus(); }, 0);
+        }
+    }
+
+    function closeCapabilityQuestionDialog() {
+        var dialog = document.getElementById("capability-question-dialog");
+        if (!dialog || !dialog.open) {
+            return;
+        }
+        var trigger = PENDING_TRIGGER;
+        PENDING_TRIGGER = null;
+        dialog.close();
+        if (trigger && typeof trigger.focus === "function") {
+            try {
+                trigger.focus({ preventScroll: false });
+            } catch (err) {
+                trigger.focus();
+            }
+        }
+    }
+
+    function bindCapabilityDialog() {
+        var dialog = document.getElementById("capability-question-dialog");
+        if (!dialog) {
+            return;
+        }
+        dialog.addEventListener("close", function () {
+            if (window.__PROTOTYPE_DEBUG__) {
+                window.__PROTOTYPE_DEBUG__.lastCloseFired = true;
+                window.__PROTOTYPE_DEBUG__.closePENDING = PENDING_TRIGGER ? PENDING_TRIGGER.textContent : "null";
+            }
+            if (PENDING_TRIGGER && typeof PENDING_TRIGGER.focus === "function") {
+                try {
+                    PENDING_TRIGGER.focus({ preventScroll: false });
+                } catch (err) {
+                    PENDING_TRIGGER.focus();
+                }
+            }
+            PENDING_TRIGGER = null;
+        });
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && dialog.open) {
+                e.preventDefault();
+                dialog.close();
+            }
+        });
+    }
+
+    function getQuestionsForCapability(capabilityId) {
+        return (content.questions || []).filter(function (q) {
+            return q.capability_id === capabilityId;
+        });
     }
 
     /* ---- Peak draft ---- */
     function hydratePeakDraft() {
         var draft = loadDraft();
         if (!draft) {
+            setPeakDraftStatus("");
             return;
         }
         var fields = ["peak-location", "peak-window", "peak-arrival", "peak-receiving", "peak-processing", "peak-buffer"];
+        var anyValue = false;
         fields.forEach(function (id) {
             var el = document.getElementById(id);
             if (el && typeof draft[id] === "string") {
                 el.value = draft[id];
+                if (draft[id].length > 0) {
+                    anyValue = true;
+                }
             }
         });
+        if (anyValue) {
+            setPeakDraftStatus("已恢复本地保存的草稿。", "success");
+        } else {
+            setPeakDraftStatus("");
+        }
     }
 
     function collectPeakDraft() {
@@ -260,15 +386,31 @@
         }
         saveBtn.addEventListener("click", function () {
             var ok = saveDraft(collectPeakDraft());
-            var msg = document.getElementById("feedback-status");
-            if (msg) {
-                msg.textContent = ok ? "草稿已保存到 localStorage。" : "草稿保存失败：localStorage 不可用。";
-                msg.className = "feedback-status " + (ok ? "success" : "error");
+            if (ok) {
+                setPeakDraftStatus("草稿已保存到 localStorage。", "success");
+            } else {
+                setPeakDraftStatus("草稿保存失败：localStorage 不可用。", "error");
             }
         });
-        form.addEventListener("reset", function () {
-            clearDraft();
-        });
+        var clearBtn = document.getElementById("peak-clear-draft");
+        if (clearBtn) {
+            clearBtn.addEventListener("click", function () {
+                // Reset form fields
+                var fields = ["peak-location", "peak-window", "peak-arrival", "peak-receiving", "peak-processing", "peak-buffer"];
+                fields.forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) {
+                        el.value = "";
+                    }
+                });
+                var ok = clearDraft();
+                if (ok) {
+                    setPeakDraftStatus("草稿已清空。", "success");
+                } else {
+                    setPeakDraftStatus("草稿清空失败：localStorage 不可用。", "error");
+                }
+            });
+        }
     }
 
     /* ---- Feedback view ---- */
@@ -334,6 +476,63 @@
         });
     }
 
+    function renderQuestionFeedbackList() {
+        var list = document.getElementById("feedback-question-list");
+        if (!list) {
+            return;
+        }
+        list.textContent = "";
+        (content.questions || []).forEach(function (q) {
+            var item = document.createElement("div");
+            item.className = "feedback-question-item";
+            item.setAttribute("data-question-id", q.id);
+            item.setAttribute("data-capability-id", q.capability_id);
+
+            var idEl = document.createElement("span");
+            idEl.className = "question-id";
+            idEl.textContent = q.id;
+            item.appendChild(idEl);
+
+            var textEl = document.createElement("span");
+            textEl.className = "question-text";
+            textEl.textContent = q.text;
+            item.appendChild(textEl);
+
+            var controls = document.createElement("div");
+            controls.className = "question-controls";
+
+            var statusGroup = document.createElement("div");
+            statusGroup.className = "status-group";
+            statusGroup.setAttribute("role", "group");
+            statusGroup.setAttribute("aria-label", "对 " + q.id + " 的理解状态");
+            content.feedbackStatusOptions.forEach(function (opt) {
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn";
+                btn.setAttribute("data-question-status-value", opt.value);
+                btn.setAttribute("aria-pressed", "false");
+                btn.textContent = opt.label;
+                btn.addEventListener("click", function () {
+                    var siblings = statusGroup.querySelectorAll("button");
+                    siblings.forEach(function (sib) { sib.setAttribute("aria-pressed", "false"); });
+                    btn.setAttribute("aria-pressed", "true");
+                });
+                statusGroup.appendChild(btn);
+            });
+            controls.appendChild(statusGroup);
+
+            var ta = document.createElement("textarea");
+            ta.rows = 1;
+            ta.setAttribute("data-question-comment", "1");
+            ta.setAttribute("aria-label", q.id + " 备注");
+            ta.placeholder = "备注（可选）";
+            controls.appendChild(ta);
+
+            item.appendChild(controls);
+            list.appendChild(item);
+        });
+    }
+
     function hydrateFeedbackForm() {
         var state = loadFeedback();
         var perCap = {};
@@ -363,6 +562,26 @@
         if (general) {
             general.value = state.general_feedback || "";
         }
+        // question feedback
+        var perQ = {};
+        state.question_feedback.forEach(function (entry) {
+            if (entry && entry.question_id) {
+                perQ[entry.question_id] = entry;
+            }
+        });
+        document.querySelectorAll(".feedback-question-item").forEach(function (item) {
+            var qid = item.getAttribute("data-question-id");
+            var entry = perQ[qid] || {};
+            var statusVal = entry.status || "";
+            item.querySelectorAll("button[data-question-status-value]").forEach(function (btn) {
+                var matches = btn.getAttribute("data-question-status-value") === statusVal;
+                btn.setAttribute("aria-pressed", matches ? "true" : "false");
+            });
+            var ta = item.querySelector("textarea[data-question-comment]");
+            if (ta) {
+                ta.value = (entry.comment && typeof entry.comment === "string") ? entry.comment : "";
+            }
+        });
     }
 
     function collectFeedbackFromForm() {
@@ -384,9 +603,31 @@
             perCap.push(entry);
         });
         var general = document.getElementById("general-feedback");
+        var perQ = [];
+        document.querySelectorAll(".feedback-question-item").forEach(function (item) {
+            var qid = item.getAttribute("data-question-id");
+            var capId = item.getAttribute("data-capability-id");
+            var statusVal = "";
+            var activeBtn = item.querySelector("button[data-question-status-value][aria-pressed=\"true\"]");
+            if (activeBtn) {
+                statusVal = activeBtn.getAttribute("data-question-status-value") || "";
+            }
+            var commentVal = "";
+            var ta = item.querySelector("textarea[data-question-comment]");
+            if (ta) {
+                commentVal = ta.value;
+            }
+            perQ.push({
+                question_id: qid,
+                capability_id: capId,
+                status: statusVal,
+                comment: commentVal
+            });
+        });
         return {
             capability_feedback: perCap,
-            general_feedback: general ? general.value : ""
+            general_feedback: general ? general.value : "",
+            question_feedback: perQ
         };
     }
 
@@ -415,7 +656,8 @@
                     prototype_version: content.prototypeVersion,
                     exported_at: new Date().toISOString(),
                     capability_feedback: state.capability_feedback,
-                    general_feedback: state.general_feedback
+                    general_feedback: state.general_feedback,
+                    question_feedback: state.question_feedback
                 };
                 var json = JSON.stringify(exportObj, null, 2);
                 try {
@@ -507,8 +749,10 @@
         renderOverview();
         bindPeakForm();
         renderFeedbackCapabilityList();
+        renderQuestionFeedbackList();
         bindFeedbackActions();
         bindDrawer();
+        bindCapabilityDialog();
         switchView("overview");
     }
 
