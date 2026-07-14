@@ -258,7 +258,7 @@ async def test_postgres_same_prefix_blocker_collision_total_order(
         run_id_override=None,
         destination_factory_id=request_destination,
         requested_variety_codes=(),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     assert selection.candidates == ()
     # The selector must surface both visible-but-failing rows.
@@ -356,7 +356,7 @@ async def test_postgres_same_prefix_reversed_row_delivery_byte_identical(
         run_id_override=None,
         destination_factory_id=request_destination,
         requested_variety_codes=(),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     # SAME rows, SAME authority IDs — only the consumption order
     # of the underlying SQLAlchemy result is flipped.
@@ -367,7 +367,7 @@ async def test_postgres_same_prefix_reversed_row_delivery_byte_identical(
         run_id_override=None,
         destination_factory_id=request_destination,
         requested_variety_codes=(),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
 
     assert normal.candidates == ()

@@ -100,12 +100,12 @@ def _residual_tables() -> list:
     ]
 
 
-def _variety_tables() -> list:
-    """Variety ORM table only (no JSONB columns)."""
+def _master_data_tables() -> list:
+    """Master-data tables needed by Agent production wiring."""
 
-    from backend.app.models.master_data import Variety
+    from backend.app.models.master_data import Season, Variety
 
-    return [Variety.__table__]
+    return [Season.__table__, Variety.__table__]
 
 
 @pytest_asyncio.fixture
@@ -155,7 +155,7 @@ async def sqlite_session() -> AsyncSession:
             )
         )
         await conn.run_sync(
-            lambda sync_conn: Variety.metadata.create_all(sync_conn, tables=_variety_tables())
+            lambda sync_conn: Variety.metadata.create_all(sync_conn, tables=_master_data_tables())
         )
 
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)

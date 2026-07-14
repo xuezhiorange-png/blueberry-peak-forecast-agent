@@ -207,9 +207,12 @@ class DefaultScenarioAdapter:
     ) -> SimulateScenarioOutput:
         validation_blockers = _validate_overrides(input.scenario_overrides)
         if validation_blockers:
-            raise ValueError(
-                "scenario overrides failed validation: "
-                + "; ".join(b.code.value for b in validation_blockers)
+            scenario_id, scenario_config_hash = _scenario_id_and_hash(input.scenario_overrides)
+            return SimulateScenarioOutput(
+                scenario_id=scenario_id,
+                scenario_config_hash=scenario_config_hash,
+                status="BLOCKED",
+                blockers=validation_blockers,
             )
 
         scenario_id, scenario_config_hash = _scenario_id_and_hash(input.scenario_overrides)

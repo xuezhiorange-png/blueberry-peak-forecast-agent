@@ -19,12 +19,13 @@ existing one, so reviewers can diff the change in isolation. The
 """
 
 import os
+from datetime import date
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
 
 from backend.app.main import create_app
+from backend.app.models.master_data import Season
 
 pytestmark = pytest.mark.integration
 
@@ -64,21 +65,18 @@ async def test_health_ready_under_transactional_isolation(
     """
     app = create_app()
 
-    # Direct-DB round-trip under the new fixture.
-    probe_code = "S2-HEALTH-READY-PROBE"
-    await transactional_pg_session.execute(
-        text(
-            "INSERT INTO dim_season (season_code, display_name) "
-            "VALUES (:code, :name) "
-            "ON CONFLICT (season_code) DO NOTHING"
-        ),
-        {"code": probe_code, "name": "slice2 health probe"},
+    # Direct-DB round-trip under the current ORM schema.  Keep this probe
+    # aligned with ``Season(code, start_date, end_date)`` rather than
+    # maintaining stale hand-written column names.
+    probe = Season(
+        code="S2-HEALTH-READY-PROBE",
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 12, 31),
     )
-    result = await transactional_pg_session.execute(
-        text("SELECT display_name FROM dim_season WHERE season_code = :code"),
-        {"code": probe_code},
-    )
-    assert result.scalar_one() == "slice2 health probe"
+    transactional_pg_session.add(probe)
+    await transactional_pg_session.flush()
+    assert probe.id is not None
+    assert probe.code == "S2-HEALTH-READY-PROBE"
 
     # Original HTTP contract still asserted.
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
