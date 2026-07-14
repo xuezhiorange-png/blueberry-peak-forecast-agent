@@ -233,6 +233,49 @@ The 7-day peak field is not yet first-class in `origin/main`. The Q1 v1.2 design
 
 The merged `ForecastDailyRow.harvested_quantity_kg: DailyQuantiles` field is the model-predicted flow. It is NOT the `actual_harvest_quantity` business object. The two MUST NOT be conflated or renamed into each other. The Q1 v1.2 mapping table in the Q1 contract document §5.3 names the `harvested_quantity_kg` field as `model_harvested_quantity` with the qualifier `MODEL_OUTPUT / NOT_DIRECT_OBSERVATION / NOT_PRIMARY_ACTUAL_LABEL`.
 
+### §C.6 TASK-009 member-row fields verified against `origin/main` (v1.3 per review 4695538593)
+
+Q1 v1.3 verifies the actual TASK-009 member-row schema in `origin/main` directly. The class is `HarvestStateDailyMemberRowModel` (table `harvest_state_daily_member_row`), file `backend/app/models/harvest_state.py`. The verified schema fields are:
+
+| Field | Type | Constraint | Verified |
+|---|---|---|---|
+| `id` | `BIGINT` | primary key, autoincrement | YES |
+| `harvest_state_run_id` | `BIGINT` | FK to `harvest_state_run.id`, RESTRICT, NOT NULL | YES |
+| `state_date` | `Date` | NOT NULL | YES |
+| `forecast_quantile` | `Text` | CHECK in (`P50`, `P80`, `P90`), NOT NULL | YES |
+| `capacity_pool_id` | `Text` | NOT NULL | YES |
+| `capacity_pool_grain` | `Text` | CHECK in (`SUBFARM_VARIETY`, `SUBFARM`, `FARM`), NOT NULL | YES |
+| `capacity_pool_membership_hash` | `Text` | SHA-256, NOT NULL | YES |
+| `farm_id` | `BIGINT` | NOT NULL | YES |
+| `subfarm_id` | `BIGINT` | nullable | YES |
+| `subfarm_identity_key` | `Text` | CHECK `<> ''`, NOT NULL | YES |
+| `variety_id` | `BIGINT` | NOT NULL | YES |
+| `destination_factory_id` | `BIGINT` | NOT NULL | YES |
+| `opening_mature_inventory_kg` | `Numeric(18, 3)` | non-negative, NOT NULL | YES |
+| `natural_maturity_supply_kg` | `Numeric(18, 3)` | non-negative, NOT NULL | YES |
+| `available_mature_quantity_kg` | `Numeric(18, 3)` | non-negative, NOT NULL | YES |
+| `mature_inventory_loss_quantity_kg` | `Numeric(18, 3)` | non-negative, NOT NULL | YES |
+| **`harvestable_mature_quantity_kg`** | `Numeric(18, 3)` | non-negative, NOT NULL | **YES — already in `origin/main`** |
+| `allocated_harvest_capacity_kg` | `Numeric(18, 3)` | non-negative, NOT NULL | YES |
+| **`harvested_quantity_kg`** | `Numeric(18, 3)` | non-negative, NOT NULL | **YES — already in `origin/main`** |
+| `closing_mature_inventory_kg` | `Numeric(18, 3)` | non-negative, NOT NULL | YES |
+| `unharvested_backlog_kg` | `Numeric(18, 3)` | non-negative, NOT NULL | YES |
+| `arrival_quantity_kg` | `Numeric(18, 3)` | non-negative, NOT NULL | YES |
+| `opening_cohort_count` | (int) | non-negative, NOT NULL | YES |
+| `closing_cohort_count` | (int) | non-negative, NOT NULL | YES |
+
+`UniqueConstraint`: `(harvest_state_run_id, state_date, capacity_pool_id, farm_id, subfarm_identity_key, variety_id, forecast_quantile)` named `uq_harvest_state_daily_member_business_key`. `Index`: `(harvest_state_run_id)` named `ix_harvest_state_daily_member_run_id`.
+
+The member-grain grain is `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (carrying `farm_id`, `subfarm_id` / `subfarm_identity_key`, `variety_id`, `state_date`, `forecast_quantile`, plus `destination_factory_id`).
+
+Q1 v1.3 reconciles the previously misdescribed "future TASK-009 member field" status:
+
+- `harvestable_mature_quantity_kg` is **already present** on `HarvestStateDailyMemberRowModel`. It is a model output (`MODEL_OUTPUT`), at the member grain, in `origin/main`. Q1 v1.3 freezes `HARVESTABLE_MEMBER_OUTPUT_STATUS = AVAILABLE_AS_TASK9_HARVESTABLE_MATURE_QUANTITY`.
+- `harvested_quantity_kg` is **already present** on **both** the Agent aggregate layer (`ForecastDailyRow.harvested_quantity_kg: DailyQuantiles`) and the TASK-009 member-row layer (`HarvestStateDailyMemberRowModel.harvested_quantity_kg: Numeric(18, 3)`). Q1 v1.3 freezes `MODEL_HARVESTED_MEMBER_OUTPUT_STATUS = AVAILABLE_AS_TASK9_HARVESTED_QUANTITY` and `MODEL_HARVESTED_AGENT_AGGREGATE_STATUS = AVAILABLE_AS_FORECAST_DAILY_ROW_AGGREGATE`.
+- The `ForecastDailyRow` Agent aggregate does NOT carry a first-class `harvestable_quantity_kg` field. Q1 v1.3 freezes `HARVESTABLE_AGENT_AGGREGATE_FIELD_STATUS = NOT_CURRENTLY_AVAILABLE`.
+- The member-grain fields are model outputs, NOT direct observations, and NOT primary actual-harvest labels. Q1 v1.3 freezes `MODEL_HARVESTED_DIRECT_ACTUAL_OBSERVATION = NO` and `MODEL_HARVESTED_PRIMARY_ACTUAL_LABEL = NO`.
+- The primary actual-harvest label remains `NOT_CURRENTLY_AVAILABLE`. The member-grain availability does NOT promote the field to a label.
+
 ---
 
 ## §D. Actual-label candidate audit (v1.2 per review 4695151631 P0-4)

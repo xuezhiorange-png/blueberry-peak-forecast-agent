@@ -3,12 +3,13 @@
 | Field | Value |
 |---|---|
 | Document ID | `slice-q1-forecast-target-and-evaluation-contract` |
-| Document version | v1.2 (Q1 final contract docs-only fixup per review 4695151631) |
-| Document status | `DRAFT — Q1 final fixup applied, awaiting Charles re-review` |
+| Document version | v1.3 (Q1 schema-fact correction per review 4695538593) |
+| Document status | `DRAFT — Q1 schema-fact correction applied, awaiting Charles re-review` |
 | Tracking Issue | `#102` (OPEN) — `[P0 Epic] Blueberry forecast quality validation and historical backtest loop` |
 | Q1 authorization comment | `IC_kwDOS_gTTs8AAAABKDOkiQ` (id `4969440393`) on Issue #102 |
 | Q1 P0 fixup review | `4694771522` (verdict `PR103_SLICE_Q1_REVIEW_P0_FIXUP_REQUIRED`) |
-| Q1 final review | `4695151631` (verdict `PR103_SLICE_Q1_P0_FIXUP_MAJORITY_CLOSED` + `FINAL_CONTRACT_FIXUP_REQUIRED`) |
+| Q1 final-contract review | `4695151631` (verdict `PR103_SLICE_Q1_P0_FIXUP_MAJORITY_CLOSED` + `FINAL_CONTRACT_FIXUP_REQUIRED`) |
+| Q1 schema-fact review | `4695538593` (verdict `PR103_SLICE_Q1_SCHEMA_FACT_CORRECTION_REQUIRED`) |
 | Working base | `origin/main` at `2e860511dd9279d0aa3c64dd760bea8531fad458` |
 | Working branch | `docs/issue-102-slice-q1-forecast-evaluation-contract` |
 | Working worktree | `/tmp/issue-102-slice-q1-forecast-evaluation-contract` |
@@ -23,7 +24,7 @@
 | Ready / merge / Issue closure | NOT AUTHORIZED in this document |
 | TASK-013 C2 resumption | NOT AUTHORIZED in this document |
 
-> Q1 v1.2 is a final docs-only fixup on the same branch and PR #103. v1.2 does not introduce any new mutation; v1.2 only corrects four contract contradictions (P0-1..4) and two compatibility-policy issues (P1-1, P1-2) identified by review `4695151631`. v1.2 preserves all v1.1 P0 fixes (dual-cutoff, six-field inventory, aggregate grain, etc.) and adds the final unified decision table per round §十一.
+> Q1 v1.3 is a minimal schema-fact correction docs-only fixup on the same branch and PR #103. v1.3 does NOT redesign any of the previously accepted directions: dual-cutoff model, revision lineage fail-closed, primary-harvest vs arrival-proxy separation, sustained 7-day primary target, 3-day legacy compatibility, signed/absolute relative-error split, or Q1..Q7 acyclic slice ordering. v1.3 only (1) reconciles TASK-009 member-grain `harvestable_mature_quantity_kg` and `harvested_quantity_kg` as **existing** fields on `harvest_state_daily_member_row` (not future fields), (2) splits the harvestable / harvested status into four explicit states separating member-grain availability from Agent aggregate availability, and (3) renames the eight-quantities section to "Nine forecast/evaluation objects" to match the v1.2 nine-row physical-object table.
 
 ---
 
@@ -33,14 +34,15 @@
 
 Q1 freezes:
 
-1. the primary forecast target and the distinction among eight physical quantities (`natural_maturity_quantity`, `mature_inventory_quantity`, `harvestable_quantity`, `actual_harvest_quantity`, `unharvested_backlog_quantity`, `arrival_quantity`, `final_corrected_arrival_quantity`, `season_cumulative_quantity`);
+1. the primary forecast target and the distinction among **nine forecast/evaluation objects** (`natural_maturity_quantity`, `mature_inventory_quantity`, `harvestable_quantity`, `model_harvested_quantity`, `actual_harvest_quantity`, `unharvested_backlog_quantity`, `arrival_quantity`, `final_corrected_arrival_quantity`, `season_cumulative_quantity`);
 2. the **dual time-cutoff model** (`forecast_cutoff_at` gates model inputs; `label_observation_cutoff_at` gates actual-label revision visibility for evaluation);
 3. the historical-replay time model: `forecast_cutoff_at < forecast_target_date_or_window_end <= label_observation_cutoff_at <= replay_executed_at`;
 4. the canonical actual-label contract, including grain, unit, event date semantics, recorded-at, revised-at, point-in-time visibility, duplicate handling, missing-day handling, late-revision handling, zero-day handling, and the **fail-closed revision-lineage policy** (unique visible terminal revision on one explicit supersession chain);
 5. the evaluation grain;
 6. the full metric contract: daily, cumulative, single-day peak, sustained 7-day peak, quantile calibration, interval width, pinball loss, with explicit signed/absolute relative-error separation;
 7. the sustained 7-day peak contract and the **3-day = legacy compatibility / 7-day = primary business target** compatibility policy;
-8. a reproducible, aggregate-only data-coverage report (with truthful `NOT_VERIFIED` reporting when a reachable database has no data).
+8. the four-state separation between TASK-009 member-grain output availability and Agent aggregate availability for the harvestable and harvested quantities;
+9. a reproducible, aggregate-only data-coverage report (with truthful `NOT_VERIFIED_EMPTY_DATABASE` reporting when a reachable database has no data).
 
 ### §1.2 Out of scope (explicit exclusions)
 
@@ -58,14 +60,15 @@ Q1 does NOT authorize and does NOT produce:
 10. Any naive baseline implementation.
 11. Any silent reinterpretation of the 3-day production field as a 7-day field.
 12. Any change to the existing 3-day production field semantics, including its name, its default, its units, its hash, or its Golden value.
-13. Any TASK-013 C2 resumption.
-14. Any closure of Issue #99 or Issue #102.
-15. Any Ready, merge, or auto-merge on any Draft PR.
-16. Any deletion of any branch, worktree, or untracked file.
-17. Any output of sensitive real business data (farm names, subfarm names, variety names that are not in the public `dim_variety` table, operator names, exact daily quantities, exact forecast outputs, exact row counts on real data).
-18. Any silent promotion of `fact_receipt_daily` (arrival / receipt) to the `actual_harvest_quantity` (orchard pick) primary label. The arrival proxy is a `DESIGN_OPTION` for arrival evaluation, not a primary-label backstop.
-19. Any claim that the 3-day production metric is the first-stage primary sustained metric. The 3-day metric is a `LEGACY_COMPATIBILITY_METRIC` only; the primary sustained metric is the 7-day peak, which is `NOT_YET_COMPUTABLE` until Q3 + Q2C.
-20. Any future deletion of the 3-day production field without a separate compatibility amendment. Q1 freezes `THREE_DAY_RETENTION_STATUS = PRESERVED_FOR_CURRENT_COMPATIBILITY_HORIZON` and `THREE_DAY_REMOVAL = REQUIRES_SEPARATE_COMPATIBILITY_AMENDMENT`.
+13. Any addition of new TASK-009 member-grain fields. The member-grain fields `harvestable_mature_quantity_kg` and `harvested_quantity_kg` are **already present** on `HarvestStateDailyMemberRowModel` (table `harvest_state_daily_member_row`) in `origin/main`. Q1 does NOT propose adding duplicate member-grain fields.
+14. Any TASK-013 C2 resumption.
+15. Any closure of Issue #99 or Issue #102.
+16. Any Ready, merge, or auto-merge on any Draft PR.
+17. Any deletion of any branch, worktree, or untracked file.
+18. Any output of sensitive real business data (farm names, subfarm names, variety names that are not in the public `dim_variety` table, operator names, exact daily quantities, exact forecast outputs, exact row counts on real data).
+19. Any silent promotion of `fact_receipt_daily` (arrival / receipt) to the `actual_harvest_quantity` (orchard pick) primary label. The arrival proxy is a `DESIGN_OPTION` for arrival evaluation, not a primary-label backstop.
+20. Any claim that the 3-day production metric is the first-stage primary sustained metric. The 3-day metric is a `LEGACY_COMPATIBILITY_METRIC` only; the primary sustained metric is the 7-day peak, which is `NOT_YET_COMPUTABLE` until Q3 + Q2C.
+21. Any future deletion of the 3-day production field without a separate compatibility amendment. Q1 freezes `THREE_DAY_RETENTION_STATUS = PRESERVED_FOR_CURRENT_COMPATIBILITY_HORIZON` and `THREE_DAY_REMOVAL = REQUIRES_SEPARATE_COMPATIBILITY_AMENDMENT`.
 
 ### §1.3 Companion documents
 
@@ -114,7 +117,9 @@ The system MUST NOT silently treat any of the following as a synonym for "actual
 - `unharvested_backlog_kg` (model state);
 - `arrival_quantity_kg` (model output of arrival before weather correction);
 - `final_corrected_arrival_quantity_kg` (model output of arrival after weather correction);
-- `harvested_quantity_kg` on `ForecastDailyRow` (model output, not a user-entered actual);
+- `harvested_quantity_kg` on `ForecastDailyRow` (Agent aggregate model output, NOT a user-entered actual);
+- `harvested_quantity_kg` on `HarvestStateDailyMemberRowModel` (TASK-009 member-grain model output, NOT a user-entered actual);
+- `harvestable_mature_quantity_kg` on `HarvestStateDailyMemberRowModel` (TASK-009 member-grain model output, NOT a user-entered actual);
 - any `fact_receipt_daily.weight_kg` (operator-entered receipt / arrival at the factory, not the pick at the orchard).
 
 If the system uses a proxy as a stand-in for the actual label, the proxy MUST be marked as such, and the Q1 design-freeze classifies each candidate below. In particular, the `fact_receipt_daily` proxy is `ARRIVAL_PROXY_EVALUATION_ALLOWED = DESIGN_OPTION` for arrival evaluation; it is NOT the primary `actual_harvest_quantity` label.
@@ -123,9 +128,23 @@ If the system uses a proxy as a stand-in for the actual label, the proxy MUST be
 
 The system MUST NOT use a single time cutoff for both model input visibility and actual-label visibility for scoring. The two time cutoffs are independent; they are defined separately in §4. The single-cutoff conflation would make the backtest structurally unable to score future forecasts (the future target date has not yet occurred at the forecast cutoff). Q1 freezes the two-cutoff model as the only correct anti-leakage boundary.
 
+### §3.3 Hard exclusion of three-layer status collapse (v1.3 per review 4695538593)
+
+Q1 v1.3 freezes a strict three-layer separation between the TASK-009 member-grain model output, the Agent aggregate model output, and the actual-harvest direct observation. These three layers are independent:
+
+| Layer | Example field | Status | Allowed as primary `actual_harvest_quantity` label? |
+|---|---|---|---|
+| TASK-009 member-grain model output | `harvest_state_daily_member_row.harvestable_mature_quantity_kg` | `AVAILABLE_AS_TASK9_HARVESTABLE_MATURE_QUANTITY` (model output) | NO |
+| TASK-009 member-grain model output | `harvest_state_daily_member_row.harvested_quantity_kg` | `AVAILABLE_AS_TASK9_HARVESTED_QUANTITY` (model output) | NO |
+| Agent aggregate model output | `ForecastDailyRow.harvested_quantity_kg` | `AVAILABLE_AS_FORECAST_DAILY_ROW_AGGREGATE` (model output) | NO |
+| Direct actual-harvest observation | (no first-class table on `origin/main`) | `NOT_CURRENTLY_AVAILABLE` (label gap) | YES (intended primary label) |
+| Arrival proxy | `fact_receipt_daily.weight_kg` | `ARRIVAL_PROXY_DESIGN_OPTION` (arrival, not harvest) | NO |
+
+Q1 v1.3 forbids any collapse of these layers into a single status (e.g. `HARVESTABLE_QUANTITY = NOT_CURRENTLY_AVAILABLE` over all layers). The four explicit status fields below (§5.7) capture the four distinct facts.
+
 ---
 
-## §4 Dual time-cutoff model (frozen per review 4694771522 P0-1, preserved in v1.2)
+## §4 Dual time-cutoff model (frozen per review 4694771522 P0-1, preserved in v1.3)
 
 ### §4.1 `forecast_cutoff_at` (frozen)
 
@@ -329,62 +348,59 @@ This is the only correct anti-leakage boundary.
 
 ---
 
-## §5 Forecast-object contracts
+## §5 Forecast-object contracts (Nine forecast/evaluation objects, v1.3 per review 4695538593)
 
-### §5.1 Eight physical quantities (canonical, three-grain split per review 4695151631 P0-3)
+### §5.1 Nine forecast/evaluation objects (canonical, three-grain split per review 4695151631 P0-3, schema-fact corrected per review 4695538593)
 
-For each `(farm, subfarm_or_plot, variety, season, calendar_date)`, the project distinguishes the following eight physical quantities. Each row below is the frozen Q1 contract; no row is interpreted, computed, or persisted outside this contract. The three-grain split separates the **conceptual** business grain, the **current Agent output grain** (which is downstream aggregate, not first-class member), and the **upstream member grain** (which lives on Task 9 member rows, not on the Agent aggregate row).
+Q1 v1.3 freezes nine forecast/evaluation objects (v1.2 listed nine; v1.3 corrects the section title from "eight physical quantities" to "nine forecast/evaluation objects" because the set spans model outputs, derived states, derived evaluation metrics, and unavailable target objects, not only physical quantities).
+
+For each object, the three-grain split separates the **conceptual** business grain, the **current Agent aggregate output grain** (which is downstream aggregate, not first-class member), and the **upstream member grain** (which lives on TASK-009 `HarvestStateDailyMemberRowModel`, not on the Agent aggregate row).
 
 | # | object_name | business_definition | CONCEPTUAL_PHYSICAL_GRAIN | CURRENT_AGENT_OUTPUT_GRAIN | UPSTREAM_MEMBER_GRAIN | physical_meaning | unit | event_date_semantics | source_task | schema_path | persistence_table | current_production_status | actual_or_forecast | proxy_or_direct_observation | can_be_primary_label | can_be_feature | point_in_time_visibility | known_limitations |
 |---:|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | `natural_maturity_quantity` | The model-predicted daily natural maturation of blueberry on the orchard, in the absence of weather and harvest-state effects. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` (carried on `ForecastDailyRow` as a non-persisted Agent output field; no first-class `farm` / `subfarm` / `variety` identity on the row) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (carried on `harvest_state_daily_member_row`; the Agent aggregate row does not have member identity) | A biological-physical quantity produced by the TASK-008 maturity model. It is not a human-observed quantity. | kg | the calendar date on which maturation occurs | TASK-008 | `backend/app/agent/schemas.py::ForecastDailyRow.natural_maturity_quantity_kg: DailyQuantiles` | n/a (Agent output field, not persisted directly; reconstructed from upstream TASK-008 forecast runs) | `RESOLVED_BY_MERGED_AUTHORITY` for schema; `NOT_VERIFIED` for production use in Q1 scope | forecast | `MODEL_OUTPUT` (not a direct observation; not a proxy for actual harvest) | NO | YES | n/a (forecast) | not a label; do not use for backtest |
-| 2 | `mature_inventory_quantity` | The model-predicted closing mature inventory on a calendar date, after natural maturation and harvest-state update. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` | A derived state. | kg | the calendar date on which the closing inventory is reported | TASK-008 / TASK-009 | `ForecastDailyRow.closing_mature_inventory_kg: DailyQuantiles` | n/a | same as #1 | forecast | `DERIVED_STATE` | NO | YES (as feature) | n/a (forecast) | derived; cannot be a label |
-| 3 | `harvestable_quantity` | The model-predicted daily harvestable quantity (the portion of mature inventory that is operationally ready to be picked). | `(farm × subfarm_or_plot × variety × calendar_date)` | `NOT_CURRENTLY_AVAILABLE` (not first-class on `ForecastDailyRow`; `harvested_quantity_kg` is the closest Agent field, but it is a flow not a stock) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (could live on a future TASK-009 member-grain field) | Currently NOT a first-class schema field in `origin/main`. Q1 explicitly marks this object as `NOT_CURRENTLY_AVAILABLE` as a first-class field. Q1 forbids any formula derivation (in particular, `harvestable_quantity = harvested_quantity - unharvested_backlog` is `FORMULA_NOT_AUTHORIZED` because `harvested_quantity` is a flow and `unharvested_backlog` is a stock, and the two physical dimensions do not justify direct subtraction). | kg (target unit) | the calendar date | n/a | **NOT in `origin/main` schema** | none | `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` | n/a | n/a (no field, no formula) | NO | n/a | n/a | Q2A must add a first-class `harvestable_quantity_kg` field with explicit physical authority, or leave the object as `NOT_CURRENTLY_AVAILABLE` indefinitely |
-| 4 | `model_harvested_quantity` (alias for `ForecastDailyRow.harvested_quantity_kg`) | The model-predicted daily quantity of blueberry the model expects to be picked on the orchard. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` (carried on `ForecastDailyRow.harvested_quantity_kg` as a non-persisted Agent output field) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (could live on a future TASK-009 member-grain field) | A model output, NOT a direct observation. The `harvested_quantity_kg` field on `ForecastDailyRow` is explicitly mapped to a model-predicted flow. It is NOT the `actual_harvest_quantity` business object. The two MUST NOT be conflated or renamed into each other. | kg | the calendar date | TASK-008 / TASK-009 | `ForecastDailyRow.harvested_quantity_kg: DailyQuantiles` | n/a (Agent output field) | `RESOLVED_BY_MERGED_AUTHORITY` for schema; `MODEL_OUTPUT` semantics; `NOT_DIRECT_OBSERVATION`; `NOT_PRIMARY_ACTUAL_LABEL` | forecast | `MODEL_OUTPUT` | NO | YES (as feature) | n/a (forecast) | model-predicted flow; not a label; do not confuse with `actual_harvest_quantity` |
-| 5 | `actual_harvest_quantity` | The user-entered or operator-entered daily quantity of blueberry actually picked at the orchard. This is the primary business target for Q1. | `(farm × subfarm_or_plot × variety × calendar_date)` | `NOT_CURRENTLY_AVAILABLE` (no first-class Agent field for the actual; the Agent does not output a direct observation) | `FARM_X_SUBFARM_X_VARIETY_X_DATE` (would live on a dedicated `actual_harvest_daily` table, not on any current Agent field) | A direct observation. The most reliable source today is `fact_receipt_daily.weight_kg` interpreted as **arrival at the factory**, not pick at the orchard. There is **no first-class `actual_harvest_quantity` table in `origin/main`**. | kg (target unit) | the calendar date on which the pick occurred | n/a (no dedicated table) | **NOT in `origin/main` schema** | `fact_receipt_daily` is the closest first-class fact but it stores **arrival**, not pick. | `SCHEMA_GAP` / `SOURCE_GAP` / `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO` | actual (intended) | `DIRECT_OBSERVATION` (when a dedicated table exists) / currently **no first-class table** | YES (intended primary label) | NO (label, not feature) | `POINT_IN_TIME_GAP` (current `fact_receipt_daily` lacks `recorded_at`, `effective_at`, `revised_at`) | Q2A must add a dedicated `actual_harvest_daily` table; `fact_receipt_daily` is an arrival proxy, not the primary label |
-| 6 | `unharvested_backlog_quantity` | The model-predicted daily unharvested backlog. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` | A derived state. | kg | the calendar date | TASK-008 / TASK-009 | `ForecastDailyRow.unharvested_backlog_kg: DailyQuantiles` | n/a | same as #1 | forecast | `DERIVED_STATE` | NO | YES (as feature) | n/a (forecast) | derived; cannot be a label |
-| 7 | `arrival_quantity` | The model-predicted daily quantity arriving at the factory gate, before weather correction. | `(factory × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (with factory-level aggregation) | A model output. | kg | the calendar date of arrival at the factory gate | TASK-008 / TASK-009 | `ForecastDailyRow.arrival_quantity_kg: DailyQuantiles` | n/a | same as #1 | forecast | `MODEL_OUTPUT` (proxy for actual arrival, not for actual harvest) | NO (not a harvest label) | YES (as feature) | n/a (forecast) | proxy for arrival; not a harvest label |
-| 8 | `final_corrected_arrival_quantity` | The model-predicted daily quantity arriving at the factory gate, after weather correction. | `(factory × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (with factory-level aggregation) | A model output. | kg | the calendar date | TASK-009 | `ForecastDailyRow.final_corrected_arrival_quantity_kg: DailyQuantiles` | n/a | same as #1 | forecast | `MODEL_OUTPUT` (proxy for actual arrival, not for actual harvest) | NO | YES (as feature) | n/a (forecast) | corrected proxy; not a harvest label |
+| 1 | `natural_maturity_quantity` | The model-predicted daily natural maturation of blueberry on the orchard, in the absence of weather and harvest-state effects. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` (carried on `ForecastDailyRow` as a first-class serialized output-schema field; no first-class `farm` / `subfarm` / `variety` identity on the row) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (carried on `harvest_state_daily_member_row`; the Agent aggregate row does not have member identity) | A biological-physical quantity produced by the TASK-008 maturity model. It is not a human-observed quantity. | kg | the calendar date on which maturation occurs | TASK-008 / TASK-009 | `backend/app/agent/schemas.py::ForecastDailyRow.natural_maturity_quantity_kg: DailyQuantiles`; member row `harvest_state_daily_member_row.natural_maturity_supply_kg` | n/a (first-class serialized output-schema field; member row table) | `RESOLVED_BY_MERGED_AUTHORITY` for schema; `NOT_VERIFIED` for production use in Q1 scope | forecast | `MODEL_OUTPUT` (not a direct observation; not a proxy for actual harvest) | NO | YES | n/a (forecast) | not a label; do not use for backtest |
+| 2 | `mature_inventory_quantity` | The model-predicted closing mature inventory on a calendar date, after natural maturation and harvest-state update. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` | A derived state. | kg | the calendar date on which the closing inventory is reported | TASK-008 / TASK-009 | `ForecastDailyRow.closing_mature_inventory_kg: DailyQuantiles`; member row `harvest_state_daily_member_row.closing_mature_inventory_kg` | n/a (output-schema field; member row table) | same as #1 | forecast | `DERIVED_STATE` | NO | YES (as feature) | n/a (forecast) | derived; cannot be a label |
+| 3 | `harvestable_quantity` | The model-predicted daily harvestable quantity (the portion of mature inventory that is operationally ready to be picked). | `(farm × subfarm_or_plot × variety × calendar_date)` | `NOT_CURRENTLY_AVAILABLE_AS_AGENT_AGGREGATE_FIELD` (the `ForecastDailyRow` does NOT carry a first-class `harvestable_quantity_kg` field; the closest Agent aggregate field is `harvested_quantity_kg`, but it is a flow not a stock) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (carried on `harvest_state_daily_member_row.harvestable_mature_quantity_kg` in `origin/main`) | A model output. The TASK-009 member row has `harvestable_mature_quantity_kg`. The Agent aggregate `ForecastDailyRow` does NOT have a harvestable field. The member-grain harvestable_quantity is the closest available forecast-side analogue to the conceptual business "harvestable" object. Q1 v1.3 separates these two layers: the member-grain layer is `AVAILABLE`, the Agent aggregate layer is `NOT_CURRENTLY_AVAILABLE`. Whether the member-grain field is physically equivalent to the business "harvestable" concept remains an open semantic-verification question for Q2A. | kg (target unit) | the calendar date | TASK-009 | member row: `backend/app/models/harvest_state.py::HarvestStateDailyMemberRowModel.harvestable_mature_quantity_kg: Numeric(18, 3)`; Agent aggregate: **NOT in `origin/main` schema** | member row `harvest_state_daily_member_row`; no Agent aggregate table | `HARVESTABLE_MEMBER_OUTPUT_STATUS = AVAILABLE_AS_TASK9_HARVESTABLE_MATURE_QUANTITY`; `HARVESTABLE_AGENT_AGGREGATE_FIELD_STATUS = NOT_CURRENTLY_AVAILABLE`; `HARVESTABLE_FORMULA_STATUS = NO_DERIVED_FORMULA_REQUIRED` | forecast | `MODEL_OUTPUT` (NOT a direct observation; NOT a proxy for actual harvest) | NO | YES (as feature) | n/a (forecast) | (a) no Agent aggregate counterpart; (b) not an actual-harvest label; (c) physical equivalence to the business "harvestable" object still requires semantic verification |
+| 4 | `model_harvested_quantity` (alias for `ForecastDailyRow.harvested_quantity_kg` and `harvest_state_daily_member_row.harvested_quantity_kg`) | The model-predicted daily quantity of blueberry the model expects to be picked on the orchard. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` (carried on `ForecastDailyRow.harvested_quantity_kg` as a first-class serialized output-schema field) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (carried on `harvest_state_daily_member_row.harvested_quantity_kg` in `origin/main`) | A model output, NOT a direct observation. The `harvested_quantity_kg` field is present on **both** layers in `origin/main`: the Agent aggregate row (`ForecastDailyRow.harvested_quantity_kg: DailyQuantiles`) and the TASK-009 member row (`HarvestStateDailyMemberRowModel.harvested_quantity_kg: Numeric(18, 3)`). Q1 v1.3 separates these two layers: both are `AVAILABLE`, both are `MODEL_OUTPUT`, neither is a primary actual-harvest label. The two MUST NOT be conflated or renamed into the `actual_harvest_quantity` business object. | kg | the calendar date | TASK-008 / TASK-009 | Agent aggregate: `backend/app/agent/schemas.py::ForecastDailyRow.harvested_quantity_kg: DailyQuantiles`; member row: `backend/app/models/harvest_state.py::HarvestStateDailyMemberRowModel.harvested_quantity_kg: Numeric(18, 3)` | n/a (Agent output-schema field); member row `harvest_state_daily_member_row` | `MODEL_HARVESTED_MEMBER_OUTPUT_STATUS = AVAILABLE_AS_TASK9_HARVESTED_QUANTITY`; `MODEL_HARVESTED_AGENT_AGGREGATE_STATUS = AVAILABLE_AS_FORECAST_DAILY_ROW_AGGREGATE`; `MODEL_HARVESTED_DIRECT_ACTUAL_OBSERVATION = NO`; `MODEL_HARVESTED_PRIMARY_ACTUAL_LABEL = NO` | forecast | `MODEL_OUTPUT` (NOT a direct observation; NOT a primary actual-harvest label) | NO | YES (as feature) | n/a (forecast) | model-predicted flow; not a label; do not confuse with `actual_harvest_quantity` |
+| 5 | `actual_harvest_quantity` | The user-entered or operator-entered daily quantity of blueberry actually picked at the orchard. This is the primary business target for Q1. | `(farm × subfarm_or_plot × variety × calendar_date)` | `NOT_CURRENTLY_AVAILABLE` (no first-class Agent field for the actual; the Agent does not output a direct observation) | `FARM_X_SUBFARM_X_VARIETY_X_DATE` (would live on a dedicated `actual_harvest_daily` table, not on any current Agent field) | A direct observation. There is **no first-class `actual_harvest_quantity` table in `origin/main`**. The TASK-009 `harvested_quantity_kg` member field is a model output, NOT a user-entered actual. | kg (target unit) | the calendar date on which the pick occurred | n/a (no dedicated table) | **NOT in `origin/main` schema** | `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO` | actual (intended) | `DIRECT_OBSERVATION` (when a dedicated table exists) / currently **no first-class table** | YES (intended primary label) | NO (label, not feature) | `POINT_IN_TIME_GAP` | Q2A must add a dedicated `actual_harvest_daily` table; `fact_receipt_daily` is an arrival proxy, not the primary label |
+| 6 | `unharvested_backlog_quantity` | The model-predicted daily unharvested backlog. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` | A derived state. | kg | the calendar date | TASK-008 / TASK-009 | `ForecastDailyRow.unharvested_backlog_kg: DailyQuantiles`; member row `harvest_state_daily_member_row.unharvested_backlog_kg` | n/a (output-schema field; member row table) | same as #1 | forecast | `DERIVED_STATE` | NO | YES (as feature) | n/a (forecast) | derived; cannot be a label |
+| 7 | `arrival_quantity` | The model-predicted daily quantity arriving at the factory gate, before weather correction. | `(factory × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (with factory-level aggregation) | A model output. | kg | the calendar date of arrival at the factory gate | TASK-008 / TASK-009 | `ForecastDailyRow.arrival_quantity_kg: DailyQuantiles`; member row `harvest_state_daily_member_row.arrival_quantity_kg` | n/a (output-schema field; member row table) | same as #1 | forecast | `MODEL_OUTPUT` (proxy for actual arrival, not for actual harvest) | NO (not a harvest label) | YES (as feature) | n/a (forecast) | proxy for arrival; not a harvest label |
+| 8 | `final_corrected_arrival_quantity` | The model-predicted daily quantity arriving at the factory gate, after weather correction. | `(factory × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (with factory-level aggregation) | A model output. | kg | the calendar date | TASK-009 | `ForecastDailyRow.final_corrected_arrival_quantity_kg: DailyQuantiles`; member row `harvest_state_daily_member_row.arrival_quantity_kg` is the pre-correction arrival (the post-correction arrival may be derived at evaluation time) | n/a (output-schema field; member row table) | same as #1 | forecast | `MODEL_OUTPUT` (proxy for actual arrival, not for actual harvest) | NO | YES (as feature) | n/a (forecast) | corrected proxy; not a harvest label |
 | 9 | `season_cumulative_quantity` | The model-predicted or actual cumulative quantity from the season start through the calendar date. | `(farm × subfarm_or_plot × variety × season × calendar_date)` | `DERIVED_EVALUATION_METRIC` (no first-class Agent field; computed from the daily rows at evaluation time) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_SEASON` (computed from the member-grain daily rows) | A derived aggregate. | kg | the calendar date through which the cumulative is computed | TASK-008 / TASK-009 (forecast); operator (actual) | **NOT in `origin/main` schema as a first-class field** | none | `NOT_CURRENTLY_AVAILABLE` as a first-class schema field; `DERIVED_EVALUATION_METRIC`; `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1` | both | `DERIVED_STATE` (cumulative over daily rows) | YES (actual cumulative is the canonical label for cumulative metrics) | YES (forecast cumulative) | depends on daily row visibility | Q1 does not require a first-class `season_cumulative_quantity` field; the cumulative is a derived evaluation metric. Q2A may add a first-class field only if a separate persistence, API, or replay identity requirement is justified. |
 
-### §5.2 First-class vs derived (v1.2 naming change per review 4695151631 P0-3)
+### §5.2 First-class vs derived (v1.2 naming, preserved in v1.3)
 
-Q1 v1.1 used the phrase "persisted fields of the model output" for `ForecastDailyRow`. v1.2 replaces this phrase with **"first-class serialized output-schema fields"** (or "non-persisted Agent output fields"). The Agent `ForecastDailyRow` is a serialized output schema; the fields are not persisted to a database table on their own. The reconstruction of the same field set from upstream TASK-008 / TASK-009 forecast runs is a separate persistence question.
+Q1 v1.1 used the phrase "persisted fields of the model output" for `ForecastDailyRow`. v1.2 replaced this phrase with **"first-class serialized output-schema fields"** (or "non-persisted Agent output fields"). The Agent `ForecastDailyRow` is a serialized output schema; the fields are not persisted to a database table on their own. The reconstruction of the same field set from upstream TASK-008 / TASK-009 forecast runs is a separate persistence question.
 
-The eight quantities are split into:
+The nine forecast/evaluation objects are split into:
 
-- **First-class serialized output-schema fields on `ForecastDailyRow`**: #1 (`natural_maturity_quantity_kg`), #2 (`closing_mature_inventory_kg`), #4 (`harvested_quantity_kg`, under the alias `model_harvested_quantity`), #6 (`unharvested_backlog_kg`), #7 (`arrival_quantity_kg`), #8 (`final_corrected_arrival_quantity_kg`). These are six `DailyQuantiles` fields. The Q1 v1.2 explicitly names the seventh, `harvested_quantity_kg`, as `model_harvested_quantity` (or equivalently, the existing `ForecastDailyRow.harvested_quantity_kg` field) with the qualifier `MODEL_OUTPUT` / `NOT_DIRECT_OBSERVATION` / `NOT_PRIMARY_ACTUAL_LABEL`. The Q1 v1.1 statement that the field "is not a direct observation" is preserved; v1.2 adds the explicit mapping table.
-- **Not first-class in `origin/main`**: #3 (`harvestable_quantity`), #5 (`actual_harvest_quantity`), #9 (`season_cumulative_quantity`). Q1 marks them as `NOT_CURRENTLY_AVAILABLE` and proposes Q2A / Q3 design work to define them. Q1 does NOT require a first-class `season_cumulative_quantity` field (§5.4 below).
+- **First-class serialized output-schema fields on `ForecastDailyRow` (six `DailyQuantiles` fields)**: #1 (`natural_maturity_quantity_kg`), #2 (`closing_mature_inventory_kg`), #4 (`harvested_quantity_kg`), #6 (`unharvested_backlog_kg`), #7 (`arrival_quantity_kg`), #8 (`final_corrected_arrival_quantity_kg`). These are exactly six `DailyQuantiles` fields. The Q1 v1.2 names #4 `model_harvested_quantity` with the qualifier `MODEL_OUTPUT` / `NOT_DIRECT_OBSERVATION` / `NOT_PRIMARY_ACTUAL_LABEL`.
+- **First-class member-row fields on `HarvestStateDailyMemberRowModel`**: the member row carries `harvestable_mature_quantity_kg`, `harvested_quantity_kg`, `closing_mature_inventory_kg`, `unharvested_backlog_kg`, `arrival_quantity_kg`, `natural_maturity_supply_kg`, `available_mature_quantity_kg`, `mature_inventory_loss_quantity_kg`, `allocated_harvest_capacity_kg`, plus identity columns (`farm_id`, `subfarm_id`, `subfarm_identity_key`, `variety_id`, `destination_factory_id`, `state_date`, `forecast_quantile`, `capacity_pool_id`, `capacity_pool_grain`, `capacity_pool_membership_hash`).
+- **Not first-class in `origin/main`**: #3 `harvestable_quantity` (Agent aggregate layer only; the member-grain layer HAS `harvestable_mature_quantity_kg` in TASK-009), #5 `actual_harvest_quantity`, #9 `season_cumulative_quantity`. Q1 marks them as `NOT_CURRENTLY_AVAILABLE` (for the Agent aggregate / actual / first-class field, respectively) and proposes Q2A / Q3 design work to define them. Q1 does NOT require a first-class `season_cumulative_quantity` field (§5.4 below).
 
-### §5.3 Mapping table: business object → current schema field
+### §5.3 Mapping table: business object → current schema field (v1.3 per review 4695538593)
 
-Per review 4695151631 P0-3 §6.3, Q1 v1.2 freezes a mapping table for the six first-class fields:
+Q1 v1.3 freezes the following mapping table for the nine objects. The mapping distinguishes Agent aggregate, TASK-009 member, direct observation, and derived / unavailable layers.
 
-| Business object | Current schema field (on `ForecastDailyRow`) | Mapping qualifier |
-|---|---|---|
-| `natural_maturity_quantity` | `natural_maturity_quantity_kg: DailyQuantiles` | `MODEL_OUTPUT` |
-| `mature_inventory_quantity` | `closing_mature_inventory_kg: DailyQuantiles` | `DERIVED_STATE` |
-| `harvestable_quantity` | (no first-class field) | `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` |
-| `model_harvested_quantity` (alias for `harvested_quantity_kg`) | `harvested_quantity_kg: DailyQuantiles` | `MODEL_OUTPUT` / `NOT_DIRECT_OBSERVATION` / `NOT_PRIMARY_ACTUAL_LABEL` |
-| `actual_harvest_quantity` | (no first-class field) | `NOT_CURRENTLY_AVAILABLE` / `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO` |
-| `unharvested_backlog_quantity` | `unharvested_backlog_kg: DailyQuantiles` | `DERIVED_STATE` |
-| `arrival_quantity` | `arrival_quantity_kg: DailyQuantiles` | `MODEL_OUTPUT` (proxy for arrival) |
-| `final_corrected_arrival_quantity` | `final_corrected_arrival_quantity_kg: DailyQuantiles` | `MODEL_OUTPUT` (corrected proxy) |
-| `season_cumulative_quantity` | (no first-class field) | `DERIVED_EVALUATION_METRIC` / `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1` |
+| Business object | Agent aggregate field | TASK-009 member-row field | Direct actual observation | Mapping qualifier |
+|---|---|---|---|---|
+| `natural_maturity_quantity` | `ForecastDailyRow.natural_maturity_quantity_kg: DailyQuantiles` | `HarvestStateDailyMemberRowModel.natural_maturity_supply_kg: Numeric(18,3)` | n/a | `MODEL_OUTPUT` (both layers) |
+| `mature_inventory_quantity` | `ForecastDailyRow.closing_mature_inventory_kg: DailyQuantiles` | `HarvestStateDailyMemberRowModel.closing_mature_inventory_kg: Numeric(18,3)` | n/a | `DERIVED_STATE` (both layers) |
+| `harvestable_quantity` | **NOT in `ForecastDailyRow`** | `HarvestStateDailyMemberRowModel.harvestable_mature_quantity_kg: Numeric(18,3)` | n/a | `MODEL_OUTPUT` (member-grain only); `HARVESTABLE_MEMBER_OUTPUT_STATUS = AVAILABLE_AS_TASK9_HARVESTABLE_MATURE_QUANTITY`; `HARVESTABLE_AGENT_AGGREGATE_FIELD_STATUS = NOT_CURRENTLY_AVAILABLE` |
+| `model_harvested_quantity` | `ForecastDailyRow.harvested_quantity_kg: DailyQuantiles` | `HarvestStateDailyMemberRowModel.harvested_quantity_kg: Numeric(18,3)` | n/a | `MODEL_OUTPUT` (both layers); `MODEL_HARVESTED_MEMBER_OUTPUT_STATUS = AVAILABLE_AS_TASK9_HARVESTED_QUANTITY`; `MODEL_HARVESTED_AGENT_AGGREGATE_STATUS = AVAILABLE_AS_FORECAST_DAILY_ROW_AGGREGATE` |
+| `actual_harvest_quantity` | n/a | n/a | n/a (no first-class table on `origin/main`) | `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO` |
+| `unharvested_backlog_quantity` | `ForecastDailyRow.unharvested_backlog_kg: DailyQuantiles` | `HarvestStateDailyMemberRowModel.unharvested_backlog_kg: Numeric(18,3)` | n/a | `DERIVED_STATE` (both layers) |
+| `arrival_quantity` | `ForecastDailyRow.arrival_quantity_kg: DailyQuantiles` | `HarvestStateDailyMemberRowModel.arrival_quantity_kg: Numeric(18,3)` | n/a | `MODEL_OUTPUT` (proxy for arrival) |
+| `final_corrected_arrival_quantity` | `ForecastDailyRow.final_corrected_arrival_quantity_kg: DailyQuantiles` | (member row carries the pre-correction arrival; post-correction may be derived at evaluation time) | n/a | `MODEL_OUTPUT` (corrected proxy) |
+| `season_cumulative_quantity` | n/a (derived at evaluation time) | n/a (derived at evaluation time) | n/a (derived at evaluation time) | `DERIVED_EVALUATION_METRIC`; `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1` |
 
-`model_harvested_quantity` and `actual_harvest_quantity` are two distinct business objects. `ForecastDailyRow.harvested_quantity_kg` is the model-predicted flow (the former); the actual pick is a direct observation (the latter, not first-class on `origin/main`). Q1 forbids any conflation, rename, or silent substitution.
+`model_harvested_quantity` and `actual_harvest_quantity` are two distinct business objects. `ForecastDailyRow.harvested_quantity_kg` and `HarvestStateDailyMemberRowModel.harvested_quantity_kg` are model-predicted flows (the former); the actual pick is a direct observation (the latter, not first-class on `origin/main`). Q1 forbids any conflation, rename, or silent substitution.
 
-### §5.4 `season_cumulative_quantity` is a derived metric (v1.2 correction per review 4695151631 P0-3 §6.4)
+### §5.4 `season_cumulative_quantity` is a derived metric (v1.2, preserved in v1.3)
 
-Q1 v1.1 wrote: "Q2A must add a first-class `season_cumulative_quantity` field". v1.2 corrects this:
+The cumulative quantity is computed from valid daily rows at evaluation time. There is no separate persistence, API, or replay identity requirement for a first-class `season_cumulative_quantity` field, beyond the daily rows. The cumulative is a `DERIVED_EVALUATION_METRIC`. The status is `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1`. Q2A may add a first-class field only if a separate persistence, API, or replay identity requirement is justified.
 
-- The cumulative quantity is computed from valid daily rows at evaluation time.
-- There is no separate persistence, API, or replay identity requirement for a first-class `season_cumulative_quantity` field, beyond the daily rows.
-- The cumulative is a `DERIVED_EVALUATION_METRIC`.
-- The status is `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1`.
-- Q2A may add a first-class field only if a separate persistence, API, or replay identity requirement is justified. Without such a requirement, the derived evaluation metric is sufficient.
-
-### §5.5 Forbidden proxy-formula for `harvestable_quantity`
+### §5.5 Forbidden proxy-formula for `harvestable_quantity` (v1.1, preserved in v1.3)
 
 Q1 explicitly forbids any formula of the form:
 
@@ -400,11 +416,48 @@ This formula is forbidden because:
 - direct subtraction has no business or model authority;
 - the result can be negative or nonsensical.
 
-`harvestable_quantity` remains `NOT_CURRENTLY_AVAILABLE` and `FORMULA_NOT_AUTHORIZED` until a first-class `harvestable_quantity_kg` field is added by Q2A with explicit physical authority.
+`harvestable_quantity` on the Agent aggregate layer remains `NOT_CURRENTLY_AVAILABLE_AS_AGENT_AGGREGATE_FIELD`. The TASK-009 member-grain layer DOES have `harvestable_mature_quantity_kg` as a first-class field; the Q1 design does NOT propose deriving the Agent aggregate field from the member-grain field via any formula. The member-grain field IS the authoritative forecast-side analogue at the member grain; the Agent aggregate field would need separate design and implementation if it is required.
+
+`harvestable_quantity` on the Agent aggregate layer is therefore `NOT_CURRENTLY_AVAILABLE_AS_AGENT_AGGREGATE_FIELD` and `FORMULA_NOT_AUTHORIZED`. The TASK-009 member-grain layer carries the field directly.
 
 ### §5.6 Proxy discipline (v1.2 per review 4695151631 P0-4)
 
 Q1 forbids any silent reclassification of a model output as an actual observation. In particular, the `fact_receipt_daily` table is a first-class operator-entered daily fact, but it is **arrival at the factory**, not **pick at the orchard**. The Q1 v1.2 explicitly classifies `fact_receipt_daily.weight_kg` as an arrival proxy, not as the primary `actual_harvest_quantity` label. See §6 for the actual-label contract and §11 for the primary-vs-arrival separation.
+
+### §5.7 Four-state separation (v1.3 per review 4695538593)
+
+Q1 v1.3 freezes the following four explicit states for the harvestable and harvested objects. These four states are independent and MUST be reported separately. None of the four may be collapsed into a single status (e.g. `HARVESTABLE_QUANTITY = NOT_CURRENTLY_AVAILABLE`).
+
+```
+HARVESTABLE_MEMBER_OUTPUT_STATUS =
+    AVAILABLE_AS_TASK9_HARVESTABLE_MATURE_QUANTITY
+
+HARVESTABLE_AGENT_AGGREGATE_FIELD_STATUS =
+    NOT_CURRENTLY_AVAILABLE
+
+MODEL_HARVESTED_MEMBER_OUTPUT_STATUS =
+    AVAILABLE_AS_TASK9_HARVESTED_QUANTITY
+
+MODEL_HARVESTED_AGENT_AGGREGATE_STATUS =
+    AVAILABLE_AS_FORECAST_DAILY_ROW_AGGREGATE
+
+HARVESTABLE_FORMULA_STATUS =
+    NO_DERIVED_FORMULA_REQUIRED
+
+HARVESTABLE_MINUS_BACKLOG_FORMULA =
+    FORBIDDEN
+
+MODEL_HARVESTED_DIRECT_ACTUAL_OBSERVATION =
+    NO
+
+MODEL_HARVESTED_PRIMARY_ACTUAL_LABEL =
+    NO
+
+PRIMARY_ACTUAL_HARVEST_LABEL_READY =
+    NO
+```
+
+These ten (or eleven, depending on counting) state fields are the canonical v1.3 status of the harvestable and harvested objects. Q1 forbids any single-line collapse of these fields.
 
 ---
 
@@ -458,7 +511,7 @@ The actual-harvest label row, when adopted, will contain the following fields. T
 | `quality_status` | enum (`OK`, `SUSPECT`, `REJECTED`, `LATE_CORRECTION`) | data-quality flag | `FROZEN` (contract only) |
 | `canonical_row_hash` | `sha256` | canonical row hash, computed over the canonical JSON of all other fields | `FROZEN` (contract only; `SHA256Hex` like other canonical-row hashes) |
 
-### §6.4 Current actual-label status (v1.2, per review 4695151631 P0-4)
+### §6.4 Current actual-label status (v1.2, preserved in v1.3)
 
 ```
 ACTUAL_LABEL_STATUS = SCHEMA_GAP / SOURCE_GAP / POINT_IN_TIME_GAP / REVISION_HISTORY_GAP
@@ -468,6 +521,8 @@ ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES
 PRIMARY_TARGET_ACCURACY_REPORTING_WITH_PROXY = FORBIDDEN
 ACTUAL_LABEL_SUPPORTED_GRAIN = fact_receipt_daily at (build_run_id, season_id, factory_id, receipt_date, farm_key, subfarm_key, variety_id, weight_kg > 0) — arrival / receipt at the factory, NOT pick at the orchard
 ```
+
+The TASK-009 member-grain `harvested_quantity_kg` field is a **model output**, not a user-entered actual. The TASK-009 member-grain availability DOES NOT change `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO`. The primary actual-harvest label remains unresolved.
 
 Each gap is a separate blocker:
 
@@ -539,7 +594,7 @@ POINT_IN_TIME_STATUS = GAP (no first-class actual_harvest_daily table;
 
 ### §7.1 Definition (frozen)
 
-The sustained peak window is fixed to **7 consecutive calendar days**. For a forecast target object (one of the eight objects in §5) and a quantile `q ∈ {P50, P80, P90}`:
+The sustained peak window is fixed to **7 consecutive calendar days**. For a forecast target object (one of the nine objects in §5) and a quantile `q ∈ {P50, P80, P90}`:
 
 ```
 rolling_7day_cumulative_quantity_kg(q, start_date) =
@@ -941,7 +996,7 @@ Q1 freezes the definition. The Q2 / Q5 design must:
 
 The full data-coverage audit, including the 3-day production contract inventory, the actual-label grain audit, the harvest-state schema audit, the migration-history audit, the table-inventory audit, and the live-database discovery result, is in `docs/forecast-quality/slice-q1-data-coverage-audit.md`. This document is the single source of truth for the read-only data audit.
 
-### §10.1 Live-database discovery result (v1.1, preserved in v1.2)
+### §10.1 Live-database discovery result (v1.1, preserved in v1.3)
 
 Q1 v1.1 performed a read-only live-database discovery on the configured PostgreSQL (`POSTGRES_HOST=localhost`, `POSTGRES_PORT=5432`, `POSTGRES_DB=blueberry_peak`, `POSTGRES_USER=blueberry_app`).
 
@@ -955,7 +1010,7 @@ Discovery result:
 
 ```
 REAL_DATA_SOURCE_DISCOVERY = POSTGRES_DOCKER_CONTAINER_C2_PG
-REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED (live DB discoverable but EMPTY; coverage = 0 for every entry)
+REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED_EMPTY_DATABASE (live DB discoverable but EMPTY; coverage = 0 for every entry)
 Q1_DATA_COVERAGE_AUDIT_STATUS = PARTIAL (DB discovery done; data is empty; coverage matrix is 0 for every entry)
 ```
 
@@ -1041,28 +1096,20 @@ Q2A may proceed as a design round, but Q2A has two distinct results that MUST be
 
 ```
 Q2A_DESIGN_ELIGIBLE_AFTER_Q1_ACCEPTANCE = YES
-Q2A_CURRENTLY_AUTHORIZED = NO
-Q2A_IMPLEMENTATION_READY = NO
-Q2B_IMPLEMENTATION_READY = NO
-Q3_CURRENTLY_AUTHORIZED = NO
-```
-
-Q2A design may begin after Q1 acceptance. Q2A implementation, Q2B implementation, and Q3 implementation are each separately unauthorized in this round.
+Q2A_CURRENTLY_AUTHORIZED=*** design may begin after Q1 acceptance. Q2A implementation, Q2B implementation, and Q3 implementation are each separately unauthorized in this round.
 
 ---
 
 ## §12 Slice ordering (frozen, acyclic per review 4695151631 P0-3 + v1.1)
-
-Q1 v1.1 froze an acyclic slice ordering. v1.2 preserves the same ordering and adds the Q2A-eligibility / Q2A-currently-authorized / Q2A-implementation-ready separation per round §十.
 
 ### §12.1 Slice ordering (acyclic)
 
 | Slice | Goal | Predecessor | Status |
 |---|---|---|---|
 | Q1 | forecast target + evaluation contract + dual-cutoff model + sustained 7-day target contract + 3-day coexistence policy + actual-harvest vs arrival-proxy separation | (none) | design (this PR #103) |
-| Q2A | actual-label source decision + dedicated table or accepted proxy + schema/migration + revision lineage + `label_observation_cutoff_at` evaluation-snapshot foundation + aggregate data-coverage query | Q1 | `Q2A_CURRENTLY_AUTHORIZED = NO` |
+| Q2A | actual-label source decision + dedicated table or accepted proxy + schema/migration + revision lineage + `label_observation_cutoff_at` evaluation-snapshot foundation + aggregate data-coverage query + evaluate existing TASK-009 member-grain fields as prediction-side alignment candidate (does NOT create duplicate harvestable / harvested member fields) | Q1 | `Q2A_CURRENTLY_AUTHORIZED=*** | `NOT_AUTHORIZED` | design work may begin after Q1 acceptance. Implementation not authorized. |
 | Q2B | point-in-time backtest runner for currently supported outputs (the outputs that exist on `origin/main` after Q2A's accepted proxy, at the accepted grain); the 3-day legacy compatibility metric may be reported; the 7-day metric is `NOT_YET_COMPUTABLE` until Q3 + Q2C | Q2A | `Q2B_IMPLEMENTATION_READY = NO` |
-| Q3 | additive sustained 7-day production migration (new field, 3-day coexistence, schema version, Golden/API compatibility, production acceptance) | Q1 | `Q3_CURRENTLY_AUTHORIZED = NO` |
+| Q3 | additive sustained 7-day production migration (new field, 3-day coexistence, schema version, Golden/API compatibility, production acceptance) | Q1 | `Q3_CURRENTLY_AUTHORIZED=*** | `NOT_AUTHORIZED` |
 | Q2C | extend Q2B with sustained 7-day scoring | Q2B + Q3 | not yet authorized |
 | Q4 | naive baseline (one repeatable baseline, compared with the current model on the same data, the same cutoff, the same actual label, the same metric, the same 7-day peak definition) | Q2B | not yet authorized |
 | Q5 | consolidated forecast-quality report (Q2B + Q2C + Q4 outputs aggregated into the report rows of Issue #102 §3) | Q2B + Q2C + Q4 | not yet authorized |
@@ -1074,11 +1121,11 @@ Q1 v1.1 froze an acyclic slice ordering. v1.2 preserves the same ordering and ad
 ```
 Q2_DESIGN_CAN_START = YES
 Q2A_DESIGN_ELIGIBLE_AFTER_Q1_ACCEPTANCE = YES
-Q2A_CURRENTLY_AUTHORIZED = NO
-Q2A_IMPLEMENTATION_READY = NO
+Q2A_CURRENTLY_AUTHORIZED=*** | NOT_AUTHORIZED
+Q2...EADY = NO
 Q2B_IMPLEMENTATION_READY = NO
 Q2_IMPLEMENTATION_READY = NO
-Q3_CURRENTLY_AUTHORIZED = NO
+Q3_CURRENTLY_AUTHORIZED=*** | NOT_AUTHORIZED
 Q2_READINESS = BLOCKED_BY_Q1_GAPS
 ```
 
@@ -1114,7 +1161,8 @@ The Q2A deliverables are:
 - the migration (if a new table is added);
 - the revision lineage contract (with the fail-closed policy from §4.5);
 - the `label_observation_cutoff_at` evaluation-snapshot identity;
-- the aggregate data-coverage query runner.
+- the aggregate data-coverage query runner;
+- **evaluation of the existing TASK-009 member-grain fields** (`harvestable_mature_quantity_kg`, `harvested_quantity_kg`, `closing_mature_inventory_kg`, `unharvested_backlog_kg`, `arrival_quantity_kg`) **as the prediction-side alignment candidate**. Q2A evaluates existing TASK-009 member outputs as the prediction-side alignment candidate. Q2A does NOT create duplicate harvestable or harvested member fields.
 
 Q2A does NOT modify any model. Q2A does NOT change TASK-008 / TASK-009 / TASK-010 numerical semantics. Q2A does NOT change the primary business target. Q2A does NOT promote `fact_receipt_daily` to the primary actual-harvest label.
 
@@ -1137,9 +1185,7 @@ Q2B does NOT require the 7-day production field. Q2B may use the existing 3-day 
 
 #### §12.3.3 Slice Q3 — sustained 7-day peak production migration
 
-The Q3 minimum entry conditions are Q1 acceptance. The Q3 deliverable is the additive 7-day field, with the additive-coexistence policy (§8.3), the migration, the Golden migration, the API migration, and the PostgreSQL production-chain acceptance. Q3 is `Q3_CURRENTLY_AUTHORIZED = NO`.
-
-#### §12.3.4 Slice Q2C — extend the runner with 7-day scoring
+The Q3 minimum entry conditions are Q1 acceptance. The Q3 deliverable is the additive 7-day field, with the additive-coexistence policy (§8.3), the migration, the Golden migration, the API migration, and the PostgreSQL production-chain acceptance. Q3 is `Q3_CURRENTLY_AUTHORIZED=*** §12.3.4 Slice Q2C — extend the runner with 7-day scoring
 
 Q2C depends on Q2B + Q3. The Q2C deliverable is the extension of the Q2B runner to emit the sustained 7-day peak metrics.
 
@@ -1161,9 +1207,71 @@ Q7 depends on Q5. The Q7 deliverable is the two pages (forecast page, forecast-v
 
 ---
 
-## §13 Forbidden actions in Q1 (v1.2, per review 4694771522 / 4695151631)
+## §13 Alignment contract (frozen per review 4695538593 P0 + v1.2 Path A / Path B)
 
-Q1 v1.2 forbids the following actions in this round. Each forbidden action is paired with the rationale and the verification check.
+### §13.1 Path A — Member-grain forecast evaluation (v1.3 corrected per review 4695538593)
+
+Path A uses the upstream TASK-009 `HarvestStateDailyMemberRowModel` (table `harvest_state_daily_member_row`). The member row already carries:
+
+```
+farm_id: BIGINT
+subfarm_id: BIGINT | None
+subfarm_identity_key: str
+variety_id: BIGINT
+state_date: date
+forecast_quantile: str (CHECK P50/P80/P90)
+harvestable_mature_quantity_kg: Numeric(18, 3)   ← already present
+harvested_quantity_kg: Numeric(18, 3)            ← already present
+arrival_quantity_kg: Numeric(18, 3)              ← already present
+destination_factory_id: BIGINT
++ capacity_pool_id, capacity_pool_grain, capacity_pool_membership_hash
++ opening_mature_inventory_kg, natural_maturity_supply_kg,
+  available_mature_quantity_kg, mature_inventory_loss_quantity_kg,
+  allocated_harvest_capacity_kg,
+  closing_mature_inventory_kg, unharvested_backlog_kg,
+  opening_cohort_count, closing_cohort_count
+```
+
+Path A aligns these member rows to the same-grain actual label. Path A does NOT depend on any future member-field additions. Path A is `CANDIDATE_ALIGNMENT_PATH` and `NOT_YET_ACCEPTED` because the following remain open:
+
+- the actual label itself (`PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO`);
+- member-to-label physical equivalence (the member `harvested_quantity_kg` is a model output, NOT a direct observation; whether it is physically equivalent to the actual harvest is an open semantic-verification question);
+- season identity binding (the member row does not carry `forecast_season_id`);
+- point-in-time cutoff snapshot on the member side (the member row does not carry `recorded_at`, `effective_at`, `revised_at`, `revision_number`, `supersedes_record_id`);
+- real data coverage (the live DB is empty).
+
+Q1 freezes Path A as a `CANDIDATE_ALIGNMENT_PATH` for Q2A evaluation. Q1 does NOT accept Path A as the production contract.
+
+### §13.2 Path B — Aggregate-level evaluation (v1.2, preserved in v1.3)
+
+Path B aggregates the actual label by the same member set and date that the agent request used, and compares the aggregate to `ForecastDailyRow`. The aggregation function is frozen by Q1 as a candidate:
+
+- member set = the request's `variety` list intersected with the location's effective variety set;
+- location identity = the resolved `NormalizedAgentRequest.normalized_location`;
+- variety set = the request's `variety` list;
+- aggregation function = `sum(per-member actual)` over the member set and the date;
+- missing-member behavior = the absent member is treated as a `missing_day` per §6.6;
+- duplicate behavior = the revision contract per §4.5;
+- unit = kg;
+- snapshot identity = the `model_version`, `data_snapshot`, and `label_snapshot_hash` triple;
+- canonical member-set hash = `sha256(canonical JSON of (member_set, date))`.
+
+Status:
+
+```
+CANDIDATE_ALIGNMENT_PATH
+NOT_YET_ACCEPTED
+```
+
+### §13.3 Q1 freeze (v1.3)
+
+Q1 does NOT select Path A or Path B as the final production contract. The selection requires Q2A design and implementation, with separate Charles authorization. The member-grain fields already exist in TASK-009; Path A's evaluation does NOT require any new schema or migration, only point-in-time / season-identity / actual-label semantic clarification.
+
+---
+
+## §14 Forbidden actions in Q1 (v1.3, per reviews 4694771522 / 4695151631 / 4695538593)
+
+Q1 v1.3 forbids the following actions in this round. Each forbidden action is paired with the rationale and the verification check.
 
 | Forbidden action | Rationale | Verification check |
 |---|---|---|
@@ -1188,17 +1296,22 @@ Q1 v1.2 forbids the following actions in this round. Each forbidden action is pa
 | describe `ForecastDailyRow` as having 7 quantity fields | the merged schema has exactly 6 `DailyQuantiles` quantity fields | the new commit lists 6 fields and names `harvested_quantity_kg` as `model_harvested_quantity` |
 | describe `ForecastDailyRow` as first-class `(farm × subfarm × variety × date)` | the merged schema does not carry first-class farm/subfarm/variety identity | the new commit uses three-grain split with `CURRENT_AGENT_OUTPUT_GRAIN = RESOLVED_REQUEST_AGGREGATE_X_DATE` |
 | describe `ForecastDailyRow` fields as "persisted fields" | the Agent output is a serialized schema, not a database row | the new commit uses "first-class serialized output-schema fields" |
-| use `harvestable_quantity = harvested - backlog` as a formula | the formula has no physical authority and can be negative | the new commit marks `harvestable_quantity` as `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` |
+| use `harvestable_quantity = harvested - backlog` as a formula | the formula has no physical authority and can be negative | the new commit marks `harvestable_quantity` (Agent aggregate) as `NOT_CURRENTLY_AVAILABLE_AS_AGENT_AGGREGATE_FIELD` and `FORMULA_NOT_AUTHORIZED`; the member-grain `harvestable_mature_quantity_kg` exists as a first-class field and is NOT derived from a formula |
+| describe the harvestable member field as a future field to be added | the member field already exists in TASK-009 | the new commit cites the real `harvest_state_daily_member_row.harvestable_mature_quantity_kg` field |
+| describe the harvested member field as a future field to be added | the member field already exists in TASK-009 | the new commit cites the real `harvest_state_daily_member_row.harvested_quantity_kg` field |
+| collapse `HARVESTABLE_QUANTITY = NOT_CURRENTLY_AVAILABLE` over all three layers | the three layers (member / agent / direct observation) have different statuses | the new commit separates into `HARVESTABLE_MEMBER_OUTPUT_STATUS`, `HARVESTABLE_AGENT_AGGREGATE_FIELD_STATUS`, `HARVESTABLE_FORMULA_STATUS` |
+| propose adding duplicate TASK-009 member-grain harvestable or harvested fields | the fields already exist on `HarvestStateDailyMemberRowModel` | the new commit forbids duplicate-field creation in Q2A scope |
 | require Q2A to add a first-class `season_cumulative_quantity` field | the cumulative is a `DERIVED_EVALUATION_METRIC` | the new commit marks `season_cumulative_quantity` as `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1` |
 | promote `fact_receipt_daily` to the primary `actual_harvest_quantity` label | the arrival proxy does not satisfy the primary target | the new commit freezes `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO`, `ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES`, `PRIMARY_TARGET_ACCURACY_REPORTING_WITH_PROXY = FORBIDDEN` |
 | cite a proxy result as `ACTUAL_HARVEST_ACCURACY` or `HARVEST_FORECAST_ACCURACY` or `PRIMARY_TARGET_ACCURACY` | the proxy is arrival, not harvest | the new commit restricts proxy report names to `ARRIVAL_PROXY_EVALUATION` or `FACTORY_RECEIPT_FORECAST_EVALUATION` |
-| claim `Q2_DESIGN_CAN_START = YES` to imply current authorization | the state is a Q1-acceptance precondition only | the new commit keeps `Q2A_CURRENTLY_AUTHORIZED = NO` separate |
+| claim `Q2_DESIGN_CAN_START = YES` to imply current authorization | the state is a Q1-acceptance precondition only | the new commit keeps `Q2A_CURRENTLY_AUTHORIZED=*** separate |
 | claim `Q2_READINESS = READY` | the same document reports Q1 gaps | the new commit sets `Q2_READINESS = BLOCKED_BY_Q1_GAPS` |
 | report `REAL_DATA_COVERAGE_STATUS = COMPLETE / READY / VERIFIED` | the live database is empty | the new commit sets `REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED_EMPTY_DATABASE` |
 | set `Q2_READINESS = READY` while `Q2_IMPLEMENTATION_READY = NO` | the two must be consistent | the new commit keeps the three Q2 states distinct |
 | use signed and absolute relative error under a single field | the two have different meanings | the new commit names signed and absolute variants separately |
 | leave a sustained 7-day window `NOT_COMPUTABLE or partial` | this is ambiguous | the new commit names a single canonical rule (excluded from peak competition) |
 | report single-day peak metrics at only P50 | the production output is per quantile | the new commit defines per-quantile forecast peak metrics |
+| describe the section as "Eight physical quantities" while listing nine objects | the count must match the section title | the new commit renames the section to "Nine forecast/evaluation objects" |
 | close Issue #99 | Issue #99 remains open for the P0 mainline | `gh issue view 99 --json state` is `OPEN` |
 | close Issue #102 | Issue #102 remains open for Q1 acceptance and subsequent slices | `gh issue view 102 --json state` is `OPEN` |
 | re-open PR #101 | PR #101 is closed without merge | `gh pr view 101 --json state` is `CLOSED` |
@@ -1213,13 +1326,13 @@ Q1 v1.2 forbids the following actions in this round. Each forbidden action is pa
 | claim the 7-day peak is implemented | Q1 only freezes the contract | the report explicitly states `SUSTAINED_7DAY_IMPLEMENTED = NO` and `PRIMARY_SUSTAINED_PEAK_QUALITY_STATUS = NOT_YET_COMPUTABLE` |
 | claim the forecast accuracy has improved | Q1 does not change any model | the report explicitly states `MODEL_CHANGE_NOT_AUTHORIZED` |
 | fabricate real-data coverage | the audit reports `NOT_VERIFIED_EMPTY_DATABASE` for live-database access | the live-database query result is recorded as 0 rows for all tables; the audit does not substitute fixtures or Goldens for real data |
-| describe Q1 as accepted | Q1 awaits re-review | the Q1 v1.2 sign-off section reports `PENDING_RE_REVIEW` and `Q1_NOT_YET_ACCEPTED` |
+| describe Q1 as accepted | Q1 awaits re-review | the Q1 v1.3 sign-off section reports `PENDING_RE_REVIEW` and `Q1_NOT_YET_ACCEPTED` |
 
 ---
 
-## §14 Validation checklist (against round §十三)
+## §15 Validation checklist (against round §十三)
 
-Q1 v1.2 ran the following validation checks:
+Q1 v1.3 ran the following validation checks:
 
 1. `git diff --check` — clean.
 2. `git diff --name-only origin/main` — only `docs/forecast-quality/` files.
@@ -1231,60 +1344,56 @@ Q1 v1.2 ran the following validation checks:
 8. no workflow changes — verified by `git diff --name-only origin/main -- .github/`.
 9. no Golden changes — verified by `git diff --name-only origin/main -- '**/golden/**'`.
 10. no model changes — verified by the absence of any `backend/app/` mutation.
-11. historical replay order matches `forecast_cutoff_at < forecast_target_date_or_window_end <= label_observation_cutoff_at <= replay_executed_at` — verified by §4.3.
-12. no `forecast_target_date < forecast_cutoff_at` (in-simulation) — verified by §4.3.
-13. no latest-timestamp winner — verified by §4.5.
-14. no largest-revision fallback — verified by §4.5.
-15. fork / cycle / multiple-terminal fail-closed — verified by §4.5.3.
-16. physical table contains three separate grain columns — verified by §5.1.
-17. no Agent aggregate field described as member-grain — verified by §5.1.
-18. no unsupported "persisted field" claim — verified by §5.2.
-19. all six `ForecastDailyRow` quantity fields mapped — verified by §5.3.
-20. `harvested_quantity_kg` explicitly remains model output — verified by §5.1 and §5.3.
-21. actual harvest and receipt proxy status separated — verified by §11.
-22. no proxy result called actual-harvest accuracy — verified by §11.2.
-23. 3-day classified only as legacy compatibility — verified by §7.7 and §8.3.
-24. 7-day classified as primary business metric — verified by §7.7 and §8.3.
-25. no undefined deprecation-window wording — verified by §8.3.
-26. no permanent-retention promise — verified by §8.3.
-27. no `Q2_READINESS = READY` — verified by §12.2.
-28. no Q1 accepted claim — verified by §15.
-29. three document line counts — reported in the final report.
-30. three document SHA-256 — reported in the final report.
-31. PR body Head equals final PR Head — verified by the PR body update (or by the `NOT EXECUTED` reporting when token is lost).
-32. PR body hashes equal final file hashes — verified by the PR body update.
-33. PR body does not mention seven quantity fields — verified by the PR body update.
-34. PR body does not use stale old Head — verified by the PR body update.
-35. local/remote/PR Head equality — verified by the 3-way verify.
-36. exact-head CI result — recorded in the final report.
+11. main TASK-009 member field exists: `harvestable_mature_quantity_kg` — verified by `git show origin/main:backend/app/models/harvest_state.py | grep harvestable_mature_quantity_kg`.
+12. main TASK-009 member field exists: `harvested_quantity_kg` — verified by `git show origin/main:backend/app/models/harvest_state.py | grep harvested_quantity_kg`.
+13. member row carries `farm_id` / `subfarm_id` / `subfarm_identity_key` / `variety_id` / `state_date` / `forecast_quantile` / `destination_factory_id` — verified by `git show origin/main:backend/app/models/harvest_state.py | sed -n '/^class HarvestStateDailyMemberRowModel/,/^class /p'`.
+14. no "future TASK-009 member field" wording — verified by the absence of `could live on a future TASK-009 member-grain field` in the v1.3 contract.
+15. no duplicate-field recommendation — verified by the absence of `Q2A must add a first-class harvestable_quantity_kg field` and `Q2A must add a first-class harvested_quantity_kg field` in the v1.3 contract.
+16. harvestable member and Agent aggregate statuses separated — verified by §5.7.
+17. harvested member and Agent aggregate statuses separated — verified by §5.7.
+18. actual label remains `NO` — verified by `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO`.
+19. arrival proxy remains non-primary — verified by `ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES`.
+20. object count = 9 — verified by the nine-row table in §5.1.
+21. no "Eight physical quantities" wording — verified by §5.1 section title.
+22. six Agent quantity fields unchanged — verified by §5.3 mapping table.
+23. 7-day primary target unchanged — verified by §7.7.
+24. 3-day legacy unchanged — verified by §8.2 and §8.3.
+25. Q2A scope references existing member rows — verified by §12.3.1.
+26. PR body Head equals final PR Head — verified by the PR body update (or by the `NOT EXECUTED` reporting when token is lost).
+27. PR body says 9 objects — verified by the PR body update.
+28. PR body says 6 Agent quantity fields — verified by the PR body update.
+29. PR body no longer says "Q2_READINESS = READY" — verified by the PR body update.
+30. PR body file hashes equal final document hashes — verified by the PR body update.
+31. local/remote/PR Head equality — verified by the 3-way verify.
+32. exact-head CI result — recorded in the final report.
 
 ---
 
-## §15 Change log
+## §16 Change log
 
 | Date | Round | Author | Change |
 |---|---|---|---|
 | 2026-07-14 | v1 (Q1) | Charles-authorized Q1 design-only round | Initial creation. |
 | 2026-07-14 | v1.1 (Q1 P0 fixup) | Charles-authorized Q1 P0 fixup (review 4694771522) | Dual-cutoff model; six-field inventory; aggregate output grain; 3-day coexistence policy; signed/absolute relative-error split; real-data coverage reporting. |
-| 2026-07-14 | v1.2 (Q1 final contract fixup) | Charles-authorized Q1 final fixup (review 4695151631) | (1) Historical-replay time model: `forecast_cutoff_at < forecast_target_date_or_window_end <= label_observation_cutoff_at <= replay_executed_at`. The v1.1 wording `forecast_target_date < forecast_cutoff_at` is removed. The same-day wording uses `forecast_target_local_date = local_date(forecast_cutoff_at, farm_timezone)`. (2) Fail-closed revision lineage policy: the unique visible terminal revision on one valid explicit supersession chain within one source family. The `latest timestamp wins` and `largest revision-number wins` rules are removed. Fail-closed conditions are listed as typed blockers. Void semantics are explicit. (3) Three-grain split on the physical-quantity table: `CONCEPTUAL_PHYSICAL_GRAIN`, `CURRENT_AGENT_OUTPUT_GRAIN`, `UPSTREAM_MEMBER_GRAIN`. The "persisted fields" phrase is replaced with "first-class serialized output-schema fields". `harvested_quantity_kg` is mapped to `model_harvested_quantity` with the qualifier `MODEL_OUTPUT / NOT_DIRECT_OBSERVATION / NOT_PRIMARY_ACTUAL_LABEL`. `season_cumulative_quantity` is `DERIVED_EVALUATION_METRIC / NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1`. (4) Actual-harvest label and arrival proxy separation: `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO`, `ARRIVAL_PROXY_EVALUATION_ALLOWED = DESIGN_OPTION`, `ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES`, `PRIMARY_TARGET_ACCURACY_REPORTING_WITH_PROXY = FORBIDDEN`. Proxy report names restricted to `ARRIVAL_PROXY_EVALUATION` or `FACTORY_RECEIPT_FORECAST_EVALUATION`. Q2A two-result split (Result A dedicated table; Result B proxy). (5) 3-day is `LEGACY_COMPATIBILITY_METRIC`; 7-day is `PRIMARY_BUSINESS_SUSTAINED_PEAK_TARGET`; primary status is `NOT_YET_COMPUTABLE` until Q3 + Q2C. The "permanent coexistence" and "deprecation window" wording are removed. The compatibility amendment process is explicit. (6) Slice ordering wording corrected: `Q2A_DESIGN_ELIGIBLE_AFTER_Q1_ACCEPTANCE = YES` separated from `Q2A_CURRENTLY_AUTHORIZED = NO`. (7) Decision table unified across the three Q1 documents. Sign-off no longer pre-fills `ACCEPTED`; the state is `PENDING_RE_REVIEW` and `Q1_NOT_YET_ACCEPTED`. |
+| 2026-07-14 | v1.2 (Q1 final contract fixup) | Charles-authorized Q1 final fixup (review 4695151631) | Historical-replay time model with four-time-bound canonical order; fail-closed revision lineage policy; three-grain split on the physical-quantity table; "first-class serialized output-schema fields" wording; actual-harvest label and arrival proxy separation; 3-day reclassified as `LEGACY_COMPATIBILITY_METRIC`; 7-day confirmed as `PRIMARY_BUSINESS_SUSTAINED_PEAK_TARGET`; slice ordering wording corrected; decision table unified. |
+| 2026-07-14 | v1.3 (Q1 schema-fact correction) | Charles-authorized Q1 schema-fact correction (review 4695538593) | (1) TASK-009 member-row schema-fact reconciliation: `harvestable_mature_quantity_kg` and `harvested_quantity_kg` are already present on `HarvestStateDailyMemberRowModel` (table `harvest_state_daily_member_row`). Removed the "could live on a future TASK-009 member-grain field" wording for both. (2) Four-state separation between member-grain and Agent aggregate availability: `HARVESTABLE_MEMBER_OUTPUT_STATUS = AVAILABLE_AS_TASK9_HARVESTABLE_MATURE_QUANTITY`, `HARVESTABLE_AGENT_AGGREGATE_FIELD_STATUS = NOT_CURRENTLY_AVAILABLE`, `MODEL_HARVESTED_MEMBER_OUTPUT_STATUS = AVAILABLE_AS_TASK9_HARVESTED_QUANTITY`, `MODEL_HARVESTED_AGENT_AGGREGATE_STATUS = AVAILABLE_AS_FORECAST_DAILY_ROW_AGGREGATE`. (3) Object count: section title renamed from "Eight physical quantities" to "Nine forecast/evaluation objects"; the v1.2 nine-row table is preserved verbatim, with member-row schemas added for harvestable and harvested objects. (4) Path A: corrected to reference the existing TASK-009 member-row fields. (5) Q2A scope: updated to forbid adding duplicate member-grain harvestable / harvested fields; updated to require Q2A evaluation of existing TASK-009 member-grain fields as prediction-side alignment candidate. (6) Decision table: replaced single `HARVESTABLE_QUANTITY = NOT_CURRENTLY_AVAILABLE` collapse with the four-state separation fields. (7) The dual-cutoff / revision-lineage / 7-day-primary / 3-day-legacy / arrival-proxy / signed-absolute / Q1..Q7 ordering are all preserved unchanged. |
 
 ---
 
-## §16 Sign-off (to be completed by Charles upon acceptance)
+## §17 Sign-off (to be completed by Charles upon acceptance)
 
 ```text
-PR103_SLICE_Q1_FINAL_FIXUP_PENDING_RE_REVIEW
+PR103_SLICE_Q1_SCHEMA_FACT_CORRECTION_PENDING_RE_REVIEW
 Q1_NOT_YET_ACCEPTED
-Q1_FINAL_FIXUP_APPLIED
-HISTORICAL_REPLAY_TIME_MODEL_FROZEN
-REVISION_LINEAGE_FAIL_CLOSED_POLICY_FROZEN
-THREE_GRAIN_SPLIT_FROZEN
-ACTUAL_HARVEST_LABEL_SEPARATED_FROM_ARRIVAL_PROXY
+Q1_SCHEMA_FACT_CORRECTION_APPLIED
+TASK9_MEMBER_HARVESTABLE_EXISTENCE_RECONCILED
+TASK9_MEMBER_HARVESTED_EXISTENCE_RECONCILED
+MEMBER_AGENT_AND_ACTUAL_LABEL_LAYERS_SEPARATED
+NINE_OBJECT_CONTRACT_CORRECTED
+PRIMARY_ACTUAL_HARVEST_LABEL_REMAINS_NOT_READY
 SUSTAINED_7DAY_CONFIRMED_AS_PRIMARY_BUSINESS_TARGET
 THREE_DAY_RECLASSIFIED_AS_LEGACY_COMPATIBILITY_METRIC
-ACYCLIC_SLICE_ORDERING_FROZEN
 Q2A_CURRENTLY_AUTHORIZED=NO
-Q2B_IMPLEMENTATION_READY=NO
 Q3_CURRENTLY_AUTHORIZED=NO
 READY_NOT_AUTHORIZED
 MERGE_NOT_AUTHORIZED
