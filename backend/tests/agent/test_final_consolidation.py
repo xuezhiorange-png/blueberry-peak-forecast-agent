@@ -141,6 +141,11 @@ def _make_normalized_request(
         request_id="req-round9",
         request_received_at=datetime(2026, 1, 15, tzinfo=UTC),
         effective_as_of_date=as_of,
+        requested_forecast_season=season,
+        effective_forecast_season_id=season,
+        effective_forecast_season_code=str(season) if season is not None else None,
+        season_record_hash="e" * 64 if season is not None else None,
+        season_resolution_policy_config_hash="a" * 64 if season is not None else None,
         effective_forecast_season=season,
         season_resolution_policy_version="season-calendar/v1",
         season_calendar_config_hash="a" * 64,
@@ -331,7 +336,7 @@ async def test_task9_default_destination_mismatch_emits_scope_mismatch(
         run_id_override=None,  # DEFAULT path
         destination_factory_id=1,
         requested_variety_codes=("Dx",),
-        effective_forecast_season=None,
+        effective_forecast_season_id=1,
     )
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
@@ -418,7 +423,7 @@ async def test_task9_default_date_mismatch_emits_scope_mismatch(
         run_id_override=None,  # DEFAULT path
         destination_factory_id=1,
         requested_variety_codes=("Dx",),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
@@ -497,7 +502,7 @@ async def test_task9_default_status_mismatch_emits_scope_mismatch(
         run_id_override=None,  # DEFAULT path
         destination_factory_id=1,
         requested_variety_codes=("Dx",),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
@@ -568,7 +573,7 @@ async def test_task9_default_no_related_row_emits_task9_authority_not_found(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=("Dx",),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
@@ -609,7 +614,7 @@ async def test_task9_default_hash_malformed_emits_typed(
         destination_factory_id=1,
         requested_variety_codes=(),
         session=sqlite_full_session,
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     assert outcome.candidates == ()
     codes = [b.code.value for b in outcome.blockers]
@@ -619,12 +624,21 @@ async def test_task9_default_hash_malformed_emits_typed(
 @pytest.mark.asyncio
 async def test_task9_default_member_query_exception_emits_upstream_read_failure(
     sqlite_full_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When the member-variety ORM query raises an unexpected
     exception, the selector must surface
     :data:`BlockerCode.UPSTREAM_READ_FAILURE`.
     """
     await _insert_harvest_state_run(sqlite_full_session)
+
+    async def _accept_legacy_fixture(**kwargs):
+        return None, kwargs["requested_season_id"]
+
+    monkeypatch.setattr(
+        "backend.app.agent.adapters.baseline_composer._validate_task9_v2_season_identity",
+        _accept_legacy_fixture,
+    )
     with patch(
         "backend.app.agent.adapters.baseline_composer._member_variety_codes_for_run",
         side_effect=RuntimeError("simulated member-variety ORM read failure"),
@@ -635,7 +649,7 @@ async def test_task9_default_member_query_exception_emits_upstream_read_failure(
             run_id_override=None,
             destination_factory_id=1,
             requested_variety_codes=("Dx",),
-            effective_forecast_season=None,
+            effective_forecast_season_id=1,
         )
     codes = [b.code.value for b in selection.blockers]
     assert "UPSTREAM_READ_FAILURE" in codes, (
@@ -743,6 +757,7 @@ async def test_task10_default_wrong_result_hash_lineage_emits_typed(
 @pytest.mark.asyncio
 async def test_task10_default_lineage_mismatch_production_path(
     sqlite_full_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Public ``compute_baseline()`` must surface
     :data:`BlockerCode.AUTHORITY_LINEAGE_MISMATCH` (NOT
@@ -766,6 +781,14 @@ async def test_task10_default_lineage_mismatch_production_path(
         task9_result_hash="a" * 64,
         prediction_hash="e" * 64,
         prediction_input_signature="1" * 64,
+    )
+
+    async def _accept_legacy_fixture(**kwargs):
+        return None, kwargs["requested_season_id"]
+
+    monkeypatch.setattr(
+        "backend.app.agent.adapters.baseline_composer._validate_task9_v2_season_identity",
+        _accept_legacy_fixture,
     )
     baseline = DefaultTaskCompositionBaseline()
     result = await baseline.compute_baseline(
@@ -943,7 +966,7 @@ async def test_task9_no_persisted_season_emits_scope_mismatch(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=("Dx",),
-        effective_forecast_season=2026,
+        effective_forecast_season_id=2026,
     )
     assert selection.candidates == ()
     codes = [b.code.value for b in selection.blockers]
@@ -1150,7 +1173,7 @@ async def test_task9_default_future_same_destination_row_is_not_visible(
         run_id_override=None,  # default path
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     assert selection.candidates == (), (
         f"future row must not surface as a candidate; got {selection.candidates}"
@@ -1309,7 +1332,7 @@ async def test_task9_candidate_order_is_stable_across_insertion_order(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=2026,
+        effective_forecast_season_id=2026,
     )
     ids = [c["id"] for c in selection.candidates]
     assert ids == sorted(ids), f"candidate ids must be sorted ascending; got {ids} (a={a}, b={b})"
@@ -1354,7 +1377,7 @@ async def test_task9_blocker_order_is_stable_across_insertion_order(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     serial = canonical_json_dumps([b.model_dump(mode="json") for b in selection.blockers])
     canonical_hash_1 = canonical_payload_hash(serial)
@@ -1394,7 +1417,7 @@ async def test_task9_blocker_order_is_stable_across_insertion_order(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
     serial2 = canonical_json_dumps([b.model_dump(mode="json") for b in selection2.blockers])
     canonical_hash_2 = canonical_payload_hash(serial2)
@@ -1626,14 +1649,15 @@ async def test_task9_valid_candidate_coexists_with_invalid_related_row(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=2026,
+        effective_forecast_season_id=2026,
     )
-    # Contract: the valid row is the ONLY candidate; never a
-    # blocker, never a conflict.  The valid row's identity is
-    # stable across insertion order.  Insert in opposite order
-    # and re-assert.
-    assert [c["id"] for c in selection.candidates] == [valid], (
-        f"valid row must be the sole candidate; got {selection.candidates}"
+    # A legacy JSON season token cannot make the v1 row eligible.
+    assert selection.candidates == ()
+    assert any(
+        blocker.code == BlockerCode.AUTHORITY_SCOPE_MISMATCH
+        and (blocker.details or {}).get("reason") == SEASON_BINDING_UNAVAILABLE
+        and (blocker.details or {}).get("row_id") == valid
+        for blocker in selection.blockers
     )
 
 

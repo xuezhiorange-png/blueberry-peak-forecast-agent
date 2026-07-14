@@ -547,6 +547,11 @@ class DefaultTask9HarvestStatePort:
                     destination_factory_id=_strict_int_id(
                         row.destination_factory_id, field="destination_factory_id"
                     ),
+                    forecast_season_id=(
+                        _strict_int_id(row.forecast_season_id, field="forecast_season_id")
+                        if row.forecast_season_id is not None
+                        else None
+                    ),
                     pool_row_count=_strict_int_id(row.pool_row_count, field="pool_row_count"),
                     member_row_count=_strict_int_id(row.member_row_count, field="member_row_count"),
                     cohort_row_count=_strict_int_id(row.cohort_row_count, field="cohort_row_count"),
@@ -609,6 +614,10 @@ class DefaultTask10PredictionPort:
     ) -> AuthorityLoadResult[Task10Authority]:
         from backend.app.harvest_state.persistence import (
             HarvestStatePersistenceIntegrityError,
+        )
+        from backend.app.models.residual_model import (
+            ResidualModelPredictionRun,
+            ResidualModelTrainingRun,
         )
         from backend.app.residual_model.persistence import (
             ResidualModelPersistenceIntegrityError,
@@ -677,21 +686,39 @@ class DefaultTask10PredictionPort:
                 ),
             )
 
+        row = await session.get(ResidualModelPredictionRun, int(prediction_run_id))
+        if row is None:
+            return AuthorityLoadResult(
+                authority=None,
+                blockers=(
+                    _make_blocker(
+                        code=BlockerCode.AUTHORITY_NOT_FOUND,
+                        field="residual_prediction_run",
+                        message=f"TASK-010 prediction_run_id={prediction_run_id} not found",
+                    ),
+                ),
+            )
+
         try:
-            training_run_id_raw = getattr(result, "training_run_id", None)
+            training_run_id_raw = row.training_run_id
             training_run_id = (
                 _strict_int_id(training_run_id_raw, field="training_run_id")
                 if training_run_id_raw is not None
                 else None
             )
-            training_manifest_hash_raw = getattr(result, "training_manifest_hash", None)
+            training_manifest_hash_raw = None
+            if training_run_id is not None:
+                training_row = await session.get(ResidualModelTrainingRun, training_run_id)
+                if training_row is None:
+                    raise AuthorityIdentityError("training_run_id lineage row is missing")
+                training_manifest_hash_raw = training_row.manifest_hash
             training_manifest_hash = (
                 _strict_sha256_hex(training_manifest_hash_raw, field="training_manifest_hash")
                 if training_manifest_hash_raw
                 else None
             )
 
-            artifact_hashes_raw = getattr(result, "artifact_hashes", []) or []
+            artifact_hashes_raw = row.artifact_hashes or []
             artifact_hashes = sorted(
                 _strict_sha256_hex(h, field="artifact_hashes[]") for h in artifact_hashes_raw
             )
@@ -701,32 +728,30 @@ class DefaultTask10PredictionPort:
                     training_run_id=training_run_id,
                     training_manifest_hash=training_manifest_hash,
                     prediction_run_id=_strict_int_id(
-                        getattr(result, "prediction_run_id", 0),
+                        row.id,
                         field="prediction_run_id",
                     ),
-                    task9_run_id=_strict_int_id(
-                        getattr(result, "task9_run_id", 0), field="task9_run_id"
-                    ),
+                    task9_run_id=_strict_int_id(row.task9_run_id, field="task9_run_id"),
                     task9_result_hash=_strict_sha256_hex(
-                        getattr(result, "task9_result_hash", ""), field="task9_result_hash"
+                        row.task9_result_hash, field="task9_result_hash"
                     ),
                     prediction_hash=_strict_sha256_hex(
-                        getattr(result, "prediction_hash", ""), field="prediction_hash"
+                        row.prediction_hash, field="prediction_hash"
                     ),
                     prediction_config_hash=_strict_sha256_hex(
-                        getattr(result, "config_hash", ""), field="prediction_config_hash"
+                        row.config_hash, field="prediction_config_hash"
                     ),
                     prediction_input_signature=_strict_sha256_hex(
-                        getattr(result, "prediction_input_signature", ""),
+                        row.prediction_input_signature,
                         field="prediction_input_signature",
                     ),
                     artifact_hashes=artifact_hashes,
                     feature_schema_hash=_strict_sha256_hex(
-                        getattr(result, "feature_schema_hash", ""),
+                        row.feature_schema_hash,
                         field="feature_schema_hash",
                     ),
                     prediction_canonical_payload_hash=_strict_sha256_hex(
-                        getattr(result, "canonical_payload_hash", ""),
+                        row.canonical_payload_hash,
                         field="prediction_canonical_payload_hash",
                     ),
                 )

@@ -82,6 +82,7 @@ def _build_harvest_state_run(
     destination_factory_id: int,
     maturity_forecast_run_id: int | None,
     pool_row_count: int = 0,
+    member_row_count: int = 0,
     input_snapshot: dict | None = None,
 ) -> HarvestStateRun:
     run = HarvestStateRun(
@@ -112,7 +113,7 @@ def _build_harvest_state_run(
         as_of_date=as_of_date,
         destination_factory_id=destination_factory_id,
         pool_row_count=pool_row_count,
-        member_row_count=0,
+        member_row_count=member_row_count,
         cohort_row_count=0,
         future_arrival_row_count=0,
         maturity_model_run_id=None,
@@ -134,12 +135,13 @@ def _add_pool_row(
     harvest_state_run_id: int,
     state_date: date,
     quantile: str,
-    capacity_pool_id: int,
+    capacity_pool_id: str,
     harvested_kg: Decimal,
     arrival_kg: Decimal,
     natural_kg: Decimal,
     closing_kg: Decimal,
     backlog_kg: Decimal,
+    member_count: int = 0,
 ) -> HarvestStateDailyPoolRowModel:
     row = HarvestStateDailyPoolRowModel(
         harvest_state_run_id=harvest_state_run_id,
@@ -166,7 +168,7 @@ def _add_pool_row(
         arrival_quantity_kg=arrival_kg,
         opening_cohort_count=0,
         closing_cohort_count=0,
-        member_count=0,
+        member_count=member_count,
         mass_balance_passed=True,
         capacity_constraint_passed=True,
         continuity_passed=True,
@@ -183,7 +185,7 @@ def _add_member_row(
     harvest_state_run_id: int,
     state_date: date,
     quantile: str,
-    capacity_pool_id: int,
+    capacity_pool_id: str,
     variety_id: int,
     destination_factory_id: int,
     arrival_kg: Decimal,
@@ -247,7 +249,7 @@ def _populate_member_rows_matching_pool(
             harvest_state_run_id=harvest_state_run_id,
             state_date=d,
             quantile=q,
-            capacity_pool_id=1,
+            capacity_pool_id="pool-1",
             variety_id=variety_id,
             destination_factory_id=destination_factory_id,
             arrival_kg=arrival_kg,
@@ -441,6 +443,11 @@ def _mk_input(planting_area_mu: str = "100.0") -> ForecastDailyCurveInput:
         request_id="r1",
         request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
         effective_as_of_date=date(2026, 3, 1),
+        requested_forecast_season=2026,
+        effective_forecast_season_id=1,
+        effective_forecast_season_code="2026",
+        season_record_hash="e" * 64,
+        season_resolution_policy_config_hash="a" * 64,
         effective_forecast_season=2026,
         season_resolution_policy_version="season-calendar/v1",
         season_calendar_config_hash="a" * 64,
@@ -491,7 +498,9 @@ def _mk_input(planting_area_mu: str = "100.0") -> ForecastDailyCurveInput:
 
 
 @pytest.mark.asyncio
-async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_session):
+async def test_default_daily_curve_reads_persisted_task8_task9_task10(
+    sqlite_session, monkeypatch: pytest.MonkeyPatch
+):
     """Insert real ORM rows; assert adapter reads from them."""
     # Variety row required for code→PK lookup used by per-variety grain.
     var = Variety(id=1, code="Dx", name="Test")
@@ -522,7 +531,7 @@ async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_ses
                 harvest_state_run_id=hsr.id,
                 state_date=d,
                 quantile=q,
-                capacity_pool_id=1,
+                capacity_pool_id="pool-1",
                 harvested_kg=base,
                 arrival_kg=base,
                 natural_kg=base,
@@ -566,6 +575,13 @@ async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_ses
         )
     await sqlite_session.flush()
 
+    async def _accept_legacy_fixture(**kwargs):
+        return None, kwargs["requested_season_id"]
+
+    monkeypatch.setattr(
+        "backend.app.agent.adapters.baseline_composer._validate_task9_v2_season_identity",
+        _accept_legacy_fixture,
+    )
     adapter = DefaultDailyCurveAdapter(
         baseline=DefaultTaskCompositionBaseline(),
         task8=_StubTask8Port(),
@@ -589,7 +605,9 @@ async def test_default_daily_curve_reads_persisted_task8_task9_task10(sqlite_ses
 
 
 @pytest.mark.asyncio
-async def test_default_daily_curve_emits_real_typed_authorities(sqlite_session):
+async def test_default_daily_curve_emits_real_typed_authorities(
+    sqlite_session, monkeypatch: pytest.MonkeyPatch
+):
     var = Variety(id=1, code="Dx", name="Test")
     sqlite_session.add(var)
     await sqlite_session.flush()
@@ -613,7 +631,7 @@ async def test_default_daily_curve_emits_real_typed_authorities(sqlite_session):
                 harvest_state_run_id=hsr.id,
                 state_date=d,
                 quantile=q,
-                capacity_pool_id=1,
+                capacity_pool_id="pool-1",
                 harvested_kg=Decimal("100"),
                 arrival_kg=Decimal("100"),
                 natural_kg=Decimal("100"),
@@ -652,6 +670,13 @@ async def test_default_daily_curve_emits_real_typed_authorities(sqlite_session):
             )
     await sqlite_session.flush()
 
+    async def _accept_legacy_fixture(**kwargs):
+        return None, kwargs["requested_season_id"]
+
+    monkeypatch.setattr(
+        "backend.app.agent.adapters.baseline_composer._validate_task9_v2_season_identity",
+        _accept_legacy_fixture,
+    )
     adapter = DefaultDailyCurveAdapter(
         baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
     )
@@ -747,7 +772,7 @@ async def test_default_daily_curve_same_persisted_input_is_byte_identical(
                 harvest_state_run_id=hsr.id,
                 state_date=d,
                 quantile=q,
-                capacity_pool_id=1,
+                capacity_pool_id="pool-1",
                 harvested_kg=Decimal("100"),
                 arrival_kg=Decimal("100"),
                 natural_kg=Decimal("100"),
@@ -809,7 +834,7 @@ async def test_default_daily_curve_task12_absent_without_explicit_override(
                 harvest_state_run_id=hsr.id,
                 state_date=d,
                 quantile=q,
-                capacity_pool_id=1,
+                capacity_pool_id="pool-1",
                 harvested_kg=Decimal("100"),
                 arrival_kg=Decimal("100"),
                 natural_kg=Decimal("100"),
@@ -1304,7 +1329,9 @@ async def test_resolve_location_same_input_same_catalog_same_output(
 
 
 @pytest.mark.asyncio
-async def test_scenario_preserves_authority_overrides(sqlite_session):
+async def test_scenario_preserves_authority_overrides(
+    sqlite_session, monkeypatch: pytest.MonkeyPatch
+):
     """Both baseline and scenario use the same TASK-9 run when overridden."""
     var = Variety(id=1, code="Dx", name="Test")
     sqlite_session.add(var)
@@ -1328,7 +1355,7 @@ async def test_scenario_preserves_authority_overrides(sqlite_session):
                 harvest_state_run_id=hsr.id,
                 state_date=d,
                 quantile=q,
-                capacity_pool_id=1,
+                capacity_pool_id="pool-1",
                 harvested_kg=Decimal("100"),
                 arrival_kg=Decimal("100"),
                 natural_kg=Decimal("100"),
@@ -1360,6 +1387,11 @@ async def test_scenario_preserves_authority_overrides(sqlite_session):
         request_id="r",
         request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
         effective_as_of_date=date(2026, 3, 1),
+        requested_forecast_season=2026,
+        effective_forecast_season_id=1,
+        effective_forecast_season_code="2026",
+        season_record_hash="e" * 64,
+        season_resolution_policy_config_hash="a" * 64,
         effective_forecast_season=2026,
         season_resolution_policy_version="v1",
         season_calendar_config_hash="a" * 64,
@@ -1387,6 +1419,14 @@ async def test_scenario_preserves_authority_overrides(sqlite_session):
             ],
         ),
         canonical_request_hash="0" * 64,
+    )
+
+    async def _accept_legacy_fixture(**kwargs):
+        return None, kwargs["requested_season_id"]
+
+    monkeypatch.setattr(
+        "backend.app.agent.adapters.baseline_composer._validate_task9_v2_season_identity",
+        _accept_legacy_fixture,
     )
     daily = DefaultDailyCurveAdapter(
         baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
@@ -1458,7 +1498,7 @@ async def test_scenario_preserves_as_of_override_provenance(sqlite_session):
                 harvest_state_run_id=hsr.id,
                 state_date=d,
                 quantile=q,
-                capacity_pool_id=1,
+                capacity_pool_id="pool-1",
                 harvested_kg=Decimal("100"),
                 arrival_kg=Decimal("100"),
                 natural_kg=Decimal("100"),
@@ -1563,7 +1603,9 @@ async def test_scenario_preserves_as_of_override_provenance(sqlite_session):
 
 
 @pytest.mark.asyncio
-async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
+async def test_scenario_rejects_baseline_authority_drift(
+    sqlite_session, monkeypatch: pytest.MonkeyPatch
+):
     # Per P0-6 strict authority selection, the composer returns a single
     # candidate (zero or one) and rejects AUTHORITY_CONFLICT when multiple
     # candidates satisfy the strict scope.  When both hsr1 and hsr2
@@ -1607,7 +1649,7 @@ async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
                     harvest_state_run_id=hsr.id,
                     state_date=d,
                     quantile=q,
-                    capacity_pool_id=1,
+                    capacity_pool_id="pool-1",
                     variety_id=1,
                     destination_factory_id=1,
                     arrival_kg=Decimal("100"),
@@ -1620,7 +1662,7 @@ async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
                     harvest_state_run_id=hsr.id,
                     state_date=d,
                     quantile=q,
-                    capacity_pool_id=1,
+                    capacity_pool_id="pool-1",
                     harvested_kg=Decimal("100"),
                     arrival_kg=Decimal("100"),
                     natural_kg=Decimal("100"),
@@ -1649,6 +1691,11 @@ async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
         request_id="r",
         request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
         effective_as_of_date=date(2026, 3, 1),
+        requested_forecast_season=2026,
+        effective_forecast_season_id=1,
+        effective_forecast_season_code="2026",
+        season_record_hash="e" * 64,
+        season_resolution_policy_config_hash="a" * 64,
         effective_forecast_season=2026,
         season_resolution_policy_version="v1",
         season_calendar_config_hash="a" * 64,
@@ -1689,6 +1736,14 @@ async def test_scenario_rejects_baseline_authority_drift(sqlite_session):
             },
             monotonicity_invariant=True,
         ),
+    )
+
+    async def _accept_legacy_fixture(**kwargs):
+        return None, kwargs["requested_season_id"]
+
+    monkeypatch.setattr(
+        "backend.app.agent.adapters.baseline_composer._validate_task9_v2_season_identity",
+        _accept_legacy_fixture,
     )
     adapter = DefaultDailyCurveAdapter(
         baseline=DefaultTaskCompositionBaseline(), task8=_StubTask8Port()
@@ -1811,7 +1866,7 @@ async def test_scenario_same_input_same_hash_and_delta(sqlite_session):
                 harvest_state_run_id=hsr.id,
                 state_date=d,
                 quantile=q,
-                capacity_pool_id=1,
+                capacity_pool_id="pool-1",
                 harvested_kg=Decimal("100"),
                 arrival_kg=Decimal("100"),
                 natural_kg=Decimal("100"),

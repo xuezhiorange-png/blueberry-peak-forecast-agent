@@ -333,7 +333,11 @@ jobs:
 
       - name: Create isolated test database
         env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
           POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -508,6 +512,8 @@ jobs:
     name: postgres-domain-1
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      ISOLATED_JOB_NAME: postgres-domain-1
     services:
       postgres:
         image: postgres:16
@@ -516,7 +522,7 @@ jobs:
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         ports:
-          - 5432:5432
+          - 55432:5432
         options: >-
           --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
           --health-interval 5s
@@ -566,7 +572,7 @@ jobs:
       - name: Wait for PostgreSQL service
         env:
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
+          POSTGRES_PORT: "55432"
           POSTGRES_DB: blueberry_peak
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
@@ -592,24 +598,83 @@ jobs:
           asyncio.run(main())
           PY
 
+      - name: Resolve isolated test database name
+        env:
+          POSTGRES_DB: blueberry_peak
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import os
+
+          from backend.tests.migration_isolation_helpers import (
+              assert_safe_isolated_db_name,
+              resolve_isolated_db_name,
+          )
+
+          name = resolve_isolated_db_name(
+              os.environ["GITHUB_RUN_ID"],
+              os.environ["GITHUB_RUN_ATTEMPT"],
+              os.environ["ISOLATED_JOB_NAME"],
+          )
+          assert_safe_isolated_db_name(name)
+          print(f"ISOLATED_DB_NAME={name}")
+          PY
+
+      - name: Create isolated test database
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "55432"
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+
+          import asyncpg
+
+          async def main() -> None:
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database="blueberry_peak",
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  name = os.environ["ISOLATED_DB_NAME"]
+                  exists = await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1", name
+                  )
+                  if exists:
+                      raise SystemExit(f"isolated database already exists: {name!r}")
+                  await conn.execute(f'CREATE DATABASE "{name}"')
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
+
       - name: Alembic upgrade head
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_PORT: "55432"
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
         run: alembic -c backend/alembic.ini upgrade head
 
       - name: Postgres domain-1 tests
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_PORT: "55432"
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
           RUN_POSTGRES_INTEGRATION: "1"
         run: |
           mkdir -p reports/test-results
@@ -638,6 +703,8 @@ jobs:
             backend/tests/integration/test_task9_authority_request_loader_postgres.py \
             backend/tests/integration/test_task9_authority_resolution_postgres.py \
             backend/tests/integration/test_task9_authority_repository_postgres.py \
+            backend/tests/integration/agent/test_orchestration_postgres.py \
+            backend/tests/integration/agent/test_postgres_selector_year_extraction.py \
             -m "not postgres_concurrency" -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \

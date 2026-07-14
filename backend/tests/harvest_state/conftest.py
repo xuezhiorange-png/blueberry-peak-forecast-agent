@@ -408,7 +408,11 @@ def make_task8_supply(
     }
 
 
-def make_request(*, season_id: int = 2026) -> dict[str, Any]:
+def make_request(
+    *,
+    season_id: int = 2026,
+    destination_factory_id: int = 701,
+) -> dict[str, Any]:
     season_start_date = date(season_id, 1, 1)
     season_end_date = date(season_id, 4, 30)
     season_record = {
@@ -547,7 +551,7 @@ def make_request(*, season_id: int = 2026) -> dict[str, Any]:
         "forecast_start_date": forecast_dates[0],
         "forecast_end_date": forecast_dates[-1],
         "forecast_quantiles": list(quantiles),
-        "destination_factory_id": 701,
+        "destination_factory_id": destination_factory_id,
         "farm_timezone": "Asia/Shanghai",
         "destination_factory_timezone": "Asia/Tokyo",
         "harvest_bucket_anchor_local_time": time(18, 0, 0),
@@ -650,6 +654,7 @@ def make_request(*, season_id: int = 2026) -> dict[str, Any]:
                 cohort_date=date(season_id, 2, 28),
                 as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
+                destination_factory_id=destination_factory_id,
             ),
             make_initial_cohort(
                 quantile="P50",
@@ -658,6 +663,7 @@ def make_request(*, season_id: int = 2026) -> dict[str, Any]:
                 cohort_date=date(season_id, 2, 28),
                 as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
+                destination_factory_id=destination_factory_id,
             ),
             make_initial_cohort(
                 quantile="P80",
@@ -666,6 +672,7 @@ def make_request(*, season_id: int = 2026) -> dict[str, Any]:
                 cohort_date=date(season_id, 2, 28),
                 as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
+                destination_factory_id=destination_factory_id,
             ),
             make_initial_cohort(
                 quantile="P80",
@@ -674,6 +681,7 @@ def make_request(*, season_id: int = 2026) -> dict[str, Any]:
                 cohort_date=date(season_id, 2, 28),
                 as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
+                destination_factory_id=destination_factory_id,
             ),
             make_initial_cohort(
                 quantile="P90",
@@ -682,6 +690,7 @@ def make_request(*, season_id: int = 2026) -> dict[str, Any]:
                 cohort_date=date(season_id, 2, 28),
                 as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
+                destination_factory_id=destination_factory_id,
             ),
             make_initial_cohort(
                 quantile="P90",
@@ -690,6 +699,7 @@ def make_request(*, season_id: int = 2026) -> dict[str, Any]:
                 cohort_date=date(season_id, 2, 28),
                 as_of_date=date(season_id, 2, 28),
                 capacity_pool_membership_hash=capacity_pool_membership_hash,
+                destination_factory_id=destination_factory_id,
             ),
         ],
         "initial_opening_mature_inventory_kg": Decimal("30"),

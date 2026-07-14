@@ -60,6 +60,7 @@ from backend.app.agent.enums import (
     RetryHint,
     SpringFestivalPhase,
 )
+from backend.app.harvest_state.schemas import ForecastSeasonIdentitySnapshot
 
 # --- Strict scalar constraints --------------------------------------------
 
@@ -195,7 +196,11 @@ class MinimalInputRequest(_StrictBase):
     location: LocationInput
     varieties: list[MinimalVarietyInput]
     requested_as_of_date: date | None = None
-    requested_forecast_season: IntId | None = None
+    requested_forecast_season: (
+        Annotated[int, Field(strict=True, gt=0)]
+        | Annotated[str, Field(strict=True, min_length=1)]
+        | None
+    ) = None
     advanced_overrides: AdvancedOverrides | None = None
 
     @field_validator("varieties")
@@ -228,6 +233,7 @@ class Task9Authority(_StrictBase):
     harvest_state_forecast_start_date: date
     harvest_state_forecast_end_date: date
     destination_factory_id: IntId
+    forecast_season_id: Annotated[int, Field(strict=True, gt=0)] | None = None
     pool_row_count: IntId
     member_row_count: IntId
     cohort_row_count: IntId
@@ -243,6 +249,11 @@ class Task9Authority(_StrictBase):
             raise ValueError(
                 "harvest_state_forecast_start_date must be <= harvest_state_forecast_end_date"
             )
+        if (
+            self.harvest_state_output_schema_version == "task9a-output-v2"
+            and self.forecast_season_id is None
+        ):
+            raise ValueError("Task 9 v2 authority requires forecast_season_id")
         return self
 
 
@@ -697,9 +708,16 @@ class NormalizedAgentRequest(_StrictBase):
     request_id: str = Field(min_length=1)
     request_received_at: AwareDatetime
     effective_as_of_date: date
-    effective_forecast_season: IntId
-    season_resolution_policy_version: str = Field(min_length=1)
-    season_calendar_config_hash: SHA256Hex
+    requested_forecast_season: int | str | None = None
+    effective_forecast_season_id: Annotated[int, Field(strict=True, gt=0)] | None = None
+    effective_forecast_season_code: str | None = Field(default=None, min_length=1)
+    season_record_hash: SHA256Hex | None = None
+    season_resolution_policy_version: str | None = Field(default=None, min_length=1)
+    season_resolution_policy_config_hash: SHA256Hex | None = None
+    # Transitional constructor compatibility only. These fields are excluded
+    # from canonical serialization and are never read as authority.
+    effective_forecast_season: IntId | None = Field(default=None, exclude=True)
+    season_calendar_config_hash: SHA256Hex | None = Field(default=None, exclude=True)
     requested_as_of_date_provenance: RequestedAsOfDateProvenance
     normalized_location: ResolvedLocation
     # P0-3.1: location_input is the RAW caller location (from MinimalInputRequest),
@@ -708,6 +726,27 @@ class NormalizedAgentRequest(_StrictBase):
     varieties: list[NormalizedVarietyInput]
     advanced_overrides: AdvancedOverrides | None = None
     canonical_request_hash: SHA256Hex
+
+    @model_validator(mode="after")
+    def _season_identity_is_atomic(self) -> NormalizedAgentRequest:
+        identity_fields = (
+            self.effective_forecast_season_id,
+            self.effective_forecast_season_code,
+            self.season_record_hash,
+            self.season_resolution_policy_config_hash,
+        )
+        if any(value is not None for value in identity_fields) and not (
+            all(value is not None for value in identity_fields)
+            and self.season_resolution_policy_version is not None
+        ):
+            raise ValueError("resolved forecast season identity must be complete or absent")
+        return self
+
+
+class ResolvedForecastSeasonIdentity(_StrictBase):
+    season_snapshot: ForecastSeasonIdentitySnapshot
+    season_resolution_policy_version: str = Field(min_length=1)
+    season_resolution_policy_config_hash: SHA256Hex
 
 
 class CitationOverrideRef(_StrictBase):
