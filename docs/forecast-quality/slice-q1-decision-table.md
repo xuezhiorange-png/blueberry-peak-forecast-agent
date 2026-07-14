@@ -53,7 +53,16 @@ This document is the explicit Q1 decision table required by round §十二. Ever
 | `FORECAST_DAILY_QUANTITY_FIELD_COUNT` | `6` (six `DailyQuantiles` quantity fields; `per_variety_contribution` is a nested list, not a 7th field) | Q1 contract §5.3 |
 | `CURRENT_3DAY_CONTRACT_REFERENCE_COUNT` | `25+` (full inventory in Q1 audit §B) | Q1 audit §B |
 | `ACTUAL_HARVEST_DAILY_TABLE` | `NOT_CURRENTLY_AVAILABLE` (no first-class table; `fact_receipt_daily` is the closest but is arrival, not pick) | Q1 contract §5.1 / §6.4 |
-| `HARVESTABLE_QUANTITY` | `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` (no first-class field; the `harvested - backlog` formula is forbidden) | Q1 contract §5.1 / §5.6 |
+| `HARVESTABLE_MEMBER_OUTPUT_STATUS` | `AVAILABLE_AS_TASK9_HARVESTABLE_MATURE_QUANTITY` (member row `harvest_state_daily_member_row.harvestable_mature_quantity_kg` exists in `origin/main`) | Q1 contract §5.7 / §5.1 (review 4695538593) |
+| `HARVESTABLE_AGENT_AGGREGATE_FIELD_STATUS` | `NOT_CURRENTLY_AVAILABLE` (`ForecastDailyRow` does NOT carry a first-class `harvestable_quantity_kg` field) | Q1 contract §5.7 / §5.1 (review 4695538593) |
+| `HARVESTABLE_FORMULA_STATUS` | `NO_DERIVED_FORMULA_REQUIRED` (the member-row field is first-class; the Agent aggregate layer is not derived from a formula) | Q1 contract §5.7 / §5.5 (review 4695538593) |
+| `HARVESTABLE_MINUS_BACKLOG_FORMULA` | `FORBIDDEN` (`harvested - backlog` has no physical authority; the result can be negative) | Q1 contract §5.5 |
+| `MODEL_HARVESTED_MEMBER_OUTPUT_STATUS` | `AVAILABLE_AS_TASK9_HARVESTED_QUANTITY` (member row `harvest_state_daily_member_row.harvested_quantity_kg` exists in `origin/main`) | Q1 contract §5.7 / §5.1 (review 4695538593) |
+| `MODEL_HARVESTED_AGENT_AGGREGATE_STATUS` | `AVAILABLE_AS_FORECAST_DAILY_ROW_AGGREGATE` (`ForecastDailyRow.harvested_quantity_kg: DailyQuantiles` exists in `origin/main`) | Q1 contract §5.7 / §5.1 (review 4695538593) |
+| `MODEL_HARVESTED_DIRECT_ACTUAL_OBSERVATION` | `NO` (both member-row and Agent aggregate are model outputs) | Q1 contract §5.7 (review 4695538593) |
+| `MODEL_HARVESTED_PRIMARY_ACTUAL_LABEL` | `NO` (member-row availability does NOT promote the field to a label) | Q1 contract §5.7 (review 4695538593) |
+| `OBJECT_COUNT` | `9` (nine forecast/evaluation objects: natural_maturity / mature_inventory / harvestable / model_harvested / actual_harvest / unharvested_backlog / arrival / final_corrected_arrival / season_cumulative) | Q1 contract §5.1 (review 4695538593) |
+| `OBJECT_SECTION_TITLE` | `Nine forecast/evaluation objects` (replaces v1.2 "Eight physical quantities") | Q1 contract §5.1 (review 4695538593) |
 | `SEASON_CUMULATIVE_QUANTITY` | `NOT_CURRENTLY_AVAILABLE` as first-class field; `DERIVED_EVALUATION_METRIC`; `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1` (per review 4695151631 P0-3) | Q1 contract §5.4 |
 | `ALIGNMENT_CONTRACT` | `DESIGN_CANDIDATES` (Path A and Path B; Q1 does NOT select) | Q1 contract §11 |
 | `Q2_DESIGN_CAN_START` | `YES` (Q1 acceptance precondition only) | Q1 contract §12.2 |
