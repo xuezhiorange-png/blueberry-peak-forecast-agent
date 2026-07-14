@@ -258,8 +258,68 @@ def _production_request():
     )
 
 
+def _complete_parameter_coverage_fixture(
+    *,
+    library_version_id: int,
+) -> tuple[list[Season], list[ParameterObservation]]:
+    historical_seasons = [
+        Season(id=2, code="2024", start_date=date(2024, 1, 1), end_date=date(2024, 4, 30)),
+        Season(id=3, code="2025", start_date=date(2025, 1, 1), end_date=date(2025, 4, 30)),
+    ]
+    parameter_values = {
+        "yield_kg_per_mu": ("100", "kg_per_mu"),
+        "marketable_rate": ("0.90", "ratio"),
+        "first_harvest_offset_days": ("5", "days"),
+        "maturity_peak_offset_days": ("15", "days"),
+        "maturity_width_days": ("20", "days"),
+        "maturity_skewness": ("0.10", "scalar"),
+    }
+    observations: list[ParameterObservation] = []
+    row_id = 800
+    for variety_id in (101, 102):
+        for season in historical_seasons:
+            for parameter_type, (value, unit) in parameter_values.items():
+                observations.append(
+                    ParameterObservation(
+                        id=row_id,
+                        library_version_id=library_version_id,
+                        parameter_type=parameter_type,
+                        variety_id=variety_id,
+                        farm_id=1,
+                        subfarm_id=None,
+                        location_reference_id=601,
+                        climate_zone_id=1601,
+                        season_id=season.id,
+                        province="云南省",
+                        prefecture="红河州",
+                        county="弥勒市",
+                        township=None,
+                        altitude_m=Decimal("1800"),
+                        scalar_value=Decimal(value),
+                        unit=unit,
+                        sample_weight=Decimal("1"),
+                        source_level="same_farm_variety",
+                        source_name="slice-c-complete-coverage-fixture",
+                        source_version="slice-c-parameter-v1",
+                        historical_mape=Decimal("0.10"),
+                        date_mae_days=Decimal("2"),
+                        p90_coverage=Decimal("0.85"),
+                        available_at=date(2026, 2, 28),
+                        valid_from=date(2024, 1, 1),
+                        valid_to=None,
+                        source_row_hash=_hash(
+                            f"slice-c-complete-{variety_id}-{season.id}-{parameter_type}"
+                        ),
+                    )
+                )
+                row_id += 1
+    return historical_seasons, observations
+
+
 async def _production_postgres_outputs(
     transactional_pg_session: AsyncSession,
+    *,
+    complete_parameter_coverage: bool = False,
 ) -> tuple[AgentForecastOutput, AgentForecastOutput, AgentForecastOutput]:
     result = await transactional_pg_session.execute(text("SELECT 1"))
     assert result.scalar_one() == 1
@@ -311,8 +371,13 @@ async def _production_postgres_outputs(
         source_name="slice-c-postgres-fixture",
         source_file_sha256=_hash("slice-c-parameter-source"),
         config_hash=_hash("slice-c-parameter-config"),
-        record_count=3,
+        record_count=27 if complete_parameter_coverage else 3,
         effective_from=date(2025, 1, 1),
+    )
+    historical_seasons, complete_coverage_observations = (
+        _complete_parameter_coverage_fixture(library_version_id=parameter_library.id)
+        if complete_parameter_coverage
+        else ([], [])
     )
     plan = FarmSeasonVarietyPlan(
         id=1,
@@ -381,6 +446,7 @@ async def _production_postgres_outputs(
             farm,
             subfarm,
             season,
+            *historical_seasons,
             variety,
             second_variety,
             factory,
@@ -425,6 +491,7 @@ async def _production_postgres_outputs(
             )
             for index, value in enumerate(("95", "100", "105"), start=1)
         ]
+        + complete_coverage_observations
     )
     await transactional_pg_session.flush()
     transactional_pg_session.add(artifact)
@@ -477,11 +544,20 @@ async def _production_postgres_outputs(
     }
     assert "TASK9_AUTHORITY_NOT_FOUND" not in blocker_codes
     assert "TASK10_AUTHORITY_NOT_FOUND" not in blocker_codes
-    assert blocker_codes == {
-        "INSUFFICIENT_HISTORY",
-        "NO_PERSISTED_PRIOR_SOURCE",
-        "SPRING_FESTIVAL_CALENDAR_POLICY_MISSING",
-    }, [
+    expected_blocker_codes = (
+        {
+            "MATURITY_CURVE_OUTPUT_SCHEMA_CAPABILITY_MISSING",
+            "NO_PERSISTED_PRIOR_SOURCE",
+            "SPRING_FESTIVAL_CALENDAR_POLICY_MISSING",
+        }
+        if complete_parameter_coverage
+        else {
+            "INSUFFICIENT_HISTORY",
+            "NO_PERSISTED_PRIOR_SOURCE",
+            "SPRING_FESTIVAL_CALENDAR_POLICY_MISSING",
+        }
+    )
+    assert blocker_codes == expected_blocker_codes, [
         blocker.model_dump(mode="json")
         for blocker in output.blockers
         if blocker.code.value == "UPSTREAM_READ_FAILURE"

@@ -720,20 +720,15 @@ def build_explanation(source: SliceCSourcePayload) -> ExplainForecastOutput:
 
     if source.blockers:
         pointer = "/blockers/0/code"
-        try:
-            citation = _canonical_citation(source, pointer)
-            validate_citation(source, citation)
-            paragraphs["BLOCKERS_AND_DATA_GAPS"].append(
-                ExplainParagraph(
-                    kind="DETERMINISTIC_EXPLANATION",
-                    text=_render_template("blocker-gap-v1"),
-                    template_id="blocker-gap-v1",
-                    evidence_field_paths=[pointer],
-                    citation=citation,
-                )
+        paragraphs["BLOCKERS_AND_DATA_GAPS"].append(
+            ExplainParagraph(
+                kind="DETERMINISTIC_EXPLANATION",
+                text=_render_template("blocker-gap-v1"),
+                template_id="blocker-gap-v1",
+                evidence_field_paths=[pointer],
+                citation=None,
             )
-        except SliceCEvidenceError as exc:
-            evidence_blockers.append(_evidence_blocker(exc))
+        )
 
     all_blockers = canonical_blockers([*source.blockers, *evidence_blockers])
 

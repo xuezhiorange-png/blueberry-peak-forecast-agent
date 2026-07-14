@@ -6,15 +6,18 @@ from pathlib import Path
 
 import pytest
 
+from backend.app.agent.adapters.parameters import ALL_LOGICAL_PARAMETERS, LOGICAL_TO_UPSTREAM
 from backend.app.agent.canonical import canonical_json_dumps, sha256_payload
 from backend.app.agent.enums import BlockerCode
-from backend.app.agent.schemas import Blocker, Citation, CitationAuthorityEntry
+from backend.app.agent.schemas import Blocker, Citation, CitationAuthorityEntry, SliceCSourcePayload
 from backend.app.agent.slice_c.engine import (
     EXPLANATION_POLICY_VERSION,
     EXPLANATION_TEMPLATE_CATALOG_VERSION,
     FIELD_PATH_POLICY_VERSION,
     RECOMMENDATION_POLICY_VERSION,
     RECOMMENDATION_RULE_CATALOG_VERSION,
+    build_explanation,
+    build_recommendations,
     build_slice_c_outputs,
     canonical_blockers,
     explanation_policy,
@@ -215,6 +218,43 @@ def test_missing_data_impact_applicable_with_cited_blocker_metadata() -> None:
     assert decision.evidence[0].citation.source_tasks == ["TASK_013"]
     assert decision.evidence[0].citation.authorities == []
     assert "%" not in decision.advisory_text
+
+
+def test_explanation_does_not_consume_recommendation_owned_blocker_citation() -> None:
+    source = _source_payload()
+    explanation, recommendations = build_slice_c_outputs(source)
+    blocker_section = next(
+        section
+        for section in explanation.structured_payload
+        if section.section == "BLOCKERS_AND_DATA_GAPS"
+    )
+    assert blocker_section.paragraphs
+    assert blocker_section.paragraphs[0].evidence_field_paths == ["/blockers/0/code"]
+    assert blocker_section.paragraphs[0].citation is None
+    assert all(
+        paragraph.citation is None or paragraph.citation.source_tool != "GENERATE_RECOMMENDATIONS"
+        for section in explanation.structured_payload
+        for paragraph in section.paragraphs
+    )
+    missing_data = recommendations.decisions[-1]
+    assert missing_data.evidence
+    assert all(
+        evidence.citation.source_tool == "GENERATE_RECOMMENDATIONS"
+        for evidence in missing_data.evidence
+    )
+
+
+def test_slice_c_sibling_outputs_are_order_independent() -> None:
+    source = SliceCSourcePayload.model_validate(_source_payload())
+    explanation_first = build_explanation(source)
+    recommendations_second = build_recommendations(source)
+    recommendations_first = build_recommendations(source)
+    explanation_second = build_explanation(source)
+
+    assert explanation_first.model_dump_json() == explanation_second.model_dump_json()
+    assert recommendations_first.model_dump_json() == recommendations_second.model_dump_json()
+    assert "agent_recommendations_hash" not in explanation_first.model_dump_json()
+    assert "agent_explanation_hash" not in recommendations_first.model_dump_json()
 
 
 def test_citation_value_and_artifact_mismatch_fail_closed() -> None:
@@ -486,7 +526,7 @@ def test_unknown_source_field_maps_to_exact_location() -> None:
     }
 
 
-def test_missing_data_impact_not_applicable_with_complete_source() -> None:
+def test_missing_data_impact_not_applicable_engine_contract_only() -> None:
     source = _source_payload()
     source["blockers"] = []
     source["citations"] = [
@@ -496,6 +536,17 @@ def test_missing_data_impact_not_applicable_with_complete_source() -> None:
     decision = recommendations.decisions[-1]
     assert decision.status == "NOT_APPLICABLE"
     assert decision.reason_code == "CONDITIONS_NOT_MET"
+
+
+def test_not_applicable_production_reachability_is_blocked_by_frozen_sources() -> None:
+    unsupported = {
+        "spring_festival_harvest_rate",
+        "weather_adjustment",
+        "post_spring_festival_backlog_release_intensity",
+        "historical_anomaly_peak_probability",
+    }
+    assert unsupported <= set(ALL_LOGICAL_PARAMETERS)
+    assert {name for name, source in LOGICAL_TO_UPSTREAM.items() if source is None} == unsupported
 
 
 def test_missing_data_impact_blocked_when_metadata_citation_missing() -> None:
