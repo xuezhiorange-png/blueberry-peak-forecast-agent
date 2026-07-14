@@ -9,7 +9,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.agent.orchestration import AgentOrchestrator
-from backend.app.agent.schemas import LocationInput, PeakMetricPolicy, UncertaintyWideningPolicy
+from backend.app.agent.schemas import (
+    AgentForecastOutput,
+    LocationInput,
+    PeakMetricPolicy,
+    UncertaintyWideningPolicy,
+)
 from backend.app.harvest_state.canonical import make_season_record_hash
 from backend.app.harvest_state.persistence import (
     load_harvest_state_output_by_id,
@@ -237,15 +242,9 @@ def _production_request():
     )
 
 
-@pytest.mark.postgres
-@pytest.mark.asyncio
-@pytest.mark.skipif(
-    os.getenv("RUN_POSTGRES_INTEGRATION") != "1",
-    reason="set RUN_POSTGRES_INTEGRATION=1 for real PostgreSQL evidence",
-)
-async def test_slice_b_orchestration_uses_real_postgres_session(
+async def _production_postgres_outputs(
     transactional_pg_session: AsyncSession,
-) -> None:
+) -> tuple[AgentForecastOutput, AgentForecastOutput, AgentForecastOutput]:
     result = await transactional_pg_session.execute(text("SELECT 1"))
     assert result.scalar_one() == 1
 
@@ -431,3 +430,22 @@ async def test_slice_b_orchestration_uses_real_postgres_session(
     assert no_token_output.normalized_request.effective_forecast_season_code == season.code
     assert no_token_output.daily_curve
     assert no_token_output.peak
+
+    repeated_output = await policy_source.execute(
+        transactional_pg_session,
+        request=request,
+        request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
+    )
+    return output, repeated_output, no_token_output
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    os.getenv("RUN_POSTGRES_INTEGRATION") != "1",
+    reason="set RUN_POSTGRES_INTEGRATION=1 for real PostgreSQL evidence",
+)
+async def test_slice_b_orchestration_uses_real_postgres_session(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    await _production_postgres_outputs(transactional_pg_session)
