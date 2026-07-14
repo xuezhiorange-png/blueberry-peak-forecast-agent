@@ -3,19 +3,18 @@
 | Field | Value |
 |---|---|
 | Document ID | `slice-q1-forecast-target-and-evaluation-contract` |
-| Document version | v1.1 (Q1 P0 fixup per review 4694771522) |
-| Document status | `DRAFT — Q1 P0 fixup applied, awaiting Charles re-review` |
+| Document version | v1.2 (Q1 final contract docs-only fixup per review 4695151631) |
+| Document status | `DRAFT — Q1 final fixup applied, awaiting Charles re-review` |
 | Tracking Issue | `#102` (OPEN) — `[P0 Epic] Blueberry forecast quality validation and historical backtest loop` |
 | Q1 authorization comment | `IC_kwDOS_gTTs8AAAABKDOkiQ` (id `4969440393`) on Issue #102 |
 | Q1 P0 fixup review | `4694771522` (verdict `PR103_SLICE_Q1_REVIEW_P0_FIXUP_REQUIRED`) |
+| Q1 final review | `4695151631` (verdict `PR103_SLICE_Q1_P0_FIXUP_MAJORITY_CLOSED` + `FINAL_CONTRACT_FIXUP_REQUIRED`) |
 | Working base | `origin/main` at `2e860511dd9279d0aa3c64dd760bea8531fad458` |
 | Working branch | `docs/issue-102-slice-q1-forecast-evaluation-contract` |
 | Working worktree | `/tmp/issue-102-slice-q1-forecast-evaluation-contract` |
 | Companion documents | `docs/forecast-quality/slice-q1-data-coverage-audit.md`; `docs/forecast-quality/slice-q1-decision-table.md` |
 | Q1 implementation | NOT AUTHORIZED in this document |
-| Q2 design authorization | NOT AUTHORIZED in this document |
-| Q2 implementation authorization | NOT AUTHORIZED in this document |
-| Q3 / Q4 / Q5 / Q6 / Q7 | NOT AUTHORIZED in this document |
+| Q2A / Q2B / Q3 / Q4 / Q5 / Q6 / Q7 | NOT AUTHORIZED in this document |
 | Model change | NOT AUTHORIZED in this document |
 | Backtest runner implementation | NOT AUTHORIZED in this document |
 | Sustained 7-day peak production implementation | NOT AUTHORIZED in this document |
@@ -24,7 +23,7 @@
 | Ready / merge / Issue closure | NOT AUTHORIZED in this document |
 | TASK-013 C2 resumption | NOT AUTHORIZED in this document |
 
-> Q1 is a **design, source-definition, and data-inventory round only**. Q1 does not modify any production code, any test, any Golden, any migration, any schema, any model, any parameter inference, or any persistence path. Q1 is a docs-only round. v1.1 (this document) applies the P0 fixup requested in review `4694771522`. v1.1 does not introduce any new mutation; v1.1 only corrects design-level errors identified by the review.
+> Q1 v1.2 is a final docs-only fixup on the same branch and PR #103. v1.2 does not introduce any new mutation; v1.2 only corrects four contract contradictions (P0-1..4) and two compatibility-policy issues (P1-1, P1-2) identified by review `4695151631`. v1.2 preserves all v1.1 P0 fixes (dual-cutoff, six-field inventory, aggregate grain, etc.) and adds the final unified decision table per round §十一.
 
 ---
 
@@ -35,12 +34,13 @@
 Q1 freezes:
 
 1. the primary forecast target and the distinction among eight physical quantities (`natural_maturity_quantity`, `mature_inventory_quantity`, `harvestable_quantity`, `actual_harvest_quantity`, `unharvested_backlog_quantity`, `arrival_quantity`, `final_corrected_arrival_quantity`, `season_cumulative_quantity`);
-2. the **dual time-cutoff model** for forecast quality evaluation: `forecast_cutoff_at` (gates model inputs) and `label_observation_cutoff_at` (gates which actual-label revisions are visible when scoring);
-3. the canonical actual-label contract, including grain, unit, event date semantics, recorded-at, revised-at, point-in-time visibility, duplicate handling, missing-day handling, late-revision handling, zero-day handling, and `label_observation_cutoff_at`-based revision resolution;
-4. the evaluation grain;
-5. the full metric contract: daily, cumulative, single-day peak, sustained 7-day peak, quantile calibration, interval width, pinball loss, with explicit signed/absolute relative-error separation;
-6. the sustained 7-day peak contract and the migration boundary from the existing 3-day production contract (additive coexistence, no silent 3-day-to-7-day reinterpretation);
-7. a reproducible, aggregate-only data-coverage report (with truthful `NOT_VERIFIED` reporting when a reachable database has no data).
+2. the **dual time-cutoff model** (`forecast_cutoff_at` gates model inputs; `label_observation_cutoff_at` gates actual-label revision visibility for evaluation);
+3. the historical-replay time model: `forecast_cutoff_at < forecast_target_date_or_window_end <= label_observation_cutoff_at <= replay_executed_at`;
+4. the canonical actual-label contract, including grain, unit, event date semantics, recorded-at, revised-at, point-in-time visibility, duplicate handling, missing-day handling, late-revision handling, zero-day handling, and the **fail-closed revision-lineage policy** (unique visible terminal revision on one explicit supersession chain);
+5. the evaluation grain;
+6. the full metric contract: daily, cumulative, single-day peak, sustained 7-day peak, quantile calibration, interval width, pinball loss, with explicit signed/absolute relative-error separation;
+7. the sustained 7-day peak contract and the **3-day = legacy compatibility / 7-day = primary business target** compatibility policy;
+8. a reproducible, aggregate-only data-coverage report (with truthful `NOT_VERIFIED` reporting when a reachable database has no data).
 
 ### §1.2 Out of scope (explicit exclusions)
 
@@ -63,12 +63,15 @@ Q1 does NOT authorize and does NOT produce:
 15. Any Ready, merge, or auto-merge on any Draft PR.
 16. Any deletion of any branch, worktree, or untracked file.
 17. Any output of sensitive real business data (farm names, subfarm names, variety names that are not in the public `dim_variety` table, operator names, exact daily quantities, exact forecast outputs, exact row counts on real data).
+18. Any silent promotion of `fact_receipt_daily` (arrival / receipt) to the `actual_harvest_quantity` (orchard pick) primary label. The arrival proxy is a `DESIGN_OPTION` for arrival evaluation, not a primary-label backstop.
+19. Any claim that the 3-day production metric is the first-stage primary sustained metric. The 3-day metric is a `LEGACY_COMPATIBILITY_METRIC` only; the primary sustained metric is the 7-day peak, which is `NOT_YET_COMPUTABLE` until Q3 + Q2C.
+20. Any future deletion of the 3-day production field without a separate compatibility amendment. Q1 freezes `THREE_DAY_RETENTION_STATUS = PRESERVED_FOR_CURRENT_COMPATIBILITY_HORIZON` and `THREE_DAY_REMOVAL = REQUIRES_SEPARATE_COMPATIBILITY_AMENDMENT`.
 
 ### §1.3 Companion documents
 
-- `docs/forecast-quality/slice-q1-forecast-target-and-evaluation-contract.md` — this document (target, label, dual-cutoff, metric, peak contract).
+- `docs/forecast-quality/slice-q1-forecast-target-and-evaluation-contract.md` — this document (target, label, dual-cutoff, historical-replay time model, fail-closed revision lineage, metric, peak contract).
 - `docs/forecast-quality/slice-q1-data-coverage-audit.md` — the data-coverage audit and 3-day production contract inventory.
-- `docs/forecast-quality/slice-q1-decision-table.md` — the explicit decision table required by §12 of the round instruction.
+- `docs/forecast-quality/slice-q1-decision-table.md` — the explicit decision table required by round §十二.
 
 The three documents are mutually consistent and cross-referenced. The decision table is the canonical state summary; the contract and audit documents are the supporting detail.
 
@@ -100,7 +103,7 @@ Q1 is the first slice in the suggested implementation order Q1..Q7 of Issue #102
 > - what the current forecast error is;
 > - whether a new model is genuinely more accurate than the previous one.
 
-The Q1 design-freeze answers the design-level question of **what physical quantity** the system is actually answering this core question for, **at what time the answer is generated**, and **at what later time the answer is scored**. Q1 also freezes the **actual-label** against which the answer is validated, and the **two independent time cutoffs** that gate model input visibility and label visibility respectively.
+The Q1 design-freeze answers the design-level question of **what physical quantity** the system is actually answering this core question for, **at what time the answer is generated**, **at what later time the answer is scored**, and **at what time the actual-label revision is visible to the evaluator**. Q1 also freezes the **actual-label** against which the answer is validated, and the **two independent time cutoffs** that gate model input visibility and label visibility respectively.
 
 ### §3.1 Hard exclusion of proxy-conflation
 
@@ -114,7 +117,7 @@ The system MUST NOT silently treat any of the following as a synonym for "actual
 - `harvested_quantity_kg` on `ForecastDailyRow` (model output, not a user-entered actual);
 - any `fact_receipt_daily.weight_kg` (operator-entered receipt / arrival at the factory, not the pick at the orchard).
 
-If the system uses a proxy as a stand-in for the actual label, the proxy MUST be marked as such, and the Q1 design-freeze classifies each candidate below.
+If the system uses a proxy as a stand-in for the actual label, the proxy MUST be marked as such, and the Q1 design-freeze classifies each candidate below. In particular, the `fact_receipt_daily` proxy is `ARRIVAL_PROXY_EVALUATION_ALLOWED = DESIGN_OPTION` for arrival evaluation; it is NOT the primary `actual_harvest_quantity` label.
 
 ### §3.2 Hard exclusion of dual-cutoff conflation
 
@@ -122,7 +125,7 @@ The system MUST NOT use a single time cutoff for both model input visibility and
 
 ---
 
-## §4 Dual time-cutoff model (frozen per review 4694771522 P0-1)
+## §4 Dual time-cutoff model (frozen per review 4694771522 P0-1, preserved in v1.2)
 
 ### §4.1 `forecast_cutoff_at` (frozen)
 
@@ -175,34 +178,34 @@ The label visibility boundary for evaluation. It is independent of `forecast_cut
 
 The actual label is only usable for scoring if its revision is visible at `label_observation_cutoff_at`.
 
-### §4.3 Canonical relationship (frozen)
+### §4.3 Canonical time order (frozen per review 4695151631 P0-1)
 
-For a future forecast, the canonical time order is:
-
-```
-forecast_cutoff_at < forecast_target_date_end <= label_observation_cutoff_at
-```
-
-For a same-day forecast, the canonical time order is:
+The four time boundaries are independent. Q1 freezes the canonical time order:
 
 ```
-forecast_cutoff_at < label_observation_cutoff_at (typically forecast_target_date = forecast_cutoff_at)
+forecast_cutoff_at
+< forecast_target_date_or_window_end
+<= label_observation_cutoff_at
+<= replay_executed_at
 ```
 
-For a historical replay, the relationship is:
+Definitions:
 
-```
-forecast_target_date < forecast_cutoff_at (in-simulation)
-   < label_observation_cutoff_at (the replay evaluation timestamp)
-```
+- `forecast_cutoff_at` — the simulated historical forecast generation time; the model is permitted to see information up to this point.
+- `forecast_target_date_or_window_end` — the calendar date (or end of a continuous window) being predicted.
+- `label_observation_cutoff_at` — the label visibility boundary for evaluation; the evaluator is permitted to see label revisions up to this point.
+- `replay_executed_at` — the actual execution timestamp of the historical replay task. The replay may run today (`replay_executed_at = today`), but the simulated `forecast_cutoff_at` MUST remain a historical timestamp; the replay MUST NOT be allowed to push `forecast_cutoff_at` forward to the target date.
 
-For a final adjudicated evaluation, the relationship is:
+For the four time-pattern templates (future forecast, same-day forecast, historical replay, final adjudicated), Q1 freezes the following:
 
-```
-forecast_target_date <<< label_observation_cutoff_at (any finalization timestamp)
-```
+| Pattern | Time order |
+|---|---|
+| future forecast | `forecast_cutoff_at < forecast_target_date_or_window_end <= label_observation_cutoff_at <= replay_executed_at` |
+| same-day forecast | `forecast_target_local_date = local_date(forecast_cutoff_at, farm_timezone)`; the local-day boundary and the timezone are part of the contract; cutoff-after data is forbidden as a model input; actual label can be evaluated at a later `label_observation_cutoff_at` |
+| historical replay | `forecast_target_date_or_window_end <= label_observation_cutoff_at <= replay_executed_at`; the simulated `forecast_cutoff_at` is historical; the replay executes today |
+| final adjudicated | `forecast_target_date_or_window_end <= finalized_at <= label_observation_cutoff_at <= replay_executed_at`; if `finalized_at = label_observation_cutoff_at`, this is recorded explicitly |
 
-Q1 freezes the four time-pattern templates; Q1 does not require that every report uses the same template.
+The earlier v1.1 wording `forecast_target_date < forecast_cutoff_at (in-simulation)` is **removed**. The earlier v1.1 wording `forecast_target_date = forecast_cutoff_at` is **removed**. The new wording is `forecast_target_local_date = local_date(forecast_cutoff_at, farm_timezone)`, which uses an aware datetime and an explicit timezone conversion, not a direct `date` comparison.
 
 ### §4.4 Two evaluation modes (frozen)
 
@@ -246,33 +249,61 @@ Use cases:
 
 Hard rule: the `FINAL_ADJUDICATED` label MUST NOT be used as a model input at any forecast cutoff. The dual-cutoff separation forbids feeding the adjudicated label back into the model.
 
-### §4.5 Revision resolution (frozen per review 4694771522 P0-1 / P1-1)
+### §4.5 Revision lineage policy (frozen per review 4695151631 P0-2)
 
-The valid revision at `label_observation_cutoff_at` is:
+#### §4.5.1 Canonical rule
 
-```
-winner = the valid revision visible at label_observation_cutoff_at
-         according to explicit supersession lineage
-```
-
-The explicit supersession lineage is:
-
-- each label row has `recorded_at` and `effective_at`;
-- each label row has `supersedes_record_id` if it is a revision;
-- the revision is valid for `recorded_at <= label_observation_cutoff_at`;
-- among multiple valid revisions, the one with the latest `recorded_at` wins;
-- among multiple valid revisions with the same `recorded_at`, the one with the higher `revision_number` wins;
-- the chosen revision must not be `is_deleted_or_voided = true` at `label_observation_cutoff_at`.
-
-Forbidden rules:
+The valid winner is the **unique visible terminal revision on one valid explicit supersession chain** within the same source family. Specifically:
 
 ```
-latest timestamp always wins  (forbidden)
-largest revision number always wins  (forbidden unless same source family)
-current/latest row fallback  (forbidden)
+candidate revisions =
+    revisions visible at label_observation_cutoff_at
+    within one explicit source-family supersession graph
+
+winner =
+    the unique visible terminal revision
+    on one valid explicit supersession chain
 ```
 
-`recorded_at` and `revision_number` are explicit supersession-lineage properties; they are not auto-promoted to authority. A later `recorded_at` does NOT win unless it is part of an explicit supersession lineage.
+#### §4.5.2 Field roles (frozen)
+
+| Field | Allowed role | Disallowed role |
+|---|---|---|
+| `recorded_at` | visibility: whether the revision is visible at `label_observation_cutoff_at` | winner selection |
+| `revision_number` | chain-continuity validation within one supersession chain | winner selection |
+| `supersedes_record_id` | building the explicit parent-child relationship | winner selection |
+
+None of these fields may determine the winner alone. A winner is selected only when one valid explicit supersession chain has a unique visible terminal revision.
+
+#### §4.5.3 Fail-closed conditions (frozen)
+
+The following conditions MUST block the evaluation and report a typed `Blocker`:
+
+| Condition | `Blocker.code` |
+|---|---|
+| multiple visible terminal revisions on the same supersession chain | `MULTIPLE_VISIBLE_TERMINAL_REVISIONS` |
+| the supersession graph has a fork (one parent with multiple children) | `SUPERSESSION_CHAIN_FORK` |
+| the supersession graph has a cycle (A → B → A) | `SUPERSESSION_CHAIN_CYCLE` |
+| a non-void revision has a parent that is missing | `MISSING_SUPERSEDED_PARENT` |
+| two visible terminal revisions come from different source families | `CROSS_SOURCE_FAMILY_CONFLICT` |
+| the `revision_number` is non-monotonic on a single chain | `REVISION_NUMBER_DISCONTINUITY` |
+| a `is_deleted_or_voided = true` revision has child revisions | `INVALID_VOID_LINEAGE` |
+
+The fail-closed block is the correct behavior. The following fallbacks are forbidden:
+
+- `latest timestamp fallback` (the latest `recorded_at` wins);
+- `largest revision-number fallback` (the highest `revision_number` wins);
+- `current/latest row fallback`;
+- `hash lexical winner` (lexicographic hash comparison);
+- arbitrary selection of one branch when multiple terminal revisions exist.
+
+When any fail-closed condition holds, the affected evaluation slice is `BLOCKED`. The blocker is reported through `blocker_dependencies`. The Q1 v1.1 wording that "later `recorded_at` wins" or that "higher `revision_number` wins" is removed.
+
+#### §4.5.4 Void semantics (frozen)
+
+- A valid `void` revision terminates a lineage. After the void revision, the business key has no valid actual at any later cutoff.
+- A void revision cannot be reverted to an earlier non-void revision.
+- A subsequent restoration requires a new explicit lineage and a business rule. The system does not auto-restore a voided value.
 
 ### §4.6 What the dual-cutoff model forbids
 
@@ -282,14 +313,17 @@ Q1 forbids:
 - using `label_observation_cutoff_at` as the model input boundary (the model would leak the actual label);
 - conflating training-feature visibility and label visibility;
 - scoring with `latest` / `current` / `most_recent` actual row;
-- using a final adjudicated label as a model input.
+- using a final adjudicated label as a model input;
+- using `replay_executed_at` (today) as `forecast_cutoff_at` (the simulated historical forecast cutoff must remain historical);
+- using `forecast_target_date = forecast_cutoff_at` (the types are different; use `forecast_target_local_date = local_date(forecast_cutoff_at, farm_timezone)`).
 
 Q1 permits:
 
 - the actual label being recorded after the forecast cutoff;
 - the actual label being revised after the forecast cutoff;
 - the actual label being entered on a future target date;
-- the actual label being visible to the evaluator at a later `label_observation_cutoff_at`.
+- the actual label being visible to the evaluator at a later `label_observation_cutoff_at`;
+- the historical replay executing today while keeping `forecast_cutoff_at` historical.
 
 This is the only correct anti-leakage boundary.
 
@@ -297,95 +331,60 @@ This is the only correct anti-leakage boundary.
 
 ## §5 Forecast-object contracts
 
-### §5.1 Eight physical quantities (canonical)
+### §5.1 Eight physical quantities (canonical, three-grain split per review 4695151631 P0-3)
 
-For each `(farm, subfarm_or_plot, variety, season, calendar_date)`, the project distinguishes the following eight physical quantities. Each row below is the frozen Q1 contract; no row is interpreted, computed, or persisted outside this contract.
+For each `(farm, subfarm_or_plot, variety, season, calendar_date)`, the project distinguishes the following eight physical quantities. Each row below is the frozen Q1 contract; no row is interpreted, computed, or persisted outside this contract. The three-grain split separates the **conceptual** business grain, the **current Agent output grain** (which is downstream aggregate, not first-class member), and the **upstream member grain** (which lives on Task 9 member rows, not on the Agent aggregate row).
 
-| # | object_name | business_definition | physical_meaning | unit | grain | event_date_semantics | source_task | schema_path | persistence_table | current_production_status | actual_or_forecast | proxy_or_direct_observation | can_be_primary_label | can_be_feature | point_in_time_visibility | known_limitations |
-|---:|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | `natural_maturity_quantity` | The model-predicted daily natural maturation of blueberry on the orchard, in the absence of weather and harvest-state effects. | A biological-physical quantity produced by the TASK-008 maturity model. It is not a human-observed quantity. | kg | (farm × subfarm × variety × calendar_date) | the calendar date on which maturation occurs | TASK-008 | `backend/app/agent/schemas.py::ForecastDailyRow.natural_maturity_quantity_kg: DailyQuantiles` | n/a (forecast output) | `RESOLVED_BY_MERGED_AUTHORITY` for schema; `NOT_VERIFIED` for production use in Q1 scope | forecast | `MODEL_OUTPUT` | NO | YES | n/a (forecast) | not a label; do not use for backtest |
-| 2 | `mature_inventory_quantity` | The model-predicted closing mature inventory on a calendar date, after natural maturation and harvest-state update. | A derived state. | kg | same as #1 | the calendar date on which the closing inventory is reported | TASK-008 / TASK-009 | `ForecastDailyRow.closing_mature_inventory_kg: DailyQuantiles` | n/a (forecast output) | same as #1 | forecast | `DERIVED_STATE` | NO | YES (as feature) | n/a (forecast) | derived; cannot be a label |
-| 3 | `harvestable_quantity` | The model-predicted daily harvestable quantity (the portion of mature inventory that is operationally ready to be picked). | Currently NOT a first-class schema field in `origin/main`. Q1 explicitly marks this object as `NOT_CURRENTLY_AVAILABLE` as a first-class field. Q1 forbids any formula derivation (in particular, `harvestable_quantity = harvested_quantity - unharvested_backlog` is `FORMULA_NOT_AUTHORIZED` because `harvested_quantity` is a flow and `unharvested_backlog` is a stock, and the two physical dimensions do not justify direct subtraction). | kg (target unit) | same as #1 | the calendar date | n/a | **NOT in `origin/main` schema** | none | `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` | n/a | n/a (no field, no formula) | NO | n/a | n/a | Q2 must add a first-class `harvestable_quantity_kg` field with explicit physical authority, or leave the object as `NOT_CURRENTLY_AVAILABLE` indefinitely |
-| 4 | `actual_harvest_quantity` | The user-entered or operator-entered daily quantity of blueberry actually picked at the orchard. This is the primary business target for Q1. | A direct observation. The most reliable source today is `fact_receipt_daily.weight_kg` interpreted as **arrival at the factory**, not pick at the orchard. There is **no first-class `actual_harvest_quantity` table in `origin/main`**. | kg (target unit) | (farm × subfarm × variety × season × harvest_date) | the calendar date on which the pick occurred | n/a (no dedicated table) | **NOT in `origin/main` schema** | `fact_receipt_daily` is the closest first-class fact but it stores **arrival**, not pick. | `SCHEMA_GAP` / `SOURCE_GAP` | actual (intended) | `DIRECT_OBSERVATION` (when a dedicated table exists) / currently **no first-class table** | YES (intended primary label) | NO (label, not feature) | `POINT_IN_TIME_GAP` (current `fact_receipt_daily` lacks `recorded_at`, `effective_at`, `revised_at`) | Q2A must add a dedicated `actual_harvest_daily` table, or accept `fact_receipt_daily` as a `PROXY_LABEL` with explicit disclosure |
-| 5 | `unharvested_backlog_quantity` | The model-predicted daily unharvested backlog. | A derived state. | kg | same as #1 | the calendar date | TASK-008 / TASK-009 | `ForecastDailyRow.unharvested_backlog_kg: DailyQuantiles` | n/a (forecast output) | same as #1 | forecast | `DERIVED_STATE` | NO | YES (as feature) | n/a (forecast) | derived; cannot be a label |
-| 6 | `arrival_quantity` | The model-predicted daily quantity arriving at the factory gate, before weather correction. | A model output. | kg | (factory × variety × calendar_date) | the calendar date of arrival at the factory gate | TASK-008 / TASK-009 | `ForecastDailyRow.arrival_quantity_kg: DailyQuantiles` | n/a (forecast output) | same as #1 | forecast | `MODEL_OUTPUT` (proxy for actual arrival, not for actual harvest) | NO | YES (as feature) | n/a (forecast) | proxy for arrival; not a harvest label |
-| 7 | `final_corrected_arrival_quantity` | The model-predicted daily quantity arriving at the factory gate, after weather correction. | A model output. | kg | same as #6 | the calendar date | TASK-009 | `ForecastDailyRow.final_corrected_arrival_quantity_kg: DailyQuantiles` | n/a (forecast output) | same as #1 | forecast | `MODEL_OUTPUT` (proxy for actual arrival, not for actual harvest) | NO | YES (as feature) | n/a (forecast) | corrected proxy; not a harvest label |
-| 8 | `season_cumulative_quantity` | The model-predicted or actual cumulative quantity from the season start through the calendar date. | A derived aggregate. | kg | (farm × subfarm × variety × season × calendar_date) | the calendar date through which the cumulative is computed | TASK-008 / TASK-009 (forecast); operator (actual) | **NOT in `origin/main` schema as a first-class field** | none | `NOT_CURRENTLY_AVAILABLE` as a first-class schema field | both | `DERIVED_STATE` (cumulative over daily rows) | YES (actual cumulative is the canonical label for cumulative metrics) | YES (forecast cumulative) | depends on daily row visibility | Q2A must define the season-cumulative schema field |
+| # | object_name | business_definition | CONCEPTUAL_PHYSICAL_GRAIN | CURRENT_AGENT_OUTPUT_GRAIN | UPSTREAM_MEMBER_GRAIN | physical_meaning | unit | event_date_semantics | source_task | schema_path | persistence_table | current_production_status | actual_or_forecast | proxy_or_direct_observation | can_be_primary_label | can_be_feature | point_in_time_visibility | known_limitations |
+|---:|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | `natural_maturity_quantity` | The model-predicted daily natural maturation of blueberry on the orchard, in the absence of weather and harvest-state effects. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` (carried on `ForecastDailyRow` as a non-persisted Agent output field; no first-class `farm` / `subfarm` / `variety` identity on the row) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (carried on `harvest_state_daily_member_row`; the Agent aggregate row does not have member identity) | A biological-physical quantity produced by the TASK-008 maturity model. It is not a human-observed quantity. | kg | the calendar date on which maturation occurs | TASK-008 | `backend/app/agent/schemas.py::ForecastDailyRow.natural_maturity_quantity_kg: DailyQuantiles` | n/a (Agent output field, not persisted directly; reconstructed from upstream TASK-008 forecast runs) | `RESOLVED_BY_MERGED_AUTHORITY` for schema; `NOT_VERIFIED` for production use in Q1 scope | forecast | `MODEL_OUTPUT` (not a direct observation; not a proxy for actual harvest) | NO | YES | n/a (forecast) | not a label; do not use for backtest |
+| 2 | `mature_inventory_quantity` | The model-predicted closing mature inventory on a calendar date, after natural maturation and harvest-state update. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` | A derived state. | kg | the calendar date on which the closing inventory is reported | TASK-008 / TASK-009 | `ForecastDailyRow.closing_mature_inventory_kg: DailyQuantiles` | n/a | same as #1 | forecast | `DERIVED_STATE` | NO | YES (as feature) | n/a (forecast) | derived; cannot be a label |
+| 3 | `harvestable_quantity` | The model-predicted daily harvestable quantity (the portion of mature inventory that is operationally ready to be picked). | `(farm × subfarm_or_plot × variety × calendar_date)` | `NOT_CURRENTLY_AVAILABLE` (not first-class on `ForecastDailyRow`; `harvested_quantity_kg` is the closest Agent field, but it is a flow not a stock) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (could live on a future TASK-009 member-grain field) | Currently NOT a first-class schema field in `origin/main`. Q1 explicitly marks this object as `NOT_CURRENTLY_AVAILABLE` as a first-class field. Q1 forbids any formula derivation (in particular, `harvestable_quantity = harvested_quantity - unharvested_backlog` is `FORMULA_NOT_AUTHORIZED` because `harvested_quantity` is a flow and `unharvested_backlog` is a stock, and the two physical dimensions do not justify direct subtraction). | kg (target unit) | the calendar date | n/a | **NOT in `origin/main` schema** | none | `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` | n/a | n/a (no field, no formula) | NO | n/a | n/a | Q2A must add a first-class `harvestable_quantity_kg` field with explicit physical authority, or leave the object as `NOT_CURRENTLY_AVAILABLE` indefinitely |
+| 4 | `model_harvested_quantity` (alias for `ForecastDailyRow.harvested_quantity_kg`) | The model-predicted daily quantity of blueberry the model expects to be picked on the orchard. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` (carried on `ForecastDailyRow.harvested_quantity_kg` as a non-persisted Agent output field) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (could live on a future TASK-009 member-grain field) | A model output, NOT a direct observation. The `harvested_quantity_kg` field on `ForecastDailyRow` is explicitly mapped to a model-predicted flow. It is NOT the `actual_harvest_quantity` business object. The two MUST NOT be conflated or renamed into each other. | kg | the calendar date | TASK-008 / TASK-009 | `ForecastDailyRow.harvested_quantity_kg: DailyQuantiles` | n/a (Agent output field) | `RESOLVED_BY_MERGED_AUTHORITY` for schema; `MODEL_OUTPUT` semantics; `NOT_DIRECT_OBSERVATION`; `NOT_PRIMARY_ACTUAL_LABEL` | forecast | `MODEL_OUTPUT` | NO | YES (as feature) | n/a (forecast) | model-predicted flow; not a label; do not confuse with `actual_harvest_quantity` |
+| 5 | `actual_harvest_quantity` | The user-entered or operator-entered daily quantity of blueberry actually picked at the orchard. This is the primary business target for Q1. | `(farm × subfarm_or_plot × variety × calendar_date)` | `NOT_CURRENTLY_AVAILABLE` (no first-class Agent field for the actual; the Agent does not output a direct observation) | `FARM_X_SUBFARM_X_VARIETY_X_DATE` (would live on a dedicated `actual_harvest_daily` table, not on any current Agent field) | A direct observation. The most reliable source today is `fact_receipt_daily.weight_kg` interpreted as **arrival at the factory**, not pick at the orchard. There is **no first-class `actual_harvest_quantity` table in `origin/main`**. | kg (target unit) | the calendar date on which the pick occurred | n/a (no dedicated table) | **NOT in `origin/main` schema** | `fact_receipt_daily` is the closest first-class fact but it stores **arrival**, not pick. | `SCHEMA_GAP` / `SOURCE_GAP` / `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO` | actual (intended) | `DIRECT_OBSERVATION` (when a dedicated table exists) / currently **no first-class table** | YES (intended primary label) | NO (label, not feature) | `POINT_IN_TIME_GAP` (current `fact_receipt_daily` lacks `recorded_at`, `effective_at`, `revised_at`) | Q2A must add a dedicated `actual_harvest_daily` table; `fact_receipt_daily` is an arrival proxy, not the primary label |
+| 6 | `unharvested_backlog_quantity` | The model-predicted daily unharvested backlog. | `(farm × subfarm_or_plot × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` | A derived state. | kg | the calendar date | TASK-008 / TASK-009 | `ForecastDailyRow.unharvested_backlog_kg: DailyQuantiles` | n/a | same as #1 | forecast | `DERIVED_STATE` | NO | YES (as feature) | n/a (forecast) | derived; cannot be a label |
+| 7 | `arrival_quantity` | The model-predicted daily quantity arriving at the factory gate, before weather correction. | `(factory × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (with factory-level aggregation) | A model output. | kg | the calendar date of arrival at the factory gate | TASK-008 / TASK-009 | `ForecastDailyRow.arrival_quantity_kg: DailyQuantiles` | n/a | same as #1 | forecast | `MODEL_OUTPUT` (proxy for actual arrival, not for actual harvest) | NO (not a harvest label) | YES (as feature) | n/a (forecast) | proxy for arrival; not a harvest label |
+| 8 | `final_corrected_arrival_quantity` | The model-predicted daily quantity arriving at the factory gate, after weather correction. | `(factory × variety × calendar_date)` | `RESOLVED_REQUEST_AGGREGATE_X_DATE` | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_QUANTILE` (with factory-level aggregation) | A model output. | kg | the calendar date | TASK-009 | `ForecastDailyRow.final_corrected_arrival_quantity_kg: DailyQuantiles` | n/a | same as #1 | forecast | `MODEL_OUTPUT` (proxy for actual arrival, not for actual harvest) | NO | YES (as feature) | n/a (forecast) | corrected proxy; not a harvest label |
+| 9 | `season_cumulative_quantity` | The model-predicted or actual cumulative quantity from the season start through the calendar date. | `(farm × subfarm_or_plot × variety × season × calendar_date)` | `DERIVED_EVALUATION_METRIC` (no first-class Agent field; computed from the daily rows at evaluation time) | `FARM_X_SUBFARM_X_VARIETY_X_DATE_X_SEASON` (computed from the member-grain daily rows) | A derived aggregate. | kg | the calendar date through which the cumulative is computed | TASK-008 / TASK-009 (forecast); operator (actual) | **NOT in `origin/main` schema as a first-class field** | none | `NOT_CURRENTLY_AVAILABLE` as a first-class schema field; `DERIVED_EVALUATION_METRIC`; `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1` | both | `DERIVED_STATE` (cumulative over daily rows) | YES (actual cumulative is the canonical label for cumulative metrics) | YES (forecast cumulative) | depends on daily row visibility | Q1 does not require a first-class `season_cumulative_quantity` field; the cumulative is a derived evaluation metric. Q2A may add a first-class field only if a separate persistence, API, or replay identity requirement is justified. |
 
-### §5.2 First-class vs derived
+### §5.2 First-class vs derived (v1.2 naming change per review 4695151631 P0-3)
 
-The eight quantities are split into two groups:
+Q1 v1.1 used the phrase "persisted fields of the model output" for `ForecastDailyRow`. v1.2 replaces this phrase with **"first-class serialized output-schema fields"** (or "non-persisted Agent output fields"). The Agent `ForecastDailyRow` is a serialized output schema; the fields are not persisted to a database table on their own. The reconstruction of the same field set from upstream TASK-008 / TASK-009 forecast runs is a separate persistence question.
 
-- **First-class schema fields on `ForecastDailyRow`**: #1, #2, #5, #6, #7. These are persisted fields of the model output. The Q1 design-freeze treats them as `RESOLVED_BY_MERGED_AUTHORITY` for schema. Their use as features in a backtest is permitted; their use as the actual-harvest label is forbidden.
-- **Not first-class in `origin/main`**: #3, #4, #8. `harvestable_quantity` and `actual_harvest_quantity` and `season_cumulative_quantity` are not first-class fields today. Q1 marks them as `NOT_CURRENTLY_AVAILABLE` and proposes Q2A / Q3 design work to define them.
+The eight quantities are split into:
 
-### §5.3 The ForecastDailyRow field count (corrected per review 4694771522 P0-2)
+- **First-class serialized output-schema fields on `ForecastDailyRow`**: #1 (`natural_maturity_quantity_kg`), #2 (`closing_mature_inventory_kg`), #4 (`harvested_quantity_kg`, under the alias `model_harvested_quantity`), #6 (`unharvested_backlog_kg`), #7 (`arrival_quantity_kg`), #8 (`final_corrected_arrival_quantity_kg`). These are six `DailyQuantiles` fields. The Q1 v1.2 explicitly names the seventh, `harvested_quantity_kg`, as `model_harvested_quantity` (or equivalently, the existing `ForecastDailyRow.harvested_quantity_kg` field) with the qualifier `MODEL_OUTPUT` / `NOT_DIRECT_OBSERVATION` / `NOT_PRIMARY_ACTUAL_LABEL`. The Q1 v1.1 statement that the field "is not a direct observation" is preserved; v1.2 adds the explicit mapping table.
+- **Not first-class in `origin/main`**: #3 (`harvestable_quantity`), #5 (`actual_harvest_quantity`), #9 (`season_cumulative_quantity`). Q1 marks them as `NOT_CURRENTLY_AVAILABLE` and proposes Q2A / Q3 design work to define them. Q1 does NOT require a first-class `season_cumulative_quantity` field (§5.4 below).
 
-`ForecastDailyRow` contains exactly **six `DailyQuantiles` quantity fields**:
+### §5.3 Mapping table: business object → current schema field
 
-```
-natural_maturity_quantity_kg: DailyQuantiles
-harvested_quantity_kg: DailyQuantiles
-closing_mature_inventory_kg: DailyQuantiles
-unharvested_backlog_kg: DailyQuantiles
-arrival_quantity_kg: DailyQuantiles
-final_corrected_arrival_quantity_kg: DailyQuantiles
-```
+Per review 4695151631 P0-3 §6.3, Q1 v1.2 freezes a mapping table for the six first-class fields:
 
-`per_variety_contribution: list[VarietyContribution]` is a nested contribution list, NOT a seventh `DailyQuantiles` quantity field. The Q1 v1 mistakenly reported "seven quantity fields"; v1.1 corrects this to six.
+| Business object | Current schema field (on `ForecastDailyRow`) | Mapping qualifier |
+|---|---|---|
+| `natural_maturity_quantity` | `natural_maturity_quantity_kg: DailyQuantiles` | `MODEL_OUTPUT` |
+| `mature_inventory_quantity` | `closing_mature_inventory_kg: DailyQuantiles` | `DERIVED_STATE` |
+| `harvestable_quantity` | (no first-class field) | `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` |
+| `model_harvested_quantity` (alias for `harvested_quantity_kg`) | `harvested_quantity_kg: DailyQuantiles` | `MODEL_OUTPUT` / `NOT_DIRECT_OBSERVATION` / `NOT_PRIMARY_ACTUAL_LABEL` |
+| `actual_harvest_quantity` | (no first-class field) | `NOT_CURRENTLY_AVAILABLE` / `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO` |
+| `unharvested_backlog_quantity` | `unharvested_backlog_kg: DailyQuantiles` | `DERIVED_STATE` |
+| `arrival_quantity` | `arrival_quantity_kg: DailyQuantiles` | `MODEL_OUTPUT` (proxy for arrival) |
+| `final_corrected_arrival_quantity` | `final_corrected_arrival_quantity_kg: DailyQuantiles` | `MODEL_OUTPUT` (corrected proxy) |
+| `season_cumulative_quantity` | (no first-class field) | `DERIVED_EVALUATION_METRIC` / `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1` |
 
-The ForecastDailyRow also carries:
+`model_harvested_quantity` and `actual_harvest_quantity` are two distinct business objects. `ForecastDailyRow.harvested_quantity_kg` is the model-predicted flow (the former); the actual pick is a direct observation (the latter, not first-class on `origin/main`). Q1 forbids any conflation, rename, or silent substitution.
 
-- `date: date`
-- `weather_tags: tuple[str, ...]`
-- `spring_festival_phase: SpringFestivalPhase`
-- `agent_daily_row_hash: SHA256Hex`
+### §5.4 `season_cumulative_quantity` is a derived metric (v1.2 correction per review 4695151631 P0-3 §6.4)
 
-These are not quantity fields; they are metadata.
+Q1 v1.1 wrote: "Q2A must add a first-class `season_cumulative_quantity` field". v1.2 corrects this:
 
-### §5.4 The ForecastDailyRow grain (corrected per review 4694771522 P0-2)
+- The cumulative quantity is computed from valid daily rows at evaluation time.
+- There is no separate persistence, API, or replay identity requirement for a first-class `season_cumulative_quantity` field, beyond the daily rows.
+- The cumulative is a `DERIVED_EVALUATION_METRIC`.
+- The status is `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1`.
+- Q2A may add a first-class field only if a separate persistence, API, or replay identity requirement is justified. Without such a requirement, the derived evaluation metric is sufficient.
 
-`ForecastDailyRow` is a **downstream aggregate** of one resolved agent request. It does NOT carry first-class `farm_id`, `subfarm_id`, `variety_id`, or `season_id` columns. The Q1 v1 mistakenly described the row as `(farm × subfarm × variety × calendar_date)`. v1.1 corrects this.
-
-The real grain of `ForecastDailyRow` is:
-
-```
-CURRENT_OUTPUT_GRAIN = (one resolved agent request, one resolved location, one resolved season) × calendar_date
-                       with nested per_variety_contribution carrying per-variety identity
-```
-
-Where:
-
-- `farm` / `subfarm` / `location` identity is carried by `NormalizedAgentRequest.normalized_location` and the upstream resolved-location authority.
-- `season` identity is carried by the resolved forecast-season identity (per `task-013-persisted-forecast-season-identity-design-amendment.md`).
-- `variety` identity is carried by the request's `variety` list and the nested `per_variety_contribution: list[VarietyContribution]`.
-- `Task 9 HarvestStateDailyMemberRowModel` carries first-class `farm_id` / `subfarm_id` / `variety_id` (member-grain); the `Agent ForecastDailyRow` is a downstream aggregate over the member rows.
-
-The Q1 design-freeze names this as:
-
-```
-DESIRED_ACTUAL_LABEL_GRAIN = (farm_id, subfarm_or_plot_id, variety_id, season_id, harvest_date)
-```
-
-The gap between the two grains is:
-
-```
-TARGET_GRAIN_ALIGNMENT = NOT_ALIGNED
-```
-
-The grain reconciliation is a Q2A design and implementation task.
-
-### §5.5 Physical quantity alignment (separate from grain alignment)
-
-The gap between the current model output's physical quantity (`harvested_quantity_kg` is a model output) and the primary business target (`actual_harvest_quantity` is a direct observation) is:
-
-```
-TARGET_PHYSICAL_QUANTITY_ALIGNMENT = NOT_PROVEN_EQUIVALENT
-```
-
-The grain alignment (`TARGET_GRAIN_ALIGNMENT = NOT_ALIGNED`) and the physical-quantity alignment (`TARGET_PHYSICAL_QUANTITY_ALIGNMENT = NOT_PROVEN_EQUIVALENT`) are independent. Either or both can be unresolved.
-
-### §5.6 Forbidden proxy-formula for `harvestable_quantity`
+### §5.5 Forbidden proxy-formula for `harvestable_quantity`
 
 Q1 explicitly forbids any formula of the form:
 
@@ -403,13 +402,9 @@ This formula is forbidden because:
 
 `harvestable_quantity` remains `NOT_CURRENTLY_AVAILABLE` and `FORMULA_NOT_AUTHORIZED` until a first-class `harvestable_quantity_kg` field is added by Q2A with explicit physical authority.
 
-### §5.7 Proxy discipline
+### §5.6 Proxy discipline (v1.2 per review 4695151631 P0-4)
 
-Q1 forbids any silent reclassification of a model output as an actual observation. If the project uses `fact_receipt_daily.weight_kg` as a stand-in for the actual harvest label, the design MUST mark it as `PROXY_LABEL` and disclose the proxy in every report that uses it. Q1 does not yet adopt this proxy; the adoption decision is a Q2A design question, and the actual-label gap is reported in §6.
-
-### §5.8 The actual-arrival label candidate
-
-`fact_receipt_daily.weight_kg` is the only first-class operator-entered daily fact in `origin/main`. It is bound to a build-run identity and a unique constraint `(build_run_id, season_id, factory_id, receipt_date, farm_key, subfarm_key, variety_id)`, with `CheckConstraint("weight_kg > 0")`. The CHECK excludes zero-receipt days; this means the table cannot directly represent an explicit zero-receipt day (an explicit zero would be a missing row, not a zero row). This structural fact must be reported in the data-coverage audit and is a Q2A design input.
+Q1 forbids any silent reclassification of a model output as an actual observation. In particular, the `fact_receipt_daily` table is a first-class operator-entered daily fact, but it is **arrival at the factory**, not **pick at the orchard**. The Q1 v1.2 explicitly classifies `fact_receipt_daily.weight_kg` as an arrival proxy, not as the primary `actual_harvest_quantity` label. See §6 for the actual-label contract and §11 for the primary-vs-arrival separation.
 
 ---
 
@@ -463,21 +458,25 @@ The actual-harvest label row, when adopted, will contain the following fields. T
 | `quality_status` | enum (`OK`, `SUSPECT`, `REJECTED`, `LATE_CORRECTION`) | data-quality flag | `FROZEN` (contract only) |
 | `canonical_row_hash` | `sha256` | canonical row hash, computed over the canonical JSON of all other fields | `FROZEN` (contract only; `SHA256Hex` like other canonical-row hashes) |
 
-### §6.4 Current actual-label status (audit result)
+### §6.4 Current actual-label status (v1.2, per review 4695151631 P0-4)
 
 ```
 ACTUAL_LABEL_STATUS = SCHEMA_GAP / SOURCE_GAP / POINT_IN_TIME_GAP / REVISION_HISTORY_GAP
-ACTUAL_LABEL_SUPPORTED_GRAIN = fact_receipt_daily at (build_run_id, season_id, factory_id, receipt_date, farm_key, subfarm_key, variety_id, weight_kg > 0) — receipt, not pick
+PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO
+ARRIVAL_PROXY_EVALUATION_ALLOWED = DESIGN_OPTION
+ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES
+PRIMARY_TARGET_ACCURACY_REPORTING_WITH_PROXY = FORBIDDEN
+ACTUAL_LABEL_SUPPORTED_GRAIN = fact_receipt_daily at (build_run_id, season_id, factory_id, receipt_date, farm_key, subfarm_key, variety_id, weight_kg > 0) — arrival / receipt at the factory, NOT pick at the orchard
 ```
 
 Each gap is a separate blocker:
 
 - `SCHEMA_GAP` — no `actual_harvest_daily` table.
-- `SOURCE_GAP` — the only operator-entered daily fact is `fact_receipt_daily`, which is **receipt** at the factory, not **pick** at the orchard. The physical meaning is different.
+- `SOURCE_GAP` — the only operator-entered daily fact is `fact_receipt_daily`, which is **arrival** at the factory, not **pick** at the orchard. The physical meaning is different. `fact_receipt_daily` is `ARRIVAL_PROXY_EVALUATION_ALLOWED = DESIGN_OPTION`, but the proxy DOES NOT SATISFY the primary target. `PRIMARY_TARGET_ACCURACY_REPORTING_WITH_PROXY = FORBIDDEN`.
 - `POINT_IN_TIME_GAP` — `fact_receipt_daily` does not carry `recorded_at`, `effective_at`, `revised_at`, `revision_number`, or `supersedes_record_id`. The Q1 contract requires these fields to enforce point-in-time visibility.
 - `REVISION_HISTORY_GAP` — `fact_receipt_daily` is bound to a `build_run_id`; the build-run sequence is the only revision mechanism. This is a re-build mechanism, not a row-level revision. Q2A design must decide whether to keep the build-run model or to introduce row-level revision.
 
-### §6.5 Point-in-time visibility contract (corrected per review 4694771522 P0-1)
+### §6.5 Point-in-time visibility contract
 
 For a backtest at `label_observation_cutoff_at = T_label`, the actual-label query MUST return only rows that satisfy:
 
@@ -504,7 +503,7 @@ The contract for the model input side is the same as the `replay_trained_filteri
 | `late_arriving_record` | a row whose `recorded_at > harvest_date` | reported separately; never silently used as if `recorded_at = harvest_date`; visible to the evaluator at `T_label >= recorded_at` |
 | `correction` | a row whose `supersedes_record_id` is non-null | a later revision of an earlier row; the earlier row remains valid for `T_label < correction.recorded_at` |
 | `void` | a row whose `is_deleted_or_voided = true` | excluded from backtest, regardless of `T_label` |
-| `duplicate` | two rows with the same canonical-grain identity and overlapping effective window | resolved by `revision_number` and `recorded_at`; never silently merged |
+| `duplicate` | two rows with the same canonical-grain identity and overlapping effective window | resolved by the explicit supersession lineage and `revision_number`; never silently merged |
 | `missing_day` | a calendar date for which no row exists in the supported grain | NOT a zero; reported separately as `missing` |
 | `zero_harvest_day` | a calendar date for which a row exists with `actual_harvest_quantity_kg = 0` | a real observation; can be used in backtest |
 | `plant_not_operating_day` | a calendar date for which the plant is closed (season boundary, holiday, operator note) | reported separately; the day is a planned non-operation, not a zero |
@@ -635,11 +634,27 @@ Q1 forbids naming, documentation, or test-plan conventions that conflate the two
 
 The sum of the 7 daily values is computed on the canonical `Decimal` values, not on rounded display values. The display rounding is applied once at the end of the sum. This rule prevents the "double rounding" error that would otherwise occur if each daily value were first rounded and then summed.
 
+### §7.7 Primary vs legacy status (v1.2 per review 4695151631 P1-1)
+
+The 7-day sustained peak is the **primary business sustained-peak target** for the project. The 3-day sustained peak is a **legacy compatibility metric** for the current compatibility horizon only. The 7-day metric is `NOT_YET_COMPUTABLE` until Q3 + Q2C implement the 7-day production field. Before that:
+
+- `PRIMARY_SUSTAINED_PEAK_WINDOW_DAYS = 7`
+- `PRIMARY_SUSTAINED_PEAK_QUALITY_STATUS = NOT_YET_COMPUTABLE`
+- `THREE_DAY_METRIC_STATUS = LEGACY_COMPATIBILITY_METRIC`
+- `SEVEN_DAY_METRIC_STATUS = PRIMARY_BUSINESS_SUSTAINED_PEAK_TARGET`
+
+Q2B may evaluate the 3-day legacy compatibility metric for the current compatibility horizon, but the 3-day result:
+
+- MUST NOT be cited as the first-stage primary sustained metric;
+- MUST NOT replace the 7-day metric;
+- MUST NOT enter any "core prediction target verified" conclusion;
+- MUST NOT be used to unblock Q3 or Q2C.
+
 ---
 
-## §8 Existing 3-day production contract audit
+## §8 Existing 3-day production contract audit (v1.2 per review 4695151631 P1-2)
 
-Q1 does not silently reinterpret any 3-day field as a 7-day field. The 3-day production contract remains the production contract; the 7-day contract is an additive, versioned, separate contract.
+Q1 does not silently reinterpret any 3-day field as a 7-day field. The 3-day production contract remains the production contract for the current compatibility horizon; the 7-day contract is an additive, versioned, separate contract.
 
 ### §8.1 3-day contract inventory (against `origin/main`)
 
@@ -673,41 +688,42 @@ The 3-day production contract is referenced in:
 ### §8.2 3-day production contract status
 
 ```
-CURRENT_3DAY_CONTRACT_STATUS = CURRENT_PRODUCTION_CONTRACT
+CURRENT_3DAY_CONTRACT_STATUS = CURRENT_PRODUCTION_CONTRACT (for the current compatibility horizon)
 CURRENT_3DAY_CONTRACT_REFERENCE_COUNT = (see Q1 data-coverage audit §B for the full count)
+THREE_DAY_METRIC_STATUS = LEGACY_COMPATIBILITY_METRIC
 ```
 
-The 3-day field semantics are preserved verbatim. Q1 does not change any 3-day field.
+The 3-day field semantics are preserved verbatim for the current compatibility horizon. Q1 does not change any 3-day field semantics.
 
-### §8.3 7-day coexistence policy (corrected per review 4694771522 P1-4)
+### §8.3 7-day coexistence policy (v1.2 per review 4695151631 P1-2)
 
-The Q1 v1 was internally inconsistent: it said the active version emits only the active field, then said both fields are emitted during the deprecation window. v1.1 freezes a single canonical policy.
-
-```
-sustained_3day_peak        — always present when 3-day is a supported window
-sustained_7day_peak        — always present when 7-day is a supported window
-primary_sustained_peak_window_days — 3 or 7; the default display, default explanation, and default downstream primary selection
-supported_sustained_peak_window_days — list, default [3, 7]
-```
-
-Both fields are present in the same output; the policy does not decide field presence, it decides default selection.
-
-Q1 freezes the following candidate contract:
+Q1 v1.2 freezes a single canonical coexistence policy. The earlier v1.1 wording that "both fields are present; the policy decides the primary display window, not the field presence" is preserved. The earlier v1.1 references to a "deprecation window" or "sunset window" are removed.
 
 ```
-sustained_peak_schema_version: Literal["sustained-peak-v1"]
-primary_sustained_peak_window_days: Literal[3, 7]
-supported_sustained_peak_window_days: list[Literal[3, 7]]
+THREE_DAY_RETENTION_STATUS = PRESERVED_FOR_CURRENT_COMPATIBILITY_HORIZON
+THREE_DAY_REMOVAL          = REQUIRES_SEPARATE_COMPATIBILITY_AMENDMENT
+SEVEN_DAY_PRIMARY_SELECTION = REQUIRED_ONCE_IMPLEMENTED
 ```
 
-The candidate contract is not yet implemented. Q1 marks it as `DESIGN_CANDIDATES` and `NOT_YET_IMPLEMENTATION_AUTHORITY`. The candidate does not specify which schema class the new field is added to; both `additive field on ForecastPeakOutput` and `new ForecastPeakOutputV2` are design alternatives. The candidate does not modify production, Golden, or API.
+- `sustained_7day_peak` is the primary business metric when implemented (Q3 + Q2C).
+- `sustained_3day_peak` remains a legacy compatibility field for the current compatibility horizon.
+- Q1 does not promise permanent retention of the 3-day field.
+- Q1 does not authorize deletion of the 3-day field.
+- Any future removal of the 3-day field requires a separate compatibility amendment.
+- The compatibility amendment must include:
+  1. consumer inventory (which downstream code reads `sustained_3day_peak`);
+  2. API compatibility audit (which API surface exposes the field);
+  3. Golden migration plan (which tests reference the field);
+  4. deprecation timeline with explicit dates, not open-ended;
+  5. CHARLES-APPROVED deprecation contract signed before the field is removed.
 
-The candidate contract forbids:
+Q1 freezes the additive migration principle:
 
-- the active-version-only policy that removes the inactive field;
-- the inactive-field-absent policy that hides the inactive field;
-- any silent rename of `sustained_3day_peak` to `sustained_7day_peak`;
-- any silent semantic change to either field.
+- Q3 first implementation: both fields exist;
+- 7-day is the primary business metric;
+- 3-day is the legacy compatibility metric;
+- future removal of the 3-day field requires a separate compatibility amendment;
+- Q1 does not contain any open-ended "permanent coexistence", "deprecation window", "sunset window", or "never removed" wording.
 
 ### §8.4 7-day migration boundary (design only, not implemented in Q1)
 
@@ -716,16 +732,17 @@ The 7-day migration is a separate design and implementation round. Q1 freezes th
 - A new `sustained_7day_peak: dict[ForecastQuantile, SustainedPeakEntry]` field is added to `ForecastPeakOutput` (or a new `ForecastPeakOutputV2` schema version).
 - The new field uses the existing `SustainedPeakEntry` schema, which already has `start_date`, `end_date`, `rolling_daily_average_kg_per_day`, `cumulative_quantity_kg`. No new field shape is required.
 - The new field is gated by the `sustained_peak_schema_version` policy field; the output contains the field for every window in `supported_sustained_peak_window_days`.
-- The 3-day field is preserved as a permanent co-existing field; it is not deprecated and not removed.
+- The 3-day field is preserved as a permanent co-existing field for the current compatibility horizon; it is not deprecated and not removed in Q1.
 - The Golden migration is explicit: both fields are emitted; the Golden contains both 3-day and 7-day fields; the test plan includes both 3-day and 7-day assertions.
 - The API migration is explicit: the API returns both 3-day and 7-day fields; the consumer chooses one based on the policy version.
-- The 3-day field is not renamed; the 3-day field is not reinterpreted; the 3-day field is not deleted; the 3-day field is not aliased to the 7-day field.
 
 ```
 7DAY_MIGRATION_REQUIRED = YES (separate design and implementation round, not in Q1)
 SUSTAINED_7DAY_IMPLEMENTED = NO
 7DAY_TARGET_CONTRACT_FROZEN = YES (this document §7)
 THREE_DAY_SEVEN_DAY_COEXISTENCE_POLICY = ADDITIVE_BOTH_FIELDS_PRESENT (frozen in v1.1)
+PRIMARY_SUSTAINED_PEAK_WINDOW_DAYS = 7
+PRIMARY_SUSTAINED_PEAK_QUALITY_STATUS = NOT_YET_COMPUTABLE (until Q3 + Q2C)
 ```
 
 ### §8.5 Forbidden silent 3-day → 7-day reinterpretation
@@ -737,6 +754,8 @@ Q1 forbids:
 - aliasing `peak_window_cumulative_quantity_kg` to a 7-day window without a new field;
 - changing the Golden's 3-day value to a 7-day value;
 - changing the test assertion from "sustained_3day_peak" to "sustained_7day_peak" without a deprecation window.
+- citing the 3-day metric as the first-stage primary sustained metric (it is `LEGACY_COMPATIBILITY_METRIC` only).
+- using the 3-day result to unblock Q3 or Q2C.
 
 ### §8.6 3-day production semantics preserved
 
@@ -754,6 +773,7 @@ All metrics in this section use the same evaluation slice:
 EVALUATION_GRAIN = (farm_id, subfarm_or_plot_id, variety_id, season_id,
                     forecast_cutoff_at, forecast_target_date, forecast_horizon_days,
                     label_observation_cutoff_at, evaluation_label_mode,
+                    replay_executed_at,
                     model_version, data_snapshot)
 ```
 
@@ -778,8 +798,8 @@ The Q1 design-freeze does not implement these metrics; the metrics are frozen as
 
 | Metric | Definition | Notes |
 |---|---|---|
-| `season_cumulative_actual_kg` | `sum(actual)` from season start through the last day in the slice | unit: kg |
-| `season_cumulative_forecast_kg` | `sum(forecast_p50)` from season start through the last day in the slice | unit: kg |
+| `season_cumulative_actual_kg` | `sum(actual)` from season start through the last day in the slice | unit: kg; `season_cumulative` is a `DERIVED_EVALUATION_METRIC` (no first-class Agent field required) |
+| `season_cumulative_forecast_kg` | `sum(forecast_p50)` from season start through the last day in the slice | unit: kg; same derivation |
 | `cumulative_absolute_error_kg` | `abs(season_cumulative_forecast_kg - season_cumulative_actual_kg)` | unit: kg |
 | `cumulative_signed_relative_error` | `(season_cumulative_forecast_kg - season_cumulative_actual_kg) / season_cumulative_actual_kg` | unit: fraction; if `season_cumulative_actual_kg = 0` → `NOT_COMPUTABLE` |
 | `cumulative_absolute_relative_error` | `abs(season_cumulative_forecast_kg - season_cumulative_actual_kg) / abs(season_cumulative_actual_kg)` | unit: fraction; if `abs(season_cumulative_actual_kg) = 0` → `NOT_COMPUTABLE` |
@@ -787,11 +807,9 @@ The Q1 design-freeze does not implement these metrics; the metrics are frozen as
 | `eligible_denominator_count` | rows in the slice with `abs(actual) > 0` | must be reported alongside any relative metric |
 | `excluded_denominator_count` | rows in the slice excluded from the relative metric | must be reported alongside any relative metric |
 
-Q1 v1 used a single field `cumulative_relative_error` with a signed formula. v1.1 separates the signed and absolute variants and renames the signed field to `cumulative_signed_relative_error`. v1.1 also adds the absolute variant `cumulative_absolute_relative_error` and the denominator counts.
-
 ### §9.4 Single-day peak metrics (frozen per review 4694771522 P1-2)
 
-The Q1 v1 froze a single forecast single-day peak. v1.1 freezes the quantile-shaped single-day peak consistent with `ForecastPeakOutput.single_day_peak: dict[ForecastQuantile, SingleDayPeakEntry]`.
+The Q1 v1.1 froze per-quantile single-day peak metrics consistent with `ForecastPeakOutput.single_day_peak: dict[ForecastQuantile, SingleDayPeakEntry]`.
 
 | Metric | Definition | Notes |
 |---|---|---|
@@ -805,7 +823,7 @@ The Q1 v1 froze a single forecast single-day peak. v1.1 freezes the quantile-sha
 | `single_day_peak_quantity_signed_relative_error_q` | `(forecast_q - actual) / actual` at quantile `q` | if `actual = 0` → `NOT_COMPUTABLE`; report `zero_denominator_count`, `eligible_denominator_count`, `excluded_denominator_count` |
 | `single_day_peak_quantity_absolute_relative_error_q` | `abs(forecast_q - actual) / abs(actual)` at quantile `q` | if `abs(actual) = 0` → `NOT_COMPUTABLE`; same denominator counts |
 
-The actual single-day peak is one row per season (one `actual_single_day_peak_date`, one `actual_single_day_peak_quantity_kg`). The forecast single-day peak is per quantile. The error metrics are per quantile. P50 may be the primary point-forecast for display, but P80 and P90 MUST be reported independently and MUST NOT be silently dropped.
+The actual single-day peak is one row per season. The forecast single-day peak is per quantile. The error metrics are per quantile. P50 may be the primary point-forecast for display, but P80 and P90 MUST be reported independently and MUST NOT be silently dropped.
 
 ### §9.5 Sustained 7-day peak metrics (frozen)
 
@@ -914,6 +932,8 @@ Q1 freezes the definition. The Q2 / Q5 design must:
 - Using a `epsilon` to avoid `0 / 0` in MAPE is forbidden; the metric must explicitly handle the zero case and report the row count.
 - Using `forecast_p90 - forecast_p50` as the prediction interval width is forbidden.
 - Using a single `relative_error` field with an unsigned interpretation when the formula is signed is forbidden; signed and absolute must be separate fields.
+- Citing a proxy result (e.g. `fact_receipt_daily.weight_kg`) as `actual_harvest_accuracy` or `harvest_forecast_accuracy` or `primary_target_accuracy` is forbidden. A proxy result is named `arrival_proxy_evaluation` or `factory_receipt_forecast_evaluation`.
+- Citing the 3-day production metric as the first-stage primary sustained metric is forbidden. The 3-day metric is a `LEGACY_COMPATIBILITY_METRIC` only.
 
 ---
 
@@ -921,7 +941,7 @@ Q1 freezes the definition. The Q2 / Q5 design must:
 
 The full data-coverage audit, including the 3-day production contract inventory, the actual-label grain audit, the harvest-state schema audit, the migration-history audit, the table-inventory audit, and the live-database discovery result, is in `docs/forecast-quality/slice-q1-data-coverage-audit.md`. This document is the single source of truth for the read-only data audit.
 
-### §10.1 Live-database discovery result (v1.1, per review 4694771522 P0-4)
+### §10.1 Live-database discovery result (v1.1, preserved in v1.2)
 
 Q1 v1.1 performed a read-only live-database discovery on the configured PostgreSQL (`POSTGRES_HOST=localhost`, `POSTGRES_PORT=5432`, `POSTGRES_DB=blueberry_peak`, `POSTGRES_USER=blueberry_app`).
 
@@ -930,36 +950,22 @@ Discovery result:
 - DB discoverable: **YES** (the `.env` and `docker-compose.yml` declare the connection; `psql` connects successfully; `SELECT now()` returns the current timestamp).
 - DB reachable: **YES** (`psql -c "SELECT 1;"` returns `1`; a Docker container `c2-pg` is running on the local network).
 - DB has data: **NO** (all 33 public-schema tables report 0 rows; `alembic_version` reports `0013_rolling_backtest_orch`, indicating that migrations 0014 and 0015 have not been applied to this DB; `harvest_state_replay_source_visibility_audit` does not exist, confirming 0015 has not been applied).
-- Data source: configured PostgreSQL via Docker container `c2-pg` (image `pgvector/pgvector:pg16`, port 55432→5432, ~4 hours old at discovery time).
+- Data source: configured PostgreSQL via Docker container `c2-pg` (image `pgvector/pgvector:pg16`, port 55432→5432).
 - No fabrication: the 0-row aggregate is the truthful result of the discovery query; no fixture, no Golden, no sample data was substituted for real data.
 
 ```
 REAL_DATA_SOURCE_DISCOVERY = POSTGRES_DOCKER_CONTAINER_C2_PG
-REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED
-Q1_DATA_COVERAGE_AUDIT_STATUS = PARTIAL
+REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED (live DB discoverable but EMPTY; coverage = 0 for every entry)
+Q1_DATA_COVERAGE_AUDIT_STATUS = PARTIAL (DB discovery done; data is empty; coverage matrix is 0 for every entry)
 ```
 
-The 0-row aggregate means that the real-data coverage matrix cannot be populated with non-zero values. The matrix entries are:
-
-- `farm_count` (from `dim_farm`): 0
-- `subfarm_count` (from `dim_subfarm`): 0
-- `variety_count` (from `dim_variety`): 0
-- `season_count` (from `dim_season`): 0
-- `daily_row_count` (from `fact_receipt_daily`): 0
-- `positive_day_count` (from `fact_receipt_daily` where `weight_kg > 0`): 0
-- `explicit_zero_day_count` (from `fact_receipt_daily` where `weight_kg = 0`): 0
-- `missing_day_count`: 0 (no daily row count)
-- `duplicate_key_count`: 0 (no daily row count; the unique constraint would force 0 in any case)
-- `build_run_count` (from `fact_receipt_daily.build_run_id`): 0
-- `series_with_at_least_7_days`: 0
-
-Q1 reports these as the truthful result of a real read-only query. Q1 does NOT claim the real-data coverage is `COMPLETE` / `READY` / `VERIFIED`. The status is `NOT_VERIFIED` because there is no data to verify against.
+The 0-row aggregate means that the real-data coverage matrix cannot be populated with non-zero values. Q1 reports this as `NOT_VERIFIED_EMPTY_DATABASE` (per round §十一), not as `COMPLETE` / `READY` / `VERIFIED`.
 
 ### §10.2 Read-only query evidence (per §7.2 of the round instruction)
 
 Q1 ran the following read-only queries on the live PostgreSQL. The output is included in the companion data-coverage audit. No query mutated data, no query created a table, no query altered a schema. The queries are aggregate-only; they do not return row-level data.
 
-Queries executed:
+Queries executed (per Q1 v1.1):
 
 1. `SELECT COUNT(*) FROM <each_table>;` for 16 tables.
 2. `SELECT COUNT(*) FILTER (...), MIN(receipt_date), MAX(receipt_date), COUNT(DISTINCT ...) FROM fact_receipt_daily;`
@@ -969,7 +975,7 @@ Queries executed:
 6. `SELECT version_num FROM alembic_version;`
 7. `SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE schemaname = 'public';`
 
-No query returned a `farm name`, `subfarm name`, `operator name`, `customer name`, `exact daily quantity`, `exact forecast output`, or `exact row count` on real data. All outputs are aggregate counts (`COUNT(*)`, `MIN`, `MAX`, `SUM`, `AVG`, `COUNT(DISTINCT)`, `n_live_tup`).
+No query returned a `farm name`, `subfarm name`, `operator name`, `customer name`, `exact daily quantity`, `exact forecast output`, or `exact row count` on real data. All outputs are aggregate counts.
 
 ### §10.3 Backtest usability gate (recap)
 
@@ -988,7 +994,7 @@ A series is `usable_backtest_series` if and only if all of the following hold:
 The current `fact_receipt_daily` does not satisfy the grain identity (no `subfarm_or_plot_id`), the point-in-time visibility (no `recorded_at`, `effective_at`, `revised_at`, `revision_number`, `supersedes_record_id`), the explicit-zero handling (structurally excluded), or the row-level revision (re-build only). The `usable_backtest_series_count` against `fact_receipt_daily` is `0` by the Q1 gate.
 
 ```
-USABLE_BACKTEST_SERIES_COUNT_AGAINST_FACT_RECEIPT_DAILY = 0 (by the Q1 gate; re-build mechanism is not row-level revision; explicit zero days are missing rows; subfarm_or_plot_id is not a column)
+USABLE_BACKTEST_SERIES_COUNT_AGAINST_FACT_RECEIPT_DAILY = 0 (by the Q1 gate)
 ```
 
 ### §10.4 Desensitization note
@@ -997,83 +1003,94 @@ The Q1 design-freeze does not output any sensitive real business data. No farm n
 
 ---
 
-## §11 Alignment contract (frozen, design only)
+## §11 Actual-harvest label and arrival proxy separation (v1.2 per review 4695151631 P0-4)
 
-Q1 freezes the alignment contract for matching the current aggregate forecast output to a farm/subfarm/variety actual label. Q1 does NOT implement the alignment; Q1 freezes two candidate paths.
+Q1 v1.2 freezes a strict separation between the primary `actual_harvest_quantity` label (orchard pick) and the `fact_receipt_daily` proxy (factory arrival).
 
-### §11.1 Path A — Member-grain forecast evaluation
-
-Path A uses the upstream Task 9 `harvest_state_daily_member_row` table. The member row has first-class `farm_id` / `subfarm_id` / `variety_id` / `state_date` and a per-state `harvested_quantity_kg` and `arrival_quantity_kg`. Path A aligns member rows to the same-grain actual label.
-
-Status:
+### §11.1 Frozen states
 
 ```
-CANDIDATE_ALIGNMENT_PATH
-NOT_YET_ACCEPTED
+PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO
+ARRIVAL_PROXY_EVALUATION_ALLOWED = DESIGN_OPTION
+ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES
+PRIMARY_TARGET_ACCURACY_REPORTING_WITH_PROXY = FORBIDDEN
 ```
 
-### §11.2 Path B — Aggregate-level evaluation
+### §11.2 Proxy evaluation naming
 
-Path B aggregates the actual label by the same member set and date that the agent request used, and compares the aggregate to `ForecastDailyRow`. The aggregation function is frozen by Q1 as a candidate:
+If a future round accepts `fact_receipt_daily` as a proxy, the report MUST be named:
 
-- member set = the request's `variety` list intersected with the location's effective variety set;
-- location identity = the resolved `NormalizedAgentRequest.normalized_location`;
-- variety set = the request's `variety` list;
-- aggregation function = `sum(per-member actual)` over the member set and the date;
-- missing-member behavior = the absent member is treated as a `missing_day` per §6.6;
-- duplicate behavior = the revision contract per §4.5;
-- unit = kg;
-- snapshot identity = the `model_version`, `data_snapshot`, and `label_snapshot_hash` triple;
-- canonical member-set hash = `sha256(canonical JSON of (member_set, date))`.
+- `ARRIVAL_PROXY_EVALUATION`
+- or `FACTORY_RECEIPT_FORECAST_EVALUATION`
 
-Status:
+The report MUST NOT be named:
+
+- `ACTUAL_HARVEST_ACCURACY`
+- `HARVEST_FORECAST_ACCURACY`
+- `PRIMARY_TARGET_ACCURACY`
+
+### §11.3 Q2A two-result split
+
+Q2A may proceed as a design round, but Q2A has two distinct results that MUST be tracked separately:
+
+**Result A — Dedicated actual-harvest source**: Q2A may add a dedicated `actual_harvest_daily` table with full row-level revision, point-in-time visibility, and the dual-cutoff semantics. Until Result A is implemented, the primary actual-harvest backtest is blocked. Result A unlocks the primary target evaluation.
+
+**Result B — Receipt proxy accepted**: Q2A may accept `fact_receipt_daily` as a proxy. Result B unlocks only the `ARRIVAL_PROXY_EVALUATION` report. Result B does NOT unlock the primary target backtest. With Result B, the `TARGET_PHYSICAL_QUANTITY_ALIGNMENT` remains `NOT_PROVEN_EQUIVALENT`. To change the primary business target from "actual harvest" to "arrival", Charles must explicitly change the primary business target.
+
+### §11.4 Q2A design and authorization
 
 ```
-CANDIDATE_ALIGNMENT_PATH
-NOT_YET_ACCEPTED
+Q2A_DESIGN_ELIGIBLE_AFTER_Q1_ACCEPTANCE = YES
+Q2A_CURRENTLY_AUTHORIZED = NO
+Q2A_IMPLEMENTATION_READY = NO
+Q2B_IMPLEMENTATION_READY = NO
+Q3_CURRENTLY_AUTHORIZED = NO
 ```
 
-### §11.3 Q1 freeze
-
-Q1 does NOT select Path A or Path B as the final production contract. The selection requires Q2A design and implementation, with separate Charles authorization.
+Q2A design may begin after Q1 acceptance. Q2A implementation, Q2B implementation, and Q3 implementation are each separately unauthorized in this round.
 
 ---
 
-## §12 Slice ordering (frozen, acyclic per review 4694771522 P0-3)
+## §12 Slice ordering (frozen, acyclic per review 4695151631 P0-3 + v1.1)
 
-Q1 v1 had a non-acyclic dependency between Q2 and Q3: Q2 required the 7-day production field, but Q3 is ordered after Q2; Q2 also bundled a naive-baseline comparator while Q4 is the dedicated naive-baseline slice. v1.1 freezes an acyclic slice ordering with explicit dependency on the dual-cutoff model and on the actual-label source decision.
+Q1 v1.1 froze an acyclic slice ordering. v1.2 preserves the same ordering and adds the Q2A-eligibility / Q2A-currently-authorized / Q2A-implementation-ready separation per round §十.
 
 ### §12.1 Slice ordering (acyclic)
 
 | Slice | Goal | Predecessor | Status |
 |---|---|---|---|
-| Q1 | forecast target + evaluation contract + dual-cutoff model + sustained 7-day target contract + 3-day coexistence policy | (none) | design (this PR #103) |
-| Q2A | actual-label source decision + dedicated table or accepted proxy + schema/migration + revision lineage + `label_observation_cutoff_at` evaluation-snapshot foundation + aggregate data-coverage query | Q1 | NOT AUTHORIZED |
-| Q2B | point-in-time backtest runner for currently supported outputs (the outputs that exist on `origin/main` after Q2A's accepted proxy, at the accepted grain) | Q2A | NOT AUTHORIZED |
-| Q3 | additive sustained 7-day production migration (new field, 3-day coexistence, schema version, Golden/API compatibility, production acceptance) | Q1 | NOT AUTHORIZED |
-| Q2C | extend Q2B with sustained 7-day scoring | Q2B + Q3 | NOT AUTHORIZED |
-| Q4 | naive baseline (one repeatable baseline, compared with the current model on the same data, the same cutoff, the same actual label, the same metric, the same 7-day peak definition) | Q2B | NOT AUTHORIZED |
-| Q5 | consolidated forecast-quality report (Q2B + Q2C + Q4 outputs aggregated into the report rows of Issue #102 §3) | Q2B + Q2C + Q4 | NOT AUTHORIZED |
-| Q6 | model improvement (allowed only after Q1..Q5 are accepted) | Q1..Q5 | NOT AUTHORIZED |
-| Q7 | thin trial UI (two pages: forecast page, forecast-vs-actual page) | Q5 | NOT AUTHORIZED |
+| Q1 | forecast target + evaluation contract + dual-cutoff model + sustained 7-day target contract + 3-day coexistence policy + actual-harvest vs arrival-proxy separation | (none) | design (this PR #103) |
+| Q2A | actual-label source decision + dedicated table or accepted proxy + schema/migration + revision lineage + `label_observation_cutoff_at` evaluation-snapshot foundation + aggregate data-coverage query | Q1 | `Q2A_CURRENTLY_AUTHORIZED = NO` |
+| Q2B | point-in-time backtest runner for currently supported outputs (the outputs that exist on `origin/main` after Q2A's accepted proxy, at the accepted grain); the 3-day legacy compatibility metric may be reported; the 7-day metric is `NOT_YET_COMPUTABLE` until Q3 + Q2C | Q2A | `Q2B_IMPLEMENTATION_READY = NO` |
+| Q3 | additive sustained 7-day production migration (new field, 3-day coexistence, schema version, Golden/API compatibility, production acceptance) | Q1 | `Q3_CURRENTLY_AUTHORIZED = NO` |
+| Q2C | extend Q2B with sustained 7-day scoring | Q2B + Q3 | not yet authorized |
+| Q4 | naive baseline (one repeatable baseline, compared with the current model on the same data, the same cutoff, the same actual label, the same metric, the same 7-day peak definition) | Q2B | not yet authorized |
+| Q5 | consolidated forecast-quality report (Q2B + Q2C + Q4 outputs aggregated into the report rows of Issue #102 §3) | Q2B + Q2C + Q4 | not yet authorized |
+| Q6 | model improvement (allowed only after Q1..Q5 are accepted) | Q1..Q5 | not yet authorized |
+| Q7 | thin trial UI (two pages: forecast page, forecast-vs-actual page) | Q5 | not yet authorized |
 
 ### §12.2 Q2 readiness
 
 ```
 Q2_DESIGN_CAN_START = YES
+Q2A_DESIGN_ELIGIBLE_AFTER_Q1_ACCEPTANCE = YES
+Q2A_CURRENTLY_AUTHORIZED = NO
+Q2A_IMPLEMENTATION_READY = NO
+Q2B_IMPLEMENTATION_READY = NO
 Q2_IMPLEMENTATION_READY = NO
+Q3_CURRENTLY_AUTHORIZED = NO
 Q2_READINESS = BLOCKED_BY_Q1_GAPS
 ```
 
-Q2 implementation is blocked by the following Q1 gaps:
+Q2A design may begin after Q1 is accepted by Charles. Q2A implementation, Q2B implementation, and Q3 implementation are each separately unauthorized in this round. The blockers are:
 
-- `ACTUAL_LABEL_SOURCE_UNRESOLVED` (Q2A must resolve)
-- `ACTUAL_LABEL_SCHEMA_UNRESOLVED` (Q2A must resolve)
-- `LABEL_OBSERVATION_CUTOFF_NOT_IMPLEMENTED` (Q2A must implement the dual-cutoff snapshot)
-- `TARGET_OUTPUT_GRAIN_NOT_ALIGNED` (Q2A must resolve the path A / path B choice)
-- `QUANTILE_SEMANTICS_NOT_VERIFIED` (Q2B must verify)
-- `REAL_DATA_COVERAGE_NOT_VERIFIED` (Q2B must verify on a real data source)
-- `SUSTAINED_7DAY_NOT_IMPLEMENTED` (Q3 must implement)
+1. `ACTUAL_LABEL_SOURCE_UNRESOLVED` (Q2A must resolve)
+2. `ACTUAL_LABEL_SCHEMA_UNRESOLVED` (Q2A must resolve)
+3. `LABEL_OBSERVATION_CUTOFF_NOT_IMPLEMENTED` (Q2A must implement the dual-cutoff snapshot)
+4. `TARGET_OUTPUT_GRAIN_NOT_ALIGNED` (Q2A must resolve the path A / path B choice)
+5. `QUANTILE_SEMANTICS_NOT_VERIFIED` (Q2B must verify)
+6. `REAL_DATA_COVERAGE_NOT_VERIFIED` (Q2B must verify on a real data source with non-zero rows)
+7. `SUSTAINED_7DAY_NOT_IMPLEMENTED` (Q3 must implement)
 
 Q2 DESIGN work (the design of the Q2A actual-label source decision, the Q2B backtest runner contract, the Q2C extension for 7-day scoring) may begin once Q1 is accepted by Charles. Q2 IMPLEMENTATION requires the Q2 readiness items to be resolved.
 
@@ -1086,20 +1103,20 @@ Q1 recommends the following slice ordering, all of which require separate Charle
 The Q2A minimum entry conditions are:
 
 1. The Q1 design-freeze is accepted by Charles.
-2. The actual-label source decision: either (a) a dedicated `actual_harvest_daily` table is added, or (b) `fact_receipt_daily` is accepted as a proxy with explicit `PROXY_LABEL` disclosure.
+2. The actual-label source decision: either (a) a dedicated `actual_harvest_daily` table is added (Result A), or (b) `fact_receipt_daily` is accepted as a proxy (Result B).
 3. The dual-cutoff snapshot identity is accepted: `forecast_cutoff_at` and `label_observation_cutoff_at` are two distinct fields.
-4. The aggregation path (Path A or Path B) is accepted.
+4. The aggregation path (Path A or Path B of §11 / v1.1) is accepted.
 
 The Q2A deliverables are:
 
 - the actual-label source decision recorded in a design document;
 - the schema or the proxy acceptance;
 - the migration (if a new table is added);
-- the revision lineage contract;
+- the revision lineage contract (with the fail-closed policy from §4.5);
 - the `label_observation_cutoff_at` evaluation-snapshot identity;
-- the aggregate data-coverage query runner that returns `farm_count`, `subfarm_count`, `variety_count`, `season_count`, `date_min`, `date_max`, `daily_row_count`, `positive_day_count`, `explicit_zero_day_count`, `missing_day_count`, `duplicate_key_count`, `build_run_count`, `series_with_at_least_7_days` against a real data source.
+- the aggregate data-coverage query runner.
 
-Q2A does NOT modify any model. Q2A does NOT change TASK-008 / TASK-009 / TASK-010 numerical semantics.
+Q2A does NOT modify any model. Q2A does NOT change TASK-008 / TASK-009 / TASK-010 numerical semantics. Q2A does NOT change the primary business target. Q2A does NOT promote `fact_receipt_daily` to the primary actual-harvest label.
 
 #### §12.3.2 Slice Q2B — point-in-time backtest runner
 
@@ -1109,15 +1126,18 @@ The Q2B minimum entry conditions are Q2A acceptance. The Q2B deliverable is the 
 - consumes the forecast-output contract (from Q2A's accepted aggregation path);
 - consumes the replay identity;
 - consumes the metric contract;
-- supports the dual-cutoff model;
+- supports the dual-cutoff model (including the four-time-bound time order);
+- supports the fail-closed revision lineage;
+- supports `AS_OF_EVALUATION` and `FINAL_ADJUDICATED` modes;
 - reports per-evaluation-slice metrics;
-- supports `AS_OF_EVALUATION` and `FINAL_ADJUDICATED` modes.
+- reports the 3-day legacy compatibility metric (per §7.7);
+- does NOT report the 7-day sustained peak as a primary metric (it is `NOT_YET_COMPUTABLE` until Q3 + Q2C).
 
-Q2B does NOT require the 7-day production field. Q2B may use the existing 3-day production field as the primary sustained-peak metric in the first stage.
+Q2B does NOT require the 7-day production field. Q2B may use the existing 3-day production field as a `LEGACY_COMPATIBILITY_METRIC` in the first stage.
 
 #### §12.3.3 Slice Q3 — sustained 7-day peak production migration
 
-The Q3 minimum entry conditions are Q1 acceptance. The Q3 deliverable is the additive 7-day field, with the additive-coexistence policy (§8.3), the migration, the Golden migration, the API migration, and the PostgreSQL production-chain acceptance.
+The Q3 minimum entry conditions are Q1 acceptance. The Q3 deliverable is the additive 7-day field, with the additive-coexistence policy (§8.3), the migration, the Golden migration, the API migration, and the PostgreSQL production-chain acceptance. Q3 is `Q3_CURRENTLY_AUTHORIZED = NO`.
 
 #### §12.3.4 Slice Q2C — extend the runner with 7-day scoring
 
@@ -1141,9 +1161,9 @@ Q7 depends on Q5. The Q7 deliverable is the two pages (forecast page, forecast-v
 
 ---
 
-## §13 Forbidden actions in Q1 (v1.1, per review)
+## §13 Forbidden actions in Q1 (v1.2, per review 4694771522 / 4695151631)
 
-Q1 v1.1 forbids the following actions in this round. Each forbidden action is paired with the rationale and the verification check.
+Q1 v1.2 forbids the following actions in this round. Each forbidden action is paired with the rationale and the verification check.
 
 | Forbidden action | Rationale | Verification check |
 |---|---|---|
@@ -1156,13 +1176,26 @@ Q1 v1.1 forbids the following actions in this round. Each forbidden action is pa
 | implement the backtest runner | Q1 freezes the contract; Q2B implements | the new commit does not add any backtest runner file |
 | implement the naive baseline | Q1 freezes the contract; Q4 implements | the new commit does not add any baseline file |
 | silently rename `sustained_3day_peak` to `sustained_7day_peak` | Q1 forbids silent reinterpretation | the new commit does not modify the 3-day field semantics |
-| use a single time cutoff for both model input and label visibility | the dual-cutoff model is the only correct anti-leakage boundary | the new commit defines `forecast_cutoff_at` and `label_observation_cutoff_at` as two distinct timestamps |
-| describe `ForecastDailyRow` as having 7 quantity fields | the merged schema has exactly 6 `DailyQuantiles` quantity fields | the new commit lists 6 fields |
-| describe `ForecastDailyRow` as first-class `(farm × subfarm × variety × date)` | the merged schema does not carry first-class farm/subfarm/variety identity | the new commit describes the row as a downstream aggregate |
+| cite the 3-day production metric as the first-stage primary sustained metric | Q1 v1.2 freezes the 3-day metric as `LEGACY_COMPATIBILITY_METRIC` only | the new commit classifies the 3-day metric as `LEGACY_COMPATIBILITY_METRIC` |
+| use a single time cutoff for both model input and label visibility | the dual-cutoff model is the only correct anti-leakage boundary | the new commit defines `forecast_cutoff_at` and `label_observation_cutoff_at` as two distinct timestamps, plus the four-time-bound canonical order including `replay_executed_at` |
+| use `replay_executed_at` (today) as `forecast_cutoff_at` | the historical replay must keep `forecast_cutoff_at` historical | the new commit freezes the four-time-bound canonical order |
+| use `forecast_target_date = forecast_cutoff_at` | the types differ; use `forecast_target_local_date = local_date(forecast_cutoff_at, farm_timezone)` | the new commit uses the local-date form |
+| use `forecast_target_date < forecast_cutoff_at` (in-simulation) | the v1.1 wording is removed | the new commit removes the wording |
+| use `latest timestamp wins` for the revision winner | the fail-closed policy forbids this | the new commit freezes the fail-closed policy |
+| use `largest revision-number wins` for the revision winner | the fail-closed policy forbids this | the new commit freezes the fail-closed policy |
+| use `current/latest row fallback` for the revision winner | the fail-closed policy forbids this | the new commit freezes the fail-closed policy |
+| use `hash lexical winner` for the revision winner | the fail-closed policy forbids this | the new commit freezes the fail-closed policy |
+| describe `ForecastDailyRow` as having 7 quantity fields | the merged schema has exactly 6 `DailyQuantiles` quantity fields | the new commit lists 6 fields and names `harvested_quantity_kg` as `model_harvested_quantity` |
+| describe `ForecastDailyRow` as first-class `(farm × subfarm × variety × date)` | the merged schema does not carry first-class farm/subfarm/variety identity | the new commit uses three-grain split with `CURRENT_AGENT_OUTPUT_GRAIN = RESOLVED_REQUEST_AGGREGATE_X_DATE` |
+| describe `ForecastDailyRow` fields as "persisted fields" | the Agent output is a serialized schema, not a database row | the new commit uses "first-class serialized output-schema fields" |
 | use `harvestable_quantity = harvested - backlog` as a formula | the formula has no physical authority and can be negative | the new commit marks `harvestable_quantity` as `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED` |
+| require Q2A to add a first-class `season_cumulative_quantity` field | the cumulative is a `DERIVED_EVALUATION_METRIC` | the new commit marks `season_cumulative_quantity` as `NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1` |
+| promote `fact_receipt_daily` to the primary `actual_harvest_quantity` label | the arrival proxy does not satisfy the primary target | the new commit freezes `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO`, `ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES`, `PRIMARY_TARGET_ACCURACY_REPORTING_WITH_PROXY = FORBIDDEN` |
+| cite a proxy result as `ACTUAL_HARVEST_ACCURACY` or `HARVEST_FORECAST_ACCURACY` or `PRIMARY_TARGET_ACCURACY` | the proxy is arrival, not harvest | the new commit restricts proxy report names to `ARRIVAL_PROXY_EVALUATION` or `FACTORY_RECEIPT_FORECAST_EVALUATION` |
+| claim `Q2_DESIGN_CAN_START = YES` to imply current authorization | the state is a Q1-acceptance precondition only | the new commit keeps `Q2A_CURRENTLY_AUTHORIZED = NO` separate |
 | claim `Q2_READINESS = READY` | the same document reports Q1 gaps | the new commit sets `Q2_READINESS = BLOCKED_BY_Q1_GAPS` |
-| report `REAL_DATA_COVERAGE_STATUS = COMPLETE / READY / VERIFIED` | the live database is empty | the new commit sets `REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED` |
-| set `Q2_READINESS = READY` while the same decision table says `Q2_IMPLEMENTATION_READY = NO` | the two must be consistent | the new commit keeps the three Q2 states distinct |
+| report `REAL_DATA_COVERAGE_STATUS = COMPLETE / READY / VERIFIED` | the live database is empty | the new commit sets `REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED_EMPTY_DATABASE` |
+| set `Q2_READINESS = READY` while `Q2_IMPLEMENTATION_READY = NO` | the two must be consistent | the new commit keeps the three Q2 states distinct |
 | use signed and absolute relative error under a single field | the two have different meanings | the new commit names signed and absolute variants separately |
 | leave a sustained 7-day window `NOT_COMPUTABLE or partial` | this is ambiguous | the new commit names a single canonical rule (excluded from peak competition) |
 | report single-day peak metrics at only P50 | the production output is per quantile | the new commit defines per-quantile forecast peak metrics |
@@ -1176,16 +1209,17 @@ Q1 v1.1 forbids the following actions in this round. Each forbidden action is pa
 | delete the Q1 worktree | Q1 only authorizes a Draft PR | the worktree is preserved |
 | delete the prototype worktree | Q1 only authorizes a Draft PR | the worktree is preserved |
 | delete any untracked file | Q1 only authorizes a Draft PR | the 4 untracked files in the main worktree are preserved |
-| output sensitive real business data | Q1 forbids real-data output | the data-coverage audit reports `NOT_VERIFIED` for live-database access |
-| claim the 7-day peak is implemented | Q1 only freezes the contract | the report explicitly states `SUSTAINED_7DAY_IMPLEMENTED = NO` |
+| output sensitive real business data | Q1 forbids real-data output | the data-coverage audit reports `NOT_VERIFIED_EMPTY_DATABASE` for live-database access |
+| claim the 7-day peak is implemented | Q1 only freezes the contract | the report explicitly states `SUSTAINED_7DAY_IMPLEMENTED = NO` and `PRIMARY_SUSTAINED_PEAK_QUALITY_STATUS = NOT_YET_COMPUTABLE` |
 | claim the forecast accuracy has improved | Q1 does not change any model | the report explicitly states `MODEL_CHANGE_NOT_AUTHORIZED` |
-| fabricate real-data coverage | the audit reports `NOT_VERIFIED` for live-database access | the live-database query result is recorded as 0 rows for all tables |
+| fabricate real-data coverage | the audit reports `NOT_VERIFIED_EMPTY_DATABASE` for live-database access | the live-database query result is recorded as 0 rows for all tables; the audit does not substitute fixtures or Goldens for real data |
+| describe Q1 as accepted | Q1 awaits re-review | the Q1 v1.2 sign-off section reports `PENDING_RE_REVIEW` and `Q1_NOT_YET_ACCEPTED` |
 
 ---
 
-## §14 Validation checklist (against round §14)
+## §14 Validation checklist (against round §十三)
 
-Q1 v1.1 ran the following validation checks:
+Q1 v1.2 ran the following validation checks:
 
 1. `git diff --check` — clean.
 2. `git diff --name-only origin/main` — only `docs/forecast-quality/` files.
@@ -1196,25 +1230,33 @@ Q1 v1.1 ran the following validation checks:
 7. no migration changes — verified by `git diff --name-only origin/main -- backend/alembic/`.
 8. no workflow changes — verified by `git diff --name-only origin/main -- .github/`.
 9. no Golden changes — verified by `git diff --name-only origin/main -- '**/golden/**'`.
-10. `ForecastDailyRow` quantity-field exact count = 6 — verified by `git show origin/main:backend/app/agent/schemas.py | grep -E "DailyQuantiles"`.
-11. `ForecastDailyRow` has no first-class `farm_id` / `subfarm_id` / `variety_id` — verified by `git show origin/main:backend/app/agent/schemas.py | grep -E "forecast_daily_row|ForecastDailyRow"`.
-12. no `harvested - backlog` derivation remains — verified by `grep -nE "harvestable.*harvested.*backlog|harvested.*-.*unharvested" docs/forecast-quality/*.md` returning no derivation.
-13. `forecast_cutoff_at` and `label_observation_cutoff_at` both defined — verified by the dual-cutoff model in §4.
-14. no actual-label rule requires label visibility at forecast cutoff — verified by §4.5 and §6.5.
-15. no statement that training and label visibility are identical — verified by §4.1 and §4.2.
-16. no `Q2_READINESS = READY` — verified by the decision table.
-17. no circular Q2/Q3/Q4 dependency — verified by the acyclic slice ordering in §12.1.
-18. no sustained-7-day `NOT_COMPUTABLE or partial` ambiguity — verified by §7.3.
-19. no "later recorded_at wins" — verified by §4.5 and §6.5.
-20. signed and absolute relative errors both defined — verified by §9.3, §9.4, §9.5.
-21. 3-day/7-day coexistence wording consistent — verified by §8.3.
-22. P50/P80/P90 single-day peak fields consistent — verified by §9.4.
-23. no claim that real-data coverage was verified — verified by §10.1.
-24. no claim that Q1 is accepted — verified by the sign-off section (§16) which says `Q1_NOT_YET_ACCEPTED` and `RE_REVIEW_REQUIRED`.
-25. internal Markdown links valid — every `(\#…)` anchor is verified by the Q1 author and matches a section heading in the same document or in the companion document.
-26. document line counts — reported in the final report.
-27. SHA-256 for all three files — reported in the final report.
-28. live-database discovery result — recorded in §10.1.
+10. no model changes — verified by the absence of any `backend/app/` mutation.
+11. historical replay order matches `forecast_cutoff_at < forecast_target_date_or_window_end <= label_observation_cutoff_at <= replay_executed_at` — verified by §4.3.
+12. no `forecast_target_date < forecast_cutoff_at` (in-simulation) — verified by §4.3.
+13. no latest-timestamp winner — verified by §4.5.
+14. no largest-revision fallback — verified by §4.5.
+15. fork / cycle / multiple-terminal fail-closed — verified by §4.5.3.
+16. physical table contains three separate grain columns — verified by §5.1.
+17. no Agent aggregate field described as member-grain — verified by §5.1.
+18. no unsupported "persisted field" claim — verified by §5.2.
+19. all six `ForecastDailyRow` quantity fields mapped — verified by §5.3.
+20. `harvested_quantity_kg` explicitly remains model output — verified by §5.1 and §5.3.
+21. actual harvest and receipt proxy status separated — verified by §11.
+22. no proxy result called actual-harvest accuracy — verified by §11.2.
+23. 3-day classified only as legacy compatibility — verified by §7.7 and §8.3.
+24. 7-day classified as primary business metric — verified by §7.7 and §8.3.
+25. no undefined deprecation-window wording — verified by §8.3.
+26. no permanent-retention promise — verified by §8.3.
+27. no `Q2_READINESS = READY` — verified by §12.2.
+28. no Q1 accepted claim — verified by §15.
+29. three document line counts — reported in the final report.
+30. three document SHA-256 — reported in the final report.
+31. PR body Head equals final PR Head — verified by the PR body update (or by the `NOT EXECUTED` reporting when token is lost).
+32. PR body hashes equal final file hashes — verified by the PR body update.
+33. PR body does not mention seven quantity fields — verified by the PR body update.
+34. PR body does not use stale old Head — verified by the PR body update.
+35. local/remote/PR Head equality — verified by the 3-way verify.
+36. exact-head CI result — recorded in the final report.
 
 ---
 
@@ -1222,25 +1264,28 @@ Q1 v1.1 ran the following validation checks:
 
 | Date | Round | Author | Change |
 |---|---|---|---|
-| 2026-07-14 | v1 (Q1) | Charles-authorized Q1 design-only round | Initial creation. Frozen forecast-object contract (8 objects). Frozen actual-label contract (canonical grain, canonical fields, point-in-time visibility, special-day semantics). Frozen sustained 7-day peak contract. 3-day production contract audited and preserved verbatim. Data-coverage audit reported `BLOCKED_BY_DATA`. |
-| 2026-07-14 | v1.1 (Q1 P0 fixup) | Charles-authorized Q1 P0 fixup (review 4694771522) | (1) Two-cutoff model: `forecast_cutoff_at` (gates model inputs) and `label_observation_cutoff_at` (gates label revisions for evaluation). Two evaluation modes: `AS_OF_EVALUATION` and `FINAL_ADJUDICATED`. Revision resolution by explicit supersession lineage, not by `latest timestamp`. (2) `ForecastDailyRow` quantity-field count corrected from 7 to 6. Grain corrected from `(farm × subfarm × variety × calendar_date)` to `(one resolved agent request, one resolved location, one resolved season) × calendar_date` with nested per-variety contribution. (3) `TARGET_OUTPUT_ALIGNMENT` split into `TARGET_PHYSICAL_QUANTITY_ALIGNMENT = NOT_PROVEN_EQUIVALENT` and `TARGET_GRAIN_ALIGNMENT = NOT_ALIGNED`. (4) `harvestable_quantity = harvested - backlog` formula removed; `harvestable_quantity` marked `NOT_CURRENTLY_AVAILABLE` / `FORMULA_NOT_AUTHORIZED`. (5) Q2 readiness corrected: `Q2_DESIGN_CAN_START = YES`; `Q2_IMPLEMENTATION_READY = NO`; `Q2_READINESS = BLOCKED_BY_Q1_GAPS` with 7 listed blockers. (6) Acyclic slice ordering: Q1 / Q2A / Q2B / Q3 / Q2C / Q4 / Q5 / Q6 / Q7. Q2 decomposed into Q2A (actual-label source) and Q2B (point-in-time runner). Q2C extends with 7-day after Q3. (7) Live-database discovery: configured PostgreSQL on `localhost:5432` (`c2-pg` Docker container, image `pgvector/pgvector:pg16`) is discoverable and reachable; all 33 public-schema tables report 0 rows; alembic at `0013_rolling_backtest_orch` (0014 and 0015 not applied). `REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED`. `Q1_DATA_COVERAGE_AUDIT_STATUS = PARTIAL`. (8) Missing-window policy frozen to a single canonical rule: an incomplete 7-day window is `INCOMPLETE` and `EXCLUDED_FROM_PEAK_COMPETITION`. The `or partial` wording is removed. (9) Per-quantile single-day peak metrics frozen: `forecast_single_day_peak_date_q`, `forecast_single_day_peak_quantity_kg_q`, the four errors per quantile. (10) Signed and absolute relative errors separated: `cumulative_signed_relative_error` / `cumulative_absolute_relative_error`; `single_day_peak_quantity_signed_relative_error_q` / `single_day_peak_quantity_absolute_relative_error_q`; `sustained_7day_peak_cumulative_signed_relative_error_q` / `sustained_7day_peak_cumulative_absolute_relative_error_q`; plus denominator counts. (11) 3-day/7-day coexistence frozen to additive policy: both fields are present; the policy decides the primary display window, not the field presence. (12) The sign-off section is no longer pre-filled with `ACCEPTED`; the state is `PENDING_RE_REVIEW`. |
+| 2026-07-14 | v1 (Q1) | Charles-authorized Q1 design-only round | Initial creation. |
+| 2026-07-14 | v1.1 (Q1 P0 fixup) | Charles-authorized Q1 P0 fixup (review 4694771522) | Dual-cutoff model; six-field inventory; aggregate output grain; 3-day coexistence policy; signed/absolute relative-error split; real-data coverage reporting. |
+| 2026-07-14 | v1.2 (Q1 final contract fixup) | Charles-authorized Q1 final fixup (review 4695151631) | (1) Historical-replay time model: `forecast_cutoff_at < forecast_target_date_or_window_end <= label_observation_cutoff_at <= replay_executed_at`. The v1.1 wording `forecast_target_date < forecast_cutoff_at` is removed. The same-day wording uses `forecast_target_local_date = local_date(forecast_cutoff_at, farm_timezone)`. (2) Fail-closed revision lineage policy: the unique visible terminal revision on one valid explicit supersession chain within one source family. The `latest timestamp wins` and `largest revision-number wins` rules are removed. Fail-closed conditions are listed as typed blockers. Void semantics are explicit. (3) Three-grain split on the physical-quantity table: `CONCEPTUAL_PHYSICAL_GRAIN`, `CURRENT_AGENT_OUTPUT_GRAIN`, `UPSTREAM_MEMBER_GRAIN`. The "persisted fields" phrase is replaced with "first-class serialized output-schema fields". `harvested_quantity_kg` is mapped to `model_harvested_quantity` with the qualifier `MODEL_OUTPUT / NOT_DIRECT_OBSERVATION / NOT_PRIMARY_ACTUAL_LABEL`. `season_cumulative_quantity` is `DERIVED_EVALUATION_METRIC / NO_FIRST_CLASS_PRODUCTION_FIELD_REQUIRED_BY_Q1`. (4) Actual-harvest label and arrival proxy separation: `PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO`, `ARRIVAL_PROXY_EVALUATION_ALLOWED = DESIGN_OPTION`, `ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES`, `PRIMARY_TARGET_ACCURACY_REPORTING_WITH_PROXY = FORBIDDEN`. Proxy report names restricted to `ARRIVAL_PROXY_EVALUATION` or `FACTORY_RECEIPT_FORECAST_EVALUATION`. Q2A two-result split (Result A dedicated table; Result B proxy). (5) 3-day is `LEGACY_COMPATIBILITY_METRIC`; 7-day is `PRIMARY_BUSINESS_SUSTAINED_PEAK_TARGET`; primary status is `NOT_YET_COMPUTABLE` until Q3 + Q2C. The "permanent coexistence" and "deprecation window" wording are removed. The compatibility amendment process is explicit. (6) Slice ordering wording corrected: `Q2A_DESIGN_ELIGIBLE_AFTER_Q1_ACCEPTANCE = YES` separated from `Q2A_CURRENTLY_AUTHORIZED = NO`. (7) Decision table unified across the three Q1 documents. Sign-off no longer pre-fills `ACCEPTED`; the state is `PENDING_RE_REVIEW` and `Q1_NOT_YET_ACCEPTED`. |
 
 ---
 
 ## §16 Sign-off (to be completed by Charles upon acceptance)
 
 ```text
-PR103_SLICE_Q1_FIXUP_PENDING_RE_REVIEW
+PR103_SLICE_Q1_FINAL_FIXUP_PENDING_RE_REVIEW
 Q1_NOT_YET_ACCEPTED
-Q1_P0_FIXUP_APPLIED
-DUAL_CUTOFF_MODEL_FROZEN
-CURRENT_OUTPUT_GRAIN_RECONCILED
-SUSTAINED_7DAY_TARGET_CONTRACT_CORRECTED
-REAL_DATA_COVERAGE_STATUS_REPORTED_TRUTHFULLY
+Q1_FINAL_FIXUP_APPLIED
+HISTORICAL_REPLAY_TIME_MODEL_FROZEN
+REVISION_LINEAGE_FAIL_CLOSED_POLICY_FROZEN
+THREE_GRAIN_SPLIT_FROZEN
+ACTUAL_HARVEST_LABEL_SEPARATED_FROM_ARRIVAL_PROXY
+SUSTAINED_7DAY_CONFIRMED_AS_PRIMARY_BUSINESS_TARGET
+THREE_DAY_RECLASSIFIED_AS_LEGACY_COMPATIBILITY_METRIC
 ACYCLIC_SLICE_ORDERING_FROZEN
-Q2_DESIGN_CAN_START
-Q2_IMPLEMENTATION_NOT_READY
-Q2_READINESS_BLOCKED_BY_Q1_GAPS
+Q2A_CURRENTLY_AUTHORIZED=NO
+Q2B_IMPLEMENTATION_READY=NO
+Q3_CURRENTLY_AUTHORIZED=NO
 READY_NOT_AUTHORIZED
 MERGE_NOT_AUTHORIZED
 ISSUE99_REMAINS_OPEN
