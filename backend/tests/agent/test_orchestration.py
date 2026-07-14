@@ -238,7 +238,7 @@ async def test_orchestration_is_ordered_and_byte_stable() -> None:
     assert first.normalized_request.effective_forecast_season_id == 1
 
 
-async def _production_wiring_output():
+async def _production_wiring_outputs(*, policy_hashes: tuple[str, ...] = ()):
     from backend.app.models.harvest_state import HarvestStateRun
     from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
     from backend.app.models.maturity import (
@@ -292,13 +292,31 @@ async def _production_wiring_output():
     )
     async with session_factory() as session:
         await test_slice_b_orchestration_uses_real_postgres_session(session)
-        output = await _production_orchestrator().execute(
-            session,
-            request=_production_request(),
-            request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
-        )
+        if policy_hashes:
+            outputs = [
+                await _production_orchestrator(
+                    season_resolver=_SeasonResolver(policy_hash=policy_hash)
+                ).execute(
+                    session,
+                    request=_production_request(),
+                    request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
+                )
+                for policy_hash in policy_hashes
+            ]
+        else:
+            outputs = [
+                await _production_orchestrator().execute(
+                    session,
+                    request=_production_request(),
+                    request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
+                )
+            ]
     await engine.dispose()
-    return output
+    return outputs
+
+
+async def _production_wiring_output():
+    return (await _production_wiring_outputs())[0]
 
 
 @pytest.mark.asyncio
@@ -399,6 +417,30 @@ async def test_resolver_policy_provenance_changes_agent_hash() -> None:
     assert (
         first.normalized_request.canonical_request_hash
         != second.normalized_request.canonical_request_hash
+    )
+
+
+@pytest.mark.asyncio
+async def test_policy_provenance_does_not_change_persisted_task9_authority() -> None:
+    first, second = await _production_wiring_outputs(
+        policy_hashes=(SEASON_RESOLUTION_POLICY_CONFIG_HASH, "f" * 64)
+    )
+    first_authority = first.provenance["task9_authority"]
+    second_authority = second.provenance["task9_authority"]
+    assert first_authority is not None
+    assert second_authority is not None
+    assert first_authority["harvest_state_run_id"] == second_authority["harvest_state_run_id"]
+    assert (
+        first_authority["harvest_state_run_result_hash"]
+        == second_authority["harvest_state_run_result_hash"]
+    )
+    assert (
+        first.normalized_request.canonical_request_hash
+        != second.normalized_request.canonical_request_hash
+    )
+    assert (
+        first.provenance["agent_forecast_output_hash"]
+        != second.provenance["agent_forecast_output_hash"]
     )
 
 

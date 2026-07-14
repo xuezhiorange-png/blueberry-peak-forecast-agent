@@ -228,6 +228,11 @@ def _mk_nr(*, varieties=("Dx",), as_of=date(2026, 3, 1)) -> NormalizedAgentReque
         request_id="r",
         request_received_at=datetime(2026, 3, 1, tzinfo=UTC),
         effective_as_of_date=as_of,
+        requested_forecast_season=2026,
+        effective_forecast_season_id=1,
+        effective_forecast_season_code="2026",
+        season_record_hash="e" * 64,
+        season_resolution_policy_config_hash="a" * 64,
         effective_forecast_season=2026,
         season_resolution_policy_version="v1",
         season_calendar_config_hash="a" * 64,
@@ -540,7 +545,9 @@ async def test_composer_returns_no_rows_when_zero_candidates(sqlite_session):
 
 
 @pytest.mark.asyncio
-async def test_composer_returns_authority_conflict_for_multiple_candidates(sqlite_session):
+async def test_composer_returns_authority_conflict_for_multiple_candidates(
+    sqlite_session, monkeypatch: pytest.MonkeyPatch
+):
     """When two harvest_state_runs satisfy the strict scope AND both
     cover the requested variety set, the composer emits
     AUTHORITY_CONFLICT with full candidate disclosure."""
@@ -591,6 +598,14 @@ async def test_composer_returns_authority_conflict_for_multiple_candidates(sqlit
         varieties=[("Dx", 100)],
     )
     await sqlite_session.flush()
+
+    async def _accept_legacy_fixture(**kwargs):
+        return None, kwargs["requested_season_id"]
+
+    monkeypatch.setattr(
+        "backend.app.agent.adapters.baseline_composer._validate_task9_v2_season_identity",
+        _accept_legacy_fixture,
+    )
 
     composer = DefaultTaskCompositionBaseline()
     result = await composer.compute_baseline(

@@ -618,7 +618,6 @@ async def _select_harvest_state_run_candidates(
     destination_factory_id: int | None,
     requested_variety_codes: tuple[str, ...] = (),
     effective_forecast_season_id: int | None = None,
-    effective_forecast_season: int | None = None,
 ) -> AuthoritySelectionResult:
     """Strict-scope TASK-009 selector.  No implicit latest.
 
@@ -636,14 +635,10 @@ async def _select_harvest_state_run_candidates(
     :func:`_evaluate_task9_row_against_scope` so a row that fails any
     check in one path also fails in the other.
 
-    P0-1 (review 4680340321): the season identity check is performed
-    against the REAL persisted identity (a JSON dict the row carries
-    in ``input_snapshot``).  The legacy
-    ``HarvestStateRun.as_of_date.year`` derivation is FORBIDDEN.  When
-    a candidate row has no ``input_snapshot["forecast_season"]`` and
-    the request asked for a season, the row is EXCLUDED with a typed
-    ``AUTHORITY_SCOPE_MISMATCH`` blocker carrying
-    ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE``.
+    The sole season selector authority is the v2
+    ``HarvestStateRun.forecast_season_id`` FK and its validated
+    canonical mirror. Legacy input-snapshot season values and date-year
+    derivation are never consulted.
 
     Failure mode taxonomy (P0-2):
 
@@ -704,7 +699,6 @@ async def _select_harvest_state_run_candidates(
             requested_variety_codes=requested_variety_codes,
             session=session,
             effective_forecast_season_id=effective_forecast_season_id,
-            effective_forecast_season=effective_forecast_season,
         )
         if outcome.candidates:
             return outcome
@@ -829,7 +823,6 @@ async def _select_harvest_state_run_candidates(
             requested_variety_codes=requested_variety_codes,
             session=session,
             effective_forecast_season_id=effective_forecast_season_id,
-            effective_forecast_season=effective_forecast_season,
         )
         if outcome.candidates:
             candidate_dicts.extend(outcome.candidates)
@@ -891,7 +884,6 @@ async def _evaluate_task9_row_against_scope(
     requested_variety_codes: tuple[str, ...],
     session: AsyncSession,
     effective_forecast_season_id: int | None = None,
-    effective_forecast_season: int | None = None,
 ) -> AuthoritySelectionResult:
     """Validate a TASK-009 candidate row against the strict scope.
 
@@ -903,15 +895,10 @@ async def _evaluate_task9_row_against_scope(
     blockers are NOT combined — the FIRST failure is reported so the
     caller can disambiguate deterministically.
 
-    P0-1 / P0-2 (review 4680340321): the season identity check is
-    performed against the REAL persisted identity — a JSON dict the
-    row carries in ``input_snapshot``.  The legacy
-    ``HarvestStateRun.as_of_date.year`` derivation is FORBIDDEN.  When
-    a candidate row has no ``input_snapshot["forecast_season"]`` and
-    the request asked for a season, this function returns an
-    :data:`BlockerCode.AUTHORITY_SCOPE_MISMATCH` blocker carrying
-    ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE`` — NOT
-    a silent NOT_FOUND collapse.
+    The season identity check uses only the validated Task 9 v2 FK and
+    canonical mirror. Missing request identity and every v1/NULL
+    authority fail closed with
+    ``reason=PERSISTED_FORECAST_SEASON_IDENTITY_UNAVAILABLE``.
     """
 
     from backend.app.agent.adapters.task_loaders import _SHA256_HEX_RE
@@ -1047,28 +1034,25 @@ async def _evaluate_task9_row_against_scope(
 
     # --- persisted v2 season identity ---
     persisted_season_id = getattr(row, "forecast_season_id", None)
-    if effective_forecast_season_id is None and effective_forecast_season is not None:
-        legacy_season = _extract_persisted_season_identity(getattr(row, "input_snapshot", None))
-        if legacy_season is None or legacy_season != effective_forecast_season:
-            return AuthoritySelectionResult(
-                blockers=(
-                    _scope_mismatch(
-                        SEASON_BINDING_UNAVAILABLE,
-                        extra={"persisted_season_identity": legacy_season},
-                    ),
-                )
+    if effective_forecast_season_id is None:
+        return AuthoritySelectionResult(
+            blockers=(
+                _scope_mismatch(
+                    SEASON_BINDING_UNAVAILABLE,
+                    extra={"persisted_forecast_season_id": persisted_season_id},
+                ),
             )
-    elif effective_forecast_season_id is not None:
-        season_blocker, persisted_season_id = await _validate_task9_v2_season_identity(
-            session=session,
-            row=row,
-            row_id=row_id,
-            requested_season_id=effective_forecast_season_id,
-            scope_mismatch=_scope_mismatch,
-            identity_malformed=_identity_malformed,
         )
-        if season_blocker is not None:
-            return AuthoritySelectionResult(blockers=(season_blocker,))
+    season_blocker, persisted_season_id = await _validate_task9_v2_season_identity(
+        session=session,
+        row=row,
+        row_id=row_id,
+        requested_season_id=effective_forecast_season_id,
+        scope_mismatch=_scope_mismatch,
+        identity_malformed=_identity_malformed,
+    )
+    if season_blocker is not None:
+        return AuthoritySelectionResult(blockers=(season_blocker,))
 
     # --- variety coverage ---
     if requested_variety_codes:
@@ -1675,36 +1659,6 @@ async def _select_maturity_forecast_run_id(
     if mf_id is None:
         return None
     return int(mf_id)
-
-
-def _extract_persisted_season_identity(input_snapshot: Any) -> int | None:
-    """Round 7 (review 4680214102): extract the REAL persisted
-    TASK-009 season identity from ``input_snapshot``.
-
-    The legacy derivation ``HarvestStateRun.as_of_date.year`` is
-    forbidden — it is a date-guess, not a persisted identity.
-
-    Returns the integer season if present (int or numeric str),
-    ``None`` if the key is missing or the type is wrong.
-    """
-    if not isinstance(input_snapshot, dict):
-        return None
-    raw = input_snapshot.get("forecast_season")
-    if raw is None:
-        return None
-    if isinstance(raw, bool):
-        # bool is a subclass of int; reject explicitly.
-        return None
-    if isinstance(raw, int):
-        return int(raw)
-    if isinstance(raw, str):
-        s = raw.strip()
-        if s.lstrip("-").isdigit():
-            try:
-                return int(s)
-            except (TypeError, ValueError):
-                return None
-    return None
 
 
 # --- ORM loaders ----------------------------------------------------------

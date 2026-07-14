@@ -228,7 +228,7 @@ async def test_postgres_real_persistence_no_season_binding_emits_scope_mismatch(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=2026,
+        effective_forecast_season_id=2026,
     )
     assert selection.candidates == (), (
         f"row {hsr_id} must be excluded (no persisted season identity); got {selection.candidates}"
@@ -246,15 +246,10 @@ async def test_postgres_real_persistence_no_season_binding_emits_scope_mismatch(
 
 
 @pytest.mark.postgres
-async def test_postgres_real_persistence_no_season_request_returns_candidate(
+async def test_postgres_missing_effective_season_id_fails_closed(
     pg_selector_session: AsyncSession,
 ) -> None:
-    """Round 8: when the request does NOT ask for a season
-    (``effective_forecast_season=None``), the real-persistence row
-    (no ``forecast_season`` in ``input_snapshot``) IS a valid
-    candidate.  The selector's default path returns it as a
-    candidate (no scope blocker).
-    """
+    """A direct selector call without formal season identity fails closed."""
     hsr_id = await _insert_hsr_real_shape(
         pg_selector_session,
         result_hash="a" * 64,
@@ -267,13 +262,14 @@ async def test_postgres_real_persistence_no_season_request_returns_candidate(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=None,
+        effective_forecast_season_id=None,
     )
-    assert selection.candidates, (
-        "default path must return the real-persistence row as a "
-        "candidate when no season is requested"
-    )
-    assert any(c["id"] == hsr_id for c in selection.candidates)
+    assert selection.candidates == ()
+    assert selection.blockers
+    blocker = selection.blockers[0]
+    assert blocker.code == BlockerCode.AUTHORITY_SCOPE_MISMATCH
+    assert (blocker.details or {}).get("reason") == SEASON_BINDING_UNAVAILABLE
+    assert (blocker.details or {}).get("row_id") == hsr_id
 
 
 @pytest.mark.postgres
@@ -304,7 +300,7 @@ async def test_postgres_default_path_no_strftime_no_year_extraction(
         run_id_override=None,
         destination_factory_id=1,
         requested_variety_codes=(),
-        effective_forecast_season=2026,
+        effective_forecast_season_id=2026,
     )
     assert selection.candidates == ()
     assert selection.blockers
@@ -365,6 +361,6 @@ async def _insert_hsr_real_shape(
 
 __all__ = [
     "test_postgres_real_persistence_no_season_binding_emits_scope_mismatch",
-    "test_postgres_real_persistence_no_season_request_returns_candidate",
+    "test_postgres_missing_effective_season_id_fails_closed",
     "test_postgres_default_path_no_strftime_no_year_extraction",
 ]

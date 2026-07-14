@@ -197,8 +197,9 @@ async def _seed_valid_task10(
     return run
 
 
-def _production_orchestrator() -> AgentOrchestrator:
+def _production_orchestrator(*, season_resolver=None) -> AgentOrchestrator:
     return AgentOrchestrator(
+        season_resolver=season_resolver,
         location_adapter=None,
         uncertainty_widening_policy=UncertaintyWideningPolicy(
             policy_version="uncertainty-widening/v1",
