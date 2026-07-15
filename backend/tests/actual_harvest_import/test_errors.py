@@ -194,9 +194,9 @@ def test_record_is_immutable_and_revision_shape_is_local() -> None:
 
 def test_batch_input_rejects_server_owned_fields_and_canonical_batch_enforces_seal_shape() -> None:
     with pytest.raises(ValidationError):
-        ActualHarvestImportBatchInput.model_validate(_batch(import_id=1))
+        ActualHarvestImportBatchInput.model_validate(_batch(import_id="import-1"))
     common = _batch(
-        import_id=1,
+        import_id="import-1",
         import_received_at=datetime(2026, 1, 3, 8, tzinfo=UTC),
         ingested_at=datetime(2026, 1, 3, 8, 1, tzinfo=UTC),
         uploaded_record_count=1,
@@ -222,13 +222,45 @@ def test_batch_input_rejects_server_owned_fields_and_canonical_batch_enforces_se
         CanonicalActualHarvestImportBatch.model_validate(
             {**common, "seal_status": ActualHarvestBatchSealStatus.UNSEALED}
         )
+    with pytest.raises(ValidationError):
+        CanonicalActualHarvestImportBatch.model_validate(
+            {**common, "server_raw_payload_hash_or_null": None}
+        )
+
+
+def test_optional_record_and_batch_fields_can_be_omitted() -> None:
+    record = _record()
+    for field in (
+        "source_recorded_at",
+        "source_recorded_at_authority_reference_or_null",
+        "supersedes_external_revision_id",
+        "season_code",
+        "farm_timezone",
+        "revised_at",
+        "finalized_at",
+        "source_row_number",
+        "source_sheet_name",
+        "source_note",
+    ):
+        record.pop(field)
+    record["source_recorded_at_authority_status"] = SourceRecordedAtAuthorityStatus.MISSING
+    assert ActualHarvestImportRecordInput.model_validate(record).season_code is None
+
+    batch = _batch()
+    for field in (
+        "expected_record_count_or_null",
+        "source_file_name_or_null",
+        "source_file_hash_or_null",
+    ):
+        batch.pop(field)
+    assert ActualHarvestImportBatchInput.model_validate(batch).source_file_hash_or_null is None
 
 
 def test_validation_issue_sort_is_independent_of_input_order() -> None:
     base = {
         "error_code": "UNKNOWN_FIELD",
         "severity": "ERROR",
-        "import_id": 1,
+        "import_id": "import-1",
         "external_logical_record_id_or_null": None,
         "external_revision_id_or_null": None,
         "field_path_or_null": None,
@@ -251,7 +283,7 @@ def test_validation_issue_details_reject_sensitive_or_raw_payloads(
             {
                 "error_code": "UNKNOWN_FIELD",
                 "severity": "ERROR",
-                "import_id": 1,
+                "import_id": "import-1",
                 "record_index_or_null": None,
                 "external_logical_record_id_or_null": None,
                 "external_revision_id_or_null": None,
@@ -260,3 +292,48 @@ def test_validation_issue_details_reject_sensitive_or_raw_payloads(
                 "details": details,
             }
         )
+
+
+def test_import_ids_are_opaque_non_empty_strings() -> None:
+    base = {
+        "error_code": "UNKNOWN_FIELD",
+        "severity": "ERROR",
+        "import_id": "batch-opaque-1",
+        "record_index_or_null": None,
+        "external_logical_record_id_or_null": None,
+        "external_revision_id_or_null": None,
+        "field_path_or_null": "records[3].farm_code",
+        "message_template_id": "unknown-field",
+        "details": {"field": "unexpected"},
+    }
+    issue = ActualHarvestValidationIssue.model_validate(base)
+    assert issue.import_id == "batch-opaque-1"
+    for invalid in (1, True, ""):
+        with pytest.raises(ValidationError):
+            ActualHarvestValidationIssue.model_validate({**base, "import_id": invalid})
+
+
+def test_validation_issue_details_are_deeply_immutable() -> None:
+    issue = ActualHarvestValidationIssue.model_validate(
+        {
+            "error_code": "UNKNOWN_FIELD",
+            "severity": "ERROR",
+            "import_id": "batch-opaque-1",
+            "record_index_or_null": None,
+            "external_logical_record_id_or_null": None,
+            "external_revision_id_or_null": None,
+            "field_path_or_null": "records[3].farm_code",
+            "message_template_id": "unknown-field",
+            "details": {"nested": {"items": [{"value": 1}]}},
+        }
+    )
+    nested = issue.details["nested"]
+    assert isinstance(nested, dict)
+    with pytest.raises(TypeError):
+        nested["items"] = ()
+    items = nested["items"]
+    assert isinstance(items, tuple)
+    item = items[0]
+    assert isinstance(item, dict)
+    with pytest.raises(TypeError):
+        item["value"] = 2

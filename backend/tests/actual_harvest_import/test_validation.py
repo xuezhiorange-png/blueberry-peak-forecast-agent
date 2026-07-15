@@ -114,6 +114,18 @@ def test_source_time_truth_table() -> None:
             },
         )()
     )
+    assert has_trusted_source_timestamp(
+        type(
+            "NaiveRecord",
+            (),
+            {
+                "source_recorded_at": datetime(2026, 1, 1),
+                "source_recorded_at_authority_status": (
+                    SourceRecordedAtAuthorityStatus.TRUSTED_SOURCE_TIMESTAMP
+                ),
+            },
+        )()
+    )
 
 
 def test_transport_and_source_enums_are_closed() -> None:
@@ -156,7 +168,40 @@ def test_batch_and_validation_enums_are_closed() -> None:
 
 
 def test_validation_error_code_set_and_public_exports_are_exact() -> None:
-    assert len(ActualHarvestValidationErrorCode) == 30
+    expected_error_codes = {
+        "REQUIRED_FIELD_MISSING",
+        "UNKNOWN_FIELD",
+        "INVALID_DATE",
+        "INVALID_DATETIME",
+        "INVALID_TIMEZONE",
+        "INVALID_DECIMAL",
+        "NEGATIVE_QUANTITY",
+        "IDENTITY_MAPPING_NOT_FOUND",
+        "IDENTITY_MAPPING_AMBIGUOUS",
+        "DUPLICATE_RECORD",
+        "IDEMPOTENCY_KEY_CONFLICT",
+        "REVISION_NUMBER_CONFLICT",
+        "REVISION_IDENTITY_CONFLICT",
+        "REVISION_PREDECESSOR_MISSING",
+        "REVISION_MULTIPLE_SUCCESSORS",
+        "REVISION_LINEAGE_CYCLE",
+        "REVISION_LOGICAL_RECORD_MISMATCH",
+        "MULTIPLE_TERMINAL_REVISIONS",
+        "INVALID_RECORD_STATUS",
+        "SOURCE_SEMANTICS_ATTESTATION_MISSING",
+        "SOURCE_SEMANTICS_NOT_FARM_PICK",
+        "BATCH_NOT_VALIDATED",
+        "BATCH_ALREADY_COMMITTED",
+        "CANONICAL_HASH_MISMATCH",
+        "BATCH_NOT_SEALED",
+        "BATCH_ALREADY_SEALED",
+        "BATCH_SEAL_HASH_CONFLICT",
+        "BATCH_RECORD_COUNT_MISMATCH",
+        "BATCH_MUTATION_AFTER_SEAL",
+        "BATCH_SEAL_CHANGED",
+    }
+    assert {item.name for item in ActualHarvestValidationErrorCode} == expected_error_codes
+    assert {item.value for item in ActualHarvestValidationErrorCode} == expected_error_codes
     assert "DELETED" not in ActualHarvestRecordStatus.__members__
     assert "SUPERSEDED" not in ActualHarvestRecordStatus.__members__
     assert set(actual_harvest_import.__all__) == {
