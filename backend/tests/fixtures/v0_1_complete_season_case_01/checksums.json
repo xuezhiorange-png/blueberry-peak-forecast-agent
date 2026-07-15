@@ -1,0 +1,12 @@
+{
+  "schema_version": "v0.1-fixture-checksums-v1",
+  "hash_algorithm": "SHA-256",
+  "canonicalization": "backend.app.rolling_backtest.canonical.canonical_json_dumps",
+  "files": {
+    "manifest.json": "e89788b3911197193aa47f2ad4f2fb150a06d7d203c89cc0f1dde70e20580c2d",
+    "input.json": "4b002b5e96b7d3cf5ee771f8914266f656a726d2601b9d60d6a061072536d678",
+    "expected_daily.json": "371c4258ebd7374f3bd56f6bad35c39cb1c9062023f20fe0bf8054be60877b57",
+    "expected_metrics.json": "56c868bc2245c95a7dff43601ae063a7ea190e7b7e577e514bfe1f5cb8ef1d90",
+    "rerun_input.json": "e6d0bb20ef9f9d806efdbc917ed3f3969012b3be565d910468b6ad04e249ae5f"
+  }
+}

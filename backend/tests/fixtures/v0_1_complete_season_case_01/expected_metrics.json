@@ -1,0 +1,165 @@
+{
+  "fixture_id": "v0_1_complete_season_case_01",
+  "metrics": {
+    "P50": {
+      "single_day_peak": {
+        "date": "2026-03-18",
+        "quantity_kg": "97.577520",
+        "tie_break": "EARLIEST_DATE"
+      },
+      "sustained_7day_peak": {
+        "start_date": "2026-03-15",
+        "end_date": "2026-03-21",
+        "cumulative_quantity_kg": "585.465120",
+        "daily_average_kg_per_day": "83.637874",
+        "window_days": 7,
+        "metric": "ROLLING_CUMULATIVE",
+        "date_continuity": "STRICT_CALENDAR_DAYS",
+        "tie_break": "EARLIEST_START_DATE"
+      },
+      "tied_windows": [
+        {
+          "start_date": "2026-03-15",
+          "end_date": "2026-03-21",
+          "daily_quantities_kg": [
+            "73.183140",
+            "81.314600",
+            "89.446060",
+            "97.577520",
+            "89.446060",
+            "81.314600",
+            "73.183140"
+          ],
+          "manual_sum": "73.183140 + 81.314600 + 89.446060 + 97.577520 + 89.446060 + 81.314600 + 73.183140 = 585.465120"
+        },
+        {
+          "start_date": "2026-04-05",
+          "end_date": "2026-04-11",
+          "daily_quantities_kg": [
+            "73.183140",
+            "81.314600",
+            "89.446060",
+            "97.577520",
+            "89.446060",
+            "81.314600",
+            "73.183140"
+          ],
+          "manual_sum": "73.183140 + 81.314600 + 89.446060 + 97.577520 + 89.446060 + 81.314600 + 73.183140 = 585.465120"
+        }
+      ],
+      "season_cumulative_effective_marketable_kg": "2741.115166"
+    },
+    "P80": {
+      "single_day_peak": {
+        "date": "2026-03-18",
+        "quantity_kg": "117.093024",
+        "tie_break": "EARLIEST_DATE"
+      },
+      "sustained_7day_peak": {
+        "start_date": "2026-03-15",
+        "end_date": "2026-03-21",
+        "cumulative_quantity_kg": "702.558144",
+        "daily_average_kg_per_day": "100.365449",
+        "window_days": 7,
+        "metric": "ROLLING_CUMULATIVE",
+        "date_continuity": "STRICT_CALENDAR_DAYS",
+        "tie_break": "EARLIEST_START_DATE"
+      },
+      "tied_windows": [
+        {
+          "start_date": "2026-03-15",
+          "end_date": "2026-03-21",
+          "daily_quantities_kg": [
+            "87.819768",
+            "97.577520",
+            "107.335272",
+            "117.093024",
+            "107.335272",
+            "97.577520",
+            "87.819768"
+          ],
+          "manual_sum": "87.819768 + 97.577520 + 107.335272 + 117.093024 + 107.335272 + 97.577520 + 87.819768 = 702.558144"
+        },
+        {
+          "start_date": "2026-04-05",
+          "end_date": "2026-04-11",
+          "daily_quantities_kg": [
+            "87.819768",
+            "97.577520",
+            "107.335272",
+            "117.093024",
+            "107.335272",
+            "97.577520",
+            "87.819768"
+          ],
+          "manual_sum": "87.819768 + 97.577520 + 107.335272 + 117.093024 + 107.335272 + 97.577520 + 87.819768 = 702.558144"
+        }
+      ],
+      "season_cumulative_effective_marketable_kg": "3289.338200"
+    },
+    "P90": {
+      "single_day_peak": {
+        "date": "2026-03-18",
+        "quantity_kg": "136.608528",
+        "tie_break": "EARLIEST_DATE"
+      },
+      "sustained_7day_peak": {
+        "start_date": "2026-03-15",
+        "end_date": "2026-03-21",
+        "cumulative_quantity_kg": "819.651168",
+        "daily_average_kg_per_day": "117.093024",
+        "window_days": 7,
+        "metric": "ROLLING_CUMULATIVE",
+        "date_continuity": "STRICT_CALENDAR_DAYS",
+        "tie_break": "EARLIEST_START_DATE"
+      },
+      "tied_windows": [
+        {
+          "start_date": "2026-03-15",
+          "end_date": "2026-03-21",
+          "daily_quantities_kg": [
+            "102.456396",
+            "113.840440",
+            "125.224484",
+            "136.608528",
+            "125.224484",
+            "113.840440",
+            "102.456396"
+          ],
+          "manual_sum": "102.456396 + 113.840440 + 125.224484 + 136.608528 + 125.224484 + 113.840440 + 102.456396 = 819.651168"
+        },
+        {
+          "start_date": "2026-04-05",
+          "end_date": "2026-04-11",
+          "daily_quantities_kg": [
+            "102.456396",
+            "113.840440",
+            "125.224484",
+            "136.608528",
+            "125.224484",
+            "113.840440",
+            "102.456396"
+          ],
+          "manual_sum": "102.456396 + 113.840440 + 125.224484 + 136.608528 + 125.224484 + 113.840440 + 102.456396 = 819.651168"
+        }
+      ],
+      "season_cumulative_effective_marketable_kg": "3837.561232"
+    }
+  },
+  "high_load_reference_inputs": {
+    "single_day_peak_ratio": "1.000000",
+    "capacity_dip_dates": [
+      "2026-04-18",
+      "2026-04-19",
+      "2026-04-20",
+      "2026-04-21",
+      "2026-04-22"
+    ],
+    "natural_maturity_peak_date": "2026-03-25",
+    "nonzero_loss_window": [
+      "2026-03-25",
+      "2026-05-29"
+    ],
+    "tail_policy": "NO_COMPLETE_7DAY_WINDOW for any fragment shorter than seven calendar days"
+  }
+}
