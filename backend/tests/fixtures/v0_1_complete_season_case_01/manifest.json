@@ -1,0 +1,38 @@
+{
+  "fixture_id": "v0_1_complete_season_case_01",
+  "schema_version": "v0.1-complete-season-fixture-v1",
+  "contract_version": "v0.1-core-forecast-contract-v1",
+  "date_range": {
+    "start": "2026-03-01",
+    "end": "2026-05-29",
+    "calendar_days": 90
+  },
+  "scope": {
+    "farm_count": 1,
+    "subfarm_count": 2,
+    "variety_count": 2,
+    "destination_factory_count": 1,
+    "quantiles": [
+      "P50",
+      "P80",
+      "P90"
+    ]
+  },
+  "files": [
+    "README.md",
+    "manifest.json",
+    "input.json",
+    "expected_daily.json",
+    "expected_metrics.json",
+    "rerun_input.json",
+    "checksums.json"
+  ],
+  "canonicalization": "backend.app.rolling_backtest.canonical.canonical_json_dumps",
+  "sort_order": [
+    "date ASC",
+    "farm_id ASC",
+    "subfarm_id ASC",
+    "variety_id ASC",
+    "P50 < P80 < P90"
+  ]
+}
