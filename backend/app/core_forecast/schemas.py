@@ -77,7 +77,7 @@ class CompleteDailyMarketableCurveRequest(_FrozenModel):
 
 
 def _parse_rate(value: object) -> str:
-    if not isinstance(value, str) or not value or "e" in value.lower():
+    if not isinstance(value, str) or not value or value.startswith("-") or "e" in value.lower():
         raise ValueError("retention rate must be a canonical decimal string")
     try:
         parsed = Decimal(value)
@@ -128,19 +128,18 @@ _QUANTITY_FIELDS = (
     "effective_marketable_quantity_kg",
 )
 
+_FIXED_6_RE = re.compile(r"^(?:0|[1-9]\d*)\.\d{6}$")
+
 
 def _fixed_decimal_string(value: object) -> str:
-    if not isinstance(value, str) or not re.fullmatch(r"(?:0|[1-9]\d*)(?:\.\d+)?", value):
-        raise ValueError("quantity must be a decimal string")
+    if not isinstance(value, str) or _FIXED_6_RE.fullmatch(value) is None:
+        raise ValueError("quantity must be a fixed six-place decimal string")
     try:
         parsed = Decimal(value)
     except InvalidOperation as exc:
         raise ValueError("quantity must be a decimal") from exc
     if not parsed.is_finite() or parsed < 0:
         raise ValueError("quantity must be finite and non-negative")
-    quantized = parsed.quantize(OUTPUT_QUANTUM)
-    if quantized != parsed or format(parsed, "f") != value:
-        raise ValueError("quantity must be an exact six-place decimal string")
     return value
 
 

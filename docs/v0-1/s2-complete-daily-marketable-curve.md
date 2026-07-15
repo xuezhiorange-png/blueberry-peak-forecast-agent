@@ -104,6 +104,23 @@ opening + natural_supply = loss + harvested + closing
 opening[d] = closing[d - 1] for each scope and quantile
 ```
 
+The entire post-read composition path is fail closed. Expected malformed
+authority data, Decimal conversion or quantization failures, and Pydantic
+output validation failures are converted to a deterministic blocker; they do
+not escape to the caller and never produce partial rows. Task 8 quantity
+failures use `TASK8_TASK9_SUPPLY_RECONCILIATION_FAILED`, while malformed Task 9
+member quantities use `DAILY_CURVE_STATE_INVARIANT_FAILED`.
+
+Retention policy resolution distinguishes missing requested entries from
+duplicate or extra entries (`MARKETABLE_RETENTION_POLICY_MISSING` versus
+`MARKETABLE_RETENTION_POLICY_CONFLICT`). An invalid or bypassed policy value,
+including negative zero, is `MARKETABLE_RETENTION_POLICY_INVALID`. Output
+quantity and rate fields use the exact lexical six-place contract
+`^(?:0|[1-9]\\d*)\\.\\d{6}$`.
+
+State-equation failures use `DAILY_CURVE_STATE_INVARIANT_FAILED`; a cross-day
+inventory break uses the dedicated `DAILY_CURVE_CONTINUITY_FAILED` blocker.
+
 ## Fixture replay evidence
 
 `backend/tests/core_forecast/test_complete_daily_curve_service.py` constructs
