@@ -124,11 +124,17 @@ The fixture-only test verifies:
 1. exactly 90 gap-free dates and the frozen scope cardinalities;
 2. deterministic row order and P50/P80/P90 coverage;
 3. Decimal-string quantities/rates, non-negative values and finite inputs;
-4. both conservation equations and the no-double-`marketable_rate` rule;
-5. independent strict-calendar seven-day cumulative windows and earliest-start
+4. unique scope/date/quantile keys and 89 cross-day inventory transitions for
+   each of the 12 series;
+5. all frozen Task 9 daily state relations and both conservation equations;
+6. the no-double-`marketable_rate` rule;
+7. independent strict-calendar seven-day cumulative windows and earliest-start
    tie-break;
-6. season cumulative sums and explicit event evidence;
-7. canonical checksums for all fixture files;
-8. the one-parameter rerun boundary.
+8. independent SHA-256 row-hash recomputation for all 1,080 rows, including
+   one-field tamper detection and exclusion of `row_hash` from its own preimage;
+9. six-place `ROUND_HALF_EVEN` seven-day averages for every quantile;
+10. season cumulative sums and explicit event evidence;
+11. canonical checksums for all fixture files;
+12. the one-parameter rerun boundary.
 
 The test is a contract test only. It does not claim V0.1 production E2E.
