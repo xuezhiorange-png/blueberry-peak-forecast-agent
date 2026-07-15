@@ -2,8 +2,10 @@
 
 > **Issue:** #102
 > **Slice:** Q2A — Actual-harvest source, label snapshot, prediction alignment
-> **Type:** Docs-only design freeze
-> **Authorization:** Issue #102 comment ID `4975150023`
+> **Type:** Docs-only design freeze (Final fixup round)
+> **Authorizations:**
+> - Issue #102 comment ID `4975150023` (initial design authorization)
+> - Issue #102 comment ID `4975425033` (re-review with P0 fixups)
 > **Status:** PENDING_REVIEW
 > **Companion documents:**
 > - `q2a-actual-harvest-source-contract.md`
@@ -14,7 +16,9 @@
 
 ## 1. Scope
 
-This document records an **aggregate-only** read-only audit of all candidate actual-harvest sources identified in `q2a-actual-harvest-source-contract.md`. Aggregate-only means row-level data is never inspected; only counts, distinct values, and date ranges.
+This document records an **aggregate-only** read-only audit of all candidate actual-harvest sources identified in `q2a-actual-harvest-source-contract.md`. The audit is **scope-limited**: it is performed only against the current repository and checked-in local artifacts. Live database and external business sources are explicitly NOT executed.
+
+This document is corrected in v1.1 (comment `4975425033`) to remove over-broad claims about "no source exists globally" and to add explicit discovery-scope statuses (P0-2 fix).
 
 ## 2. Audit method
 
@@ -52,127 +56,142 @@ The following are **never** emitted from this audit:
 - unsanitized file contents;
 - real operational sensitive samples.
 
-## 3. Per-source aggregate-only audit
+## 3. Audit scope (P0-2 corrected)
 
-### 3.1 HarvestStateDailyMemberRowModel (MODEL_OUTPUT — not actual harvest)
+This audit is bounded by the following explicit discovery-scope statuses:
 
-| metric | value | source |
-|---|---|---|
-| production table | YES | `backend/app/models/domain/production_path/harvest_state/harvest_state_daily_member_row.py` |
-| row_count | not inspected (out of scope for actual-harvest audit) | n/a — model output, not actual harvest |
-| business_meaning | model-derived harvested-output quantity | design |
-| direct_or_proxy | MODEL_OUTPUT | classification |
-| actual_harvest_candidate | NO | by definition |
+```
+SOURCE_DISCOVERY_SCOPE                  = CURRENT_REPOSITORY_AND_CHECKED_LOCAL_ARTIFACTS_ONLY
+REPOSITORY_MODEL_DISCOVERY_STATUS       = COMPLETED
+REPOSITORY_MIGRATION_DISCOVERY_STATUS   = COMPLETED
+CHECKED_LOCAL_EXPORT_DISCOVERY_STATUS   = NO_AUTHORIZED_SOURCE_ARTIFACT_FOUND
+LIVE_DATABASE_SOURCE_DISCOVERY_STATUS   = NOT_EXECUTED
+EXTERNAL_BUSINESS_SOURCE_DISCOVERY_STATUS = NOT_AUTHORIZED_NOT_EXECUTED
+```
 
-This source is excluded from actual-harvest aggregate audit because it is a model output, not an observation.
+### 3.1 What this audit covered
 
-### 3.2 HarvestStateDailyMemberRowModel.harvestable_mature_quantity_kg (DERIVED_STATE — not actual harvest)
+- **Completed:** full search of `backend/app/models/**`, `backend/app/schemas/**`, `backend/app/services/**`, `backend/app/repositories/**`, `backend/alembic/versions/**`, `backend/tests/**`, `docs/**`, fixtures, Goldens, import/export adapters, ETL code;
+- **Completed:** all alembic migrations reviewed for actual-harvest table creation;
+- **Completed:** checked-in source exports — none found.
 
-| metric | value | source |
-|---|---|---|
-| production table | YES | same as §3.1 |
-| business_meaning | mature-but-unpicked inventory state | design |
-| direct_or_proxy | DERIVED_STATE | classification |
-| actual_harvest_candidate | NO | by definition |
+### 3.2 What this audit did NOT cover (explicit non-coverage)
 
-Excluded from actual-harvest aggregate audit (mature inventory ≠ picked quantity).
+- **NOT EXECUTED**: live PostgreSQL connection — no row-level query issued;
+- **NOT AUTHORIZED, NOT EXECUTED**: external business sources (farm ERP systems, picking logs, weighing systems, spreadsheets, unconnected production databases, Charles's local-only data directories).
 
-### 3.3 ForecastDailyRow.harvested_quantity_kg (MODEL_OUTPUT — Agent aggregate)
+The audit does **not** prove that no source exists in these unchecked locations. It proves only that no source was found **within the audited scope**.
 
-| metric | value | source |
-|---|---|---|
-| production table | YES | `backend/app/models/domain/forecast/forecast_daily_row.py` |
-| business_meaning | Agent aggregate forecast output | design |
-| direct_or_proxy | MODEL_OUTPUT | classification |
-| actual_harvest_candidate | NO | by definition |
+## 4. Per-source aggregate-only audit
 
-Excluded from actual-harvest aggregate audit (agent output ≠ observation).
+### 4.1 `HarvestStateDailyMemberRowModel` (`backend/app/models/harvest_state.py`)
 
-### 3.4 fact_receipt_daily.weight_kg (ARRIVAL_OR_RECEIPT_PROXY — proxy only)
+- Production table: YES (`harvest_state_daily_member_row`)
+- Identifier types: BIGINT for all FK columns (`harvest_state_run_id`, `farm_id`, `subfarm_id`, `variety_id`, `destination_factory_id`)
+- Quantile contract: `P50 | P80 | P90` (CHECK constraint)
+- Business-key uniqueness: unique on `(harvest_state_run_id, state_date, capacity_pool_id, farm_id, subfarm_identity_key, ...)`
+- Classification: `MODEL_OUTPUT` (the `harvested_quantity_kg` field is the model's harvested-output quantity; not actual pick event)
 
-| metric | value | source |
-|---|---|---|
-| production table | YES | `backend/app/models/domain/production/fact_receipt_daily.py` |
-| business_meaning | factory gate receipt weight | design |
-| direct_or_proxy | ARRIVAL_OR_RECEIPT_PROXY | classification |
-| actual_harvest_candidate | NO | by definition |
-| PRIMARY_TARGET_ACCURACY_REPORTING | FORBIDDEN | see `q2a-actual-harvest-source-contract.md` §5.2 |
+Aggregate audit of production rows not performed because the audit was limited to schema-level discovery (no live DB query).
 
-Aggregate audit of receipt data is out of scope for the primary actual-harvest label. Aggregate-only diagnostics may be performed separately and must be flagged as receipt-proxy diagnostics.
+### 4.2 `ForecastDailyRow` (`backend/app/agent/schemas.py`)
 
-### 3.5 Test fixture `actual_harvest_quantity_kg` (fixture-only)
+- Production schema: YES (Pydantic schema)
+- Date field: `date: date` (NOT `forecast_date`)
+- Quantities: `DailyQuantiles` with P50/P80/P90 (NOT point estimates)
+- Identity fields: none first-class (`farm_id`, `subfarm_id`, `variety_id` are NOT carried on the row)
+- Direct row grain: `RESOLVED_REQUEST_AGGREGATE_X_DATE`
+- Classification: `MODEL_OUTPUT` (Agent aggregate forecast output)
 
-| metric | value | source |
-|---|---|---|
-| production table | NO | fixture-only in `backend/tests/fixtures/harvest_quality_data.py` and `backend/tests/production_path/conftest.py` and `backend/tests/production_path/scheme_candidate_aggregate_acceptance.py` |
-| business_meaning | test factory field | fixture |
-| direct_or_proxy | UNKNOWN_REQUIRES_CONFIRMATION | classification |
-| actual_harvest_candidate | NO | by production_wired = fixture_only |
+### 4.3 `FactReceiptDaily` (`backend/app/models/analytics.py`)
 
-Excluded from actual-harvest aggregate audit because production_wired = fixture_only.
+- Production table: YES
+- Identity fields: `farm_key` (Text), `subfarm_key` (Text), `variety_id` (BIGINT), `factory_id` (BIGINT), `season_id` (BIGINT), `build_run_id` (BIGINT), `receipt_date` (Date), `weight_kg` (Numeric(18,6)), `source_row_count` (Integer), `created_at` (DateTime)
+- Identity grain: `SEASON_X_RECEIPT_DATE_X_FACTORY_X_FARM_KEY_X_SUBFARM_KEY_X_VARIETY`
+- Physical event: `FACTORY_RECEIPT_NOT_FARM_PICK` (proxy, NOT direct actual harvest)
+- Primary-label status: `FORBIDDEN`
 
-## 4. Migration / schema coverage
+Even though `FactReceiptDaily` carries a relatively complete identity set (farm/subfarm/variety), it is a **factory-receipt** proxy, not a farm-pick event. It MUST NOT substitute for the primary actual-harvest label.
 
-| domain | coverage finding |
-|---|---|
-| `backend/alembic/versions/*.py` (full directory) | 0 actual-harvest migrations |
-| `backend/app/models/domain/production_path/**` | 0 actual-harvest tables |
-| `backend/app/models/domain/production/**` | 0 actual-harvest tables |
-| `backend/app/models/domain/forecast/**` | 0 actual-harvest tables |
-| `backend/app/models/domain/harvest/**` | directory absent |
-| `backend/app/models/domain/actual/**` | directory absent |
+### 4.4 Test fixture `actual_harvest_quantity_kg`
 
-## 5. Database discovery
+- Production wired: NO (fixture-only)
+- Production wired or fixture only: `fixture_only`
+- Classification: `UNKNOWN_REQUIRES_CONFIRMATION` (no production source identified)
+- Locations: `backend/tests/fixtures/harvest_quality_data.py`, `backend/tests/production_path/conftest.py`, `backend/tests/production_path/scheme_candidate_aggregate_acceptance.py`
 
-| database | coverage finding |
-|---|---|
-| PostgreSQL DSN configured | yes (via `backend/app/settings/...`); not connected from audit |
-| SQLite development database | not checked in |
-| repository-defined source database | none checked in |
-| locally imported source files | none found |
-| import manifests | none found |
-| CSV / Excel / JSON / Parquet | none checked in |
+Excluded from the actual-harvest audit because `production_wired = fixture_only`.
 
-## 6. Coverage status (FINAL)
+## 5. Coverage status (FINAL, P0-2 corrected)
 
-### `NOT_VERIFIED_SOURCE_UNAVAILABLE`
+```
+REAL_DATA_COVERAGE_STATUS          = NOT_VERIFIED_SOURCE_UNAVAILABLE
+REAL_DATA_COVERAGE_SCOPE           = CURRENT_REPOSITORY_ONLY
+LIVE_DATA_COVERAGE_QUERY_EXECUTED  = NO
+```
 
-The candidate actual-harvest source pool is **empty** in production schema and migrations. There is no production-wired table, view, or ingestion that observes physical pick events from farm/subfarm/plot during a harvest business date.
+### 5.1 Why `NOT_VERIFIED_SOURCE_UNAVAILABLE` and not a coverage-verified status
 
-Aggregate-only audit cannot be performed because there is no production table to aggregate over.
-
-## 7. Why `NOT_VERIFIED_SOURCE_UNAVAILABLE` and not a coverage-verified status
-
-Per §12.3 of the Q2A design authorization:
+Per the Q2A design authorization §12.3:
 
 > Coverage-verified status cannot be asserted solely because schema exists.
 
-In Q2A's case, **the schema does not even exist** for actual-harvest observation. Schema absence precludes any coverage-verified status. The correct status is `NOT_VERIFIED_SOURCE_UNAVAILABLE` because the source itself is absent — not because coverage is bad, but because there is nothing to cover.
+In Q2A's case, the schema for actual-harvest observation **does not exist** in the audited scope. The schema absence precludes any coverage-verified status.
 
-## 8. Conclusion (FINAL)
+### 5.2 What this status does and does not claim
+
+| claim | status |
+|---|---|
+| 0 repository-defined direct actual-harvest production tables found | **CLAIMED** (verified by `REPOSITORY_MODEL_DISCOVERY_STATUS = COMPLETED`) |
+| 0 migrations creating such a table found | **CLAIMED** (verified by `REPOSITORY_MIGRATION_DISCOVERY_STATUS = COMPLETED`) |
+| 0 production rows in actual-harvest tables | **NOT CLAIMED** (live DB NOT EXECUTED) |
+| 0 production tables globally | **NOT CLAIMED** (external sources NOT AUTHORIZED, NOT EXECUTED) |
+| 0 actual-harvest source exists in any external system | **NOT CLAIMED** (external systems NOT AUDITED) |
+
+The audit's evidence boundary is **precise**: it covers only the current repository and checked-in local artifacts. The audit does **not** assert anything about external farm ERP systems, picking logs, weighing systems, spreadsheets, or unconnected production databases.
+
+### 5.3 What is required to upgrade the coverage status
+
+To move from `NOT_VERIFIED_SOURCE_UNAVAILABLE` to a verified status, at least one of the following would be required (and would itself be a separate authorization round):
+
+- a documented production actual-harvest table or ingestion adapter added to the repository;
+- an authorized live database connection with a documented actual-harvest table;
+- an authorized external business source artifact (e.g. Charles-supplied picking-log dataset with documented business semantics).
+
+## 6. Conclusion (FINAL)
 
 - `REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED_SOURCE_UNAVAILABLE`
-- `REAL_DATA_AGGREGATE_EVIDENCE = NONE` (no aggregate query was issued because no production table exists)
-- `BLOCKED_BY_IDENTITY_GAP = NO` (the gap is upstream — no table)
-- `BLOCKED_BY_REVISION_GAP = NO` (same)
-- `BLOCKED_BY_TIME_GAP = NO` (same)
+- `REAL_DATA_COVERAGE_SCOPE = CURRENT_REPOSITORY_ONLY`
+- `LIVE_DATA_COVERAGE_QUERY_EXECUTED = NO`
+- `REAL_DATA_AGGREGATE_EVIDENCE = NONE` (no aggregate query was issued because no production table exists **within the audited scope**)
+- `BLOCKED_BY_IDENTITY_GAP = NO`
+- `BLOCKED_BY_REVISION_GAP = NO`
+- `BLOCKED_BY_TIME_GAP = NO`
+
+The block on downstream evaluation is structural: there is no production actual-harvest table in the audited scope. The audit's scope is explicitly bounded by `SOURCE_DISCOVERY_SCOPE`.
 
 This audit is **read-only**. No row-level data was inspected; no DSN was opened; no external system was queried.
 
 ---
 
-## §X. Change log
+
 
 - **v1.0** (Q2A design round): record aggregate-only audit outcome; report `NOT_VERIFIED_SOURCE_UNAVAILABLE` because no production table exists.
+- **v1.1** (Q2A final fixup round, comment `4975425033`):
+  - **P0-2**: scope-limit the source-discovery conclusion. Replace any implicit "no source exists" claim with explicit `DIRECT_ACTUAL_HARVEST_SOURCE_NOT_FOUND_IN_CURRENT_REPOSITORY`. Add `SOURCE_DISCOVERY_SCOPE`, `LIVE_DATABASE_SOURCE_DISCOVERY_STATUS`, `EXTERNAL_BUSINESS_SOURCE_DISCOVERY_STATUS`, `REAL_DATA_COVERAGE_SCOPE`, `LIVE_DATA_COVERAGE_QUERY_EXECUTED` to make the evidence boundary precise.
+  - **P0-1**: correct `FactReceiptDaily` schema facts — real path `backend/app/models/analytics.py`; carries `farm_key`, `subfarm_key`, `variety_id`, `receipt_date`, `weight_kg`, plus `build_run_id`, `season_id`, `factory_id`; identity grain `SEASON_X_RECEIPT_DATE_X_FACTORY_X_FARM_KEY_X_SUBFARM_KEY_X_VARIETY`; physical event `FACTORY_RECEIPT_NOT_FARM_PICK`; primary-label status `FORBIDDEN`.
 
 ---
 
 ## §X.1 Q2A final decision table (cross-document consistency block)
 
-These status values are emitted by this document and must be identical in the companion documents `q2a-actual-harvest-source-contract.md`, `q2a-label-snapshot-and-revision-contract.md`, and `q2a-prediction-label-alignment-decision.md`.
+These status values are emitted by this document and must be byte-for-byte identical in the companion documents `q2a-actual-harvest-source-contract.md`, `q2a-label-snapshot-and-revision-contract.md`, `q2a-prediction-label-alignment-decision.md`, and `q2a-data-coverage-audit.md`.
 
 ```
-DIRECT_ACTUAL_HARVEST_SOURCE_STATUS = DIRECT_ACTUAL_HARVEST_SOURCE_NOT_FOUND
+DIRECT_ACTUAL_HARVEST_SOURCE_STATUS = DIRECT_ACTUAL_HARVEST_SOURCE_NOT_FOUND_IN_CURRENT_REPOSITORY
+SOURCE_DISCOVERY_SCOPE = CURRENT_REPOSITORY_AND_CHECKED_LOCAL_ARTIFACTS_ONLY
+LIVE_DATABASE_SOURCE_DISCOVERY_STATUS = NOT_EXECUTED
+EXTERNAL_BUSINESS_SOURCE_DISCOVERY_STATUS = NOT_AUTHORIZED_NOT_EXECUTED
 PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO
 ACTUAL_LABEL_CANONICAL_GRAIN = FARM_X_SUBFARM_OR_PLOT_X_VARIETY_X_HARVEST_DATE
 ACTUAL_LABEL_UNIT = KG
@@ -180,16 +199,56 @@ FORECAST_CUTOFF_MODEL = CONFIRMED
 LABEL_OBSERVATION_CUTOFF_MODEL = CONFIRMED_DESIGN_ONLY
 LABEL_REVISION_POLICY = EXPLICIT_UNIQUE_TERMINAL_FAIL_CLOSED
 TASK9_MEMBER_PREDICTION_STATUS = AVAILABLE_MODEL_OUTPUT
+TASK9_MEMBER_SCHEMA_PATH = backend/app/models/harvest_state.py
+PATH_A_PREDICTION_SIDE_ELIGIBILITY = STRUCTURALLY_ELIGIBLE_PENDING_LABEL_AND_GRAIN_PROOF
 AGENT_AGGREGATE_PREDICTION_STATUS = AVAILABLE_MODEL_OUTPUT
+AGENT_DAILY_SCHEMA_PATH = backend/app/agent/schemas.py
+PATH_B_DIRECT_ROW_GRAIN = RESOLVED_REQUEST_AGGREGATE_X_DATE
+PATH_B_QUANTILE_STATUS = P50_P80_P90_AVAILABLE
+PATH_B_PREDICTION_SIDE_ELIGIBILITY = STRUCTURALLY_ELIGIBLE_PENDING_LABEL_AGGREGATION_CONTRACT
 ARRIVAL_PROXY_STATUS = NON_PRIMARY_PROXY
+ARRIVAL_PROXY_SCHEMA_PATH = backend/app/models/analytics.py
 ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES
-PHYSICAL_QUANTITY_ALIGNMENT = NOT_PROVEN
-GRAIN_ALIGNMENT = NOT_ALIGNED
-ALIGNMENT_DECISION = ALIGNMENT_BLOCKED
+PHYSICAL_QUANTITY_ALIGNMENT = NOT_PROVEN_MISSING_LABEL
+GRAIN_ALIGNMENT = NOT_PROVEN_MISSING_LABEL_AND_MEMBERSHIP_CONTRACT
+ALIGNMENT_DECISION = ALIGNMENT_BLOCKED_BY_MISSING_PRIMARY_LABEL
 REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED_SOURCE_UNAVAILABLE
+REAL_DATA_COVERAGE_SCOPE = CURRENT_REPOSITORY_ONLY
 Q2A_STATUS = PENDING_REVIEW
 Q2A_IMPLEMENTATION_READY = NO
-Q2B_AUTHORIZED = NO
-Q3_AUTHORIZED = NO
-MODEL_CHANGE_AUTHORIZED = NO
+Q2B_AUTHORIZED=*** = NO
+Q3_AUTHORIZED=*** = NO
+MODEL_CHANGE_AUTHORIZED=*** = NO
+```
+DIRECT_ACTUAL_HARVEST_SOURCE_STATUS = DIRECT_ACTUAL_HARVEST_SOURCE_NOT_FOUND_IN_CURRENT_REPOSITORY
+SOURCE_DISCOVERY_SCOPE = CURRENT_REPOSITORY_AND_CHECKED_LOCAL_ARTIFACTS_ONLY
+LIVE_DATABASE_SOURCE_DISCOVERY_STATUS = NOT_EXECUTED
+EXTERNAL_BUSINESS_SOURCE_DISCOVERY_STATUS = NOT_AUTHORIZED_NOT_EXECUTED
+PRIMARY_ACTUAL_HARVEST_LABEL_READY = NO
+ACTUAL_LABEL_CANONICAL_GRAIN = FARM_X_SUBFARM_OR_PLOT_X_VARIETY_X_HARVEST_DATE
+ACTUAL_LABEL_UNIT = KG
+FORECAST_CUTOFF_MODEL = CONFIRMED
+LABEL_OBSERVATION_CUTOFF_MODEL = CONFIRMED_DESIGN_ONLY
+LABEL_REVISION_POLICY = EXPLICIT_UNIQUE_TERMINAL_FAIL_CLOSED
+TASK9_MEMBER_PREDICTION_STATUS = AVAILABLE_MODEL_OUTPUT
+TASK9_MEMBER_SCHEMA_PATH = backend/app/models/harvest_state.py
+PATH_A_PREDICTION_SIDE_ELIGIBILITY = STRUCTURALLY_ELIGIBLE_PENDING_LABEL_AND_GRAIN_PROOF
+AGENT_AGGREGATE_PREDICTION_STATUS = AVAILABLE_MODEL_OUTPUT
+AGENT_DAILY_SCHEMA_PATH = backend/app/agent/schemas.py
+PATH_B_DIRECT_ROW_GRAIN = RESOLVED_REQUEST_AGGREGATE_X_DATE
+PATH_B_QUANTILE_STATUS = P50_P80_P90_AVAILABLE
+PATH_B_PREDICTION_SIDE_ELIGIBILITY = STRUCTURALLY_ELIGIBLE_PENDING_LABEL_AGGREGATION_CONTRACT
+ARRIVAL_PROXY_STATUS = NON_PRIMARY_PROXY
+ARRIVAL_PROXY_SCHEMA_PATH = backend/app/models/analytics.py
+ARRIVAL_PROXY_DOES_NOT_SATISFY_PRIMARY_TARGET = YES
+PHYSICAL_QUANTITY_ALIGNMENT = NOT_PROVEN_MISSING_LABEL
+GRAIN_ALIGNMENT = NOT_PROVEN_MISSING_LABEL_AND_MEMBERSHIP_CONTRACT
+ALIGNMENT_DECISION = ALIGNMENT_BLOCKED_BY_MISSING_PRIMARY_LABEL
+REAL_DATA_COVERAGE_STATUS = NOT_VERIFIED_SOURCE_UNAVAILABLE
+REAL_DATA_COVERAGE_SCOPE = CURRENT_REPOSITORY_ONLY
+Q2A_STATUS = PENDING_REVIEW
+Q2A_IMPLEMENTATION_READY = NO
+Q2B_AUTHORIZED=*** = NO
+Q3_AUTHORIZED=*** = NO
+MODEL_CHANGE_AUTHORIZED=*** = NO
 ```
