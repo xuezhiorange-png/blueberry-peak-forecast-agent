@@ -293,7 +293,9 @@ async def _seed_authorities(session: AsyncSession) -> None:
         maturity_forecast_source_signature=forecast.source_signature,
         is_replay=False,
     )
-    session.add_all([season, farm, *subfarms, *varieties, factory, location, plan, model_run])
+    session.add_all([season, farm, *subfarms, *varieties, factory])
+    await session.flush()
+    session.add_all([location, plan, model_run])
     await session.flush()
     session.add(artifact)
     await session.flush()
