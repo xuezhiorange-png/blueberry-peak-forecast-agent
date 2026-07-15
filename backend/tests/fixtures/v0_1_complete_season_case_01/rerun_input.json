@@ -1,0 +1,24 @@
+{
+  "fixture_id": "v0_1_complete_season_case_01",
+  "scenario_id": "v0_1_complete_season_case_01-rerun-labor-recovery",
+  "single_parameter_adjustment": {
+    "parameter": "labor_availability_ratio",
+    "scope": "all four farm/subfarm/variety scopes",
+    "dates": [
+      "2026-04-18",
+      "2026-04-19",
+      "2026-04-20",
+      "2026-04-21",
+      "2026-04-22"
+    ],
+    "from": "0.200000",
+    "to": "0.800000"
+  },
+  "expected_recalculation_effect": {
+    "changes_only_capacity_dip_dates": true,
+    "does_not_change_task8_authority": true,
+    "does_not_change_retention_policy": true,
+    "must_change_effective_harvest_capacity_and_downstream_closing_inventory": true
+  },
+  "production_recalculation_status": "NOT_EXECUTED_IN_S1_FIXTURE_CONTRACT_TEST"
+}
