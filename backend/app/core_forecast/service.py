@@ -3,9 +3,12 @@ from __future__ import annotations
 import hashlib
 import re
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date, timedelta
-from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
+from decimal import ROUND_HALF_EVEN, Decimal, DecimalException
+from typing import Literal
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core_forecast.repository import (
@@ -33,6 +36,20 @@ _SCHEMA_VERSION = "v0.1-complete-daily-marketable-curve-v1"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
+class _CompositionDataError(ValueError):
+    def __init__(self, code: CoreForecastBlockerCode, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+@dataclass(frozen=True)
+class _PolicyResolution:
+    status: Literal["OK", "MISSING", "CONFLICT", "INVALID"]
+    index: dict[tuple[int, str, int, int, int], MarketableRetentionPolicyEntry] | None
+    message: str
+
+
 def _block(code: CoreForecastBlockerCode, message: str) -> CompleteDailyMarketableCurveResult:
     return CompleteDailyMarketableCurveResult(
         status="BLOCKED",
@@ -46,21 +63,52 @@ def _valid_hash(value: object) -> bool:
     return isinstance(value, str) and _SHA256_RE.fullmatch(value) is not None
 
 
-def _decimal(value: object) -> Decimal:
+def _decimal(value: object, code: CoreForecastBlockerCode) -> Decimal:
     if isinstance(value, float) or isinstance(value, bool):
-        raise ValueError("native float/bool is not a supported authority quantity")
+        raise _CompositionDataError(code, "native float/bool is not a supported authority quantity")
     try:
         parsed = value if isinstance(value, Decimal) else Decimal(str(value))
-    except (InvalidOperation, ValueError) as exc:
-        raise ValueError("authority quantity is not Decimal-compatible") from exc
-    if not parsed.is_finite() or parsed < 0:
-        raise ValueError("authority quantity must be finite and non-negative")
+    except (DecimalException, ValueError, TypeError, OverflowError) as exc:
+        raise _CompositionDataError(code, "authority quantity is not Decimal-compatible") from exc
+    if not parsed.is_finite() or parsed < 0 or (parsed.is_signed() and parsed == 0):
+        raise _CompositionDataError(code, "authority quantity must be finite and non-negative")
     return parsed
 
 
-def _fixed(value: object) -> str:
-    parsed = _decimal(value).quantize(OUTPUT_QUANTUM, rounding=ROUND_HALF_EVEN)
-    return format(parsed, "f")
+def _fixed(value: object, code: CoreForecastBlockerCode) -> str:
+    parsed = _decimal(value, code)
+    try:
+        quantized = parsed.quantize(OUTPUT_QUANTUM, rounding=ROUND_HALF_EVEN)
+    except (DecimalException, OverflowError) as exc:
+        raise _CompositionDataError(code, "authority quantity cannot be quantized") from exc
+    return format(quantized, "f")
+
+
+def _policy_decimal(value: object) -> Decimal:
+    if not isinstance(value, str) or not value or value.startswith("-"):
+        raise _CompositionDataError(
+            "MARKETABLE_RETENTION_POLICY_INVALID",
+            "retention policy rate is not a canonical non-negative decimal string",
+        )
+    try:
+        parsed = Decimal(value)
+    except (DecimalException, ValueError, TypeError, OverflowError) as exc:
+        raise _CompositionDataError(
+            "MARKETABLE_RETENTION_POLICY_INVALID",
+            "retention policy rate is not Decimal-compatible",
+        ) from exc
+    if (
+        not parsed.is_finite()
+        or parsed < 0
+        or parsed > 1
+        or (parsed.is_signed() and parsed == 0)
+        or format(parsed, "f") != value
+    ):
+        raise _CompositionDataError(
+            "MARKETABLE_RETENTION_POLICY_INVALID",
+            "retention policy rate is outside the frozen finite [0, 1] contract",
+        )
+    return parsed
 
 
 def _dates(start: date, end: date) -> tuple[date, ...]:
@@ -90,7 +138,13 @@ def _policy_key(
 def _policy_index(
     request: CompleteDailyMarketableCurveRequest,
     snapshot: MarketableRetentionPolicySnapshot,
-) -> dict[tuple[int, str, int, int, int], MarketableRetentionPolicyEntry] | None:
+) -> _PolicyResolution:
+    if not isinstance(snapshot.entries, tuple):
+        return _PolicyResolution(
+            status="INVALID",
+            index=None,
+            message="retention policy entries are not a typed tuple",
+        )
     requested = {
         _policy_key(
             request.forecast_season_id,
@@ -99,19 +153,53 @@ def _policy_index(
         )
         for scope in request.scopes
     }
+    if not snapshot.entries:
+        return _PolicyResolution(
+            status="MISSING",
+            index=None,
+            message="retention policy is required for every requested scope",
+        )
     index: dict[tuple[int, str, int, int, int], MarketableRetentionPolicyEntry] = {}
-    for entry in snapshot.entries:
+    for raw_entry in snapshot.entries:
+        try:
+            entry = MarketableRetentionPolicyEntry.model_validate(
+                raw_entry.model_dump(mode="python")
+                if isinstance(raw_entry, MarketableRetentionPolicyEntry)
+                else raw_entry
+            )
+            _policy_decimal(entry.sorting_retention_rate)
+            _policy_decimal(entry.postharvest_retention_rate)
+        except (ValidationError, _CompositionDataError, TypeError, ValueError):
+            return _PolicyResolution(
+                status="INVALID",
+                index=None,
+                message="retention policy entry is malformed",
+            )
         key = _policy_key(
             entry.forecast_season_id,
             entry.forecast_season_code,
             (entry.farm_id, entry.subfarm_id, entry.variety_id),
         )
         if key in index:
-            return None
+            return _PolicyResolution(
+                status="CONFLICT",
+                index=None,
+                message="retention policy contains a duplicate scope",
+            )
         index[key] = entry
-    if set(index) != requested:
-        return None
-    return index
+    if set(index) - requested:
+        return _PolicyResolution(
+            status="CONFLICT",
+            index=None,
+            message="retention policy contains an unrequested scope",
+        )
+    if requested - set(index):
+        return _PolicyResolution(
+            status="MISSING",
+            index=None,
+            message="retention policy is missing a requested scope",
+        )
+    return _PolicyResolution(status="OK", index=index, message="")
 
 
 def _task8_supply(
@@ -122,7 +210,8 @@ def _task8_supply(
     member_supply: dict[tuple[date, str], Decimal] = defaultdict(lambda: Decimal("0"))
     for member in members:
         member_supply[(member.state_date, member.forecast_quantile)] += _decimal(
-            member.natural_maturity_supply_kg
+            member.natural_maturity_supply_kg,
+            "DAILY_CURVE_STATE_INVARIANT_FAILED",
         )
     predictions = {row.prediction_date: row for row in source.daily_predictions}
     for current_date in _dates(request.forecast_start_date, request.forecast_end_date):
@@ -134,9 +223,28 @@ def _task8_supply(
             ("P80", "p80_kg"),
             ("P90", "p90_kg"),
         ):
-            if member_supply[(current_date, quantile)] != _decimal(getattr(prediction, field_name)):
+            if member_supply[(current_date, quantile)] != _decimal(
+                getattr(prediction, field_name),
+                "TASK8_TASK9_SUPPLY_RECONCILIATION_FAILED",
+            ):
                 return False
     return True
+
+
+def _validate_member_quantities(source: Task9AuthoritySource) -> None:
+    for row in source.member_rows:
+        for value in (
+            row.natural_maturity_supply_kg,
+            row.opening_mature_inventory_kg,
+            row.available_mature_quantity_kg,
+            row.mature_inventory_loss_quantity_kg,
+            row.harvestable_mature_quantity_kg,
+            row.allocated_harvest_capacity_kg,
+            row.harvested_quantity_kg,
+            row.closing_mature_inventory_kg,
+            row.unharvested_backlog_kg,
+        ):
+            _decimal(value, "DAILY_CURVE_STATE_INVARIANT_FAILED")
 
 
 def _validate_task8(
@@ -244,16 +352,22 @@ def _validate_member_rows(
     return None
 
 
-def _validate_state(row: Task9MemberSource, previous: Task9MemberSource | None) -> str | None:
-    opening = _decimal(row.opening_mature_inventory_kg)
-    natural = _decimal(row.natural_maturity_supply_kg)
-    available = _decimal(row.available_mature_quantity_kg)
-    loss = _decimal(row.mature_inventory_loss_quantity_kg)
-    harvestable = _decimal(row.harvestable_mature_quantity_kg)
-    capacity = _decimal(row.allocated_harvest_capacity_kg)
-    harvested = _decimal(row.harvested_quantity_kg)
-    closing = _decimal(row.closing_mature_inventory_kg)
-    backlog = _decimal(row.unharvested_backlog_kg)
+def _validate_state(
+    row: Task9MemberSource,
+    previous: Task9MemberSource | None,
+) -> CoreForecastBlocker | None:
+    opening = _decimal(row.opening_mature_inventory_kg, "DAILY_CURVE_STATE_INVARIANT_FAILED")
+    natural = _decimal(row.natural_maturity_supply_kg, "DAILY_CURVE_STATE_INVARIANT_FAILED")
+    available = _decimal(row.available_mature_quantity_kg, "DAILY_CURVE_STATE_INVARIANT_FAILED")
+    loss = _decimal(row.mature_inventory_loss_quantity_kg, "DAILY_CURVE_STATE_INVARIANT_FAILED")
+    harvestable = _decimal(
+        row.harvestable_mature_quantity_kg,
+        "DAILY_CURVE_STATE_INVARIANT_FAILED",
+    )
+    capacity = _decimal(row.allocated_harvest_capacity_kg, "DAILY_CURVE_STATE_INVARIANT_FAILED")
+    harvested = _decimal(row.harvested_quantity_kg, "DAILY_CURVE_STATE_INVARIANT_FAILED")
+    closing = _decimal(row.closing_mature_inventory_kg, "DAILY_CURVE_STATE_INVARIANT_FAILED")
+    backlog = _decimal(row.unharvested_backlog_kg, "DAILY_CURVE_STATE_INVARIANT_FAILED")
     if (
         available != opening + natural
         or harvestable != available - loss
@@ -263,65 +377,29 @@ def _validate_state(row: Task9MemberSource, previous: Task9MemberSource | None) 
         or backlog != closing
         or opening + natural != loss + harvested + closing
     ):
-        return "Task 9 member state equations are inconsistent"
-    if previous is not None and opening != _decimal(previous.closing_mature_inventory_kg):
-        return "Task 9 member inventory is not continuous across business dates"
+        return CoreForecastBlocker(
+            code="DAILY_CURVE_STATE_INVARIANT_FAILED",
+            message="Task 9 member state equations are inconsistent",
+        )
+    if previous is not None and opening != _decimal(
+        previous.closing_mature_inventory_kg,
+        "DAILY_CURVE_STATE_INVARIANT_FAILED",
+    ):
+        return CoreForecastBlocker(
+            code="DAILY_CURVE_CONTINUITY_FAILED",
+            message="Task 9 member inventory is not continuous across business dates",
+        )
     return None
 
 
-async def compose_complete_daily_marketable_curve(
-    session: AsyncSession,
+def _compose_validated_curve(
     *,
+    task8: Task8AuthoritySource,
+    task9: Task9AuthoritySource,
     request: CompleteDailyMarketableCurveRequest,
-    retention_policy: MarketableRetentionPolicySnapshot,
-    repository: CoreForecastRepository | None = None,
+    policy_index: dict[tuple[int, str, int, int, int], MarketableRetentionPolicyEntry],
 ) -> CompleteDailyMarketableCurveResult:
-    """Compose a complete read-only curve from persisted Task 8/9 authorities."""
-
-    repo = repository or SqlAlchemyCoreForecastRepository(session)
-    if not retention_policy.entries:
-        return _block(
-            "MARKETABLE_RETENTION_POLICY_MISSING",
-            "retention policy is required for every requested scope",
-        )
-    policy_index = _policy_index(request, retention_policy)
-    if policy_index is None:
-        return _block(
-            "MARKETABLE_RETENTION_POLICY_CONFLICT",
-            "retention policy must contain exactly one entry per requested scope",
-        )
-
-    try:
-        task8 = await repo.load_task8_authority(request.task8_forecast_run_id)
-        task9 = await repo.load_task9_authority(request.task9_harvest_state_run_id)
-        season = await repo.load_season(request.forecast_season_id)
-    except Exception:
-        return _block("UPSTREAM_READ_FAILURE", "authority read failed")
-    if task8 is None:
-        return _block("TASK8_AUTHORITY_NOT_FOUND", "Task 8 forecast authority was not found")
-    if task9 is None:
-        return _block("TASK9_AUTHORITY_NOT_FOUND", "Task 9 harvest-state authority was not found")
-    if season is None or season.code != request.forecast_season_code:
-        return _block(
-            "AUTHORITY_SCOPE_MISMATCH", "forecast season identity does not match dim_season"
-        )
-
-    blocker = _validate_task8(task8, request)
-    if blocker is not None:
-        return CompleteDailyMarketableCurveResult(
-            status="BLOCKED", rows=(), curve_hash=None, blockers=(blocker,)
-        )
-    blocker = _validate_task9(task9, task8, request)
-    if blocker is not None:
-        return CompleteDailyMarketableCurveResult(
-            status="BLOCKED", rows=(), curve_hash=None, blockers=(blocker,)
-        )
-    blocker = _validate_member_rows(task9, request)
-    if blocker is not None:
-        return CompleteDailyMarketableCurveResult(
-            status="BLOCKED", rows=(), curve_hash=None, blockers=(blocker,)
-        )
-    assert task8.artifact_hash is not None
+    _validate_member_quantities(task9)
     if not _task8_supply(task8, task9.member_rows, request):
         return _block(
             "TASK8_TASK9_SUPPLY_RECONCILIATION_FAILED",
@@ -341,9 +419,9 @@ async def compose_complete_daily_marketable_curve(
     ):
         previous: Task9MemberSource | None = None
         for member in grouped[key]:
-            state_error = _validate_state(member, previous)
-            if state_error is not None:
-                return _block("DAILY_CURVE_STATE_INVARIANT_FAILED", state_error)
+            state_blocker = _validate_state(member, previous)
+            if state_blocker is not None:
+                return _block(state_blocker.code, state_blocker.message)
             previous = member
             policy = policy_index[
                 _policy_key(
@@ -352,13 +430,22 @@ async def compose_complete_daily_marketable_curve(
                     _scope_key(member),
                 )
             ]
-            harvested = _decimal(member.harvested_quantity_kg)
-            sorting = _decimal(policy.sorting_retention_rate)
-            postharvest = _decimal(policy.postharvest_retention_rate)
-            effective = (harvested * sorting * postharvest).quantize(
-                OUTPUT_QUANTUM,
-                rounding=ROUND_HALF_EVEN,
+            harvested = _decimal(
+                member.harvested_quantity_kg,
+                "DAILY_CURVE_STATE_INVARIANT_FAILED",
             )
+            sorting = _policy_decimal(policy.sorting_retention_rate)
+            postharvest = _policy_decimal(policy.postharvest_retention_rate)
+            try:
+                effective = (harvested * sorting * postharvest).quantize(
+                    OUTPUT_QUANTUM,
+                    rounding=ROUND_HALF_EVEN,
+                )
+            except (DecimalException, OverflowError) as exc:
+                raise _CompositionDataError(
+                    "MARKETABLE_RETENTION_POLICY_INVALID",
+                    "retention policy cannot be applied exactly",
+                ) from exc
             payload = {
                 "date": member.state_date,
                 "forecast_quantile": member.forecast_quantile,
@@ -366,20 +453,54 @@ async def compose_complete_daily_marketable_curve(
                 "subfarm_id": member.subfarm_id,
                 "variety_id": member.variety_id,
                 "destination_factory_id": member.destination_factory_id,
-                "natural_maturity_supply_kg": _fixed(member.natural_maturity_supply_kg),
-                "opening_mature_inventory_kg": _fixed(member.opening_mature_inventory_kg),
-                "available_mature_quantity_kg": _fixed(member.available_mature_quantity_kg),
-                "mature_inventory_loss_quantity_kg": _fixed(
-                    member.mature_inventory_loss_quantity_kg
+                "natural_maturity_supply_kg": _fixed(
+                    member.natural_maturity_supply_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
                 ),
-                "harvestable_mature_quantity_kg": _fixed(member.harvestable_mature_quantity_kg),
-                "effective_harvest_capacity_kg": _fixed(member.allocated_harvest_capacity_kg),
-                "model_harvested_marketable_quantity_kg": _fixed(member.harvested_quantity_kg),
-                "closing_mature_inventory_kg": _fixed(member.closing_mature_inventory_kg),
-                "unharvested_backlog_kg": _fixed(member.unharvested_backlog_kg),
-                "sorting_retention_rate": _fixed(policy.sorting_retention_rate),
-                "postharvest_retention_rate": _fixed(policy.postharvest_retention_rate),
-                "effective_marketable_quantity_kg": _fixed(effective),
+                "opening_mature_inventory_kg": _fixed(
+                    member.opening_mature_inventory_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
+                ),
+                "available_mature_quantity_kg": _fixed(
+                    member.available_mature_quantity_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
+                ),
+                "mature_inventory_loss_quantity_kg": _fixed(
+                    member.mature_inventory_loss_quantity_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
+                ),
+                "harvestable_mature_quantity_kg": _fixed(
+                    member.harvestable_mature_quantity_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
+                ),
+                "effective_harvest_capacity_kg": _fixed(
+                    member.allocated_harvest_capacity_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
+                ),
+                "model_harvested_marketable_quantity_kg": _fixed(
+                    member.harvested_quantity_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
+                ),
+                "closing_mature_inventory_kg": _fixed(
+                    member.closing_mature_inventory_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
+                ),
+                "unharvested_backlog_kg": _fixed(
+                    member.unharvested_backlog_kg,
+                    "DAILY_CURVE_STATE_INVARIANT_FAILED",
+                ),
+                "sorting_retention_rate": _fixed(
+                    sorting,
+                    "MARKETABLE_RETENTION_POLICY_INVALID",
+                ),
+                "postharvest_retention_rate": _fixed(
+                    postharvest,
+                    "MARKETABLE_RETENTION_POLICY_INVALID",
+                ),
+                "effective_marketable_quantity_kg": _fixed(
+                    effective,
+                    "MARKETABLE_RETENTION_POLICY_INVALID",
+                ),
                 "task8_forecast_run_id": request.task8_forecast_run_id,
                 "task9_harvest_state_run_id": request.task9_harvest_state_run_id,
                 "task8_artifact_hash": task8.artifact_hash,
@@ -414,3 +535,62 @@ async def compose_complete_daily_marketable_curve(
         curve_hash=curve_hash,
         blockers=(),
     )
+
+
+async def compose_complete_daily_marketable_curve(
+    session: AsyncSession,
+    *,
+    request: CompleteDailyMarketableCurveRequest,
+    retention_policy: MarketableRetentionPolicySnapshot,
+    repository: CoreForecastRepository | None = None,
+) -> CompleteDailyMarketableCurveResult:
+    """Compose a complete read-only curve from persisted Task 8/9 authorities."""
+
+    repo = repository or SqlAlchemyCoreForecastRepository(session)
+    resolution = _policy_index(request, retention_policy)
+    if resolution.status == "MISSING":
+        return _block("MARKETABLE_RETENTION_POLICY_MISSING", resolution.message)
+    if resolution.status == "CONFLICT":
+        return _block("MARKETABLE_RETENTION_POLICY_CONFLICT", resolution.message)
+    if resolution.status == "INVALID":
+        return _block("MARKETABLE_RETENTION_POLICY_INVALID", resolution.message)
+    assert resolution.index is not None
+
+    try:
+        task8 = await repo.load_task8_authority(request.task8_forecast_run_id)
+        task9 = await repo.load_task9_authority(request.task9_harvest_state_run_id)
+        season = await repo.load_season(request.forecast_season_id)
+    except Exception:
+        return _block("UPSTREAM_READ_FAILURE", "authority read failed")
+    if task8 is None:
+        return _block("TASK8_AUTHORITY_NOT_FOUND", "Task 8 forecast authority was not found")
+    if task9 is None:
+        return _block("TASK9_AUTHORITY_NOT_FOUND", "Task 9 harvest-state authority was not found")
+    if season is None or season.code != request.forecast_season_code:
+        return _block(
+            "AUTHORITY_SCOPE_MISMATCH", "forecast season identity does not match dim_season"
+        )
+
+    blocker = _validate_task8(task8, request)
+    if blocker is not None:
+        return _block(blocker.code, blocker.message)
+    blocker = _validate_task9(task9, task8, request)
+    if blocker is not None:
+        return _block(blocker.code, blocker.message)
+    blocker = _validate_member_rows(task9, request)
+    if blocker is not None:
+        return _block(blocker.code, blocker.message)
+    try:
+        return _compose_validated_curve(
+            task8=task8,
+            task9=task9,
+            request=request,
+            policy_index=resolution.index,
+        )
+    except _CompositionDataError as exc:
+        return _block(exc.code, exc.message)
+    except (ValueError, TypeError, DecimalException, OverflowError, ValidationError):
+        return _block(
+            "DAILY_CURVE_STATE_INVARIANT_FAILED",
+            "validated composition failed closed",
+        )

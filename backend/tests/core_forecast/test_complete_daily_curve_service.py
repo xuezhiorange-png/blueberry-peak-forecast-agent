@@ -11,6 +11,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import backend.app.core_forecast.service as service_module
 from backend.app.core_forecast.repository import (
     SeasonSource,
     Task8AuthoritySource,
@@ -177,6 +178,13 @@ async def _run(
     )
 
 
+def _assert_blocked(result) -> None:
+    assert result.status == "BLOCKED"
+    assert result.rows == ()
+    assert result.curve_hash is None
+    assert len(result.blockers) >= 1
+
+
 @pytest.mark.unit
 @pytest.mark.contract
 @pytest.mark.golden
@@ -302,8 +310,22 @@ async def test_rows_are_sorted_by_frozen_business_key() -> None:
 @pytest.mark.unit
 async def test_missing_policy_fails_closed() -> None:
     result = await _run(policy=MarketableRetentionPolicySnapshot(entries=()))
-    assert result.status == "BLOCKED"
-    assert result.rows == ()
+    _assert_blocked(result)
+    assert result.blockers[0].code == "MARKETABLE_RETENTION_POLICY_MISSING"
+
+
+@pytest.mark.unit
+async def test_empty_policy_fails_with_missing_code() -> None:
+    result = await _run(policy=MarketableRetentionPolicySnapshot(entries=()))
+    _assert_blocked(result)
+    assert result.blockers[0].code == "MARKETABLE_RETENTION_POLICY_MISSING"
+
+
+@pytest.mark.unit
+async def test_partial_missing_policy_fails_with_missing_code() -> None:
+    policy = _policy()
+    result = await _run(policy=MarketableRetentionPolicySnapshot(entries=policy.entries[:3]))
+    _assert_blocked(result)
     assert result.blockers[0].code == "MARKETABLE_RETENTION_POLICY_MISSING"
 
 
@@ -313,7 +335,16 @@ async def test_duplicate_policy_fails_closed() -> None:
     result = await _run(
         policy=MarketableRetentionPolicySnapshot(entries=policy.entries + (policy.entries[0],))
     )
-    assert result.status == "BLOCKED"
+    _assert_blocked(result)
+    assert result.blockers[0].code == "MARKETABLE_RETENTION_POLICY_CONFLICT"
+
+
+@pytest.mark.unit
+async def test_extra_unrequested_policy_fails_with_conflict_code() -> None:
+    policy = _policy()
+    extra = policy.entries[0].model_copy(update={"farm_id": 999})
+    result = await _run(policy=MarketableRetentionPolicySnapshot(entries=policy.entries + (extra,)))
+    _assert_blocked(result)
     assert result.blockers[0].code == "MARKETABLE_RETENTION_POLICY_CONFLICT"
 
 
@@ -349,6 +380,107 @@ def test_malformed_policy_hash_fails_closed() -> None:
             version="v1",
             hash="not-a-sha",
         )
+
+
+@pytest.mark.unit
+async def test_bypassed_invalid_policy_fails_closed() -> None:
+    valid = _policy().entries[0]
+    invalid_entry = valid.model_construct(sorting_retention_rate="NaN")
+    invalid_policy = MarketableRetentionPolicySnapshot.model_construct(entries=(invalid_entry,))
+    result = await _run(policy=invalid_policy)
+    _assert_blocked(result)
+    assert result.blockers[0].code == "MARKETABLE_RETENTION_POLICY_INVALID"
+
+
+@pytest.mark.unit
+def test_negative_zero_retention_policy_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        MarketableRetentionPolicyEntry(
+            forecast_season_id=2026,
+            forecast_season_code="2026-DEMO",
+            farm_id=101,
+            subfarm_id=1101,
+            variety_id=2101,
+            sorting_retention_rate="-0.000000",
+            postharvest_retention_rate="1.000000",
+            source="fixture",
+            version="v1",
+            hash="a" * 64,
+        )
+
+
+@pytest.mark.unit
+async def test_bypassed_negative_zero_policy_returns_blocked() -> None:
+    valid = _policy().entries[0]
+    invalid_entry = valid.model_construct(sorting_retention_rate="-0")
+    invalid_policy = MarketableRetentionPolicySnapshot.model_construct(entries=(invalid_entry,))
+    result = await _run(policy=invalid_policy)
+    _assert_blocked(result)
+    assert result.blockers[0].code == "MARKETABLE_RETENTION_POLICY_INVALID"
+
+
+@pytest.mark.unit
+async def test_non_finite_task8_quantity_returns_blocked() -> None:
+    task8, task9 = _sources()
+    prediction = task8.daily_predictions[0]
+    broken = replace(prediction, p50_kg=Decimal("NaN"))
+    result = await _run(
+        FixtureRepository(
+            replace(task8, daily_predictions=(broken,) + task8.daily_predictions[1:]), task9
+        )
+    )
+    _assert_blocked(result)
+    assert result.blockers[0].code == "TASK8_TASK9_SUPPLY_RECONCILIATION_FAILED"
+
+
+@pytest.mark.unit
+async def test_non_finite_task9_quantity_returns_blocked() -> None:
+    task8, task9 = _sources()
+    members = list(task9.member_rows)
+    members[0] = replace(members[0], natural_maturity_supply_kg=Decimal("NaN"))
+    result = await _run(FixtureRepository(task8, replace(task9, member_rows=tuple(members))))
+    _assert_blocked(result)
+    assert result.blockers[0].code == "DAILY_CURVE_STATE_INVARIANT_FAILED"
+
+
+@pytest.mark.unit
+async def test_native_float_task8_quantity_returns_blocked() -> None:
+    task8, task9 = _sources()
+    prediction = task8.daily_predictions[0]
+    broken = replace(prediction, p80_kg=1.25)
+    result = await _run(
+        FixtureRepository(
+            replace(task8, daily_predictions=(broken,) + task8.daily_predictions[1:]), task9
+        )
+    )
+    _assert_blocked(result)
+    assert result.blockers[0].code == "TASK8_TASK9_SUPPLY_RECONCILIATION_FAILED"
+
+
+@pytest.mark.unit
+async def test_native_float_task9_quantity_returns_blocked() -> None:
+    task8, task9 = _sources()
+    members = list(task9.member_rows)
+    members[0] = replace(members[0], harvested_quantity_kg=1.25)
+    result = await _run(FixtureRepository(task8, replace(task9, member_rows=tuple(members))))
+    _assert_blocked(result)
+    assert result.blockers[0].code == "DAILY_CURVE_STATE_INVARIANT_FAILED"
+
+
+@pytest.mark.unit
+async def test_decimal_quantization_failure_returns_blocked(monkeypatch) -> None:
+    monkeypatch.setattr(service_module, "OUTPUT_QUANTUM", Decimal("1e-1000000"))
+    result = await _run()
+    _assert_blocked(result)
+
+
+@pytest.mark.unit
+async def test_malformed_authority_never_returns_partial_rows() -> None:
+    task8, task9 = _sources()
+    members = list(task9.member_rows)
+    members[0] = replace(members[0], opening_mature_inventory_kg=float("nan"))
+    result = await _run(FixtureRepository(task8, replace(task9, member_rows=tuple(members))))
+    _assert_blocked(result)
 
 
 @pytest.mark.unit
@@ -395,10 +527,22 @@ async def test_cross_day_inventory_break_fails_closed() -> None:
     task8, task9 = _sources()
     members = list(task9.member_rows)
     target = next(index for index, row in enumerate(members) if row.state_date == date(2026, 3, 2))
-    members[target] = replace(members[target], opening_mature_inventory_kg=Decimal("999.000"))
+    current = members[target]
+    opening = Decimal("999.000")
+    available = opening + current.natural_maturity_supply_kg
+    harvestable = available - current.mature_inventory_loss_quantity_kg
+    closing = harvestable - current.harvested_quantity_kg
+    members[target] = replace(
+        current,
+        opening_mature_inventory_kg=opening,
+        available_mature_quantity_kg=available,
+        harvestable_mature_quantity_kg=harvestable,
+        closing_mature_inventory_kg=closing,
+        unharvested_backlog_kg=closing,
+    )
     result = await _run(FixtureRepository(task8, replace(task9, member_rows=tuple(members))))
-    assert result.status == "BLOCKED"
-    assert result.blockers[0].code == "DAILY_CURVE_STATE_INVARIANT_FAILED"
+    _assert_blocked(result)
+    assert result.blockers[0].code == "DAILY_CURVE_CONTINUITY_FAILED"
 
 
 @pytest.mark.unit
@@ -408,7 +552,7 @@ async def test_state_equation_break_fails_closed() -> None:
     target = next(index for index, row in enumerate(members) if row.harvested_quantity_kg > 0)
     members[target] = replace(members[target], closing_mature_inventory_kg=Decimal("999.000"))
     result = await _run(FixtureRepository(task8, replace(task9, member_rows=tuple(members))))
-    assert result.status == "BLOCKED"
+    _assert_blocked(result)
     assert result.blockers[0].code == "DAILY_CURVE_STATE_INVARIANT_FAILED"
 
 
