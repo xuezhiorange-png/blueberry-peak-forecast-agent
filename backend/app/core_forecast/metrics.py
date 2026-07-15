@@ -4,7 +4,7 @@ import hashlib
 import re
 from collections import defaultdict
 from datetime import date, timedelta
-from decimal import ROUND_HALF_EVEN, Decimal, DecimalException
+from decimal import DecimalException
 
 from pydantic import ValidationError
 
@@ -13,7 +13,6 @@ from backend.app.core_forecast.canonical import (
     compute_daily_curve_hash,
 )
 from backend.app.core_forecast.schemas import (
-    OUTPUT_QUANTUM,
     QUANTILES,
     CompleteCoreForecastMetricsResult,
     CompleteDailyMarketableCurveResult,
@@ -42,6 +41,7 @@ _ROW_QUANTITY_FIELDS = (
     "postharvest_retention_rate",
     "effective_marketable_quantity_kg",
 )
+_MICRO_UNITS_PER_KG = 1_000_000
 
 
 class _MetricsDataError(ValueError):
@@ -66,7 +66,7 @@ def _blocked(
     )
 
 
-def _parse_quantity(value: object) -> Decimal:
+def _parse_quantity_micros(value: object) -> int:
     if isinstance(value, (float, bool)) or not isinstance(value, str):
         raise _MetricsDataError(
             "DAILY_CURVE_DECIMAL_INVALID",
@@ -78,34 +78,66 @@ def _parse_quantity(value: object) -> Decimal:
             "daily curve quantity is not a fixed six-place decimal",
         )
     try:
-        parsed = Decimal(value)
-    except DecimalException as exc:
+        whole, fraction = value.split(".", maxsplit=1)
+        return int(whole) * _MICRO_UNITS_PER_KG + int(fraction)
+    except (ValueError, OverflowError) as exc:
         raise _MetricsDataError(
             "DAILY_CURVE_DECIMAL_INVALID",
             "daily curve quantity is not Decimal-compatible",
         ) from exc
-    if not parsed.is_finite() or parsed < 0 or (parsed.is_signed() and parsed == 0):
+
+
+def _format_micros(value: int) -> str:
+    if type(value) is not int or value < 0:
         raise _MetricsDataError(
-            "DAILY_CURVE_DECIMAL_INVALID",
-            "daily curve quantity must be finite and non-negative",
+            "PEAK_METRIC_INVARIANT_FAILED",
+            "metric quantity must be a non-negative integer micro-unit value",
         )
-    return parsed
+    whole, fraction = divmod(value, _MICRO_UNITS_PER_KG)
+    return f"{whole}.{fraction:06d}"
 
 
-def _format_quantity(value: Decimal) -> str:
+def _divide_round_half_even(numerator: int, denominator: int) -> int:
+    if type(numerator) is not int or type(denominator) is not int:
+        raise ValueError("integer division requires integer operands")
+    if numerator < 0 or denominator <= 0:
+        raise ValueError("integer division requires non-negative numerator and positive divisor")
+    quotient, remainder = divmod(numerator, denominator)
+    doubled = remainder * 2
+    if doubled < denominator:
+        return quotient
+    if doubled > denominator:
+        return quotient + 1
+    return quotient if quotient % 2 == 0 else quotient + 1
+
+
+def _revalidate_row(raw_row: object) -> CompleteDailyMarketableCurveRow:
     try:
-        formatted = format(value.quantize(OUTPUT_QUANTUM, rounding=ROUND_HALF_EVEN), "f")
-    except (DecimalException, OverflowError) as exc:
+        if isinstance(raw_row, CompleteDailyMarketableCurveRow):
+            payload = raw_row.model_dump(mode="python")
+        elif isinstance(raw_row, dict):
+            payload = raw_row
+        else:
+            raise TypeError("daily curve row cannot export a canonical payload")
+        return CompleteDailyMarketableCurveRow.model_validate(payload)
+    except ValidationError as exc:
+        error_fields = {
+            str(location[-1]) for error in exc.errors() if (location := error.get("loc"))
+        }
+        if error_fields and error_fields.issubset(set(_ROW_QUANTITY_FIELDS)):
+            raise _MetricsDataError(
+                "DAILY_CURVE_DECIMAL_INVALID",
+                "daily curve quantity is not a valid fixed six-place value",
+            ) from exc
         raise _MetricsDataError(
-            "PEAK_METRIC_INVARIANT_FAILED",
-            "metric quantity cannot be quantized",
+            "DAILY_CURVE_SCHEMA_INVALID",
+            "daily curve row does not satisfy the canonical S2 schema",
         ) from exc
-    if _FIXED_6_RE.fullmatch(formatted) is None:
+    except (TypeError, ValueError) as exc:
         raise _MetricsDataError(
-            "PEAK_METRIC_INVARIANT_FAILED",
-            "metric quantity is not a fixed six-place decimal",
-        )
-    return formatted
+            "DAILY_CURVE_SCHEMA_INVALID",
+            "daily curve row does not satisfy the canonical S2 schema",
+        ) from exc
 
 
 def _business_key(row: CompleteDailyMarketableCurveRow) -> tuple[date, int, int, int, str]:
@@ -125,7 +157,7 @@ def _business_key(row: CompleteDailyMarketableCurveRow) -> tuple[date, int, int,
 
 def _verify_row_hash(row: CompleteDailyMarketableCurveRow) -> None:
     for field_name in _ROW_QUANTITY_FIELDS:
-        _parse_quantity(getattr(row, field_name, None))
+        _parse_quantity_micros(getattr(row, field_name, None))
     if not isinstance(row.row_hash, str) or _SHA256_RE.fullmatch(row.row_hash) is None:
         raise _MetricsDataError(
             "DAILY_CURVE_ROW_HASH_MISMATCH",
@@ -171,7 +203,8 @@ def _validate_completed_curve(
     seen: set[tuple[date, int, int, int, str]] = set()
     destinations: set[int] = set()
     parsed_rows: list[CompleteDailyMarketableCurveRow] = []
-    for row in daily_curve.rows:
+    for raw_row in daily_curve.rows:
+        row = _revalidate_row(raw_row)
         _verify_row_hash(row)
         key = _business_key(row)
         if key in seen:
@@ -246,9 +279,9 @@ def _compute_validated_metrics(
     daily_curve: CompleteDailyMarketableCurveResult,
 ) -> CompleteCoreForecastMetricsResult:
     rows, source_curve_hash, dates = _validate_completed_curve(daily_curve)
-    daily_totals: dict[tuple[date, str], Decimal] = defaultdict(lambda: Decimal("0"))
+    daily_totals: dict[tuple[date, str], int] = defaultdict(int)
     for row in rows:
-        daily_totals[(row.date, row.forecast_quantile)] += _parse_quantity(
+        daily_totals[(row.date, row.forecast_quantile)] += _parse_quantity_micros(
             row.effective_marketable_quantity_kg
         )
 
@@ -260,7 +293,7 @@ def _compute_validated_metrics(
             current_date for current_date, quantity in totals if quantity == peak_quantity
         )
 
-        windows: list[tuple[date, Decimal]] = []
+        windows: list[tuple[date, int]] = []
         for index in range(len(dates) - 6):
             window_dates = dates[index : index + 7]
             if any(
@@ -271,10 +304,7 @@ def _compute_validated_metrics(
             windows.append(
                 (
                     window_dates[0],
-                    sum(
-                        (daily_totals[(window_date, quantile)] for window_date in window_dates),
-                        Decimal("0"),
-                    ),
+                    sum(daily_totals[(window_date, quantile)] for window_date in window_dates),
                 )
             )
         if not windows:
@@ -285,10 +315,7 @@ def _compute_validated_metrics(
         best_total = max(total for _, total in windows)
         best_start = min(start for start, total in windows if total == best_total)
         best_end = best_start + timedelta(days=6)
-        average = (best_total / Decimal("7")).quantize(
-            OUTPUT_QUANTUM,
-            rounding=ROUND_HALF_EVEN,
-        )
+        average = _divide_round_half_even(best_total, 7)
 
         try:
             metrics.append(
@@ -296,21 +323,21 @@ def _compute_validated_metrics(
                     forecast_quantile=quantile,
                     single_day_peak=SingleDayPeakMetric(
                         date=peak_date,
-                        quantity_kg=_format_quantity(peak_quantity),
+                        quantity_kg=_format_micros(peak_quantity),
                         tie_break="EARLIEST_DATE",
                     ),
                     sustained_7day_peak=SustainedSevenDayPeakMetric(
                         start_date=best_start,
                         end_date=best_end,
-                        cumulative_quantity_kg=_format_quantity(best_total),
-                        daily_average_kg_per_day=_format_quantity(average),
+                        cumulative_quantity_kg=_format_micros(best_total),
+                        daily_average_kg_per_day=_format_micros(average),
                         window_days=7,
                         metric="ROLLING_CUMULATIVE",
                         date_continuity="STRICT_CALENDAR_DAYS",
                         tie_break="EARLIEST_START_DATE",
                     ),
-                    season_cumulative_effective_marketable_kg=_format_quantity(
-                        sum((quantity for _, quantity in totals), Decimal("0"))
+                    season_cumulative_effective_marketable_kg=_format_micros(
+                        sum(quantity for _, quantity in totals)
                     ),
                 )
             )

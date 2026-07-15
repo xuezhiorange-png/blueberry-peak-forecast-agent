@@ -3,7 +3,16 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import date
-from decimal import ROUND_HALF_EVEN, Decimal
+from decimal import (
+    ROUND_DOWN,
+    ROUND_HALF_EVEN,
+    ROUND_HALF_UP,
+    ROUND_UP,
+    Context,
+    Decimal,
+    getcontext,
+    localcontext,
+)
 from pathlib import Path
 
 import pytest
@@ -70,6 +79,40 @@ def _row_with(row: dict[str, object], **updates: object) -> CompleteDailyMarketa
     payload.update(updates)
     row_hash = hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
     return CompleteDailyMarketableCurveRow(**payload, row_hash=row_hash)
+
+
+def _format_test_micros(value: int) -> str:
+    whole, fraction = divmod(value, 1_000_000)
+    return f"{whole}.{fraction:06d}"
+
+
+def _bypassed_row_curve(
+    **updates: object,
+) -> CompleteDailyMarketableCurveResult:
+    payload = {key: value for key, value in EXPECTED_ROWS[0].items() if key != "row_hash"}
+    payload.update(updates)
+    row_hash = hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
+    row = CompleteDailyMarketableCurveRow.model_construct(**payload, row_hash=row_hash)
+    curve_hash = compute_daily_curve_hash((row,))
+    return CompleteDailyMarketableCurveResult(
+        status="COMPLETED",
+        rows=(row,),
+        curve_hash=curve_hash,
+        blockers=(),
+    )
+
+
+def _context_signature(context: Context) -> tuple[object, ...]:
+    return (
+        context.prec,
+        context.rounding,
+        context.Emin,
+        context.Emax,
+        context.capitals,
+        context.clamp,
+        tuple(context.traps.items()),
+        tuple(context.flags.items()),
+    )
 
 
 def _effective_totals(curve: CompleteDailyMarketableCurveResult) -> dict[tuple[date, str], Decimal]:
@@ -183,6 +226,86 @@ def test_seven_day_daily_average_uses_round_half_even_at_scale_six() -> None:
     expected = (cumulative / Decimal("7")).quantize(Decimal("0.000001"), rounding=ROUND_HALF_EVEN)
     result = compute_core_forecast_metrics(daily_curve=_curve())
     assert result.metrics[0].sustained_7day_peak.daily_average_kg_per_day == format(expected, "f")
+
+
+@pytest.mark.unit
+def test_metrics_are_independent_of_ambient_decimal_precision() -> None:
+    baseline = compute_core_forecast_metrics(daily_curve=_curve()).model_dump(mode="json")
+    for precision in (6, 7, 12, 50):
+        with localcontext(Context(prec=precision, rounding=ROUND_HALF_EVEN)):
+            result = compute_core_forecast_metrics(daily_curve=_curve())
+        assert result.model_dump(mode="json") == baseline
+
+
+@pytest.mark.unit
+def test_metrics_are_independent_of_ambient_decimal_rounding() -> None:
+    baseline = compute_core_forecast_metrics(daily_curve=_curve()).model_dump(mode="json")
+    for rounding in (ROUND_DOWN, ROUND_UP, ROUND_HALF_UP, ROUND_HALF_EVEN):
+        with localcontext(Context(prec=12, rounding=rounding)):
+            result = compute_core_forecast_metrics(daily_curve=_curve())
+        assert result.model_dump(mode="json") == baseline
+
+
+@pytest.mark.unit
+def test_seven_day_average_has_no_double_rounding() -> None:
+    target_values = [571429, 571429, 571429, 571429, 571429, 571429, 571426]
+    first_scope = next(row for row in EXPECTED_ROWS if row["forecast_quantile"] == "P50")
+    rows = []
+    for raw_row in EXPECTED_ROWS:
+        if raw_row["forecast_quantile"] == "P50":
+            current_date = date.fromisoformat(str(raw_row["date"]))
+            day_index = (current_date - date(2026, 3, 1)).days
+            is_first_scope = all(
+                raw_row[field] == first_scope[field]
+                for field in ("farm_id", "subfarm_id", "variety_id")
+            )
+            value = (
+                _format_test_micros(target_values[day_index])
+                if is_first_scope and day_index < len(target_values)
+                else "0.000000"
+            )
+            rows.append(_row_with(raw_row, effective_marketable_quantity_kg=value))
+        else:
+            rows.append(CompleteDailyMarketableCurveRow(**raw_row))
+
+    with localcontext(Context(prec=7, rounding=ROUND_DOWN)):
+        result = compute_core_forecast_metrics(daily_curve=_curve(tuple(rows)))
+    assert result.status == "COMPLETED"
+    assert result.metrics[0].sustained_7day_peak.cumulative_quantity_kg == "4.000000"
+    assert result.metrics[0].sustained_7day_peak.daily_average_kg_per_day == "0.571429"
+
+
+@pytest.mark.unit
+def test_large_valid_scope_aggregation_is_exact() -> None:
+    large_quantity = "999999999999999999999999999999.999999"
+    large_micros = int(large_quantity.replace(".", ""))
+    rows = tuple(
+        _row_with(raw_row, effective_marketable_quantity_kg=large_quantity)
+        for raw_row in EXPECTED_ROWS
+    )
+    result = compute_core_forecast_metrics(daily_curve=_curve(rows))
+    repeated_daily = large_micros * 4
+    assert result.status == "COMPLETED"
+    assert result.metrics[0].single_day_peak.quantity_kg == _format_test_micros(repeated_daily)
+    assert result.metrics[0].sustained_7day_peak.cumulative_quantity_kg == _format_test_micros(
+        repeated_daily * 7
+    )
+    assert result.metrics[0].season_cumulative_effective_marketable_kg == _format_test_micros(
+        repeated_daily * 90
+    )
+    assert result.model_dump(mode="json") == compute_core_forecast_metrics(
+        daily_curve=_curve(rows)
+    ).model_dump(mode="json")
+
+
+@pytest.mark.unit
+def test_decimal_context_is_restored_after_execution() -> None:
+    with localcontext(Context(prec=17, rounding=ROUND_UP)):
+        before = _context_signature(getcontext())
+        result = compute_core_forecast_metrics(daily_curve=_curve())
+        after = _context_signature(getcontext())
+    assert result.status == "COMPLETED"
+    assert after == before
 
 
 @pytest.mark.unit
@@ -317,6 +440,58 @@ def test_negative_zero_quantity_blocks() -> None:
     )
     result = compute_core_forecast_metrics(daily_curve=_curve((row,)))
     _assert_blocked(result, "DAILY_CURVE_DECIMAL_INVALID")
+
+
+@pytest.mark.unit
+def test_bypassed_zero_task8_run_id_blocks() -> None:
+    result = compute_core_forecast_metrics(daily_curve=_bypassed_row_curve(task8_forecast_run_id=0))
+    _assert_blocked(result, "DAILY_CURVE_SCHEMA_INVALID")
+
+
+@pytest.mark.unit
+def test_bypassed_zero_task9_run_id_blocks() -> None:
+    result = compute_core_forecast_metrics(
+        daily_curve=_bypassed_row_curve(task9_harvest_state_run_id=0)
+    )
+    _assert_blocked(result, "DAILY_CURVE_SCHEMA_INVALID")
+
+
+@pytest.mark.unit
+def test_bypassed_malformed_task8_hash_blocks() -> None:
+    result = compute_core_forecast_metrics(
+        daily_curve=_bypassed_row_curve(task8_artifact_hash="g" * 64)
+    )
+    _assert_blocked(result, "DAILY_CURVE_SCHEMA_INVALID")
+
+
+@pytest.mark.unit
+def test_bypassed_malformed_task9_hash_blocks() -> None:
+    result = compute_core_forecast_metrics(
+        daily_curve=_bypassed_row_curve(task9_result_hash="g" * 64)
+    )
+    _assert_blocked(result, "DAILY_CURVE_SCHEMA_INVALID")
+
+
+@pytest.mark.unit
+def test_bypassed_empty_policy_version_blocks() -> None:
+    result = compute_core_forecast_metrics(
+        daily_curve=_bypassed_row_curve(marketable_policy_version="")
+    )
+    _assert_blocked(result, "DAILY_CURVE_SCHEMA_INVALID")
+
+
+@pytest.mark.unit
+def test_bypassed_malformed_policy_hash_blocks() -> None:
+    result = compute_core_forecast_metrics(
+        daily_curve=_bypassed_row_curve(marketable_policy_hash="g" * 64)
+    )
+    _assert_blocked(result, "DAILY_CURVE_SCHEMA_INVALID")
+
+
+@pytest.mark.unit
+def test_recomputed_hashes_do_not_make_invalid_row_schema_valid() -> None:
+    result = compute_core_forecast_metrics(daily_curve=_bypassed_row_curve(task8_forecast_run_id=0))
+    _assert_blocked(result, "DAILY_CURVE_SCHEMA_INVALID")
 
 
 @pytest.mark.unit

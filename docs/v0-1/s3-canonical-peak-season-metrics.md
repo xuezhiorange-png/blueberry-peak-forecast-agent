@@ -33,10 +33,22 @@ order:
 ```
 
 All metric quantities are fixed six-place decimal strings matching
-`^(?:0|[1-9]\\d*)\\.\\d{6}$`. Calculation uses `Decimal`, quantization
-`Decimal("0.000001")`, and `ROUND_HALF_EVEN`; native floats, booleans,
-non-finite values, negative zero, scientific notation, and negative values
-are rejected.
+`^(?:0|[1-9]\\d*)\\.\\d{6}$`. Production aggregation and comparison use
+arbitrary-precision integer micro-units (`1 kg = 1,000,000 micro-kg`), so
+there is no ambient `Decimal` context dependency and no intermediate
+rounding. The selected seven-day cumulative value is divided by seven with
+integer `ROUND_HALF_EVEN` rounding to the nearest micro-unit, then formatted
+as the fixed six-place display string. The caller's Decimal context is never
+mutated. Native floats, booleans, non-finite values, negative zero,
+scientific notation, and negative values are rejected.
+
+Every source row is fully revalidated through
+`CompleteDailyMarketableCurveRow.model_validate(...)` before quantity,
+business-key, or hash checks. Hash integrity does not replace schema
+validation: bypassed run IDs, authority hashes, policy versions, or policy
+hashes return `DAILY_CURVE_SCHEMA_INVALID`. Quantity-only fixed-six failures
+retain `DAILY_CURVE_DECIMAL_INVALID`, while valid rows with changed payloads
+retain `DAILY_CURVE_ROW_HASH_MISMATCH`.
 
 ## Aggregation and metrics
 
