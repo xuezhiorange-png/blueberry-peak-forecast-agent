@@ -52,7 +52,18 @@ source_version
 external_batch_id
 idempotency_key
 submitted_at
+import_received_at
+ingested_at
 submitted_by_identity
+expected_record_count_or_null
+uploaded_record_count
+sealed_record_count_or_null
+sealed_at_or_null
+sealed_by_identity_or_null
+seal_status
+server_raw_payload_hash_or_null
+canonical_batch_hash_or_null
+seal_manifest_hash_or_null
 source_file_name_or_null
 source_file_hash_or_null
 raw_payload_hash
@@ -78,7 +89,8 @@ committed_at_or_null
 The minimum canonical record is:
 
 ```text
-external_record_id
+external_logical_record_id
+external_revision_id
 source_system
 external_batch_id
 harvest_business_date
@@ -86,7 +98,11 @@ farm_code
 subfarm_or_plot_code
 variety_code
 actual_harvest_quantity_kg
-recorded_at
+source_recorded_at
+source_recorded_at_authority_status
+source_recorded_at_authority_reference_or_null
+import_received_at
+ingested_at
 revision_number
 record_status
 ```
@@ -94,7 +110,7 @@ record_status
 The following are conditional or optional as stated:
 
 ```text
-supersedes_external_record_id    # required when revision_number > 1
+supersedes_external_revision_id  # required when revision_number > 1
 season_code                      # optional; formal resolver may supply it
 farm_timezone                    # optional only when independently authorized
 revised_at
@@ -118,7 +134,7 @@ MISSING_RECORD_IS_NOT_ZERO=YES
 
 The decimal precision must reuse the precision frozen by the existing Q2A authority; this design does not invent a new precision. Decimal parsing is exact, rejects non-finite values, and never uses binary floating-point accumulation.
 
-`harvest_business_date` is a farm-local date. It is not a UTC date and is not generated from `recorded_at`. A timezone must come from an authorized farm identity mapping or be explicitly supplied and validated. A late entry may have `recorded_at` after the harvest business date. The system must never manufacture a missing-day row or interpret a missing row as zero.
+`harvest_business_date` is a farm-local date. It is not a UTC date and is not generated from any timestamp. A timezone must come from an authorized farm identity mapping or be explicitly supplied and validated. A late entry may have `source_recorded_at` after the harvest business date. The system must never manufacture a missing-day row or interpret a missing row as zero.
 
 ## 6. Identity mapping
 
@@ -158,7 +174,17 @@ FINALIZED
 
 `ACTIVE` is a current non-final terminal record, `CORRECTED` is a superseded historical revision and never a winner, `VOID` is invalid and never a winner, and `FINALIZED` is a final terminal record. The winner is selected from one explicit supersession chain, never by import order, largest revision number, or latest timestamp.
 
-The lineage contract requires `revision_number`, `supersedes_external_record_id` where applicable, stable source-record identity, terminal-revision evaluation, and as-of/final visibility. Fail closed on duplicate revision numbers, missing predecessors, multiple successors, cycles, multiple visible terminals, multiple finalized terminals, unknown status, corrected records without successors, void selection, or same identity/revision with different payload.
+The lineage contract requires `external_logical_record_id`, unique `external_revision_id`, `revision_number`, and `supersedes_external_revision_id` where applicable. `logical_record_key = source_system + external_logical_record_id` and `revision_key = source_system + external_revision_id`. Every revision must point to the preceding concrete revision in its logical lineage; winner selection never depends on import order, time, latest batch, or database ID. Fail closed on duplicate revision numbers, missing predecessors, multiple successors, cycles, multiple visible terminals, multiple finalized terminals, unknown status, corrected records without successors, void selection, or same revision identity with different payload.
+
+The authoritative time fields are:
+
+```text
+source_recorded_at
+import_received_at
+ingested_at
+```
+
+`source_recorded_at` is the originating source assertion and must carry `source_recorded_at_authority_status`; `import_received_at` and `ingested_at` are server-generated, immutable timestamps. The authority values are `TRUSTED_SOURCE_TIMESTAMP`, `USER_ASSERTED_UNVERIFIED`, `MISSING`, and `CONFLICTING`. User-entered time, upload time, file metadata, row order, batch order, and `harvest_business_date` cannot establish source visibility.
 
 The four-time ordering is inherited unchanged:
 
@@ -169,24 +195,40 @@ forecast_cutoff_at
 <= replay_executed_at
 ```
 
-An as-of snapshot may see only records with `recorded_at <= label_observation_cutoff_at` and a valid visible revision chain. Future corrections must not leak into a historical replay. A committed source batch is immutable; corrections are new revisions or new batches.
+An as-of snapshot may see only records with `source_recorded_at <= label_observation_cutoff_at` when `source_recorded_at_authority_status=TRUSTED_SOURCE_TIMESTAMP` and with a valid visible revision chain. `import_received_at` and `ingested_at` prove application receipt and persistence only; they cannot masquerade as historical source visibility. A committed source batch is immutable; corrections are new revisions or new batches. Records without trusted source time may remain staging or committed evidence and may participate in final adjudication only after separate final-eligibility gates pass, but they are not historical as-of eligible.
 
-## 8. Lifecycle and atomic commit
+## 8. Canonical-grain aggregation
+
+The target grain remains:
+
+```text
+SEASON X FARM X SUBFARM_OR_PLOT X VARIETY X HARVEST_BUSINESS_DATE
+```
+
+At a requested visibility cutoff, the contract first selects one valid terminal revision per logical source record. Multiple different logical records may share one canonical grain. Only then are visible terminal revisions grouped by grain and summed with exact Decimal arithmetic. Same canonical grain is not a duplicate.
+
+Contributing revisions are ordered by `source_system`, `external_logical_record_id`, and `external_revision_id`. The immutable aggregation manifest includes `visibility_mode`, `label_observation_cutoff_at_or_null`, ordered contributing revision keys and hashes, `contributing_revision_count`, `exact_decimal_quantity_sum_kg`, `aggregation_policy_version`, and `aggregation_manifest_hash`. API and spreadsheet inputs with identical canonical records must produce identical manifests and hashes.
+
+## 9. Immutable seal and lifecycle
 
 The v1 lifecycle is:
 
 ```text
-UPLOAD_OR_SUBMIT
--> PARSE
--> VALIDATE
--> PREVIEW
--> COMMIT
+RECEIVED
+-> UPLOADING
+-> SEALED
+-> VALIDATING
+-> VALIDATED
+-> COMMITTING
+-> COMMITTED
 ```
 
 Allowed batch statuses are:
 
 ```text
 RECEIVED
+UPLOADING
+SEALED
 PARSING
 PARSE_FAILED
 VALIDATING
@@ -198,9 +240,26 @@ COMMIT_FAILED
 CANCELLED
 ```
 
-Submit and preview do not create an active label. Validation must finish before commit. v1 uses full-batch atomic semantics: one invalid row blocks the complete batch, partial commit is forbidden, and commit failure cannot leave a partially effective label. A `COMMITTED` batch is never edited in place.
+`ActualHarvestImportBatch` also carries `expected_record_count_or_null`, `uploaded_record_count`, `sealed_record_count_or_null`, `sealed_at_or_null`, `sealed_by_identity_or_null`, `seal_status`, `server_raw_payload_hash_or_null`, `canonical_batch_hash_or_null`, and `seal_manifest_hash_or_null`. `SEALED` is the sole completeness boundary. Server-generated counts and hashes are authoritative; client assertions are checked and mismatches fail closed. After sealing, records cannot be added, removed, replaced, reordered, or modified. Validation starts only from `SEALED`, binds its result to the seal manifest, and commit rechecks seal, mapping, and validation hashes. Submit and preview do not create an active label. v1 uses full-batch atomic semantics: one invalid row blocks the complete batch, partial commit is forbidden, and commit failure cannot leave a partially effective label. A `COMMITTED` batch and its seal manifest are never edited in place.
 
-## 9. Idempotency and canonical hashes
+The stable fail-closed error set includes:
+
+```text
+REVISION_IDENTITY_CONFLICT
+REVISION_NUMBER_CONFLICT
+REVISION_PREDECESSOR_MISSING
+REVISION_MULTIPLE_SUCCESSORS
+REVISION_LINEAGE_CYCLE
+REVISION_LOGICAL_RECORD_MISMATCH
+BATCH_NOT_SEALED
+BATCH_ALREADY_SEALED
+BATCH_SEAL_HASH_CONFLICT
+BATCH_RECORD_COUNT_MISMATCH
+BATCH_MUTATION_AFTER_SEAL
+BATCH_SEAL_CHANGED
+```
+
+## 10. Idempotency and canonical hashes
 
 Both channels use the same fields:
 
@@ -221,13 +280,15 @@ The deterministic rules are:
 ```text
 same idempotency key + same canonical payload = original import result
 same idempotency key + different canonical payload = deterministic conflict
-same external_record_id + same revision + same payload = idempotent duplicate
-same external_record_id + same revision + different payload = conflict
+same revision_key + same canonical payload = idempotent replay
+same revision_key + different canonical payload = revision identity conflict
+same logical_record_key + same revision_number + different revision_key = revision number conflict
+same revision referenced by multiple successors = multiple successor conflict
 ```
 
 Hashes include every field affecting business semantics or commit outcome. They exclude database-generated IDs, hostnames, temporary paths, unordered iteration, and nondeterministic timestamps. Raw source batch, normalized record, mapping snapshot, validation manifest, revision lineage, and commit manifest remain immutable provenance.
 
-## 10. Staging versus label snapshot
+## 11. Staging versus label snapshot
 
 ```text
 staging record != primary label snapshot
@@ -235,7 +296,7 @@ staging record != primary label snapshot
 
 Commit preserves the immutable source batch, normalized records, source row hashes, validation manifest, mapping snapshot, revision lineage, commit manifest, and source artifact hashes. An evaluation label snapshot is generated later from valid committed revisions and the applicable cutoff. A spreadsheet row is never directly treated as the final backtest winner, and a receipt proxy never fills a missing actual-harvest row.
 
-## 11. Future implementation decomposition
+## 12. Future implementation decomposition
 
 The following are design-only future slices; none is authorized by this document:
 
@@ -252,7 +313,7 @@ The following are design-only future slices; none is authorized by this document
 
 Each future slice requires separate authorization, allowed-file review, migration boundary, acceptance tests, and a statement of whether real imported data is needed.
 
-## 12. Acceptance gates
+## 13. Acceptance gates
 
 Future implementation must prove:
 
@@ -275,14 +336,33 @@ RAW_SOURCE_PROVENANCE_IMMUTABLE
 
 Required future tests include exact replay, repeated import, idempotency conflict, duplicate record, correction, void, finalized record, broken lineage, terminal conflicts, unknown mapping, API/spreadsheet equivalence, missing-day semantics, explicit zero, historical cutoff, and PostgreSQL concurrent commit race. This design round does not add or execute those tests.
 
-## 13. Change log
+## Cross-document P0 fixup invariants
+
+```text
+SERVER_GENERATED_IMPORT_RECEIVED_AT
+SERVER_GENERATED_INGESTED_AT
+TRUSTED_SOURCE_RECORDED_AT_REQUIRED_FOR_HISTORICAL_REPLAY
+HISTORICAL_AS_OF_ELIGIBLE=TRUSTED_SOURCE_TIMESTAMP_ONLY
+FINAL_ADJUDICATION_ELIGIBLE=SEPARATE_FINAL_GATE
+REVISION_SELECTION_BEFORE_GRAIN_AGGREGATION
+MULTIPLE_LOGICAL_RECORDS_PER_GRAIN_ALLOWED
+EXACT_DECIMAL_SUM
+SAME_GRAIN_NOT_DUPLICATE
+VALIDATE_FROM=SEALED
+COMMIT_FROM=VALIDATED
+MUTATION_AFTER_SEAL=FORBIDDEN
+```
+
+## 14. Change log
 
 - v1.0 — user-supplied actual-harvest import contract design authorized by Issue #102 comment `4976761806`; no implementation authorized.
+- v1.1 — closes PR #105 review `4700895486`: authoritative time provenance, logical/revision identity separation, same-grain aggregation, immutable batch sealing, and PR metadata truth synchronization.
 
 ## §X.1 Q2A import contract status
 
 ```text
 ISSUE102_AUTHORIZATION_COMMENT_ID=4976761806
+PR105_FIXUP_REVIEW_ID=4700895486
 ACTUAL_HARVEST_SOURCE_MODE=FUTURE_USER_SUPPLIED_IMPORT
 SUPPORTED_IMPORT_CHANNELS=API_AND_SPREADSHEET_UPLOAD
 Q2A_IMPORT_CONTRACT_DESIGN_STATUS=PENDING_REVIEW
