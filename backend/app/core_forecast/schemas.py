@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Annotated, Literal
 
@@ -32,6 +32,12 @@ CoreForecastBlockerCode = Literal[
     "DAILY_CURVE_INCOMPLETE_SERIES",
     "DAILY_CURVE_STATE_INVARIANT_FAILED",
     "DAILY_CURVE_CONTINUITY_FAILED",
+    "DAILY_CURVE_NOT_COMPLETED",
+    "DAILY_CURVE_ROW_HASH_MISMATCH",
+    "DAILY_CURVE_HASH_MISMATCH",
+    "DAILY_CURVE_DECIMAL_INVALID",
+    "NO_COMPLETE_7DAY_WINDOW",
+    "PEAK_METRIC_INVARIANT_FAILED",
     "UPSTREAM_READ_FAILURE",
 ]
 
@@ -193,4 +199,83 @@ class CompleteDailyMarketableCurveResult(_FrozenModel):
                 raise ValueError("completed result requires rows/hash and no blockers")
         elif self.rows or self.curve_hash is not None or not self.blockers:
             raise ValueError("blocked result requires blockers and no rows/hash")
+        return self
+
+
+class SingleDayPeakMetric(_FrozenModel):
+    date: date
+    quantity_kg: StrictNonEmptyString
+    tie_break: Literal["EARLIEST_DATE"]
+
+    _validate_quantity = field_validator("quantity_kg", mode="before")(_fixed_decimal_string)
+
+
+class SustainedSevenDayPeakMetric(_FrozenModel):
+    start_date: date
+    end_date: date
+    cumulative_quantity_kg: StrictNonEmptyString
+    daily_average_kg_per_day: StrictNonEmptyString
+    window_days: Literal[7]
+    metric: Literal["ROLLING_CUMULATIVE"]
+    date_continuity: Literal["STRICT_CALENDAR_DAYS"]
+    tie_break: Literal["EARLIEST_START_DATE"]
+
+    _validate_quantities = field_validator(
+        "cumulative_quantity_kg",
+        "daily_average_kg_per_day",
+        mode="before",
+    )(_fixed_decimal_string)
+
+    @model_validator(mode="after")
+    def _window_is_exactly_seven_days(self) -> SustainedSevenDayPeakMetric:
+        if self.end_date != self.start_date + timedelta(days=6):
+            raise ValueError("seven-day peak end_date must be start_date plus six days")
+        return self
+
+
+class QuantileCoreForecastMetrics(_FrozenModel):
+    forecast_quantile: Literal["P50", "P80", "P90"]
+    single_day_peak: SingleDayPeakMetric
+    sustained_7day_peak: SustainedSevenDayPeakMetric
+    season_cumulative_effective_marketable_kg: StrictNonEmptyString
+
+    _validate_season_quantity = field_validator(
+        "season_cumulative_effective_marketable_kg",
+        mode="before",
+    )(_fixed_decimal_string)
+
+
+class CompleteCoreForecastMetricsResult(_FrozenModel):
+    status: Literal["COMPLETED", "BLOCKED"]
+    metrics_schema_version: str | None
+    date_basis: Literal["HARVEST_BUSINESS_DATE"] | None
+    source_curve_hash: SHA256Hex | None
+    metrics: tuple[QuantileCoreForecastMetrics, ...]
+    metrics_hash: SHA256Hex | None
+    blockers: tuple[CoreForecastBlocker, ...]
+
+    @model_validator(mode="after")
+    def _status_is_consistent(self) -> CompleteCoreForecastMetricsResult:
+        if self.status == "COMPLETED":
+            if (
+                self.metrics_schema_version != "v0.1-core-forecast-metrics-v1"
+                or self.date_basis != "HARVEST_BUSINESS_DATE"
+                or self.source_curve_hash is None
+                or len(self.metrics) != 3
+                or tuple(item.forecast_quantile for item in self.metrics) != ("P50", "P80", "P90")
+                or self.metrics_hash is None
+                or self.blockers
+            ):
+                raise ValueError("completed metrics require all quantiles, hashes, and no blockers")
+        elif (
+            self.metrics_schema_version is not None
+            or self.date_basis is not None
+            or self.source_curve_hash is not None
+            or self.metrics
+            or self.metrics_hash is not None
+            or not self.blockers
+        ):
+            raise ValueError(
+                "blocked metrics require no metrics or hashes and at least one blocker"
+            )
         return self
