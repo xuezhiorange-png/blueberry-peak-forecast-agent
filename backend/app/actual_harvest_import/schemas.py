@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import date, datetime
 from decimal import Decimal
 from math import isfinite
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -23,7 +23,6 @@ from backend.app.actual_harvest_import.enums import (
 )
 from backend.app.actual_harvest_import.validation import (
     validate_iana_timezone,
-    validate_json_pointer,
     validate_non_negative_finite_decimal,
     validate_revision_local_shape,
     validate_source_recorded_at_authority_shape,
@@ -31,7 +30,7 @@ from backend.app.actual_harvest_import.validation import (
 )
 
 type JsonScalar = None | bool | int | float | str
-type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
+type JsonValue = JsonScalar | tuple[JsonValue, ...] | Mapping[str, JsonValue]
 
 NonEmptyString = Annotated[str, Field(strict=True, min_length=1)]
 SHA256Hex = Annotated[
@@ -40,6 +39,7 @@ SHA256Hex = Annotated[
 ]
 PositiveStrictInt = Annotated[int, Field(strict=True, ge=1)]
 NonNegativeStrictInt = Annotated[int, Field(strict=True, ge=0)]
+ImportId = NonEmptyString
 
 
 class _BaseContractModel(BaseModel):
@@ -49,6 +49,45 @@ class _BaseContractModel(BaseModel):
         str_strip_whitespace=True,
         validate_default=True,
     )
+
+
+class _FrozenDict(dict[str, object]):
+    __slots__ = ("_initialized",)
+
+    def __init__(self, value: Mapping[str, object] | None = None) -> None:
+        if getattr(self, "_initialized", False):
+            raise TypeError("frozen mapping cannot be reinitialized")
+        dict.__init__(self)
+        for key, child in (value or {}).items():
+            if not isinstance(key, str):
+                raise TypeError("frozen mapping keys must be strings")
+            dict.__setitem__(self, key, _freeze_json_value(child))
+        object.__setattr__(self, "_initialized", True)
+
+    def _reject_mutation(self, *args: object, **kwargs: object) -> NoReturn:
+        del args, kwargs
+        raise TypeError("frozen mapping is immutable")
+
+    __setitem__ = _reject_mutation
+    __delitem__ = _reject_mutation
+    clear = _reject_mutation
+    pop = _reject_mutation
+    setdefault = _reject_mutation
+    update = _reject_mutation
+
+    def popitem(self) -> tuple[str, object]:
+        return self._reject_mutation()
+
+    def __ior__(self, value: Mapping[str, object]) -> _FrozenDict:  # type: ignore[override, misc]
+        return self._reject_mutation(value)
+
+
+def _freeze_json_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return _FrozenDict(value)
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_json_value(child) for child in value)
+    return value
 
 
 def _reject_datetime_for_date(value: object) -> object:
@@ -75,19 +114,19 @@ class ActualHarvestImportRecordInput(_BaseContractModel):
     subfarm_or_plot_code: NonEmptyString
     variety_code: NonEmptyString
     actual_harvest_quantity_kg: Decimal
-    source_recorded_at: datetime | None
+    source_recorded_at: datetime | None = None
     source_recorded_at_authority_status: SourceRecordedAtAuthorityStatus
-    source_recorded_at_authority_reference_or_null: NonEmptyString | None
+    source_recorded_at_authority_reference_or_null: NonEmptyString | None = None
     revision_number: PositiveStrictInt
     record_status: ActualHarvestRecordStatus
-    supersedes_external_revision_id: NonEmptyString | None
-    season_code: NonEmptyString
-    farm_timezone: NonEmptyString | None
-    revised_at: datetime | None
-    finalized_at: datetime | None
-    source_row_number: PositiveStrictInt | None
-    source_sheet_name: NonEmptyString | None
-    source_note: NonEmptyString | None
+    supersedes_external_revision_id: NonEmptyString | None = None
+    season_code: NonEmptyString | None = None
+    farm_timezone: NonEmptyString | None = None
+    revised_at: datetime | None = None
+    finalized_at: datetime | None = None
+    source_row_number: PositiveStrictInt | None = None
+    source_sheet_name: NonEmptyString | None = None
+    source_note: NonEmptyString | None = None
 
     @field_validator("harvest_business_date", mode="before")
     @classmethod
@@ -150,9 +189,9 @@ class ActualHarvestImportBatchInput(_BaseContractModel):
     idempotency_key: NonEmptyString
     submitted_at: datetime
     submitted_by_identity: NonEmptyString
-    expected_record_count_or_null: NonNegativeStrictInt | None
-    source_file_name_or_null: NonEmptyString | None
-    source_file_hash_or_null: SHA256Hex | None
+    expected_record_count_or_null: NonNegativeStrictInt | None = None
+    source_file_name_or_null: NonEmptyString | None = None
+    source_file_hash_or_null: SHA256Hex | None = None
     raw_payload_hash: SHA256Hex
     schema_version: NonEmptyString
     mapping_policy_version: NonEmptyString
@@ -167,7 +206,7 @@ class ActualHarvestImportBatchInput(_BaseContractModel):
 
 
 class CanonicalActualHarvestImportBatch(_BaseContractModel):
-    import_id: PositiveStrictInt
+    import_id: ImportId
     import_channel: ActualHarvestImportChannel
     source_system: NonEmptyString
     source_dataset: NonEmptyString
@@ -225,6 +264,7 @@ class CanonicalActualHarvestImportBatch(_BaseContractModel):
             self.sealed_record_count_or_null,
             self.sealed_at_or_null,
             self.sealed_by_identity_or_null,
+            self.server_raw_payload_hash_or_null,
             self.canonical_batch_hash_or_null,
             self.seal_manifest_hash_or_null,
         )
@@ -239,20 +279,13 @@ class CanonicalActualHarvestImportBatch(_BaseContractModel):
 class ActualHarvestValidationIssue(_BaseContractModel):
     error_code: ActualHarvestValidationErrorCode
     severity: ActualHarvestValidationSeverity
-    import_id: PositiveStrictInt
+    import_id: ImportId
     record_index_or_null: NonNegativeStrictInt | None
     external_logical_record_id_or_null: NonEmptyString | None
     external_revision_id_or_null: NonEmptyString | None
     field_path_or_null: NonEmptyString | None
     message_template_id: NonEmptyString
-    details: dict[str, JsonValue]
-
-    @field_validator("field_path_or_null")
-    @classmethod
-    def _validate_field_path(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        return validate_json_pointer(value)
+    details: Mapping[str, JsonValue]
 
     @field_validator("details", mode="before")
     @classmethod
@@ -271,14 +304,14 @@ class ActualHarvestValidationIssue(_BaseContractModel):
         )
 
         def walk(node: object) -> None:
-            if isinstance(node, dict):
+            if isinstance(node, Mapping):
                 for key, child in node.items():
                     if isinstance(key, str) and any(
                         fragment in key.lower() for fragment in forbidden_key_fragments
                     ):
                         raise ValueError("validation issue details contain sensitive or raw data")
                     walk(child)
-            elif isinstance(node, list):
+            elif isinstance(node, (list, tuple)):
                 for child in node:
                     walk(child)
             elif isinstance(node, float) and not isfinite(node):
@@ -288,6 +321,11 @@ class ActualHarvestValidationIssue(_BaseContractModel):
 
         walk(value)
         return value
+
+    @field_validator("details", mode="after")
+    @classmethod
+    def _freeze_details(cls, value: Mapping[str, JsonValue]) -> Mapping[str, JsonValue]:
+        return _FrozenDict(value)  # type: ignore[return-value]
 
 
 def sort_validation_issues(

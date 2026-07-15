@@ -132,24 +132,7 @@ def has_trusted_source_timestamp(record: TrustedSourceTimestampRecord) -> bool:
         record.source_recorded_at_authority_status
         == SourceRecordedAtAuthorityStatus.TRUSTED_SOURCE_TIMESTAMP
         and record.source_recorded_at is not None
-        and record.source_recorded_at.tzinfo is not None
-        and record.source_recorded_at.utcoffset() is not None
     )
-
-
-def validate_json_pointer(value: object, *, field_name: str = "field_path") -> str:
-    if not isinstance(value, str) or not value.startswith("/"):
-        raise ValueError(f"{field_name} must be an RFC 6901 JSON Pointer")
-    for segment in value.split("/")[1:]:
-        index = 0
-        while index < len(segment):
-            if segment[index] == "~":
-                if index + 1 >= len(segment) or segment[index + 1] not in "01":
-                    raise ValueError(f"{field_name} must be an RFC 6901 JSON Pointer")
-                index += 2
-            else:
-                index += 1
-    return value
 
 
 def validate_non_negative_int(value: object, *, field_name: str) -> int:
