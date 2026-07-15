@@ -116,10 +116,17 @@ sustained_7day_peak_cumulative_kg[q]
 
 The window is exactly seven consecutive calendar days, with
 `end_date = start_date + 6 days`. Ties select the earliest start date. The
-daily average is only a derived display value (`cumulative / 7`) and never
-replaces the cumulative primary metric. A range shorter than seven complete
-calendar dates produces `NO_COMPLETE_7DAY_WINDOW`; edge fragments do not form
-a window.
+daily average is only a derived display value and never replaces the cumulative
+primary metric:
+
+```text
+daily_average_kg_per_day = cumulative_quantity_kg / Decimal("7")
+scale=6
+rounding=ROUND_HALF_EVEN
+```
+
+A range shorter than seven complete calendar dates produces
+`NO_COMPLETE_7DAY_WINDOW`; edge fragments do not form a window.
 
 The existing three-day metric remains a legacy compatibility field:
 

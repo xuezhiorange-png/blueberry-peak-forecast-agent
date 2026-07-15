@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import defaultdict
+from copy import deepcopy
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import Any
 
@@ -184,6 +186,75 @@ def test_mass_balance_and_marketable_retention_are_conserved() -> None:
         assert effective == expected_effective
 
 
+def test_scope_series_are_unique_and_cross_day_inventory_is_continuous() -> None:
+    rows = _load("expected_daily.json")["rows"]
+    keys = [
+        (
+            row["date"],
+            row["farm_id"],
+            row["subfarm_id"],
+            row["variety_id"],
+            row["forecast_quantile"],
+        )
+        for row in rows
+    ]
+    assert len(rows) == 1080
+    assert len(set(keys)) == 1080
+
+    series: dict[tuple[int, int, int, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        series[
+            (row["farm_id"], row["subfarm_id"], row["variety_id"], row["forecast_quantile"])
+        ].append(row)
+    assert len(series) == 12
+    expected_dates = [(date(2026, 3, 1) + timedelta(days=i)).isoformat() for i in range(90)]
+    for values in series.values():
+        values.sort(key=lambda row: row["date"])
+        assert len(values) == 90
+        assert [row["date"] for row in values] == expected_dates
+        for previous, current in zip(values, values[1:], strict=False):
+            assert Decimal(current["opening_mature_inventory_kg"]) == Decimal(
+                previous["closing_mature_inventory_kg"]
+            )
+
+
+def test_task9_daily_state_relations_are_frozen() -> None:
+    rows = _load("expected_daily.json")["rows"]
+    quantity_fields = (
+        "opening_mature_inventory_kg",
+        "natural_maturity_supply_kg",
+        "available_mature_quantity_kg",
+        "mature_inventory_loss_quantity_kg",
+        "harvestable_mature_quantity_kg",
+        "effective_harvest_capacity_kg",
+        "model_harvested_marketable_quantity_kg",
+        "closing_mature_inventory_kg",
+        "unharvested_backlog_kg",
+    )
+    for row in rows:
+        values = {field: _decimal(row[field]) for field in quantity_fields}
+        assert all(value.is_finite() and value >= 0 for value in values.values())
+        assert values["available_mature_quantity_kg"] == (
+            values["opening_mature_inventory_kg"] + values["natural_maturity_supply_kg"]
+        )
+        assert values["harvestable_mature_quantity_kg"] == (
+            values["available_mature_quantity_kg"] - values["mature_inventory_loss_quantity_kg"]
+        )
+        assert (
+            values["model_harvested_marketable_quantity_kg"]
+            <= values["harvestable_mature_quantity_kg"]
+        )
+        assert (
+            values["model_harvested_marketable_quantity_kg"]
+            <= values["effective_harvest_capacity_kg"]
+        )
+        assert values["closing_mature_inventory_kg"] == (
+            values["harvestable_mature_quantity_kg"]
+            - values["model_harvested_marketable_quantity_kg"]
+        )
+        assert values["unharvested_backlog_kg"] == values["closing_mature_inventory_kg"]
+
+
 def test_seven_day_peak_is_independently_rolling_cumulative_with_earliest_tie_break() -> None:
     rows = _load("expected_daily.json")["rows"]
     metrics = _load("expected_metrics.json")["metrics"]
@@ -245,6 +316,40 @@ def test_single_day_and_season_cumulative_metrics_are_recomputed() -> None:
         )
         assert _decimal(metrics[quantile]["season_cumulative_effective_marketable_kg"]) == sum(
             by_date.values(), Decimal("0")
+        )
+
+
+def test_row_hashes_and_seven_day_average_are_recomputed() -> None:
+    rows = _load("expected_daily.json")["rows"]
+    for row in rows:
+        payload = {key: value for key, value in row.items() if key != "row_hash"}
+        recomputed = hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
+        assert recomputed == row["row_hash"]
+
+    tampered = deepcopy(rows[0])
+    tampered["effective_marketable_quantity_kg"] = "999.000000"
+    tampered_payload = {key: value for key, value in tampered.items() if key != "row_hash"}
+    tampered_hash = hashlib.sha256(
+        canonical_json_dumps(tampered_payload).encode("utf-8")
+    ).hexdigest()
+    assert tampered_hash != rows[0]["row_hash"]
+
+    changed_hash = deepcopy(rows[0])
+    changed_hash["row_hash"] = "f" * 64
+    changed_hash_payload = {key: value for key, value in changed_hash.items() if key != "row_hash"}
+    assert (
+        hashlib.sha256(canonical_json_dumps(changed_hash_payload).encode("utf-8")).hexdigest()
+        == rows[0]["row_hash"]
+    )
+
+    metrics = _load("expected_metrics.json")["metrics"]
+    for quantile in QUANTILES:
+        cumulative = Decimal(metrics[quantile]["sustained_7day_peak"]["cumulative_quantity_kg"])
+        expected_average = (cumulative / Decimal("7")).quantize(
+            Decimal("0.000001"), rounding=ROUND_HALF_EVEN
+        )
+        assert Decimal(metrics[quantile]["sustained_7day_peak"]["daily_average_kg_per_day"]) == (
+            expected_average
         )
 
 
