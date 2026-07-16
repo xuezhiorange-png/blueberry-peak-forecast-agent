@@ -94,6 +94,13 @@ def _fixture_fixed_six_string(value: object) -> str:
     return _fixture_decimal_string(value)
 
 
+def _fixture_ratio_string(value: object) -> str:
+    value = _fixture_fixed_six_string(value)
+    if Decimal(value) > Decimal("1"):
+        raise ValueError("fixture ratio must be within [0, 1]")
+    return value
+
+
 def _fixture_hash(value: object) -> str:
     if not isinstance(value, str) or not _SHA256_RE.fullmatch(value):
         raise ValueError("fixture hash must be lowercase SHA-256")
@@ -686,10 +693,12 @@ class _FixtureDailyInput(_FixtureModel):
     _validate_other_decimals = field_validator(
         "planned_picker_count",
         "picker_productivity_kg_per_day",
+    )(_fixture_decimal_string)
+    _validate_efficiency_ratios = field_validator(
         "labor_availability_ratio",
         "operational_efficiency_ratio",
         "weather_efficiency_ratio",
-    )(_fixture_decimal_string)
+    )(_fixture_ratio_string)
 
 
 class _FixturePayload(_FixtureModel):
