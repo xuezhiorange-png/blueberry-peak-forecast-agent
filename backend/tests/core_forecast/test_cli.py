@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import asyncio
+import copy
 import json
+from decimal import ROUND_HALF_EVEN, Decimal, localcontext
 from io import StringIO
 from pathlib import Path
 
@@ -27,6 +28,34 @@ from backend.tests.core_forecast.test_complete_daily_curve_service import (
 )
 
 FIXTURE = Path("backend/tests/fixtures/v0_1_complete_season_case_01/input.json")
+
+
+def _valid_policy_rerun_payload() -> dict[str, object]:
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    policy_rows = payload["marketable_retention_policy"]
+    assert isinstance(policy_rows, list)
+    policy = policy_rows[0]
+    assert isinstance(policy, dict)
+    new_policy_hash = "e" * 64
+    policy["sorting_retention_rate"] = "0.990000"
+    policy["hash"] = new_policy_hash
+    daily_rows = payload["daily_inputs"]
+    assert isinstance(daily_rows, list)
+    for row in daily_rows:
+        assert isinstance(row, dict)
+        if (row["farm_id"], row["subfarm_id"], row["variety_id"]) != (101, 1101, 2101):
+            continue
+        row["sorting_retention_rate"] = "0.990000"
+        row["marketable_policy_hash"] = new_policy_hash
+        with localcontext() as context:
+            context.prec = 50
+            effective = (
+                Decimal(row["model_harvested_marketable_quantity_kg"])
+                * Decimal("0.990000")
+                * Decimal(row["postharvest_retention_rate"])
+            ).quantize(Decimal("0.000001"), rounding=ROUND_HALF_EVEN)
+        row["effective_marketable_quantity_kg"] = format(effective, ".6f")
+    return copy.deepcopy(payload)
 
 
 def _session_factory(sqlite_session: AsyncSession) -> async_sessionmaker[AsyncSession]:
@@ -134,9 +163,7 @@ async def test_core_forecast_cli_explicit_rerun_preserves_parent(
     first_code, first_stdout, _ = _invoke(sqlite_session)
     assert first_code == 0
     parent = json.loads(first_stdout)
-    rerun_text = await asyncio.to_thread(FIXTURE.read_text, encoding="utf-8")
-    rerun_payload = json.loads(rerun_text)
-    rerun_payload["marketable_retention_policy"][0]["sorting_retention_rate"] = "0.990000"
+    rerun_payload = _valid_policy_rerun_payload()
     rerun_path = tmp_path / "rerun.json"
     rerun_path.write_text(json.dumps(rerun_payload), encoding="utf-8")
     child_code, child_stdout, child_stderr = _invoke(
@@ -214,3 +241,127 @@ def test_core_forecast_fixture_request_is_strictly_reconstructable() -> None:
     assert request.curve_request.forecast_season_id == 2026
     assert len(request.curve_request.scopes) == 4
     assert len(request.retention_policy.entries) == 4
+
+
+async def _assert_invalid_fixture(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+    payload: dict[str, object],
+) -> None:
+    path = tmp_path / "invalid-fixture.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    code, stdout, stderr = _invoke(sqlite_session, path)
+    assert code != 0
+    assert stdout == ""
+    assert "CORE_FORECAST_CLI_INPUT_INVALID" in stderr
+    assert await sqlite_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
+    assert await sqlite_session.scalar(select(func.count(CoreForecastDailyRowModel.id))) == 0
+    assert await sqlite_session.scalar(select(func.count(CoreForecastMetricModel.id))) == 0
+
+
+def _fixture_payload() -> dict[str, object]:
+    return json.loads(FIXTURE.read_text(encoding="utf-8"))
+
+
+@pytest.mark.unit
+async def test_cli_rejects_missing_daily_quantity_field(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    payload = _fixture_payload()
+    assert isinstance(payload["daily_inputs"], list)
+    assert isinstance(payload["daily_inputs"][0], dict)
+    del payload["daily_inputs"][0]["natural_maturity_supply_kg"]
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)
+
+
+@pytest.mark.unit
+async def test_cli_rejects_native_float_daily_quantity(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    payload = _fixture_payload()
+    assert isinstance(payload["daily_inputs"], list)
+    assert isinstance(payload["daily_inputs"][0], dict)
+    payload["daily_inputs"][0]["natural_maturity_supply_kg"] = 1.0
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)
+
+
+@pytest.mark.unit
+async def test_cli_rejects_daily_state_equation_mismatch(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    payload = _fixture_payload()
+    assert isinstance(payload["daily_inputs"], list)
+    assert isinstance(payload["daily_inputs"][0], dict)
+    payload["daily_inputs"][0]["available_mature_quantity_kg"] = "999.000000"
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)
+
+
+@pytest.mark.unit
+async def test_cli_rejects_cross_day_inventory_break(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    payload = _fixture_payload()
+    assert isinstance(payload["daily_inputs"], list)
+    current = next(
+        row
+        for row in payload["daily_inputs"]
+        if isinstance(row, dict)
+        and row["date"] == "2026-03-02"
+        and row["forecast_quantile"] == "P50"
+        and row["subfarm_id"] == 1101
+        and row["variety_id"] == 2101
+    )
+    current["opening_mature_inventory_kg"] = "999.000000"
+    current["available_mature_quantity_kg"] = "1009.000000"
+    current["harvestable_mature_quantity_kg"] = "1009.000000"
+    current["closing_mature_inventory_kg"] = "1009.000000"
+    current["unharvested_backlog_kg"] = "1009.000000"
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)
+
+
+@pytest.mark.unit
+async def test_cli_rejects_task8_artifact_hash_mismatch(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    payload = _fixture_payload()
+    assert isinstance(payload["task8_authority"], dict)
+    payload["task8_authority"]["artifact_hash"] = "c" * 64
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)
+
+
+@pytest.mark.unit
+async def test_cli_rejects_task9_result_hash_mismatch(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    payload = _fixture_payload()
+    assert isinstance(payload["task9_authority"], dict)
+    payload["task9_authority"]["result_hash"] = "c" * 64
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)
+
+
+@pytest.mark.unit
+async def test_cli_rejects_policy_hash_mismatch(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    payload = _fixture_payload()
+    assert isinstance(payload["marketable_retention_policy"], list)
+    assert isinstance(payload["marketable_retention_policy"][0], dict)
+    payload["marketable_retention_policy"][0]["hash"] = "e" * 64
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)
+
+
+@pytest.mark.unit
+async def test_cli_rejects_unknown_fixture_field(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+) -> None:
+    payload = _fixture_payload()
+    payload["unexpected_fixture_field"] = "not-authorized"
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)

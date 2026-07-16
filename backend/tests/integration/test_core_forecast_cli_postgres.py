@@ -7,6 +7,7 @@ import copy
 import json
 import os
 from argparse import Namespace
+from decimal import ROUND_HALF_EVEN, Decimal, localcontext
 from io import StringIO
 from pathlib import Path
 
@@ -28,6 +29,7 @@ from backend.tests.integration.test_v0_1_s2_complete_daily_curve_postgres import
 FIXTURE = Path("backend/tests/fixtures/v0_1_complete_season_case_01/input.json")
 CURVE_HASH = "de81bfa3a23efcef0398758e5105199eede9222adb0aff4acda67f3fe9697687"
 METRICS_HASH = "cfba5f2af9236e907527ef72d2d8e0a34b99f2cad29aaac502e6159c1d6d586a"
+RESULT_HASH = "802504d0798f6ce1f46978806a4b986eefe2ff733616b60af7143ff3e641535a"
 
 pytestmark = [
     pytest.mark.integration,
@@ -73,6 +75,34 @@ async def _write_fixture(path: Path, payload: dict[str, object]) -> None:
     await asyncio.to_thread(path.write_text, text, encoding="utf-8")
 
 
+def _valid_policy_rerun_payload() -> dict[str, object]:
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    policy_rows = payload["marketable_retention_policy"]
+    assert isinstance(policy_rows, list)
+    policy = policy_rows[0]
+    assert isinstance(policy, dict)
+    new_policy_hash = "e" * 64
+    policy["sorting_retention_rate"] = "0.990000"
+    policy["hash"] = new_policy_hash
+    daily_rows = payload["daily_inputs"]
+    assert isinstance(daily_rows, list)
+    for row in daily_rows:
+        assert isinstance(row, dict)
+        if (row["farm_id"], row["subfarm_id"], row["variety_id"]) != (101, 1101, 2101):
+            continue
+        row["sorting_retention_rate"] = "0.990000"
+        row["marketable_policy_hash"] = new_policy_hash
+        with localcontext() as context:
+            context.prec = 50
+            effective = (
+                Decimal(row["model_harvested_marketable_quantity_kg"])
+                * Decimal("0.990000")
+                * Decimal(row["postharvest_retention_rate"])
+            ).quantize(Decimal("0.000001"), rounding=ROUND_HALF_EVEN)
+        row["effective_marketable_quantity_kg"] = format(effective, ".6f")
+    return copy.deepcopy(payload)
+
+
 async def test_postgres_core_forecast_full_season_e2e(
     transactional_pg_session: AsyncSession,
     tmp_path: Path,
@@ -85,6 +115,7 @@ async def test_postgres_core_forecast_full_season_e2e(
     assert first["metric_count"] == 3
     assert first["curve_hash"] == CURVE_HASH
     assert first["metrics_hash"] == METRICS_HASH
+    assert first["result_hash"] == RESULT_HASH
     assert [item["forecast_quantile"] for item in first["metrics"]] == ["P50", "P80", "P90"]
 
     repository = CoreForecastRunRepository(transactional_pg_session)
@@ -107,9 +138,7 @@ async def test_postgres_core_forecast_full_season_e2e(
         await transactional_pg_session.scalar(select(func.count(CoreForecastMetricModel.id))) == 3
     )
 
-    rerun_payload = json.loads(await asyncio.to_thread(FIXTURE.read_text, encoding="utf-8"))
-    rerun_payload = copy.deepcopy(rerun_payload)
-    rerun_payload["marketable_retention_policy"][0]["sorting_retention_rate"] = "0.990000"
+    rerun_payload = _valid_policy_rerun_payload()
     rerun_fixture = tmp_path / "rerun.json"
     await _write_fixture(rerun_fixture, rerun_payload)
     child = await _dispatch(transactional_pg_session, rerun_fixture, rerun_of=first["run_id"])
