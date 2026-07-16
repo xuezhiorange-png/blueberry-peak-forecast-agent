@@ -18,11 +18,14 @@ _JSON = sa.JSON().with_variant(postgresql.JSONB(), "postgresql")
 _NUMERIC = sa.Numeric(24, 6)
 
 
-def _hash_check(column: str) -> str:
+def _hash_check(column: str, dialect_name: str) -> str:
+    if dialect_name == "postgresql":
+        return f"{column} ~ '^[0-9a-f]{{64}}$'"
     return f"length({column}) = 64 AND {column} NOT GLOB '*[^0-9a-f]*'"
 
 
 def upgrade() -> None:
+    dialect_name = op.get_bind().dialect.name
     op.create_table(
         "core_forecast_run",
         sa.Column("id", _BIGINT, primary_key=True, autoincrement=True),
@@ -118,7 +121,10 @@ def upgrade() -> None:
         sa.CheckConstraint("daily_row_count > 0", name="ck_core_forecast_run_daily_count_positive"),
         sa.CheckConstraint("metric_row_count = 3", name="ck_core_forecast_run_metric_count_three"),
         *[
-            sa.CheckConstraint(_hash_check(column), name=f"ck_core_forecast_run_{column}")
+            sa.CheckConstraint(
+                _hash_check(column, dialect_name),
+                name=f"ck_core_forecast_run_{column}",
+            )
             for column in (
                 "forecast_input_hash",
                 "request_hash",
@@ -199,7 +205,10 @@ def upgrade() -> None:
             name="ck_core_forecast_daily_row_retention_range",
         ),
         *[
-            sa.CheckConstraint(_hash_check(column), name=f"ck_core_forecast_daily_row_{column}")
+            sa.CheckConstraint(
+                _hash_check(column, dialect_name),
+                name=f"ck_core_forecast_daily_row_{column}",
+            )
             for column in (
                 "task8_artifact_hash",
                 "task9_result_hash",
