@@ -4,6 +4,11 @@ from backend.app.models.analytics import (
     FactReceiptDaily,
 )
 from backend.app.models.baseline_backtest import BaselineBacktestResult, BaselineBacktestRun
+from backend.app.models.core_forecast import (
+    CoreForecastDailyRowModel,
+    CoreForecastMetricModel,
+    CoreForecastRunModel,
+)
 from backend.app.models.harvest_state import (
     HarvestStateCohortTransitionRowModel,
     HarvestStateDailyMemberRowModel,
@@ -76,6 +81,9 @@ __all__ = [
     "BaselineBacktestResult",
     "ClimateZoneImportRun",
     "BaselineBacktestRun",
+    "CoreForecastDailyRowModel",
+    "CoreForecastMetricModel",
+    "CoreForecastRunModel",
     "FactReceiptRaw",
     "FactReceiptDaily",
     "Factory",
