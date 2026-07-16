@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
@@ -39,6 +40,7 @@ from backend.app.models.core_forecast import (
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
+from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 _FIXED_6_RE = re.compile(r"^(?:0|[1-9]\d*)\.\d{6}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -172,6 +174,13 @@ def _daily_schema(model: CoreForecastDailyRowModel) -> CompleteDailyMarketableCu
         raise CoreForecastPersistenceIntegrityError(
             "persisted daily row schema is invalid"
         ) from exc
+
+
+def _verify_daily_row_hash(row: CompleteDailyMarketableCurveRow) -> None:
+    payload = row.model_dump(mode="json", exclude={"row_hash"})
+    expected = hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
+    if expected != row.row_hash:
+        raise CoreForecastPersistenceIntegrityError("daily row hash integrity failed")
 
 
 def _run_summary(model: CoreForecastRunModel) -> CoreForecastRunSummary:
@@ -537,6 +546,8 @@ class CoreForecastRunRepository:
             rows = await self.list_daily_rows(model.id)
             if len(rows) != summary.daily_row_count:
                 raise CoreForecastPersistenceIntegrityError("daily row count integrity failed")
+            for row in rows:
+                _verify_daily_row_hash(row)
             if rows:
                 if any(
                     row.task8_forecast_run_id != summary.task8_forecast_run_id

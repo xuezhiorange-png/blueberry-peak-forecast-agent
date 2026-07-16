@@ -1,16 +1,49 @@
 from __future__ import annotations
 
+import hashlib
+
 import pytest
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core_forecast.persistence import (
     CoreForecastPersistenceConflictError,
     CoreForecastPersistenceIntegrityError,
     CoreForecastRunRepository,
+    _daily_schema,
+    _row_model,
 )
-from backend.app.models.core_forecast import CoreForecastDailyRowModel, CoreForecastRunModel
+from backend.app.models.core_forecast import (
+    CoreForecastDailyRowModel,
+    CoreForecastMetricModel,
+    CoreForecastRunModel,
+)
+from backend.app.rolling_backtest.canonical import canonical_json_dumps
 from backend.tests.core_forecast.s4_test_helpers import fixture_request_and_outputs
+
+
+async def _persist_fixture(session: AsyncSession):
+    (
+        request,
+        curve,
+        metrics,
+        policy_hash,
+        input_hash,
+        request_hash,
+        result_hash,
+    ) = await fixture_request_and_outputs()
+    repository = CoreForecastRunRepository(session)
+    persisted = await repository.save_completed_run(
+        request=request,
+        forecast_input_hash=input_hash,
+        request_hash=request_hash,
+        result_hash=result_hash,
+        retention_policy_snapshot_hash=policy_hash,
+        curve=curve,
+        metrics=metrics,
+        rerun_of_run_id=None,
+    )
+    return repository, persisted
 
 
 @pytest.mark.unit
@@ -151,6 +184,26 @@ async def test_tampered_daily_row_fails_integrity_gate(sqlite_session: AsyncSess
 
 
 @pytest.mark.unit
+async def test_tampered_daily_row_hash_fails_integrity_gate(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository, persisted = await _persist_fixture(sqlite_session)
+    row_id = await sqlite_session.scalar(
+        select(CoreForecastDailyRowModel.id)
+        .where(CoreForecastDailyRowModel.core_forecast_run_id == persisted.run.run_id)
+        .limit(1)
+    )
+    assert row_id is not None
+    await sqlite_session.execute(
+        update(CoreForecastDailyRowModel)
+        .where(CoreForecastDailyRowModel.id == row_id)
+        .values(row_hash="f" * 64)
+    )
+    with pytest.raises(CoreForecastPersistenceIntegrityError):
+        await repository.load_complete_run(persisted.run.run_id)
+
+
+@pytest.mark.unit
 async def test_repository_does_not_commit_and_caller_rollback_removes_all_rows(
     sqlite_session: AsyncSession,
 ) -> None:
@@ -180,3 +233,94 @@ async def test_repository_does_not_commit_and_caller_rollback_removes_all_rows(
     await sqlite_session.rollback()
     assert await sqlite_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
     assert await sqlite_session.scalar(select(func.count(CoreForecastDailyRowModel.id))) == 0
+
+
+@pytest.mark.unit
+async def test_query_by_id_request_hash_result_hash_and_recent_order(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository, persisted = await _persist_fixture(sqlite_session)
+
+    assert (await repository.get_run_by_id(persisted.run.run_id)).run.run_id == persisted.run.run_id  # type: ignore[union-attr]
+    assert (
+        await repository.get_run_by_request_hash(persisted.run.request_hash)  # type: ignore[union-attr]
+    ).run.run_id == persisted.run.run_id  # type: ignore[union-attr]
+    assert (
+        await repository.get_run_by_result_hash(persisted.run.result_hash)  # type: ignore[union-attr]
+    ).run.run_id == persisted.run.run_id  # type: ignore[union-attr]
+    recent = await repository.list_recent_runs(limit=1)
+    assert tuple(item.run_id for item in recent) == (persisted.run.run_id,)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("result_hash", "e" * 64),
+        ("curve_hash", "e" * 64),
+        ("retention_policy_snapshot_hash", "e" * 64),
+        ("task8_forecast_run_id", 810002),
+        ("request_snapshot", {"invalid": True}),
+    ],
+)
+async def test_run_tampering_fails_integrity_gate(
+    sqlite_session: AsyncSession,
+    field: str,
+    value: object,
+) -> None:
+    repository, persisted = await _persist_fixture(sqlite_session)
+    await sqlite_session.execute(
+        update(CoreForecastRunModel)
+        .where(CoreForecastRunModel.id == persisted.run.run_id)
+        .values(**{field: value})
+    )
+    with pytest.raises(CoreForecastPersistenceIntegrityError):
+        await repository.load_complete_run(persisted.run.run_id)
+
+
+@pytest.mark.unit
+async def test_metric_tampering_fails_integrity_gate(sqlite_session: AsyncSession) -> None:
+    repository, persisted = await _persist_fixture(sqlite_session)
+    await sqlite_session.execute(
+        update(CoreForecastMetricModel)
+        .where(CoreForecastMetricModel.core_forecast_run_id == persisted.run.run_id)
+        .where(CoreForecastMetricModel.forecast_quantile == "P50")
+        .values(single_day_peak_quantity_kg=0)
+    )
+    with pytest.raises(CoreForecastPersistenceIntegrityError):
+        await repository.load_complete_run(persisted.run.run_id)
+
+
+@pytest.mark.unit
+async def test_missing_daily_row_fails_integrity_gate(sqlite_session: AsyncSession) -> None:
+    repository, persisted = await _persist_fixture(sqlite_session)
+    row_id = await sqlite_session.scalar(
+        select(CoreForecastDailyRowModel.id)
+        .where(CoreForecastDailyRowModel.core_forecast_run_id == persisted.run.run_id)
+        .limit(1)
+    )
+    assert row_id is not None
+    await sqlite_session.execute(
+        delete(CoreForecastDailyRowModel).where(CoreForecastDailyRowModel.id == row_id)
+    )
+    with pytest.raises(CoreForecastPersistenceIntegrityError):
+        await repository.load_complete_run(persisted.run.run_id)
+
+
+@pytest.mark.unit
+async def test_extra_daily_row_fails_business_integrity_gate(sqlite_session: AsyncSession) -> None:
+    repository, persisted = await _persist_fixture(sqlite_session)
+    existing = await sqlite_session.scalar(
+        select(CoreForecastDailyRowModel)
+        .where(CoreForecastDailyRowModel.core_forecast_run_id == persisted.run.run_id)
+        .limit(1)
+    )
+    assert existing is not None
+    extra = _daily_schema(existing).model_copy(update={"farm_id": 999})
+    payload = extra.model_dump(mode="json", exclude={"row_hash"})
+    row_hash = hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
+    extra = extra.model_copy(update={"row_hash": row_hash})
+    sqlite_session.add(_row_model(persisted.run.run_id, extra))
+    await sqlite_session.flush()
+    with pytest.raises(CoreForecastPersistenceIntegrityError):
+        await repository.load_complete_run(persisted.run.run_id)

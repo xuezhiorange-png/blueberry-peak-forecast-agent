@@ -50,6 +50,21 @@ async def test_blocked_s2_result_exposes_no_partial_output(sqlite_session: Async
     assert result.metrics is None
     assert result.reused_existing_run is False
     assert result.blockers[0].code == "TASK8_AUTHORITY_NOT_FOUND"
+    assert await sqlite_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
+
+
+@pytest.mark.unit
+async def test_missing_rerun_parent_blocks_without_writes(sqlite_session: AsyncSession) -> None:
+    result = await recalculate_core_forecast_run(
+        sqlite_session,
+        source_run_id=999999,
+        curve_request=_request(),
+        retention_policy=_policy(),
+        upstream_repository=MissingUpstream(),
+    )
+    assert result.status == "BLOCKED"
+    assert result.blockers[0].code == "CORE_FORECAST_PARENT_RUN_NOT_FOUND"
+    assert await sqlite_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
 
 
 @pytest.mark.unit
@@ -153,3 +168,32 @@ async def test_blocked_s3_result_writes_no_rows(
     assert result.daily_curve is None
     assert result.metrics is None
     assert await sqlite_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
+
+
+@pytest.mark.unit
+async def test_rerun_scope_mismatch_blocks_without_writing_child(
+    sqlite_session: AsyncSession,
+) -> None:
+    request = ExecuteCoreForecastRunRequest(
+        curve_request=_request(),
+        retention_policy=_policy(),
+    )
+    upstream = FixtureRepository(*_sources())
+    parent = await execute_core_forecast_run(
+        sqlite_session,
+        request=request,
+        upstream_repository=upstream,
+    )
+    assert parent.status == "COMPLETED"
+    assert parent.run is not None
+    mismatched_request = _request().model_copy(update={"destination_factory_id": 9102})
+    result = await recalculate_core_forecast_run(
+        sqlite_session,
+        source_run_id=parent.run.run_id,
+        curve_request=mismatched_request,
+        retention_policy=_policy(),
+        upstream_repository=upstream,
+    )
+    assert result.status == "BLOCKED"
+    assert result.blockers[0].code == "CORE_FORECAST_RERUN_SCOPE_MISMATCH"
+    assert await sqlite_session.scalar(select(func.count(CoreForecastRunModel.id))) == 1
