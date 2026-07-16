@@ -11,11 +11,15 @@ The command is:
     uv run python -m backend.app.cli core-forecast \
       --fixture backend/tests/fixtures/v0_1_complete_season_case_01/input.json
 
-The adapter strictly validates the complete-season fixture, creates the
-frozen S4 request and retention-policy snapshot, and calls the existing
-execute_core_forecast_run application service. The database session and
-outer transaction remain owned by the CLI/application boundary; the S4
-repository only flushes and reloads canonical state.
+The adapter strictly validates the complete-season fixture with a closed
+Pydantic schema (`extra=forbid`, strict integers/strings, fixed Decimal
+lexical quantities, finite non-negative values, and lowercase SHA-256
+identities). It validates the full production-plan, Task 8/Task 9 authority,
+retention-policy, and daily-input sections before creating the frozen S4
+request. It then calls the existing `execute_core_forecast_run` application
+service. The database session and outer transaction remain owned by the
+CLI/application boundary; the S4 repository only flushes and reloads
+canonical state.
 
 ## Execution and output
 
@@ -27,7 +31,15 @@ The production sequence is:
 4. Compute S3 single-day, rolling cumulative seven-day, and season metrics.
 5. Persist the completed S4 run, 1,080 daily rows, and three metrics.
 6. Reload the run through the S4 integrity gate.
-7. Emit a stable JSON summary.
+7. Compare the returned 1,080 canonical daily rows with the validated fixture
+   fields, including authority hashes, policy identity, state quantities, and
+   effective marketable quantity.
+8. Emit a stable JSON summary.
+
+The CLI does not reimplement S2 or S3 calculations. The post-execution
+comparison is an input-boundary and authority-consistency check; a mismatch
+raises an input error inside the caller-owned transaction and rolls back all
+S4 writes.
 
 The summary contains the run ID, request/result/curve/metrics hashes, date
 range, row and metric counts, and P50/P80/P90 metric values. Timestamps,
@@ -51,8 +63,17 @@ S4 persistence. No run, daily row, or metric fragment is written.
 The canonical fixture has 90 dates, four scopes, three quantiles, and exactly
 1,080 daily rows. The PostgreSQL E2E uses the existing production Task 8/Task
 9 authority seed, then proves first execution, reload parity, idempotent
-reuse, explicit rerun lineage, and blocked zero-write behavior. Frozen S2 and
-S3 curve/metrics hashes are compared without changing the fixture.
+reuse, explicit rerun lineage, and blocked zero-write behavior. Frozen S2,
+S3, and S4 result hashes are compared without changing the fixture:
+
+    curve_hash=de81bfa3a23efcef0398758e5105199eede9222adb0aff4acda67f3fe9697687
+    metrics_hash=cfba5f2af9236e907527ef72d2d8e0a34b99f2cad29aaac502e6159c1d6d586a
+    result_hash=802504d0798f6ce1f46978806a4b986eefe2ff733616b60af7143ff3e641535a
+
+The negative contract tests prove that missing daily quantities, native
+floats, state-equation or cross-day breaks, authority-hash mismatches,
+policy-hash mismatches, and unknown fixture fields fail before any run,
+daily-row, or metric write.
 
 ## Exclusions
 
