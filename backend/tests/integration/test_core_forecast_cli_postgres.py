@@ -155,6 +155,8 @@ async def test_postgres_core_forecast_full_season_e2e(
 
     blocked_payload = copy.deepcopy(rerun_payload)
     blocked_payload["task9_authority"]["run_id"] = 999001
+    for row in blocked_payload["daily_inputs"]:
+        row["task9_harvest_state_run_id"] = 999001
     blocked_fixture = tmp_path / "blocked.json"
     await _write_fixture(blocked_fixture, blocked_payload)
     before_counts = (
