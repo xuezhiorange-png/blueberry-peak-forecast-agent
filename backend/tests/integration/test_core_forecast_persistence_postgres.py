@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import asyncio
 import os
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core_forecast.persistence import CoreForecastRunRepository
+from backend.app.core_forecast.persistence import (
+    CoreForecastPersistenceConflictError,
+    CoreForecastRunRepository,
+)
+from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.core_forecast import (
     CoreForecastDailyRowModel,
+    CoreForecastMetricModel,
     CoreForecastRunModel,
 )
 from backend.tests.core_forecast.s4_test_helpers import fixture_request_and_outputs
@@ -25,6 +31,20 @@ pytestmark = [
         reason="LOCAL_POSTGRES_NOT_AVAILABLE",
     ),
 ]
+
+
+async def _cleanup_s4_rows() -> None:
+    async with AsyncSessionMaker() as session:
+        await session.execute(delete(CoreForecastMetricModel))
+        await session.execute(delete(CoreForecastDailyRowModel))
+        await session.execute(delete(CoreForecastRunModel))
+        await session.commit()
+
+
+async def _seed_committed_authorities() -> None:
+    async with AsyncSessionMaker() as session:
+        await _seed_authorities(session)
+        await session.commit()
 
 
 async def test_postgres_core_forecast_persistence_round_trip_and_integrity(
@@ -155,3 +175,91 @@ async def test_postgres_core_forecast_constraints_reject_duplicate_daily_key(
     with pytest.raises(IntegrityError):
         await transactional_pg_session.flush()
     await transactional_pg_session.rollback()
+
+
+async def test_concurrent_same_request_creates_one_physical_run() -> None:
+    await _seed_committed_authorities()
+    try:
+        (
+            request,
+            curve,
+            metrics,
+            policy_hash,
+            input_hash,
+            request_hash,
+            result_hash,
+        ) = await fixture_request_and_outputs()
+        barrier = asyncio.Barrier(2)
+
+        async def save_once() -> int:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await asyncio.wait_for(barrier.wait(), timeout=10)
+                    persisted = await CoreForecastRunRepository(session).save_completed_run(
+                        request=request,
+                        forecast_input_hash=input_hash,
+                        request_hash=request_hash,
+                        result_hash=result_hash,
+                        retention_policy_snapshot_hash=policy_hash,
+                        curve=curve,
+                        metrics=metrics,
+                        rerun_of_run_id=None,
+                    )
+                    return persisted.run.run_id
+
+        first_id, second_id = await asyncio.wait_for(
+            asyncio.gather(save_once(), save_once()), timeout=60
+        )
+        assert first_id == second_id
+        async with AsyncSessionMaker() as verify:
+            assert await verify.scalar(select(func.count(CoreForecastRunModel.id))) == 1
+            assert await verify.scalar(select(func.count(CoreForecastDailyRowModel.id))) == 1080
+            assert await verify.scalar(select(func.count(CoreForecastMetricModel.id))) == 3
+    finally:
+        await _cleanup_s4_rows()
+
+
+async def test_existing_same_hash_different_payload_raises_conflict() -> None:
+    await _seed_committed_authorities()
+    try:
+        (
+            request,
+            curve,
+            metrics,
+            policy_hash,
+            input_hash,
+            request_hash,
+            result_hash,
+        ) = await fixture_request_and_outputs()
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await CoreForecastRunRepository(session).save_completed_run(
+                    request=request,
+                    forecast_input_hash=input_hash,
+                    request_hash=request_hash,
+                    result_hash=result_hash,
+                    retention_policy_snapshot_hash=policy_hash,
+                    curve=curve,
+                    metrics=metrics,
+                    rerun_of_run_id=None,
+                )
+
+        async with AsyncSessionMaker() as conflict_session:
+            repository = CoreForecastRunRepository(conflict_session)
+            with pytest.raises(CoreForecastPersistenceConflictError) as exc_info:
+                await repository.save_completed_run(
+                    request=request,
+                    forecast_input_hash=input_hash,
+                    request_hash=request_hash,
+                    result_hash="f" * 64,
+                    retention_policy_snapshot_hash=policy_hash,
+                    curve=curve,
+                    metrics=metrics,
+                    rerun_of_run_id=None,
+                )
+            assert str(exc_info.value) == (
+                "request hash already exists with different canonical content"
+            )
+            await conflict_session.rollback()
+    finally:
+        await _cleanup_s4_rows()
