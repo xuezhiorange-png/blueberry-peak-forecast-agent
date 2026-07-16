@@ -224,6 +224,7 @@ shards:
       - backend/tests/test_alembic_baseline.py
       - backend/tests/test_harvest_state_alembic.py
       - backend/tests/test_residual_model_alembic.py
+      - backend/tests/test_core_forecast_alembic.py
       - "-q"
       - "--tb=short"
     owner_files:
@@ -232,6 +233,7 @@ shards:
       - backend/tests/test_residual_model_alembic.py
       - backend/tests/test_alembic_round_trip_isolated.py
       - backend/tests/test_alembic_round_trip_isolated_db_live.py
+      - backend/tests/test_core_forecast_alembic.py
     notes: |
       PR #55 §3 row 3. Alembic migration round-trip tests.
       Excludes backend/tests/integration/test_task11_phase3_schema_gap_persistence.py
@@ -241,6 +243,7 @@ shards:
       (P1 manifest-ownership fixup for Batch 4 Slice 1); pytest_args is
       unchanged in this round and will be widened in a future round that
       also exercises those files under postgres-migration pytest run.
+      The S4 core forecast migration contract is uniquely owned here.
 
   # ------------------------------------------------------------------
   # §3 row 4 — postgres-task11 (pull_request only)
@@ -335,6 +338,7 @@ shards:
       - backend/tests/integration/agent/test_postgres_selector_year_extraction.py
       - backend/tests/integration/agent/test_slice_c_orchestration_postgres.py
       - backend/tests/integration/test_v0_1_s2_complete_daily_curve_postgres.py
+      - backend/tests/integration/test_core_forecast_persistence_postgres.py
       - "-m"
       - "not postgres_concurrency"
       - "-q"
@@ -363,6 +367,7 @@ shards:
       - backend/tests/integration/agent/test_postgres_selector_year_extraction.py
       - backend/tests/integration/agent/test_slice_c_orchestration_postgres.py
       - backend/tests/integration/test_v0_1_s2_complete_daily_curve_postgres.py
+      - backend/tests/integration/test_core_forecast_persistence_postgres.py
     notes: |
       PR #55 §3 row 4. Integration domain tests, slice 1 of 2.
       Covers Task 7 / 9 / 10 (cutoff, authority, master data, residual
@@ -373,6 +378,8 @@ shards:
       those nodes are owned by postgres-concurrency (sharp selector wins).
       V0.1-S2 complete daily marketable curve PostgreSQL replay is uniquely
       owned here; it is not duplicated in another PostgreSQL shard or canary.
+      V0.1-S4 core forecast persistence is uniquely owned here; it is not
+      duplicated in postgres-domain-2, postgres-concurrency, or canary.
 
   # ------------------------------------------------------------------
   # §3 row 7 — postgres-domain-2 (pull_request only, slice 2)
