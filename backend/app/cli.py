@@ -12,6 +12,13 @@ from typing import TextIO
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.app.core_forecast.application import execute_core_forecast_run
+from backend.app.core_forecast.cli import (
+    CoreForecastCliError,
+    CoreForecastExecutor,
+    dispatch_core_forecast,
+    register_core_forecast_parser,
+)
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.application import (
     HarvestStateDeliveryConflictError,
@@ -64,6 +71,7 @@ def _parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--format", required=True, choices=("json", "csv"))
     report_parser.add_argument("--output", required=True)
     register_residual_model_parser(subparsers)
+    register_core_forecast_parser(subparsers)
     return parser
 
 
@@ -183,7 +191,16 @@ async def _dispatch(
     session_factory: async_sessionmaker[AsyncSession],
     stdin: TextIO,
     stdout: TextIO,
+    core_executor: CoreForecastExecutor | None = None,
 ) -> None:
+    if args.resource == "core-forecast":
+        await dispatch_core_forecast(
+            args,
+            session_factory=session_factory,
+            stdout=stdout,
+            executor=core_executor or execute_core_forecast_run,
+        )
+        return
     if args.resource != "harvest-state":
         if args.resource == "residual-model":
             await dispatch_residual_model(
@@ -213,6 +230,7 @@ def run_cli(
     stdin: TextIO = sys.stdin,
     stdout: TextIO = sys.stdout,
     stderr: TextIO = sys.stderr,
+    core_executor: CoreForecastExecutor | None = None,
 ) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
     try:
@@ -225,6 +243,7 @@ def run_cli(
                     session_factory=session_factory,
                     stdin=stdin,
                     stdout=stdout,
+                    core_executor=core_executor,
                 )
             )
         else:
@@ -238,6 +257,7 @@ def run_cli(
                             session_factory=session_factory,
                             stdin=stdin,
                             stdout=stdout,
+                            core_executor=core_executor,
                         )
                     )
                 except BaseException as exc:  # noqa: BLE001
@@ -251,6 +271,7 @@ def run_cli(
     except (
         HarvestStateDeliveryError,
         ResidualModelCliError,
+        CoreForecastCliError,
         ValidationError,
         json.JSONDecodeError,
     ) as exc:
@@ -260,6 +281,10 @@ def run_cli(
             stderr.flush()
             return _delivery_error_exit_code(error)
         if isinstance(exc, ResidualModelCliError):
+            stderr.write(f"{exc.code}: {exc}\n")
+            stderr.flush()
+            return exc.exit_code
+        if isinstance(exc, CoreForecastCliError):
             stderr.write(f"{exc.code}: {exc}\n")
             stderr.flush()
             return exc.exit_code
@@ -275,3 +300,7 @@ def run_cli(
 
 def main() -> None:
     raise SystemExit(run_cli())
+
+
+if __name__ == "__main__":
+    main()
