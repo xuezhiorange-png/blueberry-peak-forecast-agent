@@ -25,12 +25,20 @@ from backend.app.db.base import Base
 
 _BIGINT_VARIANT = BigInteger().with_variant(Integer(), "sqlite")
 _JSON_VARIANT = JSON().with_variant(JSONB(), "postgresql")
-_HASH_CHECK = r"length({column}) = 64 AND {column} NOT GLOB '*[^0-9a-f]*'"
 _QUANTILES = "forecast_quantile in ('P50', 'P80', 'P90')"
 
 
-def _hash_check(column: str, name: str) -> CheckConstraint:
-    return CheckConstraint(_HASH_CHECK.format(column=column), name=name)
+def _hash_checks(column: str, name: str) -> tuple[CheckConstraint, CheckConstraint]:
+    return (
+        CheckConstraint(
+            f"length({column}) = 64 AND {column} NOT GLOB '*[^0-9a-f]*'",
+            name=name,
+        ).ddl_if(dialect="sqlite"),
+        CheckConstraint(
+            f"{column} ~ '^[0-9a-f]{{64}}$'",
+            name=name,
+        ).ddl_if(dialect="postgresql"),
+    )
 
 
 class CoreForecastRunModel(Base):
@@ -65,17 +73,17 @@ class CoreForecastRunModel(Base):
         ),
         CheckConstraint("daily_row_count > 0", name="ck_core_forecast_run_daily_count_positive"),
         CheckConstraint("metric_row_count = 3", name="ck_core_forecast_run_metric_count_three"),
-        _hash_check("forecast_input_hash", "ck_core_forecast_run_forecast_input_hash"),
-        _hash_check("request_hash", "ck_core_forecast_run_request_hash"),
-        _hash_check("result_hash", "ck_core_forecast_run_result_hash"),
-        _hash_check(
+        *_hash_checks("forecast_input_hash", "ck_core_forecast_run_forecast_input_hash"),
+        *_hash_checks("request_hash", "ck_core_forecast_run_request_hash"),
+        *_hash_checks("result_hash", "ck_core_forecast_run_result_hash"),
+        *_hash_checks(
             "retention_policy_snapshot_hash",
             "ck_core_forecast_run_policy_snapshot_hash",
         ),
-        _hash_check("curve_hash", "ck_core_forecast_run_curve_hash"),
-        _hash_check("metrics_hash", "ck_core_forecast_run_metrics_hash"),
-        _hash_check("task8_artifact_hash", "ck_core_forecast_run_task8_artifact_hash"),
-        _hash_check("task9_result_hash", "ck_core_forecast_run_task9_result_hash"),
+        *_hash_checks("curve_hash", "ck_core_forecast_run_curve_hash"),
+        *_hash_checks("metrics_hash", "ck_core_forecast_run_metrics_hash"),
+        *_hash_checks("task8_artifact_hash", "ck_core_forecast_run_task8_artifact_hash"),
+        *_hash_checks("task9_result_hash", "ck_core_forecast_run_task9_result_hash"),
         UniqueConstraint("request_hash", name="uq_core_forecast_run_request_hash"),
         UniqueConstraint("result_hash", name="uq_core_forecast_run_result_hash"),
     )
@@ -164,10 +172,10 @@ class CoreForecastDailyRowModel(Base):
             "AND postharvest_retention_rate >= 0 AND postharvest_retention_rate <= 1",
             name="ck_core_forecast_daily_row_retention_range",
         ),
-        _hash_check("task8_artifact_hash", "ck_core_forecast_daily_row_task8_hash"),
-        _hash_check("task9_result_hash", "ck_core_forecast_daily_row_task9_hash"),
-        _hash_check("marketable_policy_hash", "ck_core_forecast_daily_row_policy_hash"),
-        _hash_check("row_hash", "ck_core_forecast_daily_row_hash"),
+        *_hash_checks("task8_artifact_hash", "ck_core_forecast_daily_row_task8_hash"),
+        *_hash_checks("task9_result_hash", "ck_core_forecast_daily_row_task9_hash"),
+        *_hash_checks("marketable_policy_hash", "ck_core_forecast_daily_row_policy_hash"),
+        *_hash_checks("row_hash", "ck_core_forecast_daily_row_hash"),
         UniqueConstraint(
             "core_forecast_run_id",
             "date",
