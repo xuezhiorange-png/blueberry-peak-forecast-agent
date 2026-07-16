@@ -16,9 +16,10 @@ depends_on: str | Sequence[str] | None = None
 _BIGINT = sa.BigInteger().with_variant(sa.Integer(), "sqlite")
 _JSON = sa.JSON().with_variant(postgresql.JSONB(), "postgresql")
 _NUMERIC = sa.Numeric(24, 6)
-_HASH = lambda column: (
-    f"length({column}) = 64 AND {column} NOT GLOB '*[^0-9a-f]*'"
-)
+
+
+def _hash_check(column: str) -> str:
+    return f"length({column}) = 64 AND {column} NOT GLOB '*[^0-9a-f]*'"
 
 
 def upgrade() -> None:
@@ -80,7 +81,12 @@ def upgrade() -> None:
         ),
         sa.Column("daily_row_count", _BIGINT, nullable=False),
         sa.Column("metric_row_count", _BIGINT, nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=False),
         sa.CheckConstraint("status = 'completed'", name="ck_core_forecast_run_completed_only"),
         sa.CheckConstraint(
@@ -112,7 +118,7 @@ def upgrade() -> None:
         sa.CheckConstraint("daily_row_count > 0", name="ck_core_forecast_run_daily_count_positive"),
         sa.CheckConstraint("metric_row_count = 3", name="ck_core_forecast_run_metric_count_three"),
         *[
-            sa.CheckConstraint(_HASH(column), name=f"ck_core_forecast_run_{column}")
+            sa.CheckConstraint(_hash_check(column), name=f"ck_core_forecast_run_{column}")
             for column in (
                 "forecast_input_hash",
                 "request_hash",
@@ -193,8 +199,13 @@ def upgrade() -> None:
             name="ck_core_forecast_daily_row_retention_range",
         ),
         *[
-            sa.CheckConstraint(_HASH(column), name=f"ck_core_forecast_daily_row_{column}")
-            for column in ("task8_artifact_hash", "task9_result_hash", "marketable_policy_hash", "row_hash")
+            sa.CheckConstraint(_hash_check(column), name=f"ck_core_forecast_daily_row_{column}")
+            for column in (
+                "task8_artifact_hash",
+                "task9_result_hash",
+                "marketable_policy_hash",
+                "row_hash",
+            )
         ],
         sa.UniqueConstraint(
             "core_forecast_run_id",
@@ -277,7 +288,11 @@ def upgrade() -> None:
             name="uq_core_forecast_metric_run_quantile",
         ),
     )
-    op.create_index("ix_core_forecast_metric_run_id", "core_forecast_metric", ["core_forecast_run_id"])
+    op.create_index(
+        "ix_core_forecast_metric_run_id",
+        "core_forecast_metric",
+        ["core_forecast_run_id"],
+    )
 
 
 def downgrade() -> None:
