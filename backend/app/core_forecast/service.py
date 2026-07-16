@@ -11,6 +11,7 @@ from typing import Literal
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.core_forecast.canonical import compute_daily_curve_hash
 from backend.app.core_forecast.repository import (
     CoreForecastRepository,
     SqlAlchemyCoreForecastRepository,
@@ -32,7 +33,6 @@ from backend.app.core_forecast.schemas import (
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
-_SCHEMA_VERSION = "v0.1-complete-daily-marketable-curve-v1"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -521,14 +521,7 @@ def _compose_validated_curve(
         )
     )
     rows = tuple(output_rows)
-    curve_hash = hashlib.sha256(
-        canonical_json_dumps(
-            {
-                "schema_version": _SCHEMA_VERSION,
-                "rows": [row.model_dump(mode="json") for row in rows],
-            }
-        ).encode("utf-8")
-    ).hexdigest()
+    curve_hash = compute_daily_curve_hash(rows)
     return CompleteDailyMarketableCurveResult(
         status="COMPLETED",
         rows=rows,
