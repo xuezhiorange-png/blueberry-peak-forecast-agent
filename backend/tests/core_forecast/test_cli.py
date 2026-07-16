@@ -358,6 +358,28 @@ async def test_cli_rejects_policy_hash_mismatch(
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize(
+    "field",
+    (
+        "labor_availability_ratio",
+        "operational_efficiency_ratio",
+        "weather_efficiency_ratio",
+    ),
+)
+async def test_cli_rejects_out_of_range_efficiency_ratio(
+    sqlite_session: AsyncSession,
+    tmp_path: Path,
+    field: str,
+) -> None:
+    payload = _fixture_payload()
+    daily_rows = payload["daily_inputs"]
+    assert isinstance(daily_rows, list)
+    assert isinstance(daily_rows[0], dict)
+    daily_rows[0][field] = "1.000001"
+    await _assert_invalid_fixture(sqlite_session, tmp_path, payload)
+
+
+@pytest.mark.unit
 async def test_cli_rejects_unknown_fixture_field(
     sqlite_session: AsyncSession,
     tmp_path: Path,
