@@ -339,6 +339,7 @@ shards:
       - backend/tests/integration/agent/test_slice_c_orchestration_postgres.py
       - backend/tests/integration/test_v0_1_s2_complete_daily_curve_postgres.py
       - backend/tests/integration/test_core_forecast_persistence_postgres.py
+      - backend/tests/integration/test_core_forecast_cli_postgres.py
       - "-m"
       - "not postgres_concurrency"
       - "-q"
@@ -368,6 +369,7 @@ shards:
       - backend/tests/integration/agent/test_slice_c_orchestration_postgres.py
       - backend/tests/integration/test_v0_1_s2_complete_daily_curve_postgres.py
       - backend/tests/integration/test_core_forecast_persistence_postgres.py
+      - backend/tests/integration/test_core_forecast_cli_postgres.py
     notes: |
       PR #55 §3 row 4. Integration domain tests, slice 1 of 2.
       Covers Task 7 / 9 / 10 (cutoff, authority, master data, residual
@@ -380,6 +382,8 @@ shards:
       owned here; it is not duplicated in another PostgreSQL shard or canary.
       V0.1-S4 core forecast persistence is uniquely owned here; it is not
       duplicated in postgres-domain-2, postgres-concurrency, or canary.
+      V0.1-S5 unified core forecast CLI full-season PostgreSQL E2E is uniquely
+      owned here; it is not duplicated in another PostgreSQL shard or canary.
 
   # ------------------------------------------------------------------
   # §3 row 7 — postgres-domain-2 (pull_request only, slice 2)
