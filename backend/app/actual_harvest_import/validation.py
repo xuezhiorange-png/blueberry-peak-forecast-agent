@@ -7,6 +7,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from backend.app.actual_harvest_import.enums import SourceRecordedAtAuthorityStatus
 
+NUMERIC_PRECISION = 18
+NUMERIC_SCALE = 6
+
 
 class TrustedSourceTimestampRecord(Protocol):
     source_recorded_at: datetime | None
@@ -66,6 +69,20 @@ def validate_non_negative_finite_decimal(
         raise ValueError(f"{field_name} must be finite")
     if decimal_value < 0:
         raise ValueError(f"{field_name} must be non-negative")
+    exponent = decimal_value.as_tuple().exponent
+    if not isinstance(exponent, int):
+        raise ValueError(f"{field_name} must have a finite decimal exponent")
+    scale = max(-exponent, 0)
+    integral_digits = max(len(decimal_value.as_tuple().digits) + exponent, 0)
+    if (
+        scale > NUMERIC_SCALE
+        or integral_digits > NUMERIC_PRECISION - NUMERIC_SCALE
+        or integral_digits + min(scale, NUMERIC_SCALE) > NUMERIC_PRECISION
+    ):
+        raise ValueError(
+            f"{field_name} must be exactly representable as "
+            f"NUMERIC({NUMERIC_PRECISION},{NUMERIC_SCALE})"
+        )
     return decimal_value
 
 
