@@ -42,6 +42,29 @@ def test_scalar_helpers_are_strict_and_deterministic() -> None:
     assert validate_sha256_hex("a" * 64) == "a" * 64
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        Decimal("0"),
+        Decimal("0.000001"),
+        Decimal("999999999999.999999"),
+    ],
+)
+def test_decimal_helper_accepts_exact_numeric_18_6_values(value: Decimal) -> None:
+    assert validate_non_negative_finite_decimal(value) == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [Decimal("0.0000001"), Decimal("1000000000000"), Decimal("9999999999999999999")],
+)
+def test_decimal_helper_rejects_values_not_representable_as_numeric_18_6(
+    value: Decimal,
+) -> None:
+    with pytest.raises(ValueError, match=r"NUMERIC\(18,6\)"):
+        validate_non_negative_finite_decimal(value)
+
+
 @pytest.mark.parametrize("value", [True, 1.0, float("nan"), float("inf"), Decimal("-1")])
 def test_decimal_helper_rejects_non_contract_values(value: object) -> None:
     with pytest.raises(ValueError):
