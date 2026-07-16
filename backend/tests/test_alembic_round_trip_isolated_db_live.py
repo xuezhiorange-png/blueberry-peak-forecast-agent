@@ -669,14 +669,18 @@ def test_live_alembic_version_equals_current_head() -> None:
 def test_live_task9_completed_v1_data_survives_0015_0016_round_trip(
     record_property: Callable[[str, object], None],
 ) -> None:
-    """A complete persisted Task 9 v1 authority survives 0015/0016 byte-exact."""
+    """Preserve Task 9 data across 0015/0016 while restoring current head.
+
+    The compatibility transition is fixed at 0015 -> 0016 -> 0015. The
+    project's terminal head is resolved dynamically and may be later than
+    0016, so the final upgrade restores that discovered head.
+    """
 
     from alembic import command
 
     env = _required_live_env()
     database = env["ISOLATED_DB_NAME"]
     expected_head = _expected_head_revision()
-    assert expected_head == _REVISION_0016
     golden = _load_task9_v1_golden()
     expected_counts = {
         "runs": 1,

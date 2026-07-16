@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Annotated, Literal
 
@@ -40,6 +40,12 @@ CoreForecastBlockerCode = Literal[
     "NO_COMPLETE_7DAY_WINDOW",
     "PEAK_METRIC_INVARIANT_FAILED",
     "UPSTREAM_READ_FAILURE",
+    "CORE_FORECAST_PARENT_RUN_NOT_FOUND",
+    "CORE_FORECAST_RERUN_SCOPE_MISMATCH",
+    "CORE_FORECAST_RERUN_INPUT_UNCHANGED",
+    "CORE_FORECAST_PERSISTENCE_CONFLICT",
+    "CORE_FORECAST_PERSISTENCE_INTEGRITY_FAILED",
+    "CORE_FORECAST_WRITE_FAILURE",
 ]
 
 
@@ -280,3 +286,87 @@ class CompleteCoreForecastMetricsResult(_FrozenModel):
                 "blocked metrics require no metrics or hashes and at least one blocker"
             )
         return self
+
+
+class ExecuteCoreForecastRunRequest(_FrozenModel):
+    curve_request: CompleteDailyMarketableCurveRequest
+    retention_policy: MarketableRetentionPolicySnapshot
+    rerun_of_run_id: StrictPositiveInt | None = None
+
+
+def _timezone_aware(value: object) -> datetime:
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("datetime must be timezone-aware")
+    return value
+
+
+class CoreForecastRunSummary(_FrozenModel):
+    run_id: StrictPositiveInt
+    status: Literal["completed"]
+    run_schema_version: Literal["v0.1-core-forecast-run-v1"]
+    request_schema_version: Literal["v0.1-core-forecast-request-v1"]
+    date_basis: Literal["HARVEST_BUSINESS_DATE"]
+
+    forecast_input_hash: SHA256Hex
+    request_hash: SHA256Hex
+    result_hash: SHA256Hex
+    retention_policy_snapshot_hash: SHA256Hex
+    curve_hash: SHA256Hex
+    metrics_hash: SHA256Hex
+
+    rerun_of_run_id: StrictPositiveInt | None
+    forecast_season_id: StrictPositiveInt
+    forecast_season_code: StrictNonEmptyString
+    forecast_start_date: date
+    forecast_end_date: date
+    destination_factory_id: StrictPositiveInt
+    task8_forecast_run_id: StrictPositiveInt
+    task9_harvest_state_run_id: StrictPositiveInt
+    daily_row_count: Annotated[int, Field(strict=True, gt=0)]
+    metric_row_count: Literal[3]
+    created_at: datetime
+    completed_at: datetime
+
+    _validate_created_at = field_validator("created_at", "completed_at", mode="before")(
+        _timezone_aware
+    )
+
+    @model_validator(mode="after")
+    def _date_range_is_valid(self) -> CoreForecastRunSummary:
+        if self.forecast_end_date < self.forecast_start_date:
+            raise ValueError("forecast_end_date must be >= forecast_start_date")
+        return self
+
+
+class CoreForecastExecutionResult(_FrozenModel):
+    status: Literal["COMPLETED", "BLOCKED"]
+    run: CoreForecastRunSummary | None
+    daily_curve: CompleteDailyMarketableCurveResult | None
+    metrics: CompleteCoreForecastMetricsResult | None
+    reused_existing_run: bool
+    blockers: tuple[CoreForecastBlocker, ...]
+
+    @model_validator(mode="after")
+    def _status_is_consistent(self) -> CoreForecastExecutionResult:
+        if self.status == "COMPLETED":
+            if (
+                self.run is None
+                or self.daily_curve is None
+                or self.daily_curve.status != "COMPLETED"
+                or self.metrics is None
+                or self.metrics.status != "COMPLETED"
+                or self.blockers
+            ):
+                raise ValueError("completed execution requires complete run, curve, and metrics")
+        elif self.run is not None or self.daily_curve is not None or self.metrics is not None:
+            raise ValueError("blocked execution must not expose partial output")
+        elif not self.blockers or self.reused_existing_run:
+            raise ValueError("blocked execution requires blockers and cannot be reused")
+        return self
+
+
+class PersistedCoreForecastRun(_FrozenModel):
+    run: CoreForecastRunSummary
+    request: ExecuteCoreForecastRunRequest
+    daily_curve: CompleteDailyMarketableCurveResult
+    metrics: CompleteCoreForecastMetricsResult

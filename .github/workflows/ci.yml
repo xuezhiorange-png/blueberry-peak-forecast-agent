@@ -408,6 +408,7 @@ jobs:
             backend/tests/test_residual_model_alembic.py \
             backend/tests/test_alembic_round_trip_isolated.py \
             backend/tests/test_alembic_round_trip_isolated_db_live.py \
+            backend/tests/test_core_forecast_alembic.py \
             -q --tb=long \
             --durations=30 \
             --junitxml=reports/test-results/postgres-migration.xml
@@ -707,6 +708,7 @@ jobs:
             backend/tests/integration/agent/test_postgres_selector_year_extraction.py \
             backend/tests/integration/agent/test_slice_c_orchestration_postgres.py \
             backend/tests/integration/test_v0_1_s2_complete_daily_curve_postgres.py \
+            backend/tests/integration/test_core_forecast_persistence_postgres.py \
             -m "not postgres_concurrency" -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \
