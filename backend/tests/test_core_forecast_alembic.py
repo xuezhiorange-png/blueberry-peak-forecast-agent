@@ -8,6 +8,12 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from sqlalchemy import create_engine, inspect
 
+from backend.tests.actual_harvest_import.alembic_cases import (
+    assert_actual_harvest_alembic_head_and_revision_contract,
+    assert_actual_harvest_migration_architecture_contract,
+    assert_actual_harvest_sqlite_upgrade_downgrade_upgrade,
+)
+
 MIGRATION_PATH = Path("backend/alembic/versions/0017_core_forecast_run_persistence.py")
 MIGRATION_REVISION = "0017_core_forecast_run_persistence"
 
@@ -109,3 +115,15 @@ def test_s4_tables_have_required_constraints_and_foreign_keys() -> None:
                 "fk_core_forecast_run_rerun_parent",
             }:
                 assert foreign_key["options"]["ondelete"] == "RESTRICT"
+
+
+def test_actual_harvest_alembic_head_and_revision_contract() -> None:
+    assert_actual_harvest_alembic_head_and_revision_contract()
+
+
+def test_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
+    assert_actual_harvest_sqlite_upgrade_downgrade_upgrade()
+
+
+def test_actual_harvest_migration_architecture_contract() -> None:
+    assert_actual_harvest_migration_architecture_contract()

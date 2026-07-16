@@ -1,3 +1,7 @@
+from backend.app.actual_harvest_import.models import (
+    ActualHarvestImportBatchModel,
+    ActualHarvestImportRecordModel,
+)
 from backend.app.models.analytics import (
     AnalyticsBuildRun,
     FactorySeasonPeakMetric,
@@ -76,6 +80,8 @@ from backend.app.models.weather import (
 )
 
 __all__ = [
+    "ActualHarvestImportBatchModel",
+    "ActualHarvestImportRecordModel",
     "AnalyticsBuildRun",
     "AgroClimateZone",
     "BaselineBacktestResult",

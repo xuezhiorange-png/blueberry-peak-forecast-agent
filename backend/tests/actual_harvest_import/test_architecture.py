@@ -8,6 +8,7 @@ import pytest
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
 PACKAGE_ROOT = Path(__file__).parents[2] / "app" / "actual_harvest_import"
+CONTRACT_FILES = ("__init__.py", "enums.py", "schemas.py", "validation.py")
 FORBIDDEN_IMPORTS = {
     "sqlalchemy",
     "alembic",
@@ -26,7 +27,8 @@ FORBIDDEN_IMPORTS = {
 
 def test_contract_package_has_no_persistence_parser_or_api_imports() -> None:
     imports: set[str] = set()
-    for path in PACKAGE_ROOT.glob("*.py"):
+    for filename in CONTRACT_FILES:
+        path = PACKAGE_ROOT / filename
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -44,7 +46,9 @@ def test_contract_package_has_no_persistence_parser_or_api_imports() -> None:
 
 
 def test_contract_package_contains_no_implementation_layers() -> None:
-    source = "\n".join(path.read_text(encoding="utf-8") for path in PACKAGE_ROOT.glob("*.py"))
+    source = "\n".join(
+        (PACKAGE_ROOT / filename).read_text(encoding="utf-8") for filename in CONTRACT_FILES
+    )
     assert "sqlalchemy" not in source
     assert "alembic" not in source
     assert "def parse_" not in source
