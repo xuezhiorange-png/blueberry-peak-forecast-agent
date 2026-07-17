@@ -8,6 +8,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "fastapi>=0.115.0",
     "numpy>=2.3.0",
+    "openpyxl>=3.1.5",
     "pydantic>=2.11.0",
     "pydantic-settings>=2.9.0",
     "PyYAML>=6.0.2",
@@ -99,7 +100,7 @@ module = "alembic.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["yaml", "xlrd", "xlrd.*"]
+module = ["openpyxl", "openpyxl.*", "yaml", "xlrd", "xlrd.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
