@@ -184,26 +184,32 @@ def test_dev_db_database_url_dev_db_is_rejected() -> None:
     )
 
 
-def test_test_db_correct_profile_is_accepted() -> None:
-    """Guard MUST accept the correct test profile."""
-    result = _run_helper(env_overrides=dict(_TEST_PROFILE_ENV))
+def test_test_db_correct_profile_is_accepted(tmp_path: Path) -> None:
+    """The guard accepts the test profile and delegates to ``docker compose``.
 
-    if result.returncode == 127:
-        pytest.skip(
-            "docker not available in this sandbox; skipping "
-            "downstream assertion (guard is still exercised)."
-        )
-
-    combined = (result.stdout + result.stderr).lower()
-    assert (
-        "blueberry_peak_test" in result.stdout
-        or result.returncode == 0
-        or "docker" in combined
-        or "compose" in combined
-    ), (
-        f"Guard refused correct profile (not docker-related). "
-        f"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
+    The compose command is intercepted by a temporary ``docker`` stub so
+    this harness test never starts a nested PostgreSQL service in CI.
+    """
+    docker_stub = tmp_path / "docker"
+    docker_stub.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' 'PR113_DOCKER_COMPOSE_STUB_MARKER'\n"
+        "printf 'compose_args=%s\\n' \"$*\"\n",
+        encoding="utf-8",
     )
+    docker_stub.chmod(0o755)
+    env = dict(_TEST_PROFILE_ENV)
+    env["PATH"] = f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}"
+
+    result = _run_helper(env_overrides=env)
+
+    assert result.returncode == 0, (
+        f"Guard refused correct profile: stdout={result.stdout!r} "
+        f"stderr={result.stderr!r} rc={result.returncode}"
+    )
+    assert "PR113_DOCKER_COMPOSE_STUB_MARKER" in result.stdout
+    assert "compose_args=compose" in result.stdout
 
 
 def test_check_test_profile_unit_helper() -> None:

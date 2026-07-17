@@ -430,10 +430,12 @@ def test_both_pg_test_modules_use_same_resolver() -> None:
     # result of ``resolve_postgres_test_dsn()`` (called at import).
     # They must therefore point at the same DSN string and the
     # same DB.
+    expected_dsn = shared.resolve_postgres_test_dsn()
+    expected_db = (urlparse(expected_dsn).path or "").lstrip("/")
     assert year_mod.POSTGRES_TEST_DSN == round11_mod.POSTGRES_TEST_DSN
     year_db = (urlparse(year_mod.POSTGRES_TEST_DSN).path or "").lstrip("/")
     round11_db = (urlparse(round11_mod.POSTGRES_TEST_DSN).path or "").lstrip("/")
-    assert year_db == round11_db == "blueberry_peak"
+    assert year_db == round11_db == expected_db
     # And the function identity must be the shared module's symbol.
     assert year_mod.resolve_postgres_test_dsn is shared.resolve_postgres_test_dsn
     assert round11_mod.resolve_postgres_test_dsn is shared.resolve_postgres_test_dsn
