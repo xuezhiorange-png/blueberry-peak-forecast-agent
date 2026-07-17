@@ -39,6 +39,7 @@ POSTGRES_TEST_DB_SH = (REPO_ROOT / "backend" / "scripts" / "postgres_test_db.sh"
 WAIT_FOR_POSTGRES_SH = (REPO_ROOT / "backend" / "scripts" / "wait_for_postgres.sh").resolve()
 RESET_TEST_DB_SH = (REPO_ROOT / "backend" / "scripts" / "reset_test_db.sh").resolve()
 MAKEFILE = (REPO_ROOT / "Makefile").resolve()
+CI_WORKFLOW = (REPO_ROOT / ".github" / "workflows" / "ci.yml").resolve()
 
 # Skip the whole module if `make` is not on PATH (sandbox without it).
 _REQUIRE_MAKE = pytest.mark.skipif(
@@ -100,6 +101,37 @@ def _run_make(
         cwd=str(REPO_ROOT),
         timeout=30,
     )
+
+
+def _write_docker_compose_stub(path: Path) -> None:
+    """Create a docker stub that accepts only the expected compose command."""
+    path.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'if [[ "$#" -ne 5 || '
+        '"$1" != "compose" || '
+        '"$2" != "-f" || '
+        '"$3" != "docker-compose.test.yml" || '
+        '"$4" != "up" || '
+        '"$5" != "-d" ]]; then\n'
+        "    printf 'unexpected docker argv:' >&2\n"
+        "    printf ' <%s>' \"$@\" >&2\n"
+        "    printf '\\n' >&2\n"
+        "    exit 64\n"
+        "fi\n"
+        "printf '%s\\n' 'PR113_DOCKER_COMPOSE_STUB_MARKER'\n"
+        "printf '%s\\n' 'compose_args=compose -f docker-compose.test.yml up -d'\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
+def _full_suite_cleanup_step() -> str:
+    """Return the full-suite cleanup script for static safety assertions."""
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    start_marker = "      - name: Drop isolated test database\n"
+    start = workflow.rindex(start_marker)
+    return workflow[start:]
 
 
 # Standard "correct test profile" env, used to verify the guard accepts it.
@@ -191,14 +223,7 @@ def test_test_db_correct_profile_is_accepted(tmp_path: Path) -> None:
     this harness test never starts a nested PostgreSQL service in CI.
     """
     docker_stub = tmp_path / "docker"
-    docker_stub.write_text(
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        "printf '%s\\n' 'PR113_DOCKER_COMPOSE_STUB_MARKER'\n"
-        "printf 'compose_args=%s\\n' \"$*\"\n",
-        encoding="utf-8",
-    )
-    docker_stub.chmod(0o755)
+    _write_docker_compose_stub(docker_stub)
     env = dict(_TEST_PROFILE_ENV)
     env["PATH"] = f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}"
 
@@ -209,7 +234,49 @@ def test_test_db_correct_profile_is_accepted(tmp_path: Path) -> None:
         f"stderr={result.stderr!r} rc={result.returncode}"
     )
     assert "PR113_DOCKER_COMPOSE_STUB_MARKER" in result.stdout
-    assert "compose_args=compose" in result.stdout
+    assert "compose_args=compose -f docker-compose.test.yml up -d" in result.stdout
+
+
+def test_docker_compose_stub_rejects_invalid_argv(tmp_path: Path) -> None:
+    """The safety-test stub must reject non-start commands and wrong files."""
+    docker_stub = tmp_path / "docker"
+    _write_docker_compose_stub(docker_stub)
+
+    result = subprocess.run(
+        [str(docker_stub), "compose", "down"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 64
+    assert "unexpected docker argv" in result.stderr
+
+
+def test_full_suite_cleanup_revalidates_identity_before_database_connect() -> None:
+    """Cleanup must derive and verify its target before any DB connection."""
+    step = _full_suite_cleanup_step()
+    expected_assignment = step.index("expected_name = resolve_verified_cleanup_name()")
+    expected_resolution = step.index("expected_name = resolve_isolated_db_name(")
+    safe_validation = step.index("assert_safe_isolated_db_name(expected_name)")
+    job_identity_read = step.index('job_name = os.environ.get("ISOLATED_JOB_NAME")')
+    job_identity_guard = step.index('if job_name != "full-suite-canary":')
+    propagated_read = step.index('propagated_name = os.environ.get("ISOLATED_DB_NAME")')
+    mismatch_guard = step.index("if propagated_name != expected_name:")
+    database_connect = step.index("asyncpg.connect")
+
+    assert '\n          name = os.environ.get("ISOLATED_DB_NAME")' not in step
+    assert job_identity_read < job_identity_guard < expected_resolution
+    assert expected_resolution < safe_validation < propagated_read < mismatch_guard
+    assert mismatch_guard < database_connect
+    assert expected_assignment < database_connect
+    assert "pg_terminate_backend(pid)" in step
+    database_sql = step[database_connect:]
+    assert '"WHERE datname = $1 AND pid <> pg_backend_pid()"' in database_sql
+    assert '"SELECT 1 FROM pg_database WHERE datname = $1"' in database_sql
+    assert "f'DROP DATABASE \"{expected_name}\"'" in database_sql
+    assert database_sql.count("expected_name") >= 3
+    assert "propagated_name" not in database_sql
 
 
 def test_check_test_profile_unit_helper() -> None:
