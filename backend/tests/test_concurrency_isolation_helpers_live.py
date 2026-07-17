@@ -138,6 +138,8 @@ def _skip_unless_safe_isolated_db_present() -> str:
 
 def test_isolated_db_name_resolves_to_expected_template() -> None:
     """``ISOLATED_DB_NAME`` must end with the canonical ``postgres_concurrency`` job segment."""
+    if os.getenv("ISOLATED_JOB_NAME") != ISOLATED_JOB_NAME:
+        pytest.skip("requires postgres-concurrency isolated database profile")
     name = _skip_unless_safe_isolated_db_present()
     assert name.endswith(f"_{ISOLATED_JOB_NAME}"), (
         f"unexpected ISOLATED_DB_NAME={name!r}; expected it to end with _{ISOLATED_JOB_NAME}"
@@ -146,6 +148,8 @@ def test_isolated_db_name_resolves_to_expected_template() -> None:
 
 def test_resolver_matches_ci_step_for_known_run_inputs() -> None:
     """``ISOLATED_DB_NAME`` must equal what the resolver produces for the CI step's inputs."""
+    if os.getenv("ISOLATED_JOB_NAME") != ISOLATED_JOB_NAME:
+        pytest.skip("requires postgres-concurrency isolated database profile")
     name = _skip_unless_safe_isolated_db_present()
     run_id = os.getenv("GITHUB_RUN_ID")
     run_attempt = os.getenv("GITHUB_RUN_ATTEMPT")

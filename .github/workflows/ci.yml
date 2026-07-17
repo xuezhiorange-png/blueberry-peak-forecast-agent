@@ -1431,6 +1431,8 @@ jobs:
     name: full-suite-canary
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      ISOLATED_JOB_NAME: full-suite-canary
     services:
       postgres:
         image: postgres:16
@@ -1439,7 +1441,7 @@ jobs:
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         ports:
-          - 5432:5432
+          - 55432:5432
         options: >-
           --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
           --health-interval 5s
@@ -1489,7 +1491,7 @@ jobs:
       - name: Wait for PostgreSQL service
         env:
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
+          POSTGRES_PORT: "55432"
           POSTGRES_DB: blueberry_peak
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
@@ -1515,24 +1517,107 @@ jobs:
           asyncio.run(main())
           PY
 
+      - name: Resolve isolated test database name
+        env:
+          POSTGRES_DB: blueberry_peak
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import os
+
+          from backend.tests.migration_isolation_helpers import (
+              assert_safe_isolated_db_name,
+              resolve_isolated_db_name,
+          )
+
+          name = resolve_isolated_db_name(
+              os.environ["GITHUB_RUN_ID"],
+              os.environ["GITHUB_RUN_ATTEMPT"],
+              os.environ["ISOLATED_JOB_NAME"],
+          )
+          assert_safe_isolated_db_name(name)
+          print(f"ISOLATED_DB_NAME={name}")
+          PY
+
+      - name: Create isolated test database
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "55432"
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import asyncio
+          import os
+
+          import asyncpg
+
+          async def main() -> None:
+              name = os.environ["ISOLATED_DB_NAME"]
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database=os.environ["POSTGRES_DB"],
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  exists = await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1", name
+                  )
+                  if exists:
+                      raise SystemExit(
+                          f"isolated test database {name!r} already exists; "
+                          "refusing to overwrite"
+                      )
+                  await conn.execute(f'CREATE DATABASE "{name}"')
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
+
+      - name: Validate isolated PostgreSQL test identity
+        env:
+          APP_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "55432"
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
+        run: |
+          python - <<'PY'
+          from backend.tests.db.profile import assert_safe_postgres_test_identity
+
+          identity = assert_safe_postgres_test_identity(env=None)
+          print(
+              "validated isolated PostgreSQL test identity: "
+              f"database={identity.database_name!r} port={identity.port}"
+          )
+          PY
+
       - name: Alembic upgrade head
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_PORT: "55432"
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
         run: alembic -c backend/alembic.ini upgrade head
 
       - name: Full pytest suite
         env:
           APP_ENV: test
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_PORT: "55432"
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
           RUN_POSTGRES_INTEGRATION: "1"
         run: |
           mkdir -p reports/test-results
@@ -1570,3 +1655,99 @@ jobs:
           name: full-suite-canary-results
           path: reports/test-results/full.xml
           if-no-files-found: warn
+
+      - name: Drop isolated test database
+        if: always()
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "55432"
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+        run: |
+          set +e
+          python - <<'PY'
+          import asyncio
+          import os
+          import sys
+
+          import asyncpg
+          from backend.tests.migration_isolation_helpers import (
+              assert_safe_isolated_db_name,
+              resolve_isolated_db_name,
+          )
+
+          def resolve_verified_cleanup_name() -> str | None:
+              try:
+                  job_name = os.environ.get("ISOLATED_JOB_NAME")
+                  if job_name != "full-suite-canary":
+                      print(
+                          "::warning::unexpected full-suite cleanup job identity; "
+                          "refusing database mutation"
+                      )
+                      return None
+                  expected_name = resolve_isolated_db_name(
+                      os.environ["GITHUB_RUN_ID"],
+                      os.environ["GITHUB_RUN_ATTEMPT"],
+                      job_name,
+                  )
+                  assert_safe_isolated_db_name(expected_name)
+              except Exception as exc:
+                  print(
+                      "::warning::failed to resolve safe cleanup identity: "
+                      f"{exc}"
+                  )
+                  return None
+
+              propagated_name = os.environ.get("ISOLATED_DB_NAME")
+              if not propagated_name:
+                  print("::warning::isolated database name was not propagated")
+                  return None
+              if propagated_name != expected_name:
+                  print(
+                      "::warning::isolated database cleanup identity mismatch; "
+                      "refusing database mutation"
+                  )
+                  return None
+              return expected_name
+
+          expected_name = resolve_verified_cleanup_name()
+
+          async def main() -> None:
+              if not expected_name:
+                  print("::warning::isolated database name was not resolved")
+                  return
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database=os.environ["POSTGRES_DB"],
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  await conn.execute(
+                      "SELECT pg_terminate_backend(pid) "
+                      "FROM pg_stat_activity "
+                      "WHERE datname = $1 AND pid <> pg_backend_pid()",
+                      expected_name,
+                  )
+                  exists = await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1",
+                      expected_name,
+                  )
+                  if exists:
+                      await conn.execute(f'DROP DATABASE "{expected_name}"')
+                      print(f"dropped isolated test database {expected_name!r}")
+                  else:
+                      print(
+                          f"isolated test database {expected_name!r} was already absent"
+                      )
+              finally:
+                  await conn.close()
+
+          try:
+              asyncio.run(main())
+          except Exception as exc:
+              print(f"::warning::failed to drop isolated test database: {exc}")
+          sys.exit(0)
+          PY
