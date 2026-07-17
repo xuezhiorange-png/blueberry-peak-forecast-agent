@@ -21,11 +21,12 @@ replacement source.
 ## Canonical field authority
 
 The parser derives its importable header order and required-field set from
-`ActualHarvestImportRecordInput.model_fields`. It excludes only the two
-diagnostic provenance fields, `source_row_number` and `source_sheet_name`, from
-file headers. The parser supplies those values from physical source location.
-The server-generated `import_received_at` and `ingested_at` fields are not
-accepted in a file and are absent from generated templates.
+`ActualHarvestImportRecordInput.model_fields`. Only fields explicitly marked
+`spreadsheet_importable=true` with a unique `spreadsheet_order` enter the
+upload/template surface. Unmarked fields are excluded by default. The parser
+supplies `source_row_number` and `source_sheet_name` from physical source
+location as diagnostics; server-generated `import_received_at` and `ingested_at`
+fields are not accepted in a file and are absent from generated templates.
 
 CSV and XLSX use `STRICT_CANONICAL_V1`: exact spelling is required, case folding
 and fuzzy matching are forbidden, and unknown, missing, duplicate, or colliding
@@ -46,20 +47,27 @@ no invalid row is silently skipped.
 
 ## XLSX policy
 
-XLSX must contain exactly one sheet named `actual_harvest`. Before
+XLSX must contain exactly one sheet named `actual_harvest`. Archive validation
+has two phases. A metadata-only pass completes entry-name, duplicate-part,
+entry-count, per-entry, aggregate size, and compression checks before any entry
+content is opened. Only then does a bounded reader inspect XML and relationship
+parts, enforcing declared-size, truncation, and CRC integrity. Before
 `openpyxl.load_workbook`, the parser rejects case-insensitive duplicate
 canonical sheets, extra sheets, formulas, merged cells, hidden rows or
 canonical columns, macros/active content, external links and defined names,
 unsafe ZIP paths, duplicate parts, excessive entry count, and both per-entry
 and aggregate size/compression limits. OOXML relationships and required XML
-parts are parsed with a DTD/entity rejection gate; malformed parts map to the
-stable `XLSX_ARCHIVE_INVALID` error. The workbook is loaded with
-`data_only=False` and `keep_links=False`; formulas are never evaluated and
-cached formula values are never treated as source facts.
+parts are parsed with `defusedxml` using explicit DTD/entity/external-reference
+prohibitions. This is encoding-independent for supported UTF-8, UTF-16LE, and
+UTF-16BE XML; malformed or unsafe parts map to stable `XLSX_ARCHIVE_INVALID`.
+The workbook is loaded with `data_only=False` and `keep_links=False`; formulas
+are never evaluated and cached formula values are never treated as source facts.
 
 The policy is versioned as `q2a-i3-spreadsheet-policy-v1` and centralizes file,
 sheet, row, column, cell-text, uncompressed-size, entry-count, and compression
-limits. Date-only cells and explicitly formatted Excel serial dates are
+limits. `max_row_count` means physical data rows: the header is excluded and
+empty physical data rows are included. CSV and XLSX therefore share the same
+boundary semantics. Date-only cells and explicitly formatted Excel serial dates are
 handled by the versioned date policy, including the workbook's 1900/1904
 epoch. Ambiguous locale text and datetime cells with a time component are
 rejected. `source_recorded_at` and other source timestamps must be explicit
@@ -95,7 +103,8 @@ treated as library-level output and is not claimed byte-identical.
 
 `openpyxl` is used because the repository had no XLSX-capable maintained
 workbook library. It is declared and pinned in the project dependency and CI
-constraints. No Office automation, desktop Excel, macro execution, dataframe
+constraints. `defusedxml==0.7.1` is pinned for encoding-aware hardened XML
+parsing. No Office automation, desktop Excel, macro execution, dataframe
 framework, network parser, or external-link loading is used.
 
 ## Explicit exclusions

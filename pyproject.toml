@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.16.0",
     "asyncpg>=0.30.0",
+    "defusedxml>=0.7.1",
     "fastapi>=0.115.0",
     "numpy>=2.3.0",
     "openpyxl>=3.1.5",
@@ -100,7 +101,15 @@ module = "alembic.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["openpyxl", "openpyxl.*", "yaml", "xlrd", "xlrd.*"]
+module = [
+    "defusedxml",
+    "defusedxml.*",
+    "openpyxl",
+    "openpyxl.*",
+    "yaml",
+    "xlrd",
+    "xlrd.*",
+]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
