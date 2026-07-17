@@ -24,6 +24,7 @@ concurrency primitives.
 from __future__ import annotations
 
 import os
+from datetime import date
 
 import pytest
 from sqlalchemy import text
@@ -58,8 +59,8 @@ _SLICE2_SEASON_CODE = "S2-TXN-ISOLATION-PROBE"
 # Use fixed, low-side-effect date values for the ``start_date`` /
 # ``end_date`` NOT NULL columns. The fixture's outer transaction is
 # rolled back, so the rows never escape the test.
-_SLICE2_SEASON_START = "2026-01-01"
-_SLICE2_SEASON_END = "2026-12-31"
+_SLICE2_SEASON_START = date(2026, 1, 1)
+_SLICE2_SEASON_END = date(2026, 12, 31)
 
 
 @pytest.mark.asyncio
@@ -202,7 +203,7 @@ async def test_savepoint_restart_after_commit(
     # ``end_date`` by one day inside the new savepoint.
     await transactional_pg_session.execute(
         text("UPDATE dim_season SET end_date = :end_date WHERE code = :code"),
-        {"code": probe_code, "end_date": "2027-01-01"},
+        {"code": probe_code, "end_date": date(2027, 1, 1)},
     )
 
     # Read back to confirm the second write took effect inside
@@ -211,7 +212,7 @@ async def test_savepoint_restart_after_commit(
         text("SELECT end_date FROM dim_season WHERE code = :code"),
         {"code": probe_code},
     )
-    assert result.scalar_one() == "2027-01-01"
+    assert result.scalar_one() == date(2027, 1, 1)
 
     # Fixture teardown will roll back BOTH writes.
 

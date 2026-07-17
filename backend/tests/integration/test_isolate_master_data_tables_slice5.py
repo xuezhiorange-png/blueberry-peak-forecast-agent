@@ -50,6 +50,7 @@ Scope
 from __future__ import annotations
 
 import os
+from datetime import date
 from typing import TYPE_CHECKING
 
 import pytest
@@ -80,8 +81,8 @@ def _pg_skip() -> None:
 # guarantees the row is rolled back at the end of every test that
 # uses the savepoint fixture, so reusing the same code is safe.
 _SLICE5_SEASON_CODE = "S5-ISOLATE-MASTER-PROBE"
-_SLICE5_SEASON_START = "2026-01-01"
-_SLICE5_SEASON_END = "2026-12-31"
+_SLICE5_SEASON_START = date(2026, 1, 1)
+_SLICE5_SEASON_END = date(2026, 12, 31)
 
 
 # ---------------------------------------------------------------------------
