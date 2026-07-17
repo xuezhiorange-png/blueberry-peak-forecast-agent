@@ -8,12 +8,16 @@ import re
 import xml.etree.ElementTree as ElementTree
 import zipfile
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any, BinaryIO, NoReturn
+from types import MappingProxyType
+from typing import Any, BinaryIO, NoReturn, cast
 
 import openpyxl
+from defusedxml import ElementTree as DefusedElementTree
+from defusedxml.common import DefusedXmlException
 from openpyxl.utils.datetime import from_excel
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -35,7 +39,6 @@ _DIAGNOSTIC_FIELDS = frozenset({"source_row_number", "source_sheet_name"})
 _STRICT_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _STRICT_INTEGER_RE = re.compile(r"^[0-9]+$")
 _STRICT_DECIMAL_RE = re.compile(r"^(?:0|[1-9]\d*)(?:\.\d{1,6})?$")
-_XML_DECLARATION_RE = re.compile(rb"<!\s*(?:doctype|entity)\b", re.IGNORECASE)
 _XML_EXTERNAL_TARGET_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//|\\\\|[a-z]:[\\/])", re.IGNORECASE)
 _XML_EXTERNAL_REFERENCE_RE = re.compile(
     r"(?:[a-z][a-z0-9+.-]*:|//|\\\\|[a-z]:[\\/])", re.IGNORECASE
@@ -44,6 +47,14 @@ _XML_EXTERNAL_REFERENCE_RE = re.compile(
 
 class SpreadsheetParserError(ActualHarvestValidationError):
     """Typed parser error with safe source-location details."""
+
+
+@dataclass(frozen=True, slots=True)
+class _ValidatedXlsxArchive:
+    entries_by_name: Mapping[str, zipfile.ZipInfo]
+    contents_by_name: Mapping[str, bytes]
+    total_uncompressed: int
+    total_compressed: int
 
 
 class SpreadsheetDiagnostic(BaseModel):
@@ -156,9 +167,9 @@ def parse_xlsx(
     policy: SpreadsheetParserPolicy = DEFAULT_SPREADSHEET_POLICY,
 ) -> SpreadsheetParseResult:
     raw = _read_source_bytes(source, policy=policy, channel=ActualHarvestImportChannel.XLSX)
-    _validate_xlsx_archive(raw, policy)
-    worksheet_part = _validate_xlsx_sheet_names(raw, policy)
-    numeric_lexicals = _read_xlsx_numeric_lexicals(raw, worksheet_part, policy)
+    archive = _validate_xlsx_archive(raw, policy)
+    worksheet_part = _validate_xlsx_sheet_names(archive, policy)
+    numeric_lexicals = _read_xlsx_numeric_lexicals(archive, worksheet_part, policy)
     try:
         workbook = openpyxl.load_workbook(
             io.BytesIO(raw),
@@ -217,8 +228,9 @@ def parse_xlsx(
             )
 
         worksheet = workbook["actual_harvest"]
+        physical_data_row_count = max(worksheet.max_row - 1, 0)
         if (
-            worksheet.max_row > policy.max_row_count
+            physical_data_row_count > policy.max_row_count
             or worksheet.max_column > policy.max_column_count
         ):
             _fail(
@@ -923,7 +935,7 @@ def _validate_xlsx_data_region(
             )
 
 
-def _validate_xlsx_archive(raw: bytes, policy: SpreadsheetParserPolicy) -> None:
+def _validate_xlsx_archive(raw: bytes, policy: SpreadsheetParserPolicy) -> _ValidatedXlsxArchive:
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             infos = archive.infolist()
@@ -934,20 +946,27 @@ def _validate_xlsx_archive(raw: bytes, policy: SpreadsheetParserPolicy) -> None:
                     "XLSX entry count exceeds the parser policy",
                     details={"policy_version": policy.version},
                 )
+            seen_original_names: set[str] = set()
             seen_names: set[str] = set()
             seen_casefolded_names: set[str] = set()
+            entries_by_name: dict[str, zipfile.ZipInfo] = {}
             total_uncompressed = 0
             total_compressed = 0
             for item in infos:
                 normalized_name = _normalize_zip_entry_name(item.filename, policy)
                 casefolded_name = normalized_name.casefold()
-                if normalized_name in seen_names or casefolded_name in seen_casefolded_names:
+                if (
+                    item.filename in seen_original_names
+                    or normalized_name in seen_names
+                    or casefolded_name in seen_casefolded_names
+                ):
                     _fail(
                         ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
                         ActualHarvestImportChannel.XLSX,
                         "XLSX archive contains duplicate part names",
                         details={"policy_version": policy.version},
                     )
+                seen_original_names.add(item.filename)
                 seen_names.add(normalized_name)
                 seen_casefolded_names.add(casefolded_name)
                 lowered_name = normalized_name.lower()
@@ -971,11 +990,6 @@ def _validate_xlsx_archive(raw: bytes, policy: SpreadsheetParserPolicy) -> None:
                         "XLSX executable content is forbidden",
                         details={"policy_version": policy.version},
                     )
-                if lowered_name.endswith(".rels"):
-                    relationship_root = _safe_xml_from_bytes(archive.read(item.filename), policy)
-                    _reject_forbidden_relationships(relationship_root, policy)
-                elif lowered_name.endswith(".xml"):
-                    _safe_xml_from_bytes(archive.read(item.filename), policy)
                 if item.file_size > 0 and item.compress_size == 0:
                     _fail(
                         ActualHarvestValidationErrorCode.XLSX_LIMIT_EXCEEDED,
@@ -993,31 +1007,24 @@ def _validate_xlsx_archive(raw: bytes, policy: SpreadsheetParserPolicy) -> None:
                         "XLSX entry compression ratio exceeds the parser policy",
                         details={"policy_version": policy.version},
                     )
-                total_uncompressed += item.file_size
-                total_compressed += item.compress_size
-            content_types_item = next(
-                (item for item in infos if item.filename == "[Content_Types].xml"), None
-            )
-            if content_types_item is None:
-                _fail(
-                    ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
-                    ActualHarvestImportChannel.XLSX,
-                    "XLSX content types part is missing",
-                    details={"policy_version": policy.version},
-                )
-            content_types = _safe_xml_from_bytes(archive.read(content_types_item.filename), policy)
-            for element in content_types.iter():
-                values = " ".join(str(value).lower() for value in element.attrib.values())
-                if any(
-                    token in values
-                    for token in ("macroenabled", "vbaproject", "activex", "oleobject")
-                ):
+                if item.file_size < 0 or item.compress_size < 0:
                     _fail(
-                        ActualHarvestValidationErrorCode.XLSX_EXECUTABLE_CONTENT_FORBIDDEN,
+                        ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
                         ActualHarvestImportChannel.XLSX,
-                        "XLSX executable content types are forbidden",
+                        "XLSX entry has invalid size metadata",
                         details={"policy_version": policy.version},
                     )
+                if item.file_size > policy.max_uncompressed_xlsx_size_bytes:
+                    _fail(
+                        ActualHarvestValidationErrorCode.XLSX_LIMIT_EXCEEDED,
+                        ActualHarvestImportChannel.XLSX,
+                        "XLSX entry exceeds the parser policy",
+                        details={"policy_version": policy.version},
+                    )
+                total_uncompressed += item.file_size
+                total_compressed += item.compress_size
+                entries_by_name[normalized_name] = item
+
             if total_uncompressed > policy.max_uncompressed_xlsx_size_bytes:
                 _fail(
                     ActualHarvestValidationErrorCode.XLSX_LIMIT_EXCEEDED,
@@ -1039,9 +1046,64 @@ def _validate_xlsx_archive(raw: bytes, policy: SpreadsheetParserPolicy) -> None:
                     "XLSX aggregate compression ratio exceeds the parser policy",
                     details={"policy_version": policy.version},
                 )
+
+            required_parts = (
+                "[Content_Types].xml",
+                "xl/workbook.xml",
+                "xl/_rels/workbook.xml.rels",
+            )
+            missing_part = next(
+                (part for part in required_parts if part not in entries_by_name), None
+            )
+            if missing_part is not None:
+                _fail(
+                    ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
+                    ActualHarvestImportChannel.XLSX,
+                    "XLSX required part is missing",
+                    details={"policy_version": policy.version},
+                )
+
+            contents_by_name: dict[str, bytes] = {}
+            for normalized_name, item in entries_by_name.items():
+                lowered_name = normalized_name.lower()
+                if not (lowered_name.endswith(".rels") or lowered_name.endswith(".xml")):
+                    continue
+                content = _read_validated_zip_entry(archive, item, policy=policy)
+                contents_by_name[normalized_name] = content
+                root = _safe_xml_from_bytes(content, policy)
+                if lowered_name.endswith(".rels"):
+                    _reject_forbidden_relationships(root, policy)
+
+            content_types = _safe_xml_from_bytes(contents_by_name["[Content_Types].xml"], policy)
+            for element in content_types.iter():
+                values = " ".join(str(value).lower() for value in element.attrib.values())
+                if any(
+                    token in values
+                    for token in ("macroenabled", "vbaproject", "activex", "oleobject")
+                ):
+                    _fail(
+                        ActualHarvestValidationErrorCode.XLSX_EXECUTABLE_CONTENT_FORBIDDEN,
+                        ActualHarvestImportChannel.XLSX,
+                        "XLSX executable content types are forbidden",
+                        details={"policy_version": policy.version},
+                    )
+            return _ValidatedXlsxArchive(
+                entries_by_name=MappingProxyType(entries_by_name),
+                contents_by_name=MappingProxyType(contents_by_name),
+                total_uncompressed=total_uncompressed,
+                total_compressed=total_compressed,
+            )
     except ActualHarvestValidationError:
         raise
-    except (OSError, KeyError, IndexError, ValueError, zipfile.BadZipFile) as exc:
+    except (
+        EOFError,
+        IndexError,
+        KeyError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        zipfile.BadZipFile,
+    ) as exc:
         _fail(
             ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
             ActualHarvestImportChannel.XLSX,
@@ -1049,6 +1111,61 @@ def _validate_xlsx_archive(raw: bytes, policy: SpreadsheetParserPolicy) -> None:
             details={"policy_version": policy.version},
         )
         raise AssertionError("unreachable") from exc
+
+
+def _read_validated_zip_entry(
+    archive: zipfile.ZipFile,
+    item: zipfile.ZipInfo,
+    *,
+    policy: SpreadsheetParserPolicy,
+) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+    try:
+        with archive.open(item, "r") as stream:
+            while total < item.file_size:
+                chunk = stream.read(min(64 * 1024, item.file_size - total))
+                if not chunk:
+                    _fail(
+                        ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
+                        ActualHarvestImportChannel.XLSX,
+                        "XLSX entry content is truncated",
+                        details={"policy_version": policy.version},
+                    )
+                chunks.append(chunk)
+                total += len(chunk)
+                if total > item.file_size:
+                    _fail(
+                        ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
+                        ActualHarvestImportChannel.XLSX,
+                        "XLSX entry content exceeds declared size",
+                        details={"policy_version": policy.version},
+                    )
+            if stream.read(1):
+                _fail(
+                    ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
+                    ActualHarvestImportChannel.XLSX,
+                    "XLSX entry content exceeds declared size",
+                    details={"policy_version": policy.version},
+                )
+    except ActualHarvestValidationError:
+        raise
+    except (
+        EOFError,
+        KeyError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        zipfile.BadZipFile,
+    ) as exc:
+        _fail(
+            ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
+            ActualHarvestImportChannel.XLSX,
+            "XLSX entry content cannot be safely read",
+            details={"policy_version": policy.version},
+        )
+        raise AssertionError("unreachable") from exc
+    return b"".join(chunks)
 
 
 def _normalize_zip_entry_name(name: str, policy: SpreadsheetParserPolicy) -> str:
@@ -1086,20 +1203,28 @@ def _normalize_zip_entry_name(name: str, policy: SpreadsheetParserPolicy) -> str
 
 
 def _safe_xml_from_bytes(raw_xml: bytes, policy: SpreadsheetParserPolicy) -> ElementTree.Element:
-    if _XML_DECLARATION_RE.search(raw_xml):
-        _fail(
-            ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
-            ActualHarvestImportChannel.XLSX,
-            "XLSX XML DTD and entity declarations are forbidden",
-            details={"policy_version": policy.version},
-        )
     try:
-        return ElementTree.fromstring(raw_xml)
-    except (ElementTree.ParseError, ValueError, TypeError) as exc:
+        return cast(
+            ElementTree.Element,
+            DefusedElementTree.fromstring(
+                raw_xml,
+                forbid_dtd=True,
+                forbid_entities=True,
+                forbid_external=True,
+            ),
+        )
+    except (
+        DefusedXmlException,
+        ElementTree.ParseError,
+        LookupError,
+        UnicodeError,
+        ValueError,
+        TypeError,
+    ) as exc:
         _fail(
             ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
             ActualHarvestImportChannel.XLSX,
-            "XLSX XML part is invalid",
+            "XLSX XML part is invalid or unsafe",
             details={"policy_version": policy.version},
         )
         raise AssertionError("unreachable") from exc
@@ -1143,96 +1268,93 @@ def _reject_forbidden_relationships(
             )
 
 
-def _validate_xlsx_sheet_names(raw: bytes, policy: SpreadsheetParserPolicy) -> str:
+def _validate_xlsx_sheet_names(
+    archive: _ValidatedXlsxArchive, policy: SpreadsheetParserPolicy
+) -> str:
     try:
-        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-            workbook_xml = _safe_xml_from_bytes(archive.read("xl/workbook.xml"), policy)
-            relationships_xml = _safe_xml_from_bytes(
-                archive.read("xl/_rels/workbook.xml.rels"), policy
+        workbook_xml = _safe_xml_from_bytes(archive.contents_by_name["xl/workbook.xml"], policy)
+        relationships_xml = _safe_xml_from_bytes(
+            archive.contents_by_name["xl/_rels/workbook.xml.rels"], policy
+        )
+        _reject_forbidden_relationships(relationships_xml, policy)
+        relationship_targets = {
+            element.attrib.get("Id", ""): element.attrib.get("Target", "")
+            for element in relationships_xml
+            if _xml_local_name(element.tag) == "Relationship"
+        }
+        sheet_elements = [
+            element for element in workbook_xml.iter() if _xml_local_name(element.tag) == "sheet"
+        ]
+        sheet_names = tuple(element.attrib.get("name", "") for element in sheet_elements)
+        canonical_matches = tuple(
+            name for name in sheet_names if name.casefold() == "actual_harvest"
+        )
+        if len(canonical_matches) > 1:
+            _fail(
+                ActualHarvestValidationErrorCode.XLSX_CANONICAL_SHEET_DUPLICATE,
+                ActualHarvestImportChannel.XLSX,
+                "XLSX contains duplicate canonical sheets",
+                details={"policy_version": policy.version},
             )
-            _reject_forbidden_relationships(relationships_xml, policy)
-            relationship_targets = {
-                element.attrib.get("Id", ""): element.attrib.get("Target", "")
-                for element in relationships_xml
-                if _xml_local_name(element.tag) == "Relationship"
-            }
-            sheet_elements = [
-                element
-                for element in workbook_xml.iter()
-                if _xml_local_name(element.tag) == "sheet"
-            ]
-            sheet_names = tuple(element.attrib.get("name", "") for element in sheet_elements)
-            canonical_matches = tuple(
-                name for name in sheet_names if name.casefold() == "actual_harvest"
+        if not canonical_matches:
+            _fail(
+                ActualHarvestValidationErrorCode.XLSX_CANONICAL_SHEET_MISSING,
+                ActualHarvestImportChannel.XLSX,
+                "XLSX must contain the actual_harvest sheet",
+                details={"policy_version": policy.version},
             )
-            if len(canonical_matches) > 1:
+        if canonical_matches[0] != "actual_harvest":
+            _fail(
+                ActualHarvestValidationErrorCode.XLSX_CANONICAL_SHEET_MISSING,
+                ActualHarvestImportChannel.XLSX,
+                "XLSX canonical sheet name must be exact",
+                details={"policy_version": policy.version},
+            )
+        if len(sheet_names) > policy.max_sheet_count:
+            _fail(
+                ActualHarvestValidationErrorCode.XLSX_EXTRA_SHEET_FORBIDDEN,
+                ActualHarvestImportChannel.XLSX,
+                "XLSX must contain only the canonical data sheet",
+                details={"policy_version": policy.version},
+            )
+        canonical_sheet = next(
+            element for element in sheet_elements if element.attrib.get("name") == "actual_harvest"
+        )
+        relationship_id = next(
+            value
+            for key, value in canonical_sheet.attrib.items()
+            if key.rsplit("}", maxsplit=1)[-1] == "id"
+        )
+        target = relationship_targets.get(relationship_id)
+        if not target:
+            raise KeyError("canonical worksheet relationship is missing")
+        worksheet_part = (
+            posixpath.normpath(target.lstrip("/"))
+            if target.startswith("/")
+            else posixpath.normpath(posixpath.join("xl", target))
+        )
+        if worksheet_part not in archive.entries_by_name:
+            raise KeyError("canonical worksheet part is missing")
+        for element in workbook_xml.iter():
+            if _xml_local_name(element.tag) != "definedName":
+                continue
+            value = (element.text or "").lower()
+            if (
+                "[" in value
+                or "]" in value
+                or "|" in value
+                or _XML_EXTERNAL_REFERENCE_RE.search(value) is not None
+            ):
                 _fail(
-                    ActualHarvestValidationErrorCode.XLSX_CANONICAL_SHEET_DUPLICATE,
+                    ActualHarvestValidationErrorCode.XLSX_EXTERNAL_LINK_FORBIDDEN,
                     ActualHarvestImportChannel.XLSX,
-                    "XLSX contains duplicate canonical sheets",
+                    "XLSX external defined names are forbidden",
                     details={"policy_version": policy.version},
                 )
-            if not canonical_matches:
-                _fail(
-                    ActualHarvestValidationErrorCode.XLSX_CANONICAL_SHEET_MISSING,
-                    ActualHarvestImportChannel.XLSX,
-                    "XLSX must contain the actual_harvest sheet",
-                    details={"policy_version": policy.version},
-                )
-            if canonical_matches[0] != "actual_harvest":
-                _fail(
-                    ActualHarvestValidationErrorCode.XLSX_CANONICAL_SHEET_MISSING,
-                    ActualHarvestImportChannel.XLSX,
-                    "XLSX canonical sheet name must be exact",
-                    details={"policy_version": policy.version},
-                )
-            if len(sheet_names) > policy.max_sheet_count:
-                _fail(
-                    ActualHarvestValidationErrorCode.XLSX_EXTRA_SHEET_FORBIDDEN,
-                    ActualHarvestImportChannel.XLSX,
-                    "XLSX must contain only the canonical data sheet",
-                    details={"policy_version": policy.version},
-                )
-            canonical_sheet = next(
-                element
-                for element in sheet_elements
-                if element.attrib.get("name") == "actual_harvest"
-            )
-            relationship_id = next(
-                value
-                for key, value in canonical_sheet.attrib.items()
-                if key.rsplit("}", maxsplit=1)[-1] == "id"
-            )
-            target = relationship_targets.get(relationship_id)
-            if not target:
-                raise KeyError("canonical worksheet relationship is missing")
-            worksheet_part = (
-                posixpath.normpath(target.lstrip("/"))
-                if target.startswith("/")
-                else posixpath.normpath(posixpath.join("xl", target))
-            )
-            if worksheet_part not in archive.namelist():
-                raise KeyError("canonical worksheet part is missing")
-            for element in workbook_xml.iter():
-                if _xml_local_name(element.tag) != "definedName":
-                    continue
-                value = (element.text or "").lower()
-                if (
-                    "[" in value
-                    or "]" in value
-                    or "|" in value
-                    or _XML_EXTERNAL_REFERENCE_RE.search(value) is not None
-                ):
-                    _fail(
-                        ActualHarvestValidationErrorCode.XLSX_EXTERNAL_LINK_FORBIDDEN,
-                        ActualHarvestImportChannel.XLSX,
-                        "XLSX external defined names are forbidden",
-                        details={"policy_version": policy.version},
-                    )
-            return worksheet_part
+        return worksheet_part
     except ActualHarvestValidationError:
         raise
-    except (OSError, KeyError, IndexError, StopIteration, ValueError, zipfile.BadZipFile) as exc:
+    except (KeyError, IndexError, StopIteration, ValueError) as exc:
         _fail(
             ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
             ActualHarvestImportChannel.XLSX,
@@ -1243,14 +1365,13 @@ def _validate_xlsx_sheet_names(raw: bytes, policy: SpreadsheetParserPolicy) -> s
 
 
 def _read_xlsx_numeric_lexicals(
-    raw: bytes, worksheet_part: str, policy: SpreadsheetParserPolicy
+    archive: _ValidatedXlsxArchive, worksheet_part: str, policy: SpreadsheetParserPolicy
 ) -> dict[str, str]:
     try:
-        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-            worksheet_xml = _safe_xml_from_bytes(archive.read(worksheet_part), policy)
+        worksheet_xml = _safe_xml_from_bytes(archive.contents_by_name[worksheet_part], policy)
     except ActualHarvestValidationError:
         raise
-    except (OSError, KeyError, IndexError, ValueError, zipfile.BadZipFile) as exc:
+    except (KeyError, IndexError, ValueError) as exc:
         _fail(
             ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
             ActualHarvestImportChannel.XLSX,

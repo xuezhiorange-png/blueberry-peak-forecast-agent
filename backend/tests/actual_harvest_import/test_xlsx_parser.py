@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import csv
 import io
 import re
+import socket
 import warnings
 import zipfile
+from copy import copy
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -12,10 +15,13 @@ import openpyxl
 import pytest
 from openpyxl.utils.datetime import MAC_EPOCH
 
+from backend.app.actual_harvest_import import spreadsheet_parser
 from backend.app.actual_harvest_import.enums import ActualHarvestValidationErrorCode
 from backend.app.actual_harvest_import.errors import ActualHarvestValidationError
 from backend.app.actual_harvest_import.spreadsheet_parser import (
+    _read_validated_zip_entry,
     canonical_spreadsheet_headers,
+    parse_csv,
     parse_xlsx,
 )
 from backend.app.actual_harvest_import.spreadsheet_policy import SpreadsheetParserPolicy
@@ -341,6 +347,117 @@ def test_xlsx_dtd_and_entity_declarations_are_rejected(doctype: bytes) -> None:
     )
 
 
+def _encoded_workbook_xml(
+    payload: bytes,
+    *,
+    codec: str,
+    declaration_encoding: str,
+    prefix: str = "",
+) -> bytes:
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        original = archive.read("xl/workbook.xml").decode("utf-8")
+    declaration_end = original.find("?>")
+    body = original[declaration_end + 2 :] if declaration_end >= 0 else original
+    xml = f'<?xml version="1.0" encoding="{declaration_encoding}"?>{prefix}{body}'
+    if codec == "utf-16-le":
+        return b"\xff\xfe" + xml.encode(codec)
+    if codec == "utf-16-be":
+        return b"\xfe\xff" + xml.encode(codec)
+    return xml.encode(codec)
+
+
+@pytest.mark.parametrize(
+    ("codec", "declaration_encoding"),
+    [("utf-8", "UTF-8"), ("utf-16-le", "UTF-16"), ("utf-16-be", "UTF-16")],
+)
+@pytest.mark.parametrize(
+    "prefix",
+    [
+        "<!DOCTYPE workbook>",
+        '<!DOCTYPE workbook [<!ENTITY x "safe">]>',
+        '<!DOCTYPE workbook SYSTEM "file:///tmp/secret">',
+        '<!DOCTYPE workbook PUBLIC "-//example//DTD//EN" "file:///tmp/secret">',
+    ],
+)
+def test_xlsx_dtd_and_entities_are_rejected_across_xml_encodings(
+    codec: str, declaration_encoding: str, prefix: str
+) -> None:
+    payload = _xlsx_bytes([_row()])
+    updated = _encoded_workbook_xml(
+        payload,
+        codec=codec,
+        declaration_encoding=declaration_encoding,
+        prefix=prefix,
+    )
+    _assert_code(
+        _rewrite_archive(
+            payload,
+            lambda name, content: updated if name == "xl/workbook.xml" else content,
+        ),
+        ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
+    )
+
+
+@pytest.mark.parametrize(
+    ("codec", "declaration_encoding"),
+    [("utf-16-le", "UTF-16"), ("utf-16-be", "UTF-16")],
+)
+def test_valid_utf16_workbook_xml_is_supported(codec: str, declaration_encoding: str) -> None:
+    payload = _xlsx_bytes([_row()])
+    updated = _encoded_workbook_xml(
+        payload,
+        codec=codec,
+        declaration_encoding=declaration_encoding,
+    )
+    result = parse_xlsx(
+        _rewrite_archive(
+            payload,
+            lambda name, content: updated if name == "xl/workbook.xml" else content,
+        )
+    )
+    assert result.records[0].external_logical_record_id == "logical-1"
+
+
+def test_xlsx_external_entity_cannot_access_network_or_filesystem(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _xlsx_bytes([_row()])
+    updated = _encoded_workbook_xml(
+        payload,
+        codec="utf-16-le",
+        declaration_encoding="UTF-16",
+        prefix='<!DOCTYPE workbook SYSTEM "file:///tmp/secret">',
+    )
+    monkeypatch.setattr(socket, "create_connection", lambda *args, **kwargs: pytest.fail("network"))
+    monkeypatch.setattr("builtins.open", lambda *args, **kwargs: pytest.fail("filesystem"))
+    _assert_code(
+        _rewrite_archive(
+            payload,
+            lambda name, content: updated if name == "xl/workbook.xml" else content,
+        ),
+        ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
+    )
+
+
+@pytest.mark.parametrize(
+    "updated_xml",
+    [
+        b'<?xml version="1.0" encoding="UTF-16"?><workbook',
+        b'<?xml version="1.0" encoding="X-UNKNOWN"?><workbook />',
+        b'<?xml version="1.0" encoding="UTF-8"?><workbook>\xc3',
+    ],
+)
+def test_xlsx_malformed_or_unsupported_xml_encoding_fails_closed(updated_xml: bytes) -> None:
+    payload = _xlsx_bytes([_row()])
+    _assert_code(
+        _rewrite_archive(
+            payload,
+            lambda name, content: updated_xml if name == "xl/workbook.xml" else content,
+        ),
+        ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID,
+    )
+
+
 def test_xlsx_duplicate_parts_and_entry_count_are_rejected() -> None:
     payload = _xlsx_bytes([_row()])
     output = io.BytesIO()
@@ -365,6 +482,69 @@ def test_xlsx_duplicate_parts_and_entry_count_are_rejected() -> None:
     assert captured.value.code == ActualHarvestValidationErrorCode.XLSX_LIMIT_EXCEEDED
 
 
+def _xlsx_with_empty_physical_row() -> bytes:
+    payload = _xlsx_bytes([])
+    workbook = openpyxl.load_workbook(io.BytesIO(payload))
+    workbook["actual_harvest"].cell(row=2, column=1, value="")
+    output = io.BytesIO()
+    workbook.save(output)
+    workbook.close()
+    return output.getvalue()
+
+
+def _csv_equivalent_bytes(rows: list[dict[str, Any]]) -> bytes:
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=canonical_spreadsheet_headers())
+    writer.writeheader()
+    for row in rows:
+        values: dict[str, object] = {}
+        for header in canonical_spreadsheet_headers():
+            value = row.get(header)
+            values[header] = value.isoformat() if isinstance(value, date) else value
+        writer.writerow(values)
+    return output.getvalue().encode()
+
+
+def test_xlsx_data_row_limit_boundary_and_boundary_plus_one() -> None:
+    policy = SpreadsheetParserPolicy(max_row_count=1)
+    assert parse_xlsx(_xlsx_bytes([_row()]), policy=policy).records
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        parse_xlsx(
+            _xlsx_bytes([_row(), _row(external_logical_record_id="logical-2")]),
+            policy=policy,
+        )
+    assert captured.value.code == ActualHarvestValidationErrorCode.XLSX_LIMIT_EXCEEDED
+
+
+def test_xlsx_empty_physical_data_rows_count_toward_limit() -> None:
+    result = parse_xlsx(
+        _xlsx_with_empty_physical_row(),
+        policy=SpreadsheetParserPolicy(max_row_count=1),
+    )
+    assert result.records == ()
+    assert result.diagnostics[0].source_row_number == 2
+
+
+def test_csv_and_xlsx_data_row_limits_have_the_same_semantics() -> None:
+    policy = SpreadsheetParserPolicy(max_row_count=1)
+    one_csv = parse_csv(_csv_equivalent_bytes([_row()]), policy=policy)
+    one_xlsx = parse_xlsx(_xlsx_bytes([_row()]), policy=policy)
+    assert len(one_csv.records) == len(one_xlsx.records) == 1
+
+    two_rows = [_row(), _row(external_logical_record_id="logical-2")]
+    with pytest.raises(ActualHarvestValidationError) as csv_error:
+        parse_csv(_csv_equivalent_bytes(two_rows), policy=policy)
+    with pytest.raises(ActualHarvestValidationError) as xlsx_error:
+        parse_xlsx(_xlsx_bytes(two_rows), policy=policy)
+    assert csv_error.value.code == ActualHarvestValidationErrorCode.CSV_LIMIT_EXCEEDED
+    assert xlsx_error.value.code == ActualHarvestValidationErrorCode.XLSX_LIMIT_EXCEEDED
+
+
+def test_header_only_csv_and_xlsx_have_zero_data_rows() -> None:
+    assert parse_csv(_csv_equivalent_bytes([])).records == ()
+    assert parse_xlsx(_xlsx_bytes([])).records == ()
+
+
 @pytest.mark.parametrize("unsafe_name", ["../escape", r"..\escape", "/absolute", "C:/drive"])
 def test_xlsx_unsafe_part_names_are_rejected(unsafe_name: str) -> None:
     payload = _xlsx_bytes([_row()])
@@ -386,6 +566,161 @@ def test_xlsx_per_entry_compression_ratio_is_rejected() -> None:
             policy=SpreadsheetParserPolicy(max_xlsx_compression_ratio=1),
         )
     assert captured.value.code == ActualHarvestValidationErrorCode.XLSX_LIMIT_EXCEEDED
+
+
+class _ZipOpenSpy:
+    def __init__(self, real_zipfile: Any, opened: list[str]) -> None:
+        self._real_zipfile = real_zipfile
+        self._opened = opened
+
+    def __enter__(self) -> _ZipOpenSpy:
+        self._real_zipfile.__enter__()
+        return self
+
+    def __exit__(self, *args: Any) -> object:
+        return self._real_zipfile.__exit__(*args)
+
+    def infolist(self) -> list[zipfile.ZipInfo]:
+        return self._real_zipfile.infolist()
+
+    def open(self, item: zipfile.ZipInfo, mode: str = "r") -> Any:
+        self._opened.append(item.filename)
+        return self._real_zipfile.open(item, mode)
+
+
+def _assert_archive_metadata_rejects_before_read(
+    payload: bytes,
+    policy: SpreadsheetParserPolicy,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened: list[str] = []
+    real_zipfile = spreadsheet_parser.zipfile.ZipFile
+
+    def factory(*args: Any, **kwargs: Any) -> _ZipOpenSpy:
+        return _ZipOpenSpy(real_zipfile(*args, **kwargs), opened)
+
+    monkeypatch.setattr(spreadsheet_parser.zipfile, "ZipFile", factory)
+    with pytest.raises(ActualHarvestValidationError):
+        parse_xlsx(payload, policy=policy)
+    assert opened == []
+
+
+def test_xlsx_metadata_limits_run_before_any_entry_read(monkeypatch: pytest.MonkeyPatch) -> None:
+    payload = _xlsx_bytes([_row()])
+    _assert_archive_metadata_rejects_before_read(
+        payload,
+        SpreadsheetParserPolicy(max_uncompressed_xlsx_size_bytes=1),
+        monkeypatch,
+    )
+
+
+def test_xlsx_per_entry_ratio_rejects_before_xml_decompression(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _assert_archive_metadata_rejects_before_read(
+        _xlsx_bytes([_row()]),
+        SpreadsheetParserPolicy(max_xlsx_compression_ratio=1),
+        monkeypatch,
+    )
+
+
+def test_xlsx_aggregate_size_rejects_before_xml_decompression(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _xlsx_bytes([_row()])
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        maximum_entry_size = max(item.file_size for item in archive.infolist())
+    _assert_archive_metadata_rejects_before_read(
+        payload,
+        SpreadsheetParserPolicy(max_uncompressed_xlsx_size_bytes=maximum_entry_size),
+        monkeypatch,
+    )
+
+
+def test_xlsx_aggregate_ratio_rejects_before_xml_decompression(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _assert_archive_metadata_rejects_before_read(
+        _xlsx_bytes([_row()]),
+        SpreadsheetParserPolicy(max_xlsx_compression_ratio=1),
+        monkeypatch,
+    )
+
+
+def test_xlsx_duplicate_part_rejects_before_xml_decompression(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _xlsx_bytes([_row()])
+    output = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(payload), "r") as source,
+        zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as target,
+    ):
+        for item in source.infolist():
+            target.writestr(item, source.read(item.filename))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            target.writestr("xl/workbook.xml", source.read("xl/workbook.xml"))
+    _assert_archive_metadata_rejects_before_read(
+        output.getvalue(), SpreadsheetParserPolicy(), monkeypatch
+    )
+
+
+def test_xlsx_invalid_zero_compressed_size_rejects_before_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _xlsx_bytes([_row()])
+    real_zipfile = spreadsheet_parser.zipfile.ZipFile
+    opened: list[str] = []
+
+    class MetadataCorruptingZip(_ZipOpenSpy):
+        def infolist(self) -> list[zipfile.ZipInfo]:
+            infos = super().infolist()
+            item = copy(next(item for item in infos if item.file_size > 0))
+            item.compress_size = 0
+            return [
+                item if candidate.filename == item.filename else candidate for candidate in infos
+            ]
+
+    def factory(*args: Any, **kwargs: Any) -> MetadataCorruptingZip:
+        return MetadataCorruptingZip(real_zipfile(*args, **kwargs), opened)
+
+    monkeypatch.setattr(spreadsheet_parser.zipfile, "ZipFile", factory)
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        parse_xlsx(payload)
+    assert captured.value.code == ActualHarvestValidationErrorCode.XLSX_LIMIT_EXCEEDED
+    assert opened == []
+
+
+class _DeclaredSizeMismatchArchive:
+    def __init__(self, payload: bytes) -> None:
+        self.payload = payload
+
+    def open(self, item: zipfile.ZipInfo, mode: str = "r") -> io.BytesIO:
+        return io.BytesIO(self.payload)
+
+
+def test_xlsx_bounded_entry_reader_rejects_declared_size_mismatch() -> None:
+    item = zipfile.ZipInfo("xl/workbook.xml")
+    item.file_size = 3
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        _read_validated_zip_entry(
+            _DeclaredSizeMismatchArchive(b"too-long"), item, policy=SpreadsheetParserPolicy()
+        )
+    assert captured.value.code == ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID
+
+
+class _CrcFailureArchive:
+    def open(self, item: zipfile.ZipInfo, mode: str = "r") -> Any:
+        raise zipfile.BadZipFile("Bad CRC-32 for file")
+
+
+def test_xlsx_bounded_entry_reader_maps_crc_failure() -> None:
+    item = zipfile.ZipInfo("xl/workbook.xml")
+    item.file_size = 1
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        _read_validated_zip_entry(_CrcFailureArchive(), item, policy=SpreadsheetParserPolicy())
+    assert captured.value.code == ActualHarvestValidationErrorCode.XLSX_ARCHIVE_INVALID
 
 
 def test_xlsx_missing_or_malformed_required_parts_return_stable_errors() -> None:
