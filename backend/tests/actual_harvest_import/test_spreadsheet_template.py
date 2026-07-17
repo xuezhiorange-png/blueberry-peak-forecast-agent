@@ -7,11 +7,14 @@ import zipfile
 import openpyxl
 import pytest
 
+from backend.app.actual_harvest_import.enums import ActualHarvestValidationErrorCode
+from backend.app.actual_harvest_import.errors import ActualHarvestValidationError
 from backend.app.actual_harvest_import.spreadsheet_parser import (
     canonical_spreadsheet_headers,
     parse_csv,
     parse_xlsx,
 )
+from backend.app.actual_harvest_import.spreadsheet_policy import SpreadsheetParserPolicy
 from backend.app.actual_harvest_import.spreadsheet_template import (
     generate_csv_template,
     generate_xlsx_template,
@@ -66,3 +69,30 @@ def test_template_logical_content_is_stable_and_round_trips() -> None:
     assert first_sheet.max_row == second_sheet.max_row == 1
     assert first_sheet.max_column == second_sheet.max_column
     assert parse_xlsx(first).diagnostics == parse_xlsx(second).diagnostics == ()
+
+
+def test_template_policy_is_enforced_and_same_policy_round_trips() -> None:
+    policy = SpreadsheetParserPolicy(max_column_count=len(canonical_spreadsheet_headers()))
+    assert parse_csv(generate_csv_template(policy=policy), policy=policy).records == ()
+    assert parse_xlsx(generate_xlsx_template(policy=policy), policy=policy).records == ()
+
+    incompatible = SpreadsheetParserPolicy(
+        max_column_count=len(canonical_spreadsheet_headers()) - 1
+    )
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        generate_csv_template(policy=incompatible)
+    assert captured.value.code == ActualHarvestValidationErrorCode.TEMPLATE_POLICY_INCOMPATIBLE
+
+    with pytest.raises(ValueError):
+        SpreadsheetParserPolicy(max_sheet_count=0)
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        generate_xlsx_template(policy=incompatible)
+    assert captured.value.code == ActualHarvestValidationErrorCode.TEMPLATE_POLICY_INCOMPATIBLE
+
+
+def test_template_has_no_external_relationships() -> None:
+    with zipfile.ZipFile(io.BytesIO(generate_xlsx_template())) as archive:
+        relationship_parts = [name for name in archive.namelist() if name.lower().endswith(".rels")]
+        assert all(
+            b'TargetMode="External"' not in archive.read(name) for name in relationship_parts
+        )

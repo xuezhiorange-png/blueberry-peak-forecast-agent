@@ -105,28 +105,80 @@ class ActualHarvestSourceSemanticsAttestation(_BaseContractModel):
 
 
 class ActualHarvestImportRecordInput(_BaseContractModel):
-    external_logical_record_id: NonEmptyString
-    external_revision_id: NonEmptyString
-    source_system: NonEmptyString
-    external_batch_id: NonEmptyString
-    harvest_business_date: date
-    farm_code: NonEmptyString
-    subfarm_or_plot_code: NonEmptyString
-    variety_code: NonEmptyString
-    actual_harvest_quantity_kg: Decimal
-    source_recorded_at: datetime | None = None
-    source_recorded_at_authority_status: SourceRecordedAtAuthorityStatus
-    source_recorded_at_authority_reference_or_null: NonEmptyString | None = None
-    revision_number: PositiveStrictInt
-    record_status: ActualHarvestRecordStatus
-    supersedes_external_revision_id: NonEmptyString | None = None
-    season_code: NonEmptyString | None = None
-    farm_timezone: NonEmptyString | None = None
-    revised_at: datetime | None = None
-    finalized_at: datetime | None = None
-    source_row_number: PositiveStrictInt | None = None
-    source_sheet_name: NonEmptyString | None = None
-    source_note: NonEmptyString | None = None
+    external_logical_record_id: NonEmptyString = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 10}
+    )
+    external_revision_id: NonEmptyString = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 20}
+    )
+    source_system: NonEmptyString = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 30}
+    )
+    external_batch_id: NonEmptyString = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 40}
+    )
+    harvest_business_date: date = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 50}
+    )
+    farm_code: NonEmptyString = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 60}
+    )
+    subfarm_or_plot_code: NonEmptyString = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 70}
+    )
+    variety_code: NonEmptyString = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 80}
+    )
+    actual_harvest_quantity_kg: Decimal = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 90}
+    )
+    source_recorded_at: datetime | None = Field(
+        default=None,
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 100},
+    )
+    source_recorded_at_authority_status: SourceRecordedAtAuthorityStatus = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 110}
+    )
+    source_recorded_at_authority_reference_or_null: NonEmptyString | None = Field(
+        default=None,
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 120},
+    )
+    revision_number: PositiveStrictInt = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 130}
+    )
+    record_status: ActualHarvestRecordStatus = Field(
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 140}
+    )
+    supersedes_external_revision_id: NonEmptyString | None = Field(
+        default=None,
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 150},
+    )
+    season_code: NonEmptyString | None = Field(
+        default=None,
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 160},
+    )
+    farm_timezone: NonEmptyString | None = Field(
+        default=None,
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 170},
+    )
+    revised_at: datetime | None = Field(
+        default=None,
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 180},
+    )
+    finalized_at: datetime | None = Field(
+        default=None,
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 190},
+    )
+    source_note: NonEmptyString | None = Field(
+        default=None,
+        json_schema_extra={"spreadsheet_importable": True, "spreadsheet_order": 200},
+    )
+    source_row_number: PositiveStrictInt | None = Field(
+        default=None, json_schema_extra={"spreadsheet_importable": False}
+    )
+    source_sheet_name: NonEmptyString | None = Field(
+        default=None, json_schema_extra={"spreadsheet_importable": False}
+    )
 
     @field_validator("harvest_business_date", mode="before")
     @classmethod

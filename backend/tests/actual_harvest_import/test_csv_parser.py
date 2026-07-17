@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +13,7 @@ from backend.app.actual_harvest_import.spreadsheet_parser import (
     canonical_spreadsheet_headers,
     parse_csv,
 )
+from backend.app.actual_harvest_import.spreadsheet_policy import SpreadsheetParserPolicy
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
@@ -187,3 +189,106 @@ def test_invalid_utf8_and_malformed_csv_are_rejected() -> None:
         _csv_bytes([_row()]) + b'"unterminated',
         ActualHarvestValidationErrorCode.CSV_STRUCTURE_INVALID,
     )
+
+
+class _NonSeekableBytes:
+    def __init__(self, payload: bytes) -> None:
+        self.payload = payload
+        self.position = 0
+
+    def read(self, size: int = -1) -> bytes:
+        assert size != -1
+        if self.position >= len(self.payload):
+            return b""
+        end = min(self.position + size, len(self.payload))
+        chunk = self.payload[self.position : end]
+        self.position = end
+        return chunk
+
+
+def test_csv_path_stream_and_non_seekable_stream_are_bounded(
+    tmp_path: Path,
+) -> None:
+    payload = _csv_bytes([_row()])
+    source_path = tmp_path / "actual-harvest.csv"
+    source_path.write_bytes(payload)
+
+    policy = SpreadsheetParserPolicy(max_file_size_bytes=len(payload))
+    assert parse_csv(source_path, policy=policy).records
+    assert parse_csv(io.BytesIO(payload), policy=policy).records
+    assert parse_csv(_NonSeekableBytes(payload), policy=policy).records
+
+
+def test_csv_file_size_boundary_and_boundary_plus_one() -> None:
+    payload = _csv_bytes([_row()])
+    assert parse_csv(
+        payload,
+        policy=SpreadsheetParserPolicy(max_file_size_bytes=len(payload)),
+    ).records
+    _assert_code_with_policy(
+        payload,
+        ActualHarvestValidationErrorCode.CSV_LIMIT_EXCEEDED,
+        SpreadsheetParserPolicy(max_file_size_bytes=len(payload) - 1),
+    )
+
+
+def _assert_code_with_policy(
+    payload: bytes,
+    code: ActualHarvestValidationErrorCode,
+    policy: SpreadsheetParserPolicy,
+) -> None:
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        parse_csv(payload, policy=policy)
+    assert captured.value.code == code
+
+
+def test_csv_row_limit_counts_empty_physical_rows() -> None:
+    payload = _csv_bytes([_row()])
+    empty_row = ("," * (len(canonical_spreadsheet_headers()) - 1) + "\n").encode()
+
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        parse_csv(
+            payload + empty_row,
+            policy=SpreadsheetParserPolicy(max_row_count=1),
+        )
+    assert captured.value.code == ActualHarvestValidationErrorCode.CSV_LIMIT_EXCEEDED
+
+
+def test_csv_row_limit_boundary_and_oversized_cell_are_rejected() -> None:
+    assert (
+        len(
+            parse_csv(
+                _csv_bytes([_row()]),
+                policy=SpreadsheetParserPolicy(max_row_count=1),
+            ).records
+        )
+        == 1
+    )
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        parse_csv(
+            _csv_bytes([_row(), _row(external_logical_record_id="logical-2")]),
+            policy=SpreadsheetParserPolicy(max_row_count=1),
+        )
+    assert captured.value.code == ActualHarvestValidationErrorCode.CSV_LIMIT_EXCEEDED
+
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        parse_csv(
+            _csv_bytes([_row(source_note="x" * 65)]),
+            policy=SpreadsheetParserPolicy(max_cell_text_length=64),
+        )
+    assert captured.value.code == ActualHarvestValidationErrorCode.CSV_LIMIT_EXCEEDED
+
+
+def test_csv_nul_and_oversized_column_count_fail_closed() -> None:
+    _assert_code(
+        _csv_bytes([_row(source_note="bad\x00note")]),
+        ActualHarvestValidationErrorCode.CSV_STRUCTURE_INVALID,
+    )
+    with pytest.raises(ActualHarvestValidationError) as captured:
+        parse_csv(
+            _csv_bytes([_row()]),
+            policy=SpreadsheetParserPolicy(
+                max_column_count=len(canonical_spreadsheet_headers()) - 1
+            ),
+        )
+    assert captured.value.code == ActualHarvestValidationErrorCode.REQUIRED_FIELD_MISSING

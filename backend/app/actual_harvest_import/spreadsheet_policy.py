@@ -16,6 +16,7 @@ class SpreadsheetParserPolicy:
     max_cell_text_length: int = 4_096
     max_uncompressed_xlsx_size_bytes: int = 50 * 1024 * 1024
     max_xlsx_compression_ratio: int = 100
+    max_xlsx_entry_count: int = 512
 
     def __post_init__(self) -> None:
         if not self.version or not self.header_policy:
@@ -28,6 +29,7 @@ class SpreadsheetParserPolicy:
             "max_cell_text_length",
             "max_uncompressed_xlsx_size_bytes",
             "max_xlsx_compression_ratio",
+            "max_xlsx_entry_count",
         ):
             if getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be positive")
