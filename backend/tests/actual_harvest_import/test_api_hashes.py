@@ -22,6 +22,7 @@ from backend.app.actual_harvest_import.schemas import (
     ActualHarvestSourceSemanticsAttestation,
     CanonicalActualHarvestImportRecord,
 )
+from backend.app.actual_harvest_import.validation_hashes import compute_validation_result_hash
 
 
 def _create() -> ActualHarvestApiCreateImportRequest:
@@ -99,3 +100,87 @@ def test_lifecycle_status_values_are_not_validation_or_commit_states() -> None:
     assert ActualHarvestImportBatchStatus.UPLOADING.value == "UPLOADING"
     assert ActualHarvestBatchSealStatus.UNSEALED.value == "UNSEALED"
     assert ActualHarvestImportBatchStatus.COMMITTED.value not in {"UPLOADING", "SEALED"}
+
+
+def _validation_hash(record_hashes: list[dict[str, object]]) -> str:
+    return compute_validation_result_hash(
+        seal_manifest_hash="a" * 64,
+        mapping_snapshot_hash="b" * 64,
+        mapping_policy_version="mapping-v1",
+        validation_policy_version="validation-v1",
+        record_hashes=record_hashes,
+        mapping_outcomes=[],
+        nodes=[],
+        edges=[],
+        errors=[],
+        warnings=[],
+        counts={"valid": 2, "invalid": 0, "errors": 0, "warnings": 0},
+        committed_lineage_basis_hash="c" * 64,
+        lineage_graph_hash="d" * 64,
+        resolved_identity_snapshot_hash="e" * 64,
+    )
+
+
+def test_validation_result_hash_is_invariant_to_input_and_query_order() -> None:
+    records = [
+        {
+            "source_system": "farm-system",
+            "external_logical_record_id": "logical-2",
+            "revision_number": 1,
+            "external_revision_id": "revision-2",
+            "canonical_record_hash": "2" * 64,
+        },
+        {
+            "source_system": "farm-system",
+            "external_logical_record_id": "logical-1",
+            "revision_number": 1,
+            "external_revision_id": "revision-1",
+            "canonical_record_hash": "1" * 64,
+        },
+    ]
+    assert _validation_hash(records) == _validation_hash(list(reversed(records)))
+
+
+def test_validation_result_hash_binds_record_key_to_record_hash() -> None:
+    records = [
+        {
+            "source_system": "farm-system",
+            "external_logical_record_id": "logical-1",
+            "revision_number": 1,
+            "external_revision_id": "revision-1",
+            "canonical_record_hash": "1" * 64,
+        },
+        {
+            "source_system": "farm-system",
+            "external_logical_record_id": "logical-2",
+            "revision_number": 1,
+            "external_revision_id": "revision-2",
+            "canonical_record_hash": "2" * 64,
+        },
+    ]
+    reassociated = [
+        {**records[0], "canonical_record_hash": "2" * 64},
+        {**records[1], "canonical_record_hash": "1" * 64},
+    ]
+    assert _validation_hash(records) != _validation_hash(reassociated)
+
+
+def test_validation_result_hash_changes_when_record_business_hash_changes() -> None:
+    records = [
+        {
+            "source_system": "farm-system",
+            "external_logical_record_id": "logical-1",
+            "revision_number": 1,
+            "external_revision_id": "revision-1",
+            "canonical_record_hash": "1" * 64,
+        },
+        {
+            "source_system": "farm-system",
+            "external_logical_record_id": "logical-2",
+            "revision_number": 1,
+            "external_revision_id": "revision-2",
+            "canonical_record_hash": "2" * 64,
+        },
+    ]
+    changed = [{**records[0], "canonical_record_hash": "3" * 64}, records[1]]
+    assert _validation_hash(records) != _validation_hash(changed)

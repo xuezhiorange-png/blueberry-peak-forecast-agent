@@ -41,7 +41,9 @@ Stale reclaim locks the batch and run, abandons the old attempt, increments the
 generation, creates a new token, and commits before work starts. Final evidence
 requires the active attempt, unexpired lease, `VALIDATING` batch, unchanged seal,
 registry hash, record manifest, and committed basis. Drift returns the batch to
-`SEALED` without final evidence and requires a new validation.
+`SEALED` without final evidence and requires a new validation. Long record
+processing renews the lease every 100 records in addition to the stage-boundary
+renewals.
 
 ## Mapping authority
 
@@ -54,9 +56,19 @@ Validation requires a sealed registry and exact `mapping_policy_version`.
 Registry entries explicitly identify source field, source code, target type and
 stable target business key. Display names are not inferred as source codes.
 I5 v1 is `SUBFARM_ONLY_PLOT_REJECTED`; plot input cannot be silently mapped to a
-subfarm. Farm, subfarm, variety and season targets are resolved by exact
-business keys against existing master data. Hashes use stable business values,
-never database IDs.
+subfarm. Farm, subfarm, variety and season targets are resolved by exact,
+case-sensitive business keys against existing master data. Missing season codes
+use the farm-local harvest date against an inclusive season range and require
+exactly one candidate. Hashes use stable business values, never database IDs.
+
+The resolver policy is
+`actual-harvest-season-resolver-v1`. Each mapped current-batch record stores
+one immutable evidence row per source field for `SEASON`, `FARM`, `SUBFARM` and
+`VARIETY`. Evidence includes the registry entry hash, target type, stable target
+and parent identity, a resolved master record hash, and a restricted foreign key
+to the resolved `dim_*` row. `resolved_identity_snapshot_hash` excludes those
+database IDs and is bound into the mapping snapshot, validation result and
+current validation run.
 
 The 0019 migration adds database guards as well as service checks: a sealed
 registry and its entries reject direct update, delete and insert operations.
@@ -95,10 +107,14 @@ revision hashes, predecessor edges, status, revision number, source-time
 authority metadata, source provenance and authority policy. It excludes
 database IDs, runtime values, query order, attempt identity and fencing data.
 
-`validation_result_hash` binds the seal, mapping snapshot, policy versions,
-canonical record hashes, mapping outcomes, ordered lineage nodes and edges,
-errors/warnings/counts, committed basis and lineage graph. It excludes cutoff,
-winner, aggregation, runtime, database and pagination values.
+`validation_result_hash` binds the seal, mapping snapshot, resolved-identity
+snapshot, policy versions, and ordered tuples of
+`(source_system, external_logical_record_id, revision_number,
+external_revision_id, canonical_record_hash)`, plus mapping outcomes, ordered
+lineage nodes and edges, errors/warnings/counts, committed basis and lineage
+graph. It excludes cutoff, winner, aggregation, runtime, database IDs and
+pagination values. Reassociating a record hash with another stable record key
+changes the result hash.
 
 ## Evidence schema
 
@@ -111,6 +127,7 @@ Migration `0019_actual_harvest_validation_evidence` adds exactly:
 - `actual_harvest_validation_attempt`;
 - `actual_harvest_validation_result`;
 - `actual_harvest_validation_record`;
+- `actual_harvest_validation_mapping_evidence`;
 - `actual_harvest_validation_error`;
 - `actual_harvest_validation_lineage_node`;
 - `actual_harvest_validation_lineage_edge`;
@@ -137,12 +154,27 @@ validation, error, lineage and basis evidence. `CANCELLED` is not active data.
 
 ## Tests and exclusions
 
-The I5 test set covers registry sealing and rejection, exact mapping, replay,
-lineage errors, validation error pagination, preview summary, cancellation
-evidence preservation and stale-attempt fencing. The PostgreSQL shard covers
-concurrent validation replay and cancellation evidence preservation. Existing
-I1-I4, core, agent and Alembic tests remain regression gates. Local PostgreSQL
-status is reported separately and is never inferred from SQLite.
+The I5 test set covers the restored I1 contract suite, registry sealing and
+rejection, exact mapping, deterministic season resolution, resolved identity
+evidence, replay, lineage errors, validation error pagination, preview summary,
+cancellation evidence preservation, elapsed lease renewal and stale-attempt
+fencing. The following PostgreSQL nodes are assigned to the existing
+`postgres-domain-1` shard and are not claimed as locally passed:
+
+- `test_postgres_i5_identical_validate_replays_immutable_result`;
+- `test_postgres_i5_validate_cancel_race_has_one_serialized_outcome`;
+- `test_postgres_i5_cancel_validated_preserves_validation_evidence`;
+- `test_postgres_i5_validation_failed_cancel_preserves_all_evidence`;
+- `test_postgres_i5_heartbeat_renewal_and_expired_attempt_cannot_finalize`;
+- `test_postgres_i5_old_worker_cannot_demote_new_attempt_state`;
+- `test_postgres_i5_committed_history_predecessor_is_in_validation_basis`;
+- `test_postgres_i5_uncommitted_batch_is_excluded_from_lineage_basis`;
+- `test_postgres_i5_validation_errors_use_bounded_keyset_pagination`;
+- `test_postgres_i5_draft_registry_is_rejected`;
+- `test_postgres_i5_sealed_registry_entry_mutation_is_rejected`.
+
+Existing I1-I4, core, agent and Alembic tests remain regression gates. Local
+PostgreSQL status is reported separately and is never inferred from SQLite.
 
 ## Local verification
 
@@ -151,15 +183,17 @@ At implementation time the local results were:
 - `uv lock --check`: passed;
 - Ruff check and format check: passed;
 - `uv run mypy app`: passed;
-- `uv run pytest backend/tests/actual_harvest_import -q`: 184 passed, 7 skipped;
-- core forecast: 143 passed;
+- `uv run pytest backend/tests/actual_harvest_import -q`: 217 passed, 16 skipped;
+- core forecast and V0.1-S1: 154 passed;
 - agent: 359 passed;
-- API/lifespan regression: 58 passed;
-- Alembic regression: 28 passed;
+- API/lifespan and actual-harvest routes: 25 passed;
+- Alembic contract regression: 6 passed;
 - local PostgreSQL: not run because Docker is unavailable.
 
-The exact-head PR CI is the acceptance source for PostgreSQL execution and
-will be recorded here after the Draft PR run completes.
+The exact-head PR CI is the acceptance source for PostgreSQL execution. Its
+run ID, JUnit counts, node IDs and artifact digests are recorded in the PR
+body after the new Head completes; no local SQLite result is represented as
+PostgreSQL evidence.
 
 Hard exclusions are Q2A-I6 atomic commit, Q2A-I7 cutoff winner/aggregation/
 label snapshot, Q2A-I8 integration acceptance, Q2B, Q3, TASK-013 Slice C C2,

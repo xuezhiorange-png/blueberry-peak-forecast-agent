@@ -9,7 +9,7 @@ from typing import Any, cast
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.app.actual_harvest_import.api_errors import (
@@ -43,6 +43,7 @@ from backend.app.actual_harvest_import.validation_hashes import (
     compute_mapping_snapshot_hash,
     compute_record_manifest_hash,
     compute_request_identity_hash,
+    compute_resolved_identity_snapshot_hash,
     compute_validation_result_hash,
     digest,
 )
@@ -56,6 +57,7 @@ from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestValidationLineageBasisModel,
     ActualHarvestValidationLineageEdgeModel,
     ActualHarvestValidationLineageNodeModel,
+    ActualHarvestValidationMappingEvidenceModel,
     ActualHarvestValidationRecordModel,
     ActualHarvestValidationResultModel,
     ActualHarvestValidationRunModel,
@@ -64,6 +66,7 @@ from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 VALIDATION_LEASE = timedelta(minutes=10)
+VALIDATION_HEARTBEAT_RECORD_INTERVAL = 100
 AUTHORITY_POLICY_VERSION = "actual-harvest-lineage-authority-v1"
 SUBFARM_ONLY_POLICY = "SUBFARM_ONLY_PLOT_REJECTED"
 
@@ -75,6 +78,7 @@ class ValidationSummary:
     validation_result_hash: str | None
     lineage_graph_hash: str | None
     mapping_snapshot_hash: str | None
+    resolved_identity_snapshot_hash: str | None
     committed_lineage_basis_hash: str | None
     valid_count: int
     invalid_count: int
@@ -123,6 +127,7 @@ class ValidationEvidence:
     registry_version: str
     registry_content_hash: str
     mapping_snapshot_hash: str
+    resolved_identity_snapshot_hash: str
     record_manifest_hash: str
     committed_lineage_basis_hash: str
     lineage_graph_hash: str
@@ -133,6 +138,7 @@ class ValidationEvidence:
     nodes: tuple[dict[str, Any], ...]
     edges: tuple[dict[str, Any], ...]
     basis_members: tuple[dict[str, Any], ...]
+    mapping_outcomes: tuple[dict[str, Any], ...]
     mapping_entries: tuple[dict[str, Any], ...]
     counts: dict[str, int]
     status: str
@@ -154,6 +160,19 @@ def _api_error(code: ActualHarvestApiErrorCode, message: str, status: int) -> Ac
 
 def _ensure_aware(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _database_utc_now(session: Session) -> datetime:
+    value = session.scalar(select(func.current_timestamp()))
+    if isinstance(value, datetime):
+        return _ensure_aware(value)
+    if isinstance(value, str):
+        return _ensure_aware(datetime.fromisoformat(value))
+    raise _api_error(
+        ActualHarvestApiErrorCode.API_INTEGRITY_ERROR,
+        "database clock is unavailable",
+        500,
+    )
 
 
 def _error(
@@ -440,6 +459,50 @@ def _new_attempt(
     return attempt
 
 
+def renew_validation_attempt_lease(
+    session: Session,
+    *,
+    validation_run_id: int,
+    attempt_id: str,
+    attempt_generation: int,
+    fencing_token: str,
+) -> datetime:
+    run = session.scalar(
+        select(ActualHarvestValidationRunModel)
+        .where(ActualHarvestValidationRunModel.id == validation_run_id)
+        .with_for_update()
+    )
+    attempt = session.scalar(
+        select(ActualHarvestValidationAttemptModel)
+        .where(ActualHarvestValidationAttemptModel.attempt_id == attempt_id)
+        .with_for_update()
+    )
+    if run is None or attempt is None:
+        raise _api_error(
+            ActualHarvestApiErrorCode.VALIDATION_EVIDENCE_STALE,
+            "validation attempt is no longer active",
+            409,
+        )
+    now = _database_utc_now(session)
+    if not (
+        run.is_current
+        and run.active_attempt_id == attempt_id
+        and run.active_attempt_generation == attempt_generation
+        and attempt.fencing_token == fencing_token
+        and attempt.status == "ACTIVE"
+        and _ensure_aware(attempt.lease_expires_at) > now
+    ):
+        raise _api_error(
+            ActualHarvestApiErrorCode.VALIDATION_EVIDENCE_STALE,
+            "validation attempt is no longer active",
+            409,
+        )
+    attempt.heartbeat_at = now
+    attempt.lease_expires_at = now + VALIDATION_LEASE
+    session.flush()
+    return now
+
+
 def _run_summary(run: ActualHarvestValidationRunModel) -> ValidationSummary:
     return ValidationSummary(
         validation_status=run.status,
@@ -447,6 +510,7 @@ def _run_summary(run: ActualHarvestValidationRunModel) -> ValidationSummary:
         validation_result_hash=run.validation_result_hash,
         lineage_graph_hash=run.lineage_graph_hash,
         mapping_snapshot_hash=run.mapping_snapshot_hash,
+        resolved_identity_snapshot_hash=run.resolved_identity_snapshot_hash,
         committed_lineage_basis_hash=run.committed_lineage_basis_hash,
         valid_count=run.valid_count,
         invalid_count=run.invalid_count,
@@ -456,6 +520,7 @@ def _run_summary(run: ActualHarvestValidationRunModel) -> ValidationSummary:
 
 
 def begin_validation(session: Session, *, import_id: str, now: datetime) -> ValidationStart:
+    now = _database_utc_now(session)
     batch = session.scalar(
         select(ActualHarvestImportBatchModel)
         .where(ActualHarvestImportBatchModel.import_id == import_id)
@@ -577,11 +642,33 @@ def begin_validation(session: Session, *, import_id: str, now: datetime) -> Vali
     )
 
 
+def _resolved_master_hash(
+    *,
+    target_type: str,
+    business_key: str,
+    parent_business_key: str | None,
+    season_start: Any = None,
+    season_end: Any = None,
+) -> str:
+    return digest(
+        {
+            "target_type": target_type,
+            "business_key": business_key,
+            "parent_business_key": parent_business_key,
+            "season_start_date": season_start.isoformat() if season_start else None,
+            "season_end_date": season_end.isoformat() if season_end else None,
+        }
+    )
+
+
 def _mapping_outcomes(
     session: Session,
     *,
     records: tuple[Any, ...],
     entries: tuple[ActualHarvestMappingRegistryEntryModel, ...],
+    registry_version: str,
+    mapping_policy_version: str,
+    heartbeat: Any | None = None,
 ) -> tuple[list[dict[str, Any]], list[ValidationErrorValue]]:
     by_key = {(entry.source_field, entry.source_code): entry for entry in entries}
     outcomes: list[dict[str, Any]] = []
@@ -595,7 +682,68 @@ def _mapping_outcomes(
     for index, record in enumerate(records, start=1):
         for field, expected_target in field_values.items():
             source_code = getattr(record, field)
-            if source_code is None or (field == "season_code" and not source_code):
+            entry = by_key.get((field, source_code)) if source_code else None
+            if field == "season_code" and not source_code:
+                candidates = session.scalars(
+                    select(Season).where(
+                        Season.start_date <= record.harvest_business_date,
+                        Season.end_date >= record.harvest_business_date,
+                    )
+                ).all()
+                if len(candidates) == 0:
+                    errors.append(
+                        _error(
+                            ActualHarvestValidationErrorCode.SEASON_RESOLUTION_NOT_FOUND,
+                            record_index=index,
+                            logical_id=record.external_logical_record_id,
+                            revision_id=record.external_revision_id,
+                            field_path=field,
+                        )
+                    )
+                    continue
+                if len(candidates) != 1:
+                    errors.append(
+                        _error(
+                            ActualHarvestValidationErrorCode.SEASON_RESOLUTION_AMBIGUOUS,
+                            record_index=index,
+                            logical_id=record.external_logical_record_id,
+                            revision_id=record.external_revision_id,
+                            field_path=field,
+                        )
+                    )
+                    continue
+                season = candidates[0]
+                outcomes.append(
+                    {
+                        "record_index": index,
+                        "source_system": record.source_system,
+                        "external_logical_record_id": record.external_logical_record_id,
+                        "external_revision_id": record.external_revision_id,
+                        "revision_number": record.revision_number,
+                        "source_field": field,
+                        "source_code": None,
+                        "target_type": expected_target,
+                        "target_business_key": season.code,
+                        "target_parent_business_key": None,
+                        "registry_version": registry_version,
+                        "mapping_policy_version": mapping_policy_version,
+                        "registry_entry_hash": None,
+                        "resolved_master_business_key": season.code,
+                        "resolved_master_parent_business_key": None,
+                        "resolved_master_id": season.id,
+                        "resolved_master_record_hash": _resolved_master_hash(
+                            target_type=expected_target,
+                            business_key=season.code,
+                            parent_business_key=None,
+                            season_start=season.start_date,
+                            season_end=season.end_date,
+                        ),
+                        "resolution_mode": "DATE_RANGE",
+                        "outcome": "MAPPED",
+                    }
+                )
+                continue
+            if source_code is None:
                 errors.append(
                     _error(
                         ActualHarvestValidationErrorCode.IDENTITY_MAPPING_NOT_FOUND,
@@ -606,7 +754,6 @@ def _mapping_outcomes(
                     )
                 )
                 continue
-            entry = by_key.get((field, source_code))
             if entry is None:
                 errors.append(
                     _error(
@@ -630,39 +777,92 @@ def _mapping_outcomes(
                     )
                 )
                 continue
-            target_count = 0
+            target: Any | None = None
             if expected_target == "SEASON":
-                target_count = (
-                    session.scalar(
-                        select(Season.id).where(Season.code == entry.target_business_key)
-                    )
-                    is not None
-                )
-            elif expected_target == "FARM":
-                target_count = (
-                    session.scalar(select(Farm.id).where(Farm.name == entry.target_business_key))
-                    is not None
-                )
-            elif expected_target == "VARIETY":
-                target_count = (
-                    session.scalar(
-                        select(Variety.id).where(Variety.code == entry.target_business_key)
-                    )
-                    is not None
-                )
-            else:
-                target_count = (
-                    session.scalar(
-                        select(Subfarm.id)
-                        .join(Farm, Farm.id == Subfarm.farm_id)
-                        .where(
-                            Subfarm.name == entry.target_business_key,
-                            Farm.name == entry.target_parent_business_key,
+                season_targets = session.scalars(
+                    select(Season).where(Season.code == entry.target_business_key)
+                ).all()
+                if len(season_targets) > 1:
+                    errors.append(
+                        _error(
+                            ActualHarvestValidationErrorCode.IDENTITY_MAPPING_AMBIGUOUS,
+                            record_index=index,
+                            logical_id=record.external_logical_record_id,
+                            revision_id=record.external_revision_id,
+                            field_path=field,
                         )
                     )
-                    is not None
-                )
-            if not target_count:
+                    continue
+                if len(season_targets) == 1:
+                    target = season_targets[0]
+                    if not (target.start_date <= record.harvest_business_date <= target.end_date):
+                        errors.append(
+                            _error(
+                                ActualHarvestValidationErrorCode.SEASON_BUSINESS_DATE_MISMATCH,
+                                record_index=index,
+                                logical_id=record.external_logical_record_id,
+                                revision_id=record.external_revision_id,
+                                field_path=field,
+                            )
+                        )
+                        continue
+            elif expected_target == "FARM":
+                farm_targets = session.scalars(
+                    select(Farm).where(Farm.name == entry.target_business_key)
+                ).all()
+                if len(farm_targets) > 1:
+                    errors.append(
+                        _error(
+                            ActualHarvestValidationErrorCode.IDENTITY_MAPPING_AMBIGUOUS,
+                            record_index=index,
+                            logical_id=record.external_logical_record_id,
+                            revision_id=record.external_revision_id,
+                            field_path=field,
+                        )
+                    )
+                    continue
+                if len(farm_targets) == 1:
+                    target = farm_targets[0]
+            elif expected_target == "VARIETY":
+                variety_targets = session.scalars(
+                    select(Variety).where(Variety.code == entry.target_business_key)
+                ).all()
+                if len(variety_targets) > 1:
+                    errors.append(
+                        _error(
+                            ActualHarvestValidationErrorCode.IDENTITY_MAPPING_AMBIGUOUS,
+                            record_index=index,
+                            logical_id=record.external_logical_record_id,
+                            revision_id=record.external_revision_id,
+                            field_path=field,
+                        )
+                    )
+                    continue
+                if len(variety_targets) == 1:
+                    target = variety_targets[0]
+            else:
+                subfarm_targets = session.execute(
+                    select(Subfarm, Farm)
+                    .join(Farm, Farm.id == Subfarm.farm_id)
+                    .where(
+                        Subfarm.name == entry.target_business_key,
+                        Farm.name == entry.target_parent_business_key,
+                    )
+                ).all()
+                if len(subfarm_targets) > 1:
+                    errors.append(
+                        _error(
+                            ActualHarvestValidationErrorCode.IDENTITY_MAPPING_AMBIGUOUS,
+                            record_index=index,
+                            logical_id=record.external_logical_record_id,
+                            revision_id=record.external_revision_id,
+                            field_path=field,
+                        )
+                    )
+                    continue
+                if len(subfarm_targets) == 1:
+                    target = subfarm_targets[0]
+            if target is None:
                 errors.append(
                     _error(
                         ActualHarvestValidationErrorCode.IDENTITY_MAPPING_NOT_FOUND,
@@ -673,22 +873,75 @@ def _mapping_outcomes(
                     )
                 )
                 continue
+            if expected_target == "SEASON":
+                resolved_key = target.code
+                resolved_parent = None
+                resolved_hash = _resolved_master_hash(
+                    target_type=expected_target,
+                    business_key=resolved_key,
+                    parent_business_key=resolved_parent,
+                    season_start=target.start_date,
+                    season_end=target.end_date,
+                )
+            elif expected_target == "FARM":
+                resolved_key = target.name
+                resolved_parent = None
+                resolved_hash = _resolved_master_hash(
+                    target_type=expected_target,
+                    business_key=resolved_key,
+                    parent_business_key=resolved_parent,
+                )
+            elif expected_target == "VARIETY":
+                resolved_key = target.code
+                resolved_parent = None
+                resolved_hash = _resolved_master_hash(
+                    target_type=expected_target,
+                    business_key=resolved_key,
+                    parent_business_key=resolved_parent,
+                )
+            else:
+                subfarm, farm = target
+                resolved_key = subfarm.name
+                resolved_parent = farm.name
+                resolved_hash = _resolved_master_hash(
+                    target_type=expected_target,
+                    business_key=resolved_key,
+                    parent_business_key=resolved_parent,
+                )
             outcomes.append(
                 {
                     "record_index": index,
+                    "source_system": record.source_system,
+                    "external_logical_record_id": record.external_logical_record_id,
+                    "external_revision_id": record.external_revision_id,
+                    "revision_number": record.revision_number,
                     "source_field": field,
                     "source_code": source_code,
                     "target_type": expected_target,
                     "target_business_key": entry.target_business_key,
                     "target_parent_business_key": entry.target_parent_business_key,
+                    "registry_version": registry_version,
+                    "mapping_policy_version": mapping_policy_version,
+                    "registry_entry_hash": entry.entry_hash,
+                    "resolved_master_business_key": resolved_key,
+                    "resolved_master_parent_business_key": resolved_parent,
+                    "resolved_master_id": target.id
+                    if expected_target != "SUBFARM"
+                    else target[0].id,
+                    "resolved_master_record_hash": resolved_hash,
+                    "resolution_mode": "REGISTRY_EXACT",
+                    "outcome": "MAPPED",
                 }
             )
+        if heartbeat is not None and index % VALIDATION_HEARTBEAT_RECORD_INTERVAL == 0:
+            heartbeat()
     return outcomes, errors
 
 
 def _lineage_evidence(
     records: tuple[Any, ...],
     basis_members: tuple[dict[str, Any], ...],
+    heartbeat: Any | None = None,
 ) -> tuple[
     tuple[dict[str, Any], ...],
     tuple[dict[str, Any], ...],
@@ -697,7 +950,7 @@ def _lineage_evidence(
     nodes: list[dict[str, Any]] = []
     errors: list[ValidationErrorValue] = []
     combined: list[dict[str, Any]] = []
-    for record in records:
+    for index, record in enumerate(records, start=1):
         combined.append(
             {
                 "origin": "CURRENT_BATCH_REVISION",
@@ -705,6 +958,8 @@ def _lineage_evidence(
                 "committed_batch_ref": None,
             }
         )
+        if heartbeat is not None and index % VALIDATION_HEARTBEAT_RECORD_INTERVAL == 0:
+            heartbeat()
     for member in basis_members:
         combined.append(
             {
@@ -955,6 +1210,27 @@ def build_validation_evidence(
         raise _api_error(
             ActualHarvestApiErrorCode.API_INTEGRITY_ERROR, "validation batch is missing", 500
         )
+    attempt = session.scalar(
+        select(ActualHarvestValidationAttemptModel).where(
+            ActualHarvestValidationAttemptModel.attempt_id == attempt_id
+        )
+    )
+    if attempt is None:
+        raise _api_error(
+            ActualHarvestApiErrorCode.VALIDATION_EVIDENCE_STALE,
+            "validation attempt is no longer active",
+            409,
+        )
+
+    def heartbeat() -> None:
+        renew_validation_attempt_lease(
+            session,
+            validation_run_id=run_id,
+            attempt_id=attempt_id,
+            attempt_generation=run.active_attempt_generation,
+            fencing_token=attempt.fencing_token,
+        )
+
     registry, entries = _load_registry(
         session,
         source_system=batch.source_system,
@@ -962,7 +1238,14 @@ def build_validation_evidence(
     )
     records = tuple(ordered_records(_all_batch_records(session, batch.id)))
     basis_hash, basis_members = _current_basis(session, batch)
-    outcomes, mapping_errors = _mapping_outcomes(session, records=records, entries=entries)
+    outcomes, mapping_errors = _mapping_outcomes(
+        session,
+        records=records,
+        entries=entries,
+        registry_version=registry.registry_version,
+        mapping_policy_version=registry.mapping_policy_version,
+        heartbeat=heartbeat,
+    )
     errors = list(mapping_errors)
     if batch.status not in {
         ActualHarvestImportBatchStatus.VALIDATING.value,
@@ -1042,7 +1325,7 @@ def build_validation_evidence(
         errors.append(_error(ActualHarvestValidationErrorCode.BATCH_NOT_SEALED))
     if compute_record_manifest_hash(seal_records) != run.record_manifest_hash:
         errors.append(_error(ActualHarvestValidationErrorCode.CANONICAL_HASH_MISMATCH))
-    nodes, edges, lineage_errors = _lineage_evidence(records, basis_members)
+    nodes, edges, lineage_errors = _lineage_evidence(records, basis_members, heartbeat=heartbeat)
     errors.extend(lineage_errors)
     errors = list(_sorted_errors(errors))
     warnings: list[ValidationErrorValue] = []
@@ -1059,6 +1342,7 @@ def build_validation_evidence(
         {key: value for key, value in edge.items() if key != "edge_hash"} for edge in edges
     )
     lineage_graph_hash = compute_lineage_graph_hash(node_payload, edge_payload)
+    resolved_identity_snapshot_hash = compute_resolved_identity_snapshot_hash(outcomes)
     counts = {
         "valid_count": len(records)
         if not errors
@@ -1079,7 +1363,16 @@ def build_validation_evidence(
         mapping_snapshot_hash=mapping_snapshot_hash,
         mapping_policy_version=run.mapping_policy_version,
         validation_policy_version=run.validation_policy_version,
-        record_hashes=(compute_canonical_record_hash(record) for record in records),
+        record_hashes=(
+            {
+                "source_system": record.source_system,
+                "external_logical_record_id": record.external_logical_record_id,
+                "revision_number": record.revision_number,
+                "external_revision_id": record.external_revision_id,
+                "canonical_record_hash": compute_canonical_record_hash(record),
+            }
+            for record in records
+        ),
         mapping_outcomes=outcomes,
         nodes=node_payload,
         edges=edge_payload,
@@ -1088,6 +1381,7 @@ def build_validation_evidence(
         counts=counts,
         committed_lineage_basis_hash=basis_hash,
         lineage_graph_hash=lineage_graph_hash,
+        resolved_identity_snapshot_hash=resolved_identity_snapshot_hash,
     )
     record_payloads = tuple(
         {
@@ -1126,6 +1420,7 @@ def build_validation_evidence(
         registry_version=registry.registry_version,
         registry_content_hash=registry.registry_content_hash or "0" * 64,
         mapping_snapshot_hash=mapping_snapshot_hash,
+        resolved_identity_snapshot_hash=resolved_identity_snapshot_hash,
         record_manifest_hash=run.record_manifest_hash,
         committed_lineage_basis_hash=basis_hash,
         lineage_graph_hash=lineage_graph_hash,
@@ -1136,6 +1431,7 @@ def build_validation_evidence(
         nodes=nodes,
         edges=edges,
         basis_members=basis_members,
+        mapping_outcomes=tuple(outcomes),
         mapping_entries=mapping_snapshot_payload,
         counts=counts,
         status="VALIDATED" if not errors else "VALIDATION_FAILED",
@@ -1169,15 +1465,27 @@ def finalize_validation(
             "validation evidence target is missing",
             500,
         )
+    database_now = _database_utc_now(session)
+    now = database_now
     current_basis, _ = _current_basis(session, batch)
     current_manifest = compute_record_manifest_hash(_all_batch_records(session, batch.id))
+    current_resolved_identity_hash: str | None = None
     try:
-        current_registry, _ = _load_registry(
+        current_registry, current_entries = _load_registry(
             session,
             source_system=batch.source_system,
             mapping_policy_version=batch.mapping_policy_version,
         )
         current_registry_hash = current_registry.registry_content_hash
+        current_records = tuple(ordered_records(_all_batch_records(session, batch.id)))
+        current_outcomes, _ = _mapping_outcomes(
+            session,
+            records=current_records,
+            entries=current_entries,
+            registry_version=current_registry.registry_version,
+            mapping_policy_version=current_registry.mapping_policy_version,
+        )
+        current_resolved_identity_hash = compute_resolved_identity_snapshot_hash(current_outcomes)
     except ActualHarvestApiError:
         current_registry_hash = None
     valid_attempt = (
@@ -1186,19 +1494,25 @@ def finalize_validation(
         and run.active_attempt_generation == evidence.attempt_generation
         and attempt.fencing_token == evidence.fencing_token
         and attempt.status == "ACTIVE"
-        and _ensure_aware(attempt.lease_expires_at) > now
+        and _ensure_aware(attempt.lease_expires_at) > database_now
         and batch.status == ActualHarvestImportBatchStatus.VALIDATING.value
         and batch.seal_manifest_hash_or_null == evidence.seal_manifest_hash
         and current_registry_hash == evidence.registry_content_hash
         and current_basis == evidence.committed_lineage_basis_hash
         and current_manifest == evidence.record_manifest_hash
+        and current_resolved_identity_hash == evidence.resolved_identity_snapshot_hash
     )
     if not valid_attempt:
-        attempt.status = "STALE"
-        attempt.abandoned_at = now
-        batch.status = ActualHarvestImportBatchStatus.SEALED.value
-        run.is_current = False
-        run.superseded_at = now
+        newer_attempt_is_current = (
+            run.active_attempt_id != evidence.attempt_id
+            or run.active_attempt_generation != evidence.attempt_generation
+        )
+        if not newer_attempt_is_current:
+            attempt.status = "STALE"
+            attempt.abandoned_at = database_now
+            batch.status = ActualHarvestImportBatchStatus.SEALED.value
+            run.is_current = False
+            run.superseded_at = database_now
         session.flush()
         return "STALE"
     session.add(
@@ -1208,6 +1522,7 @@ def finalize_validation(
             mapping_policy_version=evidence.mapping_policy_version,
             registry_content_hash=evidence.registry_content_hash,
             mapping_snapshot_hash=evidence.mapping_snapshot_hash,
+            resolved_identity_snapshot_hash=evidence.resolved_identity_snapshot_hash,
             entry_count=len(evidence.mapping_entries),
             snapshot_payload=canonical_json_dumps(evidence.mapping_entries),
         )
@@ -1249,6 +1564,23 @@ def finalize_validation(
         )
     for record in evidence.records:
         session.add(ActualHarvestValidationRecordModel(validation_run_id=run.id, **record))
+    for mapping in evidence.mapping_outcomes:
+        target_type = mapping["target_type"]
+        mapping_payload = dict(mapping)
+        resolved_master_id = mapping_payload.pop("resolved_master_id")
+        mapping_fk = {
+            "resolved_season_id": resolved_master_id if target_type == "SEASON" else None,
+            "resolved_farm_id": resolved_master_id if target_type == "FARM" else None,
+            "resolved_subfarm_id": resolved_master_id if target_type == "SUBFARM" else None,
+            "resolved_variety_id": resolved_master_id if target_type == "VARIETY" else None,
+        }
+        session.add(
+            ActualHarvestValidationMappingEvidenceModel(
+                validation_run_id=run.id,
+                **mapping_payload,
+                **mapping_fk,
+            )
+        )
     for _index, node in enumerate(evidence.nodes, start=1):
         node_payload = {key: value for key, value in node.items() if key != "node_hash"}
         session.add(
@@ -1291,6 +1623,7 @@ def finalize_validation(
             lineage_graph_hash=evidence.lineage_graph_hash,
             committed_lineage_basis_hash=evidence.committed_lineage_basis_hash,
             mapping_snapshot_hash=evidence.mapping_snapshot_hash,
+            resolved_identity_snapshot_hash=evidence.resolved_identity_snapshot_hash,
             valid_count=evidence.counts["valid_count"],
             invalid_count=evidence.counts["invalid_count"],
             error_count=evidence.counts["error_count"],
@@ -1308,6 +1641,7 @@ def finalize_validation(
     run.lineage_graph_hash = evidence.lineage_graph_hash
     run.validation_result_hash = evidence.validation_result_hash
     run.mapping_snapshot_hash = evidence.mapping_snapshot_hash
+    run.resolved_identity_snapshot_hash = evidence.resolved_identity_snapshot_hash
     run.valid_count = evidence.counts["valid_count"]
     run.invalid_count = evidence.counts["invalid_count"]
     run.error_count = evidence.counts["error_count"]
@@ -1339,7 +1673,7 @@ def current_validation_summary(session: Session, import_id: str) -> ValidationSu
         )
     )
     if run is None:
-        return ValidationSummary("NOT_RUN", None, None, None, None, None, 0, 0, 0, 0)
+        return ValidationSummary("NOT_RUN", None, None, None, None, None, None, 0, 0, 0, 0)
     return _run_summary(run)
 
 
@@ -1415,9 +1749,27 @@ async def validate_import(session: Any, *, import_id: str, now: datetime) -> Val
         raise _api_error(
             ActualHarvestApiErrorCode.API_INTEGRITY_ERROR, "validation attempt is missing", 500
         )
+    if start.attempt_generation is None or start.fencing_token is None:
+        raise _api_error(
+            ActualHarvestApiErrorCode.API_INTEGRITY_ERROR,
+            "validation attempt fencing identity is missing",
+            500,
+        )
     run_id = start.run_id
     attempt_id = start.attempt_id
+    attempt_generation = start.attempt_generation
+    fencing_token = start.fencing_token
     try:
+        await session.run_sync(
+            lambda sync_session: renew_validation_attempt_lease(
+                sync_session,
+                validation_run_id=run_id,
+                attempt_id=attempt_id,
+                attempt_generation=attempt_generation,
+                fencing_token=fencing_token,
+            )
+        )
+        await session.commit()
         evidence = await session.run_sync(
             lambda sync_session: build_validation_evidence(
                 sync_session,
@@ -1429,6 +1781,16 @@ async def validate_import(session: Any, *, import_id: str, now: datetime) -> Val
         await session.rollback()
         raise
     await session.rollback()
+    await session.run_sync(
+        lambda sync_session: renew_validation_attempt_lease(
+            sync_session,
+            validation_run_id=run_id,
+            attempt_id=attempt_id,
+            attempt_generation=attempt_generation,
+            fencing_token=fencing_token,
+        )
+    )
+    await session.commit()
     result = await session.run_sync(
         lambda sync_session: finalize_validation(sync_session, evidence=evidence, now=now)
     )
@@ -1475,6 +1837,7 @@ __all__ = [
     "decode_error_page_token",
     "encode_error_page_token",
     "finalize_validation",
+    "renew_validation_attempt_lease",
     "list_validation_errors",
     "seal_mapping_registry",
     "validate_import",

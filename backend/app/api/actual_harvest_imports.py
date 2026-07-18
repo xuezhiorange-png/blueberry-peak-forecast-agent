@@ -341,7 +341,7 @@ async def list_actual_harvest_import_errors(
 ) -> JSONResponse:
     request_id = _request_id(request)
     try:
-        await _load_scoped_batch(session, import_id, actor, "may_preview")
+        await _load_scoped_batch(session, import_id, actor, "may_validate")
         summary, errors, next_token = await validation_errors(
             session,
             import_id,

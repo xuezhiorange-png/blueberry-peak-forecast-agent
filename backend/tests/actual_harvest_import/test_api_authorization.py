@@ -156,3 +156,21 @@ async def test_different_source_same_actor_is_hidden(
 
     assert response.status_code == 404
     assert response.json()["errors"][0]["code"] == "IMPORT_BATCH_NOT_FOUND"
+
+
+async def test_preview_only_actor_cannot_read_validation_errors(
+    api_client: AsyncClient,
+    authorized_actor,
+) -> None:
+    import_id = await _create_authorized_batch(api_client, authorized_actor)
+    preview_only = authorized_actor.model_copy(update={"may_validate": False})
+    app = api_client._transport.app  # type: ignore[attr-defined]
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: preview_only
+
+    response = await api_client.get(
+        f"/api/v1/actual-harvest/imports/{import_id}/errors",
+        params={"page_size": 1},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["errors"][0]["code"] == "ACTUAL_HARVEST_SCOPE_FORBIDDEN"

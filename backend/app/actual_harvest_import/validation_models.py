@@ -139,6 +139,7 @@ class ActualHarvestMappingSnapshotModel(Base):
     mapping_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
     registry_content_hash: Mapped[str] = mapped_column(Text, nullable=False)
     mapping_snapshot_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    resolved_identity_snapshot_hash: Mapped[str] = mapped_column(Text, nullable=False)
     entry_count: Mapped[int] = mapped_column(Integer, nullable=False)
     snapshot_payload: Mapped[str] = mapped_column(Text, nullable=False)
 
@@ -152,6 +153,10 @@ class ActualHarvestMappingSnapshotModel(Base):
         ),
         CheckConstraint(
             _sha_check("mapping_snapshot_hash"), name="ck_actual_harvest_snapshot_hash"
+        ),
+        CheckConstraint(
+            _sha_check("resolved_identity_snapshot_hash"),
+            name="ck_actual_harvest_snapshot_resolved_identity_hash",
         ),
     )
 
@@ -185,6 +190,7 @@ class ActualHarvestValidationRunModel(Base):
     lineage_graph_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     validation_result_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     mapping_snapshot_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_identity_snapshot_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     valid_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     invalid_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -235,6 +241,10 @@ class ActualHarvestValidationRunModel(Base):
         CheckConstraint(
             _sha_check("mapping_snapshot_hash", nullable=True),
             name="ck_actual_harvest_validation_snapshot_hash",
+        ),
+        CheckConstraint(
+            _sha_check("resolved_identity_snapshot_hash", nullable=True),
+            name="ck_actual_harvest_validation_resolved_identity_hash",
         ),
         Index("ix_actual_harvest_validation_run_current", "batch_id", "is_current"),
     )
@@ -294,6 +304,7 @@ class ActualHarvestValidationResultModel(Base):
     lineage_graph_hash: Mapped[str] = mapped_column(Text, nullable=False)
     committed_lineage_basis_hash: Mapped[str] = mapped_column(Text, nullable=False)
     mapping_snapshot_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    resolved_identity_snapshot_hash: Mapped[str] = mapped_column(Text, nullable=False)
     valid_count: Mapped[int] = mapped_column(Integer, nullable=False)
     invalid_count: Mapped[int] = mapped_column(Integer, nullable=False)
     error_count: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -320,6 +331,10 @@ class ActualHarvestValidationResultModel(Base):
         CheckConstraint(
             _sha_check("mapping_snapshot_hash"),
             name="ck_actual_harvest_validation_result_snapshot_hash",
+        ),
+        CheckConstraint(
+            _sha_check("resolved_identity_snapshot_hash"),
+            name="ck_actual_harvest_validation_result_resolved_identity_hash",
         ),
     )
 
@@ -364,6 +379,108 @@ class ActualHarvestValidationRecordModel(Base):
             _sha_check("canonical_record_hash"), name="ck_actual_harvest_validation_record_hash"
         ),
         Index("ix_actual_harvest_validation_record_page", "validation_run_id", "record_index"),
+    )
+
+
+class ActualHarvestValidationMappingEvidenceModel(Base):
+    __tablename__ = "actual_harvest_validation_mapping_evidence"
+
+    id: Mapped[int] = mapped_column(_sqlite_bigint(), primary_key=True, autoincrement=True)
+    validation_run_id: Mapped[int] = mapped_column(
+        _sqlite_bigint(),
+        ForeignKey(
+            "actual_harvest_validation_run.id",
+            name="fk_actual_harvest_validation_mapping_evidence_run",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    record_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_system: Mapped[str] = mapped_column(Text, nullable=False)
+    external_logical_record_id: Mapped[str] = mapped_column(Text, nullable=False)
+    external_revision_id: Mapped[str] = mapped_column(Text, nullable=False)
+    revision_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_field: Mapped[str] = mapped_column(Text, nullable=False)
+    source_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    registry_version: Mapped[str] = mapped_column(Text, nullable=False)
+    mapping_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
+    registry_entry_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    target_type: Mapped[str] = mapped_column(Text, nullable=False)
+    target_business_key: Mapped[str] = mapped_column(Text, nullable=False)
+    target_parent_business_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_master_business_key: Mapped[str] = mapped_column(Text, nullable=False)
+    resolved_master_parent_business_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_master_record_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    resolved_season_id: Mapped[int | None] = mapped_column(
+        _sqlite_bigint(),
+        ForeignKey(
+            "dim_season.id", name="fk_actual_harvest_mapping_evidence_season", ondelete="RESTRICT"
+        ),
+        nullable=True,
+    )
+    resolved_farm_id: Mapped[int | None] = mapped_column(
+        _sqlite_bigint(),
+        ForeignKey(
+            "dim_farm.id", name="fk_actual_harvest_mapping_evidence_farm", ondelete="RESTRICT"
+        ),
+        nullable=True,
+    )
+    resolved_subfarm_id: Mapped[int | None] = mapped_column(
+        _sqlite_bigint(),
+        ForeignKey(
+            "dim_subfarm.id", name="fk_actual_harvest_mapping_evidence_subfarm", ondelete="RESTRICT"
+        ),
+        nullable=True,
+    )
+    resolved_variety_id: Mapped[int | None] = mapped_column(
+        _sqlite_bigint(),
+        ForeignKey(
+            "dim_variety.id", name="fk_actual_harvest_mapping_evidence_variety", ondelete="RESTRICT"
+        ),
+        nullable=True,
+    )
+    resolution_mode: Mapped[str] = mapped_column(Text, nullable=False)
+    outcome: Mapped[str] = mapped_column(Text, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "validation_run_id",
+            "record_index",
+            "source_field",
+            name="uq_actual_harvest_validation_mapping_evidence_field",
+        ),
+        CheckConstraint(
+            _sha_check("registry_entry_hash", nullable=True),
+            name="ck_actual_harvest_validation_mapping_entry_hash",
+        ),
+        CheckConstraint(
+            _sha_check("resolved_master_record_hash"),
+            name="ck_actual_harvest_validation_resolved_master_hash",
+        ),
+        CheckConstraint(
+            _enum_check("target_type", MAPPING_TARGET_VALUES),
+            name="ck_actual_harvest_validation_mapping_target_type",
+        ),
+        CheckConstraint(
+            "(target_type = 'SEASON' AND resolved_season_id IS NOT NULL "
+            "AND resolved_farm_id IS NULL AND resolved_subfarm_id IS NULL "
+            "AND resolved_variety_id IS NULL) OR "
+            "(target_type = 'FARM' AND resolved_season_id IS NULL "
+            "AND resolved_farm_id IS NOT NULL AND resolved_subfarm_id IS NULL "
+            "AND resolved_variety_id IS NULL) OR "
+            "(target_type = 'SUBFARM' AND resolved_season_id IS NULL "
+            "AND resolved_farm_id IS NULL AND resolved_subfarm_id IS NOT NULL "
+            "AND resolved_variety_id IS NULL) OR "
+            "(target_type = 'VARIETY' AND resolved_season_id IS NULL "
+            "AND resolved_farm_id IS NULL AND resolved_subfarm_id IS NULL "
+            "AND resolved_variety_id IS NOT NULL)",
+            name="ck_actual_harvest_validation_mapping_target_fk",
+        ),
+        Index(
+            "ix_actual_harvest_validation_mapping_evidence_record",
+            "validation_run_id",
+            "record_index",
+        ),
     )
 
 

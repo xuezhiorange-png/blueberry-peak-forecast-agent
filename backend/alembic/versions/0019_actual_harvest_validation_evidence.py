@@ -16,6 +16,34 @@ down_revision = "0018_actual_harvest_import_staging"
 branch_labels = None
 depends_on = None
 
+IMPORT_CHANNEL_VALUES = ("api", "csv", "xlsx")
+PHYSICAL_EVENT_VALUES = ("FARM_PICK",)
+QUANTITY_BASIS_VALUES = ("OBSERVED_WEIGHT",)
+QUANTITY_UNIT_VALUES = ("KG",)
+MISSING_RECORD_SEMANTICS_VALUES = ("UNKNOWN_NOT_ZERO",)
+RECORD_STATUS_VALUES = ("ACTIVE", "CORRECTED", "VOID", "FINALIZED")
+SOURCE_RECORDED_AT_AUTHORITY_VALUES = (
+    "TRUSTED_SOURCE_TIMESTAMP",
+    "USER_ASSERTED_UNVERIFIED",
+    "MISSING",
+    "CONFLICTING",
+)
+BATCH_STATUS_VALUES = (
+    "RECEIVED",
+    "UPLOADING",
+    "SEALED",
+    "PARSING",
+    "PARSE_FAILED",
+    "VALIDATING",
+    "VALIDATION_FAILED",
+    "VALIDATED",
+    "COMMITTING",
+    "COMMITTED",
+    "COMMIT_FAILED",
+    "CANCELLED",
+)
+BATCH_SEAL_STATUS_VALUES = ("UNSEALED", "SEALED")
+
 
 def _bigint() -> sa.types.TypeEngine:
     return sa.BigInteger().with_variant(sa.Integer(), "sqlite")
@@ -311,6 +339,7 @@ def upgrade() -> None:
         sa.Column("lineage_graph_hash", sa.Text(), nullable=True),
         sa.Column("validation_result_hash", sa.Text(), nullable=True),
         sa.Column("mapping_snapshot_hash", sa.Text(), nullable=True),
+        sa.Column("resolved_identity_snapshot_hash", sa.Text(), nullable=True),
         sa.Column("valid_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("invalid_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("error_count", sa.Integer(), nullable=False, server_default="0"),
@@ -364,6 +393,10 @@ def upgrade() -> None:
             _sha_check("mapping_snapshot_hash", nullable=True),
             name="ck_actual_harvest_validation_snapshot_hash",
         ),
+        sa.CheckConstraint(
+            _sha_check("resolved_identity_snapshot_hash", nullable=True),
+            name="ck_actual_harvest_validation_resolved_identity_hash",
+        ),
     )
     op.create_index(
         "ix_actual_harvest_validation_run_current",
@@ -416,6 +449,7 @@ def upgrade() -> None:
         sa.Column("mapping_policy_version", sa.Text(), nullable=False),
         sa.Column("registry_content_hash", sa.Text(), nullable=False),
         sa.Column("mapping_snapshot_hash", sa.Text(), nullable=False),
+        sa.Column("resolved_identity_snapshot_hash", sa.Text(), nullable=False),
         sa.Column("entry_count", sa.Integer(), nullable=False),
         sa.Column("snapshot_payload", sa.Text(), nullable=False),
         sa.ForeignKeyConstraint(
@@ -431,6 +465,10 @@ def upgrade() -> None:
         sa.CheckConstraint(
             _sha_check("mapping_snapshot_hash"), name="ck_actual_harvest_snapshot_hash"
         ),
+        sa.CheckConstraint(
+            _sha_check("resolved_identity_snapshot_hash"),
+            name="ck_actual_harvest_snapshot_resolved_identity_hash",
+        ),
     )
     op.create_table(
         "actual_harvest_validation_result",
@@ -440,6 +478,7 @@ def upgrade() -> None:
         sa.Column("lineage_graph_hash", sa.Text(), nullable=False),
         sa.Column("committed_lineage_basis_hash", sa.Text(), nullable=False),
         sa.Column("mapping_snapshot_hash", sa.Text(), nullable=False),
+        sa.Column("resolved_identity_snapshot_hash", sa.Text(), nullable=False),
         sa.Column("valid_count", sa.Integer(), nullable=False),
         sa.Column("invalid_count", sa.Integer(), nullable=False),
         sa.Column("error_count", sa.Integer(), nullable=False),
@@ -471,9 +510,16 @@ def upgrade() -> None:
             _sha_check("mapping_snapshot_hash"),
             name="ck_actual_harvest_validation_result_snapshot_hash",
         ),
+        sa.CheckConstraint(
+            _sha_check("resolved_identity_snapshot_hash"),
+            name="ck_actual_harvest_validation_result_resolved_identity_hash",
+        ),
     )
     common_run_fk = sa.ForeignKeyConstraint(
-        ["validation_run_id"], ["actual_harvest_validation_run.id"], ondelete="RESTRICT"
+        ["validation_run_id"],
+        ["actual_harvest_validation_run.id"],
+        name="fk_actual_harvest_validation_record_run",
+        ondelete="RESTRICT",
     )
     op.create_table(
         "actual_harvest_validation_record",
@@ -508,6 +554,101 @@ def upgrade() -> None:
     op.create_index(
         "ix_actual_harvest_validation_record_page",
         "actual_harvest_validation_record",
+        ["validation_run_id", "record_index"],
+    )
+    op.create_table(
+        "actual_harvest_validation_mapping_evidence",
+        sa.Column("id", _bigint(), primary_key=True, autoincrement=True),
+        sa.Column("validation_run_id", _bigint(), nullable=False),
+        sa.Column("record_index", sa.Integer(), nullable=False),
+        sa.Column("source_system", sa.Text(), nullable=False),
+        sa.Column("external_logical_record_id", sa.Text(), nullable=False),
+        sa.Column("external_revision_id", sa.Text(), nullable=False),
+        sa.Column("revision_number", sa.Integer(), nullable=False),
+        sa.Column("source_field", sa.Text(), nullable=False),
+        sa.Column("source_code", sa.Text(), nullable=True),
+        sa.Column("registry_version", sa.Text(), nullable=False),
+        sa.Column("mapping_policy_version", sa.Text(), nullable=False),
+        sa.Column("registry_entry_hash", sa.Text(), nullable=True),
+        sa.Column("target_type", sa.Text(), nullable=False),
+        sa.Column("target_business_key", sa.Text(), nullable=False),
+        sa.Column("target_parent_business_key", sa.Text(), nullable=True),
+        sa.Column("resolved_master_business_key", sa.Text(), nullable=False),
+        sa.Column("resolved_master_parent_business_key", sa.Text(), nullable=True),
+        sa.Column("resolved_master_record_hash", sa.Text(), nullable=False),
+        sa.Column("resolved_season_id", _bigint(), nullable=True),
+        sa.Column("resolved_farm_id", _bigint(), nullable=True),
+        sa.Column("resolved_subfarm_id", _bigint(), nullable=True),
+        sa.Column("resolved_variety_id", _bigint(), nullable=True),
+        sa.Column("resolution_mode", sa.Text(), nullable=False),
+        sa.Column("outcome", sa.Text(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["validation_run_id"],
+            ["actual_harvest_validation_run.id"],
+            name="fk_actual_harvest_validation_mapping_evidence_run",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["resolved_season_id"],
+            ["dim_season.id"],
+            name="fk_actual_harvest_mapping_evidence_season",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["resolved_farm_id"],
+            ["dim_farm.id"],
+            name="fk_actual_harvest_mapping_evidence_farm",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["resolved_subfarm_id"],
+            ["dim_subfarm.id"],
+            name="fk_actual_harvest_mapping_evidence_subfarm",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["resolved_variety_id"],
+            ["dim_variety.id"],
+            name="fk_actual_harvest_mapping_evidence_variety",
+            ondelete="RESTRICT",
+        ),
+        sa.UniqueConstraint(
+            "validation_run_id",
+            "record_index",
+            "source_field",
+            name="uq_actual_harvest_validation_mapping_evidence_field",
+        ),
+        sa.CheckConstraint(
+            _sha_check("registry_entry_hash", nullable=True),
+            name="ck_actual_harvest_validation_mapping_entry_hash",
+        ),
+        sa.CheckConstraint(
+            _sha_check("resolved_master_record_hash"),
+            name="ck_actual_harvest_validation_resolved_master_hash",
+        ),
+        sa.CheckConstraint(
+            _enum_check("target_type", ("SEASON", "FARM", "SUBFARM", "VARIETY")),
+            name="ck_actual_harvest_validation_mapping_target_type",
+        ),
+        sa.CheckConstraint(
+            "(target_type = 'SEASON' AND resolved_season_id IS NOT NULL "
+            "AND resolved_farm_id IS NULL AND resolved_subfarm_id IS NULL "
+            "AND resolved_variety_id IS NULL) OR "
+            "(target_type = 'FARM' AND resolved_season_id IS NULL "
+            "AND resolved_farm_id IS NOT NULL AND resolved_subfarm_id IS NULL "
+            "AND resolved_variety_id IS NULL) OR "
+            "(target_type = 'SUBFARM' AND resolved_season_id IS NULL "
+            "AND resolved_farm_id IS NULL AND resolved_subfarm_id IS NOT NULL "
+            "AND resolved_variety_id IS NULL) OR "
+            "(target_type = 'VARIETY' AND resolved_season_id IS NULL "
+            "AND resolved_farm_id IS NULL AND resolved_subfarm_id IS NULL "
+            "AND resolved_variety_id IS NOT NULL)",
+            name="ck_actual_harvest_validation_mapping_target_fk",
+        ),
+    )
+    op.create_index(
+        "ix_actual_harvest_validation_mapping_evidence_record",
+        "actual_harvest_validation_mapping_evidence",
         ["validation_run_id", "record_index"],
     )
     op.create_table(
@@ -681,6 +822,11 @@ def downgrade() -> None:
     op.drop_index(
         "ix_actual_harvest_validation_record_page", table_name="actual_harvest_validation_record"
     )
+    op.drop_index(
+        "ix_actual_harvest_validation_mapping_evidence_record",
+        table_name="actual_harvest_validation_mapping_evidence",
+    )
+    op.drop_table("actual_harvest_validation_mapping_evidence")
     op.drop_table("actual_harvest_validation_record")
     op.drop_table("actual_harvest_validation_result")
     op.drop_table("actual_harvest_mapping_snapshot")
