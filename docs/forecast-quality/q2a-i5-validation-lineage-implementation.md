@@ -195,6 +195,37 @@ run ID, JUnit counts, node IDs and artifact digests are recorded in the PR
 body after the new Head completes; no local SQLite result is represented as
 PostgreSQL evidence.
 
+## Exact-head CI evidence
+
+Code-fix exact-head run `29650514335` was a `pull_request` run for Head
+`2c8a5a8210e85e0343ac34b94235249e487e25e8` and completed successfully. All
+eight PR jobs passed; `full-suite-canary` was skipped by pull-request design.
+The downloaded JUnit artifacts report `3277 total / 3252 passed / 0 failures /
+0 errors / 25 skipped`.
+
+The `postgres-domain-1` artifact executed these 11 I5 nodes successfully:
+
+- `test_postgres_i5_identical_validate_replays_immutable_result`;
+- `test_postgres_i5_cancel_validated_preserves_validation_evidence`;
+- `test_postgres_i5_validate_cancel_race_has_one_serialized_outcome`;
+- `test_postgres_i5_validation_failed_cancel_preserves_all_evidence`;
+- `test_postgres_i5_draft_registry_is_rejected`;
+- `test_postgres_i5_sealed_registry_entry_mutation_is_rejected`;
+- `test_postgres_i5_heartbeat_renewal_and_expired_attempt_cannot_finalize`;
+- `test_postgres_i5_old_worker_cannot_demote_new_attempt_state`;
+- `test_postgres_i5_committed_history_predecessor_is_in_validation_basis`;
+- `test_postgres_i5_uncommitted_batch_is_excluded_from_lineage_basis`;
+- `test_postgres_i5_validation_errors_use_bounded_keyset_pagination`.
+
+Artifacts, all unexpired and bound to this exact Head:
+
+- `postgres-domain-1-results`: `8431366795`, `sha256:6a451a0a801603391234647bb5e48c81f0c7c76683f3b664a6d2778a4664dfd3`;
+- `postgres-domain-2-results`: `8431408941`, `sha256:b6368ba963a4ef9b4f9e7f5a30a89c1424d792fcd03c6bc86b65a7553ab7ec8c`;
+- `postgres-migration-results`: `8431335826`, `sha256:f4401b9e999b147ef5590d50adb9a7d56b25dbb3926ccbaec7fe0d62abca7b7c`;
+- `postgres-task11-results`: `8431345577`, `sha256:3753e0f237f1937539354bf1b1b909fc718a984d86021a62e493fa1cee8bb452`;
+- `postgres-concurrency-results`: `8431335874`, `sha256:e4a1a308e2fdfe14b48d8d0571f344cbd8b97612a1ac80687d5bd44a4793689c`;
+- `unit-contract-golden-results`: `8431359643`, `sha256:69c00b11aaf41b8dc8d8facf97f0ad3581898436296e84e7bb8b2a7d16d63755`.
+
 Hard exclusions are Q2A-I6 atomic commit, Q2A-I7 cutoff winner/aggregation/
 label snapshot, Q2A-I8 integration acceptance, Q2B, Q3, TASK-013 Slice C C2,
 spreadsheet orchestration, public mapping-admin API, frontend and model code.
