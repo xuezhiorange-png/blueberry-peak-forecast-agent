@@ -3,11 +3,14 @@ from pathlib import Path
 ROOT = Path(__file__).parents[2]
 
 
-def test_i4_does_not_add_migration_or_later_lifecycle_endpoints() -> None:
-    assert not list((ROOT / "alembic" / "versions").glob("0019*"))
+def test_i5_adds_validation_endpoints_without_commit_or_later_scope() -> None:
+    migration = ROOT / "alembic" / "versions" / "0019_actual_harvest_validation_evidence.py"
+    assert migration.exists()
+    assert 'revision = "0019_actual_harvest_validation_evidence"' in migration.read_text()
+    assert 'down_revision = "0018_actual_harvest_import_staging"' in migration.read_text()
     router = (ROOT / "app" / "api" / "actual_harvest_imports.py").read_text()
-    assert '"/imports/{import_id}/validate"' not in router
-    assert '"/imports/{import_id}/errors"' not in router
+    assert '"/imports/{import_id}/validate"' in router
+    assert '"/imports/{import_id}/errors"' in router
     assert '"/imports/{import_id}/commit"' not in router
     assert "identity_mapping" not in router.lower()
     assert "label_snapshot" not in router.lower()

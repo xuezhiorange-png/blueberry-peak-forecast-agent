@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
 import pytest
@@ -19,13 +20,31 @@ from backend.app.actual_harvest_import.lifecycle import (
     cancel_import,
     create_import,
     seal_import,
+    validate_import,
 )
 from backend.app.actual_harvest_import.models import (
     ActualHarvestImportBatchModel,
     ActualHarvestImportRecordModel,
 )
 from backend.app.actual_harvest_import.schemas import ActualHarvestImportRecordInput
+from backend.app.actual_harvest_import.validation_models import (
+    ActualHarvestMappingSnapshotModel,
+    ActualHarvestValidationAttemptModel,
+    ActualHarvestValidationErrorModel,
+    ActualHarvestValidationLineageBasisMemberModel,
+    ActualHarvestValidationLineageBasisModel,
+    ActualHarvestValidationLineageEdgeModel,
+    ActualHarvestValidationLineageNodeModel,
+    ActualHarvestValidationRecordModel,
+    ActualHarvestValidationResultModel,
+    ActualHarvestValidationRunModel,
+)
+from backend.app.actual_harvest_import.validation_service import (
+    create_mapping_registry,
+    seal_mapping_registry,
+)
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.tests.actual_harvest_import.test_api_schemas import (
     _create_payload,
     _record_payload,
@@ -81,6 +100,45 @@ async def _cleanup_batch(external_batch_id: str) -> None:
             )
             if batch_id is None:
                 return
+            run_ids = list(
+                await session.scalars(
+                    sa.select(ActualHarvestValidationRunModel.id).where(
+                        ActualHarvestValidationRunModel.batch_id == batch_id
+                    )
+                )
+            )
+            basis_ids = list(
+                await session.scalars(
+                    sa.select(ActualHarvestValidationLineageBasisModel.id).where(
+                        ActualHarvestValidationLineageBasisModel.validation_run_id.in_(run_ids)
+                    )
+                )
+            )
+            await session.execute(
+                delete(ActualHarvestValidationLineageBasisMemberModel).where(
+                    ActualHarvestValidationLineageBasisMemberModel.basis_id.in_(basis_ids)
+                )
+            )
+            for model in (
+                ActualHarvestValidationErrorModel,
+                ActualHarvestValidationLineageEdgeModel,
+                ActualHarvestValidationLineageNodeModel,
+                ActualHarvestValidationRecordModel,
+                ActualHarvestValidationResultModel,
+                ActualHarvestMappingSnapshotModel,
+                ActualHarvestValidationAttemptModel,
+                ActualHarvestValidationLineageBasisModel,
+            ):
+                await session.execute(
+                    delete(model).where(model.validation_run_id.in_(run_ids))
+                    if model is not ActualHarvestValidationLineageBasisModel
+                    else delete(model).where(model.id.in_(basis_ids))
+                )
+            await session.execute(
+                delete(ActualHarvestValidationRunModel).where(
+                    ActualHarvestValidationRunModel.id.in_(run_ids)
+                )
+            )
             await session.execute(
                 delete(ActualHarvestImportRecordModel).where(
                     ActualHarvestImportRecordModel.batch_id == batch_id
@@ -91,6 +149,101 @@ async def _cleanup_batch(external_batch_id: str) -> None:
                     ActualHarvestImportBatchModel.id == batch_id
                 )
             )
+
+
+async def _seed_i5_registry(suffix: str) -> str:
+    mapping_policy = f"mapping-i5-{suffix}"
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.run_sync(
+                lambda sync_session: _seed_i5_registry_sync(
+                    sync_session,
+                    suffix=suffix,
+                    mapping_policy=mapping_policy,
+                )
+            )
+    return mapping_policy
+
+
+def _seed_i5_registry_sync(sync_session, *, suffix: str, mapping_policy: str) -> None:
+    farm = Farm(name=f"farm-master-{suffix}")
+    sync_session.add_all(
+        [
+            Season(
+                code=f"season-{suffix}",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 12, 31),
+            ),
+            farm,
+            Variety(code=f"variety-master-{suffix}", name=f"Variety Master {suffix}"),
+        ]
+    )
+    sync_session.flush()
+    sync_session.add(Subfarm(farm_id=farm.id, name=f"subfarm-master-{suffix}"))
+    create_mapping_registry(
+        sync_session,
+        registry_version=f"registry-{suffix}",
+        source_system="farm-system",
+        mapping_policy_version=mapping_policy,
+        entries=(
+            {
+                "source_field": "season_code",
+                "source_code": "2026",
+                "target_type": "SEASON",
+                "target_business_key": f"season-{suffix}",
+            },
+            {
+                "source_field": "farm_code",
+                "source_code": "farm-1",
+                "target_type": "FARM",
+                "target_business_key": f"farm-master-{suffix}",
+            },
+            {
+                "source_field": "subfarm_or_plot_code",
+                "source_code": "plot-1",
+                "target_type": "SUBFARM",
+                "target_business_key": f"subfarm-master-{suffix}",
+                "target_parent_business_key": f"farm-master-{suffix}",
+            },
+            {
+                "source_field": "variety_code",
+                "source_code": "variety-1",
+                "target_type": "VARIETY",
+                "target_business_key": f"variety-master-{suffix}",
+            },
+        ),
+        now=datetime.now(UTC),
+    )
+    seal_mapping_registry(
+        sync_session, mapping_policy_version=mapping_policy, now=datetime.now(UTC)
+    )
+
+
+async def _validate_once(import_id: str):
+    async with AsyncSessionMaker() as session:
+        return await validate_import(session, import_id)
+
+
+async def _seed_i5_batch(*, suffix: str, mapping_policy: str) -> tuple[str, str]:
+    payload = _create_payload()
+    payload["external_batch_id"] = f"i5-pg-{suffix}"
+    payload["idempotency_key"] = f"i5-pg-{suffix}"
+    payload["mapping_policy_version"] = mapping_policy
+    payload["expected_record_count_or_null"] = 1
+    request = ActualHarvestApiCreateImportRequest.model_validate(payload)
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            batch, _ = await create_import(session, request)
+        record = _record_for_batch(request.external_batch_id)
+        async with session.begin():
+            await append_import_records(
+                session,
+                batch.import_id,
+                ActualHarvestApiAppendRecordsRequest(records=(record,)),
+            )
+        async with session.begin():
+            await seal_import(session, batch.import_id, actor_identity="operator-1")
+    return batch.import_id, request.external_batch_id
 
 
 async def _batch_state(
@@ -324,5 +477,80 @@ async def test_postgres_i4_seal_vs_cancel_preserves_records_and_seal_evidence() 
             assert batch.seal_manifest_hash_or_null is None
             assert batch.sealed_at_or_null is None
             assert batch.sealed_by_identity_or_null is None
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_identical_validate_replays_immutable_result() -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch(
+        suffix=suffix,
+        mapping_policy=mapping_policy,
+    )
+    try:
+        first, second = await asyncio.gather(
+            _validate_once(import_id),
+            _validate_once(import_id),
+        )
+        assert first.validation_status == "VALIDATED"
+        assert second.validation_status == "VALIDATED"
+        assert first.validation_result_hash == second.validation_result_hash
+        assert first.lineage_graph_hash == second.lineage_graph_hash
+        assert first.committed_lineage_basis_hash == second.committed_lineage_basis_hash
+        async with AsyncSessionMaker() as session:
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == import_id
+                )
+            )
+            assert batch is not None
+            assert batch.status == "VALIDATED"
+            run_count = await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(ActualHarvestValidationRunModel)
+                .where(ActualHarvestValidationRunModel.batch_id == batch.id)
+            )
+            assert run_count == 1
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_cancel_validated_preserves_validation_evidence() -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch(
+        suffix=suffix,
+        mapping_policy=mapping_policy,
+    )
+    try:
+        validation = await _validate_once(import_id)
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                cancelled = await cancel_import(session, import_id)
+            assert cancelled.status == "CANCELLED"
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == import_id
+                )
+            )
+            assert batch is not None
+            run = await session.scalar(
+                sa.select(ActualHarvestValidationRunModel).where(
+                    ActualHarvestValidationRunModel.batch_id == batch.id,
+                    ActualHarvestValidationRunModel.is_current.is_(True),
+                )
+            )
+            assert run is not None
+            assert run.validation_result_hash == validation.validation_result_hash
+            assert run.lineage_graph_hash == validation.lineage_graph_hash
+            assert run.committed_lineage_basis_hash == validation.committed_lineage_basis_hash
+            with pytest.raises(ActualHarvestApiError) as exc_info:
+                await validate_import(session, import_id)
+            assert exc_info.value.code.value == "IMPORT_BATCH_CANCELLED"
     finally:
         await _cleanup_batch(external_batch_id)

@@ -1,276 +1,363 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from decimal import Decimal
+from datetime import UTC, datetime, timedelta
 
 import pytest
+from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.orm import Session
 
-import backend.app.actual_harvest_import as actual_harvest_import
-from backend.app.actual_harvest_import.enums import (
-    ActualHarvestBatchSealStatus,
-    ActualHarvestImportBatchStatus,
-    ActualHarvestImportChannel,
-    ActualHarvestMissingRecordSemantics,
-    ActualHarvestPhysicalEvent,
-    ActualHarvestQuantityBasis,
-    ActualHarvestQuantityUnit,
-    ActualHarvestRecordStatus,
-    ActualHarvestValidationErrorCode,
-    ActualHarvestValidationSeverity,
-    SourceRecordedAtAuthorityStatus,
+from backend.app.actual_harvest_import.api_auth import get_actual_harvest_actor
+from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
+from backend.app.actual_harvest_import.validation_models import (
+    ActualHarvestValidationAttemptModel,
 )
-from backend.app.actual_harvest_import.validation import (
-    has_trusted_source_timestamp,
-    validate_iana_timezone,
-    validate_non_empty_identifier,
-    validate_non_negative_finite_decimal,
-    validate_revision_local_shape,
-    validate_sha256_hex,
-    validate_source_recorded_at_authority_shape,
-    validate_timezone_aware_datetime,
+from backend.app.actual_harvest_import.validation_service import (
+    begin_validation,
+    create_mapping_registry,
+    seal_mapping_registry,
 )
+from backend.app.models.master_data import Farm, Season, Subfarm, Variety
+from backend.tests.actual_harvest_import.test_api_schemas import _create_payload, _record_payload
 
-pytestmark = [pytest.mark.unit, pytest.mark.contract]
-
-
-def test_scalar_helpers_are_strict_and_deterministic() -> None:
-    assert validate_non_empty_identifier("  farm-1  ") == "farm-1"
-    assert validate_non_negative_finite_decimal("0.00") == Decimal("0.00")
-    assert validate_iana_timezone("Asia/Shanghai") == "Asia/Shanghai"
-    aware = datetime(2026, 1, 1, tzinfo=UTC)
-    assert validate_timezone_aware_datetime(aware) == aware
-    assert validate_sha256_hex("a" * 64) == "a" * 64
+NOW = datetime(2026, 7, 18, 8, tzinfo=UTC)
 
 
-@pytest.mark.parametrize(
-    "value",
-    [
-        Decimal("0"),
-        Decimal("0.000001"),
-        Decimal("999999999999.999999"),
-    ],
-)
-def test_decimal_helper_accepts_exact_numeric_18_6_values(value: Decimal) -> None:
-    assert validate_non_negative_finite_decimal(value) == value
+async def _seed_registry(maker: async_sessionmaker[AsyncSession]) -> None:
+    async with maker() as session:
+        async with session.begin():
+            await session.run_sync(lambda sync_session: _seed_registry_sync(sync_session))
 
 
-@pytest.mark.parametrize(
-    "value",
-    [Decimal("0.0000001"), Decimal("1000000000000"), Decimal("9999999999999999999")],
-)
-def test_decimal_helper_rejects_values_not_representable_as_numeric_18_6(
-    value: Decimal,
-) -> None:
-    with pytest.raises(ValueError, match=r"NUMERIC\(18,6\)"):
-        validate_non_negative_finite_decimal(value)
-
-
-@pytest.mark.parametrize("value", [True, 1.0, float("nan"), float("inf"), Decimal("-1")])
-def test_decimal_helper_rejects_non_contract_values(value: object) -> None:
-    with pytest.raises(ValueError):
-        validate_non_negative_finite_decimal(value)
-
-
-@pytest.mark.parametrize(
-    ("revision_number", "predecessor"),
-    [(1, None), (2, "rev-1")],
-)
-def test_revision_shape_accepts_only_local_valid_forms(
-    revision_number: int,
-    predecessor: str | None,
-) -> None:
-    validate_revision_local_shape(
-        revision_number=revision_number,
-        external_revision_id="rev-2" if revision_number > 1 else "rev-1",
-        supersedes_external_revision_id=predecessor,
+def _seed_registry_sync(sync_session: Session) -> None:
+    farm = Farm(id=1, name="farm-master")
+    sync_session.add_all(
+        [
+            Season(
+                id=1,
+                code="2026",
+                start_date=datetime(2026, 1, 1).date(),
+                end_date=datetime(2026, 12, 31).date(),
+            ),
+            farm,
+            Variety(id=1, code="variety-master", name="Variety Master"),
+        ]
     )
+    sync_session.flush()
+    sync_session.add(Subfarm(id=1, farm_id=farm.id, name="subfarm-master"))
+    registry = create_mapping_registry(
+        sync_session,
+        registry_version="registry-2026-v1",
+        source_system="farm-system",
+        mapping_policy_version="mapping-v1",
+        entries=(
+            {
+                "source_field": "season_code",
+                "source_code": "2026",
+                "target_type": "SEASON",
+                "target_business_key": "2026",
+            },
+            {
+                "source_field": "farm_code",
+                "source_code": "farm-1",
+                "target_type": "FARM",
+                "target_business_key": "farm-master",
+            },
+            {
+                "source_field": "subfarm_or_plot_code",
+                "source_code": "plot-1",
+                "target_type": "SUBFARM",
+                "target_business_key": "subfarm-master",
+                "target_parent_business_key": "farm-master",
+            },
+            {
+                "source_field": "variety_code",
+                "source_code": "variety-1",
+                "target_type": "VARIETY",
+                "target_business_key": "variety-master",
+            },
+        ),
+        now=NOW,
+    )
+    assert registry.status == "DRAFT"
+    seal_mapping_registry(sync_session, mapping_policy_version="mapping-v1", now=NOW)
 
 
-@pytest.mark.parametrize(
-    ("revision_number", "predecessor"),
-    [(1, "rev-0"), (2, None), (2, "rev-2")],
-)
-def test_revision_shape_rejects_invalid_local_forms(
-    revision_number: int,
-    predecessor: str | None,
+@pytest.mark.asyncio
+async def test_validate_persists_immutable_lineage_evidence(
+    api_client: AsyncClient,
+    sqlite_session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor,
 ) -> None:
-    with pytest.raises(ValueError):
-        validate_revision_local_shape(
-            revision_number=revision_number,
-            external_revision_id="rev-2",
-            supersedes_external_revision_id=predecessor,
+    await _seed_registry(sqlite_session_maker)
+    app = api_client._transport.app  # type: ignore[attr-defined]
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: authorized_actor
+    create = await api_client.post(
+        "/api/v1/actual-harvest/imports",
+        json=_create_payload(),
+        headers={"content-type": "application/json"},
+    )
+    import_id = create.json()["data_or_null"]["batch"]["import_id"]
+    record = _record_payload()
+    await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/records",
+        json={"records": [record]},
+        headers={"content-type": "application/json"},
+    )
+    sealed = await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/seal",
+        json={},
+        headers={"content-type": "application/json"},
+    )
+    assert sealed.status_code == 200
+    validated = await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/validate",
+        json={},
+        headers={"content-type": "application/json"},
+    )
+    assert validated.status_code == 200, validated.text
+    validation = validated.json()["data_or_null"]["validation"]
+    assert validation["validation_status"] == "VALIDATED"
+    assert validation["lineage_graph_hash"]
+    assert validation["validation_result_hash"]
+    assert validation["committed_lineage_basis_hash"]
+
+    replay = await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/validate",
+        json={},
+        headers={"content-type": "application/json"},
+    )
+    assert replay.status_code == 200
+    assert (
+        replay.json()["data_or_null"]["validation"]["validation_result_hash"]
+        == validation["validation_result_hash"]
+    )
+    errors = await api_client.get(
+        f"/api/v1/actual-harvest/imports/{import_id}/errors",
+        params={"page_size": 1},
+    )
+    assert errors.status_code == 200
+    assert errors.json()["data_or_null"]["errors"] == []
+
+    async with sqlite_session_maker() as session:
+        batch = await session.scalar(
+            select(ActualHarvestImportBatchModel).where(
+                ActualHarvestImportBatchModel.import_id == import_id
+            )
         )
+        assert batch is not None
+        assert batch.status == "VALIDATED"
 
 
-def test_source_time_truth_table() -> None:
-    aware = datetime(2026, 1, 1, tzinfo=UTC)
-    validate_source_recorded_at_authority_shape(
-        status=SourceRecordedAtAuthorityStatus.TRUSTED_SOURCE_TIMESTAMP,
-        source_recorded_at=aware,
-        authority_reference="source-row-1",
+@pytest.mark.asyncio
+async def test_validate_rejects_unsealed_mapping_registry_and_preserves_batch(
+    api_client: AsyncClient,
+    sqlite_session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor,
+) -> None:
+    async with sqlite_session_maker() as session:
+        async with session.begin():
+            await session.run_sync(
+                lambda sync_session: _seed_registry_sync_without_seal(sync_session)
+            )
+    app = api_client._transport.app  # type: ignore[attr-defined]
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: authorized_actor
+    create_payload = _create_payload()
+    created = await api_client.post(
+        "/api/v1/actual-harvest/imports",
+        json=create_payload,
+        headers={"content-type": "application/json"},
     )
-    validate_source_recorded_at_authority_shape(
-        status=SourceRecordedAtAuthorityStatus.USER_ASSERTED_UNVERIFIED,
-        source_recorded_at=aware,
-        authority_reference=None,
+    import_id = created.json()["data_or_null"]["batch"]["import_id"]
+    await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/records",
+        json={"records": [_record_payload()]},
+        headers={"content-type": "application/json"},
     )
-    validate_source_recorded_at_authority_shape(
-        status=SourceRecordedAtAuthorityStatus.MISSING,
-        source_recorded_at=None,
-        authority_reference=None,
+    await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/seal",
+        json={},
+        headers={"content-type": "application/json"},
     )
-    validate_source_recorded_at_authority_shape(
-        status=SourceRecordedAtAuthorityStatus.CONFLICTING,
-        source_recorded_at=None,
-        authority_reference="conflict-1",
+    response = await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/validate",
+        json={},
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 422
+    assert response.json()["errors"][0]["code"] == "IDENTITY_MAPPING_REGISTRY_NOT_SEALED"
+
+
+@pytest.mark.asyncio
+async def test_validation_failed_errors_are_bounded_and_cancel_preserves_evidence(
+    api_client: AsyncClient,
+    sqlite_session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor,
+) -> None:
+    await _seed_registry(sqlite_session_maker)
+    app = api_client._transport.app  # type: ignore[attr-defined]
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: authorized_actor
+    created = await api_client.post(
+        "/api/v1/actual-harvest/imports",
+        json=_create_payload(),
+        headers={"content-type": "application/json"},
+    )
+    import_id = created.json()["data_or_null"]["batch"]["import_id"]
+    record = _record_payload()
+    record["farm_code"] = "unknown-farm-code"
+    await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/records",
+        json={"records": [record]},
+        headers={"content-type": "application/json"},
+    )
+    await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/seal",
+        json={},
+        headers={"content-type": "application/json"},
+    )
+    validated = await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/validate",
+        json={},
+        headers={"content-type": "application/json"},
+    )
+    assert validated.status_code == 200
+    validation = validated.json()["data_or_null"]["validation"]
+    assert validation["validation_status"] == "VALIDATION_FAILED"
+    assert validation["error_count"] >= 1
+    result_hash = validation["validation_result_hash"]
+
+    errors = await api_client.get(
+        f"/api/v1/actual-harvest/imports/{import_id}/errors",
+        params={"page_size": 1},
+    )
+    assert errors.status_code == 200
+    error_payload = errors.json()["data_or_null"]
+    assert len(error_payload["errors"]) == 1
+    assert error_payload["errors"][0]["error_code"] == "IDENTITY_MAPPING_NOT_FOUND"
+    assert error_payload["validation"]["validation_result_hash"] == result_hash
+
+    cancelled = await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/cancel",
+        json={},
+        headers={"content-type": "application/json"},
+    )
+    assert cancelled.status_code == 200
+    assert cancelled.json()["data_or_null"]["batch"]["status"] == "CANCELLED"
+    preview = await api_client.get(f"/api/v1/actual-harvest/imports/{import_id}/preview")
+    assert preview.status_code == 200
+    assert preview.json()["data_or_null"]["validation_result_hash"] == result_hash
+
+
+@pytest.mark.asyncio
+async def test_stale_validation_attempt_is_reclaimed_with_new_fencing_identity(
+    api_client: AsyncClient,
+    sqlite_session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor,
+) -> None:
+    await _seed_registry(sqlite_session_maker)
+    app = api_client._transport.app  # type: ignore[attr-defined]
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: authorized_actor
+    created = await api_client.post(
+        "/api/v1/actual-harvest/imports",
+        json=_create_payload(),
+        headers={"content-type": "application/json"},
+    )
+    import_id = created.json()["data_or_null"]["batch"]["import_id"]
+    await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/records",
+        json={"records": [_record_payload()]},
+        headers={"content-type": "application/json"},
+    )
+    await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/seal",
+        json={},
+        headers={"content-type": "application/json"},
     )
 
-    assert has_trusted_source_timestamp(
-        type(
-            "Record",
-            (),
+    async with sqlite_session_maker() as session:
+        async with session.begin():
+            first = await session.run_sync(
+                lambda sync_session: begin_validation(sync_session, import_id=import_id, now=NOW)
+            )
+        assert first.kind == "execute"
+        assert first.attempt_id is not None
+
+        async with session.begin():
+
+            def reclaim(sync_session: Session):
+                attempt = sync_session.scalar(
+                    select(ActualHarvestValidationAttemptModel).where(
+                        ActualHarvestValidationAttemptModel.attempt_id == first.attempt_id
+                    )
+                )
+                assert attempt is not None
+                attempt.lease_expires_at = NOW - timedelta(seconds=1)
+                sync_session.flush()
+                return begin_validation(sync_session, import_id=import_id, now=NOW)
+
+            second = await session.run_sync(reclaim)
+        assert second.kind == "execute"
+        assert second.attempt_id is not None
+        assert second.attempt_id != first.attempt_id
+
+        async with session.begin():
+            attempts = await session.scalars(
+                select(ActualHarvestValidationAttemptModel).order_by(
+                    ActualHarvestValidationAttemptModel.attempt_generation
+                )
+            )
+            rows = attempts.all()
+        assert [row.status for row in rows] == ["ABANDONED", "ACTIVE"]
+
+
+def _seed_registry_sync_without_seal(sync_session: Session) -> None:
+    farm = Farm(id=1, name="farm-master")
+    sync_session.add_all(
+        [
+            Season(
+                id=1,
+                code="2026",
+                start_date=datetime(2026, 1, 1).date(),
+                end_date=datetime(2026, 12, 31).date(),
+            ),
+            farm,
+            Variety(id=1, code="variety-master", name="Variety Master"),
+        ]
+    )
+    sync_session.flush()
+    sync_session.add(Subfarm(id=1, farm_id=farm.id, name="subfarm-master"))
+    create_mapping_registry(
+        sync_session,
+        registry_version="registry-2026-v1",
+        source_system="farm-system",
+        mapping_policy_version="mapping-v1",
+        entries=(
             {
-                "source_recorded_at": aware,
-                "source_recorded_at_authority_status": (
-                    SourceRecordedAtAuthorityStatus.TRUSTED_SOURCE_TIMESTAMP
-                ),
+                "source_field": "season_code",
+                "source_code": "2026",
+                "target_type": "SEASON",
+                "target_business_key": "2026",
             },
-        )()
-    )
-    assert has_trusted_source_timestamp(
-        type(
-            "NaiveRecord",
-            (),
             {
-                "source_recorded_at": datetime(2026, 1, 1),
-                "source_recorded_at_authority_status": (
-                    SourceRecordedAtAuthorityStatus.TRUSTED_SOURCE_TIMESTAMP
-                ),
+                "source_field": "farm_code",
+                "source_code": "farm-1",
+                "target_type": "FARM",
+                "target_business_key": "farm-master",
             },
-        )()
+            {
+                "source_field": "subfarm_or_plot_code",
+                "source_code": "plot-1",
+                "target_type": "SUBFARM",
+                "target_business_key": "subfarm-master",
+                "target_parent_business_key": "farm-master",
+            },
+            {
+                "source_field": "variety_code",
+                "source_code": "variety-1",
+                "target_type": "VARIETY",
+                "target_business_key": "variety-master",
+            },
+        ),
+        now=NOW,
     )
-
-
-def test_transport_and_source_enums_are_closed() -> None:
-    assert {item.value for item in ActualHarvestImportChannel} == {"api", "csv", "xlsx"}
-    assert {item.value for item in ActualHarvestPhysicalEvent} == {"FARM_PICK"}
-    assert {item.value for item in ActualHarvestQuantityBasis} == {"OBSERVED_WEIGHT"}
-    assert {item.value for item in ActualHarvestQuantityUnit} == {"KG"}
-    assert {item.value for item in ActualHarvestMissingRecordSemantics} == {"UNKNOWN_NOT_ZERO"}
-    assert {item.value for item in ActualHarvestRecordStatus} == {
-        "ACTIVE",
-        "CORRECTED",
-        "VOID",
-        "FINALIZED",
-    }
-    assert {item.value for item in SourceRecordedAtAuthorityStatus} == {
-        "TRUSTED_SOURCE_TIMESTAMP",
-        "USER_ASSERTED_UNVERIFIED",
-        "MISSING",
-        "CONFLICTING",
-    }
-
-
-def test_batch_and_validation_enums_are_closed() -> None:
-    assert {item.value for item in ActualHarvestBatchSealStatus} == {"UNSEALED", "SEALED"}
-    assert {item.value for item in ActualHarvestValidationSeverity} == {"ERROR", "WARNING"}
-    assert {item.value for item in ActualHarvestImportBatchStatus} == {
-        "RECEIVED",
-        "UPLOADING",
-        "SEALED",
-        "PARSING",
-        "PARSE_FAILED",
-        "VALIDATING",
-        "VALIDATION_FAILED",
-        "VALIDATED",
-        "COMMITTING",
-        "COMMITTED",
-        "COMMIT_FAILED",
-        "CANCELLED",
-    }
-
-
-def test_validation_error_code_set_and_public_exports_are_exact() -> None:
-    expected_error_codes = {
-        "CSV_ENCODING_INVALID",
-        "CSV_STRUCTURE_INVALID",
-        "CSV_LIMIT_EXCEEDED",
-        "CSV_EMPTY_ROW_IGNORED",
-        "CANONICAL_HEADER_DUPLICATE",
-        "CANONICAL_HEADER_COLLISION",
-        "XLSX_CANONICAL_SHEET_MISSING",
-        "XLSX_CANONICAL_SHEET_DUPLICATE",
-        "XLSX_EXTRA_SHEET_FORBIDDEN",
-        "XLSX_FORMULA_CELL_FORBIDDEN",
-        "XLSX_MERGED_CELL_FORBIDDEN",
-        "XLSX_HIDDEN_ROW_FORBIDDEN",
-        "XLSX_HIDDEN_COLUMN_FORBIDDEN",
-        "XLSX_EXECUTABLE_CONTENT_FORBIDDEN",
-        "XLSX_EXTERNAL_LINK_FORBIDDEN",
-        "XLSX_ARCHIVE_INVALID",
-        "XLSX_LIMIT_EXCEEDED",
-        "SERVER_GENERATED_FIELD_SUPPLIED",
-        "TEMPLATE_POLICY_INCOMPATIBLE",
-        "REQUIRED_FIELD_MISSING",
-        "UNKNOWN_FIELD",
-        "INVALID_DATE",
-        "INVALID_DATETIME",
-        "INVALID_TIMEZONE",
-        "INVALID_DECIMAL",
-        "NEGATIVE_QUANTITY",
-        "IDENTITY_MAPPING_NOT_FOUND",
-        "IDENTITY_MAPPING_AMBIGUOUS",
-        "DUPLICATE_RECORD",
-        "IDEMPOTENCY_KEY_CONFLICT",
-        "REVISION_NUMBER_CONFLICT",
-        "REVISION_IDENTITY_CONFLICT",
-        "REVISION_PREDECESSOR_MISSING",
-        "REVISION_MULTIPLE_SUCCESSORS",
-        "REVISION_LINEAGE_CYCLE",
-        "REVISION_LOGICAL_RECORD_MISMATCH",
-        "MULTIPLE_TERMINAL_REVISIONS",
-        "INVALID_RECORD_STATUS",
-        "SOURCE_SEMANTICS_ATTESTATION_MISSING",
-        "SOURCE_SEMANTICS_NOT_FARM_PICK",
-        "BATCH_NOT_VALIDATED",
-        "BATCH_ALREADY_COMMITTED",
-        "CANONICAL_HASH_MISMATCH",
-        "BATCH_NOT_SEALED",
-        "BATCH_ALREADY_SEALED",
-        "BATCH_SEAL_HASH_CONFLICT",
-        "BATCH_RECORD_COUNT_MISMATCH",
-        "BATCH_MUTATION_AFTER_SEAL",
-        "BATCH_SEAL_CHANGED",
-    }
-    assert {item.name for item in ActualHarvestValidationErrorCode} == expected_error_codes
-    assert {item.value for item in ActualHarvestValidationErrorCode} == expected_error_codes
-    assert "DELETED" not in ActualHarvestRecordStatus.__members__
-    assert "SUPERSEDED" not in ActualHarvestRecordStatus.__members__
-    assert set(actual_harvest_import.__all__) == {
-        "ActualHarvestBatchSealStatus",
-        "ActualHarvestImportBatchInput",
-        "ActualHarvestImportBatchStatus",
-        "ActualHarvestImportChannel",
-        "ActualHarvestImportRecordInput",
-        "ActualHarvestMissingRecordSemantics",
-        "ActualHarvestPhysicalEvent",
-        "ActualHarvestQuantityBasis",
-        "ActualHarvestQuantityUnit",
-        "ActualHarvestRecordStatus",
-        "ActualHarvestSourceSemanticsAttestation",
-        "ActualHarvestValidationErrorCode",
-        "ActualHarvestValidationIssue",
-        "ActualHarvestValidationSeverity",
-        "CanonicalActualHarvestImportBatch",
-        "CanonicalActualHarvestImportRecord",
-        "SourceRecordedAtAuthorityStatus",
-        "has_trusted_source_timestamp",
-        "sort_validation_issues",
-        "validate_iana_timezone",
-        "validate_non_empty_identifier",
-        "validate_non_negative_finite_decimal",
-        "validate_revision_local_shape",
-        "validate_sha256_hex",
-        "validate_source_recorded_at_authority_shape",
-        "validate_timezone_aware_datetime",
-    }

@@ -14,9 +14,24 @@ from backend.app.actual_harvest_import.models import (
     ActualHarvestImportBatchModel,
     ActualHarvestImportRecordModel,
 )
+from backend.app.actual_harvest_import.validation_models import (
+    ActualHarvestMappingPolicyRegistryModel,
+    ActualHarvestMappingRegistryEntryModel,
+    ActualHarvestMappingSnapshotModel,
+    ActualHarvestValidationAttemptModel,
+    ActualHarvestValidationErrorModel,
+    ActualHarvestValidationLineageBasisMemberModel,
+    ActualHarvestValidationLineageBasisModel,
+    ActualHarvestValidationLineageEdgeModel,
+    ActualHarvestValidationLineageNodeModel,
+    ActualHarvestValidationRecordModel,
+    ActualHarvestValidationResultModel,
+    ActualHarvestValidationRunModel,
+)
 from backend.app.db.base import Base
 from backend.app.db.session import get_db_session
 from backend.app.main import create_app
+from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 
 NOW = datetime(2026, 7, 18, 8, 0, tzinfo=UTC)
 
@@ -30,6 +45,22 @@ async def sqlite_session_maker() -> AsyncIterator[async_sessionmaker[AsyncSessio
             tables=[
                 ActualHarvestImportBatchModel.__table__,
                 ActualHarvestImportRecordModel.__table__,
+                ActualHarvestMappingPolicyRegistryModel.__table__,
+                ActualHarvestMappingRegistryEntryModel.__table__,
+                ActualHarvestValidationRunModel.__table__,
+                ActualHarvestValidationAttemptModel.__table__,
+                ActualHarvestMappingSnapshotModel.__table__,
+                ActualHarvestValidationResultModel.__table__,
+                ActualHarvestValidationRecordModel.__table__,
+                ActualHarvestValidationErrorModel.__table__,
+                ActualHarvestValidationLineageNodeModel.__table__,
+                ActualHarvestValidationLineageEdgeModel.__table__,
+                ActualHarvestValidationLineageBasisModel.__table__,
+                ActualHarvestValidationLineageBasisMemberModel.__table__,
+                Season.__table__,
+                Farm.__table__,
+                Subfarm.__table__,
+                Variety.__table__,
             ],
         )
     maker = async_sessionmaker(engine, expire_on_commit=False)
@@ -63,4 +94,5 @@ def authorized_actor() -> ActualHarvestActorContext:
         may_preview=True,
         may_seal=True,
         may_cancel=True,
+        may_validate=True,
     )

@@ -422,6 +422,8 @@ def cancel_batch(
         ActualHarvestImportBatchStatus.RECEIVED.value,
         ActualHarvestImportBatchStatus.UPLOADING.value,
         ActualHarvestImportBatchStatus.SEALED.value,
+        ActualHarvestImportBatchStatus.VALIDATED.value,
+        ActualHarvestImportBatchStatus.VALIDATION_FAILED.value,
         ActualHarvestImportBatchStatus.CANCELLED.value,
     }
     if batch_model.status not in allowed_statuses:

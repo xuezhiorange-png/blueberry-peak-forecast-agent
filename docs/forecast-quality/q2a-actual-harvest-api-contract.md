@@ -265,7 +265,8 @@ The manifest orders revision keys by `source_system`, `external_logical_record_i
 
 | Slice | Future API scope | Explicit exclusion |
 |---|---|---|
-| Q2A-I4 | batch creation, records, validate, preview, errors, cancel | no direct active-label write |
+| Q2A-I4 | batch creation, records, get, preview, seal, cancel | no validation or active-label write |
+| Q2A-I5 | validate, errors, exact mapping, lineage, preview validation summary, cancel extension | no commit, winner, aggregation, or label snapshot |
 | Q2A-I6 | atomic commit and immutable provenance | no partial commit v1 |
 | Q2A-I7 | label snapshot and cutoff visibility | no backtest runner |
 | Q2A-I8 | API integration, tests, Goldens, PostgreSQL acceptance | no Q2B or model changes |
