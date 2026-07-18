@@ -172,5 +172,29 @@ Local validation completed on the isolated worktree:
   available; the PostgreSQL lifecycle tests are guarded by
   `RUN_POSTGRES_INTEGRATION=1` and are assigned to `postgres-domain-1`.
 
-The exact-head PR CI and artifact evidence are recorded in the Draft PR body
-after push. No PostgreSQL pass is claimed locally.
+Exact-head PR CI for the acceptance-gap commit:
+
+- Run `29635373454`, Head `bebcb84a4c2ac2b1b2aa274dad244b8a88ca4146`,
+  completed/success.
+- All eight PR jobs passed; `full-suite-canary` was skipped by PR design.
+- JUnit aggregate: `3251 total / 3226 passed / 0 failures / 0 errors /
+  25 skipped`.
+- `postgres-domain-1`: `286 total / 286 passed / 0 failures / 0 errors /
+  0 skipped`; all five `test_postgres_i4_*` lifecycle tests were collected
+  and passed, including the non-empty seal-versus-cancel test.
+- Artifacts, all bound to the exact Head and unexpired:
+  - `8426988495` `postgres-domain-2-results`
+    `sha256:a96815eeb5fc887a0eca0938a015deb08302c4ec13b5d0aa845a4aeb42fbe33c`
+  - `8426948946` `postgres-domain-1-results`
+    `sha256:1be2334ea766735170163d87e2917231ffaf2d68bc82ccb3ce60e9b8c15f14cd`
+  - `8426940590` `unit-contract-golden-results`
+    `sha256:f51f2c280d088e946ad53a2dc944efd573fd3863bf69f980becf0a6c79c0ad1e`
+  - `8426927130` `postgres-task11-results`
+    `sha256:371f19146070d5e175be3695173d766db64c17b5ca11d8be313981d0c9ec665b`
+  - `8426918836` `postgres-migration-results`
+    `sha256:53457fdc9fde5dd6bf2d6a590c8305f1becf4000fe3f64a69c75d02fb67eb14b`
+  - `8426918030` `postgres-concurrency-results`
+    `sha256:5e89f07d0d7133802cb77a80cf073f02046ec3c62db0378532f36db7128d8be8`
+
+No PostgreSQL pass is claimed locally; the PostgreSQL acceptance evidence is
+from this exact-head CI run.
