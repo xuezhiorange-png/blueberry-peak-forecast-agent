@@ -119,13 +119,17 @@ async def _cleanup_batch(external_batch_id: str) -> None:
                     ActualHarvestValidationLineageBasisMemberModel.basis_id.in_(basis_ids)
                 )
             )
+            await session.execute(
+                delete(ActualHarvestMappingSnapshotModel).where(
+                    ActualHarvestMappingSnapshotModel.validation_run_id.in_(run_ids)
+                )
+            )
             for model in (
                 ActualHarvestValidationErrorModel,
                 ActualHarvestValidationLineageEdgeModel,
                 ActualHarvestValidationLineageNodeModel,
                 ActualHarvestValidationRecordModel,
                 ActualHarvestValidationResultModel,
-                ActualHarvestMappingSnapshotModel,
                 ActualHarvestValidationAttemptModel,
                 ActualHarvestValidationLineageBasisModel,
             ):
@@ -134,6 +138,7 @@ async def _cleanup_batch(external_batch_id: str) -> None:
                     if model is not ActualHarvestValidationLineageBasisModel
                     else delete(model).where(model.id.in_(basis_ids))
                 )
+            await session.flush()
             await session.execute(
                 delete(ActualHarvestValidationRunModel).where(
                     ActualHarvestValidationRunModel.id.in_(run_ids)
