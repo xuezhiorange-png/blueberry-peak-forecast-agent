@@ -124,6 +124,14 @@ async def _cleanup_batch(external_batch_id: str) -> None:
                     ActualHarvestMappingSnapshotModel.validation_run_id.in_(run_ids)
                 )
             )
+            for run_id in run_ids:
+                await session.execute(
+                    sa.text(
+                        "DELETE FROM actual_harvest_mapping_snapshot "
+                        "WHERE validation_run_id = :validation_run_id"
+                    ),
+                    {"validation_run_id": run_id},
+                )
             for model in (
                 ActualHarvestValidationErrorModel,
                 ActualHarvestValidationLineageEdgeModel,
