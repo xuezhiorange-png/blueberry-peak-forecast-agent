@@ -710,6 +710,7 @@ jobs:
             backend/tests/integration/test_v0_1_s2_complete_daily_curve_postgres.py \
             backend/tests/integration/test_core_forecast_persistence_postgres.py \
             backend/tests/integration/test_core_forecast_cli_postgres.py \
+            backend/tests/actual_harvest_import/test_lifecycle_postgres.py \
             -m "not postgres_concurrency" -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \
