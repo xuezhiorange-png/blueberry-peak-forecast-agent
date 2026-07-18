@@ -132,6 +132,26 @@ worktree cleanup remain outside this slice.
 
 ## Validation record
 
+The remaining acceptance-gap regressions are explicit rather than inferred from
+empty-batch behavior:
+
+```text
+POSTGRES_SEAL_CANCEL_NONEMPTY_RECORD_PRESERVATION=true
+POSTGRES_SEAL_EVIDENCE_EXACT_EQUALITY=true
+CANONICAL_KEYSET_ORDER_EXACTLY_ASSERTED=true
+PAGINATION_NO_DUPLICATE=true
+PAGINATION_NO_OMISSION=true
+```
+
+The PostgreSQL seal-versus-cancel race starts with one persisted canonical
+record, snapshots its business fields and both counters, and verifies that the
+record remains unchanged. If seal wins, the cancelled batch's six seal
+evidence fields exactly equal the seal result; if cancel wins, the seal is
+rejected and all seal evidence remains null. The API pagination regression
+appends three records in non-canonical order and walks `page_size=1` until the
+final token is null, asserting sorted canonical keys with no duplicate or
+omitted record.
+
 Local validation completed on the isolated worktree:
 
 - `uv lock --check` passed.

@@ -24,6 +24,7 @@ from backend.app.actual_harvest_import.models import (
     ActualHarvestImportBatchModel,
     ActualHarvestImportRecordModel,
 )
+from backend.app.actual_harvest_import.schemas import ActualHarvestImportRecordInput
 from backend.app.db.session import AsyncSessionMaker
 from backend.tests.actual_harvest_import.test_api_schemas import (
     _create_payload,
@@ -108,6 +109,27 @@ async def _batch_state(
             .where(ActualHarvestImportRecordModel.batch_id == batch.id)
         )
         return batch, int(record_count or 0)
+
+
+async def _record_canonical_state(
+    external_batch_id: str,
+) -> tuple[tuple[str, object], ...]:
+    async with AsyncSessionMaker() as session:
+        record = await session.scalar(
+            sa.select(ActualHarvestImportRecordModel)
+            .where(ActualHarvestImportRecordModel.external_batch_id == external_batch_id)
+            .order_by(ActualHarvestImportRecordModel.id)
+        )
+        assert record is not None
+        canonical_fields = tuple(
+            field_name
+            for field_name in ActualHarvestImportRecordInput.model_fields
+            if field_name not in {"source_row_number", "source_sheet_name"}
+        )
+        canonical_record = ActualHarvestImportRecordInput.model_validate(
+            {field_name: getattr(record, field_name) for field_name in canonical_fields}
+        )
+        return tuple(canonical_record.model_dump(mode="json").items())
 
 
 async def _race_two(first, second):
@@ -262,7 +284,20 @@ async def test_postgres_i4_append_vs_cancel_is_serialized() -> None:
 async def test_postgres_i4_seal_vs_cancel_preserves_records_and_seal_evidence() -> None:
     _require_postgres()
     import_id, external_batch_id = await _seed_batch(expected_record_count=None)
+    record = _record_for_batch(external_batch_id)
     try:
+        append_result = await _append_once(import_id, record)
+        assert append_result[0] == "ok"
+        assert append_result[2] is False
+        before_record = await _record_canonical_state(external_batch_id)
+        before_batch, before_record_count = await _batch_state(external_batch_id)
+        before_counts = (
+            before_batch.record_count,
+            before_batch.uploaded_record_count,
+        )
+        assert before_record_count == 1
+        assert before_counts == (1, 1)
+
         seal_result, cancel_result = await _race_two(
             lambda: _seal_once(import_id),
             lambda: _cancel_once(import_id),
@@ -270,19 +305,24 @@ async def test_postgres_i4_seal_vs_cancel_preserves_records_and_seal_evidence() 
         assert cancel_result[0] == "ok"
         batch, persisted_count = await _batch_state(external_batch_id)
         assert batch.status == "CANCELLED"
-        assert persisted_count == batch.record_count == batch.uploaded_record_count == 0
+        assert persisted_count == batch.record_count == batch.uploaded_record_count == 1
+        assert (batch.record_count, batch.uploaded_record_count) == before_counts
+        assert await _record_canonical_state(external_batch_id) == before_record
         if seal_result[0] == "ok":
-            assert batch.sealed_record_count_or_null == 0
-            assert batch.server_raw_payload_hash_or_null is not None
-            assert batch.canonical_batch_hash_or_null is not None
-            assert batch.seal_manifest_hash_or_null is not None
-            assert batch.sealed_at_or_null is not None
-            assert batch.sealed_by_identity_or_null == "operator-1"
+            sealed = seal_result[1]
+            assert batch.sealed_record_count_or_null == sealed.sealed_record_count_or_null == 1
+            assert batch.server_raw_payload_hash_or_null == sealed.server_raw_payload_hash_or_null
+            assert batch.canonical_batch_hash_or_null == sealed.canonical_batch_hash_or_null
+            assert batch.seal_manifest_hash_or_null == sealed.seal_manifest_hash_or_null
+            assert batch.sealed_at_or_null == sealed.sealed_at_or_null
+            assert batch.sealed_by_identity_or_null == sealed.sealed_by_identity_or_null
         else:
             assert seal_result[1] == "IMPORT_BATCH_CANCELLED"
             assert batch.sealed_record_count_or_null is None
             assert batch.server_raw_payload_hash_or_null is None
             assert batch.canonical_batch_hash_or_null is None
             assert batch.seal_manifest_hash_or_null is None
+            assert batch.sealed_at_or_null is None
+            assert batch.sealed_by_identity_or_null is None
     finally:
         await _cleanup_batch(external_batch_id)
