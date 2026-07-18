@@ -142,6 +142,7 @@ class ActualHarvestApiValidationSummary(BaseModel):
     validation_result_hash: str | None
     lineage_graph_hash: str | None
     mapping_snapshot_hash: str | None
+    resolved_identity_snapshot_hash: str | None
     committed_lineage_basis_hash: str | None
     valid_count: int
     invalid_count: int

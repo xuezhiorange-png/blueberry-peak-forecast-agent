@@ -14,6 +14,7 @@ MAPPING_SNAPSHOT_HASH_POLICY_VERSION = "actual-harvest-mapping-snapshot-v1"
 COMMITTED_LINEAGE_BASIS_HASH_POLICY_VERSION = "actual-harvest-committed-lineage-basis-v1"
 LINEAGE_GRAPH_HASH_POLICY_VERSION = "actual-harvest-lineage-graph-v1"
 VALIDATION_RESULT_HASH_POLICY_VERSION = "actual-harvest-validation-result-v1"
+RESOLVED_IDENTITY_HASH_POLICY_VERSION = "actual-harvest-resolved-identity-v1"
 
 
 def digest(value: object) -> str:
@@ -100,6 +101,53 @@ def compute_record_manifest_hash(records: Iterable[Any]) -> str:
     return digest({"records": [compute_canonical_record_hash(record) for record in ordered]})
 
 
+def compute_resolved_identity_snapshot_hash(
+    outcomes: Iterable[dict[str, Any]],
+) -> str:
+    stable_outcomes = [
+        {
+            key: item[key]
+            for key in (
+                "source_system",
+                "external_logical_record_id",
+                "revision_number",
+                "external_revision_id",
+                "source_field",
+                "source_code",
+                "registry_version",
+                "mapping_policy_version",
+                "registry_entry_hash",
+                "target_type",
+                "target_business_key",
+                "target_parent_business_key",
+                "resolved_master_business_key",
+                "resolved_master_parent_business_key",
+                "resolved_master_record_hash",
+                "resolution_mode",
+                "outcome",
+            )
+            if key in item
+        }
+        for item in outcomes
+    ]
+    ordered = sorted(
+        stable_outcomes,
+        key=lambda item: (
+            item["source_system"],
+            item["external_logical_record_id"],
+            item["revision_number"],
+            item["external_revision_id"],
+            item["source_field"],
+        ),
+    )
+    return digest(
+        {
+            "policy_version": RESOLVED_IDENTITY_HASH_POLICY_VERSION,
+            "outcomes": ordered,
+        }
+    )
+
+
 def compute_committed_lineage_basis_hash(members: Iterable[dict[str, Any]]) -> str:
     ordered = sorted(
         members,
@@ -160,7 +208,7 @@ def compute_validation_result_hash(
     mapping_snapshot_hash: str,
     mapping_policy_version: str,
     validation_policy_version: str,
-    record_hashes: Iterable[str],
+    record_hashes: Iterable[str | dict[str, Any]],
     mapping_outcomes: Iterable[dict[str, Any]],
     nodes: Iterable[dict[str, Any]],
     edges: Iterable[dict[str, Any]],
@@ -169,17 +217,62 @@ def compute_validation_result_hash(
     counts: dict[str, int],
     committed_lineage_basis_hash: str,
     lineage_graph_hash: str,
+    resolved_identity_snapshot_hash: str = "0" * 64,
 ) -> str:
-    mapping_outcome_items: list[dict[str, Any]] = list(mapping_outcomes)
+    stable_mapping_keys = (
+        "source_system",
+        "external_logical_record_id",
+        "external_revision_id",
+        "revision_number",
+        "source_field",
+        "source_code",
+        "target_type",
+        "target_business_key",
+        "target_parent_business_key",
+        "registry_version",
+        "mapping_policy_version",
+        "registry_entry_hash",
+        "resolved_master_business_key",
+        "resolved_master_parent_business_key",
+        "resolved_master_record_hash",
+        "resolution_mode",
+        "outcome",
+    )
+    mapping_outcome_items = [
+        {key: item[key] for key in stable_mapping_keys if key in item} for item in mapping_outcomes
+    ]
+    ordered_record_hashes = []
+    for item in record_hashes:
+        if isinstance(item, str):
+            ordered_record_hashes.append({"canonical_record_hash": item})
+        else:
+            ordered_record_hashes.append(
+                {
+                    "source_system": item["source_system"],
+                    "external_logical_record_id": item["external_logical_record_id"],
+                    "revision_number": item["revision_number"],
+                    "external_revision_id": item["external_revision_id"],
+                    "canonical_record_hash": item["canonical_record_hash"],
+                }
+            )
+    ordered_record_hashes.sort(
+        key=lambda item: (
+            item.get("source_system", ""),
+            item.get("external_logical_record_id", ""),
+            item.get("revision_number", 0),
+            item.get("external_revision_id", ""),
+        )
+    )
 
     return digest(
         {
             "policy_version": VALIDATION_RESULT_HASH_POLICY_VERSION,
             "seal_manifest_hash": seal_manifest_hash,
             "mapping_snapshot_hash": mapping_snapshot_hash,
+            "resolved_identity_snapshot_hash": resolved_identity_snapshot_hash,
             "mapping_policy_version": mapping_policy_version,
             "validation_policy_version": validation_policy_version,
-            "record_hashes": sorted(record_hashes),
+            "ordered_record_hashes": ordered_record_hashes,
             "mapping_outcomes": sorted(
                 mapping_outcome_items,
                 key=lambda item: canonical_json_dumps(item),
@@ -203,6 +296,7 @@ __all__ = [
     "VALIDATION_INSTANCE_HASH_POLICY_VERSION",
     "VALIDATION_REQUEST_HASH_POLICY_VERSION",
     "VALIDATION_RESULT_HASH_POLICY_VERSION",
+    "RESOLVED_IDENTITY_HASH_POLICY_VERSION",
     "compute_committed_lineage_basis_hash",
     "compute_instance_identity_hash",
     "compute_lineage_graph_hash",
@@ -211,6 +305,7 @@ __all__ = [
     "compute_mapping_registry_hash",
     "compute_mapping_snapshot_hash",
     "compute_record_manifest_hash",
+    "compute_resolved_identity_snapshot_hash",
     "compute_request_identity_hash",
     "compute_validation_result_hash",
     "digest",
