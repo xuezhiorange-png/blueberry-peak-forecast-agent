@@ -20,8 +20,10 @@ from backend.app.actual_harvest_import.api_errors import (
 from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiAppendRecordsRequest,
     ActualHarvestApiBatchSummary,
+    ActualHarvestApiCancelRequest,
     ActualHarvestApiCreateImportRequest,
     ActualHarvestApiEnvelope,
+    ActualHarvestApiSealRequest,
 )
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.lifecycle import (
@@ -118,6 +120,8 @@ async def _load_scoped_batch(
         source_system=batch.source_system,
         channel=ActualHarvestImportChannel.API,
         permission=permission,
+        submitted_by_identity=batch.submitted_by_identity,
+        hide_identity_mismatch=True,
     )
     return batch
 
@@ -169,13 +173,7 @@ async def append_actual_harvest_import_records(
 ) -> JSONResponse:
     request_id = _request_id(request)
     try:
-        batch = await _load_scoped_batch(session, import_id, actor, "may_append")
-        require_actor_scope(
-            actor,
-            source_system=batch.source_system,
-            channel=ActualHarvestImportChannel.API,
-            permission="may_append",
-        )
+        await _load_scoped_batch(session, import_id, actor, "may_append")
         summary, records, reused = await _run_mutation(
             session,
             lambda: append_import_records(session, import_id, body),
@@ -221,7 +219,7 @@ async def preview_actual_harvest_import(
     request: Request,
     actor: ActorDep,
     session: SessionDep,
-    page_size: int = Query(default=50, strict=True),
+    page_size: int = Query(default=50),
     page_token: str | None = Query(default=None, max_length=2048),
 ) -> JSONResponse:
     request_id = _request_id(request)
@@ -256,11 +254,13 @@ async def preview_actual_harvest_import(
 async def seal_actual_harvest_import(
     import_id: str,
     request: Request,
+    body: ActualHarvestApiSealRequest,
     actor: ActorDep,
     session: SessionDep,
 ) -> JSONResponse:
     request_id = _request_id(request)
     try:
+        del body
         batch = await _load_scoped_batch(session, import_id, actor, "may_seal")
         summary = await _run_mutation(
             session,
@@ -280,11 +280,13 @@ async def seal_actual_harvest_import(
 async def cancel_actual_harvest_import(
     import_id: str,
     request: Request,
+    body: ActualHarvestApiCancelRequest,
     actor: ActorDep,
     session: SessionDep,
 ) -> JSONResponse:
     request_id = _request_id(request)
     try:
+        del body
         batch = await _load_scoped_batch(session, import_id, actor, "may_cancel")
         summary = await _run_mutation(
             session,

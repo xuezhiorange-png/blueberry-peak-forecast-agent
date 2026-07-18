@@ -9,6 +9,7 @@ from backend.app.actual_harvest_import.api_errors import (
     ActualHarvestApiError,
     ActualHarvestApiErrorCode,
 )
+from backend.app.actual_harvest_import.api_policy import API_POLICY
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 
 
@@ -43,8 +44,15 @@ def require_actor_scope(
     channel: ActualHarvestImportChannel,
     permission: str,
     submitted_by_identity: str | None = None,
+    hide_identity_mismatch: bool = False,
 ) -> None:
     if submitted_by_identity is not None and actor.identity != submitted_by_identity:
+        if hide_identity_mismatch:
+            raise ActualHarvestApiError(
+                ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_FOUND,
+                "actual-harvest import batch was not found",
+                status_code=404,
+            )
         raise ActualHarvestApiError(
             ActualHarvestApiErrorCode.ACTUAL_HARVEST_ACTOR_MISMATCH,
             "actor identity does not match submitted identity",
@@ -64,9 +72,17 @@ def require_actor_scope(
         )
 
 
+AUTHORIZATION_POLICY = API_POLICY.authorization_policy
+BATCH_OWNER_AUTHORIZATION = API_POLICY.batch_owner_authorization
+SOURCE_DOMAIN_SHARED_ADMIN = API_POLICY.source_domain_shared_admin
+
+
 __all__ = [
     "ActorDep",
+    "AUTHORIZATION_POLICY",
     "ActualHarvestActorContext",
+    "BATCH_OWNER_AUTHORIZATION",
+    "SOURCE_DOMAIN_SHARED_ADMIN",
     "get_actual_harvest_actor",
     "require_actor_scope",
 ]
