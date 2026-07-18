@@ -6,6 +6,9 @@ from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
+from backend.app.actual_harvest_import.api_policy import ActualHarvestRequestBodyLimitMiddleware
+from backend.app.api.actual_harvest_imports import router as actual_harvest_import_router
 from backend.app.api.harvest_state import router as harvest_state_router
 from backend.app.api.health import router as health_router
 from backend.app.api.master_data import router as master_data_router
@@ -39,10 +42,41 @@ def _is_replay_trained_path(path: str) -> bool:
     )
 
 
+def _is_actual_harvest_path(path: str) -> bool:
+    return path == "/api/v1/actual-harvest" or path.startswith("/api/v1/actual-harvest/")
+
+
 def create_app(settings: AppSettings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(title=app_settings.app_name, version=APP_VERSION, lifespan=lifespan)
     app.state.settings = app_settings
+    app.add_middleware(ActualHarvestRequestBodyLimitMiddleware)
+
+    @app.exception_handler(ActualHarvestApiError)
+    async def _handle_actual_harvest_api_error(
+        request: Request,
+        exc: ActualHarvestApiError,
+    ) -> JSONResponse:
+        del request
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "request_id": None,
+                "status": "ERROR",
+                "data_or_null": None,
+                "errors": [
+                    {
+                        "code": exc.code.value,
+                        "message_template_id": exc.code.value,
+                        "details": exc.details,
+                    }
+                ],
+                "warnings": [],
+                "pagination_or_null": None,
+                "canonical_hashes": {},
+                "provenance": {"api_policy_version": "actual-harvest-api-policy-v1"},
+            },
+        )
 
     @app.exception_handler(RequestValidationError)
     async def _handle_request_validation_error(
@@ -61,6 +95,33 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
                     }
                 },
             )
+        if _is_actual_harvest_path(request.url.path):
+            error_code = "API_REQUEST_INVALID"
+            if any(
+                marker in str(item.get("msg", "")).lower()
+                for item in exc.errors()
+                for marker in ("server-generated", "source file metadata")
+            ):
+                error_code = "SERVER_GENERATED_FIELD_SUPPLIED"
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "request_id": request.headers.get("x-request-id"),
+                    "status": "ERROR",
+                    "data_or_null": None,
+                    "errors": [
+                        {
+                            "code": error_code,
+                            "message_template_id": error_code,
+                            "details": {},
+                        }
+                    ],
+                    "warnings": [],
+                    "pagination_or_null": None,
+                    "canonical_hashes": {},
+                    "provenance": {"api_policy_version": "actual-harvest-api-policy-v1"},
+                },
+            )
         if not _is_harvest_state_path(request.url.path):
             return await request_validation_exception_handler(request, exc)
         return JSONResponse(
@@ -77,6 +138,11 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         app.dependency_overrides[get_settings] = lambda: app_settings
 
     app.include_router(health_router, prefix="/health", tags=["health"])
+    app.include_router(
+        actual_harvest_import_router,
+        prefix="/api/v1/actual-harvest",
+        tags=["actual-harvest-import"],
+    )
     app.include_router(harvest_state_router, prefix="/api/v1/harvest-state", tags=["harvest-state"])
     app.include_router(master_data_router, prefix="/api/v1/master-data", tags=["master-data"])
     app.include_router(planning_router, prefix="/planning", tags=["planning"])
