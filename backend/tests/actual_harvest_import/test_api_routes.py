@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 
 from backend.app.actual_harvest_import.api_auth import (
@@ -78,3 +79,52 @@ async def test_api_hides_batches_outside_actor_source_scope(
     response = await api_client.get(f"/api/v1/actual-harvest/imports/{import_id}")
     assert response.status_code == 404
     assert response.json()["errors"][0]["code"] == "IMPORT_BATCH_NOT_FOUND"
+
+
+@pytest.mark.parametrize("operation", ["seal", "cancel"])
+async def test_terminal_routes_require_empty_json_object(
+    api_client: AsyncClient,
+    authorized_actor,
+    operation: str,
+) -> None:
+    app = api_client._transport.app  # type: ignore[attr-defined]
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: authorized_actor
+    path = f"/api/v1/actual-harvest/imports/not-found/{operation}"
+
+    extra = await api_client.post(
+        path,
+        json={"unexpected": True},
+        headers={"content-type": "application/json"},
+    )
+    assert extra.status_code == 422
+    assert extra.json()["errors"][0]["code"] == "API_REQUEST_INVALID"
+
+    missing_content_type = await api_client.post(path, content=b"{}")
+    assert missing_content_type.status_code == 415
+    assert missing_content_type.json()["errors"][0]["code"] == "API_CONTENT_TYPE_UNSUPPORTED"
+
+    unsupported = await api_client.post(
+        path,
+        content=b"{}",
+        headers={"content-type": "text/plain"},
+    )
+    assert unsupported.status_code == 415
+    assert unsupported.json()["errors"][0]["code"] == "API_CONTENT_TYPE_UNSUPPORTED"
+
+    empty = await api_client.post(
+        path,
+        content=b"",
+        headers={"content-type": "application/json"},
+    )
+    assert empty.status_code == 422
+    assert empty.json()["errors"][0]["code"] == "API_REQUEST_INVALID"
+
+
+def test_terminal_routes_publish_empty_json_request_bodies(api_client: AsyncClient) -> None:
+    schema = api_client._transport.app.openapi()  # type: ignore[attr-defined]
+    for operation in ("seal", "cancel"):
+        request_body = schema["paths"][f"/api/v1/actual-harvest/imports/{{import_id}}/{operation}"][
+            "post"
+        ]["requestBody"]
+        assert request_body["required"] is True
+        assert "application/json" in request_body["content"]

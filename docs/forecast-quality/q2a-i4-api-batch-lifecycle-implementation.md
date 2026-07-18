@@ -25,15 +25,33 @@ changes are not implemented by I4.
 
 The default actor dependency fails closed with
 `ACTUAL_HARVEST_AUTHORIZATION_UNAVAILABLE`. Tests inject an exact actor through
-FastAPI dependency overrides. Every operation checks actor identity, source
-system, API channel, and the operation permission. No wildcard or fallback
-scope is accepted.
+FastAPI dependency overrides. I4 freezes `BATCH_OWNER` authorization:
 
-The ASGI middleware limits actual-harvest JSON write bodies to 5,242,880 bytes
-while receiving chunks, not only through `Content-Length`. Append pages contain
-1-500 records. Preview uses a versioned keyset token, defaults to 50 records,
-and caps pages at 100. Responses use a stable envelope and never expose SQL
-identifiers, credentials, raw request bodies, or tracebacks.
+```text
+AUTHORIZATION_POLICY=BATCH_OWNER
+BATCH_OWNER_AUTHORIZATION=true
+SOURCE_DOMAIN_SHARED_ADMIN=false
+```
+
+Create requires the actor identity to equal `submitted_by_identity`. Get,
+preview, append, seal, and cancel require the same identity as the persisted
+batch owner, exact source-system and API-channel scope, and the operation
+permission. Same-source non-owners receive the same 404 as an unknown batch;
+missing operation permission remains a 403. No wildcard, alias, trim fallback,
+or cross-actor administration is accepted.
+
+The ASGI middleware limits only these POST paths: the create route and
+`/{import_id}/records`, `/{import_id}/seal`, and `/{import_id}/cancel` under
+`/api/v1/actual-harvest/imports/`. It limits JSON write bodies to 5,242,880
+bytes while receiving chunks, not only through `Content-Length`. Append pages
+contain 1-500 records. Preview uses a versioned keyset token, defaults to 50
+records, and caps pages at 100. Responses use a stable envelope and never
+expose SQL identifiers, credentials, raw request bodies, or tracebacks.
+
+Seal and cancel use the `EMPTY_JSON_BODY` contract: callers must send `{}` with
+`Content-Type: application/json`; extra fields are rejected with
+`API_REQUEST_INVALID`, missing or unsupported content types are rejected before
+route handling, and an empty JSON body is a sanitized 422 validation error.
 
 ## State and transactions
 
@@ -51,7 +69,15 @@ commit, rollback, or close the session. Mutation paths lock the batch row with
 `SELECT ... FOR UPDATE` before checking status or changing records. An append
 page is all-or-nothing; counts are updated in the same transaction. Sealing
 recomputes the authoritative record count and all seal metadata. Cancellation
-never deletes records or seal evidence. Sealed records are immutable.
+never deletes records or seal evidence. Records cannot be appended, modified,
+or deleted after sealing, while the batch may intentionally transition from
+`SEALED` to `CANCELLED`.
+
+```text
+NO_POST_SEAL_RECORD_MUTATION=true
+SEALED_BATCH_MAY_TRANSITION_TO_CANCELLED=true
+CANCEL_PRESERVES_SEAL_EVIDENCE=true
+```
 
 ## Idempotency and hashes
 
@@ -111,16 +137,20 @@ Local validation completed on the isolated worktree:
 - `uv lock --check` passed.
 - Ruff check and format check passed for the I4 application and test paths.
 - `uv run mypy app` passed.
-- I4 targeted tests passed (`24 passed`).
-- Full actual-harvest suite passed (`180 passed, 1 skipped`).
+- I4 targeted tests passed (`46 passed`).
+- Full actual-harvest suite passed (`202 passed, 5 skipped`); the five skips
+  are the PostgreSQL lifecycle tests because Docker is unavailable locally.
 - Core forecast and S1 regression passed (`154 passed`).
 - Agent regression passed (`359 passed`).
-- Alembic/API regressions passed (`8 passed` across the targeted commands).
+- Existing API/lifespan regressions passed (`22 passed`), and the existing
+  Alembic regressions passed (`7 passed`). The specifically named source,
+  forecast-quality Q1, and V0.1 S1 contract test files are not present in this
+  checkout, so no result is claimed for those absent paths.
 - `uv run alembic -c backend/alembic.ini heads` returned the single head
   `0018_actual_harvest_import_staging`.
 - Local PostgreSQL was not run because no isolated PostgreSQL profile was
-  available; the marked PostgreSQL lifecycle test is guarded by
-  `RUN_POSTGRES_INTEGRATION=1` and is assigned to `postgres-domain-1`.
+  available; the PostgreSQL lifecycle tests are guarded by
+  `RUN_POSTGRES_INTEGRATION=1` and are assigned to `postgres-domain-1`.
 
 The exact-head PR CI and artifact evidence are recorded in the Draft PR body
 after push. No PostgreSQL pass is claimed locally.

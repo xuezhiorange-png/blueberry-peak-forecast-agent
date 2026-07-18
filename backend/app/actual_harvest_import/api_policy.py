@@ -8,6 +8,9 @@ from typing import Any
 @dataclass(frozen=True)
 class ActualHarvestApiPolicy:
     policy_version: str = "actual-harvest-api-policy-v1"
+    authorization_policy: str = "BATCH_OWNER"
+    batch_owner_authorization: bool = True
+    source_domain_shared_admin: bool = False
     max_request_body_bytes: int = 5_242_880
     max_records_per_append: int = 500
     default_page_size: int = 50
@@ -93,15 +96,28 @@ class ActualHarvestRequestBodyLimitMiddleware:
             await self._respond(send, 413, "API_REQUEST_BODY_TOO_LARGE")
 
     def _is_write(self, scope: Mapping[str, Any]) -> bool:
-        method = scope.get("method")
+        if scope.get("method") != "POST":
+            return False
         path = scope.get("path")
-        is_lifecycle_write = isinstance(path, str) and (
-            path == "/api/v1/actual-harvest/imports"
-            or path.endswith("/records")
-            or path.endswith("/seal")
-            or path.endswith("/cancel")
+        if not isinstance(path, str):
+            return False
+        prefix = "/api/v1/actual-harvest/imports"
+        if path == prefix:
+            return True
+        if not path.startswith(prefix + "/"):
+            return False
+        remainder = path[len(prefix) + 1 :]
+        parts = remainder.split("/")
+        return (
+            len(parts) == 2
+            and bool(parts[0])
+            and parts[1]
+            in {
+                "records",
+                "seal",
+                "cancel",
+            }
         )
-        return method in {"POST", "PUT", "PATCH"} and is_lifecycle_write
 
     async def _respond(
         self,

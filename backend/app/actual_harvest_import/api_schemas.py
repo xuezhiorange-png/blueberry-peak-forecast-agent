@@ -126,6 +126,10 @@ class ActualHarvestApiSealRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+class ActualHarvestApiCancelRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
 class ActualHarvestApiPage(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -191,6 +195,7 @@ class ActualHarvestApiEnvelope(BaseModel):
 __all__ = [
     "ActualHarvestApiAppendRecordsRequest",
     "ActualHarvestApiBatchSummary",
+    "ActualHarvestApiCancelRequest",
     "ActualHarvestApiCreateImportRequest",
     "ActualHarvestApiEnvelope",
     "ActualHarvestApiPage",
