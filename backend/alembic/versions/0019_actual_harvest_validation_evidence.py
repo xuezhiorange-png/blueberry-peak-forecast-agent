@@ -54,13 +54,23 @@ def _create_mapping_registry_immutability_guards() -> None:
                     RETURN NEW;
                 END;
                 $$;
-
+                """
+            )
+        )
+        op.execute(
+            sa.text(
+                """
                 CREATE TRIGGER trg_actual_harvest_sealed_registry_immutable
                 BEFORE UPDATE OR DELETE
                 ON actual_harvest_mapping_policy_registry
                 FOR EACH ROW
-                EXECUTE FUNCTION actual_harvest_reject_sealed_registry_mutation();
-
+                EXECUTE FUNCTION actual_harvest_reject_sealed_registry_mutation()
+                """
+            )
+        )
+        op.execute(
+            sa.text(
+                """
                 CREATE FUNCTION actual_harvest_reject_sealed_registry_entry_mutation()
                 RETURNS trigger LANGUAGE plpgsql AS $$
                 DECLARE
@@ -89,13 +99,18 @@ def _create_mapping_registry_immutability_guards() -> None:
                     END IF;
                     RETURN NEW;
                 END;
-                $$;
-
+                $$
+                """
+            )
+        )
+        op.execute(
+            sa.text(
+                """
                 CREATE TRIGGER trg_actual_harvest_sealed_registry_entry_immutable
                 BEFORE INSERT OR UPDATE OR DELETE
                 ON actual_harvest_mapping_registry_entry
                 FOR EACH ROW
-                EXECUTE FUNCTION actual_harvest_reject_sealed_registry_entry_mutation();
+                EXECUTE FUNCTION actual_harvest_reject_sealed_registry_entry_mutation()
                 """
             )
         )
@@ -183,13 +198,25 @@ def _drop_mapping_registry_immutability_guards() -> None:
             sa.text(
                 """
                 DROP TRIGGER IF EXISTS trg_actual_harvest_sealed_registry_entry_immutable
-                    ON actual_harvest_mapping_registry_entry;
-                DROP TRIGGER IF EXISTS trg_actual_harvest_sealed_registry_immutable
-                    ON actual_harvest_mapping_policy_registry;
-                DROP FUNCTION IF EXISTS actual_harvest_reject_sealed_registry_entry_mutation();
-                DROP FUNCTION IF EXISTS actual_harvest_reject_sealed_registry_mutation();
+                    ON actual_harvest_mapping_registry_entry
                 """
             )
+        )
+        op.execute(
+            sa.text(
+                """
+                DROP TRIGGER IF EXISTS trg_actual_harvest_sealed_registry_immutable
+                    ON actual_harvest_mapping_policy_registry
+                """
+            )
+        )
+        op.execute(
+            sa.text(
+                "DROP FUNCTION IF EXISTS actual_harvest_reject_sealed_registry_entry_mutation()"
+            )
+        )
+        op.execute(
+            sa.text("DROP FUNCTION IF EXISTS actual_harvest_reject_sealed_registry_mutation()")
         )
     elif dialect == "sqlite":
         for trigger in (
