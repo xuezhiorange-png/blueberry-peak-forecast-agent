@@ -1087,6 +1087,12 @@ async def test_postgres_i5_validation_errors_use_bounded_keyset_pagination() -> 
             assert second_summary.validation_run_identity == first_summary.validation_run_identity
             assert len(second_page) == 1
             assert final_token is None or final_token != token
-            assert first_page[0]["error_code"] != second_page[0]["error_code"]
+            assert (
+                first_page[0]["record_index"],
+                first_page[0]["field_path"],
+            ) < (
+                second_page[0]["record_index"],
+                second_page[0]["field_path"],
+            )
     finally:
         await _cleanup_batch(external_batch_id)
