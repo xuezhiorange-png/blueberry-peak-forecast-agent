@@ -50,9 +50,13 @@ async def test_api_routes_are_registered_and_unimplemented_routes_are_not_faked(
     )
     assert cancelled.status_code == 200
     assert cancelled.json()["data_or_null"]["batch"]["status"] == "CANCELLED"
-    assert (
-        await api_client.post(f"/api/v1/actual-harvest/imports/{import_id}/validate")
-    ).status_code == 404
+    validation = await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/validate",
+        json={},
+        headers={"content-type": "application/json"},
+    )
+    assert validation.status_code == 409
+    assert validation.json()["errors"][0]["code"] == "IMPORT_BATCH_CANCELLED"
     assert (
         await api_client.post(f"/api/v1/actual-harvest/imports/{import_id}/commit")
     ).status_code == 404
