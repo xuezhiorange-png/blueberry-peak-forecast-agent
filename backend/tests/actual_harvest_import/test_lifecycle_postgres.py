@@ -91,6 +91,38 @@ def _record_for_batch(external_batch_id: str) -> ActualHarvestApiRecordInput:
 
 
 async def _cleanup_batch(external_batch_id: str) -> None:
+    async def delete_validation_evidence(session, run_ids: list[int]) -> None:
+        if not run_ids:
+            return
+        basis_ids = list(
+            await session.scalars(
+                sa.select(ActualHarvestValidationLineageBasisModel.id).where(
+                    ActualHarvestValidationLineageBasisModel.validation_run_id.in_(run_ids)
+                )
+            )
+        )
+        await session.execute(
+            delete(ActualHarvestValidationLineageBasisMemberModel).where(
+                ActualHarvestValidationLineageBasisMemberModel.basis_id.in_(basis_ids)
+            )
+        )
+        for model in (
+            ActualHarvestMappingSnapshotModel,
+            ActualHarvestValidationErrorModel,
+            ActualHarvestValidationLineageEdgeModel,
+            ActualHarvestValidationLineageNodeModel,
+            ActualHarvestValidationRecordModel,
+            ActualHarvestValidationResultModel,
+            ActualHarvestValidationAttemptModel,
+        ):
+            await session.execute(delete(model).where(model.validation_run_id.in_(run_ids)))
+        await session.execute(
+            delete(ActualHarvestValidationLineageBasisModel).where(
+                ActualHarvestValidationLineageBasisModel.id.in_(basis_ids)
+            )
+        )
+
+    batch_id: int | None
     async with AsyncSessionMaker() as session:
         async with session.begin():
             batch_id = await session.scalar(
@@ -107,46 +139,28 @@ async def _cleanup_batch(external_batch_id: str) -> None:
                     )
                 )
             )
-            basis_ids = list(
+            await delete_validation_evidence(session, run_ids)
+
+    # Commit child-row cleanup separately, then re-read the parent rows in a
+    # fresh transaction. This avoids a concurrent validation worker's final
+    # evidence commit being hidden by the cleanup transaction snapshot.
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            batch_id = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel.id).where(
+                    ActualHarvestImportBatchModel.external_batch_id == external_batch_id
+                )
+            )
+            if batch_id is None:
+                return
+            run_ids = list(
                 await session.scalars(
-                    sa.select(ActualHarvestValidationLineageBasisModel.id).where(
-                        ActualHarvestValidationLineageBasisModel.validation_run_id.in_(run_ids)
+                    sa.select(ActualHarvestValidationRunModel.id).where(
+                        ActualHarvestValidationRunModel.batch_id == batch_id
                     )
                 )
             )
-            await session.execute(
-                delete(ActualHarvestValidationLineageBasisMemberModel).where(
-                    ActualHarvestValidationLineageBasisMemberModel.basis_id.in_(basis_ids)
-                )
-            )
-            await session.execute(
-                delete(ActualHarvestMappingSnapshotModel).where(
-                    ActualHarvestMappingSnapshotModel.validation_run_id.in_(run_ids)
-                )
-            )
-            for run_id in run_ids:
-                await session.execute(
-                    sa.text(
-                        "DELETE FROM actual_harvest_mapping_snapshot "
-                        "WHERE validation_run_id = :validation_run_id"
-                    ),
-                    {"validation_run_id": run_id},
-                )
-            for model in (
-                ActualHarvestValidationErrorModel,
-                ActualHarvestValidationLineageEdgeModel,
-                ActualHarvestValidationLineageNodeModel,
-                ActualHarvestValidationRecordModel,
-                ActualHarvestValidationResultModel,
-                ActualHarvestValidationAttemptModel,
-                ActualHarvestValidationLineageBasisModel,
-            ):
-                await session.execute(
-                    delete(model).where(model.validation_run_id.in_(run_ids))
-                    if model is not ActualHarvestValidationLineageBasisModel
-                    else delete(model).where(model.id.in_(basis_ids))
-                )
-            await session.flush()
+            await delete_validation_evidence(session, run_ids)
             await session.execute(
                 delete(ActualHarvestValidationRunModel).where(
                     ActualHarvestValidationRunModel.id.in_(run_ids)
