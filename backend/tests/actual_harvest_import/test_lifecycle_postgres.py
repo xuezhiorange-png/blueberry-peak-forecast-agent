@@ -251,6 +251,13 @@ async def _validate_once(import_id: str):
         return await validate_import(session, import_id)
 
 
+async def _validate_or_in_progress(import_id: str):
+    try:
+        return ("ok", await _validate_once(import_id))
+    except ActualHarvestApiError as exc:
+        return ("error", exc.code.value)
+
+
 async def _seed_i5_batch(*, suffix: str, mapping_policy: str) -> tuple[str, str]:
     payload = _create_payload()
     payload["external_batch_id"] = f"i5-pg-{suffix}"
@@ -519,14 +526,18 @@ async def test_postgres_i5_identical_validate_replays_immutable_result() -> None
     )
     try:
         first, second = await asyncio.gather(
-            _validate_once(import_id),
-            _validate_once(import_id),
+            _validate_or_in_progress(import_id),
+            _validate_or_in_progress(import_id),
         )
-        assert first.validation_status == "VALIDATED"
-        assert second.validation_status == "VALIDATED"
-        assert first.validation_result_hash == second.validation_result_hash
-        assert first.lineage_graph_hash == second.lineage_graph_hash
-        assert first.committed_lineage_basis_hash == second.committed_lineage_basis_hash
+        assert {first[0], second[0]} == {"ok", "error"}
+        successful_result = first[1] if first[0] == "ok" else second[1]
+        failed_result = first[1] if first[0] == "error" else second[1]
+        assert failed_result == "VALIDATION_IN_PROGRESS"
+        assert successful_result.validation_status == "VALIDATED"
+        replay = await _validate_once(import_id)
+        assert replay.validation_result_hash == successful_result.validation_result_hash
+        assert replay.lineage_graph_hash == successful_result.lineage_graph_hash
+        assert replay.committed_lineage_basis_hash == successful_result.committed_lineage_basis_hash
         async with AsyncSessionMaker() as session:
             batch = await session.scalar(
                 sa.select(ActualHarvestImportBatchModel).where(
