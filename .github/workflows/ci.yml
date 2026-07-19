@@ -725,75 +725,75 @@ jobs:
           if [ "$status" -eq 0 ]; then
             sequence_status=0
             python - <<'PY' || sequence_status=$?
-            import os
-            import xml.etree.ElementTree as ET
+          import os
+          import xml.etree.ElementTree as ET
 
-            junit_path = "reports/test-results/postgres-domain-1.xml"
-            cases = list(ET.parse(junit_path).iter("testcase"))
+          junit_path = "reports/test-results/postgres-domain-1.xml"
+          cases = list(ET.parse(junit_path).iter("testcase"))
 
-            def node(case: ET.Element) -> str:
-                return f"{case.attrib.get('classname', '')}::{case.attrib.get('name', '')}"
+          def node(case: ET.Element) -> str:
+              return f"{case.attrib.get('classname', '')}::{case.attrib.get('name', '')}"
 
-            i5_cases = [
-                (index, case)
-                for index, case in enumerate(cases)
-                if "test_lifecycle_postgres" in case.attrib.get("classname", "")
-            ]
-            cleanup_cases = [
-                (index, case)
-                for index, case in i5_cases
-                if case.attrib.get("name", "")
-                == "test_postgres_i5_module_cleanup_releases_master_ids_for_downstream_suites"
-            ]
-            slice_b_cases = [
-                (index, case)
-                for index, case in enumerate(cases)
-                if case.attrib.get("name", "")
-                == "test_slice_b_orchestration_uses_real_postgres_session"
-            ]
+          i5_cases = [
+              (index, case)
+              for index, case in enumerate(cases)
+              if "test_lifecycle_postgres" in case.attrib.get("classname", "")
+          ]
+          cleanup_cases = [
+              (index, case)
+              for index, case in i5_cases
+              if case.attrib.get("name", "")
+              == "test_postgres_i5_module_cleanup_releases_master_ids_for_downstream_suites"
+          ]
+          slice_b_cases = [
+              (index, case)
+              for index, case in enumerate(cases)
+              if case.attrib.get("name", "")
+              == "test_slice_b_orchestration_uses_real_postgres_session"
+          ]
 
-            if not i5_cases:
-                raise AssertionError("I5 PostgreSQL module has no JUnit testcases")
-            if len(cleanup_cases) != 1:
-                raise AssertionError(
-                    "I5 cleanup acceptance node must occur exactly once in JUnit"
-                )
-            if len(slice_b_cases) != 1:
-                raise AssertionError("Slice B PostgreSQL node must occur exactly once in JUnit")
+          if not i5_cases:
+              raise AssertionError("I5 PostgreSQL module has no JUnit testcases")
+          if len(cleanup_cases) != 1:
+              raise AssertionError(
+                  "I5 cleanup acceptance node must occur exactly once in JUnit"
+              )
+          if len(slice_b_cases) != 1:
+              raise AssertionError("Slice B PostgreSQL node must occur exactly once in JUnit")
 
-            cleanup_index, cleanup_case = cleanup_cases[0]
-            slice_b_index, slice_b_case = slice_b_cases[0]
-            if cleanup_index >= slice_b_index or max(index for index, _ in i5_cases) >= slice_b_index:
-                raise AssertionError(
-                    "required same-database order is I5 module, then Slice B"
-                )
-            if any(
-                case.find(marker) is not None
-                for marker in ("skipped", "failure", "error")
-                for case in (cleanup_case, slice_b_case)
-            ):
-                raise AssertionError("ordered reproducer nodes must pass without skip/error")
+          cleanup_index, cleanup_case = cleanup_cases[0]
+          slice_b_index, slice_b_case = slice_b_cases[0]
+          if cleanup_index >= slice_b_index or max(index for index, _ in i5_cases) >= slice_b_index:
+              raise AssertionError(
+                  "required same-database order is I5 module, then Slice B"
+              )
+          if any(
+              case.find(marker) is not None
+              for marker in ("skipped", "failure", "error")
+              for case in (cleanup_case, slice_b_case)
+          ):
+              raise AssertionError("ordered reproducer nodes must pass without skip/error")
 
-            summary = os.environ.get("GITHUB_STEP_SUMMARY")
-            lines = [
-                "## Q2A-I5 same-database ordered reproducer",
-                "I5_MODULE_NODE_COUNT=" + str(len(i5_cases)),
-                "I5_MODULE_LAST_NODE_INDEX=" + str(max(index for index, _ in i5_cases)),
-                "SLICE_B_NODE_INDEX=" + str(slice_b_index),
-                "I5_CLEANUP_ACCEPTANCE_NODE_PASSED=true",
-                "SLICE_B_POSTGRES_TEST_PASSED=true",
-                "DUPLICATE_DIM_FARM_PRIMARY_KEY=false",
-                "SAME_DATABASE=true",
-                "SAME_JOB=true",
-                "ORDERED_REPRODUCER_PASSED=true",
-                "CLEANUP_NODE=" + node(cleanup_case),
-                "SLICE_B_NODE=" + node(slice_b_case),
-            ]
-            print("\n".join(lines))
-            if summary:
-                with open(summary, "a", encoding="utf-8") as handle:
-                    handle.write("\n".join(lines) + "\n")
-            PY
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          lines = [
+              "## Q2A-I5 same-database ordered reproducer",
+              "I5_MODULE_NODE_COUNT=" + str(len(i5_cases)),
+              "I5_MODULE_LAST_NODE_INDEX=" + str(max(index for index, _ in i5_cases)),
+              "SLICE_B_NODE_INDEX=" + str(slice_b_index),
+              "I5_CLEANUP_ACCEPTANCE_NODE_PASSED=true",
+              "SLICE_B_POSTGRES_TEST_PASSED=true",
+              "DUPLICATE_DIM_FARM_PRIMARY_KEY=false",
+              "SAME_DATABASE=true",
+              "SAME_JOB=true",
+              "ORDERED_REPRODUCER_PASSED=true",
+              "CLEANUP_NODE=" + node(cleanup_case),
+              "SLICE_B_NODE=" + node(slice_b_case),
+          ]
+          print("\n".join(lines))
+          if summary:
+              with open(summary, "a", encoding="utf-8") as handle:
+                  handle.write("\n".join(lines) + "\n")
+          PY
             if [ "$sequence_status" -ne 0 ]; then
               echo "postgres-domain-1 ordered reproducer assertion failed"
               exit "$sequence_status"
