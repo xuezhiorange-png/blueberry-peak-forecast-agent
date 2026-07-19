@@ -200,18 +200,10 @@ def _error(
 
 
 def _sorted_errors(values: list[ValidationErrorValue]) -> tuple[ValidationErrorValue, ...]:
-    return tuple(
-        sorted(
-            values,
-            key=lambda item: (
-                item.record_index if item.record_index is not None else 0,
-                item.logical_id or "",
-                item.revision_id or "",
-                item.field_path or "",
-                item.code,
-            ),
-        )
-    )
+    unique: dict[str, ValidationErrorValue] = {}
+    for value in values:
+        unique.setdefault(canonical_json_dumps(value.payload()), value)
+    return tuple(sorted(unique.values(), key=_stable_sort_key))
 
 
 def _stable_sort_key(error: ValidationErrorValue) -> str:
