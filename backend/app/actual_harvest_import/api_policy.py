@@ -116,6 +116,7 @@ class ActualHarvestRequestBodyLimitMiddleware:
                 "records",
                 "seal",
                 "cancel",
+                "validate",
             }
         )
 

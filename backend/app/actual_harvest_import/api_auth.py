@@ -24,6 +24,7 @@ class ActualHarvestActorContext(BaseModel):
     may_preview: bool = False
     may_seal: bool = False
     may_cancel: bool = False
+    may_validate: bool = False
 
 
 async def get_actual_harvest_actor() -> ActualHarvestActorContext:

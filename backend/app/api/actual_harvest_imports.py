@@ -24,6 +24,7 @@ from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiCreateImportRequest,
     ActualHarvestApiEnvelope,
     ActualHarvestApiSealRequest,
+    ActualHarvestApiValidateRequest,
 )
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.lifecycle import (
@@ -33,6 +34,9 @@ from backend.app.actual_harvest_import.lifecycle import (
     get_import,
     preview_import,
     seal_import,
+    validate_import,
+    validation_errors,
+    validation_summary,
 )
 from backend.app.db.session import get_db_session
 
@@ -231,13 +235,14 @@ async def preview_actual_harvest_import(
             page_size=page_size,
             page_token=page_token,
         )
+        validation = await validation_summary(session, import_id)
         del batch
         return _ok(
             request_id,
             {
                 "batch": summary,
                 "records": records,
-                "validation_status": "NOT_RUN",
+                **validation.as_api().model_dump(mode="json"),
                 "active_label_created": False,
             },
             pagination={"page_size": page_size, "next_page_token": next_token},
@@ -294,6 +299,60 @@ async def cancel_actual_harvest_import(
         )
         del batch
         return _ok(request_id, {"batch": summary})
+    except ActualHarvestApiError as error:
+        return _error(request_id, error)
+
+
+@router.post(
+    "/imports/{import_id}/validate",
+    operation_id="validateActualHarvestImport",
+    response_model=None,
+)
+async def validate_actual_harvest_import(
+    import_id: str,
+    request: Request,
+    body: ActualHarvestApiValidateRequest,
+    actor: ActorDep,
+    session: SessionDep,
+) -> JSONResponse:
+    request_id = _request_id(request)
+    try:
+        await _load_scoped_batch(session, import_id, actor, "may_validate")
+        del body
+        await session.rollback()
+        summary = await validate_import(session, import_id)
+        return _ok(request_id, {"validation": summary.as_api()})
+    except ActualHarvestApiError as error:
+        return _error(request_id, error)
+
+
+@router.get(
+    "/imports/{import_id}/errors",
+    operation_id="listActualHarvestImportErrors",
+    response_model=None,
+)
+async def list_actual_harvest_import_errors(
+    import_id: str,
+    request: Request,
+    actor: ActorDep,
+    session: SessionDep,
+    page_size: int = Query(default=50),
+    page_token: str | None = Query(default=None, max_length=2048),
+) -> JSONResponse:
+    request_id = _request_id(request)
+    try:
+        await _load_scoped_batch(session, import_id, actor, "may_validate")
+        summary, errors, next_token = await validation_errors(
+            session,
+            import_id,
+            page_size=page_size,
+            page_token=page_token,
+        )
+        return _ok(
+            request_id,
+            {"validation": summary.as_api(), "errors": errors},
+            pagination={"page_size": page_size, "next_page_token": next_token},
+        )
     except ActualHarvestApiError as error:
         return _error(request_id, error)
 

@@ -4,6 +4,7 @@ import base64
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,6 +46,15 @@ from backend.app.actual_harvest_import.lifecycle_persistence import (
 from backend.app.actual_harvest_import.schemas import (
     CanonicalActualHarvestImportBatch,
     CanonicalActualHarvestImportRecord,
+)
+from backend.app.actual_harvest_import.validation_service import (
+    current_validation_summary,
+    decode_error_page_token,
+    encode_error_page_token,
+    list_validation_errors,
+)
+from backend.app.actual_harvest_import.validation_service import (
+    validate_import as run_validation,
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
@@ -259,6 +269,57 @@ async def cancel_import(
     return _summary(batch)
 
 
+async def validate_import(
+    session: AsyncSession,
+    import_id: str,
+    *,
+    clock: Clock = utc_now,
+) -> Any:
+    return await run_validation(session, import_id=import_id, now=clock())
+
+
+async def validation_summary(session: AsyncSession, import_id: str) -> Any:
+    return await session.run_sync(
+        lambda sync_session: current_validation_summary(sync_session, import_id)
+    )
+
+
+async def validation_errors(
+    session: AsyncSession,
+    import_id: str,
+    *,
+    page_size: int,
+    page_token: str | None,
+) -> tuple[Any, tuple[dict[str, Any], ...], str | None]:
+    validate_page_size(page_size)
+
+    def _list(sync_session: Any) -> tuple[Any, tuple[dict[str, Any], ...], str | None]:
+        summary = current_validation_summary(sync_session, import_id)
+        after = None
+        if page_token is not None:
+            if summary.validation_run_identity is None:
+                raise ActualHarvestApiError(
+                    ActualHarvestApiErrorCode.API_REQUEST_INVALID,
+                    "error page token is invalid",
+                    status_code=400,
+                )
+            after = decode_error_page_token(page_token, summary.validation_run_identity)
+        summary, errors, last = list_validation_errors(
+            sync_session,
+            import_id=import_id,
+            page_size=page_size,
+            after_sort_key=after,
+        )
+        next_token = (
+            encode_error_page_token(summary.validation_run_identity, last)
+            if last is not None and summary.validation_run_identity is not None
+            else None
+        )
+        return summary, errors, next_token
+
+    return await session.run_sync(_list)
+
+
 __all__ = [
     "API_TRANSPORT_HASH_POLICY_VERSION",
     "CANONICAL_BATCH_HASH_POLICY_VERSION",
@@ -270,4 +331,7 @@ __all__ = [
     "preview_import",
     "seal_import",
     "utc_now",
+    "validate_import",
+    "validation_errors",
+    "validation_summary",
 ]
