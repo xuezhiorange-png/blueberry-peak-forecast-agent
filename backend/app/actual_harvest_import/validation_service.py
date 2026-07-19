@@ -950,76 +950,31 @@ def _lineage_evidence(
     tuple[dict[str, Any], ...],
     tuple[ValidationErrorValue, ...],
 ]:
-    nodes: list[dict[str, Any]] = []
     errors: list[ValidationErrorValue] = []
-    combined: list[dict[str, Any]] = []
-    for index, record in enumerate(records, start=1):
-        combined.append(
-            {
-                "origin": "CURRENT_BATCH_REVISION",
-                "record_index": index,
-                "record": record,
-                "committed_batch_ref": None,
-            }
-        )
-        if heartbeat is not None and index % VALIDATION_HEARTBEAT_RECORD_INTERVAL == 0:
-            heartbeat()
-    for member in basis_members:
-        combined.append(
-            {
-                "origin": "COMMITTED_HISTORY_REVISION",
-                "record": None,
-                "member": member,
-                "committed_batch_ref": member["committed_batch_ref"],
-            }
-        )
 
-    def _item_field(item: dict[str, Any], field: str) -> Any:
+    def _node_for_item(item: dict[str, Any]) -> dict[str, Any]:
         record = item.get("record")
         if record is not None:
-            return getattr(record, field)
-        return item["member"][field]
-
-    combined.sort(
-        key=lambda item: (
-            _item_field(item, "source_system"),
-            _item_field(item, "external_logical_record_id"),
-            _item_field(item, "revision_number"),
-            _item_field(item, "external_revision_id"),
-            item["origin"],
-        )
-    )
-    by_key: dict[tuple[str, str], dict[str, Any]] = {}
-    for item in combined:
-        record = item.get("record")
-        history_member = cast(dict[str, Any], item.get("member"))
-        source = record.source_system if record is not None else history_member["source_system"]
-        revision_id = (
-            record.external_revision_id
-            if record is not None
-            else history_member["external_revision_id"]
-        )
-        logical_id = (
-            record.external_logical_record_id
-            if record is not None
-            else history_member["external_logical_record_id"]
-        )
-        revision_number = (
-            record.revision_number if record is not None else history_member["revision_number"]
-        )
-        status = (
-            record.record_status.value if record is not None else history_member["record_status"]
-        )
-        predecessor = (
-            record.supersedes_external_revision_id
-            if record is not None
-            else history_member["predecessor_revision_id"]
-        )
-        record_hash = (
-            compute_canonical_record_hash(record)
-            if record is not None
-            else history_member["canonical_record_hash"]
-        )
+            source = record.source_system
+            logical_id = record.external_logical_record_id
+            revision_id = record.external_revision_id
+            revision_number = record.revision_number
+            status = record.record_status.value
+            predecessor = record.supersedes_external_revision_id
+            record_hash = compute_canonical_record_hash(record)
+            source_recorded_at = record.source_recorded_at
+            authority_status = record.source_recorded_at_authority_status.value
+        else:
+            history_member = cast(dict[str, Any], item["member"])
+            source = history_member["source_system"]
+            logical_id = history_member["external_logical_record_id"]
+            revision_id = history_member["external_revision_id"]
+            revision_number = history_member["revision_number"]
+            status = history_member["record_status"]
+            predecessor = history_member["predecessor_revision_id"]
+            record_hash = history_member["canonical_record_hash"]
+            source_recorded_at = history_member["source_recorded_at"]
+            authority_status = history_member["source_recorded_at_authority_status"]
         node = {
             "origin": item["origin"],
             "source_system": source,
@@ -1029,34 +984,130 @@ def _lineage_evidence(
             "record_status": status,
             "supersedes_external_revision_id": predecessor,
             "canonical_record_hash": record_hash,
-            "source_recorded_at": record.source_recorded_at
-            if record is not None
-            else history_member["source_recorded_at"],
-            "source_recorded_at_authority_status": (
-                record.source_recorded_at_authority_status.value
-                if record is not None
-                else history_member["source_recorded_at_authority_status"]
-            ),
+            "source_recorded_at": source_recorded_at,
+            "source_recorded_at_authority_status": authority_status,
         }
-        key = (source, revision_id)
-        previous = by_key.get(key)
-        if previous is not None:
+        node["node_hash"] = compute_lineage_node_hash(node)
+        return node
+
+    def _revision_key(item: dict[str, Any]) -> tuple[str, str]:
+        record = item.get("record")
+        if record is not None:
+            return record.source_system, record.external_revision_id
+        member = cast(dict[str, Any], item["member"])
+        return member["source_system"], member["external_revision_id"]
+
+    def _collision_error(
+        *,
+        item: dict[str, Any],
+        authority: str,
+        record_index: int | None,
+    ) -> ValidationErrorValue:
+        record = item.get("record")
+        if record is not None:
+            logical_id = record.external_logical_record_id
+            revision_id = record.external_revision_id
+        else:
+            member = cast(dict[str, Any], item["member"])
+            logical_id = member["external_logical_record_id"]
+            revision_id = member["external_revision_id"]
+        return _error(
+            ActualHarvestValidationErrorCode.REVISION_IDENTITY_CONFLICT,
+            record_index=record_index,
+            logical_id=logical_id,
+            revision_id=revision_id,
+            field_path="external_revision_id",
+            details={"authority": authority},
+        )
+
+    committed_by_revision_key: dict[tuple[str, str], dict[str, Any]] = {}
+    duplicate_committed_keys: set[tuple[str, str]] = set()
+    committed_items = tuple(
+        {
+            "origin": "COMMITTED_HISTORY_REVISION",
+            "record": None,
+            "member": member,
+            "committed_batch_ref": member["committed_batch_ref"],
+        }
+        for member in sorted(
+            basis_members,
+            key=lambda item: (
+                item["source_system"],
+                item["external_logical_record_id"],
+                item["revision_number"],
+                item["external_revision_id"],
+                item["committed_batch_ref"],
+            ),
+        )
+    )
+    for item in committed_items:
+        key = _revision_key(item)
+        if key in duplicate_committed_keys:
             errors.append(
-                _error(
-                    ActualHarvestValidationErrorCode.REVISION_IDENTITY_CONFLICT,
-                    record_index=item.get("record_index"),
-                    logical_id=logical_id,
-                    revision_id=revision_id,
-                    field_path="external_revision_id",
-                    details={"authority": "COMMITTED_SOURCE_REVISION_HISTORY"}
-                    if record is not None and previous["origin"] == "COMMITTED_HISTORY_REVISION"
-                    else {},
+                _collision_error(
+                    item=item,
+                    authority="COMMITTED_SOURCE_REVISION_HISTORY",
+                    record_index=None,
                 )
             )
             continue
-        by_key[key] = node
-        node["node_hash"] = compute_lineage_node_hash(node)
-        nodes.append(node)
+        if key in committed_by_revision_key:
+            committed_by_revision_key.pop(key)
+            duplicate_committed_keys.add(key)
+            errors.append(
+                _collision_error(
+                    item=item,
+                    authority="COMMITTED_SOURCE_REVISION_HISTORY",
+                    record_index=None,
+                )
+            )
+            continue
+        committed_by_revision_key[key] = _node_for_item(item)
+
+    current_by_revision_key: dict[tuple[str, str], dict[str, Any]] = {}
+    current_items = tuple(
+        {
+            "origin": "CURRENT_BATCH_REVISION",
+            "record_index": index,
+            "record": record,
+            "committed_batch_ref": None,
+        }
+        for index, record in sorted(
+            enumerate(records, start=1),
+            key=lambda item: (
+                item[0],
+                item[1].source_system,
+                item[1].external_logical_record_id,
+                item[1].revision_number,
+                item[1].external_revision_id,
+            ),
+        )
+    )
+    for item in current_items:
+        key = _revision_key(item)
+        record_index = int(item["record_index"])
+        if key in committed_by_revision_key or key in duplicate_committed_keys:
+            errors.append(
+                _collision_error(
+                    item=item,
+                    authority="COMMITTED_SOURCE_REVISION_HISTORY",
+                    record_index=record_index,
+                )
+            )
+        elif key in current_by_revision_key:
+            errors.append(
+                _collision_error(
+                    item=item,
+                    authority="CURRENT_BATCH_REVISION",
+                    record_index=record_index,
+                )
+            )
+        else:
+            current_by_revision_key[key] = _node_for_item(item)
+        if heartbeat is not None and record_index % VALIDATION_HEARTBEAT_RECORD_INTERVAL == 0:
+            heartbeat()
+
+    by_key = {**committed_by_revision_key, **current_by_revision_key}
     unique_nodes = tuple(
         sorted(
             by_key.values(),
@@ -1838,10 +1889,14 @@ async def validate_import(session: Any, *, import_id: str, now: datetime) -> Val
         )
     )
     await session.commit()
-    result = await session.run_sync(
-        lambda sync_session: finalize_validation(sync_session, evidence=evidence, now=now)
-    )
-    await session.commit()
+    try:
+        result = await session.run_sync(
+            lambda sync_session: finalize_validation(sync_session, evidence=evidence, now=now)
+        )
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
     if result == "STALE":
         raise _api_error(
             ActualHarvestApiErrorCode.COMMITTED_LINEAGE_BASIS_CHANGED,

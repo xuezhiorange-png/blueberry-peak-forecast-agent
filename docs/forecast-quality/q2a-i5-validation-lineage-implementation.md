@@ -189,7 +189,9 @@ exact-head CI artifact, not by local SQLite execution:
 - `test_postgres_i5_duplicate_revision_number_is_rejected_by_staging_identity`;
 - `test_postgres_i5_same_revision_identity_different_payload_is_rejected_atomically`;
 - `test_postgres_i5_committed_revision_identity_same_payload_is_rejected`;
+- `test_postgres_i5_committed_revision_collision_binds_current_record_regardless_of_sort`;
 - `test_postgres_i5_identical_error_payload_is_persisted_once`;
+- `test_postgres_i5_error_persistence_failure_rolls_back_all_final_evidence`;
 - `test_postgres_i5_validation_errors_use_bounded_keyset_pagination`;
 - `test_postgres_i5_error_pagination_is_bounded_ordered_and_instance_bound`;
 - `test_postgres_i5_0019_catalog_and_registry_contract_is_exact`;
