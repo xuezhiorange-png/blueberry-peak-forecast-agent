@@ -1,12 +1,22 @@
 # Changelog
 
-## Unreleased
+## Unreleased — planned V0.2.0 Forecast Quality Trial
 
-Work after the V0.1 release boundary is not assigned to a numbered release until a separate version-scope decision is made.
+The next release scope is frozen in `docs/v0-2/development-plan.md`.
 
-- Actual-harvest import, validation, revision-lineage, label-snapshot, historical backtest, recommendation, and model-improvement work is not part of the V0.1 release target.
-- Q2A-I6 and later slices remain paused pending an explicit post-V0.1 version decision.
-- An open Issue or project backlog item does not extend the frozen scope of an already completed release.
+V0.2 contains exactly five planned slices:
+
+- **S1 — Actual-harvest atomic commit**
+- **S2 — Point-in-time actual labels and historical backtest**
+- **S3 — Forecast-quality metrics and one naive baseline**
+- **S4 — Frontend application API**
+- **S5 — Two-page responsive trial frontend and browser E2E**
+
+V0.2 must provide a browser-complete flow from forecast creation through actual-harvest import, forecast-versus-actual quality comparison, baseline comparison, and export.
+
+Planning does not authorize implementation. S1 requires a separate implementation authorization; Issue #99, model changes, operational recommendations, and complex administration interfaces remain outside V0.2.
+
+An open Issue or project backlog item does not extend a frozen release scope.
 
 ## 0.1.0 — Core forecast
 
