@@ -47,10 +47,19 @@ of the released IDs in the shared database.
 ## Evidence procedure
 
 The normal PostgreSQL shard must collect the actual-harvest module and the
-Slice B PostgreSQL test in the same database environment. The PR exact-head
-CI result is the implementation evidence; a PR canary skip does not prove the
-main post-merge canary. A subsequent main push run after this hotfix merges is
-required for that proof.
+Slice B PostgreSQL test in the same database environment, in that order. The
+`postgres-domain-1` command lists `test_lifecycle_postgres.py` immediately
+before `test_orchestration_postgres.py`. After pytest succeeds, the job parses
+the actual JUnit testcase sequence and fails unless every I5 module testcase,
+including `test_postgres_i5_module_cleanup_releases_master_ids_for_downstream_suites`,
+precedes `test_slice_b_orchestration_uses_real_postgres_session`. The assertion
+also rejects skipped, failed, or errored reproducer nodes and writes the node
+indices to the job summary.
+
+Both modules use the one isolated database created by the job; the database is
+not recreated between them. The PR exact-head CI result is the implementation
+evidence; a PR canary skip does not prove the main post-merge canary. A
+subsequent main push run after this hotfix merges is required for that proof.
 
 The final evidence order is:
 
