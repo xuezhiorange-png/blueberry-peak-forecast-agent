@@ -2,7 +2,8 @@
 
 Frozen contract:
 - Execution model: SYNCHRONOUS_SINGLE_TRANSACTION
-- No commit attempt ledger, no lease, no heartbeat, no stale reclaim, no fencing, no generation, no background worker
+- No commit attempt ledger / lease / heartbeat / stale reclaim / fencing /
+  generation / background worker
 - One table: actual_harvest_commit_manifest
 - 19 fields, all NOT NULL, all 64-char hex TEXT for hash fields
 - UNIQUE(batch_id), UNIQUE(validation_run_id), UNIQUE(commit_manifest_hash)
@@ -46,11 +47,7 @@ def _sha_check(column: str, *, nullable: bool = False) -> str:
     expression = column
     for character in "0123456789abcdef":
         expression = f"replace({expression}, '{character}', '')"
-    valid = (
-        f"length({column}) = 64 "
-        f"AND lower({column}) = {column} "
-        f"AND length({expression}) = 0"
-    )
+    valid = f"length({column}) = 64 AND lower({column}) = {column} AND length({expression}) = 0"
     return f"{column} IS NULL OR ({valid})" if nullable else valid
 
 
@@ -77,9 +74,7 @@ class ActualHarvestCommitManifestModel(Base):
 
     __tablename__ = "actual_harvest_commit_manifest"
 
-    id: Mapped[int] = mapped_column(
-        _sqlite_bigint(), primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(_sqlite_bigint(), primary_key=True, autoincrement=True)
     batch_id: Mapped[int] = mapped_column(
         _sqlite_bigint(),
         ForeignKey(
@@ -99,26 +94,18 @@ class ActualHarvestCommitManifestModel(Base):
         nullable=False,
     )
     commit_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
-    validation_run_instance_identity_hash: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    validation_run_instance_identity_hash: Mapped[str] = mapped_column(Text, nullable=False)
     commit_manifest_hash: Mapped[str] = mapped_column(Text, nullable=False)
     seal_manifest_hash: Mapped[str] = mapped_column(Text, nullable=False)
     canonical_batch_hash: Mapped[str] = mapped_column(Text, nullable=False)
     record_manifest_hash: Mapped[str] = mapped_column(Text, nullable=False)
     validation_result_hash: Mapped[str] = mapped_column(Text, nullable=False)
     mapping_snapshot_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    resolved_identity_snapshot_hash: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    resolved_identity_snapshot_hash: Mapped[str] = mapped_column(Text, nullable=False)
     lineage_graph_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    committed_lineage_basis_hash: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    committed_lineage_basis_hash: Mapped[str] = mapped_column(Text, nullable=False)
     registry_content_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    source_semantics_attestation_hash: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    source_semantics_attestation_hash: Mapped[str] = mapped_column(Text, nullable=False)
     committed_record_count: Mapped[int] = mapped_column(Integer, nullable=False)
     committed_by_identity: Mapped[str] = mapped_column(Text, nullable=False)
     committed_at: Mapped[datetime] = mapped_column(
@@ -126,9 +113,7 @@ class ActualHarvestCommitManifestModel(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "batch_id", name="uq_actual_harvest_commit_manifest_batch"
-        ),
+        UniqueConstraint("batch_id", name="uq_actual_harvest_commit_manifest_batch"),
         UniqueConstraint(
             "validation_run_id",
             name="uq_actual_harvest_commit_manifest_validation_run",

@@ -394,19 +394,15 @@ async def commit_actual_harvest_import(
             lambda: commit_batch(
                 session,
                 import_id=import_id,
-                validation_run_instance_identity_hash=(
-                    body.validation_run_instance_identity_hash
-                ),
-                actor_identity=actor.identity,
+                validation_run_instance_identity_hash=(body.validation_run_instance_identity_hash),
+                actor=actor,
             ),
         )
         assert isinstance(result, CommitResult)
         commit_response = ActualHarvestApiCommitResponse(
             commit_policy_version=result.commit_policy_version,
             commit_manifest_hash=result.commit_manifest_hash,
-            validation_run_instance_identity_hash=(
-                result.validation_run_instance_identity_hash
-            ),
+            validation_run_instance_identity_hash=(result.validation_run_instance_identity_hash),
             committed_record_count=result.committed_record_count,
             committed_at=result.committed_at,
             committed_by_identity=result.committed_by_identity,

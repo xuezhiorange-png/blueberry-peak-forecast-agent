@@ -42,8 +42,7 @@ from decimal import Decimal
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import event, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -59,24 +58,25 @@ from backend.app.actual_harvest_import.commit_hashes import (
     COMMIT_MANIFEST_HASH_POLICY_VERSION,
     CommitManifestInput,
     compute_commit_manifest_hash,
+    compute_record_manifest_hash,
     order_records_for_commit,
 )
 from backend.app.actual_harvest_import.commit_models import (
-    ActualHarvestCommitManifestModel,
     COMMIT_POLICY_VERSION,
+    ActualHarvestCommitManifestModel,
 )
 from backend.app.actual_harvest_import.commit_persistence import (
     get_existing_commit_manifest,
 )
 from backend.app.actual_harvest_import.commit_service import commit_batch
 from backend.app.actual_harvest_import.enums import (
+    ActualHarvestBatchSealStatus,
     ActualHarvestImportBatchStatus,
     ActualHarvestImportChannel,
-    ActualHarvestBatchSealStatus,
+    ActualHarvestMissingRecordSemantics,
     ActualHarvestPhysicalEvent,
     ActualHarvestQuantityBasis,
     ActualHarvestQuantityUnit,
-    ActualHarvestMissingRecordSemantics,
     ActualHarvestRecordStatus,
     SourceRecordedAtAuthorityStatus,
 )
@@ -217,28 +217,19 @@ async def _seed_validated_batch(
     run_mapping_snapshot_hash = mapping_snapshot_hash
     run_lineage_graph_hash = lineage_graph_hash
     run_committed_lineage_basis_hash = committed_lineage_basis_hash
-    run_source_semantics_hash = source_semantics_attestation_hash
 
     if drift_field == "seal_manifest_hash":
         run_seal_hash = drift_value or _hex64("drift-seal")
     if drift_field == "record_manifest_hash":
         run_record_manifest_hash = drift_value or _hex64("drift-record-manifest")
     if drift_field == "validation_result_hash":
-        run_validation_result_hash = (
-            drift_value or _hex64("drift-validation-result")
-        )
+        run_validation_result_hash = drift_value or _hex64("drift-validation-result")
     if drift_field == "mapping_snapshot_hash":
         run_mapping_snapshot_hash = drift_value or _hex64("drift-mapping-snapshot")
     if drift_field == "lineage_graph_hash":
         run_lineage_graph_hash = drift_value or _hex64("drift-lineage-graph")
     if drift_field == "committed_lineage_basis_hash":
-        run_committed_lineage_basis_hash = (
-            drift_value or _hex64("drift-committed-lineage-basis")
-        )
-    if drift_field == "source_semantics_attestation_hash":
-        run_source_semantics_hash = (
-            drift_value or _hex64("drift-source-semantics")
-        )
+        run_committed_lineage_basis_hash = drift_value or _hex64("drift-committed-lineage-basis")
 
     registry = ActualHarvestMappingPolicyRegistryModel(
         registry_version="reg-v1",
@@ -281,9 +272,7 @@ async def _seed_validated_batch(
         validation_policy_version="validation-policy-v1",
         source_semantics_attestation_version="v1",
         source_semantics_physical_event=ActualHarvestPhysicalEvent.FARM_PICK.value,
-        source_semantics_quantity_basis=(
-            ActualHarvestQuantityBasis.OBSERVED_WEIGHT.value
-        ),
+        source_semantics_quantity_basis=(ActualHarvestQuantityBasis.OBSERVED_WEIGHT.value),
         source_semantics_quantity_unit=ActualHarvestQuantityUnit.KG.value,
         source_semantics_missing_record_semantics=(
             ActualHarvestMissingRecordSemantics.UNKNOWN_NOT_ZERO.value
@@ -336,17 +325,31 @@ async def _seed_validated_batch(
     await session.flush()
     # Refresh ids from DB
     fetched = (
-        await session.execute(
-            select(ActualHarvestImportRecordModel).where(
-                ActualHarvestImportRecordModel.batch_id == batch.id
+        (
+            await session.execute(
+                select(ActualHarvestImportRecordModel).where(
+                    ActualHarvestImportRecordModel.batch_id == batch.id
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     record_ids = [r.id for r in fetched]
 
-    instance_identity_hash = _hex64(
-        f"validation-run-{batch.id}-{run_validation_result_hash}"
-    )
+    # Compute the real record_manifest_hash from the freshly-created
+    # records so the S1 service's "re-derive on commit" check is
+    # consistent with the run-side stored value.
+    computed_record_manifest_hash = compute_record_manifest_hash(order_records_for_commit(fetched))
+    if drift_field == "record_manifest_hash":
+        # The drift test path overrides the run's stored value AFTER we
+        # compute the real one above; this preserves the test's intent
+        # of asserting that the service detects a value drift.
+        pass
+    else:
+        run_record_manifest_hash = computed_record_manifest_hash
+
+    instance_identity_hash = _hex64(f"validation-run-{batch.id}-{run_validation_result_hash}")
 
     validation_run = ActualHarvestValidationRunModel(
         batch_id=batch.id,
@@ -393,6 +396,20 @@ async def _seed_validated_batch(
     session.add(validation_result)
     await session.flush()
 
+    mapping_snapshot = ActualHarvestMappingSnapshotModel(
+        validation_run_id=validation_run.id,
+        registry_version="reg-v1",
+        mapping_policy_version="mapping-policy-v1",
+        season_resolver_version="season-resolver-v1",
+        registry_content_hash=registry_hash,
+        mapping_snapshot_hash=run_mapping_snapshot_hash,
+        resolved_identity_snapshot_hash=resolved_identity_hash,
+        entry_count=0,
+        snapshot_payload="{}",
+    )
+    session.add(mapping_snapshot)
+    await session.flush()
+
     return SeededBatch(
         import_id=batch.import_id,
         batch_db_id=batch.id,
@@ -410,6 +427,7 @@ async def _seed_validated_batch(
 
 async def test_commit_validated_batch_succeeds(
     session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor: ActualHarvestActorContext,
 ) -> None:
     seeded = await _seed_batch_via_session(session_maker)
     async with session_maker() as session:
@@ -420,7 +438,7 @@ async def test_commit_validated_batch_succeeds(
                 validation_run_instance_identity_hash=(
                     seeded.validation_run_instance_identity_hash
                 ),
-                actor_identity="operator-1",
+                actor=authorized_actor,
             )
     assert result.reused_existing_commit is False
     assert result.committed_record_count == seeded.record_count
@@ -441,6 +459,7 @@ async def test_commit_validated_batch_succeeds(
 
 async def test_commit_non_validated_batch_rejected(
     session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor: ActualHarvestActorContext,
 ) -> None:
     seeded = await _seed_batch_via_session(session_maker, status="RECEIVED")
     async with session_maker() as session:
@@ -452,7 +471,7 @@ async def test_commit_non_validated_batch_rejected(
                     validation_run_instance_identity_hash=(
                         seeded.validation_run_instance_identity_hash
                     ),
-                    actor_identity="operator-1",
+                    actor=authorized_actor,
                 )
     assert excinfo.value.code == ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_VALIDATED
     assert excinfo.value.status_code == 409
@@ -460,6 +479,7 @@ async def test_commit_non_validated_batch_rejected(
 
 async def test_commit_validation_identity_mismatch_rejected(
     session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor: ActualHarvestActorContext,
 ) -> None:
     seeded = await _seed_batch_via_session(session_maker)
     async with session_maker() as session:
@@ -471,17 +491,16 @@ async def test_commit_validation_identity_mismatch_rejected(
                     validation_run_instance_identity_hash=(
                         "0" * 64  # wrong
                     ),
-                    actor_identity="operator-1",
+                    actor=authorized_actor,
                 )
     assert excinfo.value.code == ActualHarvestApiErrorCode.COMMIT_EVIDENCE_DRIFT
 
 
 async def test_commit_evidence_drift_seal_rejected(
     session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor: ActualHarvestActorContext,
 ) -> None:
-    seeded = await _seed_batch_via_session(
-        session_maker, drift_field="seal_manifest_hash"
-    )
+    seeded = await _seed_batch_via_session(session_maker, drift_field="seal_manifest_hash")
     async with session_maker() as session:
         with pytest.raises(ActualHarvestApiError) as excinfo:
             async with session.begin():
@@ -491,7 +510,7 @@ async def test_commit_evidence_drift_seal_rejected(
                     validation_run_instance_identity_hash=(
                         seeded.validation_run_instance_identity_hash
                     ),
-                    actor_identity="operator-1",
+                    actor=authorized_actor,
                 )
     assert excinfo.value.code == ActualHarvestApiErrorCode.COMMIT_EVIDENCE_DRIFT
     # Batch remains VALIDATED
@@ -507,6 +526,7 @@ async def test_commit_evidence_drift_seal_rejected(
 
 async def test_commit_exact_replay_returns_original_with_zero_writes(
     session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor: ActualHarvestActorContext,
 ) -> None:
     seeded = await _seed_batch_via_session(session_maker)
     async with session_maker() as session:
@@ -517,7 +537,7 @@ async def test_commit_exact_replay_returns_original_with_zero_writes(
                 validation_run_instance_identity_hash=(
                     seeded.validation_run_instance_identity_hash
                 ),
-                actor_identity="operator-1",
+                actor=authorized_actor,
             )
     assert first.reused_existing_commit is False
 
@@ -529,14 +549,13 @@ async def test_commit_exact_replay_returns_original_with_zero_writes(
                 validation_run_instance_identity_hash=(
                     seeded.validation_run_instance_identity_hash
                 ),
-                actor_identity="operator-1",
+                actor=authorized_actor,
             )
     assert replay.reused_existing_commit is True
     assert replay.commit_manifest_hash == first.commit_manifest_hash
     # Both committed_at values come from the same committed_at column
     # (replay reads the original row); we verify they share the
     # same instant at the millisecond level after UTC normalization.
-    from backend.app.actual_harvest_import.models import UTCDateTime
 
     def _as_utc(value: datetime) -> datetime:
         if value.tzinfo is None:
@@ -558,6 +577,7 @@ async def test_commit_exact_replay_returns_original_with_zero_writes(
 
 async def test_commit_conflicting_replay_rejected(
     session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor: ActualHarvestActorContext,
 ) -> None:
     seeded = await _seed_batch_via_session(session_maker)
     async with session_maker() as session:
@@ -568,7 +588,7 @@ async def test_commit_conflicting_replay_rejected(
                 validation_run_instance_identity_hash=(
                     seeded.validation_run_instance_identity_hash
                 ),
-                actor_identity="operator-1",
+                actor=authorized_actor,
             )
     # Second commit with a different instance_identity_hash
     async with session_maker() as session:
@@ -580,11 +600,9 @@ async def test_commit_conflicting_replay_rejected(
                     validation_run_instance_identity_hash=(
                         "1" * 64  # different
                     ),
-                    actor_identity="operator-1",
+                    actor=authorized_actor,
                 )
-    assert (
-        excinfo.value.code == ActualHarvestApiErrorCode.COMMIT_EVIDENCE_CONFLICT
-    )
+    assert excinfo.value.code == ActualHarvestApiErrorCode.COMMIT_EVIDENCE_CONFLICT
 
 
 # ---------------------------------------------------------------------------
@@ -594,6 +612,7 @@ async def test_commit_conflicting_replay_rejected(
 
 async def test_post_manifest_insert_failure_rolls_back(
     session_maker: async_sessionmaker[AsyncSession],
+    authorized_actor: ActualHarvestActorContext,
 ) -> None:
     """Inject a failure AFTER the manifest INSERT but BEFORE the caller's
     commit. The caller-owned transaction must roll back, leaving the
@@ -624,7 +643,7 @@ async def test_post_manifest_insert_failure_rolls_back(
                         validation_run_instance_identity_hash=(
                             seeded.validation_run_instance_identity_hash
                         ),
-                        actor_identity="operator-1",
+                        actor=authorized_actor,
                     )
     finally:
         sa_event.remove(
@@ -699,9 +718,7 @@ def test_commit_manifest_hash_ignores_database_ids() -> None:
         committed_record_count=3,
         ordered_revisions=(),
     )
-    assert compute_commit_manifest_hash(payload_a) == compute_commit_manifest_hash(
-        payload_b
-    )
+    assert compute_commit_manifest_hash(payload_a) == compute_commit_manifest_hash(payload_b)
 
 
 def test_commit_manifest_hash_is_deterministic() -> None:
@@ -772,15 +789,11 @@ async def _seed_batch_via_session(
                     mapping_policy_version="mapping-policy-v1",
                     validation_policy_version="validation-policy-v1",
                     source_semantics_attestation_version="v1",
-                    source_semantics_physical_event=(
-                        ActualHarvestPhysicalEvent.FARM_PICK.value
-                    ),
+                    source_semantics_physical_event=(ActualHarvestPhysicalEvent.FARM_PICK.value),
                     source_semantics_quantity_basis=(
                         ActualHarvestQuantityBasis.OBSERVED_WEIGHT.value
                     ),
-                    source_semantics_quantity_unit=(
-                        ActualHarvestQuantityUnit.KG.value
-                    ),
+                    source_semantics_quantity_unit=(ActualHarvestQuantityUnit.KG.value),
                     source_semantics_missing_record_semantics=(
                         ActualHarvestMissingRecordSemantics.UNKNOWN_NOT_ZERO.value
                     ),
@@ -799,9 +812,7 @@ async def _seed_batch_via_session(
                     import_id=batch.import_id,
                     batch_db_id=batch.id,
                     validation_run_id=0,
-                    validation_run_instance_identity_hash=(
-                        _hex64("placeholder")
-                    ),
+                    validation_run_instance_identity_hash=(_hex64("placeholder")),
                     record_count=record_count,
                     record_ids=(),
                 )

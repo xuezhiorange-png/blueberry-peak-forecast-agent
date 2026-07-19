@@ -255,8 +255,10 @@ class ActualHarvestApiEnvelope(BaseModel):
 __all__ = [
     "ActualHarvestApiAppendRecordsRequest",
     "ActualHarvestApiBatchSummary",
+    "ActualHarvestApiCancelRequest",
     "ActualHarvestApiCommitRequest",
     "ActualHarvestApiCommitResponse",
+    "ActualHarvestApiCreateImportRequest",
     "ActualHarvestApiEnvelope",
     "ActualHarvestApiPage",
     "ActualHarvestApiRecordInput",

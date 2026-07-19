@@ -37,9 +37,7 @@ def test_v0_2_s1_adds_commit_endpoint_without_later_scope() -> None:
     )
     lowered = router.lower()
     for needle in forbidden:
-        assert needle not in lowered, (
-            f"forbidden S2+ scope term {needle!r} found in router"
-        )
+        assert needle not in lowered, f"forbidden S2+ scope term {needle!r} found in router"
     # The router MUST NOT register /imports/{id}/label_snapshot or
     # /imports/{id}/backtest endpoints. Use a substring check.
     assert "/label_snapshot" not in router

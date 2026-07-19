@@ -98,14 +98,12 @@ def _create_commit_manifest_immutability_guard() -> None:
 def _drop_commit_manifest_immutability_guard() -> None:
     dialect = op.get_bind().dialect.name
     if dialect == "postgresql":
-        for trigger in (
-            "trg_actual_harvest_commit_manifest_immutable",
-        ):
-            op.execute(sa.text(f"DROP TRIGGER IF EXISTS {trigger} ON actual_harvest_commit_manifest"))
-        op.execute(
-            sa.text(
-                "DROP FUNCTION IF EXISTS actual_harvest_reject_commit_manifest_mutation()"
+        for trigger in ("trg_actual_harvest_commit_manifest_immutable",):
+            op.execute(
+                sa.text(f"DROP TRIGGER IF EXISTS {trigger} ON actual_harvest_commit_manifest")
             )
+        op.execute(
+            sa.text("DROP FUNCTION IF EXISTS actual_harvest_reject_commit_manifest_mutation()")
         )
         return
     if dialect == "sqlite":
@@ -141,9 +139,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("commit_policy_version", sa.Text(), nullable=False),
-        sa.Column(
-            "validation_run_instance_identity_hash", sa.Text(), nullable=False
-        ),
+        sa.Column("validation_run_instance_identity_hash", sa.Text(), nullable=False),
         sa.Column("commit_manifest_hash", sa.Text(), nullable=False),
         sa.Column("seal_manifest_hash", sa.Text(), nullable=False),
         sa.Column("canonical_batch_hash", sa.Text(), nullable=False),
@@ -163,16 +159,12 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("CURRENT_TIMESTAMP"),
         ),
-        sa.UniqueConstraint(
-            "batch_id", name="uq_actual_harvest_commit_manifest_batch"
-        ),
+        sa.UniqueConstraint("batch_id", name="uq_actual_harvest_commit_manifest_batch"),
         sa.UniqueConstraint(
             "validation_run_id",
             name="uq_actual_harvest_commit_manifest_validation_run",
         ),
-        sa.UniqueConstraint(
-            "commit_manifest_hash", name="uq_actual_harvest_commit_manifest_hash"
-        ),
+        sa.UniqueConstraint("commit_manifest_hash", name="uq_actual_harvest_commit_manifest_hash"),
         sa.CheckConstraint(
             "committed_record_count >= 0",
             name="ck_actual_harvest_commit_manifest_count_nonneg",
