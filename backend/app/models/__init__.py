@@ -1,3 +1,6 @@
+from backend.app.actual_harvest_import.commit_models import (
+    ActualHarvestCommitManifestModel,
+)
 from backend.app.actual_harvest_import.models import (
     ActualHarvestImportBatchModel,
     ActualHarvestImportRecordModel,

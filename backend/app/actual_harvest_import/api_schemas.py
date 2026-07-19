@@ -134,6 +134,45 @@ class ActualHarvestApiValidateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+_HEX64 = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$", strict=True)
+
+
+class ActualHarvestApiCommitRequest(BaseModel):
+    """v0.2-S1 atomic commit request body.
+
+    The single bound field is the validation_run_instance_identity_hash of
+    the current VALIDATED validation run. The server reloads the batch,
+    the current validation run, the validation result, and the mapping
+    snapshot, and only commits when the bound identity matches. A drift
+    of any evidence returns COMMIT_EVIDENCE_DRIFT or COMMIT_EVIDENCE_CONFLICT
+    without writing anything.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    validation_run_instance_identity_hash: str = _HEX64
+
+
+class ActualHarvestApiCommitResponse(BaseModel):
+    """v0.2-S1 commit response body.
+
+    `reused_existing_commit` is true when the batch was already COMMITTED
+    and the request's validation_run_instance_identity_hash matches the
+    one stored in the original manifest; in that case the server returned
+    the original manifest without writing anything (zero-write exact replay).
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    commit_policy_version: str
+    commit_manifest_hash: str
+    validation_run_instance_identity_hash: str
+    committed_record_count: int
+    committed_at: datetime
+    committed_by_identity: str
+    reused_existing_commit: bool
+
+
 class ActualHarvestApiValidationSummary(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -216,8 +255,8 @@ class ActualHarvestApiEnvelope(BaseModel):
 __all__ = [
     "ActualHarvestApiAppendRecordsRequest",
     "ActualHarvestApiBatchSummary",
-    "ActualHarvestApiCancelRequest",
-    "ActualHarvestApiCreateImportRequest",
+    "ActualHarvestApiCommitRequest",
+    "ActualHarvestApiCommitResponse",
     "ActualHarvestApiEnvelope",
     "ActualHarvestApiPage",
     "ActualHarvestApiRecordInput",
