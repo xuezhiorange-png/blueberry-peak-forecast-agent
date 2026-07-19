@@ -957,6 +957,7 @@ def _lineage_evidence(
         combined.append(
             {
                 "origin": "CURRENT_BATCH_REVISION",
+                "record_index": index,
                 "record": record,
                 "committed_batch_ref": None,
             }
@@ -1039,12 +1040,17 @@ def _lineage_evidence(
         }
         key = (source, revision_id)
         previous = by_key.get(key)
-        if previous is not None and previous["canonical_record_hash"] != record_hash:
+        if previous is not None:
             errors.append(
                 _error(
                     ActualHarvestValidationErrorCode.REVISION_IDENTITY_CONFLICT,
+                    record_index=item.get("record_index"),
                     logical_id=logical_id,
                     revision_id=revision_id,
+                    field_path="external_revision_id",
+                    details={"authority": "COMMITTED_SOURCE_REVISION_HISTORY"}
+                    if record is not None and previous["origin"] == "COMMITTED_HISTORY_REVISION"
+                    else {},
                 )
             )
             continue
