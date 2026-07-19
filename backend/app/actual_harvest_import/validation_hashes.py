@@ -15,6 +15,7 @@ COMMITTED_LINEAGE_BASIS_HASH_POLICY_VERSION = "actual-harvest-committed-lineage-
 LINEAGE_GRAPH_HASH_POLICY_VERSION = "actual-harvest-lineage-graph-v1"
 VALIDATION_RESULT_HASH_POLICY_VERSION = "actual-harvest-validation-result-v1"
 RESOLVED_IDENTITY_HASH_POLICY_VERSION = "actual-harvest-resolved-identity-v1"
+ACTUAL_HARVEST_SEASON_RESOLVER_VERSION = "actual-harvest-season-resolver-v1"
 
 
 def digest(value: object) -> str:
@@ -34,7 +35,11 @@ def compute_mapping_registry_hash(entries: Iterable[dict[str, Any]]) -> str:
 
 
 def compute_mapping_snapshot_hash(
-    *, registry_version: str, mapping_policy_version: str, entries: Iterable[dict[str, Any]]
+    *,
+    registry_version: str,
+    mapping_policy_version: str,
+    entries: Iterable[dict[str, Any]],
+    season_resolver_version: str = ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
 ) -> str:
     ordered = sorted(
         entries,
@@ -45,6 +50,7 @@ def compute_mapping_snapshot_hash(
             "policy_version": MAPPING_SNAPSHOT_HASH_POLICY_VERSION,
             "registry_version": registry_version,
             "mapping_policy_version": mapping_policy_version,
+            "season_resolver_version": season_resolver_version,
             "entries": ordered,
         }
     )
@@ -56,6 +62,7 @@ def compute_request_identity_hash(
     seal_manifest_hash: str,
     mapping_policy_version: str,
     validation_policy_version: str,
+    season_resolver_version: str = ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
 ) -> str:
     return digest(
         {
@@ -64,6 +71,7 @@ def compute_request_identity_hash(
             "seal_manifest_hash": seal_manifest_hash,
             "mapping_policy_version": mapping_policy_version,
             "validation_policy_version": validation_policy_version,
+            "season_resolver_version": season_resolver_version,
         }
     )
 
@@ -75,6 +83,7 @@ def compute_instance_identity_hash(
     mapping_policy_version: str,
     validation_policy_version: str,
     committed_lineage_basis_hash: str,
+    season_resolver_version: str = ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
 ) -> str:
     return digest(
         {
@@ -84,6 +93,7 @@ def compute_instance_identity_hash(
             "mapping_policy_version": mapping_policy_version,
             "validation_policy_version": validation_policy_version,
             "committed_lineage_basis_hash": committed_lineage_basis_hash,
+            "season_resolver_version": season_resolver_version,
         }
     )
 
@@ -103,6 +113,8 @@ def compute_record_manifest_hash(records: Iterable[Any]) -> str:
 
 def compute_resolved_identity_snapshot_hash(
     outcomes: Iterable[dict[str, Any]],
+    *,
+    season_resolver_version: str = ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
 ) -> str:
     stable_outcomes = [
         {
@@ -124,6 +136,7 @@ def compute_resolved_identity_snapshot_hash(
                 "resolved_master_parent_business_key",
                 "resolved_master_record_hash",
                 "resolution_mode",
+                "resolver_version",
                 "outcome",
             )
             if key in item
@@ -143,6 +156,7 @@ def compute_resolved_identity_snapshot_hash(
     return digest(
         {
             "policy_version": RESOLVED_IDENTITY_HASH_POLICY_VERSION,
+            "season_resolver_version": season_resolver_version,
             "outcomes": ordered,
         }
     )
@@ -218,6 +232,7 @@ def compute_validation_result_hash(
     committed_lineage_basis_hash: str,
     lineage_graph_hash: str,
     resolved_identity_snapshot_hash: str = "0" * 64,
+    season_resolver_version: str = ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
 ) -> str:
     stable_mapping_keys = (
         "source_system",
@@ -236,6 +251,7 @@ def compute_validation_result_hash(
         "resolved_master_parent_business_key",
         "resolved_master_record_hash",
         "resolution_mode",
+        "resolver_version",
         "outcome",
     )
     mapping_outcome_items = [
@@ -270,6 +286,7 @@ def compute_validation_result_hash(
             "seal_manifest_hash": seal_manifest_hash,
             "mapping_snapshot_hash": mapping_snapshot_hash,
             "resolved_identity_snapshot_hash": resolved_identity_snapshot_hash,
+            "season_resolver_version": season_resolver_version,
             "mapping_policy_version": mapping_policy_version,
             "validation_policy_version": validation_policy_version,
             "ordered_record_hashes": ordered_record_hashes,
@@ -297,6 +314,7 @@ __all__ = [
     "VALIDATION_REQUEST_HASH_POLICY_VERSION",
     "VALIDATION_RESULT_HASH_POLICY_VERSION",
     "RESOLVED_IDENTITY_HASH_POLICY_VERSION",
+    "ACTUAL_HARVEST_SEASON_RESOLVER_VERSION",
     "compute_committed_lineage_basis_hash",
     "compute_instance_identity_hash",
     "compute_lineage_graph_hash",

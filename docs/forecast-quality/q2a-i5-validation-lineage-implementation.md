@@ -32,9 +32,10 @@ VALIDATION_FAILED -> CANCELLED
 `VALIDATING` cannot be cancelled. `COMMITTING` and `COMMITTED` cannot be
 cancelled. A validation request identity is
 `(import_id, seal_manifest_hash, mapping_policy_version,
-validation_policy_version)`. An immutable validation instance adds the
-`committed_lineage_basis_hash`. A batch has at most one current instance;
-older instances remain evidence and are superseded, not overwritten.
+validation_policy_version, season_resolver_version)`. An immutable validation
+instance adds the `committed_lineage_basis_hash` and the same resolver version.
+A batch has at most one current instance; older instances remain evidence and
+are superseded, not overwritten.
 
 Validation attempts carry a generation, fencing token, heartbeat and lease.
 Stale reclaim locks the batch and run, abandons the old attempt, increments the
@@ -61,14 +62,18 @@ case-sensitive business keys against existing master data. Missing season codes
 use the farm-local harvest date against an inclusive season range and require
 exactly one candidate. Hashes use stable business values, never database IDs.
 
-The resolver policy is
-`actual-harvest-season-resolver-v1`. Each mapped current-batch record stores
-one immutable evidence row per source field for `SEASON`, `FARM`, `SUBFARM` and
+The resolver policy is the code constant
+`ACTUAL_HARVEST_SEASON_RESOLVER_VERSION = actual-harvest-season-resolver-v1`.
+It is persisted on the validation run, mapping snapshot, result and every
+season resolution evidence row. Each mapped current-batch record stores one
+immutable evidence row per source field for `SEASON`, `FARM`, `SUBFARM` and
 `VARIETY`. Evidence includes the registry entry hash, target type, stable target
 and parent identity, a resolved master record hash, and a restricted foreign key
 to the resolved `dim_*` row. `resolved_identity_snapshot_hash` excludes those
-database IDs and is bound into the mapping snapshot, validation result and
-current validation run.
+database IDs and includes the resolver version. It is bound into the mapping
+snapshot, validation result and current validation run. Changing the resolver
+version creates a new request and instance identity; an old result is not
+replayed under a new version.
 
 The 0019 migration adds database guards as well as service checks: a sealed
 registry and its entries reject direct update, delete and insert operations.
@@ -108,7 +113,7 @@ authority metadata, source provenance and authority policy. It excludes
 database IDs, runtime values, query order, attempt identity and fencing data.
 
 `validation_result_hash` binds the seal, mapping snapshot, resolved-identity
-snapshot, policy versions, and ordered tuples of
+snapshot, resolver version, policy versions, and ordered tuples of
 `(source_system, external_logical_record_id, revision_number,
 external_revision_id, canonical_record_hash)`, plus mapping outcomes, ordered
 lineage nodes and edges, errors/warnings/counts, committed basis and lineage
@@ -158,8 +163,9 @@ The I5 test set covers the restored I1 contract suite, registry sealing and
 rejection, exact mapping, deterministic season resolution, resolved identity
 evidence, replay, lineage errors, validation error pagination, preview summary,
 cancellation evidence preservation, elapsed lease renewal and stale-attempt
-fencing. The following PostgreSQL nodes are assigned to the existing
-`postgres-domain-1` shard and are not claimed as locally passed:
+fencing. The following PostgreSQL node IDs are assigned to the existing
+`postgres-domain-1` shard. Their pass/fail status is established only by the
+exact-head CI artifact, not by local SQLite execution:
 
 - `test_postgres_i5_identical_validate_replays_immutable_result`;
 - `test_postgres_i5_validate_cancel_race_has_one_serialized_outcome`;
@@ -169,7 +175,32 @@ fencing. The following PostgreSQL nodes are assigned to the existing
 - `test_postgres_i5_old_worker_cannot_demote_new_attempt_state`;
 - `test_postgres_i5_committed_history_predecessor_is_in_validation_basis`;
 - `test_postgres_i5_uncommitted_batch_is_excluded_from_lineage_basis`;
+- `test_postgres_i5_registry_seal_and_validate_are_serialized`;
+- `test_postgres_i5_lineage_rejection_matrix[missing_predecessor-REVISION_PREDECESSOR_MISSING]`;
+- `test_postgres_i5_lineage_rejection_matrix[validated_predecessor-REVISION_PREDECESSOR_MISSING]`;
+- `test_postgres_i5_lineage_rejection_matrix[cancelled_predecessor-REVISION_PREDECESSOR_MISSING]`;
+- `test_postgres_i5_lineage_rejection_matrix[duplicate_revision_number-REVISION_NUMBER_CONFLICT]`;
+- `test_postgres_i5_lineage_rejection_matrix[revision_number_discontinuity-REVISION_NUMBER_CONFLICT]`;
+- `test_postgres_i5_lineage_rejection_matrix[multiple_successors-REVISION_MULTIPLE_SUCCESSORS]`;
+- `test_postgres_i5_lineage_rejection_matrix[lineage_cycle-REVISION_LINEAGE_CYCLE]`;
+- `test_postgres_i5_lineage_rejection_matrix[logical_record_mismatch-REVISION_LOGICAL_RECORD_MISMATCH]`;
+- `test_postgres_i5_lineage_rejection_matrix[multiple_structural_terminals-MULTIPLE_TERMINAL_REVISIONS]`;
+- `test_postgres_i5_lineage_rejection_matrix[multiple_finalized_terminals-MULTIPLE_TERMINAL_REVISIONS]`;
+- `test_postgres_i5_lineage_rejection_matrix[corrected_without_successor-INVALID_RECORD_STATUS]`;
+- `test_postgres_i5_same_revision_identity_different_payload_is_rejected_atomically`;
 - `test_postgres_i5_validation_errors_use_bounded_keyset_pagination`;
+- `test_postgres_i5_error_pagination_is_bounded_ordered_and_instance_bound`;
+- `test_postgres_i5_0019_catalog_and_registry_contract_is_exact`;
+- `test_postgres_i5_attempt_fencing_and_drift_matrix[wrong_fencing_token_cannot_finalize]`;
+- `test_postgres_i5_attempt_fencing_and_drift_matrix[wrong_attempt_generation_cannot_finalize]`;
+- `test_postgres_i5_attempt_fencing_and_drift_matrix[expired_attempt_cannot_finalize_without_reclaim]`;
+- `test_postgres_i5_attempt_fencing_and_drift_matrix[committed_basis_drift_rejects_finalization]`;
+- `test_postgres_i5_attempt_fencing_and_drift_matrix[registry_hash_drift_rejects_finalization]`;
+- `test_postgres_i5_attempt_fencing_and_drift_matrix[record_manifest_drift_rejects_finalization]`;
+- `test_postgres_i5_attempt_fencing_and_drift_matrix[seal_manifest_drift_rejects_finalization]`;
+- `test_postgres_i5_injected_finalization_failure_writes_no_partial_evidence`.
+- `test_postgres_i5_injected_evidence_failure_rolls_back_all_evidence[mapping]`;
+- `test_postgres_i5_injected_evidence_failure_rolls_back_all_evidence[lineage]`.
 - `test_postgres_i5_draft_registry_is_rejected`;
 - `test_postgres_i5_sealed_registry_entry_mutation_is_rejected`.
 
@@ -178,53 +209,43 @@ PostgreSQL status is reported separately and is never inferred from SQLite.
 
 ## Local verification
 
-At implementation time the local results were:
+The local verification commands are:
 
 - `uv lock --check`: passed;
 - Ruff check and format check: passed;
 - `uv run mypy app`: passed;
-- `uv run pytest backend/tests/actual_harvest_import -q`: 217 passed, 16 skipped;
-- core forecast and V0.1-S1: 154 passed;
-- agent: 359 passed;
-- API/lifespan and actual-harvest routes: 25 passed;
-- Alembic contract regression: 6 passed;
-- local PostgreSQL: not run because Docker is unavailable.
+- `uv run pytest tests/actual_harvest_import -q`;
+- core forecast and V0.1-S1 contract regressions;
+- agent regression;
+- API/lifespan and actual-harvest routes;
+- Alembic contract regression;
+- local PostgreSQL: not run when Docker is unavailable.
 
 The exact-head PR CI is the acceptance source for PostgreSQL execution. Its
 run ID, JUnit counts, node IDs and artifact digests are recorded in the PR
-body after the new Head completes; no local SQLite result is represented as
+body after the final Head completes; no local SQLite result is represented as
 PostgreSQL evidence.
 
-## Exact-head CI evidence
+## Exact-head CI evidence procedure
 
-Code-fix exact-head run `29650514335` was a `pull_request` run for Head
-`2c8a5a8210e85e0343ac34b94235249e487e25e8` and completed successfully. All
-eight PR jobs passed; `full-suite-canary` was skipped by pull-request design.
-The downloaded JUnit artifacts report `3277 total / 3252 passed / 0 failures /
-0 errors / 25 skipped`.
+The final verification order is:
 
-The `postgres-domain-1` artifact executed these 11 I5 nodes successfully:
+```text
+code_tests_docs_commit
+-> push
+-> exact_head_ci
+-> verify_artifacts
+-> update_pr_body_only
+-> no_further_git_commit
+```
 
-- `test_postgres_i5_identical_validate_replays_immutable_result`;
-- `test_postgres_i5_cancel_validated_preserves_validation_evidence`;
-- `test_postgres_i5_validate_cancel_race_has_one_serialized_outcome`;
-- `test_postgres_i5_validation_failed_cancel_preserves_all_evidence`;
-- `test_postgres_i5_draft_registry_is_rejected`;
-- `test_postgres_i5_sealed_registry_entry_mutation_is_rejected`;
-- `test_postgres_i5_heartbeat_renewal_and_expired_attempt_cannot_finalize`;
-- `test_postgres_i5_old_worker_cannot_demote_new_attempt_state`;
-- `test_postgres_i5_committed_history_predecessor_is_in_validation_basis`;
-- `test_postgres_i5_uncommitted_batch_is_excluded_from_lineage_basis`;
-- `test_postgres_i5_validation_errors_use_bounded_keyset_pagination`.
+Authoritative exact-head CI evidence is recorded in the PR body
+and exact-head formal review comment after the final code commit.
+It is intentionally not embedded in this tracked document because
+updating the document changes the reviewed commit.
 
-Artifacts, all unexpired and bound to this exact Head:
-
-- `postgres-domain-1-results`: `8431366795`, `sha256:6a451a0a801603391234647bb5e48c81f0c7c76683f3b664a6d2778a4664dfd3`;
-- `postgres-domain-2-results`: `8431408941`, `sha256:b6368ba963a4ef9b4f9e7f5a30a89c1424d792fcd03c6bc86b65a7553ab7ec8c`;
-- `postgres-migration-results`: `8431335826`, `sha256:f4401b9e999b147ef5590d50adb9a7d56b25dbb3926ccbaec7fe0d62abca7b7c`;
-- `postgres-task11-results`: `8431345577`, `sha256:3753e0f237f1937539354bf1b1b909fc718a984d86021a62e493fa1cee8bb452`;
-- `postgres-concurrency-results`: `8431335874`, `sha256:e4a1a308e2fdfe14b48d8d0571f344cbd8b97612a1ac80687d5bd44a4793689c`;
-- `unit-contract-golden-results`: `8431359643`, `sha256:69c00b11aaf41b8dc8d8facf97f0ad3581898436296e84e7bb8b2a7d16d63755`.
+The final PR body records the exact Head, CI run, JUnit totals, PostgreSQL
+node IDs, artifact IDs and digests only after that exact-head run completes.
 
 Hard exclusions are Q2A-I6 atomic commit, Q2A-I7 cutoff winner/aggregation/
 label snapshot, Q2A-I8 integration acceptance, Q2B, Q3, TASK-013 Slice C C2,
