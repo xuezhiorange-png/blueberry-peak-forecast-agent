@@ -97,4 +97,5 @@ def authorized_actor() -> ActualHarvestActorContext:
         may_seal=True,
         may_cancel=True,
         may_validate=True,
+        may_commit=True,  # v0.2-S1
     )
