@@ -10,10 +10,15 @@ from sqlalchemy.orm import Session
 
 from backend.app.actual_harvest_import.api_auth import get_actual_harvest_actor
 from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
+from backend.app.actual_harvest_import.validation_hashes import (
+    ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
+)
 from backend.app.actual_harvest_import.validation_models import (
+    ActualHarvestMappingSnapshotModel,
     ActualHarvestValidationAttemptModel,
     ActualHarvestValidationMappingEvidenceModel,
     ActualHarvestValidationResultModel,
+    ActualHarvestValidationRunModel,
 )
 from backend.app.actual_harvest_import.validation_service import (
     begin_validation,
@@ -127,6 +132,7 @@ async def test_validate_persists_immutable_lineage_evidence(
     assert validation["validation_result_hash"]
     assert validation["committed_lineage_basis_hash"]
     assert validation["resolved_identity_snapshot_hash"]
+    assert validation["season_resolver_version"] == ACTUAL_HARVEST_SEASON_RESOLVER_VERSION
 
     replay = await api_client.post(
         f"/api/v1/actual-harvest/imports/{import_id}/validate",
@@ -167,6 +173,31 @@ async def test_validate_persists_immutable_lineage_evidence(
             "VARIETY",
         }
         assert all(mapping.resolved_master_record_hash for mapping in mappings)
+        assert all(
+            mapping.resolver_version == ACTUAL_HARVEST_SEASON_RESOLVER_VERSION
+            for mapping in mappings
+        )
+        run = await session.scalar(
+            select(ActualHarvestValidationRunModel).where(
+                ActualHarvestValidationRunModel.batch_id == batch.id,
+                ActualHarvestValidationRunModel.is_current.is_(True),
+            )
+        )
+        assert run is not None
+        snapshot = await session.scalar(
+            select(ActualHarvestMappingSnapshotModel).where(
+                ActualHarvestMappingSnapshotModel.validation_run_id == run.id
+            )
+        )
+        result = await session.scalar(
+            select(ActualHarvestValidationResultModel).where(
+                ActualHarvestValidationResultModel.validation_run_id == run.id
+            )
+        )
+        assert snapshot is not None and result is not None
+        assert snapshot.season_resolver_version == ACTUAL_HARVEST_SEASON_RESOLVER_VERSION
+        assert result.season_resolver_version == ACTUAL_HARVEST_SEASON_RESOLVER_VERSION
+        assert ACTUAL_HARVEST_SEASON_RESOLVER_VERSION in result.result_payload
 
 
 @pytest.mark.asyncio

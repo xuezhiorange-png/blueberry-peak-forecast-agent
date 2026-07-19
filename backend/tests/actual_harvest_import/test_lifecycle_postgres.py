@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from uuid import uuid4
 
@@ -16,6 +17,7 @@ from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiCreateImportRequest,
     ActualHarvestApiRecordInput,
 )
+from backend.app.actual_harvest_import.enums import ActualHarvestRecordStatus
 from backend.app.actual_harvest_import.lifecycle import (
     append_import_records,
     cancel_import,
@@ -213,6 +215,11 @@ async def _cleanup_registry(mapping_policy: str) -> None:
             )
             if registry is None:
                 return
+            if registry.status == "SEALED":
+                # The PostgreSQL immutability trigger must also protect test
+                # cleanup. The isolated CI database is discarded after the
+                # shard, so never disable the trigger or bypass it here.
+                return
             await session.execute(
                 delete(ActualHarvestMappingRegistryEntryModel).where(
                     ActualHarvestMappingRegistryEntryModel.registry_id == registry.id
@@ -350,6 +357,50 @@ async def _seed_i5_batch_with_record(
         async with session.begin():
             await seal_import(session, batch.import_id, actor_identity="operator-1")
     return batch.import_id, request.external_batch_id
+
+
+async def _seed_i5_batch_with_records(
+    *,
+    suffix: str,
+    mapping_policy: str,
+    record_specs: tuple[dict[str, object], ...],
+) -> tuple[str, str]:
+    payload = _create_payload()
+    payload["external_batch_id"] = f"i5-pg-records-{suffix}"
+    payload["idempotency_key"] = f"i5-pg-records-{suffix}"
+    payload["mapping_policy_version"] = mapping_policy
+    payload["expected_record_count_or_null"] = len(record_specs)
+    request = ActualHarvestApiCreateImportRequest.model_validate(payload)
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            batch, _ = await create_import(session, request)
+        records = tuple(
+            _record_for_batch(request.external_batch_id).model_copy(update=spec)
+            for spec in record_specs
+        )
+        async with session.begin():
+            await append_import_records(
+                session,
+                batch.import_id,
+                ActualHarvestApiAppendRecordsRequest(records=records),
+            )
+        async with session.begin():
+            await seal_import(session, batch.import_id, actor_identity="operator-1")
+    return batch.import_id, request.external_batch_id
+
+
+async def _validation_error_codes(import_id: str) -> set[str]:
+    async with AsyncSessionMaker() as session:
+        _summary, page, token = await validation_errors(
+            session, import_id, page_size=100, page_token=None
+        )
+        rows = list(page)
+        while token is not None:
+            _summary, page, token = await validation_errors(
+                session, import_id, page_size=100, page_token=token
+            )
+            rows.extend(page)
+        return {row["error_code"] for row in rows}
 
 
 async def _batch_state(
@@ -629,6 +680,61 @@ async def test_postgres_i5_identical_validate_replays_immutable_result() -> None
 
 
 @pytest.mark.asyncio
+async def test_postgres_i5_successful_validation_writes_complete_evidence_set() -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch(
+        suffix=f"complete-evidence-{suffix}",
+        mapping_policy=mapping_policy,
+    )
+    try:
+        result = await _validate_once(import_id)
+        assert result.validation_status == "VALIDATED"
+        async with AsyncSessionMaker() as session:
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == import_id
+                )
+            )
+            assert batch is not None
+            run = await session.scalar(
+                sa.select(ActualHarvestValidationRunModel).where(
+                    ActualHarvestValidationRunModel.batch_id == batch.id,
+                    ActualHarvestValidationRunModel.is_current.is_(True),
+                )
+            )
+            assert run is not None
+            for model in (
+                ActualHarvestMappingSnapshotModel,
+                ActualHarvestValidationResultModel,
+                ActualHarvestValidationRecordModel,
+                ActualHarvestValidationMappingEvidenceModel,
+                ActualHarvestValidationLineageNodeModel,
+                ActualHarvestValidationLineageBasisModel,
+            ):
+                assert (
+                    await session.scalar(
+                        sa.select(sa.func.count())
+                        .select_from(model)
+                        .where(model.validation_run_id == run.id)
+                    )
+                    == 1
+                )
+            assert (
+                await session.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(ActualHarvestValidationLineageEdgeModel)
+                    .where(ActualHarvestValidationLineageEdgeModel.validation_run_id == run.id)
+                )
+                == 0
+            )
+    finally:
+        await _cleanup_batch(external_batch_id)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
 async def test_postgres_i5_cancel_validated_preserves_validation_evidence() -> None:
     _require_postgres()
     suffix = uuid4().hex
@@ -762,6 +868,50 @@ async def test_postgres_i5_draft_registry_is_rejected() -> None:
         assert result == ("error", "IDENTITY_MAPPING_REGISTRY_NOT_SEALED")
         batch, _ = await _batch_state(external_batch_id)
         assert batch.status == "SEALED"
+    finally:
+        await _cleanup_batch(external_batch_id)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_registry_seal_and_validate_are_serialized() -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix, seal=False)
+    import_id, external_batch_id = await _seed_i5_batch(
+        suffix=f"registry-race-{suffix}",
+        mapping_policy=mapping_policy,
+    )
+    barrier = asyncio.Barrier(2)
+
+    async def seal() -> str:
+        await barrier.wait()
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await session.run_sync(
+                    lambda sync_session: seal_mapping_registry(
+                        sync_session,
+                        mapping_policy_version=mapping_policy,
+                        now=datetime.now(UTC),
+                    )
+                )
+        return "SEALED"
+
+    async def validate() -> tuple[str, str]:
+        await barrier.wait()
+        return await _validate_or_in_progress(import_id)
+
+    try:
+        seal_result, validation_result = await asyncio.gather(seal(), validate())
+        assert seal_result == "SEALED"
+        assert validation_result[0] in {"error", "ok"}
+        if validation_result[0] == "error":
+            assert validation_result[1] == "IDENTITY_MAPPING_REGISTRY_NOT_SEALED"
+            batch, _ = await _batch_state(external_batch_id)
+            assert batch.status == "SEALED"
+        else:
+            batch, _ = await _batch_state(external_batch_id)
+            assert batch.status in {"VALIDATED", "VALIDATION_FAILED"}
     finally:
         await _cleanup_batch(external_batch_id)
         await _cleanup_registry(mapping_policy)
@@ -918,6 +1068,7 @@ async def test_postgres_i5_old_worker_cannot_demote_new_attempt_state() -> None:
                 )
             assert second.kind == "execute"
             assert second.attempt_id != first.attempt_id
+            assert second.attempt_generation == first.attempt_generation + 1
             async with session.begin():
                 result = await session.run_sync(
                     lambda sync_session: finalize_validation(
@@ -1060,6 +1211,228 @@ async def test_postgres_i5_uncommitted_batch_is_excluded_from_lineage_basis() ->
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("case_id", "expected_code"),
+    [
+        pytest.param("missing_predecessor", "REVISION_PREDECESSOR_MISSING"),
+        pytest.param("validated_predecessor", "REVISION_PREDECESSOR_MISSING"),
+        pytest.param("cancelled_predecessor", "REVISION_PREDECESSOR_MISSING"),
+        pytest.param("duplicate_revision_number", "REVISION_NUMBER_CONFLICT"),
+        pytest.param("revision_number_discontinuity", "REVISION_NUMBER_CONFLICT"),
+        pytest.param("multiple_successors", "REVISION_MULTIPLE_SUCCESSORS"),
+        pytest.param("lineage_cycle", "REVISION_LINEAGE_CYCLE"),
+        pytest.param("logical_record_mismatch", "REVISION_LOGICAL_RECORD_MISMATCH"),
+        pytest.param("multiple_structural_terminals", "MULTIPLE_TERMINAL_REVISIONS"),
+        pytest.param("multiple_finalized_terminals", "MULTIPLE_TERMINAL_REVISIONS"),
+        pytest.param("corrected_without_successor", "INVALID_RECORD_STATUS"),
+    ],
+)
+async def test_postgres_i5_lineage_rejection_matrix(case_id: str, expected_code: str) -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    history_external: str | None = None
+    logical_id = f"logical-lineage-{suffix}"
+    predecessor = f"revision-predecessor-{suffix}"
+    if case_id == "missing_predecessor":
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-child-{suffix}",
+                "revision_number": 2,
+                "supersedes_external_revision_id": predecessor,
+            },
+        )
+    elif case_id in {"validated_predecessor", "cancelled_predecessor"}:
+        _history_id, history_external = await _seed_i5_batch_with_record(
+            suffix=f"history-{case_id}-{suffix}",
+            mapping_policy=mapping_policy,
+            logical_id=logical_id,
+            revision_id=predecessor,
+        )
+        history_status = "VALIDATED" if case_id == "validated_predecessor" else "CANCELLED"
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await session.execute(
+                    sa.update(ActualHarvestImportBatchModel)
+                    .where(ActualHarvestImportBatchModel.external_batch_id == history_external)
+                    .values(status=history_status)
+                )
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-child-{suffix}",
+                "revision_number": 2,
+                "supersedes_external_revision_id": predecessor,
+            },
+        )
+    elif case_id == "duplicate_revision_number":
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-one-{suffix}",
+                "revision_number": 1,
+            },
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-two-{suffix}",
+                "revision_number": 1,
+            },
+        )
+    elif case_id == "revision_number_discontinuity":
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": predecessor,
+                "revision_number": 1,
+            },
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-three-{suffix}",
+                "revision_number": 3,
+                "supersedes_external_revision_id": predecessor,
+            },
+        )
+    elif case_id == "multiple_successors":
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": predecessor,
+                "revision_number": 1,
+            },
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-two-a-{suffix}",
+                "revision_number": 2,
+                "supersedes_external_revision_id": predecessor,
+            },
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-two-b-{suffix}",
+                "revision_number": 2,
+                "supersedes_external_revision_id": predecessor,
+            },
+        )
+    elif case_id == "lineage_cycle":
+        first = f"revision-cycle-a-{suffix}"
+        second = f"revision-cycle-b-{suffix}"
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": first,
+                "revision_number": 1,
+                "supersedes_external_revision_id": second,
+            },
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": second,
+                "revision_number": 2,
+                "supersedes_external_revision_id": first,
+            },
+        )
+    elif case_id == "logical_record_mismatch":
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": predecessor,
+                "revision_number": 1,
+            },
+            {
+                "external_logical_record_id": f"other-logical-{suffix}",
+                "external_revision_id": f"revision-child-{suffix}",
+                "revision_number": 2,
+                "supersedes_external_revision_id": predecessor,
+            },
+        )
+    elif case_id in {"multiple_structural_terminals", "multiple_finalized_terminals"}:
+        record_status = (
+            ActualHarvestRecordStatus.FINALIZED
+            if case_id == "multiple_finalized_terminals"
+            else ActualHarvestRecordStatus.ACTIVE
+        )
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-terminal-a-{suffix}",
+                "revision_number": 1,
+                "record_status": record_status,
+            },
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-terminal-b-{suffix}",
+                "revision_number": 1,
+                "record_status": record_status,
+            },
+        )
+    else:
+        record_specs = (
+            {
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-corrected-{suffix}",
+                "revision_number": 1,
+                "record_status": ActualHarvestRecordStatus.CORRECTED,
+            },
+        )
+    import_id, external_batch_id = await _seed_i5_batch_with_records(
+        suffix=f"matrix-{case_id}-{suffix}",
+        mapping_policy=mapping_policy,
+        record_specs=record_specs,
+    )
+    try:
+        result = await _validate_once(import_id)
+        assert result.validation_status == "VALIDATION_FAILED"
+        assert expected_code in await _validation_error_codes(import_id)
+    finally:
+        await _cleanup_batch(external_batch_id)
+        if history_external is not None:
+            await _cleanup_batch(history_external)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_same_revision_identity_different_payload_is_rejected_atomically() -> (
+    None
+):
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch(
+        suffix=f"conflict-{suffix}",
+        mapping_policy=mapping_policy,
+    )
+    try:
+        record = _record_for_batch(external_batch_id).model_copy(
+            update={
+                "external_logical_record_id": f"logical-conflict-{suffix}",
+                "external_revision_id": f"revision-conflict-{suffix}",
+            }
+        )
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await append_import_records(
+                    session,
+                    import_id,
+                    ActualHarvestApiAppendRecordsRequest(records=(record,)),
+                )
+        conflicting = record.model_copy(update={"source_note": "different payload"})
+        async with AsyncSessionMaker() as session:
+            with pytest.raises(ActualHarvestApiError) as exc_info:
+                async with session.begin():
+                    await append_import_records(
+                        session,
+                        import_id,
+                        ActualHarvestApiAppendRecordsRequest(records=(conflicting,)),
+                    )
+            assert exc_info.value.code.value == "REVISION_IDENTITY_CONFLICT"
+        batch, persisted_count = await _batch_state(external_batch_id)
+        assert persisted_count == 1
+        assert batch.record_count == batch.uploaded_record_count == 1
+    finally:
+        await _cleanup_batch(external_batch_id)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
 async def test_postgres_i5_validation_errors_use_bounded_keyset_pagination() -> None:
     _require_postgres()
     suffix = uuid4().hex
@@ -1096,3 +1469,554 @@ async def test_postgres_i5_validation_errors_use_bounded_keyset_pagination() -> 
             )
     finally:
         await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_error_pagination_is_bounded_ordered_and_instance_bound() -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    first_id, first_external = await _seed_i5_batch_with_records(
+        suffix=f"errors-first-{suffix}",
+        mapping_policy=mapping_policy,
+        record_specs=tuple(
+            {
+                "external_logical_record_id": f"logical-error-{suffix}-{index}",
+                "external_revision_id": f"revision-error-{suffix}-{index}",
+                "farm_code": f"unknown-farm-{index}",
+                "variety_code": f"unknown-variety-{index}",
+            }
+            for index in range(3)
+        ),
+    )
+    second_id, second_external = await _seed_i5_batch_with_record(
+        suffix=f"errors-second-{suffix}",
+        mapping_policy=mapping_policy,
+        logical_id=f"logical-error-second-{suffix}",
+        revision_id=f"revision-error-second-{suffix}",
+        record_updates={
+            "farm_code": "unknown-farm-second",
+            "variety_code": "unknown-variety-second",
+        },
+    )
+    try:
+        first_result = await _validate_once(first_id)
+        second_result = await _validate_once(second_id)
+        assert (
+            first_result.validation_status == second_result.validation_status == "VALIDATION_FAILED"
+        )
+        keys: list[tuple[int, str, str, str, str]] = []
+        rows: list[dict[str, object]] = []
+        token: str | None = None
+        page_count = 0
+        async with AsyncSessionMaker() as session:
+            while True:
+                summary, page, token = await validation_errors(
+                    session, first_id, page_size=1, page_token=token
+                )
+                page_count += 1
+                rows.extend(page)
+                keys.extend(
+                    (
+                        row["record_index"],
+                        row["external_logical_record_id"],
+                        row["external_revision_id"],
+                        row["field_path"] or "",
+                        row["error_code"],
+                    )
+                    for row in page
+                )
+                if token is None:
+                    break
+            assert page_count > 1
+            assert keys == sorted(keys)
+            assert len(keys) == len(set(keys))
+            assert all("id" not in row["details"] for row in rows)
+            assert all("sql" not in str(row["details"]).lower() for row in rows)
+            first_summary, first_page, first_token = await validation_errors(
+                session, first_id, page_size=1, page_token=None
+            )
+            assert first_page and first_token is not None
+            assert first_summary.validation_run_identity is not None
+            with pytest.raises(ActualHarvestApiError) as foreign_info:
+                await validation_errors(session, second_id, page_size=1, page_token=first_token)
+            assert foreign_info.value.code.value == "API_REQUEST_INVALID"
+            with pytest.raises(ActualHarvestApiError) as malformed_info:
+                await validation_errors(session, first_id, page_size=1, page_token="not-a-token")
+            assert malformed_info.value.code.value == "API_REQUEST_INVALID"
+    finally:
+        await _cleanup_batch(first_external)
+        await _cleanup_batch(second_external)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_0019_catalog_and_registry_contract_is_exact() -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    sealed_policy = await _seed_i5_registry(f"catalog-sealed-{suffix}")
+    draft_policy = await _seed_i5_registry(f"catalog-draft-{suffix}", seal=False)
+
+    index_names = (
+        "ix_actual_harvest_mapping_entry_lookup",
+        "ix_actual_harvest_validation_run_current",
+        "uq_actual_harvest_validation_run_current",
+        "ix_actual_harvest_validation_record_page",
+        "ix_actual_harvest_validation_mapping_evidence_record",
+        "ix_actual_harvest_validation_error_page",
+        "ix_actual_harvest_validation_basis_member_sort",
+    )
+    expected_indexes = {
+        "ix_actual_harvest_mapping_entry_lookup": (
+            "actual_harvest_mapping_registry_entry",
+            False,
+            "(registry_id, source_field, source_code)",
+            None,
+        ),
+        "ix_actual_harvest_validation_run_current": (
+            "actual_harvest_validation_run",
+            False,
+            "(batch_id, is_current)",
+            None,
+        ),
+        "uq_actual_harvest_validation_run_current": (
+            "actual_harvest_validation_run",
+            True,
+            "(batch_id)",
+            "is_current=true",
+        ),
+        "ix_actual_harvest_validation_record_page": (
+            "actual_harvest_validation_record",
+            False,
+            "(validation_run_id, record_index)",
+            None,
+        ),
+        "ix_actual_harvest_validation_mapping_evidence_record": (
+            "actual_harvest_validation_mapping_evidence",
+            False,
+            "(validation_run_id, record_index)",
+            None,
+        ),
+        "ix_actual_harvest_validation_error_page": (
+            "actual_harvest_validation_error",
+            False,
+            "(validation_run_id, sort_key)",
+            None,
+        ),
+        "ix_actual_harvest_validation_basis_member_sort": (
+            "actual_harvest_validation_lineage_basis_member",
+            False,
+            "(basis_id, member_sort_key)",
+            None,
+        ),
+    }
+    try:
+        async with AsyncSessionMaker() as session:
+            rows = (
+                (
+                    await session.execute(
+                        sa.text(
+                            """
+                        SELECT c.relname AS index_name, t.relname AS table_name,
+                               i.indisunique, pg_get_indexdef(c.oid) AS indexdef,
+                               pg_get_expr(i.indpred, i.indrelid) AS predicate
+                        FROM pg_class c
+                        JOIN pg_index i ON i.indexrelid = c.oid
+                        JOIN pg_class t ON t.oid = i.indrelid
+                        WHERE c.relname IN :names
+                        """
+                        ).bindparams(sa.bindparam("names", expanding=True)),
+                        {"names": list(index_names)},
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            actual_indexes = {row["index_name"]: row for row in rows}
+            assert set(actual_indexes) == set(expected_indexes)
+            for name, (table_name, unique, columns, predicate) in expected_indexes.items():
+                row = actual_indexes[name]
+                assert row["table_name"] == table_name
+                assert bool(row["indisunique"]) is unique
+                assert columns in row["indexdef"]
+                actual_predicate = (row["predicate"] or "").replace(" ", "")
+                while actual_predicate.startswith("(") and actual_predicate.endswith(")"):
+                    actual_predicate = actual_predicate[1:-1]
+                assert actual_predicate == (predicate or "").replace(" ", "")
+
+            trigger_rows = (
+                (
+                    await session.execute(
+                        sa.text(
+                            """
+                        SELECT tg.tgname, rel.relname AS table_name, proc.proname,
+                               tg.tgtype, pg_get_triggerdef(tg.oid) AS triggerdef,
+                               pg_get_functiondef(proc.oid) AS functiondef
+                        FROM pg_trigger tg
+                        JOIN pg_class rel ON rel.oid = tg.tgrelid
+                        JOIN pg_proc proc ON proc.oid = tg.tgfoid
+                        WHERE NOT tg.tgisinternal
+                          AND tg.tgname IN (
+                            'trg_actual_harvest_sealed_registry_immutable',
+                            'trg_actual_harvest_sealed_registry_entry_immutable'
+                          )
+                        """
+                        )
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            triggers = {row["tgname"]: row for row in trigger_rows}
+            assert set(triggers) == {
+                "trg_actual_harvest_sealed_registry_immutable",
+                "trg_actual_harvest_sealed_registry_entry_immutable",
+            }
+            registry_trigger = triggers["trg_actual_harvest_sealed_registry_immutable"]
+            assert registry_trigger["table_name"] == "actual_harvest_mapping_policy_registry"
+            assert registry_trigger["proname"] == "actual_harvest_reject_sealed_registry_mutation"
+            assert registry_trigger["tgtype"] & 2 == 2
+            assert registry_trigger["tgtype"] & 16 == 16
+            assert registry_trigger["tgtype"] & 8 == 8
+            assert "actual_harvest_mapping_policy_registry" in registry_trigger["triggerdef"]
+            assert (
+                "actual_harvest_reject_sealed_registry_mutation" in registry_trigger["functiondef"]
+            )
+            entry_trigger = triggers["trg_actual_harvest_sealed_registry_entry_immutable"]
+            assert entry_trigger["table_name"] == "actual_harvest_mapping_registry_entry"
+            assert entry_trigger["proname"] == (
+                "actual_harvest_reject_sealed_registry_entry_mutation"
+            )
+            assert entry_trigger["tgtype"] & 2 == 2
+            assert entry_trigger["tgtype"] & 4 == 4
+            assert entry_trigger["tgtype"] & 16 == 16
+            assert entry_trigger["tgtype"] & 8 == 8
+
+            function_rows = (
+                (
+                    await session.execute(
+                        sa.text(
+                            """
+                        SELECT proname, pg_get_functiondef(oid) AS functiondef
+                        FROM pg_proc
+                        WHERE proname IN (
+                          'actual_harvest_reject_sealed_registry_mutation',
+                          'actual_harvest_reject_sealed_registry_entry_mutation'
+                        )
+                        """
+                        )
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            assert {row["proname"] for row in function_rows} == {
+                "actual_harvest_reject_sealed_registry_mutation",
+                "actual_harvest_reject_sealed_registry_entry_mutation",
+            }
+
+        async def expect_rejected(statement: str, params: dict[str, object] | None = None) -> None:
+            async with AsyncSessionMaker() as mutation_session:
+                try:
+                    async with mutation_session.begin():
+                        await mutation_session.execute(sa.text(statement), params or {})
+                except IntegrityError:
+                    return
+            raise AssertionError("sealed registry mutation was accepted")
+
+        async with AsyncSessionMaker() as session:
+            registry_id, entry_id = (
+                await session.execute(
+                    sa.text(
+                        """
+                        SELECT registry.id AS registry_id, entry.id AS entry_id
+                        FROM actual_harvest_mapping_policy_registry registry
+                        JOIN actual_harvest_mapping_registry_entry entry
+                          ON entry.registry_id = registry.id
+                        WHERE registry.mapping_policy_version = :policy
+                        """
+                    ),
+                    {"policy": sealed_policy},
+                )
+            ).one()
+        await expect_rejected(
+            "UPDATE actual_harvest_mapping_policy_registry SET status = 'DRAFT' WHERE id = :id",
+            {"id": registry_id},
+        )
+        await expect_rejected(
+            "DELETE FROM actual_harvest_mapping_policy_registry WHERE id = :id",
+            {"id": registry_id},
+        )
+        await expect_rejected(
+            "INSERT INTO actual_harvest_mapping_registry_entry "
+            "(registry_id, source_field, source_code, target_type, "
+            "target_business_key, entry_hash) "
+            "VALUES (:registry_id, 'farm_code', 'new', 'FARM', 'new', :hash)",
+            {"registry_id": registry_id, "hash": "f" * 64},
+        )
+        await expect_rejected(
+            "UPDATE actual_harvest_mapping_registry_entry "
+            "SET source_code = 'changed' WHERE id = :id",
+            {"id": entry_id},
+        )
+        await expect_rejected(
+            "DELETE FROM actual_harvest_mapping_registry_entry WHERE id = :id",
+            {"id": entry_id},
+        )
+
+        async with AsyncSessionMaker() as session:
+            draft_registry_id, draft_entry_id = (
+                await session.execute(
+                    sa.text(
+                        """
+                        SELECT registry.id AS registry_id, entry.id AS entry_id
+                        FROM actual_harvest_mapping_policy_registry registry
+                        JOIN actual_harvest_mapping_registry_entry entry
+                          ON entry.registry_id = registry.id
+                        WHERE registry.mapping_policy_version = :policy
+                        """
+                    ),
+                    {"policy": draft_policy},
+                )
+            ).one()
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await session.execute(
+                    sa.text(
+                        "UPDATE actual_harvest_mapping_registry_entry "
+                        "SET source_code = 'draft-changed' WHERE id = :id"
+                    ),
+                    {"id": draft_entry_id},
+                )
+                await session.execute(
+                    sa.text(
+                        "UPDATE actual_harvest_mapping_policy_registry "
+                        "SET entry_count = entry_count WHERE id = :id"
+                    ),
+                    {"id": draft_registry_id},
+                )
+    finally:
+        await _cleanup_registry(sealed_policy)
+        await _cleanup_registry(draft_policy)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "drift_kind",
+    [
+        pytest.param("wrong_fencing_token", id="wrong_fencing_token_cannot_finalize"),
+        pytest.param("wrong_attempt_generation", id="wrong_attempt_generation_cannot_finalize"),
+        pytest.param("expired_attempt", id="expired_attempt_cannot_finalize_without_reclaim"),
+        pytest.param("committed_basis", id="committed_basis_drift_rejects_finalization"),
+        pytest.param("registry", id="registry_hash_drift_rejects_finalization"),
+        pytest.param("record_manifest", id="record_manifest_drift_rejects_finalization"),
+        pytest.param("seal", id="seal_manifest_drift_rejects_finalization"),
+    ],
+)
+async def test_postgres_i5_attempt_fencing_and_drift_matrix(drift_kind: str) -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch_with_record(
+        suffix=suffix,
+        mapping_policy=mapping_policy,
+        logical_id=f"logical-drift-{suffix}",
+        revision_id=f"revision-drift-{suffix}",
+    )
+    try:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                start = await session.run_sync(
+                    lambda sync_session: begin_validation(
+                        sync_session, import_id=import_id, now=datetime.now(UTC)
+                    )
+                )
+            assert start.run_id is not None and start.attempt_id is not None
+            evidence = await session.run_sync(
+                lambda sync_session: build_validation_evidence(
+                    sync_session, run_id=start.run_id, attempt_id=start.attempt_id
+                )
+            )
+            await session.rollback()
+
+        if drift_kind in {"wrong_fencing_token", "wrong_attempt_generation", "expired_attempt"}:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    attempt = await session.scalar(
+                        sa.select(ActualHarvestValidationAttemptModel).where(
+                            ActualHarvestValidationAttemptModel.attempt_id == start.attempt_id
+                        )
+                    )
+                    assert attempt is not None
+                    if drift_kind == "wrong_fencing_token":
+                        evidence = replace(evidence, fencing_token="f" * 32)
+                    elif drift_kind == "wrong_attempt_generation":
+                        evidence = replace(
+                            evidence,
+                            attempt_generation=evidence.attempt_generation + 1,
+                        )
+                    else:
+                        attempt.lease_expires_at = datetime(2000, 1, 1, tzinfo=UTC)
+        elif drift_kind == "committed_basis":
+            evidence = replace(evidence, committed_lineage_basis_hash="f" * 64)
+        elif drift_kind == "registry":
+            evidence = replace(evidence, registry_content_hash="f" * 64)
+        elif drift_kind == "record_manifest":
+            evidence = replace(evidence, record_manifest_hash="f" * 64)
+        elif drift_kind == "seal":
+            evidence = replace(evidence, seal_manifest_hash="f" * 64)
+
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                result = await session.run_sync(
+                    lambda sync_session: finalize_validation(
+                        sync_session, evidence=evidence, now=datetime.now(UTC)
+                    )
+                )
+                assert result == "STALE"
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == import_id
+                )
+            )
+            assert batch is not None and batch.status == "SEALED"
+            assert (
+                await session.scalar(
+                    sa.select(sa.func.count()).select_from(ActualHarvestValidationResultModel)
+                )
+                == 0
+            )
+    finally:
+        await _cleanup_batch(external_batch_id)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_injected_finalization_failure_writes_no_partial_evidence() -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch_with_record(
+        suffix=suffix,
+        mapping_policy=mapping_policy,
+        logical_id=f"logical-rollback-{suffix}",
+        revision_id=f"revision-rollback-{suffix}",
+    )
+    try:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                start = await session.run_sync(
+                    lambda sync_session: begin_validation(
+                        sync_session, import_id=import_id, now=datetime.now(UTC)
+                    )
+                )
+            evidence = await session.run_sync(
+                lambda sync_session: build_validation_evidence(
+                    sync_session, run_id=start.run_id, attempt_id=start.attempt_id
+                )
+            )
+            await session.rollback()
+            async with session.begin():
+                await session.execute(
+                    sa.text(
+                        "UPDATE actual_harvest_validation_attempt "
+                        "SET attempt_generation = attempt_generation + 1 "
+                        "WHERE attempt_id = :attempt_id"
+                    ),
+                    {"attempt_id": evidence.attempt_id},
+                )
+                result = await session.run_sync(
+                    lambda sync_session: finalize_validation(
+                        sync_session, evidence=evidence, now=datetime.now(UTC)
+                    )
+                )
+                assert result == "STALE"
+            await session.rollback()
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == import_id
+                )
+            )
+            assert batch is not None and batch.status == "SEALED"
+            assert (
+                await session.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(ActualHarvestValidationResultModel)
+                    .join(
+                        ActualHarvestValidationRunModel,
+                        ActualHarvestValidationRunModel.id
+                        == ActualHarvestValidationResultModel.validation_run_id,
+                    )
+                    .where(ActualHarvestValidationRunModel.batch_id == batch.id)
+                )
+                == 0
+            )
+    finally:
+        await _cleanup_batch(external_batch_id)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_kind", ["mapping", "lineage"])
+async def test_postgres_i5_injected_evidence_failure_rolls_back_all_evidence(
+    failure_kind: str,
+) -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch(
+        suffix=f"evidence-failure-{failure_kind}-{suffix}",
+        mapping_policy=mapping_policy,
+    )
+    try:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                start = await session.run_sync(
+                    lambda sync_session: begin_validation(
+                        sync_session, import_id=import_id, now=datetime.now(UTC)
+                    )
+                )
+            async with session.begin():
+                evidence = await session.run_sync(
+                    lambda sync_session: build_validation_evidence(
+                        sync_session,
+                        run_id=start.run_id,
+                        attempt_id=start.attempt_id,
+                    )
+                )
+            if failure_kind == "mapping":
+                evidence = replace(evidence, mapping_snapshot_hash="invalid")
+            else:
+                assert evidence.nodes
+                nodes = (dict(evidence.nodes[0], node_hash="invalid"), *evidence.nodes[1:])
+                evidence = replace(evidence, nodes=nodes)
+            with pytest.raises(IntegrityError):
+                async with session.begin():
+                    await session.run_sync(
+                        lambda sync_session: finalize_validation(
+                            sync_session, evidence=evidence, now=datetime.now(UTC)
+                        )
+                    )
+        async with AsyncSessionMaker() as session:
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == import_id
+                )
+            )
+            assert batch is not None and batch.status == "VALIDATING"
+            assert (
+                await session.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(ActualHarvestValidationResultModel)
+                    .join(
+                        ActualHarvestValidationRunModel,
+                        ActualHarvestValidationRunModel.id
+                        == ActualHarvestValidationResultModel.validation_run_id,
+                    )
+                    .where(ActualHarvestValidationRunModel.batch_id == batch.id)
+                )
+                == 0
+            )
+    finally:
+        await _cleanup_batch(external_batch_id)
+        await _cleanup_registry(mapping_policy)

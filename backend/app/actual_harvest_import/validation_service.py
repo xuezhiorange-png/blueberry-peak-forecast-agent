@@ -34,6 +34,7 @@ from backend.app.actual_harvest_import.models import (
 )
 from backend.app.actual_harvest_import.persistence import _record_to_schema
 from backend.app.actual_harvest_import.validation_hashes import (
+    ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
     compute_committed_lineage_basis_hash,
     compute_instance_identity_hash,
     compute_lineage_graph_hash,
@@ -80,6 +81,7 @@ class ValidationSummary:
     mapping_snapshot_hash: str | None
     resolved_identity_snapshot_hash: str | None
     committed_lineage_basis_hash: str | None
+    season_resolver_version: str | None
     valid_count: int
     invalid_count: int
     error_count: int
@@ -124,6 +126,7 @@ class ValidationEvidence:
     seal_manifest_hash: str
     mapping_policy_version: str
     validation_policy_version: str
+    season_resolver_version: str
     registry_version: str
     registry_content_hash: str
     mapping_snapshot_hash: str
@@ -512,6 +515,7 @@ def _run_summary(run: ActualHarvestValidationRunModel) -> ValidationSummary:
         mapping_snapshot_hash=run.mapping_snapshot_hash,
         resolved_identity_snapshot_hash=run.resolved_identity_snapshot_hash,
         committed_lineage_basis_hash=run.committed_lineage_basis_hash,
+        season_resolver_version=run.season_resolver_version,
         valid_count=run.valid_count,
         invalid_count=run.invalid_count,
         error_count=run.error_count,
@@ -555,6 +559,7 @@ def begin_validation(session: Session, *, import_id: str, now: datetime) -> Vali
         seal_manifest_hash=batch.seal_manifest_hash_or_null,
         mapping_policy_version=batch.mapping_policy_version,
         validation_policy_version=batch.validation_policy_version,
+        season_resolver_version=ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
     )
     instance_hash = compute_instance_identity_hash(
         import_id=batch.import_id,
@@ -562,6 +567,7 @@ def begin_validation(session: Session, *, import_id: str, now: datetime) -> Vali
         mapping_policy_version=batch.mapping_policy_version,
         validation_policy_version=batch.validation_policy_version,
         committed_lineage_basis_hash=basis_hash,
+        season_resolver_version=ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
     )
     current = session.scalar(
         select(ActualHarvestValidationRunModel)
@@ -620,6 +626,7 @@ def begin_validation(session: Session, *, import_id: str, now: datetime) -> Vali
         seal_manifest_hash=batch.seal_manifest_hash_or_null,
         mapping_policy_version=batch.mapping_policy_version,
         validation_policy_version=batch.validation_policy_version,
+        season_resolver_version=ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
         committed_lineage_basis_hash=basis_hash,
         registry_content_hash=registry.registry_content_hash,
         record_manifest_hash=compute_record_manifest_hash(_all_batch_records(session, batch.id)),
@@ -649,6 +656,7 @@ def _resolved_master_hash(
     parent_business_key: str | None,
     season_start: Any = None,
     season_end: Any = None,
+    resolver_version: str = ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
 ) -> str:
     return digest(
         {
@@ -657,6 +665,7 @@ def _resolved_master_hash(
             "parent_business_key": parent_business_key,
             "season_start_date": season_start.isoformat() if season_start else None,
             "season_end_date": season_end.isoformat() if season_end else None,
+            "resolver_version": resolver_version,
         }
     )
 
@@ -727,6 +736,7 @@ def _mapping_outcomes(
                         "target_parent_business_key": None,
                         "registry_version": registry_version,
                         "mapping_policy_version": mapping_policy_version,
+                        "resolver_version": ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
                         "registry_entry_hash": None,
                         "resolved_master_business_key": season.code,
                         "resolved_master_parent_business_key": None,
@@ -922,6 +932,7 @@ def _mapping_outcomes(
                     "target_parent_business_key": entry.target_parent_business_key,
                     "registry_version": registry_version,
                     "mapping_policy_version": mapping_policy_version,
+                    "resolver_version": ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
                     "registry_entry_hash": entry.entry_hash,
                     "resolved_master_business_key": resolved_key,
                     "resolved_master_parent_business_key": resolved_parent,
@@ -1125,6 +1136,18 @@ def _lineage_evidence(
             node
         )
     for logical_key, group in grouped.items():
+        revision_numbers: dict[int, dict[str, Any]] = {}
+        for node in group:
+            previous = revision_numbers.get(node["revision_number"])
+            if previous is not None:
+                errors.append(
+                    _error(
+                        ActualHarvestValidationErrorCode.REVISION_NUMBER_CONFLICT,
+                        logical_id=logical_key[1],
+                        revision_id=node["external_revision_id"],
+                    )
+                )
+            revision_numbers[node["revision_number"]] = node
         terminal = [
             node
             for node in group
@@ -1334,6 +1357,7 @@ def build_validation_evidence(
         registry_version=registry.registry_version,
         mapping_policy_version=registry.mapping_policy_version,
         entries=mapping_snapshot_payload,
+        season_resolver_version=run.season_resolver_version,
     )
     node_payload = tuple(
         {key: value for key, value in node.items() if key != "node_hash"} for node in nodes
@@ -1342,7 +1366,9 @@ def build_validation_evidence(
         {key: value for key, value in edge.items() if key != "edge_hash"} for edge in edges
     )
     lineage_graph_hash = compute_lineage_graph_hash(node_payload, edge_payload)
-    resolved_identity_snapshot_hash = compute_resolved_identity_snapshot_hash(outcomes)
+    resolved_identity_snapshot_hash = compute_resolved_identity_snapshot_hash(
+        outcomes, season_resolver_version=run.season_resolver_version
+    )
     counts = {
         "valid_count": len(records)
         if not errors
@@ -1363,6 +1389,7 @@ def build_validation_evidence(
         mapping_snapshot_hash=mapping_snapshot_hash,
         mapping_policy_version=run.mapping_policy_version,
         validation_policy_version=run.validation_policy_version,
+        season_resolver_version=run.season_resolver_version,
         record_hashes=(
             {
                 "source_system": record.source_system,
@@ -1417,6 +1444,7 @@ def build_validation_evidence(
         seal_manifest_hash=run.seal_manifest_hash,
         mapping_policy_version=run.mapping_policy_version,
         validation_policy_version=run.validation_policy_version,
+        season_resolver_version=run.season_resolver_version,
         registry_version=registry.registry_version,
         registry_content_hash=registry.registry_content_hash or "0" * 64,
         mapping_snapshot_hash=mapping_snapshot_hash,
@@ -1485,7 +1513,9 @@ def finalize_validation(
             registry_version=current_registry.registry_version,
             mapping_policy_version=current_registry.mapping_policy_version,
         )
-        current_resolved_identity_hash = compute_resolved_identity_snapshot_hash(current_outcomes)
+        current_resolved_identity_hash = compute_resolved_identity_snapshot_hash(
+            current_outcomes, season_resolver_version=run.season_resolver_version
+        )
     except ActualHarvestApiError:
         current_registry_hash = None
     valid_attempt = (
@@ -1501,6 +1531,8 @@ def finalize_validation(
         and current_basis == evidence.committed_lineage_basis_hash
         and current_manifest == evidence.record_manifest_hash
         and current_resolved_identity_hash == evidence.resolved_identity_snapshot_hash
+        and run.season_resolver_version == evidence.season_resolver_version
+        and run.season_resolver_version == ACTUAL_HARVEST_SEASON_RESOLVER_VERSION
     )
     if not valid_attempt:
         newer_attempt_is_current = (
@@ -1520,6 +1552,7 @@ def finalize_validation(
             validation_run_id=run.id,
             registry_version=evidence.registry_version,
             mapping_policy_version=evidence.mapping_policy_version,
+            season_resolver_version=evidence.season_resolver_version,
             registry_content_hash=evidence.registry_content_hash,
             mapping_snapshot_hash=evidence.mapping_snapshot_hash,
             resolved_identity_snapshot_hash=evidence.resolved_identity_snapshot_hash,
@@ -1624,12 +1657,14 @@ def finalize_validation(
             committed_lineage_basis_hash=evidence.committed_lineage_basis_hash,
             mapping_snapshot_hash=evidence.mapping_snapshot_hash,
             resolved_identity_snapshot_hash=evidence.resolved_identity_snapshot_hash,
+            season_resolver_version=evidence.season_resolver_version,
             valid_count=evidence.counts["valid_count"],
             invalid_count=evidence.counts["invalid_count"],
             error_count=evidence.counts["error_count"],
             warning_count=evidence.counts["warning_count"],
             result_payload=canonical_json_dumps(
                 {
+                    "season_resolver_version": evidence.season_resolver_version,
                     "errors": [error.payload() for error in evidence.errors],
                     "warnings": [warning.payload() for warning in evidence.warnings],
                     "counts": evidence.counts,
@@ -1642,6 +1677,7 @@ def finalize_validation(
     run.validation_result_hash = evidence.validation_result_hash
     run.mapping_snapshot_hash = evidence.mapping_snapshot_hash
     run.resolved_identity_snapshot_hash = evidence.resolved_identity_snapshot_hash
+    run.season_resolver_version = evidence.season_resolver_version
     run.valid_count = evidence.counts["valid_count"]
     run.invalid_count = evidence.counts["invalid_count"]
     run.error_count = evidence.counts["error_count"]
@@ -1673,7 +1709,20 @@ def current_validation_summary(session: Session, import_id: str) -> ValidationSu
         )
     )
     if run is None:
-        return ValidationSummary("NOT_RUN", None, None, None, None, None, None, 0, 0, 0, 0)
+        return ValidationSummary(
+            "NOT_RUN",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            0,
+            0,
+            0,
+            0,
+        )
     return _run_summary(run)
 
 

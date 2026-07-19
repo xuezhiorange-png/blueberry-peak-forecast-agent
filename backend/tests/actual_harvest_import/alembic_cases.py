@@ -75,6 +75,19 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             "source_system",
             "external_batch_id",
         }
+        assert {
+            column["name"] for column in inspector.get_columns("actual_harvest_mapping_snapshot")
+        } >= {"season_resolver_version"}
+        assert {
+            column["name"] for column in inspector.get_columns("actual_harvest_validation_run")
+        } >= {"season_resolver_version"}
+        assert {
+            column["name"] for column in inspector.get_columns("actual_harvest_validation_result")
+        } >= {"season_resolver_version"}
+        assert {
+            column["name"]
+            for column in inspector.get_columns("actual_harvest_validation_mapping_evidence")
+        } >= {"resolver_version"}
         assert inspector.get_indexes("actual_harvest_import_record")
         assert inspector.get_foreign_keys("actual_harvest_import_record")[0]["options"] == {
             "ondelete": "RESTRICT"
@@ -89,6 +102,54 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             index["name"]
             for index in inspector.get_indexes("actual_harvest_validation_mapping_evidence")
         } == {"ix_actual_harvest_validation_mapping_evidence_record"}
+        expected_indexes = {
+            "actual_harvest_mapping_registry_entry": {
+                "ix_actual_harvest_mapping_entry_lookup": (
+                    False,
+                    ["registry_id", "source_field", "source_code"],
+                ),
+            },
+            "actual_harvest_validation_run": {
+                "ix_actual_harvest_validation_run_current": (False, ["batch_id", "is_current"]),
+                "uq_actual_harvest_validation_run_current": (True, ["batch_id"]),
+            },
+            "actual_harvest_validation_record": {
+                "ix_actual_harvest_validation_record_page": (
+                    False,
+                    ["validation_run_id", "record_index"],
+                ),
+            },
+            "actual_harvest_validation_mapping_evidence": {
+                "ix_actual_harvest_validation_mapping_evidence_record": (
+                    False,
+                    ["validation_run_id", "record_index"],
+                ),
+            },
+            "actual_harvest_validation_error": {
+                "ix_actual_harvest_validation_error_page": (
+                    False,
+                    ["validation_run_id", "sort_key"],
+                ),
+            },
+            "actual_harvest_validation_lineage_basis_member": {
+                "ix_actual_harvest_validation_basis_member_sort": (
+                    False,
+                    ["basis_id", "member_sort_key"],
+                ),
+            },
+        }
+        for table_name, expected_table_indexes in expected_indexes.items():
+            actual_table_indexes = {
+                index["name"]: index for index in inspector.get_indexes(table_name)
+            }
+            assert set(actual_table_indexes) == set(expected_table_indexes)
+            for index_name, (unique, columns) in expected_table_indexes.items():
+                actual = actual_table_indexes[index_name]
+                assert bool(actual["unique"]) is unique
+                assert actual["column_names"] == columns
+                if index_name == "uq_actual_harvest_validation_run_current":
+                    where = actual.get("dialect_options", {}).get("sqlite_where")
+                    assert str(where).replace(" ", "") == "is_current=1"
         assert {
             constraint["name"]
             for constraint in inspector.get_check_constraints(
