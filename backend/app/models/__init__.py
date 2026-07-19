@@ -98,6 +98,7 @@ from backend.app.models.weather import (
 )
 
 __all__ = [
+    "ActualHarvestCommitManifestModel",
     "ActualHarvestImportBatchModel",
     "ActualHarvestImportRecordModel",
     "ActualHarvestMappingPolicyRegistryModel",

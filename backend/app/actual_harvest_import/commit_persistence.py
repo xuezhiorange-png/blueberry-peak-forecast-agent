@@ -21,11 +21,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.actual_harvest_import.commit_models import (
-    ActualHarvestCommitManifestModel,
     COMMIT_POLICY_VERSION,
+    ActualHarvestCommitManifestModel,
 )
 from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
 from backend.app.actual_harvest_import.validation_models import (
+    ActualHarvestMappingSnapshotModel,
     ActualHarvestValidationResultModel,
     ActualHarvestValidationRunModel,
 )
@@ -69,8 +70,25 @@ async def get_validation_result(
 ) -> ActualHarvestValidationResultModel | None:
     result = await session.execute(
         select(ActualHarvestValidationResultModel).where(
-            ActualHarvestValidationResultModel.validation_run_id
-            == validation_run_id
+            ActualHarvestValidationResultModel.validation_run_id == validation_run_id
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_mapping_snapshot(
+    session: AsyncSession, validation_run_id: int
+) -> ActualHarvestMappingSnapshotModel | None:
+    """Return the unique mapping snapshot for the given validation run.
+
+    Per S1 §六 step 7.6, every required evidence hash on the snapshot
+    must match the corresponding hash on the validation run before a
+    commit can proceed. The cross-check is performed in
+    `commit_service.commit_batch`; this helper only fetches the row.
+    """
+    result = await session.execute(
+        select(ActualHarvestMappingSnapshotModel).where(
+            ActualHarvestMappingSnapshotModel.validation_run_id == validation_run_id
         )
     )
     return result.scalar_one_or_none()
@@ -101,9 +119,7 @@ async def list_batch_records(
     by caller is deterministic.
     """
     result = await session.execute(
-        select(ActualHarvestImportBatchModel).where(
-            ActualHarvestImportBatchModel.id == batch_id
-        )
+        select(ActualHarvestImportBatchModel).where(ActualHarvestImportBatchModel.id == batch_id)
     )
     batch = result.scalar_one_or_none()
     if batch is None:
@@ -133,26 +149,18 @@ def build_commit_manifest(
         batch_id=batch.id,
         validation_run_id=validation_run.id,
         commit_policy_version=COMMIT_POLICY_VERSION,
-        validation_run_instance_identity_hash=(
-            validation_run.instance_identity_hash
-        ),
+        validation_run_instance_identity_hash=(validation_run.instance_identity_hash),
         commit_manifest_hash=commit_manifest_hash,
         seal_manifest_hash=batch.seal_manifest_hash_or_null or "",
         canonical_batch_hash=batch.canonical_batch_hash_or_null or "",
         record_manifest_hash=validation_run.record_manifest_hash or "",
         validation_result_hash=validation_run.validation_result_hash or "",
         mapping_snapshot_hash=validation_run.mapping_snapshot_hash or "",
-        resolved_identity_snapshot_hash=(
-            validation_run.resolved_identity_snapshot_hash or ""
-        ),
+        resolved_identity_snapshot_hash=(validation_run.resolved_identity_snapshot_hash or ""),
         lineage_graph_hash=validation_run.lineage_graph_hash or "",
-        committed_lineage_basis_hash=(
-            validation_run.committed_lineage_basis_hash or ""
-        ),
+        committed_lineage_basis_hash=(validation_run.committed_lineage_basis_hash or ""),
         registry_content_hash=validation_run.registry_content_hash or "",
-        source_semantics_attestation_hash=(
-            batch.source_semantics_attestation_hash
-        ),
+        source_semantics_attestation_hash=(batch.source_semantics_attestation_hash),
         committed_record_count=committed_record_count,
         committed_by_identity=committed_by_identity,
         committed_at=committed_at,
@@ -164,6 +172,7 @@ __all__ = [
     "get_batch_for_update",
     "get_current_validation_run",
     "get_existing_commit_manifest",
+    "get_mapping_snapshot",
     "get_validation_result",
     "list_batch_records",
 ]

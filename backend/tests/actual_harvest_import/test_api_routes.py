@@ -67,9 +67,7 @@ async def test_api_routes_are_registered_and_unimplemented_routes_are_not_faked(
         headers={"content-type": "application/json"},
     )
     assert commit_response.status_code == 409
-    assert commit_response.json()["errors"][0]["code"] == (
-        "IMPORT_BATCH_NOT_VALIDATED"
-    )
+    assert commit_response.json()["errors"][0]["code"] == ("IMPORT_BATCH_NOT_VALIDATED")
 
 
 async def test_api_hides_batches_outside_actor_source_scope(

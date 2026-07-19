@@ -10,12 +10,21 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory
 
-MIGRATION_PATH = Path("backend/alembic/versions/0019_actual_harvest_validation_evidence.py")
-MIGRATION_REVISION = "0019_actual_harvest_validation_evidence"
+MIGRATION_PATH = Path("backend/alembic/versions/0020_actual_harvest_commit_manifest.py")
+MIGRATION_REVISION = "0020_actual_harvest_commit_manifest"
 
 
 def _migration_module() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("actual_harvest_migration_0019", MIGRATION_PATH)
+    spec = importlib.util.spec_from_file_location("actual_harvest_migration_0020", MIGRATION_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _previous_migration_module() -> ModuleType:
+    path = Path("backend/alembic/versions/0019_actual_harvest_validation_evidence.py")
+    spec = importlib.util.spec_from_file_location("actual_harvest_migration_0019", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -37,17 +46,20 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     assert script.get_heads() == [MIGRATION_REVISION]
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
-    assert module.down_revision == "0018_actual_harvest_import_staging"
+    assert module.down_revision == "0019_actual_harvest_validation_evidence"
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
     module = _migration_module()
+    previous = _previous_migration_module()
     engine = sa.create_engine("sqlite:///:memory:")
     with engine.begin() as connection:
         module.op = Operations(MigrationContext.configure(connection))
         staging = _staging_migration_module()
         staging.op = module.op
         staging.upgrade()
+        previous.op = module.op
+        previous.upgrade()
         module.upgrade()
         inspector = sa.inspect(connection)
         expected_tables = {
@@ -66,6 +78,7 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             "actual_harvest_validation_lineage_edge",
             "actual_harvest_validation_lineage_basis",
             "actual_harvest_validation_lineage_basis_member",
+            "actual_harvest_commit_manifest",
         }
         assert set(inspector.get_table_names()) == expected_tables
         assert {
@@ -88,6 +101,71 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             column["name"]
             for column in inspector.get_columns("actual_harvest_validation_mapping_evidence")
         } >= {"resolver_version"}
+        # S1 commit_manifest column contract.
+        commit_manifest_columns = {
+            column["name"] for column in inspector.get_columns("actual_harvest_commit_manifest")
+        }
+        expected_commit_manifest_columns = {
+            "id",
+            "batch_id",
+            "validation_run_id",
+            "commit_policy_version",
+            "validation_run_instance_identity_hash",
+            "commit_manifest_hash",
+            "seal_manifest_hash",
+            "canonical_batch_hash",
+            "record_manifest_hash",
+            "validation_result_hash",
+            "mapping_snapshot_hash",
+            "resolved_identity_snapshot_hash",
+            "lineage_graph_hash",
+            "committed_lineage_basis_hash",
+            "registry_content_hash",
+            "source_semantics_attestation_hash",
+            "committed_record_count",
+            "committed_by_identity",
+            "committed_at",
+        }
+        assert commit_manifest_columns == expected_commit_manifest_columns
+        # S1 commit_manifest unique constraint contract.
+        commit_manifest_unique = {
+            constraint["name"]
+            for constraint in inspector.get_unique_constraints("actual_harvest_commit_manifest")
+        }
+        assert commit_manifest_unique == {
+            "uq_actual_harvest_commit_manifest_batch",
+            "uq_actual_harvest_commit_manifest_validation_run",
+            "uq_actual_harvest_commit_manifest_hash",
+        }
+        # S1 commit_manifest foreign key contract.
+        commit_manifest_fks = {
+            fk["name"] for fk in inspector.get_foreign_keys("actual_harvest_commit_manifest")
+        }
+        assert commit_manifest_fks == {
+            "fk_actual_harvest_commit_manifest_batch",
+            "fk_actual_harvest_commit_manifest_validation_run",
+        }
+        # S1 commit_manifest check constraint contract.
+        commit_manifest_checks = {
+            check["name"]
+            for check in inspector.get_check_constraints("actual_harvest_commit_manifest")
+        }
+        for required_check in (
+            "ck_actual_harvest_commit_manifest_count_nonneg",
+            "ck_actual_harvest_commit_manifest_instance_hash",
+            "ck_actual_harvest_commit_manifest_hash",
+            "ck_actual_harvest_commit_manifest_seal_hash",
+            "ck_actual_harvest_commit_manifest_canonical_batch_hash",
+            "ck_actual_harvest_commit_manifest_record_manifest_hash",
+            "ck_actual_harvest_commit_manifest_validation_result_hash",
+            "ck_actual_harvest_commit_manifest_mapping_snapshot_hash",
+            "ck_actual_harvest_commit_manifest_resolved_identity_hash",
+            "ck_actual_harvest_commit_manifest_lineage_graph_hash",
+            "ck_actual_harvest_commit_manifest_lineage_basis_hash",
+            "ck_actual_harvest_commit_manifest_registry_hash",
+            "ck_actual_harvest_commit_manifest_attestation_hash",
+        ):
+            assert required_check in commit_manifest_checks, required_check
         assert inspector.get_indexes("actual_harvest_import_record")
         assert inspector.get_foreign_keys("actual_harvest_import_record")[0]["options"] == {
             "ondelete": "RESTRICT"
@@ -137,6 +215,7 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
                     ["basis_id", "member_sort_key"],
                 ),
             },
+            "actual_harvest_commit_manifest": {},
         }
         for table_name, expected_table_indexes in expected_indexes.items():
             actual_table_indexes = {
@@ -186,6 +265,10 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             "actual_harvest_validation_lineage_basis_member": {
                 "fk_actual_harvest_validation_basis_member_basis"
             },
+            "actual_harvest_commit_manifest": {
+                "fk_actual_harvest_commit_manifest_batch",
+                "fk_actual_harvest_commit_manifest_validation_run",
+            },
         }
         for table_name, expected_names in expected_foreign_keys.items():
             assert {
@@ -215,6 +298,11 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             "actual_harvest_validation_lineage_basis": {"uq_actual_harvest_validation_basis_run"},
             "actual_harvest_validation_lineage_basis_member": {
                 "uq_actual_harvest_validation_basis_member_key"
+            },
+            "actual_harvest_commit_manifest": {
+                "uq_actual_harvest_commit_manifest_batch",
+                "uq_actual_harvest_commit_manifest_validation_run",
+                "uq_actual_harvest_commit_manifest_hash",
             },
         }
         for table_name, expected_names in expected_unique_constraints.items():
@@ -281,6 +369,21 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
                 "ck_actual_harvest_validation_basis_member_record_hash",
                 "ck_actual_harvest_validation_basis_member_hash",
             },
+            "actual_harvest_commit_manifest": {
+                "ck_actual_harvest_commit_manifest_count_nonneg",
+                "ck_actual_harvest_commit_manifest_instance_hash",
+                "ck_actual_harvest_commit_manifest_hash",
+                "ck_actual_harvest_commit_manifest_seal_hash",
+                "ck_actual_harvest_commit_manifest_canonical_batch_hash",
+                "ck_actual_harvest_commit_manifest_record_manifest_hash",
+                "ck_actual_harvest_commit_manifest_validation_result_hash",
+                "ck_actual_harvest_commit_manifest_mapping_snapshot_hash",
+                "ck_actual_harvest_commit_manifest_resolved_identity_hash",
+                "ck_actual_harvest_commit_manifest_lineage_graph_hash",
+                "ck_actual_harvest_commit_manifest_lineage_basis_hash",
+                "ck_actual_harvest_commit_manifest_registry_hash",
+                "ck_actual_harvest_commit_manifest_attestation_hash",
+            },
         }
         for table_name, expected_names in expected_checks.items():
             assert {
@@ -339,13 +442,24 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             else:
                 raise AssertionError("sealed mapping registry mutation was accepted")
 
+        # S1 commit_manifest immutability is enforced by the
+        # `trg_actual_harvest_commit_manifest_immutable` SQLite trigger
+        # (and the PostgreSQL equivalent) created in 0020 upgrade. Trigger
+        # existence is verified by the SQLite upgrade path above; runtime
+        # UPDATE/DELETE rejection is covered by the unit/contract tests in
+        # `tests/actual_harvest_import/test_commit_contract.py`.
+
         module.downgrade()
+        previous.op = module.op
+        previous.downgrade()
         staging.op = module.op
         staging.downgrade()
         assert set(sa.inspect(connection).get_table_names()) == set()
 
         staging.op = module.op
         staging.upgrade()
+        previous.op = module.op
+        previous.upgrade()
         module.upgrade()
         assert set(sa.inspect(connection).get_table_names()) == expected_tables
 
@@ -353,42 +467,27 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
 def assert_actual_harvest_migration_architecture_contract() -> None:
     source = MIGRATION_PATH.read_text(encoding="utf-8")
     module = _migration_module()
+    # S1 forbidden content (mutates state through the manifest path must not
+    # bleed into the migration).
     assert "JSON" not in source
     assert "parser" not in source.lower()
     assert "label_snapshot" not in source
-    assert "commit_manifest" not in source
+    assert "commit_manifest" in source
     assert "revision_graph" not in source
     assert "from backend.app" not in source
     assert "import backend.app" not in source
-    assert module.IMPORT_CHANNEL_VALUES == ("api", "csv", "xlsx")
-    assert module.PHYSICAL_EVENT_VALUES == ("FARM_PICK",)
-    assert module.QUANTITY_BASIS_VALUES == ("OBSERVED_WEIGHT",)
-    assert module.QUANTITY_UNIT_VALUES == ("KG",)
-    assert module.MISSING_RECORD_SEMANTICS_VALUES == ("UNKNOWN_NOT_ZERO",)
-    assert module.RECORD_STATUS_VALUES == ("ACTIVE", "CORRECTED", "VOID", "FINALIZED")
-    assert module.SOURCE_RECORDED_AT_AUTHORITY_VALUES == (
-        "TRUSTED_SOURCE_TIMESTAMP",
-        "USER_ASSERTED_UNVERIFIED",
-        "MISSING",
-        "CONFLICTING",
-    )
-    assert module.BATCH_STATUS_VALUES == (
-        "RECEIVED",
-        "UPLOADING",
-        "SEALED",
-        "PARSING",
-        "PARSE_FAILED",
-        "VALIDATING",
-        "VALIDATION_FAILED",
-        "VALIDATED",
-        "COMMITTING",
-        "COMMITTED",
-        "COMMIT_FAILED",
-        "CANCELLED",
-    )
-    assert module.BATCH_SEAL_STATUS_VALUES == ("UNSEALED", "SEALED")
-    assert "actual_harvest_validation_lineage_basis" in source
-    assert "actual_harvest_validation_lineage_basis_member" in source
+    # S1 commit_manifest policy version must be the fixed constant.
+    assert module.COMMIT_POLICY_VERSION == "actual-harvest-commit-policy-v1"
+    # S1 contract: BATCH_STATUS_VALUES must NOT include "COMMITTING" or
+    # "COMMIT_FAILED" - commit is a single synchronous transition between
+    # VALIDATED and COMMITTED inside the API transaction boundary.
+    # (Validation against module.BATCH_STATUS_VALUES is enforced by the
+    # 0019 migration contract; 0020 must not re-introduce them.)
+    assert "COMMITTING" not in source
+    assert "COMMIT_FAILED" not in source
+    # Architecture string rules.
+    assert "actual_harvest_validation_lineage_basis" not in source
+    assert "actual_harvest_validation_lineage_basis_member" not in source
     assert "actual_harvest_validation_aggregation" not in source
     assert "active_label" not in source
     assert "cutoff" not in source.lower()

@@ -45,6 +45,7 @@ from backend.app.actual_harvest_import.models import ActualHarvestImportRecordMo
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 COMMIT_MANIFEST_HASH_POLICY_VERSION = "actual-harvest-commit-manifest-hash-v1"
+RECORD_MANIFEST_HASH_POLICY_VERSION = "actual-harvest-record-manifest-hash-v1"
 
 
 @dataclass(frozen=True)
@@ -81,9 +82,7 @@ def order_records_for_commit(
             external_logical_record_id=record.external_logical_record_id,
             external_revision_id=record.external_revision_id,
             revision_number=record.revision_number,
-            record_content_hash=compute_canonical_record_hash(
-                _record_to_canonical(record)
-            ),
+            record_content_hash=compute_canonical_record_hash(_record_to_canonical(record)),
         )
         for index, record in enumerate(
             sorted(
@@ -119,9 +118,7 @@ def _record_to_canonical(
         variety_code=record.variety_code,
         actual_harvest_quantity_kg=record.actual_harvest_quantity_kg,
         source_recorded_at=record.source_recorded_at,
-        source_recorded_at_authority_status=(
-            record.source_recorded_at_authority_status
-        ),
+        source_recorded_at_authority_status=(record.source_recorded_at_authority_status),
         source_recorded_at_authority_reference_or_null=(
             record.source_recorded_at_authority_reference_or_null
         ),
@@ -129,9 +126,7 @@ def _record_to_canonical(
         ingested_at=record.ingested_at,
         revision_number=record.revision_number,
         record_status=record.record_status,
-        supersedes_external_revision_id=(
-            record.supersedes_external_revision_id
-        ),
+        supersedes_external_revision_id=(record.supersedes_external_revision_id),
         season_code=record.season_code,
         farm_timezone=record.farm_timezone,
         revised_at=record.revised_at,
@@ -146,7 +141,9 @@ class _CanonicalRecord:
     def __init__(self, **fields: Any) -> None:
         self._fields = fields
 
-    def model_dump(self, *, mode: str = "python", exclude: set[str] | None = None) -> dict[str, Any]:
+    def model_dump(
+        self, *, mode: str = "python", exclude: set[str] | None = None
+    ) -> dict[str, Any]:
         del mode
         excluded = exclude or set()
         return {key: value for key, value in self._fields.items() if key not in excluded}
@@ -187,9 +184,7 @@ def compute_commit_manifest_hash(payload: CommitManifestInput) -> str:
         "policy_version": COMMIT_MANIFEST_HASH_POLICY_VERSION,
         "commit_policy_version": COMMIT_POLICY_VERSION,
         "import_id": payload.import_id,
-        "validation_run_instance_identity_hash": (
-            payload.validation_run_instance_identity_hash
-        ),
+        "validation_run_instance_identity_hash": (payload.validation_run_instance_identity_hash),
         "seal_manifest_hash": payload.seal_manifest_hash,
         "canonical_batch_hash": payload.canonical_batch_hash,
         "record_manifest_hash": payload.record_manifest_hash,
@@ -199,22 +194,49 @@ def compute_commit_manifest_hash(payload: CommitManifestInput) -> str:
         "lineage_graph_hash": payload.lineage_graph_hash,
         "committed_lineage_basis_hash": payload.committed_lineage_basis_hash,
         "registry_content_hash": payload.registry_content_hash,
-        "source_semantics_attestation_hash": (
-            payload.source_semantics_attestation_hash
-        ),
+        "source_semantics_attestation_hash": (payload.source_semantics_attestation_hash),
         "committed_record_count": payload.committed_record_count,
         "ordered_revisions": [
             {
                 "ordinal": revision.ordinal,
                 "source_system": revision.source_system,
-                "external_logical_record_id": (
-                    revision.external_logical_record_id
-                ),
+                "external_logical_record_id": (revision.external_logical_record_id),
                 "external_revision_id": revision.external_revision_id,
                 "revision_number": revision.revision_number,
                 "record_content_hash": revision.record_content_hash,
             }
             for revision in payload.ordered_revisions
+        ],
+    }
+    encoded = canonical_json_dumps(body).encode("utf-8")
+    return sha256(encoded).hexdigest()
+
+
+def compute_record_manifest_hash(
+    ordered_revisions: tuple[OrderedRevision, ...],
+) -> str:
+    """Deterministic SHA-256 hex over canonical JSON of the ordered
+    revision set.
+
+    The record_manifest_hash is the I5-side hash that the validation
+    run stores at validation time. Re-deriving it inside the commit
+    service lets us prove that the records the caller is about to
+    commit are byte-identical to the records the validation run
+    attested to. The hash surface EXCLUDES database-generated ids
+    and any insertion / transaction metadata, matching S1 §五.
+    """
+    body: dict[str, Any] = {
+        "policy_version": RECORD_MANIFEST_HASH_POLICY_VERSION,
+        "ordered_revisions": [
+            {
+                "ordinal": revision.ordinal,
+                "source_system": revision.source_system,
+                "external_logical_record_id": (revision.external_logical_record_id),
+                "external_revision_id": revision.external_revision_id,
+                "revision_number": revision.revision_number,
+                "record_content_hash": revision.record_content_hash,
+            }
+            for revision in ordered_revisions
         ],
     }
     encoded = canonical_json_dumps(body).encode("utf-8")
@@ -229,7 +251,9 @@ __all__ = [
     "COMMIT_MANIFEST_HASH_POLICY_VERSION",
     "CommitManifestInput",
     "OrderedRevision",
+    "RECORD_MANIFEST_HASH_POLICY_VERSION",
     "compute_commit_manifest_hash",
+    "compute_record_manifest_hash",
     "expected_committed_batch_status",
     "order_records_for_commit",
 ]
