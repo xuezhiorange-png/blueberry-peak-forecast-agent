@@ -130,6 +130,27 @@ class ActualHarvestApiCancelRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+class ActualHarvestApiValidateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ActualHarvestApiValidationSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    validation_status: str
+    validation_run_identity: str | None
+    validation_result_hash: str | None
+    lineage_graph_hash: str | None
+    mapping_snapshot_hash: str | None
+    resolved_identity_snapshot_hash: str | None
+    committed_lineage_basis_hash: str | None
+    season_resolver_version: str | None
+    valid_count: int
+    invalid_count: int
+    error_count: int
+    warning_count: int
+
+
 class ActualHarvestApiPage(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -202,4 +223,6 @@ __all__ = [
     "ActualHarvestApiRecordInput",
     "ActualHarvestApiRecordOutput",
     "ActualHarvestApiSealRequest",
+    "ActualHarvestApiValidateRequest",
+    "ActualHarvestApiValidationSummary",
 ]
