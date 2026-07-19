@@ -33,6 +33,7 @@ from backend.app.actual_harvest_import.models import (
     ActualHarvestImportRecordModel,
 )
 from backend.app.actual_harvest_import.schemas import ActualHarvestImportRecordInput
+from backend.app.actual_harvest_import.validation_hashes import digest
 from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestMappingPolicyRegistryModel,
     ActualHarvestMappingRegistryEntryModel,
@@ -1608,7 +1609,7 @@ async def test_postgres_i5_identical_error_payload_is_persisted_once(
                 )
                 pages.extend(page)
             assert len(pages) == len(persisted_errors) == 5
-            assert len({row["error_hash"] for row in pages}) == 5
+            assert len({digest(row) for row in pages}) == 5
             assert {row["error_code"] for row in pages} == {
                 "BATCH_RECORD_COUNT_MISMATCH",
                 "IDENTITY_MAPPING_NOT_FOUND",
