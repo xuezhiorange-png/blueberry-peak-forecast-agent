@@ -148,13 +148,29 @@ def _extract_server_message(exc: BaseException) -> str | None:
 
 
 def _raise_unexpected_dbapi_error(exc: BaseException, *, sqlstate: str | None) -> None:
-    """Surface the original DBAPIError with diagnostic context attached."""
+    """Surface the original DBAPIError with diagnostic context attached.
 
-    message = (
-        "unexpected DBAPIError while asserting sealed-registry trigger "
-        f"rejection: sqlstate={sqlstate!r} exc={type(exc).__name__}: {exc!r}"
+    Some DBAPIError subclasses (e.g. SQLAlchemy's asyncpg-wrapped
+    IntegrityError) require positional ``params`` and ``orig``
+    arguments and refuse to be re-constructed with a single message
+    string. To stay fail-closed without coupling this helper to any
+    particular DBAPIError constructor, we re-raise the *original*
+    exception object unchanged but first attach the diagnostic
+    message as an ``args[-1]`` suffix so pytest's traceback and the
+    CI step summary surface the same SQLSTATE / message data.
+    """
+
+    diagnostic = (
+        f"unexpected DBAPIError while asserting sealed-registry trigger "
+        f"rejection: sqlstate={sqlstate!r} exc={type(exc).__name__}"
     )
-    raise type(exc)(message).with_traceback(exc.__traceback__) from exc
+    original_args = tuple(getattr(exc, "args", ()))
+    new_args = original_args + (diagnostic,) if original_args else (diagnostic,)
+    try:
+        exc.args = new_args  # type: ignore[attr-defined]
+    except Exception:  # pragma: no cover - defensive against frozen exceptions
+        pass
+    raise exc
 
 
 pytestmark = [pytest.mark.postgres, pytest.mark.integration]
