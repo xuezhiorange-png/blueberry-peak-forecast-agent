@@ -328,6 +328,7 @@ async def _seed_i5_batch_with_record(
     revision_number: int = 1,
     predecessor: str | None = None,
     record_updates: dict[str, object] | None = None,
+    seal: bool = True,
 ) -> tuple[str, str]:
     payload = _create_payload()
     payload["external_batch_id"] = f"i5-pg-record-{suffix}"
@@ -354,8 +355,9 @@ async def _seed_i5_batch_with_record(
                 batch.import_id,
                 ActualHarvestApiAppendRecordsRequest(records=(record,)),
             )
-        async with session.begin():
-            await seal_import(session, batch.import_id, actor_identity="operator-1")
+        if seal:
+            async with session.begin():
+                await seal_import(session, batch.import_id, actor_identity="operator-1")
     return batch.import_id, request.external_batch_id
 
 
@@ -705,21 +707,22 @@ async def test_postgres_i5_successful_validation_writes_complete_evidence_set() 
                 )
             )
             assert run is not None
-            for model in (
-                ActualHarvestMappingSnapshotModel,
-                ActualHarvestValidationResultModel,
-                ActualHarvestValidationRecordModel,
-                ActualHarvestValidationMappingEvidenceModel,
-                ActualHarvestValidationLineageNodeModel,
-                ActualHarvestValidationLineageBasisModel,
-            ):
+            expected_counts = {
+                ActualHarvestMappingSnapshotModel: 1,
+                ActualHarvestValidationResultModel: 1,
+                ActualHarvestValidationRecordModel: 1,
+                ActualHarvestValidationMappingEvidenceModel: 4,
+                ActualHarvestValidationLineageNodeModel: 1,
+                ActualHarvestValidationLineageBasisModel: 1,
+            }
+            for model, expected_count in expected_counts.items():
                 assert (
                     await session.scalar(
                         sa.select(sa.func.count())
                         .select_from(model)
                         .where(model.validation_run_id == run.id)
                     )
-                    == 1
+                    == expected_count
                 )
             assert (
                 await session.scalar(
@@ -1217,7 +1220,6 @@ async def test_postgres_i5_uncommitted_batch_is_excluded_from_lineage_basis() ->
         pytest.param("missing_predecessor", "REVISION_PREDECESSOR_MISSING"),
         pytest.param("validated_predecessor", "REVISION_PREDECESSOR_MISSING"),
         pytest.param("cancelled_predecessor", "REVISION_PREDECESSOR_MISSING"),
-        pytest.param("duplicate_revision_number", "REVISION_NUMBER_CONFLICT"),
         pytest.param("revision_number_discontinuity", "REVISION_NUMBER_CONFLICT"),
         pytest.param("multiple_successors", "REVISION_MULTIPLE_SUCCESSORS"),
         pytest.param("lineage_cycle", "REVISION_LINEAGE_CYCLE"),
@@ -1266,19 +1268,6 @@ async def test_postgres_i5_lineage_rejection_matrix(case_id: str, expected_code:
                 "supersedes_external_revision_id": predecessor,
             },
         )
-    elif case_id == "duplicate_revision_number":
-        record_specs = (
-            {
-                "external_logical_record_id": logical_id,
-                "external_revision_id": f"revision-one-{suffix}",
-                "revision_number": 1,
-            },
-            {
-                "external_logical_record_id": logical_id,
-                "external_revision_id": f"revision-two-{suffix}",
-                "revision_number": 1,
-            },
-        )
     elif case_id == "revision_number_discontinuity":
         record_specs = (
             {
@@ -1309,7 +1298,7 @@ async def test_postgres_i5_lineage_rejection_matrix(case_id: str, expected_code:
             {
                 "external_logical_record_id": logical_id,
                 "external_revision_id": f"revision-two-b-{suffix}",
-                "revision_number": 2,
+                "revision_number": 3,
                 "supersedes_external_revision_id": predecessor,
             },
         )
@@ -1320,13 +1309,13 @@ async def test_postgres_i5_lineage_rejection_matrix(case_id: str, expected_code:
             {
                 "external_logical_record_id": logical_id,
                 "external_revision_id": first,
-                "revision_number": 1,
+                "revision_number": 2,
                 "supersedes_external_revision_id": second,
             },
             {
                 "external_logical_record_id": logical_id,
                 "external_revision_id": second,
-                "revision_number": 2,
+                "revision_number": 3,
                 "supersedes_external_revision_id": first,
             },
         )
@@ -1360,7 +1349,7 @@ async def test_postgres_i5_lineage_rejection_matrix(case_id: str, expected_code:
             {
                 "external_logical_record_id": logical_id,
                 "external_revision_id": f"revision-terminal-b-{suffix}",
-                "revision_number": 1,
+                "revision_number": 2,
                 "record_status": record_status,
             },
         )
@@ -1390,16 +1379,54 @@ async def test_postgres_i5_lineage_rejection_matrix(case_id: str, expected_code:
 
 
 @pytest.mark.asyncio
+async def test_postgres_i5_duplicate_revision_number_is_rejected_by_staging_identity() -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    logical_id = f"logical-duplicate-number-{suffix}"
+    import_id, external_batch_id = await _seed_i5_batch_with_record(
+        suffix=f"duplicate-number-{suffix}",
+        mapping_policy=mapping_policy,
+        logical_id=logical_id,
+        revision_id=f"revision-one-{suffix}",
+        seal=False,
+    )
+    try:
+        # I2's immutable staging identity constraint rejects duplicate
+        # (source, logical record, revision number) before sealing.
+        conflicting = _record_for_batch(external_batch_id).model_copy(
+            update={
+                "external_logical_record_id": logical_id,
+                "external_revision_id": f"revision-two-{suffix}",
+                "revision_number": 1,
+            }
+        )
+        with pytest.raises(ActualHarvestApiError) as exc_info:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await append_import_records(
+                        session,
+                        import_id,
+                        ActualHarvestApiAppendRecordsRequest(records=(conflicting,)),
+                    )
+        assert exc_info.value.code.value == "REVISION_IDENTITY_CONFLICT"
+        batch, persisted_count = await _batch_state(external_batch_id)
+        assert batch.status == "UPLOADING"
+        assert persisted_count == 1
+        assert batch.record_count == batch.uploaded_record_count == 1
+    finally:
+        await _cleanup_batch(external_batch_id)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
 async def test_postgres_i5_same_revision_identity_different_payload_is_rejected_atomically() -> (
     None
 ):
     _require_postgres()
     suffix = uuid4().hex
     mapping_policy = await _seed_i5_registry(suffix)
-    import_id, external_batch_id = await _seed_i5_batch(
-        suffix=f"conflict-{suffix}",
-        mapping_policy=mapping_policy,
-    )
+    import_id, external_batch_id = await _seed_batch(expected_record_count=1)
     try:
         record = _record_for_batch(external_batch_id).model_copy(
             update={
@@ -1725,20 +1752,24 @@ async def test_postgres_i5_0019_catalog_and_registry_contract_is_exact() -> None
             raise AssertionError("sealed registry mutation was accepted")
 
         async with AsyncSessionMaker() as session:
-            registry_id, entry_id = (
+            row = (
                 await session.execute(
                     sa.text(
                         """
-                        SELECT registry.id AS registry_id, entry.id AS entry_id
-                        FROM actual_harvest_mapping_policy_registry registry
-                        JOIN actual_harvest_mapping_registry_entry entry
-                          ON entry.registry_id = registry.id
-                        WHERE registry.mapping_policy_version = :policy
-                        """
+                    SELECT registry.id AS registry_id, entry.id AS entry_id
+                    FROM actual_harvest_mapping_policy_registry registry
+                    JOIN actual_harvest_mapping_registry_entry entry
+                      ON entry.registry_id = registry.id
+                    WHERE registry.mapping_policy_version = :policy
+                    ORDER BY entry.id
+                    LIMIT 1
+                    """
                     ),
                     {"policy": sealed_policy},
                 )
-            ).one()
+            ).first()
+            assert row is not None
+            registry_id, entry_id = row
         await expect_rejected(
             "UPDATE actual_harvest_mapping_policy_registry SET status = 'DRAFT' WHERE id = :id",
             {"id": registry_id},
@@ -1879,7 +1910,10 @@ async def test_postgres_i5_attempt_fencing_and_drift_matrix(drift_kind: str) -> 
                     ActualHarvestImportBatchModel.import_id == import_id
                 )
             )
-            assert batch is not None and batch.status == "SEALED"
+            expected_batch_status = (
+                "VALIDATING" if drift_kind == "wrong_attempt_generation" else "SEALED"
+            )
+            assert batch is not None and batch.status == expected_batch_status
             assert (
                 await session.scalar(
                     sa.select(sa.func.count()).select_from(ActualHarvestValidationResultModel)
@@ -1920,10 +1954,10 @@ async def test_postgres_i5_injected_finalization_failure_writes_no_partial_evide
                 await session.execute(
                     sa.text(
                         "UPDATE actual_harvest_validation_attempt "
-                        "SET attempt_generation = attempt_generation + 1 "
+                        "SET fencing_token = :fencing_token "
                         "WHERE attempt_id = :attempt_id"
                     ),
-                    {"attempt_id": evidence.attempt_id},
+                    {"attempt_id": evidence.attempt_id, "fencing_token": "f" * 32},
                 )
                 result = await session.run_sync(
                     lambda sync_session: finalize_validation(

@@ -179,7 +179,6 @@ exact-head CI artifact, not by local SQLite execution:
 - `test_postgres_i5_lineage_rejection_matrix[missing_predecessor-REVISION_PREDECESSOR_MISSING]`;
 - `test_postgres_i5_lineage_rejection_matrix[validated_predecessor-REVISION_PREDECESSOR_MISSING]`;
 - `test_postgres_i5_lineage_rejection_matrix[cancelled_predecessor-REVISION_PREDECESSOR_MISSING]`;
-- `test_postgres_i5_lineage_rejection_matrix[duplicate_revision_number-REVISION_NUMBER_CONFLICT]`;
 - `test_postgres_i5_lineage_rejection_matrix[revision_number_discontinuity-REVISION_NUMBER_CONFLICT]`;
 - `test_postgres_i5_lineage_rejection_matrix[multiple_successors-REVISION_MULTIPLE_SUCCESSORS]`;
 - `test_postgres_i5_lineage_rejection_matrix[lineage_cycle-REVISION_LINEAGE_CYCLE]`;
@@ -187,6 +186,7 @@ exact-head CI artifact, not by local SQLite execution:
 - `test_postgres_i5_lineage_rejection_matrix[multiple_structural_terminals-MULTIPLE_TERMINAL_REVISIONS]`;
 - `test_postgres_i5_lineage_rejection_matrix[multiple_finalized_terminals-MULTIPLE_TERMINAL_REVISIONS]`;
 - `test_postgres_i5_lineage_rejection_matrix[corrected_without_successor-INVALID_RECORD_STATUS]`;
+- `test_postgres_i5_duplicate_revision_number_is_rejected_by_staging_identity`;
 - `test_postgres_i5_same_revision_identity_different_payload_is_rejected_atomically`;
 - `test_postgres_i5_validation_errors_use_bounded_keyset_pagination`;
 - `test_postgres_i5_error_pagination_is_bounded_ordered_and_instance_bound`;
@@ -203,6 +203,10 @@ exact-head CI artifact, not by local SQLite execution:
 - `test_postgres_i5_injected_evidence_failure_rolls_back_all_evidence[lineage]`.
 - `test_postgres_i5_draft_registry_is_rejected`;
 - `test_postgres_i5_sealed_registry_entry_mutation_is_rejected`.
+
+Duplicate revision numbers are rejected at the I2 staging identity boundary
+before a sealed batch can be validated; the dedicated PostgreSQL node asserts
+that rejection is atomic and leaves the existing record/count unchanged.
 
 Existing I1-I4, core, agent and Alembic tests remain regression gates. Local
 PostgreSQL status is reported separately and is never inferred from SQLite.
