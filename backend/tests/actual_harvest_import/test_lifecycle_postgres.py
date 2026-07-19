@@ -1350,6 +1350,7 @@ async def test_postgres_i5_lineage_rejection_matrix(case_id: str, expected_code:
                 "external_logical_record_id": logical_id,
                 "external_revision_id": f"revision-terminal-b-{suffix}",
                 "revision_number": 2,
+                "supersedes_external_revision_id": f"missing-terminal-predecessor-{suffix}",
                 "record_status": record_status,
             },
         )
@@ -1796,7 +1797,7 @@ async def test_postgres_i5_0019_catalog_and_registry_contract_is_exact() -> None
         )
 
         async with AsyncSessionMaker() as session:
-            draft_registry_id, draft_entry_id = (
+            row = (
                 await session.execute(
                     sa.text(
                         """
@@ -1805,11 +1806,15 @@ async def test_postgres_i5_0019_catalog_and_registry_contract_is_exact() -> None
                         JOIN actual_harvest_mapping_registry_entry entry
                           ON entry.registry_id = registry.id
                         WHERE registry.mapping_policy_version = :policy
+                        ORDER BY entry.id
+                        LIMIT 1
                         """
                     ),
                     {"policy": draft_policy},
                 )
-            ).one()
+            ).first()
+            assert row is not None
+            draft_registry_id, draft_entry_id = row
         async with AsyncSessionMaker() as session:
             async with session.begin():
                 await session.execute(
