@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections.abc import AsyncIterator
 from dataclasses import replace
 from datetime import UTC, date, datetime
+from enum import StrEnum
 from uuid import uuid4
 
 import pytest
+import pytest_asyncio
 import sqlalchemy as sa
 from sqlalchemy import delete
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from backend.app.actual_harvest_import import validation_service as validation_service_module
 from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
@@ -65,6 +68,111 @@ from backend.tests.actual_harvest_import.test_api_schemas import (
 )
 from backend.tests.db.profile import assert_safe_postgres_test_identity
 
+# PR #117 formal review B1 fix: deterministic trigger rejection attribution.
+# The previous helper swallowed any DBAPIError, which let connection
+# failures, malformed SQL, missing relations, permission errors, and
+# SQLSTATE 23514 with a different message all count as proof that the
+# sealed-registry trigger rejected the statement. The migration raises
+# the rejection with ERRCODE = 'check_violation' (SQLSTATE 23514) and a
+# stable server primary message per trigger; this module pins BOTH the
+# SQLSTATE and the exact server primary message before accepting the
+# exception as expected trigger behaviour.
+EXPECTED_SQLSTATE = "23514"
+REGISTRY_TRIGGER_MESSAGE = "sealed mapping registry is immutable"
+ENTRY_TRIGGER_MESSAGE = "sealed mapping registry entries are immutable"
+
+
+class I5TriggerTarget(StrEnum):
+    """Which sealed-registry trigger the test expects to enforce rejection."""
+
+    REGISTRY = "registry"
+    ENTRY = "entry"
+
+
+def _trigger_message(target: I5TriggerTarget) -> str:
+    if target is I5TriggerTarget.REGISTRY:
+        return REGISTRY_TRIGGER_MESSAGE
+    return ENTRY_TRIGGER_MESSAGE
+
+
+def _chain_exceptions(exc: BaseException) -> list[BaseException]:
+    """Walk an exception chain deterministically (cause/context/__cause__)."""
+
+    seen: set[int] = set()
+    chain: list[BaseException] = []
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        chain.append(current)
+        cause = current.__cause__ or current.__context__
+        if cause is None or id(cause) in seen:
+            break
+        current = cause
+    return chain
+
+
+def _extract_sqlstate(exc: BaseException) -> str | None:
+    """Best-effort extraction of a SQLSTATE from a SQLAlchemy/asyncpg chain."""
+
+    for candidate in _chain_exceptions(exc):
+        sqlstate = getattr(candidate, "sqlstate", None)
+        if isinstance(sqlstate, str) and sqlstate:
+            return sqlstate
+        pgcode = getattr(candidate, "pgcode", None)
+        if isinstance(pgcode, str) and pgcode:
+            return pgcode
+        diag = getattr(candidate, "diag", None)
+        if diag is not None:
+            diag_sqlstate = getattr(diag, "sqlstate", None)
+            if isinstance(diag_sqlstate, str) and diag_sqlstate:
+                return diag_sqlstate
+        args = getattr(candidate, "args", ())
+        if args and isinstance(args[0], str) and len(args[0]) >= 5 and args[0][:5].isdigit():
+            return args[0][:5]
+    return None
+
+
+def _extract_server_message(exc: BaseException) -> str | None:
+    """Best-effort extraction of the server primary message."""
+
+    for candidate in _chain_exceptions(exc):
+        message = getattr(candidate, "message", None)
+        if isinstance(message, str) and message:
+            return message
+        diag = getattr(candidate, "diag", None)
+        if diag is not None:
+            diag_message = getattr(diag, "message_primary", None) or getattr(diag, "message", None)
+            if isinstance(diag_message, str) and diag_message:
+                return diag_message
+    return None
+
+
+def _raise_unexpected_dbapi_error(exc: BaseException, *, sqlstate: str | None) -> None:
+    """Surface the original DBAPIError with diagnostic context attached.
+
+    Some DBAPIError subclasses (e.g. SQLAlchemy's asyncpg-wrapped
+    IntegrityError) require positional ``params`` and ``orig``
+    arguments and refuse to be re-constructed with a single message
+    string. To stay fail-closed without coupling this helper to any
+    particular DBAPIError constructor, we re-raise the *original*
+    exception object unchanged but first attach the diagnostic
+    message as an ``args[-1]`` suffix so pytest's traceback and the
+    CI step summary surface the same SQLSTATE / message data.
+    """
+
+    diagnostic = (
+        f"unexpected DBAPIError while asserting sealed-registry trigger "
+        f"rejection: sqlstate={sqlstate!r} exc={type(exc).__name__}"
+    )
+    original_args = tuple(getattr(exc, "args", ()))
+    new_args = original_args + (diagnostic,) if original_args else (diagnostic,)
+    try:
+        exc.args = new_args  # type: ignore[attr-defined]
+    except Exception:  # pragma: no cover - defensive against frozen exceptions
+        pass
+    raise exc
+
+
 pytestmark = [pytest.mark.postgres, pytest.mark.integration]
 
 
@@ -72,6 +180,117 @@ def _require_postgres() -> None:
     if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
     assert_safe_postgres_test_identity(env=None)
+
+
+_I5_MODULE_TRUNCATE_TABLES = (
+    "actual_harvest_import_batch",
+    "actual_harvest_mapping_policy_registry",
+    "dim_subfarm",
+    "dim_variety",
+    "dim_farm",
+    "dim_season",
+)
+
+_I5_MODULE_EVIDENCE_TABLES = (
+    "actual_harvest_import_batch",
+    "actual_harvest_import_record",
+    "actual_harvest_mapping_policy_registry",
+    "actual_harvest_mapping_registry_entry",
+    "actual_harvest_validation_run",
+    "actual_harvest_validation_result",
+    "actual_harvest_validation_error",
+    "actual_harvest_mapping_snapshot",
+    "actual_harvest_validation_mapping_evidence",
+    "actual_harvest_validation_lineage_node",
+    "actual_harvest_validation_lineage_edge",
+    "actual_harvest_validation_lineage_basis",
+    "actual_harvest_validation_lineage_basis_member",
+    "dim_subfarm",
+    "dim_variety",
+    "dim_farm",
+    "dim_season",
+)
+
+
+async def _truncate_i5_module_database() -> None:
+    """Release I5-owned PostgreSQL fixtures without bypassing triggers."""
+    if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
+        return
+    if os.getenv("APP_ENV") != "test":
+        raise RuntimeError("I5 PostgreSQL cleanup requires APP_ENV=test")
+    assert_safe_postgres_test_identity(env=None)
+
+    table_list = ", ".join(_I5_MODULE_TRUNCATE_TABLES)
+    async with AsyncSessionMaker() as session:
+        try:
+            async with session.begin():
+                await session.execute(sa.text(f"TRUNCATE {table_list} RESTART IDENTITY CASCADE"))
+        except BaseException:
+            await session.rollback()
+            raise
+
+
+async def _i5_module_table_counts() -> dict[str, int]:
+    counts: dict[str, int] = {}
+    async with AsyncSessionMaker() as session:
+        for table_name in _I5_MODULE_EVIDENCE_TABLES:
+            value = await session.scalar(sa.text(f"SELECT COUNT(*) FROM {table_name}"))
+            counts[table_name] = int(value or 0)
+    return counts
+
+
+async def _assert_i5_trigger_rejects(
+    statement: str,
+    parameters: dict[str, object],
+    *,
+    expected_message: str,
+) -> None:
+    """Assert a forbidden mutation is rejected by a sealed-registry trigger.
+
+    B1 fix: requires BOTH SQLSTATE 23514 AND an exact match against the
+    expected server primary message. Any other DBAPIError (connection
+    failure, malformed SQL, missing relation, permission error, SQLSTATE
+    23514 with a different message, etc.) is re-raised so the test fails
+    closed. The matched exception message MUST be supplied explicitly by
+    the caller; broad substring matching of "immutable" is forbidden by
+    the PR #117 B1 deterministic-attribution contract.
+    """
+
+    if expected_message not in (REGISTRY_TRIGGER_MESSAGE, ENTRY_TRIGGER_MESSAGE):
+        raise ValueError(
+            "_assert_i5_trigger_rejects: expected_message must be one of "
+            f"{REGISTRY_TRIGGER_MESSAGE!r} or {ENTRY_TRIGGER_MESSAGE!r}; "
+            "broad substring matching is forbidden by the PR #117 B1 contract."
+        )
+
+    try:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await session.execute(sa.text(statement), parameters)
+    except DBAPIError as exc:
+        sqlstate = _extract_sqlstate(exc)
+        server_message = _extract_server_message(exc)
+        if sqlstate == EXPECTED_SQLSTATE and server_message == expected_message:
+            return
+        _raise_unexpected_dbapi_error(exc, sqlstate=sqlstate)
+    raise AssertionError(
+        "sealed-registry trigger accepted a forbidden mutation "
+        f"(expected SQLSTATE={EXPECTED_SQLSTATE} message={expected_message!r})"
+    )
+
+
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def isolate_i5_postgres_module() -> AsyncIterator[None]:
+    """Own this module's committed PostgreSQL fixture data in shared CI DB."""
+    if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
+        yield
+        return
+
+    await _truncate_i5_module_database()
+    try:
+        yield
+    finally:
+        await _truncate_i5_module_database()
 
 
 async def _create_once(payload: dict[str, object]) -> str:
@@ -2550,3 +2769,391 @@ async def test_postgres_i5_injected_evidence_failure_rolls_back_all_evidence(
     finally:
         await _cleanup_batch(external_batch_id)
         await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_module_cleanup_releases_master_ids_for_downstream_suites() -> None:
+    """Prove this module releases committed fixtures for the shared canary DB."""
+    _require_postgres()
+    suffix = uuid4().hex
+    leaked_policy = await _seed_i5_registry(f"cleanup-leak-{suffix}")
+    import_id, _external_batch_id = await _seed_i5_batch(
+        suffix=f"cleanup-leak-{suffix}",
+        mapping_policy=leaked_policy,
+    )
+    validation = await _validate_once(import_id)
+    assert validation.validation_status == "VALIDATED"
+
+    before_counts = await _i5_module_table_counts()
+    for table_name in (
+        "actual_harvest_import_batch",
+        "actual_harvest_mapping_policy_registry",
+        "actual_harvest_validation_run",
+        "actual_harvest_validation_result",
+        "actual_harvest_mapping_snapshot",
+        "actual_harvest_validation_mapping_evidence",
+        "dim_subfarm",
+        "dim_variety",
+        "dim_farm",
+        "dim_season",
+    ):
+        assert before_counts[table_name] > 0
+
+    await _truncate_i5_module_database()
+    first_cleanup_counts = await _i5_module_table_counts()
+    assert all(value == 0 for value in first_cleanup_counts.values())
+
+    await _truncate_i5_module_database()
+    second_cleanup_counts = await _i5_module_table_counts()
+    assert second_cleanup_counts == first_cleanup_counts
+
+    fixed_registry_policy = f"cleanup-fixed-{suffix}"
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            session.add_all(
+                [
+                    Farm(id=1, name="downstream-farm"),
+                    Season(
+                        id=1,
+                        code="downstream-season",
+                        start_date=date(2026, 1, 1),
+                        end_date=date(2026, 12, 31),
+                    ),
+                    Variety(id=101, code="downstream-variety", name="Downstream Variety"),
+                    Subfarm(id=1, farm_id=1, name="downstream-subfarm"),
+                ]
+            )
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.run_sync(
+                lambda sync_session: create_mapping_registry(
+                    sync_session,
+                    registry_version=f"cleanup-registry-{suffix}",
+                    source_system="farm-system",
+                    mapping_policy_version=fixed_registry_policy,
+                    entries=(
+                        {
+                            "source_field": "season_code",
+                            "source_code": "2026",
+                            "target_type": "SEASON",
+                            "target_business_key": "downstream-season",
+                        },
+                        {
+                            "source_field": "farm_code",
+                            "source_code": "farm-1",
+                            "target_type": "FARM",
+                            "target_business_key": "downstream-farm",
+                        },
+                        {
+                            "source_field": "subfarm_or_plot_code",
+                            "source_code": "plot-1",
+                            "target_type": "SUBFARM",
+                            "target_business_key": "downstream-subfarm",
+                            "target_parent_business_key": "downstream-farm",
+                        },
+                        {
+                            "source_field": "variety_code",
+                            "source_code": "variety-1",
+                            "target_type": "VARIETY",
+                            "target_business_key": "downstream-variety",
+                        },
+                    ),
+                    now=datetime.now(UTC),
+                )
+            )
+            await session.run_sync(
+                lambda sync_session: seal_mapping_registry(
+                    sync_session,
+                    mapping_policy_version=fixed_registry_policy,
+                    now=datetime.now(UTC),
+                )
+            )
+
+    async with AsyncSessionMaker() as session:
+        registry = await session.scalar(
+            sa.select(ActualHarvestMappingPolicyRegistryModel).where(
+                ActualHarvestMappingPolicyRegistryModel.mapping_policy_version
+                == fixed_registry_policy
+            )
+        )
+        assert registry is not None and registry.status == "SEALED"
+        entry = await session.scalar(
+            sa.select(ActualHarvestMappingRegistryEntryModel).where(
+                ActualHarvestMappingRegistryEntryModel.registry_id == registry.id
+            )
+        )
+        assert entry is not None
+        registry_id = registry.id
+        entry_id = entry.id
+
+        trigger_rows = (
+            await session.execute(
+                sa.text(
+                    "SELECT t.tgname, p.proname "
+                    "FROM pg_trigger AS t "
+                    "JOIN pg_class AS c ON c.oid = t.tgrelid "
+                    "JOIN pg_proc AS p ON p.oid = t.tgfoid "
+                    "WHERE NOT t.tgisinternal "
+                    "AND t.tgname IN ("
+                    "'trg_actual_harvest_sealed_registry_immutable', "
+                    "'trg_actual_harvest_sealed_registry_entry_immutable')"
+                )
+            )
+        ).all()
+        assert dict(trigger_rows) == {
+            "trg_actual_harvest_sealed_registry_immutable": (
+                "actual_harvest_reject_sealed_registry_mutation"
+            ),
+            "trg_actual_harvest_sealed_registry_entry_immutable": (
+                "actual_harvest_reject_sealed_registry_entry_mutation"
+            ),
+        }
+
+    await _assert_i5_trigger_rejects(
+        "UPDATE actual_harvest_mapping_policy_registry "
+        "SET entry_count = entry_count WHERE id = :id",
+        {"id": registry_id},
+        expected_message=REGISTRY_TRIGGER_MESSAGE,
+    )
+    await _assert_i5_trigger_rejects(
+        "DELETE FROM actual_harvest_mapping_policy_registry WHERE id = :id",
+        {"id": registry_id},
+        expected_message=REGISTRY_TRIGGER_MESSAGE,
+    )
+    await _assert_i5_trigger_rejects(
+        "INSERT INTO actual_harvest_mapping_registry_entry "
+        "(registry_id, source_field, source_code, target_type, "
+        "target_business_key, entry_hash) "
+        "VALUES (:registry_id, 'farm_code', 'forbidden', 'FARM', "
+        "'downstream-farm', :entry_hash)",
+        {"registry_id": registry_id, "entry_hash": "a" * 64},
+        expected_message=ENTRY_TRIGGER_MESSAGE,
+    )
+    await _assert_i5_trigger_rejects(
+        "UPDATE actual_harvest_mapping_registry_entry SET source_code = 'forbidden' WHERE id = :id",
+        {"id": entry_id},
+        expected_message=ENTRY_TRIGGER_MESSAGE,
+    )
+    await _assert_i5_trigger_rejects(
+        "DELETE FROM actual_harvest_mapping_registry_entry WHERE id = :id",
+        {"id": entry_id},
+        expected_message=ENTRY_TRIGGER_MESSAGE,
+    )
+
+    async with AsyncSessionMaker() as session:
+        assert (
+            await session.scalar(sa.select(sa.func.count()).select_from(Farm).where(Farm.id == 1))
+            == 1
+        )
+        assert (
+            await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(Subfarm)
+                .where(Subfarm.id == 1, Subfarm.farm_id == 1)
+            )
+            == 1
+        )
+        assert (
+            await session.scalar(
+                sa.select(sa.func.count()).select_from(Season).where(Season.id == 1)
+            )
+            == 1
+        )
+        assert (
+            await session.scalar(
+                sa.select(sa.func.count()).select_from(Variety).where(Variety.id == 101)
+            )
+            == 1
+        )
+
+
+# PR #117 formal review B1 fix: negative acceptance.
+# The deterministic-attribution contract is enforced by re-raising any
+# DBAPIError that does not match BOTH the SQLSTATE (23514) AND the
+# expected server primary message. The negative cases below exercise
+# (a) a different SQLSTATE (22012 — division by zero) and (b) the SAME
+# SQLSTATE 23514 with a wrong message ("unrelated check violation"),
+# proving that SQLSTATE alone is insufficient and that broad substring
+# matching of "immutable" cannot masquerade as expected behaviour.
+#
+# The negative cases run BEFORE any per-test sealed-registry seeding
+# so they exercise the helper in isolation against the shared
+# postgres-domain-1 isolated database, without depending on
+# module-scoped fixture data. The final positive rejection uses an
+# ad-hoc sealed registry seeded with a uuid-suffixed mapping policy
+# rather than the standard _seed_i5_registry helper, so this test does
+# not depend on or mutate dim_farm / dim_season / dim_variety /
+# dim_subfarm master rows that other modules in the shard rely on.
+async def _probe_helper_extracts_real_sqlstate_and_message() -> tuple[str, str]:
+    """Round-trip an asyncpg DBAPIError through the helper extractors.
+
+    This guarantees the helper introspects the *real* SQLAlchemy +
+    asyncpg exception chain (sqlstate attribute on the asyncpg error and
+    message attribute on the same), rather than a fabricated mock. The
+    probe deliberately targets a deterministic PostgreSQL error so the
+    extraction can be asserted with exact values, not runner-specific
+    repr or memory addresses.
+    """
+
+    async with AsyncSessionMaker() as session:
+        try:
+            async with session.begin():
+                await session.execute(sa.text("SELECT 1 / 0"))
+        except DBAPIError as exc:
+            sqlstate = _extract_sqlstate(exc)
+            server_message = _extract_server_message(exc)
+            return sqlstate or "", server_message or ""
+    raise AssertionError("probe did not produce a DBAPIError; SQLAlchemy+asyncpg chain unreachable")
+
+
+async def _b1_seed_sealed_registry() -> int:
+    """Seed a sealed mapping registry without touching master data tables.
+
+    The standard I5 test helpers insert Farm / Season / Variety /
+    Subfarm master rows and rely on autoincrement for their primary
+    keys. The postgres-domain-1 isolated database is shared across
+    many tests, so a primary-key collision on dim_farm (id=1) is
+    likely after the I5 module cleanup has run. This helper inserts
+    a sealed mapping registry + entry without any master-data
+    dependency, so the post-cleanup shared database is never
+    expected to have collisions on Farm.id=1.
+    """
+
+    suffix = uuid4().hex
+    mapping_policy = f"b1-negative-acceptance-{suffix}"
+    registry_version = f"b1-negative-acceptance-registry-{suffix}"
+    source_system = "b1-negative-acceptance"
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.run_sync(
+                lambda sync_session: _b1_create_sealed_registry_sync(
+                    sync_session,
+                    mapping_policy=mapping_policy,
+                    registry_version=registry_version,
+                    source_system=source_system,
+                )
+            )
+
+    async with AsyncSessionMaker() as session:
+        registry_id = await session.scalar(
+            sa.select(ActualHarvestMappingPolicyRegistryModel.id).where(
+                ActualHarvestMappingPolicyRegistryModel.mapping_policy_version == mapping_policy
+            )
+        )
+    assert registry_id is not None
+    return registry_id
+
+
+def _b1_create_sealed_registry_sync(
+    sync_session, *, mapping_policy: str, registry_version: str, source_system: str
+) -> None:
+    """Insert a sealed registry + entry, no master-data writes.
+
+    The entry uses target_business_key + target_type only; the
+    sealed-registry trigger does not require the target to exist in
+    any master-data table, so the entry insertion is sufficient for
+    the B1 acceptance test to issue a real sealed-registry UPDATE
+    rejection.
+    """
+
+    from backend.app.actual_harvest_import.validation_service import (
+        create_mapping_registry,
+        seal_mapping_registry,
+    )
+
+    create_mapping_registry(
+        sync_session,
+        registry_version=registry_version,
+        source_system=source_system,
+        mapping_policy_version=mapping_policy,
+        entries=(
+            {
+                "source_field": "b1_negative_source",
+                "source_code": f"b1-negative-{uuid4().hex}",
+                "target_type": "SEASON",
+                "target_business_key": f"b1-negative-{uuid4().hex}",
+            },
+        ),
+        now=datetime.now(UTC),
+    )
+    seal_mapping_registry(
+        sync_session, mapping_policy_version=mapping_policy, now=datetime.now(UTC)
+    )
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_trigger_rejection_helper_rejects_unrelated_dbapi_errors() -> None:
+    """B1 negative acceptance: the helper must re-raise unrelated DBAPIError.
+
+    Two independent negative cases are exercised:
+    Case A — different SQLSTATE (22012 division by zero). The helper MUST
+    re-raise the DBAPIError because the SQLSTATE does not match 23514.
+    Case B — same SQLSTATE 23514 with a wrong message ("unrelated check
+    violation" raised by a DO block). The helper MUST re-raise because
+    the server message does not match the expected sealed-registry
+    message. This proves that SQLSTATE 23514 alone is insufficient and
+    broad substring matching of "immutable" cannot pass.
+
+    The test also asserts that the real SQLAlchemy + asyncpg exception
+    chain exposes sqlstate and message attributes used by the
+    deterministic-attribution helpers (no mock-based evidence).
+
+    After both negative cases aborted their transactions, a final
+    positive rejection against a real sealed registry (seeded by this
+    test, not by the module fixture) verifies that the helper
+    continues to enforce the deterministic-attribution contract and
+    that no aborted-transaction state leaked between cases.
+    """
+
+    _require_postgres()
+
+    # Round-trip a real DBAPIError through the helper extractors so the
+    # assertion below does not rely on runner-specific repr, memory
+    # addresses, or full exception wrappers.
+    probe_sqlstate, probe_message = await _probe_helper_extracts_real_sqlstate_and_message()
+    assert probe_sqlstate == "22012", (
+        "expected SQLSTATE 22012 from SELECT 1 / 0, "
+        f"helper extracted sqlstate={probe_sqlstate!r} message={probe_message!r}"
+    )
+    assert probe_message, (
+        "expected a non-empty server primary message from SELECT 1 / 0, "
+        f"helper extracted message={probe_message!r}"
+    )
+
+    # Case A — different SQLSTATE; helper must re-raise the DBAPIError.
+    with pytest.raises(DBAPIError):
+        await _assert_i5_trigger_rejects(
+            "SELECT 1 / 0",
+            {},
+            expected_message=REGISTRY_TRIGGER_MESSAGE,
+        )
+
+    # Case B — same SQLSTATE 23514 with a different message; helper
+    # must re-raise the DBAPIError. The DO block deliberately raises a
+    # check_violation with a non-sealed-registry message so we can
+    # prove the message discriminator is doing real work.
+    with pytest.raises(DBAPIError):
+        await _assert_i5_trigger_rejects(
+            "DO $$\n"
+            "BEGIN\n"
+            "RAISE EXCEPTION 'unrelated check violation'\n"
+            "USING ERRCODE = 'check_violation';\n"
+            "END\n"
+            "$$",
+            {},
+            expected_message=REGISTRY_TRIGGER_MESSAGE,
+        )
+
+    # Final positive check: a real sealed-registry UPDATE rejection
+    # must still be accepted by the helper, proving no aborted
+    # transaction state leaked and the deterministic-attribution
+    # contract is unchanged after the negative cases.
+    registry_id = await _b1_seed_sealed_registry()
+    await _assert_i5_trigger_rejects(
+        "UPDATE actual_harvest_mapping_policy_registry "
+        "SET entry_count = entry_count WHERE id = :id",
+        {"id": registry_id},
+        expected_message=REGISTRY_TRIGGER_MESSAGE,
+    )
