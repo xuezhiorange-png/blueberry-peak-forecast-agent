@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections.abc import AsyncIterator
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from uuid import uuid4
 
 import pytest
+import pytest_asyncio
 import sqlalchemy as sa
 from sqlalchemy import delete
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from backend.app.actual_harvest_import import validation_service as validation_service_module
 from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
@@ -72,6 +74,87 @@ def _require_postgres() -> None:
     if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
     assert_safe_postgres_test_identity(env=None)
+
+
+_I5_MODULE_TRUNCATE_TABLES = (
+    "actual_harvest_import_batch",
+    "actual_harvest_mapping_policy_registry",
+    "dim_subfarm",
+    "dim_variety",
+    "dim_farm",
+    "dim_season",
+)
+
+_I5_MODULE_EVIDENCE_TABLES = (
+    "actual_harvest_import_batch",
+    "actual_harvest_import_record",
+    "actual_harvest_mapping_policy_registry",
+    "actual_harvest_mapping_registry_entry",
+    "actual_harvest_validation_run",
+    "actual_harvest_validation_result",
+    "actual_harvest_validation_error",
+    "actual_harvest_mapping_snapshot",
+    "actual_harvest_validation_mapping_evidence",
+    "actual_harvest_validation_lineage_node",
+    "actual_harvest_validation_lineage_edge",
+    "actual_harvest_validation_lineage_basis",
+    "actual_harvest_validation_lineage_basis_member",
+    "dim_subfarm",
+    "dim_variety",
+    "dim_farm",
+    "dim_season",
+)
+
+
+async def _truncate_i5_module_database() -> None:
+    """Release I5-owned PostgreSQL fixtures without bypassing triggers."""
+    if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
+        return
+    if os.getenv("APP_ENV") != "test":
+        raise RuntimeError("I5 PostgreSQL cleanup requires APP_ENV=test")
+    assert_safe_postgres_test_identity(env=None)
+
+    table_list = ", ".join(_I5_MODULE_TRUNCATE_TABLES)
+    async with AsyncSessionMaker() as session:
+        try:
+            async with session.begin():
+                await session.execute(sa.text(f"TRUNCATE {table_list} RESTART IDENTITY CASCADE"))
+        except BaseException:
+            await session.rollback()
+            raise
+
+
+async def _i5_module_table_counts() -> dict[str, int]:
+    counts: dict[str, int] = {}
+    async with AsyncSessionMaker() as session:
+        for table_name in _I5_MODULE_EVIDENCE_TABLES:
+            value = await session.scalar(sa.text(f"SELECT COUNT(*) FROM {table_name}"))
+            counts[table_name] = int(value or 0)
+    return counts
+
+
+async def _assert_i5_trigger_rejects(statement: str, parameters: dict[str, object]) -> None:
+    async with AsyncSessionMaker() as session:
+        try:
+            async with session.begin():
+                await session.execute(sa.text(statement), parameters)
+        except DBAPIError:
+            return
+    raise AssertionError("sealed-registry trigger accepted a forbidden mutation")
+
+
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def isolate_i5_postgres_module() -> AsyncIterator[None]:
+    """Own this module's committed PostgreSQL fixture data in shared CI DB."""
+    if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
+        yield
+        return
+
+    await _truncate_i5_module_database()
+    try:
+        yield
+    finally:
+        await _truncate_i5_module_database()
 
 
 async def _create_once(payload: dict[str, object]) -> str:
@@ -2550,3 +2633,195 @@ async def test_postgres_i5_injected_evidence_failure_rolls_back_all_evidence(
     finally:
         await _cleanup_batch(external_batch_id)
         await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_module_cleanup_releases_master_ids_for_downstream_suites() -> None:
+    """Prove this module releases committed fixtures for the shared canary DB."""
+    _require_postgres()
+    suffix = uuid4().hex
+    leaked_policy = await _seed_i5_registry(f"cleanup-leak-{suffix}")
+    import_id, _external_batch_id = await _seed_i5_batch(
+        suffix=f"cleanup-leak-{suffix}",
+        mapping_policy=leaked_policy,
+    )
+    validation = await _validate_once(import_id)
+    assert validation.validation_status == "VALIDATED"
+
+    before_counts = await _i5_module_table_counts()
+    for table_name in (
+        "actual_harvest_import_batch",
+        "actual_harvest_mapping_policy_registry",
+        "actual_harvest_validation_run",
+        "actual_harvest_validation_result",
+        "actual_harvest_mapping_snapshot",
+        "actual_harvest_validation_mapping_evidence",
+        "dim_subfarm",
+        "dim_variety",
+        "dim_farm",
+        "dim_season",
+    ):
+        assert before_counts[table_name] > 0
+
+    await _truncate_i5_module_database()
+    first_cleanup_counts = await _i5_module_table_counts()
+    assert all(value == 0 for value in first_cleanup_counts.values())
+
+    await _truncate_i5_module_database()
+    second_cleanup_counts = await _i5_module_table_counts()
+    assert second_cleanup_counts == first_cleanup_counts
+
+    fixed_registry_policy = f"cleanup-fixed-{suffix}"
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            session.add_all(
+                [
+                    Farm(id=1, name="downstream-farm"),
+                    Season(
+                        id=1,
+                        code="downstream-season",
+                        start_date=date(2026, 1, 1),
+                        end_date=date(2026, 12, 31),
+                    ),
+                    Variety(id=101, code="downstream-variety", name="Downstream Variety"),
+                    Subfarm(id=1, farm_id=1, name="downstream-subfarm"),
+                ]
+            )
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.run_sync(
+                lambda sync_session: create_mapping_registry(
+                    sync_session,
+                    registry_version=f"cleanup-registry-{suffix}",
+                    source_system="farm-system",
+                    mapping_policy_version=fixed_registry_policy,
+                    entries=(
+                        {
+                            "source_field": "season_code",
+                            "source_code": "2026",
+                            "target_type": "SEASON",
+                            "target_business_key": "downstream-season",
+                        },
+                        {
+                            "source_field": "farm_code",
+                            "source_code": "farm-1",
+                            "target_type": "FARM",
+                            "target_business_key": "downstream-farm",
+                        },
+                        {
+                            "source_field": "subfarm_or_plot_code",
+                            "source_code": "plot-1",
+                            "target_type": "SUBFARM",
+                            "target_business_key": "downstream-subfarm",
+                            "target_parent_business_key": "downstream-farm",
+                        },
+                        {
+                            "source_field": "variety_code",
+                            "source_code": "variety-1",
+                            "target_type": "VARIETY",
+                            "target_business_key": "downstream-variety",
+                        },
+                    ),
+                    now=datetime.now(UTC),
+                )
+            )
+            await session.run_sync(
+                lambda sync_session: seal_mapping_registry(
+                    sync_session,
+                    mapping_policy_version=fixed_registry_policy,
+                    now=datetime.now(UTC),
+                )
+            )
+
+    async with AsyncSessionMaker() as session:
+        registry = await session.scalar(
+            sa.select(ActualHarvestMappingPolicyRegistryModel).where(
+                ActualHarvestMappingPolicyRegistryModel.mapping_policy_version
+                == fixed_registry_policy
+            )
+        )
+        assert registry is not None and registry.status == "SEALED"
+        entry = await session.scalar(
+            sa.select(ActualHarvestMappingRegistryEntryModel).where(
+                ActualHarvestMappingRegistryEntryModel.registry_id == registry.id
+            )
+        )
+        assert entry is not None
+        registry_id = registry.id
+        entry_id = entry.id
+
+        trigger_rows = (
+            await session.execute(
+                sa.text(
+                    "SELECT t.tgname, p.proname "
+                    "FROM pg_trigger AS t "
+                    "JOIN pg_class AS c ON c.oid = t.tgrelid "
+                    "JOIN pg_proc AS p ON p.oid = t.tgfoid "
+                    "WHERE NOT t.tgisinternal "
+                    "AND t.tgname IN ("
+                    "'trg_actual_harvest_sealed_registry_immutable', "
+                    "'trg_actual_harvest_sealed_registry_entry_immutable')"
+                )
+            )
+        ).all()
+        assert dict(trigger_rows) == {
+            "trg_actual_harvest_sealed_registry_immutable": (
+                "actual_harvest_reject_sealed_registry_mutation"
+            ),
+            "trg_actual_harvest_sealed_registry_entry_immutable": (
+                "actual_harvest_reject_sealed_registry_entry_mutation"
+            ),
+        }
+
+    await _assert_i5_trigger_rejects(
+        "UPDATE actual_harvest_mapping_policy_registry "
+        "SET entry_count = entry_count WHERE id = :id",
+        {"id": registry_id},
+    )
+    await _assert_i5_trigger_rejects(
+        "DELETE FROM actual_harvest_mapping_policy_registry WHERE id = :id",
+        {"id": registry_id},
+    )
+    await _assert_i5_trigger_rejects(
+        "INSERT INTO actual_harvest_mapping_registry_entry "
+        "(registry_id, source_field, source_code, target_type, "
+        "target_business_key, entry_hash) "
+        "VALUES (:registry_id, 'farm_code', 'forbidden', 'FARM', "
+        "'downstream-farm', :entry_hash)",
+        {"registry_id": registry_id, "entry_hash": "a" * 64},
+    )
+    await _assert_i5_trigger_rejects(
+        "UPDATE actual_harvest_mapping_registry_entry SET source_code = 'forbidden' WHERE id = :id",
+        {"id": entry_id},
+    )
+    await _assert_i5_trigger_rejects(
+        "DELETE FROM actual_harvest_mapping_registry_entry WHERE id = :id",
+        {"id": entry_id},
+    )
+
+    async with AsyncSessionMaker() as session:
+        assert (
+            await session.scalar(sa.select(sa.func.count()).select_from(Farm).where(Farm.id == 1))
+            == 1
+        )
+        assert (
+            await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(Subfarm)
+                .where(Subfarm.id == 1, Subfarm.farm_id == 1)
+            )
+            == 1
+        )
+        assert (
+            await session.scalar(
+                sa.select(sa.func.count()).select_from(Season).where(Season.id == 1)
+            )
+            == 1
+        )
+        assert (
+            await session.scalar(
+                sa.select(sa.func.count()).select_from(Variety).where(Variety.id == 101)
+            )
+            == 1
+        )
