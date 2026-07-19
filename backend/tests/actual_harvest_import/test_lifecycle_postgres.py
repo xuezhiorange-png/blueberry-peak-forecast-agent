@@ -1346,17 +1346,172 @@ async def test_postgres_i5_committed_revision_identity_same_payload_is_rejected(
 
 
 @pytest.mark.asyncio
+async def test_postgres_i5_committed_revision_collision_binds_current_record_regardless_of_sort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    history_id, history_external = await _seed_i5_batch_with_record(
+        suffix=f"history-sort-{suffix}",
+        mapping_policy=mapping_policy,
+        logical_id=f"z-committed-history-{suffix}",
+        revision_id=f"revision-history-sort-{suffix}",
+    )
+    current_id, current_external = await _seed_i5_batch_with_record(
+        suffix=f"current-sort-{suffix}",
+        mapping_policy=mapping_policy,
+        logical_id=f"a-current-collision-{suffix}",
+        revision_id=f"revision-current-sort-{suffix}",
+    )
+    try:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await session.execute(
+                    sa.update(ActualHarvestImportBatchModel)
+                    .where(ActualHarvestImportBatchModel.import_id == history_id)
+                    .values(status="COMMITTED")
+                )
+            current_row = await session.scalar(
+                sa.select(ActualHarvestImportRecordModel).where(
+                    ActualHarvestImportRecordModel.external_batch_id == current_external
+                )
+            )
+            assert current_row is not None
+            canonical_fields = tuple(
+                field_name
+                for field_name in ActualHarvestImportRecordInput.model_fields
+                if field_name not in {"source_row_number", "source_sheet_name"}
+            )
+            current_record = ActualHarvestImportRecordInput.model_validate(
+                {field_name: getattr(current_row, field_name) for field_name in canonical_fields}
+            )
+            committed_collision = current_record.model_copy(
+                update={
+                    "external_batch_id": history_external,
+                    "external_logical_record_id": f"z-committed-history-{suffix}",
+                }
+            )
+            collision_member = {
+                "source_system": committed_collision.source_system,
+                "committed_batch_ref": f"{current_record.source_system}:{history_external}",
+                "external_logical_record_id": committed_collision.external_logical_record_id,
+                "external_revision_id": current_record.external_revision_id,
+                "revision_number": committed_collision.revision_number,
+                "canonical_record_hash": compute_canonical_record_hash(committed_collision),
+                "predecessor_revision_id": committed_collision.supersedes_external_revision_id,
+                "record_status": committed_collision.record_status.value,
+                "source_recorded_at": committed_collision.source_recorded_at,
+                "source_recorded_at_authority_status": (
+                    committed_collision.source_recorded_at_authority_status.value
+                ),
+            }
+
+        history_before, history_count_before = await _batch_state(history_external)
+        history_canonical_before = await _record_canonical_state(history_external)
+        monkeypatch.setattr(
+            validation_service_module,
+            "_current_basis",
+            lambda _session, _batch: ("c" * 64, (collision_member,)),
+        )
+        result = await _validate_once(current_id)
+        assert result.validation_status == "VALIDATION_FAILED"
+
+        async with AsyncSessionMaker() as session:
+            current_batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == current_id
+                )
+            )
+            assert current_batch is not None
+            run = await session.scalar(
+                sa.select(ActualHarvestValidationRunModel).where(
+                    ActualHarvestValidationRunModel.batch_id == current_batch.id,
+                    ActualHarvestValidationRunModel.is_current.is_(True),
+                )
+            )
+            assert run is not None
+            errors = list(
+                await session.scalars(
+                    sa.select(ActualHarvestValidationErrorModel).where(
+                        ActualHarvestValidationErrorModel.validation_run_id == run.id
+                    )
+                )
+            )
+            collision_errors = [
+                error for error in errors if error.error_code == "REVISION_IDENTITY_CONFLICT"
+            ]
+            assert len(collision_errors) == 1
+            assert collision_errors[0].record_index == 1
+            assert (
+                collision_errors[0].external_logical_record_id
+                == current_record.external_logical_record_id
+            )
+            assert collision_errors[0].external_revision_id == current_record.external_revision_id
+            assert collision_errors[0].field_path == "external_revision_id"
+            assert collision_errors[0].sanitized_details == (
+                '{"authority":"COMMITTED_SOURCE_REVISION_HISTORY"}'
+            )
+            current_evidence = await session.scalar(
+                sa.select(ActualHarvestValidationRecordModel).where(
+                    ActualHarvestValidationRecordModel.validation_run_id == run.id,
+                    ActualHarvestValidationRecordModel.record_index == 1,
+                )
+            )
+            assert current_evidence is not None and not current_evidence.is_valid
+            nodes = list(
+                await session.scalars(
+                    sa.select(ActualHarvestValidationLineageNodeModel).where(
+                        ActualHarvestValidationLineageNodeModel.validation_run_id == run.id
+                    )
+                )
+            )
+            assert any(
+                node.origin == "COMMITTED_HISTORY_REVISION"
+                and node.external_logical_record_id
+                == committed_collision.external_logical_record_id
+                for node in nodes
+            )
+            assert not any(
+                node.origin == "CURRENT_BATCH_REVISION"
+                and node.external_revision_id == current_record.external_revision_id
+                for node in nodes
+            )
+
+        history_after, history_count_after = await _batch_state(history_external)
+        assert history_after.status == history_before.status == "COMMITTED"
+        assert history_count_after == history_count_before == 1
+        assert await _record_canonical_state(history_external) == history_canonical_before
+    finally:
+        await _cleanup_batch(current_external)
+        await _cleanup_batch(history_external)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
 async def test_postgres_i5_identical_error_payload_is_persisted_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _require_postgres()
     suffix = uuid4().hex
     mapping_policy = await _seed_i5_registry(suffix)
-    import_id, external_batch_id = await _seed_i5_batch_with_record(
+    import_id, external_batch_id = await _seed_i5_batch_with_records(
         suffix=f"error-dedup-{suffix}",
         mapping_policy=mapping_policy,
-        logical_id=f"logical-error-dedup-{suffix}",
-        revision_id=f"revision-error-dedup-{suffix}",
+        record_specs=(
+            {
+                "external_logical_record_id": f"logical-error-dedup-1-{suffix}",
+                "external_revision_id": f"revision-error-dedup-1-{suffix}",
+                "farm_code": "missing-farm-1",
+                "variety_code": "missing-variety-1",
+            },
+            {
+                "external_logical_record_id": f"logical-error-dedup-2-{suffix}",
+                "external_revision_id": f"revision-error-dedup-2-{suffix}",
+                "farm_code": "missing-farm-2",
+                "variety_code": "missing-variety-2",
+            },
+        ),
     )
     try:
         candidate_calls: list[tuple[dict[str, object], ...]] = []
@@ -1379,7 +1534,7 @@ async def test_postgres_i5_identical_error_payload_is_persisted_once(
                     .values(
                         record_count=0,
                         uploaded_record_count=0,
-                        expected_record_count_or_null=2,
+                        expected_record_count_or_null=3,
                     )
                 )
 
@@ -1426,17 +1581,123 @@ async def test_postgres_i5_identical_error_payload_is_persisted_once(
                 )
             )
             assert result_row is not None
-            assert len(persisted_errors) == 1
-            assert persisted_errors[0].error_code == "BATCH_RECORD_COUNT_MISMATCH"
-            assert run.error_count == result_row.error_count == batch.invalid_record_count == 1
-            assert result.error_count == len(persisted_errors) == 1
+            assert len(persisted_errors) == 5
+            assert len({error.error_hash for error in persisted_errors}) == 5
+            assert {error.error_code for error in persisted_errors} == {
+                "BATCH_RECORD_COUNT_MISMATCH",
+                "IDENTITY_MAPPING_NOT_FOUND",
+            }
+            assert {error.field_path for error in persisted_errors} == {
+                None,
+                "farm_code",
+                "variety_code",
+            }
+            assert {error.record_index for error in persisted_errors} == {None, 1, 2}
+            assert run.error_count == result_row.error_count == len(persisted_errors)
+            assert batch.invalid_record_count == 2
+            assert run.error_count != batch.invalid_record_count
+            assert result.error_count == len(persisted_errors) == 5
+            pages: list[dict[str, object]] = []
             _summary, page, token = await validation_errors(
-                session, import_id, page_size=100, page_token=None
+                session, import_id, page_size=2, page_token=None
             )
-            assert len(page) == 1
-            assert token is None
-            assert page[0]["error_code"] == "BATCH_RECORD_COUNT_MISMATCH"
+            pages.extend(page)
+            while token is not None:
+                _summary, page, token = await validation_errors(
+                    session, import_id, page_size=2, page_token=token
+                )
+                pages.extend(page)
+            assert len(pages) == len(persisted_errors) == 5
+            assert len({row["error_hash"] for row in pages}) == 5
+            assert {row["error_code"] for row in pages} == {
+                "BATCH_RECORD_COUNT_MISMATCH",
+                "IDENTITY_MAPPING_NOT_FOUND",
+            }
             assert result_row.validation_result_hash == run.validation_result_hash
+    finally:
+        await _cleanup_batch(external_batch_id)
+        await _cleanup_registry(mapping_policy)
+
+
+@pytest.mark.asyncio
+async def test_postgres_i5_error_persistence_failure_rolls_back_all_final_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _require_postgres()
+    suffix = uuid4().hex
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch_with_record(
+        suffix=f"error-rollback-{suffix}",
+        mapping_policy=mapping_policy,
+        logical_id=f"logical-error-rollback-{suffix}",
+        revision_id=f"revision-error-rollback-{suffix}",
+        record_updates={"farm_code": "missing-farm-rollback"},
+    )
+    try:
+        original_finalize = validation_service_module.finalize_validation
+
+        def fail_after_finalization(session, *, evidence, now):
+            status = original_finalize(session, evidence=evidence, now=now)
+            assert status == "VALIDATION_FAILED"
+            raise RuntimeError("injected validation evidence persistence failure")
+
+        monkeypatch.setattr(
+            validation_service_module, "finalize_validation", fail_after_finalization
+        )
+        with pytest.raises(RuntimeError, match="injected validation evidence persistence failure"):
+            await _validate_once(import_id)
+
+        async with AsyncSessionMaker() as session:
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == import_id
+                )
+            )
+            assert batch is not None
+            run = await session.scalar(
+                sa.select(ActualHarvestValidationRunModel).where(
+                    ActualHarvestValidationRunModel.batch_id == batch.id,
+                    ActualHarvestValidationRunModel.is_current.is_(True),
+                )
+            )
+            assert run is not None
+            assert batch.status == "VALIDATING"
+            assert run.status == "VALIDATING"
+            assert run.validation_result_hash is None
+            assert run.completed_at is None
+            assert run.valid_count == 0
+            assert run.invalid_count == 0
+            assert run.error_count == 0
+            assert run.warning_count == 0
+
+            evidence_tables = (
+                ActualHarvestValidationResultModel,
+                ActualHarvestValidationRecordModel,
+                ActualHarvestMappingSnapshotModel,
+                ActualHarvestValidationMappingEvidenceModel,
+                ActualHarvestValidationErrorModel,
+                ActualHarvestValidationLineageNodeModel,
+                ActualHarvestValidationLineageEdgeModel,
+                ActualHarvestValidationLineageBasisModel,
+            )
+            for model in evidence_tables:
+                count = await session.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(model)
+                    .where(model.validation_run_id == run.id)
+                )
+                assert count == 0, model.__tablename__
+            basis_member_count = await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(ActualHarvestValidationLineageBasisMemberModel)
+                .join(
+                    ActualHarvestValidationLineageBasisModel,
+                    ActualHarvestValidationLineageBasisMemberModel.basis_id
+                    == ActualHarvestValidationLineageBasisModel.id,
+                )
+                .where(ActualHarvestValidationLineageBasisModel.validation_run_id == run.id)
+            )
+            assert basis_member_count == 0
     finally:
         await _cleanup_batch(external_batch_id)
         await _cleanup_registry(mapping_policy)

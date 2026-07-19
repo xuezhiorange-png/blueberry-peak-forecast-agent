@@ -9,9 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
 from backend.app.actual_harvest_import.api_auth import get_actual_harvest_actor
+from backend.app.actual_harvest_import.api_schemas import ActualHarvestApiRecordInput
+from backend.app.actual_harvest_import.canonical_hashes import compute_canonical_record_hash
 from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
 from backend.app.actual_harvest_import.validation_hashes import (
     ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
+    compute_validation_result_hash,
+    digest,
 )
 from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestMappingSnapshotModel,
@@ -21,6 +25,9 @@ from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestValidationRunModel,
 )
 from backend.app.actual_harvest_import.validation_service import (
+    ValidationErrorValue,
+    _lineage_evidence,
+    _sorted_errors,
     begin_validation,
     build_validation_evidence,
     create_mapping_registry,
@@ -31,6 +38,115 @@ from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.tests.actual_harvest_import.test_api_schemas import _create_payload, _record_payload
 
 NOW = datetime(2026, 7, 18, 8, tzinfo=UTC)
+
+
+def test_lineage_collision_authority_is_not_sort_order_dependent() -> None:
+    current = _record_payload()
+    current.update(
+        {
+            "external_logical_record_id": "a-current-record",
+            "external_revision_id": "revision-shared",
+            "revision_number": 1,
+        }
+    )
+    committed = dict(current)
+    committed.update(
+        {
+            "external_logical_record_id": "z-committed-record",
+            "external_batch_id": "committed-batch",
+            "revision_number": 1,
+        }
+    )
+    current_record = ActualHarvestApiRecordInput.model_validate(current)
+    committed_record = ActualHarvestApiRecordInput.model_validate(committed)
+    committed_hash = compute_canonical_record_hash(committed_record)
+
+    nodes, _edges, errors = _lineage_evidence(
+        (current_record,),
+        (
+            {
+                "source_system": committed_record.source_system,
+                "external_logical_record_id": committed_record.external_logical_record_id,
+                "external_revision_id": committed_record.external_revision_id,
+                "revision_number": committed_record.revision_number,
+                "record_status": committed_record.record_status.value,
+                "predecessor_revision_id": committed_record.supersedes_external_revision_id,
+                "canonical_record_hash": committed_hash,
+                "source_recorded_at": committed_record.source_recorded_at,
+                "source_recorded_at_authority_status": (
+                    committed_record.source_recorded_at_authority_status.value
+                ),
+                "committed_batch_ref": committed_record.external_batch_id,
+            },
+        ),
+    )
+
+    collision_errors = [error for error in errors if error.code == "REVISION_IDENTITY_CONFLICT"]
+    assert len(collision_errors) == 1
+    assert collision_errors[0].record_index == 1
+    assert collision_errors[0].logical_id == current_record.external_logical_record_id
+    assert collision_errors[0].revision_id == current_record.external_revision_id
+    assert collision_errors[0].field_path == "external_revision_id"
+    assert collision_errors[0].details == {"authority": "COMMITTED_SOURCE_REVISION_HISTORY"}
+    assert [node["external_logical_record_id"] for node in nodes] == [
+        committed_record.external_logical_record_id
+    ]
+
+
+def test_sorted_errors_deduplicates_only_canonical_error_identity() -> None:
+    def make_error(**changes: object) -> ValidationErrorValue:
+        values: dict[str, object] = {
+            "severity": "ERROR",
+            "code": "IDENTITY_MAPPING_NOT_FOUND",
+            "record_index": 1,
+            "logical_id": "logical-1",
+            "revision_id": "revision-1",
+            "field_path": "farm_code",
+            "details": {"reason": "missing"},
+        }
+        values.update(changes)
+        return ValidationErrorValue(**values)  # type: ignore[arg-type]
+
+    candidates = (
+        make_error(),
+        make_error(),
+        make_error(record_index=2, logical_id="logical-2", revision_id="revision-2"),
+        make_error(field_path="variety_code"),
+        make_error(code="REVISION_IDENTITY_CONFLICT"),
+        make_error(details={"reason": "ambiguous"}),
+    )
+    forward = _sorted_errors(list(candidates))
+    reverse = _sorted_errors(list(reversed(candidates)))
+    forward_payloads = tuple(error.payload() for error in forward)
+    reverse_payloads = tuple(error.payload() for error in reverse)
+
+    assert forward_payloads == reverse_payloads
+    assert len(forward_payloads) == 5
+    assert len({digest(payload) for payload in forward_payloads}) == 5
+
+    def result_hash(errors: tuple[dict[str, object], ...]) -> str:
+        return compute_validation_result_hash(
+            seal_manifest_hash="a" * 64,
+            mapping_snapshot_hash="b" * 64,
+            mapping_policy_version="mapping-v1",
+            validation_policy_version="validation-v1",
+            record_hashes=(),
+            mapping_outcomes=(),
+            nodes=(),
+            edges=(),
+            errors=errors,
+            warnings=(),
+            counts={
+                "valid_count": 0,
+                "invalid_count": 2,
+                "error_count": len(errors),
+                "warning_count": 0,
+            },
+            committed_lineage_basis_hash="c" * 64,
+            lineage_graph_hash="d" * 64,
+        )
+
+    assert result_hash(forward_payloads) == result_hash(reverse_payloads)
 
 
 async def _seed_registry(maker: async_sessionmaker[AsyncSession]) -> None:
