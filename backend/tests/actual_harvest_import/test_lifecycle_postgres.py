@@ -2976,6 +2976,15 @@ async def test_postgres_i5_module_cleanup_releases_master_ids_for_downstream_sui
 # SQLSTATE 23514 with a wrong message ("unrelated check violation"),
 # proving that SQLSTATE alone is insufficient and that broad substring
 # matching of "immutable" cannot masquerade as expected behaviour.
+#
+# The negative cases run BEFORE any per-test sealed-registry seeding
+# so they exercise the helper in isolation against the shared
+# postgres-domain-1 isolated database, without depending on
+# module-scoped fixture data. The final positive rejection uses an
+# ad-hoc sealed registry seeded with a uuid-suffixed mapping policy
+# rather than the standard _seed_i5_registry helper, so this test does
+# not depend on or mutate dim_farm / dim_season / dim_variety /
+# dim_subfarm master rows that other modules in the shard rely on.
 async def _probe_helper_extracts_real_sqlstate_and_message() -> tuple[str, str]:
     """Round-trip an asyncpg DBAPIError through the helper extractors.
 
@@ -2998,6 +3007,82 @@ async def _probe_helper_extracts_real_sqlstate_and_message() -> tuple[str, str]:
     raise AssertionError("probe did not produce a DBAPIError; SQLAlchemy+asyncpg chain unreachable")
 
 
+async def _b1_seed_sealed_registry() -> int:
+    """Seed a sealed mapping registry without touching master data tables.
+
+    The standard I5 test helpers insert Farm / Season / Variety /
+    Subfarm master rows and rely on autoincrement for their primary
+    keys. The postgres-domain-1 isolated database is shared across
+    many tests, so a primary-key collision on dim_farm (id=1) is
+    likely after the I5 module cleanup has run. This helper inserts
+    a sealed mapping registry + entry without any master-data
+    dependency, so the post-cleanup shared database is never
+    expected to have collisions on Farm.id=1.
+    """
+
+    suffix = uuid4().hex
+    mapping_policy = f"b1-negative-acceptance-{suffix}"
+    registry_version = f"b1-negative-acceptance-registry-{suffix}"
+    source_system = "b1-negative-acceptance"
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.run_sync(
+                lambda sync_session: _b1_create_sealed_registry_sync(
+                    sync_session,
+                    mapping_policy=mapping_policy,
+                    registry_version=registry_version,
+                    source_system=source_system,
+                )
+            )
+
+    async with AsyncSessionMaker() as session:
+        registry_id = await session.scalar(
+            sa.select(ActualHarvestMappingPolicyRegistryModel.id).where(
+                ActualHarvestMappingPolicyRegistryModel.mapping_policy_version == mapping_policy
+            )
+        )
+    assert registry_id is not None
+    return registry_id
+
+
+def _b1_create_sealed_registry_sync(
+    sync_session, *, mapping_policy: str, registry_version: str, source_system: str
+) -> None:
+    """Insert a sealed registry + entry, no master-data writes.
+
+    The entry uses target_business_key + target_type only; the
+    sealed-registry trigger does not require the target to exist in
+    any master-data table, so the entry insertion is sufficient for
+    the B1 acceptance test to issue a real sealed-registry UPDATE
+    rejection.
+    """
+
+    from backend.app.actual_harvest_import.validation_service import (
+        create_mapping_registry,
+        seal_mapping_registry,
+    )
+
+    create_mapping_registry(
+        sync_session,
+        registry_version=registry_version,
+        source_system=source_system,
+        mapping_policy_version=mapping_policy,
+        entries=(
+            {
+                "source_field": "b1_negative_source",
+                "source_code": f"b1-negative-{uuid4().hex}",
+                "target_type": "SEASON",
+                "target_business_key": f"b1-negative-{uuid4().hex}",
+            },
+        ),
+        now=datetime.now(UTC),
+    )
+    seal_mapping_registry(
+        sync_session, mapping_policy_version=mapping_policy, now=datetime.now(UTC)
+    )
+
+
 @pytest.mark.asyncio
 async def test_postgres_i5_trigger_rejection_helper_rejects_unrelated_dbapi_errors() -> None:
     """B1 negative acceptance: the helper must re-raise unrelated DBAPIError.
@@ -3014,6 +3099,12 @@ async def test_postgres_i5_trigger_rejection_helper_rejects_unrelated_dbapi_erro
     The test also asserts that the real SQLAlchemy + asyncpg exception
     chain exposes sqlstate and message attributes used by the
     deterministic-attribution helpers (no mock-based evidence).
+
+    After both negative cases aborted their transactions, a final
+    positive rejection against a real sealed registry (seeded by this
+    test, not by the module fixture) verifies that the helper
+    continues to enforce the deterministic-attribution contract and
+    that no aborted-transaction state leaked between cases.
     """
 
     _require_postgres()
@@ -3055,27 +3146,11 @@ async def test_postgres_i5_trigger_rejection_helper_rejects_unrelated_dbapi_erro
             expected_message=REGISTRY_TRIGGER_MESSAGE,
         )
 
-    # After both negative cases aborted their transactions, the helper
-    # must remain usable and still accept a real sealed-registry
-    # rejection. We re-bind a sealed registry in a fresh session and
-    # confirm the helper continues to enforce the deterministic
-    # attribution contract (no leaked aborted transaction, no module
-    # post-cleanup interference).
-    suffix = uuid4().hex
-    await _seed_i5_registry(f"b1-negative-acceptance-{suffix}")
-
-    async with AsyncSessionMaker() as session:
-        registry_id = await session.scalar(
-            sa.select(ActualHarvestMappingPolicyRegistryModel.id).where(
-                ActualHarvestMappingPolicyRegistryModel.mapping_policy_version
-                == f"mapping-i5-b1-negative-acceptance-{suffix}"
-            )
-        )
-    assert registry_id is not None
-
-    # Real sealed-registry UPDATE rejection must still be accepted by
-    # the helper; this guards against the negative cases having left a
-    # bad transaction state behind.
+    # Final positive check: a real sealed-registry UPDATE rejection
+    # must still be accepted by the helper, proving no aborted
+    # transaction state leaked and the deterministic-attribution
+    # contract is unchanged after the negative cases.
+    registry_id = await _b1_seed_sealed_registry()
     await _assert_i5_trigger_rejects(
         "UPDATE actual_harvest_mapping_policy_registry "
         "SET entry_count = entry_count WHERE id = :id",
