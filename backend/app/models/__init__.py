@@ -25,6 +25,7 @@ from backend.app.models.analytics import (
     FactorySeasonPeakMetric,
     FactReceiptDaily,
 )
+from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.app.models.baseline_backtest import BaselineBacktestResult, BaselineBacktestRun
 from backend.app.models.core_forecast import (
     CoreForecastDailyRowModel,
