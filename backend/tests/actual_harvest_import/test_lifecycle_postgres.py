@@ -13,6 +13,7 @@ import pytest_asyncio
 import sqlalchemy as sa
 from sqlalchemy import delete
 from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.actual_harvest_import import validation_service as validation_service_module
 from backend.app.actual_harvest_import.api_auth import ActualHarvestActorContext
@@ -2787,6 +2788,385 @@ async def test_postgres_i5_injected_evidence_failure_rolls_back_all_evidence(
         await _cleanup_registry(mapping_policy)
 
 
+# ---------------------------------------------------------------------------
+# v0.2-S1 atomic commit (PostgreSQL)
+# ---------------------------------------------------------------------------
+
+
+async def _s1_actor() -> ActualHarvestActorContext:
+    """Build a fully-privileged commit actor for S1 tests."""
+    return ActualHarvestActorContext(
+        identity="operator-1",
+        allowed_source_systems=frozenset({"i5-domain-1", "farm-system"}),
+        allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+        may_commit=True,
+    )
+
+
+async def _current_run_instance_identity_hash(session: AsyncSession, import_id: str) -> str:
+    """Read the current VALIDATED validation run's instance_identity_hash.
+
+    Used by the S1 tests to discover the value that
+    commit_batch() will require in its request body. Accepts an
+    already-open AsyncSession (the test owns its caller-bound
+    transaction) so the helper does NOT open a second session
+    against the same connection pool. BatchModel source is the
+    canonical models module (not validation_models), matching
+    the rest of the file.
+    """
+    value = await session.scalar(
+        sa.select(ActualHarvestValidationRunModel.instance_identity_hash)
+        .join(
+            ActualHarvestImportBatchModel,
+            ActualHarvestValidationRunModel.batch_id == ActualHarvestImportBatchModel.id,
+        )
+        .where(
+            ActualHarvestImportBatchModel.import_id == import_id,
+            ActualHarvestValidationRunModel.is_current.is_(True),
+        )
+    )
+    assert value is not None
+    return value
+
+
+async def _commit_once(import_id: str) -> CommitResult:
+    """Invoke commit_batch on the given import and return the result.
+
+    Each call opens its own caller-owned transaction. The batch must
+    already be in VALIDATED state with a current validation run.
+    """
+    from backend.app.db.session import AsyncSessionMaker as _ASM
+
+    async with _ASM() as session:
+        async with session.begin():
+            validation_run_instance_identity_hash = await _current_run_instance_identity_hash(
+                session, import_id
+            )
+            return await _commit_service_fn(
+                session,
+                import_id=import_id,
+                validation_run_instance_identity_hash=(validation_run_instance_identity_hash),
+                actor=await _s1_actor(),
+            )
+
+
+# These tests exercise the S1 atomic commit contract against a real
+# PostgreSQL database. They prove:
+#   - commit vs commit produces exactly one manifest and is idempotent on
+#     exact replay (zero additional write)
+#   - cancel vs commit produces exactly one terminal outcome
+#   - commit_manifest immutability is enforced by the PostgreSQL trigger
+#   - sealed-or-committed import records cannot be mutated
+#   - injected flush failures roll back the manifest + batch update
+# They are tagged @pytest.mark.postgres and gated by
+# RUN_POSTGRES_INTEGRATION=1 so the SQLite unit tests stay fast.
+
+
+async def _s1_seed_validated_batch(*, suffix: str) -> tuple[str, str]:
+    """Seed a fully-validated batch (registry + batch + records +
+    validation_run + validation_result + mapping_snapshot) so the
+    commit service can be invoked against it.
+
+    Reuses `_seed_i5_registry` so the mapping policy is actually
+    registered (and sealed) in the mapping_policy_registry / entries
+    tables before validation looks it up. Previously this helper built
+    a synthetic `s1-mapping-{suffix}` string that was never inserted
+    into the registry, causing
+    "mapping policy version is not registered" during `_validate_once`.
+    """
+    mapping_policy = await _seed_i5_registry(suffix)
+    import_id, external_batch_id = await _seed_i5_batch(
+        suffix=suffix, mapping_policy=mapping_policy
+    )
+    await _validate_once(import_id)
+    return import_id, external_batch_id
+
+
+@pytest.mark.asyncio
+async def test_postgres_s1_commit_vs_commit_produces_one_manifest() -> None:
+    """Two sequential commits on the same batch must produce exactly one
+    manifest row. The second call is a zero-write exact replay.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
+    first = await _commit_once(import_id)
+    assert first.reused_existing_commit is False
+    second = await _commit_once(import_id)
+    assert second.reused_existing_commit is True
+    assert second.commit_manifest_hash == first.commit_manifest_hash
+
+    # Exactly one manifest row in the database.
+    async with AsyncSessionMaker() as session:
+        manifest_count = await session.scalar(
+            sa.select(sa.func.count())
+            .select_from(ActualHarvestCommitManifestModel)
+            .join(
+                ActualHarvestImportBatchModel,
+                ActualHarvestCommitManifestModel.batch_id == ActualHarvestImportBatchModel.id,
+            )
+            .where(ActualHarvestImportBatchModel.import_id == import_id)
+        )
+    assert manifest_count == 1
+
+
+@pytest.mark.asyncio
+async def test_postgres_s1_commit_vs_commit_does_not_write_additional_manifest() -> None:
+    """After the first commit, the second commit must not add a second
+    manifest row (zero write on exact replay). Combined with the
+    previous test this proves the count stays at 1 across replays.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
+    await _commit_once(import_id)
+    await _commit_once(import_id)
+    await _commit_once(import_id)
+    async with AsyncSessionMaker() as session:
+        manifest_count = await session.scalar(
+            sa.select(sa.func.count())
+            .select_from(ActualHarvestCommitManifestModel)
+            .join(
+                ActualHarvestImportBatchModel,
+                ActualHarvestCommitManifestModel.batch_id == ActualHarvestImportBatchModel.id,
+            )
+            .where(ActualHarvestImportBatchModel.import_id == import_id)
+        )
+    assert manifest_count == 1
+
+
+@pytest.mark.asyncio
+async def test_postgres_s1_cancel_then_commit_produces_one_terminal_outcome() -> None:
+    """cancel after VALIDATED keeps the batch CANCELLED with NO
+    commit_manifest. A subsequent commit attempt is rejected because
+    the batch is no longer in VALIDATED state.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
+    await _cancel_once(import_id)
+    state = await _batch_state(import_id)
+    assert state["status"] == "CANCELLED"
+
+    # No commit manifest exists for the cancelled batch.
+    async with AsyncSessionMaker() as session:
+        batch_db_id = await session.scalar(
+            sa.select(ActualHarvestImportBatchModel.id).where(
+                ActualHarvestImportBatchModel.import_id == import_id
+            )
+        )
+        manifest_count = await session.scalar(
+            sa.select(sa.func.count())
+            .select_from(ActualHarvestCommitManifestModel)
+            .where(ActualHarvestCommitManifestModel.batch_id == batch_db_id)
+        )
+    assert manifest_count == 0
+
+    # A commit attempt must be rejected because the batch is CANCELLED.
+    with pytest.raises(ActualHarvestApiError) as excinfo:
+        await _commit_once(import_id)
+    assert excinfo.value.code == ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_VALIDATED
+
+
+@pytest.mark.asyncio
+async def test_postgres_s1_commit_manifest_update_rejected() -> None:
+    """The commit_manifest immutability trigger must reject direct
+    UPDATE on the manifest table.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
+    result = await _commit_once(import_id)
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            with pytest.raises(DBAPIError) as excinfo:
+                await session.execute(
+                    sa.text(
+                        "UPDATE actual_harvest_commit_manifest "
+                        "SET committed_record_count = 99 "
+                        "WHERE commit_manifest_hash = :h"
+                    ),
+                    {"h": result.commit_manifest_hash},
+                )
+        chain = _chain_exceptions(excinfo.value)
+        sqlstate = next(
+            (s for e in chain if (s := _extract_sqlstate(e))),
+            None,
+        )
+        message = next(
+            (m for e in chain if (m := _extract_server_message(e))),
+            "",
+        )
+        assert sqlstate == "check_violation", (
+            f"expected SQLSTATE check_violation from manifest UPDATE trigger, "
+            f"got sqlstate={sqlstate!r} message={message!r}"
+        )
+        assert "commit manifest is immutable" in message, (
+            f"expected immutability message, got {message!r}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_postgres_s1_commit_manifest_delete_rejected() -> None:
+    """The commit_manifest immutability trigger must reject direct
+    DELETE on the manifest table.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
+    result = await _commit_once(import_id)
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            with pytest.raises(DBAPIError) as excinfo:
+                await session.execute(
+                    sa.text(
+                        "DELETE FROM actual_harvest_commit_manifest WHERE commit_manifest_hash = :h"
+                    ),
+                    {"h": result.commit_manifest_hash},
+                )
+        chain = _chain_exceptions(excinfo.value)
+        sqlstate = next(
+            (s for e in chain if (s := _extract_sqlstate(e))),
+            None,
+        )
+        message = next(
+            (m for e in chain if (m := _extract_server_message(e))),
+            "",
+        )
+        assert sqlstate == "check_violation", (
+            f"expected SQLSTATE check_violation from manifest DELETE trigger, "
+            f"got sqlstate={sqlstate!r} message={message!r}"
+        )
+        assert "commit manifest is immutable" in message, (
+            f"expected immutability message, got {message!r}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_postgres_s1_committed_record_update_rejected() -> None:
+    """A committed import record must be immutable. The S1 §八 contract
+    promises a PostgreSQL trigger that rejects UPDATE on a record whose
+    parent batch is COMMITTED. We prove that here.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
+    await _commit_once(import_id)
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            with pytest.raises(DBAPIError) as excinfo:
+                await session.execute(
+                    sa.text(
+                        "UPDATE actual_harvest_import_record "
+                        "SET actual_harvest_quantity_kg = 0 "
+                        "WHERE batch_id = ("
+                        "  SELECT id FROM actual_harvest_import_batch "
+                        "  WHERE import_id = :iid"
+                        ") "
+                        "AND source_row_number = 1"
+                    ),
+                    {"iid": import_id},
+                )
+        chain = _chain_exceptions(excinfo.value)
+        sqlstate = next(
+            (s for e in chain if (s := _extract_sqlstate(e))),
+            None,
+        )
+        message = next(
+            (m for e in chain if (m := _extract_server_message(e))),
+            "",
+        )
+        assert sqlstate is not None, (
+            f"expected SQLSTATE from committed-record UPDATE trigger, got message={message!r}"
+        )
+        assert message, (
+            f"expected non-empty server message from committed-record UPDATE trigger, "
+            f"got sqlstate={sqlstate!r}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_postgres_s1_post_manifest_insert_failure_rolls_back() -> None:
+    """When a flush failure is injected AFTER the manifest INSERT, the
+    caller-owned transaction must roll back: zero manifest rows remain
+    and the batch stays in VALIDATED state.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
+
+    # We use a unique sentinel SQLSTATE to ensure the test failure
+    # signal is independent of any other connection or transaction.
+    from sqlalchemy import event as _sa_event
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            from backend.app.actual_harvest_import import commit_service as _cs
+            from backend.app.actual_harvest_import.api_auth import (
+                ActualHarvestActorContext as _Actor,
+            )
+            from backend.app.actual_harvest_import.enums import (
+                ActualHarvestImportChannel as _Ch,
+            )
+
+            actor = _Actor(
+                identity="operator-1",
+                allowed_source_systems=frozenset({"i5-domain-1"}),
+                allowed_channels=frozenset({_Ch.API}),
+                may_commit=True,
+            )
+
+            def _explode_on_manifest_insert(
+                _mapper: object, _connection: object, target: object
+            ) -> None:
+                if isinstance(target, ActualHarvestCommitManifestModel):
+                    raise RuntimeError("simulated post-manifest flush failure")
+
+            _sa_event.listen(
+                ActualHarvestCommitManifestModel,
+                "before_insert",
+                _explode_on_manifest_insert,
+            )
+            try:
+                with pytest.raises(RuntimeError, match="simulated post-manifest flush failure"):
+                    await _cs.commit_batch(
+                        session,
+                        import_id=import_id,
+                        validation_run_instance_identity_hash=(
+                            await _current_run_instance_identity_hash(session, import_id)
+                        ),
+                        actor=actor,
+                    )
+            finally:
+                _sa_event.remove(
+                    ActualHarvestCommitManifestModel,
+                    "before_insert",
+                    _explode_on_manifest_insert,
+                )
+
+    # After the failure, the batch must still be in VALIDATED and no
+    # commit_manifest row should exist.
+    state = await _batch_state(import_id)
+    assert state["status"] == "VALIDATED"
+    assert state["committed_record_count"] == 0
+
+    async with AsyncSessionMaker() as session:
+        batch_db_id = await session.scalar(
+            sa.select(ActualHarvestImportBatchModel.id).where(
+                ActualHarvestImportBatchModel.import_id == import_id
+            )
+        )
+        manifest_count = await session.scalar(
+            sa.select(sa.func.count())
+            .select_from(ActualHarvestCommitManifestModel)
+            .where(ActualHarvestCommitManifestModel.batch_id == batch_db_id)
+        )
+    assert manifest_count == 0
+
+
 @pytest.mark.asyncio
 async def test_postgres_i5_module_cleanup_releases_master_ids_for_downstream_suites() -> None:
     """Prove this module releases committed fixtures for the shared canary DB."""
@@ -3173,376 +3553,3 @@ async def test_postgres_i5_trigger_rejection_helper_rejects_unrelated_dbapi_erro
         {"id": registry_id},
         expected_message=REGISTRY_TRIGGER_MESSAGE,
     )
-
-
-# ---------------------------------------------------------------------------
-# v0.2-S1 atomic commit (PostgreSQL)
-# ---------------------------------------------------------------------------
-
-
-async def _s1_actor() -> ActualHarvestActorContext:
-    """Build a fully-privileged commit actor for S1 tests."""
-    return ActualHarvestActorContext(
-        identity="operator-1",
-        allowed_source_systems=frozenset({"i5-domain-1", "farm-system"}),
-        allowed_channels=frozenset({ActualHarvestImportChannel.API}),
-        may_commit=True,
-    )
-
-
-async def _current_run_instance_identity_hash(session: AsyncSessionMaker, import_id: str) -> str:
-    """Read the current VALIDATED validation run's instance_identity_hash.
-
-    Used by the S1 tests to discover the value that
-    commit_batch() will require in its request body.
-    """
-    from backend.app.actual_harvest_import.validation_models import (
-        ActualHarvestImportBatchModel as _Batch,
-    )
-    from backend.app.actual_harvest_import.validation_models import (
-        ActualHarvestValidationRunModel as _Run,
-    )
-
-    async with session() as inner:
-        return await inner.scalar(
-            sa.select(_Run.instance_identity_hash)
-            .join(_Batch, _Run.batch_id == _Batch.id)
-            .where(_Batch.import_id == import_id, _Run.is_current.is_(True))
-        )
-
-
-async def _commit_once(import_id: str) -> CommitResult:
-    """Invoke commit_batch on the given import and return the result.
-
-    Each call opens its own caller-owned transaction. The batch must
-    already be in VALIDATED state with a current validation run.
-    """
-    from backend.app.db.session import AsyncSessionMaker as _ASM
-
-    async with _ASM() as session:
-        async with session.begin():
-            return await _commit_service_fn(
-                session,
-                import_id=import_id,
-                validation_run_instance_identity_hash=(
-                    await _current_run_instance_identity_hash(_ASM, import_id)
-                ),
-                actor=await _s1_actor(),
-            )
-
-
-# These tests exercise the S1 atomic commit contract against a real
-# PostgreSQL database. They prove:
-#   - commit vs commit produces exactly one manifest and is idempotent on
-#     exact replay (zero additional write)
-#   - cancel vs commit produces exactly one terminal outcome
-#   - commit_manifest immutability is enforced by the PostgreSQL trigger
-#   - sealed-or-committed import records cannot be mutated
-#   - injected flush failures roll back the manifest + batch update
-# They are tagged @pytest.mark.postgres and gated by
-# RUN_POSTGRES_INTEGRATION=1 so the SQLite unit tests stay fast.
-
-
-async def _s1_seed_validated_batch(*, suffix: str) -> tuple[str, str]:
-    """Seed a fully-validated batch (registry + batch + records +
-    validation_run + validation_result + mapping_snapshot) so the
-    commit service can be invoked against it.
-
-    Reuses `_seed_i5_registry` so the mapping policy is actually
-    registered (and sealed) in the mapping_policy_registry / entries
-    tables before validation looks it up. Previously this helper built
-    a synthetic `s1-mapping-{suffix}` string that was never inserted
-    into the registry, causing
-    "mapping policy version is not registered" during `_validate_once`.
-    """
-    mapping_policy = await _seed_i5_registry(suffix)
-    import_id, external_batch_id = await _seed_i5_batch(
-        suffix=suffix, mapping_policy=mapping_policy
-    )
-    await _validate_once(import_id)
-    return import_id, external_batch_id
-
-
-@pytest.mark.asyncio
-async def test_postgres_s1_commit_vs_commit_produces_one_manifest() -> None:
-    """Two sequential commits on the same batch must produce exactly one
-    manifest row. The second call is a zero-write exact replay.
-    """
-    _require_postgres()
-    suffix = uuid4().hex
-    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
-    first = await _commit_once(import_id)
-    assert first.reused_existing_commit is False
-    second = await _commit_once(import_id)
-    assert second.reused_existing_commit is True
-    assert second.commit_manifest_hash == first.commit_manifest_hash
-
-    # Exactly one manifest row in the database.
-    async with AsyncSessionMaker() as session:
-        manifest_count = await session.scalar(
-            sa.select(sa.func.count())
-            .select_from(ActualHarvestCommitManifestModel)
-            .join(
-                ActualHarvestImportBatchModel,
-                ActualHarvestCommitManifestModel.batch_id == ActualHarvestImportBatchModel.id,
-            )
-            .where(ActualHarvestImportBatchModel.import_id == import_id)
-        )
-    assert manifest_count == 1
-
-
-@pytest.mark.asyncio
-async def test_postgres_s1_commit_vs_commit_does_not_write_additional_manifest() -> None:
-    """After the first commit, the second commit must not add a second
-    manifest row (zero write on exact replay). Combined with the
-    previous test this proves the count stays at 1 across replays.
-    """
-    _require_postgres()
-    suffix = uuid4().hex
-    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
-    await _commit_once(import_id)
-    await _commit_once(import_id)
-    await _commit_once(import_id)
-    async with AsyncSessionMaker() as session:
-        manifest_count = await session.scalar(
-            sa.select(sa.func.count())
-            .select_from(ActualHarvestCommitManifestModel)
-            .join(
-                ActualHarvestImportBatchModel,
-                ActualHarvestCommitManifestModel.batch_id == ActualHarvestImportBatchModel.id,
-            )
-            .where(ActualHarvestImportBatchModel.import_id == import_id)
-        )
-    assert manifest_count == 1
-
-
-@pytest.mark.asyncio
-async def test_postgres_s1_cancel_then_commit_produces_one_terminal_outcome() -> None:
-    """cancel after VALIDATED keeps the batch CANCELLED with NO
-    commit_manifest. A subsequent commit attempt is rejected because
-    the batch is no longer in VALIDATED state.
-    """
-    _require_postgres()
-    suffix = uuid4().hex
-    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
-    await _cancel_once(import_id)
-    state = await _batch_state(import_id)
-    assert state["status"] == "CANCELLED"
-
-    # No commit manifest exists for the cancelled batch.
-    async with AsyncSessionMaker() as session:
-        batch_db_id = await session.scalar(
-            sa.select(ActualHarvestImportBatchModel.id).where(
-                ActualHarvestImportBatchModel.import_id == import_id
-            )
-        )
-        manifest_count = await session.scalar(
-            sa.select(sa.func.count())
-            .select_from(ActualHarvestCommitManifestModel)
-            .where(ActualHarvestCommitManifestModel.batch_id == batch_db_id)
-        )
-    assert manifest_count == 0
-
-    # A commit attempt must be rejected because the batch is CANCELLED.
-    with pytest.raises(ActualHarvestApiError) as excinfo:
-        await _commit_once(import_id)
-    assert excinfo.value.code == ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_VALIDATED
-
-
-@pytest.mark.asyncio
-async def test_postgres_s1_commit_manifest_update_rejected() -> None:
-    """The commit_manifest immutability trigger must reject direct
-    UPDATE on the manifest table.
-    """
-    _require_postgres()
-    suffix = uuid4().hex
-    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
-    result = await _commit_once(import_id)
-
-    async with AsyncSessionMaker() as session:
-        async with session.begin():
-            with pytest.raises(DBAPIError) as excinfo:
-                await session.execute(
-                    sa.text(
-                        "UPDATE actual_harvest_commit_manifest "
-                        "SET committed_record_count = 99 "
-                        "WHERE commit_manifest_hash = :h"
-                    ),
-                    {"h": result.commit_manifest_hash},
-                )
-        chain = _chain_exceptions(excinfo.value)
-        sqlstate = next(
-            (s for e in chain if (s := _extract_sqlstate(e))),
-            None,
-        )
-        message = next(
-            (m for e in chain if (m := _extract_server_message(e))),
-            "",
-        )
-        assert sqlstate == "check_violation", (
-            f"expected SQLSTATE check_violation from manifest UPDATE trigger, "
-            f"got sqlstate={sqlstate!r} message={message!r}"
-        )
-        assert "commit manifest is immutable" in message, (
-            f"expected immutability message, got {message!r}"
-        )
-
-
-@pytest.mark.asyncio
-async def test_postgres_s1_commit_manifest_delete_rejected() -> None:
-    """The commit_manifest immutability trigger must reject direct
-    DELETE on the manifest table.
-    """
-    _require_postgres()
-    suffix = uuid4().hex
-    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
-    result = await _commit_once(import_id)
-
-    async with AsyncSessionMaker() as session:
-        async with session.begin():
-            with pytest.raises(DBAPIError) as excinfo:
-                await session.execute(
-                    sa.text(
-                        "DELETE FROM actual_harvest_commit_manifest WHERE commit_manifest_hash = :h"
-                    ),
-                    {"h": result.commit_manifest_hash},
-                )
-        chain = _chain_exceptions(excinfo.value)
-        sqlstate = next(
-            (s for e in chain if (s := _extract_sqlstate(e))),
-            None,
-        )
-        message = next(
-            (m for e in chain if (m := _extract_server_message(e))),
-            "",
-        )
-        assert sqlstate == "check_violation", (
-            f"expected SQLSTATE check_violation from manifest DELETE trigger, "
-            f"got sqlstate={sqlstate!r} message={message!r}"
-        )
-        assert "commit manifest is immutable" in message, (
-            f"expected immutability message, got {message!r}"
-        )
-
-
-@pytest.mark.asyncio
-async def test_postgres_s1_committed_record_update_rejected() -> None:
-    """A committed import record must be immutable. The S1 §八 contract
-    promises a PostgreSQL trigger that rejects UPDATE on a record whose
-    parent batch is COMMITTED. We prove that here.
-    """
-    _require_postgres()
-    suffix = uuid4().hex
-    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
-    await _commit_once(import_id)
-
-    async with AsyncSessionMaker() as session:
-        async with session.begin():
-            with pytest.raises(DBAPIError) as excinfo:
-                await session.execute(
-                    sa.text(
-                        "UPDATE actual_harvest_import_record "
-                        "SET actual_harvest_quantity_kg = 0 "
-                        "WHERE batch_id = ("
-                        "  SELECT id FROM actual_harvest_import_batch "
-                        "  WHERE import_id = :iid"
-                        ") "
-                        "AND source_row_number = 1"
-                    ),
-                    {"iid": import_id},
-                )
-        chain = _chain_exceptions(excinfo.value)
-        sqlstate = next(
-            (s for e in chain if (s := _extract_sqlstate(e))),
-            None,
-        )
-        message = next(
-            (m for e in chain if (m := _extract_server_message(e))),
-            "",
-        )
-        assert sqlstate is not None, (
-            f"expected SQLSTATE from committed-record UPDATE trigger, got message={message!r}"
-        )
-        assert message, (
-            f"expected non-empty server message from committed-record UPDATE trigger, "
-            f"got sqlstate={sqlstate!r}"
-        )
-
-
-@pytest.mark.asyncio
-async def test_postgres_s1_post_manifest_insert_failure_rolls_back() -> None:
-    """When a flush failure is injected AFTER the manifest INSERT, the
-    caller-owned transaction must roll back: zero manifest rows remain
-    and the batch stays in VALIDATED state.
-    """
-    _require_postgres()
-    suffix = uuid4().hex
-    import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
-
-    # We use a unique sentinel SQLSTATE to ensure the test failure
-    # signal is independent of any other connection or transaction.
-    from sqlalchemy import event as _sa_event
-
-    async with AsyncSessionMaker() as session:
-        async with session.begin():
-            from backend.app.actual_harvest_import import commit_service as _cs
-            from backend.app.actual_harvest_import.api_auth import (
-                ActualHarvestActorContext as _Actor,
-            )
-            from backend.app.actual_harvest_import.enums import (
-                ActualHarvestImportChannel as _Ch,
-            )
-
-            actor = _Actor(
-                identity="operator-1",
-                allowed_source_systems=frozenset({"i5-domain-1"}),
-                allowed_channels=frozenset({_Ch.API}),
-                may_commit=True,
-            )
-
-            def _explode_on_manifest_insert(
-                _mapper: object, _connection: object, target: object
-            ) -> None:
-                if isinstance(target, ActualHarvestCommitManifestModel):
-                    raise RuntimeError("simulated post-manifest flush failure")
-
-            _sa_event.listen(
-                ActualHarvestCommitManifestModel,
-                "before_insert",
-                _explode_on_manifest_insert,
-            )
-            try:
-                with pytest.raises(RuntimeError, match="simulated post-manifest flush failure"):
-                    await _cs.commit_batch(
-                        session,
-                        import_id=import_id,
-                        validation_run_instance_identity_hash=(
-                            await _current_run_instance_identity_hash(session, import_id)
-                        ),
-                        actor=actor,
-                    )
-            finally:
-                _sa_event.remove(
-                    ActualHarvestCommitManifestModel,
-                    "before_insert",
-                    _explode_on_manifest_insert,
-                )
-
-    # After the failure, the batch must still be in VALIDATED and no
-    # commit_manifest row should exist.
-    state = await _batch_state(import_id)
-    assert state["status"] == "VALIDATED"
-    assert state["committed_record_count"] == 0
-
-    async with AsyncSessionMaker() as session:
-        batch_db_id = await session.scalar(
-            sa.select(ActualHarvestImportBatchModel.id).where(
-                ActualHarvestImportBatchModel.import_id == import_id
-            )
-        )
-        manifest_count = await session.scalar(
-            sa.select(sa.func.count())
-            .select_from(ActualHarvestCommitManifestModel)
-            .where(ActualHarvestCommitManifestModel.batch_id == batch_db_id)
-        )
-    assert manifest_count == 0
