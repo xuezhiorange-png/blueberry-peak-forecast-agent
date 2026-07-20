@@ -341,6 +341,16 @@ def _record_for_batch(external_batch_id: str) -> ActualHarvestApiRecordInput:
     return ActualHarvestApiRecordInput.model_validate(payload)
 
 
+_PROTECTED_IMPORT_RECORD_STATUSES = frozenset(
+    {
+        ActualHarvestImportBatchStatus.SEALED.value,
+        ActualHarvestImportBatchStatus.VALIDATING.value,
+        ActualHarvestImportBatchStatus.VALIDATED.value,
+        ActualHarvestImportBatchStatus.COMMITTED.value,
+    }
+)
+
+
 async def _cleanup_batch(external_batch_id: str) -> None:
     async def delete_validation_evidence(session, run_ids: list[int]) -> None:
         if not run_ids:
@@ -377,13 +387,22 @@ async def _cleanup_batch(external_batch_id: str) -> None:
     batch_id: int | None
     async with AsyncSessionMaker() as session:
         async with session.begin():
-            batch_id = await session.scalar(
-                sa.select(ActualHarvestImportBatchModel.id).where(
-                    ActualHarvestImportBatchModel.external_batch_id == external_batch_id
-                )
+            # Lock the parent batch row for the duration of this
+            # transaction so a concurrent commit/cancel cannot promote
+            # the batch into a protected status between the status
+            # check and the evidence delete below. PROTECTED_STATUS
+            # batches are left for the module-scoped TRUNCATE...
+            # CASCADE teardown to remove.
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel)
+                .where(ActualHarvestImportBatchModel.external_batch_id == external_batch_id)
+                .with_for_update()
             )
-            if batch_id is None:
+            if batch is None:
                 return
+            if batch.status in _PROTECTED_IMPORT_RECORD_STATUSES:
+                return
+            batch_id = batch.id
             run_ids = list(
                 await session.scalars(
                     sa.select(ActualHarvestValidationRunModel.id).where(
@@ -396,15 +415,22 @@ async def _cleanup_batch(external_batch_id: str) -> None:
     # Commit child-row cleanup separately, then re-read the parent rows in a
     # fresh transaction. This avoids a concurrent validation worker's final
     # evidence commit being hidden by the cleanup transaction snapshot.
+    # PROTECTED_STATUS_RECHECK: a concurrent commit could have promoted
+    # the batch into a protected status between transaction 1 and 2, so
+    # the second check is mandatory before deleting records (which the
+    # immutability trigger would otherwise reject).
     async with AsyncSessionMaker() as session:
         async with session.begin():
-            batch_id = await session.scalar(
-                sa.select(ActualHarvestImportBatchModel.id).where(
-                    ActualHarvestImportBatchModel.external_batch_id == external_batch_id
-                )
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel)
+                .where(ActualHarvestImportBatchModel.external_batch_id == external_batch_id)
+                .with_for_update()
             )
-            if batch_id is None:
+            if batch is None:
                 return
+            if batch.status in _PROTECTED_IMPORT_RECORD_STATUSES:
+                return
+            batch_id = batch.id
             run_ids = list(
                 await session.scalars(
                     sa.select(ActualHarvestValidationRunModel.id).where(
@@ -3148,7 +3174,25 @@ async def test_postgres_s1_committed_record_update_rejected() -> None:
     import_id, _ = await _s1_seed_validated_batch(suffix=suffix)
     await _commit_once(import_id)
 
-    # UPDATE on the committed record.
+    # Resolve a real record PK (NOT source_row_number, which is
+    # server-owned/NULL under the API transport path, and would
+    # silently match zero rows and bypass the immutability trigger).
+    async with AsyncSessionMaker() as session:
+        record_id = await session.scalar(
+            sa.select(ActualHarvestImportRecordModel.id)
+            .join(
+                ActualHarvestImportBatchModel,
+                ActualHarvestImportRecordModel.batch_id == ActualHarvestImportBatchModel.id,
+            )
+            .where(ActualHarvestImportBatchModel.import_id == import_id)
+            .order_by(ActualHarvestImportRecordModel.id)
+            .limit(1)
+        )
+    assert record_id is not None, f"no committed record found for import_id={import_id!r}"
+
+    # UPDATE on the committed record. Uses an independent session/
+    # transaction because the failure aborts the current PostgreSQL
+    # transaction; assertions must run on the rejected excinfo.
     async with AsyncSessionMaker() as session:
         async with session.begin():
             with pytest.raises(DBAPIError) as excinfo:
@@ -3156,13 +3200,9 @@ async def test_postgres_s1_committed_record_update_rejected() -> None:
                     sa.text(
                         "UPDATE actual_harvest_import_record "
                         "SET actual_harvest_quantity_kg = 0 "
-                        "WHERE batch_id = ("
-                        "  SELECT id FROM actual_harvest_import_batch "
-                        "  WHERE import_id = :iid"
-                        ") "
-                        "AND source_row_number = 1"
+                        "WHERE id = :record_id"
                     ),
-                    {"iid": import_id},
+                    {"record_id": record_id},
                 )
         chain = _chain_exceptions(excinfo.value)
         sqlstate = next(
@@ -3187,15 +3227,8 @@ async def test_postgres_s1_committed_record_update_rejected() -> None:
         async with session.begin():
             with pytest.raises(DBAPIError) as excinfo:
                 await session.execute(
-                    sa.text(
-                        "DELETE FROM actual_harvest_import_record "
-                        "WHERE batch_id = ("
-                        "  SELECT id FROM actual_harvest_import_batch "
-                        "  WHERE import_id = :iid"
-                        ") "
-                        "AND source_row_number = 1"
-                    ),
-                    {"iid": import_id},
+                    sa.text("DELETE FROM actual_harvest_import_record WHERE id = :record_id"),
+                    {"record_id": record_id},
                 )
         chain = _chain_exceptions(excinfo.value)
         sqlstate = next(
