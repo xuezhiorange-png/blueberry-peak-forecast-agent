@@ -27,7 +27,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.actual_harvest_import.commit_models import (
@@ -117,7 +117,37 @@ class ActualHarvestLabelSnapshotReplay:
 
 
 def _utc_now() -> datetime:
+    """Process-local wall clock (for non-authoritative display only).
+
+    I7 authoritative time MUST come from the database — see
+    :func:`_database_authoritative_now` and contract §14.3.
+    ``SNAPSHOT_EXECUTED_AT_SOURCE=DATABASE_CURRENT_TIMESTAMP``.
+    """
+
     return datetime.now(UTC)
+
+
+async def _database_authoritative_now(session: AsyncSession) -> datetime:
+    """Read the database server's current timestamp exactly once.
+
+    The I7 snapshot must take its authoritative time from the database
+    inside the snapshot transaction (contract §14.3
+    ``SNAPSHOT_EXECUTED_AT_SOURCE=DATABASE_CURRENT_TIMESTAMP``). The
+    caller passes the snapshot's :class:`AsyncSession`; we issue a
+    single ``SELECT CURRENT_TIMESTAMP`` so the value is the same clock
+    the immutability triggers, advisory locks, and the FINAL_ADJUDICATED
+    ``finalized_at`` cutoff comparison all observe.
+
+    Returns a tz-aware ``datetime`` in UTC. Naive timestamps from the
+    driver are coerced to UTC for downstream contract parity.
+    """
+
+    raw = await session.scalar(select(func.now()))
+    assert raw is not None  # nosec — DB always returns a value
+    timestamp: datetime = raw
+    if timestamp.tzinfo is None:
+        return timestamp.replace(tzinfo=UTC)
+    return timestamp.astimezone(UTC)
 
 
 async def create_label_snapshot(
@@ -232,7 +262,7 @@ async def create_label_snapshot(
     # extra query.
     batch_ids = tuple(item["batch_id"] for item in manifests)
 
-    snapshot_executed_at = _utc_now()
+    snapshot_executed_at = await _database_authoritative_now(session)
     instance_identity_hash = compute_snapshot_instance_identity_hash(
         request_identity_hash=request_identity_hash,
         source_commit_manifest_set_hash=source_manifest_set_hash,
@@ -538,6 +568,309 @@ async def _load_committed_records_for_batches(
     return committed_records
 
 
+def _validate_visible_chain(
+    *,
+    ordered: list[dict[str, Any]],
+    visibility_by_revision: dict[str, tuple[str, str | None]],
+    visible_successors: dict[str, list[dict[str, Any]]],
+    full_successors: dict[str, list[dict[str, Any]]],
+    chain_key: tuple[str, str],
+) -> None:
+    """E3 visible-chain validator.
+
+    The I7 snapshot is responsible for its OWN observation of the
+    immutable source universe — it does not delegate to any upstream
+    I5 lineage check. This validator runs over the in-scope visible
+    graph and raises ``ActualHarvestLabelStructuralFailureError`` for
+    any of the following:
+
+    - **REVISION_NUMBER_DISCONTINUITY**: revision numbers are not a
+      contiguous sequence starting at 1.
+    - **SUPERSESSION_CHAIN_FORK**: a visible node has more than one
+      visible successor.
+    - **SUPERSESSION_CHAIN_CYCLE**: a cycle exists in the visible
+      successor graph.
+    - **VISIBLE_CHILD_WITH_INVISIBLE_PARENT**: a non-root visible
+      node's predecessor is not visible in the observed universe.
+    - **MISSING_SUPERSEDED_PARENT**: a non-root visible node's
+      predecessor is not in the observed universe at all.
+    - **CORRECTED_WITHOUT_SUCCESSOR**: a visible CORRECTED node has
+      no visible successor.
+    - **FINALIZED_HAS_SUCCESSOR**: a visible FINALIZED node has any
+      successor (visible or not).
+    - **VOID_HAS_SUCCESSOR**: a visible VOID node has any successor
+      (visible or not).
+    """
+
+    visible_entries = [
+        entry
+        for entry in ordered
+        if visibility_by_revision[entry["record"].external_revision_id][0] == "VISIBLE"
+    ]
+    if not visible_entries:
+        return
+
+    # §1 Per-node structural checks (E3): predecessor coverage,
+    # fork, cycle, status eligibility. The pre-existing tests in
+    # the project rely on the chain-graph checks running BEFORE
+    # revision-number continuity so a child with a missing /
+    # invisible parent surfaces as
+    # VISIBLE_CHILD_WITH_INVISIBLE_PARENT (or MISSING_SUPERSEDED_PARENT),
+    # not as a downstream revision-number gap.
+    for entry in visible_entries:
+        record = entry["record"]
+        successor_entries = visible_successors.get(record.external_revision_id, [])
+
+        # Predecessor coverage: every non-root visible node has a
+        # visible or missing predecessor.
+        predecessor_id = record.supersedes_external_revision_id
+        if predecessor_id is not None:
+            predecessor_state = visibility_by_revision.get(predecessor_id)
+            if predecessor_state is None:
+                raise ActualHarvestLabelStructuralFailureError(
+                    ActualHarvestLabelStructuralFailure.MISSING_SUPERSEDED_PARENT,
+                    details={
+                        "source_system": chain_key[0],
+                        "external_logical_record_id": chain_key[1],
+                        "external_revision_id": record.external_revision_id,
+                        "predecessor_external_revision_id": predecessor_id,
+                    },
+                )
+            if predecessor_state[0] != "VISIBLE":
+                raise ActualHarvestLabelStructuralFailureError(
+                    ActualHarvestLabelStructuralFailure.VISIBLE_CHILD_WITH_INVISIBLE_PARENT,
+                    details={
+                        "source_system": chain_key[0],
+                        "external_logical_record_id": chain_key[1],
+                        "external_revision_id": record.external_revision_id,
+                        "predecessor_external_revision_id": predecessor_id,
+                        "predecessor_visibility": predecessor_state[1],
+                    },
+                )
+
+        # Fork
+        if len(successor_entries) > 1:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SUPERSESSION_CHAIN_FORK,
+                details={
+                    "source_system": chain_key[0],
+                    "external_logical_record_id": chain_key[1],
+                    "external_revision_id": record.external_revision_id,
+                    "successor_count": len(successor_entries),
+                },
+            )
+
+        # Cycle: walk successors and detect loops
+        visited: set[str] = set()
+        current_id: str | None = record.external_revision_id
+        while current_id is not None:
+            if current_id in visited:
+                raise ActualHarvestLabelStructuralFailureError(
+                    ActualHarvestLabelStructuralFailure.SUPERSESSION_CHAIN_CYCLE,
+                    details={
+                        "source_system": chain_key[0],
+                        "external_logical_record_id": chain_key[1],
+                        "cycle_node": current_id,
+                    },
+                )
+            visited.add(current_id)
+            next_entries = visible_successors.get(current_id, [])
+            if not next_entries:
+                break
+            current_id = next_entries[0]["record"].external_revision_id
+
+        # Status eligibility per node.
+        # CORRECTED has exactly one successor (visible graph).
+        if (
+            record.record_status == ActualHarvestRecordStatus.CORRECTED.value
+            and not successor_entries
+        ):
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.CORRECTED_WITHOUT_SUCCESSOR,
+                details={
+                    "source_system": chain_key[0],
+                    "external_logical_record_id": chain_key[1],
+                    "external_revision_id": record.external_revision_id,
+                },
+            )
+
+        # FINALIZED / VOID have zero successors (visible or invisible).
+        full_successor_entries = full_successors.get(record.external_revision_id, [])
+        if (
+            record.record_status == ActualHarvestRecordStatus.FINALIZED.value
+            and full_successor_entries
+        ):
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.FINALIZED_HAS_SUCCESSOR,
+                details={
+                    "source_system": chain_key[0],
+                    "external_logical_record_id": chain_key[1],
+                    "external_revision_id": record.external_revision_id,
+                    "successor_count": len(full_successor_entries),
+                },
+            )
+        if record.record_status == ActualHarvestRecordStatus.VOID.value and full_successor_entries:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.VOID_HAS_SUCCESSOR,
+                details={
+                    "source_system": chain_key[0],
+                    "external_logical_record_id": chain_key[1],
+                    "external_revision_id": record.external_revision_id,
+                    "successor_count": len(full_successor_entries),
+                },
+            )
+
+    # §2 Revision-number continuity over the visible set.
+    revision_numbers = sorted(entry["record"].revision_number for entry in visible_entries)
+    if revision_numbers[0] != 1:
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.REVISION_NUMBER_DISCONTINUITY,
+            details={
+                "source_system": chain_key[0],
+                "external_logical_record_id": chain_key[1],
+                "reason": "missing_root_revision",
+                "first_revision_number": revision_numbers[0],
+            },
+        )
+    for index, value in enumerate(revision_numbers, start=1):
+        if value != index:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.REVISION_NUMBER_DISCONTINUITY,
+                details={
+                    "source_system": chain_key[0],
+                    "external_logical_record_id": chain_key[1],
+                    "reason": "non_contiguous_revision_numbers",
+                    "expected": index,
+                    "actual": value,
+                },
+            )
+
+
+async def _scope_check_chain(
+    session: AsyncSession,
+    *,
+    entries: list[dict[str, Any]],
+    request: ActualHarvestLabelSnapshotRequest,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Pre-screen a chain by canonical request scope (E2 contract).
+
+    For each entry, load the owning validation run's frozen mapping
+    evidence and compare the canonical business keys against the
+    request's business-key scope. Out-of-scope revisions:
+
+    - emit ONE ``OUTSIDE_REQUEST_SCOPE`` coverage exclusion;
+    - are REMOVED from the chain BEFORE the visibility classifier
+      runs, so they do not participate in the visible graph at all
+      (``OUTSIDE_SCOPE_REVISION_DOES_NOT_PARTICIPATE_IN_VISIBLE_GRAPH``).
+
+    ``ONE_EXCLUSION_REASON_PER_REVISION``: when more than one of the
+    season / farm / variety keys is out of scope, we still emit ONE
+    exclusion (the first non-matching key) rather than three. The
+    structural failure is the same logical record, the same request,
+    the same revision; one exclusion per revision is the contract.
+    """
+
+    from backend.app.actual_harvest_import.validation_models import (
+        ActualHarvestValidationMappingEvidenceModel,
+    )
+
+    if not entries:
+        return [], []
+
+    seen_validation_run_ids: set[int] = set()
+    for entry in entries:
+        seen_validation_run_ids.add(entry["validation_run_id"])
+
+    evidence_rows = (
+        await session.scalars(
+            select(ActualHarvestValidationMappingEvidenceModel).where(
+                ActualHarvestValidationMappingEvidenceModel.validation_run_id.in_(
+                    seen_validation_run_ids
+                )
+            )
+        )
+    ).all()
+
+    evidence_by_revision: dict[tuple[int, str, str, str], dict[str, str]] = {}
+    for row in evidence_rows:
+        key = (
+            row.validation_run_id,
+            row.source_system,
+            row.external_logical_record_id,
+            row.external_revision_id,
+        )
+        evidence_by_revision.setdefault(key, {})[row.target_type] = row.target_business_key
+
+    season_scope = tuple(request.season_business_keys)
+    farm_scope = tuple(request.farm_business_keys_or_empty_for_all)
+    variety_scope = tuple(request.variety_business_keys_or_empty_for_all)
+
+    in_scope_entries: list[dict[str, Any]] = []
+    exclusion_rows: list[dict[str, Any]] = []
+    for entry in entries:
+        record = entry["record"]
+        key = (
+            entry["validation_run_id"],
+            record.source_system,
+            record.external_logical_record_id,
+            record.external_revision_id,
+        )
+        business_keys = evidence_by_revision.get(key)
+        if business_keys is None:
+            exclusion_rows.append(
+                _make_exclusion_row(
+                    ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE,
+                    record,
+                    details={
+                        "reason": "missing_mapping_evidence",
+                        "validation_run_id": entry["validation_run_id"],
+                    },
+                )
+            )
+            continue
+
+        if season_scope and business_keys.get("SEASON") not in season_scope:
+            exclusion_rows.append(
+                _make_exclusion_row(
+                    ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE,
+                    record,
+                    details={
+                        "reason": "season_outside_request_scope",
+                        "season_business_key": business_keys.get("SEASON"),
+                    },
+                )
+            )
+            continue
+        if farm_scope and business_keys.get("FARM") not in farm_scope:
+            exclusion_rows.append(
+                _make_exclusion_row(
+                    ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE,
+                    record,
+                    details={
+                        "reason": "farm_outside_request_scope",
+                        "farm_business_key": business_keys.get("FARM"),
+                    },
+                )
+            )
+            continue
+        if variety_scope and business_keys.get("VARIETY") not in variety_scope:
+            exclusion_rows.append(
+                _make_exclusion_row(
+                    ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE,
+                    record,
+                    details={
+                        "reason": "variety_outside_request_scope",
+                        "variety_business_key": business_keys.get("VARIETY"),
+                    },
+                )
+            )
+            continue
+
+        in_scope_entries.append(entry)
+
+    return in_scope_entries, exclusion_rows
+
+
 async def _compute_winners_and_exclusions(
     *,
     session: AsyncSession,
@@ -602,6 +935,32 @@ async def _compute_winners_and_exclusions(
                 successors[predecessor].append(entry)
 
         # ------------------------------------------------------------------
+        # §0 Scope classification BEFORE visibility (E2).
+        # ------------------------------------------------------------------
+        # Out-of-scope revisions emit ONE OUTSIDE_REQUEST_SCOPE exclusion
+        # and are removed from the chain entirely. They do not
+        # participate in the visible graph; a future out-of-scope
+        # successor cannot disqualify an in-scope parent, and an
+        # out-of-scope revision cannot serve as a visible predecessor.
+        in_scope_ordered, scope_exclusion_rows = await _scope_check_chain(
+            session,
+            entries=ordered,
+            request=request,
+        )
+        exclusion_rows.extend(scope_exclusion_rows)
+        if not in_scope_ordered:
+            continue
+        ordered = in_scope_ordered
+
+        # Rebuild the successor map from the in-scope subset so the
+        # visibility step observes only the surviving graph.
+        successors = defaultdict(list)
+        for entry in ordered:
+            predecessor = entry["record"].supersedes_external_revision_id
+            if predecessor:
+                successors[predecessor].append(entry)
+
+        # ------------------------------------------------------------------
         # §1.1 AS_OF visibility classification (B1)
         # ------------------------------------------------------------------
         # A revision is visible iff the request is AS_OF_EVALUATION and
@@ -660,6 +1019,32 @@ async def _compute_winners_and_exclusions(
                 # inherit a "no successor" claim on the invisible parent.
                 continue
             visible_successors[predecessor].append(entry)
+
+        # ------------------------------------------------------------------
+        # §1.2b Visible-chain validator (E3). The chain is the
+        # contract-§15 self-observation pass; it does not delegate to
+        # any upstream I5 lineage check. Every in-scope visible
+        # revision must satisfy:
+        #   - revision numbers continuous and starting at 1;
+        #   - logical identity stable (single source_system +
+        #     single external_logical_record_id — already guaranteed
+        #     by the by_chain grouping);
+        #   - at most one successor per node (no fork);
+        #   - no cycle in the visible graph;
+        #   - every non-root node has a visible predecessor
+        #     (VISIBLE_CHILD_WITH_INVISIBLE_PARENT, or
+        #      MISSING_SUPERSEDED_PARENT if the predecessor is not
+        #     in the observed universe at all);
+        #   - status eligibility per node (CORRECTED has exactly one
+        #     successor, FINALIZED/VOID have zero successors).
+        # ------------------------------------------------------------------
+        _validate_visible_chain(
+            ordered=ordered,
+            visibility_by_revision=visibility_by_revision,
+            visible_successors=visible_successors,
+            full_successors=successors,
+            chain_key=chain_key,
+        )
 
         # ------------------------------------------------------------------
         # §1.3 Pick the unique visible terminal
@@ -754,42 +1139,25 @@ async def _compute_winners_and_exclusions(
                 )
 
         # ------------------------------------------------------------------
-        # §1.4 Status eligibility on the visible terminal
+        # §1.4 Status eligibility on the visible terminal — the
+        # earlier §1.2b visible-chain validator already raised
+        # CORRECTED_WITHOUT_SUCCESSOR / FINALIZED_HAS_SUCCESSOR /
+        # VOID_HAS_SUCCESSOR for any node in the chain, so the
+        # terminal reaching this point is in-scope, visible, and
+        # passes status eligibility. The remaining VOID / FINALIZED
+        # branches below are terminal-only exclusion reporting, not
+        # structural-failure gates.
         # ------------------------------------------------------------------
-        if record.record_status == ActualHarvestRecordStatus.CORRECTED.value:
-            raise ActualHarvestLabelStructuralFailureError(
-                ActualHarvestLabelStructuralFailure.CORRECTED_WITHOUT_SUCCESSOR,
-                details={
-                    "source_system": record.source_system,
-                    "external_revision_id": record.external_revision_id,
-                },
-            )
 
-        # FINALIZED / VOID must never have a successor at all. We check
-        # the FULL successor map (visible + invisible) so a future
-        # successor that is invisible at the cutoff still fails closed.
-        full_successor_entries = successors.get(record.external_revision_id, [])
-        if (
-            record.record_status == ActualHarvestRecordStatus.FINALIZED.value
-            and full_successor_entries
-        ):
-            raise ActualHarvestLabelStructuralFailureError(
-                ActualHarvestLabelStructuralFailure.FINALIZED_HAS_SUCCESSOR,
-                details={
-                    "source_system": record.source_system,
-                    "external_revision_id": record.external_revision_id,
-                    "successor_count": len(full_successor_entries),
-                },
+        if record.record_status == ActualHarvestRecordStatus.VOID.value:
+            exclusion_rows.append(
+                _make_exclusion_row(
+                    ActualHarvestLabelCoverageExclusion.TERMINAL_VOID,
+                    record,
+                    details={"reason": "terminal_void"},
+                )
             )
-        if record.record_status == ActualHarvestRecordStatus.VOID.value and full_successor_entries:
-            raise ActualHarvestLabelStructuralFailureError(
-                ActualHarvestLabelStructuralFailure.VOID_HAS_SUCCESSOR,
-                details={
-                    "source_system": record.source_system,
-                    "external_revision_id": record.external_revision_id,
-                    "successor_count": len(full_successor_entries),
-                },
-            )
+            continue
 
         # ------------------------------------------------------------------
         # §1.7 Look up the frozen mapping evidence for the visible
@@ -804,63 +1172,9 @@ async def _compute_winners_and_exclusions(
         )
 
         # ------------------------------------------------------------------
-        # §1.8 Scope check (B3) — compare the request's frozen business
-        # keys to the WINNER's frozen target_business_key, NOT to the
-        # live master-data codes on the record.
+        # §1.8 Scope check is performed BEFORE visibility (E2). The
+        # terminal reaching this point is in-scope by construction.
         # ------------------------------------------------------------------
-        if request.farm_business_keys_or_empty_for_all and (
-            mapping_evidence["farm_business_key"] not in request.farm_business_keys_or_empty_for_all
-        ):
-            exclusion_rows.append(
-                _make_exclusion_row(
-                    ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE,
-                    record,
-                    details={
-                        "reason": "farm_outside_request_scope",
-                        "farm_business_key": mapping_evidence["farm_business_key"],
-                    },
-                )
-            )
-            continue
-        if request.variety_business_keys_or_empty_for_all and (
-            mapping_evidence["variety_business_key"]
-            not in request.variety_business_keys_or_empty_for_all
-        ):
-            exclusion_rows.append(
-                _make_exclusion_row(
-                    ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE,
-                    record,
-                    details={
-                        "reason": "variety_outside_request_scope",
-                        "variety_business_key": mapping_evidence["variety_business_key"],
-                    },
-                )
-            )
-            continue
-        if request.season_business_keys and (
-            mapping_evidence["season_business_key"] not in request.season_business_keys
-        ):
-            exclusion_rows.append(
-                _make_exclusion_row(
-                    ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE,
-                    record,
-                    details={
-                        "reason": "season_outside_request_scope",
-                        "season_business_key": mapping_evidence["season_business_key"],
-                    },
-                )
-            )
-            continue
-
-        if record.record_status == ActualHarvestRecordStatus.VOID.value:
-            exclusion_rows.append(
-                _make_exclusion_row(
-                    ActualHarvestLabelCoverageExclusion.TERMINAL_VOID,
-                    record,
-                    details={"reason": "terminal_void"},
-                )
-            )
-            continue
 
         # ------------------------------------------------------------------
         # §1.9 Visibility-mode time gate (AS_OF / FINAL_ADJUDICATED).

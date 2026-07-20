@@ -412,10 +412,25 @@ The list contains stable source identity and `commit_manifest_hash`; it does not
 
 `label_snapshot_instance_identity_hash` binds:
 
-- request identity;
-- database-authoritative `snapshot_executed_at`;
+- request identity (`label_snapshot_request_identity_hash`);
 - canonically ordered source manifest set;
-- source-universe hash.
+- source-universe hash (`source_commit_manifest_set_hash`).
+
+`snapshot_executed_at` is **persisted** on the snapshot row for audit metadata
+but is **not** bound into the instance identity hash. This is the deliberate
+"SAME_REQUEST_AND_SAME_SOURCE_UNIVERSE_REPRODUCES_SAME_HASHES" guarantee
+frozen by §14.3: a replay of the same request against the same source
+universe must produce the same `label_snapshot_instance_identity_hash`
+regardless of when it is taken.
+
+```text
+SNAPSHOT_EXECUTED_AT_SOURCE=DATABASE_CURRENT_TIMESTAMP
+SNAPSHOT_EXECUTED_AT_IS_AUDIT_METADATA=true
+INSTANCE_HASH_BINDS_REQUEST_IDENTITY=true
+INSTANCE_HASH_BINDS_SOURCE_COMMIT_MANIFEST_SET_HASH=true
+INSTANCE_HASH_BINDS_SNAPSHOT_EXECUTED_AT=false
+SAME_REQUEST_AND_SAME_SOURCE_UNIVERSE_REPRODUCES_SAME_HASHES=true
+```
 
 ### 14.4 Final snapshot hash
 
