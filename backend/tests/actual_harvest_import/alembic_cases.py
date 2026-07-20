@@ -10,7 +10,10 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory
 
-MIGRATION_PATH = Path("backend/alembic/versions/0020_actual_harvest_commit_manifest.py")
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_ALEMBIC_VERSIONS_DIR = _BACKEND_ROOT / "alembic" / "versions"
+
+MIGRATION_PATH = _ALEMBIC_VERSIONS_DIR / "0020_actual_harvest_commit_manifest.py"
 MIGRATION_REVISION = "0020_actual_harvest_commit_manifest"
 
 
@@ -23,7 +26,7 @@ def _migration_module() -> ModuleType:
 
 
 def _previous_migration_module() -> ModuleType:
-    path = Path("backend/alembic/versions/0019_actual_harvest_validation_evidence.py")
+    path = _ALEMBIC_VERSIONS_DIR / "0019_actual_harvest_validation_evidence.py"
     spec = importlib.util.spec_from_file_location("actual_harvest_migration_0019", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -32,7 +35,7 @@ def _previous_migration_module() -> ModuleType:
 
 
 def _staging_migration_module() -> ModuleType:
-    path = Path("backend/alembic/versions/0018_actual_harvest_import_staging.py")
+    path = _ALEMBIC_VERSIONS_DIR / "0018_actual_harvest_import_staging.py"
     spec = importlib.util.spec_from_file_location("actual_harvest_migration_0018", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -41,7 +44,8 @@ def _staging_migration_module() -> ModuleType:
 
 
 def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
-    config = Config("backend/alembic.ini")
+    config = Config(str(_BACKEND_ROOT / "alembic.ini"))
+    config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
     assert script.get_heads() == [MIGRATION_REVISION]
     module = _migration_module()
