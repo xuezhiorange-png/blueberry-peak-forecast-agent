@@ -138,11 +138,23 @@ def build_commit_manifest(
     committed_by_identity: str,
     committed_at: datetime,
     committed_record_count: int,
+    seal_manifest_hash: str,
+    canonical_batch_hash: str,
+    record_manifest_hash: str,
+    validation_result_hash: str,
+    mapping_snapshot_hash: str,
+    resolved_identity_snapshot_hash: str,
+    lineage_graph_hash: str,
+    committed_lineage_basis_hash: str,
+    registry_content_hash: str,
 ) -> ActualHarvestCommitManifestModel:
     """Assemble the immutable commit-manifest row from the validated inputs.
 
     The caller is responsible for INSERTING this row inside the caller-owned
-    transaction. The persistence layer does not commit.
+    transaction. The persistence layer does not commit. All evidence-hash
+    parameters are typed as `str` because the caller (commit_service) is
+    responsible for narrowing them via `_require_evidence_hash` immediately
+    after loading the Optional ORM properties.
     """
     del validation_result  # already validated by caller; we only need its hashes
     return ActualHarvestCommitManifestModel(
@@ -151,15 +163,15 @@ def build_commit_manifest(
         commit_policy_version=COMMIT_POLICY_VERSION,
         validation_run_instance_identity_hash=(validation_run.instance_identity_hash),
         commit_manifest_hash=commit_manifest_hash,
-        seal_manifest_hash=batch.seal_manifest_hash_or_null or "",
-        canonical_batch_hash=batch.canonical_batch_hash_or_null or "",
-        record_manifest_hash=validation_run.record_manifest_hash or "",
-        validation_result_hash=validation_run.validation_result_hash or "",
-        mapping_snapshot_hash=validation_run.mapping_snapshot_hash or "",
-        resolved_identity_snapshot_hash=(validation_run.resolved_identity_snapshot_hash or ""),
-        lineage_graph_hash=validation_run.lineage_graph_hash or "",
-        committed_lineage_basis_hash=(validation_run.committed_lineage_basis_hash or ""),
-        registry_content_hash=validation_run.registry_content_hash or "",
+        seal_manifest_hash=seal_manifest_hash,
+        canonical_batch_hash=canonical_batch_hash,
+        record_manifest_hash=record_manifest_hash,
+        validation_result_hash=validation_result_hash,
+        mapping_snapshot_hash=mapping_snapshot_hash,
+        resolved_identity_snapshot_hash=resolved_identity_snapshot_hash,
+        lineage_graph_hash=lineage_graph_hash,
+        committed_lineage_basis_hash=committed_lineage_basis_hash,
+        registry_content_hash=registry_content_hash,
         source_semantics_attestation_hash=(batch.source_semantics_attestation_hash),
         committed_record_count=committed_record_count,
         committed_by_identity=committed_by_identity,
