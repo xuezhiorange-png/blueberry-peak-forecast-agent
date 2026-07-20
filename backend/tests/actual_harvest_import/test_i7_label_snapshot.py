@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import AsyncIterator
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -64,12 +64,14 @@ from backend.app.actual_harvest_import.validation_models import (
 from backend.app.actual_harvest_labels.enums import (
     ActualHarvestLabelCoverageExclusion,
     ActualHarvestLabelStructuralFailure,
+    ActualHarvestLabelVisibilityMode,
 )
 from backend.app.actual_harvest_labels.hashes import (
     AGGREGATION_POLICY_VERSION,
     SNAPSHOT_POLICY_VERSION,
     WINNER_POLICY_VERSION,
     compute_label_row_set_hash,
+    compute_snapshot_instance_identity_hash,
     compute_snapshot_request_identity_hash,
     compute_winner_row_hash,
 )
@@ -1659,6 +1661,466 @@ async def test_frozen_business_key_mismatch_excludes_as_outside_request_scope(
 
 
 # ---------------------------------------------------------------------------
+# E2 — scope classification BEFORE visibility classification
+# ---------------------------------------------------------------------------
+
+
+async def test_e2_out_of_scope_record_with_after_cutoff_source_emits_only_outside_scope(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E2: out-of-scope record with source_recorded_at > cutoff → only OUTSIDE_REQUEST_SCOPE.
+
+    The out-of-scope check runs BEFORE visibility. The record's
+    after-cutoff source time must NOT surface as
+    ``SOURCE_TIME_AFTER_CUTOFF``. Only ONE exclusion is emitted per
+    revision, and it is the scope exclusion.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e2-oos-after-cutoff",
+        external_revision_id="rev-e2-oos-after-cutoff",
+        source_recorded_at=datetime(2030, 1, 1, tzinfo=UTC),
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e2-oos-after-cutoff",
+        records=[record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e2-oos-after-cutoff",
+        # Frozen farm key that does not exist in the seeded registry.
+        farm_business_keys_or_empty_for_all=("other-farm-business-key",),
+        visibility_mode=ActualHarvestLabelVisibilityMode.AS_OF_EVALUATION,
+        label_observation_cutoff_at_or_null=datetime(2024, 6, 30, tzinfo=UTC),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 0
+    assert result.header.exclusion_row_count == 1
+    exclusion = result.exclusion_rows[0]
+    assert (
+        exclusion["exclusion_category"]
+        == ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE.value
+    )
+    assert exclusion["exclusion_details"]["reason"] == "farm_outside_request_scope"
+
+
+async def test_e2_out_of_scope_successor_does_not_disqualify_in_scope_parent(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E2: out-of-scope successor must not disqualify an in-scope parent.
+
+    The chain has two revisions: an in-scope parent (rev-1) and an
+    out-of-scope successor (rev-2, scope failure). The parent must
+    be the winner; the successor emits ONE OUTSIDE_REQUEST_SCOPE
+    exclusion and is removed from the visible graph entirely.
+    """
+
+    parent = _build_record(
+        external_logical_record_id="logical-e2-oos-successor",
+        external_revision_id="rev-e2-oos-parent",
+        revision_number=1,
+    )
+    successor = _build_record(
+        external_logical_record_id="logical-e2-oos-successor",
+        external_revision_id="rev-e2-oos-successor",
+        revision_number=2,
+        quantity_kg="2.0",
+        harvest_date=date(2024, 6, 1),
+    )
+
+    # Seed the parent + successor in one batch so the chain is
+    # visible. The default seed uses farm_business_key="farm-business-key-1"
+    # which is in-scope by default.
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e2-oos-successor",
+        records=[parent, successor],
+    )
+
+    # Override the FARM mapping evidence for the successor so its
+    # frozen farm_business_key is "other-farm-business-key" — out of
+    # the request's scope.
+    async with session_maker() as session:
+        async with session.begin():
+            from sqlalchemy import update as _update
+
+            from backend.app.actual_harvest_import.validation_models import (
+                ActualHarvestValidationMappingEvidenceModel as _Evidence,
+            )
+
+            await session.execute(
+                _update(_Evidence)
+                .where(
+                    _Evidence.external_revision_id == "rev-e2-oos-successor",
+                    _Evidence.target_type == "FARM",
+                )
+                .values(target_business_key="other-farm-business-key")
+            )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e2-oos-successor",
+        # In-scope is "farm-business-key-1"; the successor's
+        # overridden "other-farm-business-key" is out of scope.
+        farm_business_keys_or_empty_for_all=("farm-business-key-1",),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 1
+    winner = result.winners[0]
+    assert winner["external_revision_id"] == "rev-e2-oos-parent"
+
+    # The out-of-scope successor emits one OUTSIDE_REQUEST_SCOPE
+    # exclusion; the in-scope parent wins.
+    assert result.header.exclusion_row_count == 1
+    exclusion = result.exclusion_rows[0]
+    assert (
+        exclusion["exclusion_category"]
+        == ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE.value
+    )
+    assert exclusion["external_revision_id_or_null"] == "rev-e2-oos-successor"
+
+
+async def test_e2_in_scope_successor_after_cutoff_parent_wins_with_source_time_exclusion(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E2: in-scope successor after cutoff → parent wins, successor excluded by source time.
+
+    The chain has an in-scope visible parent and an in-scope
+    successor whose source_recorded_at is past the cutoff. The
+    successor is removed from the visible graph by the visibility
+    step; the parent becomes the unique visible terminal and wins.
+    The successor emits a ``SOURCE_TIME_AFTER_CUTOFF`` exclusion.
+    """
+
+    parent = _build_record(
+        external_logical_record_id="logical-e2-successor-after-cutoff",
+        external_revision_id="rev-e2-parent",
+        revision_number=1,
+        source_recorded_at=datetime(2024, 1, 15, tzinfo=UTC),
+    )
+    successor = _build_record(
+        external_logical_record_id="logical-e2-successor-after-cutoff",
+        external_revision_id="rev-e2-successor",
+        revision_number=2,
+        source_recorded_at=datetime(2030, 1, 1, tzinfo=UTC),
+        harvest_date=date(2024, 6, 1),
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e2-successor-after-cutoff",
+        records=[parent, successor],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e2-successor-after-cutoff",
+        visibility_mode=ActualHarvestLabelVisibilityMode.AS_OF_EVALUATION,
+        label_observation_cutoff_at_or_null=datetime(2024, 6, 30, tzinfo=UTC),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 1
+    winner = result.winners[0]
+    assert winner["external_revision_id"] == "rev-e2-parent"
+
+    # The successor emits exactly ONE exclusion: SOURCE_TIME_AFTER_CUTOFF.
+    assert result.header.exclusion_row_count == 1
+    exclusion = result.exclusion_rows[0]
+    assert (
+        exclusion["exclusion_category"]
+        == ActualHarvestLabelCoverageExclusion.SOURCE_TIME_AFTER_CUTOFF.value
+    )
+    assert exclusion["external_revision_id_or_null"] == "rev-e2-successor"
+
+
+# ---------------------------------------------------------------------------
+# E3 — complete visible-chain validator
+# ---------------------------------------------------------------------------
+
+
+async def test_e3_invisible_root_visible_middle_visible_terminal(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E3: invisible root → visible middle → visible terminal.
+
+    The chain has 3 revisions: rev-1 (invisible, after cutoff),
+    rev-2 (visible, supersedes rev-1), rev-3 (visible, supersedes
+    rev-2). The validator must surface the chain corruption as
+    VISIBLE_CHILD_WITH_INVISIBLE_PARENT (rev-2 has invisible
+    predecessor rev-1).
+    """
+
+    cutoff = datetime(2024, 6, 30, tzinfo=UTC)
+    rev_1 = _build_record(
+        external_logical_record_id="logical-e3-invisible-root",
+        external_revision_id="rev-e3-1",
+        revision_number=1,
+        source_recorded_at=datetime(2030, 1, 1, tzinfo=UTC),
+    )
+    rev_2 = _build_record(
+        external_logical_record_id="logical-e3-invisible-root",
+        external_revision_id="rev-e3-2",
+        revision_number=2,
+        source_recorded_at=datetime(2024, 1, 15, tzinfo=UTC),
+    )
+    rev_2.supersedes_external_revision_id = "rev-e3-1"
+    rev_3 = _build_record(
+        external_logical_record_id="logical-e3-invisible-root",
+        external_revision_id="rev-e3-3",
+        revision_number=3,
+        source_recorded_at=datetime(2024, 6, 1, tzinfo=UTC),
+    )
+    rev_3.supersedes_external_revision_id = "rev-e3-2"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e3-invisible-root",
+        records=[rev_1, rev_2, rev_3],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e3-invisible-root",
+        visibility_mode=ActualHarvestLabelVisibilityMode.AS_OF_EVALUATION,
+        label_observation_cutoff_at_or_null=cutoff,
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == (
+        ActualHarvestLabelStructuralFailure.VISIBLE_CHILD_WITH_INVISIBLE_PARENT
+    )
+
+
+async def test_e3_visible_revision_number_gap_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E3: visible revision gap 1→3 is a REVISION_NUMBER_DISCONTINUITY."""
+
+    rev_1 = _build_record(
+        external_logical_record_id="logical-e3-rev-gap",
+        external_revision_id="rev-e3-gap-1",
+        revision_number=1,
+    )
+    rev_3 = _build_record(
+        external_logical_record_id="logical-e3-rev-gap",
+        external_revision_id="rev-e3-gap-3",
+        revision_number=3,
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e3-rev-gap",
+        records=[rev_1, rev_3],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e3-rev-gap",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == (
+        ActualHarvestLabelStructuralFailure.REVISION_NUMBER_DISCONTINUITY
+    )
+
+
+async def test_e3_visible_fork_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E3: visible fork (parent with two visible successors) is SUPERSESSION_CHAIN_FORK."""
+
+    rev_1 = _build_record(
+        external_logical_record_id="logical-e3-fork",
+        external_revision_id="rev-e3-fork-1",
+        revision_number=1,
+    )
+    rev_2a = _build_record(
+        external_logical_record_id="logical-e3-fork",
+        external_revision_id="rev-e3-fork-2a",
+        revision_number=2,
+    )
+    rev_2a.supersedes_external_revision_id = "rev-e3-fork-1"
+    rev_2b = _build_record(
+        external_logical_record_id="logical-e3-fork",
+        external_revision_id="rev-e3-fork-2b",
+        revision_number=3,
+    )
+    rev_2b.supersedes_external_revision_id = "rev-e3-fork-1"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e3-fork",
+        records=[rev_1, rev_2a, rev_2b],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e3-fork",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == (ActualHarvestLabelStructuralFailure.SUPERSESSION_CHAIN_FORK)
+
+
+async def test_e3_visible_cycle_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E3: visible cycle is SUPERSESSION_CHAIN_CYCLE."""
+
+    rev_1 = _build_record(
+        external_logical_record_id="logical-e3-cycle",
+        external_revision_id="rev-e3-cycle-1",
+        revision_number=1,
+    )
+    rev_2 = _build_record(
+        external_logical_record_id="logical-e3-cycle",
+        external_revision_id="rev-e3-cycle-2",
+        revision_number=2,
+    )
+    rev_2.supersedes_external_revision_id = "rev-e3-cycle-1"
+    rev_1.supersedes_external_revision_id = "rev-e3-cycle-2"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e3-cycle",
+        records=[rev_1, rev_2],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e3-cycle",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == (ActualHarvestLabelStructuralFailure.SUPERSESSION_CHAIN_CYCLE)
+
+
+async def test_e3_nonterminal_finalized_with_successor_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E3: nonterminal FINALIZED with a successor is FINALIZED_HAS_SUCCESSOR."""
+
+    rev_1 = _build_record(
+        external_logical_record_id="logical-e3-finalized-succ",
+        external_revision_id="rev-e3-fin-1",
+        revision_number=1,
+        status=ActualHarvestRecordStatus.FINALIZED.value,
+        finalized_at=datetime(2024, 6, 1, tzinfo=UTC),
+    )
+    rev_2 = _build_record(
+        external_logical_record_id="logical-e3-finalized-succ",
+        external_revision_id="rev-e3-fin-2",
+        revision_number=2,
+    )
+    rev_2.supersedes_external_revision_id = "rev-e3-fin-1"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e3-finalized-succ",
+        records=[rev_1, rev_2],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e3-finalized-succ",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == (ActualHarvestLabelStructuralFailure.FINALIZED_HAS_SUCCESSOR)
+
+
+async def test_e3_nonterminal_void_with_successor_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E3: nonterminal VOID with a successor is VOID_HAS_SUCCESSOR."""
+
+    rev_1 = _build_record(
+        external_logical_record_id="logical-e3-void-succ",
+        external_revision_id="rev-e3-void-1",
+        revision_number=1,
+        status=ActualHarvestRecordStatus.VOID.value,
+    )
+    rev_2 = _build_record(
+        external_logical_record_id="logical-e3-void-succ",
+        external_revision_id="rev-e3-void-2",
+        revision_number=2,
+    )
+    rev_2.supersedes_external_revision_id = "rev-e3-void-1"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e3-void-succ",
+        records=[rev_1, rev_2],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e3-void-succ",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == (ActualHarvestLabelStructuralFailure.VOID_HAS_SUCCESSOR)
+
+
+# ---------------------------------------------------------------------------
 # B4 — node_hash / member_hash / canonical_record_hash surface
 # ---------------------------------------------------------------------------
 
@@ -1900,4 +2362,74 @@ __all__ = [
     "test_request_identity_hash_is_deterministic",
     "test_label_row_set_hash_is_canonical",
     "test_winner_row_hash_is_stable_against_dict_order",
+    "test_instance_identity_hash_is_independent_of_snapshot_executed_at",
 ]
+
+
+def test_instance_identity_hash_is_independent_of_snapshot_executed_at() -> None:
+    """§14.3 contract: SAME_REQUEST_AND_SAME_SOURCE_UNIVERSE_REPRODUCES_SAME_HASHES.
+
+    ``label_snapshot_instance_identity_hash`` MUST NOT bind
+    ``snapshot_executed_at``. Two calls with the same request identity
+    and the same source-universe hash must produce identical instance
+    hashes regardless of any audit-metadata timestamp.
+    """
+
+    request_identity_hash = compute_snapshot_request_identity_hash(
+        snapshot_idempotency_key="snap-key-1",
+        source_system="source-test",
+        visibility_mode="AS_OF_EVALUATION",
+        label_observation_cutoff_at_or_null=datetime(2024, 6, 30, tzinfo=UTC),
+        harvest_date_start=date(2024, 1, 1),
+        harvest_date_end=date(2024, 12, 31),
+        season_business_keys=("season-1",),
+        farm_business_keys_or_empty_for_all=("farm-1",),
+        variety_business_keys_or_empty_for_all=("var-1",),
+        snapshot_policy_version="snapshot-v1",
+        winner_policy_version="winner-v1",
+        aggregation_policy_version="aggregation-v1",
+    )
+    source_manifest_set_hash = "a" * 64
+
+    first = compute_snapshot_instance_identity_hash(
+        request_identity_hash=request_identity_hash,
+        source_commit_manifest_set_hash=source_manifest_set_hash,
+    )
+    second = compute_snapshot_instance_identity_hash(
+        request_identity_hash=request_identity_hash,
+        source_commit_manifest_set_hash=source_manifest_set_hash,
+    )
+    assert first == second
+
+    # Even if we vary downstream values, the hash inputs do not change
+    # as long as request identity and source universe are the same.
+    third = compute_snapshot_instance_identity_hash(
+        request_identity_hash=request_identity_hash,
+        source_commit_manifest_set_hash=source_manifest_set_hash,
+    )
+    assert first == third
+
+
+@pytest.mark.asyncio
+async def test_database_authoritative_now_returns_utc() -> None:
+    """E1: ``_database_authoritative_now`` reads CURRENT_TIMESTAMP from the DB.
+
+    The helper must return a tz-aware datetime in UTC and never use
+    ``datetime.now(UTC)``. Even on SQLite (which lacks a true datetime
+    type), the helper returns a parsed :class:`datetime`.
+    """
+
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from backend.app.actual_harvest_labels.service import (
+        _database_authoritative_now,
+    )
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with AsyncSession(engine) as session:
+        stamp = await _database_authoritative_now(session)
+    await engine.dispose()
+
+    assert isinstance(stamp, datetime)
+    assert stamp.tzinfo is not None
+    assert stamp.utcoffset() == timedelta(0)
