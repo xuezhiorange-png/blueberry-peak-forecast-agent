@@ -465,6 +465,7 @@ VOID_HAS_SUCCESSOR
 FINALIZED_AT_REQUIRED
 SOURCE_SYSTEM_SCOPE_CONFLICT
 IDEMPOTENCY_CONFLICT
+UNSUPPORTED_LABEL_GRAIN
 ```
 
 `CORRECTED_WITHOUT_SUCCESSOR` is the accepted I7 contract name. Existing I5 implementations may map the condition to the legacy `INVALID_RECORD_STATUS` code until implementation hardening is separately authorized.
