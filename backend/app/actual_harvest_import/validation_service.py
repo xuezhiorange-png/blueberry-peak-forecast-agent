@@ -1683,10 +1683,17 @@ def finalize_validation(
             ActualHarvestApiErrorCode.API_INTEGRITY_ERROR, "lineage basis was not created", 500
         )
     for member in evidence.basis_members:
+        # finalized_at is part of the in-memory lineage-evidence dict so
+        # the I7 contract hardening (FINALIZED_AT_REQUIRED) can inspect it.
+        # It is NOT part of the persisted basis-member model contract; the
+        # canonical record_status + source-time authority fields stay
+        # authoritative. We therefore drop the in-memory-only key before
+        # unpacking the kwargs into the SQLAlchemy ORM model.
+        member_payload = {key: value for key, value in member.items() if key != "finalized_at"}
         session.add(
             ActualHarvestValidationLineageBasisMemberModel(
                 basis_id=basis.id,
-                **member,
+                **member_payload,
                 member_sort_key="|".join(
                     (
                         member["source_system"],
@@ -1695,7 +1702,7 @@ def finalize_validation(
                         member["external_revision_id"],
                     )
                 ),
-                member_hash=digest(member),
+                member_hash=digest(member_payload),
             )
         )
     for record in evidence.records:
