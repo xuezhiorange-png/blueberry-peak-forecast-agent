@@ -40,6 +40,7 @@ from backend.app.actual_harvest_import.enums import (
     ActualHarvestImportBatchStatus,
     ActualHarvestImportChannel,
     ActualHarvestRecordStatus,
+    ActualHarvestValidationErrorCode,
 )
 from backend.app.actual_harvest_import.lifecycle import (
     append_import_records,
@@ -3748,10 +3749,6 @@ async def test_postgres_i5_committed_finalized_predecessor_finalized_at_persists
         mapping_policy=mapping_policy,
         logical_id=logical_id,
         revision_id=first_revision,
-        record_updates={
-            "record_status": ActualHarvestRecordStatus.FINALIZED,
-            "finalized_at": predecessor_finalized_at,
-        },
     )
     second_id, second_external = await _seed_i5_batch_with_record(
         suffix=f"second-{suffix}",
@@ -3761,6 +3758,20 @@ async def test_postgres_i5_committed_finalized_predecessor_finalized_at_persists
         revision_number=2,
         predecessor=first_revision,
     )
+    # Mark the first record as FINALIZED with a non-null finalized_at
+    # AFTER seed so the staging-input validators do not reject the
+    # row at append time. The committed record is then the canonical
+    # FINALIZED predecessor for the second batch's lineage basis.
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.execute(
+                sa.update(ActualHarvestImportRecordModel)
+                .where(ActualHarvestImportRecordModel.external_revision_id == first_revision)
+                .values(
+                    record_status=ActualHarvestRecordStatus.FINALIZED,
+                    finalized_at=predecessor_finalized_at,
+                )
+            )
     try:
         async with AsyncSessionMaker() as session:
             async with session.begin():
@@ -3834,11 +3845,6 @@ async def test_postgres_i5_committed_finalized_predecessor_null_finalized_at_req
         mapping_policy=mapping_policy,
         logical_id=logical_id,
         revision_id=first_revision,
-        record_updates={
-            "record_status": ActualHarvestRecordStatus.FINALIZED,
-            # finalized_at left null on purpose.
-            "finalized_at": None,
-        },
     )
     second_id, second_external = await _seed_i5_batch_with_record(
         suffix=f"second-{suffix}",
@@ -3847,10 +3853,22 @@ async def test_postgres_i5_committed_finalized_predecessor_null_finalized_at_req
         revision_id=second_revision,
         revision_number=2,
         predecessor=first_revision,
-        record_updates={
-            "record_status": ActualHarvestRecordStatus.FINALIZED,
-        },
     )
+    # Mark the first record as FINALIZED with finalized_at=NULL AFTER
+    # seed (the staging schema validator would otherwise require a
+    # non-null finalized_at for FINALIZED at append time). This is the
+    # exact "record_status=FINALIZED AND finalized_at IS NULL" failure
+    # mode that the FINALIZED_AT_REQUIRED check must catch.
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.execute(
+                sa.update(ActualHarvestImportRecordModel)
+                .where(ActualHarvestImportRecordModel.external_revision_id == first_revision)
+                .values(
+                    record_status=ActualHarvestRecordStatus.FINALIZED,
+                    finalized_at=None,
+                )
+            )
     try:
         async with AsyncSessionMaker() as session:
             async with session.begin():
@@ -3886,7 +3904,7 @@ async def test_postgres_i5_committed_finalized_predecessor_null_finalized_at_req
                 .scalars()
                 .all()
             )
-            assert ActualHarvestApiErrorCode.FINALIZED_AT_REQUIRED.value in error_codes, (
+            assert ActualHarvestValidationErrorCode.FINALIZED_AT_REQUIRED.value in error_codes, (
                 "expected FINALIZED_AT_REQUIRED error code on the validation "
                 f"run for second batch, got {error_codes!r}"
             )
