@@ -181,8 +181,27 @@ def compute_committed_lineage_basis_hash(members: Iterable[dict[str, Any]]) -> s
     )
 
 
+def _lineage_node_hash_payload(node: dict[str, Any]) -> dict[str, Any]:
+    """Return the lineage node payload that feeds ``node_hash``.
+
+    The I7 contract excludes ``finalized_at`` from the persisted
+    node model. The I7 contract requires that the digest over the
+    PERSISTED columns (no ``finalized_at``) be stable, so the
+    FINALIZED-time information lives in the basis-member row instead
+    (migration 0022) and in ``canonical_record_hash`` (which binds
+    it). This helper is also used at ``compute_lineage_node_hash``
+    call sites.
+    """
+    return {key: value for key, value in node.items() if key != "finalized_at"}
+
+
 def compute_lineage_node_hash(node: dict[str, Any]) -> str:
-    return digest({"policy_version": LINEAGE_GRAPH_HASH_POLICY_VERSION, "node": node})
+    return digest(
+        {
+            "policy_version": LINEAGE_GRAPH_HASH_POLICY_VERSION,
+            "node": _lineage_node_hash_payload(node),
+        }
+    )
 
 
 def compute_lineage_graph_hash(

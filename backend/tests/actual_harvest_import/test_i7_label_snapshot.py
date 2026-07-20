@@ -30,6 +30,9 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from backend.app.actual_harvest_import.canonical_hashes import (
+    compute_canonical_record_hash,
+)
 from backend.app.actual_harvest_import.commit_models import (
     COMMIT_POLICY_VERSION,
     ActualHarvestCommitManifestModel,
@@ -60,6 +63,7 @@ from backend.app.actual_harvest_import.validation_models import (
 )
 from backend.app.actual_harvest_labels.enums import (
     ActualHarvestLabelCoverageExclusion,
+    ActualHarvestLabelStructuralFailure,
 )
 from backend.app.actual_harvest_labels.hashes import (
     AGGREGATION_POLICY_VERSION,
@@ -87,6 +91,7 @@ from backend.app.actual_harvest_labels.schemas import (
 )
 from backend.app.actual_harvest_labels.service import (
     ActualHarvestLabelIdempotencyConflictError,
+    ActualHarvestLabelStructuralFailureError,
     create_label_snapshot,
 )
 from backend.app.db.base import Base
@@ -257,26 +262,41 @@ async def _seed_validation_run(
     batch_id: int,
     policy_version: str,
 ) -> int:
-    run = ActualHarvestValidationRunModel(
-        batch_id=batch_id,
-        request_identity_hash=_hex64(f"req-{batch_id}"),
-        instance_identity_hash=_hex64(f"inst-{batch_id}"),
-        seal_manifest_hash=_hex64(f"seal-{batch_id}"),
-        mapping_policy_version=policy_version,
-        validation_policy_version="validation-test-v1",
-        season_resolver_version="actual-harvest-season-resolver-v1",
-        committed_lineage_basis_hash=_hex64(f"basis-{batch_id}"),
-        registry_content_hash=_hex64(f"registry-{batch_id}"),
-        record_manifest_hash=_hex64(f"rec-{batch_id}"),
-        status="VALIDATED",
-        is_current=True,
-        active_attempt_generation=0,
-        valid_count=1,
-        invalid_count=0,
-        error_count=0,
-        warning_count=0,
+    session.add(
+        ActualHarvestValidationRunModel(
+            batch_id=batch_id,
+            request_identity_hash=_hex64(f"req-{batch_id}"),
+            # ``instance_identity_hash`` MUST match
+            # ``commit_manifest.validation_run_instance_identity_hash``,
+            # which is keyed by the validation run id (filled in
+            # after ``session.flush()``).
+            instance_identity_hash=_hex64("inst-pending"),
+            seal_manifest_hash=_hex64(f"seal-{batch_id}"),
+            mapping_policy_version=policy_version,
+            validation_policy_version="validation-test-v1",
+            season_resolver_version="actual-harvest-season-resolver-v1",
+            committed_lineage_basis_hash=_hex64(f"basis-{batch_id}"),
+            registry_content_hash=_hex64(f"registry-{batch_id}"),
+            record_manifest_hash=_hex64(f"rec-{batch_id}"),
+            status="VALIDATED",
+            is_current=True,
+            active_attempt_generation=0,
+            valid_count=1,
+            invalid_count=0,
+            error_count=0,
+            warning_count=0,
+        )
     )
-    session.add(run)
+    await session.flush()
+    run = await session.scalar(
+        select(ActualHarvestValidationRunModel)
+        .where(ActualHarvestValidationRunModel.batch_id == batch_id)
+        .order_by(ActualHarvestValidationRunModel.id.desc())
+    )
+    assert run is not None
+    # Patch the instance_identity_hash to use the same key the
+    # commit manifest will use, so cross-validation passes.
+    run.instance_identity_hash = _hex64(f"inst-{run.id}")
     await session.flush()
     return run.id
 
@@ -287,14 +307,18 @@ async def _seed_mapping_snapshot(
     validation_run_id: int,
     policy_version: str,
 ) -> None:
+    # Mapping-snapshot hashes MUST match the values the commit
+    # manifest copies (see _build_commit_manifest). Using different
+    # key prefixes here would force SOURCE_EVIDENCE_DRIFT on a
+    # production snapshot.
     snapshot = ActualHarvestMappingSnapshotModel(
         validation_run_id=validation_run_id,
         registry_version=f"registry-{policy_version}",
         mapping_policy_version=policy_version,
         season_resolver_version="actual-harvest-season-resolver-v1",
-        registry_content_hash=_hex64(f"registry-snap-{validation_run_id}"),
-        mapping_snapshot_hash=_hex64(f"snap-{validation_run_id}"),
-        resolved_identity_snapshot_hash=_hex64(f"identity-snap-{validation_run_id}"),
+        registry_content_hash=_hex64(f"registry-{validation_run_id}"),
+        mapping_snapshot_hash=_hex64(f"ms-{validation_run_id}"),
+        resolved_identity_snapshot_hash=_hex64(f"isnap-{validation_run_id}"),
         entry_count=0,
         snapshot_payload="[]",
     )
@@ -690,7 +714,7 @@ def _base_request(**overrides) -> ActualHarvestLabelSnapshotRequest:
         "label_observation_cutoff_at_or_null": datetime(2024, 12, 31, tzinfo=UTC),
         "harvest_date_start": date(2024, 1, 1),
         "harvest_date_end": date(2024, 12, 31),
-        "season_business_keys": ("season-1",),
+        "season_business_keys": ("season-business-key-1",),
         "farm_business_keys_or_empty_for_all": (),
         "variety_business_keys_or_empty_for_all": (),
         "snapshot_policy_version": SNAPSHOT_POLICY_VERSION,
@@ -1396,6 +1420,364 @@ async def test_void_without_successor_uses_hardened_error(
     # consumers can map it directly.
     assert hasattr(ActualHarvestValidationErrorCode, "VOID_HAS_SUCCESSOR")
     assert ActualHarvestValidationErrorCode.VOID_HAS_SUCCESSOR.value == "VOID_HAS_SUCCESSOR"
+
+
+# ---------------------------------------------------------------------------
+# B1 — cutoff-visible graph enforcement
+# ---------------------------------------------------------------------------
+
+
+async def test_parent_visible_future_successor_parent_wins(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """Parent visible + future successor after cutoff → parent wins,
+    successor is excluded as SOURCE_TIME_AFTER_CUTOFF. The future
+    successor MUST NOT disqualify the visible parent from being
+    the winner.
+    """
+    cutoff = datetime(2024, 1, 1, tzinfo=UTC)
+    parent_record = _build_record(
+        external_logical_record_id="logical-b1-parent-succ",
+        external_revision_id="rev-parent-b1",
+        source_recorded_at=datetime(2023, 12, 31, tzinfo=UTC),
+    )
+    successor_record = _build_record(
+        external_logical_record_id="logical-b1-parent-succ",
+        external_revision_id="rev-suc-b1",
+        revision_number=2,
+        quantity_kg="2.0",
+        source_recorded_at=datetime(2030, 1, 1, tzinfo=UTC),
+    )
+    successor_record.supersedes_external_revision_id = "rev-parent-b1"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-b1-parent-succ",
+        records=[parent_record, successor_record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-b1-parent-succ",
+        label_observation_cutoff_at_or_null=cutoff,
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 1
+    assert result.header.label_row_count == 1
+    winner = result.winners[0]
+    assert winner["external_revision_id"] == "rev-parent-b1"
+    assert winner["record_status"] == ActualHarvestRecordStatus.ACTIVE.value
+    categories = {row["exclusion_category"] for row in result.exclusion_rows}
+    assert ActualHarvestLabelCoverageExclusion.SOURCE_TIME_AFTER_CUTOFF.value in categories
+
+
+async def test_parent_visible_successor_at_cutoff_successor_wins(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """Parent visible + successor at the cutoff (cutoff is inclusive)
+    → successor wins. ``source_recorded_at <= cutoff`` is the
+    visibility rule, so an equal timestamp still counts.
+    """
+    cutoff = datetime(2024, 6, 30, tzinfo=UTC)
+    parent_record = _build_record(
+        external_logical_record_id="logical-b1-cutoff-eq",
+        external_revision_id="rev-parent-eq",
+        source_recorded_at=datetime(2024, 1, 1, tzinfo=UTC),
+    )
+    successor_record = _build_record(
+        external_logical_record_id="logical-b1-cutoff-eq",
+        external_revision_id="rev-suc-eq",
+        revision_number=2,
+        quantity_kg="2.0",
+        source_recorded_at=cutoff,
+    )
+    successor_record.supersedes_external_revision_id = "rev-parent-eq"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-b1-cutoff-eq",
+        records=[parent_record, successor_record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-b1-cutoff-eq",
+        label_observation_cutoff_at_or_null=cutoff,
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 1
+    winner = result.winners[0]
+    assert winner["external_revision_id"] == "rev-suc-eq"
+    assert winner["revision_number"] == 2
+
+
+async def test_child_visible_parent_after_cutoff_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """Child visible (before cutoff) + parent after cutoff →
+    VISIBLE_CHILD_WITH_INVISIBLE_PARENT structural failure. The
+    supersession chain is corrupt; the snapshot must NOT silently
+    pick the visible child.
+    """
+    cutoff = datetime(2024, 1, 1, tzinfo=UTC)
+    parent_record = _build_record(
+        external_logical_record_id="logical-b1-invisible-parent",
+        external_revision_id="rev-parent-inv",
+        source_recorded_at=datetime(2030, 1, 1, tzinfo=UTC),
+    )
+    child_record = _build_record(
+        external_logical_record_id="logical-b1-invisible-parent",
+        external_revision_id="rev-child-vis",
+        revision_number=2,
+        quantity_kg="2.0",
+        source_recorded_at=datetime(2023, 12, 31, tzinfo=UTC),
+    )
+    child_record.supersedes_external_revision_id = "rev-parent-inv"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-b1-invisible-parent",
+        records=[parent_record, child_record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-b1-invisible-parent",
+        label_observation_cutoff_at_or_null=cutoff,
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == (
+        ActualHarvestLabelStructuralFailure.VISIBLE_CHILD_WITH_INVISIBLE_PARENT
+    )
+
+
+# ---------------------------------------------------------------------------
+# B3 — scope check uses frozen canonical business keys
+# ---------------------------------------------------------------------------
+
+
+async def test_frozen_farm_business_key_in_scope_creates_winner(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """``source farm_code`` may be any live code (e.g. ``F001``); the
+    request scope compares against the FROZEN
+    ``farm_business_key`` returned by the winning validation run's
+    mapping evidence (``farm-business-key-1``). A matching scope
+    creates a winner.
+    """
+    record = _build_record(
+        external_logical_record_id="logical-b3-farm-scope",
+        external_revision_id="rev-b3-farm-scope",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-b3-farm-scope",
+        records=[record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-b3-farm-scope",
+        farm_business_keys_or_empty_for_all=("farm-business-key-1",),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 1
+    assert result.header.label_row_count == 1
+    assert result.header.exclusion_row_count == 0
+    winner = result.winners[0]
+    assert winner["farm_business_key"] == "farm-business-key-1"
+    # The live farm_code is preserved as audit evidence; only the
+    # frozen business key is used for scope.
+    assert winner["external_revision_id"] == "rev-b3-farm-scope"
+
+
+async def test_frozen_business_key_mismatch_excludes_as_outside_request_scope(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """When the request's frozen business-key scope does NOT include
+    the winner's frozen target_business_key, the winner is reported
+    as ``OUTSIDE_REQUEST_SCOPE`` (no live master-data remapping).
+    """
+    record = _build_record(
+        external_logical_record_id="logical-b3-farm-mismatch",
+        external_revision_id="rev-b3-farm-mismatch",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-b3-farm-mismatch",
+        records=[record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-b3-farm-mismatch",
+        # A frozen business key the seeded registry does NOT have.
+        farm_business_keys_or_empty_for_all=("other-farm-business-key",),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 0
+    assert result.header.exclusion_row_count == 1
+    exclusion = result.exclusion_rows[0]
+    assert (
+        exclusion["exclusion_category"]
+        == ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE.value
+    )
+    assert exclusion["exclusion_details"]["farm_business_key"] == "farm-business-key-1"
+
+
+# ---------------------------------------------------------------------------
+# B4 — node_hash / member_hash / canonical_record_hash surface
+# ---------------------------------------------------------------------------
+
+
+def test_persisted_lineage_node_hash_is_recomputable_from_columns() -> None:
+    """A persisted ``ActualHarvestValidationLineageNodeModel`` row's
+    ``node_hash`` must be reproducible from its own columns. The
+    I7 contract removes ``finalized_at`` from the persisted node
+    model so a re-hash on the stored columns must round-trip.
+    """
+    from backend.app.actual_harvest_import.validation_hashes import (
+        compute_lineage_node_hash,
+    )
+
+    # Note: ``finalized_at`` is INTENTIONALLY absent from the
+    # persisted node model; it must not be required to recompute
+    # ``node_hash``.
+    stored_node = {
+        "origin": "COMMITTED",
+        "source_system": "source-test",
+        "external_logical_record_id": "logical-b4-node",
+        "external_revision_id": "rev-b4-node",
+        "revision_number": 1,
+        "record_status": "FINALIZED",
+        "supersedes_external_revision_id": None,
+        "canonical_record_hash": "a" * 64,
+        "source_recorded_at": datetime(2024, 1, 1, tzinfo=UTC).isoformat(),
+        "source_recorded_at_authority_status": "TRUSTED_SOURCE_TIMESTAMP",
+    }
+    stored_node_hash = compute_lineage_node_hash(stored_node)
+    # Round-trip: hash on stored columns must be stable; flipping
+    # any persisted column must change it.
+    assert len(stored_node_hash) == 64
+    flipped_node = dict(stored_node, revision_number=2)
+    flipped_hash = compute_lineage_node_hash(flipped_node)
+    assert flipped_hash != stored_node_hash
+    # And: adding ``finalized_at`` to the payload does not change
+    # the hash, because the I7 contract intentionally excludes it
+    # from the persisted node_hash digest.
+    with_finalized = dict(
+        stored_node,
+        finalized_at=datetime(2024, 1, 1, tzinfo=UTC).isoformat(),
+    )
+    assert compute_lineage_node_hash(with_finalized) == stored_node_hash
+
+
+def test_legacy_basis_member_hash_stable_under_finalized_at_persistence() -> None:
+    """The historical basis member ``member_hash`` digest was computed
+    BEFORE the migration 0022 ``finalized_at`` column existed. The
+    I7 contract requires that adding ``finalized_at`` to the
+    in-memory member dict does NOT change the persisted
+    ``member_hash``. ``_basis_member_hash_payload`` strips the key.
+    """
+    from backend.app.actual_harvest_import.validation_hashes import digest
+    from backend.app.actual_harvest_import.validation_service import (
+        _basis_member_hash_payload,
+    )
+
+    legacy_member: dict[str, Any] = {
+        "source_system": "source-test",
+        "committed_batch_ref": "source-test:batch-1",
+        "external_logical_record_id": "logical-legacy",
+        "external_revision_id": "rev-legacy",
+        "revision_number": 1,
+        "canonical_record_hash": "a" * 64,
+        "predecessor_revision_id": None,
+        "record_status": "ACTIVE",
+        "source_recorded_at": datetime(2024, 1, 1, tzinfo=UTC),
+        "source_recorded_at_authority_status": "TRUSTED_SOURCE_TIMESTAMP",
+        "member_sort_key": "k",
+    }
+    legacy_hash = digest(_basis_member_hash_payload(legacy_member))
+
+    persisted_member = dict(legacy_member)
+    persisted_member["finalized_at"] = datetime(2024, 1, 1, tzinfo=UTC)
+    persisted_hash = digest(_basis_member_hash_payload(persisted_member))
+
+    assert legacy_hash == persisted_hash
+
+    # And: the helper EXCLUDES ``finalized_at`` from the payload it
+    # feeds into the digest.
+    assert "finalized_at" not in _basis_member_hash_payload(persisted_member)
+    assert "finalized_at" in persisted_member  # preserved in source
+
+
+def test_canonical_record_hash_changes_when_finalized_at_changes() -> None:
+    """``canonical_record_hash`` binds ``finalized_at`` so changing
+    the FINALIZED timestamp produces a new record-identity hash.
+    This is the counterpart of the legacy-stable member_hash above.
+    """
+    from backend.app.actual_harvest_import.schemas import (
+        CanonicalActualHarvestImportRecord,
+    )
+
+    record = CanonicalActualHarvestImportRecord(
+        external_logical_record_id="logical-b4",
+        external_revision_id="rev-b4",
+        source_system="source-test",
+        external_batch_id="b4-batch-1",
+        harvest_business_date=date(2024, 1, 1),
+        actual_harvest_quantity_kg=Decimal("1.0"),
+        farm_code="farm-1",
+        subfarm_or_plot_code="sub-1",
+        variety_code="var-1",
+        source_recorded_at=datetime(2024, 1, 1, tzinfo=UTC),
+        source_recorded_at_authority_status=(
+            SourceRecordedAtAuthorityStatus.TRUSTED_SOURCE_TIMESTAMP.value
+        ),
+        source_recorded_at_authority_reference_or_null="b4-authority-ref",
+        import_received_at=datetime(2024, 1, 1, tzinfo=UTC),
+        ingested_at=datetime(2024, 1, 1, tzinfo=UTC),
+        revision_number=1,
+        record_status=ActualHarvestRecordStatus.FINALIZED.value,
+        finalized_at=datetime(2024, 1, 1, tzinfo=UTC),
+    )
+    h0 = compute_canonical_record_hash(record)
+    finalized_copy = record.model_copy(update={"finalized_at": datetime(2024, 1, 2, tzinfo=UTC)})
+    h1 = compute_canonical_record_hash(finalized_copy)
+    assert h0 != h1
 
 
 # ---------------------------------------------------------------------------
