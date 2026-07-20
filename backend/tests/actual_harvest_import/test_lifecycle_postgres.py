@@ -3749,6 +3749,7 @@ async def test_postgres_i5_committed_finalized_predecessor_finalized_at_persists
         mapping_policy=mapping_policy,
         logical_id=logical_id,
         revision_id=first_revision,
+        seal=False,
     )
     second_id, second_external = await _seed_i5_batch_with_record(
         suffix=f"second-{suffix}",
@@ -3757,11 +3758,13 @@ async def test_postgres_i5_committed_finalized_predecessor_finalized_at_persists
         revision_id=second_revision,
         revision_number=2,
         predecessor=first_revision,
+        seal=False,
     )
     # Mark the first record as FINALIZED with a non-null finalized_at
-    # AFTER seed so the staging-input validators do not reject the
-    # row at append time. The committed record is then the canonical
-    # FINALIZED predecessor for the second batch's lineage basis.
+    # AFTER seed but BEFORE the B5 immutability trigger fires on seal.
+    # The staging-input layer's append validator does not see this
+    # update (we already appended with default ACTIVE status), and the
+    # record is still mutable while the batch is UPLOADING.
     async with AsyncSessionMaker() as session:
         async with session.begin():
             await session.execute(
@@ -3772,6 +3775,14 @@ async def test_postgres_i5_committed_finalized_predecessor_finalized_at_persists
                     finalized_at=predecessor_finalized_at,
                 )
             )
+    # Now seal both batches so the second batch's lineage basis can
+    # include the first record (the B5 immutability trigger is what
+    # blocks further UPDATEs).
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await seal_import(session, first_id, actor_identity="operator-1")
+        async with session.begin():
+            await seal_import(session, second_id, actor_identity="operator-1")
     try:
         async with AsyncSessionMaker() as session:
             async with session.begin():
@@ -3845,6 +3856,7 @@ async def test_postgres_i5_committed_finalized_predecessor_null_finalized_at_req
         mapping_policy=mapping_policy,
         logical_id=logical_id,
         revision_id=first_revision,
+        seal=False,
     )
     second_id, second_external = await _seed_i5_batch_with_record(
         suffix=f"second-{suffix}",
@@ -3853,12 +3865,12 @@ async def test_postgres_i5_committed_finalized_predecessor_null_finalized_at_req
         revision_id=second_revision,
         revision_number=2,
         predecessor=first_revision,
+        seal=False,
     )
     # Mark the first record as FINALIZED with finalized_at=NULL AFTER
-    # seed (the staging schema validator would otherwise require a
-    # non-null finalized_at for FINALIZED at append time). This is the
-    # exact "record_status=FINALIZED AND finalized_at IS NULL" failure
-    # mode that the FINALIZED_AT_REQUIRED check must catch.
+    # seed but BEFORE the B5 immutability trigger fires on seal. This
+    # is the exact "record_status=FINALIZED AND finalized_at IS NULL"
+    # failure mode that the FINALIZED_AT_REQUIRED check must catch.
     async with AsyncSessionMaker() as session:
         async with session.begin():
             await session.execute(
@@ -3869,6 +3881,13 @@ async def test_postgres_i5_committed_finalized_predecessor_null_finalized_at_req
                     finalized_at=None,
                 )
             )
+    # Now seal both batches so the second batch's lineage basis can
+    # include the first record.
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await seal_import(session, first_id, actor_identity="operator-1")
+        async with session.begin():
+            await seal_import(session, second_id, actor_identity="operator-1")
     try:
         async with AsyncSessionMaker() as session:
             async with session.begin():
