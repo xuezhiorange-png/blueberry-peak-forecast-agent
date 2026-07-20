@@ -256,6 +256,12 @@ async def create_label_snapshot(
         # We allow it; winners and label rows will simply be empty.
         pass
 
+    # E6 source-evidence preflight: verify the frozen evidence chain
+    # for every observed commit manifest BEFORE any scope / visibility /
+    # graph / winner / aggregation work. This is the single batched
+    # authority-integrity check the I7 contract requires.
+    await _preflight_source_evidence(session, manifests=manifests)
+
     source_manifest_set_hash = compute_source_commit_manifest_set_hash(manifests)
     # Each manifest dict carries the database ``batch_id`` so the
     # I7 pipeline can load the committed record set without an
@@ -527,6 +533,313 @@ async def _load_source_manifest_set(
             item["commit_manifest_hash"],
         ),
     )
+
+
+async def _preflight_source_evidence(
+    session: AsyncSession,
+    *,
+    manifests: list[dict[str, Any]],
+) -> None:
+    """E6 source-evidence preflight.
+
+    For each observed commit manifest, verify that the frozen
+    evidence chain is complete, bound by hash, and not drifted
+    against the persisted authority. This runs BEFORE scope,
+    visibility, graph construction, winner selection, and
+    aggregation so any drift / missing evidence halts the whole
+    snapshot with a stable structural-failure code — never a
+    silent fallback and never a coverage exclusion.
+
+    The preflight is a single batched query against each evidence
+    table to keep the N+1 cost low; the canonical
+    (validation_run_id, target_type) key serves as a deterministic
+    index over the (validation_run_id, source_system,
+    external_logical_record_id, external_revision_id, target_type)
+    composite used by I5.
+
+    The preflight does not call live master-data lookups; every
+    required key, hash, and policy version is read from the frozen
+    evidence tables bound to the commit manifest's
+    ``validation_run_id``.
+    """
+    from sqlalchemy import func as sa_func
+
+    from backend.app.actual_harvest_import.validation_models import (
+        ActualHarvestMappingSnapshotModel,
+        ActualHarvestValidationLineageBasisMemberModel,
+        ActualHarvestValidationLineageBasisModel,
+        ActualHarvestValidationMappingEvidenceModel,
+        ActualHarvestValidationResultModel,
+        ActualHarvestValidationRunModel,
+    )
+
+    if not manifests:
+        return
+
+    # 1. Load every commit manifest hash in one query.
+    manifest_hashes = tuple(item["commit_manifest_hash"] for item in manifests)
+    commit_manifest_rows = (
+        await session.scalars(
+            select(ActualHarvestCommitManifestModel).where(
+                ActualHarvestCommitManifestModel.commit_manifest_hash.in_(manifest_hashes)
+            )
+        )
+    ).all()
+    commit_manifests_by_hash: dict[str, ActualHarvestCommitManifestModel] = {
+        row.commit_manifest_hash: row for row in commit_manifest_rows
+    }
+    for manifest_hash in manifest_hashes:
+        if manifest_hash not in commit_manifests_by_hash:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_missing_commit_manifest",
+                    "commit_manifest_hash": manifest_hash,
+                },
+            )
+
+    # 2. Load all validation runs referenced by the observed manifests.
+    validation_run_ids = tuple(
+        commit_manifests_by_hash[manifest_hash].validation_run_id
+        for manifest_hash in manifest_hashes
+    )
+    validation_run_rows = (
+        await session.scalars(
+            select(ActualHarvestValidationRunModel).where(
+                ActualHarvestValidationRunModel.id.in_(validation_run_ids)
+            )
+        )
+    ).all()
+    validation_runs_by_id: dict[int, ActualHarvestValidationRunModel] = {
+        row.id: row for row in validation_run_rows
+    }
+    for validation_run_id in validation_run_ids:
+        if validation_run_id not in validation_runs_by_id:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_missing_validation_run",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+
+    # 3. Load all mapping snapshots.
+    mapping_snapshot_rows = (
+        await session.scalars(
+            select(ActualHarvestMappingSnapshotModel).where(
+                ActualHarvestMappingSnapshotModel.validation_run_id.in_(validation_run_ids)
+            )
+        )
+    ).all()
+    mapping_snapshots_by_run: dict[int, ActualHarvestMappingSnapshotModel] = {
+        row.validation_run_id: row for row in mapping_snapshot_rows
+    }
+    for validation_run_id in validation_run_ids:
+        if validation_run_id not in mapping_snapshots_by_run:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
+                details={
+                    "reason": "preflight_missing_mapping_snapshot",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+
+    # 4. Load all validation results.
+    validation_result_rows = (
+        await session.scalars(
+            select(ActualHarvestValidationResultModel).where(
+                ActualHarvestValidationResultModel.validation_run_id.in_(validation_run_ids)
+            )
+        )
+    ).all()
+    validation_results_by_run: dict[int, ActualHarvestValidationResultModel] = {
+        row.validation_run_id: row for row in validation_result_rows
+    }
+    for validation_run_id in validation_run_ids:
+        if validation_run_id not in validation_results_by_run:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_missing_validation_result",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+
+    # 5. Load all lineage bases.
+    lineage_basis_rows = (
+        await session.scalars(
+            select(ActualHarvestValidationLineageBasisModel).where(
+                ActualHarvestValidationLineageBasisModel.validation_run_id.in_(validation_run_ids)
+            )
+        )
+    ).all()
+    lineage_bases_by_run: dict[int, ActualHarvestValidationLineageBasisModel] = {
+        row.validation_run_id: row for row in lineage_basis_rows
+    }
+    for validation_run_id in validation_run_ids:
+        if validation_run_id not in lineage_bases_by_run:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_missing_lineage_basis",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+
+    # 6. Hash-drift cross-checks + lineage basis member count.
+    member_count_rows = (
+        await session.execute(
+            select(
+                ActualHarvestValidationLineageBasisMemberModel.basis_id,
+                sa_func.count(ActualHarvestValidationLineageBasisMemberModel.id),
+            )
+            .where(
+                ActualHarvestValidationLineageBasisMemberModel.basis_id.in_(
+                    basis.id for basis in lineage_bases_by_run.values()
+                )
+            )
+            .group_by(ActualHarvestValidationLineageBasisMemberModel.basis_id)
+        )
+    ).all()
+    actual_member_counts: dict[int, int] = {
+        int(basis_id): int(count) for basis_id, count in member_count_rows
+    }
+
+    for commit_manifest in commit_manifests_by_hash.values():
+        validation_run_id = commit_manifest.validation_run_id
+        validation_run = validation_runs_by_id[validation_run_id]
+        mapping_snapshot = mapping_snapshots_by_run[validation_run_id]
+        validation_result = validation_results_by_run[validation_run_id]
+        lineage_basis = lineage_bases_by_run[validation_run_id]
+
+        if (
+            commit_manifest.validation_run_instance_identity_hash
+            != validation_run.instance_identity_hash
+        ):
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_validation_run_instance_identity_hash_mismatch",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+        if commit_manifest.mapping_snapshot_hash != mapping_snapshot.mapping_snapshot_hash:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_mapping_snapshot_hash_mismatch",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+        if (
+            commit_manifest.resolved_identity_snapshot_hash
+            != mapping_snapshot.resolved_identity_snapshot_hash
+        ):
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_resolved_identity_snapshot_hash_mismatch",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+        if commit_manifest.registry_content_hash != mapping_snapshot.registry_content_hash:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_registry_content_hash_mismatch",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+        if commit_manifest.validation_result_hash != validation_result.validation_result_hash:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_validation_result_hash_mismatch",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+        if (
+            commit_manifest.committed_lineage_basis_hash
+            != lineage_basis.committed_lineage_basis_hash
+        ):
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_lineage_basis_hash_mismatch",
+                    "validation_run_id": validation_run_id,
+                },
+            )
+        # Lineage basis member count must equal the persisted member_count.
+        actual_member_count = int(actual_member_counts.get(lineage_basis.id, 0))
+        if actual_member_count != lineage_basis.member_count:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_lineage_basis_member_count_mismatch",
+                    "validation_run_id": validation_run_id,
+                    "expected_member_count": lineage_basis.member_count,
+                    "actual_member_count": actual_member_count,
+                },
+            )
+
+    # 7. Per-record mapping evidence cross-check — every observed
+    #    revision in the source universe must have exactly one row
+    #    per required target_type and no extra target_types.
+    #    This is the per-record preflight that runs after the
+    #    manifest-level chain is verified. We only check that every
+    #    observed revision has *some* evidence; the per-target-type
+    #    structure (PLOT, unknown, duplicate) is checked in the
+    #    winner selection path with the explicit
+    #    UNSUPPORTED_LABEL_GRAIN / MAPPING_EVIDENCE_DRIFT codes.
+    required_target_types = frozenset({"SEASON", "FARM", "SUBFARM", "VARIETY"})
+    evidence_rows = (
+        await session.execute(
+            select(
+                ActualHarvestValidationMappingEvidenceModel.validation_run_id,
+                ActualHarvestValidationMappingEvidenceModel.source_system,
+                ActualHarvestValidationMappingEvidenceModel.external_logical_record_id,
+                ActualHarvestValidationMappingEvidenceModel.external_revision_id,
+                ActualHarvestValidationMappingEvidenceModel.target_type,
+            ).where(
+                ActualHarvestValidationMappingEvidenceModel.validation_run_id.in_(
+                    validation_run_ids
+                )
+            )
+        )
+    ).all()
+    evidence_index: dict[tuple[int, str, str, str], set[str]] = {}
+    for (
+        validation_run_id,
+        source_system,
+        logical_id,
+        revision_id,
+        target_type,
+    ) in evidence_rows:
+        evidence_index.setdefault(
+            (validation_run_id, source_system, logical_id, revision_id),
+            set(),
+        ).add(target_type)
+    # All required target types must be present for every observed
+    # record — anything else is a missing-evidence structural failure
+    # and must NOT be downgraded to OUTSIDE_REQUEST_SCOPE.
+    for (
+        validation_run_id,
+        _source_system,
+        logical_id,
+        revision_id,
+    ), target_types in evidence_index.items():
+        missing = required_target_types - target_types
+        if missing:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
+                details={
+                    "reason": "preflight_missing_target_type",
+                    "validation_run_id": validation_run_id,
+                    "external_logical_record_id": logical_id,
+                    "external_revision_id": revision_id,
+                    "missing_target_types": sorted(missing),
+                },
+            )
 
 
 async def _load_committed_records_for_batches(
@@ -1580,17 +1893,49 @@ async def _mapping_evidence_for_record(
     ).all()
 
     targets: dict[str, ActualHarvestValidationMappingEvidenceModel] = {}
+    allowed_target_types = frozenset({"SEASON", "FARM", "SUBFARM", "VARIETY"})
     for row in evidence_rows:
-        if row.target_type in {"SEASON", "FARM", "SUBFARM", "VARIETY"}:
-            if row.target_type in targets:
-                raise ActualHarvestLabelStructuralFailureError(
-                    ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT,
-                    details={
-                        "reason": "duplicate_target_evidence",
-                        "target_type": row.target_type,
-                    },
-                )
-            targets[row.target_type] = row
+        # E7: PLOT grain is contractually unsupported in the I7 v1
+        # canonical label. Any PLOT evidence that slips into a
+        # committed lineage basis must fail closed with a stable
+        # public code — never be silently downgraded or treated as
+        # a SUBFARM.
+        if row.target_type == "PLOT":
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN,
+                details={
+                    "reason": "plot_target_type_in_frozen_evidence",
+                    "source_system": record.source_system,
+                    "external_logical_record_id": record.external_logical_record_id,
+                    "external_revision_id": record.external_revision_id,
+                    "target_type": row.target_type,
+                    "target_business_key": row.target_business_key,
+                },
+            )
+        # E6: any non-allowed target_type is MAPPING_EVIDENCE_DRIFT,
+        # not a silent skip. The I5 validation pipeline rejects
+        # unknown target types upstream; surviving evidence rows
+        # that disagree with the I7 allow-list are evidence drift.
+        if row.target_type not in allowed_target_types:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT,
+                details={
+                    "reason": "unknown_target_type_in_frozen_evidence",
+                    "source_system": record.source_system,
+                    "external_logical_record_id": record.external_logical_record_id,
+                    "external_revision_id": record.external_revision_id,
+                    "target_type": row.target_type,
+                },
+            )
+        if row.target_type in targets:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT,
+                details={
+                    "reason": "duplicate_target_evidence",
+                    "target_type": row.target_type,
+                },
+            )
+        targets[row.target_type] = row
 
     for required in ("SEASON", "FARM", "SUBFARM", "VARIETY"):
         if required not in targets:

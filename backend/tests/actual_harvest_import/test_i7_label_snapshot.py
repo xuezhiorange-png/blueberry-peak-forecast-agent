@@ -130,6 +130,94 @@ def _hex64(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+async def _inject_plot_evidence_row(
+    session: AsyncSession,
+    *,
+    run_id: int,
+    record: ActualHarvestImportRecordModel,
+    business_key_suffix: str,
+) -> None:
+    """Inject a PLOT evidence row directly into the persisted
+    ``actual_harvest_validation_mapping_evidence`` table for the
+    given validation run + committed record.
+
+    The I5 validation pipeline rejects PLOT at validation time
+    (contract §X.1), so the upstream CHECK constraint
+    ``ck_actual_harvest_validation_mapping_target_type`` and the
+    per-target-type FK constraint
+    ``ck_actual_harvest_validation_mapping_target_fk`` block the
+    ORM INSERT. This helper bypasses those constraints by issuing
+    raw SQL, simulating the "PLOT slipped into a committed
+    lineage basis" failure mode the I7 contract must defend
+    against — either via direct DB write corruption or via a
+    future regression in the I5 PLOT check.
+    """
+    from sqlalchemy import text as _text
+
+    await session.execute(
+        _text(
+            "ALTER TABLE actual_harvest_validation_mapping_evidence "
+            "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_type"
+        )
+    )
+    await session.execute(
+        _text(
+            "ALTER TABLE actual_harvest_validation_mapping_evidence "
+            "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_fk"
+        )
+    )
+    await session.execute(
+        _text(
+            "INSERT INTO actual_harvest_validation_mapping_evidence ("
+            "validation_run_id, record_index, source_system, "
+            "external_logical_record_id, external_revision_id, "
+            "revision_number, source_field, source_code, "
+            "registry_version, mapping_policy_version, "
+            "resolver_version, registry_entry_hash, target_type, "
+            "target_business_key, target_parent_business_key, "
+            "resolved_master_business_key, "
+            "resolved_master_parent_business_key, "
+            "resolved_master_record_hash, resolved_season_id, "
+            "resolution_mode, outcome"
+            ") VALUES ("
+            ":validation_run_id, :record_index, :source_system, "
+            ":external_logical_record_id, :external_revision_id, "
+            ":revision_number, :source_field, :source_code, "
+            ":registry_version, :mapping_policy_version, "
+            ":resolver_version, :registry_entry_hash, :target_type, "
+            ":target_business_key, :target_parent_business_key, "
+            ":resolved_master_business_key, "
+            ":resolved_master_parent_business_key, "
+            ":resolved_master_record_hash, :resolved_season_id, "
+            ":resolution_mode, :outcome"
+            ")"
+        ),
+        {
+            "validation_run_id": run_id,
+            "record_index": 1,
+            "source_system": record.source_system,
+            "external_logical_record_id": record.external_logical_record_id,
+            "external_revision_id": record.external_revision_id,
+            "revision_number": record.revision_number,
+            "source_field": "subfarm_or_plot_code",
+            "source_code": None,
+            "registry_version": "registry-v1",
+            "mapping_policy_version": "mapping-test-v1",
+            "resolver_version": "actual-harvest-season-resolver-v1",
+            "registry_entry_hash": _hex64(f"plot-entry-{business_key_suffix}"),
+            "target_type": "PLOT",
+            "target_business_key": f"plot-business-key-{business_key_suffix}",
+            "target_parent_business_key": "farm-business-key-1",
+            "resolved_master_business_key": f"plot-business-key-{business_key_suffix}",
+            "resolved_master_parent_business_key": "farm-business-key-1",
+            "resolved_master_record_hash": _hex64(f"plot-master-{business_key_suffix}"),
+            "resolved_season_id": 1,
+            "resolution_mode": "exact_lookup",
+            "outcome": "RESOLVED",
+        },
+    )
+
+
 def _import_immutability_triggers_sqlite(connection) -> None:
     """Re-create the S1 immutability triggers (SQLite branch) for tests."""
 
@@ -1386,9 +1474,18 @@ async def test_label_snapshot_delete_rejected(
 # ---------------------------------------------------------------------------
 
 
-async def test_finalized_without_successor_uses_hardened_error(
+async def test_terminal_finalized_without_successor_is_eligible_winner(
     session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
+    """A terminal FINALIZED record with NO successor is a legitimate
+    eligible winner; it must NOT raise ``FINALIZED_HAS_SUCCESSOR``.
+
+    E4 contract: ``FINALIZED_HAS_SUCCESSOR`` is the structural failure
+    for a nonterminal FINALIZED (i.e. one that has a successor edge
+    in the supersession graph). A bare terminal FINALIZED with no
+    successor edge is the canonical "this is the final word" state
+    and the I7 pipeline must accept it as a winner.
+    """
     finalized_at = datetime(2024, 1, 1, tzinfo=UTC)
     finalized_record = _build_record(
         external_logical_record_id="logical-finalized-no-succ",
@@ -1397,21 +1494,38 @@ async def test_finalized_without_successor_uses_hardened_error(
         finalized_at=finalized_at,
         source_recorded_at=finalized_at,
     )
-    # committed lineage basis is empty so no historical successor exists.
     await _seed_seeded_batch(
         session_maker,
         import_id="imp-fin-no-succ",
         records=[finalized_record],
     )
 
-    # The I7 pipeline never reaches the winner selection for this record
-    # because the I5 validation pipeline (which runs upstream) would
-    # already have raised FINALIZED_HAS_SUCCESSOR. We assert the
-    # contract by ensuring the hardened code is in the public API.
+    request = _base_request(
+        snapshot_idempotency_key="idem-fin-no-succ",
+        label_observation_cutoff_at_or_null=datetime(2024, 6, 30, tzinfo=UTC),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    # The terminal FINALIZED without successor is selected as a
+    # legitimate winner; no FINALIZED_HAS_SUCCESSOR structural
+    # failure is raised. The public enum exists, but it is not
+    # triggered for this contractually valid record.
+    assert result.header.winner_count == 1
+    winner = result.winners[0]
+    assert winner["record_status"] == ActualHarvestRecordStatus.FINALIZED.value
+    assert winner["effective_status"] == "FINALIZED"
+    assert winner["external_revision_id"] == "rev-finalized"
     assert hasattr(ActualHarvestValidationErrorCode, "FINALIZED_HAS_SUCCESSOR")
     assert (
-        ActualHarvestValidationErrorCode.FINALIZED_HAS_SUCCESSOR.value == "FINALIZED_HAS_SUCCESSOR"
-    )
+        ActualHarvestValidationErrorCode.FINALIZED_HAS_SUCCESSOR.value
+    ) == "FINALIZED_HAS_SUCCESSOR"
 
 
 async def test_void_without_successor_uses_hardened_error(
@@ -2121,6 +2235,555 @@ async def test_e3_nonterminal_void_with_successor_is_structural_failure(
 
 
 # ---------------------------------------------------------------------------
+# E6 — source-evidence preflight
+# E7 — explicit PLOT rejection
+# ---------------------------------------------------------------------------
+
+
+async def test_e6_out_of_scope_with_complete_evidence_is_coverage_exclusion(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 + E2 contract: a record whose frozen evidence is complete
+    and trustworthy but whose business key is outside the request
+    scope must surface as the ``OUTSIDE_REQUEST_SCOPE`` coverage
+    exclusion — NOT as a structural failure. This proves the E6
+    preflight has not downgraded the E2 coverage path.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-out-of-scope",
+        external_revision_id="rev-e6-out-of-scope",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-out-of-scope",
+        records=[record],
+    )
+
+    # The seeded registry maps ``farm-business-key-1`` for every
+    # record. The request asks for a different farm business key
+    # that no record matches — every observed record is therefore
+    # out of scope, with complete and trustworthy evidence.
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-out-of-scope",
+        farm_business_keys_or_empty_for_all=("farm-business-key-other",),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 0
+    categories = {row["exclusion_category"] for row in result.exclusion_rows}
+    assert ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE.value in categories
+    # The preflight must NOT have raised a structural failure.
+    assert result.exclusion_rows
+
+
+async def test_e6_manifest_validation_hash_drift_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 contract: when the commit manifest's
+    ``validation_run_instance_identity_hash`` does not match the
+    persisted validation run's ``instance_identity_hash``, the
+    snapshot must halt with ``SOURCE_EVIDENCE_DRIFT`` BEFORE any
+    winner processing.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-drift",
+        external_revision_id="rev-e6-drift",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-drift",
+        records=[record],
+    )
+
+    # Drift the validation run's instance_identity_hash after the
+    # seed — the commit manifest still references the original
+    # value, so the preflight cross-check must fail closed.
+    async with session_maker() as session:
+        async with session.begin():
+            run = await session.scalar(
+                select(ActualHarvestValidationRunModel).order_by(
+                    ActualHarvestValidationRunModel.id.desc()
+                )
+            )
+            assert run is not None
+            run.instance_identity_hash = _hex64("drifted-instance-identity")
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-drift",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT
+
+
+async def test_e6_mapping_snapshot_hash_drift_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 contract: when the commit manifest's
+    ``mapping_snapshot_hash`` does not match the persisted
+    mapping snapshot's hash, the preflight must halt with
+    ``SOURCE_EVIDENCE_DRIFT``.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-ms-drift",
+        external_revision_id="rev-e6-ms-drift",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-ms-drift",
+        records=[record],
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            ms = await session.scalar(
+                select(ActualHarvestMappingSnapshotModel).order_by(
+                    ActualHarvestMappingSnapshotModel.id.desc()
+                )
+            )
+            assert ms is not None
+            ms.mapping_snapshot_hash = _hex64("drifted-mapping-snapshot")
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-ms-drift",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT
+
+
+async def test_e6_resolved_identity_hash_drift_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 contract: when the commit manifest's
+    ``resolved_identity_snapshot_hash`` does not match the persisted
+    mapping snapshot's value, the preflight must halt.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-isnap-drift",
+        external_revision_id="rev-e6-isnap-drift",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-isnap-drift",
+        records=[record],
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            ms = await session.scalar(
+                select(ActualHarvestMappingSnapshotModel).order_by(
+                    ActualHarvestMappingSnapshotModel.id.desc()
+                )
+            )
+            assert ms is not None
+            ms.resolved_identity_snapshot_hash = _hex64("drifted-resolved-identity")
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-isnap-drift",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT
+
+
+async def test_e6_registry_content_hash_drift_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 contract: when the commit manifest's
+    ``registry_content_hash`` does not match the persisted mapping
+    snapshot's value, the preflight must halt.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-registry-drift",
+        external_revision_id="rev-e6-registry-drift",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-registry-drift",
+        records=[record],
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            ms = await session.scalar(
+                select(ActualHarvestMappingSnapshotModel).order_by(
+                    ActualHarvestMappingSnapshotModel.id.desc()
+                )
+            )
+            assert ms is not None
+            ms.registry_content_hash = _hex64("drifted-registry-content")
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-registry-drift",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT
+
+
+async def test_e6_missing_lineage_basis_member_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 contract: when the lineage basis ``member_count`` exceeds
+    the actual persisted member rows, the preflight must halt with
+    ``SOURCE_EVIDENCE_DRIFT`` because the lineage evidence is
+    incomplete.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-missing-mem",
+        external_revision_id="rev-e6-missing-mem",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-missing-mem",
+        records=[record],
+    )
+
+    # Inflate the lineage basis ``member_count`` to one above the
+    # actual member row count. The preflight's
+    # ``actual_member_count != lineage_basis.member_count`` branch
+    # must fire.
+    async with session_maker() as session:
+        async with session.begin():
+            basis = await session.scalar(
+                select(ActualHarvestValidationLineageBasisModel).order_by(
+                    ActualHarvestValidationLineageBasisModel.id.desc()
+                )
+            )
+            assert basis is not None
+            basis.member_count = basis.member_count + 1
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-missing-mem",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT
+    assert exc_info.value.details["reason"] == "preflight_lineage_basis_member_count_mismatch"
+
+
+async def test_e6_missing_mapping_evidence_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 contract: when one of the four required target types
+    (SEASON, FARM, SUBFARM, VARIETY) is missing from the persisted
+    mapping evidence for an observed record, the preflight must
+    halt with ``MAPPING_EVIDENCE_MISSING`` (not downgrade to
+    ``OUTSIDE_REQUEST_SCOPE``).
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-missing-evidence",
+        external_revision_id="rev-e6-missing-evidence",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-missing-evidence",
+        records=[record],
+    )
+
+    # Delete the VARIETY evidence row for the observed record so
+    # the preflight's per-record target_type completeness check
+    # halts with ``MAPPING_EVIDENCE_MISSING``.
+    async with session_maker() as session:
+        async with session.begin():
+            variety_evidence = await session.scalar(
+                select(ActualHarvestValidationMappingEvidenceModel).where(
+                    ActualHarvestValidationMappingEvidenceModel.external_revision_id
+                    == "rev-e6-missing-evidence",
+                    ActualHarvestValidationMappingEvidenceModel.target_type == "VARIETY",
+                )
+            )
+            assert variety_evidence is not None
+            await session.delete(variety_evidence)
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-missing-evidence",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING
+    assert exc_info.value.details["reason"] == "preflight_missing_target_type"
+    assert "VARIETY" in exc_info.value.details["missing_target_types"]
+
+
+async def test_e7_explicit_subfarm_mapping_is_accepted(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E7: a record whose frozen mapping evidence has a SUBFARM
+    target_type and no PLOT row is the canonical I7 v1 winner.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e7-subfarm-ok",
+        external_revision_id="rev-e7-subfarm-ok",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e7-subfarm-ok",
+        records=[record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e7-subfarm-ok",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    assert result.header.winner_count == 1
+    assert result.winners[0]["subfarm_business_key"] == "sub-business-key-1"
+
+
+async def test_e7_explicit_plot_mapping_is_rejected(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E7: a record whose frozen mapping evidence has a PLOT
+    target_type row (corruption / future regression) must fail
+    closed with the stable ``UNSUPPORTED_LABEL_GRAIN`` structural
+    failure code.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e7-plot",
+        external_revision_id="rev-e7-plot",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e7-plot",
+        records=[record],
+    )
+
+    # Inject a PLOT evidence row directly into the persisted
+    # evidence for the observed record. The I7 preflight must
+    # reject this with UNSUPPORTED_LABEL_GRAIN — the row is never
+    # silently downgraded to SUBFARM and never silently ignored.
+    # The INSERT bypasses the MAPPING_TARGET_VALUES check by
+    # dropping the upstream CHECK constraint for the duration of
+    # the test, mirroring a future regression / direct DB write
+    # corruption case that the I7 contract must defend against.
+    async with session_maker() as session:
+        async with session.begin():
+            run = await session.scalar(
+                select(ActualHarvestValidationRunModel).order_by(
+                    ActualHarvestValidationRunModel.id.desc()
+                )
+            )
+            assert run is not None
+            await _inject_plot_evidence_row(
+                session,
+                run_id=run.id,
+                record=record,
+                business_key_suffix="1",
+            )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e7-plot",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
+    assert exc_info.value.details["target_type"] == "PLOT"
+    assert exc_info.value.details["reason"] == "plot_target_type_in_frozen_evidence"
+
+
+async def test_e7_plot_is_not_silently_converted_to_subfarm(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E7 corollary: when the I7 pipeline sees a PLOT target_type
+    in the frozen evidence, the SNAPSHOT must not promote the PLOT
+    business key into a SUBFARM business key. The snapshot must
+    fail closed (UNSUPPORTED_LABEL_GRAIN) and the persisted
+    snapshot row count must remain zero.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e7-no-silent",
+        external_revision_id="rev-e7-no-silent",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e7-no-silent",
+        records=[record],
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            run = await session.scalar(
+                select(ActualHarvestValidationRunModel).order_by(
+                    ActualHarvestValidationRunModel.id.desc()
+                )
+            )
+            assert run is not None
+            await _inject_plot_evidence_row(
+                session,
+                run_id=run.id,
+                record=record,
+                business_key_suffix="silent",
+            )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e7-no-silent",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    # The rejection must be deterministic and must not leak a
+    # subfarm_business_key containing the PLOT business key. The
+    # service must not promote the PLOT business key into the
+    # SUBFARM slot.
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
+    assert "subfarm_business_key" not in (exc_info.value.details or {})
+    # No snapshot rows must be persisted.
+    async with session_maker() as session2:
+        async with session2.begin():
+            from backend.app.actual_harvest_labels.models import (
+                ActualHarvestLabelSnapshotModel,
+            )
+
+            snapshot_count = await session2.scalar(select(ActualHarvestLabelSnapshotModel.id))
+            assert snapshot_count is None
+
+
+async def test_e7_plot_rejection_is_deterministic(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E7 corollary: a second call against the same request
+    identity and the same PLOT-corrupted source universe must
+    reproduce the same UNSUPPORTED_LABEL_GRAIN structural failure
+    (deterministic, not time-dependent, not order-dependent).
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e7-det",
+        external_revision_id="rev-e7-det",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e7-det",
+        records=[record],
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            run = await session.scalar(
+                select(ActualHarvestValidationRunModel).order_by(
+                    ActualHarvestValidationRunModel.id.desc()
+                )
+            )
+            assert run is not None
+            await _inject_plot_evidence_row(
+                session,
+                run_id=run.id,
+                record=record,
+                business_key_suffix="det",
+            )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e7-det",
+    )
+
+    failures: list[ActualHarvestLabelStructuralFailure] = []
+    for _ in range(2):
+        async with session_maker() as session:
+            async with session.begin():
+                with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                    await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity="op-test",
+                    )
+        failures.append(exc_info.value.failure)
+
+    assert failures == [
+        ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN,
+        ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN,
+    ]
+
+
+# ---------------------------------------------------------------------------
 # B4 — node_hash / member_hash / canonical_record_hash surface
 # ---------------------------------------------------------------------------
 
@@ -2357,8 +3020,19 @@ __all__ = [
     "test_input_order_independence",
     "test_label_snapshot_immutability",
     "test_label_snapshot_delete_rejected",
-    "test_finalized_without_successor_uses_hardened_error",
+    "test_terminal_finalized_without_successor_is_eligible_winner",
     "test_void_without_successor_uses_hardened_error",
+    "test_e6_out_of_scope_with_complete_evidence_is_coverage_exclusion",
+    "test_e6_manifest_validation_hash_drift_is_structural_failure",
+    "test_e6_mapping_snapshot_hash_drift_is_structural_failure",
+    "test_e6_resolved_identity_hash_drift_is_structural_failure",
+    "test_e6_registry_content_hash_drift_is_structural_failure",
+    "test_e6_missing_lineage_basis_member_is_structural_failure",
+    "test_e6_missing_mapping_evidence_is_structural_failure",
+    "test_e7_explicit_subfarm_mapping_is_accepted",
+    "test_e7_explicit_plot_mapping_is_rejected",
+    "test_e7_plot_is_not_silently_converted_to_subfarm",
+    "test_e7_plot_rejection_is_deterministic",
     "test_request_identity_hash_is_deterministic",
     "test_label_row_set_hash_is_canonical",
     "test_winner_row_hash_is_stable_against_dict_order",
