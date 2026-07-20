@@ -1684,16 +1684,20 @@ def finalize_validation(
         )
     for member in evidence.basis_members:
         # finalized_at is part of the in-memory lineage-evidence dict so
-        # the I7 contract hardening (FINALIZED_AT_REQUIRED) can inspect it.
-        # It is NOT part of the persisted basis-member model contract; the
-        # canonical record_status + source-time authority fields stay
-        # authoritative. We therefore drop the in-memory-only key before
-        # unpacking the kwargs into the SQLAlchemy ORM model.
-        member_payload = {key: value for key, value in member.items() if key != "finalized_at"}
+        # the I7 contract hardening (FINALIZED_AT_REQUIRED) can inspect it
+        # both at validation time (in-memory check) and on every
+        # subsequent replay (persisted column on the basis member row).
+        # The I7 contract §10 requires the FINALIZED predecessor's
+        # finalized_at to be committed immutable lineage basis evidence,
+        # so we persist it via the new finalized_at column on
+        # ActualHarvestValidationLineageBasisMemberModel (added in
+        # migration 0022). The member_hash digest continues to use the
+        # canonical record_status + source-time authority fields only, so
+        # hash identity is stable across runs.
         session.add(
             ActualHarvestValidationLineageBasisMemberModel(
                 basis_id=basis.id,
-                **member_payload,
+                **member,
                 member_sort_key="|".join(
                     (
                         member["source_system"],
@@ -1702,7 +1706,7 @@ def finalize_validation(
                         member["external_revision_id"],
                     )
                 ),
-                member_hash=digest(member_payload),
+                member_hash=digest(member),
             )
         )
     for record in evidence.records:
