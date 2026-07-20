@@ -57,9 +57,17 @@ async def test_api_routes_are_registered_and_unimplemented_routes_are_not_faked(
     )
     assert validation.status_code == 409
     assert validation.json()["errors"][0]["code"] == "IMPORT_BATCH_CANCELLED"
-    assert (
-        await api_client.post(f"/api/v1/actual-harvest/imports/{import_id}/commit")
-    ).status_code == 404
+    # v0.2-S1: commit endpoint exists and now requires a JSON body with
+    # ``validation_run_instance_identity_hash``; calling it on a
+    # CANCELLED batch (which is not VALIDATED) must return
+    # IMPORT_BATCH_NOT_VALIDATED (409), not 404.
+    commit_response = await api_client.post(
+        f"/api/v1/actual-harvest/imports/{import_id}/commit",
+        json={"validation_run_instance_identity_hash": "0" * 64},
+        headers={"content-type": "application/json"},
+    )
+    assert commit_response.status_code == 409
+    assert commit_response.json()["errors"][0]["code"] == ("IMPORT_BATCH_NOT_VALIDATED")
 
 
 async def test_api_hides_batches_outside_actor_source_scope(
