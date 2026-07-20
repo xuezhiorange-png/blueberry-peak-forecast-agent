@@ -13,8 +13,8 @@ from alembic.script import ScriptDirectory
 _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _ALEMBIC_VERSIONS_DIR = _BACKEND_ROOT / "alembic" / "versions"
 
-MIGRATION_PATH = _ALEMBIC_VERSIONS_DIR / "0020_actual_harvest_commit_manifest.py"
-MIGRATION_REVISION = "0020_actual_harvest_commit_manifest"
+MIGRATION_PATH = _ALEMBIC_VERSIONS_DIR / "0021_actual_harvest_label_snapshot.py"
+MIGRATION_REVISION = "0021_actual_harvest_label_snapshot"
 
 
 def _migration_module() -> ModuleType:
@@ -26,6 +26,15 @@ def _migration_module() -> ModuleType:
 
 
 def _previous_migration_module() -> ModuleType:
+    path = _ALEMBIC_VERSIONS_DIR / "0020_actual_harvest_commit_manifest.py"
+    spec = importlib.util.spec_from_file_location("actual_harvest_migration_0020", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _validation_migration_module() -> ModuleType:
     path = _ALEMBIC_VERSIONS_DIR / "0019_actual_harvest_validation_evidence.py"
     spec = importlib.util.spec_from_file_location("actual_harvest_migration_0019", path)
     assert spec is not None and spec.loader is not None
@@ -48,9 +57,12 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
     assert script.get_heads() == [MIGRATION_REVISION]
+    assert len(script.get_heads()) == 1, (
+        f"alembic heads must be exactly one, got {script.get_heads()!r}"
+    )
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
-    assert module.down_revision == "0019_actual_harvest_validation_evidence"
+    assert module.down_revision == "0020_actual_harvest_commit_manifest"
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
@@ -62,6 +74,9 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
         staging = _staging_migration_module()
         staging.op = module.op
         staging.upgrade()
+        validation = _validation_migration_module()
+        validation.op = module.op
+        validation.upgrade()
         previous.op = module.op
         previous.upgrade()
         module.upgrade()
@@ -83,6 +98,10 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             "actual_harvest_validation_lineage_basis",
             "actual_harvest_validation_lineage_basis_member",
             "actual_harvest_commit_manifest",
+            "actual_harvest_label_snapshot",
+            "actual_harvest_label_snapshot_winner",
+            "actual_harvest_label_snapshot_label",
+            "actual_harvest_label_snapshot_exclusion",
         }
         assert set(inspector.get_table_names()) == expected_tables
         assert {
@@ -544,12 +563,16 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
         module.downgrade()
         previous.op = module.op
         previous.downgrade()
+        validation.op = module.op
+        validation.downgrade()
         staging.op = module.op
         staging.downgrade()
         assert set(sa.inspect(connection).get_table_names()) == set()
 
         staging.op = module.op
         staging.upgrade()
+        validation.op = module.op
+        validation.upgrade()
         previous.op = module.op
         previous.upgrade()
         module.upgrade()
@@ -559,27 +582,35 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
 def assert_actual_harvest_migration_architecture_contract() -> None:
     source = MIGRATION_PATH.read_text(encoding="utf-8")
     module = _migration_module()
-    # S1 forbidden content (mutates state through the manifest path must not
-    # bleed into the migration).
+    # Forbidden content (must not bleed into the I7 migration).
     assert "JSON" not in source
     assert "parser" not in source.lower()
-    assert "label_snapshot" not in source
+    assert "label_snapshot" in source
     assert "commit_manifest" in source
     assert "revision_graph" not in source
     assert "from backend.app" not in source
     assert "import backend.app" not in source
-    # S1 commit_manifest policy version must be the fixed constant.
-    assert module.COMMIT_POLICY_VERSION == "actual-harvest-commit-policy-v1"
-    # S1 contract: BATCH_STATUS_VALUES must NOT include "COMMITTING" or
-    # "COMMIT_FAILED" - commit is a single synchronous transition between
-    # VALIDATED and COMMITTED inside the API transaction boundary.
-    # (Validation against module.BATCH_STATUS_VALUES is enforced by the
-    # 0019 migration contract; 0020 must not re-introduce them.)
+    # I7 contract: header / winner / label / exclusion policy versions
+    # must be the fixed constants so on-disk hashes are reproducible.
+    assert module.SNAPSHOT_POLICY_VERSION == "actual-harvest-label-snapshot-policy-v1"
+    assert module.WINNER_POLICY_VERSION == "actual-harvest-label-winner-policy-v1"
+    assert module.AGGREGATION_POLICY_VERSION == "actual-harvest-label-aggregation-policy-v1"
+    assert module.REQUEST_HASH_POLICY_VERSION == "actual-harvest-label-request-hash-v1"
+    assert module.INSTANCE_HASH_POLICY_VERSION == "actual-harvest-label-instance-hash-v1"
+    assert module.SNAPSHOT_HASH_POLICY_VERSION == "actual-harvest-label-snapshot-hash-v1"
+    # I7 contract: no background-worker / lease / heartbeat / fencing /
+    # attempt-ledger forbidden tokens. The S1 commit layer established
+    # the same rules; 0021 must not re-introduce them.
     assert "COMMITTING" not in source
     assert "COMMIT_FAILED" not in source
+    assert "ATTEMPT_LEDGER" not in source
+    assert "LEASE" not in source
+    assert "HEARTBEAT" not in source
+    assert "FENCING" not in source
     # Architecture string rules.
     assert "actual_harvest_validation_lineage_basis" not in source
     assert "actual_harvest_validation_lineage_basis_member" not in source
     assert "actual_harvest_validation_aggregation" not in source
     assert "active_label" not in source
-    assert "cutoff" not in source.lower()
+    # I7 contract: ``cutoff`` is a legal identifier for the I7 snapshot
+    # header; do not assert it is absent.
