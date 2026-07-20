@@ -405,6 +405,7 @@ def _basis_members(
                 "source_recorded_at_authority_status": (
                     record.source_recorded_at_authority_status.value
                 ),
+                "finalized_at": record.finalized_at,
             }
         )
     return tuple(
@@ -975,6 +976,11 @@ def _lineage_evidence(
             record_hash = history_member["canonical_record_hash"]
             source_recorded_at = history_member["source_recorded_at"]
             authority_status = history_member["source_recorded_at_authority_status"]
+        finalized_at: datetime | None
+        if record is not None:
+            finalized_at = getattr(record, "finalized_at", None)
+        else:
+            finalized_at = history_member.get("finalized_at")
         node = {
             "origin": item["origin"],
             "source_system": source,
@@ -986,6 +992,7 @@ def _lineage_evidence(
             "canonical_record_hash": record_hash,
             "source_recorded_at": source_recorded_at,
             "source_recorded_at_authority_status": authority_status,
+            "finalized_at": finalized_at,
         }
         node["node_hash"] = compute_lineage_node_hash(node)
         return node
@@ -1227,13 +1234,60 @@ def _lineage_evidence(
             )
         for node in group:
             has_successor = (node["source_system"], node["external_revision_id"]) in successors
-            if (
-                node["record_status"] == ActualHarvestRecordStatus.CORRECTED.value
-                and not has_successor
+            # I7 lineage contract hardening — fail closed per
+            # q2a-i7-label-snapshot-and-revision-winner-contract.md §9-§10:
+            # - CORRECTED_WITHOUT_SUCCESSOR is the I7 contract name;
+            #   INVALID_RECORD_STATUS is the legacy I5 code that the I7
+            #   contract §15 explicitly permits as a compatibility map.
+            # - FINALIZED_HAS_SUCCESSOR and VOID_HAS_SUCCESSOR are new
+            #   structural failures that the I5 lineage check did not
+            #   enforce.
+            # - FINALIZED_AT_REQUIRED closes the gap between record_status
+            #   FINALIZED and finalized_at IS NULL.
+            if node["record_status"] == ActualHarvestRecordStatus.CORRECTED.value:
+                if not has_successor:
+                    errors.append(
+                        _error(
+                            ActualHarvestValidationErrorCode.CORRECTED_WITHOUT_SUCCESSOR,
+                            logical_id=logical_key[1],
+                            revision_id=node["external_revision_id"],
+                        )
+                    )
+                    # Compatibility shim: keep emitting the legacy I5 code
+                    # so existing I5 tests and contract assertions stay
+                    # green. Documented by contract §15.
+                    errors.append(
+                        _error(
+                            ActualHarvestValidationErrorCode.INVALID_RECORD_STATUS,
+                            logical_id=logical_key[1],
+                            revision_id=node["external_revision_id"],
+                        )
+                    )
+            elif (
+                node["record_status"] == ActualHarvestRecordStatus.FINALIZED.value and has_successor
             ):
                 errors.append(
                     _error(
-                        ActualHarvestValidationErrorCode.INVALID_RECORD_STATUS,
+                        ActualHarvestValidationErrorCode.FINALIZED_HAS_SUCCESSOR,
+                        logical_id=logical_key[1],
+                        revision_id=node["external_revision_id"],
+                    )
+                )
+            elif node["record_status"] == ActualHarvestRecordStatus.VOID.value and has_successor:
+                errors.append(
+                    _error(
+                        ActualHarvestValidationErrorCode.VOID_HAS_SUCCESSOR,
+                        logical_id=logical_key[1],
+                        revision_id=node["external_revision_id"],
+                    )
+                )
+            if (
+                node["record_status"] == ActualHarvestRecordStatus.FINALIZED.value
+                and node.get("finalized_at") is None
+            ):
+                errors.append(
+                    _error(
+                        ActualHarvestValidationErrorCode.FINALIZED_AT_REQUIRED,
                         logical_id=logical_key[1],
                         revision_id=node["external_revision_id"],
                     )
@@ -1664,7 +1718,17 @@ def finalize_validation(
             )
         )
     for _index, node in enumerate(evidence.nodes, start=1):
-        node_payload = {key: value for key, value in node.items() if key != "node_hash"}
+        # finalized_at is part of the in-memory lineage-evidence dict so
+        # the I7 contract hardening (FINALIZED_AT_REQUIRED) can inspect it.
+        # It is NOT part of the persisted lineage-node model contract; the
+        # canonical record_status + source-time authority fields stay
+        # authoritative. We therefore drop the in-memory-only key before
+        # unpacking the kwargs into the SQLAlchemy ORM model.
+        node_payload = {
+            key: value
+            for key, value in node.items()
+            if key != "node_hash" and key != "finalized_at"
+        }
         session.add(
             ActualHarvestValidationLineageNodeModel(
                 validation_run_id=run.id,
