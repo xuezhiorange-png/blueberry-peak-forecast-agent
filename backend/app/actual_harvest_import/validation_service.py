@@ -72,6 +72,21 @@ AUTHORITY_POLICY_VERSION = "actual-harvest-lineage-authority-v1"
 SUBFARM_ONLY_POLICY = "SUBFARM_ONLY_PLOT_REJECTED"
 
 
+def _basis_member_hash_payload(member: dict[str, Any]) -> dict[str, Any]:
+    """Return the basis member payload that feeds ``member_hash``.
+
+    The persisted ``finalized_at`` column is part of the in-memory
+    lineage-evidence dict so the I7 contract hardening
+    (FINALIZED_AT_REQUIRED) can inspect it both at validation time and
+    on every subsequent replay. It is intentionally EXCLUDED from the
+    ``member_hash`` digest so the historical hash identity is preserved
+    for rows that existed before the migration 0022 column was added.
+    ``canonical_record_hash`` already binds ``finalized_at`` so
+    record-level identity is unaffected.
+    """
+    return {key: value for key, value in member.items() if key != "finalized_at"}
+
+
 @dataclass(frozen=True)
 class ValidationSummary:
     validation_status: str
@@ -1706,7 +1721,7 @@ def finalize_validation(
                         member["external_revision_id"],
                     )
                 ),
-                member_hash=digest(member),
+                member_hash=digest(_basis_member_hash_payload(member)),
             )
         )
     for record in evidence.records:

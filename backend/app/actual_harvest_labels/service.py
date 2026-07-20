@@ -551,14 +551,28 @@ async def _compute_winners_and_exclusions(
 
     1. Group records by logical_record_key.
     2. Walk predecessor chain via ``supersedes_external_revision_id``.
-    3. The unique visible terminal is the record that is not referenced
-       by any successor in the same chain.
-    4. The terminal's eligibility is decided by record_status and the
-       visibility mode (contract §7-§9).
-    5. ``FINALIZED`` after cutoff produces a
+    3. **Classify each revision by AS_OF visibility** (TRUSTED
+       ``source_recorded_at`` <= ``label_observation_cutoff_at``).
+       The visible graph is the set of visible revisions plus the
+       edges that connect them.
+    4. The unique visible terminal is the visible revision that is
+       not referenced by any visible successor. A future successor
+       whose ``source_recorded_at`` is after the cutoff MUST NOT
+       disqualify a visible parent from being the terminal.
+    5. A visible child whose immediate predecessor is invisible (or
+       missing) is a ``VISIBLE_CHILD_WITH_INVISIBLE_PARENT`` structural
+       failure.
+    6. Fork / cycle / revision discontinuity / multiple visible
+       terminals continue to fail closed.
+    7. Finalized / Void that have any successor (visible or not) are
+       rejected with ``FINALIZED_HAS_SUCCESSOR`` / ``VOID_HAS_SUCCESSOR``.
+    8. ``FINALIZED`` after cutoff produces a
        ``STATUS_NOT_VISIBLE_AT_CUTOFF`` exclusion (NO downgrade).
-    6. Terminal ``VOID`` produces a ``TERMINAL_VOID`` exclusion (NO
+    9. Terminal ``VOID`` produces a ``TERMINAL_VOID`` exclusion (NO
        label row).
+    10. Scope check uses the FROZEN canonical business keys from the
+        winning validation run's mapping evidence, NOT the live
+        master-data codes on the record.
     """
 
     by_chain: dict[
@@ -587,21 +601,161 @@ async def _compute_winners_and_exclusions(
             if predecessor:
                 successors[predecessor].append(entry)
 
-        terminals = [
-            entry for entry in ordered if not successors.get(entry["record"].external_revision_id)
+        # ------------------------------------------------------------------
+        # §1.1 AS_OF visibility classification (B1)
+        # ------------------------------------------------------------------
+        # A revision is visible iff the request is AS_OF_EVALUATION and
+        # source_recorded_at has authority TRUSTED_SOURCE_TIMESTAMP and
+        # source_recorded_at <= cutoff. For FINAL_ADJUDICATED the
+        # visibility classification collapses to ``is_trustworthy`` so
+        # structural chain checks still work; the actual time gate
+        # below (FINAL_ADJUDICATED branch) is enforced separately.
+        cutoff = request.label_observation_cutoff_at_or_null
+        is_as_of = request.visibility_mode == ActualHarvestLabelVisibilityMode.AS_OF_EVALUATION
+        visibility_by_revision: dict[str, tuple[str, str | None]] = {}
+        for entry in ordered:
+            record = entry["record"]
+            if is_as_of:
+                if record.source_recorded_at is None:
+                    visibility_by_revision[record.external_revision_id] = (
+                        "INVISIBLE",
+                        ActualHarvestLabelCoverageExclusion.SOURCE_TIME_MISSING.value,
+                    )
+                    continue
+                if (
+                    record.source_recorded_at_authority_status
+                    != SourceRecordedAtAuthorityStatus.TRUSTED_SOURCE_TIMESTAMP.value
+                ):
+                    visibility_by_revision[record.external_revision_id] = (
+                        "INVISIBLE",
+                        ActualHarvestLabelCoverageExclusion.SOURCE_TIME_UNTRUSTED.value,
+                    )
+                    continue
+                if cutoff is not None and record.source_recorded_at > cutoff:
+                    visibility_by_revision[record.external_revision_id] = (
+                        "INVISIBLE",
+                        ActualHarvestLabelCoverageExclusion.SOURCE_TIME_AFTER_CUTOFF.value,
+                    )
+                    continue
+            visibility_by_revision[record.external_revision_id] = ("VISIBLE", None)
+
+        # ------------------------------------------------------------------
+        # §1.2 Build the visible successor graph
+        # ------------------------------------------------------------------
+        visible_successors: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for entry in ordered:
+            record = entry["record"]
+            if visibility_by_revision[record.external_revision_id][0] != "VISIBLE":
+                continue
+            predecessor = record.supersedes_external_revision_id
+            if predecessor is None:
+                continue
+            predecessor_state = visibility_by_revision.get(predecessor)
+            if predecessor_state is None:
+                # Predecessor not in this snapshot's committed universe
+                # — handled by MISSING_SUPERSEDED_PARENT in §1.4 below.
+                continue
+            if predecessor_state[0] != "VISIBLE":
+                # Predecessor is invisible — do not let the visible child
+                # inherit a "no successor" claim on the invisible parent.
+                continue
+            visible_successors[predecessor].append(entry)
+
+        # ------------------------------------------------------------------
+        # §1.3 Pick the unique visible terminal
+        # ------------------------------------------------------------------
+        # §1.3a Emit per-revision source-time exclusions FIRST so a
+        # chain whose terminal is time-invisible still reports the
+        # invisible revisions. The terminal's own exclusion is
+        # suppressed (it will either be processed below or reported
+        # through the structural-failure path).
+        for entry in ordered:
+            entry_record = entry["record"]
+            vis_state, exclusion_category = visibility_by_revision[
+                entry_record.external_revision_id
+            ]
+            if vis_state != "VISIBLE":
+                assert exclusion_category is not None  # INVISIBLE always carries a category
+                exclusion_rows.append(
+                    _make_exclusion_row(
+                        ActualHarvestLabelCoverageExclusion(exclusion_category),
+                        entry_record,
+                        details={
+                            "reason": "source_time_excluded",
+                            "source_recorded_at": (
+                                entry_record.source_recorded_at.isoformat()
+                                if entry_record.source_recorded_at
+                                else None
+                            ),
+                            "source_recorded_at_authority_status": (
+                                entry_record.source_recorded_at_authority_status
+                            ),
+                            "cutoff": cutoff.isoformat() if cutoff is not None else None,
+                        },
+                    )
+                )
+        visible_terminal_entries = [
+            entry
+            for entry in ordered
+            if visibility_by_revision[entry["record"].external_revision_id][0] == "VISIBLE"
+            and not visible_successors.get(entry["record"].external_revision_id)
         ]
-        if len(terminals) != 1:
+        if len(visible_terminal_entries) > 1:
             raise ActualHarvestLabelStructuralFailureError(
                 ActualHarvestLabelStructuralFailure.MULTIPLE_VISIBLE_TERMINAL_REVISIONS,
                 details={
                     "source_system": chain_key[0],
                     "external_logical_record_id": chain_key[1],
-                    "visible_terminal_count": len(terminals),
+                    "visible_terminal_count": len(visible_terminal_entries),
                 },
             )
+        if not visible_terminal_entries:
+            # All revisions in the chain are time-invisible. Per-revision
+            # exclusions have already been emitted in §1.3a.
+            continue
 
-        terminal_entry = terminals[0]
+        terminal_entry = visible_terminal_entries[0]
         record = terminal_entry["record"]
+
+        # ------------------------------------------------------------------
+        # §1.4 VISIBLE_CHILD_WITH_INVISIBLE_PARENT structural failure
+        # ------------------------------------------------------------------
+        # If the visible terminal is reachable through a predecessor
+        # edge (it has a supersedes link), the predecessor must be
+        # VISIBLE in this snapshot's committed universe. An invisible
+        # or missing predecessor is a structural failure — we cannot
+        # reconstruct a complete, non-corrupted supersession chain.
+        predecessor_id = record.supersedes_external_revision_id
+        if predecessor_id is not None:
+            predecessor_state = visibility_by_revision.get(predecessor_id)
+            if predecessor_state is None:
+                # Predecessor not in the committed universe at all.
+                raise ActualHarvestLabelStructuralFailureError(
+                    ActualHarvestLabelStructuralFailure.VISIBLE_CHILD_WITH_INVISIBLE_PARENT,
+                    details={
+                        "reason": "missing_predecessor",
+                        "source_system": record.source_system,
+                        "external_logical_record_id": record.external_logical_record_id,
+                        "external_revision_id": record.external_revision_id,
+                        "predecessor_external_revision_id": predecessor_id,
+                    },
+                )
+            if predecessor_state[0] != "VISIBLE":
+                raise ActualHarvestLabelStructuralFailureError(
+                    ActualHarvestLabelStructuralFailure.VISIBLE_CHILD_WITH_INVISIBLE_PARENT,
+                    details={
+                        "reason": "invisible_predecessor",
+                        "source_system": record.source_system,
+                        "external_logical_record_id": record.external_logical_record_id,
+                        "external_revision_id": record.external_revision_id,
+                        "predecessor_external_revision_id": predecessor_id,
+                        "predecessor_visibility": predecessor_state[1],
+                    },
+                )
+
+        # ------------------------------------------------------------------
+        # §1.4 Status eligibility on the visible terminal
+        # ------------------------------------------------------------------
         if record.record_status == ActualHarvestRecordStatus.CORRECTED.value:
             raise ActualHarvestLabelStructuralFailureError(
                 ActualHarvestLabelStructuralFailure.CORRECTED_WITHOUT_SUCCESSOR,
@@ -610,8 +764,52 @@ async def _compute_winners_and_exclusions(
                     "external_revision_id": record.external_revision_id,
                 },
             )
+
+        # FINALIZED / VOID must never have a successor at all. We check
+        # the FULL successor map (visible + invisible) so a future
+        # successor that is invisible at the cutoff still fails closed.
+        full_successor_entries = successors.get(record.external_revision_id, [])
+        if (
+            record.record_status == ActualHarvestRecordStatus.FINALIZED.value
+            and full_successor_entries
+        ):
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.FINALIZED_HAS_SUCCESSOR,
+                details={
+                    "source_system": record.source_system,
+                    "external_revision_id": record.external_revision_id,
+                    "successor_count": len(full_successor_entries),
+                },
+            )
+        if record.record_status == ActualHarvestRecordStatus.VOID.value and full_successor_entries:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.VOID_HAS_SUCCESSOR,
+                details={
+                    "source_system": record.source_system,
+                    "external_revision_id": record.external_revision_id,
+                    "successor_count": len(full_successor_entries),
+                },
+            )
+
+        # ------------------------------------------------------------------
+        # §1.7 Look up the frozen mapping evidence for the visible
+        # terminal (B2). The evidence is bound to the validation run
+        # that committed the winner's batch, NOT a live master-data
+        # remap.
+        # ------------------------------------------------------------------
+        mapping_evidence = await _mapping_evidence_for_record(
+            session,
+            terminal_entry=terminal_entry,
+            request=request,
+        )
+
+        # ------------------------------------------------------------------
+        # §1.8 Scope check (B3) — compare the request's frozen business
+        # keys to the WINNER's frozen target_business_key, NOT to the
+        # live master-data codes on the record.
+        # ------------------------------------------------------------------
         if request.farm_business_keys_or_empty_for_all and (
-            record.farm_code not in request.farm_business_keys_or_empty_for_all
+            mapping_evidence["farm_business_key"] not in request.farm_business_keys_or_empty_for_all
         ):
             exclusion_rows.append(
                 _make_exclusion_row(
@@ -619,13 +817,14 @@ async def _compute_winners_and_exclusions(
                     record,
                     details={
                         "reason": "farm_outside_request_scope",
-                        "farm_code": record.farm_code,
+                        "farm_business_key": mapping_evidence["farm_business_key"],
                     },
                 )
             )
             continue
         if request.variety_business_keys_or_empty_for_all and (
-            record.variety_code not in request.variety_business_keys_or_empty_for_all
+            mapping_evidence["variety_business_key"]
+            not in request.variety_business_keys_or_empty_for_all
         ):
             exclusion_rows.append(
                 _make_exclusion_row(
@@ -633,13 +832,13 @@ async def _compute_winners_and_exclusions(
                     record,
                     details={
                         "reason": "variety_outside_request_scope",
-                        "variety_code": record.variety_code,
+                        "variety_business_key": mapping_evidence["variety_business_key"],
                     },
                 )
             )
             continue
         if request.season_business_keys and (
-            record.season_code is None or record.season_code not in request.season_business_keys
+            mapping_evidence["season_business_key"] not in request.season_business_keys
         ):
             exclusion_rows.append(
                 _make_exclusion_row(
@@ -647,7 +846,7 @@ async def _compute_winners_and_exclusions(
                     record,
                     details={
                         "reason": "season_outside_request_scope",
-                        "season_code": record.season_code,
+                        "season_business_key": mapping_evidence["season_business_key"],
                     },
                 )
             )
@@ -663,39 +862,14 @@ async def _compute_winners_and_exclusions(
             )
             continue
 
+        # ------------------------------------------------------------------
+        # §1.9 Visibility-mode time gate (AS_OF / FINAL_ADJUDICATED).
+        # The cutoff visibility is already enforced during the
+        # visibility classification step above; this branch just maps
+        # it to the contract-mandated effective status.
+        # ------------------------------------------------------------------
         if request.visibility_mode == ActualHarvestLabelVisibilityMode.AS_OF_EVALUATION:
-            cutoff = request.label_observation_cutoff_at_or_null
-            assert cutoff is not None
-            if record.source_recorded_at is None:
-                exclusion_rows.append(
-                    _make_exclusion_row(
-                        ActualHarvestLabelCoverageExclusion.SOURCE_TIME_MISSING,
-                        record,
-                        details={"reason": "source_recorded_at_null"},
-                    )
-                )
-                continue
-            if (
-                record.source_recorded_at_authority_status
-                != SourceRecordedAtAuthorityStatus.TRUSTED_SOURCE_TIMESTAMP.value
-            ):
-                exclusion_rows.append(
-                    _make_exclusion_row(
-                        ActualHarvestLabelCoverageExclusion.SOURCE_TIME_UNTRUSTED,
-                        record,
-                        details={"authority_status": (record.source_recorded_at_authority_status)},
-                    )
-                )
-                continue
-            if record.source_recorded_at > cutoff:
-                exclusion_rows.append(
-                    _make_exclusion_row(
-                        ActualHarvestLabelCoverageExclusion.SOURCE_TIME_AFTER_CUTOFF,
-                        record,
-                        details={"cutoff": cutoff.isoformat()},
-                    )
-                )
-                continue
+            assert cutoff is not None  # AS_OF_EVALUATION requires a cutoff (schema invariant)
             effective_status = _effective_status_for_as_of(
                 record=record,
                 cutoff=cutoff,
@@ -748,11 +922,6 @@ async def _compute_winners_and_exclusions(
                 continue
             effective_status = "FINALIZED"
 
-        mapping_evidence = await _mapping_evidence_for_record(
-            session,
-            terminal_entry=terminal_entry,
-            request=request,
-        )
         winner_row = _build_winner_row(
             terminal_entry=terminal_entry,
             mapping_evidence=mapping_evidence,
@@ -923,63 +1092,166 @@ async def _mapping_evidence_for_record(
 ) -> dict[str, Any]:
     """Reconstruct the canonical mapping evidence for one winner.
 
-    Contract §11: I7 must use mapping evidence bound to the winner's
-    committed validation run. We look up the validation run for the
-    batch that committed this record, then join the per-source-field
-    mapping evidence rows by ``(source_system, external_logical_record_id,
-    external_revision_id)`` (the basis-member key). The reconstruction
-    is total: missing evidence for any required target raises
-    MAPPING_EVIDENCE_MISSING. LIVE_MASTER_DATA_REMAPPING=false — the
-    canonical business keys and hashes come from the frozen evidence,
-    not from the current master-data tables.
+    Contract §11: I7 must use the mapping evidence bound to the
+    winner's OWNING validation run. The ``validation_run_id`` is
+    read directly from the commit_manifest that produced the
+    terminal — the lineage basis member is NOT consulted. LIVE
+    master-data remapping is forbidden; the canonical business keys
+    and evidence hashes come from the frozen ``MappingEvidence``,
+    ``MappingSnapshot``, ``ValidationRun``, ``ValidationResult``,
+    and ``CommitManifest`` rows, not from the current master-data
+    tables.
+
+    Cross-validation (mandatory, contract §11):
+    - ``commit_manifest.validation_run_id == terminal validation_run_id``
+    - ``validation_run.instance_identity_hash ==
+      commit_manifest.validation_run_instance_identity_hash``
+    - ``mapping_snapshot.mapping_snapshot_hash ==
+      commit_manifest.mapping_snapshot_hash``
+    - ``mapping_snapshot.resolved_identity_snapshot_hash ==
+      commit_manifest.resolved_identity_snapshot_hash``
+    - ``mapping_snapshot.registry_content_hash ==
+      commit_manifest.registry_content_hash``
+    - ``validation_result.validation_result_hash ==
+      commit_manifest.validation_result_hash``
+
+    The returned evidence uses the actual loaded values for every
+    field — no placeholders, no synthetic hashes, no
+    ``"registry-v1"`` / ``"policy-v1"`` strings.
     """
 
+    from backend.app.actual_harvest_import.commit_models import (
+        ActualHarvestCommitManifestModel,
+    )
     from backend.app.actual_harvest_import.validation_models import (
-        ActualHarvestValidationLineageBasisMemberModel,
-        ActualHarvestValidationLineageBasisModel,
+        ActualHarvestMappingSnapshotModel,
         ActualHarvestValidationMappingEvidenceModel,
+        ActualHarvestValidationResultModel,
+        ActualHarvestValidationRunModel,
     )
 
     record = terminal_entry["record"]
-    # Find the lineage basis member for this committed record.
-    basis_member = await session.scalar(
-        select(ActualHarvestValidationLineageBasisMemberModel).where(
-            ActualHarvestValidationLineageBasisMemberModel.source_system == record.source_system,
-            ActualHarvestValidationLineageBasisMemberModel.external_logical_record_id
-            == record.external_logical_record_id,
-            ActualHarvestValidationLineageBasisMemberModel.external_revision_id
-            == record.external_revision_id,
+    commit_manifest_hash = terminal_entry["commit_manifest_hash"]
+    validation_run_id = terminal_entry["validation_run_id"]
+
+    # 1. Commit manifest — the authoritative source for the
+    #    validation run that owns this terminal.
+    commit_manifest = await session.scalar(
+        select(ActualHarvestCommitManifestModel).where(
+            ActualHarvestCommitManifestModel.commit_manifest_hash == commit_manifest_hash
         )
     )
-    if basis_member is None:
+    if commit_manifest is None:
         raise ActualHarvestLabelStructuralFailureError(
-            ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
             details={
-                "reason": "no_committed_basis_member",
-                "source_system": record.source_system,
-                "external_revision_id": record.external_revision_id,
+                "reason": "no_commit_manifest",
+                "commit_manifest_hash": commit_manifest_hash,
+            },
+        )
+    if commit_manifest.validation_run_id != validation_run_id:
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+            details={
+                "reason": "commit_manifest_validation_run_id_mismatch",
+                "commit_manifest_id": commit_manifest.id,
+                "expected_validation_run_id": validation_run_id,
+                "actual_validation_run_id": commit_manifest.validation_run_id,
             },
         )
 
-    # Walk through the basis to the validation run that produced the
-    # mapping evidence. Multiple validations may exist; we use the
-    # one whose committed_lineage_basis_hash matches the member
-    # (already enforced by UNIQUE(validation_run_id) on basis).
-    basis_row = await session.scalar(
-        select(ActualHarvestValidationLineageBasisModel).where(
-            ActualHarvestValidationLineageBasisModel.id == basis_member.basis_id
+    # 2. Validation run.
+    validation_run = await session.scalar(
+        select(ActualHarvestValidationRunModel).where(
+            ActualHarvestValidationRunModel.id == validation_run_id
         )
     )
-    if basis_row is None:
+    if validation_run is None:
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+            details={
+                "reason": "no_validation_run",
+                "validation_run_id": validation_run_id,
+            },
+        )
+    if (
+        commit_manifest.validation_run_instance_identity_hash
+        != validation_run.instance_identity_hash
+    ):
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+            details={
+                "reason": "validation_run_instance_identity_hash_mismatch",
+                "commit_manifest": commit_manifest.validation_run_instance_identity_hash,
+                "validation_run": validation_run.instance_identity_hash,
+            },
+        )
+
+    # 3. Mapping snapshot — supplies the registry version, mapping
+    #    policy version, season resolver version, registry content
+    #    hash, mapping snapshot hash, and resolved identity snapshot
+    #    hash. These are stored AS-IS in the winner row; we never
+    #    substitute placeholders.
+    mapping_snapshot = await session.scalar(
+        select(ActualHarvestMappingSnapshotModel).where(
+            ActualHarvestMappingSnapshotModel.validation_run_id == validation_run_id
+        )
+    )
+    if mapping_snapshot is None:
         raise ActualHarvestLabelStructuralFailureError(
             ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
             details={
-                "reason": "no_basis_record",
-                "basis_id": basis_member.basis_id,
+                "reason": "no_mapping_snapshot",
+                "validation_run_id": validation_run_id,
             },
         )
-    validation_run_id = basis_row.validation_run_id
+    if commit_manifest.mapping_snapshot_hash != mapping_snapshot.mapping_snapshot_hash:
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+            details={
+                "reason": "mapping_snapshot_hash_mismatch",
+                "commit_manifest": commit_manifest.mapping_snapshot_hash,
+                "mapping_snapshot": mapping_snapshot.mapping_snapshot_hash,
+            },
+        )
+    if (
+        commit_manifest.resolved_identity_snapshot_hash
+        != mapping_snapshot.resolved_identity_snapshot_hash
+    ):
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+            details={"reason": "resolved_identity_snapshot_hash_mismatch"},
+        )
+    if commit_manifest.registry_content_hash != mapping_snapshot.registry_content_hash:
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+            details={"reason": "registry_content_hash_mismatch"},
+        )
 
+    # 4. Validation result.
+    validation_result = await session.scalar(
+        select(ActualHarvestValidationResultModel).where(
+            ActualHarvestValidationResultModel.validation_run_id == validation_run_id
+        )
+    )
+    if validation_result is None:
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+            details={
+                "reason": "no_validation_result",
+                "validation_run_id": validation_run_id,
+            },
+        )
+    if commit_manifest.validation_result_hash != validation_result.validation_result_hash:
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+            details={"reason": "validation_result_hash_mismatch"},
+        )
+
+    # 5. Per-target evidence rows. The key contract is
+    #    (validation_run_id, source_system, external_logical_record_id,
+    #    external_revision_id) — same as the basis member key. We
+    #    require exactly one row per (SEASON, FARM, SUBFARM, VARIETY).
     evidence_rows = (
         await session.scalars(
             select(ActualHarvestValidationMappingEvidenceModel).where(
@@ -1002,7 +1274,6 @@ async def _mapping_evidence_for_record(
                     details={
                         "reason": "duplicate_target_evidence",
                         "target_type": row.target_type,
-                        "source_system": record.source_system,
                     },
                 )
             targets[row.target_type] = row
@@ -1014,8 +1285,6 @@ async def _mapping_evidence_for_record(
                 details={
                     "reason": "missing_target_evidence",
                     "target_type": required,
-                    "source_system": record.source_system,
-                    "external_revision_id": record.external_revision_id,
                 },
             )
 
@@ -1028,9 +1297,9 @@ async def _mapping_evidence_for_record(
         "farm_id": targets["FARM"].resolved_farm_id,
         "subfarm_id": targets["SUBFARM"].resolved_subfarm_id,
         "variety_id": targets["VARIETY"].resolved_variety_id,
-        "mapping_registry_version": "registry-v1",
-        "mapping_policy_version": "policy-v1",
-        "season_resolver_version": "actual-harvest-season-resolver-v1",
+        "mapping_registry_version": mapping_snapshot.registry_version,
+        "mapping_policy_version": mapping_snapshot.mapping_policy_version,
+        "season_resolver_version": mapping_snapshot.season_resolver_version,
         "mapping_registry_entry_hash": (
             targets["SEASON"].registry_entry_hash or targets["FARM"].registry_entry_hash
         ),
@@ -1039,9 +1308,10 @@ async def _mapping_evidence_for_record(
             targets["SEASON"].resolved_master_parent_business_key
         ),
         "resolved_master_record_hash": targets["SEASON"].resolved_master_record_hash,
-        "mapping_snapshot_hash": _hex64("mapping-snapshot"),
-        "resolved_identity_snapshot_hash": _hex64("resolved-identity-snapshot"),
-        "registry_content_hash": _hex64("registry-content"),
+        "mapping_snapshot_hash": mapping_snapshot.mapping_snapshot_hash,
+        "resolved_identity_snapshot_hash": mapping_snapshot.resolved_identity_snapshot_hash,
+        "registry_content_hash": mapping_snapshot.registry_content_hash,
+        "validation_result_hash": validation_result.validation_result_hash,
     }
 
 
