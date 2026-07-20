@@ -21,10 +21,16 @@ from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiAppendRecordsRequest,
     ActualHarvestApiBatchSummary,
     ActualHarvestApiCancelRequest,
+    ActualHarvestApiCommitRequest,
+    ActualHarvestApiCommitResponse,
     ActualHarvestApiCreateImportRequest,
     ActualHarvestApiEnvelope,
     ActualHarvestApiSealRequest,
     ActualHarvestApiValidateRequest,
+)
+from backend.app.actual_harvest_import.commit_service import (
+    CommitResult,
+    commit_batch,
 )
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.lifecycle import (
@@ -352,6 +358,74 @@ async def list_actual_harvest_import_errors(
             request_id,
             {"validation": summary.as_api(), "errors": errors},
             pagination={"page_size": page_size, "next_page_token": next_token},
+        )
+    except ActualHarvestApiError as error:
+        return _error(request_id, error)
+
+
+@router.post(
+    "/imports/{import_id}/commit",
+    operation_id="commitActualHarvestImport",
+    response_model=None,
+)
+async def commit_actual_harvest_import(
+    import_id: str,
+    request: Request,
+    body: ActualHarvestApiCommitRequest,
+    actor: ActorDep,
+    session: SessionDep,
+) -> JSONResponse:
+    """v0.2-S1 atomic commit endpoint.
+
+    Caller-owned transaction: this handler delegates the
+    session.commit/rollback boundary to the existing
+    ``_run_mutation`` helper (same pattern as the other actual-harvest
+    endpoints). On any error the helper rolls back the manifest INSERT and
+    the batch status UPDATE, leaving the batch in VALIDATED.
+    """
+    request_id = _request_id(request)
+    try:
+        # Authorize + scope (re-uses the existing helper; may_commit is
+        # an explicit permission, not "may_validate" nor the submitter
+        # identity).
+        await _load_scoped_batch(session, import_id, actor, "may_commit")
+        result = await _run_mutation(
+            session,
+            lambda: commit_batch(
+                session,
+                import_id=import_id,
+                validation_run_instance_identity_hash=(body.validation_run_instance_identity_hash),
+                actor=actor,
+            ),
+        )
+        assert isinstance(result, CommitResult)
+        commit_response = ActualHarvestApiCommitResponse(
+            commit_policy_version=result.commit_policy_version,
+            commit_manifest_hash=result.commit_manifest_hash,
+            validation_run_instance_identity_hash=(result.validation_run_instance_identity_hash),
+            committed_record_count=result.committed_record_count,
+            committed_at=result.committed_at,
+            committed_by_identity=result.committed_by_identity,
+            reused_existing_commit=result.reused_existing_commit,
+        )
+        return _ok(
+            request_id,
+            {
+                "batch": {
+                    "import_id": import_id,
+                    "status": "COMMITTED",
+                    "committed_record_count": result.committed_record_count,
+                    "committed_at_or_null": result.committed_at,
+                },
+                "commit": commit_response.model_dump(mode="json"),
+            },
+            status_code=200 if result.reused_existing_commit else 201,
+            hashes={
+                "commit_manifest_hash": result.commit_manifest_hash,
+                "validation_run_instance_identity_hash": (
+                    result.validation_run_instance_identity_hash
+                ),
+            },
         )
     except ActualHarvestApiError as error:
         return _error(request_id, error)

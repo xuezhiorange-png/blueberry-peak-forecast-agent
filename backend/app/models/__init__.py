@@ -1,3 +1,6 @@
+from backend.app.actual_harvest_import.commit_models import (
+    ActualHarvestCommitManifestModel,
+)
 from backend.app.actual_harvest_import.models import (
     ActualHarvestImportBatchModel,
     ActualHarvestImportRecordModel,
@@ -95,6 +98,7 @@ from backend.app.models.weather import (
 )
 
 __all__ = [
+    "ActualHarvestCommitManifestModel",
     "ActualHarvestImportBatchModel",
     "ActualHarvestImportRecordModel",
     "ActualHarvestMappingPolicyRegistryModel",

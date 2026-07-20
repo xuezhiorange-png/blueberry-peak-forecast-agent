@@ -14,7 +14,8 @@ from backend.tests.actual_harvest_import.alembic_cases import (
     assert_actual_harvest_sqlite_upgrade_downgrade_upgrade,
 )
 
-MIGRATION_PATH = Path("backend/alembic/versions/0017_core_forecast_run_persistence.py")
+_BACKEND_ROOT = Path(__file__).resolve().parents[1]
+MIGRATION_PATH = _BACKEND_ROOT / "alembic" / "versions" / "0017_core_forecast_run_persistence.py"
 MIGRATION_REVISION = "0017_core_forecast_run_persistence"
 
 pytestmark = [pytest.mark.postgres, pytest.mark.migration]
