@@ -2673,12 +2673,17 @@ async def test_postgres_i5_attempt_fencing_and_drift_matrix(drift_kind: str) -> 
                 "VALIDATING" if drift_kind == "wrong_attempt_generation" else "SEALED"
             )
             assert batch is not None and batch.status == expected_batch_status
-            assert (
-                await session.scalar(
-                    sa.select(sa.func.count()).select_from(ActualHarvestValidationResultModel)
-                )
-                == 0
+            # The shared PostgreSQL test database may still hold
+            # validation-result rows from earlier (now-protected)
+            # tests until the module-scoped TRUNCATE teardown runs.
+            # The stale-finalization guarantee is per-run, so scope
+            # the count to start.run_id rather than the whole table.
+            result_count = await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(ActualHarvestValidationResultModel)
+                .where(ActualHarvestValidationResultModel.validation_run_id == start.run_id)
             )
+            assert result_count == 0
     finally:
         await _cleanup_batch(external_batch_id)
         await _cleanup_registry(mapping_policy)
