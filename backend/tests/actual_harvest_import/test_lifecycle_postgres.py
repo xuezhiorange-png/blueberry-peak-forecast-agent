@@ -3728,6 +3728,15 @@ async def test_postgres_i5_committed_finalized_predecessor_finalized_at_persists
     row carries the same finalized_at value.
     """
     _require_postgres()
+    # Master-data isolation: the test runs late in the module after
+    # `test_postgres_i5_module_cleanup_releases_master_ids_for_downstream_suites`
+    # has already TRUNCATEd + RESTART IDENTITY on dim_season / dim_farm /
+    # dim_variety / dim_subfarm and then inserted its own fixed-id
+    # downstream rows. Without a fresh truncate before this test inserts
+    # its own master data via `_seed_i5_registry`, the autoincrement
+    # sequence lands on `id=1` and the FIXED id=1 row from the cleanup
+    # test raises pk_dim_season / pk_dim_farm UniqueViolationError.
+    await _truncate_i5_module_database()
     suffix = uuid4().hex
     mapping_policy = await _seed_i5_registry(suffix)
     logical_id = f"logical-finalized-predecessor-{suffix}"
@@ -3811,6 +3820,10 @@ async def test_postgres_i5_committed_finalized_predecessor_null_finalized_at_req
     validation error enum.
     """
     _require_postgres()
+    # Master-data isolation: see the sibling positive-path test
+    # `test_postgres_i5_committed_finalized_predecessor_finalized_at_persists_in_basis`
+    # for the rationale.
+    await _truncate_i5_module_database()
     suffix = uuid4().hex
     mapping_policy = await _seed_i5_registry(suffix)
     logical_id = f"logical-finalized-null-{suffix}"
