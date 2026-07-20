@@ -453,6 +453,94 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
         # UPDATE/DELETE rejection is covered by the unit/contract tests in
         # `tests/actual_harvest_import/test_commit_contract.py`.
 
+        # B5 contract: the import-record immutability guard must reject
+        # UPDATE/DELETE on a record whose parent batch is sealed. The
+        # SQLite upgrade path installs the BEFORE UPDATE/DELETE triggers
+        # that the PostgreSQL DDL emits; this part proves the SQLite
+        # branch produces the same observable contract: any UPDATE or
+        # DELETE on a row whose parent batch is in {SEALED, VALIDATING,
+        # VALIDATED, COMMITTED} must raise, while UPLOADING rows are
+        # still mutable.
+        # First, plant a UPLOADING batch + record so the WHEN clause
+        # has something to inspect.
+        connection.execute(
+            sa.text(
+                """
+                INSERT INTO actual_harvest_import_batch
+                    (id, import_id, import_channel, source_system, source_dataset,
+                     source_version, external_batch_id, idempotency_key, submitted_at,
+                     import_received_at, ingested_at, submitted_by_identity,
+                     record_count, valid_record_count, invalid_record_count,
+                     committed_record_count, raw_payload_hash, schema_version,
+                     mapping_policy_version, validation_policy_version,
+                     source_semantics_attestation_version,
+                     source_semantics_physical_event,
+                     source_semantics_quantity_basis,
+                     source_semantics_quantity_unit,
+                     source_semantics_missing_record_semantics,
+                     source_semantics_attestation_hash, status, seal_status,
+                     uploaded_record_count)
+                VALUES (1, 'upload-test', 'api', 'source-test', 'ds', 'v1',
+                        'ext-upload-1', 'idem-upload-1', '2024-01-01 00:00:00',
+                        '2024-01-01 00:00:00', '2024-01-01 00:00:00',
+                        'op-1', 1, 0, 0, 0, '"""
+                + "a" * 64
+                + """',
+                        'schema-v1', 'mapping-v1', 'validation-v1',
+                        'att-v1', 'FARM_PICK', 'OBSERVED_WEIGHT', 'KG',
+                        'UNKNOWN_NOT_ZERO', '"""
+                + "a" * 64
+                + """',
+                        'UPLOADING', 'UNSEALED', 1)
+                """
+            )
+        )
+        connection.execute(
+            sa.text(
+                """
+                INSERT INTO actual_harvest_import_record
+                    (id, batch_id, external_logical_record_id, external_revision_id,
+                     source_system, external_batch_id, harvest_business_date,
+                     farm_code, subfarm_or_plot_code, variety_code,
+                     actual_harvest_quantity_kg, source_recorded_at,
+                     source_recorded_at_authority_status,
+                     import_received_at, ingested_at, revision_number,
+                     record_status)
+                VALUES (1, 1, 'log-1', 'rev-1', 'source-test',
+                        'ext-upload-1', '2024-01-01', 'farm-1', 'sub-1', 'var-1',
+                        1.0, '2024-01-01 00:00:00', 'TRUSTED_SOURCE_TIMESTAMP',
+                        '2024-01-01 00:00:00', '2024-01-01 00:00:00', 1,
+                        'ACTIVE')
+                """
+            )
+        )
+        # UPLOADING allows mutation (B5 must not block the legitimate
+        # append/cancel/append-again path).
+        connection.execute(
+            sa.text(
+                "UPDATE actual_harvest_import_record "
+                "SET actual_harvest_quantity_kg = 2.0 WHERE id = 1"
+            )
+        )
+        # Now promote the batch to VALIDATED and assert the guard fires.
+        connection.execute(
+            sa.text("UPDATE actual_harvest_import_batch SET status = 'VALIDATED' WHERE id = 1")
+        )
+        sealed_record_mutations = (
+            (
+                "UPDATE actual_harvest_import_record "
+                "SET actual_harvest_quantity_kg = 3.0 WHERE id = 1"
+            ),
+            "DELETE FROM actual_harvest_import_record WHERE id = 1",
+        )
+        for statement in sealed_record_mutations:
+            try:
+                connection.execute(sa.text(statement))
+            except sa.exc.IntegrityError:
+                pass
+            else:
+                raise AssertionError("sealed import-record mutation was accepted by the B5 trigger")
+
         module.downgrade()
         previous.op = module.op
         previous.downgrade()
