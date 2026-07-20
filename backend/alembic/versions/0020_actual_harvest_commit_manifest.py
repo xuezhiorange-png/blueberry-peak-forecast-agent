@@ -37,7 +37,13 @@ def _sha_check(column: str, *, nullable: bool = False) -> str:
 
 
 def _create_commit_manifest_immutability_guard() -> None:
-    """Reject UPDATE and DELETE on actual_harvest_commit_manifest."""
+    """Reject UPDATE and DELETE on actual_harvest_commit_manifest.
+
+    The PostgreSQL trigger raises SQLSTATE 23514 (check_violation) and
+    the exact server message 'actual-harvest commit manifest is immutable'
+    so the B8 contract test can assert both the SQLSTATE and the full
+    server message.
+    """
     dialect = op.get_bind().dialect.name
     if dialect == "postgresql":
         op.execute(
@@ -46,12 +52,8 @@ def _create_commit_manifest_immutability_guard() -> None:
                 CREATE FUNCTION actual_harvest_reject_commit_manifest_mutation()
                 RETURNS trigger LANGUAGE plpgsql AS $$
                 BEGIN
-                    IF TG_OP = 'DELETE' THEN
-                        RAISE EXCEPTION 'actual-harvest commit manifest is immutable'
-                            USING ERRCODE = 'check_violation';
-                    END IF;
                     RAISE EXCEPTION 'actual-harvest commit manifest is immutable'
-                        USING ERRCODE = 'check_violation';
+                        USING ERRCODE = '23514';
                 END;
                 $$;
                 """
@@ -110,6 +112,169 @@ def _drop_commit_manifest_immutability_guard() -> None:
         for trigger in (
             "trg_actual_harvest_commit_manifest_immutable_update",
             "trg_actual_harvest_commit_manifest_immutable_delete",
+        ):
+            op.execute(sa.text(f"DROP TRIGGER IF EXISTS {trigger}"))
+
+
+# Statuses under which an import record is sealed and must be immutable.
+# Any batch in one of these states makes the child records
+# append-only (no UPDATE/DELETE permitted) — even if the trigger is
+# bypassed in application code, the database refuses.
+_SEALED_BATCH_STATUSES: tuple[str, ...] = (
+    "SEALED",
+    "VALIDATING",
+    "VALIDATED",
+    "COMMITTED",
+)
+
+
+def _create_import_record_immutability_guard() -> None:
+    """Reject UPDATE and DELETE on actual_harvest_import_record when the
+    parent batch is sealed (status in
+    {SEALED, VALIDATING, VALIDATED, COMMITTED}).
+
+    The UPLOADING stage is the only state in which writes are still
+    permitted. The trigger inspects BOTH OLD and NEW batch_id on
+    UPDATE so a malicious caller cannot evade the protection by
+    mutating batch_id itself (the OLD row is sealed → reject).
+    """
+    dialect = op.get_bind().dialect.name
+    sealed_list = ", ".join(f"'{status}'" for status in _SEALED_BATCH_STATUSES)
+
+    if dialect == "postgresql":
+        op.execute(
+            sa.text(
+                f"""
+                CREATE FUNCTION actual_harvest_reject_sealed_record_mutation()
+                RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    old_status text;
+                    new_status text;
+                BEGIN
+                    SELECT status INTO old_status
+                        FROM actual_harvest_import_batch
+                        WHERE id = OLD.batch_id;
+                    IF old_status IN ({sealed_list}) THEN
+                        RAISE EXCEPTION 'actual-harvest import record is immutable after seal'
+                            USING ERRCODE = '23514';
+                    END IF;
+                    IF NEW.batch_id IS DISTINCT FROM OLD.batch_id THEN
+                        SELECT status INTO new_status
+                            FROM actual_harvest_import_batch
+                            WHERE id = NEW.batch_id;
+                        IF new_status IN ({sealed_list}) THEN
+                            RAISE EXCEPTION 'actual-harvest import record is immutable after seal'
+                                USING ERRCODE = '23514';
+                        END IF;
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$;
+                """
+            )
+        )
+        op.execute(
+            sa.text(
+                """
+                CREATE TRIGGER trg_actual_harvest_import_record_sealed_update
+                BEFORE UPDATE
+                ON actual_harvest_import_record
+                FOR EACH ROW
+                EXECUTE FUNCTION actual_harvest_reject_sealed_record_mutation()
+                """
+            )
+        )
+        op.execute(
+            sa.text(
+                f"""
+                CREATE FUNCTION actual_harvest_reject_sealed_record_delete()
+                RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    parent_status text;
+                BEGIN
+                    SELECT status INTO parent_status
+                        FROM actual_harvest_import_batch
+                        WHERE id = OLD.batch_id;
+                    IF parent_status IN ({sealed_list}) THEN
+                        RAISE EXCEPTION 'actual-harvest import record is immutable after seal'
+                            USING ERRCODE = '23514';
+                    END IF;
+                    RETURN OLD;
+                END;
+                $$;
+                """
+            )
+        )
+        op.execute(
+            sa.text(
+                """
+                CREATE TRIGGER trg_actual_harvest_import_record_sealed_delete
+                BEFORE DELETE
+                ON actual_harvest_import_record
+                FOR EACH ROW
+                EXECUTE FUNCTION actual_harvest_reject_sealed_record_delete()
+                """
+            )
+        )
+        return
+
+    if dialect == "sqlite":
+        sealed_csv = ",".join(f"'{s}'" for s in _SEALED_BATCH_STATUSES)
+        # SQLite's WHEN clause can reference OLD/NEW columns but does
+        # not let the inner SELECT reference the mutating table
+        # ('actual_harvest_import_record'). However, the parent batch
+        # table IS a different table, so the subquery is allowed.
+        op.execute(
+            sa.text(
+                f"""
+                CREATE TRIGGER trg_actual_harvest_import_record_sealed_update
+                BEFORE UPDATE ON actual_harvest_import_record
+                FOR EACH ROW
+                WHEN OLD.batch_id IN (
+                    SELECT id FROM actual_harvest_import_batch
+                    WHERE status IN ({sealed_csv})
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'actual-harvest import record is immutable after seal');
+                END;
+                """
+            )
+        )
+        op.execute(
+            sa.text(
+                f"""
+                CREATE TRIGGER trg_actual_harvest_import_record_sealed_delete
+                BEFORE DELETE ON actual_harvest_import_record
+                FOR EACH ROW
+                WHEN OLD.batch_id IN (
+                    SELECT id FROM actual_harvest_import_batch
+                    WHERE status IN ({sealed_csv})
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'actual-harvest import record is immutable after seal');
+                END;
+                """
+            )
+        )
+
+
+def _drop_import_record_immutability_guard() -> None:
+    dialect = op.get_bind().dialect.name
+    if dialect == "postgresql":
+        for trigger in (
+            "trg_actual_harvest_import_record_sealed_update",
+            "trg_actual_harvest_import_record_sealed_delete",
+        ):
+            op.execute(sa.text(f"DROP TRIGGER IF EXISTS {trigger} ON actual_harvest_import_record"))
+        op.execute(
+            sa.text("DROP FUNCTION IF EXISTS actual_harvest_reject_sealed_record_mutation()")
+        )
+        op.execute(sa.text("DROP FUNCTION IF EXISTS actual_harvest_reject_sealed_record_delete()"))
+        return
+    if dialect == "sqlite":
+        for trigger in (
+            "trg_actual_harvest_import_record_sealed_update",
+            "trg_actual_harvest_import_record_sealed_delete",
         ):
             op.execute(sa.text(f"DROP TRIGGER IF EXISTS {trigger}"))
 
@@ -220,8 +385,13 @@ def upgrade() -> None:
     )
 
     _create_commit_manifest_immutability_guard()
+    _create_import_record_immutability_guard()
 
 
 def downgrade() -> None:
+    # Order matters: drop record triggers first (they reference the
+    # batch table), then commit-manifest trigger/function, then the
+    # manifest table itself.
+    _drop_import_record_immutability_guard()
     _drop_commit_manifest_immutability_guard()
     op.drop_table("actual_harvest_commit_manifest")

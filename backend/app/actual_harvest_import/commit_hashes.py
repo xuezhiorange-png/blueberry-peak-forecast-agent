@@ -5,10 +5,10 @@ Frozen contract (S1 §五):
   - commit_policy_version
   - import_id
   - validation_run_instance_identity_hash
-  - 9 evidence hashes (seal / canonical_batch / record_manifest /
+  - 10 evidence hashes (seal / canonical_batch / record_manifest /
     validation_result / mapping_snapshot / resolved_identity_snapshot /
     lineage_graph / committed_lineage_basis / registry_content /
-    source_semantics_attestation) — actually 10 hashes total
+    source_semantics_attestation)
   - committed_record_count
   - ordered_revisions: list of dicts, each with
     ordinal, source_system, external_logical_record_id, external_revision_id,
@@ -25,6 +25,11 @@ Frozen contract (S1 §五):
 
 - Each record's record_content_hash comes from
   compute_canonical_record_hash() (reused from I5).
+
+- The record_manifest_hash is NOT computed here. It is the single I5
+  authority ``validation_hashes.compute_record_manifest_hash`` and is
+  reused as-is to guarantee that the commit-time attestation equals
+  the validation-time attestation.
 """
 
 from __future__ import annotations
@@ -42,10 +47,12 @@ from backend.app.actual_harvest_import.enums import (
     ActualHarvestImportBatchStatus,
 )
 from backend.app.actual_harvest_import.models import ActualHarvestImportRecordModel
+from backend.app.actual_harvest_import.schemas import (
+    CanonicalActualHarvestImportRecord,
+)
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 COMMIT_MANIFEST_HASH_POLICY_VERSION = "actual-harvest-commit-manifest-hash-v1"
-RECORD_MANIFEST_HASH_POLICY_VERSION = "actual-harvest-record-manifest-hash-v1"
 
 
 @dataclass(frozen=True)
@@ -54,6 +61,12 @@ class OrderedRevision:
 
     Sorted by (source_system, external_logical_record_id, revision_number,
     external_revision_id) — see S1 §五.
+
+    This type is part of the commit_manifest_hash surface ONLY. It is
+    NOT used to re-derive the validation-side record_manifest_hash,
+    which is the single authority computed by
+    ``validation_hashes.compute_record_manifest_hash`` over canonical
+    records.
     """
 
     ordinal: int
@@ -64,16 +77,63 @@ class OrderedRevision:
     record_content_hash: str
 
 
-def order_records_for_commit(
+def canonical_records_for_commit(
     records: Iterable[ActualHarvestImportRecordModel],
+) -> tuple[CanonicalActualHarvestImportRecord, ...]:
+    """Convert ORM records into the canonical-record schema.
+
+    Sorted by the I5 record-manifest key
+    (source_system, external_logical_record_id, revision_number,
+    external_revision_id) and validated against
+    :class:`CanonicalActualHarvestImportRecord`.
+
+    The schema deliberately excludes database-generated columns
+    (id, batch_id, created_at, ...) so the resulting tuple is
+    hash-stable across SQL backends and across re-loads that may
+    assign different surrogate ids.
+
+    This is the single bridge between the persisted ORM row and the
+    validation-side canonical hash computation. The commit service
+    uses it to (a) call the validation-side record_manifest_hash
+    authority and (b) build OrderedRevision tuples for the
+    commit_manifest_hash surface.
+    """
+    ordered_models = sorted(
+        records,
+        key=lambda record: (
+            record.source_system,
+            record.external_logical_record_id,
+            record.revision_number,
+            record.external_revision_id,
+        ),
+    )
+    return tuple(
+        CanonicalActualHarvestImportRecord.model_validate(
+            {
+                field_name: getattr(record, field_name)
+                for field_name in CanonicalActualHarvestImportRecord.model_fields
+            }
+        )
+        for record in ordered_models
+    )
+
+
+def order_records_for_commit(
+    canonical_records: Iterable[CanonicalActualHarvestImportRecord],
 ) -> tuple[OrderedRevision, ...]:
-    """Return a deterministic ordering of records for commit-manifest hash.
+    """Return a deterministic ordering of canonical records for
+    commit-manifest hash.
 
     Sorting key (per S1 §五):
         (source_system ASC,
          external_logical_record_id ASC,
          revision_number ASC,
          external_revision_id ASC)
+
+    The input MUST be canonical records (i.e. produced by
+    :func:`canonical_records_for_commit`) so that the per-record
+    content hash is byte-stable across the validation-run attestation
+    and the commit-time recomputation.
     """
     return tuple(
         OrderedRevision(
@@ -82,11 +142,11 @@ def order_records_for_commit(
             external_logical_record_id=record.external_logical_record_id,
             external_revision_id=record.external_revision_id,
             revision_number=record.revision_number,
-            record_content_hash=compute_canonical_record_hash(_record_to_canonical(record)),
+            record_content_hash=compute_canonical_record_hash(record),
         )
         for index, record in enumerate(
             sorted(
-                records,
+                canonical_records,
                 key=lambda record: (
                     record.source_system,
                     record.external_logical_record_id,
@@ -96,57 +156,6 @@ def order_records_for_commit(
             )
         )
     )
-
-
-def _record_to_canonical(
-    record: ActualHarvestImportRecordModel,
-) -> Any:
-    """Build a minimal canonical record for compute_canonical_record_hash.
-
-    We pass a plain object (not a pydantic model) with the same field shape
-    I5's canonical_record_payload expects, since
-    compute_canonical_record_hash accepts anything with .model_dump().
-    """
-    return _CanonicalRecord(
-        external_logical_record_id=record.external_logical_record_id,
-        external_revision_id=record.external_revision_id,
-        source_system=record.source_system,
-        external_batch_id=record.external_batch_id,
-        harvest_business_date=record.harvest_business_date,
-        farm_code=record.farm_code,
-        subfarm_or_plot_code=record.subfarm_or_plot_code,
-        variety_code=record.variety_code,
-        actual_harvest_quantity_kg=record.actual_harvest_quantity_kg,
-        source_recorded_at=record.source_recorded_at,
-        source_recorded_at_authority_status=(record.source_recorded_at_authority_status),
-        source_recorded_at_authority_reference_or_null=(
-            record.source_recorded_at_authority_reference_or_null
-        ),
-        import_received_at=record.import_received_at,
-        ingested_at=record.ingested_at,
-        revision_number=record.revision_number,
-        record_status=record.record_status,
-        supersedes_external_revision_id=(record.supersedes_external_revision_id),
-        season_code=record.season_code,
-        farm_timezone=record.farm_timezone,
-        revised_at=record.revised_at,
-        finalized_at=record.finalized_at,
-        source_note=record.source_note,
-    )
-
-
-class _CanonicalRecord:
-    """Minimal duck-typed pydantic-compatible object for canonical hashing."""
-
-    def __init__(self, **fields: Any) -> None:
-        self._fields = fields
-
-    def model_dump(
-        self, *, mode: str = "python", exclude: set[str] | None = None
-    ) -> dict[str, Any]:
-        del mode
-        excluded = exclude or set()
-        return {key: value for key, value in self._fields.items() if key not in excluded}
 
 
 @dataclass(frozen=True)
@@ -212,48 +221,17 @@ def compute_commit_manifest_hash(payload: CommitManifestInput) -> str:
     return sha256(encoded).hexdigest()
 
 
-def compute_record_manifest_hash(
-    ordered_revisions: tuple[OrderedRevision, ...],
-) -> str:
-    """Deterministic SHA-256 hex over canonical JSON of the ordered
-    revision set.
-
-    The record_manifest_hash is the I5-side hash that the validation
-    run stores at validation time. Re-deriving it inside the commit
-    service lets us prove that the records the caller is about to
-    commit are byte-identical to the records the validation run
-    attested to. The hash surface EXCLUDES database-generated ids
-    and any insertion / transaction metadata, matching S1 §五.
-    """
-    body: dict[str, Any] = {
-        "policy_version": RECORD_MANIFEST_HASH_POLICY_VERSION,
-        "ordered_revisions": [
-            {
-                "ordinal": revision.ordinal,
-                "source_system": revision.source_system,
-                "external_logical_record_id": (revision.external_logical_record_id),
-                "external_revision_id": revision.external_revision_id,
-                "revision_number": revision.revision_number,
-                "record_content_hash": revision.record_content_hash,
-            }
-            for revision in ordered_revisions
-        ],
-    }
-    encoded = canonical_json_dumps(body).encode("utf-8")
-    return sha256(encoded).hexdigest()
-
-
 def expected_committed_batch_status() -> str:
     return ActualHarvestImportBatchStatus.COMMITTED.value
 
 
 __all__ = [
     "COMMIT_MANIFEST_HASH_POLICY_VERSION",
+    "CanonicalActualHarvestImportRecord",  # re-exported for typing
     "CommitManifestInput",
     "OrderedRevision",
-    "RECORD_MANIFEST_HASH_POLICY_VERSION",
+    "canonical_records_for_commit",
     "compute_commit_manifest_hash",
-    "compute_record_manifest_hash",
     "expected_committed_batch_status",
     "order_records_for_commit",
 ]

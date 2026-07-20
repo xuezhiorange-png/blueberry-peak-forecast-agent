@@ -21,8 +21,8 @@ from backend.app.actual_harvest_import.api_errors import (
 )
 from backend.app.actual_harvest_import.commit_hashes import (
     CommitManifestInput,
+    canonical_records_for_commit,
     compute_commit_manifest_hash,
-    compute_record_manifest_hash,
     order_records_for_commit,
 )
 from backend.app.actual_harvest_import.commit_persistence import (
@@ -38,6 +38,9 @@ from backend.app.actual_harvest_import.enums import (
     ActualHarvestImportChannel,
 )
 from backend.app.actual_harvest_import.validation import validate_sha256_hex
+from backend.app.actual_harvest_import.validation_hashes import (
+    compute_record_manifest_hash,
+)
 
 
 def _utc_now() -> datetime:
@@ -411,19 +414,30 @@ async def commit_batch(
             "loaded record count does not match batch record count",
             status_code=409,
         )
-    ordered = order_records_for_commit(records)
-    if len(ordered) != batch.record_count:
+    # Convert ORM records to the canonical-record schema (the single
+    # bridge between persisted rows and the validation-side hash
+    # authority). The schema deliberately excludes database-generated
+    # columns so the resulting tuple is hash-stable.
+    canonical_records = canonical_records_for_commit(records)
+    if len(canonical_records) != batch.record_count:
         raise ActualHarvestApiError(
             ActualHarvestApiErrorCode.COMMIT_EVIDENCE_DRIFT,
-            "ordered revisions do not match batch record count",
+            "canonical record count does not match batch record count",
             status_code=409,
         )
-    record_manifest_hash = compute_record_manifest_hash(ordered)
+    # The record_manifest_hash MUST be computed by the single I5
+    # authority ``validation_hashes.compute_record_manifest_hash``
+    # over the canonical records, not by a second formula here.
+    record_manifest_hash = compute_record_manifest_hash(canonical_records)
     _assert_hash_equal(
         "validation_run.record_manifest_hash",
         expected=record_manifest_hash_stored,
         actual=record_manifest_hash,
     )
+    # OrderedRevision is part of the commit_manifest_hash surface
+    # only; it is built from the canonical records and never
+    # overrides the validation-side record_manifest_hash.
+    ordered_revisions = order_records_for_commit(canonical_records)
 
     # Step 9 — compute commit_manifest_hash
     commit_manifest_hash = compute_commit_manifest_hash(
@@ -441,7 +455,7 @@ async def commit_batch(
             registry_content_hash=registry_content_hash_run,
             source_semantics_attestation_hash=(batch.source_semantics_attestation_hash),
             committed_record_count=batch.record_count,
-            ordered_revisions=ordered,
+            ordered_revisions=ordered_revisions,
         )
     )
 

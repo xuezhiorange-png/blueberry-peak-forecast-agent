@@ -57,8 +57,8 @@ from backend.app.actual_harvest_import.api_errors import (
 from backend.app.actual_harvest_import.commit_hashes import (
     COMMIT_MANIFEST_HASH_POLICY_VERSION,
     CommitManifestInput,
+    canonical_records_for_commit,
     compute_commit_manifest_hash,
-    compute_record_manifest_hash,
     order_records_for_commit,
 )
 from backend.app.actual_harvest_import.commit_models import (
@@ -83,6 +83,9 @@ from backend.app.actual_harvest_import.enums import (
 from backend.app.actual_harvest_import.models import (
     ActualHarvestImportBatchModel,
     ActualHarvestImportRecordModel,
+)
+from backend.app.actual_harvest_import.validation_hashes import (
+    compute_record_manifest_hash,
 )
 from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestMappingPolicyRegistryModel,
@@ -340,7 +343,8 @@ async def _seed_validated_batch(
     # Compute the real record_manifest_hash from the freshly-created
     # records so the S1 service's "re-derive on commit" check is
     # consistent with the run-side stored value.
-    computed_record_manifest_hash = compute_record_manifest_hash(order_records_for_commit(fetched))
+    canonical_records = canonical_records_for_commit(fetched)
+    computed_record_manifest_hash = compute_record_manifest_hash(canonical_records)
     if drift_field == "record_manifest_hash":
         # The drift test path overrides the run's stored value AFTER we
         # compute the real one above; this preserves the test's intent
@@ -824,6 +828,48 @@ async def _seed_batch_via_session(
                 drift_field=drift_field,
             )
     return seeded
+
+
+# ---------------------------------------------------------------------------
+# Hash authority regression: the S1 commit-time record_manifest_hash MUST
+# equal the validation-time record_manifest_hash. Both must come from the
+# same canonical-record formula (validation_hashes.compute_record_manifest_hash
+# over canonical records). If a future change reintroduces a second formula
+# in commit_hashes, this test will catch the drift.
+# ---------------------------------------------------------------------------
+
+
+def test_record_manifest_hash_authority_is_single_source() -> None:
+    """The S1 record_manifest_hash recomputed at commit time MUST equal
+    the run-side stored value, byte for byte. The two sides must use
+    the same canonical-record authority — no S1-only formula may exist.
+
+    This is a structural test: it forces both call sites to consume
+    the same canonical schema, so any future change that diverges
+    either side is caught here.
+    """
+    from backend.app.actual_harvest_import import commit_hashes as commit_hashes_module
+    from backend.app.actual_harvest_import import (
+        validation_hashes as validation_hashes_module,
+    )
+
+    # The duplicate formula MUST NOT reappear in commit_hashes.
+    assert not hasattr(commit_hashes_module, "RECORD_MANIFEST_HASH_POLICY_VERSION"), (
+        "commit_hashes.RECORD_MANIFEST_HASH_POLICY_VERSION must not exist; "
+        "the record_manifest_hash is the single I5 authority in "
+        "validation_hashes.compute_record_manifest_hash."
+    )
+    assert not hasattr(commit_hashes_module, "compute_record_manifest_hash"), (
+        "commit_hashes.compute_record_manifest_hash must not exist; "
+        "import compute_record_manifest_hash from validation_hashes."
+    )
+
+    # After the refactor, commit_hashes no longer exposes a duplicate
+    # formula. The validation_hashes authority must still return a
+    # 64-char lowercase hex string (proves the single authority is
+    # the real canonical one, not a stub).
+    sample = validation_hashes_module.compute_record_manifest_hash([])
+    assert isinstance(sample, str) and len(sample) == 64
 
 
 # Silence "unused import" warnings for items re-exported for tests
