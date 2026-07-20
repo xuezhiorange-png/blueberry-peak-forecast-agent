@@ -3247,9 +3247,15 @@ async def _s1_seed_validated_batch(*, suffix: str) -> tuple[str, str]:
     """Seed a fully-validated batch (registry + batch + records +
     validation_run + validation_result + mapping_snapshot) so the
     commit service can be invoked against it.
+
+    Reuses `_seed_i5_registry` so the mapping policy is actually
+    registered (and sealed) in the mapping_policy_registry / entries
+    tables before validation looks it up. Previously this helper built
+    a synthetic `s1-mapping-{suffix}` string that was never inserted
+    into the registry, causing
+    "mapping policy version is not registered" during `_validate_once`.
     """
-    suffix = uuid4().hex
-    mapping_policy = f"s1-mapping-{suffix}"
+    mapping_policy = await _seed_i5_registry(suffix)
     import_id, external_batch_id = await _seed_i5_batch(
         suffix=suffix, mapping_policy=mapping_policy
     )
