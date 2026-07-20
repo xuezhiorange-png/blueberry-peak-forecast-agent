@@ -15,6 +15,8 @@ _ALEMBIC_VERSIONS_DIR = _BACKEND_ROOT / "alembic" / "versions"
 
 MIGRATION_PATH = _ALEMBIC_VERSIONS_DIR / "0021_actual_harvest_label_snapshot.py"
 MIGRATION_REVISION = "0021_actual_harvest_label_snapshot"
+MIGRATION_0022_PATH = _ALEMBIC_VERSIONS_DIR / "0022_finalized_at_lineage_basis_member.py"
+MIGRATION_0022_REVISION = "0022_finalized_at_lineage_basis_member"
 
 
 def _migration_module() -> ModuleType:
@@ -56,18 +58,39 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     config = Config(str(_BACKEND_ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == [MIGRATION_REVISION]
+    # I7 follow-up contract: head must be the additive 0022 column extension
+    # (finalized_at on the lineage basis member) so committed FINALIZED
+    # predecessor timestamps survive basis persistence. 0021 is the
+    # down_revision of 0022, so the head is still 0021's lineage.
+    assert MIGRATION_0022_REVISION in script.get_heads(), (
+        f"alembic heads must include {MIGRATION_0022_REVISION!r}, got {script.get_heads()!r}"
+    )
     assert len(script.get_heads()) == 1, (
         f"alembic heads must be exactly one, got {script.get_heads()!r}"
     )
+    assert script.get_heads() == [MIGRATION_0022_REVISION]
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
     assert module.down_revision == "0020_actual_harvest_commit_manifest"
+    spec = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_0022", MIGRATION_0022_PATH
+    )
+    assert spec is not None and spec.loader is not None
+    migration_0022 = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration_0022)
+    assert migration_0022.revision == MIGRATION_0022_REVISION
+    assert migration_0022.down_revision == MIGRATION_REVISION
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
     module = _migration_module()
     previous = _previous_migration_module()
+    spec_0022 = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_0022", MIGRATION_0022_PATH
+    )
+    assert spec_0022 is not None and spec_0022.loader is not None
+    migration_0022 = importlib.util.module_from_spec(spec_0022)
+    spec_0022.loader.exec_module(migration_0022)
     engine = sa.create_engine("sqlite:///:memory:")
     with engine.begin() as connection:
         module.op = Operations(MigrationContext.configure(connection))
@@ -80,6 +103,8 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
         previous.op = module.op
         previous.upgrade()
         module.upgrade()
+        migration_0022.op = module.op
+        migration_0022.upgrade()
         inspector = sa.inspect(connection)
         expected_tables = {
             "actual_harvest_import_batch",
@@ -124,6 +149,21 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             column["name"]
             for column in inspector.get_columns("actual_harvest_validation_mapping_evidence")
         } >= {"resolver_version"}
+        # I7 follow-up contract: the lineage basis member table must
+        # carry the committed FINALIZED predecessor's finalized_at as a
+        # nullable timezone-aware timestamp so subsequent validations
+        # (and contract tests) can read it back. See migration 0022.
+        assert {
+            column["name"]
+            for column in inspector.get_columns("actual_harvest_validation_lineage_basis_member")
+        } >= {
+            "source_system",
+            "source_recorded_at",
+            "source_recorded_at_authority_status",
+            "finalized_at",
+            "member_sort_key",
+            "member_hash",
+        }
         # S1 commit_manifest column contract.
         commit_manifest_columns = {
             column["name"] for column in inspector.get_columns("actual_harvest_commit_manifest")
@@ -561,6 +601,8 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
                 raise AssertionError("sealed import-record mutation was accepted by the B5 trigger")
 
         module.downgrade()
+        migration_0022.op = module.op
+        migration_0022.downgrade()
         previous.op = module.op
         previous.downgrade()
         validation.op = module.op
@@ -576,6 +618,8 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
         previous.op = module.op
         previous.upgrade()
         module.upgrade()
+        migration_0022.op = module.op
+        migration_0022.upgrade()
         assert set(sa.inspect(connection).get_table_names()) == expected_tables
 
 
