@@ -37,10 +37,29 @@ from backend.app.actual_harvest_import.enums import (
     ActualHarvestImportBatchStatus,
     ActualHarvestImportChannel,
 )
+from backend.app.actual_harvest_import.validation import validate_sha256_hex
 
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def _require_evidence_hash(label: str, value: str | None) -> str:
+    """Fail-closed narrow: ORM `Mapped[str] nullable=False` columns are
+    typed as `str | None` by static analysers (SQLAlchemy `Mapped` is not
+    smart-narrowed by mypy). This helper forces the runtime value through
+    the project's canonical SHA-256 hex validator so the returned
+    annotation is `str` and downstream code can rely on it without
+    casting, `type: ignore`, or `Any`."""
+
+    try:
+        return validate_sha256_hex(value, field_name=label)
+    except ValueError as exc:
+        raise ActualHarvestApiError(
+            ActualHarvestApiErrorCode.COMMIT_EVIDENCE_DRIFT,
+            f"required evidence hash missing or malformed: {label}",
+            status_code=409,
+        ) from exc
 
 
 def _unauthorized() -> ActualHarvestApiError:
@@ -257,74 +276,130 @@ async def commit_batch(
             status_code=409,
         )
 
-    # Hash presence check (all required hashes must be 64-char lower-hex)
-    required_present = {
-        "seal_manifest_hash": batch.seal_manifest_hash_or_null,
-        "canonical_batch_hash": batch.canonical_batch_hash_or_null,
-        "record_manifest_hash": validation_run.record_manifest_hash,
-        "validation_result_hash": validation_run.validation_result_hash,
-        "mapping_snapshot_hash": validation_run.mapping_snapshot_hash,
-        "resolved_identity_snapshot_hash": (validation_run.resolved_identity_snapshot_hash),
-        "lineage_graph_hash": validation_run.lineage_graph_hash,
-        "committed_lineage_basis_hash": (validation_run.committed_lineage_basis_hash),
-        "registry_content_hash": validation_run.registry_content_hash,
-    }
-    for name, value in required_present.items():
-        if not value or len(value) != 64:
-            raise ActualHarvestApiError(
-                ActualHarvestApiErrorCode.COMMIT_EVIDENCE_DRIFT,
-                f"required evidence hash missing: {name}",
-                status_code=409,
-            )
+    # Step 7.55 — narrow every Optional ORM hash to a `str` local.
+    # Once narrowed, ALL downstream code MUST use these locals instead of
+    # re-reading the Optional ORM property. This is the mypy fix surface.
+    seal_manifest_hash = _require_evidence_hash(
+        "seal_manifest_hash",
+        batch.seal_manifest_hash_or_null,
+    )
+    seal_manifest_hash_run = _require_evidence_hash(
+        "validation_run.seal_manifest_hash",
+        validation_run.seal_manifest_hash,
+    )
+    canonical_batch_hash = _require_evidence_hash(
+        "canonical_batch_hash",
+        batch.canonical_batch_hash_or_null,
+    )
+    record_manifest_hash_stored = _require_evidence_hash(
+        "record_manifest_hash",
+        validation_run.record_manifest_hash,
+    )
+    validation_result_hash_run = _require_evidence_hash(
+        "validation_result_hash",
+        validation_run.validation_result_hash,
+    )
+    mapping_snapshot_hash_run = _require_evidence_hash(
+        "mapping_snapshot_hash",
+        validation_run.mapping_snapshot_hash,
+    )
+    resolved_identity_snapshot_hash_run = _require_evidence_hash(
+        "resolved_identity_snapshot_hash",
+        validation_run.resolved_identity_snapshot_hash,
+    )
+    lineage_graph_hash_run = _require_evidence_hash(
+        "lineage_graph_hash",
+        validation_run.lineage_graph_hash,
+    )
+    committed_lineage_basis_hash_run = _require_evidence_hash(
+        "committed_lineage_basis_hash",
+        validation_run.committed_lineage_basis_hash,
+    )
+    registry_content_hash_run = _require_evidence_hash(
+        "registry_content_hash",
+        validation_run.registry_content_hash,
+    )
+    validation_result_hash_local = _require_evidence_hash(
+        "validation_result.validation_result_hash",
+        validation_result.validation_result_hash,
+    )
+    lineage_graph_hash_local = _require_evidence_hash(
+        "validation_result.lineage_graph_hash",
+        validation_result.lineage_graph_hash,
+    )
+    committed_lineage_basis_hash_local = _require_evidence_hash(
+        "validation_result.committed_lineage_basis_hash",
+        validation_result.committed_lineage_basis_hash,
+    )
+    mapping_snapshot_hash_local = _require_evidence_hash(
+        "validation_result.mapping_snapshot_hash",
+        validation_result.mapping_snapshot_hash,
+    )
+    resolved_identity_snapshot_hash_local = _require_evidence_hash(
+        "validation_result.resolved_identity_snapshot_hash",
+        validation_result.resolved_identity_snapshot_hash,
+    )
+    mapping_snapshot_hash_snapshot = _require_evidence_hash(
+        "mapping_snapshot.mapping_snapshot_hash",
+        mapping_snapshot.mapping_snapshot_hash,
+    )
+    resolved_identity_snapshot_hash_snapshot = _require_evidence_hash(
+        "mapping_snapshot.resolved_identity_snapshot_hash",
+        mapping_snapshot.resolved_identity_snapshot_hash,
+    )
+    registry_content_hash_snapshot = _require_evidence_hash(
+        "mapping_snapshot.registry_content_hash",
+        mapping_snapshot.registry_content_hash,
+    )
 
     # Step 7.6 — full cross-check between validation_result,
     # mapping_snapshot, and validation_run.
     _assert_hash_equal(
         "validation_result.validation_result_hash",
-        expected=validation_run.validation_result_hash,
-        actual=validation_result.validation_result_hash,
+        expected=validation_result_hash_run,
+        actual=validation_result_hash_local,
     )
     _assert_hash_equal(
         "validation_result.lineage_graph_hash",
-        expected=validation_run.lineage_graph_hash,
-        actual=validation_result.lineage_graph_hash,
+        expected=lineage_graph_hash_run,
+        actual=lineage_graph_hash_local,
     )
     _assert_hash_equal(
         "validation_result.committed_lineage_basis_hash",
-        expected=validation_run.committed_lineage_basis_hash,
-        actual=validation_result.committed_lineage_basis_hash,
+        expected=committed_lineage_basis_hash_run,
+        actual=committed_lineage_basis_hash_local,
     )
     _assert_hash_equal(
         "validation_result.mapping_snapshot_hash",
-        expected=validation_run.mapping_snapshot_hash,
-        actual=validation_result.mapping_snapshot_hash,
+        expected=mapping_snapshot_hash_run,
+        actual=mapping_snapshot_hash_local,
     )
     _assert_hash_equal(
         "validation_result.resolved_identity_snapshot_hash",
-        expected=validation_run.resolved_identity_snapshot_hash,
-        actual=validation_result.resolved_identity_snapshot_hash,
+        expected=resolved_identity_snapshot_hash_run,
+        actual=resolved_identity_snapshot_hash_local,
     )
     _assert_hash_equal(
         "mapping_snapshot.mapping_snapshot_hash",
-        expected=validation_run.mapping_snapshot_hash,
-        actual=mapping_snapshot.mapping_snapshot_hash,
+        expected=mapping_snapshot_hash_run,
+        actual=mapping_snapshot_hash_snapshot,
     )
     _assert_hash_equal(
         "mapping_snapshot.resolved_identity_snapshot_hash",
-        expected=validation_run.resolved_identity_snapshot_hash,
-        actual=mapping_snapshot.resolved_identity_snapshot_hash,
+        expected=resolved_identity_snapshot_hash_run,
+        actual=resolved_identity_snapshot_hash_snapshot,
     )
     _assert_hash_equal(
         "mapping_snapshot.registry_content_hash",
-        expected=validation_run.registry_content_hash,
-        actual=mapping_snapshot.registry_content_hash,
+        expected=registry_content_hash_run,
+        actual=registry_content_hash_snapshot,
     )
 
     # Step 7.7 — batch↔run seal/cross-check
     _assert_hash_equal(
         "batch.seal_manifest_hash",
-        expected=validation_run.seal_manifest_hash,
-        actual=batch.seal_manifest_hash_or_null,
+        expected=seal_manifest_hash_run,
+        actual=seal_manifest_hash,
     )
 
     # Step 8 — reload records + recompute record manifest
@@ -346,7 +421,7 @@ async def commit_batch(
     record_manifest_hash = compute_record_manifest_hash(ordered)
     _assert_hash_equal(
         "validation_run.record_manifest_hash",
-        expected=validation_run.record_manifest_hash,
+        expected=record_manifest_hash_stored,
         actual=record_manifest_hash,
     )
 
@@ -355,15 +430,15 @@ async def commit_batch(
         CommitManifestInput(
             import_id=batch.import_id,
             validation_run_instance_identity_hash=(validation_run.instance_identity_hash),
-            seal_manifest_hash=batch.seal_manifest_hash_or_null,
-            canonical_batch_hash=batch.canonical_batch_hash_or_null,
+            seal_manifest_hash=seal_manifest_hash,
+            canonical_batch_hash=canonical_batch_hash,
             record_manifest_hash=record_manifest_hash,
-            validation_result_hash=validation_run.validation_result_hash,
-            mapping_snapshot_hash=validation_run.mapping_snapshot_hash,
-            resolved_identity_snapshot_hash=(validation_run.resolved_identity_snapshot_hash),
-            lineage_graph_hash=validation_run.lineage_graph_hash,
-            committed_lineage_basis_hash=(validation_run.committed_lineage_basis_hash),
-            registry_content_hash=validation_run.registry_content_hash,
+            validation_result_hash=validation_result_hash_run,
+            mapping_snapshot_hash=mapping_snapshot_hash_run,
+            resolved_identity_snapshot_hash=resolved_identity_snapshot_hash_run,
+            lineage_graph_hash=lineage_graph_hash_run,
+            committed_lineage_basis_hash=committed_lineage_basis_hash_run,
+            registry_content_hash=registry_content_hash_run,
             source_semantics_attestation_hash=(batch.source_semantics_attestation_hash),
             committed_record_count=batch.record_count,
             ordered_revisions=ordered,
@@ -380,6 +455,15 @@ async def commit_batch(
         committed_by_identity=actor.identity,
         committed_at=committed_at,
         committed_record_count=batch.record_count,
+        seal_manifest_hash=seal_manifest_hash,
+        canonical_batch_hash=canonical_batch_hash,
+        record_manifest_hash=record_manifest_hash,
+        validation_result_hash=validation_result_hash_run,
+        mapping_snapshot_hash=mapping_snapshot_hash_run,
+        resolved_identity_snapshot_hash=resolved_identity_snapshot_hash_run,
+        lineage_graph_hash=lineage_graph_hash_run,
+        committed_lineage_basis_hash=committed_lineage_basis_hash_run,
+        registry_content_hash=registry_content_hash_run,
     )
     session.add(manifest)
 
