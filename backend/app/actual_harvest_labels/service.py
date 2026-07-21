@@ -20,6 +20,7 @@ Processing order is frozen (contract §12):
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections import defaultdict
 from dataclasses import dataclass
@@ -27,7 +28,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.actual_harvest_import.commit_models import (
@@ -150,6 +151,146 @@ async def _database_authoritative_now(session: AsyncSession) -> datetime:
     return timestamp.astimezone(UTC)
 
 
+# ---------------------------------------------------------------------------
+# Persistence phase checkpoints (E5.2 failure-atomicity hook)
+# ---------------------------------------------------------------------------
+
+SNAPSHOT_FLUSH_PHASE_HEADER = "HEADER"
+SNAPSHOT_FLUSH_PHASE_WINNERS = "WINNERS"
+SNAPSHOT_FLUSH_PHASE_LABELS = "LABELS"
+SNAPSHOT_FLUSH_PHASE_EXCLUSIONS = "EXCLUSIONS"
+
+
+async def _flush_snapshot_phase(session: AsyncSession, *, phase: str) -> None:
+    """Flush one persistence phase of the I7 snapshot.
+
+    Private internal phase hook. The production path calls this at the
+    fixed phase checkpoints ``HEADER`` / ``WINNERS`` / ``LABELS`` /
+    ``EXCLUSIONS`` so that a failure between phases is attributable to
+    exactly one phase — and so tests can inject a phase failure to
+    prove caller-rollback atomicity (E5.2). The hook only flushes into
+    the caller-owned transaction; the service NEVER commits.
+    """
+
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# Idempotency advisory lock (E5.4 / E5.5 concurrency ordering)
+# ---------------------------------------------------------------------------
+
+
+def _snapshot_advisory_lock_keys(
+    source_system: str, snapshot_idempotency_key: str
+) -> tuple[int, int]:
+    """Derive the deterministic PostgreSQL advisory-lock key pair.
+
+    SHA-256 over the public ``(source_system, snapshot_idempotency_key)``
+    tuple; the first 8 digest bytes become two signed int32 keys for
+    ``pg_advisory_xact_lock(key1, key2)``. Python's built-in ``hash()``
+    is deliberately NOT used (process-randomized, unstable across
+    processes).
+    """
+
+    digest = hashlib.sha256(f"{source_system}|{snapshot_idempotency_key}".encode()).digest()
+    key1 = int.from_bytes(digest[0:4], byteorder="big", signed=True)
+    key2 = int.from_bytes(digest[4:8], byteorder="big", signed=True)
+    return key1, key2
+
+
+def _session_dialect_name(session: AsyncSession) -> str:
+    """Best-effort dialect name for the session's bound engine."""
+
+    bind = session.get_bind()
+    dialect = getattr(bind, "dialect", None)
+    if dialect is not None:
+        return str(dialect.name)
+    sync_engine = getattr(bind, "sync_engine", None)
+    if sync_engine is not None:
+        return str(sync_engine.dialect.name)
+    return ""
+
+
+async def _acquire_snapshot_idempotency_lock(
+    session: AsyncSession,
+    *,
+    source_system: str,
+    snapshot_idempotency_key: str,
+) -> None:
+    """Take the per-idempotency-key transaction advisory lock.
+
+    Serializes concurrent same-key snapshot creation inside the
+    caller-owned transaction; the lock is released automatically when
+    that transaction commits or rolls back (``xact`` scope). A strict
+    no-op on non-PostgreSQL dialects (SQLite unit / contract tests).
+    """
+
+    if _session_dialect_name(session) != "postgresql":
+        return
+    key1, key2 = _snapshot_advisory_lock_keys(source_system, snapshot_idempotency_key)
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(:key1, :key2)"),
+        {"key1": key1, "key2": key2},
+    )
+
+
+async def _replay_existing_snapshot(
+    session: AsyncSession,
+    *,
+    existing_snapshot: ActualHarvestLabelSnapshotModel,
+    request_identity_hash: str,
+) -> ActualHarvestLabelSnapshotResult:
+    """Zero-write replay of an already-persisted snapshot.
+
+    Same request identity -> return the persisted rows as value
+    objects; different request identity -> public idempotency conflict
+    (never a raw unique-constraint error).
+    """
+
+    if existing_snapshot.snapshot_request_identity_hash != request_identity_hash:
+        raise ActualHarvestLabelIdempotencyConflictError(
+            "snapshot_idempotency_key reused with a different request hash"
+        )
+    # Zero-write replay — return the existing rows as value objects.
+    winners = [
+        winner_to_value_object(row)
+        for row in await load_winners_for_snapshot(session, existing_snapshot.id)
+    ]
+    label_records = list(await load_label_rows_for_snapshot(session, existing_snapshot.id))
+    exclusion_records = list(await load_exclusion_rows_for_snapshot(session, existing_snapshot.id))
+    header = header_to_value_object(existing_snapshot)
+    return ActualHarvestLabelSnapshotResult(
+        header=header,
+        winners=tuple(_winner_value_object_to_dict(winner) for winner in winners),
+        label_rows=tuple(
+            {
+                "season_business_key": row.season_business_key,
+                "farm_business_key": row.farm_business_key,
+                "subfarm_business_key": row.subfarm_business_key,
+                "variety_business_key": row.variety_business_key,
+                "harvest_business_date": row.harvest_business_date,
+                "exact_decimal_quantity_sum_kg": row.exact_decimal_quantity_sum_kg,
+                "contributing_winner_count": row.contributing_winner_count,
+                "contributing_winner_hashes": row.contributing_winner_hashes,
+                "label_row_hash": row.label_row_hash,
+            }
+            for row in label_records
+        ),
+        exclusion_rows=tuple(
+            {
+                "exclusion_category": row.exclusion_category,
+                "source_system": row.source_system,
+                "external_logical_record_id_or_null": (row.external_logical_record_id_or_null),
+                "external_revision_id_or_null": row.external_revision_id_or_null,
+                "harvest_business_date_or_null": row.harvest_business_date_or_null,
+                "exclusion_row_hash": row.exclusion_row_hash,
+                "exclusion_details": row.exclusion_details,
+            }
+            for row in exclusion_records
+        ),
+    )
+
+
 async def create_label_snapshot(
     session: AsyncSession,
     *,
@@ -183,57 +324,44 @@ async def create_label_snapshot(
         aggregation_policy_version=request.aggregation_policy_version,
     )
 
+    # Fast path (contract §13): an already-persisted snapshot row is
+    # immutable, so a pre-lock read is safe for the zero-write replay /
+    # public idempotency-conflict decision.
     existing_snapshot = await get_existing_snapshot_by_idempotency_key(
         session,
         source_system=request.source_system,
         snapshot_idempotency_key=request.snapshot_idempotency_key,
     )
     if existing_snapshot is not None:
-        if existing_snapshot.snapshot_request_identity_hash != request_identity_hash:
-            raise ActualHarvestLabelIdempotencyConflictError(
-                "snapshot_idempotency_key reused with a different request hash"
-            )
-        # Zero-write replay — return the existing rows as value objects.
-        winners = [
-            winner_to_value_object(row)
-            for row in await load_winners_for_snapshot(session, existing_snapshot.id)
-        ]
-        label_records = list(await load_label_rows_for_snapshot(session, existing_snapshot.id))
-        exclusion_records = list(
-            await load_exclusion_rows_for_snapshot(session, existing_snapshot.id)
+        return await _replay_existing_snapshot(
+            session,
+            existing_snapshot=existing_snapshot,
+            request_identity_hash=request_identity_hash,
         )
-        header = header_to_value_object(existing_snapshot)
-        result = ActualHarvestLabelSnapshotResult(
-            header=header,
-            winners=tuple(_winner_value_object_to_dict(winner) for winner in winners),
-            label_rows=tuple(
-                {
-                    "season_business_key": row.season_business_key,
-                    "farm_business_key": row.farm_business_key,
-                    "subfarm_business_key": row.subfarm_business_key,
-                    "variety_business_key": row.variety_business_key,
-                    "harvest_business_date": row.harvest_business_date,
-                    "exact_decimal_quantity_sum_kg": row.exact_decimal_quantity_sum_kg,
-                    "contributing_winner_count": row.contributing_winner_count,
-                    "contributing_winner_hashes": row.contributing_winner_hashes,
-                    "label_row_hash": row.label_row_hash,
-                }
-                for row in label_records
-            ),
-            exclusion_rows=tuple(
-                {
-                    "exclusion_category": row.exclusion_category,
-                    "source_system": row.source_system,
-                    "external_logical_record_id_or_null": (row.external_logical_record_id_or_null),
-                    "external_revision_id_or_null": row.external_revision_id_or_null,
-                    "harvest_business_date_or_null": row.harvest_business_date_or_null,
-                    "exclusion_row_hash": row.exclusion_row_hash,
-                    "exclusion_details": row.exclusion_details,
-                }
-                for row in exclusion_records
-            ),
+
+    # E5.4/E5.5 concurrency ordering: no snapshot exists yet. Serialize
+    # concurrent same-key creation on a PostgreSQL transaction advisory
+    # lock (no-op on SQLite), then RE-READ the existing snapshot under
+    # the lock — a racing caller may have committed between the fast
+    # path above and the lock acquisition. The locked re-read is what
+    # turns a losing racer into a deterministic replay / public
+    # idempotency conflict instead of a raw unique-constraint error.
+    await _acquire_snapshot_idempotency_lock(
+        session,
+        source_system=request.source_system,
+        snapshot_idempotency_key=request.snapshot_idempotency_key,
+    )
+    existing_snapshot = await get_existing_snapshot_by_idempotency_key(
+        session,
+        source_system=request.source_system,
+        snapshot_idempotency_key=request.snapshot_idempotency_key,
+    )
+    if existing_snapshot is not None:
+        return await _replay_existing_snapshot(
+            session,
+            existing_snapshot=existing_snapshot,
+            request_identity_hash=request_identity_hash,
         )
-        return result
 
     if (
         request.visibility_mode == ActualHarvestLabelVisibilityMode.AS_OF_EVALUATION
@@ -368,7 +496,7 @@ async def create_label_snapshot(
         created_by_identity=created_by_identity,
     )
     session.add(snapshot_row)
-    await session.flush()
+    await _flush_snapshot_phase(session, phase=SNAPSHOT_FLUSH_PHASE_HEADER)
 
     winner_rows: list[ActualHarvestLabelSnapshotWinnerModel] = []
     for winner in winners:
@@ -415,6 +543,7 @@ async def create_label_snapshot(
             )
         )
     session.add_all(winner_rows)
+    await _flush_snapshot_phase(session, phase=SNAPSHOT_FLUSH_PHASE_WINNERS)
 
     label_model_rows = [
         ActualHarvestLabelSnapshotLabelModel(
@@ -437,6 +566,7 @@ async def create_label_snapshot(
         for row in label_payload_rows
     ]
     session.add_all(label_model_rows)
+    await _flush_snapshot_phase(session, phase=SNAPSHOT_FLUSH_PHASE_LABELS)
     exclusion_model_rows = []
     for row in exclusion_rows:
         harvest_date_value = row.get("harvest_business_date_or_null")
@@ -460,6 +590,7 @@ async def create_label_snapshot(
             )
         )
     session.add_all(exclusion_model_rows)
+    await _flush_snapshot_phase(session, phase=SNAPSHOT_FLUSH_PHASE_EXCLUSIONS)
 
     return ActualHarvestLabelSnapshotResult(
         header=header_to_value_object(snapshot_row),
