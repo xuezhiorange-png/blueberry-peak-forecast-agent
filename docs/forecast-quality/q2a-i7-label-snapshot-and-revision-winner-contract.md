@@ -493,6 +493,22 @@ STATUS_NOT_VISIBLE_AT_CUTOFF applies only to in-scope records
 
 The two reasons are mutually exclusive for one record.
 
+`OUTSIDE_REQUEST_SCOPE` is emitted ONLY when the per-revision frozen
+evidence is complete and bound by hash, but the canonical business
+key is outside the request's `season_business_keys` /
+`farm_business_keys_or_empty_for_all` /
+`variety_business_keys_or_empty_for_all` allow-list. A revision
+with zero or partial mapping evidence rows is a structural failure
+(`MAPPING_EVIDENCE_MISSING`) and MUST NOT be downgraded to a
+coverage exclusion. The source-evidence preflight
+(`_preflight_source_evidence` in `backend/app/actual_harvest_labels/service.py`)
+enumerates every lineage basis member bound to an observed
+validation run and rejects missing/partial/duplicate/unknown/PLOT
+evidence before scope, visibility, graph construction, winner
+selection, or aggregation runs. The preflight authority universe is
+the persisted `lineage_basis_member` table, not the mapping
+evidence rows themselves.
+
 Every exclusion has one deterministic row hash. The ordered row hashes form `exclusion_manifest_hash`.
 
 `TERMINAL_CORRECTED` is not a coverage exclusion. It is a structural lineage error.

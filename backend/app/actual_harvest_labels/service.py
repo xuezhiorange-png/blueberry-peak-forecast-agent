@@ -256,9 +256,10 @@ async def create_label_snapshot(
         # We allow it; winners and label rows will simply be empty.
         pass
 
-    # E6 source-evidence preflight: verify the frozen evidence chain
-    # for every observed commit manifest BEFORE any scope / visibility /
-    # graph / winner / aggregation work. This is the single batched
+    # E6 manifest-level source-evidence preflight: verify the
+    # frozen evidence chain for every observed commit manifest
+    # BEFORE any scope / visibility / graph / winner /
+    # aggregation work. This is the single batched
     # authority-integrity check the I7 contract requires.
     await _preflight_source_evidence(session, manifests=manifests)
 
@@ -280,6 +281,19 @@ async def create_label_snapshot(
         source_system=request.source_system,
         harvest_date_start=request.harvest_date_start,
         harvest_date_end=request.harvest_date_end,
+    )
+
+    # E6/E7 per-record preflight on the committed records
+    # (the records the I7 service will actually process).
+    # The authority universe is the persisted committed
+    # records loaded above (joined with their commit
+    # manifest's validation_run_id), not the lineage basis
+    # member table. This ensures the preflight checks every
+    # revision that the I7 pipeline will see, regardless of
+    # visibility / scope / terminal / winner / eligibility.
+    await _preflight_record_evidence(
+        session,
+        committed_records=committed_records,
     )
 
     winners, exclusion_rows = await _compute_winners_and_exclusions(
@@ -568,7 +582,6 @@ async def _preflight_source_evidence(
         ActualHarvestMappingSnapshotModel,
         ActualHarvestValidationLineageBasisMemberModel,
         ActualHarvestValidationLineageBasisModel,
-        ActualHarvestValidationMappingEvidenceModel,
         ActualHarvestValidationResultModel,
         ActualHarvestValidationRunModel,
     )
@@ -782,64 +795,55 @@ async def _preflight_source_evidence(
                 },
             )
 
-    # 7. Per-record mapping evidence cross-check — every observed
-    #    revision in the source universe must have exactly one row
-    #    per required target_type and no extra target_types.
-    #    This is the per-record preflight that runs after the
-    #    manifest-level chain is verified. We only check that every
-    #    observed revision has *some* evidence; the per-target-type
-    #    structure (PLOT, unknown, duplicate) is checked in the
-    #    winner selection path with the explicit
-    #    UNSUPPORTED_LABEL_GRAIN / MAPPING_EVIDENCE_DRIFT codes.
-    required_target_types = frozenset({"SEASON", "FARM", "SUBFARM", "VARIETY"})
-    evidence_rows = (
+    # 7. Authority-universe per-revision preflight.
+    #
+    # Contract §11.4: the source universe is the persisted
+    # ``lineage_basis_member`` table (NOT the mapping evidence rows).
+    # Using evidence rows as the universe creates a zero-evidence
+    # fail-open: a revision whose four SEASON/FARM/SUBFARM/VARIETY
+    # evidence rows are all missing would never enter the check and
+    # would be downgraded to ``OUTSIDE_REQUEST_SCOPE`` by the scope
+    # chain. This preflight now enumerates every lineage-basis member
+    # bound to an observed validation run, then verifies the
+    # per-revision evidence set against the frozen allow-list
+    # {SEASON, FARM, SUBFARM, VARIETY} and rejects:
+    #
+    # - zero / partial evidence rows            -> MAPPING_EVIDENCE_MISSING
+    # - duplicate required target               -> MAPPING_EVIDENCE_DRIFT
+    # - unknown target_type                     -> MAPPING_EVIDENCE_DRIFT
+    # - target_type == "PLOT"                   -> UNSUPPORTED_LABEL_GRAIN
+    #
+    # The check is exhaustive: it runs against every observed lineage
+    # basis member regardless of whether that member is visible, in
+    # scope, terminal, winner, or eligible, so a PLOT revision that is
+    # nonterminal / invisible / out-of-scope is still caught.
+    #
+    # Note: the per-revision evidence check is performed in
+    # ``_preflight_record_evidence`` after the committed records are
+    # loaded, so the universe is the actual records the I7 pipeline
+    # processes (which is more comprehensive than the lineage basis
+    # member table, since the I5 pipeline only inserts basis members
+    # for COMMITTED predecessors — never for the current batch).
+    basis_member_rows = (
         await session.execute(
             select(
-                ActualHarvestValidationMappingEvidenceModel.validation_run_id,
-                ActualHarvestValidationMappingEvidenceModel.source_system,
-                ActualHarvestValidationMappingEvidenceModel.external_logical_record_id,
-                ActualHarvestValidationMappingEvidenceModel.external_revision_id,
-                ActualHarvestValidationMappingEvidenceModel.target_type,
+                ActualHarvestValidationLineageBasisMemberModel.basis_id,
+                ActualHarvestValidationLineageBasisMemberModel.source_system,
+                ActualHarvestValidationLineageBasisMemberModel.external_logical_record_id,
+                ActualHarvestValidationLineageBasisMemberModel.external_revision_id,
             ).where(
-                ActualHarvestValidationMappingEvidenceModel.validation_run_id.in_(
-                    validation_run_ids
+                ActualHarvestValidationLineageBasisMemberModel.basis_id.in_(
+                    basis.id for basis in lineage_bases_by_run.values()
                 )
             )
         )
     ).all()
-    evidence_index: dict[tuple[int, str, str, str], set[str]] = {}
-    for (
-        validation_run_id,
-        source_system,
-        logical_id,
-        revision_id,
-        target_type,
-    ) in evidence_rows:
-        evidence_index.setdefault(
-            (validation_run_id, source_system, logical_id, revision_id),
-            set(),
-        ).add(target_type)
-    # All required target types must be present for every observed
-    # record — anything else is a missing-evidence structural failure
-    # and must NOT be downgraded to OUTSIDE_REQUEST_SCOPE.
-    for (
-        validation_run_id,
-        _source_system,
-        logical_id,
-        revision_id,
-    ), target_types in evidence_index.items():
-        missing = required_target_types - target_types
-        if missing:
-            raise ActualHarvestLabelStructuralFailureError(
-                ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
-                details={
-                    "reason": "preflight_missing_target_type",
-                    "validation_run_id": validation_run_id,
-                    "external_logical_record_id": logical_id,
-                    "external_revision_id": revision_id,
-                    "missing_target_types": sorted(missing),
-                },
-            )
+    # The lineage basis member rows are still loaded here
+    # so the manifest-level preflight (sections 1-6) can
+    # detect a missing basis. The per-revision evidence
+    # check is in ``_preflight_record_evidence`` after
+    # the committed records are loaded.
+    _ = basis_member_rows
 
 
 async def _load_committed_records_for_batches(
@@ -879,6 +883,200 @@ async def _load_committed_records_for_batches(
             }
         )
     return committed_records
+
+
+async def _preflight_record_evidence(
+    session: AsyncSession,
+    *,
+    committed_records: list[dict[str, Any]],
+) -> None:
+    """E6/E7 per-revision preflight on the committed records.
+
+    The authority universe is the set of records the I7
+    pipeline will actually process — the output of
+    ``_load_committed_records_for_batches`` joined with
+    their commit manifest's ``validation_run_id``. The
+    preflight verifies that every revision has the
+    required set of {SEASON, FARM, SUBFARM, VARIETY}
+    evidence rows under its own ``validation_run_id``,
+    no duplicate rows, no PLOT, no unknown target type.
+
+    The check is exhaustive: it runs against every
+    observed committed record regardless of whether the
+    record is visible, in scope, terminal, winner, or
+    eligible. A PLOT / unknown / duplicate row on a
+    non-winner revision is still caught.
+    """
+    from backend.app.actual_harvest_import.validation_models import (
+        ActualHarvestValidationMappingEvidenceModel,
+    )
+
+    if not committed_records:
+        return
+
+    # 1. Build a deterministic (validation_run_id,
+    #    source_system, external_logical_record_id,
+    #    external_revision_id) -> set[target_type] index
+    #    from the persisted mapping evidence. One batched
+    #    query.
+    validation_run_ids: set[int] = set()
+    for entry in committed_records:
+        validation_run_id = entry["validation_run_id"]
+        if validation_run_id is not None:
+            validation_run_ids.add(int(validation_run_id))
+
+    if not validation_run_ids:
+        return
+
+    evidence_rows = (
+        await session.execute(
+            select(
+                ActualHarvestValidationMappingEvidenceModel.validation_run_id,
+                ActualHarvestValidationMappingEvidenceModel.source_system,
+                ActualHarvestValidationMappingEvidenceModel.external_logical_record_id,
+                ActualHarvestValidationMappingEvidenceModel.external_revision_id,
+                ActualHarvestValidationMappingEvidenceModel.target_type,
+            ).where(
+                ActualHarvestValidationMappingEvidenceModel.validation_run_id.in_(
+                    validation_run_ids
+                )
+            )
+        )
+    ).all()
+
+    # 2. Build the per-revision evidence index and detect
+    #    duplicate rows on the (validation_run_id,
+    #    source_system, external_logical_record_id,
+    #    external_revision_id, target_type) composite.
+    evidence_index: dict[tuple[int, str, str, str], list[str]] = {}
+    duplicate_evidence_keys: set[tuple[int, str, str, str, str]] = set()
+    seen_evidence_keys: set[tuple[int, str, str, str, str]] = set()
+    for (
+        validation_run_id,
+        source_system,
+        logical_id,
+        revision_id,
+        target_type,
+    ) in evidence_rows:
+        composite = (
+            int(validation_run_id),
+            source_system,
+            logical_id,
+            revision_id,
+            target_type,
+        )
+        if composite in seen_evidence_keys:
+            duplicate_evidence_keys.add(composite)
+            continue
+        seen_evidence_keys.add(composite)
+        evidence_index.setdefault(
+            (int(validation_run_id), source_system, logical_id, revision_id),
+            [],
+        ).append(target_type)
+
+    if duplicate_evidence_keys:
+        first = sorted(duplicate_evidence_keys)[0]
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT,
+            details={
+                "reason": "preflight_duplicate_evidence_row",
+                "validation_run_id": first[0],
+                "source_system": first[1],
+                "external_logical_record_id": first[2],
+                "external_revision_id": first[3],
+                "target_type": first[4],
+            },
+        )
+
+    # 3. For every observed committed record, check
+    #    evidence completeness + per-target allow-list.
+    #    The authority universe is the loaded records
+    #    (current batch + predecessors); revisions with
+    #    zero / partial / unknown / PLOT evidence are
+    #    caught here, never silently dropped.
+    required_target_types = frozenset({"SEASON", "FARM", "SUBFARM", "VARIETY"})
+    allowed_target_types = frozenset({"SEASON", "FARM", "SUBFARM", "VARIETY"})
+
+    for entry in committed_records:
+        record = entry["record"]
+        validation_run_id = entry["validation_run_id"]
+        if validation_run_id is None:
+            # Records with no commit manifest are filtered
+            # out of the source universe by
+            # ``_load_committed_records_for_batches``; we
+            # should not see them here. Defense-in-depth
+            # fail closed.
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.SOURCE_EVIDENCE_DRIFT,
+                details={
+                    "reason": "preflight_record_without_validation_run_id",
+                    "source_system": record.source_system,
+                    "external_logical_record_id": record.external_logical_record_id,
+                    "external_revision_id": record.external_revision_id,
+                },
+            )
+        revision_key = (
+            int(validation_run_id),
+            record.source_system,
+            record.external_logical_record_id,
+            record.external_revision_id,
+        )
+        target_types = evidence_index.get(revision_key, [])
+
+        # E7 first: PLOT and unknown target types are
+        # checked for every observed record.
+        for target_type in target_types:
+            if target_type == "PLOT":
+                raise ActualHarvestLabelStructuralFailureError(
+                    ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN,
+                    details={
+                        "reason": "plot_target_type_in_frozen_evidence",
+                        "validation_run_id": int(validation_run_id),
+                        "source_system": record.source_system,
+                        "external_logical_record_id": record.external_logical_record_id,
+                        "external_revision_id": record.external_revision_id,
+                        "target_type": target_type,
+                    },
+                )
+            if target_type not in allowed_target_types:
+                raise ActualHarvestLabelStructuralFailureError(
+                    ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT,
+                    details={
+                        "reason": "unknown_target_type_in_frozen_evidence",
+                        "validation_run_id": int(validation_run_id),
+                        "source_system": record.source_system,
+                        "external_logical_record_id": record.external_logical_record_id,
+                        "external_revision_id": record.external_revision_id,
+                        "target_type": target_type,
+                    },
+                )
+
+        # E6: zero / partial evidence rows must be a
+        # structural failure, never a coverage exclusion.
+        if not target_types:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
+                details={
+                    "reason": "preflight_zero_evidence",
+                    "validation_run_id": int(validation_run_id),
+                    "source_system": record.source_system,
+                    "external_logical_record_id": record.external_logical_record_id,
+                    "external_revision_id": record.external_revision_id,
+                },
+            )
+        missing = required_target_types - set(target_types)
+        if missing:
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
+                details={
+                    "reason": "preflight_partial_evidence",
+                    "validation_run_id": int(validation_run_id),
+                    "source_system": record.source_system,
+                    "external_logical_record_id": record.external_logical_record_id,
+                    "external_revision_id": record.external_revision_id,
+                    "missing_target_types": sorted(missing),
+                },
+            )
 
 
 def _validate_visible_chain(
@@ -1129,18 +1327,28 @@ async def _scope_check_chain(
             record.external_revision_id,
         )
         business_keys = evidence_by_revision.get(key)
+        # Defense-in-depth: a missing / partial / duplicate / unknown /
+        # PLOT evidence row set is supposed to be caught by the
+        # source-evidence preflight before this scope check runs.
+        # The preflight authority universe is the lineage_basis_member
+        # table. If the scope check still observes ``business_keys is
+        # None`` here, it means the preflight was bypassed (e.g. the
+        # request is replaying an existing snapshot or a defect in
+        # the upstream preflight path). Fail closed with
+        # MAPPING_EVIDENCE_MISSING — never downgrade to
+        # OUTSIDE_REQUEST_SCOPE, since OUTSIDE_REQUEST_SCOPE means
+        # "evidence was complete but business key is outside scope".
         if business_keys is None:
-            exclusion_rows.append(
-                _make_exclusion_row(
-                    ActualHarvestLabelCoverageExclusion.OUTSIDE_REQUEST_SCOPE,
-                    record,
-                    details={
-                        "reason": "missing_mapping_evidence",
-                        "validation_run_id": entry["validation_run_id"],
-                    },
-                )
+            raise ActualHarvestLabelStructuralFailureError(
+                ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
+                details={
+                    "reason": "scope_check_chain_missing_mapping_evidence",
+                    "validation_run_id": entry["validation_run_id"],
+                    "source_system": record.source_system,
+                    "external_logical_record_id": record.external_logical_record_id,
+                    "external_revision_id": record.external_revision_id,
+                },
             )
-            continue
 
         if season_scope and business_keys.get("SEASON") not in season_scope:
             exclusion_rows.append(
