@@ -23,7 +23,7 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -61,6 +61,7 @@ from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestValidationResultModel,
     ActualHarvestValidationRunModel,
 )
+from backend.app.actual_harvest_labels import service as label_service
 from backend.app.actual_harvest_labels.enums import (
     ActualHarvestLabelCoverageExclusion,
     ActualHarvestLabelStructuralFailure,
@@ -80,7 +81,10 @@ from backend.app.actual_harvest_labels.models import (
     HEADER_TABLE_NAME,
     LABEL_TABLE_NAME,
     WINNER_TABLE_NAME,
+    ActualHarvestLabelSnapshotExclusionModel,
+    ActualHarvestLabelSnapshotLabelModel,
     ActualHarvestLabelSnapshotModel,
+    ActualHarvestLabelSnapshotWinnerModel,
 )
 from backend.app.actual_harvest_labels.persistence import (
     get_existing_snapshot_by_idempotency_key,
@@ -94,6 +98,7 @@ from backend.app.actual_harvest_labels.schemas import (
 from backend.app.actual_harvest_labels.service import (
     ActualHarvestLabelIdempotencyConflictError,
     ActualHarvestLabelStructuralFailureError,
+    _preflight_record_evidence,
     create_label_snapshot,
 )
 from backend.app.db.base import Base
@@ -130,92 +135,87 @@ def _hex64(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-async def _inject_plot_evidence_row(
-    session: AsyncSession,
-    *,
-    run_id: int,
-    record: ActualHarvestImportRecordModel,
-    business_key_suffix: str,
-) -> None:
-    """Inject a PLOT evidence row directly into the persisted
-    ``actual_harvest_validation_mapping_evidence`` table for the
-    given validation run + committed record.
+# ---------------------------------------------------------------------------
+# E6/E7 preflight helper-level harness (SQLite)
+# ---------------------------------------------------------------------------
+#
+# The upstream CHECK constraints
+# (``ck_actual_harvest_validation_mapping_target_type`` /
+# ``ck_actual_harvest_validation_mapping_target_fk``) deliberately make
+# it impossible to persist a PLOT / unknown-target evidence row on
+# SQLite. The corruption shapes the I7 preflight must defend against
+# are therefore fed to the REAL production
+# ``_preflight_record_evidence()`` through a controlled fake
+# query/result below — the preflight algorithm under test is always
+# the production one, never a test-side re-implementation. The
+# end-to-end public-path counterparts (genuinely corrupted DB state ->
+# ``create_label_snapshot``) live in
+# ``test_i7_label_snapshot_postgres.py``, where PostgreSQL's
+# transactional DDL lets the test drop + restore the upstream CHECK
+# constraints inside one rolled-back transaction.
 
-    The I5 validation pipeline rejects PLOT at validation time
-    (contract §X.1), so the upstream CHECK constraint
-    ``ck_actual_harvest_validation_mapping_target_type`` and the
-    per-target-type FK constraint
-    ``ck_actual_harvest_validation_mapping_target_fk`` block the
-    ORM INSERT. This helper bypasses those constraints by issuing
-    raw SQL, simulating the "PLOT slipped into a committed
-    lineage basis" failure mode the I7 contract must defend
-    against — either via direct DB write corruption or via a
-    future regression in the I5 PLOT check.
+
+class _StubPreflightResult:
+    """Minimal stand-in for the SQLAlchemy ``Result`` object the real
+    ``_preflight_record_evidence()`` consumes (only ``.all()``)."""
+
+    def __init__(self, rows: list[tuple[int, str, str, str, str]]) -> None:
+        self._rows = rows
+
+    def all(self) -> list[tuple[int, str, str, str, str]]:
+        return self._rows
+
+
+class _StubPreflightSession:
+    """Controlled fake session for the production preflight.
+
+    Replaces ONLY the single batched evidence SELECT issued by the
+    real ``_preflight_record_evidence()``; every check (duplicate /
+    PLOT / unknown / zero / partial evidence) is evaluated by the
+    production code path.
     """
-    from sqlalchemy import text as _text
 
-    await session.execute(
-        _text(
-            "ALTER TABLE actual_harvest_validation_mapping_evidence "
-            "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_type"
+    def __init__(self, evidence_rows: list[tuple[int, str, str, str, str]]) -> None:
+        self._evidence_rows = evidence_rows
+
+    async def execute(self, statement: Any) -> _StubPreflightResult:
+        return _StubPreflightResult(self._evidence_rows)
+
+
+def _preflight_entry(
+    record: ActualHarvestImportRecordModel,
+    *,
+    validation_run_id: int = 1,
+) -> dict[str, Any]:
+    """Build one ``committed_records`` entry as produced by the real
+    ``_load_committed_records_for_batches``."""
+
+    return {
+        "record": record,
+        "commit_manifest_hash": _hex64(f"cm-{record.external_revision_id}"),
+        "validation_run_id": validation_run_id,
+    }
+
+
+def _complete_evidence_rows(
+    *,
+    external_logical_record_id: str,
+    external_revision_id: str,
+    validation_run_id: int = 1,
+    source_system: str = "source-test",
+) -> list[tuple[int, str, str, str, str]]:
+    """The four required evidence rows for one observed revision."""
+
+    return [
+        (
+            validation_run_id,
+            source_system,
+            external_logical_record_id,
+            external_revision_id,
+            target_type,
         )
-    )
-    await session.execute(
-        _text(
-            "ALTER TABLE actual_harvest_validation_mapping_evidence "
-            "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_fk"
-        )
-    )
-    await session.execute(
-        _text(
-            "INSERT INTO actual_harvest_validation_mapping_evidence ("
-            "validation_run_id, record_index, source_system, "
-            "external_logical_record_id, external_revision_id, "
-            "revision_number, source_field, source_code, "
-            "registry_version, mapping_policy_version, "
-            "resolver_version, registry_entry_hash, target_type, "
-            "target_business_key, target_parent_business_key, "
-            "resolved_master_business_key, "
-            "resolved_master_parent_business_key, "
-            "resolved_master_record_hash, resolved_season_id, "
-            "resolution_mode, outcome"
-            ") VALUES ("
-            ":validation_run_id, :record_index, :source_system, "
-            ":external_logical_record_id, :external_revision_id, "
-            ":revision_number, :source_field, :source_code, "
-            ":registry_version, :mapping_policy_version, "
-            ":resolver_version, :registry_entry_hash, :target_type, "
-            ":target_business_key, :target_parent_business_key, "
-            ":resolved_master_business_key, "
-            ":resolved_master_parent_business_key, "
-            ":resolved_master_record_hash, :resolved_season_id, "
-            ":resolution_mode, :outcome"
-            ")"
-        ),
-        {
-            "validation_run_id": run_id,
-            "record_index": 1,
-            "source_system": record.source_system,
-            "external_logical_record_id": record.external_logical_record_id,
-            "external_revision_id": record.external_revision_id,
-            "revision_number": record.revision_number,
-            "source_field": "subfarm_or_plot_code",
-            "source_code": None,
-            "registry_version": "registry-v1",
-            "mapping_policy_version": "mapping-test-v1",
-            "resolver_version": "actual-harvest-season-resolver-v1",
-            "registry_entry_hash": _hex64(f"plot-entry-{business_key_suffix}"),
-            "target_type": "PLOT",
-            "target_business_key": f"plot-business-key-{business_key_suffix}",
-            "target_parent_business_key": "farm-business-key-1",
-            "resolved_master_business_key": f"plot-business-key-{business_key_suffix}",
-            "resolved_master_parent_business_key": "farm-business-key-1",
-            "resolved_master_record_hash": _hex64(f"plot-master-{business_key_suffix}"),
-            "resolved_season_id": 1,
-            "resolution_mode": "exact_lookup",
-            "outcome": "RESOLVED",
-        },
-    )
+        for target_type in ("SEASON", "FARM", "SUBFARM", "VARIETY")
+    ]
 
 
 def _import_immutability_triggers_sqlite(connection) -> None:
@@ -2602,179 +2602,101 @@ async def test_e7_explicit_subfarm_mapping_is_accepted(
     assert result.winners[0]["subfarm_business_key"] == "sub-business-key-1"
 
 
-async def test_e7_explicit_plot_mapping_is_rejected(
-    session_maker: async_sessionmaker[AsyncSession],
-) -> None:
+async def test_e7_explicit_plot_mapping_is_rejected() -> None:
     """E7: a record whose frozen mapping evidence has a PLOT
     target_type row (corruption / future regression) must fail
     closed with the stable ``UNSUPPORTED_LABEL_GRAIN`` structural
     failure code.
+
+    Helper-level: the upstream CHECK constraints make a PLOT row
+    unpersistable on SQLite, so the corrupted evidence shape is fed
+    to the REAL production ``_preflight_record_evidence()`` through a
+    controlled fake query result. The row is never silently
+    downgraded to SUBFARM and never silently ignored. The
+    public-path PostgreSQL counterpart (genuine DB corruption ->
+    ``create_label_snapshot``) lives in
+    ``test_i7_label_snapshot_postgres.py``.
     """
 
     record = _build_record(
         external_logical_record_id="logical-e7-plot",
         external_revision_id="rev-e7-plot",
     )
-    await _seed_seeded_batch(
-        session_maker,
-        import_id="imp-e7-plot",
-        records=[record],
+    evidence_rows = _complete_evidence_rows(
+        external_logical_record_id="logical-e7-plot",
+        external_revision_id="rev-e7-plot",
     )
+    evidence_rows.append((1, "source-test", "logical-e7-plot", "rev-e7-plot", "PLOT"))
 
-    # Inject a PLOT evidence row directly into the persisted
-    # evidence for the observed record. The I7 preflight must
-    # reject this with UNSUPPORTED_LABEL_GRAIN — the row is never
-    # silently downgraded to SUBFARM and never silently ignored.
-    # The INSERT bypasses the MAPPING_TARGET_VALUES check by
-    # dropping the upstream CHECK constraint for the duration of
-    # the test, mirroring a future regression / direct DB write
-    # corruption case that the I7 contract must defend against.
-    async with session_maker() as session:
-        async with session.begin():
-            run = await session.scalar(
-                select(ActualHarvestValidationRunModel).order_by(
-                    ActualHarvestValidationRunModel.id.desc()
-                )
-            )
-            assert run is not None
-            await _inject_plot_evidence_row(
-                session,
-                run_id=run.id,
-                record=record,
-                business_key_suffix="1",
-            )
-
-    request = _base_request(
-        snapshot_idempotency_key="idem-e7-plot",
-    )
-
-    async with session_maker() as session:
-        async with session.begin():
-            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
-                await create_label_snapshot(
-                    session,
-                    request=request,
-                    created_by_identity="op-test",
-                )
+    with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+        await _preflight_record_evidence(
+            _StubPreflightSession(evidence_rows),  # type: ignore[arg-type]
+            committed_records=[_preflight_entry(record)],
+        )
 
     assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
     assert exc_info.value.details["target_type"] == "PLOT"
     assert exc_info.value.details["reason"] == "plot_target_type_in_frozen_evidence"
 
 
-async def test_e7_plot_is_not_silently_converted_to_subfarm(
-    session_maker: async_sessionmaker[AsyncSession],
-) -> None:
+async def test_e7_plot_is_not_silently_converted_to_subfarm() -> None:
     """E7 corollary: when the I7 pipeline sees a PLOT target_type
-    in the frozen evidence, the SNAPSHOT must not promote the PLOT
-    business key into a SUBFARM business key. The snapshot must
-    fail closed (UNSUPPORTED_LABEL_GRAIN) and the persisted
-    snapshot row count must remain zero.
+    in the frozen evidence, the snapshot must not promote the PLOT
+    business key into a SUBFARM business key. The pipeline fails
+    closed (UNSUPPORTED_LABEL_GRAIN) inside the preflight — i.e.
+    BEFORE any scope / visibility / winner work and BEFORE any
+    snapshot persistence — so the persisted snapshot row count
+    remains zero (asserted end-to-end by the PostgreSQL public-path
+    counterpart).
     """
 
     record = _build_record(
         external_logical_record_id="logical-e7-no-silent",
         external_revision_id="rev-e7-no-silent",
     )
-    await _seed_seeded_batch(
-        session_maker,
-        import_id="imp-e7-no-silent",
-        records=[record],
+    evidence_rows = _complete_evidence_rows(
+        external_logical_record_id="logical-e7-no-silent",
+        external_revision_id="rev-e7-no-silent",
     )
+    evidence_rows.append((1, "source-test", "logical-e7-no-silent", "rev-e7-no-silent", "PLOT"))
 
-    async with session_maker() as session:
-        async with session.begin():
-            run = await session.scalar(
-                select(ActualHarvestValidationRunModel).order_by(
-                    ActualHarvestValidationRunModel.id.desc()
-                )
-            )
-            assert run is not None
-            await _inject_plot_evidence_row(
-                session,
-                run_id=run.id,
-                record=record,
-                business_key_suffix="silent",
-            )
+    with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+        await _preflight_record_evidence(
+            _StubPreflightSession(evidence_rows),  # type: ignore[arg-type]
+            committed_records=[_preflight_entry(record)],
+        )
 
-    request = _base_request(
-        snapshot_idempotency_key="idem-e7-no-silent",
-    )
-
-    async with session_maker() as session:
-        async with session.begin():
-            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
-                await create_label_snapshot(
-                    session,
-                    request=request,
-                    created_by_identity="op-test",
-                )
-
-    # The rejection must be deterministic and must not leak a
-    # subfarm_business_key containing the PLOT business key. The
-    # service must not promote the PLOT business key into the
-    # SUBFARM slot.
+    # The rejection must not leak a subfarm_business_key containing
+    # the PLOT business key — the preflight never promotes the PLOT
+    # business key into the SUBFARM slot.
     assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
     assert "subfarm_business_key" not in (exc_info.value.details or {})
-    # No snapshot rows must be persisted.
-    async with session_maker() as session2:
-        async with session2.begin():
-            from backend.app.actual_harvest_labels.models import (
-                ActualHarvestLabelSnapshotModel,
-            )
-
-            snapshot_count = await session2.scalar(select(ActualHarvestLabelSnapshotModel.id))
-            assert snapshot_count is None
 
 
-async def test_e7_plot_rejection_is_deterministic(
-    session_maker: async_sessionmaker[AsyncSession],
-) -> None:
-    """E7 corollary: a second call against the same request
-    identity and the same PLOT-corrupted source universe must
-    reproduce the same UNSUPPORTED_LABEL_GRAIN structural failure
-    (deterministic, not time-dependent, not order-dependent).
+async def test_e7_plot_rejection_is_deterministic() -> None:
+    """E7 corollary: a second preflight call against the same
+    PLOT-corrupted source universe must reproduce the same
+    UNSUPPORTED_LABEL_GRAIN structural failure (deterministic, not
+    time-dependent, not order-dependent).
     """
 
     record = _build_record(
         external_logical_record_id="logical-e7-det",
         external_revision_id="rev-e7-det",
     )
-    await _seed_seeded_batch(
-        session_maker,
-        import_id="imp-e7-det",
-        records=[record],
+    evidence_rows = _complete_evidence_rows(
+        external_logical_record_id="logical-e7-det",
+        external_revision_id="rev-e7-det",
     )
-
-    async with session_maker() as session:
-        async with session.begin():
-            run = await session.scalar(
-                select(ActualHarvestValidationRunModel).order_by(
-                    ActualHarvestValidationRunModel.id.desc()
-                )
-            )
-            assert run is not None
-            await _inject_plot_evidence_row(
-                session,
-                run_id=run.id,
-                record=record,
-                business_key_suffix="det",
-            )
-
-    request = _base_request(
-        snapshot_idempotency_key="idem-e7-det",
-    )
+    evidence_rows.append((1, "source-test", "logical-e7-det", "rev-e7-det", "PLOT"))
 
     failures: list[ActualHarvestLabelStructuralFailure] = []
     for _ in range(2):
-        async with session_maker() as session:
-            async with session.begin():
-                with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
-                    await create_label_snapshot(
-                        session,
-                        request=request,
-                        created_by_identity="op-test",
-                    )
+        with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+            await _preflight_record_evidence(
+                _StubPreflightSession(evidence_rows),  # type: ignore[arg-type]
+                committed_records=[_preflight_entry(record)],
+            )
         failures.append(exc_info.value.failure)
 
     assert failures == [
@@ -2897,13 +2819,13 @@ async def test_e6_zero_evidence_never_becomes_outside_request_scope(
     assert exc_info.value.details["reason"] == "preflight_zero_evidence"
 
 
-async def test_e7_plot_on_nonterminal_rejected_by_preflight(
-    session_maker: async_sessionmaker[AsyncSession],
-) -> None:
+async def test_e7_plot_on_nonterminal_rejected_by_preflight() -> None:
     """E7 contract: a PLOT evidence row attached to a NON-TERMINAL
     revision (a revision that has a successor) is still rejected by
     the preflight — PLOT rejection is not gated on terminal /
-    winner / in-scope. The check is exhaustive.
+    winner / in-scope. The check is exhaustive: the preflight input
+    universe is every observed committed record (parent first,
+    successor second), independent of winner selection.
     """
 
     parent_record = _build_record(
@@ -2917,52 +2839,40 @@ async def test_e7_plot_on_nonterminal_rejected_by_preflight(
         quantity_kg="2.0",
     )
     successor_record.supersedes_external_revision_id = "rev-parent"
-    await _seed_seeded_batch(
-        session_maker,
-        import_id="imp-e7-plot-nonterm",
-        records=[parent_record, successor_record],
+
+    evidence_rows = _complete_evidence_rows(
+        external_logical_record_id="logical-e7-plot-nonterm",
+        external_revision_id="rev-parent",
+    )
+    # PLOT on the parent (non-terminal) — the preflight still
+    # catches it even though the parent is not the winner.
+    evidence_rows.append((1, "source-test", "logical-e7-plot-nonterm", "rev-parent", "PLOT"))
+    evidence_rows += _complete_evidence_rows(
+        external_logical_record_id="logical-e7-plot-nonterm",
+        external_revision_id="rev-suc",
     )
 
-    async with session_maker() as session:
-        async with session.begin():
-            run = await session.scalar(
-                select(ActualHarvestValidationRunModel).order_by(
-                    ActualHarvestValidationRunModel.id.desc()
-                )
-            )
-            assert run is not None
-            # PLOT on the parent (non-terminal) — preflight still
-            # catches it even though the parent is not the winner.
-            await _inject_plot_evidence_row(
-                session,
-                run_id=run.id,
-                record=parent_record,
-                business_key_suffix="nonterm",
-            )
-
-    request = _base_request(
-        snapshot_idempotency_key="idem-e7-plot-nonterm",
-    )
-
-    async with session_maker() as session:
-        async with session.begin():
-            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
-                await create_label_snapshot(
-                    session,
-                    request=request,
-                    created_by_identity="op-test",
-                )
+    with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+        await _preflight_record_evidence(
+            _StubPreflightSession(evidence_rows),  # type: ignore[arg-type]
+            committed_records=[
+                _preflight_entry(parent_record),
+                _preflight_entry(successor_record),
+            ],
+        )
 
     assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
     assert exc_info.value.details["target_type"] == "PLOT"
 
 
-async def test_e7_plot_on_invisible_rejected_by_preflight(
-    session_maker: async_sessionmaker[AsyncSession],
-) -> None:
+async def test_e7_plot_on_invisible_rejected_by_preflight() -> None:
     """E7 contract: a PLOT evidence row attached to an INVISIBLE
     revision (source_recorded_at > cutoff) is still rejected by
-    the preflight — PLOT rejection is not gated on visibility.
+    the preflight — PLOT rejection is not gated on visibility. The
+    preflight runs BEFORE the cutoff-visibility filter, so a future
+    ``source_recorded_at`` does not hide the corrupted row. The
+    end-to-end cutoff variant is covered by the PostgreSQL
+    public-path counterpart.
     """
 
     record = _build_record(
@@ -2970,50 +2880,25 @@ async def test_e7_plot_on_invisible_rejected_by_preflight(
         external_revision_id="rev-invisible",
         source_recorded_at=datetime(2030, 1, 1, tzinfo=UTC),
     )
-    await _seed_seeded_batch(
-        session_maker,
-        import_id="imp-e7-plot-invisible",
-        records=[record],
+    evidence_rows = _complete_evidence_rows(
+        external_logical_record_id="logical-e7-plot-invisible",
+        external_revision_id="rev-invisible",
     )
+    evidence_rows.append((1, "source-test", "logical-e7-plot-invisible", "rev-invisible", "PLOT"))
 
-    async with session_maker() as session:
-        async with session.begin():
-            run = await session.scalar(
-                select(ActualHarvestValidationRunModel).order_by(
-                    ActualHarvestValidationRunModel.id.desc()
-                )
-            )
-            assert run is not None
-            await _inject_plot_evidence_row(
-                session,
-                run_id=run.id,
-                record=record,
-                business_key_suffix="invisible",
-            )
-
-    request = _base_request(
-        snapshot_idempotency_key="idem-e7-plot-invisible",
-        label_observation_cutoff_at_or_null=datetime(2024, 12, 31, tzinfo=UTC),
-    )
-
-    async with session_maker() as session:
-        async with session.begin():
-            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
-                await create_label_snapshot(
-                    session,
-                    request=request,
-                    created_by_identity="op-test",
-                )
+    with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+        await _preflight_record_evidence(
+            _StubPreflightSession(evidence_rows),  # type: ignore[arg-type]
+            committed_records=[_preflight_entry(record)],
+        )
 
     assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
 
 
-async def test_e7_unknown_target_on_nonwinner_rejected_by_preflight(
-    session_maker: async_sessionmaker[AsyncSession],
-) -> None:
-    """E7 corollary: an unknown target_type (e.g. ``PLOT``) attached
-    to a non-winner revision is still caught by the preflight as
-    MAPPING_EVIDENCE_DRIFT when it is not PLOT, or
+async def test_e7_unknown_target_on_nonwinner_rejected_by_preflight() -> None:
+    """E7 corollary: an unknown target_type (``CUSTOM_FIELD``)
+    attached to a non-winner revision is still caught by the
+    preflight as MAPPING_EVIDENCE_DRIFT when it is not PLOT, or
     UNSUPPORTED_LABEL_GRAIN when it is PLOT. This is exhaustive
     preflight coverage, not just winner-path defense-in-depth.
     """
@@ -3022,67 +2907,24 @@ async def test_e7_unknown_target_on_nonwinner_rejected_by_preflight(
         external_logical_record_id="logical-e7-unknown",
         external_revision_id="rev-e7-unknown",
     )
-    await _seed_seeded_batch(
-        session_maker,
-        import_id="imp-e7-unknown",
-        records=[record],
-    )
-
     # Replace the VARIETY evidence row with a non-allowed
-    # ``CUSTOM_FIELD`` target_type to simulate a corruption case
+    # ``CUSTOM_FIELD`` target_type to simulate the corruption case
     # the preflight must catch as MAPPING_EVIDENCE_DRIFT.
-    # The UPDATE bypasses the upstream
-    # ``ck_actual_harvest_validation_mapping_target_type`` check
-    # by issuing raw SQL after dropping the constraint — this is
-    # the safe-isolated test pattern the E7 spec mandates (no
-    # migration change). The constraint is re-applied at the end
-    # of the test to keep the in-memory schema intact for
-    # subsequent tests.
-    from sqlalchemy import text as _text
+    evidence_rows = [
+        row
+        for row in _complete_evidence_rows(
+            external_logical_record_id="logical-e7-unknown",
+            external_revision_id="rev-e7-unknown",
+        )
+        if row[4] != "VARIETY"
+    ]
+    evidence_rows.append((1, "source-test", "logical-e7-unknown", "rev-e7-unknown", "CUSTOM_FIELD"))
 
-    async with session_maker() as session:
-        async with session.begin():
-            variety = await session.scalar(
-                select(ActualHarvestValidationMappingEvidenceModel).where(
-                    ActualHarvestValidationMappingEvidenceModel.external_revision_id
-                    == "rev-e7-unknown",
-                    ActualHarvestValidationMappingEvidenceModel.target_type == "VARIETY",
-                )
-            )
-            assert variety is not None
-            await session.execute(
-                _text(
-                    "ALTER TABLE actual_harvest_validation_mapping_evidence "
-                    "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_type"
-                )
-            )
-            await session.execute(
-                _text(
-                    "ALTER TABLE actual_harvest_validation_mapping_evidence "
-                    "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_fk"
-                )
-            )
-            await session.execute(
-                _text(
-                    "UPDATE actual_harvest_validation_mapping_evidence "
-                    "SET target_type = 'CUSTOM_FIELD', target_business_key = 'custom-1' "
-                    "WHERE id = :row_id"
-                ),
-                {"row_id": variety.id},
-            )
-
-    request = _base_request(
-        snapshot_idempotency_key="idem-e7-unknown",
-    )
-
-    async with session_maker() as session:
-        async with session.begin():
-            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
-                await create_label_snapshot(
-                    session,
-                    request=request,
-                    created_by_identity="op-test",
-                )
+    with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+        await _preflight_record_evidence(
+            _StubPreflightSession(evidence_rows),  # type: ignore[arg-type]
+            committed_records=[_preflight_entry(record)],
+        )
 
     assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT
     assert exc_info.value.details["reason"] == "unknown_target_type_in_frozen_evidence"
@@ -3487,3 +3329,245 @@ async def test_database_authoritative_now_returns_utc() -> None:
     assert isinstance(stamp, datetime)
     assert stamp.tzinfo is not None
     assert stamp.utcoffset() == timedelta(0)
+
+
+# ---------------------------------------------------------------------------
+# E5.2 — failure atomicity (phase-checkpoint failure injection)
+# ---------------------------------------------------------------------------
+
+_I7_COUNT_MODELS = (
+    ActualHarvestLabelSnapshotModel,
+    ActualHarvestLabelSnapshotWinnerModel,
+    ActualHarvestLabelSnapshotLabelModel,
+    ActualHarvestLabelSnapshotExclusionModel,
+)
+
+
+async def _i7_four_table_counts(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> dict[str, int]:
+    """Row counts of the four I7 tables read through a NEW session."""
+
+    counts: dict[str, int] = {}
+    async with session_maker() as session:
+        for model in _I7_COUNT_MODELS:
+            value = await session.scalar(select(func.count()).select_from(model))
+            counts[model.__tablename__] = int(value or 0)
+    return counts
+
+
+@pytest.mark.parametrize(
+    "target_phase",
+    [
+        label_service.SNAPSHOT_FLUSH_PHASE_HEADER,
+        label_service.SNAPSHOT_FLUSH_PHASE_WINNERS,
+        label_service.SNAPSHOT_FLUSH_PHASE_LABELS,
+        label_service.SNAPSHOT_FLUSH_PHASE_EXCLUSIONS,
+    ],
+)
+async def test_e5_2_failure_after_phase_flush_leaves_four_tables_empty(
+    session_maker: async_sessionmaker[AsyncSession],
+    target_phase: str,
+) -> None:
+    """E5.2: a failure immediately AFTER the ``target_phase``
+    persistence checkpoint (header flushed / partial winner
+    persistence / partial label persistence / partial exclusion
+    persistence) must leave ALL four I7 tables at zero rows once the
+    caller rolls back. The service never commits, never runs a nested
+    independent transaction, never compensates with cleanup DELETEs,
+    and never swallows the injected exception.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e5-2",
+        external_revision_id=f"rev-e5-2-{target_phase.lower()}",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id=f"imp-e5-2-{target_phase.lower()}",
+        records=[record],
+    )
+
+    real_hook = label_service._flush_snapshot_phase
+
+    async def _injecting_hook(session: AsyncSession, *, phase: str) -> None:
+        # Persist the phase first (the failure strikes AFTER the
+        # phase's rows were flushed into the caller's transaction),
+        # then raise on the targeted phase only.
+        await real_hook(session, phase=phase)
+        if phase == target_phase:
+            raise RuntimeError(f"injected_e5_2_failure_after_{target_phase}")
+
+    request = _base_request(
+        snapshot_idempotency_key=f"idem-e5-2-{target_phase.lower()}",
+    )
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(label_service, "_flush_snapshot_phase", _injecting_hook)
+        with pytest.raises(RuntimeError, match=f"injected_e5_2_failure_after_{target_phase}"):
+            async with session_maker() as session:
+                async with session.begin():
+                    await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity="op-test",
+                    )
+
+    counts = await _i7_four_table_counts(session_maker)
+    assert counts == {
+        HEADER_TABLE_NAME: 0,
+        WINNER_TABLE_NAME: 0,
+        LABEL_TABLE_NAME: 0,
+        EXCLUSION_TABLE_NAME: 0,
+    }
+
+
+# ---------------------------------------------------------------------------
+# E5.3 — caller-owned transaction
+# ---------------------------------------------------------------------------
+
+
+async def test_e5_3_service_commit_call_count_is_zero(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E5.3: the service must NEVER call ``session.commit()`` or
+    ``session.rollback()`` — the caller owns the transaction. The
+    caller's commit (via ``session.begin()``) persists the complete
+    snapshot even though ``AsyncSession.commit`` was never invoked by
+    the service.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e5-3-commit",
+        external_revision_id="rev-e5-3-commit",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e5-3-commit",
+        records=[record],
+    )
+
+    commit_calls: list[str] = []
+    rollback_calls: list[str] = []
+    original_commit = AsyncSession.commit
+    original_rollback = AsyncSession.rollback
+
+    async def _counted_commit(self: AsyncSession) -> None:
+        commit_calls.append("commit")
+        await original_commit(self)
+
+    async def _counted_rollback(self: AsyncSession) -> None:
+        rollback_calls.append("rollback")
+        await original_rollback(self)
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e5-3-commit",
+    )
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(AsyncSession, "commit", _counted_commit)
+        mp.setattr(AsyncSession, "rollback", _counted_rollback)
+        async with session_maker() as session:
+            async with session.begin():
+                result = await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+                # The service has returned a complete result; it must
+                # not have committed or rolled back on its own.
+                assert result.header.winner_count == 1
+                assert commit_calls == []
+                assert rollback_calls == []
+        # After the caller-owned transaction completed (commit through
+        # the ``session.begin()`` context manager, not through
+        # ``AsyncSession.commit``), the service's own commit / rollback
+        # call counts are still exactly zero.
+        assert commit_calls == []
+        assert rollback_calls == []
+
+
+async def test_e5_3_successful_call_plus_caller_rollback_leaves_zero_rows(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E5.3: a fully successful service call followed by a CALLER
+    rollback must leave all four I7 tables at zero rows — persistence
+    only becomes durable when the caller commits.
+    """
+
+    class _CallerRollbackSentinel(Exception):
+        pass
+
+    record = _build_record(
+        external_logical_record_id="logical-e5-3-rb",
+        external_revision_id="rev-e5-3-rb",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e5-3-rb",
+        records=[record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e5-3-rb",
+    )
+
+    with pytest.raises(_CallerRollbackSentinel):
+        async with session_maker() as session:
+            async with session.begin():
+                result = await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+                # The service completed successfully; the caller now
+                # chooses to roll back (simulated by the sentinel).
+                assert result.header.winner_count == 1
+                raise _CallerRollbackSentinel()
+
+    counts = await _i7_four_table_counts(session_maker)
+    assert counts == {
+        HEADER_TABLE_NAME: 0,
+        WINNER_TABLE_NAME: 0,
+        LABEL_TABLE_NAME: 0,
+        EXCLUSION_TABLE_NAME: 0,
+    }
+
+
+async def test_e5_3_successful_call_plus_caller_commit_persists_complete_rows(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E5.3: a successful service call followed by the CALLER's
+    commit must make the complete header and child rows visible to a
+    new session.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e5-3-ok",
+        external_revision_id="rev-e5-3-ok",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e5-3-ok",
+        records=[record],
+    )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e5-3-ok",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    counts = await _i7_four_table_counts(session_maker)
+    assert counts[HEADER_TABLE_NAME] == 1
+    assert counts[WINNER_TABLE_NAME] == result.header.winner_count
+    assert counts[LABEL_TABLE_NAME] == result.header.label_row_count
+    assert counts[EXCLUSION_TABLE_NAME] == result.header.exclusion_row_count
+    assert result.header.winner_count == 1
+    assert result.header.label_row_count == 1

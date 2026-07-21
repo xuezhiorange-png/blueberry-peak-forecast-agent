@@ -79,6 +79,7 @@ from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestValidationLineageBasisMemberModel,
     ActualHarvestValidationMappingEvidenceModel,
 )
+from backend.app.actual_harvest_labels import service as label_service
 from backend.app.actual_harvest_labels.enums import (
     ActualHarvestLabelStructuralFailure,
     ActualHarvestLabelVisibilityMode,
@@ -156,6 +157,29 @@ async def isolate_i7_postgres_module() -> AsyncIterator[None]:
                 table_list = ", ".join(_I7_MODULE_TABLES)
                 await session.execute(sa.text(f"TRUNCATE {table_list} RESTART IDENTITY CASCADE"))
         await _truncate_i5_module_database()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def isolate_i7_postgres_test() -> AsyncIterator[None]:
+    """Per-test universe isolation.
+
+    The I5 seed helper commits TWO batches per test but the shared
+    cleanup helper only removes one of them, so without a per-test
+    truncate the source-manifest universe accumulates across tests
+    and every exact-count assertion becomes order-dependent. Each
+    test below is written against a pristine universe; enforce it.
+    """
+
+    if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
+        yield
+        return
+
+    await _truncate_i5_module_database()
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            table_list = ", ".join(_I7_MODULE_TABLES)
+            await session.execute(sa.text(f"TRUNCATE {table_list} RESTART IDENTITY CASCADE"))
+    yield
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +334,22 @@ async def _seed_i5_persisted_committed_batch(
     )
     await _commit_once(import_id_2)
     return external_batch_id, import_id_2
+
+
+async def _seed_i5_persisted_finalized_batch(*, suffix: str) -> tuple[str, str]:
+    """Seed variant whose terminal revision is FINALIZED with a legal
+    (past) ``finalized_at`` — the record shape that is eligible as a
+    winner under the default ``FINAL_ADJUDICATED`` request mode. Tests
+    that assert on persisted winner / label rows use this variant;
+    tests that only exercise fail-closed paths keep the cheaper
+    default (ACTIVE) seed.
+    """
+
+    return await _seed_i5_persisted_committed_batch(
+        suffix=suffix,
+        record_status=ActualHarvestRecordStatus.FINALIZED.value,
+        finalized_at=datetime(2024, 1, 15, 12, 0, tzinfo=UTC),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -779,7 +819,7 @@ async def test_e5_2_pg_atomic_rollback_after_partial_child_insert() -> None:
     """
     _require_postgres()
     suffix = uuid4().hex
-    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
         suffix=suffix,
     )
 
@@ -802,9 +842,13 @@ async def test_e5_2_pg_atomic_rollback_after_partial_child_insert() -> None:
                 snapshot_idempotency_key=f"idem-e5-2-c-{suffix}",
                 season_business_keys=(f"season-{suffix}",),
             )
-            async with AsyncSessionMaker() as session:
-                async with session.begin():
-                    with pytest.raises(RuntimeError) as exc_info:
+            # The injected failure must propagate through the caller's
+            # transaction context so the caller-owned rollback fires;
+            # swallowing it inside ``session.begin()`` would let the
+            # context commit the staged header instead.
+            with pytest.raises(RuntimeError) as exc_info:
+                async with AsyncSessionMaker() as session:
+                    async with session.begin():
                         await create_label_snapshot(
                             session,
                             request=request,
@@ -827,6 +871,72 @@ async def test_e5_2_pg_atomic_rollback_after_partial_child_insert() -> None:
         await _cleanup_batch(external_batch_id)
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "target_phase",
+    [
+        label_service.SNAPSHOT_FLUSH_PHASE_HEADER,
+        label_service.SNAPSHOT_FLUSH_PHASE_WINNERS,
+        label_service.SNAPSHOT_FLUSH_PHASE_LABELS,
+        label_service.SNAPSHOT_FLUSH_PHASE_EXCLUSIONS,
+    ],
+)
+async def test_e5_2_pg_failure_after_phase_flush_leaves_four_tables_empty(
+    target_phase: str,
+) -> None:
+    """E5.2 phase matrix (PostgreSQL): a failure injected immediately
+    AFTER each production persistence checkpoint — after the header
+    flush, after partial winner persistence, after partial label
+    persistence, after partial exclusion persistence — must leave ALL
+    four I7 tables at zero rows once the caller rolls back. The
+    injected exception propagates out of the service un-swallowed;
+    the service never commits, never opens a nested independent
+    transaction, and never compensates with cleanup DELETEs.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        real_hook = label_service._flush_snapshot_phase
+
+        async def _injecting_hook(session: AsyncSession, *, phase: str) -> None:
+            # Persist the phase's rows into the caller's transaction
+            # first (the failure strikes AFTER the phase checkpoint),
+            # then raise on the targeted phase only.
+            await real_hook(session, phase=phase)
+            if phase == target_phase:
+                raise RuntimeError(f"injected_e5_2_pg_failure_after_{target_phase}")
+
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e5-2-{target_phase.lower()}-{suffix}",
+            season_business_keys=(f"season-{suffix}",),
+        )
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(label_service, "_flush_snapshot_phase", _injecting_hook)
+            with pytest.raises(
+                RuntimeError, match=f"injected_e5_2_pg_failure_after_{target_phase}"
+            ):
+                async with AsyncSessionMaker() as session:
+                    async with session.begin():
+                        await create_label_snapshot(
+                            session,
+                            request=request,
+                            created_by_identity="op-e5-2-phase",
+                        )
+
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 0
+        assert counts[WINNER_TABLE_NAME] == 0
+        assert counts[LABEL_TABLE_NAME] == 0
+        assert counts[EXCLUSION_TABLE_NAME] == 0
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
 # ===========================================================================
 # E5.3 — caller-owned transaction (no commit / no rollback in service)
 # ===========================================================================
@@ -835,15 +945,19 @@ async def test_e5_2_pg_atomic_rollback_after_partial_child_insert() -> None:
 @pytest.mark.asyncio
 async def test_e5_3_pg_service_does_not_commit_or_rollback() -> None:
     """E5.3: the I7 service must not call session.commit() or
-    session.rollback(). The caller controls both.
+    session.rollback(). The caller controls both. The service's own
+    commit / rollback call counts are exactly ZERO across the whole
+    create+persist flow; the caller's commit still makes the complete
+    snapshot durable.
     """
     _require_postgres()
     suffix = uuid4().hex
-    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
         suffix=suffix,
     )
 
     try:
+        await _truncate_i7_tables()
         commit_calls: list[str] = []
         rollback_calls: list[str] = []
 
@@ -872,47 +986,90 @@ async def test_e5_3_pg_service_does_not_commit_or_rollback() -> None:
                         request=request,
                         created_by_identity="op-e5-3",
                     )
-            assert isinstance(result, ActualHarvestLabelSnapshotResult)
-            assert result.header.winner_count >= 0
+                    # The service has returned a complete result and
+                    # the caller has not committed yet: both counters
+                    # must still be zero.
+                    assert isinstance(result, ActualHarvestLabelSnapshotResult)
+                    assert commit_calls == []
+                    assert rollback_calls == []
 
-        # The CALLER committed (>= 1 call from
-        # ``async with session.begin()``). The service did
-        # NOT commit. The service did NOT call rollback.
-        assert len(rollback_calls) == 0, (
-            f"service called session.rollback() {len(rollback_calls)} times; "
-            "the service must not own the transaction."
-        )
+        # After the caller-owned transaction completed, the service's
+        # own commit / rollback call counts are STILL exactly zero —
+        # the caller's commit goes through the session.begin()
+        # context manager, never through the service.
+        assert commit_calls == []
+        assert rollback_calls == []
+
+        # …and the caller's commit persisted the complete snapshot.
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 1
+        assert counts[WINNER_TABLE_NAME] == result.header.winner_count
+        assert counts[LABEL_TABLE_NAME] == result.header.label_row_count
+        assert counts[EXCLUSION_TABLE_NAME] == result.header.exclusion_row_count
     finally:
         await _cleanup_batch(external_batch_id)
 
 
 @pytest.mark.asyncio
 async def test_e5_3_pg_caller_rollback_removes_all_rows() -> None:
-    """E5.3 corollary: caller rollback after a partial
-    snapshot must leave the four I7 tables at zero rows.
-    The caller is the I7 mark-ready round's
-    ``async with session.begin()`` context manager — on
-    exception it rolls back. This test exercises the
-    rollback path explicitly with a snapshot that fails
-    at the post-header stage.
+    """E5.3: a fully SUCCESSFUL service call followed by a caller
+    rollback must leave the four I7 tables at zero rows — durability
+    is decided by the caller, never by the service.
     """
     _require_postgres()
     suffix = uuid4().hex
-    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
+        suffix=suffix,
+    )
+
+    class _CallerRollbackSentinel(Exception):
+        pass
+
+    try:
+        await _truncate_i7_tables()
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e5-3-rb-{suffix}",
+            season_business_keys=(f"season-{suffix}",),
+        )
+
+        with pytest.raises(_CallerRollbackSentinel):
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    result = await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity="op-e5-3-rb",
+                    )
+                    # The service completed successfully; the caller
+                    # now chooses to roll back (simulated sentinel).
+                    assert result.header.winner_count == 1
+                    raise _CallerRollbackSentinel()
+
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 0
+        assert counts[WINNER_TABLE_NAME] == 0
+        assert counts[LABEL_TABLE_NAME] == 0
+        assert counts[EXCLUSION_TABLE_NAME] == 0
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_e5_3_pg_caller_commit_persists_complete_rows() -> None:
+    """E5.3: a successful service call + caller commit must make the
+    complete header AND child rows visible to a fresh session.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
         suffix=suffix,
     )
 
     try:
-        # Force a structural failure after the preflight by
-        # asking for a request that the I5 hardening
-        # rejects (e.g. an unknown target_type via direct
-        # DB write that we DON'T make here). Instead,
-        # exercise the caller-rollback path by triggering
-        # a structural failure: ask for a request whose
-        # source universe has zero eligible records.
+        await _truncate_i7_tables()
         request = _i7_request(
-            snapshot_idempotency_key=f"idem-e5-3-rb-{suffix}",
-            season_business_keys=("season-business-key-OTHER",),
+            snapshot_idempotency_key=f"idem-e5-3-ok-{suffix}",
+            season_business_keys=(f"season-{suffix}",),
         )
 
         async with AsyncSessionMaker() as session:
@@ -920,15 +1077,68 @@ async def test_e5_3_pg_caller_rollback_removes_all_rows() -> None:
                 result = await create_label_snapshot(
                     session,
                     request=request,
-                    created_by_identity="op-e5-3-rb",
+                    created_by_identity="op-e5-3-ok",
                 )
 
-        # The snapshot completed with 0 winners and 1
-        # coverage exclusion. No structural failure fired.
-        # The caller committed. The post-state shows the
-        # header is present (this is the success path).
-        assert result.header.winner_count == 0
-        assert result.header.exclusion_row_count == 1
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 1
+        assert counts[WINNER_TABLE_NAME] == result.header.winner_count
+        assert counts[LABEL_TABLE_NAME] == result.header.label_row_count
+        assert counts[EXCLUSION_TABLE_NAME] == result.header.exclusion_row_count
+        assert result.header.winner_count == 1
+        assert result.header.label_row_count == 1
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_e5_3_pg_uncommitted_snapshot_not_visible_to_other_session() -> None:
+    """E5.3: before the caller commits, a SEPARATE PostgreSQL
+    session must not observe the staged snapshot (READ COMMITTED);
+    after the caller commits, the same row becomes visible.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        key = f"idem-e5-3-vis-{suffix}"
+        request = _i7_request(
+            snapshot_idempotency_key=key,
+            season_business_keys=(f"season-{suffix}",),
+        )
+
+        async with AsyncSessionMaker() as session_a:
+            async with session_a.begin():
+                result = await create_label_snapshot(
+                    session_a,
+                    request=request,
+                    created_by_identity="op-e5-3-vis",
+                )
+                assert result.header.winner_count == 1
+                # A separate session must NOT see the uncommitted row.
+                async with AsyncSessionMaker() as session_b:
+                    row_before = await session_b.scalar(
+                        sa.select(ActualHarvestLabelSnapshotModel).where(
+                            ActualHarvestLabelSnapshotModel.snapshot_idempotency_key == key
+                        )
+                    )
+                    assert row_before is None
+
+        # After the caller's commit the row is visible.
+        async with AsyncSessionMaker() as session_c:
+            row_after = await session_c.scalar(
+                sa.select(ActualHarvestLabelSnapshotModel).where(
+                    ActualHarvestLabelSnapshotModel.snapshot_idempotency_key == key
+                )
+            )
+            assert row_after is not None
+            assert row_after.snapshot_request_identity_hash == (
+                result.header.snapshot_request_identity_hash
+            )
     finally:
         await _cleanup_batch(external_batch_id)
 
@@ -940,15 +1150,22 @@ async def test_e5_3_pg_caller_rollback_removes_all_rows() -> None:
 
 @pytest.mark.asyncio
 async def test_e5_4_pg_concurrent_identical_snapshot() -> None:
-    """E5.4: two independent PostgreSQL sessions racing the
-    same ``create_label_snapshot`` request must converge to
-    EXACTLY one physical snapshot. Both callers must
-    observe the same snapshot identity. No bare
-    ``IntegrityError`` leaks to either caller.
+    """E5.4: two independent PostgreSQL sessions / transactions racing
+    the SAME ``create_label_snapshot`` request must converge to
+    EXACTLY one physical snapshot with one physical set of child
+    rows. Both callers observe the same snapshot identity (same
+    request identity hash, same instance identity hash, same label
+    snapshot hash). No bare ``IntegrityError`` leaks to either
+    caller.
+
+    The production defense is the PostgreSQL transaction advisory
+    lock keyed on ``(source_system, snapshot_idempotency_key)`` +
+    the locked re-read of the existing snapshot. Synchronization is
+    an ``asyncio.Barrier`` — never random sleeps.
     """
     _require_postgres()
     suffix = uuid4().hex
-    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
         suffix=suffix,
     )
 
@@ -961,58 +1178,55 @@ async def test_e5_4_pg_concurrent_identical_snapshot() -> None:
             season_business_keys=(f"season-{suffix}",),
         )
 
-        results: list[ActualHarvestLabelSnapshotResult] = []
-        errors: list[BaseException] = []
-        start_barrier = asyncio.Event()
+        barrier = asyncio.Barrier(2)
 
-        async def caller_independent() -> None:
+        async def caller_independent() -> ActualHarvestLabelSnapshotResult:
             async with AsyncSessionMaker() as session:
-                try:
-                    async with session.begin():
-                        await start_barrier.wait()
-                        result = await create_label_snapshot(
-                            session,
-                            request=request,
-                            created_by_identity=f"op-e5-4-{uuid4().hex[:8]}",
-                        )
-                    results.append(result)
-                except BaseException as exc:  # pragma: no cover - test infra
-                    errors.append(exc)
+                async with session.begin():
+                    # Both callers enter the service as close to
+                    # simultaneously as the event loop allows.
+                    await barrier.wait()
+                    return await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity=f"op-e5-4-{uuid4().hex[:8]}",
+                    )
 
-        # Two callers race on the same idempotency_key +
-        # same request identity. Use a barrier for
-        # deterministic concurrency (no sleep, no fixed
-        # transaction-winner assumption).
-        t1 = asyncio.create_task(caller_independent())
-        t2 = asyncio.create_task(caller_independent())
-        # Yield once so both tasks reach start_barrier.wait().
-        await asyncio.sleep(0)
-        start_barrier.set()
-        await asyncio.gather(t1, t2)
+        outcomes = await asyncio.gather(
+            caller_independent(),
+            caller_independent(),
+            return_exceptions=True,
+        )
 
-        # No bare IntegrityError leaks to either caller.
-        integrity_errors = [
-            e for e in errors if type(e).__name__ in {"IntegrityError", "UniqueViolationError"}
-        ]
-        assert not integrity_errors, f"bare IntegrityError leaked to caller: {integrity_errors}"
-        # Both callers completed.
+        # No bare IntegrityError (or any other exception) leaks to
+        # either caller.
+        leaked = [e for e in outcomes if isinstance(e, BaseException)]
+        assert not leaked, f"unexpected caller error leaked: {leaked!r}"
+        results = [r for r in outcomes if isinstance(r, ActualHarvestLabelSnapshotResult)]
         assert len(results) == 2
-        result_0 = results[0]
-        result_1 = results[1]
-        # Both callers must observe the same snapshot id
-        # / instance identity hash / label_snapshot_hash.
+
+        result_0, result_1 = results
+        # Both callers observe the SAME logical snapshot: same
+        # physical header id, same request identity hash, same
+        # instance identity hash, same label snapshot hash.
+        assert result_0.header.snapshot_id == result_1.header.snapshot_id
         assert result_0.header.snapshot_idempotency_key == result_1.header.snapshot_idempotency_key
+        assert (
+            result_0.header.snapshot_request_identity_hash
+            == result_1.header.snapshot_request_identity_hash
+        )
         assert (
             result_0.header.snapshot_instance_identity_hash
             == result_1.header.snapshot_instance_identity_hash
         )
         assert result_0.header.label_snapshot_hash == result_1.header.label_snapshot_hash
-        # And the database must have exactly one physical
-        # header row.
+        # And the database holds exactly one physical header + one
+        # physical set of child rows (no duplicated race writes).
         counts = await _i7_table_counts()
         assert counts[HEADER_TABLE_NAME] == 1
-        assert counts[WINNER_TABLE_NAME] == 1
-        assert counts[LABEL_TABLE_NAME] == 1
+        assert counts[WINNER_TABLE_NAME] == result_0.header.winner_count
+        assert counts[LABEL_TABLE_NAME] == result_0.header.label_row_count
+        assert counts[EXCLUSION_TABLE_NAME] == result_0.header.exclusion_row_count
     finally:
         await _cleanup_batch(external_batch_id)
 
@@ -1030,7 +1244,7 @@ async def test_e5_5_pg_idempotency_conflict() -> None:
     """
     _require_postgres()
     suffix = uuid4().hex
-    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
         suffix=suffix,
     )
 
@@ -1081,7 +1295,92 @@ async def test_e5_5_pg_idempotency_conflict() -> None:
             )
             assert header is not None
             assert header.snapshot_idempotency_key == f"idem-e5-5-{suffix}"
-            assert "season-business-key-1" in header.season_business_keys
+            assert f"season-{suffix}" in header.season_business_keys
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_e5_5_pg_concurrent_same_key_different_request_conflict() -> None:
+    """E5.5 (concurrent): two independent PostgreSQL sessions /
+    transactions racing the same idempotency key with DIFFERENT
+    request identities must resolve to exactly ONE success and
+    exactly ONE ``ActualHarvestLabelIdempotencyConflictError``. The
+    losing request leaves zero partial rows, one complete physical
+    snapshot remains, and no raw unique-constraint exception
+    escapes. Synchronization is an ``asyncio.Barrier`` — never
+    random sleeps.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        key = f"idem-e5-5-race-{suffix}"
+        request_a = _i7_request(
+            snapshot_idempotency_key=key,
+            season_business_keys=(f"season-{suffix}",),
+        )
+        request_b = _i7_request(
+            snapshot_idempotency_key=key,
+            season_business_keys=("season-business-key-2",),  # different request identity
+        )
+
+        barrier = asyncio.Barrier(2)
+
+        async def caller_independent(
+            request: ActualHarvestLabelSnapshotRequest,
+        ) -> ActualHarvestLabelSnapshotResult:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await barrier.wait()
+                    return await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity=f"op-e5-5-{uuid4().hex[:8]}",
+                    )
+
+        outcomes = await asyncio.gather(
+            caller_independent(request_a),
+            caller_independent(request_b),
+            return_exceptions=True,
+        )
+
+        successes = [r for r in outcomes if isinstance(r, ActualHarvestLabelSnapshotResult)]
+        conflicts = [
+            e for e in outcomes if isinstance(e, ActualHarvestLabelIdempotencyConflictError)
+        ]
+        unexpected = [
+            e
+            for e in outcomes
+            if isinstance(e, BaseException)
+            and not isinstance(e, ActualHarvestLabelIdempotencyConflictError)
+        ]
+        # No raw unique-constraint / IntegrityError escapes.
+        assert not unexpected, f"unexpected caller error leaked: {unexpected!r}"
+        assert len(successes) == 1, f"expected exactly one success, got: {outcomes!r}"
+        assert len(conflicts) == 1, f"expected exactly one conflict, got: {outcomes!r}"
+
+        # Exactly one complete physical snapshot remains — the
+        # winner's; the losing request left zero partial rows.
+        winner = successes[0]
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 1
+        assert counts[WINNER_TABLE_NAME] == winner.header.winner_count
+        assert counts[LABEL_TABLE_NAME] == winner.header.label_row_count
+        assert counts[EXCLUSION_TABLE_NAME] == winner.header.exclusion_row_count
+
+        async with AsyncSessionMaker() as session:
+            header = await session.scalar(sa.select(ActualHarvestLabelSnapshotModel))
+            assert header is not None
+            assert header.snapshot_idempotency_key == key
+            assert (
+                header.snapshot_request_identity_hash
+                == winner.header.snapshot_request_identity_hash
+            )
     finally:
         await _cleanup_batch(external_batch_id)
 
@@ -1117,7 +1416,7 @@ async def test_e6_pg_all_mapping_evidence_rows_missing_blocks_snapshot() -> None
                     await session.scalars(
                         select(ActualHarvestValidationMappingEvidenceModel).where(
                             ActualHarvestValidationMappingEvidenceModel.external_revision_id
-                            == f"rev-i7-pg-{suffix}"
+                            == f"rev-i7-pg-{suffix}-b"
                         )
                     )
                 ).all()
@@ -1171,7 +1470,7 @@ async def test_e6_pg_partial_mapping_evidence_blocks_snapshot() -> None:
                 variety = await session.scalar(
                     select(ActualHarvestValidationMappingEvidenceModel).where(
                         ActualHarvestValidationMappingEvidenceModel.external_revision_id
-                        == f"rev-i7-pg-{suffix}",
+                        == f"rev-i7-pg-{suffix}-b",
                         ActualHarvestValidationMappingEvidenceModel.target_type == "VARIETY",
                     )
                 )
@@ -1203,7 +1502,7 @@ async def test_e6_pg_partial_mapping_evidence_blocks_snapshot() -> None:
 async def test_e6_pg_complete_evidence_outside_scope_remains_coverage_exclusion() -> None:
     """E6 corollary: a revision with COMPLETE frozen
     evidence whose business key is outside the request's
-    season allow-list must produce exactly one
+    season allow-list must surface as an
     ``OUTSIDE_REQUEST_SCOPE`` coverage exclusion. This is
     the only path that legitimately produces an
     ``OUTSIDE_REQUEST_SCOPE`` exclusion — never as a
@@ -1231,11 +1530,318 @@ async def test_e6_pg_complete_evidence_outside_scope_remains_coverage_exclusion(
 
         # E6 contract: complete evidence + out-of-scope
         # business key == OUTSIDE_REQUEST_SCOPE coverage
-        # exclusion, never a structural failure.
+        # exclusion, never a structural failure. The seed's
+        # lineage basis carries TWO observed revisions (the
+        # ACTIVE predecessor rev-a and the terminal rev-b);
+        # each emits exactly one OUTSIDE_REQUEST_SCOPE row.
         assert result.header.winner_count == 0
-        assert result.header.exclusion_row_count == 1
+        assert result.header.exclusion_row_count == 2
         categories = {row["exclusion_category"] for row in result.exclusion_rows}
-        assert "OUTSIDE_REQUEST_SCOPE" in categories
+        assert categories == {"OUTSIDE_REQUEST_SCOPE"}
         assert result.header.label_row_count == 0
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+# ===========================================================================
+# E7 — public-path corruption acceptance (PostgreSQL)
+# ===========================================================================
+#
+# The SQLite unit file covers these shapes at helper level (controlled
+# fake query result -> real ``_preflight_record_evidence()``). Here the
+# corruption is written into the REAL persisted mapping-evidence table
+# and the REAL public ``create_label_snapshot`` entry point must fail
+# closed. PostgreSQL transactional DDL lets each test drop the two
+# upstream CHECK constraints inside the caller's transaction and have
+# them restored by the rollback — the schema is never mutated beyond
+# the test.
+
+
+async def _drop_evidence_target_constraints(session: AsyncSession) -> None:
+    """Drop the two upstream mapping-evidence CHECK constraints.
+
+    MUST be called inside the caller's transaction; PostgreSQL
+    transactional DDL restores both constraints when the transaction
+    rolls back.
+    """
+
+    await session.execute(
+        sa.text(
+            "ALTER TABLE actual_harvest_validation_mapping_evidence "
+            "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_type"
+        )
+    )
+    await session.execute(
+        sa.text(
+            "ALTER TABLE actual_harvest_validation_mapping_evidence "
+            "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_fk"
+        )
+    )
+
+
+async def _validation_run_id_for_revision(session: AsyncSession, revision_id: str) -> int:
+    run_id = await session.scalar(
+        sa.select(ActualHarvestValidationMappingEvidenceModel.validation_run_id)
+        .where(ActualHarvestValidationMappingEvidenceModel.external_revision_id == revision_id)
+        .limit(1)
+    )
+    assert run_id is not None, f"no evidence row found for revision {revision_id}"
+    return int(run_id)
+
+
+async def _inject_plot_evidence_row_pg(
+    session: AsyncSession,
+    *,
+    revision_id: str,
+    suffix: str,
+) -> None:
+    """Clone the persisted SUBFARM evidence row of ``revision_id``
+    into a PLOT row (corruption / future-regression simulation).
+
+    All registry / resolver version fields are copied from the real
+    I5-persisted row so every remaining constraint stays satisfied;
+    only the grain (target_type + business keys + resolved FKs, all
+    NULL) changes. The two CHECK constraints that would reject this
+    row must already be dropped inside the same transaction.
+    """
+
+    run_id = await _validation_run_id_for_revision(session, revision_id)
+    subfarm_row = await session.scalar(
+        sa.select(ActualHarvestValidationMappingEvidenceModel).where(
+            ActualHarvestValidationMappingEvidenceModel.validation_run_id == run_id,
+            ActualHarvestValidationMappingEvidenceModel.external_revision_id == revision_id,
+            ActualHarvestValidationMappingEvidenceModel.target_type == "SUBFARM",
+        )
+    )
+    assert subfarm_row is not None
+    plot_row = ActualHarvestValidationMappingEvidenceModel(
+        validation_run_id=subfarm_row.validation_run_id,
+        # Distinct record_index dodges the
+        # (validation_run_id, record_index, source_field) unique
+        # constraint; the preflight index does not use record_index.
+        record_index=subfarm_row.record_index + 1000,
+        source_system=subfarm_row.source_system,
+        external_logical_record_id=subfarm_row.external_logical_record_id,
+        external_revision_id=subfarm_row.external_revision_id,
+        revision_number=subfarm_row.revision_number,
+        source_field=subfarm_row.source_field,
+        source_code=subfarm_row.source_code,
+        registry_version=subfarm_row.registry_version,
+        mapping_policy_version=subfarm_row.mapping_policy_version,
+        resolver_version=subfarm_row.resolver_version,
+        registry_entry_hash=_hex64(f"plot-entry-{suffix}"),
+        target_type="PLOT",
+        target_business_key=f"plot-business-key-{suffix}",
+        target_parent_business_key=subfarm_row.target_parent_business_key,
+        resolved_master_business_key=f"plot-business-key-{suffix}",
+        resolved_master_parent_business_key=subfarm_row.resolved_master_parent_business_key,
+        resolved_master_record_hash=_hex64(f"plot-master-{suffix}"),
+        resolved_season_id=None,
+        resolved_farm_id=None,
+        resolved_subfarm_id=None,
+        resolved_variety_id=None,
+        resolution_mode=subfarm_row.resolution_mode,
+        outcome=subfarm_row.outcome,
+    )
+    session.add(plot_row)
+    await session.flush()
+
+
+@pytest.mark.asyncio
+async def test_e7_pg_plot_corruption_public_path_rejected() -> None:
+    """E7 public path: a PLOT evidence row genuinely persisted in the
+    frozen mapping evidence (direct DB write corruption / future I5
+    regression) must fail the REAL ``create_label_snapshot`` closed
+    with UNSUPPORTED_LABEL_GRAIN, and the rolled-back transaction
+    leaves all four I7 tables at zero rows.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e7-pg-plot-{suffix}",
+            season_business_keys=(f"season-{suffix}",),
+        )
+
+        with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await _drop_evidence_target_constraints(session)
+                    await _inject_plot_evidence_row_pg(
+                        session,
+                        revision_id=f"rev-i7-pg-{suffix}-b",
+                        suffix=suffix,
+                    )
+                    await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity="op-e7-pg-plot",
+                    )
+
+        assert exc_info.value.failure == (
+            ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
+        )
+        assert exc_info.value.details["target_type"] == "PLOT"
+        assert exc_info.value.details["reason"] == "plot_target_type_in_frozen_evidence"
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 0
+        assert counts[WINNER_TABLE_NAME] == 0
+        assert counts[LABEL_TABLE_NAME] == 0
+        assert counts[EXCLUSION_TABLE_NAME] == 0
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_e7_pg_plot_on_nonterminal_public_path_rejected() -> None:
+    """E7 public path: a PLOT row on the NON-TERMINAL predecessor
+    revision is still rejected — the preflight is exhaustive over
+    every observed committed revision, not gated on terminal /
+    winner / in-scope.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e7-pg-nonterm-{suffix}",
+            season_business_keys=(f"season-{suffix}",),
+        )
+
+        with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await _drop_evidence_target_constraints(session)
+                    # rev-a is the non-terminal predecessor (superseded
+                    # by rev-b); the preflight must still catch PLOT.
+                    await _inject_plot_evidence_row_pg(
+                        session,
+                        revision_id=f"rev-i7-pg-{suffix}-a",
+                        suffix=suffix,
+                    )
+                    await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity="op-e7-pg-nonterm",
+                    )
+
+        assert exc_info.value.failure == (
+            ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
+        )
+        assert exc_info.value.details["target_type"] == "PLOT"
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 0
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_e7_pg_plot_on_invisible_public_path_rejected() -> None:
+    """E7 public path: a PLOT row on an INVISIBLE revision
+    (``source_recorded_at`` after the AS_OF cutoff) is still
+    rejected — the preflight runs before the visibility filter.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e7-pg-invis-{suffix}",
+            visibility_mode=ActualHarvestLabelVisibilityMode.AS_OF_EVALUATION,
+            # The seeded rev-b carries source_recorded_at 2024-01-01,
+            # i.e. AFTER this cutoff -> invisible.
+            label_observation_cutoff_at_or_null=datetime(2023, 6, 30, tzinfo=UTC),
+            season_business_keys=(f"season-{suffix}",),
+        )
+
+        with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await _drop_evidence_target_constraints(session)
+                    await _inject_plot_evidence_row_pg(
+                        session,
+                        revision_id=f"rev-i7-pg-{suffix}-b",
+                        suffix=suffix,
+                    )
+                    await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity="op-e7-pg-invis",
+                    )
+
+        assert exc_info.value.failure == (
+            ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
+        )
+        assert exc_info.value.details["target_type"] == "PLOT"
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 0
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_e7_pg_unknown_target_public_path_drift() -> None:
+    """E7 public path: an unknown (non-PLOT) target_type genuinely
+    persisted in the frozen mapping evidence must fail the REAL
+    ``create_label_snapshot`` with MAPPING_EVIDENCE_DRIFT and reason
+    ``unknown_target_type_in_frozen_evidence``.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_committed_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e7-pg-unknown-{suffix}",
+            season_business_keys=(f"season-{suffix}",),
+        )
+
+        with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await _drop_evidence_target_constraints(session)
+                    run_id = await _validation_run_id_for_revision(session, f"rev-i7-pg-{suffix}-b")
+                    await session.execute(
+                        sa.text(
+                            "UPDATE actual_harvest_validation_mapping_evidence "
+                            "SET target_type = 'CUSTOM_FIELD', "
+                            "target_business_key = :custom_key "
+                            "WHERE validation_run_id = :run_id "
+                            "AND external_revision_id = :revision_id "
+                            "AND target_type = 'VARIETY'"
+                        ),
+                        {
+                            "custom_key": f"custom-{suffix}",
+                            "run_id": run_id,
+                            "revision_id": f"rev-i7-pg-{suffix}-b",
+                        },
+                    )
+                    await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity="op-e7-pg-unknown",
+                    )
+
+        assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT
+        assert exc_info.value.details["reason"] == "unknown_target_type_in_frozen_evidence"
+        assert exc_info.value.details["target_type"] == "CUSTOM_FIELD"
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 0
     finally:
         await _cleanup_batch(external_batch_id)
