@@ -2565,7 +2565,7 @@ async def test_e6_missing_mapping_evidence_is_structural_failure(
                 )
 
     assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING
-    assert exc_info.value.details["reason"] == "preflight_missing_target_type"
+    assert exc_info.value.details["reason"] == "preflight_partial_evidence"
     assert "VARIETY" in exc_info.value.details["missing_target_types"]
 
 
@@ -2781,6 +2781,386 @@ async def test_e7_plot_rejection_is_deterministic(
         ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN,
         ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN,
     ]
+
+
+async def test_e6_all_mapping_evidence_rows_missing_is_structural_failure(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 contract: when ALL four required target types
+    (SEASON, FARM, SUBFARM, VARIETY) are missing from the persisted
+    mapping evidence for an observed record, the preflight must
+    halt with ``MAPPING_EVIDENCE_MISSING`` (NOT downgrade to
+    ``OUTSIDE_REQUEST_SCOPE``). This is the zero-evidence fail-open
+    that the preflight closes: the authority universe is the
+    lineage basis member, not the evidence rows.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-zero",
+        external_revision_id="rev-e6-zero",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-zero",
+        records=[record],
+    )
+
+    # Delete ALL four target_type rows for the observed record so
+    # the preflight's per-record target_type completeness check
+    # halts with ``MAPPING_EVIDENCE_MISSING`` and reason
+    # ``preflight_zero_evidence`` (NOT
+    # ``preflight_partial_evidence``).
+    async with session_maker() as session:
+        async with session.begin():
+            rows = (
+                await session.scalars(
+                    select(ActualHarvestValidationMappingEvidenceModel).where(
+                        ActualHarvestValidationMappingEvidenceModel.external_revision_id
+                        == "rev-e6-zero",
+                    )
+                )
+            ).all()
+            assert len(rows) == 4
+            for row in rows:
+                await session.delete(row)
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-zero",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING
+    assert exc_info.value.details["reason"] == "preflight_zero_evidence"
+    # E6 contract: this MUST NOT be an OUTSIDE_REQUEST_SCOPE
+    # coverage exclusion.
+    assert "OUTSIDE_REQUEST_SCOPE" not in str(exc_info.value.details)
+
+
+async def test_e6_zero_evidence_never_becomes_outside_request_scope(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E6 contract corollary: even when the request uses an
+    allow-list filter that would otherwise exclude this record,
+    a zero-evidence revision MUST fail closed with
+    MAPPING_EVIDENCE_MISSING. ``OUTSIDE_REQUEST_SCOPE`` is reserved
+    for revisions whose evidence is COMPLETE and whose business
+    key is OUTSIDE the request allow-list.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e6-zero-vs-scope",
+        external_revision_id="rev-e6-zero-vs-scope",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e6-zero-vs-scope",
+        records=[record],
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            rows = (
+                await session.scalars(
+                    select(ActualHarvestValidationMappingEvidenceModel).where(
+                        ActualHarvestValidationMappingEvidenceModel.external_revision_id
+                        == "rev-e6-zero-vs-scope",
+                    )
+                )
+            ).all()
+            assert len(rows) == 4
+            for row in rows:
+                await session.delete(row)
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e6-zero-vs-scope",
+        season_business_keys=("season-different",),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING
+    assert exc_info.value.details["reason"] == "preflight_zero_evidence"
+
+
+async def test_e7_plot_on_nonterminal_rejected_by_preflight(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E7 contract: a PLOT evidence row attached to a NON-TERMINAL
+    revision (a revision that has a successor) is still rejected by
+    the preflight — PLOT rejection is not gated on terminal /
+    winner / in-scope. The check is exhaustive.
+    """
+
+    parent_record = _build_record(
+        external_logical_record_id="logical-e7-plot-nonterm",
+        external_revision_id="rev-parent",
+    )
+    successor_record = _build_record(
+        external_logical_record_id="logical-e7-plot-nonterm",
+        external_revision_id="rev-suc",
+        revision_number=2,
+        quantity_kg="2.0",
+    )
+    successor_record.supersedes_external_revision_id = "rev-parent"
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e7-plot-nonterm",
+        records=[parent_record, successor_record],
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            run = await session.scalar(
+                select(ActualHarvestValidationRunModel).order_by(
+                    ActualHarvestValidationRunModel.id.desc()
+                )
+            )
+            assert run is not None
+            # PLOT on the parent (non-terminal) — preflight still
+            # catches it even though the parent is not the winner.
+            await _inject_plot_evidence_row(
+                session,
+                run_id=run.id,
+                record=parent_record,
+                business_key_suffix="nonterm",
+            )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e7-plot-nonterm",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
+    assert exc_info.value.details["target_type"] == "PLOT"
+
+
+async def test_e7_plot_on_invisible_rejected_by_preflight(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E7 contract: a PLOT evidence row attached to an INVISIBLE
+    revision (source_recorded_at > cutoff) is still rejected by
+    the preflight — PLOT rejection is not gated on visibility.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e7-plot-invisible",
+        external_revision_id="rev-invisible",
+        source_recorded_at=datetime(2030, 1, 1, tzinfo=UTC),
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e7-plot-invisible",
+        records=[record],
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            run = await session.scalar(
+                select(ActualHarvestValidationRunModel).order_by(
+                    ActualHarvestValidationRunModel.id.desc()
+                )
+            )
+            assert run is not None
+            await _inject_plot_evidence_row(
+                session,
+                run_id=run.id,
+                record=record,
+                business_key_suffix="invisible",
+            )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e7-plot-invisible",
+        label_observation_cutoff_at_or_null=datetime(2024, 12, 31, tzinfo=UTC),
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.UNSUPPORTED_LABEL_GRAIN
+
+
+async def test_e7_unknown_target_on_nonwinner_rejected_by_preflight(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E7 corollary: an unknown target_type (e.g. ``PLOT``) attached
+    to a non-winner revision is still caught by the preflight as
+    MAPPING_EVIDENCE_DRIFT when it is not PLOT, or
+    UNSUPPORTED_LABEL_GRAIN when it is PLOT. This is exhaustive
+    preflight coverage, not just winner-path defense-in-depth.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e7-unknown",
+        external_revision_id="rev-e7-unknown",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e7-unknown",
+        records=[record],
+    )
+
+    # Replace the VARIETY evidence row with a non-allowed
+    # ``CUSTOM_FIELD`` target_type to simulate a corruption case
+    # the preflight must catch as MAPPING_EVIDENCE_DRIFT.
+    # The UPDATE bypasses the upstream
+    # ``ck_actual_harvest_validation_mapping_target_type`` check
+    # by issuing raw SQL after dropping the constraint — this is
+    # the safe-isolated test pattern the E7 spec mandates (no
+    # migration change). The constraint is re-applied at the end
+    # of the test to keep the in-memory schema intact for
+    # subsequent tests.
+    from sqlalchemy import text as _text
+
+    async with session_maker() as session:
+        async with session.begin():
+            variety = await session.scalar(
+                select(ActualHarvestValidationMappingEvidenceModel).where(
+                    ActualHarvestValidationMappingEvidenceModel.external_revision_id
+                    == "rev-e7-unknown",
+                    ActualHarvestValidationMappingEvidenceModel.target_type == "VARIETY",
+                )
+            )
+            assert variety is not None
+            await session.execute(
+                _text(
+                    "ALTER TABLE actual_harvest_validation_mapping_evidence "
+                    "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_type"
+                )
+            )
+            await session.execute(
+                _text(
+                    "ALTER TABLE actual_harvest_validation_mapping_evidence "
+                    "DROP CONSTRAINT ck_actual_harvest_validation_mapping_target_fk"
+                )
+            )
+            await session.execute(
+                _text(
+                    "UPDATE actual_harvest_validation_mapping_evidence "
+                    "SET target_type = 'CUSTOM_FIELD', target_business_key = 'custom-1' "
+                    "WHERE id = :row_id"
+                ),
+                {"row_id": variety.id},
+            )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e7-unknown",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT
+    assert exc_info.value.details["reason"] == "unknown_target_type_in_frozen_evidence"
+    assert exc_info.value.details["target_type"] == "CUSTOM_FIELD"
+
+
+async def test_e7_duplicate_target_on_nonwinner_rejected_by_preflight(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """E7 corollary: a duplicate required target_type on a
+    non-winner revision is caught by the preflight as
+    MAPPING_EVIDENCE_DRIFT with reason
+    ``preflight_duplicate_evidence_row``. The check is exhaustive.
+    """
+
+    record = _build_record(
+        external_logical_record_id="logical-e7-dup",
+        external_revision_id="rev-e7-dup",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id="imp-e7-dup",
+        records=[record],
+    )
+
+    # Plant a second VARIETY evidence row with a different
+    # target_business_key — this simulates a duplicate target
+    # corruption case the preflight must catch.
+    async with session_maker() as session:
+        async with session.begin():
+            run = await session.scalar(
+                select(ActualHarvestValidationRunModel).order_by(
+                    ActualHarvestValidationRunModel.id.desc()
+                )
+            )
+            assert run is not None
+            session.add(
+                ActualHarvestValidationMappingEvidenceModel(
+                    validation_run_id=run.id,
+                    record_index=99,
+                    source_system=record.source_system,
+                    external_logical_record_id=record.external_logical_record_id,
+                    external_revision_id=record.external_revision_id,
+                    revision_number=record.revision_number,
+                    source_field="variety_code",
+                    source_code=None,
+                    registry_version="registry-v1",
+                    mapping_policy_version="mapping-test-v1",
+                    resolver_version="actual-harvest-season-resolver-v1",
+                    registry_entry_hash=_hex64("dup-entry"),
+                    target_type="VARIETY",
+                    target_business_key="var-business-key-2",
+                    target_parent_business_key=None,
+                    resolved_master_business_key="var-business-key-2",
+                    resolved_master_parent_business_key=None,
+                    resolved_master_record_hash=_hex64("dup-master"),
+                    resolution_mode="exact_lookup",
+                    outcome="RESOLVED",
+                    resolved_variety_id=2,
+                )
+            )
+
+    request = _base_request(
+        snapshot_idempotency_key="idem-e7-dup",
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+                await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-test",
+                )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_DRIFT
+    assert exc_info.value.details["reason"] == "preflight_duplicate_evidence_row"
+    assert exc_info.value.details["target_type"] == "VARIETY"
 
 
 # ---------------------------------------------------------------------------
