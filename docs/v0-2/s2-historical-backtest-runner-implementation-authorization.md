@@ -139,9 +139,9 @@ coverage/exclusion manifests, or a dual-cutoff immutable backtest manifest.
 `RollingBacktestRun`, `RollingBacktestNode`, `RollingBacktestAttempt`,
 `RollingBacktestStageEvent`, `RollingBacktestOrchestrationSnapshot`,
 `RollingBacktestResolvedInput`, `RollingBacktestAvailabilityAudit`, and
-`RollingBacktestDagSnapshot` models. Reuse or adaptation must be decided by a
-future implementation review; this brief does not treat them as a complete
-S2 schema.
+`RollingBacktestDagSnapshot` models. Their reuse and extension are frozen by
+the `EXTEND_EXISTING_ROLLING_BACKTEST` architecture; this brief does not
+treat them as a complete S2 schema.
 
 ### 2.4 Canonical hashing, migrations, tests, and CI
 
@@ -220,6 +220,53 @@ The separate historical-backtest aggregate alternative is not selected. If a
 later implementation review proposes it, that would require a new
 authorization brief explaining ownership, call direction, hash parity, and
 idempotency migration before any code is changed.
+
+### 2.6 Request, node, and cutoff cardinality
+
+S2 uses the frozen singular-node model. One request creates exactly one
+rolling node; the node inherits the run's label cutoff and carries the same
+forecast cutoff. Multiple nodes are not an alternate interpretation of this
+brief.
+
+```text
+S2_REQUEST_NODE_CARDINALITY=EXACTLY_ONE
+ROLLING_BACKTEST_CONFIG_NODE_COUNT_FOR_S2=1
+RUN_IDENTITY_OWNER=RollingBacktestRun
+NODE_IDENTITY_OWNER=RollingBacktestNode
+RUN_FORECAST_CUTOFF_DERIVED_FROM_SINGLE_NODE=true
+RUN_FORECAST_CUTOFF_EQUALS_NODE_FORECAST_CUTOFF=true
+LABEL_OBSERVATION_CUTOFF_CARDINALITY=ONE_PER_RUN
+NODE_LABEL_OBSERVATION_CUTOFF_INHERITS_RUN=true
+MULTI_NODE_S2_REQUEST_ALLOWED=false
+MULTI_NODE_S2_REQUEST_REJECTION=STRUCTURAL_FAILURE
+```
+
+The request hash includes `single_node_identity_hash`,
+`forecast_cutoff_at`, `label_observation_cutoff_at_or_null`,
+`label_visibility_mode`, versioned business-key scope, sorted requested
+horizons, and resolver/mapping/policy versions. There are no two independently
+mutable forecast cutoffs.
+
+The future database/service acceptance must enforce:
+
+```text
+rolling_backtest_run.backtest_request_hash=UNIQUE
+rolling_backtest_run.s2_node_count=1
+rolling_backtest_node.forecast_cutoff_at=CANONICAL_REQUEST_CUTOFF
+```
+
+The enforcement may combine database constraints and service preflight, but
+must be covered by PostgreSQL evidence. A future implementation must prove:
+
+```text
+EXACTLY_ONE_NODE_ACCEPTED=true
+ZERO_NODE_REJECTED=true
+MULTIPLE_NODES_REJECTED=true
+RUN_NODE_FORECAST_CUTOFF_MISMATCH_REJECTED=true
+RUN_LEVEL_LABEL_CUTOFF_PROPAGATES_TO_NODE_BINDING=true
+REQUEST_HASH_CHANGES_WHEN_FORECAST_CUTOFF_CHANGES=true
+REQUEST_HASH_CHANGES_WHEN_LABEL_CUTOFF_CHANGES=true
+```
 
 ## 3. Three-stage gate model
 
@@ -409,8 +456,9 @@ farm_business_keys=list[str], sorted unique, non-empty
 subfarm_business_keys=list[str], sorted unique, non-empty
 variety_business_keys=list[str], sorted unique, non-empty
 requested_horizons_days=list[int], sorted unique, non-empty
+single_node_identity_hash=64_HEX_SHA256
 forecast_cutoff_at=RFC3339_DATETIME_WITH_EXPLICIT_UTC
-label_observation_cutoff_at=RFC3339_DATETIME_WITH_EXPLICIT_UTC_OR_NULL
+label_observation_cutoff_at_or_null=RFC3339_DATETIME_WITH_EXPLICIT_UTC_OR_NULL
 label_visibility_mode=AS_OF_EVALUATION|FINAL_ADJUDICATED
 master_identity_resolver_version=non-empty_version_string
 resolved_identity_snapshot_hash=64_HEX_SHA256
@@ -580,10 +628,16 @@ FUTURE_CANDIDATE_CHANGED_PATHS=
   backend/tests/rolling_backtest/test_historical_backtest_contracts.py
   backend/tests/integration/test_rolling_backtest_historical_binding.py
   backend/tests/rolling_backtest/test_historical_backtest_concurrency.py
-DECLARED_CHANGED_PATH_COUNT=9
-FUTURE_CHANGED_FILE_CEILING=9
-MATRIX_PATH_COUNT=9
+  backend/tests/test_historical_backtest_alembic.py
+  ci-shard-manifest.yml
+  .github/workflows/ci.yml
+DECLARED_CHANGED_PATH_COUNT=12
+FUTURE_CHANGED_FILE_CEILING=12
+MATRIX_PATH_COUNT=12
 COUNT_CONSISTENT=true
+CI_OWNERSHIP_DECISION=EXPLICIT_NEW_TEST_OWNERSHIP
+WORKFLOW_CHANGE_REQUIRED_FOR_FUTURE_IMPLEMENTATION=true
+CI_SHARD_MANIFEST_CHANGE_REQUIRED_FOR_FUTURE_IMPLEMENTATION=true
 ```
 
 | Concern | Current canonical path and symbols | Disposition | Future owner/path | Test ownership | Schema impact |
@@ -604,10 +658,33 @@ COUNT_CONSISTENT=true
 | Synthetic E2E | `backend/tests/integration/test_rolling_backtest_orchestration.py` fixtures | `ADD_NEW` | same candidate integration path, no separate fixture module | postgres-domain/integration | binding/manifest |
 | API exposure | no approved S2 public endpoint found | `EXCLUDED` | none; internal evidence only | no public API test | none |
 
-The three test concerns deliberately share the two candidate test paths where
-possible: contract/golden tests use the rolling-backtest unit path, while
-PostgreSQL, rollback, synthetic E2E, and migration evidence use the single
-integration path. No optional path exists outside the nine-path set.
+The candidate test paths have explicit CI ownership:
+
+| TEST_PATH | PYTEST_MARKERS | PR_CI_OWNER_JOB | CURRENTLY_EXECUTED_BY_OWNER | REQUIRED_CI_CHANGE | CANARY_ONLY |
+| --- | --- | --- | --- | --- | --- |
+| `backend/tests/rolling_backtest/test_historical_backtest_contracts.py` | `not postgres and not integration` | `unit-contract-golden` | No, future path | Add to fixed unit-contract command | false |
+| `backend/tests/integration/test_rolling_backtest_historical_binding.py` | `integration and not postgres_concurrency` | `postgres-domain-2` | No, future path | Add to fixed postgres-domain-2 command | false |
+| `backend/tests/rolling_backtest/test_historical_backtest_concurrency.py` | `postgres_concurrency` | `postgres-concurrency` | No, future path | Add path and marker to concurrency command | false |
+| `backend/tests/test_historical_backtest_alembic.py` | `postgres_migration` | `postgres-migration` | No, future path | Add to fixed migration command | false |
+
+The four test paths are not currently executed by their owners; the required
+workflow and `ci-shard-manifest.yml` changes are therefore explicit future
+implementation candidates. The two PostgreSQL/migration paths are not moved to
+`full-suite-canary`, and no test is canary-only:
+
+```text
+ALL_TECHNICAL_ACCEPTANCE_TESTS_HAVE_PR_CI_OWNER=true
+CANARY_ONLY_TECHNICAL_ACCEPTANCE_TESTS=false
+WORKFLOW_SCOPE_LIMIT=ADD_ONLY_THE_FOUR_LISTED_TEST_PATHS
+JOB_COUNT_CHANGE_ALLOWED=false
+TRIGGER_CHANGE_ALLOWED=false
+DATABASE_ISOLATION_CHANGE_ALLOWED=false
+SECURITY_RULE_CHANGE_ALLOWED=false
+```
+
+`ci-shard-manifest.yml` and `.github/workflows/ci.yml` must remain synchronized
+in the future implementation. No workflow or manifest file is modified in
+this docs-only round. No optional path exists outside the twelve-path set.
 
 ## 10. Future implementation changed-file ceiling
 
@@ -617,11 +694,11 @@ ARCHITECTURE_RELATIONSHIP_FROZEN=true
 CANDIDATE_PATHS_EXPLICIT=true
 PATH_COUNT_AND_CEILING_MATHEMATICALLY_EQUAL=true
 IMPLEMENTATION_ALLOCATION_READY=true
-FUTURE_CHANGED_FILE_CEILING=9
+FUTURE_CHANGED_FILE_CEILING=12
 FUTURE_CHANGED_FILES_ARE_PROVISIONAL=true
 ```
 
-The ceiling is exactly the nine paths in `FUTURE_CANDIDATE_CHANGED_PATHS`.
+The ceiling is exactly the twelve paths in `FUTURE_CANDIDATE_CHANGED_PATHS`.
 It includes the future migration path even though migration remains separately
 unauthorized. It includes all candidate test paths and has no hidden optional
 file. The future implementation must not touch frontend, model, parameter,
@@ -635,6 +712,13 @@ docs-only round.
 
 | Gate | Test or evidence | Expected result | Failure class | Before technical acceptance | Before real-data acceptance |
 | --- | --- | --- | --- | --- | --- |
+| Exactly one node accepted | Submit one S2 node with matching run/node cutoff | Complete binding and manifest | structural | Required | Required |
+| Zero node rejected | Submit a request with zero nodes | Structural rejection | structural | Required | Required |
+| Multiple nodes rejected | Submit a request with two S2 nodes | Structural rejection; no partial run | structural | Required | Required |
+| Run/node forecast cutoff match | Alter node cutoff independently from run request | Deterministic rejection | structural | Required | Required |
+| Run label cutoff propagation | Persist one run cutoff and load its node binding | Node binding inherits the run cutoff | structural | Required | Required |
+| Forecast cutoff request-hash sensitivity | Change only `forecast_cutoff_at` | Request hash changes | structural | Required | Required |
+| Label cutoff request-hash sensitivity | Change only `label_observation_cutoff_at_or_null` | Request hash changes | structural | Required | Required |
 | Business-key canonicalization | Same resolved business keys constructed with different database lookup IDs or input order | Same canonical scope and request hash | structural | Required | Required |
 | Numeric ID lookup does not change request hash | Hold business keys constant while changing lookup IDs | Request hash unchanged | structural | Required | Required |
 | Identity resolver version drift | Change resolver version or resolved identity snapshot hash | Instance identity changes and old evidence is not replayed | structural | Required | Required |
