@@ -31,7 +31,6 @@ def _request(**changes: object) -> S2HistoricalBacktestRequest:
         "mapping_policy_version": "mapping-v1",
         "resolved_identity_snapshot_hash": "a" * 64,
         "authority_selection_policy_version": "authority-v1",
-        "single_node_identity_hash": "b" * 64,
         "forecast_cutoff_at": _CUTOFF,
         "label_observation_cutoff_at": _LABEL_CUTOFF,
         "label_visibility_mode": "AS_OF_EVALUATION",
@@ -58,13 +57,25 @@ def _forecast(horizon: int) -> S2HistoricalBindingCandidate:
             data_identity="data-v1",
             available_at=_CUTOFF,
         ),
+        authority_verification="SYNTHETIC_ENGINEERING",
     )
 
 
-def _actual(*, verified: bool = True) -> S2ActualLabelAuthority:
+def _actual(*, target_date=None, verified: bool = True) -> S2ActualLabelAuthority:
+    target_date = target_date or (_CUTOFF.date() + timedelta(days=7))
     return S2ActualLabelAuthority(
         label_snapshot_identity_hash="e" * 64,
+        label_row_identity_hash="1" * 64,
+        label_winner_identity_hash="2" * 64,
         source_identity_hash="f" * 64,
+        actual_source_identity_hash="3" * 64,
+        target_date=target_date,
+        season_business_key="season:2026",
+        farm_business_key="farm:alpha",
+        subfarm_business_key="subfarm:alpha-1",
+        variety_business_key="variety:legacy",
+        business_grain_hash="4" * 64,
+        revision_or_winner_evidence={"revision": 1},
         observed_weight_kg=Decimal("12.500000"),
         visibility_timestamp=_LABEL_CUTOFF,
         physical_alignment_status="VERIFIED" if verified else "UNVERIFIED",
@@ -89,6 +100,18 @@ def test_identity_resolver_version_changes_request_hash() -> None:
     assert s2_request_hash(_request()) != s2_request_hash(
         _request(master_identity_resolver_version="master-v2")
     )
+
+
+def test_caller_arbitrary_node_identity_hash_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="derived canonical S2 node identity"):
+        _request(single_node_identity_hash="b" * 64)
+
+
+def test_unverified_caller_authority_is_rejected_before_binding() -> None:
+    request = _request(requested_horizons_days=[7])
+    candidate = _forecast(7).model_copy(update={"authority_verification": "UNVERIFIED"})
+    with pytest.raises(ValueError, match="not accepted without persisted verification"):
+        build_s2_binding_rows(request, (candidate,))
 
 
 def test_visibility_cutoff_combinations_are_fail_closed() -> None:
@@ -130,7 +153,13 @@ def test_unverified_physical_alignment_is_excluded() -> None:
 def test_three_horizon_rows_are_deterministic_and_comparison_ready() -> None:
     request = _request()
     candidates = tuple(
-        item.model_copy(update={"actual_label": _actual()})
+        item.model_copy(
+            update={
+                "actual_label": _actual(
+                    target_date=_CUTOFF.date() + timedelta(days=item.horizon_days)
+                )
+            }
+        )
         for item in (_forecast(21), _forecast(7), _forecast(14))
     )
     rows = build_s2_binding_rows(request, candidates)

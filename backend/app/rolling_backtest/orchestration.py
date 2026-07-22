@@ -13,6 +13,16 @@ from enum import StrEnum
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.actual_harvest_labels.models import (
+    ActualHarvestLabelSnapshotLabelModel,
+    ActualHarvestLabelSnapshotModel,
+    ActualHarvestLabelSnapshotWinnerModel,
+)
+from backend.app.models.core_forecast import CoreForecastDailyRowModel, CoreForecastRunModel
+from backend.app.models.harvest_state import HarvestStateRun
+from backend.app.models.residual_model import ResidualModelPredictionRun
 from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_payload
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
@@ -27,9 +37,15 @@ from backend.app.rolling_backtest.resolution import (
 from backend.app.rolling_backtest.schemas import (
     PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
+    S2ActualLabelAuthority,
+    S2ForecastAuthorityBundle,
     S2HistoricalBacktestRequest,
     S2HistoricalBindingCandidate,
     S2HistoricalBindingRow,
+)
+from backend.app.rolling_backtest.signatures import (
+    s2_binding_key_hash,
+    s2_binding_row_hash,
 )
 
 # ── Orchestration stage enum ─────────────────────────────────────────────────
@@ -175,6 +191,7 @@ __all__ = [
     "_build_frozen_dag",
     "build_s2_binding_rows",
     "run_s2_historical_binding",
+    "resolve_s2_persisted_authorities",
 ]
 
 
@@ -342,6 +359,10 @@ def build_s2_binding_rows(
 
     by_horizon: dict[int, S2HistoricalBindingCandidate] = {}
     for candidate in candidates:
+        if candidate.authority_verification == "UNVERIFIED":
+            raise ValueError(
+                "caller-supplied authority is not accepted without persisted verification"
+            )
         if candidate.horizon_days in by_horizon:
             raise ValueError("duplicate S2 horizon candidate is a structural failure")
         if candidate.forecast_cutoff_at > request.forecast_cutoff_at:
@@ -380,6 +401,31 @@ def build_s2_binding_rows(
             reason_code = "PHYSICAL_TARGET_ALIGNMENT_UNVERIFIED"
             alignment = actual.physical_alignment_status
 
+        if actual is not None:
+            if actual.label_row_identity_hash is None:
+                raise ValueError("actual label row identity is required")
+            if actual.label_winner_identity_hash is None:
+                raise ValueError("actual label winner identity is required")
+            if actual.target_date != candidate.target_date:
+                raise ValueError("actual label target date does not match binding target date")
+            actual_keys = {
+                actual.season_business_key,
+                actual.farm_business_key,
+                actual.subfarm_business_key,
+                actual.variety_business_key,
+            }
+            if None in actual_keys:
+                raise ValueError("actual label business grain is incomplete")
+            if not (
+                actual.season_business_key in request.season_business_keys
+                and actual.farm_business_key in request.farm_business_keys
+                and actual.subfarm_business_key in request.subfarm_business_keys
+                and actual.variety_business_key in request.variety_business_keys
+            ):
+                raise ValueError("actual label business grain is outside request scope")
+            if actual.business_grain_hash is None:
+                raise ValueError("actual label business grain hash is required")
+
         row_payload: dict[str, object] = {
             "horizon_days": candidate.horizon_days,
             "target_date": candidate.target_date,
@@ -393,8 +439,15 @@ def build_s2_binding_rows(
             "physical_alignment_status": alignment,
             "row_status": row_status,
             "reason_code": reason_code,
+            "binding_key_hash": "0" * 64,
         }
-        row_hash = sha256_payload(canonical_json_value(row_payload))
+        provisional = S2HistoricalBindingRow(
+            **row_payload,
+            row_hash="0" * 64,
+        )
+        row_payload["binding_key_hash"] = s2_binding_key_hash(request, provisional)
+        with_binding_key = S2HistoricalBindingRow(**row_payload, row_hash="0" * 64)
+        row_hash = s2_binding_row_hash(with_binding_key)
         rows.append(S2HistoricalBindingRow(**row_payload, row_hash=row_hash))
     return tuple(rows)
 
@@ -415,6 +468,25 @@ async def run_s2_historical_binding(
 
     from backend.app.rolling_backtest.persistence import persist_s2_historical_binding
 
+    if not candidates:
+        raise ValueError("S2 runner requires at least one persisted authority candidate")
+    verification_modes = {candidate.authority_verification for candidate in candidates}
+    if "PERSISTED" in verification_modes and any(
+        candidate.persisted_authority_references is None for candidate in candidates
+    ):
+        raise ValueError("persisted authority candidates require lookup references")
+    if len(verification_modes) != 1:
+        raise ValueError("S2 candidates must share one authority verification mode")
+    if all(
+        candidate.authority_verification == "PERSISTED"
+        and candidate.persisted_authority_references is not None
+        for candidate in candidates
+    ):
+        candidates = await resolve_s2_persisted_authorities(
+            session,
+            request=request,
+            candidates=candidates,
+        )
     rows = build_s2_binding_rows(request, candidates)
     return await persist_s2_historical_binding(
         session,
@@ -422,3 +494,182 @@ async def run_s2_historical_binding(
         rows=rows,
         season_id=season_id,
     )
+
+
+async def resolve_s2_persisted_authorities(
+    session: AsyncSession,
+    *,
+    request: S2HistoricalBacktestRequest,
+    candidates: tuple[S2HistoricalBindingCandidate, ...],
+) -> tuple[S2HistoricalBindingCandidate, ...]:
+    """Load and verify exact persisted authority rows before binding.
+
+    This adapter is deliberately reference-driven. It never searches for the
+    latest run or snapshot; every relationship is checked against the caller's
+    expected identity and cutoff before a verified candidate is returned.
+    """
+
+    resolved: list[S2HistoricalBindingCandidate] = []
+    for candidate in candidates:
+        refs = candidate.persisted_authority_references
+        if refs is None:
+            raise ValueError("persisted authority references are required")
+        core_run = await session.get(CoreForecastRunModel, refs.core_forecast_run_id)
+        core_row = await session.get(CoreForecastDailyRowModel, refs.core_forecast_daily_row_id)
+        task9 = await session.get(HarvestStateRun, refs.task9_run_id)
+        task10 = await session.get(ResidualModelPredictionRun, refs.task10_prediction_run_id)
+        snapshot = await session.get(ActualHarvestLabelSnapshotModel, refs.label_snapshot_id)
+        label = await session.get(ActualHarvestLabelSnapshotLabelModel, refs.label_row_id)
+        winner = await session.get(ActualHarvestLabelSnapshotWinnerModel, refs.label_winner_id)
+        if any(
+            item is None for item in (core_run, core_row, task9, task10, snapshot, label, winner)
+        ):
+            raise ValueError("required persisted S2 authority is missing")
+        assert core_run is not None
+        assert core_row is not None
+        assert task9 is not None
+        assert task10 is not None
+        assert snapshot is not None
+        assert label is not None
+        assert winner is not None
+        if core_row.core_forecast_run_id != core_run.id or core_row.date != candidate.target_date:
+            raise ValueError("forecast daily row does not belong to requested core run/date")
+        if (
+            core_run.result_hash != candidate.forecast_authority.forecast_run_identity_hash
+            or core_row.row_hash != candidate.forecast_authority.daily_row_identity_hash
+            or task9.result_hash != candidate.forecast_authority.task9_authority_identity_hash
+            or task10.prediction_hash != candidate.forecast_authority.task10_authority_identity_hash
+        ):
+            raise ValueError("persisted forecast/Task 9/Task 10 identity does not match request")
+        if (
+            candidate.forecast_authority.forecast_code_identity != core_run.run_schema_version
+            or candidate.forecast_authority.model_identity != core_run.task8_artifact_hash
+            or candidate.forecast_authority.parameter_identity != core_row.marketable_policy_hash
+            or candidate.forecast_authority.data_identity != core_run.forecast_input_hash
+        ):
+            raise ValueError("persisted forecast identity fields do not match request")
+        if core_run.status != "completed" or task9.status != "completed":
+            raise ValueError("forecast and Task 9 authorities must be completed")
+        if task9.id != core_run.task9_harvest_state_run_id:
+            raise ValueError("Task 9 authority is not bound to the core forecast run")
+        if (
+            core_row.task8_forecast_run_id != core_run.task8_forecast_run_id
+            or core_row.task9_harvest_state_run_id != task9.id
+            or core_row.task9_result_hash != task9.result_hash
+            or core_run.task9_result_hash != task9.result_hash
+            or task10.task9_result_hash != task9.result_hash
+        ):
+            raise ValueError("persisted forecast authority chain is inconsistent")
+        if task10.execution_status != "completed" or task10.task9_run_id != task9.id:
+            raise ValueError("Task 10 authority is not exactly bound to Task 9")
+        if core_run.completed_at > request.forecast_cutoff_at or task10.completed_at is None:
+            raise ValueError("forecast authority is not visible at the forecast cutoff")
+        if task10.completed_at > request.forecast_cutoff_at:
+            raise ValueError("Task 10 authority is not visible at the forecast cutoff")
+        if (
+            label.snapshot_id != snapshot.id
+            or snapshot.visibility_mode != request.label_visibility_mode
+        ):
+            raise ValueError("I7 label row is not bound to the requested snapshot/visibility mode")
+        if (
+            winner.snapshot_id != snapshot.id
+            or winner.season_business_key != label.season_business_key
+            or winner.farm_business_key != label.farm_business_key
+            or winner.subfarm_business_key != label.subfarm_business_key
+            or winner.variety_business_key != label.variety_business_key
+            or winner.harvest_business_date != label.harvest_business_date
+        ):
+            raise ValueError("I7 winner is not the exact winner for the requested label row")
+        if (
+            winner.resolved_identity_snapshot_hash != request.resolved_identity_snapshot_hash
+            or winner.mapping_policy_version != request.mapping_policy_version
+        ):
+            raise ValueError("I7 resolver/mapping identity does not match request")
+        if any(
+            value is None
+            for value in (winner.season_id, winner.farm_id, winner.subfarm_id, winner.variety_id)
+        ):
+            raise ValueError("I7 winner is missing resolved numeric identity references")
+        if (
+            core_row.farm_id != winner.farm_id
+            or core_row.subfarm_id != winner.subfarm_id
+            or core_row.variety_id != winner.variety_id
+        ):
+            raise ValueError("forecast row identity does not match persisted I7 grain")
+        business_grain_hash = sha256_payload(
+            canonical_json_value(
+                {
+                    "season": label.season_business_key,
+                    "farm": label.farm_business_key,
+                    "subfarm": label.subfarm_business_key,
+                    "variety": label.variety_business_key,
+                    "harvest_business_date": label.harvest_business_date,
+                }
+            )
+        )
+        if candidate.actual_label is not None and (
+            candidate.actual_label.label_snapshot_identity_hash != snapshot.label_snapshot_hash
+            or candidate.actual_label.label_row_identity_hash != label.label_row_hash
+            or candidate.actual_label.label_winner_identity_hash != winner.winner_row_hash
+            or candidate.actual_label.source_identity_hash
+            != snapshot.source_commit_manifest_set_hash
+            or candidate.actual_label.actual_source_identity_hash != winner.commit_manifest_hash
+            or candidate.actual_label.target_date != label.harvest_business_date
+            or candidate.actual_label.season_business_key != label.season_business_key
+            or candidate.actual_label.farm_business_key != label.farm_business_key
+            or candidate.actual_label.subfarm_business_key != label.subfarm_business_key
+            or candidate.actual_label.variety_business_key != label.variety_business_key
+            or candidate.actual_label.business_grain_hash != business_grain_hash
+            or candidate.actual_label.observed_weight_kg != label.exact_decimal_quantity_sum_kg
+            or candidate.actual_label.visibility_timestamp != snapshot.snapshot_executed_at
+        ):
+            raise ValueError("persisted I7 identity does not match request")
+        if request.label_observation_cutoff_at is not None:
+            if snapshot.label_observation_cutoff_at_or_null != request.label_observation_cutoff_at:
+                raise ValueError("I7 snapshot label cutoff mismatch")
+            if snapshot.snapshot_executed_at > request.label_observation_cutoff_at:
+                raise ValueError("I7 snapshot is visible after the label cutoff")
+        actual = S2ActualLabelAuthority(
+            label_snapshot_identity_hash=snapshot.label_snapshot_hash,
+            label_row_identity_hash=label.label_row_hash,
+            label_winner_identity_hash=winner.winner_row_hash,
+            source_identity_hash=snapshot.source_commit_manifest_set_hash,
+            actual_source_identity_hash=winner.commit_manifest_hash,
+            target_date=label.harvest_business_date,
+            season_business_key=label.season_business_key,
+            farm_business_key=label.farm_business_key,
+            subfarm_business_key=label.subfarm_business_key,
+            variety_business_key=label.variety_business_key,
+            business_grain_hash=business_grain_hash,
+            revision_or_winner_evidence={
+                "external_logical_record_ids": [winner.external_logical_record_id],
+                "external_revision_ids": [winner.external_revision_id],
+                "revision_number": winner.revision_number,
+                "winner_row_hash": winner.winner_row_hash,
+            },
+            observed_weight_kg=label.exact_decimal_quantity_sum_kg,
+            visibility_timestamp=snapshot.snapshot_executed_at,
+            physical_alignment_status="VERIFIED",
+        )
+        forecast = S2ForecastAuthorityBundle(
+            forecast_run_identity_hash=core_run.result_hash,
+            daily_row_identity_hash=core_row.row_hash,
+            task9_authority_identity_hash=task9.result_hash,
+            task10_authority_identity_hash=task10.prediction_hash,
+            forecast_code_identity=core_run.run_schema_version,
+            model_identity=core_run.task8_artifact_hash,
+            parameter_identity=core_row.marketable_policy_hash,
+            data_identity=core_run.forecast_input_hash,
+            available_at=max(core_run.completed_at, task10.completed_at),
+        )
+        resolved.append(
+            candidate.model_copy(
+                update={
+                    "forecast_value_kg": core_row.model_harvested_marketable_quantity_kg,
+                    "forecast_authority": forecast,
+                    "actual_label": actual,
+                    "authority_verification": "PERSISTED",
+                }
+            )
+        )
+    return tuple(resolved)

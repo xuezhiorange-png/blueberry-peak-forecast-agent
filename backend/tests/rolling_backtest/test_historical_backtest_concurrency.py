@@ -36,17 +36,16 @@ def _require_postgres() -> None:
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
 
 
-def _request() -> S2HistoricalBacktestRequest:
+def _request(suffix: str = "concurrency") -> S2HistoricalBacktestRequest:
     return S2HistoricalBacktestRequest(
-        season_business_keys=("season:2026",),
-        farm_business_keys=("farm:alpha",),
-        subfarm_business_keys=("subfarm:alpha-1",),
-        variety_business_keys=("variety:legacy",),
+        season_business_keys=(f"season:2026:{suffix}",),
+        farm_business_keys=(f"farm:alpha:{suffix}",),
+        subfarm_business_keys=(f"subfarm:alpha-1:{suffix}",),
+        variety_business_keys=(f"variety:legacy:{suffix}",),
         master_identity_resolver_version="master-v1",
         mapping_policy_version="mapping-v1",
         resolved_identity_snapshot_hash="a" * 64,
         authority_selection_policy_version="authority-v1",
-        single_node_identity_hash="b" * 64,
         forecast_cutoff_at=_CUTOFF,
         label_observation_cutoff_at=_LABEL_CUTOFF,
         label_visibility_mode="AS_OF_EVALUATION",
@@ -76,11 +75,22 @@ def _candidate(
             ),
             actual_label=S2ActualLabelAuthority(
                 label_snapshot_identity_hash="5" * 64,
+                label_row_identity_hash="7" * 64,
+                label_winner_identity_hash="8" * 64,
                 source_identity_hash="6" * 64,
+                actual_source_identity_hash="9" * 64,
+                target_date=_CUTOFF.date() + timedelta(days=7),
+                season_business_key="season:2026:concurrency",
+                farm_business_key="farm:alpha:concurrency",
+                subfarm_business_key="subfarm:alpha-1:concurrency",
+                variety_business_key="variety:legacy:concurrency",
+                business_grain_hash="a" * 64,
+                revision_or_winner_evidence={"revision": 1},
                 observed_weight_kg=Decimal("8.000000"),
                 visibility_timestamp=_LABEL_CUTOFF,
                 physical_alignment_status="VERIFIED",
             ),
+            authority_verification="SYNTHETIC_ENGINEERING",
         ),
     )
 
