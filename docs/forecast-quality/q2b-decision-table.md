@@ -26,17 +26,19 @@
 | duplicate label row policy | READY | I7 snapshot uniqueness and immutable evidence |
 | missing-day policy | READY | no zero-fill; explicit mask exclusion |
 | leakage failure taxonomy | READY | contract enumerates structural and evaluation exclusions |
-| daily MAE | PARTIAL | current helper exists; no Q2B materializer |
-| daily WAPE | PARTIAL | current WMAPE helper exists; no Q2B materializer |
-| daily sMAPE | NOT_IMPLEMENTED | Q2B contract only |
-| daily MAPE | PARTIAL | Q1 uses actual > 0 denominator with eligibility/exclusion counts; Q2B materializer absent |
-| daily signed bias | NOT_IMPLEMENTED | Q2B contract only |
-| daily relative bias | NOT_IMPLEMENTED | Q2B contract only |
-| cumulative absolute/signed error | PARTIAL | Q2B distinguishes absolute total from signed total; no Q2B evidence |
-| cumulative absolute relative error | PARTIAL | related helper exists; Q2B policy differs |
-| single-day peak errors | PARTIAL | P50 helpers exist; Q2B per-quantile target contract only |
-| P80/P90 coverage | PARTIAL | current P50 coverage is not Q2B coverage |
-| P80/P90 upper spread | PARTIAL | upper spread is not an interval width without an explicit lower bound |
+| daily MAE | PARTIAL / P50_ONLY | current helper exists; no Q2B materializer |
+| daily WAPE | PARTIAL / P50_ONLY | current WMAPE helper exists; no Q2B materializer |
+| daily sMAPE | NOT_IMPLEMENTED / P50_ONLY | Q2B contract only |
+| daily MAPE | PARTIAL / P50_ONLY | Q1 uses actual > 0 denominator with eligibility/exclusion counts; Q2B materializer absent |
+| daily bias | NOT_IMPLEMENTED / P50_ONLY | Q2B contract only |
+| daily relative bias | NOT_IMPLEMENTED / P50_ONLY | all comparable rows remain in numerator; zero total actual is not computable |
+| season cumulative actual/forecast/error | PARTIAL / P50_ONLY | Q1 formulas are frozen; no Q2B evidence |
+| daily absolute error sum | PARTIAL / P50_ONLY | separate sum(abs(forecast_p50-actual)); not a cumulative-relative numerator |
+| cumulative absolute relative error | PARTIAL / P50_ONLY | absolute season-total error divided by absolute season-total actual |
+| single-day peak fields | PARTIAL / P50_P80_P90 | exact per-quantile date and quantity fields are frozen |
+| quantile coverage | BLOCKED | conditional on verified true upper-quantile semantics |
+| pinball loss | BLOCKED | conditional on verified quantile semantics |
+| P80/P90 upper spread | BLOCKED | not an interval width; lower bound unavailable and quantile gate is unmet |
 | P50/P80/P90 semantics | BLOCKED | semantics not verified; coverage and pinball loss not computable |
 | 7/14/21-day horizons | NOT_IMPLEMENTED | Q2B contract only |
 | Q3 sustained seven-day metric | NOT_AUTHORIZED | Q3 |
@@ -57,6 +59,11 @@ Q2B_BLOCKER_SET=
   FORECAST_AUTHORITY_NOT_FULLY_BOUND
   HISTORICAL_CODE_IDENTITY_NOT_BOUND
   QUANTILE_SEMANTICS_NOT_VERIFIED
+POINT_METRIC_QUANTILE=P50_ONLY
+SINGLE_DAY_PEAK_QUANTILES=P50_P80_P90
+QUANTILE_COVERAGE_DESIGN=CONDITIONAL_NOT_COMPUTABLE
+PINBALL_LOSS_DESIGN=CONDITIONAL_NOT_COMPUTABLE
+INTERVAL_WIDTH_STATUS=NOT_COMPUTABLE_LOWER_BOUND_UNAVAILABLE
 ```
 
 This does not authorize implementation. A future authorization must first
