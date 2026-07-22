@@ -64,11 +64,39 @@ This reclassification does not approve real-data execution or release. It separa
 
 ```text
 EXTERNAL_ATTESTATION_REQUIRED_FOR_RUNNER_IMPLEMENTATION=false
-EXTERNAL_ATTESTATION_REQUIRED_FOR_SYNTHETIC_ACCEPTANCE=false
+EXTERNAL_ATTESTATION_REQUIRED_FOR_SYNTHETIC_ENGINEERING_ACCEPTANCE=false
 EXTERNAL_ATTESTATION_REQUIRED_FOR_REAL_DATA_ACCEPTANCE=true
 
 REAL_DATA_REQUIRED_FOR_RUNNER_IMPLEMENTATION=false
 REAL_DATA_REQUIRED_FOR_RELEASE_ACCEPTANCE=true
+```
+
+Synthetic engineering acceptance is not business or release acceptance:
+
+```text
+SYNTHETIC_ENGINEERING_ACCEPTANCE_DOES_NOT_IMPLY=
+  BUSINESS_TARGET_EQUIVALENCE
+  REAL_DATA_COVERAGE
+  FORECAST_QUALITY
+  REAL_DATA_BACKTEST_ACCEPTANCE
+  RELEASE_ACCEPTANCE
+```
+
+The old Q2B blocker labels for forecast authority and historical code identity are implementation deliverable and technical acceptance gates, not prerequisites for starting an independently authorized runner implementation:
+
+```text
+FORECAST_AUTHORITY_NOT_FULLY_BOUND=S2_RUNNER_IMPLEMENTATION_DELIVERABLE_AND_TECHNICAL_ACCEPTANCE_GATE
+HISTORICAL_CODE_IDENTITY_NOT_BOUND=S2_RUNNER_IMPLEMENTATION_DELIVERABLE_AND_TECHNICAL_ACCEPTANCE_GATE
+S2_IMPLEMENTATION_START_REQUIRES_THESE_GATES_PRE_CLOSED=false
+S2_IMPLEMENTATION_ACCEPTANCE_REQUIRES_THESE_GATES_CLOSED=true
+```
+
+The three gate stages are intentionally separate:
+
+```text
+IMPLEMENTATION_START_ELIGIBILITY=ELIGIBLE_AFTER_SCOPE_RECONCILIATION_ACCEPTANCE
+IMPLEMENTATION_TECHNICAL_ACCEPTANCE=BLOCKED_PENDING_S2_RUNNER_EVIDENCE
+REAL_DATA_EXECUTION_AND_RELEASE_ACCEPTANCE=BLOCKED_PENDING_APPROVED_REAL_DATA_EVIDENCE
 ```
 
 ## Fail-closed runner behavior
@@ -123,6 +151,8 @@ synthetic deterministic E2E fixture
 
 This list is a scope boundary, not implementation authorization.
 
+Before S2 technical acceptance, the implementation must prove the historical forecast authority bundle, forecast code/model/parameter/data identities, exact Task 9 and Task 10 authority binding, I7 immutable label snapshot binding, no latest or unversioned authority fallback, deterministic hashes, evidence drift rejection, synthetic deterministic E2E, PostgreSQL persistence and concurrency acceptance, comparison-ready 7/14/21-day binding rows, coverage/exclusion manifest, and immutable backtest manifest. These requirements close `FORECAST_AUTHORITY_NOT_FULLY_BOUND` and `HISTORICAL_CODE_IDENTITY_NOT_BOUND`; synthetic evidence cannot close the real-data gates.
+
 ## S3 exclusion
 
 S2 produces comparison-ready binding rows, coverage, exclusions, and manifest evidence only. The following remain V0.2-S3 and are excluded from the S2 runner:
@@ -169,6 +199,21 @@ NEXT_GATE_AFTER_RECONCILIATION=SEPARATE_V0_2_S2_BACKTEST_RUNNER_IMPLEMENTATION_A
 ```
 
 Eligibility after acceptance means the scope blocker has been classified correctly. It does not authorize implementation, synthetic acceptance, real-data execution, release, or any later slice.
+
+## Forward precedence and historical records
+
+```text
+FOR_FORWARD_S2_IMPLEMENTATION_READINESS_ONLY=true
+SUPERSEDED_FORWARD_STATUS_ASSERTIONS=
+  Q2B_IMPLEMENTATION_READINESS_BLOCKED_BY_REAL_DATA_FIRST
+  FUTURE_AUTHORIZATION_REQUIRES_REAL_DATA_AND_ATTESTATION_FIRST
+
+HISTORICAL_Q2A_TO_Q2F_AUDIT_EVIDENCE_REMAINS_VALID=true
+HISTORICAL_DESIGN_PROVENANCE_REMAINS_VALID=true
+FROZEN_FAIL_CLOSED_IDENTITY_AND_LEAKAGE_CONTRACTS_REMAIN_VALID=true
+```
+
+This document does not delete, rewrite, or declare the historical Q2A-Q2F audit invalid. It only supersedes forward-looking statements that treat real-data evidence as a prerequisite to starting S2 runner implementation. The historical identity, dual-cutoff, leakage, missing-day, revision, actual-label, and fail-closed contracts remain valid. This reconciliation cannot bypass the S2 technical acceptance gates or authorize the runner.
 
 ## Governance and exclusions
 
