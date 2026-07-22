@@ -4,6 +4,8 @@
 > Base: `6a2489e8685d2ffb2cff83597503f2dcd0203621`
 > Issue: #102
 > No live production rows, DDL, DML or backtest execution were performed.
+> Aggregate-only database discovery was attempted with repository test
+> configuration, but the local PostgreSQL client/container was unavailable.
 
 ## 1. Baseline and evidence boundary
 
@@ -33,7 +35,7 @@ data. No DSN was opened and no row-level business data was exported.
 | replay-trained Task 10 | `replay_trained_*`, Task 12 documents/tests | PARTIAL | explicit policy and cutoff filters exist, but this is not the Q2B runner |
 | I7 actual-harvest snapshot | `actual_harvest_labels/service.py`, `models.py`, migration 0021 | PRODUCTION_IMPLEMENTED | immutable AS-OF and FINAL-ADJUDICATED evidence exists |
 | I7 snapshot identity hashes | `actual_harvest_labels/hashes.py`, `service.py` | PRODUCTION_IMPLEMENTED | request/instance/manifest/label hashes are persisted |
-| actual-harvest source records | no direct FARM_PICK production model/table in audited repository | ABSENT | physical evaluation is blocked without a real source |
+| actual-harvest source records | `actual_harvest_import_batch` / `actual_harvest_import_record`, commit evidence, and I7 snapshot path | PRODUCTION_IMPLEMENTED | source path exists; real committed rows still require verification |
 | receipt facts | `models/analytics.py:87`, `FactReceiptDaily` | PRODUCTION_IMPLEMENTED | arrival/receipt proxy only, never primary actual harvest |
 | metrics: current rolling slice | `rolling_backtest/metrics.py`, `service.py`, `cli.py` | PARTIAL | pure metric helpers exist; Q2B binding, mask and target proof do not |
 | metric golden/helper tests | `backend/tests/rolling_backtest` and related tests | TEST_ONLY | evidence of formulas, not production runner authority |
@@ -48,12 +50,17 @@ carried by request/location/season context; variety appears in
 self-contained I7 label-grain row.
 
 `backend/app/models/core_forecast.py:154` defines
-`CoreForecastDailyRowModel`. Its unique business key is
-`core_forecast_run_id`, date, farm, subfarm, variety and quantile. This is the
-preferred structural candidate for Q2B alignment because it matches the I7
-identity dimensions, but the audited code does not prove that its
-`model_harvested_marketable_quantity_kg` is the same physical event as a
-FARM_PICK observed weight.
+`CoreForecastDailyRowModel`. Q2B v1 freezes this as the forecast authority. Its
+unique business key is `core_forecast_run_id`, date, farm, subfarm, variety and
+quantile. This matches the I7 identity dimensions. The Agent aggregate
+`ForecastDailyRow` is explicitly not used by Q2B v1. The audited code does not
+prove that `model_harvested_marketable_quantity_kg` is the same physical event
+as a FARM_PICK observed weight.
+
+```text
+Q2B_V1_FORECAST_OUTPUT_AUTHORITY=CORE_FORECAST_DAILY_ROW
+AGENT_FORECAST_DAILY_ROW_AUTHORITY=NOT_USED_BY_Q2B_V1
+```
 
 `backend/app/models/analytics.py:87` defines `FactReceiptDaily` at season,
 receipt date, factory, farm key, subfarm key and variety, with `weight_kg`.
@@ -71,14 +78,26 @@ rows aggregate exact Decimal actual quantity at
 `SEASON x FARM x SUBFARM x VARIETY x HARVEST_BUSINESS_DATE`.
 
 This proves that I7 can supply an immutable evaluation snapshot once a valid
-source commit exists. It does not prove the existence of a production FARM_PICK
-source in this repository. The Q2A data audit therefore remains:
+source commit exists. The repository also contains the production FARM_PICK
+ingestion and commit path; this audit does not prove that real committed
+business rows or an external business connection are available.
 
 ```text
-DIRECT_ACTUAL_HARVEST_SOURCE_STATUS=NOT_FOUND_IN_CURRENT_REPOSITORY
-LIVE_DATABASE_SOURCE_DISCOVERY_STATUS=NOT_EXECUTED
-EXTERNAL_BUSINESS_SOURCE_DISCOVERY_STATUS=NOT_AUTHORIZED_NOT_EXECUTED
-REAL_DATA_COVERAGE_STATUS=NOT_VERIFIED_SOURCE_UNAVAILABLE
+FARM_PICK_INGESTION_SCHEMA=PRODUCTION_IMPLEMENTED
+FARM_PICK_PHYSICAL_EVENT_ATTESTATION=PRODUCTION_IMPLEMENTED
+FARM_PICK_RECORD_QUANTITY_FIELD=actual_harvest_quantity_kg
+FARM_PICK_I7_SNAPSHOT_PATH=PRODUCTION_IMPLEMENTED
+REAL_COMMITTED_FARM_PICK_DATA=NOT_VERIFIED
+EXTERNAL_BUSINESS_SOURCE_CONNECTION=NOT_VERIFIED
+```
+
+The Q2A data audit therefore records:
+
+```text
+DIRECT_ACTUAL_HARVEST_SOURCE_STATUS=PRODUCTION_IMPLEMENTED_PATH
+LIVE_DATABASE_SOURCE_DISCOVERY_STATUS=ATTEMPTED_CLIENT_UNAVAILABLE
+EXTERNAL_BUSINESS_SOURCE_DISCOVERY_STATUS=NOT_VERIFIED
+REAL_DATA_COVERAGE_STATUS=NOT_VERIFIED_SOURCE_UNREACHABLE
 PRIMARY_ACTUAL_HARVEST_LABEL_READY=NO
 ```
 
@@ -108,13 +127,14 @@ production backtest runner.
 | `daily_mae` | PARTIAL | `mean_absolute_error` helper exists; no Q2B aligned-row materializer |
 | `daily_wape` | PARTIAL | `wmape` helper exists; no dual-cutoff binding |
 | `daily_smape` | ABSENT | no frozen Q2B sMAPE implementation |
-| `daily_zero_safe_mape` | ABSENT | no Q2B epsilon policy implementation |
+| `daily_mape` | PARTIAL | Q1 denominator contract is specified; no Q2B aligned-row materializer |
 | `daily_signed_bias` | ABSENT | no Q2B daily signed-bias implementation |
-| cumulative absolute/signed error | PARTIAL | related cumulative formulas exist, not Q2B scoped evidence |
+| `daily_relative_bias` | ABSENT | no Q2B daily relative-bias implementation |
+| cumulative absolute/signed error | PARTIAL | Q2B distinguishes absolute total from signed total; no Q2B evidence |
 | cumulative absolute relative error | PARTIAL | related cumulative relative helper exists; Q2B contract differs and lacks runner |
 | single-day peak date/quantity errors | PARTIAL | P50 peak helpers exist; Q2B per-quantile target-bound metrics do not |
 | P80/P90 coverage | PARTIAL | current coverage slice is P50-oriented, not Q2B P80/P90 target contract |
-| P80/P90 interval width | PARTIAL | related interval-width helper exists, no Q2B materialization |
+| P80/P90 upper spread | PARTIAL | upper spreads are not interval widths without lower bounds |
 | horizons 7/14/21 | ABSENT | no Q2B horizon-scoped runner/evidence |
 | sustained seven-day peak | NOT_AUTHORIZED | Q3 scope |
 | naive baseline | NOT_AUTHORIZED | Q4 scope |
@@ -122,14 +142,14 @@ production backtest runner.
 
 ## 7. Data inventory result
 
-The inventory was read-only and aggregate-only. No live DSN was opened because
-the repository contains no authorized production actual-harvest source and no
-local database file in the isolated worktree. The inventory is therefore a
-schema/source inventory, not a row count claim.
+The inventory was read-only and aggregate-only. Discovery was attempted using
+the repository's test configuration and service definitions, but no PostgreSQL
+client/container was available in this environment. The inventory is therefore
+a schema/source inventory, not a row count claim.
 
 | source | schema evidence | safe inventory result | status |
 |---|---|---|---|
-| direct FARM_PICK source | no model/table/migration found in audited scope | zero repository objects found; no live row claim | NOT_VERIFIED_SOURCE_UNAVAILABLE |
+| direct FARM_PICK source | import, commit, and I7 snapshot schema/path exists | no live rows queried; client unavailable | NOT_VERIFIED |
 | receipt/arrival proxy | `FactReceiptDaily` and analytics migrations | object exists; no rows queried | PRODUCTION_SCHEMA_ONLY |
 | I5 committed evidence | actual-harvest import/commit tables and hashes | object exists; no rows queried | PRODUCTION_SCHEMA_ONLY |
 | I7 snapshot | four snapshot tables and immutable triggers | object exists; no rows queried | PRODUCTION_SCHEMA_ONLY |
@@ -137,8 +157,19 @@ schema/source inventory, not a row count claim.
 | forecast output | core forecast run/daily rows and Agent schemas | output schema exists; no rows queried | PRODUCTION_SCHEMA_ONLY |
 
 No fixture, test row, receipt row, or I7 test snapshot is promoted to real
-business data. Until an authorized source artifact and a real aligned example
-are supplied, Q2B implementation readiness is `NO`.
+business data. Q1 previously recorded `NOT_VERIFIED_EMPTY_DATABASE`. Current
+reverification was attempted using repository test configuration but could not
+run because the PostgreSQL client/container was unavailable:
+
+```text
+Q2B_DATABASE_REVERIFICATION=ATTEMPTED_CLIENT_UNAVAILABLE
+LAST_VERIFIED_Q1_STATUS=NOT_VERIFIED_EMPTY_DATABASE
+CURRENT_AVAILABILITY=UNKNOWN
+REAL_DATA_DISCOVERY_STATUS=NOT_VERIFIED_SOURCE_UNREACHABLE
+```
+
+No row counts, min/max dates, distinct identity counts, or source coverage are
+claimed in this round.
 
 ## 8. Final audit conclusion
 
@@ -148,7 +179,7 @@ RETROSPECTIVE_REPLAY_STATUS=PRODUCTION_PARTIAL_TASK9_AUTHORITY_ONLY
 TASK9_REPLAY_AUTHORITY_STATUS=PRODUCTION_IMPLEMENTED
 TASK10_AUTHORITY_BINDING_STATUS=PARTIAL_EXACT_BINDING_NO_Q2B_RUNNER
 FORECAST_PHYSICAL_TARGET_ALIGNMENT=BLOCKED_BY_PHYSICAL_TARGET_GAP
-FORECAST_LABEL_GRAIN_ALIGNMENT=BLOCKED_BY_GRAIN_ALIGNMENT
+FORECAST_LABEL_GRAIN_ALIGNMENT=PARTIAL_STRUCTURALLY_COMPATIBLE_NOT_ACCEPTED
 DUAL_CUTOFF_MODEL=DESIGN_FROZEN_NOT_IMPLEMENTED
 HISTORICAL_CODE_IDENTITY=PARTIAL_NOT_Q2B_BOUND
 HISTORICAL_PARAMETER_IDENTITY=PARTIAL_TASK9_AUTHORITY_ONLY
@@ -158,10 +189,14 @@ QUANTILE_COVERAGE_DESIGN=DESIGN_FROZEN
 SINGLE_DAY_PEAK_DESIGN=DESIGN_FROZEN
 SUSTAINED_7DAY_STATUS=NOT_AUTHORIZED_Q3
 NAIVE_BASELINE_STATUS=NOT_AUTHORIZED_Q4
-REAL_DATA_COVERAGE_STATUS=NOT_VERIFIED_SOURCE_UNAVAILABLE
-Q2B_IMPLEMENTATION_READINESS=BLOCKED_BY_DATA
+REAL_DATA_COVERAGE_STATUS=NOT_VERIFIED_SOURCE_UNREACHABLE
+Q2B_V1_FORECAST_AUTHORITY=CORE_FORECAST_DAILY_ROW
+AGENT_FORECAST_DAILY_ROW_AUTHORITY=NOT_USED_BY_Q2B_V1
+Q2B_DATABASE_REVERIFICATION=ATTEMPTED_CLIENT_UNAVAILABLE
+Q2B_IMPLEMENTATION_READINESS=BLOCKED
 ```
 
-The primary blocker is missing verifiable FARM_PICK data. Physical target and
-grain alignment are independent secondary blockers and must be resolved before
+The FARM_PICK ingestion and snapshot path is implemented, but real committed
+data is not verified. Physical target equivalence, historical code identity,
+and quantile semantics remain independent blockers and must be resolved before
 implementation authorization.
