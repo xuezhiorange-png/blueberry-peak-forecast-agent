@@ -247,6 +247,21 @@ The request hash includes `single_node_identity_hash`,
 horizons, and resolver/mapping/policy versions. There are no two independently
 mutable forecast cutoffs.
 
+```text
+CANONICAL_FORECAST_CUTOFF_OWNER=RollingBacktestRun.BacktestRequest
+ROLLING_NODE_FORECAST_CUTOFF_ROLE=MATERIALIZED_EXECUTION_PROJECTION
+RUN_NODE_FORECAST_CUTOFF_EQUALITY_REQUIRED=true
+INDEPENDENT_NODE_CUTOFF_MUTATION_ALLOWED=false
+CANONICAL_LABEL_CUTOFF_OWNER=RollingBacktestRun.BacktestRequest
+NODE_LABEL_CUTOFF_ROLE=INHERITED_BINDING_CONTEXT
+```
+
+The request payload and request hash are semantic authority. The node
+`forecast_cutoff_at` is a materialized execution projection: node creation,
+load, and replay must revalidate equality with the request cutoff. The node
+label cutoff is inherited binding context, not a second owner. No cutoff may be
+independently updated after request creation.
+
 The future database/service acceptance must enforce:
 
 ```text
@@ -267,6 +282,34 @@ RUN_LEVEL_LABEL_CUTOFF_PROPAGATES_TO_NODE_BINDING=true
 REQUEST_HASH_CHANGES_WHEN_FORECAST_CUTOFF_CHANGES=true
 REQUEST_HASH_CHANGES_WHEN_LABEL_CUTOFF_CHANGES=true
 ```
+
+### 2.7 S2 compatibility discriminator
+
+The exactly-one-node and dual-cutoff rules are conditional S2 rules. They must
+not be retroactively applied to existing legacy rolling-backtest rows.
+
+```text
+S2_DISCRIMINATOR_FIELD=s2_contract_version_or_null
+S2_CONTRACT_VERSION=v0.2-s2-historical-binding-v1
+S2_DISCRIMINATOR_OWNER=RollingBacktestRun
+
+s2_contract_version_or_null IS NULL=LEGACY_NON_S2_ROLLING_BACKTEST_RUN
+s2_contract_version_or_null = v0.2-s2-historical-binding-v1=S2_HISTORICAL_BINDING_RUN
+
+ROLLING_BACKTEST_LEGACY_MULTI_NODE_REMAINS_VALID=true
+LEGACY_ROWS_RECLASSIFIED_AS_S2=false
+LEGACY_ROWS_REQUIRE_S2_BACKFILL=false
+S2_EXACTLY_ONE_NODE_CONSTRAINT_IS_CONDITIONAL=true
+S2_DUAL_CUTOFF_CONSTRAINTS_ARE_CONDITIONAL=true
+S2_REQUIRED_COLUMNS_ARE_CONDITIONAL=true
+```
+
+The existing `execution_mode=historical_observed` and
+`execution_mode=retrospective_replay` values are not S2 discriminators. They
+belong to the existing rolling contract and cannot be treated as the S2
+contract version. A null discriminator preserves legacy multi-node behavior;
+the exact S2 contract version activates the conditional S2 preflight,
+constraints, and acceptance gates.
 
 ## 3. Three-stage gate model
 
@@ -609,6 +652,26 @@ PostgreSQL unique/FK/immutable-evidence acceptance, rollback with no partial
 evidence, idempotency conflicts, and foreign-key ownership. No future
 migration is approved here.
 
+### 8.3 Legacy migration compatibility
+
+Any future migration must preserve existing rolling-backtest rows and apply S2
+requirements only when the discriminator is present:
+
+```text
+EXISTING_ROLLING_BACKTEST_ROWS_PRESERVED=true
+NEW_S2_COLUMNS_NULLABLE_FOR_LEGACY_ROWS=true
+S2_NOT_NULL_REQUIREMENTS_CONDITIONAL=true
+S2_UNIQUE_CONSTRAINTS_PARTIAL_OR_CONDITIONALLY_ENFORCED=true
+LEGACY_RUN_SIGNATURE_UNCHANGED=true
+LEGACY_MULTI_NODE_CONFIG_UNCHANGED=true
+S2_CONSTRAINT_CONDITION=s2_contract_version_or_null IS NOT NULL
+```
+
+No migration may force every historical `rolling_backtest_run` row to have
+`s2_node_count=1`, a non-null `backtest_request_hash`, or a non-null
+`label_visibility_mode`. Partial unique indexes, checks, and triggers must
+use the S2 discriminator condition and must not collide with legacy rows.
+
 ## 9. File allocation matrix
 
 The architecture decision makes the candidate path set finite and deduplicated.
@@ -660,22 +723,30 @@ CI_SHARD_MANIFEST_CHANGE_REQUIRED_FOR_FUTURE_IMPLEMENTATION=true
 
 The candidate test paths have explicit CI ownership:
 
-| TEST_PATH | PYTEST_MARKERS | PR_CI_OWNER_JOB | CURRENTLY_EXECUTED_BY_OWNER | REQUIRED_CI_CHANGE | CANARY_ONLY |
-| --- | --- | --- | --- | --- | --- |
-| `backend/tests/rolling_backtest/test_historical_backtest_contracts.py` | `not postgres and not integration` | `unit-contract-golden` | No, future path | Add to fixed unit-contract command | false |
-| `backend/tests/integration/test_rolling_backtest_historical_binding.py` | `integration and not postgres_concurrency` | `postgres-domain-2` | No, future path | Add to fixed postgres-domain-2 command | false |
-| `backend/tests/rolling_backtest/test_historical_backtest_concurrency.py` | `postgres_concurrency` | `postgres-concurrency` | No, future path | Add path and marker to concurrency command | false |
-| `backend/tests/test_historical_backtest_alembic.py` | `postgres_migration` | `postgres-migration` | No, future path | Add to fixed migration command | false |
+| TEST_PATH | PYTEST_MARKERS | PR_CI_OWNER_JOB | CURRENTLY_EXECUTED_BY_OWNER | REQUIRED_WORKFLOW_COMMAND_CHANGE | REQUIRED_SHARD_MANIFEST_PATH_CHANGE | REQUIRED_MARKERS | CANARY_ONLY |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `backend/tests/rolling_backtest/test_historical_backtest_contracts.py` | `not integration and not postgres and not postgres_concurrency` | `unit-contract-golden` | Yes, repository-wide residual selector | NO | NO | residual marker selector | false |
+| `backend/tests/integration/test_rolling_backtest_historical_binding.py` | `integration, postgres` | `postgres-domain-2` | No, future path | YES | YES | `integration`, `postgres` | false |
+| `backend/tests/rolling_backtest/test_historical_backtest_concurrency.py` | `postgres_concurrency` | `postgres-concurrency` | No, future path | YES | YES | active `postgres_concurrency`; optional additive `concurrency` | false |
+| `backend/tests/test_historical_backtest_alembic.py` | `migration` | `postgres-migration` | No, future path | YES | YES | `migration` | false |
 
-The four test paths are not currently executed by their owners; the required
-workflow and `ci-shard-manifest.yml` changes are therefore explicit future
-implementation candidates. The two PostgreSQL/migration paths are not moved to
-`full-suite-canary`, and no test is canary-only:
+The unit contract path is already executed by the repository-wide residual
+selector. The other three paths require explicit additions to the corresponding
+workflow command and `ci-shard-manifest.yml` ownership list. The additions are:
 
 ```text
+WORKFLOW_COMMAND_PATH_ADDITIONS=
+  backend/tests/integration/test_rolling_backtest_historical_binding.py
+  backend/tests/rolling_backtest/test_historical_backtest_concurrency.py
+  backend/tests/test_historical_backtest_alembic.py
+WORKFLOW_COMMAND_PATH_ADDITION_COUNT=3
+UNIT_CONTRACT_TEST_AUTO_DISCOVERED=true
+DUPLICATE_PR_EXECUTION_ALLOWED=false
 ALL_TECHNICAL_ACCEPTANCE_TESTS_HAVE_PR_CI_OWNER=true
 CANARY_ONLY_TECHNICAL_ACCEPTANCE_TESTS=false
-WORKFLOW_SCOPE_LIMIT=ADD_ONLY_THE_FOUR_LISTED_TEST_PATHS
+CI_SELECTOR_MODEL_MATCHES_CURRENT_WORKFLOW=true
+SINGLE_EXECUTION_CONTRACT_PRESERVED=true
+WORKFLOW_SCOPE_LIMIT=ADD_ONLY_THE_THREE_NON_UNIT_PATHS
 JOB_COUNT_CHANGE_ALLOWED=false
 TRIGGER_CHANGE_ALLOWED=false
 DATABASE_ISOLATION_CHANGE_ALLOWED=false
@@ -712,11 +783,19 @@ docs-only round.
 
 | Gate | Test or evidence | Expected result | Failure class | Before technical acceptance | Before real-data acceptance |
 | --- | --- | --- | --- | --- | --- |
+| Legacy multi-node config remains valid | Load a pre-S2 multi-node config with null discriminator | Existing config validates unchanged | compatibility | Required | Required |
+| Legacy multi-node run reloads unchanged | Reload a pre-S2 persisted run | No synthetic S2 fields or node rewrite required | compatibility | Required | Required |
+| Legacy row requires no synthetic S2 backfill | Upgrade with legacy rows present | Legacy rows remain valid and unchanged | compatibility | Required if schema | Required if schema |
+| Non-S2 null discriminator accepted | Persist/replay a null-discriminator run | Legacy rolling path accepted | compatibility | Required | Required |
+| S2 exact contract version required | Use an unknown or missing S2 version on an S2 request | Structural rejection | structural | Required | Required |
 | Exactly one node accepted | Submit one S2 node with matching run/node cutoff | Complete binding and manifest | structural | Required | Required |
 | Zero node rejected | Submit a request with zero nodes | Structural rejection | structural | Required | Required |
 | Multiple nodes rejected | Submit a request with two S2 nodes | Structural rejection; no partial run | structural | Required | Required |
 | Run/node forecast cutoff match | Alter node cutoff independently from run request | Deterministic rejection | structural | Required | Required |
 | Run label cutoff propagation | Persist one run cutoff and load its node binding | Node binding inherits the run cutoff | structural | Required | Required |
+| S2 partial uniqueness avoids legacy collision | Insert legacy and S2 rows with overlapping legacy identities | Legacy row remains valid; S2 uniqueness applies conditionally | compatibility | Required if schema | Required if schema |
+| Upgrade preserves legacy rows | Upgrade with pre-existing rolling data | All legacy rows remain reloadable | compatibility | Required if schema | Required if schema |
+| Downgrade preserves pre-existing rolling data | Downgrade after S2 objects exist | Pre-existing rolling data remains intact | compatibility | Required if schema | Required if schema |
 | Forecast cutoff request-hash sensitivity | Change only `forecast_cutoff_at` | Request hash changes | structural | Required | Required |
 | Label cutoff request-hash sensitivity | Change only `label_observation_cutoff_at_or_null` | Request hash changes | structural | Required | Required |
 | Business-key canonicalization | Same resolved business keys constructed with different database lookup IDs or input order | Same canonical scope and request hash | structural | Required | Required |
