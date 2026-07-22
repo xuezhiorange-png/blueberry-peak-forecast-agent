@@ -10,6 +10,7 @@ from backend.app.rolling_backtest.schemas import (
     RollingNodeDefinition,
     S2HistoricalBacktestRequest,
     S2HistoricalBindingRow,
+    _s2_node_identity_hash_from_values,
 )
 
 
@@ -104,6 +105,67 @@ def s2_request_payload(request: S2HistoricalBacktestRequest) -> dict[str, object
 
 def s2_request_hash(request: S2HistoricalBacktestRequest) -> str:
     return sha256_payload(s2_request_payload(request))
+
+
+def s2_node_identity_payload(request: S2HistoricalBacktestRequest) -> dict[str, object]:
+    return cast(
+        dict[str, object],
+        canonical_json_value(
+            {
+                "s2_contract_version": request.s2_contract_version,
+                "season_business_keys": request.season_business_keys,
+                "farm_business_keys": request.farm_business_keys,
+                "subfarm_business_keys": request.subfarm_business_keys,
+                "variety_business_keys": request.variety_business_keys,
+                "master_identity_resolver_version": request.master_identity_resolver_version,
+                "mapping_policy_version": request.mapping_policy_version,
+                "resolved_identity_snapshot_hash": request.resolved_identity_snapshot_hash,
+                "authority_selection_policy_version": request.authority_selection_policy_version,
+                "forecast_cutoff_at": request.forecast_cutoff_at,
+                "label_observation_cutoff_at": request.label_observation_cutoff_at,
+                "label_visibility_mode": request.label_visibility_mode,
+                "requested_horizons_days": request.requested_horizons_days,
+            }
+        ),
+    )
+
+
+def s2_node_identity_hash(request: S2HistoricalBacktestRequest) -> str:
+    derived = _s2_node_identity_hash_from_values(request.model_dump(mode="python"))
+    if request.single_node_identity_hash != derived:
+        raise ValueError("request node identity does not match canonical node identity")
+    return derived
+
+
+def s2_binding_key_payload(
+    request: S2HistoricalBacktestRequest,
+    row: S2HistoricalBindingRow,
+) -> dict[str, object]:
+    return cast(
+        dict[str, object],
+        canonical_json_value(
+            {
+                "request_hash": s2_request_hash(request),
+                "single_node_identity_hash": s2_node_identity_hash(request),
+                "season_business_keys": request.season_business_keys,
+                "farm_business_keys": request.farm_business_keys,
+                "subfarm_business_keys": request.subfarm_business_keys,
+                "variety_business_keys": request.variety_business_keys,
+                "horizon_days": row.horizon_days,
+                "target_date": row.target_date,
+                "business_grain_hash": (
+                    row.actual_label.business_grain_hash if row.actual_label is not None else None
+                ),
+            }
+        ),
+    )
+
+
+def s2_binding_key_hash(
+    request: S2HistoricalBacktestRequest,
+    row: S2HistoricalBindingRow,
+) -> str:
+    return sha256_payload(s2_binding_key_payload(request, row))
 
 
 def s2_binding_row_payload(row: S2HistoricalBindingRow) -> dict[str, object]:

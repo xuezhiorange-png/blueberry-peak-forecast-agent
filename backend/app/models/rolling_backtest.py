@@ -233,6 +233,7 @@ class RollingBacktestManifest(Base):
     __tablename__ = "rolling_backtest_manifest"
     __table_args__ = (
         UniqueConstraint("rolling_run_id", name="uq_rolling_backtest_manifest_run_id"),
+        UniqueConstraint("manifest_hash", name="uq_rolling_backtest_manifest_hash"),
         CheckConstraint(
             _sha256_check_sql("manifest_hash"),
             name="ck_rolling_backtest_manifest_hash_sha256",
@@ -277,6 +278,11 @@ class RollingBacktestManifest(Base):
 class RollingBacktestBindingRow(Base):
     __tablename__ = "rolling_backtest_binding_row"
     __table_args__ = (
+        UniqueConstraint(
+            "rolling_run_id",
+            "binding_key_hash",
+            name="uq_rolling_backtest_binding_row_key",
+        ),
         UniqueConstraint(
             "rolling_run_id",
             "binding_row_hash",
@@ -337,6 +343,7 @@ class RollingBacktestBindingRow(Base):
     forecast_value_kg: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     actual_value_kg: Mapped[Decimal | None] = mapped_column(Numeric(20, 6), nullable=True)
     canonical_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    binding_key_hash: Mapped[str] = mapped_column(Text, nullable=False)
     binding_row_hash: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

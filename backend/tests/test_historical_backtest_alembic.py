@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
 
@@ -81,8 +82,12 @@ async def test_historical_backtest_migration_round_trip_preserves_legacy_rows() 
 
     # The job owns an isolated database. Round-trip the exact new revision
     # only in that database; no application or business data is opened.
-    command.downgrade(_alembic_config(), "0022_finalized_at_lineage_basis_member")
-    command.upgrade(_alembic_config(), "head")
+    await asyncio.to_thread(
+        command.downgrade,
+        _alembic_config(),
+        "0022_finalized_at_lineage_basis_member",
+    )
+    await asyncio.to_thread(command.upgrade, _alembic_config(), "head")
 
     conn = await asyncpg.connect(url)
     try:

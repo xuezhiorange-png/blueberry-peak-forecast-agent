@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_payload
 from backend.app.rolling_backtest.enums import (
     AvailabilityRuleKind,
     AvailabilitySourceType,
@@ -421,6 +422,32 @@ S2_ALLOWED_HORIZONS_DAYS = (7, 14, 21)
 S2_LABEL_VISIBILITY_MODES = ("AS_OF_EVALUATION", "FINAL_ADJUDICATED")
 
 
+def _s2_node_identity_hash_from_values(values: dict[str, object]) -> str:
+    """Derive the single S2 node identity from semantic request values only."""
+
+    return sha256_payload(
+        canonical_json_value(
+            {
+                "s2_contract_version": values.get("s2_contract_version"),
+                "season_business_keys": values.get("season_business_keys"),
+                "farm_business_keys": values.get("farm_business_keys"),
+                "subfarm_business_keys": values.get("subfarm_business_keys"),
+                "variety_business_keys": values.get("variety_business_keys"),
+                "master_identity_resolver_version": values.get("master_identity_resolver_version"),
+                "mapping_policy_version": values.get("mapping_policy_version"),
+                "resolved_identity_snapshot_hash": values.get("resolved_identity_snapshot_hash"),
+                "authority_selection_policy_version": values.get(
+                    "authority_selection_policy_version"
+                ),
+                "forecast_cutoff_at": values.get("forecast_cutoff_at"),
+                "label_observation_cutoff_at": values.get("label_observation_cutoff_at"),
+                "label_visibility_mode": values.get("label_visibility_mode"),
+                "requested_horizons_days": values.get("requested_horizons_days"),
+            }
+        )
+    )
+
+
 class S2HistoricalBacktestRequest(_BaseModel):
     s2_contract_version: Literal["v0.2-s2-historical-binding-v1"] = S2_CONTRACT_VERSION
     season_business_keys: tuple[str, ...] = Field(min_length=1)
@@ -431,7 +458,7 @@ class S2HistoricalBacktestRequest(_BaseModel):
     mapping_policy_version: str = Field(min_length=1)
     resolved_identity_snapshot_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     authority_selection_policy_version: str = Field(min_length=1)
-    single_node_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    single_node_identity_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     forecast_cutoff_at: datetime
     label_observation_cutoff_at: datetime | None = None
     label_visibility_mode: Literal["AS_OF_EVALUATION", "FINAL_ADJUDICATED"]
@@ -483,7 +510,25 @@ class S2HistoricalBacktestRequest(_BaseModel):
                 raise ValueError("AS_OF_EVALUATION requires label_observation_cutoff_at")
         elif self.label_observation_cutoff_at is not None:
             raise ValueError("FINAL_ADJUDICATED requires null label_observation_cutoff_at")
+        derived = _s2_node_identity_hash_from_values(self.model_dump(mode="python"))
+        if self.single_node_identity_hash is not None and self.single_node_identity_hash != derived:
+            raise ValueError(
+                "single_node_identity_hash must equal the derived canonical S2 node identity"
+            )
+        object.__setattr__(self, "single_node_identity_hash", derived)
         return self
+
+
+class S2PersistedAuthorityReferences(_BaseModel):
+    """Lookup references used by the fail-closed persisted-authority adapter."""
+
+    core_forecast_run_id: int = Field(gt=0)
+    core_forecast_daily_row_id: int = Field(gt=0)
+    task9_run_id: int = Field(gt=0)
+    task10_prediction_run_id: int = Field(gt=0)
+    label_snapshot_id: int = Field(gt=0)
+    label_row_id: int = Field(gt=0)
+    label_winner_id: int = Field(gt=0)
 
 
 class S2ForecastAuthorityBundle(_BaseModel):
@@ -507,7 +552,17 @@ class S2ForecastAuthorityBundle(_BaseModel):
 
 class S2ActualLabelAuthority(_BaseModel):
     label_snapshot_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    label_row_identity_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    label_winner_identity_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     source_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    actual_source_identity_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    target_date: date | None = None
+    season_business_key: str | None = None
+    farm_business_key: str | None = None
+    subfarm_business_key: str | None = None
+    variety_business_key: str | None = None
+    business_grain_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    revision_or_winner_evidence: dict[str, object] | None = None
     observed_weight_kg: Decimal = Field(ge=Decimal("0"))
     visibility_timestamp: datetime | None = None
     physical_alignment_status: Literal["VERIFIED", "UNVERIFIED"]
@@ -527,6 +582,10 @@ class S2HistoricalBindingCandidate(_BaseModel):
     forecast_value_kg: Decimal = Field(ge=Decimal("0"))
     forecast_authority: S2ForecastAuthorityBundle
     actual_label: S2ActualLabelAuthority | None = None
+    persisted_authority_references: S2PersistedAuthorityReferences | None = None
+    authority_verification: Literal["UNVERIFIED", "PERSISTED", "SYNTHETIC_ENGINEERING"] = (
+        "UNVERIFIED"
+    )
 
     @field_validator("horizon_days")
     @classmethod
@@ -556,6 +615,7 @@ class S2HistoricalBindingRow(_BaseModel):
     physical_alignment_status: str
     row_status: Literal["COMPARABLE", "EXCLUDED", "NOT_COMPUTABLE"]
     reason_code: str | None = None
+    binding_key_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     row_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
 
     @field_validator("horizon_days")

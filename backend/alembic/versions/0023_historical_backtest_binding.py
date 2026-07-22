@@ -120,6 +120,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name="pk_rolling_backtest_manifest"),
         sa.UniqueConstraint("rolling_run_id", name="uq_rolling_backtest_manifest_run_id"),
+        sa.UniqueConstraint("manifest_hash", name="uq_rolling_backtest_manifest_hash"),
         sa.CheckConstraint(
             _sha256_check("request_hash"),
             name="ck_rolling_backtest_manifest_request_hash_sha256",
@@ -179,6 +180,7 @@ def upgrade() -> None:
         sa.Column("forecast_value_kg", sa.Numeric(20, 6), nullable=False),
         sa.Column("actual_value_kg", sa.Numeric(20, 6), nullable=True),
         sa.Column("canonical_payload", json_type, nullable=False),
+        sa.Column("binding_key_hash", sa.Text(), nullable=False),
         sa.Column("binding_row_hash", sa.Text(), nullable=False),
         sa.Column(
             "created_at",
@@ -189,8 +191,17 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name="pk_rolling_backtest_binding_row"),
         sa.UniqueConstraint(
             "rolling_run_id",
+            "binding_key_hash",
+            name="uq_rolling_backtest_binding_row_key",
+        ),
+        sa.UniqueConstraint(
+            "rolling_run_id",
             "binding_row_hash",
             name="uq_rolling_backtest_binding_row_identity",
+        ),
+        sa.CheckConstraint(
+            _sha256_check("binding_key_hash"),
+            name="ck_rolling_backtest_binding_row_key_sha256",
         ),
         sa.CheckConstraint(
             "horizon_days in (7, 14, 21)",
@@ -238,6 +249,29 @@ def upgrade() -> None:
                 f"CREATE TRIGGER {table}_immutable BEFORE UPDATE OR DELETE ON {table} "
                 "FOR EACH ROW EXECUTE FUNCTION rolling_backtest_s2_immutable_row()"
             )
+        op.execute(
+            """
+            CREATE OR REPLACE FUNCTION rolling_backtest_s2_binding_insert_guard()
+            RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM rolling_backtest_manifest
+                    WHERE rolling_run_id = NEW.rolling_run_id
+                ) THEN
+                    RAISE EXCEPTION 'rolling-backtest S2 binding row cannot be inserted '
+                        'after manifest seal'
+                        USING ERRCODE = 'check_violation';
+                END IF;
+                RETURN NEW;
+            END;
+            $$;
+            """
+        )
+        op.execute(
+            "CREATE TRIGGER rolling_backtest_binding_row_sealed_insert_guard "
+            "BEFORE INSERT ON rolling_backtest_binding_row FOR EACH ROW "
+            "EXECUTE FUNCTION rolling_backtest_s2_binding_insert_guard()"
+        )
 
 
 def downgrade() -> None:
@@ -247,6 +281,11 @@ def downgrade() -> None:
     if not is_sqlite:
         for table in ("rolling_backtest_manifest", "rolling_backtest_binding_row"):
             op.execute(f"DROP TRIGGER IF EXISTS {table}_immutable ON {table}")
+        op.execute(
+            "DROP TRIGGER IF EXISTS rolling_backtest_binding_row_sealed_insert_guard "
+            "ON rolling_backtest_binding_row"
+        )
+        op.execute("DROP FUNCTION IF EXISTS rolling_backtest_s2_binding_insert_guard()")
         op.execute("DROP FUNCTION IF EXISTS rolling_backtest_s2_immutable_row()")
 
     op.drop_index(
