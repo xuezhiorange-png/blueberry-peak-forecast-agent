@@ -10,8 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Any
 from zoneinfo import ZoneInfo
 
+from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_payload
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
 )
@@ -25,6 +27,9 @@ from backend.app.rolling_backtest.resolution import (
 from backend.app.rolling_backtest.schemas import (
     PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
+    S2HistoricalBacktestRequest,
+    S2HistoricalBindingCandidate,
+    S2HistoricalBindingRow,
 )
 
 # ── Orchestration stage enum ─────────────────────────────────────────────────
@@ -168,6 +173,8 @@ __all__ = [
     "assert_date_authority_visible",
     "_sanitize_diagnostics",
     "_build_frozen_dag",
+    "build_s2_binding_rows",
+    "run_s2_historical_binding",
 ]
 
 
@@ -319,3 +326,99 @@ def _sanitize_diagnostics(raw: dict[str, object]) -> dict[str, object]:
         return value
 
     return _sanitize_value(raw)  # type: ignore[return-value]
+
+
+def build_s2_binding_rows(
+    request: S2HistoricalBacktestRequest,
+    candidates: tuple[S2HistoricalBindingCandidate, ...],
+) -> tuple[S2HistoricalBindingRow, ...]:
+    """Build deterministic comparison-ready rows from frozen authorities.
+
+    This function does not query live data and does not compute quality
+    metrics. Missing labels remain unknown and become explicit exclusions;
+    they are never represented as zero. Forecast and label cutoffs are
+    checked independently before a row can be comparable.
+    """
+
+    by_horizon: dict[int, S2HistoricalBindingCandidate] = {}
+    for candidate in candidates:
+        if candidate.horizon_days in by_horizon:
+            raise ValueError("duplicate S2 horizon candidate is a structural failure")
+        if candidate.forecast_cutoff_at > request.forecast_cutoff_at:
+            raise ValueError("forecast authority is visible after the request cutoff")
+        if candidate.forecast_authority.available_at > request.forecast_cutoff_at:
+            raise ValueError("forecast authority availability violates forecast cutoff")
+        by_horizon[candidate.horizon_days] = candidate
+
+    missing = set(request.requested_horizons_days) - by_horizon.keys()
+    if missing:
+        raise ValueError(
+            "missing forecast authority for requested horizon(s): "
+            + ",".join(str(item) for item in sorted(missing))
+        )
+
+    rows: list[S2HistoricalBindingRow] = []
+    for horizon in request.requested_horizons_days:
+        candidate = by_horizon[horizon]
+        actual = candidate.actual_label
+        reason_code: str | None = None
+        row_status = "COMPARABLE"
+        alignment = "VERIFIED"
+        if actual is None:
+            row_status = "EXCLUDED"
+            reason_code = "NO_APPROVED_REAL_DATA"
+            alignment = "UNVERIFIED"
+        elif actual.visibility_timestamp is None:
+            raise ValueError("actual label authority is missing visibility timestamp")
+        elif (
+            request.label_visibility_mode == "AS_OF_EVALUATION"
+            and actual.visibility_timestamp > request.label_observation_cutoff_at  # type: ignore[operator]
+        ):
+            raise ValueError("label authority is visible after the label cutoff")
+        elif actual.physical_alignment_status != "VERIFIED":
+            row_status = "EXCLUDED"
+            reason_code = "PHYSICAL_TARGET_ALIGNMENT_UNVERIFIED"
+            alignment = actual.physical_alignment_status
+
+        row_payload: dict[str, object] = {
+            "horizon_days": candidate.horizon_days,
+            "target_date": candidate.target_date,
+            "forecast_cutoff_at": request.forecast_cutoff_at,
+            "label_observation_cutoff_at": request.label_observation_cutoff_at,
+            "label_visibility_mode": request.label_visibility_mode,
+            "forecast_value_kg": candidate.forecast_value_kg,
+            "actual_value_kg": actual.observed_weight_kg if actual is not None else None,
+            "forecast_authority": candidate.forecast_authority,
+            "actual_label": actual,
+            "physical_alignment_status": alignment,
+            "row_status": row_status,
+            "reason_code": reason_code,
+        }
+        row_hash = sha256_payload(canonical_json_value(row_payload))
+        rows.append(S2HistoricalBindingRow(**row_payload, row_hash=row_hash))
+    return tuple(rows)
+
+
+async def run_s2_historical_binding(
+    session: Any,
+    *,
+    request: S2HistoricalBacktestRequest,
+    candidates: tuple[S2HistoricalBindingCandidate, ...],
+    season_id: int,
+) -> Any:
+    """Persist supplied authority evidence using a caller-owned transaction.
+
+    The function does not open a business database, discover latest rows, or
+    run an operational backtest. It accepts evidence from a separately
+    audited adapter and persists only comparison-ready binding evidence.
+    """
+
+    from backend.app.rolling_backtest.persistence import persist_s2_historical_binding
+
+    rows = build_s2_binding_rows(request, candidates)
+    return await persist_s2_historical_binding(
+        session,
+        request=request,
+        rows=rows,
+        season_id=season_id,
+    )
