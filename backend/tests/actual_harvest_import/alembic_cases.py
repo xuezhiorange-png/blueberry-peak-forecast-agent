@@ -13,8 +13,10 @@ from alembic.script import ScriptDirectory
 _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _ALEMBIC_VERSIONS_DIR = _BACKEND_ROOT / "alembic" / "versions"
 
-MIGRATION_PATH = _ALEMBIC_VERSIONS_DIR / "0020_actual_harvest_commit_manifest.py"
-MIGRATION_REVISION = "0020_actual_harvest_commit_manifest"
+MIGRATION_PATH = _ALEMBIC_VERSIONS_DIR / "0021_actual_harvest_label_snapshot.py"
+MIGRATION_REVISION = "0021_actual_harvest_label_snapshot"
+MIGRATION_0022_PATH = _ALEMBIC_VERSIONS_DIR / "0022_finalized_at_lineage_basis_member.py"
+MIGRATION_0022_REVISION = "0022_finalized_at_lineage_basis_member"
 
 
 def _migration_module() -> ModuleType:
@@ -26,6 +28,15 @@ def _migration_module() -> ModuleType:
 
 
 def _previous_migration_module() -> ModuleType:
+    path = _ALEMBIC_VERSIONS_DIR / "0020_actual_harvest_commit_manifest.py"
+    spec = importlib.util.spec_from_file_location("actual_harvest_migration_0020", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _validation_migration_module() -> ModuleType:
     path = _ALEMBIC_VERSIONS_DIR / "0019_actual_harvest_validation_evidence.py"
     spec = importlib.util.spec_from_file_location("actual_harvest_migration_0019", path)
     assert spec is not None and spec.loader is not None
@@ -47,24 +58,53 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     config = Config(str(_BACKEND_ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == [MIGRATION_REVISION]
+    # I7 follow-up contract: head must be the additive 0022 column extension
+    # (finalized_at on the lineage basis member) so committed FINALIZED
+    # predecessor timestamps survive basis persistence. 0021 is the
+    # down_revision of 0022, so the head is still 0021's lineage.
+    assert MIGRATION_0022_REVISION in script.get_heads(), (
+        f"alembic heads must include {MIGRATION_0022_REVISION!r}, got {script.get_heads()!r}"
+    )
+    assert len(script.get_heads()) == 1, (
+        f"alembic heads must be exactly one, got {script.get_heads()!r}"
+    )
+    assert script.get_heads() == [MIGRATION_0022_REVISION]
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
-    assert module.down_revision == "0019_actual_harvest_validation_evidence"
+    assert module.down_revision == "0020_actual_harvest_commit_manifest"
+    spec = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_0022", MIGRATION_0022_PATH
+    )
+    assert spec is not None and spec.loader is not None
+    migration_0022 = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration_0022)
+    assert migration_0022.revision == MIGRATION_0022_REVISION
+    assert migration_0022.down_revision == MIGRATION_REVISION
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
     module = _migration_module()
     previous = _previous_migration_module()
+    spec_0022 = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_0022", MIGRATION_0022_PATH
+    )
+    assert spec_0022 is not None and spec_0022.loader is not None
+    migration_0022 = importlib.util.module_from_spec(spec_0022)
+    spec_0022.loader.exec_module(migration_0022)
     engine = sa.create_engine("sqlite:///:memory:")
     with engine.begin() as connection:
         module.op = Operations(MigrationContext.configure(connection))
         staging = _staging_migration_module()
         staging.op = module.op
         staging.upgrade()
+        validation = _validation_migration_module()
+        validation.op = module.op
+        validation.upgrade()
         previous.op = module.op
         previous.upgrade()
         module.upgrade()
+        migration_0022.op = module.op
+        migration_0022.upgrade()
         inspector = sa.inspect(connection)
         expected_tables = {
             "actual_harvest_import_batch",
@@ -83,6 +123,10 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             "actual_harvest_validation_lineage_basis",
             "actual_harvest_validation_lineage_basis_member",
             "actual_harvest_commit_manifest",
+            "actual_harvest_label_snapshot",
+            "actual_harvest_label_snapshot_winner",
+            "actual_harvest_label_snapshot_label",
+            "actual_harvest_label_snapshot_exclusion",
         }
         assert set(inspector.get_table_names()) == expected_tables
         assert {
@@ -105,6 +149,21 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
             column["name"]
             for column in inspector.get_columns("actual_harvest_validation_mapping_evidence")
         } >= {"resolver_version"}
+        # I7 follow-up contract: the lineage basis member table must
+        # carry the committed FINALIZED predecessor's finalized_at as a
+        # nullable timezone-aware timestamp so subsequent validations
+        # (and contract tests) can read it back. See migration 0022.
+        assert {
+            column["name"]
+            for column in inspector.get_columns("actual_harvest_validation_lineage_basis_member")
+        } >= {
+            "source_system",
+            "source_recorded_at",
+            "source_recorded_at_authority_status",
+            "finalized_at",
+            "member_sort_key",
+            "member_hash",
+        }
         # S1 commit_manifest column contract.
         commit_manifest_columns = {
             column["name"] for column in inspector.get_columns("actual_harvest_commit_manifest")
@@ -542,44 +601,60 @@ def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
                 raise AssertionError("sealed import-record mutation was accepted by the B5 trigger")
 
         module.downgrade()
+        migration_0022.op = module.op
+        migration_0022.downgrade()
         previous.op = module.op
         previous.downgrade()
+        validation.op = module.op
+        validation.downgrade()
         staging.op = module.op
         staging.downgrade()
         assert set(sa.inspect(connection).get_table_names()) == set()
 
         staging.op = module.op
         staging.upgrade()
+        validation.op = module.op
+        validation.upgrade()
         previous.op = module.op
         previous.upgrade()
         module.upgrade()
+        migration_0022.op = module.op
+        migration_0022.upgrade()
         assert set(sa.inspect(connection).get_table_names()) == expected_tables
 
 
 def assert_actual_harvest_migration_architecture_contract() -> None:
     source = MIGRATION_PATH.read_text(encoding="utf-8")
     module = _migration_module()
-    # S1 forbidden content (mutates state through the manifest path must not
-    # bleed into the migration).
+    # Forbidden content (must not bleed into the I7 migration).
     assert "JSON" not in source
     assert "parser" not in source.lower()
-    assert "label_snapshot" not in source
+    assert "label_snapshot" in source
     assert "commit_manifest" in source
     assert "revision_graph" not in source
     assert "from backend.app" not in source
     assert "import backend.app" not in source
-    # S1 commit_manifest policy version must be the fixed constant.
-    assert module.COMMIT_POLICY_VERSION == "actual-harvest-commit-policy-v1"
-    # S1 contract: BATCH_STATUS_VALUES must NOT include "COMMITTING" or
-    # "COMMIT_FAILED" - commit is a single synchronous transition between
-    # VALIDATED and COMMITTED inside the API transaction boundary.
-    # (Validation against module.BATCH_STATUS_VALUES is enforced by the
-    # 0019 migration contract; 0020 must not re-introduce them.)
+    # I7 contract: header / winner / label / exclusion policy versions
+    # must be the fixed constants so on-disk hashes are reproducible.
+    assert module.SNAPSHOT_POLICY_VERSION == "actual-harvest-label-snapshot-policy-v1"
+    assert module.WINNER_POLICY_VERSION == "actual-harvest-label-winner-policy-v1"
+    assert module.AGGREGATION_POLICY_VERSION == "actual-harvest-label-aggregation-policy-v1"
+    assert module.REQUEST_HASH_POLICY_VERSION == "actual-harvest-label-request-hash-v1"
+    assert module.INSTANCE_HASH_POLICY_VERSION == "actual-harvest-label-instance-hash-v1"
+    assert module.SNAPSHOT_HASH_POLICY_VERSION == "actual-harvest-label-snapshot-hash-v1"
+    # I7 contract: no background-worker / lease / heartbeat / fencing /
+    # attempt-ledger forbidden tokens. The S1 commit layer established
+    # the same rules; 0021 must not re-introduce them.
     assert "COMMITTING" not in source
     assert "COMMIT_FAILED" not in source
+    assert "ATTEMPT_LEDGER" not in source
+    assert "LEASE" not in source
+    assert "HEARTBEAT" not in source
+    assert "FENCING" not in source
     # Architecture string rules.
     assert "actual_harvest_validation_lineage_basis" not in source
     assert "actual_harvest_validation_lineage_basis_member" not in source
     assert "actual_harvest_validation_aggregation" not in source
     assert "active_label" not in source
-    assert "cutoff" not in source.lower()
+    # I7 contract: ``cutoff`` is a legal identifier for the I7 snapshot
+    # header; do not assert it is absent.

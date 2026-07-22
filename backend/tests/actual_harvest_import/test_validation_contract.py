@@ -246,6 +246,13 @@ def test_validation_error_code_set_and_public_exports_are_exact() -> None:
         "VALIDATION_IN_PROGRESS",
         "VALIDATION_EVIDENCE_STALE",
         "COMMITTED_LINEAGE_BASIS_CHANGED",
+        # I7 lineage contract hardening
+        # (q2a-i7-label-snapshot-and-revision-winner-contract.md §9-§10/§15)
+        "CORRECTED_WITHOUT_SUCCESSOR",
+        "FINALIZED_HAS_SUCCESSOR",
+        "VOID_HAS_SUCCESSOR",
+        "FINALIZED_AT_REQUIRED",
+        "SOURCE_SYSTEM_SCOPE_CONFLICT",
     }
     assert {item.name for item in ActualHarvestValidationErrorCode} == expected_error_codes
     assert {item.value for item in ActualHarvestValidationErrorCode} == expected_error_codes

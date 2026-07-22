@@ -649,6 +649,7 @@ class ActualHarvestValidationLineageBasisMemberModel(Base):
         DateTime(timezone=True), nullable=True
     )
     source_recorded_at_authority_status: Mapped[str] = mapped_column(Text, nullable=False)
+    finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     member_sort_key: Mapped[str] = mapped_column(Text, nullable=False)
     member_hash: Mapped[str] = mapped_column(Text, nullable=False)
 
