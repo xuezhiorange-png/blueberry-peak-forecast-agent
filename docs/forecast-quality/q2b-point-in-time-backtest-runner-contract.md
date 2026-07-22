@@ -199,9 +199,12 @@ silent fallback.
 
 Q2B may evaluate a forecast field only after an explicit physical equivalence
 contract proves that it represents the same event, unit, and loss boundary as
-the I7 label's `actual_harvest_quantity_kg`. At the audited base,
-`model_harvested_marketable_quantity_kg` and the Agent aggregate fields are
-not sufficient proof of FARM_PICK equivalence.
+the I7 label's `actual_harvest_quantity_kg`. The repository contains a
+production actual-harvest ingestion, commit, and I7 snapshot path for
+`FARM_PICK` records, but that path is not proof that real committed business
+rows are currently available. `model_harvested_marketable_quantity_kg` and the
+Agent aggregate fields are not sufficient proof of physical equivalence by
+themselves.
 
 Required alignment outcomes are:
 
@@ -223,18 +226,28 @@ The frozen I7 label grain is:
 SEASON x FARM x SUBFARM x VARIETY x HARVEST_BUSINESS_DATE
 ```
 
-The preferred Q2B forecast input is the persisted core daily row, whose
+Q2B v1 freezes the forecast authority to the persisted core daily row. The
+Agent aggregate `ForecastDailyRow` is not used by Q2B v1. The core row's
 business key is:
 
 ```text
 CORE_FORECAST_RUN x DATE x FARM_ID x SUBFARM_ID x VARIETY_ID x FORECAST_QUANTILE
 ```
 
-This is a structurally compatible candidate after stable business identity
-projection and quantile expansion. The Agent `ForecastDailyRow` is a separate
-aggregate output: its identity is carried by enclosing request/location/season
-context and its variety information is nested in
+The frozen authority is `CoreForecastDailyRowModel`, with stable business
+identity projection to the I7 label grain and explicit quantile rows. The
+Agent `ForecastDailyRow` remains a separate aggregate output and is
+`NOT_USED_BY_Q2B_V1`; its identity is carried by enclosing
+request/location/season context and its variety information is nested in
 `per_variety_contribution`. It cannot be joined to I7 by arbitrary splitting.
+
+```text
+Q2B_V1_FORECAST_AUTHORITY=CORE_FORECAST_DAILY_ROW
+AGENT_FORECAST_DAILY_ROW_AUTHORITY=NOT_USED_BY_Q2B_V1
+FORECAST_AUTHORITY_GRAIN=CORE_FORECAST_RUN x DATE x FARM_ID x SUBFARM_ID x VARIETY_ID x FORECAST_QUANTILE
+FORECAST_QUANTITY_FIELD=model_harvested_marketable_quantity_kg
+FORECAST_QUANTILE_IDENTITY=P50_P80_P90_EXPLICIT_ROWS
+```
 
 The future runner must freeze:
 
@@ -264,28 +277,51 @@ contract; implementation must not silently add metrics.
 | `daily_mae` | `mean(abs(pred-actual))` | kg | aligned day x quantile | comparable days, equal day weight | not computable | exclude, no zero-fill | 1 comparable day |
 | `daily_wape` | `sum(abs(error))/sum(abs(actual))` | ratio | aligned day | absolute-actual denominator | `ZERO_ACTUAL_DENOMINATOR` | exclude | 1 day and nonzero denominator |
 | `daily_smape` | `mean(2*abs(error)/(abs(pred)+abs(actual)))` | ratio | aligned day | equal comparable-day weight | zero/zero contributes 0 | exclude | 1 comparable day |
-| `daily_zero_safe_mape` | `mean(abs(error)/max(abs(actual), 0.000001 kg))` | ratio | aligned day | equal comparable-day weight | fixed Decimal epsilon | exclude | 1 comparable day |
-| `daily_signed_bias` | `mean(pred-actual)` | kg | aligned day | equal comparable-day weight | no denominator beyond count | exclude | 1 comparable day |
-| `cumulative_absolute_error_kg` | `sum(abs(error))` | kg | requested horizon | equal row contribution | no denominator | incomplete horizon blocks | complete requested horizon |
+| `daily_mape` | `mean(abs(error)/abs(actual))` over rows where `actual > 0` | ratio | aligned day x quantile | equal eligible-day weight | no eligible rows blocks | zero-actual rows excluded and counted | 1 eligible day |
+| `daily_signed_bias` | `mean(pred-actual)` | kg | aligned day x quantile | equal comparable-day weight | no denominator beyond count | exclude | 1 comparable day |
+| `daily_relative_bias` | `sum(pred-actual)/sum(actual)` over rows where `actual > 0` | ratio | aligned day x quantile | eligible actual denominator | no eligible rows blocks | zero-actual rows excluded and counted | 1 eligible day |
+| `cumulative_absolute_error_kg` | `abs(sum(pred)-sum(actual))` | kg | requested horizon x quantile | complete horizon totals | no denominator | incomplete horizon blocks | complete requested horizon |
+| `daily_absolute_error_sum_kg` | `sum(abs(error))` | kg | requested horizon x quantile | explicit daily-row sum | no denominator | incomplete horizon blocks | complete requested horizon |
 | `cumulative_signed_error_kg` | `sum(pred-actual)` | kg | requested horizon | equal row contribution | no denominator | incomplete horizon blocks | complete requested horizon |
 | `cumulative_absolute_relative_error` | `sum(abs(error))/sum(abs(actual))` | ratio | requested horizon | absolute-actual denominator | `ZERO_ACTUAL_DENOMINATOR` | incomplete horizon blocks | complete horizon and nonzero denominator |
-| `single_day_peak_date_error_days` | `predicted_peak_date - actual_peak_date` after stable argmax | days | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
+| `single_day_peak_date_signed_error_days` | `predicted_peak_date - actual_peak_date` after stable argmax | days | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
+| `single_day_peak_date_absolute_error_days` | `abs(predicted_peak_date - actual_peak_date)` after stable argmax | days | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
 | `single_day_peak_quantity_absolute_error_kg` | `abs(predicted_peak - actual_peak)` | kg | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
 | `single_day_peak_quantity_signed_error_kg` | `predicted_peak - actual_peak` | kg | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
 | `single_day_peak_quantity_absolute_relative_error` | `abs(predicted_peak-actual_peak)/abs(actual_peak)` | ratio | season x identity x quantile | actual peak denominator | zero actual peak blocks | incomplete peak window blocks | complete peak window and nonzero peak |
 | `p80_coverage` | `count(actual <= p80)/count(comparable)` | ratio | aligned day | equal day weight | no comparable rows blocks | exclude | 1 comparable day |
 | `p90_coverage` | `count(actual <= p90)/count(comparable)` | ratio | aligned day | equal day weight | no comparable rows blocks | exclude | 1 comparable day |
-| `p80_interval_width` | `mean(p80-p50)` | kg | aligned day | equal comparable-day weight | no comparable rows blocks | exclude | 1 comparable day |
-| `p90_interval_width` | `mean(p90-p50)` | kg | aligned day | equal comparable-day weight | no comparable rows blocks | exclude | 1 comparable day |
+| `p80_p50_upper_spread_kg` | `mean(p80-p50)` | kg | aligned day | equal comparable-day weight | no comparable rows blocks | exclude | 1 comparable day |
+| `p90_p50_upper_spread_kg` | `mean(p90-p50)` | kg | aligned day | equal comparable-day weight | no comparable rows blocks | exclude | 1 comparable day |
 | `horizon_7d` | scope selector for seven complete target days | days | requested horizon | not a scalar metric | invalid horizon blocks | incomplete horizon blocks | 7 days |
 | `horizon_14d` | scope selector for fourteen complete target days | days | requested horizon | not a scalar metric | invalid horizon blocks | incomplete horizon blocks | 14 days |
 | `horizon_21d` | scope selector for twenty-one complete target days | days | requested horizon | not a scalar metric | invalid horizon blocks | incomplete horizon blocks | 21 days |
 
 Peak ties are resolved by earliest business date, then stable canonical
-identity. Metrics are computed separately per requested horizon and forecast
-quantile. No forecast row is silently reused across horizons. `sMAPE` and the
-zero-safe MAPE rule are new Q2B contracts even though current rolling-backtest
-code contains related but different metric slices.
+identity. Peak metrics are explicit per quantile (`P50`, `P80`, `P90`) and are
+split into signed date error, absolute date error, signed quantity error, and
+absolute quantity error. Metrics are computed separately per requested horizon
+and forecast quantile. No forecast row is silently reused across horizons.
+`p80_p50_upper_spread_kg` and `p90_p50_upper_spread_kg` are upper spreads, not
+prediction interval widths:
+
+```text
+IS_PREDICTION_INTERVAL_WIDTH=false
+PREDICTION_INTERVAL_WIDTH_REQUIRES_EXPLICIT_LOWER_AND_UPPER=true
+```
+
+`daily_mape` follows the Q1 denominator contract and records
+`mape_eligible_row_count`, `zero_actual_row_count`, and `excluded_row_count`.
+Quantile semantics are not verified by the current audit, so coverage and
+pinball loss are not computable or frozen as usable Q2B metrics:
+
+```text
+P50_SEMANTICS=NOT_VERIFIED
+P80_SEMANTICS=NOT_VERIFIED
+P90_SEMANTICS=NOT_VERIFIED
+QUANTILE_COVERAGE_STATUS=NOT_COMPUTABLE
+PINBALL_LOSS_STATUS=NOT_COMPUTABLE
+```
 
 ## 9. Failure taxonomy
 
@@ -372,8 +408,9 @@ tests, not only documentation or golden helpers:
 4. physical target alignment is proven with a real source, not receipt proxy;
 5. forecast and label grains are exactly aligned or a deterministic
    contribution manifest proves lossless disaggregation;
-6. all 18 metric entries have formula, unit, denominator, zero policy,
-   missing-day policy and minimum coverage tests;
+6. every scalar metric entry has formula, unit, denominator, zero policy,
+   missing-day policy and minimum coverage tests; horizon selectors are not
+   counted as scalar metrics;
 7. leakage vectors fail closed and do not emit metrics;
 8. repeated identical requests are deterministic and idempotent;
 9. duplicate/missing/extra rows, ambiguous mappings and lineage conflicts are
