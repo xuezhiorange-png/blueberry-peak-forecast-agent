@@ -169,6 +169,58 @@ PR-only jobs `static`, `unit-contract-golden`, `postgres-migration`,
 `postgres-concurrency`, and `compose-smoke`. `full-suite-canary` is a
 non-PR main-push job. This brief does not modify test ownership or workflow.
 
+### 2.5 Architecture decision and disposition
+
+The audited current aggregate already owns rolling execution identity,
+node identity, attempts, resolved inputs, availability audits, orchestration
+snapshots, and DAG evidence. The future S2 runner therefore extends that
+aggregate rather than creating a second historical-backtest aggregate.
+
+```text
+ARCHITECTURE_DECISION=EXTEND_EXISTING_ROLLING_BACKTEST
+RUN_IDENTITY_OWNER=RollingBacktestRun
+NODE_IDENTITY_OWNER=RollingBacktestNode
+ATTEMPT_IDENTITY_OWNER=RollingBacktestAttempt
+AUTHORITY_IDENTITY_OWNER=RollingBacktestResolvedInput_AND_EXISTING_TASK9_TASK10_ADAPTERS
+IDEMPOTENCY_LEDGER_OWNER=RollingBacktestRun
+SECOND_RUN_IDENTITY_AGGREGATE=FORBIDDEN
+```
+
+The request identity and S2 run state remain owned by
+`RollingBacktestRun`. Existing nodes and attempts remain the execution
+identity. Existing resolved-input and availability-audit rows remain the
+authority and visibility evidence. The only new persistence is the minimum
+S2 child evidence that the current aggregate cannot represent: comparison
+binding rows and one immutable manifest containing canonical coverage,
+exclusion, and authority-reference payloads.
+
+There is no second `historical_backtest` aggregate. This prevents two run
+hashes, two attempt ledgers, duplicate orchestration, or split idempotency.
+Task 9 and Task 10 authority continues to be loaded through the audited
+`core_forecast.repository` and `rolling_backtest.replay_task10_binding` paths,
+then recorded through the existing resolved-input evidence and the S2
+manifest. No current object is silently re-owned by a new aggregate.
+
+| CURRENT_SYMBOL | CURRENT_PATH | DISPOSITION | FUTURE_OWNER | RATIONALE |
+| --- | --- | --- | --- | --- |
+| `RollingBacktestRun` | `backend/app/models/rolling_backtest.py` | `EXTEND_EXISTING` | `RollingBacktestRun` | Existing unique run identity owns the S2 request hash, dual cutoffs, visibility mode, and lifecycle. |
+| `RollingBacktestNode` | `backend/app/models/rolling_backtest.py` | `EXTEND_EXISTING` | `RollingBacktestNode` | Existing node/as-of/forecast-cutoff identity remains the node owner; S2 binding rows attach to it. |
+| `RollingBacktestAttempt` | `backend/app/models/rolling_backtest.py` | `REUSE_AS_IS` | `RollingBacktestAttempt` | Existing attempt fencing, retry, and status semantics must not be duplicated. |
+| `RollingBacktestResolvedInput` | `backend/app/models/rolling_backtest.py` | `EXTEND_EXISTING` | `RollingBacktestResolvedInput` | Existing canonical resolved-input evidence is extended only for exact S2 authority references. |
+| `RollingBacktestAvailabilityAudit` | `backend/app/models/rolling_backtest.py` | `EXTEND_EXISTING` | `RollingBacktestAvailabilityAudit` | Existing cutoff availability audit owns forecast/authority visibility evidence. |
+| `RollingBacktestOrchestrationSnapshot` | `backend/app/models/rolling_backtest.py` | `EXTEND_EXISTING` | `RollingBacktestOrchestrationSnapshot` | Existing orchestration snapshot remains the execution audit owner. |
+| `RollingBacktestDagSnapshot` | `backend/app/models/rolling_backtest.py` | `REUSE_AS_IS` | `RollingBacktestDagSnapshot` | Existing DAG identity is sufficient and must not be recreated. |
+| `RollingBacktestConfig` | `backend/app/rolling_backtest/schemas.py` | `EXTEND_EXISTING` | `RollingBacktestConfig` | Existing config/hash path is extended with exact S2 cutoff, visibility, and horizon policy. |
+| `RollingNodeDefinition` | `backend/app/rolling_backtest/schemas.py` | `EXTEND_EXISTING` | `RollingNodeDefinition` | Existing node definition remains the source of deterministic node/horizon construction. |
+| `ResolvedUpstreamSemanticIdentity` | `backend/app/rolling_backtest/schemas.py` | `REUSE_AS_IS` | `RollingBacktestResolvedInput` | Existing semantic identity is reused as the upstream authority identity. |
+| `HistoricalAvailableModelIdentity` | `backend/app/rolling_backtest/schemas.py` | `REUSE_AS_IS` | `RollingBacktestResolvedInput` | Existing historical model identity is already versioned and must not be shadowed. |
+| `ReplayTrainedModelIdentity` | `backend/app/rolling_backtest/schemas.py` | `REUSE_AS_IS` | `RollingBacktestResolvedInput` | Existing Task 10 replay identity and policy checks remain authoritative. |
+
+The separate historical-backtest aggregate alternative is not selected. If a
+later implementation review proposes it, that would require a new
+authorization brief explaining ownership, call direction, hash parity, and
+idempotency migration before any code is changed.
+
 ## 3. Three-stage gate model
 
 These stages are independent. Passing an earlier stage does not grant the
@@ -347,22 +399,54 @@ implementation review.
 
 ### 6.1 Request identity
 
-The canonical request identity covers at least:
+The canonical scope is a versioned list of resolved business keys, not database
+numeric identifiers or display names. The field types and invariants are:
 
 ```text
-season
-farm
-subfarm_or_plot
-variety
-requested_horizons
-forecast_cutoff_at
-label_observation_cutoff_at
-label_visibility_mode
-authority_selection_policy_version
+CANONICAL_SCOPE_IDENTITY=VERSIONED_BUSINESS_KEY_LISTS
+season_business_keys=list[str], sorted unique, non-empty
+farm_business_keys=list[str], sorted unique, non-empty
+subfarm_business_keys=list[str], sorted unique, non-empty
+variety_business_keys=list[str], sorted unique, non-empty
+requested_horizons_days=list[int], sorted unique, non-empty
+forecast_cutoff_at=RFC3339_DATETIME_WITH_EXPLICIT_UTC
+label_observation_cutoff_at=RFC3339_DATETIME_WITH_EXPLICIT_UTC_OR_NULL
+label_visibility_mode=AS_OF_EVALUATION|FINAL_ADJUDICATED
+master_identity_resolver_version=non-empty_version_string
+resolved_identity_snapshot_hash=64_HEX_SHA256
+mapping_policy_version=non-empty_version_string
+authority_selection_policy_version=non-empty_version_string
+
+DATABASE_NUMERIC_IDS_ARE_LOOKUP_REFERENCES_ONLY=true
+DATABASE_NUMERIC_IDS_INCLUDED_IN_REQUEST_HASH=false
+MASTER_IDENTITY_RESOLVER_VERSION_REQUIRED=true
+RESOLVED_IDENTITY_SNAPSHOT_HASH_REQUIRED=true
+MAPPING_POLICY_VERSION_REQUIRED=true
 ```
 
-It must not include a database auto-increment ID, creation time, process host,
-attempt ID, query order, or run order.
+`subfarm_business_keys` is not an alias for plot. Plot grain is not silently
+introduced by the request contract; it requires an independently accepted
+grain contract and explicit mapping evidence.
+
+```text
+ALLOWED_HORIZONS_DAYS=7,14,21
+HORIZONS_SORTED_UNIQUE=true
+EMPTY_HORIZONS_ALLOWED=false
+OTHER_HORIZONS_ALLOWED=false
+UNSORTED_OR_DUPLICATE_HORIZONS_REJECTED=true
+
+ALLOWED_LABEL_VISIBILITY_MODES=AS_OF_EVALUATION,FINAL_ADJUDICATED
+AS_OF_EVALUATION_REQUIRES_LABEL_OBSERVATION_CUTOFF=true
+FINAL_ADJUDICATED_REQUIRES_NULL_LABEL_OBSERVATION_CUTOFF=true
+```
+
+Both current I7 visibility modes may be used by S2, but each cutoff invariant
+is mandatory. A malformed combination is a structural failure. A request
+hash must include the canonical business-key lists, resolver and mapping
+versions, resolved identity snapshot hash, sorted horizons, both cutoff
+values, visibility mode, and authority policy version. It must not include a
+database auto-increment ID, creation time, process host, attempt ID, query
+order, or run order.
 
 ### 6.2 Instance identity
 
@@ -445,71 +529,104 @@ CURRENT_ALEMBIC_PARENT=0022_finalized_at_lineage_basis_member
 This is a future implementation review input only. No schema or migration is
 authorized or created in this brief.
 
-### 8.1 Proposed future object responsibilities
+### 8.1 Minimum non-reusable schema allocation
 
-The following are `PROPOSED_NEW_SYMBOL` and `PROPOSED_NEW_SCHEMA_OBJECT`
-descriptions, not current model claims:
+The following allocation is the minimum schema that cannot be represented by
+the current rolling objects without losing S2 evidence. The owner remains the
+existing rolling aggregate model path; no `historical_backtest.py` aggregate
+is introduced.
 
-| Proposed object | Responsibility | Required integrity |
-| --- | --- | --- |
-| `BacktestRequest` | Canonical request and dual-cutoff identity | SHA-256 request hash; explicit visibility mode; no DB ID in hash |
-| `BacktestRun` | Immutable execution instance and status | request hash, instance hash, authority refs, blocked/not-computable status |
-| `BacktestBindingRow` | One comparison-ready forecast/actual/horizon binding | stable grain, horizon, physical alignment status, source refs |
-| `BacktestCoverageManifest` | Coverage counts and computability evidence | deterministic ordered rows and hash |
-| `BacktestExclusionManifest` | Non-silent exclusions and blocked reasons | machine-readable reason code and stable identity |
-| `BacktestAuthorityReference` | Task 9/10, forecast, label, code, data and policy refs | persisted hashes and drift checks |
-| `BacktestManifest` | Immutable final evidence package | request/instance/authority/coverage/exclusion hashes |
-| `BacktestIdempotencyKey` | Same-request replay lookup | unique source/request identity; conflict on different request |
+| OBJECT_NAME | TABLE_OR_EMBEDDED_PAYLOAD | OWNER_MODEL_PATH | PRIMARY_KEY_ROLE | CANONICAL_IDENTITY | UNIQUE_CONSTRAINT | FOREIGN_KEYS | IMMUTABILITY_POLICY | WHY_EXISTING_SCHEMA_IS_INSUFFICIENT |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BacktestRequest` (`PROPOSED_NEW_SYMBOL`) | Embedded request payload plus explicit columns on `rolling_backtest_run` | `backend/app/models/rolling_backtest.py` | Existing `rolling_backtest_run.id` owns the request/run row | `backtest_request_hash` over versioned business keys, cutoffs, visibility, horizons, and policy versions | Existing `run_signature` plus proposed unique `uq_rolling_backtest_run_backtest_request_hash` | Existing run FKs; authority references are immutable hashes/payloads | Run identity is write-once after creation; drift is conflict | Current run config has no frozen S2 business-key scope, label cutoff/mode invariant, or resolved identity snapshot hash |
+| `BacktestRun` (existing object extended) | Existing table `rolling_backtest_run` | `backend/app/models/rolling_backtest.py` | `rolling_backtest_run.id` | Existing run signature plus S2 request/instance hashes | Existing run signature; proposed unique instance hash within the run identity | Existing season and authority FKs | Existing lifecycle integrity; final identity cannot be rewritten | Current run has generic orchestration identity but no S2 instance fields binding I7 and all forecast authority identities |
+| `BacktestBindingRow` (`PROPOSED_NEW_SYMBOL`) | New table `rolling_backtest_binding_row` | `backend/app/models/rolling_backtest.py` | Surrogate row ID is lookup-only | `binding_row_hash` over run/node/business grain/horizon/forecast/label authority refs | Proposed `uq_rolling_backtest_binding_row_run_key` on `(rolling_run_id, binding_key_hash)` | `rolling_run_id -> rolling_backtest_run.id`; `rolling_node_id -> rolling_backtest_node.id` | Rows are append-only before manifest seal and immutable after seal | Current node and resolved-input rows do not store comparison-ready forecast/actual values, physical alignment, or 7/14/21 binding hashes |
+| `BacktestManifest` (`PROPOSED_NEW_SYMBOL`) | New one-to-one table `rolling_backtest_manifest` | `backend/app/models/rolling_backtest.py` | `rolling_run_id` is the stable one-to-one key | `manifest_hash` over request, instance, authority, binding, coverage, and exclusion hashes | Proposed unique `rolling_run_id` and unique `manifest_hash` | `rolling_run_id -> rolling_backtest_run.id` | Seal once; `BEFORE UPDATE/DELETE` rejects sealed mutation | Current orchestration/DAG snapshots are phase evidence, not an immutable final S2 evidence package |
+| `BacktestCoverageManifest` (`PROPOSED_NEW_SYMBOL`) | JSONB payload `coverage_manifest_payload` embedded in `rolling_backtest_manifest` | `backend/app/models/rolling_backtest.py` | Parent `rolling_run_id` | `coverage_manifest_hash` over ordered coverage entries | Hash uniqueness is parent-scoped through the manifest | Parent manifest FK | Covered by parent manifest seal | Separate table would duplicate a manifest ledger; current schema has no deterministic S2 coverage payload/hash |
+| `BacktestExclusionManifest` (`PROPOSED_NEW_SYMBOL`) | JSONB payload `exclusion_manifest_payload` embedded in `rolling_backtest_manifest` | `backend/app/models/rolling_backtest.py` | Parent `rolling_run_id` | `exclusion_manifest_hash` over ordered machine-readable exclusions | Hash uniqueness is parent-scoped through the manifest | Parent manifest FK | Covered by parent manifest seal | Separate table would duplicate the manifest ledger; current availability audit cannot represent all S2 binding exclusions |
+| `BacktestAuthorityReference` (`PROPOSED_NEW_SYMBOL`) | JSONB payload `authority_reference_payload` embedded in `rolling_backtest_manifest`, sourced from resolved-input rows | `backend/app/models/rolling_backtest.py` | Parent `rolling_run_id` | `authority_reference_hash` over exact Task 9/10, forecast, label, code, data, and policy refs | Hash uniqueness is parent-scoped through the manifest | Parent manifest FK; source rows remain existing FKs where available | Covered by parent manifest seal | Current resolved inputs are node evidence, not a final manifest-bound cross-authority set |
+| `BacktestIdempotencyKey` (`PROPOSED_NEW_SYMBOL`) | No new table; `run_signature` and `backtest_request_hash` on `rolling_backtest_run` | `backend/app/models/rolling_backtest.py` | Existing run primary key | Same request hash and immutable evidence must resolve the same run | Existing unique run signature plus proposed request-hash unique constraint | Existing run FKs | Inherited from run identity | A separate ledger would duplicate existing run idempotency and create a second race owner |
 
 ### 8.2 Future migration requirements
 
-If a future review approves the new-schema decision, it must propose a new
-Alembic revision with parent `0022_finalized_at_lineage_basis_member`. That
-review must specify upgrade creation, dependency-safe downgrade, an
-upgrade/downgrade/upgrade round trip, PostgreSQL unique/FK/immutable-evidence
-acceptance, rollback with no partial evidence, idempotency conflicts, and
-foreign-key ownership. No future migration is approved here.
+If a future review approves the new-schema decision, it must extend
+`backend/app/models/rolling_backtest.py` and propose one Alembic revision with
+parent `0022_finalized_at_lineage_basis_member`. That revision may add only
+the two new tables `rolling_backtest_binding_row` and
+`rolling_backtest_manifest`, plus the approved S2 columns/constraints on
+`rolling_backtest_run`; coverage, exclusions, and authority references remain
+JSONB payloads in the manifest. The review must specify upgrade creation,
+dependency-safe downgrade, an upgrade/downgrade/upgrade round trip,
+PostgreSQL unique/FK/immutable-evidence acceptance, rollback with no partial
+evidence, idempotency conflicts, and foreign-key ownership. No future
+migration is approved here.
 
 ## 9. File allocation matrix
 
-The matrix distinguishes audited current paths from proposed future paths.
-Anything marked `PROPOSED_NEW_PATH` is not an existing module.
+The architecture decision makes the candidate path set finite and deduplicated.
+Paths marked `REUSE_AS_IS` are audited current owners and are not candidate
+changed paths. Paths marked `EXTEND_EXISTING` are already in the candidate
+list. Any proposed new test or migration path below is an exact future path,
+not an existing module claim.
 
-| Concern | Current canonical path | Current symbols/evidence | Future change kind | Proposed new path if any | Test ownership | Schema impact |
-| --- | --- | --- | --- | --- | --- | --- |
-| Application contract | `backend/app/rolling_backtest/schemas.py` | `RollingBacktestConfig`, `RollingNodeDefinition` | Add S2 contract | `backend/app/historical_backtest/contracts.py` (`PROPOSED_NEW_SYMBOL` `BacktestRequest`) | contract/golden | request/run |
-| Domain identity | actual-label schemas and rolling schemas | snapshot request and rolling identity payloads | Add S2 identity contract | `backend/app/historical_backtest/identity.py` (`PROPOSED_NEW_PATH`) | identity tests | uniqueness |
-| Canonical hashing | `backend/app/rolling_backtest/canonical.py`; actual-label hashes | `canonical_json_dumps`, `sha256_payload` | Reuse and compose | no new path unless review proves adapter needed | golden tests | hash columns |
-| Forecast authority adapter | `backend/app/core_forecast/repository.py` | `load_task8_authority`, `load_task9_authority` | Add exact historical adapter | `backend/app/historical_backtest/forecast_authority.py` (`PROPOSED_NEW_PATH`) | authority tests | authority refs |
-| Label snapshot adapter | actual-label service and persistence | `create_label_snapshot`, idempotency loader | Read immutable I7 snapshot | `backend/app/historical_backtest/label_authority.py` (`PROPOSED_NEW_PATH`) | I7 binding tests | label refs |
-| Runner orchestration | `backend/app/rolling_backtest/orchestration.py` | `OrchestrationStage`, authority outcomes | Add S2 orchestration | `backend/app/historical_backtest/service.py` (`PROPOSED_NEW_PATH`) | synthetic E2E | run/binding |
-| Persistence | `backend/app/rolling_backtest/persistence.py` | logical run and integrity persistence | Add S2 repository/finalization | `backend/app/historical_backtest/persistence.py` (`PROPOSED_NEW_PATH`) | PostgreSQL tests | new schema likely |
-| API exposure | no approved S2 public endpoint found | existing internal/CLI paths only | Excluded; internal-only | none | no public API tests | none |
-| Migration | `backend/alembic/versions/0022_finalized_at_lineage_basis_member.py` | current unique head | Future migration if approved | `backend/alembic/versions/0023_historical_backtest_runner.py` (`PROPOSED_NEW_PATH`) | Alembic/PG tests | new revision |
-| Unit tests | actual-harvest and rolling-backtest test paths | current domain and canonical tests | Add S2 unit tests | `backend/tests/historical_backtest/test_contract.py` (`PROPOSED_NEW_PATH`) | unit-contract-golden | none |
-| Contract/golden tests | existing rolling/core forecast contract tests | canonical and authority parity tests | Add S2 golden fixtures | `backend/tests/historical_backtest/test_identity_contract.py` (`PROPOSED_NEW_PATH`) | unit-contract-golden | none |
-| PostgreSQL tests | actual-harvest lifecycle and rolling PG tests | persistence acceptance patterns | Add S2 persistence tests | `backend/tests/historical_backtest/test_persistence_postgres.py` (`PROPOSED_NEW_PATH`) | postgres-domain | new schema if approved |
-| Concurrency tests | existing rolling-backtest concurrency ownership | race/idempotency patterns | Add S2 race tests | `backend/tests/historical_backtest/test_concurrency_postgres.py` (`PROPOSED_NEW_PATH`) | postgres-concurrency | unique constraints |
-| Synthetic E2E | existing rolling-backtest integration fixtures | synthetic orchestration fixtures | Add S2 fixture | `backend/tests/historical_backtest/test_synthetic_e2e.py` (`PROPOSED_NEW_PATH`) | integration/domain | evidence rows |
+```text
+FUTURE_CANDIDATE_CHANGED_PATHS=
+  backend/app/rolling_backtest/schemas.py
+  backend/app/rolling_backtest/signatures.py
+  backend/app/rolling_backtest/orchestration.py
+  backend/app/rolling_backtest/persistence.py
+  backend/app/models/rolling_backtest.py
+  backend/alembic/versions/0023_historical_backtest_binding.py
+  backend/tests/rolling_backtest/test_historical_backtest_contracts.py
+  backend/tests/integration/test_rolling_backtest_historical_binding.py
+  backend/tests/rolling_backtest/test_historical_backtest_concurrency.py
+DECLARED_CHANGED_PATH_COUNT=9
+FUTURE_CHANGED_FILE_CEILING=9
+MATRIX_PATH_COUNT=9
+COUNT_CONSISTENT=true
+```
+
+| Concern | Current canonical path and symbols | Disposition | Future owner/path | Test ownership | Schema impact |
+| --- | --- | --- | --- | --- | --- |
+| Application contract | `backend/app/rolling_backtest/schemas.py`: `RollingBacktestConfig`, `RollingNodeDefinition` | `EXTEND_EXISTING` | same path; add S2 fields | `backend/tests/rolling_backtest/test_historical_backtest_contracts.py` | run columns/payload |
+| Domain identity | `backend/app/rolling_backtest/schemas.py`, `signatures.py`, `config.py` | `EXTEND_EXISTING` | `schemas.py` and `signatures.py`; no identity module split | same contract test | request/instance hashes |
+| Canonical hashing | `backend/app/rolling_backtest/canonical.py`: `canonical_json_dumps`, `sha256_payload` | `REUSE_AS_IS` | existing serializer; callers compose S2 payloads | existing canonical tests plus candidate contract test | hash values only |
+| Forecast authority adapter | `backend/app/core_forecast/repository.py`: `load_task8_authority`, `load_task9_authority` | `REUSE_AS_IS` | existing repository, called by rolling orchestration | candidate contract and integration tests | authority payload refs |
+| Task 10 authority adapter | `backend/app/rolling_backtest/replay_task10_binding.py`: `evaluate_replay_task10_binding` | `REUSE_AS_IS` | existing exact replay binding | candidate integration test | authority payload refs |
+| Label snapshot adapter | `backend/app/actual_harvest_labels/service.py`, `persistence.py`: `create_label_snapshot`, idempotency loader | `REUSE_AS_IS` | existing immutable I7 snapshot loader | candidate integration test | label payload refs |
+| Runner orchestration | `backend/app/rolling_backtest/orchestration.py`: `OrchestrationStage`, authority outcomes | `EXTEND_EXISTING` | same path; S2 flow remains in rolling aggregate | candidate integration test | run/binding/manifest |
+| Persistence | `backend/app/rolling_backtest/persistence.py`: logical-run and attempt persistence | `EXTEND_EXISTING` | same path; add S2 finalization and child writes | candidate integration/PG test | new child tables |
+| Model ownership | `backend/app/models/rolling_backtest.py`: all rolling ORM models | `EXTEND_EXISTING` | same path; extend run and add two minimal child models | candidate integration/PG test | new columns/tables |
+| Migration | `backend/alembic/versions/0022_finalized_at_lineage_basis_member.py`: current head | `ADD_NEW` | `backend/alembic/versions/0023_historical_backtest_binding.py` (`PROPOSED_NEW_PATH`) | Alembic/PG portion of integration test | only if separately approved |
+| Unit/contract/golden tests | `backend/tests/rolling_backtest/test_canonical.py`, `test_identity_parity.py`, `test_persistence_contracts.py` | `EXTEND_EXISTING` | `backend/tests/rolling_backtest/test_historical_backtest_contracts.py` | unit-contract-golden | none |
+| PostgreSQL acceptance | `backend/tests/integration/test_rolling_backtest_persistence.py` and actual-harvest PG ownership | `ADD_NEW` | `backend/tests/integration/test_rolling_backtest_historical_binding.py` (`PROPOSED_NEW_PATH`) | postgres-domain | schema acceptance |
+| Concurrency acceptance | existing rolling-backtest concurrency ownership | `ADD_NEW` | `backend/tests/rolling_backtest/test_historical_backtest_concurrency.py` (`PROPOSED_NEW_PATH`) | postgres-concurrency | unique/race behavior |
+| Synthetic E2E | `backend/tests/integration/test_rolling_backtest_orchestration.py` fixtures | `ADD_NEW` | same candidate integration path, no separate fixture module | postgres-domain/integration | binding/manifest |
+| API exposure | no approved S2 public endpoint found | `EXCLUDED` | none; internal evidence only | no public API test | none |
+
+The three test concerns deliberately share the two candidate test paths where
+possible: contract/golden tests use the rolling-backtest unit path, while
+PostgreSQL, rollback, synthetic E2E, and migration evidence use the single
+integration path. No optional path exists outside the nine-path set.
 
 ## 10. Future implementation changed-file ceiling
 
-Based on the audited ownership, a future implementation can be bounded without
-touching frontend, model, parameter, maturity, weather, harvest equation,
-Q2G, S3 metrics, dependency, or workflow files:
-
 ```text
+REVIEW_BASELINE_IMPLEMENTATION_ALLOCATION_READY=false
+ARCHITECTURE_RELATIONSHIP_FROZEN=true
+CANDIDATE_PATHS_EXPLICIT=true
+PATH_COUNT_AND_CEILING_MATHEMATICALLY_EQUAL=true
 IMPLEMENTATION_ALLOCATION_READY=true
-FUTURE_CHANGED_FILE_CEILING=12
+FUTURE_CHANGED_FILE_CEILING=9
 FUTURE_CHANGED_FILES_ARE_PROVISIONAL=true
 ```
 
-The ceiling is a review bound, not authorization. It permits at most five
-application/adapter/persistence paths under `backend/app/historical_backtest/`,
-one model path, one Alembic revision only if separately approved, four S2 test
-paths, and one existing focused path only if exact adapter reuse requires it.
-The final implementation must stay below this ceiling or obtain a new review.
-It must not spend the ceiling on unrelated refactors.
+The ceiling is exactly the nine paths in `FUTURE_CANDIDATE_CHANGED_PATHS`.
+It includes the future migration path even though migration remains separately
+unauthorized. It includes all candidate test paths and has no hidden optional
+file. The future implementation must not touch frontend, model, parameter,
+maturity, weather, harvest equation, Q2G, S3 metrics, dependency, or workflow
+files, and must obtain a new review before exceeding the ceiling.
 
 ## 11. Future acceptance matrix
 
@@ -518,6 +635,11 @@ docs-only round.
 
 | Gate | Test or evidence | Expected result | Failure class | Before technical acceptance | Before real-data acceptance |
 | --- | --- | --- | --- | --- | --- |
+| Business-key canonicalization | Same resolved business keys constructed with different database lookup IDs or input order | Same canonical scope and request hash | structural | Required | Required |
+| Numeric ID lookup does not change request hash | Hold business keys constant while changing lookup IDs | Request hash unchanged | structural | Required | Required |
+| Identity resolver version drift | Change resolver version or resolved identity snapshot hash | Instance identity changes and old evidence is not replayed | structural | Required | Required |
+| Invalid visibility/cutoff combination | Use a non-null label cutoff for `FINAL_ADJUDICATED` or null cutoff for `AS_OF_EVALUATION` | Deterministic rejection | structural | Required | Required |
+| Unsorted/duplicate horizons | Submit unsorted or duplicate values outside the allowed set | Reject; no implicit order or duplicate binding rows | structural | Required | Required |
 | Canonical request hash stability | Repeat serialization and reorder construction | Same SHA-256 | structural | Required | Required |
 | Instance hash stability | Replay same request and exact authority | Same instance hash | structural | Required | Required |
 | Dual-cutoff leakage prevention | Change forecast and label visibility independently | Future evidence excluded | structural | Required | Required |
