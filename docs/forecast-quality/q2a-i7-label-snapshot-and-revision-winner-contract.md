@@ -412,10 +412,25 @@ The list contains stable source identity and `commit_manifest_hash`; it does not
 
 `label_snapshot_instance_identity_hash` binds:
 
-- request identity;
-- database-authoritative `snapshot_executed_at`;
+- request identity (`label_snapshot_request_identity_hash`);
 - canonically ordered source manifest set;
-- source-universe hash.
+- source-universe hash (`source_commit_manifest_set_hash`).
+
+`snapshot_executed_at` is **persisted** on the snapshot row for audit metadata
+but is **not** bound into the instance identity hash. This is the deliberate
+"SAME_REQUEST_AND_SAME_SOURCE_UNIVERSE_REPRODUCES_SAME_HASHES" guarantee
+frozen by §14.3: a replay of the same request against the same source
+universe must produce the same `label_snapshot_instance_identity_hash`
+regardless of when it is taken.
+
+```text
+SNAPSHOT_EXECUTED_AT_SOURCE=DATABASE_CURRENT_TIMESTAMP
+SNAPSHOT_EXECUTED_AT_IS_AUDIT_METADATA=true
+INSTANCE_HASH_BINDS_REQUEST_IDENTITY=true
+INSTANCE_HASH_BINDS_SOURCE_COMMIT_MANIFEST_SET_HASH=true
+INSTANCE_HASH_BINDS_SNAPSHOT_EXECUTED_AT=false
+SAME_REQUEST_AND_SAME_SOURCE_UNIVERSE_REPRODUCES_SAME_HASHES=true
+```
 
 ### 14.4 Final snapshot hash
 
@@ -450,6 +465,7 @@ VOID_HAS_SUCCESSOR
 FINALIZED_AT_REQUIRED
 SOURCE_SYSTEM_SCOPE_CONFLICT
 IDEMPOTENCY_CONFLICT
+UNSUPPORTED_LABEL_GRAIN
 ```
 
 `CORRECTED_WITHOUT_SUCCESSOR` is the accepted I7 contract name. Existing I5 implementations may map the condition to the legacy `INVALID_RECORD_STATUS` code until implementation hardening is separately authorized.
@@ -476,6 +492,22 @@ STATUS_NOT_VISIBLE_AT_CUTOFF applies only to in-scope records
 ```
 
 The two reasons are mutually exclusive for one record.
+
+`OUTSIDE_REQUEST_SCOPE` is emitted ONLY when the per-revision frozen
+evidence is complete and bound by hash, but the canonical business
+key is outside the request's `season_business_keys` /
+`farm_business_keys_or_empty_for_all` /
+`variety_business_keys_or_empty_for_all` allow-list. A revision
+with zero or partial mapping evidence rows is a structural failure
+(`MAPPING_EVIDENCE_MISSING`) and MUST NOT be downgraded to a
+coverage exclusion. The source-evidence preflight
+(`_preflight_source_evidence` in `backend/app/actual_harvest_labels/service.py`)
+enumerates every lineage basis member bound to an observed
+validation run and rejects missing/partial/duplicate/unknown/PLOT
+evidence before scope, visibility, graph construction, winner
+selection, or aggregation runs. The preflight authority universe is
+the persisted `lineage_basis_member` table, not the mapping
+evidence rows themselves.
 
 Every exclusion has one deterministic row hash. The ordered row hashes form `exclusion_manifest_hash`.
 
