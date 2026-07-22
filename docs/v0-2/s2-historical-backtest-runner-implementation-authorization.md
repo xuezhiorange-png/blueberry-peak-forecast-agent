@@ -767,14 +767,28 @@ PATH_COUNT_AND_CEILING_MATHEMATICALLY_EQUAL=true
 IMPLEMENTATION_ALLOCATION_READY=true
 FUTURE_CHANGED_FILE_CEILING=12
 FUTURE_CHANGED_FILES_ARE_PROVISIONAL=true
+WORKFLOW_CHANGE_ALLOWED_ONLY_FOR=.github/workflows/ci.yml
+WORKFLOW_CHANGE_SCOPE=ADD_ONLY_THE_THREE_AUTHORIZED_TEST_PATHS_TO_EXISTING_OWNER_JOBS
+OTHER_WORKFLOW_FILES_FORBIDDEN=true
+CI_SHARD_MANIFEST_CHANGE_ALLOWED_ONLY_FOR=ci-shard-manifest.yml
+CI_SHARD_MANIFEST_CHANGE_SCOPE=REGISTER_THE_SAME_THREE_TEST_PATHS_UNDER_EXISTING_OWNER_JOBS
+WORKFLOW_COMMAND_PATH_ADDITION_COUNT=3
+JOB_COUNT_CHANGE_ALLOWED=false
+TRIGGER_CHANGE_ALLOWED=false
+DATABASE_ISOLATION_CHANGE_ALLOWED=false
+SECURITY_RULE_CHANGE_ALLOWED=false
+UNRELATED_TEST_OWNERSHIP_CHANGE_ALLOWED=false
 ```
 
 The ceiling is exactly the twelve paths in `FUTURE_CANDIDATE_CHANGED_PATHS`.
 It includes the future migration path even though migration remains separately
 unauthorized. It includes all candidate test paths and has no hidden optional
-file. The future implementation must not touch frontend, model, parameter,
-maturity, weather, harvest equation, Q2G, S3 metrics, dependency, or workflow
-files, and must obtain a new review before exceeding the ceiling.
+file. Workflow changes are forbidden except for the exact authorized
+`.github/workflows/ci.yml` additions frozen in Section 9. Those additions are
+limited to the three listed non-unit test paths; the unit contract test remains
+under the repository-wide residual selector. All other workflow files and all
+unrelated implementation areas remain forbidden, and a new review is required
+before exceeding the ceiling.
 
 ## 11. Future acceptance matrix
 
