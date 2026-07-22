@@ -8,6 +8,8 @@ from backend.app.rolling_backtest.schemas import (
     ResolvedUpstreamSemanticIdentity,
     RollingBacktestConfig,
     RollingNodeDefinition,
+    S2HistoricalBacktestRequest,
+    S2HistoricalBindingRow,
 )
 
 
@@ -68,3 +70,77 @@ def run_signature_payload(config: RollingBacktestConfig) -> dict[str, object]:
 
 def run_signature_hash(config: RollingBacktestConfig) -> str:
     return sha256_payload(canonical_json_value(run_signature_payload(config)))
+
+
+def s2_request_payload(request: S2HistoricalBacktestRequest) -> dict[str, object]:
+    """Return the canonical S2 request identity projection.
+
+    Business-key lists are normalized by the request schema.  No database
+    lookup id, insertion timestamp, or runtime ordering is accepted here.
+    """
+
+    return cast(
+        dict[str, object],
+        canonical_json_value(
+            {
+                "s2_contract_version": request.s2_contract_version,
+                "season_business_keys": request.season_business_keys,
+                "farm_business_keys": request.farm_business_keys,
+                "subfarm_business_keys": request.subfarm_business_keys,
+                "variety_business_keys": request.variety_business_keys,
+                "master_identity_resolver_version": request.master_identity_resolver_version,
+                "mapping_policy_version": request.mapping_policy_version,
+                "resolved_identity_snapshot_hash": request.resolved_identity_snapshot_hash,
+                "authority_selection_policy_version": request.authority_selection_policy_version,
+                "single_node_identity_hash": request.single_node_identity_hash,
+                "forecast_cutoff_at": request.forecast_cutoff_at,
+                "label_observation_cutoff_at": request.label_observation_cutoff_at,
+                "label_visibility_mode": request.label_visibility_mode,
+                "requested_horizons_days": request.requested_horizons_days,
+            }
+        ),
+    )
+
+
+def s2_request_hash(request: S2HistoricalBacktestRequest) -> str:
+    return sha256_payload(s2_request_payload(request))
+
+
+def s2_binding_row_payload(row: S2HistoricalBindingRow) -> dict[str, object]:
+    return cast(
+        dict[str, object],
+        canonical_json_value(row.model_dump(mode="python", exclude={"row_hash"})),
+    )
+
+
+def s2_binding_row_hash(row: S2HistoricalBindingRow) -> str:
+    return sha256_payload(s2_binding_row_payload(row))
+
+
+def s2_instance_payload(
+    request: S2HistoricalBacktestRequest,
+    rows: tuple[S2HistoricalBindingRow, ...],
+) -> dict[str, object]:
+    return cast(
+        dict[str, object],
+        canonical_json_value(
+            {
+                "request": s2_request_payload(request),
+                "binding_rows": tuple(
+                    {
+                        "row_hash": row.row_hash,
+                        "horizon_days": row.horizon_days,
+                        "target_date": row.target_date,
+                    }
+                    for row in sorted(rows, key=lambda item: (item.horizon_days, item.target_date))
+                ),
+            }
+        ),
+    )
+
+
+def s2_instance_hash(
+    request: S2HistoricalBacktestRequest,
+    rows: tuple[S2HistoricalBindingRow, ...],
+) -> str:
+    return sha256_payload(s2_instance_payload(request, rows))

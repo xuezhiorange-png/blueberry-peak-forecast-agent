@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
-from typing import Annotated, Literal, Self
+from decimal import Decimal
+from typing import Annotated, Final, Literal, Self
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -408,6 +409,178 @@ class RollingBacktestConfig(_BaseModel):
                 != Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL
             ):
                 raise ValueError("historical_observed nodes must use historically_available_model")
+        return self
+
+
+# V0.2-S2 historical binding contract.  These models intentionally carry
+# business-key scope and immutable authority identities, not database lookup
+# ids.  They are the input boundary for the runner; no S3 metric is part of
+# this contract.
+S2_CONTRACT_VERSION: Final = "v0.2-s2-historical-binding-v1"
+S2_ALLOWED_HORIZONS_DAYS = (7, 14, 21)
+S2_LABEL_VISIBILITY_MODES = ("AS_OF_EVALUATION", "FINAL_ADJUDICATED")
+
+
+class S2HistoricalBacktestRequest(_BaseModel):
+    s2_contract_version: Literal["v0.2-s2-historical-binding-v1"] = S2_CONTRACT_VERSION
+    season_business_keys: tuple[str, ...] = Field(min_length=1)
+    farm_business_keys: tuple[str, ...] = Field(min_length=1)
+    subfarm_business_keys: tuple[str, ...] = Field(min_length=1)
+    variety_business_keys: tuple[str, ...] = Field(min_length=1)
+    master_identity_resolver_version: str = Field(min_length=1)
+    mapping_policy_version: str = Field(min_length=1)
+    resolved_identity_snapshot_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    authority_selection_policy_version: str = Field(min_length=1)
+    single_node_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    forecast_cutoff_at: datetime
+    label_observation_cutoff_at: datetime | None = None
+    label_visibility_mode: Literal["AS_OF_EVALUATION", "FINAL_ADJUDICATED"]
+    requested_horizons_days: tuple[int, ...] = Field(min_length=1)
+
+    @field_validator(
+        "season_business_keys",
+        "farm_business_keys",
+        "subfarm_business_keys",
+        "variety_business_keys",
+        mode="before",
+    )
+    @classmethod
+    def _canonicalize_business_keys(cls, value: object) -> tuple[str, ...]:
+        if not isinstance(value, (tuple, list)):
+            raise ValueError("business-key scope must be a list or tuple")
+        normalized = tuple(sorted(str(item).strip() for item in value))
+        if not normalized or any(not item for item in normalized):
+            raise ValueError("business-key scope must contain non-empty values")
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("business-key scope must not contain duplicates")
+        return normalized
+
+    @field_validator("forecast_cutoff_at", "label_observation_cutoff_at")
+    @classmethod
+    def _require_aware_cutoff(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("cutoff timestamps must be timezone-aware")
+        return value
+
+    @field_validator("requested_horizons_days", mode="before")
+    @classmethod
+    def _normalize_horizons(cls, value: object) -> tuple[int, ...]:
+        if not isinstance(value, (tuple, list)):
+            raise ValueError("requested_horizons_days must be a list or tuple")
+        horizons = tuple(int(item) for item in value)
+        if not horizons:
+            raise ValueError("requested_horizons_days must not be empty")
+        if len(set(horizons)) != len(horizons):
+            raise ValueError("requested_horizons_days must not contain duplicates")
+        if any(item not in S2_ALLOWED_HORIZONS_DAYS for item in horizons):
+            raise ValueError("requested_horizons_days must be a subset of 7, 14, 21")
+        return tuple(sorted(horizons))
+
+    @model_validator(mode="after")
+    def _validate_visibility_cutoff(self) -> Self:
+        if self.label_visibility_mode == "AS_OF_EVALUATION":
+            if self.label_observation_cutoff_at is None:
+                raise ValueError("AS_OF_EVALUATION requires label_observation_cutoff_at")
+        elif self.label_observation_cutoff_at is not None:
+            raise ValueError("FINAL_ADJUDICATED requires null label_observation_cutoff_at")
+        return self
+
+
+class S2ForecastAuthorityBundle(_BaseModel):
+    forecast_run_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    daily_row_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task9_authority_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task10_authority_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    forecast_code_identity: str = Field(min_length=1)
+    model_identity: str = Field(min_length=1)
+    parameter_identity: str = Field(min_length=1)
+    data_identity: str = Field(min_length=1)
+    available_at: datetime
+
+    @field_validator("available_at")
+    @classmethod
+    def _require_aware_availability(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("forecast authority available_at must be timezone-aware")
+        return value
+
+
+class S2ActualLabelAuthority(_BaseModel):
+    label_snapshot_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    observed_weight_kg: Decimal = Field(ge=Decimal("0"))
+    visibility_timestamp: datetime | None = None
+    physical_alignment_status: Literal["VERIFIED", "UNVERIFIED"]
+
+    @field_validator("visibility_timestamp")
+    @classmethod
+    def _require_aware_visibility(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("label visibility_timestamp must be timezone-aware")
+        return value
+
+
+class S2HistoricalBindingCandidate(_BaseModel):
+    horizon_days: int
+    target_date: date
+    forecast_cutoff_at: datetime
+    forecast_value_kg: Decimal = Field(ge=Decimal("0"))
+    forecast_authority: S2ForecastAuthorityBundle
+    actual_label: S2ActualLabelAuthority | None = None
+
+    @field_validator("horizon_days")
+    @classmethod
+    def _validate_horizon(cls, value: int) -> int:
+        if value not in S2_ALLOWED_HORIZONS_DAYS:
+            raise ValueError("horizon_days must be one of 7, 14, 21")
+        return value
+
+    @field_validator("forecast_cutoff_at")
+    @classmethod
+    def _require_aware_forecast_cutoff(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("candidate forecast_cutoff_at must be timezone-aware")
+        return value
+
+
+class S2HistoricalBindingRow(_BaseModel):
+    horizon_days: int
+    target_date: date
+    forecast_cutoff_at: datetime
+    label_observation_cutoff_at: datetime | None
+    label_visibility_mode: Literal["AS_OF_EVALUATION", "FINAL_ADJUDICATED"]
+    forecast_value_kg: Decimal = Field(ge=Decimal("0"))
+    actual_value_kg: Decimal | None = Field(default=None, ge=Decimal("0"))
+    forecast_authority: S2ForecastAuthorityBundle
+    actual_label: S2ActualLabelAuthority | None = None
+    physical_alignment_status: str
+    row_status: Literal["COMPARABLE", "EXCLUDED", "NOT_COMPUTABLE"]
+    reason_code: str | None = None
+    row_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @field_validator("horizon_days")
+    @classmethod
+    def _validate_row_horizon(cls, value: int) -> int:
+        if value not in S2_ALLOWED_HORIZONS_DAYS:
+            raise ValueError("binding horizon must be one of 7, 14, 21")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_row_semantics(self) -> Self:
+        if self.row_status == "COMPARABLE":
+            if self.actual_label is None or self.actual_value_kg is None:
+                raise ValueError("comparable row requires an actual label")
+            if self.physical_alignment_status != "VERIFIED":
+                raise ValueError("comparable row requires verified physical alignment")
+            if self.reason_code is not None:
+                raise ValueError("comparable row cannot have an exclusion reason")
+        elif self.reason_code is None:
+            raise ValueError("excluded or not-computable row requires a reason code")
+        if (
+            self.actual_label is not None
+            and self.actual_value_kg != self.actual_label.observed_weight_kg
+        ):
+            raise ValueError("actual_value_kg must equal the persisted label authority value")
         return self
 
 
