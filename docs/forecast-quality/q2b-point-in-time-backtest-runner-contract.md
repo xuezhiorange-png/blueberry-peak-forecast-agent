@@ -272,38 +272,70 @@ mask and horizon, and return a value plus denominator, coverage, policy
 version, mask hash, and a computability status. The following table is the
 contract; implementation must not silently add metrics.
 
+Point and season-cumulative metrics are P50-only. They must not be recomputed
+as separate P80/P90 point metrics:
+
+```text
+POINT_METRIC_QUANTILE=P50_ONLY
+POINT_METRIC_FORECAST_QUANTITY=forecast_p50
+```
+
 | metric | formula | unit | grain | denominator / weighting | zero denominator | missing day | minimum coverage |
 |---|---|---|---|---|---|---|---|
-| `daily_mae` | `mean(abs(pred-actual))` | kg | aligned day x quantile | comparable days, equal day weight | not computable | exclude, no zero-fill | 1 comparable day |
-| `daily_wape` | `sum(abs(error))/sum(abs(actual))` | ratio | aligned day | absolute-actual denominator | `ZERO_ACTUAL_DENOMINATOR` | exclude | 1 day and nonzero denominator |
-| `daily_smape` | `mean(2*abs(error)/(abs(pred)+abs(actual)))` | ratio | aligned day | equal comparable-day weight | zero/zero contributes 0 | exclude | 1 comparable day |
-| `daily_mape` | `mean(abs(error)/abs(actual))` over rows where `actual > 0` | ratio | aligned day x quantile | equal eligible-day weight | no eligible rows blocks | zero-actual rows excluded and counted | 1 eligible day |
-| `daily_signed_bias` | `mean(pred-actual)` | kg | aligned day x quantile | equal comparable-day weight | no denominator beyond count | exclude | 1 comparable day |
-| `daily_relative_bias` | `sum(pred-actual)/sum(actual)` over rows where `actual > 0` | ratio | aligned day x quantile | eligible actual denominator | no eligible rows blocks | zero-actual rows excluded and counted | 1 eligible day |
-| `cumulative_absolute_error_kg` | `abs(sum(pred)-sum(actual))` | kg | requested horizon x quantile | complete horizon totals | no denominator | incomplete horizon blocks | complete requested horizon |
-| `daily_absolute_error_sum_kg` | `sum(abs(error))` | kg | requested horizon x quantile | explicit daily-row sum | no denominator | incomplete horizon blocks | complete requested horizon |
-| `cumulative_signed_error_kg` | `sum(pred-actual)` | kg | requested horizon | equal row contribution | no denominator | incomplete horizon blocks | complete requested horizon |
-| `cumulative_absolute_relative_error` | `sum(abs(error))/sum(abs(actual))` | ratio | requested horizon | absolute-actual denominator | `ZERO_ACTUAL_DENOMINATOR` | incomplete horizon blocks | complete horizon and nonzero denominator |
-| `single_day_peak_date_signed_error_days` | `predicted_peak_date - actual_peak_date` after stable argmax | days | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
-| `single_day_peak_date_absolute_error_days` | `abs(predicted_peak_date - actual_peak_date)` after stable argmax | days | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
-| `single_day_peak_quantity_absolute_error_kg` | `abs(predicted_peak - actual_peak)` | kg | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
-| `single_day_peak_quantity_signed_error_kg` | `predicted_peak - actual_peak` | kg | season x identity x quantile | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
-| `single_day_peak_quantity_absolute_relative_error` | `abs(predicted_peak-actual_peak)/abs(actual_peak)` | ratio | season x identity x quantile | actual peak denominator | zero actual peak blocks | incomplete peak window blocks | complete peak window and nonzero peak |
-| `p80_coverage` | `count(actual <= p80)/count(comparable)` | ratio | aligned day | equal day weight | no comparable rows blocks | exclude | 1 comparable day |
-| `p90_coverage` | `count(actual <= p90)/count(comparable)` | ratio | aligned day | equal day weight | no comparable rows blocks | exclude | 1 comparable day |
-| `p80_p50_upper_spread_kg` | `mean(p80-p50)` | kg | aligned day | equal comparable-day weight | no comparable rows blocks | exclude | 1 comparable day |
-| `p90_p50_upper_spread_kg` | `mean(p90-p50)` | kg | aligned day | equal comparable-day weight | no comparable rows blocks | exclude | 1 comparable day |
+| `daily_mae` | `mean(abs(forecast_p50-actual))` | kg | aligned day | comparable days, equal day weight | not computable | exclude, no zero-fill | 1 comparable day |
+| `daily_wape` | `sum(abs(forecast_p50-actual))/sum(abs(actual))` | ratio | aligned day | absolute-actual denominator | `ZERO_ACTUAL_DENOMINATOR` | exclude | 1 day and nonzero denominator |
+| `daily_smape` | `mean(2*abs(forecast_p50-actual)/(abs(forecast_p50)+abs(actual)))` | ratio | aligned day | equal comparable-day weight | zero/zero contributes 0 | exclude | 1 comparable day |
+| `daily_mape` | `mean(abs(forecast_p50-actual)/abs(actual))` where `actual > 0` | ratio | aligned day | equal eligible-day weight | no eligible rows blocks | zero-actual rows excluded and counted | 1 eligible day |
+| `daily_bias` | `mean(forecast_p50-actual)` | kg | aligned day | equal comparable-day weight | no denominator beyond count | exclude | 1 comparable day |
+| `daily_relative_bias` | `sum(forecast_p50-actual)/sum(actual)` | ratio | aligned day | all comparable rows in numerator; actual-total denominator | `ZERO_ACTUAL_DENOMINATOR` | exclude | 1 day and nonzero denominator |
+| `season_cumulative_actual_kg` | `sum(actual)` | kg | requested horizon | complete horizon total | no denominator | incomplete horizon blocks | complete requested horizon |
+| `season_cumulative_forecast_kg` | `sum(forecast_p50)` | kg | requested horizon | complete horizon total | no denominator | incomplete horizon blocks | complete requested horizon |
+| `cumulative_absolute_error_kg` | `abs(season_cumulative_forecast_kg-season_cumulative_actual_kg)` | kg | requested horizon | complete horizon totals | no denominator | incomplete horizon blocks | complete requested horizon |
+| `cumulative_signed_relative_error` | `(season_cumulative_forecast_kg-season_cumulative_actual_kg)/season_cumulative_actual_kg` | ratio | requested horizon | season actual denominator | `ZERO_ACTUAL_DENOMINATOR` | incomplete horizon blocks | complete horizon and nonzero actual |
+| `cumulative_absolute_relative_error` | `abs(season_cumulative_forecast_kg-season_cumulative_actual_kg)/abs(season_cumulative_actual_kg)` | ratio | requested horizon | absolute season actual denominator | `ZERO_ACTUAL_DENOMINATOR` | incomplete horizon blocks | complete horizon and nonzero actual |
+| `daily_absolute_error_sum_kg` | `sum(abs(forecast_p50-actual))` | kg | requested horizon | explicit daily-row sum | no denominator | incomplete horizon blocks | complete requested horizon |
+| `forecast_single_day_peak_date_q` | stable argmax forecast date for quantile `q` | date | season x identity x `q` | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
+| `forecast_single_day_peak_quantity_kg_q` | forecast quantity on `forecast_single_day_peak_date_q` | kg | season x identity x `q` | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
+| `single_day_peak_date_signed_error_days_q` | `forecast_single_day_peak_date_q-actual_peak_date` | days | season x identity x `q` | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
+| `single_day_peak_date_absolute_error_days_q` | `abs(forecast_single_day_peak_date_q-actual_peak_date)` | days | season x identity x `q` | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
+| `single_day_peak_quantity_absolute_error_kg_q` | `abs(forecast_single_day_peak_quantity_kg_q-actual_peak_quantity_kg)` | kg | season x identity x `q` | peak rows only | no comparable peak blocks | incomplete peak window blocks | complete peak window |
+| `single_day_peak_quantity_signed_relative_error_q` | `(forecast_single_day_peak_quantity_kg_q-actual_peak_quantity_kg)/abs(actual_peak_quantity_kg)` | ratio | season x identity x `q` | actual peak denominator | `ZERO_ACTUAL_PEAK_DENOMINATOR` | incomplete peak window blocks | complete peak window and nonzero peak |
+| `single_day_peak_quantity_absolute_relative_error_q` | `abs(forecast_single_day_peak_quantity_kg_q-actual_peak_quantity_kg)/abs(actual_peak_quantity_kg)` | ratio | season x identity x `q` | actual peak denominator | `ZERO_ACTUAL_PEAK_DENOMINATOR` | incomplete peak window blocks | complete peak window and nonzero peak |
 | `horizon_7d` | scope selector for seven complete target days | days | requested horizon | not a scalar metric | invalid horizon blocks | incomplete horizon blocks | 7 days |
 | `horizon_14d` | scope selector for fourteen complete target days | days | requested horizon | not a scalar metric | invalid horizon blocks | incomplete horizon blocks | 14 days |
 | `horizon_21d` | scope selector for twenty-one complete target days | days | requested horizon | not a scalar metric | invalid horizon blocks | incomplete horizon blocks | 21 days |
 
+The peak field suffix `q` is one of `P50`, `P80`, or `P90`:
+
+```text
+SINGLE_DAY_PEAK_QUANTILES=P50_P80_P90
+```
+
 Peak ties are resolved by earliest business date, then stable canonical
-identity. Peak metrics are explicit per quantile (`P50`, `P80`, `P90`) and are
-split into signed date error, absolute date error, signed quantity error, and
-absolute quantity error. Metrics are computed separately per requested horizon
-and forecast quantile. No forecast row is silently reused across horizons.
-`p80_p50_upper_spread_kg` and `p90_p50_upper_spread_kg` are upper spreads, not
-prediction interval widths:
+identity. No forecast row is silently reused across horizons. The optional
+signed kg difference, if retained, must be named
+`single_day_peak_quantity_signed_error_kg_q` and does not replace the required
+signed-relative field.
+
+Coverage, pinball loss, and upper-spread metrics are conditional quantile
+metrics, not unconditional scalar metrics:
+
+```text
+CONDITIONAL_QUANTILE_METRICS
+QUANTILE_SEMANTICS_GATE=VERIFIED_TRUE_UPPER_QUANTILE
+p50_coverage=count(actual <= p50)/count(comparable)
+p80_coverage=count(actual <= p80)/count(comparable)
+p90_coverage=count(actual <= p90)/count(comparable)
+pinball_loss_p50=pinball(actual, p50)
+pinball_loss_p80=pinball(actual, p80)
+pinball_loss_p90=pinball(actual, p90)
+p80_p50_upper_spread_kg=mean(p80-p50)
+p90_p50_upper_spread_kg=mean(p90-p50)
+```
+
+All formulas in this section require
+`QUANTILE_SEMANTICS=VERIFIED_TRUE_UPPER_QUANTILE`; otherwise their status is
+`NOT_COMPUTABLE`. Upper spreads are not prediction interval widths:
 
 ```text
 IS_PREDICTION_INTERVAL_WIDTH=false
@@ -312,6 +344,9 @@ PREDICTION_INTERVAL_WIDTH_REQUIRES_EXPLICIT_LOWER_AND_UPPER=true
 
 `daily_mape` follows the Q1 denominator contract and records
 `mape_eligible_row_count`, `zero_actual_row_count`, and `excluded_row_count`.
+`daily_relative_bias` includes every comparable row in its numerator; an
+`actual=0` row is not silently removed. Only a zero total actual makes it
+not computable.
 Quantile semantics are not verified by the current audit, so coverage and
 pinball loss are not computable or frozen as usable Q2B metrics:
 

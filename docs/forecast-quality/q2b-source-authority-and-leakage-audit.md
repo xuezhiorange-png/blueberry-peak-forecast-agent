@@ -120,25 +120,36 @@ PRIMARY_ACTUAL_HARVEST_LABEL_READY=NO
 
 The classifications below distinguish current production metric helpers from
 Q2B point-in-time availability. A unit or golden helper is never treated as a
-production backtest runner.
+production backtest runner. Q2B point and season-cumulative metrics are
+explicitly P50-only; peak metrics are the only required per-quantile point
+family in this design.
 
 | requested Q2B metric | current repository classification | reason |
 |---|---|---|
-| `daily_mae` | PARTIAL | `mean_absolute_error` helper exists; no Q2B aligned-row materializer |
-| `daily_wape` | PARTIAL | `wmape` helper exists; no dual-cutoff binding |
-| `daily_smape` | ABSENT | no frozen Q2B sMAPE implementation |
-| `daily_mape` | PARTIAL | Q1 denominator contract is specified; no Q2B aligned-row materializer |
-| `daily_signed_bias` | ABSENT | no Q2B daily signed-bias implementation |
-| `daily_relative_bias` | ABSENT | no Q2B daily relative-bias implementation |
-| cumulative absolute/signed error | PARTIAL | Q2B distinguishes absolute total from signed total; no Q2B evidence |
-| cumulative absolute relative error | PARTIAL | related cumulative relative helper exists; Q2B contract differs and lacks runner |
-| single-day peak date/quantity errors | PARTIAL | P50 peak helpers exist; Q2B per-quantile target-bound metrics do not |
-| P80/P90 coverage | PARTIAL | current coverage slice is P50-oriented, not Q2B P80/P90 target contract |
-| P80/P90 upper spread | PARTIAL | upper spreads are not interval widths without lower bounds |
+| `daily_mae` | PARTIAL / P50_ONLY | `mean_absolute_error` helper exists; no Q2B aligned-row materializer |
+| `daily_wape` | PARTIAL / P50_ONLY | `wmape` helper exists; no dual-cutoff binding |
+| `daily_smape` | ABSENT / P50_ONLY | no frozen Q2B sMAPE implementation |
+| `daily_mape` | PARTIAL / P50_ONLY | Q1 denominator contract is specified; no Q2B aligned-row materializer |
+| `daily_bias` | ABSENT / P50_ONLY | no Q2B daily bias implementation |
+| `daily_relative_bias` | ABSENT / P50_ONLY | Q1 numerator includes all comparable rows; no Q2B implementation |
+| season cumulative actual/forecast/error metrics | PARTIAL / P50_ONLY | formulas are frozen; no Q2B evidence materializer |
+| `daily_absolute_error_sum_kg` | PARTIAL / P50_ONLY | distinct daily absolute-error sum; not a cumulative-relative numerator |
+| single-day peak date/quantity errors | PARTIAL / P50_P80_P90 | exact per-quantile fields are frozen; no Q2B materializer |
+| quantile coverage | CONDITIONAL_NOT_COMPUTABLE | requires verified true upper-quantile semantics |
+| pinball loss | CONDITIONAL_NOT_COMPUTABLE | requires verified quantile semantics |
+| P80/P90 upper spread | CONDITIONAL_NOT_COMPUTABLE | upper spread is not an interval width and requires the same quantile gate |
 | horizons 7/14/21 | ABSENT | no Q2B horizon-scoped runner/evidence |
 | sustained seven-day peak | NOT_AUTHORIZED | Q3 scope |
 | naive baseline | NOT_AUTHORIZED | Q4 scope |
 | quality report | NOT_AUTHORIZED | Q5 scope |
+
+```text
+POINT_METRIC_QUANTILE=P50_ONLY
+SINGLE_DAY_PEAK_QUANTILES=P50_P80_P90
+QUANTILE_COVERAGE_DESIGN=CONDITIONAL_NOT_COMPUTABLE
+PINBALL_LOSS_DESIGN=CONDITIONAL_NOT_COMPUTABLE
+INTERVAL_WIDTH_STATUS=NOT_COMPUTABLE_LOWER_BOUND_UNAVAILABLE
+```
 
 ## 7. Data inventory result
 
@@ -184,9 +195,13 @@ DUAL_CUTOFF_MODEL=DESIGN_FROZEN_NOT_IMPLEMENTED
 HISTORICAL_CODE_IDENTITY=PARTIAL_NOT_Q2B_BOUND
 HISTORICAL_PARAMETER_IDENTITY=PARTIAL_TASK9_AUTHORITY_ONLY
 I7_LABEL_SNAPSHOT_BINDING=PRODUCTION_IMPLEMENTED_NOT_Q2B_BOUND
-DAILY_METRICS_DESIGN=DESIGN_FROZEN
-QUANTILE_COVERAGE_DESIGN=DESIGN_FROZEN
-SINGLE_DAY_PEAK_DESIGN=DESIGN_FROZEN
+DAILY_METRICS_DESIGN=P50_ONLY_Q1_ALIGNED
+POINT_METRIC_QUANTILE=P50_ONLY
+SINGLE_DAY_PEAK_DESIGN=P50_P80_P90_FIELDS_FROZEN
+SINGLE_DAY_PEAK_QUANTILES=P50_P80_P90
+QUANTILE_COVERAGE_DESIGN=CONDITIONAL_NOT_COMPUTABLE
+PINBALL_LOSS_DESIGN=CONDITIONAL_NOT_COMPUTABLE
+INTERVAL_WIDTH_STATUS=NOT_COMPUTABLE_LOWER_BOUND_UNAVAILABLE
 SUSTAINED_7DAY_STATUS=NOT_AUTHORIZED_Q3
 NAIVE_BASELINE_STATUS=NOT_AUTHORIZED_Q4
 REAL_DATA_COVERAGE_STATUS=NOT_VERIFIED_SOURCE_UNREACHABLE
