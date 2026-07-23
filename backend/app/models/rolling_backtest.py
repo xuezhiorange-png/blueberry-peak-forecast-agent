@@ -289,6 +289,14 @@ class RollingBacktestBindingRow(Base):
             name="uq_rolling_backtest_binding_row_identity",
         ),
         CheckConstraint(
+            _sha256_check_sql("binding_key_hash"),
+            name="ck_rolling_backtest_binding_row_key_sha256",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("binding_row_hash"),
+            name="ck_rolling_backtest_binding_row_hash_sha256",
+        ),
+        CheckConstraint(
             "horizon_days in (7, 14, 21)",
             name="ck_rolling_backtest_binding_row_horizon",
         ),

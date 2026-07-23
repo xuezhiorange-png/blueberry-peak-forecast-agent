@@ -17,12 +17,14 @@ from backend.app.models.rolling_backtest import (
     RollingBacktestRun,
 )
 from backend.app.rolling_backtest.errors import RollingBacktestIdentityConflictError
-from backend.app.rolling_backtest.orchestration import run_s2_historical_binding
+from backend.app.rolling_backtest.orchestration import build_s2_binding_rows
+from backend.app.rolling_backtest.persistence import persist_s2_historical_binding
 from backend.app.rolling_backtest.schemas import (
     S2ActualLabelAuthority,
     S2ForecastAuthorityBundle,
     S2HistoricalBacktestRequest,
     S2HistoricalBindingCandidate,
+    s2_business_grain_hash,
 )
 
 pytestmark = [pytest.mark.postgres, pytest.mark.postgres_concurrency, pytest.mark.concurrency]
@@ -66,17 +68,24 @@ def _candidate(
                 forecast_run_identity_hash="1" * 64,
                 daily_row_identity_hash="2" * 64,
                 task9_authority_identity_hash="3" * 64,
+                task9_member_identity_hash="5" * 64,
                 task10_authority_identity_hash="4" * 64,
+                task10_model_identity_hash="6" * 64,
+                task10_replay_identity_hash="7" * 64,
+                task10_prediction_row_identity_hash="8" * 64,
                 forecast_code_identity="code-v1",
+                historical_code_identity="historical-code-v1",
                 model_identity="model-v1",
                 parameter_identity="parameter-v1",
                 data_identity="data-v1",
                 available_at=_CUTOFF,
+                task10_model_available_at=_CUTOFF,
             ),
             actual_label=S2ActualLabelAuthority(
                 label_snapshot_identity_hash="5" * 64,
                 label_row_identity_hash="7" * 64,
                 label_winner_identity_hash="8" * 64,
+                label_winner_set_identity_hash="b" * 64,
                 source_identity_hash="6" * 64,
                 actual_source_identity_hash="9" * 64,
                 target_date=_CUTOFF.date() + timedelta(days=7),
@@ -84,7 +93,13 @@ def _candidate(
                 farm_business_key="farm:alpha:concurrency",
                 subfarm_business_key="subfarm:alpha-1:concurrency",
                 variety_business_key="variety:legacy:concurrency",
-                business_grain_hash="a" * 64,
+                business_grain_hash=s2_business_grain_hash(
+                    season_business_key="season:2026:concurrency",
+                    farm_business_key="farm:alpha:concurrency",
+                    subfarm_business_key="subfarm:alpha-1:concurrency",
+                    variety_business_key="variety:legacy:concurrency",
+                    target_date=_CUTOFF.date() + timedelta(days=7),
+                ),
                 revision_or_winner_evidence={"revision": 1},
                 observed_weight_kg=Decimal("8.000000"),
                 visibility_timestamp=_LABEL_CUTOFF,
@@ -97,10 +112,11 @@ def _candidate(
 
 async def _invoke() -> int:
     async with AsyncSessionMaker() as session:
-        run = await run_s2_historical_binding(
+        request = _request()
+        run = await persist_s2_historical_binding(
             session,
-            request=_request(),
-            candidates=_candidate(),
+            request=request,
+            rows=build_s2_binding_rows(request, _candidate()),
             season_id=2026,
         )
         await session.commit()
@@ -120,15 +136,19 @@ async def test_same_s2_request_converges_under_concurrent_sessions() -> None:
         )
 
 
-async def test_same_request_with_evidence_drift_is_rejected() -> None:
+async def test_same_binding_key_different_evidence_is_rejected() -> None:
     _require_postgres()
     await _invoke()
     async with AsyncSessionMaker() as session:
         with pytest.raises(RollingBacktestIdentityConflictError):
-            await run_s2_historical_binding(
+            request = _request()
+            await persist_s2_historical_binding(
                 session,
-                request=_request(),
-                candidates=_candidate(forecast_value=Decimal("999")),
+                request=request,
+                rows=build_s2_binding_rows(
+                    request,
+                    _candidate(forecast_value=Decimal("999")),
+                ),
                 season_id=2026,
             )
         await session.rollback()

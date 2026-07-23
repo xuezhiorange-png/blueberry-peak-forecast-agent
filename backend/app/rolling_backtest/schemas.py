@@ -422,6 +422,27 @@ S2_ALLOWED_HORIZONS_DAYS = (7, 14, 21)
 S2_LABEL_VISIBILITY_MODES = ("AS_OF_EVALUATION", "FINAL_ADJUDICATED")
 
 
+def s2_business_grain_hash(
+    *,
+    season_business_key: str,
+    farm_business_key: str,
+    subfarm_business_key: str,
+    variety_business_key: str,
+    target_date: date,
+) -> str:
+    return sha256_payload(
+        canonical_json_value(
+            {
+                "season_business_key": season_business_key,
+                "farm_business_key": farm_business_key,
+                "subfarm_business_key": subfarm_business_key,
+                "variety_business_key": variety_business_key,
+                "target_date": target_date,
+            }
+        )
+    )
+
+
 def _s2_node_identity_hash_from_values(values: dict[str, object]) -> str:
     """Derive the single S2 node identity from semantic request values only."""
 
@@ -522,6 +543,7 @@ class S2HistoricalBacktestRequest(_BaseModel):
 class S2PersistedAuthorityReferences(_BaseModel):
     """Lookup references used by the fail-closed persisted-authority adapter."""
 
+    lookup_mode: Literal["EXACT"] = "EXACT"
     core_forecast_run_id: int = Field(gt=0)
     core_forecast_daily_row_id: int = Field(gt=0)
     task9_run_id: int = Field(gt=0)
@@ -535,44 +557,64 @@ class S2ForecastAuthorityBundle(_BaseModel):
     forecast_run_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     daily_row_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     task9_authority_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task9_member_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     task10_authority_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task10_model_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task10_replay_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task10_prediction_row_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     forecast_code_identity: str = Field(min_length=1)
+    historical_code_identity: str = Field(min_length=1)
     model_identity: str = Field(min_length=1)
     parameter_identity: str = Field(min_length=1)
     data_identity: str = Field(min_length=1)
     available_at: datetime
+    task10_model_available_at: datetime
 
-    @field_validator("available_at")
+    @field_validator("available_at", "task10_model_available_at")
     @classmethod
     def _require_aware_availability(cls, value: datetime) -> datetime:
         if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("forecast authority available_at must be timezone-aware")
+            raise ValueError("forecast authority timestamps must be timezone-aware")
         return value
 
 
 class S2ActualLabelAuthority(_BaseModel):
     label_snapshot_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
-    label_row_identity_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
-    label_winner_identity_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    label_row_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    label_winner_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    label_winner_set_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     source_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
-    actual_source_identity_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
-    target_date: date | None = None
-    season_business_key: str | None = None
-    farm_business_key: str | None = None
-    subfarm_business_key: str | None = None
-    variety_business_key: str | None = None
-    business_grain_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
-    revision_or_winner_evidence: dict[str, object] | None = None
+    actual_source_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    target_date: date
+    season_business_key: str = Field(min_length=1)
+    farm_business_key: str = Field(min_length=1)
+    subfarm_business_key: str = Field(min_length=1)
+    variety_business_key: str = Field(min_length=1)
+    business_grain_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    revision_or_winner_evidence: dict[str, object]
     observed_weight_kg: Decimal = Field(ge=Decimal("0"))
-    visibility_timestamp: datetime | None = None
+    visibility_timestamp: datetime
     physical_alignment_status: Literal["VERIFIED", "UNVERIFIED"]
 
     @field_validator("visibility_timestamp")
     @classmethod
-    def _require_aware_visibility(cls, value: datetime | None) -> datetime | None:
-        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+    def _require_aware_visibility(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("label visibility_timestamp must be timezone-aware")
         return value
+
+    @model_validator(mode="after")
+    def _validate_business_grain_hash(self) -> Self:
+        expected = s2_business_grain_hash(
+            season_business_key=self.season_business_key,
+            farm_business_key=self.farm_business_key,
+            subfarm_business_key=self.subfarm_business_key,
+            variety_business_key=self.variety_business_key,
+            target_date=self.target_date,
+        )
+        if self.business_grain_hash != expected:
+            raise ValueError("business_grain_hash must equal the canonical S2 label business grain")
+        return self
 
 
 class S2HistoricalBindingCandidate(_BaseModel):
@@ -615,6 +657,7 @@ class S2HistoricalBindingRow(_BaseModel):
     physical_alignment_status: str
     row_status: Literal["COMPARABLE", "EXCLUDED", "NOT_COMPUTABLE"]
     reason_code: str | None = None
+    authority_verification: Literal["PERSISTED", "SYNTHETIC_ENGINEERING"]
     binding_key_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     row_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
 
