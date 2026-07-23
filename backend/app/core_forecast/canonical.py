@@ -135,7 +135,6 @@ def compute_core_forecast_input_hash(
         "forecast_season_code": request.forecast_season_code,
         "forecast_start_date": request.forecast_start_date.isoformat(),
         "forecast_end_date": request.forecast_end_date.isoformat(),
-        "scope_count": len(scopes) if authority_bound else None,
         "scopes": None if authority_bound else scopes,
         "retention_policy_snapshot": {
             "entries": (
@@ -147,6 +146,7 @@ def compute_core_forecast_input_hash(
         "retention_policy_snapshot_hash": policy_hash,
     }
     if code_authority is not None:
+        payload["scope_count"] = len(scopes)
         payload["season_business_key"] = request.forecast_season_code
         payload["code_authority"] = {
             "authority_hash": code_authority.authority_hash,
@@ -173,7 +173,7 @@ def compute_core_forecast_request_hash(
     authority_bound: bool = False,
     rerun_of_request_hash: str | None = None,
 ) -> str:
-    payload = {
+    payload: dict[str, object] = {
         "request_schema_version": (
             CORE_FORECAST_AUTHORITY_REQUEST_SCHEMA_VERSION
             if authority_bound
