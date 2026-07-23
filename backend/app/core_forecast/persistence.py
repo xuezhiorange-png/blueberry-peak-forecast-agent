@@ -219,6 +219,11 @@ def _run_summary(model: CoreForecastRunModel) -> CoreForecastRunSummary:
                 if model.code_authority_available_at is None
                 else _aware(model.code_authority_available_at)
             ),
+            forecast_effective_cutoff_at=(
+                None
+                if model.forecast_effective_cutoff_at is None
+                else _aware(model.forecast_effective_cutoff_at)
+            ),
             rerun_of_run_id=model.rerun_of_run_id,
             forecast_season_id=model.forecast_season_id,
             forecast_season_code=model.forecast_season_code,
@@ -386,6 +391,7 @@ class CoreForecastRunRepository:
         model = CoreForecastCodeAuthorityModel(
             authority_schema_version=CORE_FORECAST_CODE_AUTHORITY_SCHEMA_VERSION,
             source_commit_sha=canonical.source_commit_sha,
+            engine_code_hash=canonical.engine_code_hash,
             build_artifact_hash=canonical.build_artifact_hash,
             config_bundle_hash=canonical.config_bundle_hash,
             available_at=canonical.available_at.astimezone(UTC),
@@ -405,6 +411,10 @@ class CoreForecastRunRepository:
                 authority_id=model.id,
                 authority_schema_version=model.authority_schema_version,
                 source_commit_sha=model.source_commit_sha,
+                engine_code_hash=_hash(
+                    model.engine_code_hash,
+                    "code_authority.engine_code_hash",
+                ),
                 build_artifact_hash=_hash(
                     model.build_artifact_hash,
                     "code_authority.build_artifact_hash",
@@ -462,6 +472,10 @@ class CoreForecastRunRepository:
             raise CoreForecastPersistenceIntegrityError(
                 "request references a different code authority"
             )
+        if code_authority is not None and request.forecast_effective_cutoff_at is None:
+            raise CoreForecastPersistenceIntegrityError(
+                "authority-bound run requires the persisted Task 9 forecast cutoff"
+            )
         existing = await self.get_run_by_request_hash(request_hash)
         if existing is not None:
             if self._matches_existing(
@@ -484,9 +498,13 @@ class CoreForecastRunRepository:
         if curve.status != "COMPLETED" or metrics.status != "COMPLETED":
             raise CoreForecastWriteFailure("only completed curve and metrics may be persisted")
         now = datetime.now(UTC)
-        if code_authority is not None and code_authority.available_at > now:
+        if (
+            code_authority is not None
+            and request.forecast_effective_cutoff_at is not None
+            and code_authority.available_at > request.forecast_effective_cutoff_at
+        ):
             raise CoreForecastPersistenceIntegrityError(
-                "code authority is not available at forecast execution"
+                "code authority is not available at the persisted Task 9 cutoff"
             )
         first_row = curve.rows[0]
         try:
@@ -518,6 +536,9 @@ class CoreForecastRunRepository:
                     ),
                     code_authority_available_at=(
                         code_authority.available_at if code_authority is not None else None
+                    ),
+                    forecast_effective_cutoff_at=(
+                        request.forecast_effective_cutoff_at if code_authority is not None else None
                     ),
                     request_snapshot=request.model_dump(mode="json", exclude_none=True),
                     forecast_season_id=request.curve_request.forecast_season_id,
@@ -664,7 +685,9 @@ class CoreForecastRunRepository:
                 request.code_authority_id != code_authority.authority_id
                 or summary.code_authority_hash != code_authority.authority_hash
                 or summary.code_authority_available_at != code_authority.available_at
-                or code_authority.available_at > summary.completed_at
+                or summary.forecast_effective_cutoff_at is None
+                or request.forecast_effective_cutoff_at != summary.forecast_effective_cutoff_at
+                or code_authority.available_at > summary.forecast_effective_cutoff_at
             ):
                 raise CoreForecastPersistenceIntegrityError(
                     "run code authority identity or availability mismatch"
@@ -675,11 +698,24 @@ class CoreForecastRunRepository:
                 curve_request,
                 request.retention_policy,
                 code_authority=code_authority,
+                task9_authority_result_hash=(
+                    model.task9_result_hash if code_authority is not None else None
+                ),
+                forecast_effective_cutoff_at=summary.forecast_effective_cutoff_at,
             )
+            parent_request_hash = None
+            if code_authority is not None and request.rerun_of_run_id is not None:
+                parent = await self.get_run_by_id(request.rerun_of_run_id)
+                if parent is None:
+                    raise CoreForecastPersistenceIntegrityError(
+                        "authority-bound rerun parent is missing"
+                    )
+                parent_request_hash = parent.run.request_hash
             request_hash = compute_core_forecast_request_hash(
                 input_hash,
                 request.rerun_of_run_id,
                 authority_bound=code_authority is not None,
+                rerun_of_request_hash=parent_request_hash,
             )
             if policy_hash != summary.retention_policy_snapshot_hash:
                 raise CoreForecastPersistenceIntegrityError("retention policy hash mismatch")
@@ -746,6 +782,7 @@ class CoreForecastRunRepository:
                 daily_row_count=len(rows),
                 metric_row_count=len(stored_metrics),
                 authority_bound=code_authority is not None,
+                forecast_effective_cutoff_at=summary.forecast_effective_cutoff_at,
             )
             if result_hash != summary.result_hash:
                 raise CoreForecastPersistenceIntegrityError("result hash integrity failed")

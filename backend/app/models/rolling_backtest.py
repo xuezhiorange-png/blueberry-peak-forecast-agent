@@ -85,7 +85,8 @@ class RollingBacktestRun(Base):
         ),
         CheckConstraint(
             "s2_contract_version IS NULL OR "
-            "(s2_node_count >= 1 AND backtest_request_payload IS NOT NULL AND "
+            "(s2_node_count = 1 AND expected_node_count = 1 AND "
+            "backtest_request_payload IS NOT NULL AND "
             "backtest_request_hash IS NOT NULL AND "
             "instance_hash IS NOT NULL AND forecast_cutoff_at IS NOT NULL AND "
             "label_visibility_mode IS NOT NULL AND "

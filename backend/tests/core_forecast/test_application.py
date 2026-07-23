@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import func, select
@@ -50,10 +51,22 @@ async def _register_authority(
     return await CoreForecastRunRepository(session).register_code_authority(
         RegisterCoreForecastCodeAuthority(
             source_commit_sha=source_commit_sha,
+            engine_code_hash="e" * 64,
             build_artifact_hash=build_artifact_hash,
             config_bundle_hash="c" * 64,
-            available_at=datetime.now(UTC) - timedelta(days=1),
+            available_at=datetime(2026, 2, 28, tzinfo=UTC),
         )
+    )
+
+
+def _authority_upstream() -> FixtureRepository:
+    task8, task9 = _sources()
+    return FixtureRepository(
+        task8,
+        replace(
+            task9,
+            forecast_effective_cutoff_at=datetime(2026, 3, 1, tzinfo=UTC),
+        ),
     )
 
 
@@ -99,7 +112,7 @@ async def test_missing_pre_registered_code_authority_blocks_before_forecast(
             retention_policy=_policy(),
             code_authority_id=999999,
         ),
-        upstream_repository=FixtureRepository(*_sources()),
+        upstream_repository=_authority_upstream(),
     )
     assert result.status == "BLOCKED"
     assert result.blockers[0].code == "CORE_FORECAST_CODE_AUTHORITY_NOT_FOUND"
@@ -110,7 +123,7 @@ async def test_missing_pre_registered_code_authority_blocks_before_forecast(
 async def test_authority_bound_run_hashes_code_identity_and_replays_idempotently(
     sqlite_session: AsyncSession,
 ) -> None:
-    upstream = FixtureRepository(*_sources())
+    upstream = _authority_upstream()
     legacy = await execute_core_forecast_run(
         sqlite_session,
         request=ExecuteCoreForecastRunRequest(
@@ -151,7 +164,7 @@ async def test_authority_bound_run_hashes_code_identity_and_replays_idempotently
 async def test_different_persisted_code_authority_changes_run_identity(
     sqlite_session: AsyncSession,
 ) -> None:
-    upstream = FixtureRepository(*_sources())
+    upstream = _authority_upstream()
     first_authority = await _register_authority(sqlite_session)
     second_authority = await _register_authority(
         sqlite_session,
@@ -199,7 +212,7 @@ async def test_completed_run_is_reused_and_explicit_rerun_has_parent(
         curve_request=_request(),
         retention_policy=_policy(),
     )
-    upstream = FixtureRepository(*_sources())
+    upstream = _authority_upstream()
     first = await execute_core_forecast_run(
         sqlite_session,
         request=request,
@@ -261,7 +274,7 @@ async def test_blocked_s3_result_writes_no_rows(
         curve_request=_request(),
         retention_policy=_policy(),
     )
-    upstream = FixtureRepository(*_sources())
+    upstream = _authority_upstream()
 
     from backend.app.core_forecast import application as application_module
     from backend.app.core_forecast.schemas import (

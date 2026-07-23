@@ -49,6 +49,9 @@ CoreForecastBlockerCode = Literal[
     "CORE_FORECAST_RERUN_INPUT_UNCHANGED",
     "CORE_FORECAST_CODE_AUTHORITY_NOT_FOUND",
     "CORE_FORECAST_CODE_AUTHORITY_INVALID",
+    "CORE_FORECAST_TASK9_CUTOFF_NOT_AVAILABLE",
+    "CORE_FORECAST_TASK9_CUTOFF_MISMATCH",
+    "CORE_FORECAST_CODE_AUTHORITY_NOT_AVAILABLE_AT_TASK9_CUTOFF",
     "CORE_FORECAST_PERSISTENCE_CONFLICT",
     "CORE_FORECAST_PERSISTENCE_INTEGRITY_FAILED",
     "CORE_FORECAST_WRITE_FAILURE",
@@ -299,6 +302,8 @@ class ExecuteCoreForecastRunRequest(_FrozenModel):
     retention_policy: MarketableRetentionPolicySnapshot
     rerun_of_run_id: StrictPositiveInt | None = None
     code_authority_id: StrictPositiveInt | None = None
+    # Optional caller assertion; authority-bound execution derives this from Task 9.
+    forecast_effective_cutoff_at: datetime | None = None
 
 
 def _timezone_aware(value: object) -> datetime:
@@ -311,6 +316,7 @@ class RegisterCoreForecastCodeAuthority(_FrozenModel):
     """Trusted, separately persisted build/config authority registration."""
 
     source_commit_sha: GitCommitSHA
+    engine_code_hash: SHA256Hex
     build_artifact_hash: SHA256Hex
     config_bundle_hash: SHA256Hex
     available_at: datetime
@@ -349,6 +355,7 @@ class CoreForecastRunSummary(_FrozenModel):
     code_authority_id: StrictPositiveInt | None = None
     code_authority_hash: SHA256Hex | None = None
     code_authority_available_at: datetime | None = None
+    forecast_effective_cutoff_at: datetime | None = None
 
     rerun_of_run_id: StrictPositiveInt | None
     forecast_season_id: StrictPositiveInt
@@ -367,6 +374,7 @@ class CoreForecastRunSummary(_FrozenModel):
         "created_at",
         "completed_at",
         "code_authority_available_at",
+        "forecast_effective_cutoff_at",
         mode="before",
     )(lambda value: None if value is None else _timezone_aware(value))
 
@@ -378,6 +386,7 @@ class CoreForecastRunSummary(_FrozenModel):
             self.code_authority_id,
             self.code_authority_hash,
             self.code_authority_available_at,
+            self.forecast_effective_cutoff_at,
         )
         authority_bound = self.run_schema_version == "v0.1-core-forecast-run-authority-v2"
         if authority_bound:
@@ -437,6 +446,8 @@ class PersistedCoreForecastRun(_FrozenModel):
             or self.run.code_authority_id != self.code_authority.authority_id
             or self.run.code_authority_hash != self.code_authority.authority_hash
             or self.run.code_authority_available_at != self.code_authority.available_at
+            or self.run.forecast_effective_cutoff_at != self.request.forecast_effective_cutoff_at
+            or self.run.forecast_effective_cutoff_at is None
         ):
             raise ValueError("persisted code authority does not match run/request")
         return self

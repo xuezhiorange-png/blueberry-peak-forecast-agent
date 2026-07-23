@@ -101,16 +101,49 @@ async def execute_core_forecast_run(
                 "CORE_FORECAST_CODE_AUTHORITY_NOT_FOUND",
                 "pre-registered code authority was not found",
             )
+        task9_authority = None
+        if code_authority is not None:
+            task9_authority = await upstream.load_task9_authority(
+                canonical_request.curve_request.task9_harvest_state_run_id
+            )
+            if task9_authority is None or task9_authority.status != "completed":
+                return _blocked(
+                    "TASK9_AUTHORITY_NOT_FOUND",
+                    "authority-bound execution requires a completed Task 9 authority",
+                )
+            if task9_authority.forecast_effective_cutoff_at is None:
+                return _blocked(
+                    "CORE_FORECAST_TASK9_CUTOFF_NOT_AVAILABLE",
+                    "persisted Task 9 authority has no forecast effective cutoff",
+                )
+            if (
+                canonical_request.forecast_effective_cutoff_at is not None
+                and canonical_request.forecast_effective_cutoff_at
+                != task9_authority.forecast_effective_cutoff_at
+            ):
+                return _blocked(
+                    "CORE_FORECAST_TASK9_CUTOFF_MISMATCH",
+                    "request cutoff does not match persisted Task 9 cutoff",
+                )
+            if code_authority.available_at > task9_authority.forecast_effective_cutoff_at:
+                return _blocked(
+                    "CORE_FORECAST_CODE_AUTHORITY_NOT_AVAILABLE_AT_TASK9_CUTOFF",
+                    "code authority was not available at the persisted Task 9 cutoff",
+                )
+            canonical_request = canonical_request.model_copy(
+                update={
+                    "forecast_effective_cutoff_at": task9_authority.forecast_effective_cutoff_at
+                }
+            )
         policy_hash = compute_retention_policy_snapshot_hash(canonical_request.retention_policy)
         input_hash = compute_core_forecast_input_hash(
             canonical_request.curve_request,
             canonical_request.retention_policy,
             code_authority=code_authority,
-        )
-        request_hash = compute_core_forecast_request_hash(
-            input_hash,
-            canonical_request.rerun_of_run_id,
-            authority_bound=code_authority is not None,
+            task9_authority_result_hash=(
+                task9_authority.result_hash if task9_authority is not None else None
+            ),
+            forecast_effective_cutoff_at=canonical_request.forecast_effective_cutoff_at,
         )
     except CoreForecastPersistenceIntegrityError:
         return _blocked(
@@ -120,6 +153,7 @@ async def execute_core_forecast_run(
     except (ValidationError, ValueError, TypeError):
         return _blocked("CORE_FORECAST_PERSISTENCE_INTEGRITY_FAILED", "request validation failed")
 
+    parent = None
     if canonical_request.rerun_of_run_id is not None:
         try:
             parent = await persistence.get_run_by_id(canonical_request.rerun_of_run_id)
@@ -143,6 +177,15 @@ async def execute_core_forecast_run(
                 "CORE_FORECAST_RERUN_INPUT_UNCHANGED",
                 "rerun requires a complete changed forecast input",
             )
+
+    request_hash = compute_core_forecast_request_hash(
+        input_hash,
+        canonical_request.rerun_of_run_id,
+        authority_bound=code_authority is not None,
+        rerun_of_request_hash=(
+            parent.run.request_hash if code_authority is not None and parent is not None else None
+        ),
+    )
 
     try:
         existing = await persistence.get_run_by_request_hash(request_hash)
@@ -196,6 +239,7 @@ async def execute_core_forecast_run(
         daily_row_count=len(curve.rows),
         metric_row_count=len(metrics.metrics),
         authority_bound=code_authority is not None,
+        forecast_effective_cutoff_at=canonical_request.forecast_effective_cutoff_at,
     )
     try:
         persisted = await persistence.save_completed_run(
