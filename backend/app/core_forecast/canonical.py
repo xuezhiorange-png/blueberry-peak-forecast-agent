@@ -180,9 +180,11 @@ def compute_core_forecast_request_hash(
             else CORE_FORECAST_REQUEST_SCHEMA_VERSION
         ),
         "forecast_input_hash": forecast_input_hash,
-        "rerun_of_request_hash": rerun_of_request_hash if authority_bound else None,
-        "rerun_of_run_id": None if authority_bound else rerun_of_run_id,
     }
+    if authority_bound:
+        payload["rerun_of_request_hash"] = rerun_of_request_hash
+    else:
+        payload["rerun_of_run_id"] = rerun_of_run_id
     return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
 
 
