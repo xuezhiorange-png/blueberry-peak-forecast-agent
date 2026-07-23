@@ -210,6 +210,7 @@ def compute_core_forecast_result_hash(
         "metrics_hash": metrics_hash,
         "daily_row_count": daily_row_count,
         "metric_row_count": metric_row_count,
-        "forecast_effective_cutoff_at": (forecast_effective_cutoff_at if authority_bound else None),
     }
+    if authority_bound:
+        payload["forecast_effective_cutoff_at"] = forecast_effective_cutoff_at
     return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
