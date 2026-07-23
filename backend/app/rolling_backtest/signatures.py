@@ -188,6 +188,8 @@ def s2_binding_key_hash(
 
 
 def s2_binding_row_payload(row: S2HistoricalBindingRow) -> dict[str, object]:
+    """Return the semantic row identity payload without database references."""
+
     payload = row.model_dump(
         mode="python",
         exclude={"row_hash", "season_id"},
@@ -195,12 +197,19 @@ def s2_binding_row_payload(row: S2HistoricalBindingRow) -> dict[str, object]:
     forecast_authority = payload.get("forecast_authority")
     if isinstance(forecast_authority, dict):
         forecast_authority.pop("historical_code_authority_id", None)
-    references = payload.get("persisted_authority_references")
-    if isinstance(references, dict):
-        payload["persisted_authority_references"] = {"lookup_mode": references["lookup_mode"]}
+    payload.pop("persisted_authority_references", None)
     return cast(
         dict[str, object],
         canonical_json_value(payload),
+    )
+
+
+def s2_binding_row_persistence_payload(row: S2HistoricalBindingRow) -> dict[str, object]:
+    """Persist the complete row so lookup references survive integrity reload."""
+
+    return cast(
+        dict[str, object],
+        canonical_json_value(row.model_dump(mode="python")),
     )
 
 

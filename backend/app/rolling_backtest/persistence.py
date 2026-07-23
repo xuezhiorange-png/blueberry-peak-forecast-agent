@@ -70,7 +70,7 @@ from backend.app.rolling_backtest.signatures import (
     run_signature_hash,
     s2_binding_key_hash,
     s2_binding_row_hash,
-    s2_binding_row_payload,
+    s2_binding_row_persistence_payload,
     s2_instance_hash,
     s2_node_identity_hash,
     s2_node_identity_payload,
@@ -2522,7 +2522,7 @@ async def _verify_existing_s2_binding(
             or persisted.label_observation_cutoff_at != expected.label_observation_cutoff_at
             or persisted.binding_row_hash != expected.row_hash
             or persisted.binding_key_hash != expected.binding_key_hash
-            or persisted.canonical_payload != s2_binding_row_payload(expected)
+            or persisted.canonical_payload != s2_binding_row_persistence_payload(expected)
             or persisted.forecast_row_identity_hash
             != expected.forecast_authority.daily_row_identity_hash
             or persisted.actual_label_row_identity_hash
@@ -2719,7 +2719,7 @@ async def persist_s2_historical_binding(
 
             node_by_season = {(row.season_id, row.season_business_key): node for row in rows}
             for row in rows:
-                row_payload = s2_binding_row_payload(row)
+                row_payload = s2_binding_row_persistence_payload(row)
                 node = node_by_season[(row.season_id, row.season_business_key)]
                 session.add(
                     RollingBacktestBindingRow(
