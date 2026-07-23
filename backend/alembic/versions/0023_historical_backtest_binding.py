@@ -204,6 +204,10 @@ def upgrade() -> None:
             name="ck_rolling_backtest_binding_row_key_sha256",
         ),
         sa.CheckConstraint(
+            _sha256_check("binding_row_hash"),
+            name="ck_rolling_backtest_binding_row_hash_sha256",
+        ),
+        sa.CheckConstraint(
             "horizon_days in (7, 14, 21)",
             name="ck_rolling_backtest_binding_row_horizon",
         ),
