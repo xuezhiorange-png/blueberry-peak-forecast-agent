@@ -10,9 +10,13 @@ from backend.app.core_forecast.schemas import (
     CoreForecastCodeAuthority,
     MarketableRetentionPolicySnapshot,
     RegisterCoreForecastCodeAuthority,
+    ResolvedCoreForecastIdentity,
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
+AUTHORITY_BOUND_DAILY_CURVE_SCHEMA_VERSION = "v0.2-core-forecast-authority-curve-v1"
+AUTHORITY_BOUND_RETENTION_POLICY_HASH_VERSION = "v0.2-core-forecast-authority-policy-v1"
+AUTHORITY_BOUND_SCOPE_IDENTITY_VERSION = "v0.2-core-forecast-resolved-scope-v1"
 DAILY_CURVE_SCHEMA_VERSION = "v0.1-complete-daily-marketable-curve-v1"
 METRICS_SCHEMA_VERSION = "v0.1-core-forecast-metrics-v1"
 CORE_FORECAST_RUN_SCHEMA_VERSION = "v0.1-core-forecast-run-v1"
@@ -42,6 +46,56 @@ def compute_core_forecast_code_authority_hash(
     return hashlib.sha256(
         canonical_json_dumps(core_forecast_code_authority_payload(authority)).encode("utf-8")
     ).hexdigest()
+
+
+def compute_authority_bound_daily_curve_hash(
+    rows: tuple[CompleteDailyMarketableCurveRow, ...],
+    identity: ResolvedCoreForecastIdentity,
+) -> str:
+    numeric_scopes = sorted({(row.farm_id, row.subfarm_id, row.variety_id) for row in rows})
+    semantic_scopes = sorted(
+        identity.scopes,
+        key=lambda item: (
+            item.farm_business_key,
+            item.subfarm_business_key,
+            item.variety_business_key,
+        ),
+    )
+    if len(numeric_scopes) != len(semantic_scopes):
+        raise ValueError("resolved row identity cardinality mismatch")
+    scope_map = dict(zip(numeric_scopes, semantic_scopes, strict=True))
+    projected = []
+    for row in rows:
+        scope = scope_map[(row.farm_id, row.subfarm_id, row.variety_id)]
+        payload = row.model_dump(
+            mode="json",
+            exclude={
+                "row_hash",
+                "farm_id",
+                "subfarm_id",
+                "variety_id",
+                "destination_factory_id",
+                "task8_forecast_run_id",
+                "task9_harvest_state_run_id",
+            },
+        )
+        payload.update(scope.model_dump(mode="json"))
+        projected.append(payload)
+    projected.sort(
+        key=lambda item: (
+            item["date"],
+            item["farm_business_key"],
+            item["subfarm_business_key"],
+            item["variety_business_key"],
+            QUANTILE_RANK[item["forecast_quantile"]],
+        )
+    )
+    payload = {
+        "schema_version": AUTHORITY_BOUND_DAILY_CURVE_SCHEMA_VERSION,
+        "resolved_identity_snapshot_hash": identity.resolved_identity_snapshot_hash,
+        "rows": projected,
+    }
+    return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
 
 
 def compute_daily_curve_hash(
@@ -86,6 +140,62 @@ def compute_retention_policy_snapshot_hash(
     return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
 
 
+def compute_authority_bound_retention_policy_hash(
+    snapshot: MarketableRetentionPolicySnapshot,
+    identity: ResolvedCoreForecastIdentity,
+) -> str:
+    scopes = identity.scopes
+    if len(scopes) != len(snapshot.entries):
+        raise ValueError("resolved policy identity cardinality mismatch")
+    entries = sorted(
+        (
+            {
+                "season_business_key": identity.season_business_key,
+                "farm_business_key": scope.farm_business_key,
+                "subfarm_business_key": scope.subfarm_business_key,
+                "variety_business_key": scope.variety_business_key,
+                "mapping_policy_version": identity.mapping_policy_version,
+                "resolved_identity_snapshot_hash": identity.resolved_identity_snapshot_hash,
+                "sorting_retention_rate": entry.sorting_retention_rate,
+                "postharvest_retention_rate": entry.postharvest_retention_rate,
+                "policy_source": entry.source,
+                "policy_version": entry.version,
+                "policy_hash": entry.hash,
+            }
+            for entry, scope in zip(snapshot.entries, scopes, strict=True)
+        ),
+        key=lambda item: (
+            item["farm_business_key"],
+            item["subfarm_business_key"],
+            item["variety_business_key"],
+            item["policy_source"],
+            item["policy_version"],
+            item["policy_hash"],
+        ),
+    )
+    payload = {"schema_version": AUTHORITY_BOUND_RETENTION_POLICY_HASH_VERSION, "entries": entries}
+    return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
+
+
+def compute_resolved_scope_identity_hash(identity: ResolvedCoreForecastIdentity) -> str:
+    payload = {
+        "schema_version": AUTHORITY_BOUND_SCOPE_IDENTITY_VERSION,
+        "season_business_key": identity.season_business_key,
+        "factory_business_key": identity.factory_business_key,
+        "mapping_policy_version": identity.mapping_policy_version,
+        "resolved_identity_snapshot_hash": identity.resolved_identity_snapshot_hash,
+        "scopes": sorted(
+            (scope.model_dump(mode="json") for scope in identity.scopes),
+            key=lambda item: (
+                item["farm_business_key"],
+                item["subfarm_business_key"],
+                item["variety_business_key"],
+            ),
+        ),
+    }
+    return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
+
+
 def compute_core_forecast_input_hash(
     request: CompleteDailyMarketableCurveRequest,
     retention_policy: MarketableRetentionPolicySnapshot,
@@ -93,8 +203,16 @@ def compute_core_forecast_input_hash(
     code_authority: CoreForecastCodeAuthority | None = None,
     task9_authority_result_hash: str | None = None,
     forecast_effective_cutoff_at: object | None = None,
+    resolved_identity: ResolvedCoreForecastIdentity | None = None,
 ) -> str:
-    policy_hash = compute_retention_policy_snapshot_hash(retention_policy)
+    authority_bound = code_authority is not None
+    if authority_bound and resolved_identity is None:
+        raise ValueError("authority-bound input requires resolved business identity")
+    policy_hash = (
+        compute_authority_bound_retention_policy_hash(retention_policy, resolved_identity)
+        if resolved_identity is not None
+        else compute_retention_policy_snapshot_hash(retention_policy)
+    )
     scopes = sorted(
         (
             {
@@ -146,8 +264,16 @@ def compute_core_forecast_input_hash(
         "retention_policy_snapshot_hash": policy_hash,
     }
     if code_authority is not None:
-        payload["scope_count"] = len(scopes)
-        payload["season_business_key"] = request.forecast_season_code
+        assert resolved_identity is not None
+        payload["resolved_scope_identity_hash"] = compute_resolved_scope_identity_hash(
+            resolved_identity
+        )
+        payload["resolved_identity_snapshot_hash"] = (
+            resolved_identity.resolved_identity_snapshot_hash
+        )
+        payload["season_business_key"] = resolved_identity.season_business_key
+        payload["factory_business_key"] = resolved_identity.factory_business_key
+        payload["mapping_policy_version"] = resolved_identity.mapping_policy_version
         payload["code_authority"] = {
             "authority_hash": code_authority.authority_hash,
             **core_forecast_code_authority_payload(code_authority),
