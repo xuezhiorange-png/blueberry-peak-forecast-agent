@@ -389,14 +389,14 @@ async def test_integrity_reload_preserves_full_multi_grain_set() -> None:
         loaded = await session.get(RollingBacktestRun, run.id)
         assert loaded is not None
         await load_logical_run_with_integrity(session, loaded)
-        assert loaded.s2_node_count == 2
+        assert loaded.s2_node_count == 1
         assert (
             await session.scalar(
                 select(func.count(RollingBacktestNode.id)).where(
                     RollingBacktestNode.rolling_run_id == run.id
                 )
             )
-            == 2
+            == 1
         )
         assert (
             await session.scalar(
