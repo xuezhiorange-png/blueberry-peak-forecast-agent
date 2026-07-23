@@ -421,7 +421,7 @@ async def test_duplicate_manifest_hash_is_rejected() -> None:
             cutoff_timezone=source_run.cutoff_timezone,
             cutoff_local_time=source_run.cutoff_local_time,
             status="completed",
-            expected_node_count=0,
+            expected_node_count=1,
             canonical_payload={"duplicate_manifest_owner": source_run.id},
             canonical_payload_hash=owner_hash,
         )
