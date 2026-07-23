@@ -70,11 +70,12 @@ from backend.app.rolling_backtest.signatures import (
     run_signature_hash,
     s2_binding_key_hash,
     s2_binding_row_hash,
+    s2_binding_row_payload,
     s2_instance_hash,
+    s2_node_identity_hash,
+    s2_node_identity_payload,
     s2_request_hash,
     s2_request_payload,
-    s2_season_node_identity_hash,
-    s2_season_node_identity_payload,
 )
 
 # ── Typed persistence commands ──────────────────────────────────────────────
@@ -1938,7 +1939,6 @@ def _s2_manifest_payloads(
     grain_coverage: dict[tuple[object, ...], list[S2HistoricalBindingRow]] = {}
     for row in ordered:
         grain_key = (
-            row.season_id,
             row.season_business_key,
             row.farm_business_key,
             row.subfarm_business_key,
@@ -1958,13 +1958,12 @@ def _s2_manifest_payloads(
         "grain_count": len(grain_coverage),
         "business_grain_horizon_coverage": tuple(
             {
-                "season_id": grain[0],
-                "season_business_key": grain[1],
-                "farm_business_key": grain[2],
-                "subfarm_business_key": grain[3],
-                "variety_business_key": grain[4],
-                "forecast_quantile": grain[5],
-                "forecast_run_identity_hash": grain[6],
+                "season_business_key": grain[0],
+                "farm_business_key": grain[1],
+                "subfarm_business_key": grain[2],
+                "variety_business_key": grain[3],
+                "forecast_quantile": grain[4],
+                "forecast_run_identity_hash": grain[5],
                 "horizons_days": tuple(sorted(row.horizon_days for row in grain_rows)),
                 "binding_key_hashes": tuple(sorted(row.binding_key_hash for row in grain_rows)),
                 "row_statuses": tuple(
@@ -2033,7 +2032,6 @@ def _s2_persisted_authority_evidence(
                     "authority_verification": row.authority_verification,
                     "forecast_run_identity_hash": forecast.forecast_run_identity_hash,
                     "daily_row_identity_hash": forecast.daily_row_identity_hash,
-                    "historical_code_authority_id": forecast.historical_code_authority_id,
                     "forecast_code_identity": forecast.forecast_code_identity,
                     "historical_code_identity": forecast.historical_code_identity,
                     "build_artifact_hash": forecast.build_artifact_hash,
@@ -2212,14 +2210,12 @@ def _s2_group_rows_by_season(
                 "S2 persisted season lookup and business key mapping is ambiguous"
             )
         grouped.setdefault((row.season_id, row.season_business_key), []).append(row)
-    return tuple(
-        (
-            season_id,
-            season_business_key,
-            tuple(sorted(season_rows, key=lambda item: item.binding_key_hash)),
-        )
-        for (season_id, season_business_key), season_rows in sorted(grouped.items())
+    ordered = tuple(sorted(rows, key=lambda item: item.binding_key_hash))
+    anchor_season_id, anchor_season_business_key = min(
+        grouped,
+        key=lambda item: (item[0], item[1]),
     )
+    return ((anchor_season_id, anchor_season_business_key, ordered),)
 
 
 def _validate_s2_row_set(
@@ -2271,12 +2267,11 @@ def _validate_s2_row_set(
 
 def _s2_node_scope(
     *,
-    season_business_key: str,
     rows: tuple[S2HistoricalBindingRow, ...],
 ) -> dict[str, Any]:
     return _json_value(
         {
-            "season_business_keys": (season_business_key,),
+            "season_business_keys": tuple(sorted({row.season_business_key for row in rows})),
             "farm_business_keys": tuple(sorted({row.farm_business_key for row in rows})),
             "subfarm_business_keys": tuple(sorted({row.subfarm_business_key for row in rows})),
             "variety_business_keys": tuple(sorted({row.variety_business_key for row in rows})),
@@ -2318,8 +2313,6 @@ def _s2_task10_model_policy(
 def _s2_node_canonical_payload(
     request: S2HistoricalBacktestRequest,
     *,
-    season_id: int,
-    season_business_key: str,
     rows: tuple[S2HistoricalBindingRow, ...],
 ) -> dict[str, Any]:
     evidence_count = len(_s2_persisted_authority_evidence(rows))
@@ -2327,14 +2320,8 @@ def _s2_node_canonical_payload(
     return _json_value(
         {
             "s2_contract_version": request.s2_contract_version,
-            "node_identity": s2_season_node_identity_payload(
-                request,
-                season_id=season_id,
-                season_business_key=season_business_key,
-            ),
-            "season_id": season_id,
-            "season_business_key": season_business_key,
-            "node_key": "s2-season-authority",
+            "node_identity": s2_node_identity_payload(request),
+            "node_key": "s2-single-node",
             "as_of_local_date": as_of_local_date,
             "forecast_cutoff_at": request.forecast_cutoff_at,
             "label_observation_cutoff_at": request.label_observation_cutoff_at,
@@ -2347,7 +2334,6 @@ def _s2_node_canonical_payload(
             "cutoff_policy_version": "v0.2-s2-dual-cutoff-v1",
             "timezone": "UTC",
             "scope": _s2_node_scope(
-                season_business_key=season_business_key,
                 rows=rows,
             ),
             "task10_model_policy": _s2_task10_model_policy(rows),
@@ -2423,116 +2409,99 @@ async def _verify_existing_s2_binding(
         raise RollingBacktestIdentityConflictError(
             f"S2 node count drift: expected {node_count}, found {len(nodes)}"
         )
-    node_by_season: dict[tuple[int, str], RollingBacktestNode] = {}
-    nodes_by_season_id = {node.season_id: node for node in nodes}
-    if len(nodes_by_season_id) != len(nodes):
-        raise RollingBacktestIdentityConflictError("duplicate S2 season node detected")
-    for season_id, season_business_key, season_rows in grouped_rows:
-        node = nodes_by_season_id.get(season_id)
-        if node is None:
-            raise RollingBacktestIdentityConflictError("expected S2 season node is missing")
-        expected_node_payload = _s2_node_canonical_payload(
-            request,
-            season_id=season_id,
-            season_business_key=season_business_key,
+    if len(nodes) != 1 or len(grouped_rows) != 1:
+        raise RollingBacktestIdentityConflictError("S2 requires exactly one node")
+    anchor_season_id, _, season_rows = grouped_rows[0]
+    node = nodes[0]
+    expected_node_payload = _s2_node_canonical_payload(request, rows=season_rows)
+    expected_node_hash = sha256_payload(canonical_json_dumps(expected_node_payload))
+    expected_node_signature = s2_node_identity_hash(request)
+    expected_evidence = _s2_persisted_authority_evidence(season_rows)
+    expected_node_fields = {
+        "season_id": anchor_season_id,
+        "node_key": "s2-single-node",
+        "node_signature": expected_node_signature,
+        "as_of_local_date": request.forecast_cutoff_at.date(),
+        "forecast_cutoff_at": request.forecast_cutoff_at,
+        "forecast_start_local_date": request.forecast_cutoff_at.date() + timedelta(days=1),
+        "forecast_end_local_date": max(row.target_date for row in season_rows),
+        "execution_mode": "historical_observed",
+        "upstream_selection_mode": "pinned",
+        "scope": _s2_node_scope(
             rows=season_rows,
-        )
-        expected_node_hash = sha256_payload(canonical_json_dumps(expected_node_payload))
-        expected_node_signature = s2_season_node_identity_hash(
-            request,
-            season_id=season_id,
-            season_business_key=season_business_key,
-        )
-        expected_evidence = _s2_persisted_authority_evidence(season_rows)
-        expected_node_fields = {
-            "node_key": "s2-season-authority",
-            "node_signature": expected_node_signature,
-            "as_of_local_date": request.forecast_cutoff_at.date(),
-            "forecast_cutoff_at": request.forecast_cutoff_at,
-            "forecast_start_local_date": request.forecast_cutoff_at.date() + timedelta(days=1),
-            "forecast_end_local_date": max(row.target_date for row in season_rows),
-            "execution_mode": "historical_observed",
-            "upstream_selection_mode": "pinned",
-            "scope": _s2_node_scope(
-                season_business_key=season_business_key,
-                rows=season_rows,
-            ),
-            "forecast_horizon_policy_version": "v0.2-s2-horizons-7-14-21",
-            "task10_model_policy": _s2_task10_model_policy(season_rows),
-            "cutoff_policy_version": "v0.2-s2-dual-cutoff-v1",
-            "timezone": "UTC",
-            "canonical_payload": expected_node_payload,
-            "canonical_payload_hash": expected_node_hash,
-            "expected_resolved_input_count": len(expected_evidence),
-            "expected_availability_audit_count": len(expected_evidence),
-        }
-        for field_name, expected in expected_node_fields.items():
-            if getattr(node, field_name) != expected:
-                raise RollingBacktestIdentityConflictError(
-                    f"S2 node normalized field drift detected for {field_name}"
-                )
-        resolved_result = await session.execute(
-            select(RollingBacktestResolvedInput)
-            .where(RollingBacktestResolvedInput.rolling_node_id == node.id)
-            .order_by(RollingBacktestResolvedInput.source_role)
-        )
-        audit_result = await session.execute(
-            select(RollingBacktestAvailabilityAudit)
-            .where(RollingBacktestAvailabilityAudit.rolling_node_id == node.id)
-            .order_by(RollingBacktestAvailabilityAudit.source_role)
-        )
-        resolved_inputs = resolved_result.scalars().all()
-        availability_audits = audit_result.scalars().all()
-        expected_by_role = {item.source_role: item for item in expected_evidence}
-        if len(expected_by_role) != len(expected_evidence):
+        ),
+        "forecast_horizon_policy_version": "v0.2-s2-horizons-7-14-21",
+        "task10_model_policy": _s2_task10_model_policy(season_rows),
+        "cutoff_policy_version": "v0.2-s2-dual-cutoff-v1",
+        "timezone": "UTC",
+        "canonical_payload": expected_node_payload,
+        "canonical_payload_hash": expected_node_hash,
+        "expected_resolved_input_count": len(expected_evidence),
+        "expected_availability_audit_count": len(expected_evidence),
+    }
+    for field_name, expected in expected_node_fields.items():
+        if getattr(node, field_name) != expected:
             raise RollingBacktestIdentityConflictError(
-                "S2 authority evidence contains duplicate source roles"
+                f"S2 node normalized field drift detected for {field_name}"
             )
-        if len(resolved_inputs) != len(expected_evidence) or len(availability_audits) != len(
-            expected_evidence
+    resolved_result = await session.execute(
+        select(RollingBacktestResolvedInput)
+        .where(RollingBacktestResolvedInput.rolling_node_id == node.id)
+        .order_by(RollingBacktestResolvedInput.source_role)
+    )
+    audit_result = await session.execute(
+        select(RollingBacktestAvailabilityAudit)
+        .where(RollingBacktestAvailabilityAudit.rolling_node_id == node.id)
+        .order_by(RollingBacktestAvailabilityAudit.source_role)
+    )
+    resolved_inputs = resolved_result.scalars().all()
+    availability_audits = audit_result.scalars().all()
+    expected_by_role = {item.source_role: item for item in expected_evidence}
+    if len(expected_by_role) != len(expected_evidence):
+        raise RollingBacktestIdentityConflictError(
+            "S2 authority evidence contains duplicate source roles"
+        )
+    if len(resolved_inputs) != len(expected_evidence) or len(availability_audits) != len(
+        expected_evidence
+    ):
+        raise RollingBacktestIdentityConflictError("S2 persisted authority evidence is missing")
+    for resolved in resolved_inputs:
+        expected = expected_by_role.get(resolved.source_role)
+        if expected is None:
+            raise RollingBacktestIdentityConflictError("unexpected S2 resolved authority evidence")
+        evidence_hash = sha256_payload(expected.canonical_payload)
+        if (
+            resolved.source_type != expected.source_type
+            or resolved.role_qualifier != "s2-persisted-authority"
+            or resolved.semantic_input_signature != evidence_hash
+            or resolved.result_hash != evidence_hash
+            or resolved.canonical_payload_hash != evidence_hash
+            or resolved.schema_version != "v0.2-s2-persisted-authority-v2"
+            or resolved.policy_version != request.authority_selection_policy_version
+            or resolved.persistent_reference_type is not None
+            or resolved.persistent_reference_value is not None
+            or resolved.canonical_payload != expected.canonical_payload
+            or resolved.audit_hash != evidence_hash
         ):
-            raise RollingBacktestIdentityConflictError("S2 persisted authority evidence is missing")
-        for resolved in resolved_inputs:
-            expected = expected_by_role.get(resolved.source_role)
-            if expected is None:
-                raise RollingBacktestIdentityConflictError(
-                    "unexpected S2 resolved authority evidence"
-                )
-            evidence_hash = sha256_payload(expected.canonical_payload)
-            if (
-                resolved.source_type != expected.source_type
-                or resolved.role_qualifier != "s2-persisted-authority"
-                or resolved.semantic_input_signature != evidence_hash
-                or resolved.result_hash != evidence_hash
-                or resolved.canonical_payload_hash != evidence_hash
-                or resolved.schema_version != "v0.2-s2-persisted-authority-v2"
-                or resolved.policy_version != request.authority_selection_policy_version
-                or resolved.persistent_reference_type is not None
-                or resolved.persistent_reference_value is not None
-                or resolved.canonical_payload != expected.canonical_payload
-                or resolved.audit_hash != evidence_hash
-            ):
-                raise RollingBacktestIdentityConflictError(
-                    f"S2 resolved authority drift detected for {resolved.source_role}"
-                )
-        for audit in availability_audits:
-            expected = expected_by_role.get(audit.source_role)
-            if expected is None:
-                raise RollingBacktestIdentityConflictError(
-                    "unexpected S2 availability audit evidence"
-                )
-            audit_hash = sha256_payload(expected.availability_payload)
-            if (
-                audit.source_type != expected.source_type
-                or audit.allowed is not expected.allowed
-                or audit.blocker_code != expected.blocker_code
-                or audit.canonical_payload != expected.availability_payload
-                or audit.audit_hash != audit_hash
-            ):
-                raise RollingBacktestIdentityConflictError(
-                    f"S2 availability audit drift detected for {audit.source_role}"
-                )
-        node_by_season[(season_id, season_business_key)] = node
+            raise RollingBacktestIdentityConflictError(
+                f"S2 resolved authority drift detected for {resolved.source_role}"
+            )
+    for audit in availability_audits:
+        expected = expected_by_role.get(audit.source_role)
+        if expected is None:
+            raise RollingBacktestIdentityConflictError("unexpected S2 availability audit evidence")
+        audit_hash = sha256_payload(expected.availability_payload)
+        if (
+            audit.source_type != expected.source_type
+            or audit.allowed is not expected.allowed
+            or audit.blocker_code != expected.blocker_code
+            or audit.canonical_payload != expected.availability_payload
+            or audit.audit_hash != audit_hash
+        ):
+            raise RollingBacktestIdentityConflictError(
+                f"S2 availability audit drift detected for {audit.source_role}"
+            )
+    node_by_season = {(row.season_id, row.season_business_key): node for row in rows}
 
     expected_rows = rows
     row_result = await session.execute(
@@ -2553,7 +2522,7 @@ async def _verify_existing_s2_binding(
             or persisted.label_observation_cutoff_at != expected.label_observation_cutoff_at
             or persisted.binding_row_hash != expected.row_hash
             or persisted.binding_key_hash != expected.binding_key_hash
-            or persisted.canonical_payload != _json_value(expected.model_dump(mode="python"))
+            or persisted.canonical_payload != s2_binding_row_payload(expected)
             or persisted.forecast_row_identity_hash
             != expected.forecast_authority.daily_row_identity_hash
             or persisted.actual_label_row_identity_hash
@@ -2687,83 +2656,70 @@ async def persist_s2_historical_binding(
             session.add(run)
             await session.flush()
 
-            node_by_season: dict[tuple[int, str], RollingBacktestNode] = {}
-            for season_id, season_business_key, season_rows in grouped_rows:
-                node_payload = _s2_node_canonical_payload(
-                    request,
-                    season_id=season_id,
-                    season_business_key=season_business_key,
-                    rows=season_rows,
-                )
-                node_payload_hash = sha256_payload(canonical_json_dumps(node_payload))
-                authority_evidence = _s2_persisted_authority_evidence(season_rows)
-                node = RollingBacktestNode(
-                    rolling_run_id=run.id,
-                    season_id=season_id,
-                    node_key="s2-season-authority",
-                    node_signature=s2_season_node_identity_hash(
-                        request,
-                        season_id=season_id,
-                        season_business_key=season_business_key,
-                    ),
-                    as_of_local_date=request.forecast_cutoff_at.date(),
-                    forecast_cutoff_at=request.forecast_cutoff_at,
-                    forecast_start_local_date=request.forecast_cutoff_at.date() + timedelta(days=1),
-                    forecast_end_local_date=max(row.target_date for row in season_rows),
-                    execution_mode="historical_observed",
-                    upstream_selection_mode="pinned",
-                    scope=_s2_node_scope(
-                        season_business_key=season_business_key,
-                        rows=season_rows,
-                    ),
-                    forecast_horizon_policy_version="v0.2-s2-horizons-7-14-21",
-                    task10_model_policy=_s2_task10_model_policy(season_rows),
-                    cutoff_policy_version="v0.2-s2-dual-cutoff-v1",
-                    timezone="UTC",
-                    canonical_payload=node_payload,
-                    canonical_payload_hash=node_payload_hash,
-                    expected_resolved_input_count=len(authority_evidence),
-                    expected_availability_audit_count=len(authority_evidence),
-                )
-                session.add(node)
-                await session.flush()
-                node_by_season[(season_id, season_business_key)] = node
-
-                for evidence in authority_evidence:
-                    evidence_hash = sha256_payload(evidence.canonical_payload)
-                    availability_hash = sha256_payload(evidence.availability_payload)
-                    session.add(
-                        RollingBacktestResolvedInput(
-                            rolling_node_id=node.id,
-                            source_role=evidence.source_role,
-                            source_type=evidence.source_type,
-                            role_qualifier="s2-persisted-authority",
-                            semantic_input_signature=evidence_hash,
-                            result_hash=evidence_hash,
-                            canonical_payload_hash=evidence_hash,
-                            schema_version="v0.2-s2-persisted-authority-v2",
-                            policy_version=request.authority_selection_policy_version,
-                            persistent_reference_type=None,
-                            persistent_reference_value=None,
-                            canonical_payload=evidence.canonical_payload,
-                            audit_hash=evidence_hash,
-                        )
-                    )
-                    session.add(
-                        RollingBacktestAvailabilityAudit(
-                            rolling_node_id=node.id,
-                            source_role=evidence.source_role,
-                            source_type=evidence.source_type,
-                            allowed=evidence.allowed,
-                            blocker_code=evidence.blocker_code,
-                            canonical_payload=evidence.availability_payload,
-                            audit_hash=availability_hash,
-                        )
-                    )
+            anchor_season_id, _, node_rows = grouped_rows[0]
+            node_payload = _s2_node_canonical_payload(request, rows=node_rows)
+            node_payload_hash = sha256_payload(canonical_json_dumps(node_payload))
+            authority_evidence = _s2_persisted_authority_evidence(node_rows)
+            node = RollingBacktestNode(
+                rolling_run_id=run.id,
+                season_id=anchor_season_id,
+                node_key="s2-single-node",
+                node_signature=s2_node_identity_hash(request),
+                as_of_local_date=request.forecast_cutoff_at.date(),
+                forecast_cutoff_at=request.forecast_cutoff_at,
+                forecast_start_local_date=request.forecast_cutoff_at.date() + timedelta(days=1),
+                forecast_end_local_date=max(row.target_date for row in node_rows),
+                execution_mode="historical_observed",
+                upstream_selection_mode="pinned",
+                scope=_s2_node_scope(rows=node_rows),
+                forecast_horizon_policy_version="v0.2-s2-horizons-7-14-21",
+                task10_model_policy=_s2_task10_model_policy(node_rows),
+                cutoff_policy_version="v0.2-s2-dual-cutoff-v1",
+                timezone="UTC",
+                canonical_payload=node_payload,
+                canonical_payload_hash=node_payload_hash,
+                expected_resolved_input_count=len(authority_evidence),
+                expected_availability_audit_count=len(authority_evidence),
+            )
+            session.add(node)
             await session.flush()
 
+            for evidence in authority_evidence:
+                evidence_hash = sha256_payload(evidence.canonical_payload)
+                availability_hash = sha256_payload(evidence.availability_payload)
+                session.add(
+                    RollingBacktestResolvedInput(
+                        rolling_node_id=node.id,
+                        source_role=evidence.source_role,
+                        source_type=evidence.source_type,
+                        role_qualifier="s2-persisted-authority",
+                        semantic_input_signature=evidence_hash,
+                        result_hash=evidence_hash,
+                        canonical_payload_hash=evidence_hash,
+                        schema_version="v0.2-s2-persisted-authority-v2",
+                        policy_version=request.authority_selection_policy_version,
+                        persistent_reference_type=None,
+                        persistent_reference_value=None,
+                        canonical_payload=evidence.canonical_payload,
+                        audit_hash=evidence_hash,
+                    )
+                )
+                session.add(
+                    RollingBacktestAvailabilityAudit(
+                        rolling_node_id=node.id,
+                        source_role=evidence.source_role,
+                        source_type=evidence.source_type,
+                        allowed=evidence.allowed,
+                        blocker_code=evidence.blocker_code,
+                        canonical_payload=evidence.availability_payload,
+                        audit_hash=availability_hash,
+                    )
+                )
+            await session.flush()
+
+            node_by_season = {(row.season_id, row.season_business_key): node for row in rows}
             for row in rows:
-                row_payload = _json_value(row.model_dump(mode="python"))
+                row_payload = s2_binding_row_payload(row)
                 node = node_by_season[(row.season_id, row.season_business_key)]
                 session.add(
                     RollingBacktestBindingRow(

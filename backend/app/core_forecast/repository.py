@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Protocol
 
@@ -72,6 +72,7 @@ class Task9AuthoritySource:
     maturity_model_artifact_hash: str | None
     result_hash: str
     member_rows: tuple[Task9MemberSource, ...]
+    forecast_effective_cutoff_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -170,6 +171,7 @@ class SqlAlchemyCoreForecastRepository:
                 )
                 for row in members
             ),
+            forecast_effective_cutoff_at=run.forecast_effective_cutoff_at,
         )
 
     async def load_season(self, season_id: int) -> SeasonSource | None:

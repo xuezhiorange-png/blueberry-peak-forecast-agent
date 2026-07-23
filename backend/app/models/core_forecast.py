@@ -68,6 +68,10 @@ class CoreForecastCodeAuthorityModel(Base):
             "ck_core_forecast_code_authority_source_commit_sha",
         ),
         *_hash_checks(
+            "engine_code_hash",
+            "ck_core_forecast_code_authority_engine_code_hash",
+        ),
+        *_hash_checks(
             "build_artifact_hash",
             "ck_core_forecast_code_authority_build_artifact_hash",
         ),
@@ -88,6 +92,7 @@ class CoreForecastCodeAuthorityModel(Base):
     id: Mapped[int] = mapped_column(_BIGINT_VARIANT, primary_key=True, autoincrement=True)
     authority_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
     source_commit_sha: Mapped[str] = mapped_column(Text, nullable=False)
+    engine_code_hash: Mapped[str] = mapped_column(Text, nullable=False)
     build_artifact_hash: Mapped[str] = mapped_column(Text, nullable=False)
     config_bundle_hash: Mapped[str] = mapped_column(Text, nullable=False)
     available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -117,11 +122,12 @@ class CoreForecastRunModel(Base):
             "(run_schema_version = 'v0.1-core-forecast-run-v1' "
             "AND request_schema_version = 'v0.1-core-forecast-request-v1' "
             "AND code_authority_id IS NULL AND code_authority_hash IS NULL "
-            "AND code_authority_available_at IS NULL) OR "
+            "AND code_authority_available_at IS NULL AND forecast_effective_cutoff_at IS NULL) OR "
             "(run_schema_version = 'v0.1-core-forecast-run-authority-v2' "
             "AND request_schema_version = 'v0.1-core-forecast-request-authority-v2' "
             "AND code_authority_id IS NOT NULL AND code_authority_hash IS NOT NULL "
-            "AND code_authority_available_at IS NOT NULL)",
+            "AND code_authority_available_at IS NOT NULL "
+            "AND forecast_effective_cutoff_at IS NOT NULL)",
             name="ck_core_forecast_run_code_authority_coupling",
         ),
         CheckConstraint(
@@ -192,6 +198,10 @@ class CoreForecastRunModel(Base):
     )
     code_authority_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     code_authority_available_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    forecast_effective_cutoff_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

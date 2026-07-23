@@ -29,6 +29,7 @@ def core_forecast_code_authority_payload(
     return {
         "authority_schema_version": CORE_FORECAST_CODE_AUTHORITY_SCHEMA_VERSION,
         "source_commit_sha": authority.source_commit_sha,
+        "engine_code_hash": authority.engine_code_hash,
         "build_artifact_hash": authority.build_artifact_hash,
         "config_bundle_hash": authority.config_bundle_hash,
         "available_at": authority.available_at.astimezone(UTC).isoformat(),
@@ -56,7 +57,7 @@ def compute_daily_curve_hash(
             QUANTILE_RANK[row.forecast_quantile],
         ),
     )
-    payload = {
+    payload: dict[str, object] = {
         "schema_version": DAILY_CURVE_SCHEMA_VERSION,
         "rows": [row.model_dump(mode="json") for row in ordered_rows],
     }
@@ -90,6 +91,8 @@ def compute_core_forecast_input_hash(
     retention_policy: MarketableRetentionPolicySnapshot,
     *,
     code_authority: CoreForecastCodeAuthority | None = None,
+    task9_authority_result_hash: str | None = None,
+    forecast_effective_cutoff_at: object | None = None,
 ) -> str:
     policy_hash = compute_retention_policy_snapshot_hash(retention_policy)
     scopes = sorted(
@@ -103,29 +106,63 @@ def compute_core_forecast_input_hash(
         ),
         key=lambda item: (item["farm_id"], item["subfarm_id"], item["variety_id"]),
     )
-    payload = {
+    semantic_policy_entries = sorted(
+        (
+            {
+                "forecast_season_code": entry.forecast_season_code,
+                "sorting_retention_rate": entry.sorting_retention_rate,
+                "postharvest_retention_rate": entry.postharvest_retention_rate,
+                "source": entry.source,
+                "version": entry.version,
+                "hash": entry.hash,
+            }
+            for entry in retention_policy.entries
+        ),
+        key=lambda item: (
+            item["forecast_season_code"],
+            item["source"],
+            item["version"],
+            item["hash"],
+        ),
+    )
+    authority_bound = code_authority is not None
+    payload: dict[str, object] = {
         "request_schema_version": (
             CORE_FORECAST_AUTHORITY_REQUEST_SCHEMA_VERSION
             if code_authority is not None
             else CORE_FORECAST_REQUEST_SCHEMA_VERSION
         ),
-        "forecast_season_id": request.forecast_season_id,
         "forecast_season_code": request.forecast_season_code,
         "forecast_start_date": request.forecast_start_date.isoformat(),
         "forecast_end_date": request.forecast_end_date.isoformat(),
-        "destination_factory_id": request.destination_factory_id,
-        "task8_forecast_run_id": request.task8_forecast_run_id,
-        "task9_harvest_state_run_id": request.task9_harvest_state_run_id,
-        "scopes": scopes,
-        "retention_policy_snapshot": {"entries": _sorted_policy_entries(retention_policy)},
+        "scope_count": len(scopes) if authority_bound else None,
+        "scopes": None if authority_bound else scopes,
+        "retention_policy_snapshot": {
+            "entries": (
+                semantic_policy_entries
+                if authority_bound
+                else _sorted_policy_entries(retention_policy)
+            )
+        },
         "retention_policy_snapshot_hash": policy_hash,
     }
     if code_authority is not None:
+        payload["season_business_key"] = request.forecast_season_code
         payload["code_authority"] = {
-            "authority_id": code_authority.authority_id,
             "authority_hash": code_authority.authority_hash,
             **core_forecast_code_authority_payload(code_authority),
         }
+        payload["task9_authority_result_hash"] = task9_authority_result_hash
+        payload["forecast_effective_cutoff_at"] = forecast_effective_cutoff_at
+    else:
+        payload.update(
+            {
+                "forecast_season_id": request.forecast_season_id,
+                "destination_factory_id": request.destination_factory_id,
+                "task8_forecast_run_id": request.task8_forecast_run_id,
+                "task9_harvest_state_run_id": request.task9_harvest_state_run_id,
+            }
+        )
     return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
 
 
@@ -134,6 +171,7 @@ def compute_core_forecast_request_hash(
     rerun_of_run_id: int | None,
     *,
     authority_bound: bool = False,
+    rerun_of_request_hash: str | None = None,
 ) -> str:
     payload = {
         "request_schema_version": (
@@ -142,7 +180,8 @@ def compute_core_forecast_request_hash(
             else CORE_FORECAST_REQUEST_SCHEMA_VERSION
         ),
         "forecast_input_hash": forecast_input_hash,
-        "rerun_of_run_id": rerun_of_run_id,
+        "rerun_of_request_hash": rerun_of_request_hash if authority_bound else None,
+        "rerun_of_run_id": None if authority_bound else rerun_of_run_id,
     }
     return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
 
@@ -156,6 +195,7 @@ def compute_core_forecast_result_hash(
     daily_row_count: int,
     metric_row_count: int,
     authority_bound: bool = False,
+    forecast_effective_cutoff_at: object | None = None,
 ) -> str:
     payload = {
         "run_schema_version": (
@@ -170,5 +210,6 @@ def compute_core_forecast_result_hash(
         "metrics_hash": metrics_hash,
         "daily_row_count": daily_row_count,
         "metric_row_count": metric_row_count,
+        "forecast_effective_cutoff_at": (forecast_effective_cutoff_at if authority_bound else None),
     }
     return hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()

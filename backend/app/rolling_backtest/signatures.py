@@ -143,16 +143,8 @@ def s2_season_node_identity_payload(
     season_id: int,
     season_business_key: str,
 ) -> dict[str, object]:
-    return cast(
-        dict[str, object],
-        canonical_json_value(
-            {
-                "request_node_identity_hash": s2_node_identity_hash(request),
-                "season_id": season_id,
-                "season_business_key": season_business_key,
-            }
-        ),
-    )
+    del season_id, season_business_key
+    return s2_node_identity_payload(request)
 
 
 def s2_season_node_identity_hash(
@@ -161,13 +153,8 @@ def s2_season_node_identity_hash(
     season_id: int,
     season_business_key: str,
 ) -> str:
-    return sha256_payload(
-        s2_season_node_identity_payload(
-            request,
-            season_id=season_id,
-            season_business_key=season_business_key,
-        )
-    )
+    del season_id, season_business_key
+    return s2_node_identity_hash(request)
 
 
 def s2_binding_key_payload(
@@ -179,12 +166,7 @@ def s2_binding_key_payload(
         canonical_json_value(
             {
                 "request_hash": s2_request_hash(request),
-                "node_identity_hash": s2_season_node_identity_hash(
-                    request,
-                    season_id=row.season_id,
-                    season_business_key=row.season_business_key,
-                ),
-                "season_id": row.season_id,
+                "node_identity_hash": s2_node_identity_hash(request),
                 "season_business_key": row.season_business_key,
                 "farm_business_key": row.farm_business_key,
                 "subfarm_business_key": row.subfarm_business_key,
@@ -206,9 +188,19 @@ def s2_binding_key_hash(
 
 
 def s2_binding_row_payload(row: S2HistoricalBindingRow) -> dict[str, object]:
+    payload = row.model_dump(
+        mode="python",
+        exclude={"row_hash", "season_id"},
+    )
+    forecast_authority = payload.get("forecast_authority")
+    if isinstance(forecast_authority, dict):
+        forecast_authority.pop("historical_code_authority_id", None)
+    references = payload.get("persisted_authority_references")
+    if isinstance(references, dict):
+        payload["persisted_authority_references"] = {"lookup_mode": references["lookup_mode"]}
     return cast(
         dict[str, object],
-        canonical_json_value(row.model_dump(mode="python", exclude={"row_hash"})),
+        canonical_json_value(payload),
     )
 
 

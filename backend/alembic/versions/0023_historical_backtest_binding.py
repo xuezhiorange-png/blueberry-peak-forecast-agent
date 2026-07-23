@@ -53,6 +53,7 @@ def upgrade() -> None:
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("authority_schema_version", sa.Text(), nullable=False),
         sa.Column("source_commit_sha", sa.Text(), nullable=False),
+        sa.Column("engine_code_hash", sa.Text(), nullable=False),
         sa.Column("build_artifact_hash", sa.Text(), nullable=False),
         sa.Column("config_bundle_hash", sa.Text(), nullable=False),
         sa.Column("available_at", sa.DateTime(timezone=True), nullable=False),
@@ -78,6 +79,10 @@ def upgrade() -> None:
             name="ck_core_forecast_code_authority_source_commit_sha",
         ),
         sa.CheckConstraint(
+            _sha256_check("engine_code_hash"),
+            name="ck_core_forecast_code_authority_engine_code_hash",
+        ),
+        sa.CheckConstraint(
             _sha256_check("build_artifact_hash"),
             name="ck_core_forecast_code_authority_build_artifact_hash",
         ),
@@ -99,6 +104,9 @@ def upgrade() -> None:
         batch_op.drop_constraint("ck_core_forecast_request_schema_version", type_="check")
         batch_op.add_column(sa.Column("code_authority_id", sa.BigInteger(), nullable=True))
         batch_op.add_column(sa.Column("code_authority_hash", sa.Text(), nullable=True))
+        batch_op.add_column(
+            sa.Column("forecast_effective_cutoff_at", sa.DateTime(timezone=True), nullable=True)
+        )
         batch_op.add_column(
             sa.Column(
                 "code_authority_available_at",
@@ -129,11 +137,12 @@ def upgrade() -> None:
             "(run_schema_version = 'v0.1-core-forecast-run-v1' "
             "AND request_schema_version = 'v0.1-core-forecast-request-v1' "
             "AND code_authority_id IS NULL AND code_authority_hash IS NULL "
-            "AND code_authority_available_at IS NULL) OR "
+            "AND code_authority_available_at IS NULL AND forecast_effective_cutoff_at IS NULL) OR "
             "(run_schema_version = 'v0.1-core-forecast-run-authority-v2' "
             "AND request_schema_version = 'v0.1-core-forecast-request-authority-v2' "
             "AND code_authority_id IS NOT NULL AND code_authority_hash IS NOT NULL "
-            "AND code_authority_available_at IS NOT NULL)",
+            "AND code_authority_available_at IS NOT NULL "
+            "AND forecast_effective_cutoff_at IS NOT NULL)",
         )
         batch_op.create_check_constraint(
             "ck_core_forecast_run_code_authority_hash",
@@ -176,7 +185,8 @@ def upgrade() -> None:
         batch_op.create_check_constraint(
             "ck_rolling_backtest_run_s2_required_fields",
             "s2_contract_version IS NULL OR "
-            "(s2_node_count >= 1 AND backtest_request_payload IS NOT NULL AND "
+            "(s2_node_count = 1 AND expected_node_count = 1 "
+            "AND backtest_request_payload IS NOT NULL AND "
             "backtest_request_hash IS NOT NULL AND "
             "instance_hash IS NOT NULL AND forecast_cutoff_at IS NOT NULL AND "
             "label_visibility_mode IS NOT NULL AND "
@@ -492,6 +502,7 @@ def downgrade() -> None:
             type_="foreignkey",
         )
         batch_op.drop_column("code_authority_available_at")
+        batch_op.drop_column("forecast_effective_cutoff_at")
         batch_op.drop_column("code_authority_hash")
         batch_op.drop_column("code_authority_id")
         batch_op.create_check_constraint(

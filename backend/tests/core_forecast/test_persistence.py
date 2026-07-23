@@ -106,6 +106,7 @@ async def test_code_authority_registration_round_trips_and_is_idempotent(
     repository = CoreForecastRunRepository(sqlite_session)
     registration = RegisterCoreForecastCodeAuthority(
         source_commit_sha="a" * 40,
+        engine_code_hash="e" * 64,
         build_artifact_hash="b" * 64,
         config_bundle_hash="c" * 64,
         available_at=datetime(2026, 2, 28, 4, 0, tzinfo=UTC),
@@ -127,6 +128,7 @@ async def test_code_authority_identity_changes_for_build_config_or_availability(
     repository = CoreForecastRunRepository(sqlite_session)
     base = RegisterCoreForecastCodeAuthority(
         source_commit_sha="a" * 40,
+        engine_code_hash="e" * 64,
         build_artifact_hash="b" * 64,
         config_bundle_hash="c" * 64,
         available_at=datetime(2026, 2, 28, 4, 0, tzinfo=UTC),
@@ -155,6 +157,7 @@ async def test_tampered_code_authority_payload_fails_integrity(
     authority = await repository.register_code_authority(
         RegisterCoreForecastCodeAuthority(
             source_commit_sha="a" * 40,
+            engine_code_hash="e" * 64,
             build_artifact_hash="b" * 64,
             config_bundle_hash="c" * 64,
             available_at=datetime(2026, 2, 28, 4, 0, tzinfo=UTC),
