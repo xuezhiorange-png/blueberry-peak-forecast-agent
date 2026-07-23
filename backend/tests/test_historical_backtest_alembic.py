@@ -52,10 +52,50 @@ async def test_historical_backtest_migration_round_trip_preserves_legacy_rows() 
             )
         }
         assert {
+            "core_forecast_code_authority",
             "rolling_backtest_manifest",
             "rolling_backtest_binding_row",
             "rolling_backtest_run",
         } <= table_names
+        core_authority_columns = {
+            row["column_name"]
+            for row in await conn.fetch(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'core_forecast_code_authority'
+                """
+            )
+        }
+        assert {
+            "source_commit_sha",
+            "build_artifact_hash",
+            "config_bundle_hash",
+            "available_at",
+            "canonical_payload",
+            "authority_hash",
+        } <= core_authority_columns
+        core_run_authority_columns = {
+            row["column_name"]
+            for row in await conn.fetch(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'core_forecast_run'
+                  AND column_name IN (
+                      'code_authority_id', 'code_authority_hash',
+                      'code_authority_available_at'
+                  )
+                """
+            )
+        }
+        assert core_run_authority_columns == {
+            "code_authority_id",
+            "code_authority_hash",
+            "code_authority_available_at",
+        }
         nullable = {
             row["column_name"]: row["is_nullable"]
             for row in await conn.fetch(

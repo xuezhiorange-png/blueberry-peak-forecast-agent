@@ -85,24 +85,40 @@ async def execute_core_forecast_run(
 ) -> CoreForecastExecutionResult:
     """Execute S2 and S3 once, then persist one immutable completed run."""
 
+    persistence = persistence_repository or CoreForecastRunRepository(session)
+    upstream = upstream_repository or SqlAlchemyCoreForecastRepository(session)
     try:
         canonical_request = ExecuteCoreForecastRunRequest.model_validate(
             request.model_dump(mode="python")
         )
+        code_authority = (
+            None
+            if canonical_request.code_authority_id is None
+            else await persistence.get_code_authority_by_id(canonical_request.code_authority_id)
+        )
+        if canonical_request.code_authority_id is not None and code_authority is None:
+            return _blocked(
+                "CORE_FORECAST_CODE_AUTHORITY_NOT_FOUND",
+                "pre-registered code authority was not found",
+            )
         policy_hash = compute_retention_policy_snapshot_hash(canonical_request.retention_policy)
         input_hash = compute_core_forecast_input_hash(
             canonical_request.curve_request,
             canonical_request.retention_policy,
+            code_authority=code_authority,
         )
         request_hash = compute_core_forecast_request_hash(
             input_hash,
             canonical_request.rerun_of_run_id,
+            authority_bound=code_authority is not None,
+        )
+    except CoreForecastPersistenceIntegrityError:
+        return _blocked(
+            "CORE_FORECAST_CODE_AUTHORITY_INVALID",
+            "persisted code authority failed integrity validation",
         )
     except (ValidationError, ValueError, TypeError):
         return _blocked("CORE_FORECAST_PERSISTENCE_INTEGRITY_FAILED", "request validation failed")
-
-    persistence = persistence_repository or CoreForecastRunRepository(session)
-    upstream = upstream_repository or SqlAlchemyCoreForecastRepository(session)
 
     if canonical_request.rerun_of_run_id is not None:
         try:
@@ -179,6 +195,7 @@ async def execute_core_forecast_run(
         metrics_hash=metrics.metrics_hash,
         daily_row_count=len(curve.rows),
         metric_row_count=len(metrics.metrics),
+        authority_bound=code_authority is not None,
     )
     try:
         persisted = await persistence.save_completed_run(
@@ -190,6 +207,7 @@ async def execute_core_forecast_run(
             curve=curve,
             metrics=metrics,
             rerun_of_run_id=canonical_request.rerun_of_run_id,
+            code_authority=code_authority,
         )
     except CoreForecastPersistenceConflictError:
         return _blocked(
@@ -212,6 +230,7 @@ async def recalculate_core_forecast_run(
     source_run_id: int,
     curve_request: CompleteDailyMarketableCurveRequest,
     retention_policy: MarketableRetentionPolicySnapshot,
+    code_authority_id: int | None = None,
     upstream_repository: CoreForecastRepository | None = None,
     persistence_repository: CoreForecastRunRepository | None = None,
 ) -> CoreForecastExecutionResult:
@@ -219,6 +238,7 @@ async def recalculate_core_forecast_run(
         curve_request=curve_request,
         retention_policy=retention_policy,
         rerun_of_run_id=source_run_id,
+        code_authority_id=code_authority_id,
     )
     return await execute_core_forecast_run(
         session,

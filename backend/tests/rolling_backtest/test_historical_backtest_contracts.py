@@ -42,6 +42,7 @@ from backend.app.rolling_backtest.schemas import (
     S2HistoricalBindingCandidate,
     S2PersistedAuthorityReferences,
     s2_business_grain_hash,
+    s2_physical_alignment_evidence_hash,
 )
 from backend.app.rolling_backtest.signatures import s2_instance_hash, s2_request_hash
 
@@ -70,12 +71,18 @@ def _request(**changes: object) -> S2HistoricalBacktestRequest:
 
 def _forecast(horizon: int) -> S2HistoricalBindingCandidate:
     return S2HistoricalBindingCandidate(
+        season_id=2026,
+        season_business_key="season:2026",
+        farm_business_key="farm:alpha",
+        subfarm_business_key="subfarm:alpha-1",
+        variety_business_key="variety:legacy",
+        forecast_quantile="P50",
         horizon_days=horizon,
         target_date=_CUTOFF.date() + timedelta(days=horizon),
         forecast_cutoff_at=_CUTOFF,
         forecast_value_kg=Decimal(horizon),
         forecast_authority=S2ForecastAuthorityBundle(
-            forecast_run_identity_hash=f"{horizon:064x}",
+            forecast_run_identity_hash="0" * 63 + "1",
             daily_row_identity_hash=f"{horizon + 1:064x}",
             task9_authority_identity_hash="c" * 64,
             task9_member_identity_hash="5" * 64,
@@ -83,13 +90,17 @@ def _forecast(horizon: int) -> S2HistoricalBindingCandidate:
             task10_model_identity_hash="6" * 64,
             task10_replay_identity_hash="7" * 64,
             task10_prediction_row_identity_hash="8" * 64,
-            forecast_code_identity="code-v1",
-            historical_code_identity="historical-code-v1",
+            historical_code_authority_id=91,
+            forecast_code_identity="9" * 64,
+            historical_code_identity="a" * 40,
+            build_artifact_hash="b" * 64,
+            config_bundle_hash="4" * 64,
             model_identity="model-v1",
             parameter_identity="parameter-v1",
             data_identity="data-v1",
             available_at=_CUTOFF,
             task10_model_available_at=_CUTOFF,
+            historical_code_available_at=_CUTOFF,
         ),
         authority_verification="SYNTHETIC_ENGINEERING",
     )
@@ -97,8 +108,22 @@ def _forecast(horizon: int) -> S2HistoricalBindingCandidate:
 
 def _actual(*, target_date=None, verified: bool = True) -> S2ActualLabelAuthority:
     target_date = target_date or (_CUTOFF.date() + timedelta(days=7))
+    event = "TEST_FARM_PICK_EQUIVALENT" if verified else "MODEL_MARKETABLE_OUTPUT"
+    quantity_basis = "TEST_EQUIVALENT_KG" if verified else "MODEL_MARKETABLE_QUANTITY"
+    actual_event = "TEST_FARM_PICK_EQUIVALENT" if verified else "FARM_PICK"
+    actual_basis = "TEST_EQUIVALENT_KG" if verified else "OBSERVED_PICK_WEIGHT"
+    loss_policy = (
+        "test-only-equivalent-loss-boundary-v1" if verified else "q2c-business-attestation-missing"
+    )
+    alignment_policy = (
+        "test-only-synthetic-alignment-v1"
+        if verified
+        else "v0.2-s2-q2c-business-attestation-required-v1"
+    )
+    status = "VERIFIED" if verified else "UNVERIFIED"
     return S2ActualLabelAuthority(
         label_snapshot_identity_hash="e" * 64,
+        label_resolution_status="EXACT_LABEL",
         label_row_identity_hash="1" * 64,
         label_winner_identity_hash="2" * 64,
         label_winner_set_identity_hash="5" * 64,
@@ -119,7 +144,24 @@ def _actual(*, target_date=None, verified: bool = True) -> S2ActualLabelAuthorit
         revision_or_winner_evidence={"revision": 1},
         observed_weight_kg=Decimal("12.500000"),
         visibility_timestamp=_LABEL_CUTOFF,
-        physical_alignment_status="VERIFIED" if verified else "UNVERIFIED",
+        forecast_physical_event=event,
+        actual_physical_event=actual_event,
+        forecast_quantity_basis=quantity_basis,
+        actual_quantity_basis=actual_basis,
+        unit="kg",
+        loss_boundary_policy_version=loss_policy,
+        physical_alignment_policy_version=alignment_policy,
+        physical_alignment_evidence_hash=s2_physical_alignment_evidence_hash(
+            forecast_physical_event=event,
+            actual_physical_event=actual_event,
+            forecast_quantity_basis=quantity_basis,
+            actual_quantity_basis=actual_basis,
+            unit="kg",
+            loss_boundary_policy_version=loss_policy,
+            physical_alignment_policy_version=alignment_policy,
+            physical_alignment_status=status,
+        ),
+        physical_alignment_status=status,
     )
 
 
@@ -195,13 +237,75 @@ def test_missing_actual_is_explicit_unknown_exclusion_not_zero() -> None:
     assert row.actual_label is None
 
 
-def test_unverified_physical_alignment_is_excluded() -> None:
+def test_missing_physical_alignment_evidence_not_computable() -> None:
     request = _request(requested_horizons_days=[7])
     candidate = _forecast(7).model_copy(update={"actual_label": _actual(verified=False)})
     row = build_s2_binding_rows(request, (candidate,))[0]
-    assert row.row_status == "EXCLUDED"
-    assert row.reason_code == "PHYSICAL_TARGET_ALIGNMENT_UNVERIFIED"
+    assert row.row_status == "NOT_COMPUTABLE"
+    assert row.reason_code == "BLOCKED_BY_PHYSICAL_TARGET_GAP"
     assert row.actual_value_kg == Decimal("12.500000")
+
+
+def test_schema_or_field_name_does_not_prove_alignment() -> None:
+    payload = _actual(verified=False).model_dump(mode="python")
+    payload.update(
+        {
+            "physical_alignment_status": "VERIFIED",
+            "physical_alignment_evidence_hash": s2_physical_alignment_evidence_hash(
+                forecast_physical_event=str(payload["forecast_physical_event"]),
+                actual_physical_event=str(payload["actual_physical_event"]),
+                forecast_quantity_basis=str(payload["forecast_quantity_basis"]),
+                actual_quantity_basis=str(payload["actual_quantity_basis"]),
+                unit=str(payload["unit"]),
+                loss_boundary_policy_version=str(payload["loss_boundary_policy_version"]),
+                physical_alignment_policy_version=str(payload["physical_alignment_policy_version"]),
+                physical_alignment_status="VERIFIED",
+            ),
+        }
+    )
+    with pytest.raises(ValidationError, match="explicit equivalent semantics"):
+        S2ActualLabelAuthority.model_validate(payload)
+
+
+def test_alignment_policy_drift_changes_instance_hash() -> None:
+    request = _request(requested_horizons_days=[7])
+    first_actual = _actual()
+    second_payload = first_actual.model_dump(mode="python")
+    second_payload["physical_alignment_policy_version"] = "test-only-synthetic-alignment-v2"
+    second_payload["physical_alignment_evidence_hash"] = s2_physical_alignment_evidence_hash(
+        forecast_physical_event=first_actual.forecast_physical_event,
+        actual_physical_event=first_actual.actual_physical_event,
+        forecast_quantity_basis=first_actual.forecast_quantity_basis,
+        actual_quantity_basis=first_actual.actual_quantity_basis,
+        unit=first_actual.unit,
+        loss_boundary_policy_version=first_actual.loss_boundary_policy_version,
+        physical_alignment_policy_version="test-only-synthetic-alignment-v2",
+        physical_alignment_status=first_actual.physical_alignment_status,
+    )
+    second_actual = S2ActualLabelAuthority.model_validate(second_payload)
+    first_rows = build_s2_binding_rows(
+        request,
+        (_forecast(7).model_copy(update={"actual_label": first_actual}),),
+    )
+    second_rows = build_s2_binding_rows(
+        request,
+        (_forecast(7).model_copy(update={"actual_label": second_actual}),),
+    )
+    assert s2_instance_hash(request, first_rows) != s2_instance_hash(request, second_rows)
+
+
+def test_synthetic_alignment_not_promoted_to_production() -> None:
+    actual = _actual()
+    assert actual.synthetic_alignment_evidence_is_production_evidence is False
+    request = _request(requested_horizons_days=[7])
+    with pytest.raises(ValueError, match="requires exact persisted authority"):
+        asyncio.run(
+            run_s2_historical_binding(
+                object(),
+                request=request,
+                candidates=(_forecast(7).model_copy(update={"actual_label": actual}),),
+            )
+        )
 
 
 def test_three_horizon_rows_are_deterministic_and_comparison_ready() -> None:
@@ -218,7 +322,7 @@ def test_three_horizon_rows_are_deterministic_and_comparison_ready() -> None:
     )
     rows = build_s2_binding_rows(request, candidates)
     reversed_rows = build_s2_binding_rows(request, tuple(reversed(candidates)))
-    assert [(row.horizon_days, row.target_date) for row in rows] == [
+    assert sorted((row.horizon_days, row.target_date) for row in rows) == [
         (7, _CUTOFF.date() + timedelta(days=7)),
         (14, _CUTOFF.date() + timedelta(days=14)),
         (21, _CUTOFF.date() + timedelta(days=21)),
@@ -226,6 +330,113 @@ def test_three_horizon_rows_are_deterministic_and_comparison_ready() -> None:
     assert [row.row_hash for row in rows] == [row.row_hash for row in reversed_rows]
     assert all(row.row_status == "COMPARABLE" for row in rows)
     assert s2_instance_hash(request, rows) == s2_instance_hash(request, reversed_rows)
+
+
+def _candidate_for_grain(
+    *,
+    horizon: int = 7,
+    season_id: int = 2026,
+    season: str = "season:2026",
+    farm: str = "farm:alpha",
+    subfarm: str = "subfarm:alpha-1",
+    variety: str = "variety:legacy",
+    quantile: str = "P50",
+) -> S2HistoricalBindingCandidate:
+    return _forecast(horizon).model_copy(
+        update={
+            "season_id": season_id,
+            "season_business_key": season,
+            "farm_business_key": farm,
+            "subfarm_business_key": subfarm,
+            "variety_business_key": variety,
+            "forecast_quantile": quantile,
+            "actual_label": None,
+        }
+    )
+
+
+def test_two_farms_same_horizon_accepted() -> None:
+    request = _request(
+        requested_horizons_days=[7],
+        farm_business_keys=["farm:alpha", "farm:beta"],
+    )
+    rows = build_s2_binding_rows(
+        request,
+        (
+            _candidate_for_grain(),
+            _candidate_for_grain(farm="farm:beta"),
+        ),
+    )
+    assert {row.farm_business_key for row in rows} == {"farm:alpha", "farm:beta"}
+
+
+def test_two_varieties_same_horizon_accepted() -> None:
+    request = _request(
+        requested_horizons_days=[7],
+        variety_business_keys=["variety:legacy", "variety:new"],
+    )
+    rows = build_s2_binding_rows(
+        request,
+        (
+            _candidate_for_grain(),
+            _candidate_for_grain(variety="variety:new"),
+        ),
+    )
+    assert {row.variety_business_key for row in rows} == {
+        "variety:legacy",
+        "variety:new",
+    }
+
+
+def test_multiple_seasons_supported() -> None:
+    request = _request(
+        requested_horizons_days=[7],
+        season_business_keys=["season:2025", "season:2026"],
+    )
+    rows = build_s2_binding_rows(
+        request,
+        (
+            _candidate_for_grain(),
+            _candidate_for_grain(season_id=2025, season="season:2025"),
+        ),
+    )
+    assert {(row.season_id, row.season_business_key) for row in rows} == {
+        (2025, "season:2025"),
+        (2026, "season:2026"),
+    }
+
+
+def test_p50_p80_p90_rows_not_collapsed() -> None:
+    request = _request(requested_horizons_days=[7])
+    rows = build_s2_binding_rows(
+        request,
+        tuple(_candidate_for_grain(quantile=quantile) for quantile in ("P50", "P80", "P90")),
+    )
+    assert {row.forecast_quantile for row in rows} == {"P50", "P80", "P90"}
+    assert len({row.binding_key_hash for row in rows}) == 3
+
+
+def test_same_horizon_same_grain_duplicate_rejected() -> None:
+    request = _request(requested_horizons_days=[7])
+    candidate = _candidate_for_grain()
+    with pytest.raises(ValueError, match="duplicate canonical S2 binding key"):
+        build_s2_binding_rows(request, (candidate, candidate))
+
+
+def test_same_horizon_different_grain_accepted() -> None:
+    request = _request(
+        requested_horizons_days=[7],
+        farm_business_keys=["farm:alpha", "farm:beta"],
+    )
+    rows = build_s2_binding_rows(
+        request,
+        (
+            _candidate_for_grain(),
+            _candidate_for_grain(farm="farm:beta"),
+        ),
+    )
+    assert len(rows) == 2
+    assert len({row.binding_key_hash for row in rows}) == 2
 
 
 def test_future_forecast_authority_is_rejected_before_binding() -> None:
@@ -287,6 +498,11 @@ def _install_persisted_authority_fixture(
     winner_recorded_at: datetime = _LABEL_CUTOFF,
     label_day_offset: int = 0,
     label_farm_business_key: str = "farm:alpha",
+    missing_label: bool = False,
+    missing_snapshot: bool = False,
+    duplicate_label_rows: bool = False,
+    missing_code_authority: bool = False,
+    code_available_at: datetime | None = None,
 ) -> tuple[Any, S2HistoricalBacktestRequest, S2HistoricalBindingCandidate]:
     target_date = _CUTOFF.date() + timedelta(days=7)
     label_target_date = target_date + timedelta(days=label_day_offset)
@@ -324,7 +540,7 @@ def _install_persisted_authority_fixture(
     core_run = SimpleNamespace(
         id=401,
         result_hash="1" * 64,
-        run_schema_version="core-code-v1",
+        run_schema_version="v0.1-core-forecast-run-authority-v2",
         task8_artifact_hash="a" * 64,
         forecast_input_hash="b" * 64,
         status="completed",
@@ -332,6 +548,15 @@ def _install_persisted_authority_fixture(
         task8_forecast_run_id=201,
         task9_result_hash=task9_result_hash,
         forecast_season_id=21,
+        forecast_season_code="season:2026",
+    )
+    code_authority = SimpleNamespace(
+        authority_id=901,
+        authority_hash="9" * 64,
+        source_commit_sha="a" * 40,
+        build_artifact_hash="b" * 64,
+        config_bundle_hash="d" * 64,
+        available_at=code_available_at or (_CUTOFF - timedelta(seconds=2)),
     )
     core_row = SimpleNamespace(
         id=402,
@@ -437,6 +662,12 @@ def _install_persisted_authority_fixture(
             "label_row_hash": label_row_hash_for(label_payload),
         }
     )
+    duplicate_label = SimpleNamespace(
+        **{
+            **label.__dict__,
+            "id": 504,
+        }
+    )
     source_manifest_set_hash = "f" * 64
     snapshot_request_hash = compute_snapshot_request_identity_hash(
         snapshot_idempotency_key="s2-fixture",
@@ -456,26 +687,28 @@ def _install_persisted_authority_fixture(
         request_identity_hash=snapshot_request_hash,
         source_commit_manifest_set_hash=source_manifest_set_hash,
     )
-    winner_manifest_hash = compute_winner_manifest_hash(
-        (winner_payload | {"winner_row_hash": winner_hash},)
+    winner_value_rows = (
+        () if missing_label else (winner_payload | {"winner_row_hash": winner_hash},)
     )
-    label_row_set_hash = compute_label_row_set_hash(
-        (
-            label_payload
-            | {
-                "contributing_winner_count": 1,
-                "label_row_hash": label.label_row_hash,
-            },
-        )
+    winner_manifest_hash = compute_winner_manifest_hash(winner_value_rows)
+    label_value = label_payload | {
+        "contributing_winner_count": 1,
+        "label_row_hash": label.label_row_hash,
+    }
+    label_value_rows = (
+        ()
+        if missing_label
+        else ((label_value, label_value) if duplicate_label_rows else (label_value,))
     )
+    label_row_set_hash = compute_label_row_set_hash(label_value_rows)
     exclusion_manifest_hash = compute_exclusion_manifest_hash(())
     snapshot_hash = compute_label_snapshot_hash(
         instance_identity_hash=snapshot_instance_hash,
         winner_manifest_hash=winner_manifest_hash,
         label_row_set_hash=label_row_set_hash,
         exclusion_manifest_hash=exclusion_manifest_hash,
-        winner_count=1,
-        label_row_count=1,
+        winner_count=len(winner_value_rows),
+        label_row_count=len(label_value_rows),
         exclusion_row_count=0,
         snapshot_policy_version=SNAPSHOT_POLICY_VERSION,
         winner_policy_version=WINNER_POLICY_VERSION,
@@ -503,8 +736,8 @@ def _install_persisted_authority_fixture(
         exclusion_manifest_hash=exclusion_manifest_hash,
         label_snapshot_hash=snapshot_hash,
         source_manifest_count=1,
-        winner_count=1,
-        label_row_count=1,
+        winner_count=len(winner_value_rows),
+        label_row_count=len(label_value_rows),
         exclusion_row_count=0,
         snapshot_executed_at=_LABEL_CUTOFF,
         created_by_identity="s2-fixture",
@@ -523,7 +756,7 @@ def _install_persisted_authority_fixture(
             eligibility_status="eligible",
             finished_at=training_finished_at,
         ),
-        ("ActualHarvestLabelSnapshotModel", 501): snapshot,
+        ("ActualHarvestLabelSnapshotModel", 501): None if missing_snapshot else snapshot,
         ("ActualHarvestLabelSnapshotLabelModel", 502): label,
         ("ActualHarvestLabelSnapshotWinnerModel", 503): winner,
     }
@@ -549,6 +782,7 @@ def _install_persisted_authority_fixture(
             return SimpleNamespace(
                 run=SimpleNamespace(run_id=401, result_hash=core_run.result_hash),
                 daily_curve=SimpleNamespace(rows=(SimpleNamespace(row_hash=core_row.row_hash),)),
+                code_authority=None if missing_code_authority else code_authority,
             )
 
     async def _load_task9(_session: object, *, run_id: int) -> object | None:
@@ -569,10 +803,12 @@ def _install_persisted_authority_fixture(
         return SimpleNamespace(training_signature="6" * 64) if run_id == 701 else None
 
     async def _load_labels(_session: object, snapshot_id: int) -> list[object]:
-        return [label] if snapshot_id == 501 else []
+        if snapshot_id != 501 or missing_label:
+            return []
+        return [label, duplicate_label] if duplicate_label_rows else [label]
 
     async def _load_winners(_session: object, snapshot_id: int) -> list[object]:
-        return [winner] if snapshot_id == 501 else []
+        return [winner] if snapshot_id == 501 and not missing_label else []
 
     async def _load_exclusions(_session: object, snapshot_id: int) -> list[object]:
         return []
@@ -657,6 +893,12 @@ def _install_persisted_authority_fixture(
         )
     )
     candidate = S2HistoricalBindingCandidate(
+        season_id=21,
+        season_business_key="season:2026",
+        farm_business_key="farm:alpha",
+        subfarm_business_key="subfarm:alpha-1",
+        variety_business_key="variety:legacy",
+        forecast_quantile="P50",
         horizon_days=7,
         target_date=target_date,
         forecast_cutoff_at=_CUTOFF,
@@ -670,31 +912,59 @@ def _install_persisted_authority_fixture(
             task10_model_identity_hash=task10.input_snapshot["training_signature"],
             task10_replay_identity_hash=task10.prediction_input_signature,
             task10_prediction_row_identity_hash=prediction_row.prediction_hash,
-            forecast_code_identity=core_run.run_schema_version,
-            historical_code_identity=task9.replay_code_version,
+            historical_code_authority_id=code_authority.authority_id,
+            forecast_code_identity=code_authority.authority_hash,
+            historical_code_identity=code_authority.source_commit_sha,
+            build_artifact_hash=code_authority.build_artifact_hash,
+            config_bundle_hash=code_authority.config_bundle_hash,
             model_identity=core_run.task8_artifact_hash,
             parameter_identity=core_row.marketable_policy_hash,
             data_identity=core_run.forecast_input_hash,
             available_at=task9_cutoff,
             task10_model_available_at=training_finished_at,
+            historical_code_available_at=code_authority.available_at,
         ),
-        actual_label=S2ActualLabelAuthority(
-            label_snapshot_identity_hash=snapshot.label_snapshot_hash,
-            label_row_identity_hash=label.label_row_hash,
-            label_winner_identity_hash=winner.winner_row_hash,
-            label_winner_set_identity_hash=winner_set_hash,
-            source_identity_hash=snapshot.source_commit_manifest_set_hash,
-            actual_source_identity_hash=actual_source_hash,
-            target_date=label_target_date,
-            season_business_key=winner.season_business_key,
-            farm_business_key=winner.farm_business_key,
-            subfarm_business_key=winner.subfarm_business_key,
-            variety_business_key=winner.variety_business_key,
-            business_grain_hash=business_grain_hash,
-            revision_or_winner_evidence={"fixture": True},
-            observed_weight_kg=Decimal("12.5"),
-            visibility_timestamp=snapshot.snapshot_executed_at,
-            physical_alignment_status="VERIFIED",
+        actual_label=(
+            None
+            if missing_label
+            else S2ActualLabelAuthority(
+                label_snapshot_identity_hash=snapshot.label_snapshot_hash,
+                label_resolution_status="EXACT_LABEL",
+                label_row_identity_hash=label.label_row_hash,
+                label_winner_identity_hash=winner.winner_row_hash,
+                label_winner_set_identity_hash=winner_set_hash,
+                source_identity_hash=snapshot.source_commit_manifest_set_hash,
+                actual_source_identity_hash=actual_source_hash,
+                target_date=label_target_date,
+                season_business_key=winner.season_business_key,
+                farm_business_key=winner.farm_business_key,
+                subfarm_business_key=winner.subfarm_business_key,
+                variety_business_key=winner.variety_business_key,
+                business_grain_hash=business_grain_hash,
+                revision_or_winner_evidence={"fixture": True},
+                observed_weight_kg=Decimal("12.5"),
+                visibility_timestamp=snapshot.snapshot_executed_at,
+                forecast_physical_event="MODEL_HARVESTED_MARKETABLE_QUANTITY",
+                actual_physical_event="FARM_PICK",
+                forecast_quantity_basis="MODEL_MARKETABLE_QUANTITY",
+                actual_quantity_basis="OBSERVED_PICK_WEIGHT",
+                unit="kg",
+                loss_boundary_policy_version="q2c-business-attestation-missing",
+                physical_alignment_policy_version=("v0.2-s2-q2c-business-attestation-required-v1"),
+                physical_alignment_evidence_hash=s2_physical_alignment_evidence_hash(
+                    forecast_physical_event="MODEL_HARVESTED_MARKETABLE_QUANTITY",
+                    actual_physical_event="FARM_PICK",
+                    forecast_quantity_basis="MODEL_MARKETABLE_QUANTITY",
+                    actual_quantity_basis="OBSERVED_PICK_WEIGHT",
+                    unit="kg",
+                    loss_boundary_policy_version="q2c-business-attestation-missing",
+                    physical_alignment_policy_version=(
+                        "v0.2-s2-q2c-business-attestation-required-v1"
+                    ),
+                    physical_alignment_status="UNVERIFIED",
+                ),
+                physical_alignment_status="UNVERIFIED",
+            )
         ),
         persisted_authority_references=S2PersistedAuthorityReferences(
             core_forecast_run_id=401,
@@ -702,8 +972,8 @@ def _install_persisted_authority_fixture(
             task9_run_id=301,
             task10_prediction_run_id=601,
             label_snapshot_id=501,
-            label_row_id=502,
-            label_winner_id=503,
+            label_row_id=None if missing_label else 502,
+            label_winner_id=None if missing_label else 503,
         ),
         authority_verification="PERSISTED",
     )
@@ -729,6 +999,179 @@ def test_exact_persisted_forecast_task9_task10_and_i7_authority_binding(
         resolved[0].actual_label.label_row_identity_hash
         == candidate.actual_label.label_row_identity_hash  # type: ignore[union-attr]
     )
+    row = build_s2_binding_rows(request, resolved)[0]
+    assert row.physical_alignment_status == "UNVERIFIED"
+    assert row.row_status == "NOT_COMPUTABLE"
+    assert row.reason_code == "BLOCKED_BY_PHYSICAL_TARGET_GAP"
+
+
+def test_production_adapter_exact_snapshot_missing_label_creates_exclusion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(
+        monkeypatch,
+        missing_label=True,
+    )
+    resolved = asyncio.run(
+        resolve_s2_persisted_authorities(
+            session,
+            request=request,
+            candidates=(candidate,),
+        )
+    )
+    actual = resolved[0].actual_label
+    assert actual is not None
+    assert actual.label_resolution_status == "PROVEN_ABSENT"
+    assert actual.label_row_identity_hash is None
+    assert actual.label_winner_identity_hash is None
+    assert actual.observed_weight_kg is None
+    assert actual.absence_evidence_hash is not None
+    row = build_s2_binding_rows(request, resolved)[0]
+    assert row.row_status == "EXCLUDED"
+    assert row.reason_code == "NO_VISIBLE_LABEL_AT_CUTOFF"
+    assert row.actual_value_kg is None
+
+
+def test_missing_snapshot_is_structural_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(
+        monkeypatch,
+        missing_label=True,
+        missing_snapshot=True,
+    )
+    with pytest.raises(ValueError, match="required persisted S2 authority is missing"):
+        asyncio.run(
+            resolve_s2_persisted_authorities(
+                session,
+                request=request,
+                candidates=(candidate,),
+            )
+        )
+
+
+def test_ambiguous_label_rows_are_structural_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(
+        monkeypatch,
+        duplicate_label_rows=True,
+    )
+    with pytest.raises(ValueError, match="ambiguous persisted I7 label rows"):
+        asyncio.run(
+            resolve_s2_persisted_authorities(
+                session,
+                request=request,
+                candidates=(candidate,),
+            )
+        )
+
+
+def test_schema_version_cannot_satisfy_code_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(
+        monkeypatch,
+        missing_code_authority=True,
+    )
+    with pytest.raises(ValueError, match="legacy core forecast run has no persisted"):
+        asyncio.run(
+            resolve_s2_persisted_authorities(
+                session,
+                request=request,
+                candidates=(candidate,),
+            )
+        )
+
+
+def test_missing_historical_code_identity_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(
+        monkeypatch,
+        missing_code_authority=True,
+    )
+    with pytest.raises(ValueError, match="historical code authority"):
+        asyncio.run(
+            resolve_s2_persisted_authorities(
+                session,
+                request=request,
+                candidates=(candidate,),
+            )
+        )
+
+
+def test_historical_code_identity_drift_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(monkeypatch)
+    candidate = candidate.model_copy(
+        update={
+            "forecast_authority": candidate.forecast_authority.model_copy(
+                update={"forecast_code_identity": "f" * 64}
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="persisted forecast identity fields"):
+        asyncio.run(
+            resolve_s2_persisted_authorities(
+                session,
+                request=request,
+                candidates=(candidate,),
+            )
+        )
+
+
+def test_post_cutoff_code_identity_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(
+        monkeypatch,
+        code_available_at=_CUTOFF + timedelta(seconds=1),
+    )
+    with pytest.raises(ValueError, match="historical code authority is visible after"):
+        asyncio.run(
+            resolve_s2_persisted_authorities(
+                session,
+                request=request,
+                candidates=(candidate,),
+            )
+        )
+
+
+def test_same_persisted_code_identity_replays_idempotently(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(monkeypatch)
+    first = asyncio.run(
+        resolve_s2_persisted_authorities(
+            session,
+            request=request,
+            candidates=(candidate,),
+        )
+    )
+    second = asyncio.run(
+        resolve_s2_persisted_authorities(
+            session,
+            request=request,
+            candidates=(candidate,),
+        )
+    )
+    assert first == second
+
+
+def test_wrong_caller_season_id_rejected_before_write(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, request, candidate = _install_persisted_authority_fixture(monkeypatch)
+    with pytest.raises(ValueError, match="candidate season/quantile"):
+        asyncio.run(
+            resolve_s2_persisted_authorities(
+                session,
+                request=request,
+                candidates=(candidate.model_copy(update={"season_id": 999}),),
+            )
+        )
 
 
 def test_missing_persisted_authority_is_rejected(
@@ -839,7 +1282,7 @@ def test_persisted_i7_label_target_date_mismatch_is_rejected(
         monkeypatch,
         label_day_offset=1,
     )
-    with pytest.raises(ValueError, match="requested snapshot/visibility mode"):
+    with pytest.raises(ValueError, match="requested date/visibility mode"):
         asyncio.run(
             resolve_s2_persisted_authorities(
                 session,

@@ -17,6 +17,10 @@ SHA256Hex = Annotated[
     str,
     Field(strict=True, min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"),
 ]
+GitCommitSHA = Annotated[
+    str,
+    Field(strict=True, min_length=40, max_length=40, pattern=r"^[0-9a-f]{40}$"),
+]
 
 CoreForecastBlockerCode = Literal[
     "TASK8_AUTHORITY_NOT_FOUND",
@@ -43,6 +47,8 @@ CoreForecastBlockerCode = Literal[
     "CORE_FORECAST_PARENT_RUN_NOT_FOUND",
     "CORE_FORECAST_RERUN_SCOPE_MISMATCH",
     "CORE_FORECAST_RERUN_INPUT_UNCHANGED",
+    "CORE_FORECAST_CODE_AUTHORITY_NOT_FOUND",
+    "CORE_FORECAST_CODE_AUTHORITY_INVALID",
     "CORE_FORECAST_PERSISTENCE_CONFLICT",
     "CORE_FORECAST_PERSISTENCE_INTEGRITY_FAILED",
     "CORE_FORECAST_WRITE_FAILURE",
@@ -292,6 +298,7 @@ class ExecuteCoreForecastRunRequest(_FrozenModel):
     curve_request: CompleteDailyMarketableCurveRequest
     retention_policy: MarketableRetentionPolicySnapshot
     rerun_of_run_id: StrictPositiveInt | None = None
+    code_authority_id: StrictPositiveInt | None = None
 
 
 def _timezone_aware(value: object) -> datetime:
@@ -300,11 +307,37 @@ def _timezone_aware(value: object) -> datetime:
     return value
 
 
+class RegisterCoreForecastCodeAuthority(_FrozenModel):
+    """Trusted, separately persisted build/config authority registration."""
+
+    source_commit_sha: GitCommitSHA
+    build_artifact_hash: SHA256Hex
+    config_bundle_hash: SHA256Hex
+    available_at: datetime
+
+    _validate_available_at = field_validator("available_at", mode="before")(_timezone_aware)
+
+
+class CoreForecastCodeAuthority(RegisterCoreForecastCodeAuthority):
+    authority_id: StrictPositiveInt
+    authority_schema_version: Literal["v0.1-core-forecast-code-authority-v1"]
+    authority_hash: SHA256Hex
+    created_at: datetime
+
+    _validate_created_at = field_validator("created_at", mode="before")(_timezone_aware)
+
+
 class CoreForecastRunSummary(_FrozenModel):
     run_id: StrictPositiveInt
     status: Literal["completed"]
-    run_schema_version: Literal["v0.1-core-forecast-run-v1"]
-    request_schema_version: Literal["v0.1-core-forecast-request-v1"]
+    run_schema_version: Literal[
+        "v0.1-core-forecast-run-v1",
+        "v0.1-core-forecast-run-authority-v2",
+    ]
+    request_schema_version: Literal[
+        "v0.1-core-forecast-request-v1",
+        "v0.1-core-forecast-request-authority-v2",
+    ]
     date_basis: Literal["HARVEST_BUSINESS_DATE"]
 
     forecast_input_hash: SHA256Hex
@@ -313,6 +346,9 @@ class CoreForecastRunSummary(_FrozenModel):
     retention_policy_snapshot_hash: SHA256Hex
     curve_hash: SHA256Hex
     metrics_hash: SHA256Hex
+    code_authority_id: StrictPositiveInt | None = None
+    code_authority_hash: SHA256Hex | None = None
+    code_authority_available_at: datetime | None = None
 
     rerun_of_run_id: StrictPositiveInt | None
     forecast_season_id: StrictPositiveInt
@@ -327,14 +363,32 @@ class CoreForecastRunSummary(_FrozenModel):
     created_at: datetime
     completed_at: datetime
 
-    _validate_created_at = field_validator("created_at", "completed_at", mode="before")(
-        _timezone_aware
-    )
+    _validate_created_at = field_validator(
+        "created_at",
+        "completed_at",
+        "code_authority_available_at",
+        mode="before",
+    )(lambda value: None if value is None else _timezone_aware(value))
 
     @model_validator(mode="after")
     def _date_range_is_valid(self) -> CoreForecastRunSummary:
         if self.forecast_end_date < self.forecast_start_date:
             raise ValueError("forecast_end_date must be >= forecast_start_date")
+        authority_values = (
+            self.code_authority_id,
+            self.code_authority_hash,
+            self.code_authority_available_at,
+        )
+        authority_bound = self.run_schema_version == "v0.1-core-forecast-run-authority-v2"
+        if authority_bound:
+            if self.request_schema_version != "v0.1-core-forecast-request-authority-v2" or any(
+                value is None for value in authority_values
+            ):
+                raise ValueError("authority-bound run requires exact persisted code authority")
+        elif self.request_schema_version != "v0.1-core-forecast-request-v1" or any(
+            value is not None for value in authority_values
+        ):
+            raise ValueError("legacy run must not carry backfilled code authority")
         return self
 
 
@@ -370,3 +424,19 @@ class PersistedCoreForecastRun(_FrozenModel):
     request: ExecuteCoreForecastRunRequest
     daily_curve: CompleteDailyMarketableCurveResult
     metrics: CompleteCoreForecastMetricsResult
+    code_authority: CoreForecastCodeAuthority | None = None
+
+    @model_validator(mode="after")
+    def _authority_matches_run(self) -> PersistedCoreForecastRun:
+        if self.run.code_authority_id is None:
+            if self.code_authority is not None or self.request.code_authority_id is not None:
+                raise ValueError("legacy persisted run cannot carry code authority")
+        elif (
+            self.code_authority is None
+            or self.request.code_authority_id != self.code_authority.authority_id
+            or self.run.code_authority_id != self.code_authority.authority_id
+            or self.run.code_authority_hash != self.code_authority.authority_hash
+            or self.run.code_authority_available_at != self.code_authority.available_at
+        ):
+            raise ValueError("persisted code authority does not match run/request")
+        return self

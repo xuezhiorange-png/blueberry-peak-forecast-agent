@@ -137,6 +137,39 @@ def s2_node_identity_hash(request: S2HistoricalBacktestRequest) -> str:
     return derived
 
 
+def s2_season_node_identity_payload(
+    request: S2HistoricalBacktestRequest,
+    *,
+    season_id: int,
+    season_business_key: str,
+) -> dict[str, object]:
+    return cast(
+        dict[str, object],
+        canonical_json_value(
+            {
+                "request_node_identity_hash": s2_node_identity_hash(request),
+                "season_id": season_id,
+                "season_business_key": season_business_key,
+            }
+        ),
+    )
+
+
+def s2_season_node_identity_hash(
+    request: S2HistoricalBacktestRequest,
+    *,
+    season_id: int,
+    season_business_key: str,
+) -> str:
+    return sha256_payload(
+        s2_season_node_identity_payload(
+            request,
+            season_id=season_id,
+            season_business_key=season_business_key,
+        )
+    )
+
+
 def s2_binding_key_payload(
     request: S2HistoricalBacktestRequest,
     row: S2HistoricalBindingRow,
@@ -146,16 +179,20 @@ def s2_binding_key_payload(
         canonical_json_value(
             {
                 "request_hash": s2_request_hash(request),
-                "single_node_identity_hash": s2_node_identity_hash(request),
-                "season_business_keys": request.season_business_keys,
-                "farm_business_keys": request.farm_business_keys,
-                "subfarm_business_keys": request.subfarm_business_keys,
-                "variety_business_keys": request.variety_business_keys,
+                "node_identity_hash": s2_season_node_identity_hash(
+                    request,
+                    season_id=row.season_id,
+                    season_business_key=row.season_business_key,
+                ),
+                "season_id": row.season_id,
+                "season_business_key": row.season_business_key,
+                "farm_business_key": row.farm_business_key,
+                "subfarm_business_key": row.subfarm_business_key,
+                "variety_business_key": row.variety_business_key,
+                "forecast_quantile": row.forecast_quantile,
                 "horizon_days": row.horizon_days,
                 "target_date": row.target_date,
-                "business_grain_hash": (
-                    row.actual_label.business_grain_hash if row.actual_label is not None else None
-                ),
+                "forecast_run_identity": (row.forecast_authority.forecast_run_identity_hash),
             }
         ),
     )
@@ -193,8 +230,9 @@ def s2_instance_payload(
                         "row_hash": row.row_hash,
                         "horizon_days": row.horizon_days,
                         "target_date": row.target_date,
+                        "binding_key_hash": row.binding_key_hash,
                     }
-                    for row in sorted(rows, key=lambda item: (item.horizon_days, item.target_date))
+                    for row in sorted(rows, key=lambda item: item.binding_key_hash)
                 ),
             }
         ),

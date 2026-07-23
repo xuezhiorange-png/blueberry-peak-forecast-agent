@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import delete, func, select, update
@@ -13,7 +14,9 @@ from backend.app.core_forecast.persistence import (
     _daily_schema,
     _row_model,
 )
+from backend.app.core_forecast.schemas import RegisterCoreForecastCodeAuthority
 from backend.app.models.core_forecast import (
+    CoreForecastCodeAuthorityModel,
     CoreForecastDailyRowModel,
     CoreForecastMetricModel,
     CoreForecastRunModel,
@@ -44,6 +47,16 @@ async def _persist_fixture(session: AsyncSession):
         rerun_of_run_id=None,
     )
     return repository, persisted
+
+
+async def _ensure_code_authority_table(session: AsyncSession) -> None:
+    connection = await session.connection()
+    await connection.run_sync(
+        lambda sync_connection: CoreForecastCodeAuthorityModel.__table__.create(
+            sync_connection,
+            checkfirst=True,
+        )
+    )
 
 
 @pytest.mark.unit
@@ -80,6 +93,80 @@ async def test_full_fixture_save_load_and_query_order(sqlite_session: AsyncSessi
         "P90",
     )
     assert await sqlite_session.scalar(select(CoreForecastDailyRowModel.id)) is not None
+    assert loaded.code_authority is None
+    assert loaded.run.run_schema_version == "v0.1-core-forecast-run-v1"
+    assert loaded.run.request_schema_version == "v0.1-core-forecast-request-v1"
+
+
+@pytest.mark.unit
+async def test_code_authority_registration_round_trips_and_is_idempotent(
+    sqlite_session: AsyncSession,
+) -> None:
+    await _ensure_code_authority_table(sqlite_session)
+    repository = CoreForecastRunRepository(sqlite_session)
+    registration = RegisterCoreForecastCodeAuthority(
+        source_commit_sha="a" * 40,
+        build_artifact_hash="b" * 64,
+        config_bundle_hash="c" * 64,
+        available_at=datetime(2026, 2, 28, 4, 0, tzinfo=UTC),
+    )
+    first = await repository.register_code_authority(registration)
+    second = await repository.register_code_authority(registration)
+    loaded = await repository.get_code_authority_by_id(first.authority_id)
+    assert loaded == first
+    assert second == first
+    assert first.authority_schema_version == "v0.1-core-forecast-code-authority-v1"
+    assert await sqlite_session.scalar(select(func.count(CoreForecastCodeAuthorityModel.id))) == 1
+
+
+@pytest.mark.unit
+async def test_code_authority_identity_changes_for_build_config_or_availability(
+    sqlite_session: AsyncSession,
+) -> None:
+    await _ensure_code_authority_table(sqlite_session)
+    repository = CoreForecastRunRepository(sqlite_session)
+    base = RegisterCoreForecastCodeAuthority(
+        source_commit_sha="a" * 40,
+        build_artifact_hash="b" * 64,
+        config_bundle_hash="c" * 64,
+        available_at=datetime(2026, 2, 28, 4, 0, tzinfo=UTC),
+    )
+    authorities = [
+        await repository.register_code_authority(base),
+        await repository.register_code_authority(
+            base.model_copy(update={"build_artifact_hash": "d" * 64})
+        ),
+        await repository.register_code_authority(
+            base.model_copy(update={"config_bundle_hash": "e" * 64})
+        ),
+        await repository.register_code_authority(
+            base.model_copy(update={"available_at": base.available_at + timedelta(seconds=1)})
+        ),
+    ]
+    assert len({authority.authority_hash for authority in authorities}) == 4
+
+
+@pytest.mark.unit
+async def test_tampered_code_authority_payload_fails_integrity(
+    sqlite_session: AsyncSession,
+) -> None:
+    await _ensure_code_authority_table(sqlite_session)
+    repository = CoreForecastRunRepository(sqlite_session)
+    authority = await repository.register_code_authority(
+        RegisterCoreForecastCodeAuthority(
+            source_commit_sha="a" * 40,
+            build_artifact_hash="b" * 64,
+            config_bundle_hash="c" * 64,
+            available_at=datetime(2026, 2, 28, 4, 0, tzinfo=UTC),
+        )
+    )
+    await sqlite_session.execute(
+        update(CoreForecastCodeAuthorityModel)
+        .where(CoreForecastCodeAuthorityModel.id == authority.authority_id)
+        .values(canonical_payload={"schema_version": "not-code-authority"})
+    )
+    with pytest.raises(CoreForecastPersistenceIntegrityError):
+        await repository.get_code_authority_by_id(authority.authority_id)
 
 
 @pytest.mark.unit
