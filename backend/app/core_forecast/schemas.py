@@ -68,6 +68,20 @@ class CoreForecastScope(_FrozenModel):
     variety_id: StrictPositiveInt
 
 
+class ResolvedCoreForecastScopeIdentity(_FrozenModel):
+    farm_business_key: StrictNonEmptyString
+    subfarm_business_key: StrictNonEmptyString
+    variety_business_key: StrictNonEmptyString
+
+
+class ResolvedCoreForecastIdentity(_FrozenModel):
+    season_business_key: StrictNonEmptyString
+    factory_business_key: StrictNonEmptyString
+    mapping_policy_version: StrictNonEmptyString
+    scopes: tuple[ResolvedCoreForecastScopeIdentity, ...]
+    resolved_identity_snapshot_hash: SHA256Hex
+
+
 class CompleteDailyMarketableCurveRequest(_FrozenModel):
     forecast_season_id: StrictPositiveInt
     forecast_season_code: StrictNonEmptyString
@@ -302,6 +316,8 @@ class ExecuteCoreForecastRunRequest(_FrozenModel):
     retention_policy: MarketableRetentionPolicySnapshot
     rerun_of_run_id: StrictPositiveInt | None = None
     code_authority_id: StrictPositiveInt | None = None
+    # Persisted semantic business-key projection for authority-bound identity only.
+    resolved_identity: ResolvedCoreForecastIdentity | None = None
     # Optional caller assertion; authority-bound execution derives this from Task 9.
     forecast_effective_cutoff_at: datetime | None = None
 

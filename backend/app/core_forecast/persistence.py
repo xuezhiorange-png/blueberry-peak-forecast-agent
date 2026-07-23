@@ -18,6 +18,8 @@ from backend.app.core_forecast.canonical import (
     CORE_FORECAST_DATE_BASIS,
     CORE_FORECAST_REQUEST_SCHEMA_VERSION,
     CORE_FORECAST_RUN_SCHEMA_VERSION,
+    compute_authority_bound_daily_curve_hash,
+    compute_authority_bound_retention_policy_hash,
     compute_core_forecast_code_authority_hash,
     compute_core_forecast_input_hash,
     compute_core_forecast_request_hash,
@@ -48,6 +50,7 @@ from backend.app.models.core_forecast import (
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
+from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 _FIXED_6_RE = re.compile(r"^(?:0|[1-9]\d*)\.\d{6}$")
@@ -692,8 +695,40 @@ class CoreForecastRunRepository:
                 raise CoreForecastPersistenceIntegrityError(
                     "run code authority identity or availability mismatch"
                 )
+            if code_authority is not None:
+                task9 = await self._session.get(HarvestStateRun, summary.task9_harvest_state_run_id)
+                if task9 is None:
+                    raise CoreForecastPersistenceIntegrityError(
+                        "referenced Task 9 authority is missing"
+                    )
+                task9_cutoff = (
+                    None
+                    if task9.forecast_effective_cutoff_at is None
+                    else _aware(task9.forecast_effective_cutoff_at)
+                )
+                if (
+                    task9.status != "completed"
+                    or task9.result_hash != model.task9_result_hash
+                    or task9_cutoff is None
+                    or task9_cutoff != summary.forecast_effective_cutoff_at
+                    or task9_cutoff != request.forecast_effective_cutoff_at
+                    or task9.forecast_season_id != summary.forecast_season_id
+                    or task9.destination_factory_id != summary.destination_factory_id
+                    or task9.maturity_forecast_run_id != summary.task8_forecast_run_id
+                    or task9.maturity_model_artifact_hash != model.task8_artifact_hash
+                    or code_authority.available_at > task9_cutoff
+                ):
+                    raise CoreForecastPersistenceIntegrityError(
+                        "persisted Task 9 lineage authority mismatch"
+                    )
             curve_request = request.curve_request
-            policy_hash = compute_retention_policy_snapshot_hash(request.retention_policy)
+            policy_hash = (
+                compute_authority_bound_retention_policy_hash(
+                    request.retention_policy, request.resolved_identity
+                )
+                if code_authority is not None and request.resolved_identity is not None
+                else compute_retention_policy_snapshot_hash(request.retention_policy)
+            )
             input_hash = compute_core_forecast_input_hash(
                 curve_request,
                 request.retention_policy,
@@ -702,6 +737,7 @@ class CoreForecastRunRepository:
                     model.task9_result_hash if code_authority is not None else None
                 ),
                 forecast_effective_cutoff_at=summary.forecast_effective_cutoff_at,
+                resolved_identity=request.resolved_identity,
             )
             parent_request_hash = None
             if code_authority is not None and request.rerun_of_run_id is not None:
@@ -752,7 +788,11 @@ class CoreForecastRunRepository:
                 if any(row.task9_result_hash != model.task9_result_hash for row in rows):
                     raise CoreForecastPersistenceIntegrityError("Task 9 result hash mismatch")
             _validate_business_invariants(rows, curve_request)
-            curve_hash = compute_daily_curve_hash(rows)
+            curve_hash = (
+                compute_authority_bound_daily_curve_hash(rows, request.resolved_identity)
+                if code_authority is not None and request.resolved_identity is not None
+                else compute_daily_curve_hash(rows)
+            )
             if curve_hash != summary.curve_hash:
                 raise CoreForecastPersistenceIntegrityError("curve hash integrity failed")
             curve = CompleteDailyMarketableCurveResult(
@@ -761,7 +801,27 @@ class CoreForecastRunRepository:
                 curve_hash=curve_hash,
                 blockers=(),
             )
-            metrics = compute_core_forecast_metrics(daily_curve=curve)
+            metrics_curve = curve
+            if code_authority is not None:
+                metrics_curve = curve.model_copy(
+                    update={"curve_hash": compute_daily_curve_hash(rows)}
+                )
+            metrics = compute_core_forecast_metrics(daily_curve=metrics_curve)
+            if code_authority is not None and metrics.status == "COMPLETED":
+                metrics_payload = {
+                    "schema_version": metrics.metrics_schema_version,
+                    "date_basis": metrics.date_basis,
+                    "source_curve_hash": curve_hash,
+                    "metrics": [item.model_dump(mode="json") for item in metrics.metrics],
+                }
+                metrics = metrics.model_copy(
+                    update={
+                        "source_curve_hash": curve_hash,
+                        "metrics_hash": hashlib.sha256(
+                            canonical_json_dumps(metrics_payload).encode("utf-8")
+                        ).hexdigest(),
+                    }
+                )
             if metrics.status != "COMPLETED" or metrics.metrics_hash != summary.metrics_hash:
                 raise CoreForecastPersistenceIntegrityError("metrics integrity failed")
             stored_metrics = await self.list_metrics(model.id)

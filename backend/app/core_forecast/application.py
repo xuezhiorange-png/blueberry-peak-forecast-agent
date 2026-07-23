@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core_forecast.canonical import (
+    compute_authority_bound_daily_curve_hash,
+    compute_authority_bound_retention_policy_hash,
     compute_core_forecast_input_hash,
     compute_core_forecast_request_hash,
     compute_core_forecast_result_hash,
@@ -29,6 +33,7 @@ from backend.app.core_forecast.schemas import (
     PersistedCoreForecastRun,
 )
 from backend.app.core_forecast.service import compose_complete_daily_marketable_curve
+from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 
 def _blocked(code: CoreForecastBlockerCode, message: str) -> CoreForecastExecutionResult:
@@ -102,7 +107,25 @@ async def execute_core_forecast_run(
                 "pre-registered code authority was not found",
             )
         task9_authority = None
+        resolved_identity = canonical_request.resolved_identity
         if code_authority is not None:
+            if resolved_identity is None:
+                resolved_identity = await upstream.resolve_business_identity(
+                    season_id=canonical_request.curve_request.forecast_season_id,
+                    factory_id=canonical_request.curve_request.destination_factory_id,
+                    scopes=tuple(
+                        (scope.farm_id, scope.subfarm_id, scope.variety_id)
+                        for scope in canonical_request.curve_request.scopes
+                    ),
+                )
+            if resolved_identity is None:
+                return _blocked(
+                    "AUTHORITY_SCOPE_MISMATCH",
+                    "authority-bound execution requires exact resolved business identity",
+                )
+            canonical_request = canonical_request.model_copy(
+                update={"resolved_identity": resolved_identity}
+            )
             task9_authority = await upstream.load_task9_authority(
                 canonical_request.curve_request.task9_harvest_state_run_id
             )
@@ -135,7 +158,13 @@ async def execute_core_forecast_run(
                     "forecast_effective_cutoff_at": task9_authority.forecast_effective_cutoff_at
                 }
             )
-        policy_hash = compute_retention_policy_snapshot_hash(canonical_request.retention_policy)
+        policy_hash = (
+            compute_authority_bound_retention_policy_hash(
+                canonical_request.retention_policy, canonical_request.resolved_identity
+            )
+            if code_authority is not None and canonical_request.resolved_identity is not None
+            else compute_retention_policy_snapshot_hash(canonical_request.retention_policy)
+        )
         input_hash = compute_core_forecast_input_hash(
             canonical_request.curve_request,
             canonical_request.retention_policy,
@@ -144,6 +173,7 @@ async def execute_core_forecast_run(
                 task9_authority.result_hash if task9_authority is not None else None
             ),
             forecast_effective_cutoff_at=canonical_request.forecast_effective_cutoff_at,
+            resolved_identity=canonical_request.resolved_identity,
         )
     except CoreForecastPersistenceIntegrityError:
         return _blocked(
@@ -229,6 +259,29 @@ async def execute_core_forecast_run(
             blockers=metrics.blockers,
         )
 
+    assert curve.curve_hash is not None
+    assert metrics.metrics_hash is not None
+    if code_authority is not None:
+        assert canonical_request.resolved_identity is not None
+        authority_curve_hash = compute_authority_bound_daily_curve_hash(
+            curve.rows, canonical_request.resolved_identity
+        )
+        curve = curve.model_copy(update={"curve_hash": authority_curve_hash})
+        assert metrics.metrics_hash is not None
+        metrics_payload = {
+            "schema_version": metrics.metrics_schema_version,
+            "date_basis": metrics.date_basis,
+            "source_curve_hash": authority_curve_hash,
+            "metrics": [item.model_dump(mode="json") for item in metrics.metrics],
+        }
+        metrics = metrics.model_copy(
+            update={
+                "source_curve_hash": authority_curve_hash,
+                "metrics_hash": hashlib.sha256(
+                    canonical_json_dumps(metrics_payload).encode("utf-8")
+                ).hexdigest(),
+            }
+        )
     assert curve.curve_hash is not None
     assert metrics.metrics_hash is not None
     result_hash = compute_core_forecast_result_hash(
