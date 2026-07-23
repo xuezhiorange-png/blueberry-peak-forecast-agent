@@ -25,6 +25,7 @@ from backend.app.rolling_backtest.schemas import (
     S2HistoricalBacktestRequest,
     S2HistoricalBindingCandidate,
     s2_business_grain_hash,
+    s2_physical_alignment_evidence_hash,
 )
 
 pytestmark = [pytest.mark.postgres, pytest.mark.postgres_concurrency, pytest.mark.concurrency]
@@ -60,6 +61,12 @@ def _candidate(
 ) -> tuple[S2HistoricalBindingCandidate, ...]:
     return (
         S2HistoricalBindingCandidate(
+            season_id=2026,
+            season_business_key="season:2026:concurrency",
+            farm_business_key="farm:alpha:concurrency",
+            subfarm_business_key="subfarm:alpha-1:concurrency",
+            variety_business_key="variety:legacy:concurrency",
+            forecast_quantile="P50",
             horizon_days=7,
             target_date=_CUTOFF.date() + timedelta(days=7),
             forecast_cutoff_at=_CUTOFF,
@@ -73,16 +80,21 @@ def _candidate(
                 task10_model_identity_hash="6" * 64,
                 task10_replay_identity_hash="7" * 64,
                 task10_prediction_row_identity_hash="8" * 64,
-                forecast_code_identity="code-v1",
-                historical_code_identity="historical-code-v1",
+                historical_code_authority_id=901,
+                forecast_code_identity="9" * 64,
+                historical_code_identity="a" * 40,
+                build_artifact_hash="b" * 64,
+                config_bundle_hash="e" * 64,
                 model_identity="model-v1",
                 parameter_identity="parameter-v1",
                 data_identity="data-v1",
                 available_at=_CUTOFF,
                 task10_model_available_at=_CUTOFF,
+                historical_code_available_at=_CUTOFF,
             ),
             actual_label=S2ActualLabelAuthority(
                 label_snapshot_identity_hash="5" * 64,
+                label_resolution_status="EXACT_LABEL",
                 label_row_identity_hash="7" * 64,
                 label_winner_identity_hash="8" * 64,
                 label_winner_set_identity_hash="b" * 64,
@@ -103,6 +115,23 @@ def _candidate(
                 revision_or_winner_evidence={"revision": 1},
                 observed_weight_kg=Decimal("8.000000"),
                 visibility_timestamp=_LABEL_CUTOFF,
+                forecast_physical_event="TEST_FARM_PICK_EQUIVALENT",
+                actual_physical_event="TEST_FARM_PICK_EQUIVALENT",
+                forecast_quantity_basis="TEST_EQUIVALENT_KG",
+                actual_quantity_basis="TEST_EQUIVALENT_KG",
+                unit="kg",
+                loss_boundary_policy_version="test-only-equivalent-loss-boundary-v1",
+                physical_alignment_policy_version="test-only-synthetic-alignment-v1",
+                physical_alignment_evidence_hash=s2_physical_alignment_evidence_hash(
+                    forecast_physical_event="TEST_FARM_PICK_EQUIVALENT",
+                    actual_physical_event="TEST_FARM_PICK_EQUIVALENT",
+                    forecast_quantity_basis="TEST_EQUIVALENT_KG",
+                    actual_quantity_basis="TEST_EQUIVALENT_KG",
+                    unit="kg",
+                    loss_boundary_policy_version="test-only-equivalent-loss-boundary-v1",
+                    physical_alignment_policy_version="test-only-synthetic-alignment-v1",
+                    physical_alignment_status="VERIFIED",
+                ),
                 physical_alignment_status="VERIFIED",
             ),
             authority_verification="SYNTHETIC_ENGINEERING",
@@ -117,7 +146,6 @@ async def _invoke() -> int:
             session,
             request=request,
             rows=build_s2_binding_rows(request, _candidate()),
-            season_id=2026,
         )
         await session.commit()
         return run.id
@@ -149,6 +177,5 @@ async def test_same_binding_key_different_evidence_is_rejected() -> None:
                     request,
                     _candidate(forecast_value=Decimal("999")),
                 ),
-                season_id=2026,
             )
         await session.rollback()

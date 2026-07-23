@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,12 +10,17 @@ from backend.app.core_forecast.application import (
     execute_core_forecast_run,
     recalculate_core_forecast_run,
 )
+from backend.app.core_forecast.persistence import CoreForecastRunRepository
 from backend.app.core_forecast.repository import SeasonSource
 from backend.app.core_forecast.schemas import (
     ExecuteCoreForecastRunRequest,
     MarketableRetentionPolicySnapshot,
+    RegisterCoreForecastCodeAuthority,
 )
-from backend.app.models.core_forecast import CoreForecastRunModel
+from backend.app.models.core_forecast import (
+    CoreForecastCodeAuthorityModel,
+    CoreForecastRunModel,
+)
 from backend.tests.core_forecast.test_complete_daily_curve_service import (
     FixtureRepository,
     _policy,
@@ -31,6 +38,33 @@ class MissingUpstream:
 
     async def load_season(self, season_id: int):
         return SeasonSource(season_id=season_id, code="2026-DEMO")
+
+
+async def _register_authority(
+    session: AsyncSession,
+    *,
+    source_commit_sha: str = "a" * 40,
+    build_artifact_hash: str = "b" * 64,
+):
+    await _ensure_code_authority_table(session)
+    return await CoreForecastRunRepository(session).register_code_authority(
+        RegisterCoreForecastCodeAuthority(
+            source_commit_sha=source_commit_sha,
+            build_artifact_hash=build_artifact_hash,
+            config_bundle_hash="c" * 64,
+            available_at=datetime.now(UTC) - timedelta(days=1),
+        )
+    )
+
+
+async def _ensure_code_authority_table(session: AsyncSession) -> None:
+    connection = await session.connection()
+    await connection.run_sync(
+        lambda sync_connection: CoreForecastCodeAuthorityModel.__table__.create(
+            sync_connection,
+            checkfirst=True,
+        )
+    )
 
 
 @pytest.mark.unit
@@ -51,6 +85,96 @@ async def test_blocked_s2_result_exposes_no_partial_output(sqlite_session: Async
     assert result.reused_existing_run is False
     assert result.blockers[0].code == "TASK8_AUTHORITY_NOT_FOUND"
     assert await sqlite_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
+
+
+@pytest.mark.unit
+async def test_missing_pre_registered_code_authority_blocks_before_forecast(
+    sqlite_session: AsyncSession,
+) -> None:
+    await _ensure_code_authority_table(sqlite_session)
+    result = await execute_core_forecast_run(
+        sqlite_session,
+        request=ExecuteCoreForecastRunRequest(
+            curve_request=_request(),
+            retention_policy=_policy(),
+            code_authority_id=999999,
+        ),
+        upstream_repository=FixtureRepository(*_sources()),
+    )
+    assert result.status == "BLOCKED"
+    assert result.blockers[0].code == "CORE_FORECAST_CODE_AUTHORITY_NOT_FOUND"
+    assert await sqlite_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
+
+
+@pytest.mark.unit
+async def test_authority_bound_run_hashes_code_identity_and_replays_idempotently(
+    sqlite_session: AsyncSession,
+) -> None:
+    upstream = FixtureRepository(*_sources())
+    legacy = await execute_core_forecast_run(
+        sqlite_session,
+        request=ExecuteCoreForecastRunRequest(
+            curve_request=_request(),
+            retention_policy=_policy(),
+        ),
+        upstream_repository=upstream,
+    )
+    authority = await _register_authority(sqlite_session)
+    request = ExecuteCoreForecastRunRequest(
+        curve_request=_request(),
+        retention_policy=_policy(),
+        code_authority_id=authority.authority_id,
+    )
+    first = await execute_core_forecast_run(
+        sqlite_session,
+        request=request,
+        upstream_repository=upstream,
+    )
+    replay = await execute_core_forecast_run(
+        sqlite_session,
+        request=request,
+        upstream_repository=upstream,
+    )
+    assert legacy.status == first.status == replay.status == "COMPLETED"
+    assert legacy.run is not None and first.run is not None and replay.run is not None
+    assert first.run.run_schema_version == "v0.1-core-forecast-run-authority-v2"
+    assert first.run.request_schema_version == "v0.1-core-forecast-request-authority-v2"
+    assert first.run.code_authority_id == authority.authority_id
+    assert first.run.forecast_input_hash != legacy.run.forecast_input_hash
+    assert first.run.request_hash != legacy.run.request_hash
+    assert first.run.result_hash != legacy.run.result_hash
+    assert replay.run.run_id == first.run.run_id
+    assert replay.reused_existing_run is True
+
+
+@pytest.mark.unit
+async def test_different_persisted_code_authority_changes_run_identity(
+    sqlite_session: AsyncSession,
+) -> None:
+    upstream = FixtureRepository(*_sources())
+    first_authority = await _register_authority(sqlite_session)
+    second_authority = await _register_authority(
+        sqlite_session,
+        source_commit_sha="d" * 40,
+        build_artifact_hash="e" * 64,
+    )
+    results = []
+    for authority in (first_authority, second_authority):
+        results.append(
+            await execute_core_forecast_run(
+                sqlite_session,
+                request=ExecuteCoreForecastRunRequest(
+                    curve_request=_request(),
+                    retention_policy=_policy(),
+                    code_authority_id=authority.authority_id,
+                ),
+                upstream_repository=upstream,
+            )
+        )
+    assert all(result.status == "COMPLETED" for result in results)
+    assert results[0].run is not None and results[1].run is not None
+    assert results[0].run.forecast_input_hash != results[1].run.forecast_input_hash
+    assert results[0].run.result_hash != results[1].run.result_hash
 
 
 @pytest.mark.unit

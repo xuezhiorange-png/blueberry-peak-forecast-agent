@@ -35,6 +35,7 @@ from backend.app.rolling_backtest.schemas import (
     S2HistoricalBacktestRequest,
     S2HistoricalBindingCandidate,
     s2_business_grain_hash,
+    s2_physical_alignment_evidence_hash,
 )
 from backend.app.rolling_backtest.signatures import s2_request_hash
 
@@ -70,12 +71,14 @@ def _candidates(
     request: S2HistoricalBacktestRequest,
     *,
     with_labels: bool = True,
+    proven_absent: bool = False,
 ) -> tuple[S2HistoricalBindingCandidate, ...]:
     result: list[S2HistoricalBindingCandidate] = []
-    for horizon in (7, 14, 21):
+    for horizon in request.requested_horizons_days:
         actual = (
             S2ActualLabelAuthority(
                 label_snapshot_identity_hash=f"{horizon + 10:064x}",
+                label_resolution_status="EXACT_LABEL",
                 label_row_identity_hash=f"{horizon + 30:064x}",
                 label_winner_identity_hash=f"{horizon + 40:064x}",
                 label_winner_set_identity_hash=f"{horizon + 45:064x}",
@@ -96,19 +99,91 @@ def _candidates(
                 revision_or_winner_evidence={"revision": horizon},
                 observed_weight_kg=Decimal("12.500000"),
                 visibility_timestamp=_LABEL_CUTOFF,
+                forecast_physical_event="TEST_FARM_PICK_EQUIVALENT",
+                actual_physical_event="TEST_FARM_PICK_EQUIVALENT",
+                forecast_quantity_basis="TEST_EQUIVALENT_KG",
+                actual_quantity_basis="TEST_EQUIVALENT_KG",
+                unit="kg",
+                loss_boundary_policy_version="test-only-equivalent-loss-boundary-v1",
+                physical_alignment_policy_version="test-only-synthetic-alignment-v1",
+                physical_alignment_evidence_hash=s2_physical_alignment_evidence_hash(
+                    forecast_physical_event="TEST_FARM_PICK_EQUIVALENT",
+                    actual_physical_event="TEST_FARM_PICK_EQUIVALENT",
+                    forecast_quantity_basis="TEST_EQUIVALENT_KG",
+                    actual_quantity_basis="TEST_EQUIVALENT_KG",
+                    unit="kg",
+                    loss_boundary_policy_version="test-only-equivalent-loss-boundary-v1",
+                    physical_alignment_policy_version="test-only-synthetic-alignment-v1",
+                    physical_alignment_status="VERIFIED",
+                ),
                 physical_alignment_status="VERIFIED",
             )
             if with_labels
-            else None
+            else (
+                S2ActualLabelAuthority(
+                    label_snapshot_identity_hash=f"{horizon + 10:064x}",
+                    label_resolution_status="PROVEN_ABSENT",
+                    label_winner_set_identity_hash=f"{horizon + 45:064x}",
+                    source_identity_hash=f"{horizon + 20:064x}",
+                    actual_source_identity_hash=f"{horizon + 50:064x}",
+                    target_date=_CUTOFF.date() + timedelta(days=horizon),
+                    season_business_key=request.season_business_keys[0],
+                    farm_business_key=request.farm_business_keys[0],
+                    subfarm_business_key=request.subfarm_business_keys[0],
+                    variety_business_key=request.variety_business_keys[0],
+                    business_grain_hash=s2_business_grain_hash(
+                        season_business_key=request.season_business_keys[0],
+                        farm_business_key=request.farm_business_keys[0],
+                        subfarm_business_key=request.subfarm_business_keys[0],
+                        variety_business_key=request.variety_business_keys[0],
+                        target_date=_CUTOFF.date() + timedelta(days=horizon),
+                    ),
+                    revision_or_winner_evidence={
+                        "persisted_absence_search": {"matching_label_row_count": 0}
+                    },
+                    absence_evidence_hash=f"{horizon + 55:064x}",
+                    visibility_timestamp=_LABEL_CUTOFF,
+                    forecast_physical_event="MODEL_HARVESTED_MARKETABLE_QUANTITY",
+                    actual_physical_event="FARM_PICK",
+                    forecast_quantity_basis="MODEL_MARKETABLE_QUANTITY",
+                    actual_quantity_basis="OBSERVED_PICK_WEIGHT",
+                    unit="kg",
+                    loss_boundary_policy_version="q2c-business-attestation-missing",
+                    physical_alignment_policy_version=(
+                        "v0.2-s2-q2c-business-attestation-required-v1"
+                    ),
+                    physical_alignment_evidence_hash=s2_physical_alignment_evidence_hash(
+                        forecast_physical_event="MODEL_HARVESTED_MARKETABLE_QUANTITY",
+                        actual_physical_event="FARM_PICK",
+                        forecast_quantity_basis="MODEL_MARKETABLE_QUANTITY",
+                        actual_quantity_basis="OBSERVED_PICK_WEIGHT",
+                        unit="kg",
+                        loss_boundary_policy_version="q2c-business-attestation-missing",
+                        physical_alignment_policy_version=(
+                            "v0.2-s2-q2c-business-attestation-required-v1"
+                        ),
+                        physical_alignment_status="UNVERIFIED",
+                    ),
+                    physical_alignment_status="UNVERIFIED",
+                )
+                if proven_absent
+                else None
+            )
         )
         result.append(
             S2HistoricalBindingCandidate(
+                season_id=2026,
+                season_business_key=request.season_business_keys[0],
+                farm_business_key=request.farm_business_keys[0],
+                subfarm_business_key=request.subfarm_business_keys[0],
+                variety_business_key=request.variety_business_keys[0],
+                forecast_quantile="P50",
                 horizon_days=horizon,
                 target_date=_CUTOFF.date() + timedelta(days=horizon),
                 forecast_cutoff_at=_CUTOFF,
                 forecast_value_kg=Decimal(horizon),
                 forecast_authority=S2ForecastAuthorityBundle(
-                    forecast_run_identity_hash=f"{horizon:064x}",
+                    forecast_run_identity_hash="1" * 64,
                     daily_row_identity_hash=f"{horizon + 1:064x}",
                     task9_authority_identity_hash="c" * 64,
                     task9_member_identity_hash="5" * 64,
@@ -116,13 +191,17 @@ def _candidates(
                     task10_model_identity_hash="6" * 64,
                     task10_replay_identity_hash="7" * 64,
                     task10_prediction_row_identity_hash="8" * 64,
-                    forecast_code_identity="code-v1",
-                    historical_code_identity="historical-code-v1",
+                    historical_code_authority_id=901,
+                    forecast_code_identity="9" * 64,
+                    historical_code_identity="a" * 40,
+                    build_artifact_hash="b" * 64,
+                    config_bundle_hash="e" * 64,
                     model_identity="model-v1",
                     parameter_identity="parameter-v1",
                     data_identity="data-v1",
                     available_at=_CUTOFF,
                     task10_model_available_at=_CUTOFF,
+                    historical_code_available_at=_CUTOFF,
                 ),
                 actual_label=actual,
                 authority_verification="SYNTHETIC_ENGINEERING",
@@ -144,7 +223,6 @@ async def _persist_synthetic_fixture(
         session,
         request=request,
         rows=build_s2_binding_rows(request, candidates),
-        season_id=season_id,
     )
 
 
@@ -168,7 +246,7 @@ async def _counts(session, request_hash: str | None = None) -> dict[str, int]:
                     RollingBacktestRun, RollingBacktestRun.id == RollingBacktestNode.rolling_run_id
                 )
                 .where(run_filter)
-                .where(RollingBacktestNode.node_key == "s2-single-node")
+                .where(RollingBacktestNode.node_key == "s2-season-authority")
             )
         ),
         "binding": int(
@@ -265,6 +343,77 @@ async def test_s2_postgres_persistence_round_trip_and_idempotent_replay() -> Non
         assert await _counts(fresh_session) == first_counts
 
 
+async def test_integrity_reload_preserves_full_multi_grain_set() -> None:
+    _require_postgres()
+    payload = _request("multi-grain").model_dump(
+        mode="python",
+        exclude={"single_node_identity_hash"},
+    )
+    payload.update(
+        {
+            "season_business_keys": ("season:2025:multi-grain", "season:2026:multi-grain"),
+            "farm_business_keys": ("farm:alpha:multi-grain", "farm:beta:multi-grain"),
+            "requested_horizons_days": (7,),
+        }
+    )
+    request = S2HistoricalBacktestRequest.model_validate(payload)
+    template = _candidates(request, with_labels=False)[0]
+    candidates = tuple(
+        template.model_copy(
+            update={
+                "season_id": season_id,
+                "season_business_key": season_key,
+                "farm_business_key": farm_key,
+                "forecast_authority": template.forecast_authority.model_copy(
+                    update={"daily_row_identity_hash": f"{index + 100:064x}"}
+                ),
+            }
+        )
+        for index, (season_id, season_key, farm_key) in enumerate(
+            (
+                (2025, "season:2025:multi-grain", "farm:alpha:multi-grain"),
+                (2025, "season:2025:multi-grain", "farm:beta:multi-grain"),
+                (2026, "season:2026:multi-grain", "farm:alpha:multi-grain"),
+                (2026, "season:2026:multi-grain", "farm:beta:multi-grain"),
+            )
+        )
+    )
+    async with AsyncSessionMaker() as session:
+        run = await _persist_synthetic_fixture(
+            session,
+            request=request,
+            candidates=candidates,
+            season_id=2026,
+        )
+        await session.commit()
+        loaded = await session.get(RollingBacktestRun, run.id)
+        assert loaded is not None
+        await load_logical_run_with_integrity(session, loaded)
+        assert loaded.s2_node_count == 2
+        assert (
+            await session.scalar(
+                select(func.count(RollingBacktestNode.id)).where(
+                    RollingBacktestNode.rolling_run_id == run.id
+                )
+            )
+            == 2
+        )
+        assert (
+            await session.scalar(
+                select(func.count(RollingBacktestBindingRow.id)).where(
+                    RollingBacktestBindingRow.rolling_run_id == run.id
+                )
+            )
+            == 4
+        )
+        manifest = await session.scalar(
+            select(RollingBacktestManifest).where(RollingBacktestManifest.rolling_run_id == run.id)
+        )
+        assert manifest is not None
+        assert manifest.coverage_manifest_payload["grain_count"] == 4
+        assert len(manifest.coverage_manifest_payload["business_grain_horizon_coverage"]) == 4
+
+
 async def test_s2_missing_labels_are_persisted_as_exclusions_without_zero_fill() -> None:
     _require_postgres()
     request = _request("missing-labels")
@@ -291,6 +440,44 @@ async def test_s2_missing_labels_are_persisted_as_exclusions_without_zero_fill()
         assert all(row.row_status == "EXCLUDED" for row in rows)
         assert all(row.actual_value_kg is None for row in rows)
         assert all(row.reason_code == "NO_APPROVED_REAL_DATA" for row in rows)
+
+
+async def test_missing_label_exclusion_persists_and_reloads() -> None:
+    _require_postgres()
+    request = _request("persisted-missing-label")
+    async with AsyncSessionMaker() as session:
+        run = await _persist_synthetic_fixture(
+            session,
+            request=request,
+            candidates=_candidates(
+                request,
+                with_labels=False,
+                proven_absent=True,
+            ),
+            season_id=2026,
+        )
+        await session.commit()
+        loaded = await session.get(RollingBacktestRun, run.id)
+        assert loaded is not None
+        await load_logical_run_with_integrity(session, loaded)
+        rows = (
+            (
+                await session.execute(
+                    select(RollingBacktestBindingRow).where(
+                        RollingBacktestBindingRow.rolling_run_id == run.id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert all(row.row_status == "EXCLUDED" for row in rows)
+        assert all(row.reason_code == "NO_VISIBLE_LABEL_AT_CUTOFF" for row in rows)
+        assert all(row.actual_label_row_identity_hash is None for row in rows)
+        assert all(
+            row.canonical_payload["actual_label"]["label_resolution_status"] == "PROVEN_ABSENT"
+            for row in rows
+        )
 
 
 def _sqlstate(error: DBAPIError) -> str | None:
@@ -487,7 +674,10 @@ async def test_s2_replay_rejects_persisted_node_cutoff_drift() -> None:
         )
         assert node is not None
         node.forecast_cutoff_at = _CUTOFF + timedelta(seconds=1)
-        with pytest.raises(RollingBacktestIdentityConflictError, match="cutoff drift"):
+        with pytest.raises(
+            RollingBacktestIdentityConflictError,
+            match="normalized field drift.*forecast_cutoff_at",
+        ):
             await _persist_synthetic_fixture(
                 session,
                 request=request,
@@ -507,6 +697,13 @@ async def test_s2_replay_rejects_persisted_node_cutoff_drift() -> None:
         "manifest_payload",
         "resolved_authority_payload",
         "availability_audit_payload",
+        "node_season_id",
+        "node_key",
+        "node_date_range",
+        "node_execution_mode",
+        "node_policy_version",
+        "node_timezone",
+        "run_normalized_field",
     ),
 )
 async def test_s2_integrity_reload_rejects_canonical_tamper(target: str) -> None:
@@ -568,11 +765,25 @@ async def test_s2_integrity_reload_rejects_canonical_tamper(target: str) -> None
                 **resolved_input.canonical_payload,
                 "tampered": True,
             }
-        else:
+        elif target == "availability_audit_payload":
             availability_audit.canonical_payload = {
                 **availability_audit.canonical_payload,
                 "tampered": True,
             }
+        elif target == "node_season_id":
+            node.season_id += 1
+        elif target == "node_key":
+            node.node_key = "tampered-node-key"
+        elif target == "node_date_range":
+            node.forecast_end_local_date += timedelta(days=1)
+        elif target == "node_execution_mode":
+            node.execution_mode = "retrospective_replay"
+        elif target == "node_policy_version":
+            node.forecast_horizon_policy_version = "tampered-policy"
+        elif target == "node_timezone":
+            node.timezone = "America/Los_Angeles"
+        else:
+            loaded.availability_registry_version = "tampered-registry"
         with session.no_autoflush:
             with pytest.raises(RollingBacktestPersistenceError):
                 await load_logical_run_with_integrity(session, loaded)
