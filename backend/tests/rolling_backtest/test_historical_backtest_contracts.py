@@ -241,6 +241,7 @@ def test_missing_physical_alignment_evidence_not_computable() -> None:
     request = _request(requested_horizons_days=[7])
     candidate = _forecast(7).model_copy(update={"actual_label": _actual(verified=False)})
     row = build_s2_binding_rows(request, (candidate,))[0]
+    assert row.physical_alignment_status == "UNVERIFIED"
     assert row.row_status == "NOT_COMPUTABLE"
     assert row.reason_code == "BLOCKED_BY_PHYSICAL_TARGET_GAP"
     assert row.actual_value_kg == Decimal("12.500000")
