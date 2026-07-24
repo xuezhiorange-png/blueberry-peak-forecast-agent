@@ -26,6 +26,12 @@ MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 BUSINESS_ATTESTATION_REQUIRED_FOR_S3_SYNTHETIC_IMPLEMENTATION=false
 BUSINESS_ATTESTATION_REQUIRED_FOR_REAL_DATA_ACCEPTANCE=true
+PUBLIC_APPLICATION_API=false
+HTTP_API=false
+FRONTEND_API=false
+S4_API_SCOPE_PREEMPTED=false
+INTERNAL_PYTHON_APPLICATION_SERVICE_ALLOWED=true
+INTERNAL_DOMAIN_SERVICE_ALLOWED=true
 ```
 
 ## 1. Purpose
@@ -125,13 +131,25 @@ counters and adds metric-specific counters. The S2 status counters are the
 S2-row-level ground truth; S3 never reclassifies a row's S2 status.
 
 ```text
-s2_comparable_row_count
+s2_total_binding_row_count
+  = count of all S2 binding rows consumed by the metric (denominator of
+    coverage_ratio; NOT used as a metric denominator)
+s2_comparable_binding_row_count
   = count of binding rows whose S2 status == COMPARABLE
-s2_excluded_row_count
+s2_excluded_binding_row_count
   = count of binding rows whose S2 status is in {EXCLUDED, NOT_COMPARABLE}
     (S2-level exclusion reasons, NOT a metric-level reclassification)
-s2_not_computable_row_count
+s2_not_computable_binding_row_count
   = count of binding rows whose S2 status is NOT_COMPUTABLE
+```
+
+For backwards compatibility, the shorter aliases below are bound to the
+same definitions and MUST stay equal to the canonical fields above:
+
+```text
+s2_comparable_row_count = s2_comparable_binding_row_count
+s2_excluded_row_count = s2_excluded_binding_row_count
+s2_not_computable_row_count = s2_not_computable_binding_row_count
 ```
 
 `excluded_row_count` retains the S2 upstream exclusion semantics. S3 MUST
@@ -192,12 +210,18 @@ MISSING_ACTUAL_TREATED_AS_ZERO=false
 Every S3 result binds the following counters, in addition to the metric value:
 
 ```text
-s2_comparable_row_count
-s2_excluded_row_count
-s2_not_computable_row_count
-coverage_ratio = s2_comparable_row_count / (s2_comparable_row_count + s2_excluded_row_count + s2_not_computable_row_count)
+s2_total_binding_row_count
+s2_comparable_binding_row_count
+s2_excluded_binding_row_count
+s2_not_computable_binding_row_count
+coverage_ratio = s2_comparable_binding_row_count / s2_total_binding_row_count
 mape_eligible_row_count       (where applicable)
 mape_zero_actual_row_count    (where applicable)
+metric_input_mask_policy_version
+metric_input_mask_hash
+metric_input_row_count
+metric_input_quantile
+unique_actual_physical_row_count
 ```
 
 A metric result is never published with implicit-zero exclusion assumptions; the
@@ -214,11 +238,28 @@ s2_binding_row_set_hash — sha256 of the S2 row set consumed by the metric
 metric_policy_version   — frozen metric formula version
 baseline_policy_version — frozen baseline formula version
 breakdown_dimensions    — the breakdown axes for this metric value
-s2_comparable_row_count
-s2_excluded_row_count
-s2_not_computable_row_count
+s2_total_binding_row_count
+s2_comparable_binding_row_count
+s2_excluded_binding_row_count
+s2_not_computable_binding_row_count
+metric_input_mask_policy_version
+metric_input_mask_hash
+metric_input_row_count
+metric_input_quantile
+unique_actual_physical_row_count
 mape_eligible_row_count        (when MAPE is published)
 mape_zero_actual_row_count     (when MAPE is published)
+```
+
+`metric_input_mask_hash` MUST cover:
+
+```text
+metric_input_mask_policy_version
+S2 status predicate
+forecast quantile predicate
+actual-pair predicate
+breakdown identity
+source row-set identity
 ```
 
 The canonical hash of the metric result over these fields is the byte-identity
@@ -241,9 +282,13 @@ name any other daily quantile, so:
 
 ```text
 POINT_METRIC_QUANTILE=P50_ONLY
+METRIC_INPUT_MASK_POLICY_VERSION=v0.2-s3-metric-input-mask-v1
 ```
 
-Index `i` ranges over `s2_comparable_row_count` rows. Forecast and actual
+Index `i` ranges over rows selected by the metric-specific input mask.
+For P50 point metrics, the mask is `P50_POINT_METRIC_MASK`
+(`S2_STATUS_COMPARABLE_AND_FORECAST_QUANTILE_P50`); the result row count
+is `p50_point_metric_comparable_row_count`. Forecast and actual
 quantities are `Decimal` with six decimal places. No native float participates
 in canonical business arithmetic.
 
@@ -255,15 +300,30 @@ absolute_error_i = abs(error_i)
 The frozen daily metric values are:
 
 ```text
-daily_mae            = sum(absolute_error_i) / s2_comparable_row_count
-daily_wape           = sum(absolute_error_i) / sum(actual_i)
+daily_mae            = sum(absolute_error_i over P50_POINT_METRIC_MASK)
+                        / p50_point_metric_comparable_row_count
+daily_wape           = sum(absolute_error_i over P50_POINT_METRIC_MASK)
+                        / sum(actual_i over P50_POINT_METRIC_MASK)
 daily_smape_i        = 2 * absolute_error_i / (abs(forecast_p50_i) + abs(actual_i))
-daily_smape          = sum(daily_smape_i) / s2_comparable_row_count
-daily_mape           = sum(absolute_error_i / actual_i where actual_i > 0)
+daily_smape          = sum(daily_smape_i over P50_POINT_METRIC_MASK)
+                        / p50_point_metric_comparable_row_count
+daily_mape           = sum(absolute_error_i / actual_i over P50_POINT_METRIC_MASK
+                            where actual_i > 0)
                         / mape_eligible_row_count
-daily_bias_kg        = sum(error_i) / s2_comparable_row_count
-daily_relative_bias  = sum(error_i) / sum(actual_i)
-daily_absolute_error_sum_kg = sum(absolute_error_i)
+daily_bias_kg        = sum(error_i over P50_POINT_METRIC_MASK)
+                        / p50_point_metric_comparable_row_count
+daily_relative_bias  = sum(error_i over P50_POINT_METRIC_MASK)
+                        / sum(actual_i over P50_POINT_METRIC_MASK)
+daily_absolute_error_sum_kg = sum(absolute_error_i over P50_POINT_METRIC_MASK)
+```
+
+`MAPE` uses the same P50 mask as the other P50 point metrics:
+
+```text
+mape_eligible_row_count
+  = count(rows matching P50_POINT_METRIC_MASK and actual_i > 0)
+mape_zero_actual_row_count
+  = count(rows matching P50_POINT_METRIC_MASK and actual_i == 0)
 ```
 
 ## 7. Season cumulative metrics
@@ -421,9 +481,12 @@ The coverage computation is therefore **frozen but gated** on the semantics
 verification:
 
 ```text
-P50_UPPER_COVERAGE = count(actual <= forecast_p50) / s2_comparable_row_count
-P80_UPPER_COVERAGE = count(actual <= forecast_p80) / s2_comparable_row_count
-P90_UPPER_COVERAGE = count(actual <= forecast_p90) / s2_comparable_row_count
+P50_UPPER_COVERAGE = count(actual <= forecast_p50 over P50_COVERAGE_MASK)
+                     / p50_coverage_comparable_row_count
+P80_UPPER_COVERAGE = count(actual <= forecast_p80 over P80_COVERAGE_MASK)
+                     / p80_coverage_comparable_row_count
+P90_UPPER_COVERAGE = count(actual <= forecast_p90 over P90_COVERAGE_MASK)
+                     / p90_coverage_comparable_row_count
 ```
 
 Coverage is published only when `P50_SEMANTICS=VERIFIED_TRUE_UPPER_QUANTILE`,
@@ -506,15 +569,28 @@ PINBALL_LOSS_REMOVED_FROM_S3=false
 
 ## 11. Calculation grain, aggregation, and dedup — F-07 close
 
-The minimum calculation grain for point, peak, and breakdown metrics is:
+The minimum calculation grain for point, peak, and breakdown metrics is
+exactly the eight-dimension composite below. This token is the single
+authoritative machine-readable statement of the calculation base grain;
+no second token may redefine it. The plain-language list below the
+token is a descriptive restatement, not a second machine-readable
+definition.
 
 ```text
-CALCULATION_BASE_GRAIN=SEASON x farm x subfarm x variety x target_date x forecast_cutoff x model_identity x forecast_quantile
-  x variety
-  x target_date
-  x forecast_cutoff
-  x model_identity
-  x forecast_quantile
+CALCULATION_BASE_GRAIN=SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_TARGET_DATE_X_FORECAST_CUTOFF_X_MODEL_IDENTITY_X_FORECAST_QUANTILE
+```
+
+The grain covers (in order):
+
+```text
+SEASON
+FARM
+SUBFARM
+VARIETY
+TARGET_DATE
+FORECAST_CUTOFF
+MODEL_IDENTITY
+FORECAST_QUANTILE
 ```
 
 ### 11.1 Cross-quantile actual-label dedup
@@ -536,9 +612,47 @@ POINT_METRIC_FORECAST_QUANTILE=P50
 POINT_METRIC_ROW_COUNT_COUNTS_P50_ROWS_ONLY=true
 ```
 
+```text
+METRIC_INPUT_MASK_POLICY_VERSION=v0.2-s3-metric-input-mask-v1
+P50_POINT_METRIC_MASK=S2_STATUS_COMPARABLE_AND_FORECAST_QUANTILE_P50
+P50_POINT_METRIC_MASK_BINDING=s2_comparable_binding_row_count filtered by
+  forecast_quantile == P50
+p50_point_metric_comparable_row_count
+  = count(rows matching P50_POINT_METRIC_MASK)
+  = count(S2 binding rows where S2 status == COMPARABLE
+            AND forecast_quantile == P50)
+
+P50_COVERAGE_MASK=S2_STATUS_COMPARABLE AND FORECAST_QUANTILE_P50 AND EXACT_ACTUAL_PAIRED
+P80_COVERAGE_MASK=S2_STATUS_COMPARABLE AND FORECAST_QUANTILE_P80 AND EXACT_ACTUAL_PAIRED
+P90_COVERAGE_MASK=S2_STATUS_COMPARABLE AND FORECAST_QUANTILE_P90 AND EXACT_ACTUAL_PAIRED
+
+p50_coverage_comparable_row_count
+  = count(S2 binding rows where S2 status == COMPARABLE
+            AND forecast_quantile == P50
+            AND an exact actual-label is paired)
+p80_coverage_comparable_row_count
+  = count(S2 binding rows where S2 status == COMPARABLE
+            AND forecast_quantile == P80
+            AND an exact actual-label is paired)
+p90_coverage_comparable_row_count
+  = count(S2 binding rows where S2 status == COMPARABLE
+            AND forecast_quantile == P90
+            AND an exact actual-label is paired)
+
+P50_UPPER_COVERAGE_DENOMINATOR=p50_coverage_comparable_row_count
+P80_UPPER_COVERAGE_DENOMINATOR=p80_coverage_comparable_row_count
+P90_UPPER_COVERAGE_DENOMINATOR=p90_coverage_comparable_row_count
+
+unique_actual_physical_row_count
+  = count(distinct actual physical grain identities consumed by the
+    metric; one actual label per physical grain, reused across P50/P80/P90)
+```
+
 `daily_mae`, `daily_wape`, `daily_smape`, `daily_mape`, `daily_bias_kg`,
 `daily_relative_bias`, `daily_absolute_error_sum_kg` are computed over the
-P50 forecast row only. The result count is `count(P50 forecast rows)`.
+P50 forecast row only. Index `i` ranges over rows selected by the
+metric-specific input mask (`P50_POINT_METRIC_MASK`), not over the bare
+`s2_comparable_row_count`. The result count is `p50_point_metric_comparable_row_count`.
 
 ### 11.3 P80 / P90 coverage mask
 
@@ -556,17 +670,41 @@ When the breakdown axes include `farm_business_key`, the farm-level daily
 forecast and actual aggregates are:
 
 ```text
-FARM_DAILY_FORECAST_Q = sum(subfarm forecast_q_i for exact farm / date / variety scope)
-FARM_DAILY_ACTUAL   = sum(unique physical actual rows for exact farm / date / variety scope)
+FARM_DAILY_FORECAST_Q =
+  sum(
+    subfarm forecast_q_i
+    for exact:
+      season
+      x farm
+      x variety
+      x target_date
+      x forecast_cutoff
+      x model_identity
+      x forecast_quantile
+  )
+
+FARM_DAILY_ACTUAL =
+  sum(
+    unique actual physical rows
+    for exact:
+      season
+      x farm
+      x variety
+      x target_date
+  )
 ```
 
-Farm-level aggregates are an explicit choice. The S3 contract either
-publishes farm-level aggregates using the formula above, OR explicitly does
-not publish them. The contract MUST NOT take the maximum single-subfarm row
-as the farm daily peak.
+Farm-level aggregates are mandatory, not optional. The S3 contract
+freezes farm breakdown as required and farm daily aggregation as
+required; the contract MUST NOT silently omit farm daily aggregates.
+The farm daily peak is computed AFTER summing subfarm daily amounts;
+the maximum single-subfarm row MUST NOT be promoted to the farm daily
+peak.
 
 ```text
 MAX_SINGLE_SUBFARM_ROW_AS_FARM_DAILY_PEAK=false
+FARM_PEAK_COMPUTED_AFTER_DAILY_SUBFARM_SUM=true
+FARM_DAILY_AGGREGATE_MAY_BE_OMITTED=false
 FARM_DAILY_AGGREGATE_FORMULA=sum(subfarm_q_i, exact_deduped_actual_rows)
 ```
 
@@ -584,11 +722,21 @@ metric row is not emitted; the run fails closed.
 
 ## 12. Breakdown contract
 
-S3 MUST publish the following breakdown axes:
+S3 MUST publish the following breakdown axes. All six breakdowns are
+required; the contract MUST NOT silently omit any of them.
 
 ```text
+FARM_BREAKDOWN_REQUIRED=true
+FARM_DAILY_AGGREGATION_REQUIRED=true
+SUBFARM_BREAKDOWN_REQUIRED=true
+VARIETY_BREAKDOWN_REQUIRED=true
+SEASON_BREAKDOWN_REQUIRED=true
+MODEL_BREAKDOWN_REQUIRED=true
+HORIZON_BREAKDOWN_REQUIRED=true
+
 forecast_horizon_days  (REQUIRED_HORIZONS_DAYS=7,14,21)
 farm_business_key      (MULTI_FARM=true)
+subfarm_business_key   (MULTI_SUBFARM=true)
 variety_business_key   (MULTI_VARIETY=true)
 season_business_key    (MULTI_SEASON=true)
 model_identity         (one or more model identities being evaluated)
@@ -674,6 +822,12 @@ head-to-head comparison that requires a baseline P80 / P90 forecast.
 
 ```text
 FARM_BREAKDOWN_REQUIRED=true
+FARM_DAILY_AGGREGATION_REQUIRED=true
+SUBFARM_BREAKDOWN_REQUIRED=true
+VARIETY_BREAKDOWN_REQUIRED=true
+SEASON_BREAKDOWN_REQUIRED=true
+MODEL_BREAKDOWN_REQUIRED=true
+HORIZON_BREAKDOWN_REQUIRED=true
 ```
 
 ```text
