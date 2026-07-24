@@ -3,10 +3,11 @@
 > Target: V0.2-S3 (FORECAST_QUALITY_METRICS_AND_ONE_NAIVE_BASELINE)
 > Companion: `docs/forecast-quality/s3-quality-metrics-contract.md`
 > Companion: `docs/forecast-quality/s3-naive-baseline-decision.md`
-> Round 3 fixup scope: F18–F25 closure (PR131 round 3)
-> Scope: per-requirement implementation readiness + owner path + acceptance test
-> Base: `b873dd63fc0d5b6375f94674abbd24a94d915f3c`
+> Document status: S3 design-freeze readiness authority
+> Latest consistency review addressed: F32–F35
+> Source base: `b873dd63fc0d5b6375f94674abbd24a94d915f3c`
 > Source authority: `docs/forecast-quality/q2b-point-in-time-backtest-runner-contract.md` (S2 binding + manifest)
+> Round 5 fixup scope: F32–F35 closure (PR131 round 5)
 
 ```text
 S3_IMPLEMENTATION_AUTHORIZED=false
@@ -124,7 +125,7 @@ list.
 | S3R-09 baseline cold-start (FAIL_CLOSED + NOT_COMPUTABLE) | FROZEN | backend/app/forecast_quality/baseline.py | backend/tests/forecast_quality/test_baseline_cold.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest no prior season → NOT_COMPUTABLE |
 | S3R-10 baseline visibility rule (visible at or before current forecast_cutoff_at), separate baseline source snapshot | FROZEN | backend/app/forecast_quality/baseline.py | backend/tests/forecast_quality/test_baseline_visibility.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | BASELINE_VISIBILITY_ACCEPTANCE_TEST=ALLOW_PRIOR_ANALOG_ACTUAL_VISIBLE_BY_CURRENT_CUTOFF_AND_REJECT_LATER_REVISION |
 | S3R-11 baseline prohibits post-cutoff / latest / model / receipt / zero | FROZEN | backend/app/forecast_quality/baseline.py | backend/tests/forecast_quality/test_baseline_red.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest each prohibited source flagged |
-| S3R-12 baseline point-only (P80/P90 NOT_COMPUTABLE) | FROZEN | backend/app/forecast_quality/baseline.py | backend/tests/forecast_quality/test_baseline_quantile.py | yes | no | no | FROZEN_NOT_COMPUTABLE_LIMITATION | none |  | pytest p80 / p90 deltas → NOT_COMPUTABLE; status=BLOCKED |
+| S3R-12 baseline point-only (P80/P90 NOT_COMPUTABLE) | FROZEN | backend/app/forecast_quality/baseline.py | backend/tests/forecast_quality/test_baseline_quantile.py | yes | no | no | FROZEN_NOT_COMPUTABLE_LIMITATION | none |  | pytest p80 / p90 deltas → comparison_availability=BLOCKED, metric_status=NOT_COMPUTABLE, reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED |
 | S3R-13 breakdown contract (horizon / farm / subfarm / variety / season / model) | FROZEN | backend/app/forecast_quality/breakdown.py | backend/tests/forecast_quality/test_breakdown.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | BREAKDOWN_ACCEPTANCE_TEST=all six required axes produce deterministic breakdown cells |
 | S3R-14 INSUFFICIENT_SAMPLE below MIN_COMPARABLE_ROWS_FOR_REPORTING=10 | FROZEN | backend/app/forecast_quality/breakdown.py | backend/tests/forecast_quality/test_breakdown_min.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest small-sample cells flagged, not dropped |
 | S3R-15 cross-quantile actual-label dedup (one actual per physical grain; P50/P80/P90 forecast rows join to SAME actual) | FROZEN | backend/app/forecast_quality/canonical.py | backend/tests/forecast_quality/test_actual_dedup.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest single actual label per physical grain, reused across quantiles |
@@ -136,8 +137,9 @@ list.
 | S3R-21 Decimal + 1e-6 + ROUND_HALF_EVEN canonical payload emit; DECIMAL_ONLY_CANONICAL_ARITHMETIC=true; native float / numpy float / binary float NOT allowed at any intermediate step | FROZEN | backend/app/forecast_quality/canonical.py | backend/tests/forecast_quality/test_decimal.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest canonical payload bytes match `str(Decimal(1e-6))`; no float intermediate |
 | S3R-22 P50 / P80 / P90 coverage gated on QUANTILE_SEMANTICS_VERIFICATION | FROZEN | backend/app/forecast_quality/quantile.py | backend/tests/forecast_quality/test_quantile.py | yes | no | no | BLOCKED_BY_EXTERNAL_AUTHORITY | P50_P80_P90_SEMANTICS_VERIFICATION |  | pytest coverage not published until semantic verified |
 | S3R-23 pinball loss preserved (NOT_COMPUTABLE gated on QUANTILE_SEMANTICS_VERIFICATION; UPSTREAM_CONTRACT_AMENDMENT_ACCEPTED=false) | FROZEN | backend/app/forecast_quality/quantile.py | backend/tests/forecast_quality/test_pinball.py | yes | no | no | BLOCKED_BY_EXTERNAL_AUTHORITY | P50_P80_P90_SEMANTICS_VERIFICATION | PINBALL_UPSTREAM_CONTRACT_ALIGNMENT_CLOSED | pytest pinball loss NOT_COMPUTABLE until semantic verified |
-| S3R-24A point head-to-head comparison over COMMON_COMPARABLE_SET (daily_mae_delta, daily_wape_delta, daily_smape_delta, daily_mape_delta, absolute_bias_magnitude_delta, absolute_cumulative_bias_magnitude_delta, signed_bias_delta, signed_cumulative_error_delta) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_point.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | POINT_HEAD_TO_HEAD_OVER=COMMON_COMPARABLE_SET; pytest point deltas computed over COMMON_COMPARABLE_SET without deleting model-only or baseline-only rows |
-| S3R-24B baseline quantile and interval head-to-head (p80_coverage_delta, p90_coverage_delta, interval_width_delta, baseline_p80_p90_peak_comparison) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_quantile.py | yes | no | no | FROZEN_NOT_COMPUTABLE_LIMITATION | none |  | pytest baseline quantile / interval deltas publish NOT_COMPUTABLE for the baseline-only paths |
+| S3R-24A_DAILY_POINT_HEAD_TO_HEAD daily point head-to-head comparison over COMMON_COMPARABLE_SET (daily_mae_delta, daily_wape_delta, daily_smape_delta, daily_mape_delta, absolute_bias_magnitude_delta, signed_bias_delta) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_point.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | POINT_HEAD_TO_HEAD_OVER=COMMON_COMPARABLE_SET; pytest daily point deltas computed over COMMON_COMPARABLE_SET without deleting model-only or baseline-only rows |
+| S3R-24B_COMPLETE_WINDOW_HEAD_TO_HEAD complete-window head-to-head (absolute_cumulative_bias_magnitude_delta, signed_cumulative_error_delta, single_day_peak_date_absolute_error_delta_q, single_day_peak_quantity_absolute_error_delta_q, sustained_7day_start_date_absolute_error_delta_q, sustained_7day_quantity_absolute_error_delta_q) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_window.py | yes | no | no | BLOCKED_BY_EXTERNAL_AUTHORITY | S2_COMPLETE_DAILY_ROW_SET_AUTHORITY |  | COMPLETE_WINDOW_HEAD_TO_HEAD_STATUS_BEFORE_AMENDMENT=NOT_COMPUTABLE; COMPLETE_WINDOW_HEAD_TO_HEAD_REASON_BEFORE_AMENDMENT=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING |
+| S3R-24C_BASELINE_QUANTILE_AND_INTERVAL_HEAD_TO_HEAD baseline quantile and interval head-to-head (p80_coverage_delta, p90_coverage_delta, interval_width_delta, baseline_p80_p90_peak_comparison) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_quantile.py | yes | no | no | FROZEN_NOT_COMPUTABLE_LIMITATION | none |  | pytest baseline quantile / interval deltas publish comparison_availability=BLOCKED, metric_status=NOT_COMPUTABLE for the baseline-only paths |
 | S3R-25 comparison delta semantics (loss_delta, signed_delta, absolute-bias-magnitude_delta) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_delta.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest loss_delta positive=worse; signed_delta direction only; magnitude_delta positive=worse |
 | S3R-26 Slice Q2B / Q2C / Q2D / Q2E / Q2F governance dependencies untouched | FROZEN (boundary) | backend/app/forecast_quality/(none) | backend/tests/forecast_quality/(none) | n/a | n/a | n/a | CLOSED_CONTRACT_ALIGNMENT | none | PINBALL_UPSTREAM_CONTRACT_ALIGNMENT_CLOSED | n/a |
 
@@ -256,15 +258,29 @@ P50_P80_P90_SEMANTICS_VERIFICATION
   - S3R-22 P50 / P80 / P90 coverage
   - S3R-23 pinball loss
 
+S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+  - S3R-24B_COMPLETE_WINDOW_HEAD_TO_HEAD complete-window head-to-head
+
 BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
   - S3R-12 baseline point-only
-  - S3R-24B baseline quantile and interval head-to-head
+  - S3R-24C baseline quantile and interval head-to-head
 
 PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
-  - S3R-24B baseline quantile and interval head-to-head
+  - S3R-24C baseline quantile and interval head-to-head
 
-POINT_HEAD_TO_HEAD_NOT_COMPUTABLE=false
+DAILY_POINT_HEAD_TO_HEAD_BLOCKED_BY_DAILY_ROW_SET=false
+DAILY_POINT_HEAD_TO_HEAD_NOT_COMPUTABLE=false
+COMPLETE_WINDOW_HEAD_TO_HEAD_BLOCKED=true
+COMPLETE_WINDOW_HEAD_TO_HEAD_BLOCKER=S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+COMPLETE_WINDOW_HEAD_TO_HEAD_STATUS_BEFORE_AMENDMENT=NOT_COMPUTABLE
+COMPLETE_WINDOW_HEAD_TO_HEAD_REASON_BEFORE_AMENDMENT=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
 BASELINE_QUANTILE_HEAD_TO_HEAD_NOT_COMPUTABLE=true
+BASELINE_QUANTILE_HEAD_TO_HEAD_REASON=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+PREDICTION_INTERVAL_HEAD_TO_HEAD_NOT_COMPUTABLE=true
+PREDICTION_INTERVAL_HEAD_TO_HEAD_REASON=PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
+
+MODEL_QUANTILE_PUBLICATION_GATE=P50_P80_P90_SEMANTICS_VERIFICATION
+BASELINE_QUANTILE_COMPARISON_LIMITATION=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
 
 PINBALL_UPSTREAM_CONTRACT_ALIGNMENT_CLOSED
   - S3R-23 pinball loss (alignment closed; only quantile-semantics verification remains)

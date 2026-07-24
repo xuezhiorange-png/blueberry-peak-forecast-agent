@@ -977,37 +977,69 @@ interval_width_delta = model_interval_width - baseline_interval_width
 The S3 bundle publishes these deltas. Both `p80_coverage_delta`,
 `p90_coverage_delta`, and `interval_width_delta` are gated on the
 quantile-semantics verification; until then the bundle reports
-`metric_status=NOT_COMPUTABLE` and the corresponding `reason_code`.
+`comparison_availability=BLOCKED`, `metric_status=NOT_COMPUTABLE` and
+the corresponding `reason_code`. `interval_width_delta` is further
+gated on the prediction-interval lower bound being available.
 
-### 16.5 Mandatory comparison fields
+### 16.5 Mandatory comparison fields and group classification
 
 The S3 bundle MUST publish every field below; missing fields are not
 allowed. Some fields are always computable; others are gated on upstream
-verification.
+verification. Comparison fields are split into three groups, each with
+its own `comparison_availability`, `metric_status`, `reason_code`, and
+`external_blocker`.
 
 ```text
-daily_mae_delta
-daily_wape_delta
-daily_smape_delta
-daily_mape_delta
-single_day_peak_date_absolute_error_delta_q
-single_day_peak_quantity_absolute_error_delta_q
-sustained_7day_start_date_absolute_error_delta_q
-sustained_7day_quantity_absolute_error_delta_q
-p80_coverage_delta
-p90_coverage_delta
-interval_width_delta
-absolute_bias_magnitude_delta
-absolute_cumulative_bias_magnitude_delta
-signed_bias_delta
-signed_cumulative_error_delta
+COMPARISON_AVAILABILITY_VALUES=AVAILABLE, BLOCKED
+METRIC_STATUS_VALUES=COMPUTED, COMPARED, NOT_COMPUTABLE, NOT_VERIFIED, INSUFFICIENT_SAMPLE
+METRIC_STATUS_BLOCKED_TOKEN_PRESENT=false
+COMPARISON_AVAILABILITY_BLOCKED_TOKEN_PRESENT=true
+
+DAILY_POINT_COMPARISON_FIELDS=daily_mae_delta, daily_wape_delta, daily_smape_delta, daily_mape_delta, absolute_bias_magnitude_delta, signed_bias_delta
+DAILY_POINT_COMPARISON_READINESS=READY_PENDING_SEPARATE_S3_IMPLEMENTATION_AUTHORIZATION
+DAILY_POINT_COMPARISON_AVAILABILITY=AVAILABLE
+DAILY_POINT_COMPARISON_METRIC_STATUS=COMPUTED
+DAILY_POINT_COMPARISON_REASON_CODE=NONE
+DAILY_POINT_COMPARISON_EXTERNAL_BLOCKER=none
+
+COMPLETE_WINDOW_COMPARISON_FIELDS=absolute_cumulative_bias_magnitude_delta, signed_cumulative_error_delta, single_day_peak_date_absolute_error_delta_q, single_day_peak_quantity_absolute_error_delta_q, sustained_7day_start_date_absolute_error_delta_q, sustained_7day_quantity_absolute_error_delta_q
+COMPLETE_WINDOW_COMPARISON_READINESS=BLOCKED_BY_S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+COMPLETE_WINDOW_COMPARISON_AVAILABILITY=BLOCKED
+COMPLETE_WINDOW_COMPARISON_METRIC_STATUS=NOT_COMPUTABLE
+COMPLETE_WINDOW_COMPARISON_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+COMPLETE_WINDOW_COMPARISON_EXTERNAL_BLOCKER=S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+
+BASELINE_QUANTILE_INTERVAL_COMPARISON_FIELDS=p80_coverage_delta, p90_coverage_delta, interval_width_delta, baseline_p80_p90_peak_comparison
+BASELINE_QUANTILE_INTERVAL_COMPARISON_READINESS=FROZEN_NOT_COMPUTABLE_LIMITATION
+BASELINE_QUANTILE_INTERVAL_COMPARISON_AVAILABILITY=BLOCKED
+BASELINE_QUANTILE_INTERVAL_COMPARISON_METRIC_STATUS=NOT_COMPUTABLE
+BASELINE_QUANTILE_INTERVAL_COMPARISON_REASON_CODE=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED, PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
+BASELINE_QUANTILE_INTERVAL_COMPARISON_EXTERNAL_BLOCKER=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+```
+
+For each comparison field, the bundle publishes `comparison_availability`,
+`metric_status`, `reason_code`, and (where applicable) `external_blocker`.
+
+The §16 surface is split across the three groups above; `comparison_availability`
+is the closed enumeration `{AVAILABLE, BLOCKED}` and `metric_status` is the
+closed enumeration `{COMPUTED, COMPARED, NOT_COMPUTABLE, NOT_VERIFIED,
+INSUFFICIENT_SAMPLE}`. The S3 surface MUST NOT express
+the closed-set token for "blocked" as a metric-status value; "blocked"
+is expressed only as `comparison_availability=BLOCKED`.
+
+```text
+SECTION_16_DAILY_POINT_COMPARISON_DELTAS=NOT_BLOCKED_BY_DAILY_ROW_SET
+SECTION_16_COMPLETE_WINDOW_COMPARISON_DELTAS=BLOCKED_BY_S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+SECTION_16_BASELINE_QUANTILE_INTERVAL_DELTAS=FROZEN_NOT_COMPUTABLE_LIMITATION
 ```
 
 For each field that cannot be computed, the bundle publishes:
 
 ```text
+comparison_availability=BLOCKED
 metric_status=NOT_COMPUTABLE
 reason_code=<specific reason from the table above>
+external_blocker=<specific blocker if upstream>
 ```
 
 The S3 bundle NEVER silently omits a comparison field.
