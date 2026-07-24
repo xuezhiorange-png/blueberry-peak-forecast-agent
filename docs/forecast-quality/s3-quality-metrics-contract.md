@@ -125,14 +125,16 @@ SECTION_12_BREAKDOWN_CONTRACT = not blocked
 SECTION_13_DECIMAL_ARITHMETIC = not blocked
 SECTION_14_IDEMPOTENCY_AND_INTEGRITY = not blocked
 SECTION_15_SINGLE_NAIVE_BASELINE_INTERFACE = not blocked
-SECTION_16_COMPARISON_DELTA_SEMANTICS = not blocked (point deltas are computable on existing comparable rows)
+SECTION_16_WHOLE_SECTION_UNBLOCKED=false
+SECTION_16_READINESS_DEFINED_PER_COMPARISON_GROUP=true
 ```
 
 The §5 "Metric identity binding" is NOT blocked. §6 daily point-forecast
 metrics can be implemented on the existing sparse S2 comparable rows.
 §7 cumulative, §9.1 single-day peak, §9.2 sustained 7-day peak, and
 complete-window comparison outputs are the only sections waiting for the
-S2 daily-row-set amendment.
+S2 daily-row-set amendment. The §16 surface is NOT unblocked as a
+whole; readiness is defined per comparison group in §16.5 below.
 
 When the S2 amendment is accepted, S3 MUST additionally bind the following
 identities on the daily row set. Until the S2 amendment is accepted, every
@@ -987,7 +989,10 @@ The S3 bundle MUST publish every field below; missing fields are not
 allowed. Some fields are always computable; others are gated on upstream
 verification. Comparison fields are split into three groups, each with
 its own `comparison_availability`, `metric_status`, `reason_code`, and
-`external_blocker`.
+`external_blocker`. The daily-point group is further split into a
+loss/magnitude subgroup and a signed-delta subgroup because
+`signed_bias_delta` carries the signed-direction-only semantics from
+§16.2 (which disallows better/worse interpretation).
 
 ```text
 COMPARISON_AVAILABILITY_VALUES=AVAILABLE, BLOCKED
@@ -998,9 +1003,22 @@ COMPARISON_AVAILABILITY_BLOCKED_TOKEN_PRESENT=true
 DAILY_POINT_COMPARISON_FIELDS=daily_mae_delta, daily_wape_delta, daily_smape_delta, daily_mape_delta, absolute_bias_magnitude_delta, signed_bias_delta
 DAILY_POINT_COMPARISON_READINESS=READY_PENDING_SEPARATE_S3_IMPLEMENTATION_AUTHORIZATION
 DAILY_POINT_COMPARISON_AVAILABILITY=AVAILABLE
-DAILY_POINT_COMPARISON_METRIC_STATUS=COMPUTED
-DAILY_POINT_COMPARISON_REASON_CODE=NONE
 DAILY_POINT_COMPARISON_EXTERNAL_BLOCKER=none
+
+DAILY_POINT_LOSS_DELTA_FIELDS=daily_mae_delta, daily_wape_delta, daily_smape_delta, daily_mape_delta, absolute_bias_magnitude_delta
+DAILY_POINT_LOSS_DELTA_COMPARISON_AVAILABILITY=AVAILABLE
+DAILY_POINT_LOSS_DELTA_METRIC_STATUS=COMPUTED
+DAILY_POINT_LOSS_DELTA_REASON_CODE=NONE
+DAILY_POINT_LOSS_DELTA_EXTERNAL_BLOCKER=none
+DAILY_POINT_LOSS_DELTA_SEMANTICS=positive=model worse, negative=model better, zero=tie
+
+DAILY_POINT_SIGNED_DELTA_FIELDS=signed_bias_delta
+DAILY_POINT_SIGNED_DELTA_COMPARISON_AVAILABILITY=AVAILABLE
+DAILY_POINT_SIGNED_DELTA_METRIC_STATUS=COMPARED
+DAILY_POINT_SIGNED_DELTA_REASON_CODE=SIGNED_DIRECTION_ONLY
+DAILY_POINT_SIGNED_DELTA_EXTERNAL_BLOCKER=none
+SIGNED_BIAS_DELTA_BETTER_WORSE_INTERPRETATION_ALLOWED=false
+SIGNED_BIAS_DELTA_DIRECTION_ONLY=true
 
 COMPLETE_WINDOW_COMPARISON_FIELDS=absolute_cumulative_bias_magnitude_delta, signed_cumulative_error_delta, single_day_peak_date_absolute_error_delta_q, single_day_peak_quantity_absolute_error_delta_q, sustained_7day_start_date_absolute_error_delta_q, sustained_7day_quantity_absolute_error_delta_q
 COMPLETE_WINDOW_COMPARISON_READINESS=BLOCKED_BY_S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
@@ -1009,16 +1027,62 @@ COMPLETE_WINDOW_COMPARISON_METRIC_STATUS=NOT_COMPUTABLE
 COMPLETE_WINDOW_COMPARISON_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
 COMPLETE_WINDOW_COMPARISON_EXTERNAL_BLOCKER=S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
 
+SIGNED_CUMULATIVE_ERROR_DELTA_COMPARISON_AVAILABILITY=BLOCKED
+SIGNED_CUMULATIVE_ERROR_DELTA_METRIC_STATUS=NOT_COMPUTABLE
+SIGNED_CUMULATIVE_ERROR_DELTA_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+SIGNED_CUMULATIVE_ERROR_DELTA_EXTERNAL_BLOCKER=S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+
 BASELINE_QUANTILE_INTERVAL_COMPARISON_FIELDS=p80_coverage_delta, p90_coverage_delta, interval_width_delta, baseline_p80_p90_peak_comparison
 BASELINE_QUANTILE_INTERVAL_COMPARISON_READINESS=FROZEN_NOT_COMPUTABLE_LIMITATION
 BASELINE_QUANTILE_INTERVAL_COMPARISON_AVAILABILITY=BLOCKED
 BASELINE_QUANTILE_INTERVAL_COMPARISON_METRIC_STATUS=NOT_COMPUTABLE
-BASELINE_QUANTILE_INTERVAL_COMPARISON_REASON_CODE=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED, PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
-BASELINE_QUANTILE_INTERVAL_COMPARISON_EXTERNAL_BLOCKER=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+BASELINE_QUANTILE_INTERVAL_COMPARISON_EXTERNAL_BLOCKER=none
+BASELINE_QUANTILE_INTERVAL_COMPARISON_LIMITATIONS=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED, PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
+
+BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED_CLASS=FROZEN_NOT_COMPUTABLE_LIMITATION
+PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE_CLASS=FROZEN_NOT_COMPUTABLE_LIMITATION
+BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED_IS_EXTERNAL_BLOCKER=false
+PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE_IS_EXTERNAL_BLOCKER=false
+EXTERNAL_PREIMPLEMENTATION_BLOCKERS=S2_COMPLETE_DAILY_ROW_SET_AUTHORITY, P50_P80_P90_SEMANTICS_VERIFICATION
+
+MODEL_QUANTILE_PUBLICATION_EXTERNAL_GATE=P50_P80_P90_SEMANTICS_VERIFICATION
+BASELINE_QUANTILE_HEAD_TO_HEAD_LIMITATION=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+BASELINE_INTERVAL_HEAD_TO_HEAD_LIMITATION=PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
+
+P80_COVERAGE_DELTA_COMPARISON_AVAILABILITY=BLOCKED
+P80_COVERAGE_DELTA_METRIC_STATUS=NOT_COMPUTABLE
+P80_COVERAGE_DELTA_REASON_CODE=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+P80_COVERAGE_DELTA_EXTERNAL_BLOCKER=none
+P80_COVERAGE_DELTA_FROZEN_LIMITATION=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+
+P90_COVERAGE_DELTA_COMPARISON_AVAILABILITY=BLOCKED
+P90_COVERAGE_DELTA_METRIC_STATUS=NOT_COMPUTABLE
+P90_COVERAGE_DELTA_REASON_CODE=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+P90_COVERAGE_DELTA_EXTERNAL_BLOCKER=none
+P90_COVERAGE_DELTA_FROZEN_LIMITATION=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+
+BASELINE_P80_P90_PEAK_COMPARISON_AVAILABILITY=BLOCKED
+BASELINE_P80_P90_PEAK_COMPARISON_METRIC_STATUS=NOT_COMPUTABLE
+BASELINE_P80_P90_PEAK_COMPARISON_REASON_CODE=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+BASELINE_P80_P90_PEAK_COMPARISON_EXTERNAL_BLOCKER=none
+BASELINE_P80_P90_PEAK_COMPARISON_FROZEN_LIMITATION=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+
+INTERVAL_WIDTH_DELTA_COMPARISON_AVAILABILITY=BLOCKED
+INTERVAL_WIDTH_DELTA_METRIC_STATUS=NOT_COMPUTABLE
+INTERVAL_WIDTH_DELTA_REASON_CODE=PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
+INTERVAL_WIDTH_DELTA_EXTERNAL_BLOCKER=none
+INTERVAL_WIDTH_DELTA_FROZEN_LIMITATION=PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
 ```
 
 For each comparison field, the bundle publishes `comparison_availability`,
-`metric_status`, `reason_code`, and (where applicable) `external_blocker`.
+`metric_status`, `reason_code`, `external_blocker` (where applicable),
+and `frozen_limitation` (where applicable). `external_blocker` is
+populated only when the binding blocker is an external pre-implementation
+authority gap (closed set: `S2_COMPLETE_DAILY_ROW_SET_AUTHORITY`,
+`P50_P80_P90_SEMANTICS_VERIFICATION`). Frozen not-computable limitations
+(`BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED`,
+`PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE`) are recorded under
+`frozen_limitation`, NOT under `external_blocker`.
 
 The §16 surface is split across the three groups above; `comparison_availability`
 is the closed enumeration `{AVAILABLE, BLOCKED}` and `metric_status` is the
@@ -1028,18 +1092,29 @@ the closed-set token for "blocked" as a metric-status value; "blocked"
 is expressed only as `comparison_availability=BLOCKED`.
 
 ```text
+SECTION_16_WHOLE_SECTION_UNBLOCKED=false
+SECTION_16_READINESS_DEFINED_PER_COMPARISON_GROUP=true
 SECTION_16_DAILY_POINT_COMPARISON_DELTAS=NOT_BLOCKED_BY_DAILY_ROW_SET
 SECTION_16_COMPLETE_WINDOW_COMPARISON_DELTAS=BLOCKED_BY_S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
 SECTION_16_BASELINE_QUANTILE_INTERVAL_DELTAS=FROZEN_NOT_COMPUTABLE_LIMITATION
 ```
+
+Only the daily-point comparison subgroup (loss/magnitude + signed_bias_delta)
+can operate on the existing sparse S2 comparable binding rows.
+Complete-window comparison fields remain `NOT_COMPUTABLE` until the
+S2 complete daily row-set authority is supplied. Baseline quantile and
+interval comparison fields remain frozen `NOT_COMPUTABLE` limitations
+because the point-only baseline does not define a quantile distribution
+or a complete interval.
 
 For each field that cannot be computed, the bundle publishes:
 
 ```text
 comparison_availability=BLOCKED
 metric_status=NOT_COMPUTABLE
-reason_code=<specific reason from the table above>
-external_blocker=<specific blocker if upstream>
+reason_code=<per-field reason from the table above>
+external_blocker=<external blocker if upstream; otherwise omitted>
+frozen_limitation=<frozen not-computable limitation; recorded NOT as external_blocker>
 ```
 
 The S3 bundle NEVER silently omits a comparison field.
