@@ -1,23 +1,29 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Protocol
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.core_forecast.schemas import (
+    ResolvedCoreForecastIdentity,
+    ResolvedCoreForecastScopeIdentity,
+)
 from backend.app.models.harvest_state import (
     HarvestStateDailyMemberRowModel,
     HarvestStateRun,
 )
-from backend.app.models.master_data import Season
+from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import (
     MaturityDailyPredictionModel,
     MaturityForecastRun,
     MaturityModelArtifact,
 )
+from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 
 @dataclass(frozen=True)
@@ -72,6 +78,7 @@ class Task9AuthoritySource:
     maturity_model_artifact_hash: str | None
     result_hash: str
     member_rows: tuple[Task9MemberSource, ...]
+    forecast_effective_cutoff_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -86,6 +93,14 @@ class CoreForecastRepository(Protocol):
     async def load_task9_authority(self, run_id: int) -> Task9AuthoritySource | None: ...
 
     async def load_season(self, season_id: int) -> SeasonSource | None: ...
+
+    async def resolve_business_identity(
+        self,
+        *,
+        season_id: int,
+        factory_id: int,
+        scopes: tuple[tuple[int, int, int], ...],
+    ) -> ResolvedCoreForecastIdentity | None: ...
 
 
 class SqlAlchemyCoreForecastRepository:
@@ -170,6 +185,7 @@ class SqlAlchemyCoreForecastRepository:
                 )
                 for row in members
             ),
+            forecast_effective_cutoff_at=run.forecast_effective_cutoff_at,
         )
 
     async def load_season(self, season_id: int) -> SeasonSource | None:
@@ -177,3 +193,51 @@ class SqlAlchemyCoreForecastRepository:
         if season is None:
             return None
         return SeasonSource(season_id=season.id, code=season.code)
+
+    async def resolve_business_identity(
+        self,
+        *,
+        season_id: int,
+        factory_id: int,
+        scopes: tuple[tuple[int, int, int], ...],
+    ) -> ResolvedCoreForecastIdentity | None:
+        season = await self._session.get(Season, season_id)
+        factory = await self._session.get(Factory, factory_id)
+        if season is None or factory is None:
+            return None
+        resolved: list[ResolvedCoreForecastScopeIdentity] = []
+        for farm_id, subfarm_id, variety_id in scopes:
+            farm = await self._session.get(Farm, farm_id)
+            subfarm = await self._session.get(Subfarm, subfarm_id)
+            variety = await self._session.get(Variety, variety_id)
+            if farm is None or subfarm is None or variety is None or subfarm.farm_id != farm.id:
+                return None
+            resolved.append(
+                ResolvedCoreForecastScopeIdentity(
+                    farm_business_key=farm.name,
+                    subfarm_business_key=f"{farm.name}/{subfarm.name}",
+                    variety_business_key=variety.code,
+                )
+            )
+        ordered = tuple(
+            sorted(
+                resolved,
+                key=lambda item: (
+                    item.farm_business_key,
+                    item.subfarm_business_key,
+                    item.variety_business_key,
+                ),
+            )
+        )
+        projection = {
+            "season_business_key": season.code,
+            "factory_business_key": factory.code or factory.name,
+            "mapping_policy_version": "master-data-business-key-v1",
+            "scopes": [item.model_dump(mode="json") for item in ordered],
+        }
+        return ResolvedCoreForecastIdentity(
+            **projection,
+            resolved_identity_snapshot_hash=hashlib.sha256(
+                canonical_json_dumps(projection).encode("utf-8")
+            ).hexdigest(),
+        )

@@ -41,17 +41,94 @@ def _hash_checks(column: str, name: str) -> tuple[CheckConstraint, CheckConstrai
     )
 
 
+def _commit_sha_checks(column: str, name: str) -> tuple[CheckConstraint, CheckConstraint]:
+    return (
+        CheckConstraint(
+            f"length({column}) = 40 AND {column} NOT GLOB '*[^0-9a-f]*'",
+            name=name,
+        ).ddl_if(dialect="sqlite"),
+        CheckConstraint(
+            f"{column} ~ '^[0-9a-f]{{40}}$'",
+            name=name,
+        ).ddl_if(dialect="postgresql"),
+    )
+
+
+class CoreForecastCodeAuthorityModel(Base):
+    """Pre-registered immutable code/build/config identity."""
+
+    __tablename__ = "core_forecast_code_authority"
+    __table_args__ = (
+        CheckConstraint(
+            "authority_schema_version = 'v0.1-core-forecast-code-authority-v1'",
+            name="ck_core_forecast_code_authority_schema_version",
+        ),
+        *_commit_sha_checks(
+            "source_commit_sha",
+            "ck_core_forecast_code_authority_source_commit_sha",
+        ),
+        *_hash_checks(
+            "engine_code_hash",
+            "ck_core_forecast_code_authority_engine_code_hash",
+        ),
+        *_hash_checks(
+            "build_artifact_hash",
+            "ck_core_forecast_code_authority_build_artifact_hash",
+        ),
+        *_hash_checks(
+            "config_bundle_hash",
+            "ck_core_forecast_code_authority_config_bundle_hash",
+        ),
+        *_hash_checks(
+            "authority_hash",
+            "ck_core_forecast_code_authority_hash",
+        ),
+        UniqueConstraint(
+            "authority_hash",
+            name="uq_core_forecast_code_authority_hash",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(_BIGINT_VARIANT, primary_key=True, autoincrement=True)
+    authority_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
+    source_commit_sha: Mapped[str] = mapped_column(Text, nullable=False)
+    engine_code_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    build_artifact_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    config_bundle_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    canonical_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    authority_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class CoreForecastRunModel(Base):
     __tablename__ = "core_forecast_run"
     __table_args__ = (
         CheckConstraint("status = 'completed'", name="ck_core_forecast_run_completed_only"),
         CheckConstraint(
-            "run_schema_version = 'v0.1-core-forecast-run-v1'",
+            "run_schema_version in "
+            "('v0.1-core-forecast-run-v1', 'v0.1-core-forecast-run-authority-v2')",
             name="ck_core_forecast_run_schema_version",
         ),
         CheckConstraint(
-            "request_schema_version = 'v0.1-core-forecast-request-v1'",
+            "request_schema_version in "
+            "('v0.1-core-forecast-request-v1', "
+            "'v0.1-core-forecast-request-authority-v2')",
             name="ck_core_forecast_request_schema_version",
+        ),
+        CheckConstraint(
+            "(run_schema_version = 'v0.1-core-forecast-run-v1' "
+            "AND request_schema_version = 'v0.1-core-forecast-request-v1' "
+            "AND code_authority_id IS NULL AND code_authority_hash IS NULL "
+            "AND code_authority_available_at IS NULL AND forecast_effective_cutoff_at IS NULL) OR "
+            "(run_schema_version = 'v0.1-core-forecast-run-authority-v2' "
+            "AND request_schema_version = 'v0.1-core-forecast-request-authority-v2' "
+            "AND code_authority_id IS NOT NULL AND code_authority_hash IS NOT NULL "
+            "AND code_authority_available_at IS NOT NULL "
+            "AND forecast_effective_cutoff_at IS NOT NULL)",
+            name="ck_core_forecast_run_code_authority_coupling",
         ),
         CheckConstraint(
             "date_basis = 'HARVEST_BUSINESS_DATE'",
@@ -84,6 +161,16 @@ class CoreForecastRunModel(Base):
         *_hash_checks("metrics_hash", "ck_core_forecast_run_metrics_hash"),
         *_hash_checks("task8_artifact_hash", "ck_core_forecast_run_task8_artifact_hash"),
         *_hash_checks("task9_result_hash", "ck_core_forecast_run_task9_result_hash"),
+        CheckConstraint(
+            "(code_authority_hash IS NULL) OR "
+            "(length(code_authority_hash) = 64 "
+            "AND code_authority_hash NOT GLOB '*[^0-9a-f]*')",
+            name="ck_core_forecast_run_code_authority_hash",
+        ).ddl_if(dialect="sqlite"),
+        CheckConstraint(
+            "code_authority_hash IS NULL OR code_authority_hash ~ '^[0-9a-f]{64}$'",
+            name="ck_core_forecast_run_code_authority_hash",
+        ).ddl_if(dialect="postgresql"),
         UniqueConstraint("request_hash", name="uq_core_forecast_run_request_hash"),
         UniqueConstraint("result_hash", name="uq_core_forecast_run_result_hash"),
     )
@@ -100,6 +187,24 @@ class CoreForecastRunModel(Base):
     retention_policy_snapshot_hash: Mapped[str] = mapped_column(Text, nullable=False)
     curve_hash: Mapped[str] = mapped_column(Text, nullable=False)
     metrics_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    code_authority_id: Mapped[int | None] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "core_forecast_code_authority.id",
+            name="fk_core_forecast_run_code_authority",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+    )
+    code_authority_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    code_authority_available_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    forecast_effective_cutoff_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     request_snapshot: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
 
