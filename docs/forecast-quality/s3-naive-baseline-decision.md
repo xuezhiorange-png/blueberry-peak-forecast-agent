@@ -300,6 +300,23 @@ float participates in the canonical business arithmetic.
 The canonical hash of the baseline bind is computed over:
 
 ```text
+BASELINE_METRIC_INPUT_MASK_POLICY_VERSION=v0.2-s3-metric-input-mask-v1
+BASELINE_METRIC_INPUT_QUANTILE=P50
+BASELINE_POINT_METRIC_MASK=S2_STATUS_COMPARABLE_AND_FORECAST_QUANTILE_P50 AND BASELINE_POINT_FORECAST_COMPUTABLE
+BASELINE_METRIC_INPUT_MASK_HASH_REQUIRED=true
+BASELINE_UNIQUE_ACTUAL_PHYSICAL_ROW_COUNT_REQUIRED=true
+BASELINE_CANONICAL_MASK_IDENTITY_ALIGNED_WITH_METRIC_CONTRACT=true
+
+metric_input_mask_hash covers:
+  metric_input_mask_policy_version
+  S2 status predicate
+  P50 quantile predicate
+  baseline computable predicate
+  breakdown identity
+  S2 source row-set identity
+  baseline source snapshot identity
+  baseline source row-set hash
+
 BASELINE_CANONICAL_HASH_PAYLOAD={
   schema_version,
   s2_run_identity,
@@ -315,17 +332,34 @@ BASELINE_CANONICAL_HASH_PAYLOAD={
   baseline_grain,
   baseline_horizon_rule,
   breakdown_dimensions,
+  metric_input_mask_policy_version,
+  metric_input_mask_hash,
+  metric_input_row_count,
+  metric_input_quantile,
+  unique_actual_physical_row_count,
   per_breakdown_cell: {
     baseline_point_forecast_kg,
-    s2_comparable_row_count,
-    s2_excluded_row_count,
-    s2_not_computable_row_count,
+    metric_input_mask_policy_version,
+    metric_input_mask_hash,
+    metric_input_row_count,
+    metric_input_quantile,
+    unique_actual_physical_row_count,
     mape_eligible_row_count,
     mape_zero_actual_row_count,
     metric_status,
     reason_code
   }
 }
+```
+
+The baseline canonical hash payload MUST bind the metric input mask
+identity at both the payload root and at the per-breakdown-cell level,
+so the baseline can never be replayed against a different metric input
+mask than the metric contract.
+
+```text
+BASELINE_METRIC_INPUT_MASK_AT_PAYLOAD_ROOT=true
+BASELINE_METRIC_INPUT_MASK_AT_PER_BREAKDOWN_CELL=true
 ```
 
 The hash payload does NOT carry:
@@ -347,6 +381,14 @@ metrics contract.
 The model and the baseline MUST use the same inputs and outputs:
 
 ```text
+REQUIRED_BREAKDOWN_AXES=forecast_horizon_days, farm_business_key, subfarm_business_key, variety_business_key, season_business_key, model_identity
+REQUIRED_BREAKDOWN_AXIS_COUNT=6
+BASELINE_DECISION_REQUIRED_BREAKDOWN_AXIS_COUNT=6
+BASELINE_BREAKDOWN_AXES_ALIGNED_WITH_METRIC_CONTRACT=true
+QUALITY_CONTRACT_REQUIRED_BREAKDOWN_AXIS_COUNT=6
+READINESS_MATRIX_REQUIRED_BREAKDOWN_AXIS_COUNT=6
+BREAKDOWN_AXIS_SET_IDENTITY=true
+
 IDENTICAL_S2_BINDING_ROWS=true
 IDENTICAL_ACTUAL_LABELS=true
 IDENTICAL_METRIC_POLICY=true
@@ -355,8 +397,11 @@ IDENTICAL_BREAKDOWN_POLICY=true
 
 The model and the baseline MUST be evaluated on the **same S2 binding row
 set** with the **same metric formulas** and the **same breakdown axes**.
-The S3 bundle publishes both model metrics and baseline metrics per
-breakdown cell. The difference is that the model's underlying forecast is
+The breakdown axes used for both the model evaluation and the baseline
+evaluation are the six-axis set above; the baseline does not silently
+use a different breakdown axes set than the metric contract. The S3
+bundle publishes both model metrics and baseline metrics per breakdown
+cell. The difference is that the model's underlying forecast is
 the model's raw P50 / P80 / P90; the baseline's underlying forecast is
 the prior-season analog-day actual.
 
