@@ -116,14 +116,26 @@ The mapping from a current target date to a prior-season target date uses
 the current-season calendar day index. The day index is computed by
 `deterministic_season_day_index(current_target_date, current_season_calendar_authority)`.
 
+### 4.1 Leap-day policy — F-17 round 2 close
+
 ```text
-LEAP_DAY_POLICY=SKIP_BUT_MAP_TO_LEAP_ADJUSTED_DAY_INDEX
+LEAP_DAY_POLICY=MAP_FEB29_TO_PRIOR_FEB28
+SEARCH_EARLIER_LEAP_SEASON=false
+DATE_SKEW_REASON=LEAP_DAY_ADJUSTED
 ```
 
-When the current target date is `Feb 29` (leap day), the mapping skips
-prior seasons that are not leap years and uses the
-`season_day_index(Feb 28)` mapping to the prior season's `Feb 28`. The
-mapping is recorded with `date_skew_reason=LEAP_DAY_ADJUSTED`.
+```text
+WHEN_CURRENT_TARGET_DATE_IS_FEB29=resolve the immediately prior season analog date as Feb 28 when that prior season has no Feb 29
+WHEN_PRIOR_SEASON_HAS_FEB29=map Feb 29 to Feb 29
+SEARCH_AN_EARLIER_LEAP_SEASON=false
+```
+
+The prior policy `LEAP_DAY_POLICY=SKIP_BUT_MAP_TO_LEAP_ADJUSTED_DAY_INDEX`
+combined a "skip non-leap prior seasons" rule with a "map to the prior
+season's Feb 28" rule. The two clauses are mutually exclusive for a
+single prior season. The frozen policy is the "map to prior Feb 28"
+rule only. The prior season is never skipped; the mapping lands on
+the prior Feb 28 when the prior season is not a leap year.
 
 ```text
 UNEQUAL_SEASON_LENGTH_POLICY=TRUNCATE_TO_SHORTER_SEASON_DAY_COUNT
@@ -156,25 +168,38 @@ horizon for the prior-season source is the current forecast_cutoff_at.
 The prior-season actual label revision must be visible at or before
 the current forecast_cutoff_at.
 
+## 5. Baseline source visibility — F-11 round 2 close
+
+The baseline visibility reference is bound to the **current** forecast
+cutoff, not the prior-season forecast cutoff. The prior-season forecast
+cutoff is not relevant to the current baseline's visibility decision.
+
 ```text
-BASELINE_SOURCE_VISIBILITY_RULE=
-  prior-season actual label revision must be visible
-  at or before current forecast_cutoff_at
+BASELINE_VISIBILITY_REFERENCE=CURRENT_FORECAST_CUTOFF
+BASELINE_SOURCE_VISIBILITY_RULE=PRIOR_ANALOG_ACTUAL_REVISION_VISIBLE_AT_OR_BEFORE_CURRENT_FORECAST_CUTOFF
+PRIOR_ANALOG_ACTUAL_ALLOWED_IF=revision_visibility_timestamp <= current_forecast_cutoff_at
+VISIBILITY_RELATIVE_TO_PRIOR_SEASON_FORECAST_CUTOFF=NOT_RELEVANT
 ```
 
-The baseline MUST NOT use the prior-season future target dates as
-visible at the current forecast_cutoff_at. The rejected phrasing
+The prior wording
 
 ```text
-prior_season_forecast_cutoff = current forecast cutoff minus one season
+The baseline MUST NOT use the prior-season future target dates
+as visible at the current forecast_cutoff_at.
 ```
 
-is **REJECTED** because it would require the prior-season future target
-dates to be visible at the prior season's forecast cutoff, which is
-physically impossible under the seasonal boundary.
+was over-restrictive. The correct explanation is:
 
 ```text
-BASELINE_PRIOR_SEASON_FUTURE_TARGET_DATE_VISIBILITY=REJECTED
+A prior-season analog target may have been future relative to the
+prior-season forecast cutoff, but it is eligible for the current
+baseline when its actual-label revision was already visible at or
+before the current forecast_cutoff_at.
+```
+
+```text
+BASELINE_PRIOR_SEASON_ANALOG_ACTUAL_VISIBILITY=ALLOWED_WHEN_VISIBLE_BY_CURRENT_FORECAST_CUTOFF
+BASELINE_PRIOR_SEASON_OLD_FORECAST_CUTOFF_CHECK_REQUIRED=false
 ```
 
 The baseline binds the following identities:

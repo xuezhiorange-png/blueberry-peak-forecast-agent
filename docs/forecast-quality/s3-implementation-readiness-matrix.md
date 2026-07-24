@@ -3,6 +3,9 @@
 > Target: V0.2-S3 (FORECAST_QUALITY_METRICS_AND_ONE_NAIVE_BASELINE)
 > Companion: `docs/forecast-quality/s3-quality-metrics-contract.md`
 > Companion: `docs/forecast-quality/s3-naive-baseline-decision.md`
+> Round 2 fixup scope: F14 four-classification closure; F15/F16 alignment note
+> F15 / F16 acceptance gates are documented in the S3 contract; the matrix
+>  restates the same classification without changing the requirement list.
 > Scope: per-requirement implementation readiness + owner path + acceptance test
 > Base: `b873dd63fc0d5b6375f94674abbd24a94d915f3c`
 > Source authority: `docs/forecast-quality/q2b-point-in-time-backtest-runner-contract.md` (S2 binding + manifest)
