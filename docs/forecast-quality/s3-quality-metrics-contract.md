@@ -98,17 +98,19 @@ and the COMPLETE_HORIZON_METRICS section publish `metric_status=NOT_COMPUTABLE`
 with `reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`.
 
 When the S2 amendment is accepted, S3 MUST additionally bind the following
-identities on the daily row set:
+identities on the daily row set. Until the S2 amendment is accepted, every
+field is bound to an explicit sentinel value so that no machine-readable
+field is empty.
 
 ```text
-S3_DAILY_ROW_SET_AUTHORITY=
-S3_DAILY_ROW_SET_IDENTITY=
-S3_DAILY_ROW_SET_HASH=
-S3_DAILY_ROW_SET_START_DATE=
-S3_DAILY_ROW_SET_END_DATE=
-S3_DAILY_ROW_SET_EXPECTED_DAY_COUNT=
-S3_DAILY_ROW_SET_ACTUAL_DAY_COUNT=
-S3_DAILY_ROW_SET_COMPLETENESS_STATUS=
+S3_DAILY_ROW_SET_AUTHORITY=NOT_AVAILABLE_PENDING_S2_AMENDMENT
+S3_DAILY_ROW_SET_IDENTITY=NOT_AVAILABLE_PENDING_S2_AMENDMENT
+S3_DAILY_ROW_SET_HASH=NOT_AVAILABLE_PENDING_S2_AMENDMENT
+S3_DAILY_ROW_SET_START_DATE=NOT_AVAILABLE_PENDING_S2_AMENDMENT
+S3_DAILY_ROW_SET_END_DATE=NOT_AVAILABLE_PENDING_S2_AMENDMENT
+S3_DAILY_ROW_SET_EXPECTED_DAY_COUNT=NOT_AVAILABLE_PENDING_S2_AMENDMENT
+S3_DAILY_ROW_SET_ACTUAL_DAY_COUNT=NOT_AVAILABLE_PENDING_S2_AMENDMENT
+S3_DAILY_ROW_SET_COMPLETENESS_STATUS=BLOCKED_BY_S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
 ```
 
 The future amendment MUST prove that within each evaluation instance, every
@@ -462,8 +464,38 @@ pinball_loss_q
 ```
 
 `q` is the quantile level expressed as a fraction in `[0, 1]`. The formula
-is `q * (actual - forecast_q)` for over-prediction (`actual < forecast_q`) and
-`(q - 1) * (actual - forecast_q)` for under-prediction (`actual >= forecast_q`).
+is the standard pinball-loss formula. The branch assignment is explicitly
+frozen as:
+
+```text
+PINBALL_UNDER_PREDICTION_CONDITION=actual >= forecast_q
+PINBALL_UNDER_PREDICTION_TERM=q * (actual - forecast_q)
+PINBALL_OVER_PREDICTION_CONDITION=actual < forecast_q
+PINBALL_OVER_PREDICTION_TERM=(q - 1) * (actual - forecast_q)
+```
+
+Hand-computed examples:
+
+```text
+CASE_A:
+  q=0.8
+  actual=10
+  forecast=8
+  actual >= forecast_q -> under-prediction branch
+  loss = q * (actual - forecast_q) = 0.8 * (10 - 8) = 1.6
+
+CASE_B:
+  q=0.8
+  actual=8
+  forecast=10
+  actual < forecast_q -> over-prediction branch
+  loss = (q - 1) * (actual - forecast_q) = (0.8 - 1) * (8 - 10) = 0.4
+```
+
+The prior wording `q * (actual - forecast_q)` for over-prediction and
+`(q - 1) * (actual - forecast_q)` for under-prediction is REVERSED under
+the frozen branch assignment and is rejected. The branches are bound to
+sign(retention-on-the-correct-side), not to convenience.
 Pinball loss is published only when the corresponding quantile semantics is
 verified as `VERIFIED_TRUE_UPPER_QUANTILE`.
 
@@ -477,10 +509,7 @@ PINBALL_LOSS_REMOVED_FROM_S3=false
 The minimum calculation grain for point, peak, and breakdown metrics is:
 
 ```text
-CALCULATION_BASE_GRAIN=
-  season
-  x farm
-  x subfarm
+CALCULATION_BASE_GRAIN=SEASON x farm x subfarm x variety x target_date x forecast_cutoff x model_identity x forecast_quantile
   x variety
   x target_date
   x forecast_cutoff
@@ -642,6 +671,10 @@ The baseline is point-only. The baseline P80 / P90 forecasts are
 `NOT_COMPUTABLE`. The S3 bundle reports `metric_status=NOT_COMPUTABLE` and
 `reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` for any
 head-to-head comparison that requires a baseline P80 / P90 forecast.
+
+```text
+FARM_BREAKDOWN_REQUIRED=true
+```
 
 ```text
 BASELINE_P80_COVERAGE_COMPARISON=BLOCKED
