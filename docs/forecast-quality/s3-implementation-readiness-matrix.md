@@ -21,12 +21,12 @@ NO_OTHER_OPEN_BLOCKERS=false
 ## 1. Purpose
 
 This document freezes the per-requirement implementation readiness matrix for
-S3 using a single four-class readiness model. It records the design status,
-the candidate implementation owner path, the candidate test owner path, the
-database requirement, the concurrency requirement, the migration
-requirement, the readiness class, and the acceptance test for each
-requirement. S3 implementation is NOT authorized in this round. The matrix
-is the contract for a future
+S3 using a single readiness model of one ready state plus four governance
+classes. It records the design status, the candidate implementation owner
+path, the candidate test owner path, the database requirement, the
+concurrency requirement, the migration requirement, the readiness value,
+and the acceptance test for each requirement. S3 implementation is NOT
+authorized in this round. The matrix is the contract for a future
 `S3_IMPLEMENTATION_AUTHORIZED_ONLY` round that introduces the calculator,
 internal application service, schema, migration, persistence and tests.
 
@@ -49,26 +49,31 @@ pre-allocate any path under `backend/app/`, `backend/alembic/versions/`,
 shapes for a future implementation round, not a green light to create
 those files.
 
-## 2. Readiness class taxonomy (frozen)
+## 2. Readiness model (frozen)
 
-The matrix classifies every requirement into exactly one of the following
-five readiness classes. The vocabulary is closed.
+The matrix classifies every requirement into exactly one of five
+readiness values: one ready state and four governance classes. The
+ready state and the four governance classes are disjoint; every
+requirement picks exactly one value. The vocabulary is closed.
 
 ```text
-READY_PENDING_IMPLEMENTATION_AUTHORIZATION
-BLOCKED_BY_EXTERNAL_AUTHORITY
-IMPLEMENTATION_OBLIGATION
-FROZEN_NOT_COMPUTABLE_LIMITATION
-CLOSED_CONTRACT_ALIGNMENT
+READINESS_MODEL=FOUR_GOVERNANCE_CLASSES_PLUS_READY_STATE
+READY_STATE=READY_PENDING_IMPLEMENTATION_AUTHORIZATION
+READY_STATE_COUNT=1
+GOVERNANCE_CLASSES=BLOCKED_BY_EXTERNAL_AUTHORITY, IMPLEMENTATION_OBLIGATION, FROZEN_NOT_COMPUTABLE_LIMITATION, CLOSED_CONTRACT_ALIGNMENT
+GOVERNANCE_CLASS_COUNT=4
+TOTAL_READINESS_VALUE_COUNT=5
+READINESS_COLUMN_CONTAINS=ONE_READY_STATE_OR_ONE_OF_FOUR_GOVERNANCE_CLASSES
 ```
 
 Definitions:
 
 ```text
-EXTERNAL_PREIMPLEMENTATION_BLOCKER = unresolved external authority or upstream contract gap that cannot be closed by the authorized S3 implementation round itself
-IMPLEMENTATION_OBLIGATION = frozen design requirement that an independently authorized S3 implementation round must implement and test
-FROZEN_NOT_COMPUTABLE_LIMITATION = intentional v1 boundary represented by an explicit metric status and reason code; not a prerequisite for point-metric implementation
-CLOSED_CONTRACT_ALIGNMENT = an upstream contract item that has already been aligned with S3 and is no longer an open blocker
+READY_PENDING_IMPLEMENTATION_AUTHORIZATION = design is frozen and no external authority blocks implementation, but implementation still requires Charles's separate authorization
+BLOCKED_BY_EXTERNAL_AUTHORITY = cannot be implemented or published until an upstream authority gap is independently closed
+IMPLEMENTATION_OBLIGATION = frozen design behavior that the future authorized S3 implementation round must implement and test
+FROZEN_NOT_COMPUTABLE_LIMITATION = intentional v1 boundary represented by explicit status and reason code
+CLOSED_CONTRACT_ALIGNMENT = contract alignment already resolved and no longer an open blocker
 ```
 
 Frozen enumeration of blockers, obligations, limitations and closed
@@ -87,6 +92,10 @@ Specific impact mapping:
 S2_COMPLETE_DAILY_ROW_SET_AUTHORITY_BLOCKS = complete-window cumulative metrics; single-day peak over a complete requested window; sustained 7-day peak; complete-window comparison outputs
 P50_P80_P90_SEMANTICS_VERIFICATION_BLOCKS = quantile coverage publication; pinball-loss publication; any interpretation requiring verified quantile semantics
 ```
+
+The matrix `READINESS_VALUE` (column header `READINESS_CLASS`) for any
+requirement MUST contain one of the five values above; no other token
+may appear in that column.
 
 Daily point-forecast metrics are NOT gated on the S2 daily-row-set
 amendment. Their readiness is recorded separately:
@@ -116,7 +125,7 @@ list.
 | S3R-10 baseline visibility rule (visible at or before current forecast_cutoff_at), separate baseline source snapshot | FROZEN | backend/app/forecast_quality/baseline.py | backend/tests/forecast_quality/test_baseline_visibility.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | BASELINE_VISIBILITY_ACCEPTANCE_TEST=ALLOW_PRIOR_ANALOG_ACTUAL_VISIBLE_BY_CURRENT_CUTOFF_AND_REJECT_LATER_REVISION |
 | S3R-11 baseline prohibits post-cutoff / latest / model / receipt / zero | FROZEN | backend/app/forecast_quality/baseline.py | backend/tests/forecast_quality/test_baseline_red.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest each prohibited source flagged |
 | S3R-12 baseline point-only (P80/P90 NOT_COMPUTABLE) | FROZEN | backend/app/forecast_quality/baseline.py | backend/tests/forecast_quality/test_baseline_quantile.py | yes | no | no | FROZEN_NOT_COMPUTABLE_LIMITATION | none |  | pytest p80 / p90 deltas → NOT_COMPUTABLE; status=BLOCKED |
-| S3R-13 breakdown contract (horizon / farm / variety / season / model) | FROZEN | backend/app/forecast_quality/breakdown.py | backend/tests/forecast_quality/test_breakdown.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest breakdown cells match the axes |
+| S3R-13 breakdown contract (horizon / farm / subfarm / variety / season / model) | FROZEN | backend/app/forecast_quality/breakdown.py | backend/tests/forecast_quality/test_breakdown.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | BREAKDOWN_ACCEPTANCE_TEST=all six required axes produce deterministic breakdown cells |
 | S3R-14 INSUFFICIENT_SAMPLE below MIN_COMPARABLE_ROWS_FOR_REPORTING=10 | FROZEN | backend/app/forecast_quality/breakdown.py | backend/tests/forecast_quality/test_breakdown_min.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest small-sample cells flagged, not dropped |
 | S3R-15 cross-quantile actual-label dedup (one actual per physical grain; P50/P80/P90 forecast rows join to SAME actual) | FROZEN | backend/app/forecast_quality/canonical.py | backend/tests/forecast_quality/test_actual_dedup.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest single actual label per physical grain, reused across quantiles |
 | S3R-16 subfarm-to-farm aggregation (sum of subfarm_q_i over exact deduped actual rows; max-single-subfarm is NOT farm peak) | FROZEN | backend/app/forecast_quality/aggregation.py | backend/tests/forecast_quality/test_aggregation.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest farm-level peak equals sum of subfarm-level amounts |
@@ -127,7 +136,8 @@ list.
 | S3R-21 Decimal + 1e-6 + ROUND_HALF_EVEN canonical payload emit; DECIMAL_ONLY_CANONICAL_ARITHMETIC=true; native float / numpy float / binary float NOT allowed at any intermediate step | FROZEN | backend/app/forecast_quality/canonical.py | backend/tests/forecast_quality/test_decimal.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest canonical payload bytes match `str(Decimal(1e-6))`; no float intermediate |
 | S3R-22 P50 / P80 / P90 coverage gated on QUANTILE_SEMANTICS_VERIFICATION | FROZEN | backend/app/forecast_quality/quantile.py | backend/tests/forecast_quality/test_quantile.py | yes | no | no | BLOCKED_BY_EXTERNAL_AUTHORITY | P50_P80_P90_SEMANTICS_VERIFICATION |  | pytest coverage not published until semantic verified |
 | S3R-23 pinball loss preserved (NOT_COMPUTABLE gated on QUANTILE_SEMANTICS_VERIFICATION; UPSTREAM_CONTRACT_AMENDMENT_ACCEPTED=false) | FROZEN | backend/app/forecast_quality/quantile.py | backend/tests/forecast_quality/test_pinball.py | yes | no | no | BLOCKED_BY_EXTERNAL_AUTHORITY | P50_P80_P90_SEMANTICS_VERIFICATION | PINBALL_UPSTREAM_CONTRACT_ALIGNMENT_CLOSED | pytest pinball loss NOT_COMPUTABLE until semantic verified |
-| S3R-24 head-to-head comparison over COMMON_COMPARABLE_SET | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison.py | yes | no | no | FROZEN_NOT_COMPUTABLE_LIMITATION | none |  | pytest deltas respect common vs model-only vs baseline-only |
+| S3R-24A point head-to-head comparison over COMMON_COMPARABLE_SET (daily_mae_delta, daily_wape_delta, daily_smape_delta, daily_mape_delta, absolute_bias_magnitude_delta, absolute_cumulative_bias_magnitude_delta, signed_bias_delta, signed_cumulative_error_delta) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_point.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | POINT_HEAD_TO_HEAD_OVER=COMMON_COMPARABLE_SET; pytest point deltas computed over COMMON_COMPARABLE_SET without deleting model-only or baseline-only rows |
+| S3R-24B baseline quantile and interval head-to-head (p80_coverage_delta, p90_coverage_delta, interval_width_delta, baseline_p80_p90_peak_comparison) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_quantile.py | yes | no | no | FROZEN_NOT_COMPUTABLE_LIMITATION | none |  | pytest baseline quantile / interval deltas publish NOT_COMPUTABLE for the baseline-only paths |
 | S3R-25 comparison delta semantics (loss_delta, signed_delta, absolute-bias-magnitude_delta) | FROZEN | backend/app/forecast_quality/comparison.py | backend/tests/forecast_quality/test_comparison_delta.py | yes | no | no | IMPLEMENTATION_OBLIGATION | none |  | pytest loss_delta positive=worse; signed_delta direction only; magnitude_delta positive=worse |
 | S3R-26 Slice Q2B / Q2C / Q2D / Q2E / Q2F governance dependencies untouched | FROZEN (boundary) | backend/app/forecast_quality/(none) | backend/tests/forecast_quality/(none) | n/a | n/a | n/a | CLOSED_CONTRACT_ALIGNMENT | none | PINBALL_UPSTREAM_CONTRACT_ALIGNMENT_CLOSED | n/a |
 
@@ -248,7 +258,13 @@ P50_P80_P90_SEMANTICS_VERIFICATION
 
 BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
   - S3R-12 baseline point-only
-  - S3R-24 head-to-head comparison
+  - S3R-24B baseline quantile and interval head-to-head
+
+PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
+  - S3R-24B baseline quantile and interval head-to-head
+
+POINT_HEAD_TO_HEAD_NOT_COMPUTABLE=false
+BASELINE_QUANTILE_HEAD_TO_HEAD_NOT_COMPUTABLE=true
 
 PINBALL_UPSTREAM_CONTRACT_ALIGNMENT_CLOSED
   - S3R-23 pinball loss (alignment closed; only quantile-semantics verification remains)

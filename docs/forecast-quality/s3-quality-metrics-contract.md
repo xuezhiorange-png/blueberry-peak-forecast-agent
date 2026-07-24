@@ -99,9 +99,40 @@ COMPLETE_HORIZON_METRICS_IMPLEMENTATION_STATUS=BLOCKED
 The unimplemented cumulative, single-day-peak, sustained-7-day-peak, and
 complete-horizon metrics are blocked until the S2 amendment is accepted. The
 metric contract below is the **target** contract that will activate after the
-S2 amendment is accepted. Without the S2 amendment, all of §5, §7.1, §7.2,
-and the COMPLETE_HORIZON_METRICS section publish `metric_status=NOT_COMPUTABLE`
-with `reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`.
+S2 amendment is accepted. Without the S2 amendment, the sections listed in
+`WITHOUT_S2_DAILY_ROWSET_AMENDMENT_NOT_COMPUTABLE_SECTIONS` publish
+`metric_status=NOT_COMPUTABLE` with
+`reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`.
+
+```text
+WITHOUT_S2_DAILY_ROWSET_AMENDMENT_NOT_COMPUTABLE_SECTIONS=SECTION_7_SEASON_CUMULATIVE_METRICS, SECTION_9_1_SINGLE_DAY_PEAK, SECTION_9_2_SUSTAINED_7DAY_PEAK, COMPLETE_HORIZON_COMPARISON_OUTPUTS
+METRIC_IDENTITY_BINDING_BLOCKED=false
+DAILY_POINT_METRICS_BLOCKED_BY_COMPLETE_DAILY_ROWSET=false
+```
+
+The following sections of this contract are NOT blocked by the S2 daily
+row set amendment and may be implemented on the existing sparse S2
+binding rows:
+
+```text
+SECTION_4_COMPARABLE_STATUS_SEMANTICS = not blocked
+SECTION_5_METRIC_IDENTITY_BINDING = not blocked
+SECTION_6_DAILY_POINT_FORECAST_METRICS = not blocked
+SECTION_8_DENOMINATOR_ZERO_AND_ZERO_SAFETY_POLICIES = not blocked
+SECTION_10_QUANTILE_COVERAGE_P80_P90 = gated on P50_P80_P90_SEMANTICS_VERIFICATION, not on S2 daily row set
+SECTION_11_CALCULATION_GRAIN_AGGREGATION_AND_DEDUP = not blocked
+SECTION_12_BREAKDOWN_CONTRACT = not blocked
+SECTION_13_DECIMAL_ARITHMETIC = not blocked
+SECTION_14_IDEMPOTENCY_AND_INTEGRITY = not blocked
+SECTION_15_SINGLE_NAIVE_BASELINE_INTERFACE = not blocked
+SECTION_16_COMPARISON_DELTA_SEMANTICS = not blocked (point deltas are computable on existing comparable rows)
+```
+
+The §5 "Metric identity binding" is NOT blocked. §6 daily point-forecast
+metrics can be implemented on the existing sparse S2 comparable rows.
+§7 cumulative, §9.1 single-day peak, §9.2 sustained 7-day peak, and
+complete-window comparison outputs are the only sections waiting for the
+S2 daily-row-set amendment.
 
 When the S2 amendment is accepted, S3 MUST additionally bind the following
 identities on the daily row set. Until the S2 amendment is accepted, every
@@ -163,18 +194,44 @@ ZERO_ACTUAL_COMPARABLE_ROW_MOVED_TO_S2_EXCLUDED_COUNT=false
 
 ### 3.1 MAPE-specific counters and formula — F-02 close
 
+The MAPE counters are bound to the same P50 point-metric mask used by
+the other P50 point metrics. There is exactly one authoritative
+definition of `mape_eligible_row_count` and `mape_zero_actual_row_count`
+in this contract; both reference `P50_POINT_METRIC_MASK`. The P50 mask
+already includes the S2 COMPARABLE predicate, so the MAPE counters
+implicitly restrict to S2 COMPARABLE AND forecast_quantile == P50.
+
 ```text
+MAPE_COUNTER_AUTHORITY=P50_POINT_METRIC_MASK
+P50_POINT_METRIC_MASK=S2_STATUS_COMPARABLE_AND_FORECAST_QUANTILE_P50
+MAPE_COUNTER_INCLUDES_P80_ROWS=false
+MAPE_COUNTER_INCLUDES_P90_ROWS=false
+MAPE_COUNTER_RECLASSIFIES_S2_STATUS=false
+MAPE_COUNTER_AUTHORITY_ASSIGNMENT_COUNT=1
+MAPE_COUNTER_NON_P50_AUTHORITATIVE_DEFINITION_COUNT=0
+
 mape_eligible_row_count
-  = count(binding row where S2 status == COMPARABLE AND actual_i > 0)
+  = count(
+    rows matching P50_POINT_METRIC_MASK
+    AND actual_i > 0
+  )
+
 mape_zero_actual_row_count
-  = count(binding row where S2 status == COMPARABLE AND actual_i == 0)
+  = count(
+    rows matching P50_POINT_METRIC_MASK
+    AND actual_i == 0
+  )
 ```
 
 The `daily_mape` formula is:
 
 ```text
 daily_mape
-  = sum(absolute_error_i / actual_i where S2 status == COMPARABLE AND actual_i > 0)
+  = sum(
+      absolute_error_i / actual_i
+      over P50_POINT_METRIC_MASK
+      where actual_i > 0
+    )
     / mape_eligible_row_count
 ```
 
@@ -191,9 +248,10 @@ MAPE_NO_ELIGIBLE_ROWS_REASON=NO_MAPE_ELIGIBLE_ROWS
 MAPE_DIVIDES_BY_ALL_COMPARABLE_ROWS=false
 ```
 
-`daily_mape` MUST NOT silently move zero-actual rows into `excluded_row_count`
-(S2's bucket). Zero-actual rows stay in `s2_comparable_row_count` and are
-counted in `mape_zero_actual_row_count`.
+`daily_mape` MUST NOT include P80 / P90 forecast rows (the P50 mask
+filters them out by construction). The MAPE counters MUST NOT
+reclassify any row's S2 status. Zero-actual rows stay in
+`s2_comparable_row_count` and are counted in `mape_zero_actual_row_count`.
 
 ## 4. Comparable status semantics
 
@@ -317,13 +375,11 @@ daily_relative_bias  = sum(error_i over P50_POINT_METRIC_MASK)
 daily_absolute_error_sum_kg = sum(absolute_error_i over P50_POINT_METRIC_MASK)
 ```
 
-`MAPE` uses the same P50 mask as the other P50 point metrics:
+`MAPE` uses the same P50 mask as the other P50 point metrics; the
+authoritative definition lives in §3.1 and is referenced here:
 
 ```text
-mape_eligible_row_count
-  = count(rows matching P50_POINT_METRIC_MASK and actual_i > 0)
-mape_zero_actual_row_count
-  = count(rows matching P50_POINT_METRIC_MASK and actual_i == 0)
+MAPE_COUNTER_AUTHORITY=P50_POINT_METRIC_MASK
 ```
 
 ## 7. Season cumulative metrics
@@ -722,10 +778,18 @@ metric row is not emitted; the run fails closed.
 
 ## 12. Breakdown contract
 
-S3 MUST publish the following breakdown axes. All six breakdowns are
-required; the contract MUST NOT silently omit any of them.
+S3 MUST publish the following breakdown axes. All six required axes are
+mandatory; the contract MUST NOT silently omit any of them.
 
 ```text
+REQUIRED_BREAKDOWN_AXES=forecast_horizon_days, farm_business_key, subfarm_business_key, variety_business_key, season_business_key, model_identity
+REQUIRED_BREAKDOWN_AXIS_COUNT=6
+QUALITY_CONTRACT_REQUIRED_BREAKDOWN_AXIS_COUNT=6
+READINESS_MATRIX_REQUIRED_BREAKDOWN_AXIS_COUNT=6
+BASELINE_DECISION_REQUIRED_BREAKDOWN_AXIS_COUNT=6
+BREAKDOWN_AXIS_SET_IDENTITY=true
+BREAKDOWN_ACCEPTANCE_TEST=all six required axes produce deterministic breakdown cells
+
 FARM_BREAKDOWN_REQUIRED=true
 FARM_DAILY_AGGREGATION_REQUIRED=true
 SUBFARM_BREAKDOWN_REQUIRED=true
