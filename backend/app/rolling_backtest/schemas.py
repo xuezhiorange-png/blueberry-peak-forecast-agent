@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
-from typing import Annotated, Literal, Self
+from decimal import Decimal
+from typing import Annotated, Final, Literal, Self
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_payload
 from backend.app.rolling_backtest.enums import (
     AvailabilityRuleKind,
     AvailabilitySourceType,
@@ -408,6 +410,390 @@ class RollingBacktestConfig(_BaseModel):
                 != Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL
             ):
                 raise ValueError("historical_observed nodes must use historically_available_model")
+        return self
+
+
+# V0.2-S2 historical binding contract.  These models intentionally carry
+# business-key scope and immutable authority identities, not database lookup
+# ids.  They are the input boundary for the runner; no S3 metric is part of
+# this contract.
+S2_CONTRACT_VERSION: Final = "v0.2-s2-historical-binding-v1"
+S2_ALLOWED_HORIZONS_DAYS = (7, 14, 21)
+S2_LABEL_VISIBILITY_MODES = ("AS_OF_EVALUATION", "FINAL_ADJUDICATED")
+
+
+def s2_business_grain_hash(
+    *,
+    season_business_key: str,
+    farm_business_key: str,
+    subfarm_business_key: str,
+    variety_business_key: str,
+    target_date: date,
+) -> str:
+    return sha256_payload(
+        canonical_json_value(
+            {
+                "season_business_key": season_business_key,
+                "farm_business_key": farm_business_key,
+                "subfarm_business_key": subfarm_business_key,
+                "variety_business_key": variety_business_key,
+                "target_date": target_date,
+            }
+        )
+    )
+
+
+def s2_physical_alignment_evidence_hash(
+    *,
+    forecast_physical_event: str,
+    actual_physical_event: str,
+    forecast_quantity_basis: str,
+    actual_quantity_basis: str,
+    unit: str,
+    loss_boundary_policy_version: str,
+    physical_alignment_policy_version: str,
+    physical_alignment_status: str,
+) -> str:
+    return sha256_payload(
+        canonical_json_value(
+            {
+                "forecast_physical_event": forecast_physical_event,
+                "actual_physical_event": actual_physical_event,
+                "forecast_quantity_basis": forecast_quantity_basis,
+                "actual_quantity_basis": actual_quantity_basis,
+                "unit": unit,
+                "loss_boundary_policy_version": loss_boundary_policy_version,
+                "physical_alignment_policy_version": physical_alignment_policy_version,
+                "equivalence_attested": physical_alignment_status == "VERIFIED",
+            }
+        )
+    )
+
+
+def _s2_node_identity_hash_from_values(values: dict[str, object]) -> str:
+    """Derive the single S2 node identity from semantic request values only."""
+
+    return sha256_payload(
+        canonical_json_value(
+            {
+                "s2_contract_version": values.get("s2_contract_version"),
+                "season_business_keys": values.get("season_business_keys"),
+                "farm_business_keys": values.get("farm_business_keys"),
+                "subfarm_business_keys": values.get("subfarm_business_keys"),
+                "variety_business_keys": values.get("variety_business_keys"),
+                "master_identity_resolver_version": values.get("master_identity_resolver_version"),
+                "mapping_policy_version": values.get("mapping_policy_version"),
+                "resolved_identity_snapshot_hash": values.get("resolved_identity_snapshot_hash"),
+                "authority_selection_policy_version": values.get(
+                    "authority_selection_policy_version"
+                ),
+                "forecast_cutoff_at": values.get("forecast_cutoff_at"),
+                "label_observation_cutoff_at": values.get("label_observation_cutoff_at"),
+                "label_visibility_mode": values.get("label_visibility_mode"),
+                "requested_horizons_days": values.get("requested_horizons_days"),
+            }
+        )
+    )
+
+
+class S2HistoricalBacktestRequest(_BaseModel):
+    s2_contract_version: Literal["v0.2-s2-historical-binding-v1"] = S2_CONTRACT_VERSION
+    season_business_keys: tuple[str, ...] = Field(min_length=1)
+    farm_business_keys: tuple[str, ...] = Field(min_length=1)
+    subfarm_business_keys: tuple[str, ...] = Field(min_length=1)
+    variety_business_keys: tuple[str, ...] = Field(min_length=1)
+    master_identity_resolver_version: str = Field(min_length=1)
+    mapping_policy_version: str = Field(min_length=1)
+    resolved_identity_snapshot_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    authority_selection_policy_version: str = Field(min_length=1)
+    single_node_identity_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    forecast_cutoff_at: datetime
+    label_observation_cutoff_at: datetime | None = None
+    label_visibility_mode: Literal["AS_OF_EVALUATION", "FINAL_ADJUDICATED"]
+    requested_horizons_days: tuple[int, ...] = Field(min_length=1)
+
+    @field_validator(
+        "season_business_keys",
+        "farm_business_keys",
+        "subfarm_business_keys",
+        "variety_business_keys",
+        mode="before",
+    )
+    @classmethod
+    def _canonicalize_business_keys(cls, value: object) -> tuple[str, ...]:
+        if not isinstance(value, (tuple, list)):
+            raise ValueError("business-key scope must be a list or tuple")
+        normalized = tuple(sorted(str(item).strip() for item in value))
+        if not normalized or any(not item for item in normalized):
+            raise ValueError("business-key scope must contain non-empty values")
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("business-key scope must not contain duplicates")
+        return normalized
+
+    @field_validator("forecast_cutoff_at", "label_observation_cutoff_at")
+    @classmethod
+    def _require_aware_cutoff(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("cutoff timestamps must be timezone-aware")
+        return value
+
+    @field_validator("requested_horizons_days", mode="before")
+    @classmethod
+    def _normalize_horizons(cls, value: object) -> tuple[int, ...]:
+        if not isinstance(value, (tuple, list)):
+            raise ValueError("requested_horizons_days must be a list or tuple")
+        horizons = tuple(int(item) for item in value)
+        if not horizons:
+            raise ValueError("requested_horizons_days must not be empty")
+        if len(set(horizons)) != len(horizons):
+            raise ValueError("requested_horizons_days must not contain duplicates")
+        if any(item not in S2_ALLOWED_HORIZONS_DAYS for item in horizons):
+            raise ValueError("requested_horizons_days must be a subset of 7, 14, 21")
+        return tuple(sorted(horizons))
+
+    @model_validator(mode="after")
+    def _validate_visibility_cutoff(self) -> Self:
+        if self.label_visibility_mode == "AS_OF_EVALUATION":
+            if self.label_observation_cutoff_at is None:
+                raise ValueError("AS_OF_EVALUATION requires label_observation_cutoff_at")
+        elif self.label_observation_cutoff_at is not None:
+            raise ValueError("FINAL_ADJUDICATED requires null label_observation_cutoff_at")
+        derived = _s2_node_identity_hash_from_values(self.model_dump(mode="python"))
+        if self.single_node_identity_hash is not None and self.single_node_identity_hash != derived:
+            raise ValueError(
+                "single_node_identity_hash must equal the derived canonical S2 node identity"
+            )
+        object.__setattr__(self, "single_node_identity_hash", derived)
+        return self
+
+
+class S2PersistedAuthorityReferences(_BaseModel):
+    """Lookup references used by the fail-closed persisted-authority adapter."""
+
+    lookup_mode: Literal["EXACT"] = "EXACT"
+    core_forecast_run_id: int = Field(gt=0)
+    core_forecast_daily_row_id: int = Field(gt=0)
+    task9_run_id: int = Field(gt=0)
+    task10_prediction_run_id: int = Field(gt=0)
+    label_snapshot_id: int = Field(gt=0)
+    label_row_id: int | None = Field(default=None, gt=0)
+    label_winner_id: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _label_references_are_coupled(self) -> Self:
+        if (self.label_row_id is None) != (self.label_winner_id is None):
+            raise ValueError("label row and winner references must both be present or absent")
+        return self
+
+
+class S2ForecastAuthorityBundle(_BaseModel):
+    forecast_run_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    daily_row_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task9_authority_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task9_member_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task10_authority_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task10_model_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task10_replay_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task10_prediction_row_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    historical_code_authority_id: int = Field(gt=0)
+    forecast_code_identity: str = Field(pattern=r"^[0-9a-f]{64}$")
+    historical_code_identity: str = Field(pattern=r"^[0-9a-f]{40}$")
+    build_artifact_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    config_bundle_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model_identity: str = Field(min_length=1)
+    parameter_identity: str = Field(min_length=1)
+    data_identity: str = Field(min_length=1)
+    available_at: datetime
+    task10_model_available_at: datetime
+    historical_code_available_at: datetime
+
+    @field_validator(
+        "available_at",
+        "task10_model_available_at",
+        "historical_code_available_at",
+    )
+    @classmethod
+    def _require_aware_availability(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("forecast authority timestamps must be timezone-aware")
+        return value
+
+
+class S2ActualLabelAuthority(_BaseModel):
+    label_snapshot_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    label_resolution_status: Literal["EXACT_LABEL", "PROVEN_ABSENT"]
+    label_row_identity_hash: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    label_winner_identity_hash: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    label_winner_set_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    actual_source_identity_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    target_date: date
+    season_business_key: str = Field(min_length=1)
+    farm_business_key: str = Field(min_length=1)
+    subfarm_business_key: str = Field(min_length=1)
+    variety_business_key: str = Field(min_length=1)
+    business_grain_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    revision_or_winner_evidence: dict[str, object]
+    absence_evidence_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    observed_weight_kg: Decimal | None = Field(default=None, ge=Decimal("0"))
+    visibility_timestamp: datetime
+    forecast_physical_event: str = Field(min_length=1)
+    actual_physical_event: str = Field(min_length=1)
+    forecast_quantity_basis: str = Field(min_length=1)
+    actual_quantity_basis: str = Field(min_length=1)
+    unit: str = Field(min_length=1)
+    loss_boundary_policy_version: str = Field(min_length=1)
+    physical_alignment_policy_version: str = Field(min_length=1)
+    physical_alignment_evidence_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    physical_alignment_status: Literal["VERIFIED", "UNVERIFIED"]
+    synthetic_alignment_evidence_is_production_evidence: Literal[False] = False
+
+    @field_validator("visibility_timestamp")
+    @classmethod
+    def _require_aware_visibility(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("label visibility_timestamp must be timezone-aware")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_business_grain_hash(self) -> Self:
+        expected = s2_business_grain_hash(
+            season_business_key=self.season_business_key,
+            farm_business_key=self.farm_business_key,
+            subfarm_business_key=self.subfarm_business_key,
+            variety_business_key=self.variety_business_key,
+            target_date=self.target_date,
+        )
+        if self.business_grain_hash != expected:
+            raise ValueError("business_grain_hash must equal the canonical S2 label business grain")
+        exact_fields = (
+            self.label_row_identity_hash,
+            self.label_winner_identity_hash,
+            self.observed_weight_kg,
+        )
+        if self.label_resolution_status == "EXACT_LABEL":
+            if (
+                any(value is None for value in exact_fields)
+                or self.absence_evidence_hash is not None
+            ):
+                raise ValueError("exact label authority requires row/winner/value evidence")
+        elif any(value is not None for value in exact_fields) or self.absence_evidence_hash is None:
+            raise ValueError("proven label absence must not fabricate row/winner/value evidence")
+        if (
+            self.label_resolution_status == "PROVEN_ABSENT"
+            and self.physical_alignment_status != "UNVERIFIED"
+        ):
+            raise ValueError("proven label absence cannot claim verified physical alignment")
+        if self.physical_alignment_status == "VERIFIED" and (
+            self.forecast_physical_event != self.actual_physical_event
+            or self.forecast_quantity_basis != self.actual_quantity_basis
+            or self.unit != "kg"
+        ):
+            raise ValueError("verified physical alignment requires explicit equivalent semantics")
+        expected_alignment_hash = s2_physical_alignment_evidence_hash(
+            forecast_physical_event=self.forecast_physical_event,
+            actual_physical_event=self.actual_physical_event,
+            forecast_quantity_basis=self.forecast_quantity_basis,
+            actual_quantity_basis=self.actual_quantity_basis,
+            unit=self.unit,
+            loss_boundary_policy_version=self.loss_boundary_policy_version,
+            physical_alignment_policy_version=self.physical_alignment_policy_version,
+            physical_alignment_status=self.physical_alignment_status,
+        )
+        if self.physical_alignment_evidence_hash != expected_alignment_hash:
+            raise ValueError(
+                "physical_alignment_evidence_hash must equal the canonical policy evidence"
+            )
+        return self
+
+
+class S2HistoricalBindingCandidate(_BaseModel):
+    season_id: int = Field(gt=0)
+    season_business_key: str = Field(min_length=1)
+    farm_business_key: str = Field(min_length=1)
+    subfarm_business_key: str = Field(min_length=1)
+    variety_business_key: str = Field(min_length=1)
+    forecast_quantile: Literal["P50", "P80", "P90"]
+    horizon_days: int
+    target_date: date
+    forecast_cutoff_at: datetime
+    forecast_value_kg: Decimal = Field(ge=Decimal("0"))
+    forecast_authority: S2ForecastAuthorityBundle
+    actual_label: S2ActualLabelAuthority | None = None
+    persisted_authority_references: S2PersistedAuthorityReferences | None = None
+    authority_verification: Literal["UNVERIFIED", "PERSISTED", "SYNTHETIC_ENGINEERING"] = (
+        "UNVERIFIED"
+    )
+
+    @field_validator("horizon_days")
+    @classmethod
+    def _validate_horizon(cls, value: int) -> int:
+        if value not in S2_ALLOWED_HORIZONS_DAYS:
+            raise ValueError("horizon_days must be one of 7, 14, 21")
+        return value
+
+    @field_validator("forecast_cutoff_at")
+    @classmethod
+    def _require_aware_forecast_cutoff(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("candidate forecast_cutoff_at must be timezone-aware")
+        return value
+
+
+class S2HistoricalBindingRow(_BaseModel):
+    season_id: int = Field(gt=0)
+    season_business_key: str = Field(min_length=1)
+    farm_business_key: str = Field(min_length=1)
+    subfarm_business_key: str = Field(min_length=1)
+    variety_business_key: str = Field(min_length=1)
+    forecast_quantile: Literal["P50", "P80", "P90"]
+    horizon_days: int
+    target_date: date
+    forecast_cutoff_at: datetime
+    label_observation_cutoff_at: datetime | None
+    label_visibility_mode: Literal["AS_OF_EVALUATION", "FINAL_ADJUDICATED"]
+    forecast_value_kg: Decimal = Field(ge=Decimal("0"))
+    actual_value_kg: Decimal | None = Field(default=None, ge=Decimal("0"))
+    forecast_authority: S2ForecastAuthorityBundle
+    actual_label: S2ActualLabelAuthority | None = None
+    physical_alignment_status: str
+    row_status: Literal["COMPARABLE", "EXCLUDED", "NOT_COMPUTABLE"]
+    reason_code: str | None = None
+    authority_verification: Literal["PERSISTED", "SYNTHETIC_ENGINEERING"]
+    binding_key_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    row_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @field_validator("horizon_days")
+    @classmethod
+    def _validate_row_horizon(cls, value: int) -> int:
+        if value not in S2_ALLOWED_HORIZONS_DAYS:
+            raise ValueError("binding horizon must be one of 7, 14, 21")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_row_semantics(self) -> Self:
+        if self.row_status == "COMPARABLE":
+            if self.actual_label is None or self.actual_value_kg is None:
+                raise ValueError("comparable row requires an actual label")
+            if self.actual_label.label_resolution_status != "EXACT_LABEL":
+                raise ValueError("comparable row requires an exact persisted label")
+            if self.physical_alignment_status != "VERIFIED":
+                raise ValueError("comparable row requires verified physical alignment")
+            if self.reason_code is not None:
+                raise ValueError("comparable row cannot have an exclusion reason")
+        elif self.reason_code is None:
+            raise ValueError("excluded or not-computable row requires a reason code")
+        if (
+            self.actual_label is not None
+            and self.actual_value_kg != self.actual_label.observed_weight_kg
+        ):
+            raise ValueError("actual_value_kg must equal the persisted label authority value")
         return self
 
 

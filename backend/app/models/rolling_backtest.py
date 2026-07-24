@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
@@ -12,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     Text,
     Time,
     UniqueConstraint,
@@ -23,6 +25,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from backend.app.db.base import Base
 
 _JSON_VARIANT = JSONB(astext_type=Text())
+_S2_CONTRACT_VERSION = "v0.2-s2-historical-binding-v1"
 
 
 def _sha256_check_sql(column_name: str) -> str:
@@ -50,6 +53,7 @@ class RollingBacktestRun(Base):
     __tablename__ = "rolling_backtest_run"
     __table_args__ = (
         UniqueConstraint("run_signature", name="uq_rolling_backtest_run_signature"),
+        UniqueConstraint("backtest_request_hash", name="uq_rolling_backtest_run_request_hash"),
         CheckConstraint(
             _sha256_check_sql("run_signature"),
             name="ck_rolling_backtest_run_signature_sha256",
@@ -75,6 +79,31 @@ class RollingBacktestRun(Base):
             "expected_node_count >= 1",
             name="ck_rolling_backtest_run_expected_node_count",
         ),
+        CheckConstraint(
+            f"s2_contract_version IS NULL OR s2_contract_version = '{_S2_CONTRACT_VERSION}'",
+            name="ck_rolling_backtest_run_s2_contract_version",
+        ),
+        CheckConstraint(
+            "s2_contract_version IS NULL OR "
+            "(s2_node_count = 1 AND expected_node_count = 1 AND "
+            "backtest_request_payload IS NOT NULL AND "
+            "backtest_request_hash IS NOT NULL AND "
+            "instance_hash IS NOT NULL AND forecast_cutoff_at IS NOT NULL AND "
+            "label_visibility_mode IS NOT NULL AND "
+            "master_identity_resolver_version IS NOT NULL AND "
+            "mapping_policy_version IS NOT NULL AND "
+            "resolved_identity_snapshot_hash IS NOT NULL AND "
+            "authority_selection_policy_version IS NOT NULL)",
+            name="ck_rolling_backtest_run_s2_required_fields",
+        ),
+        CheckConstraint(
+            "label_visibility_mode IS NULL OR "
+            "(label_visibility_mode = 'AS_OF_EVALUATION' AND "
+            "label_observation_cutoff_at IS NOT NULL) OR "
+            "(label_visibility_mode = 'FINAL_ADJUDICATED' AND "
+            "label_observation_cutoff_at IS NULL)",
+            name="ck_rolling_backtest_run_s2_visibility_cutoff",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -96,6 +125,24 @@ class RollingBacktestRun(Base):
     expected_node_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
     canonical_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
     canonical_payload_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    s2_contract_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+    s2_node_count: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    backtest_request_payload: Mapped[dict[str, Any] | None] = mapped_column(
+        _JSON_VARIANT, nullable=True
+    )
+    backtest_request_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    instance_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    forecast_cutoff_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    label_observation_cutoff_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    label_visibility_mode: Mapped[str | None] = mapped_column(Text, nullable=True)
+    master_identity_resolver_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mapping_policy_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_identity_snapshot_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    authority_selection_policy_version: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -178,6 +225,135 @@ class RollingBacktestNode(Base):
     canonical_payload_hash: Mapped[str] = mapped_column(Text, nullable=False)
     expected_resolved_input_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
     expected_availability_audit_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class RollingBacktestManifest(Base):
+    __tablename__ = "rolling_backtest_manifest"
+    __table_args__ = (
+        UniqueConstraint("rolling_run_id", name="uq_rolling_backtest_manifest_run_id"),
+        UniqueConstraint("manifest_hash", name="uq_rolling_backtest_manifest_hash"),
+        CheckConstraint(
+            _sha256_check_sql("manifest_hash"),
+            name="ck_rolling_backtest_manifest_hash_sha256",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("request_hash"),
+            name="ck_rolling_backtest_manifest_request_hash_sha256",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("instance_hash"),
+            name="ck_rolling_backtest_manifest_instance_hash_sha256",
+        ),
+        Index("ix_rolling_backtest_manifest_run_id", "rolling_run_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    rolling_run_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "rolling_backtest_run.id",
+            name="fk_rolling_backtest_manifest_run_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    manifest_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
+    request_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    instance_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    coverage_manifest_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    exclusion_manifest_payload: Mapped[dict[str, Any]] = mapped_column(
+        _JSON_VARIANT, nullable=False
+    )
+    authority_reference_payload: Mapped[dict[str, Any]] = mapped_column(
+        _JSON_VARIANT, nullable=False
+    )
+    manifest_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    sealed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class RollingBacktestBindingRow(Base):
+    __tablename__ = "rolling_backtest_binding_row"
+    __table_args__ = (
+        UniqueConstraint(
+            "rolling_run_id",
+            "binding_key_hash",
+            name="uq_rolling_backtest_binding_row_key",
+        ),
+        UniqueConstraint(
+            "rolling_run_id",
+            "binding_row_hash",
+            name="uq_rolling_backtest_binding_row_identity",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("binding_key_hash"),
+            name="ck_rolling_backtest_binding_row_key_sha256",
+        ),
+        CheckConstraint(
+            _sha256_check_sql("binding_row_hash"),
+            name="ck_rolling_backtest_binding_row_hash_sha256",
+        ),
+        CheckConstraint(
+            "horizon_days in (7, 14, 21)",
+            name="ck_rolling_backtest_binding_row_horizon",
+        ),
+        CheckConstraint(
+            "row_status in ('COMPARABLE', 'EXCLUDED', 'NOT_COMPUTABLE')",
+            name="ck_rolling_backtest_binding_row_status",
+        ),
+        CheckConstraint(
+            "physical_alignment_status <> ''",
+            name="ck_rolling_backtest_binding_row_physical_alignment",
+        ),
+        CheckConstraint(
+            "(row_status = 'COMPARABLE' AND actual_value_kg IS NOT NULL) OR "
+            "(row_status <> 'COMPARABLE' AND reason_code IS NOT NULL)",
+            name="ck_rolling_backtest_binding_row_semantics",
+        ),
+        Index("ix_rolling_backtest_binding_row_run_id", "rolling_run_id"),
+        Index("ix_rolling_backtest_binding_row_node_id", "rolling_node_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    rolling_run_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "rolling_backtest_run.id",
+            name="fk_rolling_backtest_binding_row_run_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    rolling_node_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "rolling_backtest_node.id",
+            name="fk_rolling_backtest_binding_row_node_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    horizon_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    target_date: Mapped[date] = mapped_column(Date, nullable=False)
+    forecast_cutoff_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    label_observation_cutoff_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    label_visibility_mode: Mapped[str] = mapped_column(Text, nullable=False)
+    physical_alignment_status: Mapped[str] = mapped_column(Text, nullable=False)
+    row_status: Mapped[str] = mapped_column(Text, nullable=False)
+    reason_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    forecast_row_identity_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    actual_label_row_identity_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    forecast_value_kg: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
+    actual_value_kg: Mapped[Decimal | None] = mapped_column(Numeric(20, 6), nullable=True)
+    canonical_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    binding_key_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    binding_row_hash: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

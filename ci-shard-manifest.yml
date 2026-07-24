@@ -225,6 +225,7 @@ shards:
       - backend/tests/test_harvest_state_alembic.py
       - backend/tests/test_residual_model_alembic.py
       - backend/tests/test_core_forecast_alembic.py
+      - backend/tests/test_historical_backtest_alembic.py
       - "-q"
       - "--tb=short"
     owner_files:
@@ -234,15 +235,14 @@ shards:
       - backend/tests/test_alembic_round_trip_isolated.py
       - backend/tests/test_alembic_round_trip_isolated_db_live.py
       - backend/tests/test_core_forecast_alembic.py
+      - backend/tests/test_historical_backtest_alembic.py
     notes: |
       PR #55 §3 row 3. Alembic migration round-trip tests.
       Excludes backend/tests/integration/test_task11_phase3_schema_gap_persistence.py
       and backend/tests/test_task11_phase3_schema_gap.py (which use Alembic
       but are TASK-011 domain scope) — those go to postgres-task11.
-      owner_files additionally covers the two isolated round-trip files
-      (P1 manifest-ownership fixup for Batch 4 Slice 1); pytest_args is
-      unchanged in this round and will be widened in a future round that
-      also exercises those files under postgres-migration pytest run.
+      owner_files and pytest_args include the S2 historical binding migration
+      contract; the isolated round-trip files remain owner metadata only.
       The S4 core forecast migration contract is uniquely owned here.
 
   # ------------------------------------------------------------------
@@ -289,6 +289,7 @@ shards:
     job: postgres-concurrency
     event: pull_request
     pytest_args:
+      - backend/tests/rolling_backtest/test_historical_backtest_concurrency.py
       - "-m"
       - "postgres_concurrency"
       - "-q"
@@ -302,6 +303,7 @@ shards:
       # `-m "not postgres_concurrency"` exclusion filter.
       - backend/tests/integration/test_task11_dependency_serialization.py
       - backend/tests/integration/test_task9_authority_repository_postgres.py
+      - backend/tests/rolling_backtest/test_historical_backtest_concurrency.py
     notes: |
       PR #55 §3 row 7. Concurrency / real-commit tests. Marker-driven:
       @pytest.mark.postgres_concurrency. The `-m postgres_concurrency`
@@ -398,6 +400,7 @@ shards:
       - backend/tests/integration/test_rolling_backtest_0013.py
       - backend/tests/integration/test_rolling_backtest_orchestration.py
       - backend/tests/integration/test_rolling_backtest_persistence.py
+      - backend/tests/integration/test_rolling_backtest_historical_binding.py
       - backend/tests/integration/test_task7_resolver_cutoff_contracts.py
       - backend/tests/integration/test_weather_features.py
       - "-q"
@@ -407,6 +410,7 @@ shards:
       - backend/tests/integration/test_rolling_backtest_0013.py
       - backend/tests/integration/test_rolling_backtest_orchestration.py
       - backend/tests/integration/test_rolling_backtest_persistence.py
+      - backend/tests/integration/test_rolling_backtest_historical_binding.py
       - backend/tests/integration/test_task7_resolver_cutoff_contracts.py
       - backend/tests/integration/test_weather_features.py
     notes: |

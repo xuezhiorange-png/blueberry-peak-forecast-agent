@@ -12,14 +12,21 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core_forecast.canonical import (
+    CORE_FORECAST_AUTHORITY_REQUEST_SCHEMA_VERSION,
+    CORE_FORECAST_AUTHORITY_RUN_SCHEMA_VERSION,
+    CORE_FORECAST_CODE_AUTHORITY_SCHEMA_VERSION,
     CORE_FORECAST_DATE_BASIS,
     CORE_FORECAST_REQUEST_SCHEMA_VERSION,
     CORE_FORECAST_RUN_SCHEMA_VERSION,
+    compute_authority_bound_daily_curve_hash,
+    compute_authority_bound_retention_policy_hash,
+    compute_core_forecast_code_authority_hash,
     compute_core_forecast_input_hash,
     compute_core_forecast_request_hash,
     compute_core_forecast_result_hash,
     compute_daily_curve_hash,
     compute_retention_policy_snapshot_hash,
+    core_forecast_code_authority_payload,
 )
 from backend.app.core_forecast.metrics import compute_core_forecast_metrics
 from backend.app.core_forecast.schemas import (
@@ -30,16 +37,20 @@ from backend.app.core_forecast.schemas import (
     CompleteDailyMarketableCurveRequest,
     CompleteDailyMarketableCurveResult,
     CompleteDailyMarketableCurveRow,
+    CoreForecastCodeAuthority,
     CoreForecastRunSummary,
     ExecuteCoreForecastRunRequest,
     PersistedCoreForecastRun,
     QuantileCoreForecastMetrics,
+    RegisterCoreForecastCodeAuthority,
 )
 from backend.app.models.core_forecast import (
+    CoreForecastCodeAuthorityModel,
     CoreForecastDailyRowModel,
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
+from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 _FIXED_6_RE = re.compile(r"^(?:0|[1-9]\d*)\.\d{6}$")
@@ -200,6 +211,22 @@ def _run_summary(model: CoreForecastRunModel) -> CoreForecastRunSummary:
             ),
             curve_hash=_hash(model.curve_hash, "curve_hash"),
             metrics_hash=_hash(model.metrics_hash, "metrics_hash"),
+            code_authority_id=model.code_authority_id,
+            code_authority_hash=(
+                None
+                if model.code_authority_hash is None
+                else _hash(model.code_authority_hash, "code_authority_hash")
+            ),
+            code_authority_available_at=(
+                None
+                if model.code_authority_available_at is None
+                else _aware(model.code_authority_available_at)
+            ),
+            forecast_effective_cutoff_at=(
+                None
+                if model.forecast_effective_cutoff_at is None
+                else _aware(model.forecast_effective_cutoff_at)
+            ),
             rerun_of_run_id=model.rerun_of_run_id,
             forecast_season_id=model.forecast_season_id,
             forecast_season_code=model.forecast_season_code,
@@ -343,6 +370,90 @@ class CoreForecastRunRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def register_code_authority(
+        self,
+        registration: RegisterCoreForecastCodeAuthority,
+    ) -> CoreForecastCodeAuthority:
+        """Persist a trusted authority before forecast execution.
+
+        This method is deliberately separate from ``save_completed_run``:
+        execution may reference an existing authority but never creates one.
+        """
+
+        canonical = RegisterCoreForecastCodeAuthority.model_validate(
+            registration.model_dump(mode="python")
+        )
+        authority_hash = compute_core_forecast_code_authority_hash(canonical)
+        existing = await self._session.scalar(
+            select(CoreForecastCodeAuthorityModel).where(
+                CoreForecastCodeAuthorityModel.authority_hash == authority_hash
+            )
+        )
+        if existing is not None:
+            return self._code_authority_schema(existing)
+        model = CoreForecastCodeAuthorityModel(
+            authority_schema_version=CORE_FORECAST_CODE_AUTHORITY_SCHEMA_VERSION,
+            source_commit_sha=canonical.source_commit_sha,
+            engine_code_hash=canonical.engine_code_hash,
+            build_artifact_hash=canonical.build_artifact_hash,
+            config_bundle_hash=canonical.config_bundle_hash,
+            available_at=canonical.available_at.astimezone(UTC),
+            canonical_payload=core_forecast_code_authority_payload(canonical),
+            authority_hash=authority_hash,
+        )
+        self._session.add(model)
+        await self._session.flush()
+        return self._code_authority_schema(model)
+
+    def _code_authority_schema(
+        self,
+        model: CoreForecastCodeAuthorityModel,
+    ) -> CoreForecastCodeAuthority:
+        try:
+            authority = CoreForecastCodeAuthority(
+                authority_id=model.id,
+                authority_schema_version=model.authority_schema_version,
+                source_commit_sha=model.source_commit_sha,
+                engine_code_hash=_hash(
+                    model.engine_code_hash,
+                    "code_authority.engine_code_hash",
+                ),
+                build_artifact_hash=_hash(
+                    model.build_artifact_hash,
+                    "code_authority.build_artifact_hash",
+                ),
+                config_bundle_hash=_hash(
+                    model.config_bundle_hash,
+                    "code_authority.config_bundle_hash",
+                ),
+                available_at=_aware(model.available_at),
+                authority_hash=_hash(
+                    model.authority_hash,
+                    "code_authority.authority_hash",
+                ),
+                created_at=_aware(model.created_at),
+            )
+        except (ValidationError, ValueError, TypeError) as exc:
+            raise CoreForecastPersistenceIntegrityError(
+                "persisted code authority is invalid"
+            ) from exc
+        expected_payload = core_forecast_code_authority_payload(authority)
+        if (
+            model.canonical_payload != expected_payload
+            or compute_core_forecast_code_authority_hash(authority) != authority.authority_hash
+        ):
+            raise CoreForecastPersistenceIntegrityError(
+                "persisted code authority canonical identity does not round-trip"
+            )
+        return authority
+
+    async def get_code_authority_by_id(
+        self,
+        authority_id: int,
+    ) -> CoreForecastCodeAuthority | None:
+        model = await self._session.get(CoreForecastCodeAuthorityModel, authority_id)
+        return None if model is None else self._code_authority_schema(model)
+
     async def save_completed_run(
         self,
         *,
@@ -354,7 +465,20 @@ class CoreForecastRunRepository:
         curve: CompleteDailyMarketableCurveResult,
         metrics: CompleteCoreForecastMetricsResult,
         rerun_of_run_id: int | None,
+        code_authority: CoreForecastCodeAuthority | None = None,
     ) -> PersistedCoreForecastRun:
+        if (request.code_authority_id is None) != (code_authority is None):
+            raise CoreForecastPersistenceIntegrityError(
+                "request and persisted code authority must be coupled"
+            )
+        if code_authority is not None and request.code_authority_id != code_authority.authority_id:
+            raise CoreForecastPersistenceIntegrityError(
+                "request references a different code authority"
+            )
+        if code_authority is not None and request.forecast_effective_cutoff_at is None:
+            raise CoreForecastPersistenceIntegrityError(
+                "authority-bound run requires the persisted Task 9 forecast cutoff"
+            )
         existing = await self.get_run_by_request_hash(request_hash)
         if existing is not None:
             if self._matches_existing(
@@ -367,6 +491,7 @@ class CoreForecastRunRepository:
                 curve=curve,
                 metrics=metrics,
                 rerun_of_run_id=rerun_of_run_id,
+                code_authority=code_authority,
             ):
                 return existing
             raise CoreForecastPersistenceConflictError(
@@ -376,13 +501,29 @@ class CoreForecastRunRepository:
         if curve.status != "COMPLETED" or metrics.status != "COMPLETED":
             raise CoreForecastWriteFailure("only completed curve and metrics may be persisted")
         now = datetime.now(UTC)
+        if (
+            code_authority is not None
+            and request.forecast_effective_cutoff_at is not None
+            and code_authority.available_at > request.forecast_effective_cutoff_at
+        ):
+            raise CoreForecastPersistenceIntegrityError(
+                "code authority is not available at the persisted Task 9 cutoff"
+            )
         first_row = curve.rows[0]
         try:
             async with self._session.begin_nested():
                 model = CoreForecastRunModel(
                     status="completed",
-                    run_schema_version=CORE_FORECAST_RUN_SCHEMA_VERSION,
-                    request_schema_version=CORE_FORECAST_REQUEST_SCHEMA_VERSION,
+                    run_schema_version=(
+                        CORE_FORECAST_AUTHORITY_RUN_SCHEMA_VERSION
+                        if code_authority is not None
+                        else CORE_FORECAST_RUN_SCHEMA_VERSION
+                    ),
+                    request_schema_version=(
+                        CORE_FORECAST_AUTHORITY_REQUEST_SCHEMA_VERSION
+                        if code_authority is not None
+                        else CORE_FORECAST_REQUEST_SCHEMA_VERSION
+                    ),
                     date_basis=CORE_FORECAST_DATE_BASIS,
                     forecast_input_hash=forecast_input_hash,
                     request_hash=request_hash,
@@ -390,7 +531,19 @@ class CoreForecastRunRepository:
                     retention_policy_snapshot_hash=retention_policy_snapshot_hash,
                     curve_hash=curve.curve_hash,
                     metrics_hash=metrics.metrics_hash,
-                    request_snapshot=request.model_dump(mode="json"),
+                    code_authority_id=(
+                        code_authority.authority_id if code_authority is not None else None
+                    ),
+                    code_authority_hash=(
+                        code_authority.authority_hash if code_authority is not None else None
+                    ),
+                    code_authority_available_at=(
+                        code_authority.available_at if code_authority is not None else None
+                    ),
+                    forecast_effective_cutoff_at=(
+                        request.forecast_effective_cutoff_at if code_authority is not None else None
+                    ),
+                    request_snapshot=request.model_dump(mode="json", exclude_none=True),
                     forecast_season_id=request.curve_request.forecast_season_id,
                     forecast_season_code=request.curve_request.forecast_season_code,
                     forecast_start_date=request.curve_request.forecast_start_date,
@@ -424,6 +577,7 @@ class CoreForecastRunRepository:
                 curve=curve,
                 metrics=metrics,
                 rerun_of_run_id=rerun_of_run_id,
+                code_authority=code_authority,
             ):
                 return existing
             raise CoreForecastPersistenceConflictError(
@@ -451,6 +605,7 @@ class CoreForecastRunRepository:
         curve: CompleteDailyMarketableCurveResult,
         metrics: CompleteCoreForecastMetricsResult,
         rerun_of_run_id: int | None,
+        code_authority: CoreForecastCodeAuthority | None,
     ) -> bool:
         return (
             existing.request == request
@@ -459,6 +614,7 @@ class CoreForecastRunRepository:
             and existing.run.result_hash == result_hash
             and existing.run.retention_policy_snapshot_hash == retention_policy_snapshot_hash
             and existing.run.rerun_of_run_id == rerun_of_run_id
+            and existing.code_authority == code_authority
             and existing.daily_curve.model_dump(mode="json") == curve.model_dump(mode="json")
             and existing.metrics.model_dump(mode="json") == metrics.model_dump(mode="json")
         )
@@ -521,10 +677,82 @@ class CoreForecastRunRepository:
         try:
             summary = _run_summary(model)
             request = ExecuteCoreForecastRunRequest.model_validate(model.request_snapshot)
+            code_authority = (
+                None
+                if summary.code_authority_id is None
+                else await self.get_code_authority_by_id(summary.code_authority_id)
+            )
+            if summary.code_authority_id is not None and code_authority is None:
+                raise CoreForecastPersistenceIntegrityError("referenced code authority is missing")
+            if code_authority is not None and (
+                request.code_authority_id != code_authority.authority_id
+                or summary.code_authority_hash != code_authority.authority_hash
+                or summary.code_authority_available_at != code_authority.available_at
+                or summary.forecast_effective_cutoff_at is None
+                or request.forecast_effective_cutoff_at != summary.forecast_effective_cutoff_at
+                or code_authority.available_at > summary.forecast_effective_cutoff_at
+            ):
+                raise CoreForecastPersistenceIntegrityError(
+                    "run code authority identity or availability mismatch"
+                )
+            if code_authority is not None:
+                task9 = await self._session.get(HarvestStateRun, summary.task9_harvest_state_run_id)
+                if task9 is None:
+                    raise CoreForecastPersistenceIntegrityError(
+                        "referenced Task 9 authority is missing"
+                    )
+                task9_cutoff = (
+                    None
+                    if task9.forecast_effective_cutoff_at is None
+                    else _aware(task9.forecast_effective_cutoff_at)
+                )
+                if (
+                    task9.status != "completed"
+                    or task9.result_hash != model.task9_result_hash
+                    or task9_cutoff is None
+                    or task9_cutoff != summary.forecast_effective_cutoff_at
+                    or task9_cutoff != request.forecast_effective_cutoff_at
+                    or task9.forecast_season_id != summary.forecast_season_id
+                    or task9.destination_factory_id != summary.destination_factory_id
+                    or task9.maturity_forecast_run_id != summary.task8_forecast_run_id
+                    or task9.maturity_model_artifact_hash != model.task8_artifact_hash
+                    or code_authority.available_at > task9_cutoff
+                ):
+                    raise CoreForecastPersistenceIntegrityError(
+                        "persisted Task 9 lineage authority mismatch"
+                    )
             curve_request = request.curve_request
-            policy_hash = compute_retention_policy_snapshot_hash(request.retention_policy)
-            input_hash = compute_core_forecast_input_hash(curve_request, request.retention_policy)
-            request_hash = compute_core_forecast_request_hash(input_hash, request.rerun_of_run_id)
+            policy_hash = (
+                compute_authority_bound_retention_policy_hash(
+                    request.retention_policy, request.resolved_identity
+                )
+                if code_authority is not None and request.resolved_identity is not None
+                else compute_retention_policy_snapshot_hash(request.retention_policy)
+            )
+            input_hash = compute_core_forecast_input_hash(
+                curve_request,
+                request.retention_policy,
+                code_authority=code_authority,
+                task9_authority_result_hash=(
+                    model.task9_result_hash if code_authority is not None else None
+                ),
+                forecast_effective_cutoff_at=summary.forecast_effective_cutoff_at,
+                resolved_identity=request.resolved_identity,
+            )
+            parent_request_hash = None
+            if code_authority is not None and request.rerun_of_run_id is not None:
+                parent = await self.get_run_by_id(request.rerun_of_run_id)
+                if parent is None:
+                    raise CoreForecastPersistenceIntegrityError(
+                        "authority-bound rerun parent is missing"
+                    )
+                parent_request_hash = parent.run.request_hash
+            request_hash = compute_core_forecast_request_hash(
+                input_hash,
+                request.rerun_of_run_id,
+                authority_bound=code_authority is not None,
+                rerun_of_request_hash=parent_request_hash,
+            )
             if policy_hash != summary.retention_policy_snapshot_hash:
                 raise CoreForecastPersistenceIntegrityError("retention policy hash mismatch")
             if input_hash != summary.forecast_input_hash or request_hash != summary.request_hash:
@@ -560,7 +788,11 @@ class CoreForecastRunRepository:
                 if any(row.task9_result_hash != model.task9_result_hash for row in rows):
                     raise CoreForecastPersistenceIntegrityError("Task 9 result hash mismatch")
             _validate_business_invariants(rows, curve_request)
-            curve_hash = compute_daily_curve_hash(rows)
+            curve_hash = (
+                compute_authority_bound_daily_curve_hash(rows, request.resolved_identity)
+                if code_authority is not None and request.resolved_identity is not None
+                else compute_daily_curve_hash(rows)
+            )
             if curve_hash != summary.curve_hash:
                 raise CoreForecastPersistenceIntegrityError("curve hash integrity failed")
             curve = CompleteDailyMarketableCurveResult(
@@ -569,7 +801,27 @@ class CoreForecastRunRepository:
                 curve_hash=curve_hash,
                 blockers=(),
             )
-            metrics = compute_core_forecast_metrics(daily_curve=curve)
+            metrics_curve = curve
+            if code_authority is not None:
+                metrics_curve = curve.model_copy(
+                    update={"curve_hash": compute_daily_curve_hash(rows)}
+                )
+            metrics = compute_core_forecast_metrics(daily_curve=metrics_curve)
+            if code_authority is not None and metrics.status == "COMPLETED":
+                metrics_payload = {
+                    "schema_version": metrics.metrics_schema_version,
+                    "date_basis": metrics.date_basis,
+                    "source_curve_hash": curve_hash,
+                    "metrics": [item.model_dump(mode="json") for item in metrics.metrics],
+                }
+                metrics = metrics.model_copy(
+                    update={
+                        "source_curve_hash": curve_hash,
+                        "metrics_hash": hashlib.sha256(
+                            canonical_json_dumps(metrics_payload).encode("utf-8")
+                        ).hexdigest(),
+                    }
+                )
             if metrics.status != "COMPLETED" or metrics.metrics_hash != summary.metrics_hash:
                 raise CoreForecastPersistenceIntegrityError("metrics integrity failed")
             stored_metrics = await self.list_metrics(model.id)
@@ -589,6 +841,8 @@ class CoreForecastRunRepository:
                 metrics_hash=summary.metrics_hash,
                 daily_row_count=len(rows),
                 metric_row_count=len(stored_metrics),
+                authority_bound=code_authority is not None,
+                forecast_effective_cutoff_at=summary.forecast_effective_cutoff_at,
             )
             if result_hash != summary.result_hash:
                 raise CoreForecastPersistenceIntegrityError("result hash integrity failed")
@@ -597,6 +851,7 @@ class CoreForecastRunRepository:
                 request=request,
                 daily_curve=curve,
                 metrics=metrics,
+                code_authority=code_authority,
             )
         except CoreForecastPersistenceError:
             raise

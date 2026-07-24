@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core_forecast.canonical import (
+    compute_authority_bound_daily_curve_hash,
+    compute_authority_bound_retention_policy_hash,
     compute_core_forecast_input_hash,
     compute_core_forecast_request_hash,
     compute_core_forecast_result_hash,
@@ -29,6 +33,7 @@ from backend.app.core_forecast.schemas import (
     PersistedCoreForecastRun,
 )
 from backend.app.core_forecast.service import compose_complete_daily_marketable_curve
+from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 
 def _blocked(code: CoreForecastBlockerCode, message: str) -> CoreForecastExecutionResult:
@@ -85,25 +90,100 @@ async def execute_core_forecast_run(
 ) -> CoreForecastExecutionResult:
     """Execute S2 and S3 once, then persist one immutable completed run."""
 
+    persistence = persistence_repository or CoreForecastRunRepository(session)
+    upstream = upstream_repository or SqlAlchemyCoreForecastRepository(session)
     try:
         canonical_request = ExecuteCoreForecastRunRequest.model_validate(
             request.model_dump(mode="python")
         )
-        policy_hash = compute_retention_policy_snapshot_hash(canonical_request.retention_policy)
+        code_authority = (
+            None
+            if canonical_request.code_authority_id is None
+            else await persistence.get_code_authority_by_id(canonical_request.code_authority_id)
+        )
+        if canonical_request.code_authority_id is not None and code_authority is None:
+            return _blocked(
+                "CORE_FORECAST_CODE_AUTHORITY_NOT_FOUND",
+                "pre-registered code authority was not found",
+            )
+        task9_authority = None
+        resolved_identity = canonical_request.resolved_identity
+        if code_authority is not None:
+            if resolved_identity is None:
+                resolved_identity = await upstream.resolve_business_identity(
+                    season_id=canonical_request.curve_request.forecast_season_id,
+                    factory_id=canonical_request.curve_request.destination_factory_id,
+                    scopes=tuple(
+                        (scope.farm_id, scope.subfarm_id, scope.variety_id)
+                        for scope in canonical_request.curve_request.scopes
+                    ),
+                )
+            if resolved_identity is None:
+                return _blocked(
+                    "AUTHORITY_SCOPE_MISMATCH",
+                    "authority-bound execution requires exact resolved business identity",
+                )
+            canonical_request = canonical_request.model_copy(
+                update={"resolved_identity": resolved_identity}
+            )
+            task9_authority = await upstream.load_task9_authority(
+                canonical_request.curve_request.task9_harvest_state_run_id
+            )
+            if task9_authority is None or task9_authority.status != "completed":
+                return _blocked(
+                    "TASK9_AUTHORITY_NOT_FOUND",
+                    "authority-bound execution requires a completed Task 9 authority",
+                )
+            if task9_authority.forecast_effective_cutoff_at is None:
+                return _blocked(
+                    "CORE_FORECAST_TASK9_CUTOFF_NOT_AVAILABLE",
+                    "persisted Task 9 authority has no forecast effective cutoff",
+                )
+            if (
+                canonical_request.forecast_effective_cutoff_at is not None
+                and canonical_request.forecast_effective_cutoff_at
+                != task9_authority.forecast_effective_cutoff_at
+            ):
+                return _blocked(
+                    "CORE_FORECAST_TASK9_CUTOFF_MISMATCH",
+                    "request cutoff does not match persisted Task 9 cutoff",
+                )
+            if code_authority.available_at > task9_authority.forecast_effective_cutoff_at:
+                return _blocked(
+                    "CORE_FORECAST_CODE_AUTHORITY_NOT_AVAILABLE_AT_TASK9_CUTOFF",
+                    "code authority was not available at the persisted Task 9 cutoff",
+                )
+            canonical_request = canonical_request.model_copy(
+                update={
+                    "forecast_effective_cutoff_at": task9_authority.forecast_effective_cutoff_at
+                }
+            )
+        policy_hash = (
+            compute_authority_bound_retention_policy_hash(
+                canonical_request.retention_policy, canonical_request.resolved_identity
+            )
+            if code_authority is not None and canonical_request.resolved_identity is not None
+            else compute_retention_policy_snapshot_hash(canonical_request.retention_policy)
+        )
         input_hash = compute_core_forecast_input_hash(
             canonical_request.curve_request,
             canonical_request.retention_policy,
+            code_authority=code_authority,
+            task9_authority_result_hash=(
+                task9_authority.result_hash if task9_authority is not None else None
+            ),
+            forecast_effective_cutoff_at=canonical_request.forecast_effective_cutoff_at,
+            resolved_identity=canonical_request.resolved_identity,
         )
-        request_hash = compute_core_forecast_request_hash(
-            input_hash,
-            canonical_request.rerun_of_run_id,
+    except CoreForecastPersistenceIntegrityError:
+        return _blocked(
+            "CORE_FORECAST_CODE_AUTHORITY_INVALID",
+            "persisted code authority failed integrity validation",
         )
     except (ValidationError, ValueError, TypeError):
         return _blocked("CORE_FORECAST_PERSISTENCE_INTEGRITY_FAILED", "request validation failed")
 
-    persistence = persistence_repository or CoreForecastRunRepository(session)
-    upstream = upstream_repository or SqlAlchemyCoreForecastRepository(session)
-
+    parent = None
     if canonical_request.rerun_of_run_id is not None:
         try:
             parent = await persistence.get_run_by_id(canonical_request.rerun_of_run_id)
@@ -127,6 +207,15 @@ async def execute_core_forecast_run(
                 "CORE_FORECAST_RERUN_INPUT_UNCHANGED",
                 "rerun requires a complete changed forecast input",
             )
+
+    request_hash = compute_core_forecast_request_hash(
+        input_hash,
+        canonical_request.rerun_of_run_id,
+        authority_bound=code_authority is not None,
+        rerun_of_request_hash=(
+            parent.run.request_hash if code_authority is not None and parent is not None else None
+        ),
+    )
 
     try:
         existing = await persistence.get_run_by_request_hash(request_hash)
@@ -172,6 +261,29 @@ async def execute_core_forecast_run(
 
     assert curve.curve_hash is not None
     assert metrics.metrics_hash is not None
+    if code_authority is not None:
+        assert canonical_request.resolved_identity is not None
+        authority_curve_hash = compute_authority_bound_daily_curve_hash(
+            curve.rows, canonical_request.resolved_identity
+        )
+        curve = curve.model_copy(update={"curve_hash": authority_curve_hash})
+        assert metrics.metrics_hash is not None
+        metrics_payload = {
+            "schema_version": metrics.metrics_schema_version,
+            "date_basis": metrics.date_basis,
+            "source_curve_hash": authority_curve_hash,
+            "metrics": [item.model_dump(mode="json") for item in metrics.metrics],
+        }
+        metrics = metrics.model_copy(
+            update={
+                "source_curve_hash": authority_curve_hash,
+                "metrics_hash": hashlib.sha256(
+                    canonical_json_dumps(metrics_payload).encode("utf-8")
+                ).hexdigest(),
+            }
+        )
+    assert curve.curve_hash is not None
+    assert metrics.metrics_hash is not None
     result_hash = compute_core_forecast_result_hash(
         request_hash=request_hash,
         forecast_input_hash=input_hash,
@@ -179,6 +291,8 @@ async def execute_core_forecast_run(
         metrics_hash=metrics.metrics_hash,
         daily_row_count=len(curve.rows),
         metric_row_count=len(metrics.metrics),
+        authority_bound=code_authority is not None,
+        forecast_effective_cutoff_at=canonical_request.forecast_effective_cutoff_at,
     )
     try:
         persisted = await persistence.save_completed_run(
@@ -190,6 +304,7 @@ async def execute_core_forecast_run(
             curve=curve,
             metrics=metrics,
             rerun_of_run_id=canonical_request.rerun_of_run_id,
+            code_authority=code_authority,
         )
     except CoreForecastPersistenceConflictError:
         return _blocked(
@@ -212,6 +327,7 @@ async def recalculate_core_forecast_run(
     source_run_id: int,
     curve_request: CompleteDailyMarketableCurveRequest,
     retention_policy: MarketableRetentionPolicySnapshot,
+    code_authority_id: int | None = None,
     upstream_repository: CoreForecastRepository | None = None,
     persistence_repository: CoreForecastRunRepository | None = None,
 ) -> CoreForecastExecutionResult:
@@ -219,6 +335,7 @@ async def recalculate_core_forecast_run(
         curve_request=curve_request,
         retention_policy=retention_policy,
         rerun_of_run_id=source_run_id,
+        code_authority_id=code_authority_id,
     )
     return await execute_core_forecast_run(
         session,

@@ -409,6 +409,7 @@ jobs:
             backend/tests/test_alembic_round_trip_isolated.py \
             backend/tests/test_alembic_round_trip_isolated_db_live.py \
             backend/tests/test_core_forecast_alembic.py \
+            backend/tests/test_historical_backtest_alembic.py \
             -q --tb=long \
             --durations=30 \
             --junitxml=reports/test-results/postgres-migration.xml
@@ -998,6 +999,7 @@ jobs:
             backend/tests/integration/test_rolling_backtest_0013.py \
             backend/tests/integration/test_rolling_backtest_orchestration.py \
             backend/tests/integration/test_rolling_backtest_persistence.py \
+            backend/tests/integration/test_rolling_backtest_historical_binding.py \
             backend/tests/integration/test_task7_resolver_cutoff_contracts.py \
             backend/tests/integration/test_weather_features.py \
             -q --tb=long \
@@ -1420,6 +1422,7 @@ jobs:
           pytest \
             backend/tests/test_concurrency_isolation_helpers.py \
             backend/tests/test_concurrency_isolation_helpers_live.py \
+            backend/tests/rolling_backtest/test_historical_backtest_concurrency.py \
             -m postgres_concurrency -q --tb=long \
             --timeout=180 \
             --timeout-method=signal \
