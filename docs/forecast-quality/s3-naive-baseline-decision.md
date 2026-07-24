@@ -55,6 +55,8 @@ BASELINE_P80_COVERAGE_COMPARISON=BLOCKED
 BASELINE_P90_COVERAGE_COMPARISON=BLOCKED
 BASELINE_P80_P90_PEAK_COMPARISON=BLOCKED
 BASELINE_INTERVAL_WIDTH_COMPARISON=BLOCKED
+PUBLIC_APPLICATION_API=false
+INTERNAL_PYTHON_APPLICATION_SERVICE_ALLOWED=true
 ```
 
 ## 2. Rejected candidates
@@ -67,7 +69,7 @@ only one that survives.
 | LAST_VISIBLE_ACTUAL | false | partial | fails | deterministic | leaks the most-recent-known value; horizon-blind |
 | TRAILING_VISIBLE_MEAN | false | partial | degrades | deterministic | window-blind; no horizon awareness |
 | SEASON_TO_DATE_VISIBLE_MEAN | false | partial | partial | deterministic | in-season bias; promotes the latest view |
-| PRIOR_SEASON_ANALOG_DAY_ACTUAL | false | full | correct | deterministic | cold-start safe; deterministic per-grain | **frozen** |
+| PRIOR_SEASON_ANALOG_DAY_ACTUAL | false | full | fail-closed | deterministic | fail-closed on missing prior analog; deterministic per-grain | **frozen** |
 
 ## 3. Frozen formula
 
@@ -200,6 +202,24 @@ before the current forecast_cutoff_at.
 ```text
 BASELINE_PRIOR_SEASON_ANALOG_ACTUAL_VISIBILITY=ALLOWED_WHEN_VISIBLE_BY_CURRENT_FORECAST_CUTOFF
 BASELINE_PRIOR_SEASON_OLD_FORECAST_CUTOFF_CHECK_REQUIRED=false
+BASELINE_VISIBILITY_ACCEPTANCE_TEST=ALLOW_PRIOR_ANALOG_ACTUAL_VISIBLE_BY_CURRENT_CUTOFF_AND_REJECT_LATER_REVISION
+```
+
+Frozen acceptance test cases (the baseline visibility decision is made
+against the current forecast_cutoff_at, NOT against whether the
+analog target was future relative to the prior-season forecast cutoff):
+
+```text
+CASE_VISIBLE:
+  prior-season analog actual
+  revision_visibility_timestamp <= current_forecast_cutoff_at
+  expected=ALLOWED
+
+CASE_NOT_VISIBLE:
+  prior-season analog actual
+  revision_visibility_timestamp > current_forecast_cutoff_at
+  expected=REJECTED
+  reason_code=BASELINE_SOURCE_NOT_VISIBLE_AT_CURRENT_FORECAST_CUTOFF
 ```
 
 The baseline binds the following identities:
@@ -240,6 +260,9 @@ target date and the analog mapping respects the horizon.
 
 ```text
 BASELINE_COLD_START_POLICY=FAIL_CLOSED_NO_HISTORY_NO_PREDICTION
+BASELINE_COLD_START_SAFE=false
+BASELINE_COLD_START_FAILS_CLOSED=true
+BASELINE_COLD_START_OUTPUT=NOT_COMPUTABLE
 BASELINE_MISSING_HISTORY_POLICY=NOT_COMPUTABLE
 ```
 
