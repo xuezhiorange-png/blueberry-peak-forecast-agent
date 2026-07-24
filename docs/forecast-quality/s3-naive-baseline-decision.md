@@ -2,16 +2,19 @@
 
 > Target: V0.2-S3 (FORECAST_QUALITY_METRICS_AND_ONE_NAIVE_BASELINE)
 > Companion: `docs/forecast-quality/s3-quality-metrics-contract.md`
-> Scope: single naive baseline selection and frozen formula
+> Scope: single naive baseline selection and frozen point-forecast formula
 > Base: `b873dd63fc0d5b6375f94674abbd24a94d915f3c`
 > Source authority: `docs/forecast-quality/q2b-point-in-time-backtest-runner-contract.md` (S2 binding + manifest)
 
 ```text
 NAIVE_BASELINE_COUNT=1
-NAIVE_BASELINE_NAME=PRIOR_SEASON_SAME_GRAIN_SAME_WINDOW_MEAN
+NAIVE_BASELINE_NAME=PRIOR_SEASON_ANALOG_DAY_ACTUAL
+NAIVE_BASELINE_TYPE=POINT_FORECAST
+NAIVE_BASELINE_POINT_FORECAST_ONLY=true
 NAIVE_BASELINE_POLICY_VERSION=v0.2-s3-naive-baseline-policy-v1
 MODEL_RETRAINING=false
 MODEL_PARAMETER_TUNING=false
+UPSTREAM_CONTRACT_AMENDMENT_ACCEPTED=false
 ```
 
 ## 1. Single baseline freeze
@@ -25,59 +28,177 @@ S3 publishes exactly one naive baseline. Multi-baseline comparison is
 signal used to compare the model against.
 
 ```text
-NAIVE_BASELINE_NAME=PRIOR_SEASON_SAME_GRAIN_SAME_WINDOW_MEAN
+NAIVE_BASELINE_NAME=PRIOR_SEASON_ANALOG_DAY_ACTUAL
+NAIVE_BASELINE_TYPE=POINT_FORECAST
+NAIVE_BASELINE_POINT_FORECAST_ONLY=true
 ```
 
-The frozen baseline is the prior-season same-grain same-window mean. The
-baseline predicts the target date by taking the mean of the prior season's
-actual value on the same `(season_business_key, farm_business_key,
-subfarm_business_key, variety_business_key, target_date)` grain over the
-prior season's analogous window.
+The frozen baseline is the prior-season analog-day actual. The baseline
+predicts the target date with the **exact** prior-season actual label at
+the same `(farm_business_key, subfarm_business_key, variety_business_key)`
+grain on the **analog day** defined by the season-day index mapping.
+
+```text
+BASELINE_POINT_FORECAST_SEMANTIC=P50_COMPARISON_POINT_ONLY
+NAIVE_BASELINE_P80_STATUS=NOT_COMPUTABLE
+NAIVE_BASELINE_P90_STATUS=NOT_COMPUTABLE
+NAIVE_BASELINE_P80_P90_REASON=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+```
+
+The baseline is point-only. The same point value MUST NOT be copied into
+P80 / P90. The S3 bundle reports `metric_status=NOT_COMPUTABLE` and
+`reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` for any
+head-to-head comparison that requires a baseline P80 / P90 forecast.
+
+```text
+BASELINE_P80_COVERAGE_COMPARISON=BLOCKED
+BASELINE_P90_COVERAGE_COMPARISON=BLOCKED
+BASELINE_P80_P90_PEAK_COMPARISON=BLOCKED
+BASELINE_INTERVAL_WIDTH_COMPARISON=BLOCKED
+```
 
 ## 2. Rejected candidates
 
-The audit compares four candidate baselines. The frozen choice is the only
-one that survives.
+The audit compares four candidate baselines. The frozen choice is the
+only one that survives.
 
 | candidate | uses post-cutoff data | horizon support | cold-start | replay | comment |
 |---|---|---|---|---|---|
 | LAST_VISIBLE_ACTUAL | false | partial | fails | deterministic | leaks the most-recent-known value; horizon-blind |
 | TRAILING_VISIBLE_MEAN | false | partial | degrades | deterministic | window-blind; no horizon awareness |
 | SEASON_TO_DATE_VISIBLE_MEAN | false | partial | partial | deterministic | in-season bias; promotes the latest view |
-| PRIOR_SEASON_SAME_GRAIN | false | full | correct | deterministic | cold-start safe; horizon-aware via same grain | **frozen** |
+| PRIOR_SEASON_ANALOG_DAY_ACTUAL | false | full | correct | deterministic | cold-start safe; deterministic per-grain | **frozen** |
+
+## 3. Frozen formula
 
 ```text
-NAIVE_BASELINE_FORMULA=mean(actual_prior_season_i) over the same (farm_business_key, subfarm_business_key, variety_business_key, target_date) grain
+current_target_season_day_index = deterministic_season_day_index(
+    current_target_date,
+    current_season_calendar_authority
+)
+
+prior_target_date = resolve_prior_season_analog_date(
+    prior_season_identity,
+    current_target_season_day_index,
+    season_analog_mapping_policy_version
+)
+
+baseline_point_forecast_kg = exact prior-season actual label at
+    (
+      prior_season_identity,
+      same farm_business_key,
+      same subfarm_business_key,
+      same variety_business_key,
+      prior_target_date
+    )
 ```
+
+The baseline is a single point value (one actual label). It is NOT a
+mean over a window. The S3 contract does not retain a single-day mean
+as a baseline candidate.
 
 ```text
-BASELINE_LOOKBACK_WINDOW=PRIOR_SEASON_ANALOGOUS_DATE
-BASELINE_VISIBILITY_CUTOFF_RULE=AT_FORECAST_CUTOFF_FOR_PRIOR_SEASON
-BASELINE_GRAIN=SEASON x FARM x SUBFARM x VARIETY x DATE
-BASELINE_HORIZON_RULE=SAME_GRAIN_SAME_DATE_OFFSET
-BASELINE_COLD_START_POLICY=FAIL_CLOSED_NO_HISTORY_NO_PREDICTION
-BASELINE_MISSING_HISTORY_POLICY=NOT_COMPUTABLE
-BASELINE_DECIMAL_POLICY=Decimal_one_e_minus_six_ROUND_HALF_EVEN
+BASELINE_FORMULA_TYPE=POINT_FORECAST
+WINDOW_START_OFFSET_DAYS=N/A
+WINDOW_END_OFFSET_DAYS=N/A
+WINDOW_REQUIRED_DAY_COUNT=1
+BASELINE_WINDOW_MISSING_DAY_POLICY=NOT_APPLICABLE_POINT_FORECAST
 ```
 
-## 3. Hard prohibitions
+## 4. Season-analog mapping policy
 
 ```text
-BASELINE_USES_POST_CUTOFF_DATA=false
-BASELINE_USES_CURRENT_LATEST_ROWS=false
-BASELINE_USES_MODEL_FORECAST_AS_INPUT=false
-BASELINE_USES_RECEIPT_PROXY=false
-BASELINE_FALLS_BACK_TO_ZERO=false
+SEASON_ANALOG_MAPPING_POLICY_VERSION=v0.2-s3-season-analog-mapping-v1
+SEASON_DAY_INDEX_AUTHORITY=current_season_calendar_authority
 ```
 
-The baseline MUST NOT use any data after the forecast cutoff of the prior
-season's bound. The baseline MUST NOT use the current latest-rows snapshot
-even for cold-start. The baseline MUST NOT use the model forecast as a
-naive signal. The baseline MUST NOT use factory receipt or arrival proxy
-data. The baseline MUST NOT fall back to zero when history is missing —
-it MUST report `NOT_COMPUTABLE` and `reason_code=NO_PRIOR_SEASON_HISTORY`.
+The mapping from a current target date to a prior-season target date uses
+the current-season calendar day index. The day index is computed by
+`deterministic_season_day_index(current_target_date, current_season_calendar_authority)`.
 
-## 4. Forecasting horizons
+```text
+LEAP_DAY_POLICY=SKIP_BUT_MAP_TO_LEAP_ADJUSTED_DAY_INDEX
+```
+
+When the current target date is `Feb 29` (leap day), the mapping skips
+prior seasons that are not leap years and uses the
+`season_day_index(Feb 28)` mapping to the prior season's `Feb 28`. The
+mapping is recorded with `date_skew_reason=LEAP_DAY_ADJUSTED`.
+
+```text
+UNEQUAL_SEASON_LENGTH_POLICY=TRUNCATE_TO_SHORTER_SEASON_DAY_COUNT
+```
+
+When the prior season is shorter than the current season (e.g. a season
+ending earlier than the current season's last day), the mapping
+truncates to the shorter season's day count. Rows mapping to days
+beyond the prior season's last day are `NOT_COMPUTABLE`.
+
+```text
+SEASON_BOUNDARY_POLICY=PRIOR_SEASON_TARGET_DATE_REQUIRED
+```
+
+The prior season MUST have a target date at the mapped day index.
+If the prior season has no day at that index, the cell is
+`NOT_COMPUTABLE` with `reason_code=NO_PRIOR_SEASON_ANALOG_DAY`.
+
+```text
+MISSING_ANALOG_DATE_POLICY=NOT_COMPUTABLE
+```
+
+When the prior season has no actual label at the analog date, the cell
+is `NOT_COMPUTABLE` with `reason_code=NO_PRIOR_SEASON_ANALOG_ACTUAL`.
+
+## 5. Baseline source visibility — F-07 close
+
+The baseline visibility rule is bound to a separate timeline. The visible
+horizon for the prior-season source is the current forecast_cutoff_at.
+The prior-season actual label revision must be visible at or before
+the current forecast_cutoff_at.
+
+```text
+BASELINE_SOURCE_VISIBILITY_RULE=
+  prior-season actual label revision must be visible
+  at or before current forecast_cutoff_at
+```
+
+The baseline MUST NOT use the prior-season future target dates as
+visible at the current forecast_cutoff_at. The rejected phrasing
+
+```text
+prior_season_forecast_cutoff = current forecast cutoff minus one season
+```
+
+is **REJECTED** because it would require the prior-season future target
+dates to be visible at the prior season's forecast cutoff, which is
+physically impossible under the seasonal boundary.
+
+```text
+BASELINE_PRIOR_SEASON_FUTURE_TARGET_DATE_VISIBILITY=REJECTED
+```
+
+The baseline binds the following identities:
+
+```text
+baseline_source_snapshot_identity
+baseline_source_snapshot_hash
+baseline_source_row_set_hash
+baseline_source_visibility_manifest_hash
+baseline_source_visibility_cutoff_at
+prior_season_identity
+season_analog_mapping_policy_version
+baseline_policy_version
+```
+
+The baseline MUST NOT reuse the model-evaluation S2 binding row set as
+its historical source. The baseline has its own visibility timeline and
+its own source snapshot.
+
+```text
+BASELINE_REUSES_MODEL_S2_BINDING_ROWSET=false
+```
+
+## 6. Forecasting horizons
 
 The baseline supports all frozen S3 horizons:
 
@@ -85,43 +206,48 @@ The baseline supports all frozen S3 horizons:
 SUPPORTED_HORIZONS_DAYS=7,14,21
 ```
 
-The baseline's predicted value for a target date `t` is the mean of the
-prior season's actual value on the same `t'` where `t'` is the prior
-season's analogous date (same season-day offset). This distinguishes `t=7d`
-from `t=14d` from `t=21d` because the prior-season same-grain date is
-different for each horizon.
+The baseline's predicted value for a target date `t` is the prior
+season's actual label at the analog date. The analog date is distinct
+for each current target date `t`, so the horizon is encoded in the
+target date and the analog mapping respects the horizon.
 
-## 5. Cold-start and missing-history policy
+## 7. Cold-start and missing-history policy
 
 ```text
 BASELINE_COLD_START_POLICY=FAIL_CLOSED_NO_HISTORY_NO_PREDICTION
 BASELINE_MISSING_HISTORY_POLICY=NOT_COMPUTABLE
 ```
 
-When the prior season has no `COMPARABLE` row on the same
-`(farm_business_key, subfarm_business_key, variety_business_key, target_date)`
-grain, the baseline is `NOT_COMPUTABLE` for that breakdown cell. The cell
-is reported with `metric_status=NOT_COMPUTABLE` and
-`reason_code=NO_PRIOR_SEASON_HISTORY`. The baseline never silently
-substitutes a zero, a global mean, or any leakage source.
+When the prior season has no `actual` label at the analog date, the
+baseline is `NOT_COMPUTABLE` for that breakdown cell. The cell is
+reported with `metric_status=NOT_COMPUTABLE` and `reason_code=
+NO_PRIOR_SEASON_ANALOG_ACTUAL`. The baseline never silently substitutes
+a zero, a global mean, the current latest row, or any leakage source.
+
+```text
+BASELINE_FALLS_BACK_TO_ZERO=false
+BASELINE_USES_LATEST_ROWS=false
+BASELINE_USES_MODEL_FORECAST=false
+BASELINE_USES_RECEIPT_PROXY=false
+```
 
 This cold-start policy is intentional: the contract binds the audit to
 "fail closed" rather than to "synthesize a baseline". A new farm, new
 variety, or new season MUST surface as `NOT_COMPUTABLE` until the prior
-season completes with at least one comparable row.
+season completes with at least one actual label at the analog date.
 
-## 6. Decimal arithmetic
+## 8. Decimal arithmetic
 
 ```text
 BASELINE_DECIMAL_POLICY=Decimal_one_e_minus_six_ROUND_HALF_EVEN
 ```
 
-The baseline mean is computed in `Decimal` with six decimal places,
-quantized to `METRIC_QUANTUM=1e-6` and rounded `ROUND_HALF_EVEN`. The
-result is emitted as `str(decimal_value)`. No native `float` participates
-in canonical business arithmetic.
+The baseline value is copied from the prior-season actual label, which
+is itself a `Decimal` with six decimal places. The canonical payload
+emits `str(decimal_value)`. No native `float`, NumPy float, or binary
+float participates in the canonical business arithmetic.
 
-## 7. Canonical identity
+## 9. Canonical identity
 
 The canonical hash of the baseline bind is computed over:
 
@@ -130,13 +256,27 @@ BASELINE_CANONICAL_HASH_PAYLOAD={
   schema_version,
   s2_run_identity,
   s2_manifest_identity,
-  s2_binding_row_set_hash,
+  baseline_source_snapshot_identity,
+  baseline_source_snapshot_hash,
+  baseline_source_row_set_hash,
+  baseline_source_visibility_manifest_hash,
+  baseline_source_visibility_cutoff_at,
   baseline_policy_version,
+  season_analog_mapping_policy_version,
+  prior_season_identity,
   baseline_grain,
   baseline_horizon_rule,
-  baseline_cutoff,
   breakdown_dimensions,
-  per_breakdown_cell: { mean_decimal, comparable_row_count, excluded_row_count, not_computable_row_count, metric_status, reason_code }
+  per_breakdown_cell: {
+    baseline_point_forecast_kg,
+    s2_comparable_row_count,
+    s2_excluded_row_count,
+    s2_not_computable_row_count,
+    mape_eligible_row_count,
+    mape_zero_actual_row_count,
+    metric_status,
+    reason_code
+  }
 }
 ```
 
@@ -154,7 +294,7 @@ credentials or connection strings
 The baseline canonical hash uses the same hash algorithm as the S3
 metrics contract.
 
-## 8. Fair comparison with the model
+## 10. Fair comparison with the model
 
 The model and the baseline MUST use the same inputs and outputs:
 
@@ -170,7 +310,7 @@ set** with the **same metric formulas** and the **same breakdown axes**.
 The S3 bundle publishes both model metrics and baseline metrics per
 breakdown cell. The difference is that the model's underlying forecast is
 the model's raw P50 / P80 / P90; the baseline's underlying forecast is
-the prior-season same-grain same-date mean.
+the prior-season analog-day actual.
 
 When the prior season has fewer comparable rows than the model, the S3
 bundle reports two distinct counts:
@@ -195,61 +335,65 @@ HEAD_TO_HEAD_OVER=COMMON_COMPARABLE_SET
 MODEL_ONLY_DELETION_FOR_BASELINE=false
 ```
 
-## 9. Cutoff re-derivation
+## 11. Comparison deltas — F-08 close
 
-The baseline prior-season cutoff is the same calendar date as the S2
-forecast cutoff, MINUS one season. The re-derivation is strict:
-
-```text
-prior_season_forecast_cutoff = season_start_date_offset(forecast_cutoff, -1)
-```
-
-The baseline only reads `COMPARABLE` rows whose `label_visibility_cutoff_at`
-is at or before `prior_season_forecast_cutoff`. The baseline never reads
-the current season's rows when computing the prior-season mean.
-
-## 10. Integration with S3 quality metrics
-
-The baseline produces the same payload shape as the model at the canonical
-hash boundary:
+The S3 contract preserves the model-vs-baseline comparison identity
+required by §16 of `s3-quality-metrics-contract.md`. The bundle publishes:
 
 ```text
--
-  metric: quality_metric_name             (e.g. daily_mae, daily_wape, daily_smape, daily_mape, daily_bias_kg, daily_relative_bias, season_cumulative_*)
-  baseline_name: PRIOR_SEASON_SAME_GRAIN_SAME_WINDOW_MEAN
-  baseline_policy_version: v0.2-s3-naive-baseline-policy-v1
-  forecast_value: <Decimal>
-  actual_value: <Decimal>
-  ...
+daily_mae_delta
+daily_wape_delta
+daily_smape_delta
+daily_mape_delta
+single_day_peak_date_absolute_error_delta_q
+single_day_peak_quantity_absolute_error_delta_q
+sustained_7day_start_date_absolute_error_delta_q
+sustained_7day_quantity_absolute_error_delta_q
+p80_coverage_delta         (NOT_COMPUTABLE for the baseline; BASELINE_P80_COVERAGE_COMPARISON=BLOCKED)
+p90_coverage_delta         (NOT_COMPUTABLE for the baseline; BASELINE_P90_COVERAGE_COMPARISON=BLOCKED)
+interval_width_delta       (NOT_COMPUTABLE for the baseline; BASELINE_INTERVAL_WIDTH_COMPARISON=BLOCKED)
+absolute_bias_magnitude_delta
+absolute_cumulative_bias_magnitude_delta
+signed_bias_delta
+signed_cumulative_error_delta
 ```
 
-The S3 quality metrics bundle (per `s3-quality-metrics-contract.md`)
-publishes one `NaiveBaselineRun` and one `ModelBaselineComparison` per
-breakdown cell. The head-to-head deltas are:
+A delta that requires a baseline P80 / P90 forecast is published with
+`metric_status=NOT_COMPUTABLE` and `reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED`,
+not silently dropped.
+
+For non-negative loss deltas, the convention is:
 
 ```text
-delta_daily_mae             = model_daily_mae - baseline_daily_mae
-delta_daily_wape            = model_daily_wape - baseline_daily_wape
-delta_daily_smape           = model_daily_smape - baseline_daily_smape
-delta_daily_mape            = model_daily_mape - baseline_daily_mape
-delta_daily_bias_kg         = model_daily_bias_kg - baseline_daily_bias_kg
-delta_season_cumulative_signed_error_kg = model_cumulative_signed_error_kg - baseline_cumulative_signed_error_kg
+loss_delta = model_loss - baseline_loss
+positive = model worse
+negative = model better
+zero = tie
 ```
 
-A positive delta means the model is **worse** than the baseline on the
-metric; a negative delta means the model is **better**. The delta is
-exactly `model - baseline`; the sign is documented and never re-flipped.
+For signed deltas, the bundle reports direction only:
 
-## 11. What S3 does NOT include
+```text
+signed_bias_delta = model_signed_bias - baseline_signed_bias
+signed_cumulative_error_delta = model_signed_cumulative_error - baseline_signed_cumulative_error
+```
+
+For absolute-bias magnitude deltas, the same convention as non-negative
+loss deltas applies, but only after `abs(...)` is applied.
+
+## 12. What S3 does NOT include
 
 ```text
 MULTI_BASELINE_COMPARISON=false
 BASELINE_USES_MODEL_FORECAST=false
 BASELINE_TUNING=false
 PRIOR_SEASON_REPLAY=false
+BASELINE_P80_QUALIFIER=false
+BASELINE_P90_QUALIFIER=false
 ```
 
 Multi-baseline comparison is out of scope. The baseline never uses the
 model forecast as an input. The baseline is not tuned on the comparison
-result. The prior season is not replayed; the baseline reads the S2
-binding rows as-is.
+result. The prior season is not replayed; the baseline reads the
+prior-season source rows as-is. The baseline does not provide a
+P80 / P90 qualifier; only P50-equivalent point comparison is supported.
