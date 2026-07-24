@@ -306,6 +306,19 @@ BASELINE_POINT_METRIC_MASK=S2_STATUS_COMPARABLE_AND_FORECAST_QUANTILE_P50 AND BA
 BASELINE_METRIC_INPUT_MASK_HASH_REQUIRED=true
 BASELINE_UNIQUE_ACTUAL_PHYSICAL_ROW_COUNT_REQUIRED=true
 BASELINE_CANONICAL_MASK_IDENTITY_ALIGNED_WITH_METRIC_CONTRACT=true
+BASELINE_CANONICAL_S2_STATUS_COUNTER_COUNT=5
+BASELINE_CANONICAL_MASK_IDENTITY_RETAINED=true
+METRIC_MASK_REPLACES_S2_STATUS_COUNTERS=false
+S2_STATUS_COUNTERS_RETAINED_WITH_METRIC_MASK=true
+
+S2_STATUS_COUNTER_ROLE = audit the complete upstream binding population and its row statuses
+METRIC_INPUT_MASK_ROLE = identify the exact metric-specific subset used in calculation
+
+PAYLOAD_ROOT_S2_COUNTER_SCOPE = FULL_BASELINE_EVALUATION_INPUT
+PER_BREAKDOWN_CELL_S2_COUNTER_SCOPE = EXACT_BREAKDOWN_CELL_INPUT
+
+S2_TOTAL_BINDING_ROW_COUNT_ZERO_STATUS=NOT_COMPUTABLE
+S2_TOTAL_BINDING_ROW_COUNT_ZERO_REASON=NO_S2_BINDING_ROWS
 
 metric_input_mask_hash covers:
   metric_input_mask_policy_version
@@ -321,6 +334,7 @@ BASELINE_CANONICAL_HASH_PAYLOAD={
   schema_version,
   s2_run_identity,
   s2_manifest_identity,
+  s2_binding_row_set_hash,
   baseline_source_snapshot_identity,
   baseline_source_snapshot_hash,
   baseline_source_row_set_hash,
@@ -332,6 +346,11 @@ BASELINE_CANONICAL_HASH_PAYLOAD={
   baseline_grain,
   baseline_horizon_rule,
   breakdown_dimensions,
+  s2_total_binding_row_count,
+  s2_comparable_binding_row_count,
+  s2_excluded_binding_row_count,
+  s2_not_computable_binding_row_count,
+  coverage_ratio,
   metric_input_mask_policy_version,
   metric_input_mask_hash,
   metric_input_row_count,
@@ -339,6 +358,11 @@ BASELINE_CANONICAL_HASH_PAYLOAD={
   unique_actual_physical_row_count,
   per_breakdown_cell: {
     baseline_point_forecast_kg,
+    s2_total_binding_row_count,
+    s2_comparable_binding_row_count,
+    s2_excluded_binding_row_count,
+    s2_not_computable_binding_row_count,
+    coverage_ratio,
     metric_input_mask_policy_version,
     metric_input_mask_hash,
     metric_input_row_count,
@@ -350,6 +374,16 @@ BASELINE_CANONICAL_HASH_PAYLOAD={
     reason_code
   }
 }
+```
+
+The baseline canonical hash payload binds both the upstream S2 status
+counters (audit the complete upstream binding population) and the
+metric input mask identity (identify the exact metric-specific subset).
+The two field groups serve different roles and MUST both be present at
+payload root and at the per-breakdown-cell level.
+
+```text
+coverage_ratio = s2_comparable_binding_row_count / s2_total_binding_row_count
 ```
 
 The baseline canonical hash payload MUST bind the metric input mask
@@ -431,25 +465,41 @@ MODEL_ONLY_DELETION_FOR_BASELINE=false
 ## 11. Comparison deltas — F-08 close
 
 The S3 contract preserves the model-vs-baseline comparison identity
-required by §16 of `s3-quality-metrics-contract.md`. The bundle publishes:
+required by §16 of `s3-quality-metrics-contract.md`. Comparison fields
+are split into three groups, each with its own
+`comparison_availability`, `metric_status`, `reason_code`, and
+`external_blocker`. The baseline decision document freezes the
+baseline-side classification for all three groups.
 
 ```text
-daily_mae_delta
-daily_wape_delta
-daily_smape_delta
-daily_mape_delta
-single_day_peak_date_absolute_error_delta_q
-single_day_peak_quantity_absolute_error_delta_q
-sustained_7day_start_date_absolute_error_delta_q
-sustained_7day_quantity_absolute_error_delta_q
-p80_coverage_delta         (NOT_COMPUTABLE for the baseline; BASELINE_P80_COVERAGE_COMPARISON=BLOCKED)
-p90_coverage_delta         (NOT_COMPUTABLE for the baseline; BASELINE_P90_COVERAGE_COMPARISON=BLOCKED)
-interval_width_delta       (NOT_COMPUTABLE for the baseline; BASELINE_INTERVAL_WIDTH_COMPARISON=BLOCKED)
-absolute_bias_magnitude_delta
-absolute_cumulative_bias_magnitude_delta
-signed_bias_delta
-signed_cumulative_error_delta
+DAILY_POINT_COMPARISON_FIELDS=daily_mae_delta, daily_wape_delta, daily_smape_delta, daily_mape_delta, absolute_bias_magnitude_delta, signed_bias_delta
+DAILY_POINT_COMPARISON_READINESS=READY_PENDING_SEPARATE_S3_IMPLEMENTATION_AUTHORIZATION
+BASELINE_DAILY_POINT_COMPARISON_STATUS=IMPLEMENTATION_OBLIGATION
+DAILY_POINT_COMPARISON_AVAILABILITY=AVAILABLE
+DAILY_POINT_COMPARISON_METRIC_STATUS=COMPUTED
+DAILY_POINT_COMPARISON_REASON_CODE=NONE
+DAILY_POINT_COMPARISON_EXTERNAL_BLOCKER=none
+
+COMPLETE_WINDOW_COMPARISON_FIELDS=absolute_cumulative_bias_magnitude_delta, signed_cumulative_error_delta, single_day_peak_date_absolute_error_delta_q, single_day_peak_quantity_absolute_error_delta_q, sustained_7day_start_date_absolute_error_delta_q, sustained_7day_quantity_absolute_error_delta_q
+COMPLETE_WINDOW_COMPARISON_READINESS=BLOCKED_BY_S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+BASELINE_COMPLETE_WINDOW_COMPARISON_STATUS=BLOCKED_BY_S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+COMPLETE_WINDOW_COMPARISON_AVAILABILITY=BLOCKED
+COMPLETE_WINDOW_COMPARISON_METRIC_STATUS=NOT_COMPUTABLE
+COMPLETE_WINDOW_COMPARISON_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+COMPLETE_WINDOW_COMPARISON_EXTERNAL_BLOCKER=S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
+
+BASELINE_QUANTILE_INTERVAL_COMPARISON_FIELDS=p80_coverage_delta, p90_coverage_delta, interval_width_delta, baseline_p80_p90_peak_comparison
+BASELINE_QUANTILE_INTERVAL_COMPARISON_READINESS=FROZEN_NOT_COMPUTABLE_LIMITATION
+BASELINE_QUANTILE_INTERVAL_COMPARISON_STATUS=FROZEN_NOT_COMPUTABLE_LIMITATION
+BASELINE_QUANTILE_INTERVAL_COMPARISON_AVAILABILITY=BLOCKED
+BASELINE_QUANTILE_INTERVAL_COMPARISON_METRIC_STATUS=NOT_COMPUTABLE
+BASELINE_QUANTILE_INTERVAL_COMPARISON_REASON_CODE=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED, PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE
+BASELINE_QUANTILE_INTERVAL_COMPARISON_EXTERNAL_BLOCKER=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
 ```
+
+The bundle publishes `comparison_availability` and `metric_status`
+together for every comparison field; "blocked" is expressed as
+`comparison_availability=BLOCKED`, never as a `metric_status` value.
 
 A delta that requires a baseline P80 / P90 forecast is published with
 `metric_status=NOT_COMPUTABLE` and `reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED`,
