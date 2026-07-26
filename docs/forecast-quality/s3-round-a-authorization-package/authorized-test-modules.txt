@@ -1,10 +1,15 @@
 # Future domain-only pytest modules. Each module must execute, not collect only.
 # Columns: module | owned requirements | classification | required cases | prohibited substitute evidence
-backend/tests/forecast_quality/test_aggregation.py | S3R-16,S3R-17 | runtime | exact subfarm sum, exact actual dedup, duplicate target rejection | max-single-subfarm-as-farm-total, row-count-only assertion
+AUTHORIZED_TEST_MODULE_COUNT=17
+ROUND_A_REQUIREMENT_WITHOUT_TEST_OWNER_COUNT=0
+TEST_MODULE_WITHOUT_REQUIREMENT_COUNT=0
+S3R11_TEST_OWNER_PRESENT=true
+S3R12_TEST_OWNER_PRESENT=true
+backend/tests/forecast_quality/test_aggregation.py | S3R-16,S3R-17 | runtime | quantile-specific farm forecast sums, exact farm actual sum, P50/P80/P90 retained independently, duplicate forecast business key rejection, duplicate actual physical key rejection, max-single-subfarm substitution rejection | max-single-subfarm-as-farm-total, cross-quantile merge, row-count-only assertion
 backend/tests/forecast_quality/test_actual_dedup.py | S3R-15 | runtime | retain P50/P80/P90 forecast rows, one actual physical row, stable identity conflict, value conflict | unique-count-only audit, dropping non-P50 rows
-backend/tests/forecast_quality/test_baseline.py | S3R-08,S3R-09,S3R-11 | runtime | six fixtures: normal, Feb29 mapping, no analog day, no analog actual, visible source, late revision | printed PASS, latest row, zero fallback, model/receipt proxy
+backend/tests/forecast_quality/test_baseline.py | S3R-08,S3R-09,S3R-11,S3R-12 | runtime | six fixtures: normal, Feb29 mapping, no analog day, no analog actual, visible source, late revision; latest actual fallback rejected, post-cutoff revision rejected, model forecast/receipt/arrival proxy rejected, implicit zero rejected, S2 row-set reuse rejected; P50-equivalent point only, no P80/P90 copy, BLOCKED and NOT_COMPUTABLE reason | printed PASS, latest row, zero fallback, model/receipt proxy, P80/P90 point copying
 backend/tests/forecast_quality/test_baseline_cold_start.py | S3R-09 | runtime | missing prior season and missing analog actual produce NOT_COMPUTABLE | exception-only success, synthetic zero
-backend/tests/forecast_quality/test_baseline_visibility.py | S3R-10,S3R-11 | runtime | revision visible at current cutoff allowed; later revision rejected | prior-season cutoff, current latest row
+backend/tests/forecast_quality/test_baseline_visibility.py | S3R-10,S3R-11 | runtime | revision visible at current cutoff allowed; later revision rejected; post-cutoff source rejection remains owned here | prior-season cutoff, current latest row
 backend/tests/forecast_quality/test_blocked_surfaces.py | ROUND_A_DOMAIN_ONLY | static | forbidden modules, APIs, persistence, migration, peak, quantile, comparison, CI paths absent | invented NEVER_IMPLEMENTED tokens, text-only scan without path check
 backend/tests/forecast_quality/test_breakdown.py | S3R-13 | runtime | all six axes, deterministic cell identity, cells retained | omitted farm/horizon axis, row-count-only assertion
 backend/tests/forecast_quality/test_breakdown_min.py | S3R-14 | runtime | below ten comparable rows yields INSUFFICIENT_SAMPLE without dropping cell | dropping small cells, global status substitution
