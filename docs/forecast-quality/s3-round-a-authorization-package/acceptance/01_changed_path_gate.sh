@@ -98,6 +98,12 @@ validate_hash_records() {
 run_package_self_test() {
   local package_dir
   package_dir="$(cd "$(dirname "${SELF_PATH}")/.." && pwd)"
+  local package_python="${package_dir}/acceptance/02_runtime_policy_audit.py"
+  uv run ruff check "${package_python}"
+  uv run ruff format --check "${package_python}"
+  printf 'PACKAGE_PYTHON_RUFF_PATH_COUNT=1\n'
+  printf 'PACKAGE_ROOT_RUFF_CHECK=PASS\n'
+  printf 'PACKAGE_ROOT_RUFF_FORMAT_CHECK=PASS\n'
   local tmp
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/s3-round-a-package-self-test.XXXXXX")"
   trap "rm -rf '${tmp}'" EXIT
@@ -350,6 +356,7 @@ write("backend/app/forecast_quality/schemas.py", '''
         unique_actual_physical_row_count: int
         mape_eligible_row_count: int
         mape_zero_actual_row_count: int
+        mape_zero_actual_reason_code: ReasonCode | None
         metric_cells: Sequence[MetricValueCell]
         canonical_hash: str
 
@@ -361,7 +368,6 @@ write("backend/app/forecast_quality/schemas.py", '''
         variety_business_key: str
         season_business_key: str
         model_identity: str
-        minimum_sample_size: int
 
     @dataclass(frozen=True)
     class BaselineRequest:
@@ -445,25 +451,34 @@ write("backend/app/forecast_quality/canonical.py", '''
             identities[key] = (identity, amount)
         return Registry(len(rows), len(rows), len(identities))
 
-    def build_baseline_canonical_payload_root(result: Any) -> dict[str, Any]:
-        return {key: None for key in (
-            "schema_version", "s2_run_identity", "s2_manifest_identity", "s2_binding_row_set_hash",
-            "baseline_source_snapshot_identity", "baseline_source_snapshot_hash", "baseline_source_row_set_hash",
-            "baseline_source_visibility_manifest_hash", "baseline_source_visibility_cutoff_at",
-            "baseline_policy_version", "season_analog_mapping_policy_version", "prior_season_identity",
-            "baseline_grain", "baseline_horizon_rule", "breakdown_dimensions", "s2_total_binding_row_count",
-            "s2_comparable_binding_row_count", "s2_excluded_binding_row_count",
-            "s2_not_computable_binding_row_count", "coverage_ratio", "metric_input_mask_policy_version",
-            "metric_input_mask_hash", "metric_input_row_count", "metric_input_quantile",
-            "unique_actual_physical_row_count", "per_breakdown_cell")}
+    ROOT_FIELDS = (
+        "schema_version", "s2_run_identity", "s2_manifest_identity", "s2_binding_row_set_hash",
+        "baseline_source_snapshot_identity", "baseline_source_snapshot_hash", "baseline_source_row_set_hash",
+        "baseline_source_visibility_manifest_hash", "baseline_source_visibility_cutoff_at",
+        "baseline_policy_version", "season_analog_mapping_policy_version", "prior_season_identity",
+        "baseline_grain", "baseline_horizon_rule", "breakdown_dimensions", "s2_total_binding_row_count",
+        "s2_comparable_binding_row_count", "s2_excluded_binding_row_count",
+        "s2_not_computable_binding_row_count", "coverage_ratio", "metric_input_mask_policy_version",
+        "metric_input_mask_hash", "metric_input_row_count", "metric_input_quantile",
+        "unique_actual_physical_row_count", "per_breakdown_cell")
+    CELL_FIELDS = (
+        "baseline_point_forecast_kg", "s2_total_binding_row_count", "s2_comparable_binding_row_count",
+        "s2_excluded_binding_row_count", "s2_not_computable_binding_row_count", "coverage_ratio",
+        "metric_input_mask_policy_version", "metric_input_mask_hash", "metric_input_row_count",
+        "metric_input_quantile", "unique_actual_physical_row_count", "mape_eligible_row_count",
+        "mape_zero_actual_row_count", "metric_status", "reason_code")
 
-    def build_baseline_canonical_payload_cell(result: Any) -> dict[str, Any]:
-        return {key: None for key in (
-            "baseline_point_forecast_kg", "s2_total_binding_row_count", "s2_comparable_binding_row_count",
-            "s2_excluded_binding_row_count", "s2_not_computable_binding_row_count", "coverage_ratio",
-            "metric_input_mask_policy_version", "metric_input_mask_hash", "metric_input_row_count",
-            "metric_input_quantile", "unique_actual_physical_row_count", "mape_eligible_row_count",
-            "mape_zero_actual_row_count", "metric_status", "reason_code")}
+    def _canonical_section(context: Any, section: str, fields: tuple[str, ...]) -> dict[str, Any]:
+        payload = dict(context[section])
+        if tuple(payload) != fields or any(payload[field] is None for field in fields):
+            raise ValueError(f"invalid canonical {section} context")
+        return payload
+
+    def build_baseline_canonical_payload_root(context: Any) -> dict[str, Any]:
+        return _canonical_section(context, "root", ROOT_FIELDS)
+
+    def build_baseline_canonical_payload_cell(context: Any) -> dict[str, Any]:
+        return _canonical_section(context, "cell", CELL_FIELDS)
     ''')
 
 write("backend/app/forecast_quality/aggregation.py", '''
@@ -513,10 +528,12 @@ write("backend/app/forecast_quality/aggregation.py", '''
 write("backend/app/forecast_quality/calculator_daily.py", '''
     from __future__ import annotations
 
+    import dataclasses
+    import hashlib
     from decimal import Decimal
     from typing import Any
 
-    from .canonical import compute_metric_input_mask_hash
+    from .canonical import canonical_json_bytes, compute_metric_input_mask_hash
     from .enums import FrozenVersion, MetricStatus, ReasonCode, SupportedQuantile
     from .schemas import DailyMetricResult, MetricValueCell
 
@@ -547,19 +564,36 @@ write("backend/app/forecast_quality/calculator_daily.py", '''
             "daily_relative_bias": _cell("daily_relative_bias", sum(errors, Decimal("0")) / actual_sum, sum(errors, Decimal("0")), actual_sum, MetricStatus.COMPUTED, ReasonCode.NONE, len(rows), zero_count) if actual_sum else _cell("daily_relative_bias", None, sum(errors, Decimal("0")), actual_sum, MetricStatus.NOT_COMPUTABLE, ReasonCode.RELATIVE_BIAS_DENOMINATOR_ZERO, len(rows), zero_count),
             "daily_absolute_error_sum_kg": _cell("daily_absolute_error_sum_kg", abs_sum, abs_sum, Decimal("1"), MetricStatus.COMPUTED, ReasonCode.NONE, len(rows), zero_count),
         }
-        return DailyMetricResult(
+        zero_reason = ReasonCode.MAPE_DENOMINATOR_ZERO if zero_count else None
+        breakdown_identity = {
+            "season_business_key": _value(breakdown_spec, "season_business_key"),
+            "farm_business_key": _value(breakdown_spec, "farm_business_key"),
+            "subfarm_business_key": _value(breakdown_spec, "subfarm_business_key"),
+            "variety_business_key": _value(breakdown_spec, "variety_business_key"),
+            "model_identity": _value(breakdown_spec, "model_identity"),
+            "forecast_horizon_days": _value(breakdown_spec, "forecast_horizon_days"),
+        }
+        mask_payload = {
+            "metric_input_mask_policy_version": "v0.2-s3-metric-input-mask-v1",
+            "s2_status_predicate": "S2_STATUS_COMPARABLE",
+            "forecast_quantile_predicate": "P50",
+            "actual_pair_predicate": "EXACT_ACTUAL_PAIRED",
+            "breakdown_identity": breakdown_identity,
+            "source_row_set_identity": _value(evaluation_input, "s2_binding_row_set_hash"),
+        }
+        result = DailyMetricResult(
             _value(evaluation_input, "s2_run_identity"), _value(evaluation_input, "s2_manifest_identity"),
             _value(evaluation_input, "s2_binding_row_set_hash"), FrozenVersion.METRIC_INPUT_MASK_V1,
-            FrozenVersion.NAIVE_BASELINE_POLICY_V1, {
-                "season_business_key": _value(breakdown_spec, "season_business_key"),
-                "farm_business_key": _value(breakdown_spec, "farm_business_key"),
-                "subfarm_business_key": _value(breakdown_spec, "subfarm_business_key"),
-                "variety_business_key": _value(breakdown_spec, "variety_business_key"),
-                "model_identity": _value(breakdown_spec, "model_identity"),
-                "forecast_horizon_days": _value(breakdown_spec, "forecast_horizon_days")},
-            len(rows), len(rows), 0, 0, Decimal("1"), compute_metric_input_mask_hash({"rows": len(rows)}),
+            FrozenVersion.NAIVE_BASELINE_POLICY_V1, breakdown_identity,
+            len(rows), len(rows), 0, 0, Decimal("1"), compute_metric_input_mask_hash(mask_payload),
             len(rows), SupportedQuantile.P50, len({str(_value(row, "actual_physical_key")) for row in rows}),
-            len(eligible), zero_count, list(cells.values()), "fixture-daily-result")
+            len(eligible), zero_count, zero_reason, list(cells.values()), "")
+        payload = dataclasses.asdict(result)
+        payload["canonical_hash"] = ""
+        return dataclasses.replace(
+            result,
+            canonical_hash=hashlib.sha256(canonical_json_bytes(payload)).hexdigest(),
+        )
     ''')
 
 write("backend/app/forecast_quality/breakdown.py", '''
@@ -573,11 +607,15 @@ write("backend/app/forecast_quality/breakdown.py", '''
         metric_status: MetricStatus
         reason_code: ReasonCode
 
+    MIN_COMPARABLE_ROWS_FOR_REPORTING = 10
+
     def calculate_breakdown_cells(rows, breakdown_spec):
         identity = {name: getattr(breakdown_spec, name) for name in (
             "season_business_key", "farm_business_key", "subfarm_business_key",
             "variety_business_key", "model_identity", "forecast_horizon_days")}
-        return [BreakdownCell(identity, MetricStatus.INSUFFICIENT_SAMPLE, ReasonCode.BELOW_MINIMUM)]
+        if len(rows) < MIN_COMPARABLE_ROWS_FOR_REPORTING:
+            return [BreakdownCell(identity, MetricStatus.INSUFFICIENT_SAMPLE, ReasonCode.BELOW_MINIMUM)]
+        return [BreakdownCell(identity, MetricStatus.COMPUTED, ReasonCode.NONE)]
     ''')
 
 write("backend/app/forecast_quality/season_calendar.py", '''
@@ -679,11 +717,21 @@ PY
 
   local negative_expected=0 unexpected_pass=0 negative_gate_count=0
   expect_fail() {
+    local fixture_id="$1" gate_path="$2"
+    shift 2
     negative_gate_count=$((negative_gate_count + 1))
     negative_expected=$((negative_expected + 1))
-    if "$@" >/dev/null 2>&1; then
+    local actual_exit_code=0
+    set +e
+    "$@" >/dev/null 2>&1
+    actual_exit_code=$?
+    set -e
+    if [[ "${actual_exit_code}" == "0" ]]; then
       unexpected_pass=$((unexpected_pass + 1))
     fi
+    printf 'NEGATIVE_FIXTURE=%s|gate=%s|exact_command=%q|expected_exit_nonzero=true|actual_exit_code=%s|result=%s\n' \
+      "${fixture_id}" "${gate_path}" "$*" "${actual_exit_code}" \
+      "$([[ "${actual_exit_code}" != "0" ]] && echo PASS || echo UNEXPECTED_PASS)"
   }
 
   clone_fixture() {
@@ -694,8 +742,8 @@ PY
     printf '%s\n' "${clone}"
   }
   run_path_gate_expect_fail() {
-    local clone="$1"
-    expect_fail env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${clone}" \
+    local fixture_id="$1" clone="$2"
+    expect_fail "${fixture_id}" "01_changed_path_gate.sh" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${clone}" \
       PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
       bash "${clone}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
   }
@@ -703,29 +751,29 @@ PY
   bad_hash_clone="$(clone_fixture bad-hash)"
   perl -0pi -e 's/^[0-9a-f]{64}/0000000000000000000000000000000000000000000000000000000000000000/' \
     "${bad_hash_clone}/${PACKAGE_REPOSITORY_ROOT}/acceptance/SHA256SUMS"
-  run_path_gate_expect_fail "${bad_hash_clone}"
+  run_path_gate_expect_fail bad-four-entry-script-hash "${bad_hash_clone}"
 
   missing_script_clone="$(clone_fixture missing-script)"
   rm "${missing_script_clone}/${SCRIPT_HASH_PREFIX}04_static_gate.sh"
-  run_path_gate_expect_fail "${missing_script_clone}"
+  run_path_gate_expect_fail missing-script-blob "${missing_script_clone}"
 
   metadata_clone="$(clone_fixture metadata-record)"
   printf 'backend/not-a-create-record.py | INVALID | fixture\n' >> \
     "${metadata_clone}/${PACKAGE_REPOSITORY_ROOT}/authorized-paths.txt"
-  run_path_gate_expect_fail "${metadata_clone}"
+  run_path_gate_expect_fail invalid-manifest-record "${metadata_clone}"
 
   extra_path_clone="$(clone_fixture extra-path)"
   printf '# extra\n' >"${extra_path_clone}/backend/app/forecast_quality/path_27.py"
-  run_path_gate_expect_fail "${extra_path_clone}"
+  run_path_gate_expect_fail twenty-seventh-path "${extra_path_clone}"
 
   blocked_path_clone="$(clone_fixture blocked-path)"
   mkdir -p "${blocked_path_clone}/backend/app/models"
   printf '# blocked\n' >"${blocked_path_clone}/backend/app/models/blocked.py"
-  run_path_gate_expect_fail "${blocked_path_clone}"
+  run_path_gate_expect_fail blocked-model-path "${blocked_path_clone}"
 
   zero_module_clone="$(clone_fixture zero-module)"
   : >"${zero_module_clone}/backend/tests/forecast_quality/test_aggregation.py"
-  expect_fail env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${zero_module_clone}" \
+  expect_fail zero-test-module "03_test_gate.sh" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${zero_module_clone}" \
     PACKAGE_DIR="${zero_module_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
     bash "${zero_module_clone}/${SCRIPT_HASH_PREFIX}03_test_gate.sh"
 
@@ -734,7 +782,7 @@ PY
 def build_baseline_canonical_payload_root(result):
     return {"drift": None}
 PY
-  expect_fail env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${root_drift_clone}" \
+  expect_fail baseline-root-field-drift "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${root_drift_clone}" \
     PACKAGE_DIR="${root_drift_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
     uv run python "${root_drift_clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
 
@@ -743,14 +791,14 @@ PY
 def build_baseline_canonical_payload_cell(result):
     return {"drift": None}
 PY
-  expect_fail env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${cell_drift_clone}" \
+  expect_fail baseline-cell-field-drift "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${cell_drift_clone}" \
     PACKAGE_DIR="${cell_drift_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
     uv run python "${cell_drift_clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
 
   version_clone="$(clone_fixture frozen-version)"
   perl -0pi -e 's/METRIC_INPUT_MASK_V1 = "v0\.2-s3-metric-input-mask-v1"/METRIC_INPUT_MASK_V1 = "wrong"/' \
     "${version_clone}/backend/app/forecast_quality/enums.py"
-  expect_fail env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${version_clone}" \
+  expect_fail wrong-frozen-version "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${version_clone}" \
     PACKAGE_DIR="${version_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
     uv run python "${version_clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
 
@@ -759,9 +807,147 @@ PY
 def prediction_interval():
     return None
 PY
-  expect_fail env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${blocked_ast_clone}" \
+  expect_fail blocked-ast-definition "04_static_gate.sh" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${blocked_ast_clone}" \
     PACKAGE_DIR="${blocked_ast_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
     bash "${blocked_ast_clone}/${SCRIPT_HASH_PREFIX}04_static_gate.sh"
+
+  run_runtime_gate_expect_fail() {
+    local fixture_id="$1" clone="$2"
+    expect_fail "${fixture_id}" "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${clone}" \
+      PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+      uv run python "${clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
+  }
+
+  breakdown_schema_clone="$(clone_fixture breakdown-seventh-field)"
+  perl -0pi -e 's/(model_identity: str\n)/$1        minimum_sample_size: int\n/' \
+    "${breakdown_schema_clone}/backend/app/forecast_quality/schemas.py"
+  run_runtime_gate_expect_fail breakdown-seventh-field "${breakdown_schema_clone}"
+
+  canonical_none_clone="$(clone_fixture canonical-all-none)"
+  cat >>"${canonical_none_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
+def build_baseline_canonical_payload_root(context):
+    return {key: None for key in context["root"]}
+
+def build_baseline_canonical_payload_cell(context):
+    return {key: None for key in context["cell"]}
+PY
+  run_runtime_gate_expect_fail canonical-all-required-values-none "${canonical_none_clone}"
+
+  canonical_run_clone="$(clone_fixture canonical-wrong-s2-run)"
+  cat >>"${canonical_run_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
+def build_baseline_canonical_payload_root(context):
+    payload = dict(context["root"])
+    payload["s2_run_identity"] = "wrong-run"
+    return payload
+PY
+  run_runtime_gate_expect_fail canonical-wrong-s2-run-identity "${canonical_run_clone}"
+
+  canonical_rowset_clone="$(clone_fixture canonical-wrong-row-set)"
+  cat >>"${canonical_rowset_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
+def build_baseline_canonical_payload_root(context):
+    payload = dict(context["root"])
+    payload["s2_binding_row_set_hash"] = "wrong-row-set"
+    return payload
+PY
+  run_runtime_gate_expect_fail canonical-wrong-binding-row-set-hash "${canonical_rowset_clone}"
+
+  canonical_source_clone="$(clone_fixture canonical-wrong-source-snapshot)"
+  cat >>"${canonical_source_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
+def build_baseline_canonical_payload_root(context):
+    payload = dict(context["root"])
+    payload["baseline_source_snapshot_identity"] = "wrong-snapshot"
+    return payload
+PY
+  run_runtime_gate_expect_fail canonical-wrong-source-snapshot-identity "${canonical_source_clone}"
+
+  canonical_visibility_clone="$(clone_fixture canonical-wrong-visibility-hash)"
+  cat >>"${canonical_visibility_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
+def build_baseline_canonical_payload_root(context):
+    payload = dict(context["root"])
+    payload["baseline_source_visibility_manifest_hash"] = "wrong-visibility"
+    return payload
+PY
+  run_runtime_gate_expect_fail canonical-wrong-visibility-manifest-hash "${canonical_visibility_clone}"
+
+  daily_counter_clone="$(clone_fixture daily-wrong-counter)"
+  cat >>"${daily_counter_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    return dataclasses.replace(
+        result,
+        s2_comparable_binding_row_count=result.s2_comparable_binding_row_count + 1,
+    )
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-counter "${daily_counter_clone}"
+
+  daily_coverage_clone="$(clone_fixture daily-wrong-coverage)"
+  cat >>"${daily_coverage_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    return dataclasses.replace(result, coverage_ratio=Decimal("0.500000"))
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-coverage "${daily_coverage_clone}"
+
+  daily_quantile_clone="$(clone_fixture daily-wrong-quantile)"
+  cat >>"${daily_quantile_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    return dataclasses.replace(result, metric_input_quantile=SupportedQuantile.P80)
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-input-quantile "${daily_quantile_clone}"
+
+  daily_unique_clone="$(clone_fixture daily-wrong-unique-actual)"
+  cat >>"${daily_unique_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    return dataclasses.replace(
+        result,
+        unique_actual_physical_row_count=result.unique_actual_physical_row_count + 1,
+    )
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-unique-actual-count "${daily_unique_clone}"
+
+  daily_mape_clone="$(clone_fixture daily-wrong-mape-counters)"
+  cat >>"${daily_mape_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    return dataclasses.replace(result, mape_eligible_row_count=result.mape_eligible_row_count + 1)
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-mape-counters "${daily_mape_clone}"
+
+  daily_breakdown_clone="$(clone_fixture daily-wrong-breakdown)"
+  cat >>"${daily_breakdown_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    identity = dict(result.breakdown_identity)
+    identity["model_identity"] = "wrong-model"
+    return dataclasses.replace(result, breakdown_identity=identity)
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-breakdown-identity "${daily_breakdown_clone}"
+
+  daily_mask_clone="$(clone_fixture daily-wrong-mask)"
+  cat >>"${daily_mask_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    return dataclasses.replace(result, metric_input_mask_hash="0" * 64)
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-metric-mask-hash "${daily_mask_clone}"
+
+  daily_hash_clone="$(clone_fixture daily-wrong-canonical-hash)"
+  cat >>"${daily_hash_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    return dataclasses.replace(result, canonical_hash="0" * 64)
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-canonical-hash "${daily_hash_clone}"
 
   printf 'AUTHORIZED_CREATE_PATH_COUNT=26\n'
   printf 'AUTHORIZED_MANIFEST_RECORD_COUNT=26\n'

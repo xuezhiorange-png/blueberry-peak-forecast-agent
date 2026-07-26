@@ -137,8 +137,8 @@ SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=4
 SCRIPT_HASH_MISMATCH_COUNT=0
 SCRIPT_HASH_MISSING_PATH_COUNT=0
 STALE_SCRIPT_HASH_REFERENCE_COUNT=0
-SCRIPT_01_SHA256=464806cda8e86575c43d5b4297e97a9552c0e7109ed429076508ff7609895c3c
-SCRIPT_02_SHA256=7157aaa0a302235227db2349d1f1db5e3eb635bb6bd87a8bd4ab7ddf86d6977e
+SCRIPT_01_SHA256=4f4a9a4ffa920a7ff390c975d2a9edec56d3175379b94c172a2ae3aa5ec2ac3a
+SCRIPT_02_SHA256=c35ccd3c74d16c11e5cdfdc50d486bd85b8d532114669a1d20fb1e698d48a411
 SCRIPT_03_SHA256=56e24c5c5b28f9f823d1b7cbca5897a98b2c3a87655aea2a1905d56fa9626587
 SCRIPT_04_SHA256=f3f6de562d397625bb5f5ea8e762211c0d3d975753a7950cad1eb97bfe14c32c
 ```
@@ -270,8 +270,8 @@ BASELINE_REQUEST_CALENDAR_BOUNDARY_OVERRIDES=true
 F17_REAL_GATE_SELF_TEST=true
 POSITIVE_GATE_EXECUTION_COUNT=4
 POSITIVE_GATE_PASS_COUNT=4
-NEGATIVE_GATE_EXECUTION_COUNT=10
-NEGATIVE_EXPECTED_FAILURE_COUNT=10
+NEGATIVE_GATE_EXECUTION_COUNT=24
+NEGATIVE_EXPECTED_FAILURE_COUNT=24
 NEGATIVE_UNEXPECTED_PASS_COUNT=0
 PACKAGE_GATE_SELF_TEST_RESULT=PASS
 
@@ -316,3 +316,52 @@ and reason, plus the WAPE, relative-bias, and MAPE denominator-zero cases.
 The 11-schema matrix, including exact order, type, requiredness, nullability,
 default, canonical, and identity policy, is frozen in
 `schema-enum-contract.md` and checked structurally by the runtime gate.
+
+## F21-F25 corrective freeze
+
+The exact-head static failure was caused by package Python diagnostics in
+`acceptance/02_runtime_policy_audit.py`. The corrective gate requires root
+Ruff and mypy checks, not a narrowed backend-only substitute:
+
+```text
+ROOT_RUFF_CHECK_COMMAND=uv run ruff check .
+ROOT_RUFF_FORMAT_CHECK_COMMAND=uv run ruff format --check .
+ROOT_MYPY_COMMAND=uv run mypy backend/app
+ROOT_RUFF_CHECK_EXIT_CODE=0
+ROOT_RUFF_FORMAT_CHECK_EXIT_CODE=0
+ROOT_MYPY_EXIT_CODE=0
+PACKAGE_PYTHON_RUFF_PATH_COUNT=1
+```
+
+`BreakdownSpec` is exactly six business axes. The breakdown module owns the
+fixed threshold of ten; callers cannot provide `minimum_sample_size`:
+
+```text
+BreakdownSpec_FIELD_COUNT=6
+REQUIRED_BREAKDOWN_AXIS_COUNT=6
+MIN_COMPARABLE_ROWS_FOR_REPORTING_OWNER=backend.app.forecast_quality.breakdown
+MIN_COMPARABLE_ROWS_FOR_REPORTING_VALUE=10
+CALLER_CONFIGURABLE_MINIMUM_SAMPLE_SIZE=false
+```
+
+The package chooses the explicit multi-parameter baseline canonical context
+option. The root and cell builders require exact 26/15 sections, reject null
+required values, and validate a source map. Canonical bytes, SHA256 and replay
+identity are recomputed; all-null, identity, visibility, counter, mask and
+breakdown drift are rejected.
+
+`DailyMetricResult.mape_zero_actual_reason_code` is the single serialized
+owner of the MAPE zero-row reason. Mixed eligible/zero rows remain
+`COMPUTED/NONE`; all-zero input is
+`NOT_COMPUTABLE/NO_MAPE_ELIGIBLE_ROWS` while retaining
+`MAPE_DENOMINATOR_ZERO` as the row-level reason. The full result envelope
+binds S2 identities, policy versions, counters, coverage, P50 input, exact
+six-axis breakdown, independent mask hash and full canonical hash.
+
+```text
+F21_ROOT_STATIC_GATE_FIXED=true
+F22_BREAKDOWNSPEC_SIX_FIELDS_FIXED=true
+F23_BASELINE_CANONICAL_PROVENANCE_FIXED=true
+F24_MAPE_ZERO_ROW_REASON_FIXED=true
+F25_DAILY_RESULT_ENVELOPE_FIXED=true
+```
