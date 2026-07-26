@@ -7,6 +7,7 @@ SCRIPT_HASH_PREFIX="${PACKAGE_REPOSITORY_ROOT}/acceptance/"
 validate_hash_records() {
   local repo="$1" base_sha="$2" sha_file="$3"
   local record_count=0 prefix_count=0 mismatch_count=0 missing_count=0 stale_count=0
+  local current_mismatch_count=0 base_mismatch_count=0
   local expected_paths=(
     "${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
     "${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
@@ -36,7 +37,15 @@ validate_hash_records() {
     fi
     local actual_hash
     actual_hash="$(git -C "${repo}" show "${base_sha}:${repository_relative_path}" | sha256sum | awk '{print $1}')"
-    [[ "${actual_hash}" == "${expected_hash}" ]] || mismatch_count=$((mismatch_count + 1))
+    if [[ "${actual_hash}" != "${expected_hash}" ]]; then
+      mismatch_count=$((mismatch_count + 1)); base_mismatch_count=$((base_mismatch_count + 1))
+    fi
+    local current_path="${repo}/${repository_relative_path}"
+    if [[ ! -f "${current_path}" ]]; then
+      missing_count=$((missing_count + 1))
+    elif [[ "$(sha256sum "${current_path}" | awk '{print $1}')" != "${expected_hash}" ]]; then
+      mismatch_count=$((mismatch_count + 1)); current_mismatch_count=$((current_mismatch_count + 1))
+    fi
   done <"${sha_file}"
   for expected_path in "${expected_paths[@]}"; do
     grep -Fxq "${expected_path}" "${seen}" || stale_count=$((stale_count + 1))
@@ -46,6 +55,8 @@ validate_hash_records() {
   printf 'SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=%s\n' "${prefix_count}"
   printf 'SCRIPT_HASH_MISMATCH_COUNT=%s\n' "${mismatch_count}"
   printf 'SCRIPT_HASH_MISSING_PATH_COUNT=%s\n' "${missing_count}"
+  printf 'CURRENT_SCRIPT_HASH_MISMATCH_COUNT=%s\n' "${current_mismatch_count}"
+  printf 'BASE_SCRIPT_HASH_MISMATCH_COUNT=%s\n' "${base_mismatch_count}"
   printf 'STALE_SCRIPT_HASH_REFERENCE_COUNT=%s\n' "${stale_count}"
   if [[ "${record_count}" == "4" && "${prefix_count}" == "4" \
     && "${mismatch_count}" == "0" && "${missing_count}" == "0" \
@@ -55,7 +66,7 @@ validate_hash_records() {
   return 1
 }
 
-if [[ "${PACKAGE_SELF_TEST:-0}" == "1" ]]; then
+if [[ "${PACKAGE_SELF_TEST:-0}" == "1" && "${PACKAGE_SELF_TEST_INTERNAL:-0}" != "1" ]]; then
   python3 - <<'PY'
 import ast
 source_ok = "class ReasonCode:\n    PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE = 'x'\n"
@@ -90,12 +101,14 @@ validate_hash_records "${ROUND_A_WORKTREE}" "${IMPLEMENTATION_BASE_SHA}" "${PACK
 test -f "${AUTHORIZED_FILE}"
 git diff --check
 
-mapfile -t app_paths < <(
-  awk -F ' \\| ' '$1 ~ /^backend\/app\/forecast_quality\/.*\.py$/ && $2 == "CREATE" {print $1}' "${AUTHORIZED_FILE}"
-)
-mapfile -t test_paths < <(
-  awk -F ' \\| ' '$1 ~ /^backend\/tests\/forecast_quality\/test_.*\.py$/ && $2 == "CREATE" {print $1}' "${AUTHORIZED_FILE}"
-)
+app_paths=()
+while IFS= read -r path; do
+  [ -n "${path}" ] && app_paths+=("${path}")
+done < <(awk -F ' \\| ' '$1 ~ /^backend\/app\/forecast_quality\/.*\.py$/ && $2 == "CREATE" {print $1}' "${AUTHORIZED_FILE}")
+test_paths=()
+while IFS= read -r path; do
+  [ -n "${path}" ] && test_paths+=("${path}")
+done < <(awk -F ' \\| ' '$1 ~ /^backend\/tests\/forecast_quality\/test_.*\.py$/ && $2 == "CREATE" {print $1}' "${AUTHORIZED_FILE}")
 test "${#app_paths[@]}" = "9"
 test "${#test_paths[@]}" = "17"
 

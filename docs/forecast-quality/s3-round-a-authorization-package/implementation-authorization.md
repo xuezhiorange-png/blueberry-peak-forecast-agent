@@ -137,10 +137,10 @@ SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=4
 SCRIPT_HASH_MISMATCH_COUNT=0
 SCRIPT_HASH_MISSING_PATH_COUNT=0
 STALE_SCRIPT_HASH_REFERENCE_COUNT=0
-SCRIPT_01_SHA256=23433951b6fd8d83bcea043250d409ed811634009d90c15c3e702a1627b5e797
-SCRIPT_02_SHA256=0fa3232ddeade11ef7b377d37f4ff95802e8854b525afc2c24e214e383ecb978
-SCRIPT_03_SHA256=b03a3d527e2771bfbd5bde5d57ff278eece06ed541722c0a0732819a13b76883
-SCRIPT_04_SHA256=6757d88d5f69c7a550c0a2475f96f462e3f41ba48a6dffeed844881a34eaa7eb
+SCRIPT_01_SHA256=464806cda8e86575c43d5b4297e97a9552c0e7109ed429076508ff7609895c3c
+SCRIPT_02_SHA256=7157aaa0a302235227db2349d1f1db5e3eb635bb6bd87a8bd4ab7ddf86d6977e
+SCRIPT_03_SHA256=56e24c5c5b28f9f823d1b7cbca5897a98b2c3a87655aea2a1905d56fa9626587
+SCRIPT_04_SHA256=f3f6de562d397625bb5f5ea8e762211c0d3d975753a7950cad1eb97bfe14c32c
 ```
 
 The complete path allocation and per-path requirements are in
@@ -255,3 +255,64 @@ REASON_CODE_FALSE_POSITIVE_COUNT=0
 GATE_21_GATE_23_CONTRADICTION_COUNT=0
 CI_TEST_EVIDENCE_REQUIRES_REAL_RUNTIME_OUTPUT=true
 ```
+
+## F16-F20 corrective freeze
+
+The Round A package fixes the following review boundaries without creating
+implementation files:
+
+```text
+F16_BASELINE_NO_ANALOG_FIXTURE_FIXED=true
+BASELINE_FIXTURE=no_analog_day|analog_date=None|status=NOT_COMPUTABLE|reason=NO_PRIOR_SEASON_ANALOG_DAY
+BASELINE_FIXTURE=no_analog_actual|analog_date=<actual date>|status=NOT_COMPUTABLE|reason=NO_PRIOR_SEASON_ANALOG_ACTUAL
+BASELINE_REQUEST_CALENDAR_BOUNDARY_OVERRIDES=true
+
+F17_REAL_GATE_SELF_TEST=true
+POSITIVE_GATE_EXECUTION_COUNT=4
+POSITIVE_GATE_PASS_COUNT=4
+NEGATIVE_GATE_EXECUTION_COUNT=10
+NEGATIVE_EXPECTED_FAILURE_COUNT=10
+NEGATIVE_UNEXPECTED_PASS_COUNT=0
+PACKAGE_GATE_SELF_TEST_RESULT=PASS
+
+F18_ALL_17_MODULES_COLLECT_TESTS=true
+PYTEST_EXPECTED_MODULE_COUNT=17
+PYTEST_COLLECTED_MODULE_COUNT=17
+PYTEST_MODULE_WITH_ZERO_COLLECTED_TEST_COUNT=0
+PYTEST_UNEXPECTED_COLLECTED_MODULE_COUNT=0
+
+F19_ALL_PUBLIC_SCHEMAS_EXACT=true
+PUBLIC_SCHEMA_COUNT=11
+PUBLIC_SCHEMA_FIELD_SET_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_FIELD_ORDER_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_TYPE_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_REQUIREDNESS_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_DRIFT_COUNT=0
+BASELINE_REQUEST_QUANTILE_FIELD=requested_quantile
+BASELINE_REQUEST_FORECAST_QUANTILE_ALIAS_ALLOWED=false
+
+F20_METRIC_STATUS_REASON_ORACLES=true
+DAILY_METRIC_VALUE_ORACLE_COUNT=7
+DAILY_METRIC_STATUS_ORACLE_COUNT=7
+DAILY_METRIC_REASON_ORACLE_COUNT=7
+DENOMINATOR_ZERO_RUNTIME_CASE_COUNT=3
+DAILY_METRIC_ORACLE_FAILURE_COUNT=0
+```
+
+`01_changed_path_gate.sh` now builds a real temporary Git repository with a
+package base commit, a positive 26-path implementation commit, and separate
+adversarial clones. It invokes all four gate scripts through their normal
+entrypoints. Expected non-zero cases include wrong or missing script blobs,
+invalid manifest records, a 27th path, a blocked path, a zero-test module,
+root/cell field drift, a wrong frozen version, and a blocked AST definition.
+No string-only assertion, `seq` count, `bash -n`, or `py_compile` result is a
+positive gate fixture.
+
+The test gate derives `collected_modules` from recorded pytest node IDs and
+requires exact equality with the 17 authorized modules. A module with no
+collected node ID or an unexpected 18th module fails the gate. The runtime
+gate executes all seven normal metrics and asserts `COMPUTED`/`NONE` status
+and reason, plus the WAPE, relative-bias, and MAPE denominator-zero cases.
+The 11-schema matrix, including exact order, type, requiredness, nullability,
+default, canonical, and identity policy, is frozen in
+`schema-enum-contract.md` and checked structurally by the runtime gate.
