@@ -1,0 +1,297 @@
+# Round A Schema and Enum Contract
+
+This file freezes the public domain shape for the future Round A
+implementation. It does not create an application schema or database table.
+All types below are Python domain types; database numeric IDs, persistence
+models, migrations, and HTTP models are out of scope.
+
+## Exact public schemas
+
+`ActualPhysicalRecord` is exactly three fields:
+
+| field | type | required | canonical | identity | validation | owner |
+|---|---|---|---|---|---|---|
+| `physical_key` | `str` | yes | yes | yes | non-empty stable physical grain | `schemas.py` |
+| `stable_actual_identity` | `str` | yes | yes | yes | non-empty immutable identity | `schemas.py` |
+| `actual_value_kg` | `Decimal` | yes | yes | yes | finite, six-place, non-negative business quantity | `schemas.py` |
+
+```text
+ActualPhysicalRecord_FIELDS=physical_key,stable_actual_identity,actual_value_kg
+ActualPhysicalRecord_FIELD_COUNT=3
+```
+
+`S3EvaluationInput` is exactly six fields. `breakdown_spec` is a separate
+argument to the daily calculator. `source_snapshot` is a separate argument
+to the baseline resolver. `coverage_ratio` is an output/audit field and is
+not an input field.
+
+| field | type | required | canonical | identity | validation | owner |
+|---|---|---|---|---|---|---|
+| `rows` | `Sequence[S3BindingRow]` | yes | yes | through row-set hash | deterministic input ordering before hash | `schemas.py` |
+| `s2_run_identity` | `str` | yes | yes | yes | non-empty exact S2 identity | `schemas.py` |
+| `s2_manifest_identity` | `str` | yes | yes | yes | non-empty exact S2 manifest identity | `schemas.py` |
+| `s2_binding_row_set_hash` | `str` | yes | yes | yes | lowercase SHA-256 | `schemas.py` |
+| `metric_policy_version` | `FrozenVersion` | yes | yes | yes | frozen S3 metric policy | `schemas.py` |
+| `baseline_policy_version` | `FrozenVersion` | yes | yes | yes | frozen baseline policy | `schemas.py` |
+
+```text
+S3EvaluationInput_FIELDS=rows,s2_run_identity,s2_manifest_identity,s2_binding_row_set_hash,metric_policy_version,baseline_policy_version
+S3EvaluationInput_FIELD_COUNT=6
+S3_EVALUATION_INPUT_FORBIDDEN_FIELDS=coverage_ratio,breakdown_spec,metric_input_mask_policy_version,baseline_snapshot
+```
+
+`S3BindingRow` is the domain projection of one frozen S2 binding row. Its
+required semantic fields are:
+
+```text
+S3_BINDING_ROW_FIELDS=
+forecast_business_key,actual_physical_key,stable_actual_identity,
+forecast_value_kg,actual_value_kg,forecast_quantile,forecast_horizon_days,
+forecast_target_date,forecast_cutoff_at,s2_status,
+season_business_key,farm_business_key,subfarm_business_key,
+variety_business_key,model_identity,actual_visibility_timestamp
+```
+
+The actual fields may be nullable only for an upstream non-comparable row;
+the calculator must not turn that row into a zero. A comparable row requires
+an exact actual pair. Numeric business quantities are `Decimal`; dates are
+`date`; cutoffs and visibility timestamps are timezone-aware `datetime`.
+All business-key, quantile, target-date, cutoff, status, and authority fields
+participate in the row-set identity or its validated source evidence.
+
+All eleven public schemas use the following exact ordered contracts. Every
+field is required, has no default, and is non-null unless the `nullable`
+column says otherwise. `canonical` and `identity` describe participation in
+the domain payload and identity hash; they do not authorize database or API
+surfaces.
+
+| schema | exact ordered fields with type / nullable / canonical / identity | owner |
+|---|---|---|
+| `ActualPhysicalRecord` | `physical_key:str:N:N`, `stable_actual_identity:str:N:Y`, `actual_value_kg:Decimal:N:Y` | `schemas.py` |
+| `S3EvaluationInput` | `rows:Sequence[S3BindingRow]:N:Y`, `s2_run_identity:str:N:Y`, `s2_manifest_identity:str:N:Y`, `s2_binding_row_set_hash:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y` | `schemas.py` |
+| `S3BindingRow` | `forecast_business_key:str:N:Y`, `actual_physical_key:str|None:Y:Y`, `stable_actual_identity:str|None:Y:Y`, `forecast_value_kg:Decimal|None:Y:Y`, `actual_value_kg:Decimal|None:Y:Y`, `forecast_quantile:SupportedQuantile:N:Y`, `forecast_horizon_days:int:N:Y`, `forecast_target_date:date:N:Y`, `forecast_cutoff_at:datetime:N:Y`, `s2_status:str:N:Y`, `season_business_key:str:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `model_identity:str:N:Y`, `actual_visibility_timestamp:datetime|None:Y:Y` | `schemas.py` |
+| `FarmDailyActualAggregate` | `season_business_key:str:N:Y`, `farm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `target_date:date:N:Y`, `actual_value_kg:Decimal:N:Y`, `unique_actual_physical_rows:int:N:Y` | `schemas.py` |
+| `FarmDailyForecastAggregate` | `season_business_key:str:N:Y`, `farm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `target_date:date:N:Y`, `forecast_cutoff_at:datetime:N:Y`, `model_identity:str:N:Y`, `forecast_quantile:SupportedQuantile:N:Y`, `forecast_horizon_days:int:N:Y`, `forecast_value_kg:Decimal:N:Y`, `source_forecast_business_keys:Sequence[str]:N:Y` | `schemas.py` |
+| `MetricValueCell` | `metric_name:str:N:Y`, `metric_value:Decimal|None:Y:Y`, `metric_status:MetricStatus:N:Y`, `reason_code:ReasonCode:N:Y`, `numerator:Decimal|None:Y:Y`, `denominator:Decimal|None:Y:Y`, `mape_eligible_row_count:int:N:Y`, `mape_zero_actual_row_count:int:N:Y` | `schemas.py` |
+| `DailyMetricResult` | `s2_run_identity:str:N:Y`, `s2_manifest_identity:str:N:Y`, `s2_binding_row_set_hash:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y`, `breakdown_identity:dict[str,str|int]:N:Y`, `s2_total_binding_row_count:int:N:Y`, `s2_comparable_binding_row_count:int:N:Y`, `s2_excluded_binding_row_count:int:N:Y`, `s2_not_computable_binding_row_count:int:N:Y`, `coverage_ratio:Decimal|None:Y:Y`, `metric_input_mask_policy_version:FrozenVersion:N:Y`, `metric_input_mask_hash:str:N:Y`, `metric_input_row_count:int:N:Y`, `metric_input_quantile:SupportedQuantile:N:Y`, `unique_actual_physical_row_count:int:N:Y`, `mape_eligible_row_count:int:N:Y`, `mape_zero_actual_row_count:int:N:Y`, `mape_zero_actual_reason_code:ReasonCode|None:Y:Y`, `metric_cells:Sequence[MetricValueCell]:N:Y`, `canonical_hash:str:N:Y` | `schemas.py` |
+| `BreakdownSpec` | `forecast_horizon_days:int:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `season_business_key:str:N:Y`, `model_identity:str:N:Y` | `schemas.py` |
+| `BaselineRequest` | `current_target_date:date:N:Y`, `current_season_start:date:N:Y`, `current_season_end:date:N:Y`, `prior_season_start:date:N:Y`, `prior_season_end:date:N:Y`, `prior_season_identity:str:N:Y`, `current_forecast_cutoff_at:datetime:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `requested_quantile:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y` | `schemas.py` |
+| `BaselineSourceSnapshot` | `source_snapshot_identity:str:N:Y`, `source_snapshot_hash:str:N:Y`, `source_row_set_hash:str:N:Y`, `visibility_manifest_hash:str:N:Y`, `visibility_cutoff_at:datetime:N:Y`, `season_analog_mapping_policy_version:FrozenVersion:N:Y`, `actual_rows:Sequence[Mapping[str,Any]]:N:Y` | `schemas.py` |
+| `BaselineResult` | `baseline_point_forecast_kg:Decimal|None:Y:Y`, `baseline_quantile:str:N:Y`, `comparison_availability:ComparisonAvailability:N:Y`, `metric_status:MetricStatus:N:Y`, `reason_code:ReasonCode:N:Y`, `analog_date:date|None:Y:Y`, `source_snapshot_identity:str:N:Y`, `source_snapshot_hash:str:N:Y`, `source_row_set_hash:str:N:Y`, `visibility_manifest_hash:str:N:Y`, `canonical_hash:str:N:Y` | `schemas.py` |
+
+Machine-readable schema audit targets:
+
+```text
+PUBLIC_SCHEMA_COUNT=11
+PUBLIC_SCHEMA_FIELD_SET_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_FIELD_ORDER_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_TYPE_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_REQUIREDNESS_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_DRIFT_COUNT=0
+BASELINE_REQUEST_QUANTILE_FIELD=requested_quantile
+BASELINE_REQUEST_FORECAST_QUANTILE_ALIAS_ALLOWED=false
+```
+
+`BaselineRequest` has only `requested_quantile`; fixtures and the resolver
+must not auto-detect or accept `forecast_quantile`. `make_baseline_request`
+also accepts explicit current/prior season boundary overrides so the
+`no_analog_day` and `no_analog_actual` cases remain independent.
+
+`BreakdownSpec` has exactly six axes. The reporting threshold is not caller
+data and is owned by `backend.app.forecast_quality.breakdown`:
+
+```text
+BreakdownSpec_FIELDS=forecast_horizon_days,farm_business_key,subfarm_business_key,variety_business_key,season_business_key,model_identity
+BreakdownSpec_FIELD_COUNT=6
+REQUIRED_BREAKDOWN_AXIS_COUNT=6
+MIN_COMPARABLE_ROWS_FOR_REPORTING_OWNER=backend.app.forecast_quality.breakdown
+MIN_COMPARABLE_ROWS_FOR_REPORTING_VALUE=10
+CALLER_CONFIGURABLE_MINIMUM_SAMPLE_SIZE=false
+```
+
+Round A uses explicit source-object canonical builders rather than a second
+public result schema or a caller-supplied final mapping:
+
+```text
+build_baseline_canonical_payload_cell(*, baseline_result, metric_result)
+build_baseline_canonical_payload_root(*, evaluation_input, baseline_request,
+  source_snapshot, baseline_result, metric_result, breakdown_spec,
+  per_breakdown_cell)
+```
+
+The builders derive every field from those source objects or a named frozen
+constant. A preassembled `root`/`cell` mapping is not an accepted input. The
+root and cell sections contain the exact frozen field set and preserve
+explicit JSON null where the conditional-nullability rules permit it. Their
+source map is:
+
+```text
+BASELINE_CANONICAL_SOURCE_MAP=all root and cell fields are sourced from the S2 identities, binding-row manifest, baseline source snapshot, visibility manifest, frozen policy versions, counters, metric mask, requested quantile, and computed baseline result supplied in the builder context
+BASELINE_CANONICAL_BUILDER_INPUT=SOURCE_OBJECTS_ONLY
+BASELINE_CANONICAL_CALLER_INJECTION_SURFACE_COUNT=0
+BASELINE_CANONICAL_REQUIRED_FIELD_NULL_POLICY=conditional
+BASELINE_CANONICAL_SENTINEL_POLICY=explicit_json_null_only
+BASELINE_CANONICAL_IDENTITY_PARTICIPATION=all 41 root and cell fields, with conditional JSON nulls preserved
+BASELINE_CANONICAL_SOURCE_MAP_FORMAT=canonical_field|source_schema|source_field|nullable|sentinel|identity_participation
+BASELINE_CANONICAL_SOURCE_MAP_RECORDS=
+root.schema_version|FrozenConstant|BASELINE_SCHEMA_VERSION|false|NONE|true
+root.s2_run_identity|S3EvaluationInput|s2_run_identity|false|NONE|true
+root.s2_manifest_identity|S3EvaluationInput|s2_manifest_identity|false|NONE|true
+root.s2_binding_row_set_hash|S3EvaluationInput|s2_binding_row_set_hash|false|NONE|true
+root.baseline_source_snapshot_identity|BaselineSourceSnapshot|source_snapshot_identity|false|NONE|true
+root.baseline_source_snapshot_hash|BaselineSourceSnapshot|source_snapshot_hash|false|NONE|true
+root.baseline_source_row_set_hash|BaselineSourceSnapshot|source_row_set_hash|false|NONE|true
+root.baseline_source_visibility_manifest_hash|BaselineSourceSnapshot|visibility_manifest_hash|false|NONE|true
+root.baseline_source_visibility_cutoff_at|BaselineSourceSnapshot|visibility_cutoff_at|false|NONE|true
+root.baseline_policy_version|BaselineRequest|baseline_policy_version|false|NONE|true
+root.season_analog_mapping_policy_version|BaselineSourceSnapshot|season_analog_mapping_policy_version|false|NONE|true
+root.prior_season_identity|BaselineRequest|prior_season_identity|false|NONE|true
+root.baseline_grain|FrozenConstant|BASELINE_GRAIN|false|NONE|true
+root.baseline_horizon_rule|FrozenConstant|BASELINE_HORIZON_RULE|false|NONE|true
+root.breakdown_dimensions|BreakdownSpec|six_axis_normalized_identity|false|NONE|true
+root.s2_total_binding_row_count|DailyMetricResult|s2_total_binding_row_count|false|NONE|true
+root.s2_comparable_binding_row_count|DailyMetricResult|s2_comparable_binding_row_count|false|NONE|true
+root.s2_excluded_binding_row_count|DailyMetricResult|s2_excluded_binding_row_count|false|NONE|true
+root.s2_not_computable_binding_row_count|DailyMetricResult|s2_not_computable_binding_row_count|false|NONE|true
+root.coverage_ratio|DailyMetricResult|coverage_ratio|true|EXPLICIT_JSON_NULL_ONLY|true
+root.metric_input_mask_policy_version|DailyMetricResult|metric_input_mask_policy_version|false|NONE|true
+root.metric_input_mask_hash|DailyMetricResult|metric_input_mask_hash|false|NONE|true
+root.metric_input_row_count|DailyMetricResult|metric_input_row_count|false|NONE|true
+root.metric_input_quantile|DailyMetricResult|metric_input_quantile|false|NONE|true
+root.unique_actual_physical_row_count|DailyMetricResult|unique_actual_physical_row_count|false|NONE|true
+root.per_breakdown_cell|per_breakdown_cell argument|per_breakdown_cell|false|NONE|true
+cell.baseline_point_forecast_kg|BaselineResult|baseline_point_forecast_kg|true|EXPLICIT_JSON_NULL_ONLY|true
+cell.s2_total_binding_row_count|DailyMetricResult|s2_total_binding_row_count|false|NONE|true
+cell.s2_comparable_binding_row_count|DailyMetricResult|s2_comparable_binding_row_count|false|NONE|true
+cell.s2_excluded_binding_row_count|DailyMetricResult|s2_excluded_binding_row_count|false|NONE|true
+cell.s2_not_computable_binding_row_count|DailyMetricResult|s2_not_computable_binding_row_count|false|NONE|true
+cell.coverage_ratio|DailyMetricResult|coverage_ratio|true|EXPLICIT_JSON_NULL_ONLY|true
+cell.metric_input_mask_policy_version|DailyMetricResult|metric_input_mask_policy_version|false|NONE|true
+cell.metric_input_mask_hash|DailyMetricResult|metric_input_mask_hash|false|NONE|true
+cell.metric_input_row_count|DailyMetricResult|metric_input_row_count|false|NONE|true
+cell.metric_input_quantile|DailyMetricResult|metric_input_quantile|false|NONE|true
+cell.unique_actual_physical_row_count|DailyMetricResult|unique_actual_physical_row_count|false|NONE|true
+cell.mape_eligible_row_count|DailyMetricResult|mape_eligible_row_count|false|NONE|true
+cell.mape_zero_actual_row_count|DailyMetricResult|mape_zero_actual_row_count|false|NONE|true
+cell.metric_status|BaselineResult|metric_status|false|NONE|true
+cell.reason_code|BaselineResult|reason_code|false|NONE|true
+```
+
+`FarmDailyForecastAggregate` is a public Round A schema. Its forecast value is
+the sum of exact, non-duplicated subfarm forecast business keys. P50, P80 and
+P90 rows remain separate, as do forecast cutoffs, model identities and
+horizons. A repeated forecast business key is a structural failure; selecting
+the maximum subfarm row or silently merging quantiles is forbidden.
+
+## Baseline canonical payload field sets
+
+The root payload is exactly the following 26 fields, with
+`per_breakdown_cell` as its one container field:
+
+```text
+BASELINE_CANONICAL_ROOT_FIELDS=
+schema_version,s2_run_identity,s2_manifest_identity,s2_binding_row_set_hash,
+baseline_source_snapshot_identity,baseline_source_snapshot_hash,
+baseline_source_row_set_hash,baseline_source_visibility_manifest_hash,
+baseline_source_visibility_cutoff_at,baseline_policy_version,
+season_analog_mapping_policy_version,prior_season_identity,baseline_grain,
+baseline_horizon_rule,breakdown_dimensions,s2_total_binding_row_count,
+s2_comparable_binding_row_count,s2_excluded_binding_row_count,
+s2_not_computable_binding_row_count,coverage_ratio,
+metric_input_mask_policy_version,metric_input_mask_hash,metric_input_row_count,
+metric_input_quantile,unique_actual_physical_row_count,per_breakdown_cell
+BASELINE_CANONICAL_ROOT_FIELD_COUNT=26
+```
+
+Each `per_breakdown_cell` payload is exactly these 15 fields:
+
+```text
+BASELINE_CANONICAL_CELL_FIELDS=
+baseline_point_forecast_kg,s2_total_binding_row_count,
+s2_comparable_binding_row_count,s2_excluded_binding_row_count,
+s2_not_computable_binding_row_count,coverage_ratio,
+metric_input_mask_policy_version,metric_input_mask_hash,metric_input_row_count,
+metric_input_quantile,unique_actual_physical_row_count,mape_eligible_row_count,
+mape_zero_actual_row_count,metric_status,reason_code
+BASELINE_CANONICAL_CELL_FIELD_COUNT=15
+BASELINE_ROOT_FIELD_SET_EQUALITY=true
+BASELINE_CELL_FIELD_SET_EQUALITY=true
+BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0
+BASELINE_CANONICAL_REQUIRED_FIELD_NULL_COUNT=0
+BASELINE_CANONICAL_SOURCE_MAP_MISMATCH_COUNT=0
+BASELINE_CANONICAL_NULLABILITY_RULES=baseline_point_forecast_kg_nullable_when_not_computed;coverage_ratio_nullable_only_when_total_rows_zero;identity_status_reason_counters_non_null
+```
+
+## Public enums
+
+The contract explicitly closes these values:
+
+```text
+MetricStatus={COMPUTED,COMPARED,NOT_COMPUTABLE,NOT_VERIFIED,INSUFFICIENT_SAMPLE}
+ComparisonAvailability={AVAILABLE,BLOCKED}
+SupportedQuantile={P50,P80,P90}
+CrossQuantileInputSource={S2_IMMUTABLE_BACKTEST_BINDING}
+FrozenVersion={METRIC_INPUT_MASK_V1,NAIVE_BASELINE_POLICY_V1,SEASON_ANALOG_MAPPING_V1}
+METRIC_INPUT_MASK_V1=v0.2-s3-metric-input-mask-v1
+NAIVE_BASELINE_POLICY_V1=v0.2-s3-naive-baseline-policy-v1
+SEASON_ANALOG_MAPPING_V1=v0.2-s3-season-analog-mapping-v1
+```
+
+The current contract documents 16 distinct public reason tokens. The package
+uses their explicit union as the closed `ReasonCode` set so no token is
+silently dropped:
+
+```text
+ReasonCode={
+NONE,
+NO_MAPE_ELIGIBLE_ROWS,
+MAPE_DENOMINATOR_ZERO,
+WAPE_DENOMINATOR_ZERO,
+RELATIVE_BIAS_DENOMINATOR_ZERO,
+NO_COMPLETE_7DAY_WINDOW,
+QUANTILE_SEMANTICS_NOT_VERIFIED,
+BELOW_MINIMUM,
+BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED,
+COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING,
+SIGNED_DIRECTION_ONLY,
+PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE,
+NO_PRIOR_SEASON_ANALOG_DAY,
+NO_PRIOR_SEASON_ANALOG_ACTUAL,
+BASELINE_SOURCE_NOT_VISIBLE_AT_CURRENT_FORECAST_CUTOFF,
+NO_S2_BINDING_ROWS
+}
+ReasonCode_MEMBER_COUNT=16
+PUBLIC_REASON_CODE_CLOSED_SET_EQUALITY=true
+```
+
+No internal reason enum is needed by the frozen domain contract. Structural
+failures are public exceptions and ordinary non-computable states are public
+`ReasonCode` values. Therefore:
+
+```text
+InternalReasonCode={}
+INTERNAL_REASON_CODE_PRESENT=false
+INTERNAL_REASON_CODE_MEMBER_COUNT=0
+PUBLIC_INTERNAL_REASON_CODE_DISJOINT=true
+```
+
+If a future implementation needs an internal-only diagnostic enum, it must
+be proposed separately, must never be serialized as `ReasonCode`, and must
+be added to this package by an independent review.
+
+## Exceptions and forbidden substitutes
+
+The only public exception hierarchy is:
+
+```text
+ForecastQualityError
+  S3StructuralDuplicateError
+  S3DecimalAssertionError
+  S3CanonicalIdentityConflictError
+  S3ContractInvariantViolationError
+```
+
+Do not add `S3BaselineNotComputableError` or
+`S3BreakdownInsufficientSampleError`; those are status/reason outcomes.
+Do not use a database ID, latest row, receipt, arrival, model output, zero
+fill, native float, or implicit timezone as canonical domain evidence.

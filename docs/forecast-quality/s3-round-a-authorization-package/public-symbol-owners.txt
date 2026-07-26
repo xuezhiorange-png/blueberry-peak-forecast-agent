@@ -1,0 +1,39 @@
+# One public symbol has exactly one owner in the future implementation.
+# Columns: public symbol | owner path | role | linked contract requirement
+PUBLIC_SYMBOL_OWNER_COUNT=36
+ActualPhysicalRecord | backend/app/forecast_quality/schemas.py | exact three-field physical actual record | S3R-15
+S3EvaluationInput | backend/app/forecast_quality/schemas.py | exact six-field metric input; breakdown_spec is a separate argument | S3R-01,S3R-18
+S3BindingRow | backend/app/forecast_quality/schemas.py | validated S2 row projection consumed by domain calculations | S3R-15,S3R-18
+FarmDailyActualAggregate | backend/app/forecast_quality/schemas.py | daily farm aggregate with unique actual physical rows | S3R-16
+FarmDailyForecastAggregate | backend/app/forecast_quality/schemas.py | daily farm aggregate with quantile/cutoff/model-specific forecast sum | S3R-16,S3R-17
+DailyMetricResult | backend/app/forecast_quality/schemas.py | 21-field result envelope carrying identity, mask policy/hash, counters and per-metric cells | S3R-01,S3R-18,F25,F29
+MetricValueCell | backend/app/forecast_quality/schemas.py | per-metric value/status/reason cell | S3R-03,S3R-04,S3R-05
+BreakdownSpec | backend/app/forecast_quality/schemas.py | six-axis breakdown selector; never part of S3EvaluationInput | S3R-13
+BaselineRequest | backend/app/forecast_quality/schemas.py | point baseline request including prior-season identity and current forecast cutoff | S3R-08,S3R-10,F27
+BaselineSourceSnapshot | backend/app/forecast_quality/schemas.py | independent baseline source identity and visibility evidence | S3R-10,S3R-18
+BaselineResult | backend/app/forecast_quality/schemas.py | point baseline result with status/reason and canonical evidence | S3R-08,S3R-18
+MetricStatus | backend/app/forecast_quality/enums.py | COMPUTED,COMPARED,NOT_COMPUTABLE,NOT_VERIFIED,INSUFFICIENT_SAMPLE | S3R-01,S3R-03
+ComparisonAvailability | backend/app/forecast_quality/enums.py | AVAILABLE,BLOCKED | S3R-18 boundary
+ReasonCode | backend/app/forecast_quality/enums.py | closed union of all explicit S3 reason tokens | S3R-03,S3R-08,S3R-10,S3R-14,S3R-18
+FrozenVersion | backend/app/forecast_quality/enums.py | frozen metric, baseline and season mapping policy versions | S3R-18,S3R-21
+CrossQuantileInputSource | backend/app/forecast_quality/enums.py | S2_IMMUTABLE_BACKTEST_BINDING only | S3R-15
+SupportedQuantile | backend/app/forecast_quality/enums.py | P50,P80,P90 | S3R-15 boundary
+ForecastQualityError | backend/app/forecast_quality/exceptions.py | public base error, not a metric status | S3R-03,S3R-17
+S3StructuralDuplicateError | backend/app/forecast_quality/exceptions.py | duplicate physical/business/date structural failure | S3R-15,S3R-17
+S3DecimalAssertionError | backend/app/forecast_quality/exceptions.py | invalid numeric type, non-finite or rounding invariant | S3R-21
+S3CanonicalIdentityConflictError | backend/app/forecast_quality/exceptions.py | canonical payload or identity conflict | S3R-18
+S3ContractInvariantViolationError | backend/app/forecast_quality/exceptions.py | invalid public contract shape or boundary | S3R-01,S3R-13
+compute_metric_input_mask_hash | backend/app/forecast_quality/canonical.py | sole owner of mask identity hash | S3R-18
+emit_s3_decimal | backend/app/forecast_quality/canonical.py | six-place Decimal ROUND_HALF_EVEN emission | S3R-21
+canonical_json_bytes | backend/app/forecast_quality/canonical.py | deterministic canonical JSON bytes | S3R-18,S3R-21
+build_actual_physical_registry | backend/app/forecast_quality/canonical.py | cross-quantile actual registry and conflicts | S3R-15
+build_baseline_canonical_payload_root | backend/app/forecast_quality/canonical.py | source-object-only exact 26-field baseline canonical root payload | S3R-18,F27,F28
+build_baseline_canonical_payload_cell | backend/app/forecast_quality/canonical.py | source-object-only exact 15-field baseline breakdown cell payload | S3R-18,F27,F28
+compute_daily_metrics | backend/app/forecast_quality/calculator_daily.py | seven P50 point metrics and per-metric cells | S3R-01,S3R-03,S3R-04,S3R-05
+calculate_breakdown_cells | backend/app/forecast_quality/breakdown.py | six-axis deterministic cell calculation | S3R-13,S3R-14
+MIN_COMPARABLE_ROWS_FOR_REPORTING | backend/app/forecast_quality/breakdown.py | fixed ten-row reporting threshold; not caller configurable | S3R-14
+aggregate_daily_actuals | backend/app/forecast_quality/aggregation.py | exact daily subfarm-to-farm actual sum | S3R-16
+aggregate_daily_forecasts | backend/app/forecast_quality/aggregation.py | exact daily subfarm-to-farm forecast sum per quantile/cutoff/model | S3R-16,S3R-17
+deterministic_season_day_index | backend/app/forecast_quality/season_calendar.py | season calendar index | S3R-08,S3R-09
+resolve_prior_season_analog_date | backend/app/forecast_quality/season_calendar.py | prior analog mapping and leap-day policy | S3R-08,S3R-09
+resolve_baseline_point_forecast | backend/app/forecast_quality/baseline.py | visible prior-season point baseline; P50 computes and P80/P90 return the explicit non-computable S3R-12 outcome | S3R-08,S3R-09,S3R-10,S3R-11,S3R-12
