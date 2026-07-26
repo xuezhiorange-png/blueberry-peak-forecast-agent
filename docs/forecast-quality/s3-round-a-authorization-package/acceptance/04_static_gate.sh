@@ -47,8 +47,8 @@ done < "${PACKAGE_SHA_FILE}"
 
 test -f "${AUTHORIZED_FILE}"
 git diff --check
-mapfile -t app_paths < <(awk -F ' \\| ' '/^backend\/app\/forecast_quality\/.*\.py / {print $1}' "${AUTHORIZED_FILE}")
-mapfile -t test_paths < <(awk -F ' \\| ' '/^backend\/tests\/forecast_quality\/.*\.py / {print $1}' "${AUTHORIZED_FILE}")
+mapfile -t app_paths < <(awk -F ' \\| ' '/^backend\\/app\\/forecast_quality\\/.*\\.py / {print $1}' "${AUTHORIZED_FILE}")
+mapfile -t test_paths < <(awk -F ' \\| ' '/^backend\\/tests\\/forecast_quality\\/.*\\.py / {print $1}' "${AUTHORIZED_FILE}")
 test "${#app_paths[@]}" = "9"
 test "${#test_paths[@]}" = "17"
 python3 - "${app_paths[@]}" "${test_paths[@]}" <<'PY'
@@ -93,7 +93,7 @@ print("REASON_CODE_FALSE_POSITIVE_COUNT=0")
 print(f"GATE_21_GATE_23_CONTRADICTION_COUNT={len(blocked_definitions) + len(blocked_test_definitions)}")
 if blocked_definitions or blocked_test_definitions:
     print("BLOCKED_DEFINITION_LIST_BEGIN")
-    print("\n".join(blocked_definitions + blocked_test_definitions))
+    print("\\n".join(blocked_definitions + blocked_test_definitions))
     print("BLOCKED_DEFINITION_LIST_END")
     raise SystemExit(1)
 PY
