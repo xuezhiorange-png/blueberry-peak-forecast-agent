@@ -85,7 +85,7 @@ PYTEST_NODE_LIST_END
 
 The runtime record must contain real outputs for seven daily metric oracles,
 six baseline fixtures, eight calendar cases, Decimal rejection cases,
-cross-quantile retention/conflicts, forecast and actual aggregation,
+cross-quantile retention/conflicts, subfarm-to-farm forecast and actual aggregation,
 canonical field sets, owner identity, and blocked-surface checks. S3R-11 and
 S3R-12 must each have an executable test owner:
 
@@ -94,6 +94,32 @@ ROUND_A_REQUIREMENT_WITHOUT_TEST_OWNER_COUNT=0
 TEST_MODULE_WITHOUT_REQUIREMENT_COUNT=0
 S3R11_TEST_OWNER_PRESENT=true
 S3R12_TEST_OWNER_PRESENT=true
+S3R12_ROUND_A_STATUS=IMPLEMENTED_DOMAIN_OUTCOME
+S3R12_RUNTIME_AUDIT_CLAIM=true
+INTERNAL_REASON_CODE_PRESENT=false
+INTERNAL_REASON_CODE_MEMBER_COUNT=0
+BASELINE_CANONICAL_ROOT_FIELD_COUNT=26
+BASELINE_CANONICAL_CELL_FIELD_COUNT=15
+BASELINE_ROOT_FIELD_SET_EQUALITY=true
+BASELINE_CELL_FIELD_SET_EQUALITY=true
+BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0
+FROZEN_VERSION_NAME_SET_EQUALITY=true
+FROZEN_VERSION_VALUE_SET_EQUALITY=true
+GENERIC_VERSION_BRANCH_SHADOW_COUNT=0
+```
+
+The package gate supports `PACKAGE_SELF_TEST=1`. It creates an isolated
+temporary fixture and proves that legal 26-path and 17-module manifests pass,
+metadata never enters path arrays, bad or missing script hashes fail, blocked
+paths and a 27th path fail, baseline root/cell drift fails, a missing
+`InternalReasonCode` passes with count zero, and invalid `FrozenVersion`
+values fail. The raw self-test output must include:
+
+```text
+POSITIVE_FIXTURE_PASS_COUNT=<actual>
+NEGATIVE_FIXTURE_EXPECTED_FAILURE_COUNT=<actual>
+NEGATIVE_FIXTURE_UNEXPECTED_PASS_COUNT=0
+PACKAGE_GATE_SELF_TEST_RESULT=PASS
 ```
 
 ## Path and hash proof
@@ -133,6 +159,16 @@ be inspected before extraction for absolute paths, `..` traversal,
 symlinks, hardlinks, devices, sockets, FIFOs, duplicate normalized paths,
 and sensitive content. It must then be extracted into a fresh temporary
 directory and independently rehashed.
+
+The package snapshot must record the exact current script hashes from
+`acceptance/SHA256SUMS`, including:
+
+```text
+SCRIPT_01_SHA256=23433951b6fd8d83bcea043250d409ed811634009d90c15c3e702a1627b5e797
+SCRIPT_02_SHA256=0fa3232ddeade11ef7b377d37f4ff95802e8854b525afc2c24e214e383ecb978
+SCRIPT_03_SHA256=b03a3d527e2771bfbd5bde5d57ff278eece06ed541722c0a0732819a13b76883
+SCRIPT_04_SHA256=6757d88d5f69c7a550c0a2475f96f462e3f41ba48a6dffeed844881a34eaa7eb
+```
 
 ## Finalization boundary
 

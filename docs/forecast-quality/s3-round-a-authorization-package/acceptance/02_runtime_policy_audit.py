@@ -41,11 +41,40 @@ git(
     "cat-file", "-e", f"{BASE_SHA}:docs/forecast-quality/s3-round-a-authorization-package/README.md"
 )
 sha_file = PACKAGE_DIR / "acceptance" / "SHA256SUMS"
+expected_script_paths = {
+    "docs/forecast-quality/s3-round-a-authorization-package/acceptance/01_changed_path_gate.sh",
+    "docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py",
+    "docs/forecast-quality/s3-round-a-authorization-package/acceptance/03_test_gate.sh",
+    "docs/forecast-quality/s3-round-a-authorization-package/acceptance/04_static_gate.sh",
+}
+hash_records = []
 for line in sha_file.read_text(encoding="utf-8").splitlines():
-    expected_hash, relative_path = line.split(None, 1)
-    actual_hash = subprocess.check_output(["git", "show", f"{BASE_SHA}:{relative_path}"], cwd=ROOT)
+    if not line.strip():
+        continue
+    parts = line.split(None, 1)
+    if len(parts) != 2:
+        raise AssertionError("malformed script hash record")
+    expected_hash, repository_relative_path = parts
+    if (
+        repository_relative_path not in expected_script_paths
+        or repository_relative_path.startswith("/")
+        or ".." in Path(repository_relative_path).parts
+    ):
+        raise AssertionError(f"invalid script hash path: {repository_relative_path}")
+    hash_records.append((expected_hash, repository_relative_path))
+if {path for _, path in hash_records} != expected_script_paths or len(hash_records) != 4:
+    raise AssertionError("script hash record set mismatch")
+for expected_hash, repository_relative_path in hash_records:
+    actual_hash = subprocess.check_output(
+        ["git", "show", f"{BASE_SHA}:{repository_relative_path}"], cwd=ROOT
+    )
     if hashlib.sha256(actual_hash).hexdigest() != expected_hash:
-        raise AssertionError(f"package script hash drift: {relative_path}")
+        raise AssertionError(f"package script hash drift: {repository_relative_path}")
+print("SCRIPT_HASH_RECORD_COUNT=4")
+print("SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=4")
+print("SCRIPT_HASH_MISMATCH_COUNT=0")
+print("SCRIPT_HASH_MISSING_PATH_COUNT=0")
+print("STALE_SCRIPT_HASH_REFERENCE_COUNT=0")
 
 
 def enum_names(enum_type: Any) -> set[str]:
@@ -156,6 +185,17 @@ for name, expected in expected_enums.items():
     actual = enum_names(getattr(enums, name))
     if actual != expected:
         raise AssertionError(f"{name} mismatch: {sorted(actual)}")
+expected_frozen_values = {
+    "METRIC_INPUT_MASK_V1": "v0.2-s3-metric-input-mask-v1",
+    "NAIVE_BASELINE_POLICY_V1": "v0.2-s3-naive-baseline-policy-v1",
+    "SEASON_ANALOG_MAPPING_V1": "v0.2-s3-season-analog-mapping-v1",
+}
+if enum_values(enums.FrozenVersion) != set(expected_frozen_values.values()):
+    raise AssertionError("FrozenVersion value set mismatch")
+if {member.name: str(member.value) for member in enums.FrozenVersion} != expected_frozen_values:
+    raise AssertionError("FrozenVersion name/value mapping mismatch")
+print("FROZEN_VERSION_NAME_SET_EQUALITY=true")
+print("FROZEN_VERSION_VALUE_SET_EQUALITY=true")
 
 expected_reason_codes = {
     "NONE",
@@ -178,11 +218,13 @@ expected_reason_codes = {
 actual_reason_codes = enum_names(enums.ReasonCode)
 if actual_reason_codes != expected_reason_codes:
     raise AssertionError(f"ReasonCode closed set mismatch: {sorted(actual_reason_codes)}")
-internal_reason_codes = enum_names(getattr(enums, "InternalReasonCode", type("Empty", (), {})))
+internal_enum = getattr(enums, "InternalReasonCode", None)
+internal_reason_codes = set() if internal_enum is None else enum_names(internal_enum)
 if internal_reason_codes & actual_reason_codes:
     raise AssertionError("public/internal ReasonCode sets overlap")
 print(f"PUBLIC_REASON_CODE_MEMBER_COUNT={len(actual_reason_codes)}")
 print("PUBLIC_REASON_CODE_CLOSED_SET_EQUALITY=true")
+print(f"INTERNAL_REASON_CODE_PRESENT={str(internal_enum is not None).lower()}")
 print(f"INTERNAL_REASON_CODE_MEMBER_COUNT={len(internal_reason_codes)}")
 print(
     "PUBLIC_INTERNAL_REASON_CODE_DISJOINT="
@@ -614,6 +656,12 @@ for case_id, target, current_start, current_end, prior_start, prior_end, expecte
 def generic_value(name: str, overrides: Mapping[str, Any]) -> Any:
     if name in overrides:
         return overrides[name]
+    if name == "metric_policy_version":
+        return enums.FrozenVersion.METRIC_INPUT_MASK_V1
+    if name == "baseline_policy_version":
+        return enums.FrozenVersion.NAIVE_BASELINE_POLICY_V1
+    if name in {"season_mapping_policy_version", "season_analog_mapping_policy_version"}:
+        return enums.FrozenVersion.SEASON_ANALOG_MAPPING_V1
     if name.endswith("_at") or name.endswith("_timestamp"):
         return datetime(2025, 2, 1, tzinfo=UTC)
     if name.endswith("_date") or name in {
@@ -639,18 +687,12 @@ def generic_value(name: str, overrides: Mapping[str, Any]) -> Any:
         return enums.ReasonCode.NONE
     if "availability" in name:
         return enums.ComparisonAvailability.AVAILABLE
-    if name == "baseline_policy_version":
-        return enums.FrozenVersion.NAIVE_BASELINE_POLICY_V1
-    if name == "season_mapping_policy_version":
-        return enums.FrozenVersion.SEASON_ANALOG_MAPPING_V1
-    if name == "metric_policy_version":
-        return enums.FrozenVersion.METRIC_INPUT_MASK_V1
     if "minimum" in name or name.endswith("_count"):
         return 10
     return "fixture-value"
 
 
-def make_baseline_request(target: date, cutoff: datetime) -> Any:
+def make_baseline_request(target: date, cutoff: datetime, requested_quantile: str = "P50") -> Any:
     overrides = {
         "current_target_date": target,
         "current_season_start": date(target.year, 1, 1),
@@ -661,6 +703,8 @@ def make_baseline_request(target: date, cutoff: datetime) -> Any:
         "farm_business_key": "farm-a",
         "subfarm_business_key": "subfarm-a",
         "variety_business_key": "variety-a",
+        "requested_quantile": requested_quantile,
+        "forecast_quantile": requested_quantile,
     }
     return construct(
         schemas.BaselineRequest,
@@ -697,6 +741,21 @@ def baseline_row(
         "subfarm_business_key": "subfarm-a",
         "variety_business_key": "variety-a",
     }
+
+
+version_request = make_baseline_request(date(2025, 2, 10), datetime(2025, 2, 15, tzinfo=UTC))
+if read_value(version_request, "metric_policy_version") != enums.FrozenVersion.METRIC_INPUT_MASK_V1:
+    raise AssertionError("metric policy fixture did not use FrozenVersion")
+if (
+    read_value(version_request, "baseline_policy_version")
+    != enums.FrozenVersion.NAIVE_BASELINE_POLICY_V1
+):
+    raise AssertionError("baseline policy fixture did not use FrozenVersion")
+version_snapshot = make_baseline_snapshot([])
+season_policy = read_value(version_snapshot, "season_analog_mapping_policy_version", None)
+if season_policy is not None and season_policy != enums.FrozenVersion.SEASON_ANALOG_MAPPING_V1:
+    raise AssertionError("season mapping fixture did not use FrozenVersion")
+print("FROZEN_VERSION_POLICY_FIELDS=PASS")
 
 
 baseline_fixtures = [
@@ -774,7 +833,37 @@ point_result = baseline.resolve_baseline_point_forecast(
 if read_value(point_result, "baseline_quantile", "P50") not in {"P50", enums.SupportedQuantile.P50}:  # type: ignore[operator]
     raise AssertionError("baseline point is not P50-equivalent")
 print("S3R12_POINT_ONLY_P50=true")
+for requested_quantile in ("P50", "P80", "P90"):
+    quantile_result = baseline.resolve_baseline_point_forecast(
+        make_baseline_request(
+            date(2025, 2, 10),
+            datetime(2025, 2, 15, tzinfo=UTC),
+            requested_quantile,
+        ),
+        make_baseline_snapshot([baseline_row(date(2024, 2, 10))]),
+    )
+    actual_quantile = read_value(quantile_result, "baseline_quantile", requested_quantile)
+    if requested_quantile == "P50":
+        if status_name(read_value(quantile_result, "metric_status")) != "COMPUTED":
+            raise AssertionError("P50 baseline was not computed")
+        continue
+    if (
+        status_name(read_value(quantile_result, "comparison_availability")) != "BLOCKED"
+        or status_name(read_value(quantile_result, "metric_status")) != "NOT_COMPUTABLE"
+        or member_name(read_value(quantile_result, "reason_code"))
+        != "BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED"
+        or read_value(quantile_result, "baseline_point_forecast_kg") is not None
+    ):
+        raise AssertionError(f"S3R12 quantile outcome mismatch: {requested_quantile}")
+    print(
+        f"S3R12_QUANTILE_OUTCOME={requested_quantile}|actual={actual_quantile}|"
+        "comparison_availability=BLOCKED|metric_status=NOT_COMPUTABLE|"
+        "reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED|"
+        "baseline_point_forecast_kg=null"
+    )
 print("S3R12_P80_P90_POINT_COPY=false")
+print("S3R12_IMPLEMENTED_BY_ROUND_A=true")
+print("GENERIC_VERSION_BRANCH_SHADOW_COUNT=0")
 
 expected_root_fields = {
     "schema_version",
@@ -792,10 +881,10 @@ expected_root_fields = {
     "baseline_grain",
     "baseline_horizon_rule",
     "breakdown_dimensions",
-    "s2_total_row_count",
-    "s2_comparable_row_count",
-    "s2_excluded_row_count",
-    "s2_not_computable_row_count",
+    "s2_total_binding_row_count",
+    "s2_comparable_binding_row_count",
+    "s2_excluded_binding_row_count",
+    "s2_not_computable_binding_row_count",
     "coverage_ratio",
     "metric_input_mask_policy_version",
     "metric_input_mask_hash",
@@ -805,21 +894,21 @@ expected_root_fields = {
     "per_breakdown_cell",
 }
 expected_cell_fields = {
-    "breakdown_identity",
-    "metric_input_row_count",
-    "eligible_row_count",
-    "excluded_row_count",
-    "not_computable_row_count",
+    "baseline_point_forecast_kg",
+    "s2_total_binding_row_count",
+    "s2_comparable_binding_row_count",
+    "s2_excluded_binding_row_count",
+    "s2_not_computable_binding_row_count",
     "coverage_ratio",
     "metric_input_mask_policy_version",
     "metric_input_mask_hash",
+    "metric_input_row_count",
     "metric_input_quantile",
     "unique_actual_physical_row_count",
-    "daily_mae",
-    "daily_wape",
-    "daily_smape",
-    "daily_mape",
-    "daily_bias_kg",
+    "mape_eligible_row_count",
+    "mape_zero_actual_row_count",
+    "metric_status",
+    "reason_code",
 }
 root_payload = invoke_one_argument(
     canonical.build_baseline_canonical_payload_root, baseline_result_for_canonical
@@ -836,11 +925,10 @@ if set(cell_payload) != expected_cell_fields:
         f"baseline cell field set mismatch: {sorted(set(cell_payload) ^ expected_cell_fields)}"
     )
 print("BASELINE_CANONICAL_ROOT_FIELD_COUNT=26")
-print("BASELINE_CANONICAL_SCALAR_FIELD_COUNT=25")
-print("BASELINE_CANONICAL_CONTAINER_FIELD_COUNT=1")
-print("PER_BREAKDOWN_CELL_FIELD_COUNT=15")
-print("ROOT_FIELD_SET_EQUALITY=true")
-print("CELL_FIELD_SET_EQUALITY=true")
+print("BASELINE_CANONICAL_CELL_FIELD_COUNT=15")
+print("BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0")
+print("BASELINE_ROOT_FIELD_SET_EQUALITY=true")
+print("BASELINE_CELL_FIELD_SET_EQUALITY=true")
 
 print("BLOCKED_IMPLEMENTATION_DEFINITION_COUNT=0")
 print("REASON_CODE_FALSE_POSITIVE_COUNT=0")

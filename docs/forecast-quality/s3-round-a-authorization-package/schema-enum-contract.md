@@ -68,15 +68,51 @@ Other domain schemas:
 | `MetricValueCell` | `metric_value`, `metric_status`, `reason_code` | status/reason is always present; value is null only when contract says not computable | `schemas.py` |
 | `DailyMetricResult` | S2 identities, policy versions, six-axis breakdown, four S2 counters, `coverage_ratio`, mask identity, input count/quantile, unique actual count, MAPE counters, metric cells | all identity and audit fields bind canonical hash; no database IDs | `schemas.py` |
 | `BreakdownSpec` | `forecast_horizon_days`, `farm_business_key`, `subfarm_business_key`, `variety_business_key`, `season_business_key`, `model_identity` | six required axes; separate calculator argument | `schemas.py` |
-| `BaselineRequest` | current target date, current season identity, prior season identity, farm/subfarm/variety keys, current forecast cutoff, policy versions | current cutoff controls source visibility | `schemas.py` |
+| `BaselineRequest` | current target date, current season identity, prior season identity, farm/subfarm/variety keys, current forecast cutoff, requested quantile, policy versions | current cutoff controls source visibility; P50 is point-only and P80/P90 are explicitly non-computable | `schemas.py` |
 | `BaselineSourceSnapshot` | snapshot identity/hash, row-set hash, visibility manifest hash, visibility cutoff, `actual_rows` with prior season/date/grain/value/revision visibility fields | independent source snapshot; never reuse model S2 row set | `schemas.py` |
-| `BaselineResult` | point forecast value, source snapshot identities, analog date, status, reason code, canonical hash | point-only P50 result; P80/P90 baseline distribution is not implemented | `schemas.py` |
+| `BaselineResult` | point forecast value, requested/baseline quantile, source snapshot identities, analog date, comparison availability, status, reason code, canonical hash | P50 computes a point result; P80/P90 return BLOCKED, NOT_COMPUTABLE, BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED, and null point value | `schemas.py` |
 
 `FarmDailyForecastAggregate` is a public Round A schema. Its forecast value is
 the sum of exact, non-duplicated subfarm forecast business keys. P50, P80 and
 P90 rows remain separate, as do forecast cutoffs, model identities and
 horizons. A repeated forecast business key is a structural failure; selecting
 the maximum subfarm row or silently merging quantiles is forbidden.
+
+## Baseline canonical payload field sets
+
+The root payload is exactly the following 26 fields, with
+`per_breakdown_cell` as its one container field:
+
+```text
+BASELINE_CANONICAL_ROOT_FIELDS=
+schema_version,s2_run_identity,s2_manifest_identity,s2_binding_row_set_hash,
+baseline_source_snapshot_identity,baseline_source_snapshot_hash,
+baseline_source_row_set_hash,baseline_source_visibility_manifest_hash,
+baseline_source_visibility_cutoff_at,baseline_policy_version,
+season_analog_mapping_policy_version,prior_season_identity,baseline_grain,
+baseline_horizon_rule,breakdown_dimensions,s2_total_binding_row_count,
+s2_comparable_binding_row_count,s2_excluded_binding_row_count,
+s2_not_computable_binding_row_count,coverage_ratio,
+metric_input_mask_policy_version,metric_input_mask_hash,metric_input_row_count,
+metric_input_quantile,unique_actual_physical_row_count,per_breakdown_cell
+BASELINE_CANONICAL_ROOT_FIELD_COUNT=26
+```
+
+Each `per_breakdown_cell` payload is exactly these 15 fields:
+
+```text
+BASELINE_CANONICAL_CELL_FIELDS=
+baseline_point_forecast_kg,s2_total_binding_row_count,
+s2_comparable_binding_row_count,s2_excluded_binding_row_count,
+s2_not_computable_binding_row_count,coverage_ratio,
+metric_input_mask_policy_version,metric_input_mask_hash,metric_input_row_count,
+metric_input_quantile,unique_actual_physical_row_count,mape_eligible_row_count,
+mape_zero_actual_row_count,metric_status,reason_code
+BASELINE_CANONICAL_CELL_FIELD_COUNT=15
+BASELINE_ROOT_FIELD_SET_EQUALITY=true
+BASELINE_CELL_FIELD_SET_EQUALITY=true
+BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0
+```
 
 ## Public enums
 
@@ -88,6 +124,9 @@ ComparisonAvailability={AVAILABLE,BLOCKED}
 SupportedQuantile={P50,P80,P90}
 CrossQuantileInputSource={S2_IMMUTABLE_BACKTEST_BINDING}
 FrozenVersion={METRIC_INPUT_MASK_V1,NAIVE_BASELINE_POLICY_V1,SEASON_ANALOG_MAPPING_V1}
+METRIC_INPUT_MASK_V1=v0.2-s3-metric-input-mask-v1
+NAIVE_BASELINE_POLICY_V1=v0.2-s3-naive-baseline-policy-v1
+SEASON_ANALOG_MAPPING_V1=v0.2-s3-season-analog-mapping-v1
 ```
 
 The current contract documents 16 distinct public reason tokens. The package
@@ -123,6 +162,7 @@ failures are public exceptions and ordinary non-computable states are public
 
 ```text
 InternalReasonCode={}
+INTERNAL_REASON_CODE_PRESENT=false
 INTERNAL_REASON_CODE_MEMBER_COUNT=0
 PUBLIC_INTERNAL_REASON_CODE_DISJOINT=true
 ```
