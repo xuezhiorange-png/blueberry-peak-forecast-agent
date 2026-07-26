@@ -1,123 +1,241 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PACKAGE_SELF_TEST="${PACKAGE_SELF_TEST:-0}"
+PACKAGE_REPOSITORY_ROOT="docs/forecast-quality/s3-round-a-authorization-package"
+SCRIPT_HASH_PREFIX="${PACKAGE_REPOSITORY_ROOT}/acceptance/"
+SELF_PATH="${BASH_SOURCE[0]}"
+
+parse_authorized_manifest() {
+  local manifest="$1"
+  awk -F ' \\| ' '
+    $1 ~ /^backend\// && $2 == "CREATE" { print $1 }
+  ' "${manifest}"
+}
+
+manifest_metadata_count() {
+  grep -Ec '^[A-Z0-9_]+=.*$' "$1" || true
+}
+
+manifest_invalid_count() {
+  awk -F ' \\| ' '
+    /^[[:space:]]*#/ || /^[[:space:]]*$/ || /^[A-Z0-9_]+=.*$/ { next }
+    !($1 ~ /^backend\// && $2 == "CREATE") { count++ }
+    END { print count + 0 }
+  ' "$1"
+}
+
+validate_hash_records() {
+  local repo="$1"
+  local base_sha="$2"
+  local sha_file="$3"
+  local record_count=0 prefix_count=0 mismatch_count=0 missing_count=0 stale_count=0
+  local expected_paths=(
+    "${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
+    "${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
+    "${SCRIPT_HASH_PREFIX}03_test_gate.sh"
+    "${SCRIPT_HASH_PREFIX}04_static_gate.sh"
+  )
+  local seen_file
+  seen_file="$(mktemp "${TMPDIR:-/tmp}/s3-hash-seen.XXXXXX")"
+  : >"${seen_file}"
+  while IFS= read -r line; do
+    [ -n "${line}" ] || continue
+    if [[ ! "${line}" =~ ^([0-9a-f]{64})[[:space:]][[:space:]]([^[:space:]]+)$ ]]; then
+      stale_count=$((stale_count + 1))
+      continue
+    fi
+    local expected_hash="${BASH_REMATCH[1]}"
+    local repository_relative_path="${BASH_REMATCH[2]}"
+    record_count=$((record_count + 1))
+    if [[ "${repository_relative_path}" == "${SCRIPT_HASH_PREFIX}"* ]] \
+      && [[ "${repository_relative_path}" != /* ]] \
+      && [[ "${repository_relative_path}" != *"../"* ]] \
+      && [[ "${repository_relative_path}" != *"/.." ]]; then
+      prefix_count=$((prefix_count + 1))
+    else
+      stale_count=$((stale_count + 1))
+      continue
+    fi
+    printf '%s\n' "${repository_relative_path}" >>"${seen_file}"
+    if ! git -C "${repo}" cat-file -e "${base_sha}:${repository_relative_path}" 2>/dev/null; then
+      missing_count=$((missing_count + 1))
+      continue
+    fi
+    local actual_hash
+    actual_hash="$(git -C "${repo}" show "${base_sha}:${repository_relative_path}" | sha256sum | awk '{print $1}')"
+    if [[ "${actual_hash}" != "${expected_hash}" ]]; then
+      mismatch_count=$((mismatch_count + 1))
+    fi
+  done <"${sha_file}"
+  for expected_path in "${expected_paths[@]}"; do
+    if ! grep -Fxq "${expected_path}" "${seen_file}"; then
+      stale_count=$((stale_count + 1))
+    fi
+  done
+  rm -f "${seen_file}"
+  printf 'SCRIPT_HASH_RECORD_COUNT=%s\n' "${record_count}"
+  printf 'SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=%s\n' "${prefix_count}"
+  printf 'SCRIPT_HASH_MISMATCH_COUNT=%s\n' "${mismatch_count}"
+  printf 'SCRIPT_HASH_MISSING_PATH_COUNT=%s\n' "${missing_count}"
+  printf 'STALE_SCRIPT_HASH_REFERENCE_COUNT=%s\n' "${stale_count}"
+  if [[ "${record_count}" == "4" && "${prefix_count}" == "4" \
+    && "${mismatch_count}" == "0" && "${missing_count}" == "0" \
+    && "${stale_count}" == "0" ]]; then
+    return 0
+  fi
+  return 1
+}
+
+run_package_self_test() {
+  local package_dir
+  package_dir="$(cd "$(dirname "${SELF_PATH}")/.." && pwd)"
+  local tmp
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/s3-round-a-package-self-test.XXXXXX")"
+  trap "rm -rf '${tmp}'" EXIT
+  local repo="${tmp}/fixture"
+  git init -q "${repo}"
+  git -C "${repo}" config user.email "fixture@example.invalid"
+  git -C "${repo}" config user.name "Round A fixture"
+  mkdir -p "${repo}/${PACKAGE_REPOSITORY_ROOT}"
+  cp -R "${package_dir}/." "${repo}/${PACKAGE_REPOSITORY_ROOT}/"
+  git -C "${repo}" add "${PACKAGE_REPOSITORY_ROOT}"
+  git -C "${repo}" commit -qm "fixture package base"
+  local base_sha
+  base_sha="$(git -C "${repo}" rev-parse HEAD)"
+
+  local paths_file="${repo}/${PACKAGE_REPOSITORY_ROOT}/authorized-paths.txt"
+  mapfile -t valid_paths < <(parse_authorized_manifest "${paths_file}")
+  local metadata_count invalid_count metadata_parsed
+  metadata_count="$(manifest_metadata_count "${paths_file}")"
+  invalid_count="$(manifest_invalid_count "${paths_file}")"
+  metadata_parsed=0
+  for metadata in AUTHORIZED_CREATE_PATH_COUNT=26 AUTHORIZED_MODIFY_EXISTING_PATH_COUNT=0 AUTHORIZED_DELETE_PATH_COUNT=0 DUPLICATE_AUTHORIZED_PATH_COUNT=0; do
+    if printf '%s\n' "${valid_paths[@]}" | grep -Fxq "${metadata}"; then
+      metadata_parsed=$((metadata_parsed + 1))
+    fi
+  done
+  test "${#valid_paths[@]}" = "26"
+  test "${metadata_count}" = "4"
+  test "${invalid_count}" = "0"
+  test "${metadata_parsed}" = "0"
+
+  validate_hash_records "${repo}" "${base_sha}" "${repo}/${PACKAGE_REPOSITORY_ROOT}/acceptance/SHA256SUMS" >/dev/null
+
+  for path in "${valid_paths[@]}"; do
+    mkdir -p "${repo}/$(dirname "${path}")"
+    printf '# fixture\n' >"${repo}/${path}"
+  done
+  git -C "${repo}" add backend
+  git -C "${repo}" commit -qm "fixture compliant implementation"
+  local positive_head
+  positive_head="$(git -C "${repo}" rev-parse HEAD)"
+  IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
+    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    bash "${repo}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh" >/dev/null
+
+  local negative_expected=0 unexpected_pass=0
+  expect_fail() {
+    negative_expected=$((negative_expected + 1))
+    if "$@" >/dev/null 2>&1; then
+      unexpected_pass=$((unexpected_pass + 1))
+    fi
+  }
+
+  cp "${repo}/${PACKAGE_REPOSITORY_ROOT}/acceptance/SHA256SUMS" "${tmp}/bad-sha"
+  sed -i '1s/^[0-9a-f]\{64\}/0000000000000000000000000000000000000000000000000000000000000000/' "${tmp}/bad-sha"
+  expect_fail validate_hash_records "${repo}" "${base_sha}" "${tmp}/bad-sha"
+
+  git -C "${repo}" switch -q -c missing-script "${base_sha}"
+  git -C "${repo}" rm -q "${SCRIPT_HASH_PREFIX}04_static_gate.sh"
+  git -C "${repo}" commit -qm "fixture missing script"
+  local missing_base
+  missing_base="$(git -C "${repo}" rev-parse HEAD)"
+  expect_fail validate_hash_records "${repo}" "${missing_base}" "${repo}/${PACKAGE_REPOSITORY_ROOT}/acceptance/SHA256SUMS"
+
+  git -C "${repo}" switch -q master
+  mkdir -p "${repo}/backend/extra"
+  printf '# extra\n' >"${repo}/backend/extra/path_27.py"
+  git -C "${repo}" add backend/extra/path_27.py
+  git -C "${repo}" commit -qm "fixture 27th path"
+  expect_fail env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
+    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    bash "${repo}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
+
+  git -C "${repo}" switch -q -c blocked-fixture "${positive_head}"
+  mkdir -p "${repo}/backend/app/models"
+  printf '# blocked\n' >"${repo}/backend/app/models/blocked.py"
+  git -C "${repo}" add backend/app/models/blocked.py
+  git -C "${repo}" commit -qm "fixture blocked path"
+  expect_fail env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
+    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    bash "${repo}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
+
+  PACKAGE_SELF_TEST=1 bash "${package_dir}/acceptance/03_test_gate.sh" >"${tmp}/test-self.txt"
+  PACKAGE_SELF_TEST=1 python3 "${package_dir}/acceptance/02_runtime_policy_audit.py" >"${tmp}/runtime-self.txt"
+  grep -q '^TEST_GATE_SELF_TEST_RESULT=PASS$' "${tmp}/test-self.txt"
+  grep -q '^RUNTIME_AUDIT_SELF_TEST_RESULT=PASS$' "${tmp}/runtime-self.txt"
+
+  local runtime_negative
+  runtime_negative="$(awk -F= '/^RUNTIME_SELF_TEST_NEGATIVE_EXPECTED_FAILURE_COUNT=/{print $2}' "${tmp}/runtime-self.txt")"
+  negative_expected=$((negative_expected + runtime_negative))
+  local runtime_unexpected
+  runtime_unexpected="$(awk -F= '/^RUNTIME_SELF_TEST_NEGATIVE_UNEXPECTED_PASS_COUNT=/{print $2}' "${tmp}/runtime-self.txt")"
+  unexpected_pass=$((unexpected_pass + runtime_unexpected))
+
+  printf 'AUTHORIZED_CREATE_PATH_COUNT=26\n'
+  printf 'AUTHORIZED_MANIFEST_RECORD_COUNT=26\n'
+  printf 'AUTHORIZED_MANIFEST_METADATA_LINE_COUNT=4\n'
+  printf 'AUTHORIZED_MANIFEST_INVALID_RECORD_COUNT=0\n'
+  printf 'AUTHORIZED_METADATA_PARSED_AS_PATH_COUNT=0\n'
+  cat "${tmp}/test-self.txt"
+  cat "${tmp}/runtime-self.txt"
+  printf 'POSITIVE_FIXTURE_PASS_COUNT=6\n'
+  printf 'NEGATIVE_FIXTURE_EXPECTED_FAILURE_COUNT=%s\n' "${negative_expected}"
+  printf 'NEGATIVE_FIXTURE_UNEXPECTED_PASS_COUNT=%s\n' "${unexpected_pass}"
+  test "${unexpected_pass}" = "0"
+  printf 'PACKAGE_GATE_SELF_TEST_RESULT=PASS\n'
+}
+
+if [[ "${PACKAGE_SELF_TEST:-0}" == "1" && "${PACKAGE_SELF_TEST_INTERNAL:-0}" != "1" ]]; then
+  run_package_self_test
+  exit 0
+fi
+
+: "${IMPLEMENTATION_BASE_SHA:?IMPLEMENTATION_BASE_SHA is required}"
 ROUND_A_WORKTREE="${ROUND_A_WORKTREE:-$(git rev-parse --show-toplevel)}"
 PACKAGE_DIR="${PACKAGE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 AUTHORIZED_FILE="${PACKAGE_DIR}/authorized-paths.txt"
 PACKAGE_SHA_FILE="${PACKAGE_DIR}/acceptance/SHA256SUMS"
 
-parse_authorized_paths() {
-  awk -F ' \\| ' '$1 ~ /^backend\// && $2 == "CREATE" { print $1 }' "$1"
-}
-
-parse_test_modules() {
-  awk -F ' \\| ' '$1 ~ /^backend\/tests\/forecast_quality\/test_.*\.py$/ { print $1 }' "$1"
-}
-
-validate_hash_records() {
-  local hash_file="$1"
-  local expected_prefix="docs/forecast-quality/s3-round-a-authorization-package/acceptance/"
-  local count=0 hash_value path
-  while read -r hash_value path; do
-    [[ -n "${hash_value:-}" && -n "${path:-}" ]] || continue
-    [[ "${hash_value}" =~ ^[0-9a-f]{64}$ ]] || return 1
-    [[ "${path}" == "${expected_prefix}"* && "${path}" != /* && "${path}" != *".."* ]] || return 1
-    case "${path}" in
-      "${expected_prefix}01_changed_path_gate.sh"|"${expected_prefix}02_runtime_policy_audit.py"|"${expected_prefix}03_test_gate.sh"|"${expected_prefix}04_static_gate.sh") ;;
-      *) return 1 ;;
-    esac
-    count=$((count + 1))
-  done < "${hash_file}"
-  [[ "${count}" = "4" ]]
-}
-
-if [[ "${PACKAGE_SELF_TEST}" = "1" ]]; then
-  tmp_self_test="$(mktemp -d "${TMPDIR:-/tmp}/s3-round-a-package-self-test.XXXXXX")"
-  trap 'rm -rf "${tmp_self_test}"' EXIT
-  positive=0
-  negative=0
-  unexpected=0
-  {
-    printf '%s\n' AUTHORIZED_CREATE_PATH_COUNT=26 AUTHORIZED_MODIFY_EXISTING_PATH_COUNT=0 AUTHORIZED_DELETE_PATH_COUNT=0 DUPLICATE_AUTHORIZED_PATH_COUNT=0
-    for index in $(seq 1 26); do printf 'backend/app/forecast_quality/generated_%02d.py | CREATE | fixture\n' "${index}"; done
-  } > "${tmp_self_test}/authorized-paths.txt"
-  {
-    printf '%s\n' AUTHORIZED_TEST_MODULE_COUNT=17 ROUND_A_REQUIREMENT_WITHOUT_TEST_OWNER_COUNT=0 TEST_MODULE_WITHOUT_REQUIREMENT_COUNT=0 S3R11_TEST_OWNER_PRESENT=true S3R12_TEST_OWNER_PRESENT=true
-    for index in $(seq 1 17); do printf 'backend/tests/forecast_quality/test_generated_%02d.py | S3R-X | runtime\n' "${index}"; done
-  } > "${tmp_self_test}/authorized-test-modules.txt"
-  if [[ "$(parse_authorized_paths "${tmp_self_test}/authorized-paths.txt" | wc -l | tr -d ' ')" = "26" && "$(parse_test_modules "${tmp_self_test}/authorized-test-modules.txt" | wc -l | tr -d ' ')" = "17" ]]; then positive=$((positive + 1)); else unexpected=$((unexpected + 1)); fi
-  if [[ "$(parse_authorized_paths "${tmp_self_test}/authorized-paths.txt" | grep -c '^AUTHORIZED_' || true)" = "0" && "$(parse_test_modules "${tmp_self_test}/authorized-test-modules.txt" | grep -c '^AUTHORIZED_' || true)" = "0" ]]; then positive=$((positive + 1)); else unexpected=$((unexpected + 1)); fi
-  printf '%064d  docs/forecast-quality/s3-round-a-authorization-package/acceptance/01_changed_path_gate.sh\n' 0 > "${tmp_self_test}/bad-hash"
-  if validate_hash_records "${tmp_self_test}/bad-hash"; then unexpected=$((unexpected + 1)); else negative=$((negative + 1)); fi
-  : > "${tmp_self_test}/missing-hash"
-  if validate_hash_records "${tmp_self_test}/missing-hash"; then unexpected=$((unexpected + 1)); else negative=$((negative + 1)); fi
-  if [[ "backend/app/models/blocked.py" == backend/app/models/* ]]; then negative=$((negative + 1)); else unexpected=$((unexpected + 1)); fi
-  if [[ "$(seq 1 27 | wc -l | tr -d ' ')" = "26" ]]; then unexpected=$((unexpected + 1)); else negative=$((negative + 1)); fi
-  if python3 - <<'PY'
-raise SystemExit(0 if {"a", "c"} == {"a", "b"} else 1)
-PY
-  then unexpected=$((unexpected + 1)); else negative=$((negative + 1)); fi
-  if python3 - <<'PY'
-raise SystemExit(0 if {"a", "c"} == {"a", "b"} else 1)
-PY
-  then unexpected=$((unexpected + 1)); else negative=$((negative + 1)); fi
-  if python3 - <<'PY'
-raise SystemExit(0 if {"METRIC_INPUT_MASK_V1": "wrong"} == {"METRIC_INPUT_MASK_V1": "v0.2-s3-metric-input-mask-v1"} else 1)
-PY
-  then unexpected=$((unexpected + 1)); else negative=$((negative + 1)); fi
-  if python3 - <<'PY'
-internal_enum = None
-assert not (set() if internal_enum is None else set(internal_enum))
-PY
-  then positive=$((positive + 1)); else unexpected=$((unexpected + 1)); fi
-  printf 'POSITIVE_FIXTURE_PASS_COUNT=%s\n' "${positive}"
-  printf 'NEGATIVE_FIXTURE_EXPECTED_FAILURE_COUNT=%s\n' "${negative}"
-  printf 'NEGATIVE_FIXTURE_UNEXPECTED_PASS_COUNT=%s\n' "${unexpected}"
-  test "${unexpected}" = "0"
-  printf 'PACKAGE_GATE_SELF_TEST_RESULT=PASS\n'
-  exit 0
-fi
-
-: "${IMPLEMENTATION_BASE_SHA:?IMPLEMENTATION_BASE_SHA is required}"
-
 cd "${ROUND_A_WORKTREE}"
 test "$(git rev-parse --show-toplevel)" = "${ROUND_A_WORKTREE}"
-test -f "${AUTHORIZED_FILE}"
 git cat-file -e "${IMPLEMENTATION_BASE_SHA}^{commit}"
 git merge-base --is-ancestor "${IMPLEMENTATION_BASE_SHA}" HEAD
-git cat-file -e "${IMPLEMENTATION_BASE_SHA}:docs/forecast-quality/s3-round-a-authorization-package/README.md"
+git cat-file -e "${IMPLEMENTATION_BASE_SHA}:${PACKAGE_REPOSITORY_ROOT}/README.md"
+test -f "${AUTHORIZED_FILE}"
 test -f "${PACKAGE_SHA_FILE}"
-
-validate_hash_records "${PACKAGE_SHA_FILE}"
-hash_record_count=0
-hash_path_prefix_count=0
-hash_mismatch_count=0
-hash_missing_count=0
-while read -r expected_hash repository_relative_path; do
-  [ -n "${expected_hash:-}" ] || continue
-  [ -n "${repository_relative_path:-}" ] || continue
-  hash_record_count=$((hash_record_count + 1))
-  hash_path_prefix_count=$((hash_path_prefix_count + 1))
-  if ! actual_hash="$(git show "${IMPLEMENTATION_BASE_SHA}:${repository_relative_path}" 2>/dev/null | sha256sum | awk '{print $1}')"; then
-    hash_missing_count=$((hash_missing_count + 1))
-  elif [ "${actual_hash}" != "${expected_hash}" ]; then
-    hash_mismatch_count=$((hash_mismatch_count + 1))
-  fi
-done < "${PACKAGE_SHA_FILE}"
+validate_hash_records "${ROUND_A_WORKTREE}" "${IMPLEMENTATION_BASE_SHA}" "${PACKAGE_SHA_FILE}"
 
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/s3-round-a-path-gate.XXXXXX")"
 trap 'rm -rf "${tmp_dir}"' EXIT
+parse_authorized_manifest "${AUTHORIZED_FILE}" | sort -u >"${tmp_dir}/authorized.txt"
+metadata_count="$(manifest_metadata_count "${AUTHORIZED_FILE}")"
+invalid_count="$(manifest_invalid_count "${AUTHORIZED_FILE}")"
+metadata_parsed=0
+while IFS= read -r metadata; do
+  [ -n "${metadata}" ] || continue
+  if grep -Fxq "${metadata}" "${tmp_dir}/authorized.txt"; then
+    metadata_parsed=$((metadata_parsed + 1))
+  fi
+done < <(grep -E '^[A-Z0-9_]+=.*$' "${AUTHORIZED_FILE}" || true)
 
-parse_authorized_paths "${AUTHORIZED_FILE}" | sort -u > "${tmp_dir}/authorized.txt"
-git diff --name-only "${IMPLEMENTATION_BASE_SHA}..HEAD" | sort -u > "${tmp_dir}/committed.txt"
-git diff --cached --name-only | sort -u > "${tmp_dir}/staged.txt"
-git diff --name-only | sort -u > "${tmp_dir}/unstaged.txt"
-git ls-files --others --exclude-standard | sort -u > "${tmp_dir}/untracked.txt"
-cat "${tmp_dir}/committed.txt" "${tmp_dir}/staged.txt" "${tmp_dir}/unstaged.txt" "${tmp_dir}/untracked.txt" | sort -u > "${tmp_dir}/actual.txt"
-
-comm -23 "${tmp_dir}/authorized.txt" "${tmp_dir}/actual.txt" > "${tmp_dir}/missing.txt" || true
-comm -13 "${tmp_dir}/authorized.txt" "${tmp_dir}/actual.txt" > "${tmp_dir}/unauthorized.txt" || true
+git diff --name-only "${IMPLEMENTATION_BASE_SHA}..HEAD" | sort -u >"${tmp_dir}/committed.txt"
+git diff --cached --name-only | sort -u >"${tmp_dir}/staged.txt"
+git diff --name-only | sort -u >"${tmp_dir}/unstaged.txt"
+git ls-files --others --exclude-standard | sort -u >"${tmp_dir}/untracked.txt"
+cat "${tmp_dir}/committed.txt" "${tmp_dir}/staged.txt" "${tmp_dir}/unstaged.txt" "${tmp_dir}/untracked.txt" | sort -u >"${tmp_dir}/actual.txt"
+comm -23 "${tmp_dir}/authorized.txt" "${tmp_dir}/actual.txt" >"${tmp_dir}/missing.txt" || true
+comm -13 "${tmp_dir}/authorized.txt" "${tmp_dir}/actual.txt" >"${tmp_dir}/unauthorized.txt" || true
 
 modified_base_count=0
 while IFS= read -r path; do
@@ -125,8 +243,7 @@ while IFS= read -r path; do
   if git cat-file -e "${IMPLEMENTATION_BASE_SHA}:${path}" 2>/dev/null; then
     modified_base_count=$((modified_base_count + 1))
   fi
-done < "${tmp_dir}/actual.txt"
-
+done <"${tmp_dir}/actual.txt"
 deleted_count="$(git diff --diff-filter=D --name-only "${IMPLEMENTATION_BASE_SHA}..HEAD" | wc -l | tr -d ' ')"
 
 blocked_prefixes=(
@@ -146,8 +263,7 @@ blocked_prefixes=(
   "ci-shard-manifest.yml"
 )
 is_blocked_path() {
-  local candidate="$1"
-  local blocked
+  local candidate="$1" blocked
   for blocked in "${blocked_prefixes[@]}"; do
     if [[ "${blocked}" == */ ]]; then
       [[ "${candidate}" == "${blocked}"* ]] && return 0
@@ -157,64 +273,41 @@ is_blocked_path() {
   done
   return 1
 }
-blocked_list="${tmp_dir}/blocked.txt"
-: > "${blocked_list}"
+: >"${tmp_dir}/blocked.txt"
 while IFS= read -r path; do
   [ -n "${path}" ] || continue
-  if is_blocked_path "${path}"; then
-    printf '%s\n' "${path}" >> "${blocked_list}"
-  fi
-done < "${tmp_dir}/actual.txt"
-sort -u -o "${blocked_list}" "${blocked_list}"
+  is_blocked_path "${path}" && printf '%s\n' "${path}" >>"${tmp_dir}/blocked.txt"
+done <"${tmp_dir}/actual.txt"
+sort -u -o "${tmp_dir}/blocked.txt" "${tmp_dir}/blocked.txt"
 
-authorized_count="$(wc -l < "${tmp_dir}/authorized.txt" | tr -d ' ')"
-actual_count="$(wc -l < "${tmp_dir}/actual.txt" | tr -d ' ')"
-missing_count="$(wc -l < "${tmp_dir}/missing.txt" | tr -d ' ')"
-unauthorized_count="$(wc -l < "${tmp_dir}/unauthorized.txt" | tr -d ' ')"
-blocked_count="$(wc -l < "${blocked_list}" | tr -d ' ')"
-metadata_line_count="$(awk -F= '/^(AUTHORIZED_CREATE_PATH_COUNT|AUTHORIZED_MODIFY_EXISTING_PATH_COUNT|AUTHORIZED_DELETE_PATH_COUNT|DUPLICATE_AUTHORIZED_PATH_COUNT)=/ { count++ } END { print count + 0 }' "${AUTHORIZED_FILE}")"
-invalid_record_count="$(awk -F ' \\| ' '/^[#[:space:]]*$/ { next } /^(AUTHORIZED_CREATE_PATH_COUNT|AUTHORIZED_MODIFY_EXISTING_PATH_COUNT|AUTHORIZED_DELETE_PATH_COUNT|DUPLICATE_AUTHORIZED_PATH_COUNT)=/ { next } $1 ~ /^backend\// && $2 == "CREATE" { next } { count++ } END { print count + 0 }' "${AUTHORIZED_FILE}")"
-metadata_as_path_count="$(awk -F ' \\| ' '$1 ~ /^AUTHORIZED_/ && $1 ~ /^backend\// { count++ } END { print count + 0 }' "${AUTHORIZED_FILE}")"
+authorized_count="$(wc -l <"${tmp_dir}/authorized.txt" | tr -d ' ')"
+actual_count="$(wc -l <"${tmp_dir}/actual.txt" | tr -d ' ')"
+missing_count="$(wc -l <"${tmp_dir}/missing.txt" | tr -d ' ')"
+unauthorized_count="$(wc -l <"${tmp_dir}/unauthorized.txt" | tr -d ' ')"
+blocked_count="$(wc -l <"${tmp_dir}/blocked.txt" | tr -d ' ')"
 
-printf 'IMPLEMENTATION_BASE_SHA=%s\n' "${IMPLEMENTATION_BASE_SHA}"
-printf 'ROUND_A_WORKTREE=%s\n' "${ROUND_A_WORKTREE}"
 printf 'AUTHORIZED_MANIFEST_RECORD_COUNT=%s\n' "${authorized_count}"
-printf 'AUTHORIZED_MANIFEST_METADATA_LINE_COUNT=%s\n' "${metadata_line_count}"
-printf 'AUTHORIZED_MANIFEST_INVALID_RECORD_COUNT=%s\n' "${invalid_record_count}"
-printf 'AUTHORIZED_METADATA_PARSED_AS_PATH_COUNT=%s\n' "${metadata_as_path_count}"
-printf 'SCRIPT_HASH_RECORD_COUNT=%s\n' "${hash_record_count}"
-printf 'SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=%s\n' "${hash_path_prefix_count}"
-printf 'SCRIPT_HASH_MISMATCH_COUNT=%s\n' "${hash_mismatch_count}"
-printf 'SCRIPT_HASH_MISSING_PATH_COUNT=%s\n' "${hash_missing_count}"
-printf 'STALE_SCRIPT_HASH_REFERENCE_COUNT=0\n'
-printf 'EXPECTED_AUTHORIZED_PATH_COUNT=%s\n' "${authorized_count}"
+printf 'AUTHORIZED_MANIFEST_METADATA_LINE_COUNT=%s\n' "${metadata_count}"
+printf 'AUTHORIZED_MANIFEST_INVALID_RECORD_COUNT=%s\n' "${invalid_count}"
+printf 'AUTHORIZED_METADATA_PARSED_AS_PATH_COUNT=%s\n' "${metadata_parsed}"
+printf 'AUTHORIZED_CREATE_PATH_COUNT=%s\n' "${authorized_count}"
 printf 'ACTUAL_UNION_PATH_COUNT=%s\n' "${actual_count}"
 printf 'MISSING_AUTHORIZED_PATH_COUNT=%s\n' "${missing_count}"
 printf 'UNAUTHORIZED_PATH_COUNT=%s\n' "${unauthorized_count}"
 printf 'MODIFIED_BASE_PATH_COUNT=%s\n' "${modified_base_count}"
 printf 'DELETED_PATH_COUNT=%s\n' "${deleted_count}"
 printf 'BLOCKED_PATH_PRESENT_COUNT=%s\n' "${blocked_count}"
-printf 'BLOCKED_PATH_LIST_BEGIN\n'
-cat "${blocked_list}"
-printf 'BLOCKED_PATH_LIST_END\n'
-printf 'AUTHORIZED_PATH_LIST_BEGIN\n'
-cat "${tmp_dir}/authorized.txt"
-printf 'AUTHORIZED_PATH_LIST_END\nACTUAL_PATH_LIST_BEGIN\n'
-cat "${tmp_dir}/actual.txt"
-printf 'ACTUAL_PATH_LIST_END\n'
+printf 'AUTHORIZED_PATH_LIST_BEGIN\n'; cat "${tmp_dir}/authorized.txt"; printf 'AUTHORIZED_PATH_LIST_END\n'
+printf 'ACTUAL_PATH_LIST_BEGIN\n'; cat "${tmp_dir}/actual.txt"; printf 'ACTUAL_PATH_LIST_END\n'
 
 test "${authorized_count}" = "26"
+test "${metadata_count}" = "4"
+test "${invalid_count}" = "0"
+test "${metadata_parsed}" = "0"
 test "${actual_count}" = "26"
 test "${missing_count}" = "0"
 test "${unauthorized_count}" = "0"
 test "${modified_base_count}" = "0"
 test "${deleted_count}" = "0"
 test "${blocked_count}" = "0"
-test "${metadata_line_count}" = "4"
-test "${invalid_record_count}" = "0"
-test "${metadata_as_path_count}" = "0"
-test "${hash_record_count}" = "4"
-test "${hash_path_prefix_count}" = "4"
-test "${hash_mismatch_count}" = "0"
-test "${hash_missing_count}" = "0"
 printf 'PATH_SCOPE_ACCEPTANCE=PASS\n'
