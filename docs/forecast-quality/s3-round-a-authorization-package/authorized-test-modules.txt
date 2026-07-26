@@ -1,0 +1,19 @@
+# Future domain-only pytest modules. Each module must execute, not collect only.
+# Columns: module | owned requirements | classification | required cases | prohibited substitute evidence
+backend/tests/forecast_quality/test_aggregation.py | S3R-16,S3R-17 | runtime | exact subfarm sum, exact actual dedup, duplicate target rejection | max-single-subfarm-as-farm-total, row-count-only assertion
+backend/tests/forecast_quality/test_actual_dedup.py | S3R-15 | runtime | retain P50/P80/P90 forecast rows, one actual physical row, stable identity conflict, value conflict | unique-count-only audit, dropping non-P50 rows
+backend/tests/forecast_quality/test_baseline.py | S3R-08,S3R-09,S3R-11 | runtime | six fixtures: normal, Feb29 mapping, no analog day, no analog actual, visible source, late revision | printed PASS, latest row, zero fallback, model/receipt proxy
+backend/tests/forecast_quality/test_baseline_cold_start.py | S3R-09 | runtime | missing prior season and missing analog actual produce NOT_COMPUTABLE | exception-only success, synthetic zero
+backend/tests/forecast_quality/test_baseline_visibility.py | S3R-10,S3R-11 | runtime | revision visible at current cutoff allowed; later revision rejected | prior-season cutoff, current latest row
+backend/tests/forecast_quality/test_blocked_surfaces.py | ROUND_A_DOMAIN_ONLY | static | forbidden modules, APIs, persistence, migration, peak, quantile, comparison, CI paths absent | invented NEVER_IMPLEMENTED tokens, text-only scan without path check
+backend/tests/forecast_quality/test_breakdown.py | S3R-13 | runtime | all six axes, deterministic cell identity, cells retained | omitted farm/horizon axis, row-count-only assertion
+backend/tests/forecast_quality/test_breakdown_min.py | S3R-14 | runtime | below ten comparable rows yields INSUFFICIENT_SAMPLE without dropping cell | dropping small cells, global status substitution
+backend/tests/forecast_quality/test_calculator_daily.py | S3R-01,S3R-03,S3R-04,S3R-05 | runtime | seven hand-computed metrics, per-metric cells, P50 mask, zero denominators, double zero sMAPE | pytest collect-only, result-wide status, float arithmetic
+backend/tests/forecast_quality/test_canonical.py | S3R-18 | runtime | canonical field sets, metric mask predicates, replay byte identity, no database IDs | hash of repr, database row order, count-only check
+backend/tests/forecast_quality/test_decimal.py | S3R-21 | runtime | fixed-six half-even emissions, native/NumPy float, NaN/Infinity rejection | Decimal conversion after float arithmetic, quantize-only check
+backend/tests/forecast_quality/test_dedup.py | S3R-17 | runtime | duplicate forecast business key, actual physical key, post-aggregation date | silent overwrite, arbitrary exception catch
+backend/tests/forecast_quality/test_mape.py | S3R-04 | runtime | P50 eligible count, zero-actual count, no eligible rows | denominator=comparable rows, removing zero rows from audit
+backend/tests/forecast_quality/test_public_contracts.py | public schemas,enums,exceptions | runtime/static | exact fields/types/requiredness, public enum equality, internal disjointness, hierarchy and forbidden names | numeric counts without set equality, duplicated symbol owner
+backend/tests/forecast_quality/test_season_calendar.py | S3R-08,S3R-09 | runtime | eight calendar cases, boundaries, unequal lengths, Feb29 -> Feb28, no analog day | hard-coded 2024, current-date clock, malformed fixture
+backend/tests/forecast_quality/test_smape.py | S3R-05 | runtime | double-zero contributes zero and nonzero denominators compute | treating double zero as undefined, native floats
+backend/tests/forecast_quality/test_zero_policy.py | S3R-03 | runtime | WAPE and relative-bias denominator-zero status/reason, MAPE zero reason | implicit zero, exception as metric status
