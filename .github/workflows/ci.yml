@@ -410,6 +410,7 @@ jobs:
             backend/tests/test_alembic_round_trip_isolated_db_live.py \
             backend/tests/test_core_forecast_alembic.py \
             backend/tests/test_historical_backtest_alembic.py \
+            backend/tests/forecast_quality/test_persistence.py \
             -q --tb=long \
             --durations=30 \
             --junitxml=reports/test-results/postgres-migration.xml
@@ -712,6 +713,7 @@ jobs:
             backend/tests/integration/test_v0_1_s2_complete_daily_curve_postgres.py \
             backend/tests/integration/test_core_forecast_persistence_postgres.py \
             backend/tests/integration/test_core_forecast_cli_postgres.py \
+            backend/tests/forecast_quality/test_idempotency.py \
             -m "not postgres_concurrency" -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \
@@ -1423,6 +1425,7 @@ jobs:
             backend/tests/test_concurrency_isolation_helpers.py \
             backend/tests/test_concurrency_isolation_helpers_live.py \
             backend/tests/rolling_backtest/test_historical_backtest_concurrency.py \
+            backend/tests/forecast_quality/test_idempotency.py \
             -m postgres_concurrency -q --tb=long \
             --timeout=180 \
             --timeout-method=signal \
