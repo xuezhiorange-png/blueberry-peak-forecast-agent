@@ -1,58 +1,103 @@
 # Round A Evidence Package Contract
 
-A future implementation review must include raw outputs for all four exact
-acceptance scripts. A prose `PASS`, collection-only result or omitted stderr is
+This contract defines evidence for a future implementation worktree. A
+summary, a pytest collection result, or a `PASS` string without raw output is
 not evidence.
 
-## Required facts
+## Required evidence members
+
+The future evidence package must contain:
 
 ```text
-AUTHORIZED_MANIFEST_RECORD_COUNT=26
-AUTHORIZED_MANIFEST_METADATA_LINE_COUNT=4
-AUTHORIZED_MANIFEST_INVALID_RECORD_COUNT=0
-AUTHORIZED_METADATA_PARSED_AS_PATH_COUNT=0
-AUTHORIZED_TEST_MODULE_COUNT=17
-AUTHORIZED_TEST_METADATA_LINE_COUNT=5
-TEST_METADATA_PARSED_AS_MODULE_COUNT=0
-INVALID_TEST_MODULE_RECORD_COUNT=0
-
-SCRIPT_HASH_RECORD_COUNT=4
-SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=4
-SCRIPT_HASH_MISMATCH_COUNT=0
-SCRIPT_HASH_MISSING_PATH_COUNT=0
-STALE_SCRIPT_HASH_REFERENCE_COUNT=0
+identity-and-authorization
+authorization-package-identity-and-sha
+source-worktree-pre.txt
+source-worktree-post.txt
+implementation-worktree-identity.txt
+authorized-paths.txt
+actual-union-paths.txt
+path-comparison.txt
+blocked-surface-scan.txt
+acceptance/01_changed_path_gate.meta.txt
+acceptance/01_changed_path_gate.stdout.txt
+acceptance/01_changed_path_gate.stderr.txt
+acceptance/02_runtime_policy_audit.meta.txt
+acceptance/02_runtime_policy_audit.stdout.txt
+acceptance/02_runtime_policy_audit.stderr.txt
+acceptance/03_test_gate.meta.txt
+acceptance/03_test_gate.stdout.txt
+acceptance/03_test_gate.stderr.txt
+acceptance/04_static_gate.meta.txt
+acceptance/04_static_gate.stdout.txt
+acceptance/04_static_gate.stderr.txt
+pytest-node-list.txt
+pytest-statistics.txt
+baseline-fixture-matrix.txt
+season-calendar-matrix.txt
+daily-metric-oracles.txt
+cross-quantile-registry-audit.txt
+schema-enum-audit.txt
+symbol-owner-audit.txt
+implementation-file-hashes.txt
+archive-manifest.txt
+99_final_report.md
 ```
 
-The SHA records are:
+The exact package format may add metadata files, but it may not omit these
+semantic members or include credentials, connection strings, raw business
+rows, personal data, or unrelated repository content.
+
+## Required raw facts
+
+Each gate record must contain:
 
 ```text
-ea64e802fbca112217d9ab07ae3e02b91d2d062b3e4a5ba99e371d8bb1b9eef0  docs/forecast-quality/s3-round-a-authorization-package/acceptance/01_changed_path_gate.sh
-0fa3232ddeade11ef7b377d37f4ff95802e8854b525afc2c24e214e383ecb978  docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py
-d4aba63856822fdf814adaa19a621223716b1073422abe3e81858586b9bb4fcf  docs/forecast-quality/s3-round-a-authorization-package/acceptance/03_test_gate.sh
-0c44c1d7764f88c110d505e81e8dddfeefeeed25946cd2066ee93b04544e2347  docs/forecast-quality/s3-round-a-authorization-package/acceptance/04_static_gate.sh
+script_path
+expected_script_sha256
+actual_script_sha256
+exact_command
+working_directory
+start_utc
+end_utc
+exit_code
+stdout_path
+stderr_path
 ```
 
-All gates resolve script bytes only with:
+The pytest record must contain the complete node list and exact collected,
+passed, failed, error, skipped, xfailed, xpassed, and exit-code counts. The
+required machine-readable keys are:
 
 ```text
-git show "${IMPLEMENTATION_BASE_SHA}:${repository_relative_path}"
+PYTEST_EXPECTED_MODULE_COUNT
+PYTEST_COLLECTED_MODULE_COUNT
+PYTEST_COLLECTED_TEST_COUNT
+PYTEST_PASSED_COUNT
+PYTEST_FAILED_COUNT
+PYTEST_ERROR_COUNT
+PYTEST_SKIPPED_COUNT
+PYTEST_XFAILED_COUNT
+PYTEST_XPASSED_COUNT
+PYTEST_EXIT_CODE
+PYTEST_NODE_LIST_BEGIN
+PYTEST_NODE_LIST_END
 ```
 
-Every member must start with
-`docs/forecast-quality/s3-round-a-authorization-package/acceptance/`.
-Absolute paths, `..`, other roots and cwd inference are forbidden.
-
-## Runtime evidence
-
-The runtime audit must execute—not merely print—daily metrics, forecast and
-actual aggregation, breakdown, eight season-calendar cases, six baseline
-fixtures, S3R-11 forbidden-source cases and requested P50/P80/P90 S3R-12
-outcomes.
+The runtime record must contain real outputs for seven daily metric oracles,
+six baseline fixtures, eight calendar cases, Decimal rejection cases,
+cross-quantile retention/conflicts, subfarm-to-farm forecast and actual aggregation,
+canonical field sets, owner identity, and blocked-surface checks. S3R-11 and
+S3R-12 must each have an executable test owner:
 
 ```text
+ROUND_A_REQUIREMENT_WITHOUT_TEST_OWNER_COUNT=0
+TEST_MODULE_WITHOUT_REQUIREMENT_COUNT=0
+S3R11_TEST_OWNER_PRESENT=true
+S3R12_TEST_OWNER_PRESENT=true
+S3R12_ROUND_A_STATUS=IMPLEMENTED_DOMAIN_OUTCOME
+S3R12_RUNTIME_AUDIT_CLAIM=true
 INTERNAL_REASON_CODE_PRESENT=false
 INTERNAL_REASON_CODE_MEMBER_COUNT=0
-PUBLIC_INTERNAL_REASON_CODE_DISJOINT=true
 BASELINE_CANONICAL_ROOT_FIELD_COUNT=26
 BASELINE_CANONICAL_CELL_FIELD_COUNT=15
 BASELINE_ROOT_FIELD_SET_EQUALITY=true
@@ -61,47 +106,89 @@ BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0
 FROZEN_VERSION_NAME_SET_EQUALITY=true
 FROZEN_VERSION_VALUE_SET_EQUALITY=true
 GENERIC_VERSION_BRANCH_SHADOW_COUNT=0
-S3R12_EXECUTABLE_OUTCOME=true
 ```
 
-Requested P80/P90 must produce:
+The package gate supports `PACKAGE_SELF_TEST=1`. It creates an isolated
+temporary fixture and proves that legal 26-path and 17-module manifests pass,
+metadata never enters path arrays, bad or missing script hashes fail, blocked
+paths and a 27th path fail, baseline root/cell drift fails, a missing
+`InternalReasonCode` passes with count zero, and invalid `FrozenVersion`
+values fail. The raw self-test output must include:
 
 ```text
-comparison_availability=BLOCKED
-metric_status=NOT_COMPUTABLE
-reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
-baseline_point_forecast_kg=null
-```
-
-## Test evidence
-
-The pytest gate records the complete node list and exact collected-module,
-collected-test, passed, failed, error, skipped, xfailed, xpassed and exit
-counts. All 17 authorized modules must exist and the directory may contain no
-additional `test_*.py` module.
-
-## Package self-test evidence
-
-The package-level self-test must be run from the exact head and retain raw
-stdout/stderr. It creates an isolated `/tmp` Git fixture and proves:
-
-- legal 26-path manifest passes;
-- legal 17-module manifest passes;
-- metadata never enters arrays;
-- wrong hash fails;
-- missing script fails;
-- blocked path fails;
-- 27th path fails;
-- baseline root drift fails;
-- baseline cell drift fails;
-- absent `InternalReasonCode` passes with zero members;
-- wrong FrozenVersion fails.
-
-```text
+POSITIVE_FIXTURE_PASS_COUNT=<actual>
+NEGATIVE_FIXTURE_EXPECTED_FAILURE_COUNT=<actual>
 NEGATIVE_FIXTURE_UNEXPECTED_PASS_COUNT=0
 PACKAGE_GATE_SELF_TEST_RESULT=PASS
-PACKAGE_SELF_AUDIT_RESULT=PASS
 ```
 
-Even all PASS results do not authorize implementation commit/push, Ready,
-Merge, Round B or Issue #102 closure.
+## Path and hash proof
+
+The implementation path union is the normalized union of committed paths
+relative to the separately authorized implementation base, staged paths, unstaged tracked paths, and
+untracked paths. It must equal `authorized-paths.txt` exactly. The future
+evidence package must record:
+
+```text
+EXPECTED_AUTHORIZED_PATH_COUNT=26
+ACTUAL_UNION_PATH_COUNT=26
+MISSING_AUTHORIZED_PATH_COUNT=0
+UNAUTHORIZED_PATH_COUNT=0
+MODIFIED_BASE_PATH_COUNT=0
+DELETED_PATH_COUNT=0
+BLOCKED_PATH_PRESENT_COUNT=0
+BLOCKED_IMPLEMENTATION_DEFINITION_COUNT=0
+BLOCKED_TEST_PRESENT_COUNT=0
+REASON_CODE_FALSE_POSITIVE_COUNT=0
+GATE_21_GATE_23_CONTRADICTION_COUNT=0
+IMPLEMENTATION_FILE_HASH_COUNT=26
+MISSING_HASH_PATH_COUNT=0
+EXTRA_HASH_PATH_COUNT=0
+HASH_RECOMPUTE_MISMATCH_COUNT=0
+```
+
+The evidence identity must record both
+`PACKAGE_SOURCE_MAIN_SHA` and the separately authorized
+`IMPLEMENTATION_BASE_SHA`. The package source SHA is never an implementation
+diff base. All four scripts must verify that the implementation base is a
+commit ancestor of the worktree, contains this package README, and contains
+the exact script hashes from `acceptance/SHA256SUMS`.
+
+Every hash uses a repository-relative path and SHA-256. A safe archive must
+be inspected before extraction for absolute paths, `..` traversal,
+symlinks, hardlinks, devices, sockets, FIFOs, duplicate normalized paths,
+and sensitive content. It must then be extracted into a fresh temporary
+directory and independently rehashed.
+
+The package snapshot must record the exact current script hashes from
+`acceptance/SHA256SUMS`, including:
+
+```text
+SCRIPT_01_SHA256=23433951b6fd8d83bcea043250d409ed811634009d90c15c3e702a1627b5e797
+SCRIPT_02_SHA256=0fa3232ddeade11ef7b377d37f4ff95802e8854b525afc2c24e214e383ecb978
+SCRIPT_03_SHA256=b03a3d527e2771bfbd5bde5d57ff278eece06ed541722c0a0732819a13b76883
+SCRIPT_04_SHA256=6757d88d5f69c7a550c0a2475f96f462e3f41ba48a6dffeed844881a34eaa7eb
+```
+
+## Finalization boundary
+
+The final report may claim domain-layer readiness only when all four exact
+scripts pass, the path union is exact, the tests execute and pass, and the
+archive recheck is clean. Even then:
+
+```text
+ROUND_A_DOMAIN_IMPLEMENTATION_ACCEPTED=false
+ROUND_A_FULL_S3_ACCEPTANCE=false
+ROUND_B_PERSISTENCE_REQUIRED=true
+COMMIT_COUNT=0
+PUSH_COUNT=0
+PR_CREATION_COUNT=0
+AUTHORIZE_S3_ROUND_A_COMMIT_PUSH_OPEN_PR=NO
+STOPPED_AWAITING_CHARLES_COMMIT_PUSH_OPEN_PR_AUTHORIZATION=true
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+The evidence package must be delivered as an externally accessible artifact
+for final acceptance. A package left only under `/tmp` is not final review
+evidence. This authorization package does not authorize implementation
+commit, push, PR creation, Ready, Merge, Round B, or Issue #102 mutation.
