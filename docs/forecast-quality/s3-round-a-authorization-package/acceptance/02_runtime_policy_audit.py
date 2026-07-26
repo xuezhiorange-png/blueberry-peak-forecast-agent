@@ -16,10 +16,9 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import Any, get_args, get_origin, get_type_hints
 
-ROOT = Path(os.environ.get("ROUND_A_WORKTREE", Path.cwd())).resolve()
+ROOT = Path(os.environ["ROUND_A_WORKTREE"]).resolve(strict=True)
 PACKAGE_REPOSITORY_ROOT = "docs/forecast-quality/s3-round-a-authorization-package"
-raw_package_dir = Path(os.environ.get("PACKAGE_DIR", ""))
-PACKAGE_DIR = raw_package_dir.resolve()
+PACKAGE_DIR = Path(os.environ["PACKAGE_DIR"]).resolve(strict=True)
 BASE_SHA = os.environ.get("IMPLEMENTATION_BASE_SHA")
 ACCEPTED_SHA = os.environ.get("AUTHORIZATION_PACKAGE_ACCEPTED_SHA")
 EXPECTED_TREE = os.environ.get("AUTHORIZATION_PACKAGE_TREE_OID")
@@ -29,8 +28,6 @@ if not ACCEPTED_SHA:
     raise SystemExit("AUTHORIZATION_PACKAGE_ACCEPTED_SHA is required")
 if not EXPECTED_TREE:
     raise SystemExit("AUTHORIZATION_PACKAGE_TREE_OID is required")
-if not PACKAGE_DIR.is_dir():
-    raise SystemExit("PACKAGE_DIR is required")
 expected_package_dir = (ROOT / PACKAGE_REPOSITORY_ROOT).resolve(strict=True)
 package_dir_outside_worktree = not PACKAGE_DIR.is_relative_to(ROOT)
 package_dir_symlink_escape = PACKAGE_DIR != expected_package_dir
