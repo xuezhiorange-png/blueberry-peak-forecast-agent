@@ -81,6 +81,12 @@ PYTEST_XPASSED_COUNT
 PYTEST_EXIT_CODE
 PYTEST_NODE_LIST_BEGIN
 PYTEST_NODE_LIST_END
+PYTEST_MODULE_WITH_ZERO_COLLECTED_TEST_COUNT
+PYTEST_MODULE_WITH_ZERO_COLLECTED_TEST_LIST_BEGIN
+PYTEST_MODULE_WITH_ZERO_COLLECTED_TEST_LIST_END
+PYTEST_UNEXPECTED_COLLECTED_MODULE_COUNT
+PYTEST_UNEXPECTED_COLLECTED_MODULE_LIST_BEGIN
+PYTEST_UNEXPECTED_COLLECTED_MODULE_LIST_END
 ```
 
 The runtime record must contain real outputs for seven daily metric oracles,
@@ -106,21 +112,46 @@ BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0
 FROZEN_VERSION_NAME_SET_EQUALITY=true
 FROZEN_VERSION_VALUE_SET_EQUALITY=true
 GENERIC_VERSION_BRANCH_SHADOW_COUNT=0
+PUBLIC_SCHEMA_COUNT=11
+PUBLIC_SCHEMA_FIELD_SET_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_FIELD_ORDER_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_TYPE_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_REQUIREDNESS_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_DRIFT_COUNT=0
+DAILY_METRIC_VALUE_ORACLE_COUNT=7
+DAILY_METRIC_STATUS_ORACLE_COUNT=7
+DAILY_METRIC_REASON_ORACLE_COUNT=7
+DENOMINATOR_ZERO_RUNTIME_CASE_COUNT=3
+DAILY_METRIC_ORACLE_FAILURE_COUNT=0
+F16_BASELINE_NO_ANALOG_FIXTURE_FIXED=true
+F17_REAL_GATE_SELF_TEST=true
+F18_ALL_17_MODULES_COLLECT_TESTS=true
+F19_ALL_PUBLIC_SCHEMAS_EXACT=true
+F20_METRIC_STATUS_REASON_ORACLES=true
 ```
 
 The package gate supports `PACKAGE_SELF_TEST=1`. It creates an isolated
-temporary fixture and proves that legal 26-path and 17-module manifests pass,
-metadata never enters path arrays, bad or missing script hashes fail, blocked
-paths and a 27th path fail, baseline root/cell drift fails, a missing
-`InternalReasonCode` passes with count zero, and invalid `FrozenVersion`
-values fail. The raw self-test output must include:
+temporary Git repository with a package base commit, a positive 26-path
+implementation commit, and adversarial clones. It invokes all four gate
+scripts through their normal entrypoints. The raw self-test output must
+include:
 
 ```text
-POSITIVE_FIXTURE_PASS_COUNT=<actual>
-NEGATIVE_FIXTURE_EXPECTED_FAILURE_COUNT=<actual>
-NEGATIVE_FIXTURE_UNEXPECTED_PASS_COUNT=0
+POSITIVE_GATE_EXECUTION_COUNT=<actual>
+POSITIVE_GATE_PASS_COUNT=<same>
+NEGATIVE_GATE_EXECUTION_COUNT=<actual>
+NEGATIVE_EXPECTED_FAILURE_COUNT=<same>
+NEGATIVE_UNEXPECTED_PASS_COUNT=0
 PACKAGE_GATE_SELF_TEST_RESULT=PASS
 ```
+
+Negative gate fixtures are real, isolated failures: wrong four-entry script
+hash, missing script blob, invalid metadata record, a 27th implementation
+path, a blocked `backend/app/models/` path, an authorized test module that
+collects zero nodes, baseline root drift, baseline cell drift, an invalid
+`FrozenVersion` value, and a blocked AST implementation definition. Pure
+string comparisons, fixed cardinality snippets, `bash -n`, and `py_compile`
+are not positive evidence.
 
 ## Path and hash proof
 
@@ -164,10 +195,10 @@ The package snapshot must record the exact current script hashes from
 `acceptance/SHA256SUMS`, including:
 
 ```text
-SCRIPT_01_SHA256=23433951b6fd8d83bcea043250d409ed811634009d90c15c3e702a1627b5e797
-SCRIPT_02_SHA256=0fa3232ddeade11ef7b377d37f4ff95802e8854b525afc2c24e214e383ecb978
-SCRIPT_03_SHA256=b03a3d527e2771bfbd5bde5d57ff278eece06ed541722c0a0732819a13b76883
-SCRIPT_04_SHA256=6757d88d5f69c7a550c0a2475f96f462e3f41ba48a6dffeed844881a34eaa7eb
+SCRIPT_01_SHA256=464806cda8e86575c43d5b4297e97a9552c0e7109ed429076508ff7609895c3c
+SCRIPT_02_SHA256=7157aaa0a302235227db2349d1f1db5e3eb635bb6bd87a8bd4ab7ddf86d6977e
+SCRIPT_03_SHA256=56e24c5c5b28f9f823d1b7cbca5897a98b2c3a87655aea2a1905d56fa9626587
+SCRIPT_04_SHA256=f3f6de562d397625bb5f5ea8e762211c0d3d975753a7950cad1eb97bfe14c32c
 ```
 
 ## Finalization boundary

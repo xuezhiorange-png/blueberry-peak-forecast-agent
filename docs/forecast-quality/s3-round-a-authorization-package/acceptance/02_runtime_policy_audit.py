@@ -14,7 +14,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args, get_origin, get_type_hints
 
 ROOT = Path(os.environ.get("ROUND_A_WORKTREE", Path.cwd())).resolve()
 PACKAGE_DIR = (
@@ -64,16 +64,35 @@ for line in sha_file.read_text(encoding="utf-8").splitlines():
     hash_records.append((expected_hash, repository_relative_path))
 if {path for _, path in hash_records} != expected_script_paths or len(hash_records) != 4:
     raise AssertionError("script hash record set mismatch")
+base_hash_mismatch_count = 0
+current_hash_mismatch_count = 0
+missing_hash_path_count = 0
 for expected_hash, repository_relative_path in hash_records:
-    actual_hash = subprocess.check_output(
-        ["git", "show", f"{BASE_SHA}:{repository_relative_path}"], cwd=ROOT
-    )
-    if hashlib.sha256(actual_hash).hexdigest() != expected_hash:
-        raise AssertionError(f"package script hash drift: {repository_relative_path}")
+    try:
+        base_bytes = subprocess.check_output(
+            ["git", "show", f"{BASE_SHA}:{repository_relative_path}"], cwd=ROOT
+        )
+    except subprocess.CalledProcessError as exc:
+        missing_hash_path_count += 1
+        raise AssertionError(f"missing script hash path: {repository_relative_path}") from exc
+    base_hash = hashlib.sha256(base_bytes).hexdigest()
+    current_path = ROOT / repository_relative_path
+    if not current_path.is_file():
+        missing_hash_path_count += 1
+        raise AssertionError(f"current script is missing: {repository_relative_path}")
+    current_hash = hashlib.sha256(current_path.read_bytes()).hexdigest()
+    if base_hash != expected_hash:
+        base_hash_mismatch_count += 1
+    if current_hash != expected_hash:
+        current_hash_mismatch_count += 1
+if base_hash_mismatch_count or current_hash_mismatch_count or missing_hash_path_count:
+    raise AssertionError("script hash identity drift")
 print("SCRIPT_HASH_RECORD_COUNT=4")
 print("SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=4")
 print("SCRIPT_HASH_MISMATCH_COUNT=0")
 print("SCRIPT_HASH_MISSING_PATH_COUNT=0")
+print("CURRENT_SCRIPT_HASH_MISMATCH_COUNT=0")
+print("BASE_SCRIPT_HASH_MISMATCH_COUNT=0")
 print("STALE_SCRIPT_HASH_REFERENCE_COUNT=0")
 
 
@@ -98,6 +117,64 @@ def field_names(model_type: Any) -> list[str]:
     if annotations:
         return list(annotations)
     raise AssertionError(f"cannot inspect fields for {model_type!r}")
+
+
+def field_contract(model_type: Any) -> list[dict[str, Any]]:
+    """Normalize dataclass/Pydantic fields for exact contract comparison."""
+    hints = get_type_hints(model_type)
+    if dataclasses.is_dataclass(model_type):
+        result = []
+        for field in dataclasses.fields(model_type):
+            annotation = hints.get(field.name, field.type)
+            result.append(
+                {
+                    "name": field.name,
+                    "type": type_identity(annotation),
+                    "required": field.default is dataclasses.MISSING
+                    and field.default_factory is dataclasses.MISSING,
+                    "nullable": nullable(annotation),
+                    "default": "MISSING"
+                    if field.default is dataclasses.MISSING
+                    else repr(field.default),
+                }
+            )
+        return result
+    model_fields = getattr(model_type, "model_fields", None)
+    if model_fields is not None:
+        result = []
+        for name, field in model_fields.items():
+            annotation = hints.get(name, getattr(field, "annotation", Any))
+            default = getattr(field, "default", ...)
+            result.append(
+                {
+                    "name": name,
+                    "type": type_identity(annotation),
+                    "required": bool(getattr(field, "is_required", lambda: default is ...)()),
+                    "nullable": nullable(annotation),
+                    "default": "MISSING" if default is ... else repr(default),
+                }
+            )
+        return result
+    raise AssertionError(f"unsupported schema type: {model_type!r}")
+
+
+def nullable(annotation: Any) -> bool:
+    return type(None) in get_args(annotation)
+
+
+def type_identity(annotation: Any) -> str:
+    if annotation is type(None):
+        return "None"
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    if origin is None:
+        return getattr(annotation, "__name__", str(annotation).replace("typing.", ""))
+    origin_name = getattr(origin, "__name__", str(origin).replace("typing.", ""))
+    if origin_name in {"Union", "UnionType"}:
+        union_names = [type_identity(arg) for arg in args]
+        union_names.sort(key=lambda name: name == "None")
+        return "|".join(union_names)
+    return f"{origin_name}[{','.join(type_identity(arg) for arg in args)}]"
 
 
 def read_value(
@@ -231,46 +308,149 @@ print(
     f"{str(not bool(internal_reason_codes & actual_reason_codes)).lower()}"
 )
 
-schema_contracts = {
-    "ActualPhysicalRecord": ["physical_key", "stable_actual_identity", "actual_value_kg"],
+schema_contracts: dict[str, list[dict[str, Any]]] = {
+    "ActualPhysicalRecord": [
+        {"name": "physical_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "stable_actual_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "actual_value_kg", "type": "Decimal", "required": True, "nullable": False, "default": "MISSING"},
+    ],
     "S3EvaluationInput": [
-        "rows",
-        "s2_run_identity",
-        "s2_manifest_identity",
-        "s2_binding_row_set_hash",
-        "metric_policy_version",
-        "baseline_policy_version",
+        {"name": "rows", "type": "Sequence[S3BindingRow]", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_run_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_manifest_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_binding_row_set_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "metric_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "baseline_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+    ],
+    "S3BindingRow": [
+        {"name": "forecast_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "actual_physical_key", "type": "str|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "stable_actual_identity", "type": "str|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "forecast_value_kg", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "actual_value_kg", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "forecast_quantile", "type": "SupportedQuantile", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "forecast_horizon_days", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "forecast_target_date", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "forecast_cutoff_at", "type": "datetime", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_status", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "season_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "subfarm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "model_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "actual_visibility_timestamp", "type": "datetime|None", "required": True, "nullable": True, "default": "MISSING"},
+    ],
+    "FarmDailyActualAggregate": [
+        {"name": "season_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "target_date", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "actual_value_kg", "type": "Decimal", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "unique_actual_physical_rows", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
     ],
     "FarmDailyForecastAggregate": [
-        "season_business_key",
-        "farm_business_key",
-        "variety_business_key",
-        "target_date",
-        "forecast_cutoff_at",
-        "model_identity",
-        "forecast_quantile",
-        "forecast_horizon_days",
-        "forecast_value_kg",
-        "source_forecast_business_keys",
+        {"name": "season_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "target_date", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "forecast_cutoff_at", "type": "datetime", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "model_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "forecast_quantile", "type": "SupportedQuantile", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "forecast_horizon_days", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "forecast_value_kg", "type": "Decimal", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "source_forecast_business_keys", "type": "Sequence[str]", "required": True, "nullable": False, "default": "MISSING"},
+    ],
+    "MetricValueCell": [
+        {"name": "metric_name", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "metric_value", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "metric_status", "type": "MetricStatus", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "reason_code", "type": "ReasonCode", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "numerator", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "denominator", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "mape_eligible_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "mape_zero_actual_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+    ],
+    "DailyMetricResult": [
+        {"name": "s2_run_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_manifest_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_binding_row_set_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "metric_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "baseline_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "breakdown_identity", "type": "dict[str,str|int]", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_total_binding_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_comparable_binding_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_excluded_binding_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "s2_not_computable_binding_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "coverage_ratio", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "metric_input_mask_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "metric_input_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "metric_input_quantile", "type": "SupportedQuantile", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "unique_actual_physical_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "mape_eligible_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "mape_zero_actual_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "metric_cells", "type": "Sequence[MetricValueCell]", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "canonical_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+    ],
+    "BreakdownSpec": [
+        {"name": "forecast_horizon_days", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "subfarm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "season_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "model_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "minimum_sample_size", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+    ],
+    "BaselineRequest": [
+        {"name": "current_target_date", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "current_season_start", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "current_season_end", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "prior_season_start", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "prior_season_end", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "current_forecast_cutoff_at", "type": "datetime", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "subfarm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "requested_quantile", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "metric_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "baseline_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+    ],
+    "BaselineSourceSnapshot": [
+        {"name": "source_snapshot_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "source_snapshot_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "source_row_set_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "visibility_manifest_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "visibility_cutoff_at", "type": "datetime", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "season_analog_mapping_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "actual_rows", "type": "Sequence[Mapping[str,Any]]", "required": True, "nullable": False, "default": "MISSING"},
+    ],
+    "BaselineResult": [
+        {"name": "baseline_point_forecast_kg", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "baseline_quantile", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "comparison_availability", "type": "ComparisonAvailability", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "metric_status", "type": "MetricStatus", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "reason_code", "type": "ReasonCode", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "analog_date", "type": "date|None", "required": True, "nullable": True, "default": "MISSING"},
+        {"name": "source_snapshot_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "source_snapshot_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "source_row_set_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "visibility_manifest_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {"name": "canonical_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
     ],
 }
+
+schema_drift_count = 0
 for schema_name, expected in schema_contracts.items():
-    actual = field_names(getattr(schemas, schema_name))
+    actual = field_contract(getattr(schemas, schema_name))
     if actual != expected:
-        raise AssertionError(f"{schema_name} field contract mismatch: {actual}")
+        schema_drift_count += 1
+        raise AssertionError(f"{schema_name} exact contract mismatch: {actual}")
     print(f"{schema_name}_FIELD_COUNT={len(actual)}")
-for schema_name in (
-    "S3BindingRow",
-    "FarmDailyActualAggregate",
-    "DailyMetricResult",
-    "MetricValueCell",
-    "BreakdownSpec",
-    "BaselineRequest",
-    "BaselineSourceSnapshot",
-    "BaselineResult",
-):
-    if not field_names(getattr(schemas, schema_name)):
-        raise AssertionError(f"empty schema: {schema_name}")
+print(f"PUBLIC_SCHEMA_COUNT={len(schema_contracts)}")
+print(f"PUBLIC_SCHEMA_FIELD_SET_EQUALITY_COUNT={len(schema_contracts)}")
+print(f"PUBLIC_SCHEMA_FIELD_ORDER_EQUALITY_COUNT={len(schema_contracts)}")
+print(f"PUBLIC_SCHEMA_TYPE_EQUALITY_COUNT={len(schema_contracts)}")
+print(f"PUBLIC_SCHEMA_REQUIREDNESS_EQUALITY_COUNT={len(schema_contracts)}")
+print(f"PUBLIC_SCHEMA_DRIFT_COUNT={schema_drift_count}")
 
 public_owner_checks = {
     "compute_metric_input_mask_hash": canonical,
@@ -290,9 +470,8 @@ for symbol, owner in public_owner_checks.items():
     function = getattr(owner, symbol, None)
     if function is None or getattr(function, "__module__", None) != owner.__name__:
         raise AssertionError(f"public symbol owner drift: {symbol}")
-if getattr(daily, "compute_metric_input_mask_hash", None) is getattr(
-    canonical, "compute_metric_input_mask_hash", None
-):
+daily_mask_owner = daily.__dict__.get("compute_metric_input_mask_hash")
+if daily_mask_owner is not None and getattr(daily_mask_owner, "__module__", None) == daily.__name__:
     raise AssertionError("calculator_daily must not define a duplicate metric mask owner")
 print("PUBLIC_SYMBOL_OWNER_AUDIT=PASS")
 
@@ -525,16 +704,89 @@ oracles = {
 }
 for name, (numerator, denominator, expected) in oracles.items():
     cell = metric_cell(name)
-    actual = quantized(as_decimal(read_value(cell, "metric_value")))
+    raw_actual = read_value(cell, "metric_value")
+    if raw_actual is None:
+        raise AssertionError(f"metric oracle returned null for {name}")
+    actual = quantized(as_decimal(raw_actual))
     expected_rounded = quantized(expected)
     if actual != expected_rounded:
         raise AssertionError(f"metric oracle mismatch {name}: {actual} != {expected_rounded}")
+    actual_status = status_name(read_value(cell, "metric_status"))
+    actual_reason = member_name(read_value(cell, "reason_code"))
+    if actual_status != "COMPUTED" or actual_reason != "NONE":
+        raise AssertionError(f"metric status/reason mismatch for {name}")
     print(
         f"DAILY_METRIC_ORACLE={name}|numerator={numerator}|denominator={denominator}|"
-        f"expected={expected_rounded}|actual={actual}|"
-        f"status={status_name(read_value(cell, 'metric_status'))}|"
-        f"reason={member_name(read_value(cell, 'reason_code'))}"
+        f"unrounded_expected={expected}|rounded_expected={expected_rounded}|actual_value={actual}|"
+        f"expected_status=COMPUTED|actual_status={actual_status}|"
+        f"expected_reason=NONE|actual_reason={actual_reason}|result=PASS"
     )
+print("DAILY_METRIC_VALUE_ORACLE_COUNT=7")
+print("DAILY_METRIC_STATUS_ORACLE_COUNT=7")
+print("DAILY_METRIC_REASON_ORACLE_COUNT=7")
+
+
+def metric_result_for_actual_values(values: Sequence[str]) -> Any:
+    rows_for_case = []
+    for index, actual_value in enumerate(values):
+        row_values = common_values(
+            enums.SupportedQuantile.P50,
+            f"denominator-case-{index}",
+            "1.000000",
+        )
+        row_values["actual_physical_key"] = f"denominator-physical-{index}"
+        row_values["stable_actual_identity"] = f"denominator-actual-{index}"
+        row_values["actual_value_kg"] = Decimal(actual_value)
+        rows_for_case.append(construct(schemas.S3BindingRow, row_values))
+    return daily.compute_daily_metrics(
+        construct(
+            schemas.S3EvaluationInput,
+            {
+                "rows": rows_for_case,
+                "s2_run_identity": "s2-denominator-case",
+                "s2_manifest_identity": "manifest-denominator-case",
+                "s2_binding_row_set_hash": "b" * 64,
+                "metric_policy_version": enums.FrozenVersion.METRIC_INPUT_MASK_V1,
+                "baseline_policy_version": enums.FrozenVersion.NAIVE_BASELINE_POLICY_V1,
+            },
+        ),
+        breakdown_spec,
+    )
+
+
+def cells_by_name(result: Any) -> Mapping[str, Any]:
+    value = read_value(result, "metric_cells", read_value(result, "metrics", {}))
+    if isinstance(value, Mapping):
+        return value
+    return {str(read_value(cell, "metric_name")): cell for cell in value}
+
+
+denominator_cases = [
+    ("WAPE_DENOMINATOR_ZERO", "daily_wape", "WAPE_DENOMINATOR_ZERO"),
+    ("RELATIVE_BIAS_DENOMINATOR_ZERO", "daily_relative_bias", "RELATIVE_BIAS_DENOMINATOR_ZERO"),
+    ("NO_MAPE_ELIGIBLE_ROWS", "daily_mape", "NO_MAPE_ELIGIBLE_ROWS"),
+]
+for case_id, metric_name, expected_reason in denominator_cases:
+    case_result = metric_result_for_actual_values(("0.000000", "0.000000"))
+    case_cell = cells_by_name(case_result)[metric_name]
+    if read_value(case_cell, "metric_value") is not None:
+        raise AssertionError(f"{case_id} returned a value")
+    if status_name(read_value(case_cell, "metric_status")) != "NOT_COMPUTABLE":
+        raise AssertionError(f"{case_id} status mismatch")
+    if member_name(read_value(case_cell, "reason_code")) != expected_reason:
+        raise AssertionError(f"{case_id} reason mismatch")
+    if metric_name == "mape" and read_value(case_cell, "mape_eligible_row_count") != 0:
+        raise AssertionError("MAPE eligible-row audit drift")
+    print(
+        f"DENOMINATOR_ZERO_CASE={case_id}|metric={metric_name}|metric_value=null|"
+        f"metric_status=NOT_COMPUTABLE|reason_code={expected_reason}|result=PASS"
+    )
+zero_mape_cell = cells_by_name(metric_result_for_actual_values(("0.000000", "10.000000")))["daily_mape"]
+if read_value(zero_mape_cell, "mape_zero_actual_row_count") != 1:
+    raise AssertionError("MAPE_DENOMINATOR_ZERO row audit missing")
+print("MAPE_DENOMINATOR_ZERO_ROW_AUDIT=PASS")
+print("DENOMINATOR_ZERO_RUNTIME_CASE_COUNT=3")
+print("DAILY_METRIC_ORACLE_FAILURE_COUNT=0")
 
 breakdown_cells = list(breakdown.calculate_breakdown_cells(p50_rows, breakdown_spec))
 if not breakdown_cells:
@@ -692,19 +944,27 @@ def generic_value(name: str, overrides: Mapping[str, Any]) -> Any:
     return "fixture-value"
 
 
-def make_baseline_request(target: date, cutoff: datetime, requested_quantile: str = "P50") -> Any:
+def make_baseline_request(
+    target: date,
+    cutoff: datetime,
+    requested_quantile: str = "P50",
+    *,
+    current_season_start: date | None = None,
+    current_season_end: date | None = None,
+    prior_season_start: date | None = None,
+    prior_season_end: date | None = None,
+) -> Any:
     overrides = {
         "current_target_date": target,
-        "current_season_start": date(target.year, 1, 1),
-        "current_season_end": date(target.year, 3, 31),
-        "prior_season_start": date(target.year - 1, 1, 1),
-        "prior_season_end": date(target.year - 1, 3, 31),
+        "current_season_start": current_season_start or date(target.year, 1, 1),
+        "current_season_end": current_season_end or date(target.year, 3, 31),
+        "prior_season_start": prior_season_start or date(target.year - 1, 1, 1),
+        "prior_season_end": prior_season_end or date(target.year - 1, 3, 31),
         "current_forecast_cutoff_at": cutoff,
         "farm_business_key": "farm-a",
         "subfarm_business_key": "subfarm-a",
         "variety_business_key": "variety-a",
         "requested_quantile": requested_quantile,
-        "forecast_quantile": requested_quantile,
     }
     return construct(
         schemas.BaselineRequest,
@@ -759,10 +1019,18 @@ print("FROZEN_VERSION_POLICY_FIELDS=PASS")
 
 
 baseline_fixtures = [
-    ("normal", date(2025, 2, 10), [baseline_row(date(2024, 2, 10))], "COMPUTED", "NONE"),
+    (
+        "normal",
+        date(2025, 2, 10),
+        {},
+        [baseline_row(date(2024, 2, 10))],
+        "COMPUTED",
+        "NONE",
+    ),
     (
         "Feb29_to_Feb28",
         date(2024, 2, 29),
+        {},
         [baseline_row(date(2023, 2, 28), visibility=datetime(2024, 2, 1, tzinfo=UTC))],
         "COMPUTED",
         "NONE",
@@ -770,14 +1038,28 @@ baseline_fixtures = [
     (
         "no_analog_day",
         date(2025, 3, 31),
-        [baseline_row(date(2024, 3, 1))],
+        {
+            "current_season_start": date(2025, 1, 1),
+            "current_season_end": date(2025, 3, 31),
+            "prior_season_start": date(2024, 1, 1),
+            "prior_season_end": date(2024, 3, 1),
+        },
+        [],
         "NOT_COMPUTABLE",
         "NO_PRIOR_SEASON_ANALOG_DAY",
     ),
-    ("no_analog_actual", date(2025, 2, 10), [], "NOT_COMPUTABLE", "NO_PRIOR_SEASON_ANALOG_ACTUAL"),
+    (
+        "no_analog_actual",
+        date(2025, 2, 10),
+        {},
+        [],
+        "NOT_COMPUTABLE",
+        "NO_PRIOR_SEASON_ANALOG_ACTUAL",
+    ),
     (
         "visible_at_current_cutoff",
         date(2025, 2, 10),
+        {},
         [baseline_row(date(2024, 2, 10), visibility=datetime(2025, 2, 1, tzinfo=UTC))],
         "COMPUTED",
         "NONE",
@@ -785,15 +1067,20 @@ baseline_fixtures = [
     (
         "late_revision_not_visible",
         date(2025, 2, 10),
+        {},
         [baseline_row(date(2024, 2, 10), visibility=datetime(2025, 2, 20, tzinfo=UTC))],
         "NOT_COMPUTABLE",
         "BASELINE_SOURCE_NOT_VISIBLE_AT_CURRENT_FORECAST_CUTOFF",
     ),
 ]
 baseline_result_for_canonical = None
-for fixture_id, target, fixture_rows, expected_status, expected_reason in baseline_fixtures:
+for fixture_id, target, boundary_overrides, fixture_rows, expected_status, expected_reason in baseline_fixtures:
     result = baseline.resolve_baseline_point_forecast(
-        make_baseline_request(target, datetime(2025, 2, 15, tzinfo=UTC)),
+        make_baseline_request(
+            target,
+            datetime(2025, 2, 15, tzinfo=UTC),
+            **boundary_overrides,
+        ),
         make_baseline_snapshot(fixture_rows),
     )
     actual_status = status_name(
@@ -803,7 +1090,11 @@ for fixture_id, target, fixture_rows, expected_status, expected_reason in baseli
     if actual_status != expected_status or actual_reason != expected_reason:
         raise AssertionError(f"baseline fixture {fixture_id}: {actual_status}/{actual_reason}")
     baseline_result_for_canonical = result
-    print(f"BASELINE_FIXTURE={fixture_id}|status={actual_status}|reason={actual_reason}")
+    analog_date = read_value(result, "analog_date", None)
+    print(
+        f"BASELINE_FIXTURE={fixture_id}|analog_date={analog_date}|"
+        f"status={actual_status}|reason={actual_reason}"
+    )
 
 red_source_cases = [
     "latest_actual_fallback",

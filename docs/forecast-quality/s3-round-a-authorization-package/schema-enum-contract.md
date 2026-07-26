@@ -59,18 +59,43 @@ an exact actual pair. Numeric business quantities are `Decimal`; dates are
 All business-key, quantile, target-date, cutoff, status, and authority fields
 participate in the row-set identity or its validated source evidence.
 
-Other domain schemas:
+All eleven public schemas use the following exact ordered contracts. Every
+field is required, has no default, and is non-null unless the `nullable`
+column says otherwise. `canonical` and `identity` describe participation in
+the domain payload and identity hash; they do not authorize database or API
+surfaces.
 
-| schema | required fields | canonical/identity rule | owner |
-|---|---|---|---|
-| `FarmDailyActualAggregate` | `season_business_key`, `farm_business_key`, `variety_business_key`, `target_date`, `actual_value_kg`, `unique_actual_physical_rows` | exact deduplicated physical rows; no max-single-subfarm substitution | `schemas.py` |
-| `FarmDailyForecastAggregate` | `season_business_key`, `farm_business_key`, `variety_business_key`, `target_date`, `forecast_cutoff_at`, `model_identity`, `forecast_quantile`, `forecast_horizon_days`, `forecast_value_kg`, `source_forecast_business_keys` | exact deduplicated subfarm forecast sum grouped by every listed forecast identity axis | `schemas.py` |
-| `MetricValueCell` | `metric_value`, `metric_status`, `reason_code` | status/reason is always present; value is null only when contract says not computable | `schemas.py` |
-| `DailyMetricResult` | S2 identities, policy versions, six-axis breakdown, four S2 counters, `coverage_ratio`, mask identity, input count/quantile, unique actual count, MAPE counters, metric cells | all identity and audit fields bind canonical hash; no database IDs | `schemas.py` |
-| `BreakdownSpec` | `forecast_horizon_days`, `farm_business_key`, `subfarm_business_key`, `variety_business_key`, `season_business_key`, `model_identity` | six required axes; separate calculator argument | `schemas.py` |
-| `BaselineRequest` | current target date, current season identity, prior season identity, farm/subfarm/variety keys, current forecast cutoff, requested quantile, policy versions | current cutoff controls source visibility; P50 is point-only and P80/P90 are explicitly non-computable | `schemas.py` |
-| `BaselineSourceSnapshot` | snapshot identity/hash, row-set hash, visibility manifest hash, visibility cutoff, `actual_rows` with prior season/date/grain/value/revision visibility fields | independent source snapshot; never reuse model S2 row set | `schemas.py` |
-| `BaselineResult` | point forecast value, requested/baseline quantile, source snapshot identities, analog date, comparison availability, status, reason code, canonical hash | P50 computes a point result; P80/P90 return BLOCKED, NOT_COMPUTABLE, BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED, and null point value | `schemas.py` |
+| schema | exact ordered fields with type / nullable / canonical / identity | owner |
+|---|---|---|
+| `ActualPhysicalRecord` | `physical_key:str:N:N`, `stable_actual_identity:str:N:Y`, `actual_value_kg:Decimal:N:Y` | `schemas.py` |
+| `S3EvaluationInput` | `rows:Sequence[S3BindingRow]:N:Y`, `s2_run_identity:str:N:Y`, `s2_manifest_identity:str:N:Y`, `s2_binding_row_set_hash:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y` | `schemas.py` |
+| `S3BindingRow` | `forecast_business_key:str:N:Y`, `actual_physical_key:str|None:Y:Y`, `stable_actual_identity:str|None:Y:Y`, `forecast_value_kg:Decimal|None:Y:Y`, `actual_value_kg:Decimal|None:Y:Y`, `forecast_quantile:SupportedQuantile:N:Y`, `forecast_horizon_days:int:N:Y`, `forecast_target_date:date:N:Y`, `forecast_cutoff_at:datetime:N:Y`, `s2_status:str:N:Y`, `season_business_key:str:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `model_identity:str:N:Y`, `actual_visibility_timestamp:datetime|None:Y:Y` | `schemas.py` |
+| `FarmDailyActualAggregate` | `season_business_key:str:N:Y`, `farm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `target_date:date:N:Y`, `actual_value_kg:Decimal:N:Y`, `unique_actual_physical_rows:int:N:Y` | `schemas.py` |
+| `FarmDailyForecastAggregate` | `season_business_key:str:N:Y`, `farm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `target_date:date:N:Y`, `forecast_cutoff_at:datetime:N:Y`, `model_identity:str:N:Y`, `forecast_quantile:SupportedQuantile:N:Y`, `forecast_horizon_days:int:N:Y`, `forecast_value_kg:Decimal:N:Y`, `source_forecast_business_keys:Sequence[str]:N:Y` | `schemas.py` |
+| `MetricValueCell` | `metric_name:str:N:Y`, `metric_value:Decimal|None:Y:Y`, `metric_status:MetricStatus:N:Y`, `reason_code:ReasonCode:N:Y`, `numerator:Decimal|None:Y:Y`, `denominator:Decimal|None:Y:Y`, `mape_eligible_row_count:int:N:Y`, `mape_zero_actual_row_count:int:N:Y` | `schemas.py` |
+| `DailyMetricResult` | `s2_run_identity:str:N:Y`, `s2_manifest_identity:str:N:Y`, `s2_binding_row_set_hash:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y`, `breakdown_identity:dict[str,str|int]:N:Y`, `s2_total_binding_row_count:int:N:Y`, `s2_comparable_binding_row_count:int:N:Y`, `s2_excluded_binding_row_count:int:N:Y`, `s2_not_computable_binding_row_count:int:N:Y`, `coverage_ratio:Decimal|None:Y:Y`, `metric_input_mask_hash:str:N:Y`, `metric_input_row_count:int:N:Y`, `metric_input_quantile:SupportedQuantile:N:Y`, `unique_actual_physical_row_count:int:N:Y`, `mape_eligible_row_count:int:N:Y`, `mape_zero_actual_row_count:int:N:Y`, `metric_cells:Sequence[MetricValueCell]:N:Y`, `canonical_hash:str:N:Y` | `schemas.py` |
+| `BreakdownSpec` | `forecast_horizon_days:int:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `season_business_key:str:N:Y`, `model_identity:str:N:Y`, `minimum_sample_size:int:N:Y` | `schemas.py` |
+| `BaselineRequest` | `current_target_date:date:N:Y`, `current_season_start:date:N:Y`, `current_season_end:date:N:Y`, `prior_season_start:date:N:Y`, `prior_season_end:date:N:Y`, `current_forecast_cutoff_at:datetime:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `requested_quantile:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y` | `schemas.py` |
+| `BaselineSourceSnapshot` | `source_snapshot_identity:str:N:Y`, `source_snapshot_hash:str:N:Y`, `source_row_set_hash:str:N:Y`, `visibility_manifest_hash:str:N:Y`, `visibility_cutoff_at:datetime:N:Y`, `season_analog_mapping_policy_version:FrozenVersion:N:Y`, `actual_rows:Sequence[Mapping[str,Any]]:N:Y` | `schemas.py` |
+| `BaselineResult` | `baseline_point_forecast_kg:Decimal|None:Y:Y`, `baseline_quantile:str:N:Y`, `comparison_availability:ComparisonAvailability:N:Y`, `metric_status:MetricStatus:N:Y`, `reason_code:ReasonCode:N:Y`, `analog_date:date|None:Y:Y`, `source_snapshot_identity:str:N:Y`, `source_snapshot_hash:str:N:Y`, `source_row_set_hash:str:N:Y`, `visibility_manifest_hash:str:N:Y`, `canonical_hash:str:N:Y` | `schemas.py` |
+
+Machine-readable schema audit targets:
+
+```text
+PUBLIC_SCHEMA_COUNT=11
+PUBLIC_SCHEMA_FIELD_SET_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_FIELD_ORDER_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_TYPE_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_REQUIREDNESS_EQUALITY_COUNT=11
+PUBLIC_SCHEMA_DRIFT_COUNT=0
+BASELINE_REQUEST_QUANTILE_FIELD=requested_quantile
+BASELINE_REQUEST_FORECAST_QUANTILE_ALIAS_ALLOWED=false
+```
+
+`BaselineRequest` has only `requested_quantile`; fixtures and the resolver
+must not auto-detect or accept `forecast_quantile`. `make_baseline_request`
+also accepts explicit current/prior season boundary overrides so the
+`no_analog_day` and `no_analog_actual` cases remain independent.
 
 `FarmDailyForecastAggregate` is a public Round A schema. Its forecast value is
 the sum of exact, non-duplicated subfarm forecast business keys. P50, P80 and
