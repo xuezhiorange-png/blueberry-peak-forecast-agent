@@ -12,6 +12,7 @@ def test_fixed_six_half_even_decimal_emission() -> None:
     assert emit_s3_decimal(Decimal("1.2")) == "1.200000"
     assert emit_s3_decimal(Decimal("0.000001")) == "0.000001"
     assert emit_s3_decimal(Decimal("0.0000005")) == "0.000000"
+    assert emit_s3_decimal(Decimal("0.0000015")) == "0.000002"
 
 
 def test_non_decimal_and_non_finite_values_are_rejected() -> None:

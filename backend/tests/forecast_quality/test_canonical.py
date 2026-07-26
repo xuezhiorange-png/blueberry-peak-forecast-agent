@@ -14,6 +14,10 @@ def test_canonical_json_and_mask_are_byte_stable() -> None:
     payload = {"metric": "P50", "rows": ["a", "b"]}
     assert compute_metric_input_mask_hash(payload) == compute_metric_input_mask_hash(dict(payload))
     assert emit_s3_decimal(Decimal("2.5")) == "2.500000"
+    assert canonical_json_bytes({"value": Decimal("2.5")}) == b'{"value":"2.500000"}'
+    assert canonical_json_bytes({"value": Decimal("2.500000")}) == b'{"value":"2.500000"}'
+    assert emit_s3_decimal(Decimal("0.0000005")) == "0.000000"
+    assert emit_s3_decimal(Decimal("0.0000015")) == "0.000002"
 
 
 def test_baseline_canonical_field_sets_are_frozen() -> None:

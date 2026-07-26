@@ -30,4 +30,7 @@ def test_fixed_minimum_keeps_small_cells() -> None:
     full = calculate_breakdown_cells([row] * 10, spec)[0]
     assert small["metric_status"] is MetricStatus.INSUFFICIENT_SAMPLE
     assert small["reason_code"] is ReasonCode.BELOW_MINIMUM
+    assert small["s2_comparable_row_count"] == 9
+    assert small["coverage_ratio"] == Decimal("1")
+    assert small["metric_values"]["daily_mae"] == Decimal("0")
     assert full["metric_status"] is MetricStatus.COMPUTED
