@@ -2007,6 +2007,87 @@ canonical_root = {
     "per_breakdown_cell": [canonical_cell],
 }
 canonical_context = {"root": canonical_root, "cell": canonical_cell}
+source_map_groups = {
+    ("root", "S2BindingEvidence"): (
+        "s2_run_identity",
+        "s2_manifest_identity",
+        "s2_binding_row_set_hash",
+    ),
+    ("root", "BaselineSourceSnapshot"): (
+        "baseline_source_snapshot_identity",
+        "baseline_source_snapshot_hash",
+        "baseline_source_row_set_hash",
+    ),
+    ("root", "BaselineSourceVisibilityManifest"): (
+        "baseline_source_visibility_manifest_hash",
+        "baseline_source_visibility_cutoff_at",
+    ),
+    ("root", "FrozenPolicyVersion"): (
+        "baseline_policy_version",
+        "season_analog_mapping_policy_version",
+    ),
+    ("root", "BaselineRequest"): (
+        "schema_version",
+        "prior_season_identity",
+        "baseline_grain",
+        "baseline_horizon_rule",
+        "breakdown_dimensions",
+    ),
+    ("root", "S2BindingCoverage"): (
+        "s2_total_binding_row_count",
+        "s2_comparable_binding_row_count",
+        "s2_excluded_binding_row_count",
+        "s2_not_computable_binding_row_count",
+        "coverage_ratio",
+    ),
+    ("root", "MetricInputMask"): (
+        "metric_input_mask_policy_version",
+        "metric_input_mask_hash",
+        "metric_input_row_count",
+        "metric_input_quantile",
+    ),
+    ("root", "CrossQuantileActualRegistry"): ("unique_actual_physical_row_count",),
+    ("root", "BreakdownCellSet"): ("per_breakdown_cell",),
+    ("cell", "BaselineResult"): (
+        "baseline_point_forecast_kg",
+        "metric_status",
+        "reason_code",
+    ),
+    ("cell", "S2BindingCoverage"): (
+        "s2_total_binding_row_count",
+        "s2_comparable_binding_row_count",
+        "s2_excluded_binding_row_count",
+        "s2_not_computable_binding_row_count",
+        "coverage_ratio",
+    ),
+    ("cell", "MetricInputMask"): (
+        "metric_input_mask_policy_version",
+        "metric_input_mask_hash",
+        "metric_input_row_count",
+        "metric_input_quantile",
+    ),
+    ("cell", "CrossQuantileActualRegistry"): ("unique_actual_physical_row_count",),
+    ("cell", "DailyMetricResult"): (
+        "mape_eligible_row_count",
+        "mape_zero_actual_row_count",
+    ),
+}
+canonical_source_map = {}
+for (section, source_schema), fields in source_map_groups.items():
+    for field in fields:
+        canonical_source_map[f"{section}.{field}"] = {
+            "source_schema": source_schema,
+            "source_field": field,
+            "nullable": False,
+            "sentinel": "NONE_FOR_REQUIRED_EVIDENCE",
+            "identity_participation": True,
+        }
+expected_source_map_keys = {
+    *(f"root.{field}" for field in expected_root_fields),
+    *(f"cell.{field}" for field in expected_cell_fields),
+}
+if set(canonical_source_map) != expected_source_map_keys:
+    raise AssertionError("baseline canonical source map key drift")
 root_payload = invoke_one_argument(
     canonical.build_baseline_canonical_payload_root, canonical_context
 )
@@ -2029,6 +2110,28 @@ if root_payload != canonical_root:
     raise AssertionError("baseline root source map value mismatch")
 if cell_payload != canonical_cell:
     raise AssertionError("baseline cell source map value mismatch")
+source_map_mismatch_count = 0
+for key, mapping in canonical_source_map.items():
+    section, field = key.split(".", 1)
+    payload = canonical_root if section == "root" else canonical_cell
+    source_map_mismatch_count += int(
+        mapping["source_field"] != field
+        or mapping["nullable"] is not False
+        or mapping["sentinel"] != "NONE_FOR_REQUIRED_EVIDENCE"
+        or mapping["identity_participation"] is not True
+        or payload[field] is None
+    )
+if source_map_mismatch_count:
+    raise AssertionError("baseline canonical source map metadata drift")
+print("BASELINE_CANONICAL_SOURCE_MAP_BEGIN")
+for key in sorted(canonical_source_map):
+    mapping = canonical_source_map[key]
+    print(
+        f"{key}|source_schema={mapping['source_schema']}|"
+        f"source_field={mapping['source_field']}|nullable=false|"
+        "sentinel=NONE_FOR_REQUIRED_EVIDENCE|identity_participation=true"
+    )
+print("BASELINE_CANONICAL_SOURCE_MAP_END")
 print("BASELINE_CANONICAL_ROOT_FIELD_COUNT=26")
 print("BASELINE_CANONICAL_CELL_FIELD_COUNT=15")
 print("BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0")
@@ -2036,7 +2139,7 @@ print("BASELINE_ROOT_FIELD_SET_EQUALITY=true")
 print("BASELINE_CELL_FIELD_SET_EQUALITY=true")
 print("BASELINE_CANONICAL_NON_NULL_REQUIRED_FIELD_COUNT=41")
 print("BASELINE_CANONICAL_REQUIRED_FIELD_NULL_COUNT=0")
-print("BASELINE_CANONICAL_SOURCE_MAP_MISMATCH_COUNT=0")
+print(f"BASELINE_CANONICAL_SOURCE_MAP_MISMATCH_COUNT={source_map_mismatch_count}")
 root_bytes = canonical.canonical_json_bytes(root_payload)
 cell_bytes = canonical.canonical_json_bytes(cell_payload)
 print(f"BASELINE_CANONICAL_ROOT_BYTES_SHA256={hashlib.sha256(root_bytes).hexdigest()}")
@@ -2044,6 +2147,7 @@ print(f"BASELINE_CANONICAL_CELL_BYTES_SHA256={hashlib.sha256(cell_bytes).hexdige
 print(f"BASELINE_CANONICAL_ROOT_BYTES_LENGTH={len(root_bytes)}")
 print(f"BASELINE_CANONICAL_CELL_BYTES_LENGTH={len(cell_bytes)}")
 print("BASELINE_CANONICAL_REPLAY_BYTE_IDENTITY=true")
+print("BASELINE_CANONICAL_SOURCE_MAP_RECORD_COUNT=41")
 
 print("BLOCKED_IMPLEMENTATION_DEFINITION_COUNT=0")
 print("REASON_CODE_FALSE_POSITIVE_COUNT=0")

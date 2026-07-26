@@ -1,4 +1,4 @@
 4f4a9a4ffa920a7ff390c975d2a9edec56d3175379b94c172a2ae3aa5ec2ac3a  docs/forecast-quality/s3-round-a-authorization-package/acceptance/01_changed_path_gate.sh
-c35ccd3c74d16c11e5cdfdc50d486bd85b8d532114669a1d20fb1e698d48a411  docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py
+35c8a5150f18d2602f8d56f04963f67d063ce819e72865081aecaa565993107e  docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py
 56e24c5c5b28f9f823d1b7cbca5897a98b2c3a87655aea2a1905d56fa9626587  docs/forecast-quality/s3-round-a-authorization-package/acceptance/03_test_gate.sh
 f3f6de562d397625bb5f5ea8e762211c0d3d975753a7950cad1eb97bfe14c32c  docs/forecast-quality/s3-round-a-authorization-package/acceptance/04_static_gate.sh
