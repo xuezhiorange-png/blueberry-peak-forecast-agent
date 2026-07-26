@@ -66,15 +66,40 @@ stderr_path
 
 The pytest record must contain the complete node list and exact collected,
 passed, failed, error, skipped, xfailed, xpassed, and exit-code counts. The
-runtime record must contain real outputs for seven daily metric oracles, six
-baseline fixtures, eight calendar cases, Decimal rejection cases,
-cross-quantile retention/conflicts, canonical field sets, owner identity, and
-blocked-surface checks.
+required machine-readable keys are:
+
+```text
+PYTEST_EXPECTED_MODULE_COUNT
+PYTEST_COLLECTED_MODULE_COUNT
+PYTEST_COLLECTED_TEST_COUNT
+PYTEST_PASSED_COUNT
+PYTEST_FAILED_COUNT
+PYTEST_ERROR_COUNT
+PYTEST_SKIPPED_COUNT
+PYTEST_XFAILED_COUNT
+PYTEST_XPASSED_COUNT
+PYTEST_EXIT_CODE
+PYTEST_NODE_LIST_BEGIN
+PYTEST_NODE_LIST_END
+```
+
+The runtime record must contain real outputs for seven daily metric oracles,
+six baseline fixtures, eight calendar cases, Decimal rejection cases,
+cross-quantile retention/conflicts, forecast and actual aggregation,
+canonical field sets, owner identity, and blocked-surface checks. S3R-11 and
+S3R-12 must each have an executable test owner:
+
+```text
+ROUND_A_REQUIREMENT_WITHOUT_TEST_OWNER_COUNT=0
+TEST_MODULE_WITHOUT_REQUIREMENT_COUNT=0
+S3R11_TEST_OWNER_PRESENT=true
+S3R12_TEST_OWNER_PRESENT=true
+```
 
 ## Path and hash proof
 
 The implementation path union is the normalized union of committed paths
-relative to the source base, staged paths, unstaged tracked paths, and
+relative to the separately authorized implementation base, staged paths, unstaged tracked paths, and
 untracked paths. It must equal `authorized-paths.txt` exactly. The future
 evidence package must record:
 
@@ -86,11 +111,22 @@ UNAUTHORIZED_PATH_COUNT=0
 MODIFIED_BASE_PATH_COUNT=0
 DELETED_PATH_COUNT=0
 BLOCKED_PATH_PRESENT_COUNT=0
+BLOCKED_IMPLEMENTATION_DEFINITION_COUNT=0
+BLOCKED_TEST_PRESENT_COUNT=0
+REASON_CODE_FALSE_POSITIVE_COUNT=0
+GATE_21_GATE_23_CONTRADICTION_COUNT=0
 IMPLEMENTATION_FILE_HASH_COUNT=26
 MISSING_HASH_PATH_COUNT=0
 EXTRA_HASH_PATH_COUNT=0
 HASH_RECOMPUTE_MISMATCH_COUNT=0
 ```
+
+The evidence identity must record both
+`PACKAGE_SOURCE_MAIN_SHA` and the separately authorized
+`IMPLEMENTATION_BASE_SHA`. The package source SHA is never an implementation
+diff base. All four scripts must verify that the implementation base is a
+commit ancestor of the worktree, contains this package README, and contains
+the exact script hashes from `acceptance/SHA256SUMS`.
 
 Every hash uses a repository-relative path and SHA-256. A safe archive must
 be inspected before extraction for absolute paths, `..` traversal,

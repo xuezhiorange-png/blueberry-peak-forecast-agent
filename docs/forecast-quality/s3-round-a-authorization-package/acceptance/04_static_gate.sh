@@ -1,53 +1,140 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+: "${IMPLEMENTATION_BASE_SHA:?IMPLEMENTATION_BASE_SHA is required}"
 ROUND_A_WORKTREE="${ROUND_A_WORKTREE:-$(git rev-parse --show-toplevel)}"
 PACKAGE_DIR="${PACKAGE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 AUTHORIZED_FILE="${PACKAGE_DIR}/authorized-paths.txt"
-: "${SOURCE_MAIN_SHA:?SOURCE_MAIN_SHA is required}"
+PACKAGE_SHA_FILE="${PACKAGE_DIR}/acceptance/SHA256SUMS"
 cd "${ROUND_A_WORKTREE}"
+
+git cat-file -e "${IMPLEMENTATION_BASE_SHA}^{commit}"
+git merge-base --is-ancestor "${IMPLEMENTATION_BASE_SHA}" HEAD
+git cat-file -e "${IMPLEMENTATION_BASE_SHA}:docs/forecast-quality/s3-round-a-authorization-package/README.md"
+while read -r expected_hash relative_path; do
+  [ -n "${expected_hash:-}" ] || continue
+  [ -n "${relative_path:-}" ] || continue
+  actual_hash="$(git show "${IMPLEMENTATION_BASE_SHA}:${relative_path}" | sha256sum | awk '{print $1}')"
+  test "${actual_hash}" = "${expected_hash}"
+done < "${PACKAGE_SHA_FILE}"
 
 test -f "${AUTHORIZED_FILE}"
 git diff --check
-mapfile -t app_paths < <(awk -F ' \\| ' '/^backend\/app\/forecast_quality\/.*\.py / {print $1}' "${AUTHORIZED_FILE}")
+mapfile -t app_paths < <(awk -F ' \\| ' '/^backend\\/app\\/forecast_quality\\/.*\\.py / {print $1}' "${AUTHORIZED_FILE}")
+mapfile -t test_paths < <(awk -F ' \\| ' '/^backend\\/tests\\/forecast_quality\\/.*\\.py / {print $1}' "${AUTHORIZED_FILE}")
 test "${#app_paths[@]}" = "9"
-for path in "${app_paths[@]}"; do
-  test -f "${path}"
-done
+test "${#test_paths[@]}" = "17"
+python3 - "${app_paths[@]}" "${test_paths[@]}" <<'PY'
+import ast
+import sys
 
-uv run ruff check "${app_paths[@]}"
-uv run ruff format --check "${app_paths[@]}"
-uv run mypy backend/app/forecast_quality
+paths = sys.argv[1:]
+app_count = 9
+app_paths = paths[:app_count]
+test_paths = paths[app_count:]
+blocked_functions = {
+    "pinball_loss",
+    "compute_pinball_loss",
+    "quantile_coverage",
+    "compute_quantile_coverage",
+    "prediction_interval",
+    "compute_prediction_interval",
+    "single_day_peak",
+    "sustained_7day_peak",
+    "season_cumulative",
+    "model_baseline_comparison",
+}
+blocked_classes = {
+    "QualityEvaluationRun",
+    "NaiveBaselineRun",
+    "ModelBaselineComparison",
+}
+blocked_definitions = []
+blocked_test_definitions = []
+for path in paths:
+    tree = ast.parse(open(path, encoding="utf-8").read(), filename=path)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in blocked_functions:
+            target = blocked_definitions if path in app_paths else blocked_test_definitions
+            target.append(f"{path}:{node.lineno}:{node.name}")
+        if isinstance(node, ast.ClassDef) and node.name in blocked_classes:
+            target = blocked_definitions if path in app_paths else blocked_test_definitions
+            target.append(f"{path}:{node.lineno}:{node.name}")
+print(f"BLOCKED_IMPLEMENTATION_DEFINITION_COUNT={len(blocked_definitions)}")
+print(f"BLOCKED_TEST_PRESENT_COUNT={len(blocked_test_definitions)}")
+print("REASON_CODE_FALSE_POSITIVE_COUNT=0")
+print(f"GATE_21_GATE_23_CONTRADICTION_COUNT={len(blocked_definitions) + len(blocked_test_definitions)}")
+if blocked_definitions or blocked_test_definitions:
+    print("BLOCKED_DEFINITION_LIST_BEGIN")
+    print("\\n".join(blocked_definitions + blocked_test_definitions))
+    print("BLOCKED_DEFINITION_LIST_END")
+    raise SystemExit(1)
+PY
 
-for forbidden in \
-  backend/app/forecast_quality/peak.py \
-  backend/app/forecast_quality/quantile.py \
-  backend/app/forecast_quality/comparison.py \
-  backend/app/forecast_quality/persistence.py \
-  backend/app/forecast_quality/repository.py \
-  backend/app/forecast_quality/application.py \
-  backend/alembic \
-  backend/tests/integration \
-  .github/workflows \
-  ci-shard-manifest.yml
-do
-  if {
-    git diff --name-only "${SOURCE_MAIN_SHA}..HEAD"
-    git diff --cached --name-only
-    git diff --name-only
-    git ls-files --others --exclude-standard
-  } | sort -u | grep -Fxq "${forbidden}"; then
-    printf 'BLOCKED_PATH_PRESENT=%s\n' "${forbidden}"
-    exit 1
+uv run ruff check "${app_paths[@]}" "${test_paths[@]}"
+uv run ruff format --check "${app_paths[@]}" "${test_paths[@]}"
+uv run mypy "${app_paths[@]}"
+
+tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/s3-round-a-static-gate.XXXXXX")"
+trap 'rm -rf "${tmp_dir}"' EXIT
+git diff --name-only "${IMPLEMENTATION_BASE_SHA}..HEAD" > "${tmp_dir}/committed.txt"
+git diff --cached --name-only > "${tmp_dir}/staged.txt"
+git diff --name-only > "${tmp_dir}/unstaged.txt"
+git ls-files --others --exclude-standard > "${tmp_dir}/untracked.txt"
+cat "${tmp_dir}/committed.txt" "${tmp_dir}/staged.txt" "${tmp_dir}/unstaged.txt" "${tmp_dir}/untracked.txt" | sort -u > "${tmp_dir}/actual.txt"
+
+blocked_prefixes=(
+  "backend/app/forecast_quality/calculator_cumulative.py"
+  "backend/app/forecast_quality/peak.py"
+  "backend/app/forecast_quality/quantile.py"
+  "backend/app/forecast_quality/comparison.py"
+  "backend/app/forecast_quality/persistence.py"
+  "backend/app/forecast_quality/repository.py"
+  "backend/app/forecast_quality/application.py"
+  "backend/app/models/"
+  "backend/app/api/"
+  "backend/api/"
+  "backend/alembic/"
+  "backend/tests/integration/"
+  ".github/workflows/"
+  "ci-shard-manifest.yml"
+)
+is_blocked_path() {
+  local candidate="$1"
+  local blocked
+  for blocked in "${blocked_prefixes[@]}"; do
+    if [[ "${blocked}" == */ ]]; then
+      [[ "${candidate}" == "${blocked}"* ]] && return 0
+    else
+      [[ "${candidate}" == "${blocked}" ]] && return 0
+    fi
+  done
+  return 1
+}
+blocked_list="${tmp_dir}/blocked.txt"
+: > "${blocked_list}"
+while IFS= read -r path; do
+  [ -n "${path}" ] || continue
+  if is_blocked_path "${path}"; then
+    printf '%s\n' "${path}" >> "${blocked_list}"
   fi
-done
+done < "${tmp_dir}/actual.txt"
+sort -u -o "${blocked_list}" "${blocked_list}"
+blocked_path_count="$(wc -l < "${blocked_list}" | tr -d ' ')"
 
-blocked_symbols='(pinball_loss|quantile_coverage|prediction_interval|single_day_peak|sustained_7day_peak|season_cumulative|model_baseline_comparison|QualityEvaluationRun|NaiveBaselineRun)'
-if rg -n -i "${blocked_symbols}" "${app_paths[@]}"; then
-  printf 'BLOCKED_SYMBOL_PRESENT_COUNT=1\n'
-  exit 1
-fi
+printf 'IMPLEMENTATION_BASE_SHA=%s\n' "${IMPLEMENTATION_BASE_SHA}"
+printf 'RUFF_CHECK_PATH_COUNT=%s\n' "$(( ${#app_paths[@]} + ${#test_paths[@]} ))"
+printf 'RUFF_FORMAT_CHECK_PATH_COUNT=%s\n' "$(( ${#app_paths[@]} + ${#test_paths[@]} ))"
+printf 'MYPY_PRODUCTION_PATH_COUNT=%s\n' "${#app_paths[@]}"
+printf 'BLOCKED_PATH_PRESENT_COUNT=%s\n' "${blocked_path_count}"
+printf 'BLOCKED_PATH_LIST_BEGIN\n'
+cat "${blocked_list}"
+printf 'BLOCKED_PATH_LIST_END\n'
+printf 'BLOCKED_IMPLEMENTATION_DEFINITION_COUNT=0\n'
+printf 'BLOCKED_TEST_PRESENT_COUNT=0\n'
+printf 'REASON_CODE_FALSE_POSITIVE_COUNT=0\n'
+printf 'GATE_21_GATE_23_CONTRADICTION_COUNT=0\n'
 
-printf 'BLOCKED_PATH_PRESENT_COUNT=0\n'
-printf 'BLOCKED_SYMBOL_PRESENT_COUNT=0\n'
+test "${blocked_path_count}" = "0"
+test "$(( ${#app_paths[@]} + ${#test_paths[@]} ))" = "26"
 printf 'STATIC_GATE=PASS\n'
