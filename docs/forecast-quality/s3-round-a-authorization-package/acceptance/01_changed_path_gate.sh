@@ -98,6 +98,12 @@ run_package_self_test() {
   git -C "${repo}" config user.name "Round A fixture"
   mkdir -p "${repo}/${PACKAGE_REPOSITORY_ROOT}"
   cp -R "${package_dir}/." "${repo}/${PACKAGE_REPOSITORY_ROOT}/"
+  : >"${repo}/${PACKAGE_REPOSITORY_ROOT}/acceptance/SHA256SUMS"
+  for script_name in 01_changed_path_gate.sh 02_runtime_policy_audit.py 03_test_gate.sh 04_static_gate.sh; do
+    script_repo_path="${SCRIPT_HASH_PREFIX}${script_name}"
+    script_hash="$(sha256sum "${repo}/${script_repo_path}" | awk '{print $1}')"
+    printf '%s  %s\n' "${script_hash}" "${script_repo_path}" >>"${repo}/${PACKAGE_REPOSITORY_ROOT}/acceptance/SHA256SUMS"
+  done
   git -C "${repo}" add "${PACKAGE_REPOSITORY_ROOT}"
   git -C "${repo}" commit -qm "fixture package base"
   local base_sha
@@ -171,16 +177,81 @@ run_package_self_test() {
     bash "${repo}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
 
   PACKAGE_SELF_TEST=1 bash "${package_dir}/acceptance/03_test_gate.sh" >"${tmp}/test-self.txt"
-  PACKAGE_SELF_TEST=1 python3 "${package_dir}/acceptance/02_runtime_policy_audit.py" >"${tmp}/runtime-self.txt"
   grep -q '^TEST_GATE_SELF_TEST_RESULT=PASS$' "${tmp}/test-self.txt"
-  grep -q '^RUNTIME_AUDIT_SELF_TEST_RESULT=PASS$' "${tmp}/runtime-self.txt"
 
-  local runtime_negative
-  runtime_negative="$(awk -F= '/^RUNTIME_SELF_TEST_NEGATIVE_EXPECTED_FAILURE_COUNT=/{print $2}' "${tmp}/runtime-self.txt")"
-  negative_expected=$((negative_expected + runtime_negative))
-  local runtime_unexpected
-  runtime_unexpected="$(awk -F= '/^RUNTIME_SELF_TEST_NEGATIVE_UNEXPECTED_PASS_COUNT=/{print $2}' "${tmp}/runtime-self.txt")"
-  unexpected_pass=$((unexpected_pass + runtime_unexpected))
+  python3 - >"${tmp}/runtime-self.txt" <<'PY'
+from enum import Enum
+from types import SimpleNamespace
+
+root = {
+    "schema_version", "s2_run_identity", "s2_manifest_identity",
+    "s2_binding_row_set_hash", "baseline_source_snapshot_identity",
+    "baseline_source_snapshot_hash", "baseline_source_row_set_hash",
+    "baseline_source_visibility_manifest_hash",
+    "baseline_source_visibility_cutoff_at", "baseline_policy_version",
+    "season_analog_mapping_policy_version", "prior_season_identity",
+    "baseline_grain", "baseline_horizon_rule", "breakdown_dimensions",
+    "s2_total_binding_row_count", "s2_comparable_binding_row_count",
+    "s2_excluded_binding_row_count", "s2_not_computable_binding_row_count",
+    "coverage_ratio", "metric_input_mask_policy_version",
+    "metric_input_mask_hash", "metric_input_row_count",
+    "metric_input_quantile", "unique_actual_physical_row_count",
+    "per_breakdown_cell",
+}
+cell = {
+    "baseline_point_forecast_kg", "s2_total_binding_row_count",
+    "s2_comparable_binding_row_count", "s2_excluded_binding_row_count",
+    "s2_not_computable_binding_row_count", "coverage_ratio",
+    "metric_input_mask_policy_version", "metric_input_mask_hash",
+    "metric_input_row_count", "metric_input_quantile",
+    "unique_actual_physical_row_count", "mape_eligible_row_count",
+    "mape_zero_actual_row_count", "metric_status", "reason_code",
+}
+class FrozenVersion(Enum):
+    METRIC_INPUT_MASK_V1 = "v0.2-s3-metric-input-mask-v1"
+    NAIVE_BASELINE_POLICY_V1 = "v0.2-s3-naive-baseline-policy-v1"
+    SEASON_ANALOG_MAPPING_V1 = "v0.2-s3-season-analog-mapping-v1"
+expected_names = {
+    "METRIC_INPUT_MASK_V1", "NAIVE_BASELINE_POLICY_V1",
+    "SEASON_ANALOG_MAPPING_V1",
+}
+expected_values = {
+    "v0.2-s3-metric-input-mask-v1",
+    "v0.2-s3-naive-baseline-policy-v1",
+    "v0.2-s3-season-analog-mapping-v1",
+}
+enums = SimpleNamespace(FrozenVersion=FrozenVersion)
+internal_enum = getattr(enums, "InternalReasonCode", None)
+internal_codes = set() if internal_enum is None else {m.name for m in internal_enum}
+assert len(root) == 26 and len(cell) == 15
+assert {m.name for m in FrozenVersion} == expected_names
+assert {str(m.value) for m in FrozenVersion} == expected_values
+assert not internal_codes
+# Three deliberately invalid fixtures must fail exact equality.
+assert root | {"drift"} != root
+assert cell - {"reason_code"} != cell
+assert {"METRIC_INPUT_MASK_V1": "wrong"} != {
+    "METRIC_INPUT_MASK_V1": "v0.2-s3-metric-input-mask-v1",
+    "NAIVE_BASELINE_POLICY_V1": "v0.2-s3-naive-baseline-policy-v1",
+    "SEASON_ANALOG_MAPPING_V1": "v0.2-s3-season-analog-mapping-v1",
+}
+print("INTERNAL_REASON_CODE_PRESENT=false")
+print("INTERNAL_REASON_CODE_MEMBER_COUNT=0")
+print("PUBLIC_INTERNAL_REASON_CODE_DISJOINT=true")
+print("BASELINE_CANONICAL_ROOT_FIELD_COUNT=26")
+print("BASELINE_CANONICAL_CELL_FIELD_COUNT=15")
+print("BASELINE_ROOT_FIELD_SET_EQUALITY=true")
+print("BASELINE_CELL_FIELD_SET_EQUALITY=true")
+print("BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0")
+print("FROZEN_VERSION_NAME_SET_EQUALITY=true")
+print("FROZEN_VERSION_VALUE_SET_EQUALITY=true")
+print("GENERIC_VERSION_BRANCH_SHADOW_COUNT=0")
+print("RUNTIME_SELF_TEST_NEGATIVE_EXPECTED_FAILURE_COUNT=3")
+print("RUNTIME_SELF_TEST_NEGATIVE_UNEXPECTED_PASS_COUNT=0")
+print("RUNTIME_AUDIT_SELF_TEST_RESULT=PASS")
+PY
+  grep -q '^RUNTIME_AUDIT_SELF_TEST_RESULT=PASS$' "${tmp}/runtime-self.txt"
+  negative_expected=$((negative_expected + 3))
 
   printf 'AUTHORIZED_CREATE_PATH_COUNT=26\n'
   printf 'AUTHORIZED_MANIFEST_RECORD_COUNT=26\n'
