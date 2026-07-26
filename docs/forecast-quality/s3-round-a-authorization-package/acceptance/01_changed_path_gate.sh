@@ -4,6 +4,67 @@ set -euo pipefail
 PACKAGE_REPOSITORY_ROOT="docs/forecast-quality/s3-round-a-authorization-package"
 SCRIPT_HASH_PREFIX="${PACKAGE_REPOSITORY_ROOT}/acceptance/"
 SELF_PATH="${BASH_SOURCE[0]}"
+PACKAGE_FILES=(
+  "README.md"
+  "implementation-authorization.md"
+  "authorized-paths.txt"
+  "authorized-test-modules.txt"
+  "public-symbol-owners.txt"
+  "schema-enum-contract.md"
+  "evidence-package-contract.md"
+  "acceptance/01_changed_path_gate.sh"
+  "acceptance/02_runtime_policy_audit.py"
+  "acceptance/03_test_gate.sh"
+  "acceptance/04_static_gate.sh"
+  "acceptance/SHA256SUMS"
+)
+
+validate_package_identity() {
+  local repo="$1" accepted_sha="$2" expected_tree="$3" base_sha="$4" package_dir="$5"
+  local accepted_tree base_tree current_tree
+  accepted_tree="$(git -C "${repo}" rev-parse "${accepted_sha}:${PACKAGE_REPOSITORY_ROOT}")"
+  base_tree="$(git -C "${repo}" rev-parse "${base_sha}:${PACKAGE_REPOSITORY_ROOT}")"
+  current_tree="$(git -C "${repo}" rev-parse "HEAD:${PACKAGE_REPOSITORY_ROOT}")"
+  local expected_files accepted_files base_files current_files
+  expected_files="$(printf '%s\n' "${PACKAGE_FILES[@]}" | sort)"
+  accepted_files="$(git -C "${repo}" ls-tree -r --name-only "${accepted_sha}:${PACKAGE_REPOSITORY_ROOT}" | sort)"
+  base_files="$(git -C "${repo}" ls-tree -r --name-only "${base_sha}:${PACKAGE_REPOSITORY_ROOT}" | sort)"
+  current_files="$(cd "${package_dir}" && find . -type f -print | sed 's#^\./##' | sort)"
+  local accepted_count base_count current_count file_set_mismatch=0 drift_count=0
+  accepted_count="$(printf '%s\n' "${accepted_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  base_count="$(printf '%s\n' "${base_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  current_count="$(printf '%s\n' "${current_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  [[ "${accepted_tree}" == "${expected_tree}" ]] || file_set_mismatch=1
+  [[ "${base_tree}" == "${expected_tree}" ]] || file_set_mismatch=1
+  [[ "${accepted_files}" == "${expected_files}" ]] || file_set_mismatch=1
+  [[ "${base_files}" == "${expected_files}" ]] || file_set_mismatch=1
+  [[ "${current_files}" == "${expected_files}" ]] || file_set_mismatch=1
+  git diff --quiet "${base_sha}" -- "${PACKAGE_REPOSITORY_ROOT}" || drift_count=$((drift_count + 1))
+  git diff --cached --quiet -- "${PACKAGE_REPOSITORY_ROOT}" || drift_count=$((drift_count + 1))
+  [[ -z "$(git -C "${repo}" ls-files --others --exclude-standard -- "${PACKAGE_REPOSITORY_ROOT}")" ]] || drift_count=$((drift_count + 1))
+  printf 'AUTHORIZATION_PACKAGE_EXPECTED_FILE_COUNT=12\n'
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_FILE_COUNT=%s\n' "${accepted_count}"
+  printf 'AUTHORIZATION_PACKAGE_BASE_FILE_COUNT=%s\n' "${base_count}"
+  printf 'AUTHORIZATION_PACKAGE_CURRENT_FILE_COUNT=%s\n' "${current_count}"
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_TREE_OID=%s\n' "${accepted_tree}"
+  printf 'AUTHORIZATION_PACKAGE_BASE_TREE_OID=%s\n' "${base_tree}"
+  printf 'AUTHORIZATION_PACKAGE_CURRENT_TREE_OID=%s\n' "${current_tree}"
+  printf 'AUTHORIZATION_PACKAGE_EXPECTED_TREE_OID=%s\n' "${expected_tree}"
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_TREE_MISMATCH_COUNT=%s\n' "$([[ "${accepted_tree}" == "${expected_tree}" ]] && echo 0 || echo 1)"
+  printf 'AUTHORIZATION_PACKAGE_BASE_TREE_MISMATCH_COUNT=%s\n' "$([[ "${base_tree}" == "${expected_tree}" ]] && echo 0 || echo 1)"
+  printf 'AUTHORIZATION_PACKAGE_CURRENT_WORKTREE_DRIFT_COUNT=%s\n' "${drift_count}"
+  printf 'AUTHORIZATION_PACKAGE_FILE_SET_MISMATCH_COUNT=%s\n' "${file_set_mismatch}"
+  test "${accepted_count}" = "12"
+  test "${base_count}" = "12"
+  test "${current_count}" = "12"
+  test "${accepted_tree}" = "${expected_tree}"
+  test "${base_tree}" = "${expected_tree}"
+  test "${accepted_files}" = "${expected_files}"
+  test "${base_files}" = "${expected_files}"
+  test "${current_files}" = "${expected_files}"
+  test "${drift_count}" = "0"
+  return 0
+}
 
 parse_authorized_manifest() {
   local manifest="$1"
@@ -141,13 +202,21 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 uv.lock
+backend/__init__.py
+backend/app/__init__.py
+backend/app/forecast_quality/__init__.py
 EOF
+  mkdir -p "${repo}/backend/app/forecast_quality"
+  : >"${repo}/backend/__init__.py"
+  : >"${repo}/backend/app/__init__.py"
+  : >"${repo}/backend/app/forecast_quality/__init__.py"
   git -C "${repo}" add "${PACKAGE_REPOSITORY_ROOT}"
   git -C "${repo}" add pyproject.toml
   git -C "${repo}" add .gitignore
   git -C "${repo}" commit -qm "fixture package base"
-  local base_sha
+  local base_sha base_tree
   base_sha="$(git -C "${repo}" rev-parse HEAD)"
+  base_tree="$(git -C "${repo}" rev-parse "${base_sha}:${PACKAGE_REPOSITORY_ROOT}")"
 
   local paths_file="${repo}/${PACKAGE_REPOSITORY_ROOT}/authorized-paths.txt"
   valid_paths=()
@@ -191,8 +260,6 @@ def write(path: str, source: str) -> None:
     target = repo / path
     target.parent.mkdir(parents=True, exist_ok=True)
     content = dedent(source).lstrip()
-    if path.startswith("backend/app/"):
-        content = "# mypy: ignore-errors\n" + content
     target.write_text(content, encoding="utf-8")
 
 
@@ -350,6 +417,7 @@ write("backend/app/forecast_quality/schemas.py", '''
         s2_excluded_binding_row_count: int
         s2_not_computable_binding_row_count: int
         coverage_ratio: Decimal | None
+        metric_input_mask_policy_version: FrozenVersion
         metric_input_mask_hash: str
         metric_input_row_count: int
         metric_input_quantile: SupportedQuantile
@@ -376,6 +444,7 @@ write("backend/app/forecast_quality/schemas.py", '''
         current_season_end: date
         prior_season_start: date
         prior_season_end: date
+        prior_season_identity: str
         current_forecast_cutoff_at: datetime
         farm_business_key: str
         subfarm_business_key: str
@@ -468,17 +537,104 @@ write("backend/app/forecast_quality/canonical.py", '''
         "metric_input_quantile", "unique_actual_physical_row_count", "mape_eligible_row_count",
         "mape_zero_actual_row_count", "metric_status", "reason_code")
 
-    def _canonical_section(context: Any, section: str, fields: tuple[str, ...]) -> dict[str, Any]:
-        payload = dict(context[section])
-        if tuple(payload) != fields or any(payload[field] is None for field in fields):
-            raise ValueError(f"invalid canonical {section} context")
+    BASELINE_SCHEMA_VERSION = "v0.2-s3-baseline-v1"
+    BASELINE_GRAIN = "SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_TARGET_DATE"
+    BASELINE_HORIZON_RULE = "TARGET_DATE_ENCODES_HORIZON"
+
+    def _breakdown_identity(spec: Any) -> dict[str, Any]:
+        return {
+            name: _value(spec, name)
+            for name in (
+                "season_business_key", "farm_business_key", "subfarm_business_key",
+                "variety_business_key", "model_identity", "forecast_horizon_days",
+            )
+        }
+
+    def _metric_value(result: Any, name: str) -> Any:
+        return _value(result, name)
+
+    def _canonical_section(payload: dict[str, Any], section: str) -> dict[str, Any]:
+        fields = ROOT_FIELDS if section == "root" else CELL_FIELDS
+        if tuple(payload) != fields:
+            raise ValueError(f"invalid canonical {section} field order")
+        status = payload.get("metric_status")
+        status_name = getattr(status, "name", status)
+        if section == "cell":
+            point = payload["baseline_point_forecast_kg"]
+            if status_name == "COMPUTED" and point is None:
+                raise ValueError("computed baseline point cannot be null")
+            if status_name != "COMPUTED" and point is not None:
+                raise ValueError("non-computable baseline point must be null")
+        if section == "root":
+            total = payload["s2_total_binding_row_count"]
+            coverage = payload["coverage_ratio"]
+            if total == 0 and coverage is not None:
+                raise ValueError("zero-row coverage must be null")
+            if total != 0 and coverage is None:
+                raise ValueError("nonzero-row coverage cannot be null")
+        for field in fields:
+            if field in {"baseline_point_forecast_kg", "coverage_ratio"}:
+                continue
+            if payload[field] is None:
+                raise ValueError(f"required canonical field is null: {field}")
         return payload
 
-    def build_baseline_canonical_payload_root(context: Any) -> dict[str, Any]:
-        return _canonical_section(context, "root", ROOT_FIELDS)
+    def build_baseline_canonical_payload_cell(
+        *, baseline_result: Any, metric_result: Any
+    ) -> dict[str, Any]:
+        payload = {
+            "baseline_point_forecast_kg": _value(baseline_result, "baseline_point_forecast_kg"),
+            "s2_total_binding_row_count": _metric_value(metric_result, "s2_total_binding_row_count"),
+            "s2_comparable_binding_row_count": _metric_value(metric_result, "s2_comparable_binding_row_count"),
+            "s2_excluded_binding_row_count": _metric_value(metric_result, "s2_excluded_binding_row_count"),
+            "s2_not_computable_binding_row_count": _metric_value(metric_result, "s2_not_computable_binding_row_count"),
+            "coverage_ratio": _metric_value(metric_result, "coverage_ratio"),
+            "metric_input_mask_policy_version": _metric_value(metric_result, "metric_input_mask_policy_version").value,
+            "metric_input_mask_hash": _metric_value(metric_result, "metric_input_mask_hash"),
+            "metric_input_row_count": _metric_value(metric_result, "metric_input_row_count"),
+            "metric_input_quantile": getattr(_metric_value(metric_result, "metric_input_quantile"), "value", _metric_value(metric_result, "metric_input_quantile")),
+            "unique_actual_physical_row_count": _metric_value(metric_result, "unique_actual_physical_row_count"),
+            "mape_eligible_row_count": _metric_value(metric_result, "mape_eligible_row_count"),
+            "mape_zero_actual_row_count": _metric_value(metric_result, "mape_zero_actual_row_count"),
+            "metric_status": getattr(_value(baseline_result, "metric_status"), "name", _value(baseline_result, "metric_status")),
+            "reason_code": getattr(_value(baseline_result, "reason_code"), "name", _value(baseline_result, "reason_code")),
+        }
+        return _canonical_section(payload, "cell")
 
-    def build_baseline_canonical_payload_cell(context: Any) -> dict[str, Any]:
-        return _canonical_section(context, "cell", CELL_FIELDS)
+    def build_baseline_canonical_payload_root(
+        *, evaluation_input: Any, baseline_request: Any, source_snapshot: Any,
+        baseline_result: Any, metric_result: Any, breakdown_spec: Any,
+        per_breakdown_cell: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        payload = {
+            "schema_version": BASELINE_SCHEMA_VERSION,
+            "s2_run_identity": _value(evaluation_input, "s2_run_identity"),
+            "s2_manifest_identity": _value(evaluation_input, "s2_manifest_identity"),
+            "s2_binding_row_set_hash": _value(evaluation_input, "s2_binding_row_set_hash"),
+            "baseline_source_snapshot_identity": _value(source_snapshot, "source_snapshot_identity"),
+            "baseline_source_snapshot_hash": _value(source_snapshot, "source_snapshot_hash"),
+            "baseline_source_row_set_hash": _value(source_snapshot, "source_row_set_hash"),
+            "baseline_source_visibility_manifest_hash": _value(source_snapshot, "visibility_manifest_hash"),
+            "baseline_source_visibility_cutoff_at": _value(source_snapshot, "visibility_cutoff_at"),
+            "baseline_policy_version": _value(baseline_request, "baseline_policy_version").value,
+            "season_analog_mapping_policy_version": _value(source_snapshot, "season_analog_mapping_policy_version").value,
+            "prior_season_identity": _value(baseline_request, "prior_season_identity"),
+            "baseline_grain": BASELINE_GRAIN,
+            "baseline_horizon_rule": BASELINE_HORIZON_RULE,
+            "breakdown_dimensions": _breakdown_identity(breakdown_spec),
+            "s2_total_binding_row_count": _metric_value(metric_result, "s2_total_binding_row_count"),
+            "s2_comparable_binding_row_count": _metric_value(metric_result, "s2_comparable_binding_row_count"),
+            "s2_excluded_binding_row_count": _metric_value(metric_result, "s2_excluded_binding_row_count"),
+            "s2_not_computable_binding_row_count": _metric_value(metric_result, "s2_not_computable_binding_row_count"),
+            "coverage_ratio": _metric_value(metric_result, "coverage_ratio"),
+            "metric_input_mask_policy_version": _metric_value(metric_result, "metric_input_mask_policy_version").value,
+            "metric_input_mask_hash": _metric_value(metric_result, "metric_input_mask_hash"),
+            "metric_input_row_count": _metric_value(metric_result, "metric_input_row_count"),
+            "metric_input_quantile": getattr(_metric_value(metric_result, "metric_input_quantile"), "value", _metric_value(metric_result, "metric_input_quantile")),
+            "unique_actual_physical_row_count": _metric_value(metric_result, "unique_actual_physical_row_count"),
+            "per_breakdown_cell": list(per_breakdown_cell),
+        }
+        return _canonical_section(payload, "root")
     ''')
 
 write("backend/app/forecast_quality/aggregation.py", '''
@@ -508,7 +664,21 @@ write("backend/app/forecast_quality/aggregation.py", '''
                 "forecast_cutoff_at", "model_identity", "forecast_quantile", "forecast_horizon_days"))
             total, keys = grouped.get(group, (Decimal("0"), []))
             grouped[group] = (total + _value(row, "forecast_value_kg"), keys + [key])
-        return [FarmDailyForecastAggregate(*group, total, keys) for group, (total, keys) in grouped.items()]
+        return [
+            FarmDailyForecastAggregate(
+                season_business_key=group[0],
+                farm_business_key=group[1],
+                variety_business_key=group[2],
+                target_date=group[3],
+                forecast_cutoff_at=group[4],
+                model_identity=group[5],
+                forecast_quantile=group[6],
+                forecast_horizon_days=group[7],
+                forecast_value_kg=total,
+                source_forecast_business_keys=keys,
+            )
+            for group, (total, keys) in grouped.items()
+        ]
 
     def aggregate_daily_actuals(rows: list[Any]) -> list[FarmDailyActualAggregate]:
         registry = build_actual_physical_registry(rows)
@@ -585,7 +755,8 @@ write("backend/app/forecast_quality/calculator_daily.py", '''
             _value(evaluation_input, "s2_run_identity"), _value(evaluation_input, "s2_manifest_identity"),
             _value(evaluation_input, "s2_binding_row_set_hash"), FrozenVersion.METRIC_INPUT_MASK_V1,
             FrozenVersion.NAIVE_BASELINE_POLICY_V1, breakdown_identity,
-            len(rows), len(rows), 0, 0, Decimal("1"), compute_metric_input_mask_hash(mask_payload),
+            len(rows), len(rows), 0, 0, Decimal("1"), FrozenVersion.METRIC_INPUT_MASK_V1,
+            compute_metric_input_mask_hash(mask_payload),
             len(rows), SupportedQuantile.P50, len({str(_value(row, "actual_physical_key")) for row in rows}),
             len(eligible), zero_count, zero_reason, list(cells.values()), "")
         payload = dataclasses.asdict(result)
@@ -598,6 +769,7 @@ write("backend/app/forecast_quality/calculator_daily.py", '''
 
 write("backend/app/forecast_quality/breakdown.py", '''
     from dataclasses import dataclass
+    from typing import Any, Sequence
 
     from .enums import MetricStatus, ReasonCode
 
@@ -609,7 +781,9 @@ write("backend/app/forecast_quality/breakdown.py", '''
 
     MIN_COMPARABLE_ROWS_FOR_REPORTING = 10
 
-    def calculate_breakdown_cells(rows, breakdown_spec):
+    def calculate_breakdown_cells(
+        rows: Sequence[Any], breakdown_spec: Any
+    ) -> list[BreakdownCell]:
         identity = {name: getattr(breakdown_spec, name) for name in (
             "season_business_key", "farm_business_key", "subfarm_business_key",
             "variety_business_key", "model_identity", "forecast_horizon_days")}
@@ -621,13 +795,21 @@ write("backend/app/forecast_quality/breakdown.py", '''
 write("backend/app/forecast_quality/season_calendar.py", '''
     from datetime import date, timedelta
 
-    def deterministic_season_day_index(current_target_date, current_season_start, current_season_end):
+    def deterministic_season_day_index(
+        current_target_date: date, current_season_start: date, current_season_end: date
+    ) -> int | None:
         if current_target_date < current_season_start or current_target_date > current_season_end:
             return None
         return (current_target_date - current_season_start).days
 
-    def resolve_prior_season_analog_date(current_target_date, current_season_start, current_season_end,
-                                         prior_season_start, prior_season_end, policy_version):
+    def resolve_prior_season_analog_date(
+        current_target_date: date,
+        current_season_start: date,
+        current_season_end: date,
+        prior_season_start: date,
+        prior_season_end: date,
+        policy_version: object,
+    ) -> date | None:
         index = deterministic_season_day_index(current_target_date, current_season_start, current_season_end)
         if index is None or index >= (prior_season_end - prior_season_start).days + 1:
             return None
@@ -644,14 +826,15 @@ write("backend/app/forecast_quality/baseline.py", '''
 
     from datetime import date
     from decimal import Decimal
+    from typing import Any
     from .enums import ComparisonAvailability, MetricStatus, ReasonCode
     from .schemas import BaselineResult
     from .season_calendar import resolve_prior_season_analog_date
 
-    def _value(row, name):
+    def _value(row: Any, name: str) -> Any:
         return row[name] if isinstance(row, dict) else getattr(row, name)
 
-    def resolve_baseline_point_forecast(request, source_snapshot):
+    def resolve_baseline_point_forecast(request: Any, source_snapshot: Any) -> BaselineResult:
         analog = resolve_prior_season_analog_date(
             request.current_target_date, request.current_season_start, request.current_season_end,
             request.prior_season_start, request.prior_season_end, request.baseline_policy_version)
@@ -698,20 +881,24 @@ PY
   local positive_head
   positive_head="$(git -C "${repo}" rev-parse HEAD)"
   local positive_gate_count=0
-  IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
-    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    PACKAGE_SELF_TEST_INTERNAL=1 AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
+    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" \
     bash "${repo}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
   positive_gate_count=$((positive_gate_count + 1))
-  IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
-    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    PACKAGE_SELF_TEST_INTERNAL=1 AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
+    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" \
     uv run python "${repo}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
   positive_gate_count=$((positive_gate_count + 1))
-  IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
-    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    PACKAGE_SELF_TEST_INTERNAL=1 AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
+    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" \
     bash "${repo}/${SCRIPT_HASH_PREFIX}03_test_gate.sh"
   positive_gate_count=$((positive_gate_count + 1))
-  IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
-    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    PACKAGE_SELF_TEST_INTERNAL=1 AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${repo}" \
+    PACKAGE_DIR="${repo}/${PACKAGE_REPOSITORY_ROOT}" \
     bash "${repo}/${SCRIPT_HASH_PREFIX}04_static_gate.sh"
   positive_gate_count=$((positive_gate_count + 1))
 
@@ -723,7 +910,7 @@ PY
     negative_expected=$((negative_expected + 1))
     local actual_exit_code=0
     set +e
-    "$@" >/dev/null 2>&1
+    env PACKAGE_SELF_TEST_INTERNAL=1 "$@" >/dev/null 2>&1
     actual_exit_code=$?
     set -e
     if [[ "${actual_exit_code}" == "0" ]]; then
@@ -743,10 +930,38 @@ PY
   }
   run_path_gate_expect_fail() {
     local fixture_id="$1" clone="$2"
-    expect_fail "${fixture_id}" "01_changed_path_gate.sh" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${clone}" \
-      PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    expect_fail "${fixture_id}" "01_changed_path_gate.sh" env PACKAGE_SELF_TEST_INTERNAL=1 AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+      AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${clone}" \
+      PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" \
       bash "${clone}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
   }
+
+  package_manifest_clone="$(clone_fixture package-authorized-paths)"
+  printf '# drift\n' >>"${package_manifest_clone}/${PACKAGE_REPOSITORY_ROOT}/authorized-paths.txt"
+  run_path_gate_expect_fail package-authorized-paths-drift "${package_manifest_clone}"
+
+  test_manifest_clone="$(clone_fixture package-authorized-tests)"
+  printf '# drift\n' >>"${test_manifest_clone}/${PACKAGE_REPOSITORY_ROOT}/authorized-test-modules.txt"
+  run_path_gate_expect_fail package-authorized-test-modules-drift "${test_manifest_clone}"
+
+  schema_manifest_clone="$(clone_fixture package-schema-contract)"
+  printf '# drift\n' >>"${schema_manifest_clone}/${PACKAGE_REPOSITORY_ROOT}/schema-enum-contract.md"
+  run_path_gate_expect_fail package-schema-contract-drift "${schema_manifest_clone}"
+
+  extra_package_clone="$(clone_fixture package-thirteenth-file)"
+  printf '# extra\n' >"${extra_package_clone}/${PACKAGE_REPOSITORY_ROOT}/unexpected.md"
+  run_path_gate_expect_fail package-thirteenth-file "${extra_package_clone}"
+
+  deleted_package_clone="$(clone_fixture package-deleted-file)"
+  rm "${deleted_package_clone}/${PACKAGE_REPOSITORY_ROOT}/README.md"
+  run_path_gate_expect_fail package-deleted-file "${deleted_package_clone}"
+
+  wrong_tree_clone="$(clone_fixture package-wrong-tree)"
+  expect_fail package-wrong-tree "01_changed_path_gate.sh" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+    AUTHORIZATION_PACKAGE_TREE_OID="0000000000000000000000000000000000000000000000000000000000000000" \
+    IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${wrong_tree_clone}" \
+    PACKAGE_DIR="${wrong_tree_clone}/${PACKAGE_REPOSITORY_ROOT}" \
+    bash "${wrong_tree_clone}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
 
   bad_hash_clone="$(clone_fixture bad-hash)"
   perl -0pi -e 's/^[0-9a-f]{64}/0000000000000000000000000000000000000000000000000000000000000000/' \
@@ -773,8 +988,9 @@ PY
 
   zero_module_clone="$(clone_fixture zero-module)"
   : >"${zero_module_clone}/backend/tests/forecast_quality/test_aggregation.py"
-  expect_fail zero-test-module "03_test_gate.sh" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${zero_module_clone}" \
-    PACKAGE_DIR="${zero_module_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+  expect_fail zero-test-module "03_test_gate.sh" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+    AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${zero_module_clone}" \
+    PACKAGE_DIR="${zero_module_clone}/${PACKAGE_REPOSITORY_ROOT}" \
     bash "${zero_module_clone}/${SCRIPT_HASH_PREFIX}03_test_gate.sh"
 
   root_drift_clone="$(clone_fixture root-drift)"
@@ -783,7 +999,8 @@ def build_baseline_canonical_payload_root(result):
     return {"drift": None}
 PY
   expect_fail baseline-root-field-drift "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${root_drift_clone}" \
-    PACKAGE_DIR="${root_drift_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    PACKAGE_DIR="${root_drift_clone}/${PACKAGE_REPOSITORY_ROOT}" \
     uv run python "${root_drift_clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
 
   cell_drift_clone="$(clone_fixture cell-drift)"
@@ -792,14 +1009,16 @@ def build_baseline_canonical_payload_cell(result):
     return {"drift": None}
 PY
   expect_fail baseline-cell-field-drift "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${cell_drift_clone}" \
-    PACKAGE_DIR="${cell_drift_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    PACKAGE_DIR="${cell_drift_clone}/${PACKAGE_REPOSITORY_ROOT}" \
     uv run python "${cell_drift_clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
 
   version_clone="$(clone_fixture frozen-version)"
   perl -0pi -e 's/METRIC_INPUT_MASK_V1 = "v0\.2-s3-metric-input-mask-v1"/METRIC_INPUT_MASK_V1 = "wrong"/' \
     "${version_clone}/backend/app/forecast_quality/enums.py"
   expect_fail wrong-frozen-version "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${version_clone}" \
-    PACKAGE_DIR="${version_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    PACKAGE_DIR="${version_clone}/${PACKAGE_REPOSITORY_ROOT}" \
     uv run python "${version_clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
 
   blocked_ast_clone="$(clone_fixture blocked-ast)"
@@ -807,14 +1026,63 @@ PY
 def prediction_interval():
     return None
 PY
-  expect_fail blocked-ast-definition "04_static_gate.sh" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${blocked_ast_clone}" \
-    PACKAGE_DIR="${blocked_ast_clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+  expect_fail blocked-ast-definition "04_static_gate.sh" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+    AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${blocked_ast_clone}" \
+    PACKAGE_DIR="${blocked_ast_clone}/${PACKAGE_REPOSITORY_ROOT}" \
     bash "${blocked_ast_clone}/${SCRIPT_HASH_PREFIX}04_static_gate.sh"
+
+  run_test_gate_expect_fail() {
+    local fixture_id="$1" clone="$2"
+    expect_fail "${fixture_id}" "03_test_gate.sh" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+      AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" IMPLEMENTATION_BASE_SHA="${base_sha}" \
+      ROUND_A_WORKTREE="${clone}" PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" \
+      bash "${clone}/${SCRIPT_HASH_PREFIX}03_test_gate.sh"
+  }
+
+  skipped_clone="$(clone_fixture test-skipped)"
+  printf 'import pytest\n\ndef test_fixture_contract():\n    pytest.skip("fixture")\n' > \
+    "${skipped_clone}/backend/tests/forecast_quality/test_aggregation.py"
+  run_test_gate_expect_fail test-module-skipped "${skipped_clone}"
+
+  xfailed_clone="$(clone_fixture test-xfailed)"
+  printf 'import pytest\n\n@pytest.mark.xfail(strict=False)\ndef test_fixture_contract():\n    assert False\n' > \
+    "${xfailed_clone}/backend/tests/forecast_quality/test_aggregation.py"
+  run_test_gate_expect_fail test-module-xfailed "${xfailed_clone}"
+
+  xpassed_clone="$(clone_fixture test-xpassed)"
+  printf 'import pytest\n\n@pytest.mark.xfail(strict=False)\ndef test_fixture_contract():\n    assert True\n' > \
+    "${xpassed_clone}/backend/tests/forecast_quality/test_aggregation.py"
+  run_test_gate_expect_fail test-module-xpassed "${xpassed_clone}"
+
+  failed_clone="$(clone_fixture test-failed)"
+  printf 'def test_fixture_contract():\n    assert False\n' > \
+    "${failed_clone}/backend/tests/forecast_quality/test_aggregation.py"
+  run_test_gate_expect_fail test-module-failed "${failed_clone}"
+
+  run_static_gate_expect_fail() {
+    local fixture_id="$1" clone="$2"
+    expect_fail "${fixture_id}" "04_static_gate.sh" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+      AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" IMPLEMENTATION_BASE_SHA="${base_sha}" \
+      ROUND_A_WORKTREE="${clone}" PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" \
+      bash "${clone}/${SCRIPT_HASH_PREFIX}04_static_gate.sh"
+  }
+  mypy_suppression_clone="$(clone_fixture mypy-suppression)"
+  printf '# mypy: ignore-errors\n' >>"${mypy_suppression_clone}/backend/app/forecast_quality/enums.py"
+  run_static_gate_expect_fail file-wide-mypy-suppression "${mypy_suppression_clone}"
+
+  ruff_suppression_clone="$(clone_fixture ruff-suppression)"
+  printf '# ruff: noqa\n' >>"${ruff_suppression_clone}/backend/tests/forecast_quality/test_aggregation.py"
+  run_static_gate_expect_fail file-wide-ruff-suppression "${ruff_suppression_clone}"
+
+  bare_ignore_clone="$(clone_fixture bare-ignore)"
+  printf '# type: ignore\n' >>"${bare_ignore_clone}/backend/app/forecast_quality/enums.py"
+  run_static_gate_expect_fail bare-type-ignore "${bare_ignore_clone}"
 
   run_runtime_gate_expect_fail() {
     local fixture_id="$1" clone="$2"
-    expect_fail "${fixture_id}" "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${clone}" \
-      PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" PACKAGE_SELF_TEST_INTERNAL=1 \
+    expect_fail "${fixture_id}" "02_runtime_policy_audit.py" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+      AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${clone}" \
+      PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" \
       uv run python "${clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
   }
 
@@ -970,9 +1238,11 @@ if [[ "${PACKAGE_SELF_TEST:-0}" == "1" && "${PACKAGE_SELF_TEST_INTERNAL:-0}" != 
   exit 0
 fi
 
-: "${IMPLEMENTATION_BASE_SHA:?IMPLEMENTATION_BASE_SHA is required}"
-ROUND_A_WORKTREE="${ROUND_A_WORKTREE:-$(git rev-parse --show-toplevel)}"
-PACKAGE_DIR="${PACKAGE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+  : "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA:?AUTHORIZATION_PACKAGE_ACCEPTED_SHA is required}"
+  : "${AUTHORIZATION_PACKAGE_TREE_OID:?AUTHORIZATION_PACKAGE_TREE_OID is required}"
+  : "${IMPLEMENTATION_BASE_SHA:?IMPLEMENTATION_BASE_SHA is required}"
+  : "${ROUND_A_WORKTREE:?ROUND_A_WORKTREE is required}"
+  : "${PACKAGE_DIR:?PACKAGE_DIR is required}"
 ROUND_A_WORKTREE="$(cd "${ROUND_A_WORKTREE}" && pwd -P)"
 AUTHORIZED_FILE="${PACKAGE_DIR}/authorized-paths.txt"
 PACKAGE_SHA_FILE="${PACKAGE_DIR}/acceptance/SHA256SUMS"
@@ -984,6 +1254,9 @@ git merge-base --is-ancestor "${IMPLEMENTATION_BASE_SHA}" HEAD
 git cat-file -e "${IMPLEMENTATION_BASE_SHA}:${PACKAGE_REPOSITORY_ROOT}/README.md"
 test -f "${AUTHORIZED_FILE}"
 test -f "${PACKAGE_SHA_FILE}"
+git cat-file -e "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA}^{commit}"
+validate_package_identity "${ROUND_A_WORKTREE}" "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA}" \
+  "${AUTHORIZATION_PACKAGE_TREE_OID}" "${IMPLEMENTATION_BASE_SHA}" "${PACKAGE_DIR}"
 validate_hash_records "${ROUND_A_WORKTREE}" "${IMPLEMENTATION_BASE_SHA}" "${PACKAGE_SHA_FILE}"
 
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/s3-round-a-path-gate.XXXXXX")"

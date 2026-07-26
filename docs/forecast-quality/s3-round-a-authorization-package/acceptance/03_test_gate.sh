@@ -3,6 +3,52 @@ set -euo pipefail
 
 PACKAGE_REPOSITORY_ROOT="docs/forecast-quality/s3-round-a-authorization-package"
 SCRIPT_HASH_PREFIX="${PACKAGE_REPOSITORY_ROOT}/acceptance/"
+PACKAGE_FILES=(
+  "README.md"
+  "implementation-authorization.md"
+  "authorized-paths.txt"
+  "authorized-test-modules.txt"
+  "public-symbol-owners.txt"
+  "schema-enum-contract.md"
+  "evidence-package-contract.md"
+  "acceptance/01_changed_path_gate.sh"
+  "acceptance/02_runtime_policy_audit.py"
+  "acceptance/03_test_gate.sh"
+  "acceptance/04_static_gate.sh"
+  "acceptance/SHA256SUMS"
+)
+
+validate_package_identity() {
+  local repo="$1" accepted_sha="$2" expected_tree="$3" base_sha="$4" package_dir="$5"
+  local accepted_tree base_tree
+  accepted_tree="$(git -C "${repo}" rev-parse "${accepted_sha}:${PACKAGE_REPOSITORY_ROOT}")"
+  base_tree="$(git -C "${repo}" rev-parse "${base_sha}:${PACKAGE_REPOSITORY_ROOT}")"
+  local expected_files accepted_files base_files current_files
+  expected_files="$(printf '%s\n' "${PACKAGE_FILES[@]}" | sort)"
+  accepted_files="$(git -C "${repo}" ls-tree -r --name-only "${accepted_sha}:${PACKAGE_REPOSITORY_ROOT}" | sort)"
+  base_files="$(git -C "${repo}" ls-tree -r --name-only "${base_sha}:${PACKAGE_REPOSITORY_ROOT}" | sort)"
+  current_files="$(cd "${package_dir}" && find . -type f -print | sed 's#^\./##' | sort)"
+  local drift_count=0 file_set_mismatch=0
+  git diff --quiet "${base_sha}" -- "${PACKAGE_REPOSITORY_ROOT}" || drift_count=$((drift_count + 1))
+  git diff --cached --quiet -- "${PACKAGE_REPOSITORY_ROOT}" || drift_count=$((drift_count + 1))
+  [[ -z "$(git -C "${repo}" ls-files --others --exclude-standard -- "${PACKAGE_REPOSITORY_ROOT}")" ]] || drift_count=$((drift_count + 1))
+  [[ "${accepted_tree}" == "${expected_tree}" && "${base_tree}" == "${expected_tree}" ]] || file_set_mismatch=1
+  [[ "${accepted_files}" == "${expected_files}" && "${base_files}" == "${expected_files}" ]] || file_set_mismatch=1
+  [[ "${current_files}" == "${expected_files}" ]] || file_set_mismatch=1
+  printf 'AUTHORIZATION_PACKAGE_EXPECTED_FILE_COUNT=12\n'
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_FILE_COUNT=%s\n' "$(printf '%s\n' "${accepted_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  printf 'AUTHORIZATION_PACKAGE_BASE_FILE_COUNT=%s\n' "$(printf '%s\n' "${base_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  printf 'AUTHORIZATION_PACKAGE_CURRENT_FILE_COUNT=%s\n' "$(printf '%s\n' "${current_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_TREE_OID=%s\n' "${accepted_tree}"
+  printf 'AUTHORIZATION_PACKAGE_BASE_TREE_OID=%s\n' "${base_tree}"
+  printf 'AUTHORIZATION_PACKAGE_EXPECTED_TREE_OID=%s\n' "${expected_tree}"
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_TREE_MISMATCH_COUNT=%s\n' "$([[ "${accepted_tree}" == "${expected_tree}" ]] && echo 0 || echo 1)"
+  printf 'AUTHORIZATION_PACKAGE_BASE_TREE_MISMATCH_COUNT=%s\n' "$([[ "${base_tree}" == "${expected_tree}" ]] && echo 0 || echo 1)"
+  printf 'AUTHORIZATION_PACKAGE_CURRENT_WORKTREE_DRIFT_COUNT=%s\n' "${drift_count}"
+  printf 'AUTHORIZATION_PACKAGE_FILE_SET_MISMATCH_COUNT=%s\n' "${file_set_mismatch}"
+  test "${file_set_mismatch}" = "0"
+  test "${drift_count}" = "0"
+}
 
 parse_test_manifest() {
   local manifest="$1"
@@ -132,15 +178,23 @@ if [[ "${PACKAGE_SELF_TEST:-0}" == "1" && "${PACKAGE_SELF_TEST_INTERNAL:-0}" != 
   exit 0
 fi
 
-ROUND_A_WORKTREE="${ROUND_A_WORKTREE:-$(git rev-parse --show-toplevel)}"
-PACKAGE_DIR="${PACKAGE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-TEST_LIST="${PACKAGE_DIR}/authorized-test-modules.txt"
+: "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA:?AUTHORIZATION_PACKAGE_ACCEPTED_SHA is required}"
+: "${AUTHORIZATION_PACKAGE_TREE_OID:?AUTHORIZATION_PACKAGE_TREE_OID is required}"
 : "${IMPLEMENTATION_BASE_SHA:?IMPLEMENTATION_BASE_SHA is required}"
+: "${ROUND_A_WORKTREE:?ROUND_A_WORKTREE is required}"
+: "${PACKAGE_DIR:?PACKAGE_DIR is required}"
+ROUND_A_WORKTREE="$(cd "${ROUND_A_WORKTREE}" && pwd -P)"
+PACKAGE_DIR="$(cd "${PACKAGE_DIR}" && pwd -P)"
+TEST_LIST="${PACKAGE_DIR}/authorized-test-modules.txt"
 cd "${ROUND_A_WORKTREE}"
 
 test -f "${TEST_LIST}"
+git cat-file -e "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA}^{commit}"
 git cat-file -e "${IMPLEMENTATION_BASE_SHA}^{commit}"
 git merge-base --is-ancestor "${IMPLEMENTATION_BASE_SHA}" HEAD
+git cat-file -e "${IMPLEMENTATION_BASE_SHA}:${PACKAGE_REPOSITORY_ROOT}/README.md"
+validate_package_identity "${ROUND_A_WORKTREE}" "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA}" \
+  "${AUTHORIZATION_PACKAGE_TREE_OID}" "${IMPLEMENTATION_BASE_SHA}" "${PACKAGE_DIR}"
 git cat-file -e "${IMPLEMENTATION_BASE_SHA}:${PACKAGE_REPOSITORY_ROOT}/README.md"
 validate_hash_records "${ROUND_A_WORKTREE}" "${IMPLEMENTATION_BASE_SHA}" "${PACKAGE_DIR}/acceptance/SHA256SUMS"
 
@@ -180,29 +234,44 @@ from pathlib import Path
 
 _nodeids = []
 _counts = {"passed": 0, "failed": 0, "error": 0, "skipped": 0, "xfailed": 0, "xpassed": 0}
+_module_counts = {}
+
+def _module_entry(nodeid):
+    module = nodeid.split("::", 1)[0]
+    return _module_counts.setdefault(module, {"collected": 0, **_counts})
 
 def pytest_collection_finish(session):
     _nodeids[:] = [item.nodeid for item in session.items]
+    for nodeid in _nodeids:
+        _module_entry(nodeid)["collected"] += 1
 
 def pytest_runtest_logreport(report):
+    module_counts = _module_entry(report.nodeid)
     if report.when in {"setup", "teardown"} and report.failed:
         _counts["error"] += 1
+        module_counts["error"] += 1
         return
     if report.when != "call":
         return
-    was_xfail = bool(getattr(report, "wasxfail", False))
+    was_xfail = getattr(report, "wasxfail", None) is not None
     if report.skipped:
-        _counts["xfailed" if was_xfail else "skipped"] += 1
+        key = "xfailed" if was_xfail else "skipped"
+        _counts[key] += 1
+        module_counts[key] += 1
     elif report.passed:
-        _counts["xpassed" if was_xfail else "passed"] += 1
+        key = "xpassed" if was_xfail else "passed"
+        _counts[key] += 1
+        module_counts[key] += 1
     elif report.failed:
         _counts["failed"] += 1
+        module_counts["failed"] += 1
 
 def pytest_sessionfinish(session, exitstatus):
     output = {
         "nodeids": _nodeids,
         "collected_test_count": len(_nodeids),
         "collected_module_count": len({nodeid.split("::", 1)[0] for nodeid in _nodeids}),
+        "module_counts": _module_counts,
         **_counts,
         "exit_code": int(exitstatus),
     }
@@ -251,6 +320,17 @@ expected_modules = {
 collected_modules = {nodeid.split("::", 1)[0] for nodeid in data["nodeids"]}
 zero_modules = sorted(expected_modules - collected_modules)
 unexpected_modules = sorted(collected_modules - expected_modules)
+module_counts = data["module_counts"]
+zero_pass_modules = sorted(
+    module for module in expected_modules
+    if module in module_counts and module_counts[module]["passed"] == 0
+)
+nonpassing_modules = sorted(
+    module for module in expected_modules
+    if module not in module_counts
+    or module_counts[module]["collected"] < 1
+    or module_counts[module]["passed"] != module_counts[module]["collected"]
+)
 for key, value in (
     ("PYTEST_EXPECTED_MODULE_COUNT", 17),
     ("PYTEST_COLLECTED_MODULE_COUNT", data["collected_module_count"]),
@@ -266,6 +346,19 @@ for key, value in (
     print(f"{key}={value}")
 print(f"PYTEST_MODULE_WITH_ZERO_COLLECTED_TEST_COUNT={len(zero_modules)}")
 print(f"PYTEST_UNEXPECTED_COLLECTED_MODULE_COUNT={len(unexpected_modules)}")
+print(f"PYTEST_MODULE_WITH_ZERO_PASSED_TEST_COUNT={len(zero_pass_modules)}")
+print(f"PYTEST_NONPASSING_MODULE_COUNT={len(nonpassing_modules)}")
+print("PYTEST_MODULE_STATISTICS_BEGIN")
+for module in sorted(expected_modules | collected_modules):
+    stats = module_counts.get(module, {})
+    print(
+        f"module_path={module}|collected_node_count={stats.get('collected', 0)}|"
+        f"passed_node_count={stats.get('passed', 0)}|"
+        f"failed_node_count={stats.get('failed', 0)}|error_node_count={stats.get('error', 0)}|"
+        f"skipped_node_count={stats.get('skipped', 0)}|xfailed_node_count={stats.get('xfailed', 0)}|"
+        f"xpassed_node_count={stats.get('xpassed', 0)}"
+    )
+print("PYTEST_MODULE_STATISTICS_END")
 print("PYTEST_MODULE_WITH_ZERO_COLLECTED_TEST_LIST_BEGIN")
 print("\n".join(zero_modules))
 print("PYTEST_MODULE_WITH_ZERO_COLLECTED_TEST_LIST_END")
@@ -275,46 +368,16 @@ print("PYTEST_UNEXPECTED_COLLECTED_MODULE_LIST_END")
 print("PYTEST_NODE_LIST_BEGIN")
 print("\n".join(data["nodeids"]))
 print("PYTEST_NODE_LIST_END")
+if (
+    data["collected_module_count"] != 17
+    or data["collected_test_count"] <= 0
+    or data["passed"] != data["collected_test_count"]
+    or any(data[key] != 0 for key in ("failed", "error", "skipped", "xfailed", "xpassed"))
+    or data["exit_code"] != 0
+    or zero_modules or unexpected_modules or zero_pass_modules or nonpassing_modules
+):
+    raise SystemExit("pytest acceptance policy failed")
 PY
 printf 'PYTEST_PROCESS_EXIT_CODE=%s\n' "${pytest_exit}"
 test "${pytest_exit}" = "0"
-python3 - "${tmp_dir}/pytest-stats.json" <<'PY'
-import json, sys
-from pathlib import Path
-data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-expected = {
-    "backend/tests/forecast_quality/test_aggregation.py",
-    "backend/tests/forecast_quality/test_actual_dedup.py",
-    "backend/tests/forecast_quality/test_baseline.py",
-    "backend/tests/forecast_quality/test_baseline_cold_start.py",
-    "backend/tests/forecast_quality/test_baseline_visibility.py",
-    "backend/tests/forecast_quality/test_blocked_surfaces.py",
-    "backend/tests/forecast_quality/test_breakdown.py",
-    "backend/tests/forecast_quality/test_breakdown_min.py",
-    "backend/tests/forecast_quality/test_calculator_daily.py",
-    "backend/tests/forecast_quality/test_canonical.py",
-    "backend/tests/forecast_quality/test_decimal.py",
-    "backend/tests/forecast_quality/test_dedup.py",
-    "backend/tests/forecast_quality/test_mape.py",
-    "backend/tests/forecast_quality/test_public_contracts.py",
-    "backend/tests/forecast_quality/test_season_calendar.py",
-    "backend/tests/forecast_quality/test_smape.py",
-    "backend/tests/forecast_quality/test_zero_policy.py",
-}
-actual = {nodeid.split("::", 1)[0] for nodeid in data["nodeids"]}
-if expected != actual:
-    raise SystemExit(f"pytest module set mismatch: missing={sorted(expected-actual)} unexpected={sorted(actual-expected)}")
-if len(expected - actual) != 0 or len(actual - expected) != 0:
-    raise SystemExit("pytest module coverage mismatch")
-PY
-test "$(python3 - "${tmp_dir}/pytest-stats.json" <<'PY'
-import json, sys
-from pathlib import Path
-data=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-expected={
-"backend/tests/forecast_quality/test_aggregation.py","backend/tests/forecast_quality/test_actual_dedup.py","backend/tests/forecast_quality/test_baseline.py","backend/tests/forecast_quality/test_baseline_cold_start.py","backend/tests/forecast_quality/test_baseline_visibility.py","backend/tests/forecast_quality/test_blocked_surfaces.py","backend/tests/forecast_quality/test_breakdown.py","backend/tests/forecast_quality/test_breakdown_min.py","backend/tests/forecast_quality/test_calculator_daily.py","backend/tests/forecast_quality/test_canonical.py","backend/tests/forecast_quality/test_decimal.py","backend/tests/forecast_quality/test_dedup.py","backend/tests/forecast_quality/test_mape.py","backend/tests/forecast_quality/test_public_contracts.py","backend/tests/forecast_quality/test_season_calendar.py","backend/tests/forecast_quality/test_smape.py","backend/tests/forecast_quality/test_zero_policy.py"}
-actual={x.split("::",1)[0] for x in data["nodeids"]}
-print("0" if expected == actual else "1")
-PY
-)" = "0"
 printf 'UNIT_TEST_GATE=PASS\n'
