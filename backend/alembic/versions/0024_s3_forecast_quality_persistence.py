@@ -336,7 +336,7 @@ def _create_postgresql_enforcement() -> None:
     ):
         op.execute(
             f"""
-            CREATE TRIGGER trg_{table}_immutable
+            CREATE TRIGGER trg_quality_{table}_immutable
             BEFORE UPDATE OR DELETE ON {table}
             FOR EACH ROW EXECUTE FUNCTION quality_evaluation_immutable_row()
             """
@@ -349,7 +349,7 @@ def _create_postgresql_enforcement() -> None:
     ):
         op.execute(
             f"""
-            CREATE TRIGGER trg_{table}_manifest_insert_guard
+            CREATE TRIGGER trg_quality_{table}_manifest_insert_guard
             BEFORE INSERT ON {table}
             FOR EACH ROW EXECUTE FUNCTION quality_evaluation_child_insert_guard()
             """
@@ -374,7 +374,9 @@ def downgrade() -> None:
             "naive_baseline_run",
             "model_baseline_comparison",
         ):
-            op.execute(f"DROP TRIGGER IF EXISTS trg_{table}_manifest_insert_guard ON {table}")
+            op.execute(
+                f"DROP TRIGGER IF EXISTS trg_quality_{table}_manifest_insert_guard ON {table}"
+            )
         for table in (
             "quality_evaluation_run",
             "quality_metric_result",
@@ -383,7 +385,7 @@ def downgrade() -> None:
             "model_baseline_comparison",
             "quality_evaluation_manifest",
         ):
-            op.execute(f"DROP TRIGGER IF EXISTS trg_{table}_immutable ON {table}")
+            op.execute(f"DROP TRIGGER IF EXISTS trg_quality_{table}_immutable ON {table}")
         op.execute("DROP FUNCTION IF EXISTS quality_evaluation_child_insert_guard()")
         op.execute("DROP FUNCTION IF EXISTS quality_evaluation_immutable_row()")
     for table in (

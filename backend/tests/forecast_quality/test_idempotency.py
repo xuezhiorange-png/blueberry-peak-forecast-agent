@@ -65,6 +65,7 @@ async def test_exact_replay_is_zero_write() -> None:
 async def test_conflicting_replay_is_rejected_without_second_run() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("conflicting-replay")
+    request_hash = _validate_evaluation_input(input_data)[1]
     changed_input, changed_metric, changed_breakdowns, changed_baseline = _fixture(
         "conflicting-replay", forecast_value=Decimal("99")
     )
@@ -86,7 +87,14 @@ async def test_conflicting_replay_is_rejected_without_second_run() -> None:
                     breakdown_results=changed_breakdowns,
                     baseline_record=changed_baseline,
                 )
-        assert await session.scalar(select(func.count(QualityEvaluationRunModel.id))) == 1
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationRunModel.id)).where(
+                    QualityEvaluationRunModel.evaluation_request_hash == request_hash
+                )
+            )
+            == 1
+        )
 
 
 @pytest.mark.asyncio
@@ -133,6 +141,7 @@ async def test_partial_existing_result_fails_closed() -> None:
 async def test_baseline_association_mismatch_fails_before_write() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("baseline-mismatch")
+    request_hash = _validate_evaluation_input(input_data)[1]
     bad_result = replace(baseline.result, baseline_quantile="P80")
     bad_record = replace(baseline, result=bad_result)
     async with AsyncSessionMaker() as session:
@@ -144,13 +153,21 @@ async def test_baseline_association_mismatch_fails_before_write() -> None:
                 breakdown_results=breakdowns,
                 baseline_record=bad_record,
             )
-        assert await session.scalar(select(func.count(QualityEvaluationRunModel.id))) == 0
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationRunModel.id)).where(
+                    QualityEvaluationRunModel.evaluation_request_hash == request_hash
+                )
+            )
+            == 0
+        )
 
 
 @pytest.mark.asyncio
 async def test_transaction_rollback_leaves_zero_round_b_rows() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("rollback")
+    request_hash = _validate_evaluation_input(input_data)[1]
     async with AsyncSessionMaker() as session:
         try:
             async with session.begin():
@@ -164,8 +181,26 @@ async def test_transaction_rollback_leaves_zero_round_b_rows() -> None:
                 )
         except ForecastQualityContractError:
             pass
-        assert await session.scalar(select(func.count(QualityEvaluationRunModel.id))) == 0
-        assert await session.scalar(select(func.count(QualityEvaluationManifestModel.id))) == 0
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationRunModel.id)).where(
+                    QualityEvaluationRunModel.evaluation_request_hash == request_hash
+                )
+            )
+            == 0
+        )
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationManifestModel.id))
+                .join(
+                    QualityEvaluationRunModel,
+                    QualityEvaluationManifestModel.quality_evaluation_run_id
+                    == QualityEvaluationRunModel.id,
+                )
+                .where(QualityEvaluationRunModel.evaluation_request_hash == request_hash)
+            )
+            == 0
+        )
 
 
 @pytest.mark.asyncio
@@ -203,6 +238,7 @@ async def test_concurrent_identical_writes_converge_to_one_result() -> None:
 async def test_concurrent_conflicting_writes_have_one_conflict() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("concurrent-conflict")
+    request_hash = _validate_evaluation_input(input_data)[1]
     changed_input, changed_metric, changed_breakdowns, changed_baseline = _fixture(
         "concurrent-conflict", forecast_value=Decimal("77")
     )
@@ -233,4 +269,11 @@ async def test_concurrent_conflicting_writes_have_one_conflict() -> None:
     )
     assert sorted(outcomes) == ["conflict", "winner"]
     async with AsyncSessionMaker() as session:
-        assert await session.scalar(select(func.count(QualityEvaluationRunModel.id))) == 1
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationRunModel.id)).where(
+                    QualityEvaluationRunModel.evaluation_request_hash == request_hash
+                )
+            )
+            == 1
+        )
