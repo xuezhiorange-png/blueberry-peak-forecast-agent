@@ -37,6 +37,10 @@ ROUND_B_REQUIREMENTS=S3R-19,S3R-20
 S3R-19=FORECAST_QUALITY_PERSISTENCE
 S3R-20=IDEMPOTENT_PERSISTENCE
 ROUND_B_TABLE_COUNT=6
+COMPARISON_RECORD_WRITE_AUTHORIZED=false
+COMPARISON_ARITHMETIC_AUTHORIZED=false
+NONEMPTY_COMPARISON_RECORDS_FAIL_CLOSED=true
+COMPARISON_RESULT_SET=EXPLICIT_EMPTY_SET
 ROUND_B_DOMAIN_ARITHMETIC=false
 ROUND_B_HTTP_API=false
 ROUND_B_REAL_DATA=false
@@ -50,7 +54,7 @@ The future implementation may persist only these six logical records:
 | `QualityMetricResult` | Persisted daily metric result values and audit envelope | Stores Round A `DailyMetricResult` semantics; it does not recalculate metrics. |
 | `QualityBreakdownResult` | Persisted six-axis breakdown-cell result | Stores the existing breakdown payload and status/reason evidence. |
 | `NaiveBaselineRun` | Persisted single prior-season point-baseline result | Stores Round A baseline request, source snapshot, result, and canonical identity. |
-| `ModelBaselineComparison` | Persistence row for a future model-vs-baseline comparison identity | Table structure only. No new comparison arithmetic is allowed in Round B. |
+| `ModelBaselineComparison` | Persistence row reserved for a future model-vs-baseline comparison identity | Table exists in the future schema, but Round B writes zero rows and performs no comparison arithmetic. |
 | `QualityEvaluationManifest` | Immutable complete-result seal and child-set evidence | Must be inserted last and seals the result set. |
 
 The following are explicitly excluded:
@@ -368,7 +372,7 @@ Required columns:
 | `metric_result_set_hash` | `TEXT`, non-null | Hash of sorted metric-result canonical hashes. |
 | `breakdown_result_set_hash` | `TEXT`, non-null | Hash of sorted breakdown-result canonical hashes. |
 | `baseline_result_set_hash` | `TEXT`, non-null | Hash of sorted baseline-result canonical hashes. |
-| `comparison_result_set_hash` | `TEXT`, non-null | Hash of sorted comparison-row canonical hashes, including an explicit empty-set value when none is authorized. |
+| `comparison_result_set_hash` | `TEXT`, non-null | Hash of the explicit empty comparison-result-set payload; no comparison row is authorized in Round B. |
 | `manifest_payload` | `JSONB`, non-null | Complete immutable manifest and authority evidence. |
 | `manifest_hash` | `TEXT`, non-null, unique | Hash of `manifest_payload`. |
 | `created_at` | `TIMESTAMPTZ`, non-null | Lifecycle timestamp. |
@@ -418,7 +422,7 @@ set hashes are valid.
 | `quality_metric_result` | `(quality_evaluation_run_id, metric_result_key_hash)`; `canonical_hash` | Hash format; non-negative counters; `metric_status`/`reason_code` validated against Round A values; coverage/nullability follows Round A | Run, `ON DELETE RESTRICT` | Insert only before manifest seal; no update/delete after insert. |
 | `quality_breakdown_result` | `(quality_evaluation_run_id, breakdown_key_hash)`; `canonical_hash` | Exactly six normalized axes; counter closure; coverage/nullability follows Round A | Run, `ON DELETE RESTRICT` | Insert only before manifest seal; no update/delete after insert. |
 | `naive_baseline_run` | `(quality_evaluation_run_id, baseline_request_hash)`; `(quality_evaluation_run_id, baseline_result_hash)` | Snapshot identities and visibility cutoff required; point-only P80/P90 states must remain Round A semantics | Run, `ON DELETE RESTRICT` | Insert only before manifest seal; no update/delete after insert. |
-| `model_baseline_comparison` | `(quality_evaluation_run_id, comparison_key_hash)`; `canonical_hash` | Model/baseline identities required; no arithmetic fields authorized | Run and baseline run, `ON DELETE RESTRICT` | Insert only before manifest seal; no update/delete after insert. |
+| `model_baseline_comparison` | `(quality_evaluation_run_id, comparison_key_hash)`; `canonical_hash` | Model/baseline identities required; no arithmetic fields authorized; Round B write count must be zero | Run and baseline run, `ON DELETE RESTRICT` | Table is reserved; Round B cannot insert rows. |
 | `quality_evaluation_manifest` | One per `quality_evaluation_run_id`; `manifest_hash` | Request hash and all child-set hashes must match; `sealed_at` required for complete status | Run, `ON DELETE RESTRICT` | Manifest update/delete forbidden; child insert after seal forbidden. |
 
 The future migration must enforce immutability with PostgreSQL-safe database
@@ -446,15 +450,20 @@ The future API is an internal Python API in
 must not be exposed publicly.
 
 ```python
+@dataclass(frozen=True)
+class BaselinePersistenceRecord:
+    request: BaselineRequest
+    snapshot: BaselineSourceSnapshot
+    result: BaselineResult
+
+
 def persist_quality_evaluation(
     session: Session,
     *,
     evaluation_input: S3EvaluationInput,
     metric_results: Sequence[DailyMetricResult],
     breakdown_results: Sequence[Mapping[str, object]],
-    baseline_requests: Sequence[BaselineRequest],
-    baseline_snapshots: Sequence[BaselineSourceSnapshot],
-    baseline_results: Sequence[BaselineResult],
+    baseline_records: Sequence[BaselinePersistenceRecord],
     comparison_records: Sequence[Mapping[str, object]],
     manifest_payload: Mapping[str, object],
 ) -> PersistedQualityEvaluation:
@@ -467,7 +476,7 @@ The exact future implementation contract is:
 |---|---|
 | `session` | A caller-owned SQLAlchemy `Session`; the function does not create a session. |
 | Transaction | `CALLER_OWNED_TRANSACTION=true`; the function never calls `commit()`, `rollback()`, or changes transaction boundaries. A nested savepoint may be used to resolve a PostgreSQL unique-key race. |
-| Input objects | Existing Round A dataclasses for S2 input, daily result, baseline request, source snapshot, and baseline result; breakdown and comparison mappings must be schema-validated before write. |
+| Input objects | Existing Round A dataclasses for S2 input, daily result, and baseline objects; each baseline is one explicit `BaselinePersistenceRecord`; breakdown mappings must be schema-validated; comparison mappings must be an empty sequence. |
 | Return | Internal `PersistedQualityEvaluation` containing lookup references and validated canonical hashes; DB IDs are operational return values only. |
 | New result | Recompute all canonical payloads and hashes, validate the complete expected set, write all six logical records in one caller transaction, and insert the manifest last. |
 | Exact replay | Same semantic identity, same canonical hash, and complete child set. Return existing records with `new_write_count=0`; do not touch timestamps or issue a second insert. |
@@ -488,7 +497,81 @@ CONFLICTING_REPLAY_REJECTED=true
 PARTIAL_METRIC_PERSISTENCE_FORBIDDEN=true
 MANIFEST_INSERTED_LAST=true
 CHILD_INSERT_AFTER_MANIFEST_FORBIDDEN=true
+BASELINE_RECORD_ASSOCIATION_EXPLICIT=true
+BASELINE_POSITIONAL_ZIP_ALLOWED=false
+BASELINE_INPUT_ORDER_AFFECTS_IDENTITY=false
+COMPARISON_RECORD_WRITE_AUTHORIZED=false
+COMPARISON_ARITHMETIC_AUTHORIZED=false
+NONEMPTY_COMPARISON_RECORDS_FAIL_CLOSED=true
+MODEL_BASELINE_COMPARISON_TABLE_CREATED=true
+MODEL_BASELINE_COMPARISON_ROW_WRITE=false
 ```
+
+### 7.1 Explicit baseline record association
+
+`BaselinePersistenceRecord` is a future internal frozen structure in
+`backend/app/forecast_quality/persistence.py`. It is not a new Round A
+schema and does not add an implementation path. The three objects in each
+record must be validated as one semantic baseline record before any database
+write:
+
+```text
+BASELINE_RECORD_ASSOCIATION_EXPLICIT=true
+BASELINE_POSITIONAL_ZIP_ALLOWED=false
+BASELINE_INPUT_ORDER_AFFECTS_IDENTITY=false
+
+request.requested_quantile == result.baseline_quantile
+snapshot.source_snapshot_identity == result.source_snapshot_identity
+snapshot.source_snapshot_hash == result.source_snapshot_hash
+snapshot.source_row_set_hash == result.source_row_set_hash
+snapshot.visibility_manifest_hash == result.visibility_manifest_hash
+result.canonical_hash_replay_valid=true
+request_snapshot_result_same_baseline_semantic_record=true
+```
+
+Any mismatch, missing object, mismatched source identity, invalid result
+canonical hash, or attempt to associate objects by parallel positional lists
+must fail closed before opening a write path. The baseline child-set hash in
+the manifest is computed from each `BaselinePersistenceRecord`'s validated
+canonical hash, sorted lexicographically. Input sequence order is not part of
+the identity and cannot change the hash.
+
+### 7.2 Explicit empty comparison result set
+
+Round B retains the `model_baseline_comparison` table in the future migration
+shape, but no comparison domain schema or comparison policy is frozen for
+this round:
+
+```text
+COMPARISON_RECORD_WRITE_AUTHORIZED=false
+COMPARISON_ARITHMETIC_AUTHORIZED=false
+NONEMPTY_COMPARISON_RECORDS_FAIL_CLOSED=true
+COMPARISON_RESULT_SET=EXPLICIT_EMPTY_SET
+MODEL_BASELINE_COMPARISON_TABLE_CREATED=true
+MODEL_BASELINE_COMPARISON_ROW_WRITE=false
+```
+
+The API may retain `comparison_records: Sequence[Mapping[str, object]]` for
+future compatibility, but the only accepted value in Round B is
+`len(comparison_records) == 0`. A non-empty sequence raises an internal
+contract/persistence error before any database statement or write. The
+manifest comparison child-set hash is not empty string, JSON null, or a
+caller-provided value. It is the SHA-256 of these exact canonical JSON bytes,
+with UTF-8 encoding, sorted keys, compact separators, and no trailing newline:
+
+```json
+{"records":[],"schema_version":"v0.2-s3-comparison-result-set-v1"}
+```
+
+```text
+COMPARISON_RESULT_SET_EMPTY_CANONICAL_HASH=ab6dd7e356afb1ff4aa24c962fa22ad0b115d5cee9993c8846fcd93dd59ec0ca
+COMPARISON_RESULT_SET_HASH_SOURCE=FROZEN_CANONICAL_EXPLICIT_EMPTY_PAYLOAD
+COMPARISON_RESULT_SET_HASH_CALLER_SUPPLIED=false
+```
+
+The empty-set hash is included in the manifest identity and is stable across
+input order because there are no comparison rows. It does not authorize
+creating a comparison row or implementing comparison arithmetic.
 
 ## 8. PostgreSQL acceptance matrix
 
