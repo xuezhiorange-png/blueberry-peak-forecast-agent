@@ -138,7 +138,7 @@ SCRIPT_HASH_MISMATCH_COUNT=0
 SCRIPT_HASH_MISSING_PATH_COUNT=0
 STALE_SCRIPT_HASH_REFERENCE_COUNT=0
 SCRIPT_01_SHA256=4f4a9a4ffa920a7ff390c975d2a9edec56d3175379b94c172a2ae3aa5ec2ac3a
-SCRIPT_02_SHA256=c35ccd3c74d16c11e5cdfdc50d486bd85b8d532114669a1d20fb1e698d48a411
+SCRIPT_02_SHA256=35c8a5150f18d2602f8d56f04963f67d063ce819e72865081aecaa565993107e
 SCRIPT_03_SHA256=56e24c5c5b28f9f823d1b7cbca5897a98b2c3a87655aea2a1905d56fa9626587
 SCRIPT_04_SHA256=f3f6de562d397625bb5f5ea8e762211c0d3d975753a7950cad1eb97bfe14c32c
 ```
@@ -346,9 +346,13 @@ CALLER_CONFIGURABLE_MINIMUM_SAMPLE_SIZE=false
 
 The package chooses the explicit multi-parameter baseline canonical context
 option. The root and cell builders require exact 26/15 sections, reject null
-required values, and validate a source map. Canonical bytes, SHA256 and replay
+required values, and validate a 41-record machine-readable source map. Each
+record contains canonical field, source schema, source field, nullable rule,
+sentinel rule, and identity participation. Canonical bytes, SHA256 and replay
 identity are recomputed; all-null, identity, visibility, counter, mask and
 breakdown drift are rejected.
+
+BASELINE_CANONICAL_SOURCE_MAP_RECORD_COUNT=41
 
 `DailyMetricResult.mape_zero_actual_reason_code` is the single serialized
 owner of the MAPE zero-row reason. Mixed eligible/zero rows remain

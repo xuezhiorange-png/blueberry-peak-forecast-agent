@@ -196,7 +196,7 @@ The package snapshot must record the exact current script hashes from
 
 ```text
 SCRIPT_01_SHA256=4f4a9a4ffa920a7ff390c975d2a9edec56d3175379b94c172a2ae3aa5ec2ac3a
-SCRIPT_02_SHA256=c35ccd3c74d16c11e5cdfdc50d486bd85b8d532114669a1d20fb1e698d48a411
+SCRIPT_02_SHA256=35c8a5150f18d2602f8d56f04963f67d063ce819e72865081aecaa565993107e
 SCRIPT_03_SHA256=56e24c5c5b28f9f823d1b7cbca5897a98b2c3a87655aea2a1905d56fa9626587
 SCRIPT_04_SHA256=f3f6de562d397625bb5f5ea8e762211c0d3d975753a7950cad1eb97bfe14c32c
 ```
@@ -241,8 +241,8 @@ PACKAGE_PYTHON_RUFF_PATH_COUNT=1
 ```
 
 The runtime evidence must include the exact six-field `BreakdownSpec`, fixed
-threshold owner/value, an explicit 26/15 baseline canonical source map with
-canonical bytes and SHA256 replay identity, MAPE mixed/all-zero status and
+threshold owner/value, an explicit 26/15 baseline canonical source map with 41
+machine-readable field-to-source records, canonical bytes and SHA256 replay identity, MAPE mixed/all-zero status and
 zero-row reason, and the complete DailyMetricResult envelope/hash audit.
 
 ```text
@@ -253,6 +253,7 @@ MIN_COMPARABLE_ROWS_FOR_REPORTING_VALUE=10
 BASELINE_CANONICAL_NON_NULL_REQUIRED_FIELD_COUNT=41
 BASELINE_CANONICAL_REQUIRED_FIELD_NULL_COUNT=0
 BASELINE_CANONICAL_SOURCE_MAP_MISMATCH_COUNT=0
+BASELINE_CANONICAL_SOURCE_MAP_RECORD_COUNT=41
 MAPE_ZERO_REASON_SERIALIZATION_OWNER=mape_zero_actual_reason_code
 DAILY_RESULT_ENVELOPE_VALUE_MISMATCH_COUNT=0
 DAILY_RESULT_COUNTER_MISMATCH_COUNT=0
