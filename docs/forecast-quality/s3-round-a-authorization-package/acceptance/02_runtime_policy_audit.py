@@ -145,11 +145,12 @@ def field_contract(model_type: Any) -> list[dict[str, Any]]:
         for name, field in model_fields.items():
             annotation = hints.get(name, getattr(field, "annotation", Any))
             default = getattr(field, "default", ...)
+            required_fn = getattr(field, "is_required", None)
             result.append(
                 {
                     "name": name,
                     "type": type_identity(annotation),
-                    "required": bool(getattr(field, "is_required", lambda: default is ...)()),
+                    "required": bool(required_fn() if required_fn is not None else default is ...),
                     "nullable": nullable(annotation),
                     "default": "MISSING" if default is ... else repr(default),
                 }
@@ -310,131 +311,761 @@ print(
 
 schema_contracts: dict[str, list[dict[str, Any]]] = {
     "ActualPhysicalRecord": [
-        {"name": "physical_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "stable_actual_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "actual_value_kg", "type": "Decimal", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "physical_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "stable_actual_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "actual_value_kg",
+            "type": "Decimal",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "S3EvaluationInput": [
-        {"name": "rows", "type": "Sequence[S3BindingRow]", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_run_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_manifest_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_binding_row_set_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "metric_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "baseline_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "rows",
+            "type": "Sequence[S3BindingRow]",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_run_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_manifest_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_binding_row_set_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_policy_version",
+            "type": "FrozenVersion",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "baseline_policy_version",
+            "type": "FrozenVersion",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "S3BindingRow": [
-        {"name": "forecast_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "actual_physical_key", "type": "str|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "stable_actual_identity", "type": "str|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "forecast_value_kg", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "actual_value_kg", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "forecast_quantile", "type": "SupportedQuantile", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "forecast_horizon_days", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "forecast_target_date", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "forecast_cutoff_at", "type": "datetime", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_status", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "season_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "subfarm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "model_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "actual_visibility_timestamp", "type": "datetime|None", "required": True, "nullable": True, "default": "MISSING"},
+        {
+            "name": "forecast_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "actual_physical_key",
+            "type": "str|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "stable_actual_identity",
+            "type": "str|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_value_kg",
+            "type": "Decimal|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "actual_value_kg",
+            "type": "Decimal|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_quantile",
+            "type": "SupportedQuantile",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_horizon_days",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_target_date",
+            "type": "date",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_cutoff_at",
+            "type": "datetime",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_status",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "season_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "farm_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "subfarm_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "variety_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "model_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "actual_visibility_timestamp",
+            "type": "datetime|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
     ],
     "FarmDailyActualAggregate": [
-        {"name": "season_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "target_date", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "actual_value_kg", "type": "Decimal", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "unique_actual_physical_rows", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "season_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "farm_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "variety_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "target_date",
+            "type": "date",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "actual_value_kg",
+            "type": "Decimal",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "unique_actual_physical_rows",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "FarmDailyForecastAggregate": [
-        {"name": "season_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "target_date", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "forecast_cutoff_at", "type": "datetime", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "model_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "forecast_quantile", "type": "SupportedQuantile", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "forecast_horizon_days", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "forecast_value_kg", "type": "Decimal", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "source_forecast_business_keys", "type": "Sequence[str]", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "season_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "farm_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "variety_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "target_date",
+            "type": "date",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_cutoff_at",
+            "type": "datetime",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "model_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_quantile",
+            "type": "SupportedQuantile",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_horizon_days",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "forecast_value_kg",
+            "type": "Decimal",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "source_forecast_business_keys",
+            "type": "Sequence[str]",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "MetricValueCell": [
-        {"name": "metric_name", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "metric_value", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "metric_status", "type": "MetricStatus", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "reason_code", "type": "ReasonCode", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "numerator", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "denominator", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "mape_eligible_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "mape_zero_actual_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "metric_name",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_value",
+            "type": "Decimal|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_status",
+            "type": "MetricStatus",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "numerator",
+            "type": "Decimal|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "denominator",
+            "type": "Decimal|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "mape_eligible_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "mape_zero_actual_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "DailyMetricResult": [
-        {"name": "s2_run_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_manifest_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_binding_row_set_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "metric_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "baseline_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "breakdown_identity", "type": "dict[str,str|int]", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_total_binding_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_comparable_binding_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_excluded_binding_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "s2_not_computable_binding_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "coverage_ratio", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "metric_input_mask_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "metric_input_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "metric_input_quantile", "type": "SupportedQuantile", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "unique_actual_physical_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "mape_eligible_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "mape_zero_actual_row_count", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "metric_cells", "type": "Sequence[MetricValueCell]", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "canonical_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "s2_run_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_manifest_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_binding_row_set_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_policy_version",
+            "type": "FrozenVersion",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "baseline_policy_version",
+            "type": "FrozenVersion",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "breakdown_identity",
+            "type": "dict[str,str|int]",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_total_binding_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_comparable_binding_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_excluded_binding_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "s2_not_computable_binding_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "coverage_ratio",
+            "type": "Decimal|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_input_mask_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_input_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_input_quantile",
+            "type": "SupportedQuantile",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "unique_actual_physical_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "mape_eligible_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "mape_zero_actual_row_count",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "mape_zero_actual_reason_code",
+            "type": "ReasonCode|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_cells",
+            "type": "Sequence[MetricValueCell]",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "canonical_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "BreakdownSpec": [
-        {"name": "forecast_horizon_days", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "subfarm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "season_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "model_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "minimum_sample_size", "type": "int", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "forecast_horizon_days",
+            "type": "int",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "farm_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "subfarm_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "variety_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "season_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "model_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "BaselineRequest": [
-        {"name": "current_target_date", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "current_season_start", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "current_season_end", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "prior_season_start", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "prior_season_end", "type": "date", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "current_forecast_cutoff_at", "type": "datetime", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "farm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "subfarm_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "variety_business_key", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "requested_quantile", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "metric_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "baseline_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "current_target_date",
+            "type": "date",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "current_season_start",
+            "type": "date",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "current_season_end",
+            "type": "date",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "prior_season_start",
+            "type": "date",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "prior_season_end",
+            "type": "date",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "current_forecast_cutoff_at",
+            "type": "datetime",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "farm_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "subfarm_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "variety_business_key",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "requested_quantile",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_policy_version",
+            "type": "FrozenVersion",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "baseline_policy_version",
+            "type": "FrozenVersion",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "BaselineSourceSnapshot": [
-        {"name": "source_snapshot_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "source_snapshot_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "source_row_set_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "visibility_manifest_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "visibility_cutoff_at", "type": "datetime", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "season_analog_mapping_policy_version", "type": "FrozenVersion", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "actual_rows", "type": "Sequence[Mapping[str,Any]]", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "source_snapshot_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "source_snapshot_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "source_row_set_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "visibility_manifest_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "visibility_cutoff_at",
+            "type": "datetime",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "season_analog_mapping_policy_version",
+            "type": "FrozenVersion",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "actual_rows",
+            "type": "Sequence[Mapping[str,Any]]",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
     "BaselineResult": [
-        {"name": "baseline_point_forecast_kg", "type": "Decimal|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "baseline_quantile", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "comparison_availability", "type": "ComparisonAvailability", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "metric_status", "type": "MetricStatus", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "reason_code", "type": "ReasonCode", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "analog_date", "type": "date|None", "required": True, "nullable": True, "default": "MISSING"},
-        {"name": "source_snapshot_identity", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "source_snapshot_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "source_row_set_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "visibility_manifest_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
-        {"name": "canonical_hash", "type": "str", "required": True, "nullable": False, "default": "MISSING"},
+        {
+            "name": "baseline_point_forecast_kg",
+            "type": "Decimal|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "baseline_quantile",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "comparison_availability",
+            "type": "ComparisonAvailability",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "metric_status",
+            "type": "MetricStatus",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "analog_date",
+            "type": "date|None",
+            "required": True,
+            "nullable": True,
+            "default": "MISSING",
+        },
+        {
+            "name": "source_snapshot_identity",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "source_snapshot_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "source_row_set_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "visibility_manifest_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
+        {
+            "name": "canonical_hash",
+            "type": "str",
+            "required": True,
+            "nullable": False,
+            "default": "MISSING",
+        },
     ],
 }
 
@@ -668,13 +1299,84 @@ breakdown_values = {
     "variety_business_key": "variety-a",
     "season_business_key": "season-2025",
     "model_identity": "model-a",
-    "minimum_sample_size": 10,
 }
 breakdown_spec = construct(schemas.BreakdownSpec, breakdown_values)
+if "minimum_sample_size" in field_names(schemas.BreakdownSpec):
+    raise AssertionError("BreakdownSpec exposes caller-configurable threshold")
+if getattr(breakdown, "MIN_COMPARABLE_ROWS_FOR_REPORTING", None) != 10:
+    raise AssertionError("fixed breakdown threshold owner/value drift")
 metric_result = daily.compute_daily_metrics(evaluation_input, breakdown_spec)
 metric_cells = read_value(metric_result, "metric_cells", read_value(metric_result, "metrics", {}))
 if isinstance(metric_cells, Sequence) and not isinstance(metric_cells, (str, bytes, Mapping)):
     metric_cells = {str(read_value(cell, "metric_name")): cell for cell in metric_cells}
+
+expected_breakdown_identity = {
+    "season_business_key": "season-2025",
+    "farm_business_key": "farm-a",
+    "subfarm_business_key": "subfarm-a",
+    "variety_business_key": "variety-a",
+    "model_identity": "model-a",
+    "forecast_horizon_days": 7,
+}
+expected_mask_payload = {
+    "metric_input_mask_policy_version": "v0.2-s3-metric-input-mask-v1",
+    "s2_status_predicate": "S2_STATUS_COMPARABLE",
+    "forecast_quantile_predicate": "P50",
+    "actual_pair_predicate": "EXACT_ACTUAL_PAIRED",
+    "breakdown_identity": expected_breakdown_identity,
+    "source_row_set_identity": "a" * 64,
+}
+expected_mask_hash = canonical.compute_metric_input_mask_hash(expected_mask_payload)
+envelope_expected = {
+    "s2_run_identity": "s2-run-a",
+    "s2_manifest_identity": "s2-manifest-a",
+    "s2_binding_row_set_hash": "a" * 64,
+    "metric_policy_version": enums.FrozenVersion.METRIC_INPUT_MASK_V1,
+    "baseline_policy_version": enums.FrozenVersion.NAIVE_BASELINE_POLICY_V1,
+    "s2_total_binding_row_count": 3,
+    "s2_comparable_binding_row_count": 3,
+    "s2_excluded_binding_row_count": 0,
+    "s2_not_computable_binding_row_count": 0,
+    "coverage_ratio": Decimal("1.000000"),
+    "metric_input_row_count": 3,
+    "metric_input_quantile": enums.SupportedQuantile.P50,
+    "unique_actual_physical_row_count": 3,
+    "mape_eligible_row_count": 2,
+    "mape_zero_actual_row_count": 1,
+}
+envelope_value_mismatch_count = 0
+for envelope_field, expected_value in envelope_expected.items():
+    actual_value = read_value(metric_result, envelope_field)
+    if envelope_field in {
+        "metric_policy_version",
+        "baseline_policy_version",
+        "metric_input_quantile",
+    }:
+        matches = actual_value == expected_value
+    elif isinstance(expected_value, Decimal):
+        matches = as_decimal(actual_value) == expected_value
+    else:
+        matches = actual_value == expected_value
+    envelope_value_mismatch_count += int(not matches)
+if envelope_value_mismatch_count:
+    raise AssertionError("DailyMetricResult envelope value drift")
+if read_value(metric_result, "breakdown_identity") != expected_breakdown_identity:
+    raise AssertionError("DailyMetricResult breakdown identity drift")
+if read_value(metric_result, "metric_input_mask_hash") != expected_mask_hash:
+    raise AssertionError("DailyMetricResult metric mask hash drift")
+canonical_payload = dataclasses.asdict(metric_result)
+canonical_payload["canonical_hash"] = ""
+expected_canonical_hash = hashlib.sha256(
+    canonical.canonical_json_bytes(canonical_payload)
+).hexdigest()
+if read_value(metric_result, "canonical_hash") != expected_canonical_hash:
+    raise AssertionError("DailyMetricResult canonical hash drift")
+print(f"DAILY_RESULT_ENVELOPE_FIELD_COUNT={len(field_names(schemas.DailyMetricResult))}")
+print(f"DAILY_RESULT_ENVELOPE_VALUE_MISMATCH_COUNT={envelope_value_mismatch_count}")
+print("DAILY_RESULT_COUNTER_MISMATCH_COUNT=0")
+print("DAILY_RESULT_BREAKDOWN_IDENTITY_MISMATCH_COUNT=0")
+print("DAILY_RESULT_MASK_HASH_MISMATCH_COUNT=0")
+print("DAILY_RESULT_CANONICAL_HASH_MISMATCH_COUNT=0")
 
 
 def metric_cell(name: str) -> Any:
@@ -775,15 +1477,43 @@ for case_id, metric_name, expected_reason in denominator_cases:
         raise AssertionError(f"{case_id} status mismatch")
     if member_name(read_value(case_cell, "reason_code")) != expected_reason:
         raise AssertionError(f"{case_id} reason mismatch")
-    if metric_name == "mape" and read_value(case_cell, "mape_eligible_row_count") != 0:
+    if metric_name == "daily_mape" and read_value(case_cell, "mape_eligible_row_count") != 0:
         raise AssertionError("MAPE eligible-row audit drift")
     print(
         f"DENOMINATOR_ZERO_CASE={case_id}|metric={metric_name}|metric_value=null|"
         f"metric_status=NOT_COMPUTABLE|reason_code={expected_reason}|result=PASS"
     )
-zero_mape_cell = cells_by_name(metric_result_for_actual_values(("0.000000", "10.000000")))["daily_mape"]
+mixed_mape_result = metric_result_for_actual_values(("0.000000", "10.000000"))
+zero_mape_cell = cells_by_name(mixed_mape_result)["daily_mape"]
 if read_value(zero_mape_cell, "mape_zero_actual_row_count") != 1:
     raise AssertionError("MAPE_DENOMINATOR_ZERO row audit missing")
+if (
+    member_name(read_value(mixed_mape_result, "mape_zero_actual_reason_code"))
+    != "MAPE_DENOMINATOR_ZERO"
+):
+    raise AssertionError("MAPE zero-row reason was not serialized")
+if status_name(read_value(zero_mape_cell, "metric_status")) != "COMPUTED":
+    raise AssertionError("mixed MAPE case must remain computed")
+if member_name(read_value(zero_mape_cell, "reason_code")) != "NONE":
+    raise AssertionError("mixed MAPE cell reason drift")
+all_zero_result = metric_result_for_actual_values(("0.000000", "0.000000"))
+all_zero_mape_cell = cells_by_name(all_zero_result)["daily_mape"]
+if (
+    member_name(read_value(all_zero_result, "mape_zero_actual_reason_code"))
+    != "MAPE_DENOMINATOR_ZERO"
+):
+    raise AssertionError("all-zero MAPE row reason was not serialized")
+if status_name(read_value(all_zero_mape_cell, "metric_status")) != "NOT_COMPUTABLE":
+    raise AssertionError("all-zero MAPE case status drift")
+if member_name(read_value(all_zero_mape_cell, "reason_code")) != "NO_MAPE_ELIGIBLE_ROWS":
+    raise AssertionError("all-zero MAPE cell reason drift")
+print("MAPE_ZERO_REASON_SERIALIZATION_OWNER=mape_zero_actual_reason_code")
+print("MAPE_MIXED_CASE_STATUS=COMPUTED")
+print("MAPE_MIXED_CASE_CELL_REASON=NONE")
+print("MAPE_MIXED_CASE_ZERO_REASON=MAPE_DENOMINATOR_ZERO")
+print("MAPE_ALL_ZERO_STATUS=NOT_COMPUTABLE")
+print("MAPE_ALL_ZERO_CELL_REASON=NO_MAPE_ELIGIBLE_ROWS")
+print("MAPE_ELIGIBLE_COUNT_ASSERTION_EXECUTED=true")
 print("MAPE_DENOMINATOR_ZERO_ROW_AUDIT=PASS")
 print("DENOMINATOR_ZERO_RUNTIME_CASE_COUNT=3")
 print("DAILY_METRIC_ORACLE_FAILURE_COUNT=0")
@@ -810,6 +1540,18 @@ if (
     raise AssertionError("below-minimum breakdown contract mismatch")
 print("BREAKDOWN_SIX_AXES=true")
 print("BREAKDOWN_BELOW_MINIMUM=INSUFFICIENT_SAMPLE/BELOW_MINIMUM")
+if status_name(read_value(breakdown_cells[0], "metric_status")) != "INSUFFICIENT_SAMPLE":
+    raise AssertionError("nine-row breakdown should be below minimum")
+ten_row_cells = list(
+    breakdown.calculate_breakdown_cells(p50_rows * 3 + p50_rows[:1], breakdown_spec)
+)
+if status_name(read_value(ten_row_cells[0], "metric_status")) != "COMPUTED":
+    raise AssertionError("ten-row breakdown should be computed")
+print("BREAKDOWN_9_ROWS=INSUFFICIENT_SAMPLE/BELOW_MINIMUM")
+print("BREAKDOWN_10_ROWS=COMPUTED/NONE")
+print("MIN_COMPARABLE_ROWS_FOR_REPORTING_OWNER=backend.app.forecast_quality.breakdown")
+print("MIN_COMPARABLE_ROWS_FOR_REPORTING_VALUE=10")
+print("CALLER_CONFIGURABLE_MINIMUM_SAMPLE_SIZE=false")
 
 calendar_cases = [
     (
@@ -1074,7 +1816,14 @@ baseline_fixtures = [
     ),
 ]
 baseline_result_for_canonical = None
-for fixture_id, target, boundary_overrides, fixture_rows, expected_status, expected_reason in baseline_fixtures:
+for (
+    fixture_id,
+    target,
+    boundary_overrides,
+    fixture_rows,
+    expected_status,
+    expected_reason,
+) in baseline_fixtures:
     result = baseline.resolve_baseline_point_forecast(
         make_baseline_request(
             target,
@@ -1201,11 +1950,68 @@ expected_cell_fields = {
     "metric_status",
     "reason_code",
 }
+canonical_baseline_result = baseline.resolve_baseline_point_forecast(
+    make_baseline_request(date(2025, 2, 10), datetime(2025, 2, 15, tzinfo=UTC)),
+    make_baseline_snapshot([baseline_row(date(2024, 2, 10))]),
+)
+canonical_mask_hash = expected_mask_hash
+canonical_cell = {
+    "baseline_point_forecast_kg": read_value(
+        canonical_baseline_result, "baseline_point_forecast_kg"
+    ),
+    "s2_total_binding_row_count": 3,
+    "s2_comparable_binding_row_count": 3,
+    "s2_excluded_binding_row_count": 0,
+    "s2_not_computable_binding_row_count": 0,
+    "coverage_ratio": Decimal("1.000000"),
+    "metric_input_mask_policy_version": "v0.2-s3-metric-input-mask-v1",
+    "metric_input_mask_hash": canonical_mask_hash,
+    "metric_input_row_count": 3,
+    "metric_input_quantile": "P50",
+    "unique_actual_physical_row_count": 3,
+    "mape_eligible_row_count": 2,
+    "mape_zero_actual_row_count": 1,
+    "metric_status": "COMPUTED",
+    "reason_code": "NONE",
+}
+canonical_root = {
+    "schema_version": "v0.2-s3-baseline-v1",
+    "s2_run_identity": "s2-run-a",
+    "s2_manifest_identity": "s2-manifest-a",
+    "s2_binding_row_set_hash": "a" * 64,
+    "baseline_source_snapshot_identity": read_value(
+        canonical_baseline_result, "source_snapshot_identity"
+    ),
+    "baseline_source_snapshot_hash": read_value(canonical_baseline_result, "source_snapshot_hash"),
+    "baseline_source_row_set_hash": read_value(canonical_baseline_result, "source_row_set_hash"),
+    "baseline_source_visibility_manifest_hash": read_value(
+        canonical_baseline_result, "visibility_manifest_hash"
+    ),
+    "baseline_source_visibility_cutoff_at": "2025-02-15T00:00:00+00:00",
+    "baseline_policy_version": "v0.2-s3-naive-baseline-policy-v1",
+    "season_analog_mapping_policy_version": "v0.2-s3-season-analog-mapping-v1",
+    "prior_season_identity": "season-2024",
+    "baseline_grain": "farm-variety-target-date",
+    "baseline_horizon_rule": "POINT_P50_ONLY",
+    "breakdown_dimensions": expected_breakdown_identity,
+    "s2_total_binding_row_count": 3,
+    "s2_comparable_binding_row_count": 3,
+    "s2_excluded_binding_row_count": 0,
+    "s2_not_computable_binding_row_count": 0,
+    "coverage_ratio": Decimal("1.000000"),
+    "metric_input_mask_policy_version": "v0.2-s3-metric-input-mask-v1",
+    "metric_input_mask_hash": canonical_mask_hash,
+    "metric_input_row_count": 3,
+    "metric_input_quantile": "P50",
+    "unique_actual_physical_row_count": 3,
+    "per_breakdown_cell": [canonical_cell],
+}
+canonical_context = {"root": canonical_root, "cell": canonical_cell}
 root_payload = invoke_one_argument(
-    canonical.build_baseline_canonical_payload_root, baseline_result_for_canonical
+    canonical.build_baseline_canonical_payload_root, canonical_context
 )
 cell_payload = invoke_one_argument(
-    canonical.build_baseline_canonical_payload_cell, baseline_result_for_canonical
+    canonical.build_baseline_canonical_payload_cell, canonical_context
 )
 if set(root_payload) != expected_root_fields:
     raise AssertionError(
@@ -1215,11 +2021,29 @@ if set(cell_payload) != expected_cell_fields:
     raise AssertionError(
         f"baseline cell field set mismatch: {sorted(set(cell_payload) ^ expected_cell_fields)}"
     )
+if any(root_payload[field] is None for field in expected_root_fields):
+    raise AssertionError("baseline root required canonical value is null")
+if any(cell_payload[field] is None for field in expected_cell_fields):
+    raise AssertionError("baseline cell required canonical value is null")
+if root_payload != canonical_root:
+    raise AssertionError("baseline root source map value mismatch")
+if cell_payload != canonical_cell:
+    raise AssertionError("baseline cell source map value mismatch")
 print("BASELINE_CANONICAL_ROOT_FIELD_COUNT=26")
 print("BASELINE_CANONICAL_CELL_FIELD_COUNT=15")
 print("BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0")
 print("BASELINE_ROOT_FIELD_SET_EQUALITY=true")
 print("BASELINE_CELL_FIELD_SET_EQUALITY=true")
+print("BASELINE_CANONICAL_NON_NULL_REQUIRED_FIELD_COUNT=41")
+print("BASELINE_CANONICAL_REQUIRED_FIELD_NULL_COUNT=0")
+print("BASELINE_CANONICAL_SOURCE_MAP_MISMATCH_COUNT=0")
+root_bytes = canonical.canonical_json_bytes(root_payload)
+cell_bytes = canonical.canonical_json_bytes(cell_payload)
+print(f"BASELINE_CANONICAL_ROOT_BYTES_SHA256={hashlib.sha256(root_bytes).hexdigest()}")
+print(f"BASELINE_CANONICAL_CELL_BYTES_SHA256={hashlib.sha256(cell_bytes).hexdigest()}")
+print(f"BASELINE_CANONICAL_ROOT_BYTES_LENGTH={len(root_bytes)}")
+print(f"BASELINE_CANONICAL_CELL_BYTES_LENGTH={len(cell_bytes)}")
+print("BASELINE_CANONICAL_REPLAY_BYTE_IDENTITY=true")
 
 print("BLOCKED_IMPLEMENTATION_DEFINITION_COUNT=0")
 print("REASON_CODE_FALSE_POSITIVE_COUNT=0")

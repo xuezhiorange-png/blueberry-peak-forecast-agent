@@ -1,6 +1,6 @@
 # One public symbol has exactly one owner in the future implementation.
 # Columns: public symbol | owner path | role | linked contract requirement
-PUBLIC_SYMBOL_OWNER_COUNT=35
+PUBLIC_SYMBOL_OWNER_COUNT=36
 ActualPhysicalRecord | backend/app/forecast_quality/schemas.py | exact three-field physical actual record | S3R-15
 S3EvaluationInput | backend/app/forecast_quality/schemas.py | exact six-field metric input; breakdown_spec is a separate argument | S3R-01,S3R-18
 S3BindingRow | backend/app/forecast_quality/schemas.py | validated S2 row projection consumed by domain calculations | S3R-15,S3R-18
@@ -31,6 +31,7 @@ build_baseline_canonical_payload_root | backend/app/forecast_quality/canonical.p
 build_baseline_canonical_payload_cell | backend/app/forecast_quality/canonical.py | exact 15-field baseline breakdown cell payload | S3R-18
 compute_daily_metrics | backend/app/forecast_quality/calculator_daily.py | seven P50 point metrics and per-metric cells | S3R-01,S3R-03,S3R-04,S3R-05
 calculate_breakdown_cells | backend/app/forecast_quality/breakdown.py | six-axis deterministic cell calculation | S3R-13,S3R-14
+MIN_COMPARABLE_ROWS_FOR_REPORTING | backend/app/forecast_quality/breakdown.py | fixed ten-row reporting threshold; not caller configurable | S3R-14
 aggregate_daily_actuals | backend/app/forecast_quality/aggregation.py | exact daily subfarm-to-farm actual sum | S3R-16
 aggregate_daily_forecasts | backend/app/forecast_quality/aggregation.py | exact daily subfarm-to-farm forecast sum per quantile/cutoff/model | S3R-16,S3R-17
 deterministic_season_day_index | backend/app/forecast_quality/season_calendar.py | season calendar index | S3R-08,S3R-09

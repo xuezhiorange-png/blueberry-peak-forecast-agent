@@ -139,8 +139,8 @@ include:
 ```text
 POSITIVE_GATE_EXECUTION_COUNT=<actual>
 POSITIVE_GATE_PASS_COUNT=<same>
-NEGATIVE_GATE_EXECUTION_COUNT=<actual>
-NEGATIVE_EXPECTED_FAILURE_COUNT=<same>
+NEGATIVE_GATE_EXECUTION_COUNT=24
+NEGATIVE_EXPECTED_FAILURE_COUNT=24
 NEGATIVE_UNEXPECTED_PASS_COUNT=0
 PACKAGE_GATE_SELF_TEST_RESULT=PASS
 ```
@@ -195,8 +195,8 @@ The package snapshot must record the exact current script hashes from
 `acceptance/SHA256SUMS`, including:
 
 ```text
-SCRIPT_01_SHA256=464806cda8e86575c43d5b4297e97a9552c0e7109ed429076508ff7609895c3c
-SCRIPT_02_SHA256=7157aaa0a302235227db2349d1f1db5e3eb635bb6bd87a8bd4ab7ddf86d6977e
+SCRIPT_01_SHA256=4f4a9a4ffa920a7ff390c975d2a9edec56d3175379b94c172a2ae3aa5ec2ac3a
+SCRIPT_02_SHA256=c35ccd3c74d16c11e5cdfdc50d486bd85b8d532114669a1d20fb1e698d48a411
 SCRIPT_03_SHA256=56e24c5c5b28f9f823d1b7cbca5897a98b2c3a87655aea2a1905d56fa9626587
 SCRIPT_04_SHA256=f3f6de562d397625bb5f5ea8e762211c0d3d975753a7950cad1eb97bfe14c32c
 ```
@@ -223,3 +223,44 @@ The evidence package must be delivered as an externally accessible artifact
 for final acceptance. A package left only under `/tmp` is not final review
 evidence. This authorization package does not authorize implementation
 commit, push, PR creation, Ready, Merge, Round B, or Issue #102 mutation.
+
+## F21-F25 evidence additions
+
+The evidence package must preserve raw root static diagnostics and package
+self-test output:
+
+```text
+ROOT_RUFF_FAILED_PATH_COUNT=0
+ROOT_RUFF_FAILED_RULE_COUNT=0
+ROOT_RUFF_DIAGNOSTIC_LIST_BEGIN
+ROOT_RUFF_DIAGNOSTIC_LIST_END
+ROOT_RUFF_CHECK_EXIT_CODE=0
+ROOT_RUFF_FORMAT_CHECK_EXIT_CODE=0
+ROOT_MYPY_EXIT_CODE=0
+PACKAGE_PYTHON_RUFF_PATH_COUNT=1
+```
+
+The runtime evidence must include the exact six-field `BreakdownSpec`, fixed
+threshold owner/value, an explicit 26/15 baseline canonical source map with
+canonical bytes and SHA256 replay identity, MAPE mixed/all-zero status and
+zero-row reason, and the complete DailyMetricResult envelope/hash audit.
+
+```text
+BreakdownSpec_FIELD_COUNT=6
+REQUIRED_BREAKDOWN_AXIS_COUNT=6
+MIN_COMPARABLE_ROWS_FOR_REPORTING_OWNER=backend.app.forecast_quality.breakdown
+MIN_COMPARABLE_ROWS_FOR_REPORTING_VALUE=10
+BASELINE_CANONICAL_NON_NULL_REQUIRED_FIELD_COUNT=41
+BASELINE_CANONICAL_REQUIRED_FIELD_NULL_COUNT=0
+BASELINE_CANONICAL_SOURCE_MAP_MISMATCH_COUNT=0
+MAPE_ZERO_REASON_SERIALIZATION_OWNER=mape_zero_actual_reason_code
+DAILY_RESULT_ENVELOPE_VALUE_MISMATCH_COUNT=0
+DAILY_RESULT_COUNTER_MISMATCH_COUNT=0
+DAILY_RESULT_MASK_HASH_MISMATCH_COUNT=0
+DAILY_RESULT_CANONICAL_HASH_MISMATCH_COUNT=0
+```
+
+Each self-test negative fixture must record its fixture ID, gate, exact
+command, expected non-zero exit class, actual exit code, and result. Round 4
+requires at least eighteen real negative gate executions and zero unexpected
+passes.
