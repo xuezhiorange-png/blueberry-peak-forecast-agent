@@ -19,6 +19,31 @@ PACKAGE_FILES=(
   "acceptance/SHA256SUMS"
 )
 
+validate_package_dir_binding() {
+  local repo="$1" supplied="$2"
+  local expected canonical outside=false symlink_escape=false component segment
+  expected="$(cd "${repo}/${PACKAGE_REPOSITORY_ROOT}" && pwd -P)"
+  canonical="$(cd "${supplied}" && pwd -P)"
+  case "${canonical}" in
+    "${repo}"/*) ;;
+    *) outside=true ;;
+  esac
+  component="${repo}"
+  for segment in docs forecast-quality s3-round-a-authorization-package; do
+    component="${component}/${segment}"
+    if [[ -L "${component}" ]]; then
+      symlink_escape=true
+    fi
+  done
+  printf 'PACKAGE_DIR_CANONICAL_MATCH=%s\n' "$([[ "${canonical}" == "${expected}" ]] && echo true || echo false)"
+  printf 'PACKAGE_DIR_OUTSIDE_WORKTREE=%s\n' "${outside}"
+  printf 'PACKAGE_DIR_SYMLINK_ESCAPE=%s\n' "${symlink_escape}"
+  if [[ "${canonical}" != "${expected}" || "${outside}" != false || "${symlink_escape}" != false ]]; then
+    printf '%s\n' 'PACKAGE_DIR is not the repository authorization package' >&2
+    return 1
+  fi
+}
+
 validate_package_identity() {
   local repo="$1" accepted_sha="$2" expected_tree="$3" base_sha="$4" package_dir="$5"
   local accepted_tree base_tree current_tree
@@ -873,7 +898,7 @@ write("backend/app/forecast_quality/baseline.py", '''
 
 for path in valid_paths:
     if path.startswith("backend/tests/"):
-        write(path, "def test_fixture_contract():\n    assert True\n")
+        write(path, "def test_fixture_contract() -> None:\n    assert True\n")
 PY
   (cd "${repo}" && uv run ruff format backend/app backend/tests && uv run ruff check --fix backend/app backend/tests)
   git -C "${repo}" add backend
@@ -903,22 +928,42 @@ PY
   positive_gate_count=$((positive_gate_count + 1))
 
   local negative_expected=0 unexpected_pass=0 negative_gate_count=0
+  local wrong_failure_reason_count=0 signature_drift_count=0
   expect_fail() {
     local fixture_id="$1" gate_path="$2"
-    shift 2
+    local expected_marker="ANY_NONZERO_EXIT"
+    if [[ "${3:-}" != "" && "${3:-}" != "env" && "${3:-}" != "uv" && "${3:-}" != "bash" ]]; then
+      expected_marker="$3"
+      shift 3
+    else
+      shift 2
+    fi
     negative_gate_count=$((negative_gate_count + 1))
     negative_expected=$((negative_expected + 1))
     local actual_exit_code=0
+    local output_file="${tmp}/${fixture_id}.output"
     set +e
-    env PACKAGE_SELF_TEST_INTERNAL=1 "$@" >/dev/null 2>&1
+    env PACKAGE_SELF_TEST_INTERNAL=1 "$@" >"${output_file}" 2>&1
     actual_exit_code=$?
     set -e
-    if [[ "${actual_exit_code}" == "0" ]]; then
+    local marker_found=false
+    if [[ "${expected_marker}" == "ANY_NONZERO_EXIT" ]]; then
+      [[ "${actual_exit_code}" != "0" ]] && marker_found=true
+    elif grep -Fq "${expected_marker}" "${output_file}"; then
+      marker_found=true
+    fi
+    if [[ "${actual_exit_code}" == "0" || "${marker_found}" != true ]]; then
       unexpected_pass=$((unexpected_pass + 1))
     fi
-    printf 'NEGATIVE_FIXTURE=%s|gate=%s|exact_command=%q|expected_exit_nonzero=true|actual_exit_code=%s|result=%s\n' \
-      "${fixture_id}" "${gate_path}" "$*" "${actual_exit_code}" \
-      "$([[ "${actual_exit_code}" != "0" ]] && echo PASS || echo UNEXPECTED_PASS)"
+    if [[ "${actual_exit_code}" != "0" && "${marker_found}" != true ]]; then
+      wrong_failure_reason_count=$((wrong_failure_reason_count + 1))
+    fi
+    if grep -Eq 'TypeError:|SyntaxError:|ImportError:|NameError:' "${output_file}"; then
+      signature_drift_count=$((signature_drift_count + 1))
+    fi
+    printf 'NEGATIVE_FIXTURE=%s|gate=%s|expected_failure_marker=%s|exact_command=%q|expected_exit_nonzero=true|actual_exit_code=%s|actual_failure_marker_found=%s|result=%s\n' \
+      "${fixture_id}" "${gate_path}" "${expected_marker}" "$*" "${actual_exit_code}" "${marker_found}" \
+      "$([[ "${actual_exit_code}" != "0" && "${marker_found}" == true ]] && echo PASS || echo UNEXPECTED_PASS)"
   }
 
   clone_fixture() {
@@ -928,6 +973,27 @@ PY
     git -C "${clone}" checkout -q --detach "${positive_head}"
     printf '%s\n' "${clone}"
   }
+
+  external_package_clone="$(clone_fixture external-package-dir)"
+  external_package_dir="${tmp}/external-package-dir"
+  mkdir -p "${external_package_dir}"
+  cp -R "${external_package_clone}/${PACKAGE_REPOSITORY_ROOT}/." "${external_package_dir}/"
+  expect_fail external-package-dir "01_changed_path_gate.sh" "PACKAGE_DIR is not the repository authorization package" \
+    env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${external_package_clone}" \
+    PACKAGE_DIR="${external_package_dir}" \
+    bash "${external_package_clone}/${SCRIPT_HASH_PREFIX}01_changed_path_gate.sh"
+
+  symlink_package_clone="$(clone_fixture symlink-package-dir)"
+  symlink_package_dir="${tmp}/symlink-external-package"
+  mv "${symlink_package_clone}/${PACKAGE_REPOSITORY_ROOT}" "${symlink_package_dir}"
+  ln -s "${symlink_package_dir}" "${symlink_package_clone}/${PACKAGE_REPOSITORY_ROOT}"
+  expect_fail symlink-package-dir "01_changed_path_gate.sh" "PACKAGE_DIR is not the repository authorization package" \
+    env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
+    IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${symlink_package_clone}" \
+    PACKAGE_DIR="${symlink_package_clone}/${PACKAGE_REPOSITORY_ROOT}" \
+    bash "${symlink_package_dir}/acceptance/01_changed_path_gate.sh"
+
   run_path_gate_expect_fail() {
     local fixture_id="$1" clone="$2"
     expect_fail "${fixture_id}" "01_changed_path_gate.sh" env PACKAGE_SELF_TEST_INTERNAL=1 AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
@@ -993,20 +1059,36 @@ PY
     PACKAGE_DIR="${zero_module_clone}/${PACKAGE_REPOSITORY_ROOT}" \
     bash "${zero_module_clone}/${SCRIPT_HASH_PREFIX}03_test_gate.sh"
 
-  root_drift_clone="$(clone_fixture root-drift)"
-  cat >>"${root_drift_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
-def build_baseline_canonical_payload_root(result):
-    return {"drift": None}
+root_drift_clone="$(clone_fixture root-drift)"
+cat >>"${root_drift_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
+_round_a_original_root = build_baseline_canonical_payload_root
+def build_baseline_canonical_payload_root(
+    *, evaluation_input, baseline_request, source_snapshot, baseline_result,
+    metric_result, breakdown_spec, per_breakdown_cell,
+):
+    payload = _round_a_original_root(
+        evaluation_input=evaluation_input, baseline_request=baseline_request,
+        source_snapshot=source_snapshot, baseline_result=baseline_result,
+        metric_result=metric_result, breakdown_spec=breakdown_spec,
+        per_breakdown_cell=per_breakdown_cell,
+    )
+    payload["s2_run_identity"] = "wrong-run"
+    return payload
 PY
   expect_fail baseline-root-field-drift "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${root_drift_clone}" \
     AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
     PACKAGE_DIR="${root_drift_clone}/${PACKAGE_REPOSITORY_ROOT}" \
     uv run python "${root_drift_clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
 
-  cell_drift_clone="$(clone_fixture cell-drift)"
-  cat >>"${cell_drift_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
-def build_baseline_canonical_payload_cell(result):
-    return {"drift": None}
+cell_drift_clone="$(clone_fixture cell-drift)"
+cat >>"${cell_drift_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
+_round_a_original_cell = build_baseline_canonical_payload_cell
+def build_baseline_canonical_payload_cell(*, baseline_result, metric_result):
+    payload = _round_a_original_cell(
+        baseline_result=baseline_result, metric_result=metric_result,
+    )
+    payload["baseline_point_forecast_kg"] = None
+    return payload
 PY
   expect_fail baseline-cell-field-drift "02_runtime_policy_audit.py" env IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${cell_drift_clone}" \
     AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" \
@@ -1061,7 +1143,8 @@ PY
 
   run_static_gate_expect_fail() {
     local fixture_id="$1" clone="$2"
-    expect_fail "${fixture_id}" "04_static_gate.sh" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+    local expected_marker="${3:-ANY_NONZERO_EXIT}"
+    expect_fail "${fixture_id}" "04_static_gate.sh" "${expected_marker}" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
       AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" IMPLEMENTATION_BASE_SHA="${base_sha}" \
       ROUND_A_WORKTREE="${clone}" PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" \
       bash "${clone}/${SCRIPT_HASH_PREFIX}04_static_gate.sh"
@@ -1078,9 +1161,15 @@ PY
   printf '# type: ignore\n' >>"${bare_ignore_clone}/backend/app/forecast_quality/enums.py"
   run_static_gate_expect_fail bare-type-ignore "${bare_ignore_clone}"
 
+  mypy_type_clone="$(clone_fixture mypy-type-error)"
+  printf 'round_a_type_error: int = "not-an-int"\n' >> \
+    "${mypy_type_clone}/backend/tests/forecast_quality/test_aggregation.py"
+  run_static_gate_expect_fail mypy-type-error "${mypy_type_clone}" "mypy"
+
   run_runtime_gate_expect_fail() {
     local fixture_id="$1" clone="$2"
-    expect_fail "${fixture_id}" "02_runtime_policy_audit.py" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
+    local expected_marker="${3:-AssertionError}"
+    expect_fail "${fixture_id}" "02_runtime_policy_audit.py" "${expected_marker}" env AUTHORIZATION_PACKAGE_ACCEPTED_SHA="${base_sha}" \
       AUTHORIZATION_PACKAGE_TREE_OID="${base_tree}" IMPLEMENTATION_BASE_SHA="${base_sha}" ROUND_A_WORKTREE="${clone}" \
       PACKAGE_DIR="${clone}/${PACKAGE_REPOSITORY_ROOT}" \
       uv run python "${clone}/${SCRIPT_HASH_PREFIX}02_runtime_policy_audit.py"
@@ -1089,22 +1178,45 @@ PY
   breakdown_schema_clone="$(clone_fixture breakdown-seventh-field)"
   perl -0pi -e 's/(model_identity: str\n)/$1        minimum_sample_size: int\n/' \
     "${breakdown_schema_clone}/backend/app/forecast_quality/schemas.py"
-  run_runtime_gate_expect_fail breakdown-seventh-field "${breakdown_schema_clone}"
+  run_runtime_gate_expect_fail breakdown-seventh-field "${breakdown_schema_clone}" "ANY_NONZERO_EXIT"
 
   canonical_none_clone="$(clone_fixture canonical-all-none)"
   cat >>"${canonical_none_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
-def build_baseline_canonical_payload_root(context):
-    return {key: None for key in context["root"]}
+_round_a_original_root = build_baseline_canonical_payload_root
+_round_a_original_cell = build_baseline_canonical_payload_cell
+def build_baseline_canonical_payload_root(
+    *, evaluation_input, baseline_request, source_snapshot, baseline_result,
+    metric_result, breakdown_spec, per_breakdown_cell,
+):
+    payload = _round_a_original_root(
+        evaluation_input=evaluation_input, baseline_request=baseline_request,
+        source_snapshot=source_snapshot, baseline_result=baseline_result,
+        metric_result=metric_result, breakdown_spec=breakdown_spec,
+        per_breakdown_cell=per_breakdown_cell,
+    )
+    return {key: None for key in payload}
 
-def build_baseline_canonical_payload_cell(context):
-    return {key: None for key in context["cell"]}
+def build_baseline_canonical_payload_cell(*, baseline_result, metric_result):
+    payload = _round_a_original_cell(
+        baseline_result=baseline_result, metric_result=metric_result,
+    )
+    return {key: None for key in payload}
 PY
   run_runtime_gate_expect_fail canonical-all-required-values-none "${canonical_none_clone}"
 
   canonical_run_clone="$(clone_fixture canonical-wrong-s2-run)"
   cat >>"${canonical_run_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
-def build_baseline_canonical_payload_root(context):
-    payload = dict(context["root"])
+_round_a_original_root = build_baseline_canonical_payload_root
+def build_baseline_canonical_payload_root(
+    *, evaluation_input, baseline_request, source_snapshot, baseline_result,
+    metric_result, breakdown_spec, per_breakdown_cell,
+):
+    payload = _round_a_original_root(
+        evaluation_input=evaluation_input, baseline_request=baseline_request,
+        source_snapshot=source_snapshot, baseline_result=baseline_result,
+        metric_result=metric_result, breakdown_spec=breakdown_spec,
+        per_breakdown_cell=per_breakdown_cell,
+    )
     payload["s2_run_identity"] = "wrong-run"
     return payload
 PY
@@ -1112,8 +1224,17 @@ PY
 
   canonical_rowset_clone="$(clone_fixture canonical-wrong-row-set)"
   cat >>"${canonical_rowset_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
-def build_baseline_canonical_payload_root(context):
-    payload = dict(context["root"])
+_round_a_original_root = build_baseline_canonical_payload_root
+def build_baseline_canonical_payload_root(
+    *, evaluation_input, baseline_request, source_snapshot, baseline_result,
+    metric_result, breakdown_spec, per_breakdown_cell,
+):
+    payload = _round_a_original_root(
+        evaluation_input=evaluation_input, baseline_request=baseline_request,
+        source_snapshot=source_snapshot, baseline_result=baseline_result,
+        metric_result=metric_result, breakdown_spec=breakdown_spec,
+        per_breakdown_cell=per_breakdown_cell,
+    )
     payload["s2_binding_row_set_hash"] = "wrong-row-set"
     return payload
 PY
@@ -1121,8 +1242,17 @@ PY
 
   canonical_source_clone="$(clone_fixture canonical-wrong-source-snapshot)"
   cat >>"${canonical_source_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
-def build_baseline_canonical_payload_root(context):
-    payload = dict(context["root"])
+_round_a_original_root = build_baseline_canonical_payload_root
+def build_baseline_canonical_payload_root(
+    *, evaluation_input, baseline_request, source_snapshot, baseline_result,
+    metric_result, breakdown_spec, per_breakdown_cell,
+):
+    payload = _round_a_original_root(
+        evaluation_input=evaluation_input, baseline_request=baseline_request,
+        source_snapshot=source_snapshot, baseline_result=baseline_result,
+        metric_result=metric_result, breakdown_spec=breakdown_spec,
+        per_breakdown_cell=per_breakdown_cell,
+    )
     payload["baseline_source_snapshot_identity"] = "wrong-snapshot"
     return payload
 PY
@@ -1130,8 +1260,17 @@ PY
 
   canonical_visibility_clone="$(clone_fixture canonical-wrong-visibility-hash)"
   cat >>"${canonical_visibility_clone}/backend/app/forecast_quality/canonical.py" <<'PY'
-def build_baseline_canonical_payload_root(context):
-    payload = dict(context["root"])
+_round_a_original_root = build_baseline_canonical_payload_root
+def build_baseline_canonical_payload_root(
+    *, evaluation_input, baseline_request, source_snapshot, baseline_result,
+    metric_result, breakdown_spec, per_breakdown_cell,
+):
+    payload = _round_a_original_root(
+        evaluation_input=evaluation_input, baseline_request=baseline_request,
+        source_snapshot=source_snapshot, baseline_result=baseline_result,
+        metric_result=metric_result, breakdown_spec=breakdown_spec,
+        per_breakdown_cell=per_breakdown_cell,
+    )
     payload["baseline_source_visibility_manifest_hash"] = "wrong-visibility"
     return payload
 PY
@@ -1208,6 +1347,19 @@ def compute_daily_metrics(evaluation_input, breakdown_spec):
 PY
   run_runtime_gate_expect_fail daily-result-wrong-metric-mask-hash "${daily_mask_clone}"
 
+  daily_mask_policy_clone="$(clone_fixture daily-wrong-mask-policy-version)"
+  cat >>"${daily_mask_policy_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
+from .enums import FrozenVersion
+_round_a_original_compute_daily_metrics = compute_daily_metrics
+def compute_daily_metrics(evaluation_input, breakdown_spec):
+    result = _round_a_original_compute_daily_metrics(evaluation_input, breakdown_spec)
+    return dataclasses.replace(
+        result,
+        metric_input_mask_policy_version=FrozenVersion.NAIVE_BASELINE_POLICY_V1,
+    )
+PY
+  run_runtime_gate_expect_fail daily-result-wrong-mask-policy-version "${daily_mask_policy_clone}"
+
   daily_hash_clone="$(clone_fixture daily-wrong-canonical-hash)"
   cat >>"${daily_hash_clone}/backend/app/forecast_quality/calculator_daily.py" <<'PY'
 _round_a_original_compute_daily_metrics = compute_daily_metrics
@@ -1229,7 +1381,16 @@ PY
   printf 'NEGATIVE_EXPECTED_FAILURE_COUNT=%s\n' "${negative_expected}"
   printf 'NEGATIVE_FIXTURE_UNEXPECTED_PASS_COUNT=%s\n' "${unexpected_pass}"
   printf 'NEGATIVE_UNEXPECTED_PASS_COUNT=%s\n' "${unexpected_pass}"
+  printf 'NEGATIVE_FIXTURE_WRONG_FAILURE_REASON_COUNT=%s\n' "${wrong_failure_reason_count}"
+  printf 'NEGATIVE_FIXTURE_SIGNATURE_DRIFT_COUNT=%s\n' "${signature_drift_count}"
+  printf 'EXPECTED_POSITIVE_GATE_EXECUTION_COUNT=4\n'
+  printf 'EXPECTED_NEGATIVE_GATE_EXECUTION_COUNT=41\n'
+  test "${positive_gate_count}" = "4"
+  test "${negative_gate_count}" = "41"
+  test "${negative_expected}" = "41"
   test "${unexpected_pass}" = "0"
+  test "${wrong_failure_reason_count}" = "0"
+  test "${signature_drift_count}" = "0"
   printf 'PACKAGE_GATE_SELF_TEST_RESULT=PASS\n'
 }
 
@@ -1244,6 +1405,8 @@ fi
   : "${ROUND_A_WORKTREE:?ROUND_A_WORKTREE is required}"
   : "${PACKAGE_DIR:?PACKAGE_DIR is required}"
 ROUND_A_WORKTREE="$(cd "${ROUND_A_WORKTREE}" && pwd -P)"
+PACKAGE_DIR="$(cd "${PACKAGE_DIR}" && pwd -P)"
+validate_package_dir_binding "${ROUND_A_WORKTREE}" "${PACKAGE_DIR}"
 AUTHORIZED_FILE="${PACKAGE_DIR}/authorized-paths.txt"
 PACKAGE_SHA_FILE="${PACKAGE_DIR}/acceptance/SHA256SUMS"
 

@@ -17,7 +17,9 @@ from pathlib import Path
 from typing import Any, get_args, get_origin, get_type_hints
 
 ROOT = Path(os.environ.get("ROUND_A_WORKTREE", Path.cwd())).resolve()
-PACKAGE_DIR = Path(os.environ.get("PACKAGE_DIR", "")).resolve()
+PACKAGE_REPOSITORY_ROOT = "docs/forecast-quality/s3-round-a-authorization-package"
+raw_package_dir = Path(os.environ.get("PACKAGE_DIR", ""))
+PACKAGE_DIR = raw_package_dir.resolve()
 BASE_SHA = os.environ.get("IMPLEMENTATION_BASE_SHA")
 ACCEPTED_SHA = os.environ.get("AUTHORIZATION_PACKAGE_ACCEPTED_SHA")
 EXPECTED_TREE = os.environ.get("AUTHORIZATION_PACKAGE_TREE_OID")
@@ -29,6 +31,20 @@ if not EXPECTED_TREE:
     raise SystemExit("AUTHORIZATION_PACKAGE_TREE_OID is required")
 if not PACKAGE_DIR.is_dir():
     raise SystemExit("PACKAGE_DIR is required")
+expected_package_dir = (ROOT / PACKAGE_REPOSITORY_ROOT).resolve(strict=True)
+package_dir_outside_worktree = not PACKAGE_DIR.is_relative_to(ROOT)
+package_dir_symlink_escape = PACKAGE_DIR != expected_package_dir
+component = ROOT
+for segment in PACKAGE_REPOSITORY_ROOT.split("/"):
+    component /= segment
+    if component.is_symlink():
+        package_dir_symlink_escape = True
+package_dir_canonical_match = PACKAGE_DIR == expected_package_dir
+print(f"PACKAGE_DIR_CANONICAL_MATCH={str(package_dir_canonical_match).lower()}")
+print(f"PACKAGE_DIR_OUTSIDE_WORKTREE={str(package_dir_outside_worktree).lower()}")
+print(f"PACKAGE_DIR_SYMLINK_ESCAPE={str(package_dir_symlink_escape).lower()}")
+if not package_dir_canonical_match or package_dir_outside_worktree or package_dir_symlink_escape:
+    raise AssertionError("PACKAGE_DIR is not the repository authorization package")
 BACKEND = ROOT / "backend"
 if not BACKEND.is_dir():
     raise SystemExit(f"missing backend at {BACKEND}")
@@ -45,7 +61,7 @@ git(
     "cat-file", "-e", f"{BASE_SHA}:docs/forecast-quality/s3-round-a-authorization-package/README.md"
 )
 git("cat-file", "-e", f"{ACCEPTED_SHA}^{{commit}}")
-package_root = "docs/forecast-quality/s3-round-a-authorization-package"
+package_root = PACKAGE_REPOSITORY_ROOT
 expected_package_files = {
     "README.md",
     "implementation-authorization.md",
@@ -2080,50 +2096,146 @@ if root_payload["baseline_grain"] != canonical.BASELINE_GRAIN:
 if root_payload["baseline_horizon_rule"] != canonical.BASELINE_HORIZON_RULE:
     raise AssertionError("baseline horizon rule constant drift")
 
-canonical_source_map = {}
+
+@dataclasses.dataclass(frozen=True)
+class SourceRecord:
+    canonical_path: str
+    source_schema: str
+    source_field: str
+    read_source: Any
+    normalize: Any
+    nullable: bool = False
+    sentinel: str = "NONE"
 
 
-def add_source(section: str, field: str, source_schema: str, source_field: str) -> None:
-    canonical_source_map[f"{section}.{field}"] = {
-        "source_schema": source_schema,
-        "source_field": source_field,
-        "nullable": field in {"baseline_point_forecast_kg", "coverage_ratio"},
-        "sentinel": "EXPLICIT_JSON_NULL_ONLY"
-        if field in {"baseline_point_forecast_kg", "coverage_ratio"}
-        else "NONE",
-        "identity_participation": True,
+def normalize_source(value: Any) -> Any:
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    if hasattr(value, "value") and not isinstance(value, (str, bytes)):
+        return normalize_source(value.value)
+    if isinstance(value, Mapping):
+        return tuple(sorted((str(key), normalize_source(item)) for key, item in value.items()))
+    if isinstance(value, (list, tuple)):
+        return tuple(normalize_source(item) for item in value)
+    return value
+
+
+source_context = {
+    "S3EvaluationInput": evaluation_input,
+    "BaselineRequest": canonical_request,
+    "BaselineSourceSnapshot": canonical_snapshot,
+    "BaselineResult": canonical_baseline_result,
+    "DailyMetricResult": metric_result,
+    "BreakdownSpec": breakdown_spec,
+}
+
+
+def normalized_breakdown_identity(spec: Any) -> dict[str, Any]:
+    return {
+        field: read_value(spec, field)
+        for field in (
+            "forecast_horizon_days",
+            "farm_business_key",
+            "subfarm_business_key",
+            "variety_business_key",
+            "season_business_key",
+            "model_identity",
+        )
     }
 
 
+canonical_source_map: list[SourceRecord] = []
+
+
+def add_source(
+    section: str,
+    field: str,
+    source_schema: str,
+    source_field: str,
+    reader: Any,
+    *,
+    nullable: bool = False,
+    sentinel: str = "NONE",
+) -> None:
+    canonical_source_map.append(
+        SourceRecord(
+            canonical_path=f"{section}.{field}",
+            source_schema=source_schema,
+            source_field=source_field,
+            read_source=reader,
+            normalize=normalize_source,
+            nullable=nullable,
+            sentinel=sentinel,
+        )
+    )
+
+
 for field in ("s2_run_identity", "s2_manifest_identity", "s2_binding_row_set_hash"):
-    add_source("root", field, "S3EvaluationInput", field)
-for field in (
-    "baseline_source_snapshot_identity",
-    "baseline_source_snapshot_hash",
-    "baseline_source_row_set_hash",
-    "baseline_source_visibility_manifest_hash",
-    "baseline_source_visibility_cutoff_at",
-):
-    source_field = {
-        "baseline_source_snapshot_identity": "source_snapshot_identity",
-        "baseline_source_snapshot_hash": "source_snapshot_hash",
-        "baseline_source_row_set_hash": "source_row_set_hash",
-        "baseline_source_visibility_manifest_hash": "visibility_manifest_hash",
-        "baseline_source_visibility_cutoff_at": "visibility_cutoff_at",
-    }[field]
-    add_source("root", field, "BaselineSourceSnapshot", source_field)
-add_source("root", "baseline_policy_version", "BaselineRequest", "baseline_policy_version")
+    add_source(
+        "root",
+        field,
+        "S3EvaluationInput",
+        field,
+        lambda ctx, field=field: read_value(ctx["S3EvaluationInput"], field),
+    )
+for field, source_field in {
+    "baseline_source_snapshot_identity": "source_snapshot_identity",
+    "baseline_source_snapshot_hash": "source_snapshot_hash",
+    "baseline_source_row_set_hash": "source_row_set_hash",
+    "baseline_source_visibility_manifest_hash": "visibility_manifest_hash",
+    "baseline_source_visibility_cutoff_at": "visibility_cutoff_at",
+}.items():
+    add_source(
+        "root",
+        field,
+        "BaselineSourceSnapshot",
+        source_field,
+        lambda ctx, source_field=source_field: read_value(
+            ctx["BaselineSourceSnapshot"], source_field
+        ),
+    )
+add_source(
+    "root",
+    "baseline_policy_version",
+    "BaselineRequest",
+    "baseline_policy_version",
+    lambda ctx: read_value(ctx["BaselineRequest"], "baseline_policy_version"),
+)
 add_source(
     "root",
     "season_analog_mapping_policy_version",
     "BaselineSourceSnapshot",
     "season_analog_mapping_policy_version",
+    lambda ctx: read_value(ctx["BaselineSourceSnapshot"], "season_analog_mapping_policy_version"),
 )
-add_source("root", "prior_season_identity", "BaselineRequest", "prior_season_identity")
-add_source("root", "schema_version", "FrozenConstant", "BASELINE_SCHEMA_VERSION")
-add_source("root", "baseline_grain", "FrozenConstant", "BASELINE_GRAIN")
-add_source("root", "baseline_horizon_rule", "FrozenConstant", "BASELINE_HORIZON_RULE")
-add_source("root", "breakdown_dimensions", "BreakdownSpec", "six_axis_normalized_identity")
+add_source(
+    "root",
+    "prior_season_identity",
+    "BaselineRequest",
+    "prior_season_identity",
+    lambda ctx: read_value(ctx["BaselineRequest"], "prior_season_identity"),
+)
+for field, constant_name in (
+    ("schema_version", "BASELINE_SCHEMA_VERSION"),
+    ("baseline_grain", "BASELINE_GRAIN"),
+    ("baseline_horizon_rule", "BASELINE_HORIZON_RULE"),
+):
+    add_source(
+        "root",
+        field,
+        "FrozenConstant",
+        constant_name,
+        lambda _ctx, constant_name=constant_name: getattr(canonical, constant_name),
+    )
+add_source(
+    "root",
+    "breakdown_dimensions",
+    "BreakdownSpec",
+    "six_axis_normalized_identity",
+    lambda ctx: normalized_breakdown_identity(ctx["BreakdownSpec"]),
+)
 for field in (
     "s2_total_binding_row_count",
     "s2_comparable_binding_row_count",
@@ -2136,10 +2248,32 @@ for field in (
     "metric_input_quantile",
     "unique_actual_physical_row_count",
 ):
-    add_source("root", field, "DailyMetricResult", field)
-add_source("root", "per_breakdown_cell", "per_breakdown_cell argument", "per_breakdown_cell")
+    add_source(
+        "root",
+        field,
+        "DailyMetricResult",
+        field,
+        lambda ctx, field=field: read_value(ctx["DailyMetricResult"], field),
+        nullable=field == "coverage_ratio",
+        sentinel="EXPLICIT_JSON_NULL_ONLY" if field == "coverage_ratio" else "NONE",
+    )
+add_source(
+    "root",
+    "per_breakdown_cell",
+    "per_breakdown_cell argument",
+    "per_breakdown_cell",
+    lambda ctx: ctx["per_breakdown_cell"],
+)
 for field in ("baseline_point_forecast_kg", "metric_status", "reason_code"):
-    add_source("cell", field, "BaselineResult", field)
+    add_source(
+        "cell",
+        field,
+        "BaselineResult",
+        field,
+        lambda ctx, field=field: read_value(ctx["BaselineResult"], field),
+        nullable=field == "baseline_point_forecast_kg",
+        sentinel="EXPLICIT_JSON_NULL_ONLY" if field == "baseline_point_forecast_kg" else "NONE",
+    )
 for field in (
     "s2_total_binding_row_count",
     "s2_comparable_binding_row_count",
@@ -2154,7 +2288,15 @@ for field in (
     "mape_eligible_row_count",
     "mape_zero_actual_row_count",
 ):
-    add_source("cell", field, "DailyMetricResult", field)
+    add_source(
+        "cell",
+        field,
+        "DailyMetricResult",
+        field,
+        lambda ctx, field=field: read_value(ctx["DailyMetricResult"], field),
+        nullable=field == "coverage_ratio",
+        sentinel="EXPLICIT_JSON_NULL_ONLY" if field == "coverage_ratio" else "NONE",
+    )
 
 source_schema_fields = {
     schema_name: set(field_names(getattr(schemas, schema_name)))
@@ -2167,30 +2309,49 @@ source_schema_fields = {
         "BreakdownSpec",
     )
 }
-source_field_missing = 0
 source_schema_missing = 0
+source_field_missing = 0
 source_field_name_mismatch = 0
-for mapping in canonical_source_map.values():
-    source_schema = mapping["source_schema"]
-    source_field = mapping["source_field"]
-    if source_schema == "FrozenConstant" or source_schema == "per_breakdown_cell argument":
-        continue
-    if source_schema not in source_schema_fields:
-        source_schema_missing += 1
-    elif source_field == "six_axis_normalized_identity":
-        if len(field_names(schemas.BreakdownSpec)) != 6:
-            source_field_name_mismatch += 1
-    elif source_field not in source_schema_fields[source_schema]:
-        source_field_missing += 1
-if source_schema_missing or source_field_missing or source_field_name_mismatch:
-    raise AssertionError("baseline canonical source schema drift")
 source_value_mismatch = 0
-for key, mapping in canonical_source_map.items():
-    section, field = key.split(".", 1)
+frozen_constant_mismatch = 0
+for record in canonical_source_map:
+    if record.source_schema in {"FrozenConstant", "per_breakdown_cell argument"}:
+        actual_value = record.read_source({**source_context, "per_breakdown_cell": [cell_payload]})
+        if record.source_schema == "FrozenConstant" and not hasattr(canonical, record.source_field):
+            frozen_constant_mismatch += 1
+        if (
+            record.source_schema == "per_breakdown_cell argument"
+            and record.source_field != "per_breakdown_cell"
+        ):
+            source_field_name_mismatch += 1
+    else:
+        if record.source_schema not in source_schema_fields:
+            source_schema_missing += 1
+            continue
+        if (
+            record.source_field != "six_axis_normalized_identity"
+            and record.source_field not in source_schema_fields[record.source_schema]
+        ):
+            source_field_missing += 1
+            continue
+        if (
+            record.source_field == "six_axis_normalized_identity"
+            and len(source_schema_fields[record.source_schema]) != 6
+        ):
+            source_field_name_mismatch += 1
+        actual_value = record.read_source(source_context)
+    section, field = record.canonical_path.split(".", 1)
     payload = root_payload if section == "root" else cell_payload
-    source_value_mismatch += int(payload[field] is None and not mapping["nullable"])
-if source_value_mismatch:
-    raise AssertionError("baseline canonical source value drift")
+    if normalize_source(actual_value) != normalize_source(payload[field]):
+        source_value_mismatch += 1
+if (
+    source_schema_missing
+    or source_field_missing
+    or source_field_name_mismatch
+    or source_value_mismatch
+    or frozen_constant_mismatch
+):
+    raise AssertionError("baseline canonical source map value drift")
 
 mutation_cases = [
     ("s2_run_identity", dataclasses.replace(evaluation_input, s2_run_identity="s2-run-mutated")),
@@ -2252,6 +2413,7 @@ if mutation_failures:
 valid_null_cases = 0
 invalid_null_rejections = 0
 not_computable_cases = 0
+valid_null_case_rows: list[str] = []
 for quantile in ("P80", "P90"):
     result = baseline.resolve_baseline_point_forecast(
         make_baseline_request(date(2025, 2, 10), datetime(2025, 2, 15, tzinfo=UTC), quantile),
@@ -2259,6 +2421,11 @@ for quantile in ("P80", "P90"):
     )
     _, null_cell = build_canonical_parts(result=result)
     valid_null_cases += int(null_cell["baseline_point_forecast_kg"] is None)
+    valid_null_case_rows.append(
+        f"{quantile}|cell.baseline_point_forecast_kg|null|{null_cell['baseline_point_forecast_kg']}|"
+        f"{read_value(result, 'metric_status')}|{read_value(result, 'reason_code')}|"
+        f"{'PASS' if null_cell['baseline_point_forecast_kg'] is None else 'FAIL'}"
+    )
     not_computable_cases += 1
 for fixture_id, overrides, rows in (
     ("no_analog_day", {"prior_season_end": date(2024, 3, 1)}, []),
@@ -2277,6 +2444,11 @@ for fixture_id, overrides, rows in (
     result = baseline.resolve_baseline_point_forecast(request, make_baseline_snapshot(rows))
     _, null_cell = build_canonical_parts(result=result)
     valid_null_cases += int(null_cell["baseline_point_forecast_kg"] is None)
+    valid_null_case_rows.append(
+        f"{fixture_id}|cell.baseline_point_forecast_kg|null|{null_cell['baseline_point_forecast_kg']}|"
+        f"{read_value(result, 'metric_status')}|{read_value(result, 'reason_code')}|"
+        f"{'PASS' if null_cell['baseline_point_forecast_kg'] is None else 'FAIL'}"
+    )
     not_computable_cases += 1
 zero_metric = dataclasses.replace(
     metric_result,
@@ -2299,31 +2471,95 @@ zero_root, _ = build_canonical_parts(
     evaluation=zero_eval, result=zero_baseline, metrics=zero_metric
 )
 valid_null_cases += int(zero_root["coverage_ratio"] is None)
+valid_null_case_rows.append(
+    f"zero-total-rows|root.coverage_ratio|null|{zero_root['coverage_ratio']}|"
+    f"{read_value(zero_baseline, 'metric_status')}|{read_value(zero_baseline, 'reason_code')}|"
+    f"{'PASS' if zero_root['coverage_ratio'] is None else 'FAIL'}"
+)
 not_computable_cases += 1
-for invalid_metric, invalid_result in (
-    (dataclasses.replace(metric_result, coverage_ratio=None), canonical_baseline_result),
+invalid_null_cases = [
     (
-        metric_result,
-        dataclasses.replace(
-            canonical_baseline_result,
-            baseline_point_forecast_kg=Decimal("1.000000"),
-            metric_status=enums.MetricStatus.NOT_COMPUTABLE,
+        "computed-null-point-cell",
+        lambda: canonical.build_baseline_canonical_payload_cell(
+            baseline_result=dataclasses.replace(
+                canonical_baseline_result, baseline_point_forecast_kg=None
+            ),
+            metric_result=metric_result,
         ),
     ),
-):
+    (
+        "not-computable-non-null-point-cell",
+        lambda: canonical.build_baseline_canonical_payload_cell(
+            baseline_result=dataclasses.replace(
+                canonical_baseline_result,
+                baseline_point_forecast_kg=Decimal("1.000000"),
+                metric_status=enums.MetricStatus.NOT_COMPUTABLE,
+            ),
+            metric_result=metric_result,
+        ),
+    ),
+    (
+        "null-identity-root",
+        lambda: canonical.build_baseline_canonical_payload_root(
+            evaluation_input=dataclasses.replace(evaluation_input, s2_run_identity=None),
+            baseline_request=canonical_request,
+            source_snapshot=canonical_snapshot,
+            baseline_result=canonical_baseline_result,
+            metric_result=metric_result,
+            breakdown_spec=breakdown_spec,
+            per_breakdown_cell=[cell_payload],
+        ),
+    ),
+    (
+        "zero-total-numeric-coverage-root",
+        lambda: canonical.build_baseline_canonical_payload_root(
+            evaluation_input=zero_eval,
+            baseline_request=canonical_request,
+            source_snapshot=canonical_snapshot,
+            baseline_result=zero_baseline,
+            metric_result=dataclasses.replace(zero_metric, coverage_ratio=Decimal("1.000000")),
+            breakdown_spec=breakdown_spec,
+            per_breakdown_cell=[cell_payload],
+        ),
+    ),
+    (
+        "nonzero-null-coverage-cell-and-root",
+        lambda: (
+            canonical.build_baseline_canonical_payload_cell(
+                baseline_result=canonical_baseline_result,
+                metric_result=dataclasses.replace(metric_result, coverage_ratio=None),
+            ),
+            canonical.build_baseline_canonical_payload_root(
+                evaluation_input=evaluation_input,
+                baseline_request=canonical_request,
+                source_snapshot=canonical_snapshot,
+                baseline_result=canonical_baseline_result,
+                metric_result=dataclasses.replace(metric_result, coverage_ratio=None),
+                breakdown_spec=breakdown_spec,
+                per_breakdown_cell=[cell_payload],
+            ),
+        ),
+    ),
+]
+for _case_id, invalid_builder in invalid_null_cases:
     try:
-        build_canonical_parts(metrics=invalid_metric, result=invalid_result)
+        invalid_builder()
     except (TypeError, ValueError):
         invalid_null_rejections += 1
-if invalid_null_rejections != 2:
+valid_null_failure_count = int(valid_null_cases != 6)
+invalid_null_unexpected_accept_count = int(invalid_null_rejections != 5)
+if valid_null_failure_count or invalid_null_unexpected_accept_count:
     raise AssertionError("conditional canonical nullability checks incomplete")
 print("BASELINE_CANONICAL_SOURCE_MAP_BEGIN")
-for key in sorted(canonical_source_map):
-    mapping = canonical_source_map[key]
+for mapping in sorted(canonical_source_map, key=lambda item: item.canonical_path):
     print(
-        f"{key}|source_schema={mapping['source_schema']}|source_field={mapping['source_field']}|nullable={str(mapping['nullable']).lower()}|sentinel={mapping['sentinel']}|identity_participation=true"
+        f"{mapping.canonical_path}|source_schema={mapping.source_schema}|source_field={mapping.source_field}|nullable={str(mapping.nullable).lower()}|sentinel={mapping.sentinel}|identity_participation=true"
     )
 print("BASELINE_CANONICAL_SOURCE_MAP_END")
+print("BASELINE_CANONICAL_VALID_NULL_CASE_MATRIX_BEGIN")
+print("case_id|canonical_section_field|expected_value|actual_value|status|reason|result")
+print("\n".join(valid_null_case_rows))
+print("BASELINE_CANONICAL_VALID_NULL_CASE_MATRIX_END")
 print("BASELINE_CANONICAL_ROOT_FIELD_COUNT=26")
 print("BASELINE_CANONICAL_CELL_FIELD_COUNT=15")
 print("BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0")
@@ -2332,16 +2568,27 @@ print("BASELINE_CELL_FIELD_SET_EQUALITY=true")
 print("BASELINE_CANONICAL_NULLABILITY_RULE_COUNT=5")
 print(f"BASELINE_CANONICAL_VALID_NULL_CASE_COUNT={valid_null_cases}")
 print(f"BASELINE_CANONICAL_INVALID_NULL_REJECTION_COUNT={invalid_null_rejections}")
-print("BASELINE_CANONICAL_NULLABILITY_MISMATCH_COUNT=0")
+print(f"BASELINE_CANONICAL_VALID_NULL_CASE_FAILURE_COUNT={valid_null_failure_count}")
+print(
+    f"BASELINE_CANONICAL_INVALID_NULL_UNEXPECTED_ACCEPT_COUNT={invalid_null_unexpected_accept_count}"
+)
+print(f"BASELINE_CANONICAL_VALID_NULL_CASE_COUNT_EXPECTED={6}")
+print(f"BASELINE_CANONICAL_INVALID_NULL_REJECTION_COUNT_EXPECTED={5}")
+print("ROOT_NULLABILITY_VALIDATION=PASS")
+print("CELL_NULLABILITY_VALIDATION=PASS")
+print(
+    "BASELINE_CANONICAL_NULLABILITY_MISMATCH_COUNT="
+    f"{valid_null_failure_count + invalid_null_unexpected_accept_count}"
+)
 print(f"BASELINE_CANONICAL_NOT_COMPUTABLE_REPLAY_CASE_COUNT={not_computable_cases}")
 print("BASELINE_CANONICAL_NOT_COMPUTABLE_REPLAY_FAILURE_COUNT=0")
-print("BASELINE_CANONICAL_REQUIRED_FIELD_NULL_COUNT=0")
-print("BASELINE_CANONICAL_SOURCE_MAP_MISMATCH_COUNT=0")
-print("BASELINE_CANONICAL_SOURCE_MAP_RECORD_COUNT=41")
-print("BASELINE_CANONICAL_SOURCE_SCHEMA_MISSING_COUNT=0")
-print("BASELINE_CANONICAL_SOURCE_FIELD_MISSING_COUNT=0")
-print("BASELINE_CANONICAL_SOURCE_FIELD_NAME_MISMATCH_COUNT=0")
-print("BASELINE_CANONICAL_SOURCE_VALUE_MISMATCH_COUNT=0")
+print(f"BASELINE_CANONICAL_SOURCE_MAP_RECORD_COUNT={len(canonical_source_map)}")
+print(f"BASELINE_CANONICAL_SOURCE_SCHEMA_MISSING_COUNT={source_schema_missing}")
+print(f"BASELINE_CANONICAL_SOURCE_FIELD_MISSING_COUNT={source_field_missing}")
+print(f"BASELINE_CANONICAL_SOURCE_FIELD_NAME_MISMATCH_COUNT={source_field_name_mismatch}")
+print(f"BASELINE_CANONICAL_SOURCE_VALUE_MISMATCH_COUNT={source_value_mismatch}")
+print(f"BASELINE_CANONICAL_FROZEN_CONSTANT_MISMATCH_COUNT={frozen_constant_mismatch}")
+print("BASELINE_CANONICAL_SOURCE_MAP_CROSS_DOCUMENT_MISMATCH_COUNT=0")
 print("BASELINE_CANONICAL_CALLER_INJECTION_SURFACE_COUNT=0")
 print(f"BASELINE_CANONICAL_PROVENANCE_MUTATION_CASE_COUNT={len(mutation_cases)}")
 print(f"BASELINE_CANONICAL_PROVENANCE_MUTATION_FAILURE_COUNT={mutation_failures}")
