@@ -3,6 +3,50 @@ set -euo pipefail
 
 PACKAGE_REPOSITORY_ROOT="docs/forecast-quality/s3-round-a-authorization-package"
 SCRIPT_HASH_PREFIX="${PACKAGE_REPOSITORY_ROOT}/acceptance/"
+PACKAGE_FILES=(
+  "README.md"
+  "implementation-authorization.md"
+  "authorized-paths.txt"
+  "authorized-test-modules.txt"
+  "public-symbol-owners.txt"
+  "schema-enum-contract.md"
+  "evidence-package-contract.md"
+  "acceptance/01_changed_path_gate.sh"
+  "acceptance/02_runtime_policy_audit.py"
+  "acceptance/03_test_gate.sh"
+  "acceptance/04_static_gate.sh"
+  "acceptance/SHA256SUMS"
+)
+
+validate_package_identity() {
+  local repo="$1" accepted_sha="$2" expected_tree="$3" base_sha="$4" package_dir="$5"
+  local accepted_tree base_tree expected_files accepted_files base_files current_files
+  accepted_tree="$(git -C "${repo}" rev-parse "${accepted_sha}:${PACKAGE_REPOSITORY_ROOT}")"
+  base_tree="$(git -C "${repo}" rev-parse "${base_sha}:${PACKAGE_REPOSITORY_ROOT}")"
+  expected_files="$(printf '%s\n' "${PACKAGE_FILES[@]}" | sort)"
+  accepted_files="$(git -C "${repo}" ls-tree -r --name-only "${accepted_sha}:${PACKAGE_REPOSITORY_ROOT}" | sort)"
+  base_files="$(git -C "${repo}" ls-tree -r --name-only "${base_sha}:${PACKAGE_REPOSITORY_ROOT}" | sort)"
+  current_files="$(cd "${package_dir}" && find . -type f -print | sed 's#^\./##' | sort)"
+  local drift_count=0 file_set_mismatch=0
+  git diff --quiet "${base_sha}" -- "${PACKAGE_REPOSITORY_ROOT}" || drift_count=$((drift_count + 1))
+  git diff --cached --quiet -- "${PACKAGE_REPOSITORY_ROOT}" || drift_count=$((drift_count + 1))
+  [[ -z "$(git -C "${repo}" ls-files --others --exclude-standard -- "${PACKAGE_REPOSITORY_ROOT}")" ]] || drift_count=$((drift_count + 1))
+  [[ "${accepted_tree}" == "${expected_tree}" && "${base_tree}" == "${expected_tree}" ]] || file_set_mismatch=1
+  [[ "${accepted_files}" == "${expected_files}" && "${base_files}" == "${expected_files}" && "${current_files}" == "${expected_files}" ]] || file_set_mismatch=1
+  printf 'AUTHORIZATION_PACKAGE_EXPECTED_FILE_COUNT=12\n'
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_FILE_COUNT=%s\n' "$(printf '%s\n' "${accepted_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  printf 'AUTHORIZATION_PACKAGE_BASE_FILE_COUNT=%s\n' "$(printf '%s\n' "${base_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  printf 'AUTHORIZATION_PACKAGE_CURRENT_FILE_COUNT=%s\n' "$(printf '%s\n' "${current_files}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_TREE_OID=%s\n' "${accepted_tree}"
+  printf 'AUTHORIZATION_PACKAGE_BASE_TREE_OID=%s\n' "${base_tree}"
+  printf 'AUTHORIZATION_PACKAGE_EXPECTED_TREE_OID=%s\n' "${expected_tree}"
+  printf 'AUTHORIZATION_PACKAGE_ACCEPTED_TREE_MISMATCH_COUNT=%s\n' "$([[ "${accepted_tree}" == "${expected_tree}" ]] && echo 0 || echo 1)"
+  printf 'AUTHORIZATION_PACKAGE_BASE_TREE_MISMATCH_COUNT=%s\n' "$([[ "${base_tree}" == "${expected_tree}" ]] && echo 0 || echo 1)"
+  printf 'AUTHORIZATION_PACKAGE_CURRENT_WORKTREE_DRIFT_COUNT=%s\n' "${drift_count}"
+  printf 'AUTHORIZATION_PACKAGE_FILE_SET_MISMATCH_COUNT=%s\n' "${file_set_mismatch}"
+  test "${file_set_mismatch}" = "0"
+  test "${drift_count}" = "0"
+}
 
 validate_hash_records() {
   local repo="$1" base_sha="$2" sha_file="$3"
@@ -87,16 +131,23 @@ PY
   exit 0
 fi
 
+: "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA:?AUTHORIZATION_PACKAGE_ACCEPTED_SHA is required}"
+: "${AUTHORIZATION_PACKAGE_TREE_OID:?AUTHORIZATION_PACKAGE_TREE_OID is required}"
 : "${IMPLEMENTATION_BASE_SHA:?IMPLEMENTATION_BASE_SHA is required}"
-ROUND_A_WORKTREE="${ROUND_A_WORKTREE:-$(git rev-parse --show-toplevel)}"
-PACKAGE_DIR="${PACKAGE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+: "${ROUND_A_WORKTREE:?ROUND_A_WORKTREE is required}"
+: "${PACKAGE_DIR:?PACKAGE_DIR is required}"
+ROUND_A_WORKTREE="$(cd "${ROUND_A_WORKTREE}" && pwd -P)"
+PACKAGE_DIR="$(cd "${PACKAGE_DIR}" && pwd -P)"
 AUTHORIZED_FILE="${PACKAGE_DIR}/authorized-paths.txt"
 PACKAGE_SHA_FILE="${PACKAGE_DIR}/acceptance/SHA256SUMS"
 cd "${ROUND_A_WORKTREE}"
 
+git cat-file -e "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA}^{commit}"
 git cat-file -e "${IMPLEMENTATION_BASE_SHA}^{commit}"
 git merge-base --is-ancestor "${IMPLEMENTATION_BASE_SHA}" HEAD
 git cat-file -e "${IMPLEMENTATION_BASE_SHA}:${PACKAGE_REPOSITORY_ROOT}/README.md"
+validate_package_identity "${ROUND_A_WORKTREE}" "${AUTHORIZATION_PACKAGE_ACCEPTED_SHA}" \
+  "${AUTHORIZATION_PACKAGE_TREE_OID}" "${IMPLEMENTATION_BASE_SHA}" "${PACKAGE_DIR}"
 validate_hash_records "${ROUND_A_WORKTREE}" "${IMPLEMENTATION_BASE_SHA}" "${PACKAGE_SHA_FILE}"
 test -f "${AUTHORIZED_FILE}"
 git diff --check
@@ -111,6 +162,51 @@ while IFS= read -r path; do
 done < <(awk -F ' \\| ' '$1 ~ /^backend\/tests\/forecast_quality\/test_.*\.py$/ && $2 == "CREATE" {print $1}' "${AUTHORIZED_FILE}")
 test "${#app_paths[@]}" = "9"
 test "${#test_paths[@]}" = "17"
+
+python3 - "${app_paths[@]}" "${test_paths[@]}" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+paths = [Path(path) for path in sys.argv[1:]]
+counts = {
+    "FILE_WIDE_MYPY_IGNORE_COUNT": 0,
+    "FILE_WIDE_RUFF_NOQA_COUNT": 0,
+    "BARE_TYPE_IGNORE_COUNT": 0,
+    "BARE_NOQA_COUNT": 0,
+    "TARGETED_TYPE_IGNORE_COUNT": 0,
+    "TARGETED_NOQA_COUNT": 0,
+}
+for path in paths:
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if re.match(r"^\s*#\s*mypy:\s*ignore-errors\b", line):
+            counts["FILE_WIDE_MYPY_IGNORE_COUNT"] += 1
+        if re.match(r"^\s*#\s*(?:ruff|flake8):\s*noqa\b", line):
+            counts["FILE_WIDE_RUFF_NOQA_COUNT"] += 1
+        if re.search(r"#\s*type:\s*ignore(?:\s*$|\s+#)", line):
+            counts["BARE_TYPE_IGNORE_COUNT"] += 1
+        elif re.search(r"#\s*type:\s*ignore\[", line):
+            counts["TARGETED_TYPE_IGNORE_COUNT"] += 1
+        if re.search(r"#\s*noqa\s*$", line):
+            counts["BARE_NOQA_COUNT"] += 1
+        elif re.search(r"#\s*noqa:\s*", line):
+            counts["TARGETED_NOQA_COUNT"] += 1
+for key, value in counts.items():
+    print(f"{key}={value}")
+if any(counts.values()):
+    raise SystemExit("static suppression found")
+PY
+
+ROOT_RUFF_CHECK_EXIT_CODE=0
+ROOT_RUFF_FORMAT_CHECK_EXIT_CODE=0
+ROOT_MYPY_EXIT_CODE=0
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy backend/app
+printf 'ROOT_RUFF_CHECK_EXIT_CODE=%s\n' "${ROOT_RUFF_CHECK_EXIT_CODE}"
+printf 'ROOT_RUFF_FORMAT_CHECK_EXIT_CODE=%s\n' "${ROOT_RUFF_FORMAT_CHECK_EXIT_CODE}"
+printf 'ROOT_MYPY_EXIT_CODE=%s\n' "${ROOT_MYPY_EXIT_CODE}"
+printf 'PACKAGE_PYTHON_RUFF_PATH_COUNT=1\n'
 
 python3 - "${app_paths[@]}" "${test_paths[@]}" <<'PY'
 import ast, sys

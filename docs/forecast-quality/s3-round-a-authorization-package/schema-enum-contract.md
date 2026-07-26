@@ -73,9 +73,9 @@ surfaces.
 | `FarmDailyActualAggregate` | `season_business_key:str:N:Y`, `farm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `target_date:date:N:Y`, `actual_value_kg:Decimal:N:Y`, `unique_actual_physical_rows:int:N:Y` | `schemas.py` |
 | `FarmDailyForecastAggregate` | `season_business_key:str:N:Y`, `farm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `target_date:date:N:Y`, `forecast_cutoff_at:datetime:N:Y`, `model_identity:str:N:Y`, `forecast_quantile:SupportedQuantile:N:Y`, `forecast_horizon_days:int:N:Y`, `forecast_value_kg:Decimal:N:Y`, `source_forecast_business_keys:Sequence[str]:N:Y` | `schemas.py` |
 | `MetricValueCell` | `metric_name:str:N:Y`, `metric_value:Decimal|None:Y:Y`, `metric_status:MetricStatus:N:Y`, `reason_code:ReasonCode:N:Y`, `numerator:Decimal|None:Y:Y`, `denominator:Decimal|None:Y:Y`, `mape_eligible_row_count:int:N:Y`, `mape_zero_actual_row_count:int:N:Y` | `schemas.py` |
-| `DailyMetricResult` | `s2_run_identity:str:N:Y`, `s2_manifest_identity:str:N:Y`, `s2_binding_row_set_hash:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y`, `breakdown_identity:dict[str,str|int]:N:Y`, `s2_total_binding_row_count:int:N:Y`, `s2_comparable_binding_row_count:int:N:Y`, `s2_excluded_binding_row_count:int:N:Y`, `s2_not_computable_binding_row_count:int:N:Y`, `coverage_ratio:Decimal|None:Y:Y`, `metric_input_mask_hash:str:N:Y`, `metric_input_row_count:int:N:Y`, `metric_input_quantile:SupportedQuantile:N:Y`, `unique_actual_physical_row_count:int:N:Y`, `mape_eligible_row_count:int:N:Y`, `mape_zero_actual_row_count:int:N:Y`, `mape_zero_actual_reason_code:ReasonCode|None:Y:Y`, `metric_cells:Sequence[MetricValueCell]:N:Y`, `canonical_hash:str:N:Y` | `schemas.py` |
+| `DailyMetricResult` | `s2_run_identity:str:N:Y`, `s2_manifest_identity:str:N:Y`, `s2_binding_row_set_hash:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y`, `breakdown_identity:dict[str,str|int]:N:Y`, `s2_total_binding_row_count:int:N:Y`, `s2_comparable_binding_row_count:int:N:Y`, `s2_excluded_binding_row_count:int:N:Y`, `s2_not_computable_binding_row_count:int:N:Y`, `coverage_ratio:Decimal|None:Y:Y`, `metric_input_mask_policy_version:FrozenVersion:N:Y`, `metric_input_mask_hash:str:N:Y`, `metric_input_row_count:int:N:Y`, `metric_input_quantile:SupportedQuantile:N:Y`, `unique_actual_physical_row_count:int:N:Y`, `mape_eligible_row_count:int:N:Y`, `mape_zero_actual_row_count:int:N:Y`, `mape_zero_actual_reason_code:ReasonCode|None:Y:Y`, `metric_cells:Sequence[MetricValueCell]:N:Y`, `canonical_hash:str:N:Y` | `schemas.py` |
 | `BreakdownSpec` | `forecast_horizon_days:int:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `season_business_key:str:N:Y`, `model_identity:str:N:Y` | `schemas.py` |
-| `BaselineRequest` | `current_target_date:date:N:Y`, `current_season_start:date:N:Y`, `current_season_end:date:N:Y`, `prior_season_start:date:N:Y`, `prior_season_end:date:N:Y`, `current_forecast_cutoff_at:datetime:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `requested_quantile:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y` | `schemas.py` |
+| `BaselineRequest` | `current_target_date:date:N:Y`, `current_season_start:date:N:Y`, `current_season_end:date:N:Y`, `prior_season_start:date:N:Y`, `prior_season_end:date:N:Y`, `prior_season_identity:str:N:Y`, `current_forecast_cutoff_at:datetime:N:Y`, `farm_business_key:str:N:Y`, `subfarm_business_key:str:N:Y`, `variety_business_key:str:N:Y`, `requested_quantile:str:N:Y`, `metric_policy_version:FrozenVersion:N:Y`, `baseline_policy_version:FrozenVersion:N:Y` | `schemas.py` |
 | `BaselineSourceSnapshot` | `source_snapshot_identity:str:N:Y`, `source_snapshot_hash:str:N:Y`, `source_row_set_hash:str:N:Y`, `visibility_manifest_hash:str:N:Y`, `visibility_cutoff_at:datetime:N:Y`, `season_analog_mapping_policy_version:FrozenVersion:N:Y`, `actual_rows:Sequence[Mapping[str,Any]]:N:Y` | `schemas.py` |
 | `BaselineResult` | `baseline_point_forecast_kg:Decimal|None:Y:Y`, `baseline_quantile:str:N:Y`, `comparison_availability:ComparisonAvailability:N:Y`, `metric_status:MetricStatus:N:Y`, `reason_code:ReasonCode:N:Y`, `analog_date:date|None:Y:Y`, `source_snapshot_identity:str:N:Y`, `source_snapshot_hash:str:N:Y`, `source_row_set_hash:str:N:Y`, `visibility_manifest_hash:str:N:Y`, `canonical_hash:str:N:Y` | `schemas.py` |
 
@@ -109,60 +109,72 @@ MIN_COMPARABLE_ROWS_FOR_REPORTING_VALUE=10
 CALLER_CONFIGURABLE_MINIMUM_SAMPLE_SIZE=false
 ```
 
-Round A uses the explicit multi-parameter canonical builder option rather
-than a second public result schema. The builder receives a mapping with
-`root` and `cell` sections; each section must contain the exact frozen field
-set and no required field may be null. Its source map is:
+Round A uses explicit source-object canonical builders rather than a second
+public result schema or a caller-supplied final mapping:
+
+```text
+build_baseline_canonical_payload_cell(*, baseline_result, metric_result)
+build_baseline_canonical_payload_root(*, evaluation_input, baseline_request,
+  source_snapshot, baseline_result, metric_result, breakdown_spec,
+  per_breakdown_cell)
+```
+
+The builders derive every field from those source objects or a named frozen
+constant. A preassembled `root`/`cell` mapping is not an accepted input. The
+root and cell sections contain the exact frozen field set and preserve
+explicit JSON null where the conditional-nullability rules permit it. Their
+source map is:
 
 ```text
 BASELINE_CANONICAL_SOURCE_MAP=all root and cell fields are sourced from the S2 identities, binding-row manifest, baseline source snapshot, visibility manifest, frozen policy versions, counters, metric mask, requested quantile, and computed baseline result supplied in the builder context
-BASELINE_CANONICAL_BUILDER_INPUT=Mapping[root:26 exact fields,cell:15 exact fields]
-BASELINE_CANONICAL_REQUIRED_FIELD_NULL_POLICY=reject
-BASELINE_CANONICAL_SENTINEL_POLICY=no sentinel for required canonical evidence
-BASELINE_CANONICAL_IDENTITY_PARTICIPATION=all 41 root and cell fields
+BASELINE_CANONICAL_BUILDER_INPUT=SOURCE_OBJECTS_ONLY
+BASELINE_CANONICAL_CALLER_INJECTION_SURFACE_COUNT=0
+BASELINE_CANONICAL_REQUIRED_FIELD_NULL_POLICY=conditional
+BASELINE_CANONICAL_SENTINEL_POLICY=explicit_json_null_only
+BASELINE_CANONICAL_IDENTITY_PARTICIPATION=all 41 root and cell fields, with conditional JSON nulls preserved
 BASELINE_CANONICAL_SOURCE_MAP_FORMAT=canonical_field|source_schema|source_field|nullable|sentinel|identity_participation
 BASELINE_CANONICAL_SOURCE_MAP_RECORDS=
-root.schema_version|BaselineRequest|schema_version|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.s2_run_identity|S2BindingEvidence|s2_run_identity|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.s2_manifest_identity|S2BindingEvidence|s2_manifest_identity|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.s2_binding_row_set_hash|S2BindingEvidence|s2_binding_row_set_hash|false|NONE_FOR_REQUIRED_EVIDENCE|true
+root.schema_version|FrozenConstant|BASELINE_SCHEMA_VERSION|false|NONE|true
+root.s2_run_identity|S3EvaluationInput|s2_run_identity|false|NONE|true
+root.s2_manifest_identity|S3EvaluationInput|s2_manifest_identity|false|NONE|true
+root.s2_binding_row_set_hash|S3EvaluationInput|s2_binding_row_set_hash|false|NONE|true
 root.baseline_source_snapshot_identity|BaselineSourceSnapshot|baseline_source_snapshot_identity|false|NONE_FOR_REQUIRED_EVIDENCE|true
 root.baseline_source_snapshot_hash|BaselineSourceSnapshot|baseline_source_snapshot_hash|false|NONE_FOR_REQUIRED_EVIDENCE|true
 root.baseline_source_row_set_hash|BaselineSourceSnapshot|baseline_source_row_set_hash|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.baseline_source_visibility_manifest_hash|BaselineSourceVisibilityManifest|baseline_source_visibility_manifest_hash|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.baseline_source_visibility_cutoff_at|BaselineSourceVisibilityManifest|baseline_source_visibility_cutoff_at|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.baseline_policy_version|FrozenPolicyVersion|baseline_policy_version|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.season_analog_mapping_policy_version|FrozenPolicyVersion|season_analog_mapping_policy_version|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.prior_season_identity|BaselineRequest|prior_season_identity|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.baseline_grain|BaselineRequest|baseline_grain|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.baseline_horizon_rule|BaselineRequest|baseline_horizon_rule|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.breakdown_dimensions|BaselineRequest|breakdown_dimensions|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.s2_total_binding_row_count|S2BindingCoverage|s2_total_binding_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.s2_comparable_binding_row_count|S2BindingCoverage|s2_comparable_binding_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.s2_excluded_binding_row_count|S2BindingCoverage|s2_excluded_binding_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.s2_not_computable_binding_row_count|S2BindingCoverage|s2_not_computable_binding_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.coverage_ratio|S2BindingCoverage|coverage_ratio|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.metric_input_mask_policy_version|MetricInputMask|metric_input_mask_policy_version|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.metric_input_mask_hash|MetricInputMask|metric_input_mask_hash|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.metric_input_row_count|MetricInputMask|metric_input_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.metric_input_quantile|MetricInputMask|metric_input_quantile|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.unique_actual_physical_row_count|CrossQuantileActualRegistry|unique_actual_physical_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-root.per_breakdown_cell|BreakdownCellSet|per_breakdown_cell|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.baseline_point_forecast_kg|BaselineResult|baseline_point_forecast_kg|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.s2_total_binding_row_count|S2BindingCoverage|s2_total_binding_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.s2_comparable_binding_row_count|S2BindingCoverage|s2_comparable_binding_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.s2_excluded_binding_row_count|S2BindingCoverage|s2_excluded_binding_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.s2_not_computable_binding_row_count|S2BindingCoverage|s2_not_computable_binding_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.coverage_ratio|S2BindingCoverage|coverage_ratio|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.metric_input_mask_policy_version|MetricInputMask|metric_input_mask_policy_version|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.metric_input_mask_hash|MetricInputMask|metric_input_mask_hash|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.metric_input_row_count|MetricInputMask|metric_input_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.metric_input_quantile|MetricInputMask|metric_input_quantile|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.unique_actual_physical_row_count|CrossQuantileActualRegistry|unique_actual_physical_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.mape_eligible_row_count|DailyMetricResult|mape_eligible_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.mape_zero_actual_row_count|DailyMetricResult|mape_zero_actual_row_count|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.metric_status|BaselineResult|metric_status|false|NONE_FOR_REQUIRED_EVIDENCE|true
-cell.reason_code|BaselineResult|reason_code|false|NONE_FOR_REQUIRED_EVIDENCE|true
+root.baseline_source_visibility_manifest_hash|BaselineSourceSnapshot|visibility_manifest_hash|false|NONE|true
+root.baseline_source_visibility_cutoff_at|BaselineSourceSnapshot|visibility_cutoff_at|false|NONE|true
+root.baseline_policy_version|BaselineRequest|baseline_policy_version|false|NONE|true
+root.season_analog_mapping_policy_version|BaselineSourceSnapshot|season_analog_mapping_policy_version|false|NONE|true
+root.prior_season_identity|BaselineRequest|prior_season_identity|false|NONE|true
+root.baseline_grain|FrozenConstant|BASELINE_GRAIN|false|NONE|true
+root.baseline_horizon_rule|FrozenConstant|BASELINE_HORIZON_RULE|false|NONE|true
+root.breakdown_dimensions|BreakdownSpec|six_axis_normalized_identity|false|NONE|true
+root.s2_total_binding_row_count|DailyMetricResult|s2_total_binding_row_count|false|NONE|true
+root.s2_comparable_binding_row_count|DailyMetricResult|s2_comparable_binding_row_count|false|NONE|true
+root.s2_excluded_binding_row_count|DailyMetricResult|s2_excluded_binding_row_count|false|NONE|true
+root.s2_not_computable_binding_row_count|DailyMetricResult|s2_not_computable_binding_row_count|false|NONE|true
+root.coverage_ratio|DailyMetricResult|coverage_ratio|true|EXPLICIT_JSON_NULL_ONLY|true
+root.metric_input_mask_policy_version|DailyMetricResult|metric_input_mask_policy_version|false|NONE|true
+root.metric_input_mask_hash|DailyMetricResult|metric_input_mask_hash|false|NONE|true
+root.metric_input_row_count|DailyMetricResult|metric_input_row_count|false|NONE|true
+root.metric_input_quantile|DailyMetricResult|metric_input_quantile|false|NONE|true
+root.unique_actual_physical_row_count|DailyMetricResult|unique_actual_physical_row_count|false|NONE|true
+root.per_breakdown_cell|per_breakdown_cell argument|per_breakdown_cell|false|NONE|true
+cell.baseline_point_forecast_kg|BaselineResult|baseline_point_forecast_kg|true|EXPLICIT_JSON_NULL_ONLY|true
+cell.s2_total_binding_row_count|DailyMetricResult|s2_total_binding_row_count|false|NONE|true
+cell.s2_comparable_binding_row_count|DailyMetricResult|s2_comparable_binding_row_count|false|NONE|true
+cell.s2_excluded_binding_row_count|DailyMetricResult|s2_excluded_binding_row_count|false|NONE|true
+cell.s2_not_computable_binding_row_count|DailyMetricResult|s2_not_computable_binding_row_count|false|NONE|true
+cell.coverage_ratio|DailyMetricResult|coverage_ratio|true|EXPLICIT_JSON_NULL_ONLY|true
+cell.metric_input_mask_policy_version|DailyMetricResult|metric_input_mask_policy_version|false|NONE|true
+cell.metric_input_mask_hash|DailyMetricResult|metric_input_mask_hash|false|NONE|true
+cell.metric_input_row_count|DailyMetricResult|metric_input_row_count|false|NONE|true
+cell.metric_input_quantile|DailyMetricResult|metric_input_quantile|false|NONE|true
+cell.unique_actual_physical_row_count|DailyMetricResult|unique_actual_physical_row_count|false|NONE|true
+cell.mape_eligible_row_count|DailyMetricResult|mape_eligible_row_count|false|NONE|true
+cell.mape_zero_actual_row_count|DailyMetricResult|mape_zero_actual_row_count|false|NONE|true
+cell.metric_status|BaselineResult|metric_status|false|NONE|true
+cell.reason_code|BaselineResult|reason_code|false|NONE|true
 ```
 
 `FarmDailyForecastAggregate` is a public Round A schema. Its forecast value is
@@ -205,9 +217,9 @@ BASELINE_CANONICAL_CELL_FIELD_COUNT=15
 BASELINE_ROOT_FIELD_SET_EQUALITY=true
 BASELINE_CELL_FIELD_SET_EQUALITY=true
 BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0
-BASELINE_CANONICAL_NON_NULL_REQUIRED_FIELD_COUNT=41
 BASELINE_CANONICAL_REQUIRED_FIELD_NULL_COUNT=0
 BASELINE_CANONICAL_SOURCE_MAP_MISMATCH_COUNT=0
+BASELINE_CANONICAL_NULLABILITY_RULES=baseline_point_forecast_kg_nullable_when_not_computed;coverage_ratio_nullable_only_when_total_rows_zero;identity_status_reason_counters_non_null
 ```
 
 ## Public enums
