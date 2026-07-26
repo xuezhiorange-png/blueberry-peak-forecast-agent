@@ -145,6 +145,12 @@ NEGATIVE_UNEXPECTED_PASS_COUNT=0
 PACKAGE_GATE_SELF_TEST_RESULT=PASS
 ```
 
+```text
+FINAL_CLOSEOUT_C1_PACKAGE_DIR_BOUND=true
+FINAL_CLOSEOUT_C2_SOURCE_FIELDS_CORRECTED=true
+SOURCE_MAP_DOCUMENT_RUNTIME_MISMATCH_COUNT=0
+```
+
 Negative gate fixtures are real, isolated failures: wrong four-entry script
 hash, missing script blob, invalid metadata record, a 27th implementation
 path, a blocked `backend/app/models/` path, an authorized test module that
@@ -195,10 +201,10 @@ The package snapshot must record the exact current script hashes from
 `acceptance/SHA256SUMS`, including:
 
 ```text
-SCRIPT_01_SHA256=ae41ed96c9d6a039f9b0729631ba9ecd6247033ccd1810ad8cc95b117fff13fb
-SCRIPT_02_SHA256=5fe4870a303fdd2db171e8f2a651c3ffe7199b520a43c6b4c3292f7cfd39ecba
-SCRIPT_03_SHA256=7325ced88042f8cdd317747e569beb42040cdcd6e31a72a694fab8af83f267e6
-SCRIPT_04_SHA256=7a43b03fff264758b5851c73040f661d6e991c8824b5d184ca6e108969e3f42e
+SCRIPT_01_SHA256=8696e46835665b174300c8243e2739f7f7eccdeb29908273321a03c309c4dae4
+SCRIPT_02_SHA256=4e5eb0ee3e1f49375c24fae5b7b0b6368d472992688ea2c3c48f1dba09d06d74
+SCRIPT_03_SHA256=01b1d9cd3575147a9e79921d830f1e2c7b5af80cb9a01d9f8c80fd3e44eaebbb
+SCRIPT_04_SHA256=e086c481a0b0d33587ac9143c7e4fa434375edde1d291d434d3b5b29a2cba1c9
 ```
 
 ## Finalization boundary

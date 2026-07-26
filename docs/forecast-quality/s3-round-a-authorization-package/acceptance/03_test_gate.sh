@@ -19,15 +19,14 @@ PACKAGE_FILES=(
 )
 
 validate_package_dir_binding() {
-  local repo="$1" supplied="$2"
-  local expected canonical outside=false symlink_escape=false component segment
-  expected="$(cd "${repo}/${PACKAGE_REPOSITORY_ROOT}" && pwd -P)"
+  local expected="$1" supplied="$2"
+  local canonical outside=false symlink_escape=false component segment
   canonical="$(cd "${supplied}" && pwd -P)"
   case "${canonical}" in
-    "${repo}"/*) ;;
+    "${ROUND_A_WORKTREE}"/*) ;;
     *) outside=true ;;
   esac
-  component="${repo}"
+  component="${ROUND_A_WORKTREE}"
   for segment in docs forecast-quality s3-round-a-authorization-package; do
     component="${component}/${segment}"
     if [[ -L "${component}" ]]; then
@@ -209,8 +208,9 @@ fi
 : "${ROUND_A_WORKTREE:?ROUND_A_WORKTREE is required}"
 : "${PACKAGE_DIR:?PACKAGE_DIR is required}"
 ROUND_A_WORKTREE="$(cd "${ROUND_A_WORKTREE}" && pwd -P)"
+EXPECTED_PACKAGE_DIR="$(cd "${ROUND_A_WORKTREE}/${PACKAGE_REPOSITORY_ROOT}" && pwd -P)"
 PACKAGE_DIR="$(cd "${PACKAGE_DIR}" && pwd -P)"
-validate_package_dir_binding "${ROUND_A_WORKTREE}" "${PACKAGE_DIR}"
+validate_package_dir_binding "${EXPECTED_PACKAGE_DIR}" "${PACKAGE_DIR}"
 TEST_LIST="${PACKAGE_DIR}/authorized-test-modules.txt"
 cd "${ROUND_A_WORKTREE}"
 
