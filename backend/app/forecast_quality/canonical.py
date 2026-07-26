@@ -83,9 +83,7 @@ def _json_value(value: Any) -> Any:
     if isinstance(value, Enum):
         return _json_value(value.value)
     if isinstance(value, Decimal):
-        if not value.is_finite():
-            raise S3DecimalAssertionError("canonical Decimal must be finite")
-        return format(value, "f")
+        return emit_s3_decimal(value)
     if isinstance(value, datetime):
         if value.tzinfo is None:
             raise S3ContractInvariantViolationError("datetime must be timezone-aware")
