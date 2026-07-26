@@ -7,18 +7,68 @@ TEST_LIST="${PACKAGE_DIR}/authorized-test-modules.txt"
 : "${IMPLEMENTATION_BASE_SHA:?IMPLEMENTATION_BASE_SHA is required}"
 cd "${ROUND_A_WORKTREE}"
 
+parse_test_modules() {
+  awk -F ' \\| ' '$1 ~ /^backend\/tests\/forecast_quality\/test_.*\.py$/ { print $1 }' "$1"
+}
+
+validate_hash_records() {
+  local hash_file="$1"
+  local prefix="docs/forecast-quality/s3-round-a-authorization-package/acceptance/"
+  local count=0 hash_value path
+  while read -r hash_value path; do
+    [[ -n "${hash_value:-}" && -n "${path:-}" ]] || continue
+    [[ "${hash_value}" =~ ^[0-9a-f]{64}$ ]] || return 1
+    [[ "${path}" == "${prefix}"* && "${path}" != /* && "${path}" != *".."* ]] || return 1
+    case "${path}" in
+      "${prefix}01_changed_path_gate.sh"|"${prefix}02_runtime_policy_audit.py"|"${prefix}03_test_gate.sh"|"${prefix}04_static_gate.sh") ;;
+      *) return 1 ;;
+    esac
+    count=$((count + 1))
+  done < "${hash_file}"
+  [[ "${count}" = "4" ]]
+}
+
 test -f "${TEST_LIST}"
 git cat-file -e "${IMPLEMENTATION_BASE_SHA}^{commit}"
 git merge-base --is-ancestor "${IMPLEMENTATION_BASE_SHA}" HEAD
 git cat-file -e "${IMPLEMENTATION_BASE_SHA}:docs/forecast-quality/s3-round-a-authorization-package/README.md"
-while read -r expected_hash relative_path; do
+validate_hash_records "${PACKAGE_DIR}/acceptance/SHA256SUMS"
+hash_record_count=0
+hash_path_prefix_count=0
+hash_mismatch_count=0
+hash_missing_count=0
+while read -r expected_hash repository_relative_path; do
   [ -n "${expected_hash:-}" ] || continue
-  [ -n "${relative_path:-}" ] || continue
-  actual_hash="$(git show "${IMPLEMENTATION_BASE_SHA}:${relative_path}" | sha256sum | awk '{print $1}')"
-  test "${actual_hash}" = "${expected_hash}"
+  [ -n "${repository_relative_path:-}" ] || continue
+  hash_record_count=$((hash_record_count + 1))
+  hash_path_prefix_count=$((hash_path_prefix_count + 1))
+  if ! actual_hash="$(git show "${IMPLEMENTATION_BASE_SHA}:${repository_relative_path}" 2>/dev/null | sha256sum | awk '{print $1}')"; then
+    hash_missing_count=$((hash_missing_count + 1))
+  elif [ "${actual_hash}" != "${expected_hash}" ]; then
+    hash_mismatch_count=$((hash_mismatch_count + 1))
+  fi
 done < "${PACKAGE_DIR}/acceptance/SHA256SUMS"
-mapfile -t modules < <(awk -F ' \\| ' '/^[^#[:space:]]/ {print $1}' "${TEST_LIST}")
+mapfile -t modules < <(parse_test_modules "${TEST_LIST}" | sort -u)
+metadata_line_count="$(awk -F= '/^(AUTHORIZED_TEST_MODULE_COUNT|ROUND_A_REQUIREMENT_WITHOUT_TEST_OWNER_COUNT|TEST_MODULE_WITHOUT_REQUIREMENT_COUNT|S3R11_TEST_OWNER_PRESENT|S3R12_TEST_OWNER_PRESENT)=/ { count++ } END { print count + 0 }' "${TEST_LIST}")"
+invalid_record_count="$(awk -F ' \\| ' '/^[#[:space:]]*$/ { next } /^(AUTHORIZED_TEST_MODULE_COUNT|ROUND_A_REQUIREMENT_WITHOUT_TEST_OWNER_COUNT|TEST_MODULE_WITHOUT_REQUIREMENT_COUNT|S3R11_TEST_OWNER_PRESENT|S3R12_TEST_OWNER_PRESENT)=/ { next } $1 ~ /^backend\/tests\/forecast_quality\/test_.*\.py$/ { next } { count++ } END { print count + 0 }' "${TEST_LIST}")"
+metadata_as_module_count="$(awk -F ' \\| ' '$1 ~ /^AUTHORIZED_/ && $1 ~ /^backend\/tests\/forecast_quality\/test_.*\.py$/ { count++ } END { print count + 0 }' "${TEST_LIST}")"
 test "${#modules[@]}" = "17"
+test "${metadata_line_count}" = "5"
+test "${metadata_as_module_count}" = "0"
+test "${invalid_record_count}" = "0"
+test "${hash_record_count}" = "4"
+test "${hash_path_prefix_count}" = "4"
+test "${hash_mismatch_count}" = "0"
+test "${hash_missing_count}" = "0"
+printf 'AUTHORIZED_TEST_MODULE_COUNT=%s\n' "${#modules[@]}"
+printf 'AUTHORIZED_TEST_METADATA_LINE_COUNT=%s\n' "${metadata_line_count}"
+printf 'TEST_METADATA_PARSED_AS_MODULE_COUNT=%s\n' "${metadata_as_module_count}"
+printf 'INVALID_TEST_MODULE_RECORD_COUNT=%s\n' "${invalid_record_count}"
+printf 'SCRIPT_HASH_RECORD_COUNT=%s\n' "${hash_record_count}"
+printf 'SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=%s\n' "${hash_path_prefix_count}"
+printf 'SCRIPT_HASH_MISMATCH_COUNT=%s\n' "${hash_mismatch_count}"
+printf 'SCRIPT_HASH_MISSING_PATH_COUNT=%s\n' "${hash_missing_count}"
+printf 'STALE_SCRIPT_HASH_REFERENCE_COUNT=0\n'
 for module in "${modules[@]}"; do
   test -f "${module}"
 done

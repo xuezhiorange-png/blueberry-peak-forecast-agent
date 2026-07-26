@@ -35,4 +35,4 @@ aggregate_daily_actuals | backend/app/forecast_quality/aggregation.py | exact da
 aggregate_daily_forecasts | backend/app/forecast_quality/aggregation.py | exact daily subfarm-to-farm forecast sum per quantile/cutoff/model | S3R-16,S3R-17
 deterministic_season_day_index | backend/app/forecast_quality/season_calendar.py | season calendar index | S3R-08,S3R-09
 resolve_prior_season_analog_date | backend/app/forecast_quality/season_calendar.py | prior analog mapping and leap-day policy | S3R-08,S3R-09
-resolve_baseline_point_forecast | backend/app/forecast_quality/baseline.py | visible prior-season point baseline | S3R-08,S3R-09,S3R-10,S3R-11
+resolve_baseline_point_forecast | backend/app/forecast_quality/baseline.py | visible prior-season point baseline; P50 computes and P80/P90 return the explicit non-computable S3R-12 outcome | S3R-08,S3R-09,S3R-10,S3R-11,S3R-12

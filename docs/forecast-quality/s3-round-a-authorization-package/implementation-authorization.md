@@ -63,7 +63,7 @@ Authorized domain behavior:
 - deterministic six-axis breakdown cells and minimum-sample status;
 - cross-quantile P50/P80/P90 forecast-row retention with one actual physical
   row per physical grain;
-- subfarm-to-farm daily actual aggregation after exact deduplication;
+- subfarm-to-farm daily forecast and actual aggregation after exact deduplication;
 - current-season to prior-season analog-date resolution, including the
   frozen Feb-29 to prior-Feb-28 rule;
 - point-only prior-season analog baseline and current-cutoff visibility;
@@ -125,6 +125,22 @@ AUTHORIZED_MODIFY_EXISTING_PATH_COUNT=0
 AUTHORIZED_DELETE_PATH_COUNT=0
 DUPLICATE_AUTHORIZED_PATH_COUNT=0
 PACKAGE_PATH_COUNT_DERIVED_NOT_COPIED_FROM_HISTORICAL_SUMMARY=true
+AUTHORIZED_MANIFEST_RECORD_COUNT=26
+AUTHORIZED_MANIFEST_METADATA_LINE_COUNT=4
+AUTHORIZED_MANIFEST_INVALID_RECORD_COUNT=0
+AUTHORIZED_METADATA_PARSED_AS_PATH_COUNT=0
+AUTHORIZED_TEST_METADATA_LINE_COUNT=5
+TEST_METADATA_PARSED_AS_MODULE_COUNT=0
+INVALID_TEST_MODULE_RECORD_COUNT=0
+SCRIPT_HASH_RECORD_COUNT=4
+SCRIPT_HASH_PATH_PREFIX_MATCH_COUNT=4
+SCRIPT_HASH_MISMATCH_COUNT=0
+SCRIPT_HASH_MISSING_PATH_COUNT=0
+STALE_SCRIPT_HASH_REFERENCE_COUNT=0
+SCRIPT_01_SHA256=23433951b6fd8d83bcea043250d409ed811634009d90c15c3e702a1627b5e797
+SCRIPT_02_SHA256=0fa3232ddeade11ef7b377d37f4ff95802e8854b525afc2c24e214e383ecb978
+SCRIPT_03_SHA256=b03a3d527e2771bfbd5bde5d57ff278eece06ed541722c0a0732819a13b76883
+SCRIPT_04_SHA256=6757d88d5f69c7a550c0a2475f96f462e3f41ba48a6dffeed844881a34eaa7eb
 ```
 
 The complete path allocation and per-path requirements are in
@@ -144,6 +160,14 @@ aggregate_daily_forecasts(rows: Sequence[S3BindingRow]) -> Sequence[FarmDailyFor
 resolve_prior_season_analog_date(current_target_date, current_season_start, current_season_end, prior_season_start, prior_season_end, policy_version) -> date | None
 resolve_baseline_point_forecast(request: BaselineRequest, source_snapshot: BaselineSourceSnapshot) -> BaselineResult
 ```
+
+For `BaselineRequest.requested_quantile=P50`, the resolver returns the
+point-only baseline. For `P80` and `P90`, it must return the executable
+S3R-12 outcome `comparison_availability=BLOCKED`,
+`metric_status=NOT_COMPUTABLE`,
+`reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED`, and
+`baseline_point_forecast_kg=null`; no point value may be copied across
+quantiles. This is a Round A domain outcome, not a quality-metric publication.
 
 `canonical.py` must expose `canonical_json_bytes`,
 `compute_metric_input_mask_hash`, and `emit_s3_decimal`. All public symbols
@@ -179,12 +203,26 @@ TEST_MODULE_WITHOUT_REQUIREMENT_COUNT=0
 ROUND_A_REQUIREMENT_WITHOUT_TEST_OWNER_COUNT=0
 S3R11_TEST_OWNER_PRESENT=true
 S3R12_TEST_OWNER_PRESENT=true
+S3R12_ROUND_A_STATUS=IMPLEMENTED_DOMAIN_OUTCOME
+S3R12_IMPLEMENTED_BY_ROUND_A=true
+S3R12_RUNTIME_AUDIT_CLAIM=true
+BASELINE_CANONICAL_ROOT_FIELD_COUNT=26
+BASELINE_CANONICAL_CELL_FIELD_COUNT=15
+BASELINE_ROOT_FIELD_SET_EQUALITY=true
+BASELINE_CELL_FIELD_SET_EQUALITY=true
+BASELINE_CANONICAL_FIELD_NAME_DRIFT_COUNT=0
 ```
 
 `test_baseline.py` owns S3R-11 red-source rejection and S3R-12 point-only
 baseline semantics. `test_baseline_visibility.py` owns cutoff visibility and
 the shared S3R-11 late-revision cases. These are executable owner mappings,
 not prose-only coverage claims.
+
+The package gate's `PACKAGE_SELF_TEST=1` mode is part of the acceptance
+contract. It must report positive and expected-negative fixtures for manifest
+metadata parsing, script hash failures, blocked paths, a 27th path, baseline
+root/cell field drift, absent `InternalReasonCode`, and invalid frozen policy
+values, ending with `PACKAGE_GATE_SELF_TEST_RESULT=PASS`.
 
 No collection-only result is acceptance evidence. The test gate must execute
 pytest and record its complete node and outcome counts.
