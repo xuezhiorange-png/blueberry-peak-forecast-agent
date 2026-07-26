@@ -1,17 +1,18 @@
 from pathlib import Path
 
 
-def test_round_a_excluded_surfaces_are_not_created() -> None:
-    root = Path("backend/app/forecast_quality")
-    for name in (
+def test_round_b_surface_boundary_is_preserved() -> None:
+    forecast_quality_root = Path("backend/app/forecast_quality")
+    for blocked_name in (
         "calculator_cumulative.py",
         "peak.py",
         "quantile.py",
         "comparison.py",
-        "persistence.py",
         "repository.py",
         "application.py",
         "__init__.py",
     ):
-        assert not (root / name).exists()
-    assert not Path("backend/app/models").joinpath("forecast_quality.py").exists()
+        assert not (forecast_quality_root / blocked_name).exists()
+
+    assert (forecast_quality_root / "persistence.py").is_file()
+    assert Path("backend/app/models/forecast_quality.py").is_file()
