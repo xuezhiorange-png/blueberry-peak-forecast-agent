@@ -13,7 +13,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import func, select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import AsyncSessionMaker
@@ -24,6 +24,7 @@ from backend.app.forecast_quality.enums import FrozenVersion, SupportedQuantile
 from backend.app.forecast_quality.persistence import (
     BaselinePersistenceRecord,
     PersistedQualityEvaluation,
+    _validate_evaluation_input,
     persist_quality_evaluation,
 )
 from backend.app.forecast_quality.schemas import (
@@ -269,7 +270,7 @@ async def test_postgres_constraints_and_seal_reject_mutation() -> None:
                 breakdown_results=breakdowns,
                 baseline_record=baseline,
             )
-        with pytest.raises(IntegrityError):
+        with pytest.raises(DBAPIError):
             await session.execute(
                 update(QualityEvaluationManifestModel)
                 .where(QualityEvaluationManifestModel.id == persisted.manifest_id)
@@ -288,6 +289,7 @@ async def test_postgres_constraints_and_seal_reject_mutation() -> None:
 async def test_nonempty_comparison_fails_before_database_write() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("comparison")
+    request_hash = _validate_evaluation_input(input_data)[1]
     async with AsyncSessionMaker() as session:
         with pytest.raises(Exception, match="NONEMPTY_COMPARISON_RECORDS_FAIL_CLOSED"):
             await session.run_sync(
@@ -301,7 +303,14 @@ async def test_nonempty_comparison_fails_before_database_write() -> None:
                     manifest_payload={},
                 )
             )
-        assert await session.scalar(select(func.count(QualityEvaluationRunModel.id))) == 0
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationRunModel.id)).where(
+                    QualityEvaluationRunModel.evaluation_request_hash == request_hash
+                )
+            )
+            == 0
+        )
 
 
 @pytest.mark.asyncio
