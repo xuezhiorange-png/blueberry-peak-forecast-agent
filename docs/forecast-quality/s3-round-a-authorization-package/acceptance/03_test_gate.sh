@@ -18,6 +18,31 @@ PACKAGE_FILES=(
   "acceptance/SHA256SUMS"
 )
 
+validate_package_dir_binding() {
+  local repo="$1" supplied="$2"
+  local expected canonical outside=false symlink_escape=false component segment
+  expected="$(cd "${repo}/${PACKAGE_REPOSITORY_ROOT}" && pwd -P)"
+  canonical="$(cd "${supplied}" && pwd -P)"
+  case "${canonical}" in
+    "${repo}"/*) ;;
+    *) outside=true ;;
+  esac
+  component="${repo}"
+  for segment in docs forecast-quality s3-round-a-authorization-package; do
+    component="${component}/${segment}"
+    if [[ -L "${component}" ]]; then
+      symlink_escape=true
+    fi
+  done
+  printf 'PACKAGE_DIR_CANONICAL_MATCH=%s\n' "$([[ "${canonical}" == "${expected}" ]] && echo true || echo false)"
+  printf 'PACKAGE_DIR_OUTSIDE_WORKTREE=%s\n' "${outside}"
+  printf 'PACKAGE_DIR_SYMLINK_ESCAPE=%s\n' "${symlink_escape}"
+  if [[ "${canonical}" != "${expected}" || "${outside}" != false || "${symlink_escape}" != false ]]; then
+    printf '%s\n' 'PACKAGE_DIR is not the repository authorization package' >&2
+    return 1
+  fi
+}
+
 validate_package_identity() {
   local repo="$1" accepted_sha="$2" expected_tree="$3" base_sha="$4" package_dir="$5"
   local accepted_tree base_tree
@@ -185,6 +210,7 @@ fi
 : "${PACKAGE_DIR:?PACKAGE_DIR is required}"
 ROUND_A_WORKTREE="$(cd "${ROUND_A_WORKTREE}" && pwd -P)"
 PACKAGE_DIR="$(cd "${PACKAGE_DIR}" && pwd -P)"
+validate_package_dir_binding "${ROUND_A_WORKTREE}" "${PACKAGE_DIR}"
 TEST_LIST="${PACKAGE_DIR}/authorized-test-modules.txt"
 cd "${ROUND_A_WORKTREE}"
 

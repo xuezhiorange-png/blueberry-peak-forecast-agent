@@ -18,6 +18,31 @@ PACKAGE_FILES=(
   "acceptance/SHA256SUMS"
 )
 
+validate_package_dir_binding() {
+  local repo="$1" supplied="$2"
+  local expected canonical outside=false symlink_escape=false component segment
+  expected="$(cd "${repo}/${PACKAGE_REPOSITORY_ROOT}" && pwd -P)"
+  canonical="$(cd "${supplied}" && pwd -P)"
+  case "${canonical}" in
+    "${repo}"/*) ;;
+    *) outside=true ;;
+  esac
+  component="${repo}"
+  for segment in docs forecast-quality s3-round-a-authorization-package; do
+    component="${component}/${segment}"
+    if [[ -L "${component}" ]]; then
+      symlink_escape=true
+    fi
+  done
+  printf 'PACKAGE_DIR_CANONICAL_MATCH=%s\n' "$([[ "${canonical}" == "${expected}" ]] && echo true || echo false)"
+  printf 'PACKAGE_DIR_OUTSIDE_WORKTREE=%s\n' "${outside}"
+  printf 'PACKAGE_DIR_SYMLINK_ESCAPE=%s\n' "${symlink_escape}"
+  if [[ "${canonical}" != "${expected}" || "${outside}" != false || "${symlink_escape}" != false ]]; then
+    printf '%s\n' 'PACKAGE_DIR is not the repository authorization package' >&2
+    return 1
+  fi
+}
+
 validate_package_identity() {
   local repo="$1" accepted_sha="$2" expected_tree="$3" base_sha="$4" package_dir="$5"
   local accepted_tree base_tree expected_files accepted_files base_files current_files
@@ -138,6 +163,7 @@ fi
 : "${PACKAGE_DIR:?PACKAGE_DIR is required}"
 ROUND_A_WORKTREE="$(cd "${ROUND_A_WORKTREE}" && pwd -P)"
 PACKAGE_DIR="$(cd "${PACKAGE_DIR}" && pwd -P)"
+validate_package_dir_binding "${ROUND_A_WORKTREE}" "${PACKAGE_DIR}"
 AUTHORIZED_FILE="${PACKAGE_DIR}/authorized-paths.txt"
 PACKAGE_SHA_FILE="${PACKAGE_DIR}/acceptance/SHA256SUMS"
 cd "${ROUND_A_WORKTREE}"
@@ -162,6 +188,54 @@ while IFS= read -r path; do
 done < <(awk -F ' \\| ' '$1 ~ /^backend\/tests\/forecast_quality\/test_.*\.py$/ && $2 == "CREATE" {print $1}' "${AUTHORIZED_FILE}")
 test "${#app_paths[@]}" = "9"
 test "${#test_paths[@]}" = "17"
+
+tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/s3-round-a-static-gate.XXXXXX")"
+trap 'rm -rf "${tmp_dir}"' EXIT
+set +e
+uv run ruff check . --output-format=json >"${tmp_dir}/ruff-check.json" 2>"${tmp_dir}/ruff-check.stderr"
+root_ruff_exit=$?
+uv run ruff format --check . >"${tmp_dir}/ruff-format.stdout" 2>"${tmp_dir}/ruff-format.stderr"
+root_format_exit=$?
+uv run mypy backend/app >"${tmp_dir}/mypy-root.stdout" 2>"${tmp_dir}/mypy-root.stderr"
+root_mypy_exit=$?
+set -e
+python3 - "${tmp_dir}/ruff-check.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    diagnostics = json.loads(path.read_text(encoding="utf-8") or "[]")
+except json.JSONDecodeError:
+    diagnostics = []
+paths = sorted({item.get("filename", "") for item in diagnostics})
+rules = sorted({item.get("code", "") for item in diagnostics})
+print(f"ROOT_RUFF_FAILED_PATH_COUNT={len([item for item in paths if item])}")
+print(f"ROOT_RUFF_FAILED_RULE_COUNT={len([item for item in rules if item])}")
+print(f"ROOT_RUFF_DIAGNOSTIC_COUNT={len(diagnostics)}")
+print("ROOT_RUFF_DIAGNOSTIC_LIST_BEGIN")
+for item in diagnostics:
+    location = item.get("location", {})
+    print(
+        f"{item.get('filename', '')}|{location.get('row', '')}|{location.get('column', '')}|"
+        f"{item.get('code', '')}|{item.get('message', '')}"
+    )
+print("ROOT_RUFF_DIAGNOSTIC_LIST_END")
+PY
+printf 'ROOT_RUFF_STDOUT_BEGIN\n'; cat "${tmp_dir}/ruff-check.json"; printf 'ROOT_RUFF_STDOUT_END\n'
+printf 'ROOT_RUFF_STDERR_BEGIN\n'; cat "${tmp_dir}/ruff-check.stderr"; printf 'ROOT_RUFF_STDERR_END\n'
+printf 'ROOT_RUFF_CHECK_EXIT_CODE=%s\n' "${root_ruff_exit}"
+printf 'ROOT_RUFF_FORMAT_STDOUT_BEGIN\n'; cat "${tmp_dir}/ruff-format.stdout"; printf 'ROOT_RUFF_FORMAT_STDOUT_END\n'
+printf 'ROOT_RUFF_FORMAT_STDERR_BEGIN\n'; cat "${tmp_dir}/ruff-format.stderr"; printf 'ROOT_RUFF_FORMAT_STDERR_END\n'
+printf 'ROOT_RUFF_FORMAT_CHECK_EXIT_CODE=%s\n' "${root_format_exit}"
+printf 'ROOT_MYPY_STDOUT_BEGIN\n'; cat "${tmp_dir}/mypy-root.stdout"; printf 'ROOT_MYPY_STDOUT_END\n'
+printf 'ROOT_MYPY_STDERR_BEGIN\n'; cat "${tmp_dir}/mypy-root.stderr"; printf 'ROOT_MYPY_STDERR_END\n'
+printf 'ROOT_MYPY_EXIT_CODE=%s\n' "${root_mypy_exit}"
+printf 'PACKAGE_PYTHON_RUFF_PATH_COUNT=1\n'
+test "${root_ruff_exit}" = "0"
+test "${root_format_exit}" = "0"
+test "${root_mypy_exit}" = "0"
 
 python3 - "${app_paths[@]}" "${test_paths[@]}" <<'PY'
 import re
@@ -196,17 +270,6 @@ for key, value in counts.items():
 if any(counts.values()):
     raise SystemExit("static suppression found")
 PY
-
-ROOT_RUFF_CHECK_EXIT_CODE=0
-ROOT_RUFF_FORMAT_CHECK_EXIT_CODE=0
-ROOT_MYPY_EXIT_CODE=0
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy backend/app
-printf 'ROOT_RUFF_CHECK_EXIT_CODE=%s\n' "${ROOT_RUFF_CHECK_EXIT_CODE}"
-printf 'ROOT_RUFF_FORMAT_CHECK_EXIT_CODE=%s\n' "${ROOT_RUFF_FORMAT_CHECK_EXIT_CODE}"
-printf 'ROOT_MYPY_EXIT_CODE=%s\n' "${ROOT_MYPY_EXIT_CODE}"
-printf 'PACKAGE_PYTHON_RUFF_PATH_COUNT=1\n'
 
 python3 - "${app_paths[@]}" "${test_paths[@]}" <<'PY'
 import ast, sys
@@ -245,10 +308,17 @@ PY
 
 uv run ruff check "${app_paths[@]}" "${test_paths[@]}"
 uv run ruff format --check "${app_paths[@]}" "${test_paths[@]}"
-uv run mypy "${app_paths[@]}"
-
-tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/s3-round-a-static-gate.XXXXXX")"
-trap 'rm -rf "${tmp_dir}"' EXIT
+set +e
+uv run mypy "${app_paths[@]}" "${test_paths[@]}" >"${tmp_dir}/mypy-authorized.stdout" 2>"${tmp_dir}/mypy-authorized.stderr"
+authorized_mypy_exit=$?
+set -e
+cat "${tmp_dir}/mypy-authorized.stdout"
+cat "${tmp_dir}/mypy-authorized.stderr" >&2
+printf 'MYPY_AUTHORIZED_PRODUCTION_PATH_COUNT=%s\n' "${#app_paths[@]}"
+printf 'MYPY_AUTHORIZED_TEST_PATH_COUNT=%s\n' "${#test_paths[@]}"
+printf 'MYPY_AUTHORIZED_TOTAL_PATH_COUNT=%s\n' "$(( ${#app_paths[@]} + ${#test_paths[@]} ))"
+printf 'MYPY_AUTHORIZED_EXIT_CODE=%s\n' "${authorized_mypy_exit}"
+test "${authorized_mypy_exit}" = "0"
 git diff --name-only "${IMPLEMENTATION_BASE_SHA}..HEAD" >"${tmp_dir}/committed.txt"
 git diff --cached --name-only >"${tmp_dir}/staged.txt"
 git diff --name-only >"${tmp_dir}/unstaged.txt"
