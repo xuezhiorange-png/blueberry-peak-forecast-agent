@@ -28,7 +28,9 @@ def test_positive_negative_and_zero_delta_semantics() -> None:
     ):
         input_data, spec, records = _records(suffix, count=10)
 
-        def _reseal(record: ComparisonBaselineRecord, new_value: Decimal) -> ComparisonBaselineRecord:
+        def _reseal(
+            record: ComparisonBaselineRecord, new_value: Decimal
+        ) -> ComparisonBaselineRecord:
             """Replace baseline forecast value AND reseal the canonical hash."""
             new_result_without_hash = dataclasses.replace(
                 record.result, baseline_point_forecast_kg=new_value, canonical_hash=""
