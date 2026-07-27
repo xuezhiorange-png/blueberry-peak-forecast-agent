@@ -226,9 +226,7 @@ async def _persist_round_c(
     from backend.app.forecast_quality.calculator_daily import compute_daily_metrics
 
     metric_result = compute_daily_metrics(evaluation_input, breakdown_spec)
-    breakdown_results = calculate_breakdown_cells(
-        evaluation_input.rows, breakdown_spec
-    )
+    breakdown_results = calculate_breakdown_cells(evaluation_input.rows, breakdown_spec)
     return await session.run_sync(
         lambda sync_session: persist_quality_evaluation(
             sync_session,
@@ -1518,7 +1516,6 @@ def _round_c_fixture(
 
 
 @pytest.mark.asyncio
-
 async def test_round_c_v2_exact_replay_is_zero_write() -> None:
     """V2 exact replay: identical V2 evidence must replay without new rows."""
     _live_env()
@@ -1558,17 +1555,13 @@ async def test_round_c_v2_exact_replay_is_zero_write() -> None:
 
 
 @pytest.mark.asyncio
-
 async def test_round_c_v2_conflicting_replay_is_rejected_without_second_run() -> None:
     """V2 conflict: tampered V2 child payload under same run is forbidden."""
     _live_env()
     evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
         "round-c-conflict-replay", count=10
     )
-    tampered = tuple(
-        dataclasses.replace(c, delta_value=Decimal("0.000000"))
-        for c in comparisons
-    )
+    tampered = tuple(dataclasses.replace(c, delta_value=Decimal("0.000000")) for c in comparisons)
     async with AsyncSessionMaker() as session:
         transaction = await session.begin()
         try:
@@ -1592,7 +1585,6 @@ async def test_round_c_v2_conflicting_replay_is_rejected_without_second_run() ->
 
 
 @pytest.mark.asyncio
-
 async def test_round_c_v2_partial_existing_result_fails_closed() -> None:
     """V2 partial: a child disappears after the manifest is sealed — fail closed."""
     _live_env()
@@ -1610,11 +1602,14 @@ async def test_round_c_v2_partial_existing_result_fails_closed() -> None:
                 baseline_records=baseline_records,
             )
             run_id = persisted.run_id
-            assert await session.scalar(
-                select(func.count(ModelBaselineComparisonModel.id)).where(
-                    ModelBaselineComparisonModel.quality_evaluation_run_id == run_id
+            assert (
+                await session.scalar(
+                    select(func.count(ModelBaselineComparisonModel.id)).where(
+                        ModelBaselineComparisonModel.quality_evaluation_run_id == run_id
+                    )
                 )
-            ) == 10
+                == 10
+            )
             # Simulate partial persistence by deleting one child row before
             # the second write.
             await session.execute(
@@ -1622,11 +1617,14 @@ async def test_round_c_v2_partial_existing_result_fails_closed() -> None:
                     ModelBaselineComparisonModel.quality_evaluation_run_id == run_id
                 )
             )
-            assert await session.scalar(
-                select(func.count(ModelBaselineComparisonModel.id)).where(
-                    ModelBaselineComparisonModel.quality_evaluation_run_id == run_id
+            assert (
+                await session.scalar(
+                    select(func.count(ModelBaselineComparisonModel.id)).where(
+                        ModelBaselineComparisonModel.quality_evaluation_run_id == run_id
+                    )
                 )
-            ) == 0
+                == 0
+            )
             with pytest.raises(ForecastQualityContractError):
                 await _persist_round_c(
                     session,
@@ -1640,7 +1638,6 @@ async def test_round_c_v2_partial_existing_result_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
-
 async def test_round_c_v2_immutability_blocks_update_and_delete() -> None:
     """V2 immutability: post-seal UPDATE/DELETE on a comparison child is rejected."""
     _live_env()
@@ -1657,9 +1654,7 @@ async def test_round_c_v2_immutability_blocks_update_and_delete() -> None:
                 comparison_records=comparisons,
                 baseline_records=baseline_records,
             )
-            row = await session.scalar(
-                select(ModelBaselineComparisonModel).limit(1)
-            )
+            row = await session.scalar(select(ModelBaselineComparisonModel).limit(1))
             assert row is not None
             with pytest.raises(DBAPIError):
                 await session.execute(
@@ -1680,7 +1675,6 @@ async def test_round_c_v2_immutability_blocks_update_and_delete() -> None:
 
 
 @pytest.mark.asyncio
-
 async def test_round_c_v2_child_after_seal_is_rejected() -> None:
     """V2 child-after-seal: late INSERT into model_baseline_comparison is forbidden."""
     _live_env()
@@ -1738,7 +1732,6 @@ async def test_round_c_v2_child_after_seal_is_rejected() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
-
 async def test_round_c_v2_identical_concurrency_converges_to_one_run() -> None:
     """V2 identical concurrency: two concurrent identical V2 writes converge."""
     _live_env()
@@ -1758,33 +1751,23 @@ async def test_round_c_v2_identical_concurrency_converges_to_one_run() -> None:
                 )
                 return result.run_id, result.replayed
 
-    first, second = await asyncio.wait_for(
-        asyncio.gather(invoke(), invoke()), timeout=60
-    )
+    first, second = await asyncio.wait_for(asyncio.gather(invoke(), invoke()), timeout=60)
     assert first[0] == second[0]
     assert sorted((first[1], second[1])) == [False, True]
     async with AsyncSessionMaker() as session:
-        assert await session.scalar(
-            select(func.count(ModelBaselineComparisonModel.id))
-        ) == 10
-        assert await session.scalar(
-            select(func.count(QualityEvaluationManifestModel.id))
-        ) == 1
+        assert await session.scalar(select(func.count(ModelBaselineComparisonModel.id))) == 10
+        assert await session.scalar(select(func.count(QualityEvaluationManifestModel.id))) == 1
 
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
-
 async def test_round_c_v2_conflicting_concurrency_yields_one_conflict() -> None:
     """V2 conflicting concurrency: two concurrent conflicting V2 writes — one loses."""
     _live_env()
     evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
         "round-c-conflicting-concurrency", count=10
     )
-    tampered = tuple(
-        dataclasses.replace(c, delta_value=Decimal("0.000000"))
-        for c in comparisons
-    )
+    tampered = tuple(dataclasses.replace(c, delta_value=Decimal("0.000000")) for c in comparisons)
 
     async def invoke(current_comparisons: tuple[Any, ...]) -> str:
         async with AsyncSessionMaker() as session:
@@ -1807,17 +1790,11 @@ async def test_round_c_v2_conflicting_concurrency_yields_one_conflict() -> None:
     )
     assert sorted(outcomes) == ["conflict", "winner"]
     async with AsyncSessionMaker() as session:
-        assert (
-            await session.scalar(
-                select(func.count(ModelBaselineComparisonModel.id))
-            )
-            == 10
-        )
+        assert await session.scalar(select(func.count(ModelBaselineComparisonModel.id))) == 10
 
 
 @pytest.mark.asyncio
 @pytest.mark.postgres_concurrency
-
 async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None:
     """V2 natural manifest/child race: serialized by ``SELECT ... FOR UPDATE``.
 
@@ -1854,13 +1831,11 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
             "SELECT id FROM quality_evaluation_run ORDER BY id DESC LIMIT 1"
         )
         children_count = await conn.fetchval(
-            "SELECT count(*) FROM model_baseline_comparison "
-            "WHERE quality_evaluation_run_id = $1",
+            "SELECT count(*) FROM model_baseline_comparison WHERE quality_evaluation_run_id = $1",
             run_id,
         )
         manifest_count = await conn.fetchval(
-            "SELECT count(*) FROM quality_evaluation_manifest "
-            "WHERE quality_evaluation_run_id = $1",
+            "SELECT count(*) FROM quality_evaluation_manifest WHERE quality_evaluation_run_id = $1",
             run_id,
         )
         assert children_count == 10
@@ -1877,7 +1852,6 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
 
 @pytest.mark.asyncio
 @pytest.mark.migration
-
 async def test_round_c_migration_unauthorized_comparison_row_blocks_upgrade() -> None:
     """0025 upgrade rejects a tampered child hash that contradicts the canonical set.
 
@@ -1900,9 +1874,7 @@ async def test_round_c_migration_unauthorized_comparison_row_blocks_upgrade() ->
                 comparison_records=comparisons,
                 baseline_records=baseline_records,
             )
-            run_id_row = await session.scalar(
-                select(QualityEvaluationRunModel.id).limit(1)
-            )
+            run_id_row = await session.scalar(select(QualityEvaluationRunModel.id).limit(1))
             assert run_id_row is not None
         finally:
             await transaction.rollback()
@@ -1920,15 +1892,15 @@ async def test_round_c_migration_unauthorized_comparison_row_blocks_upgrade() ->
             async with conn.transaction():
                 await conn.execute(
                     "INSERT INTO quality_evaluation_manifest ("
-                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"
-                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"
-                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"
-                    " comparison_result_schema_version, comparison_result_set_schema_version,"
-                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"
-                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"
-                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"
-                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"
-                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",
+                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"  # noqa: E501
+                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"  # noqa: E501
+                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"  # noqa: E501
+                    " comparison_result_schema_version, comparison_result_set_schema_version,"  # noqa: E501
+                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"  # noqa: E501
+                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"  # noqa: E501
+                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"  # noqa: E501
+                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"  # noqa: E501
+                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",  # noqa: E501
                     run_id_row,
                 )
     finally:
@@ -1937,7 +1909,6 @@ async def test_round_c_migration_unauthorized_comparison_row_blocks_upgrade() ->
 
 @pytest.mark.asyncio
 @pytest.mark.migration
-
 async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
     """0024 ↔ 0025 clean round-trip converges without drift."""
     _live_env()
@@ -1972,7 +1943,6 @@ async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.migration
-
 async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
     """V2 data must prevent the 0025→0024 downgrade from silently dropping rows.
 
@@ -2003,9 +1973,7 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
         f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
     )
     try:
-        children_count = await conn.fetchval(
-            "SELECT count(*) FROM model_baseline_comparison"
-        )
+        children_count = await conn.fetchval("SELECT count(*) FROM model_baseline_comparison")
         assert children_count == 10
     finally:
         await conn.close()
@@ -2028,9 +1996,7 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
             "WHERE table_schema='public' AND table_name='model_baseline_comparison')"
         )
         assert bool(round_c_table), "V2 data lost on downgrade — preflight missing"
-        preserved_children = await conn.fetchval(
-            "SELECT count(*) FROM model_baseline_comparison"
-        )
+        preserved_children = await conn.fetchval("SELECT count(*) FROM model_baseline_comparison")
         assert preserved_children == 10
     finally:
         await conn.close()
@@ -2042,7 +2008,6 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
 
 
 @pytest.mark.asyncio
-
 async def test_round_c_database_rejection_probes_are_real_and_isolated() -> None:
     """Round C rejection probes are independent from Round B probes.
 
@@ -2089,15 +2054,15 @@ async def test_round_c_database_rejection_probes_are_real_and_isolated() -> None
             async with conn.transaction():
                 await conn.execute(
                     "INSERT INTO quality_evaluation_manifest ("
-                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"
-                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"
-                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"
-                    " comparison_result_schema_version, comparison_result_set_schema_version,"
-                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"
-                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"
-                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"
-                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"
-                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",
+                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"  # noqa: E501
+                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"  # noqa: E501
+                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"  # noqa: E501
+                    " comparison_result_schema_version, comparison_result_set_schema_version,"  # noqa: E501
+                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"  # noqa: E501
+                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"  # noqa: E501
+                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"  # noqa: E501
+                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"  # noqa: E501
+                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",  # noqa: E501
                     run_id,
                 )
         rejection_probe_count += 1
@@ -2118,15 +2083,15 @@ async def test_round_c_database_rejection_probes_are_real_and_isolated() -> None
             async with conn.transaction():
                 await conn.execute(
                     "INSERT INTO quality_evaluation_manifest ("
-                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"
-                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"
-                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"
-                    " comparison_result_schema_version, comparison_result_set_schema_version,"
-                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"
-                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"
-                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"
-                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"
-                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",
+                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"  # noqa: E501
+                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"  # noqa: E501
+                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"  # noqa: E501
+                    " comparison_result_schema_version, comparison_result_set_schema_version,"  # noqa: E501
+                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"  # noqa: E501
+                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"  # noqa: E501
+                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"  # noqa: E501
+                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"  # noqa: E501
+                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",  # noqa: E501
                     run_id,
                 )
         rejection_probe_count += 1
@@ -2147,15 +2112,15 @@ async def test_round_c_database_rejection_probes_are_real_and_isolated() -> None
             async with conn.transaction():
                 await conn.execute(
                     "INSERT INTO quality_evaluation_manifest ("
-                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"
-                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"
-                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"
-                    " comparison_result_schema_version, comparison_result_set_schema_version,"
-                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"
-                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"
-                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"
-                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"
-                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",
+                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"  # noqa: E501
+                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"  # noqa: E501
+                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"  # noqa: E501
+                    " comparison_result_schema_version, comparison_result_set_schema_version,"  # noqa: E501
+                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"  # noqa: E501
+                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"  # noqa: E501
+                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"  # noqa: E501
+                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"  # noqa: E501
+                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",  # noqa: E501
                     run_id,
                 )
         rejection_probe_count += 1

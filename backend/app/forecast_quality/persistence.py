@@ -673,7 +673,7 @@ def _build_evidence(
                 cell_member_set_hashes[cell_key] = item.result.baseline_member_set_hash
             elif existing != item.result.baseline_member_set_hash:
                 raise ForecastQualityContractError(
-                    f"comparison cell has inconsistent baseline_member_set_hash"
+                    "comparison cell has inconsistent baseline_member_set_hash"
                 )
         # canonical payload truth table: every ComparisonResult stored
         # field must agree with its derivation from the calculator cells.

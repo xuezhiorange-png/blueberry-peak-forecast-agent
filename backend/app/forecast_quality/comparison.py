@@ -73,9 +73,7 @@ _ROUND_A_CALCULATOR_METRIC_NAMES: dict[ComparisonName, str] = {
 # ComparisonName values that come from a calculator cell.  Names not listed
 # here (e.g. ABSOLUTE_BIAS_MAGNITUDE_DELTA = |signed_bias|) must be derived
 # from a calculator cell via the HALF_EVEN projection rule below.
-_CALCULATOR_DERIVED_NAMES: frozenset[ComparisonName] = frozenset(
-    _ROUND_A_CALCULATOR_METRIC_NAMES
-)
+_CALCULATOR_DERIVED_NAMES: frozenset[ComparisonName] = frozenset(_ROUND_A_CALCULATOR_METRIC_NAMES)
 
 
 class ComparisonContractError(ValueError):
@@ -365,9 +363,7 @@ def _calculator_cell_value(
     for cell in result.metric_cells:
         if cell.metric_name == cell_name:
             return cell.metric_value, cell.reason_code
-    raise ComparisonContractError(
-        f"Round A calculator did not emit expected cell '{cell_name}'"
-    )
+    raise ComparisonContractError(f"Round A calculator did not emit expected cell '{cell_name}'")
 
 
 def _calculator_inputs(
@@ -438,32 +434,22 @@ def _baseline_round_trip_replay(
         result = record.result
         if result.baseline_quantile != SupportedQuantile.P50.value:
             raise ComparisonContractError(
-                f"BASELINE_QUANTILE=P50 is required (got "
-                f"{result.baseline_quantile!r})"
+                f"BASELINE_QUANTILE=P50 is required (got {result.baseline_quantile!r})"
             )
         if not result.source_snapshot_identity:
-            raise ComparisonContractError(
-                "BaselineResult.source_snapshot_identity is empty"
-            )
+            raise ComparisonContractError("BaselineResult.source_snapshot_identity is empty")
         if not result.source_snapshot_hash:
-            raise ComparisonContractError(
-                "BaselineResult.source_snapshot_hash is empty"
-            )
+            raise ComparisonContractError("BaselineResult.source_snapshot_hash is empty")
         if not result.source_row_set_hash:
-            raise ComparisonContractError(
-                "BaselineResult.source_row_set_hash is empty"
-            )
+            raise ComparisonContractError("BaselineResult.source_row_set_hash is empty")
         if not result.visibility_manifest_hash:
-            raise ComparisonContractError(
-                "BaselineResult.visibility_manifest_hash is empty"
-            )
+            raise ComparisonContractError("BaselineResult.visibility_manifest_hash is empty")
         payload = dataclasses.asdict(result)
         payload["canonical_hash"] = ""
         replayed = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
         if replayed != result.canonical_hash:
             raise ComparisonStructuralFailure(
-                f"BaselineResult canonical_hash replay failed for "
-                f"{result.source_snapshot_identity}"
+                f"BaselineResult canonical_hash replay failed for {result.source_snapshot_identity}"
             )
 
 
@@ -531,18 +517,15 @@ def _round_c_metric_outputs(
             continue
         if name == ComparisonName.ABSOLUTE_BIAS_MAGNITUDE_DELTA:
             signed_model_value, _ = _calculator_cell_value(
-                model_result, _ROUND_A_CALCULATOR_METRIC_NAMES[
-                    ComparisonName.SIGNED_BIAS_DELTA
-                ]
+                model_result, _ROUND_A_CALCULATOR_METRIC_NAMES[ComparisonName.SIGNED_BIAS_DELTA]
             )
             signed_baseline_value, _ = _calculator_cell_value(
-                baseline_result, _ROUND_A_CALCULATOR_METRIC_NAMES[
-                    ComparisonName.SIGNED_BIAS_DELTA
-                ]
+                baseline_result, _ROUND_A_CALCULATOR_METRIC_NAMES[ComparisonName.SIGNED_BIAS_DELTA]
             )
             if signed_model_value is None or signed_baseline_value is None:
                 output[name] = (None, ReasonCode.NO_S2_BINDING_ROWS)
                 continue
+            assert signed_model_value is not None and signed_baseline_value is not None
             model_value = abs(signed_model_value).quantize(
                 DECIMAL_QUANTUM, rounding=ROUND_HALF_EVEN
             )
@@ -550,14 +533,17 @@ def _round_c_metric_outputs(
                 DECIMAL_QUANTUM, rounding=ROUND_HALF_EVEN
             )
             delta_value = _half_even_delta(model_value, baseline_value)
-            output[name] = (delta_value, None if delta_value is not None else ReasonCode.NO_S2_BINDING_ROWS)
+            output[name] = (
+                delta_value,
+                None if delta_value is not None else ReasonCode.NO_S2_BINDING_ROWS,
+            )
             continue
         cell_name = _ROUND_A_CALCULATOR_METRIC_NAMES[name]
-        model_value, _ = _calculator_cell_value(model_result, cell_name)
-        baseline_value, _ = _calculator_cell_value(
-            baseline_result, cell_name
-        )
-        delta_value = _half_even_delta(model_value, baseline_value)
+        cell_model_value: Decimal | None
+        cell_baseline_value: Decimal | None
+        cell_model_value, _ = _calculator_cell_value(model_result, cell_name)
+        cell_baseline_value, _ = _calculator_cell_value(baseline_result, cell_name)
+        delta_value = _half_even_delta(cell_model_value, cell_baseline_value)
         if delta_value is None:
             # When the calculator side itself rejected (zero denominators,
             # no eligible rows, etc.) propagate the calculator cell reason
