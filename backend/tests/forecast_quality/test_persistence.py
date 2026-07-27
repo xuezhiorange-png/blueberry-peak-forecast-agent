@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import os
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -12,7 +14,7 @@ import asyncpg
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +22,7 @@ from backend.app.db.session import AsyncSessionMaker
 from backend.app.forecast_quality.baseline import resolve_baseline_point_forecast
 from backend.app.forecast_quality.breakdown import calculate_breakdown_cells
 from backend.app.forecast_quality.calculator_daily import compute_daily_metrics
+from backend.app.forecast_quality.canonical import canonical_json_bytes
 from backend.app.forecast_quality.enums import FrozenVersion, SupportedQuantile
 from backend.app.forecast_quality.persistence import (
     BaselinePersistenceRecord,
@@ -199,6 +202,36 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
             "0024_s3_forecast_quality_persistence"
         )
+        nullable_rows = await conn.fetch(
+            """
+            SELECT table_name, column_name, is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND (
+                (table_name IN (
+                    'quality_evaluation_run', 'quality_metric_result',
+                    'quality_breakdown_result', 'naive_baseline_run',
+                    'model_baseline_comparison', 'quality_evaluation_manifest'
+                ) AND column_name IN ('created_at', 'completed_at'))
+                OR (table_name = 'quality_evaluation_manifest'
+                    AND column_name = 'sealed_at')
+              )
+            """
+        )
+        assert {
+            (row["table_name"], row["column_name"]): row["is_nullable"] for row in nullable_rows
+        } == {
+            (table, column): "NO"
+            for table in (
+                "quality_evaluation_run",
+                "quality_metric_result",
+                "quality_breakdown_result",
+                "naive_baseline_run",
+                "model_baseline_comparison",
+                "quality_evaluation_manifest",
+            )
+            for column in ("created_at", "completed_at")
+        } | {("quality_evaluation_manifest", "sealed_at"): "NO"}
         tables = {
             row["tablename"]
             for row in await conn.fetch(
@@ -270,11 +303,52 @@ async def test_postgres_constraints_and_seal_reject_mutation() -> None:
                 breakdown_results=breakdowns,
                 baseline_record=baseline,
             )
+        metric = await session.scalar(
+            select(QualityMetricResultModel).where(
+                QualityMetricResultModel.quality_evaluation_run_id == persisted.run_id
+            )
+        )
+        assert metric is not None
+        with pytest.raises(DBAPIError):
+            await session.execute(
+                update(QualityMetricResultModel)
+                .where(QualityMetricResultModel.id == metric.id)
+                .values(metric_name="tampered")
+            )
+        await session.rollback()
+        with pytest.raises(DBAPIError):
+            await session.execute(
+                delete(QualityMetricResultModel).where(QualityMetricResultModel.id == metric.id)
+            )
+        await session.rollback()
         with pytest.raises(DBAPIError):
             await session.execute(
                 update(QualityEvaluationManifestModel)
                 .where(QualityEvaluationManifestModel.id == persisted.manifest_id)
                 .values(manifest_hash="e" * 64)
+            )
+        await session.rollback()
+        with pytest.raises(DBAPIError):
+            await session.execute(
+                delete(QualityEvaluationManifestModel).where(
+                    QualityEvaluationManifestModel.id == persisted.manifest_id
+                )
+            )
+        await session.rollback()
+        with pytest.raises(DBAPIError):
+            await session.execute(
+                insert(QualityMetricResultModel).values(
+                    quality_evaluation_run_id=persisted.run_id,
+                    schema_version="v0.2-s3-quality-persistence-v1",
+                    metric_result_key_hash="e" * 64,
+                    metric_name="daily_mae",
+                    metric_status="COMPUTED",
+                    reason_code="COMPUTED",
+                    breakdown_identity={},
+                    canonical_payload={},
+                    canonical_hash="f" * 64,
+                    completed_at=datetime.now(UTC),
+                )
             )
         await session.rollback()
         manifest = await session.scalar(
@@ -339,7 +413,128 @@ async def test_foreign_key_and_hash_constraints_are_present() -> None:
             )
         }
         assert "uq_quality_evaluation_run_request" in constraints
+        assert "uq_quality_evaluation_run_canonical_hash" in constraints
         assert "fk_quality_metric_result_run" in constraints
+        assert "fk_quality_breakdown_result_run" in constraints
+        assert "fk_naive_baseline_run_run" in constraints
+        assert "fk_model_baseline_comparison_run" in constraints
+        assert "fk_model_baseline_comparison_baseline" in constraints
         assert "fk_quality_manifest_run" in constraints
+        assert "uq_naive_baseline_run_request" in constraints
+        assert "uq_naive_baseline_run_result" in constraints
+        assert "uq_naive_baseline_canonical_hash" not in constraints
+        assert "ck_quality_breakdown_result_counter_closure" in constraints
+        for required_constraint in (
+            "uq_quality_metric_result_run_key",
+            "uq_quality_metric_result_canonical_hash",
+            "uq_quality_breakdown_result_run_key",
+            "uq_quality_breakdown_result_canonical_hash",
+            "uq_model_baseline_comparison_run_key",
+            "uq_model_baseline_comparison_canonical_hash",
+            "uq_quality_manifest_run",
+            "uq_quality_manifest_hash",
+            "ck_quality_evaluation_run_request_sha256",
+            "ck_quality_evaluation_run_canonical_sha256",
+            "ck_quality_metric_result_key_sha256",
+            "ck_quality_metric_result_canonical_sha256",
+            "ck_quality_breakdown_result_key_sha256",
+            "ck_quality_breakdown_result_canonical_sha256",
+            "ck_naive_baseline_request_sha256",
+            "ck_naive_baseline_result_sha256",
+            "ck_naive_baseline_canonical_sha256",
+            "ck_model_baseline_comparison_key_sha256",
+            "ck_model_baseline_comparison_canonical_sha256",
+            "ck_quality_manifest_request_sha256",
+            "ck_quality_manifest_instance_sha256",
+            "ck_quality_manifest_metric_set_sha256",
+            "ck_quality_manifest_breakdown_set_sha256",
+            "ck_quality_manifest_baseline_set_sha256",
+            "ck_quality_manifest_comparison_set_sha256",
+            "ck_quality_manifest_hash_sha256",
+            "ck_quality_breakdown_result_counts_nonnegative",
+            "ck_quality_breakdown_result_coverage_range",
+        ):
+            assert required_constraint in constraints, required_constraint
+    finally:
+        await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_breakdown_counter_closure_is_database_enforced() -> None:
+    env = _live_env()
+    input_data, _, _, _ = _fixture("db-counter-closure")
+    run_payload, request_hash, run_hash = _validate_evaluation_input(input_data)
+    identity = {
+        "forecast_horizon_days": 7,
+        "farm_business_key": "farm:counter-closure",
+        "subfarm_business_key": "subfarm:counter-closure",
+        "variety_business_key": "variety:counter-closure",
+        "season_business_key": "season:counter-closure",
+        "model_identity": "model:counter-closure",
+    }
+    breakdown_payload = {
+        "cell_identity": identity,
+        "metric_status": "COMPUTED",
+        "reason_code": "COMPUTED",
+        "s2_total_binding_row_count": 2,
+        "s2_comparable_row_count": 1,
+        "s2_excluded_row_count": 0,
+        "s2_not_computable_row_count": 0,
+        "coverage_ratio": "0.500000",
+        "metric_values": {},
+    }
+    url = (
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    conn = await asyncpg.connect(url)
+    try:
+        run_id = await conn.fetchval(
+            """
+            INSERT INTO quality_evaluation_run (
+                schema_version, evaluation_request_hash, s2_run_identity,
+                s2_manifest_identity, s2_binding_row_set_hash,
+                metric_policy_version, baseline_policy_version, status,
+                canonical_payload, canonical_hash, completed_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETE', $8::jsonb, $9, now())
+            RETURNING id
+            """,
+            "v0.2-s3-quality-persistence-v1",
+            request_hash,
+            input_data.s2_run_identity,
+            input_data.s2_manifest_identity,
+            input_data.s2_binding_row_set_hash,
+            input_data.metric_policy_version.value,
+            input_data.baseline_policy_version.value,
+            json.dumps(run_payload),
+            run_hash,
+        )
+        assert run_id is not None
+        with pytest.raises(asyncpg.PostgresError):
+            await conn.execute(
+                """
+                INSERT INTO quality_breakdown_result (
+                    quality_evaluation_run_id, schema_version, breakdown_key_hash,
+                    breakdown_identity, metric_status, reason_code,
+                    s2_comparable_row_count, s2_excluded_row_count,
+                    s2_not_computable_row_count, coverage_ratio, metric_values,
+                    canonical_payload, canonical_hash, completed_at
+                ) VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11::jsonb,
+                          $12::jsonb, $13, now())
+                """,
+                run_id,
+                "v0.2-s3-quality-persistence-v1",
+                hashlib.sha256(canonical_json_bytes(identity)).hexdigest(),
+                json.dumps(identity),
+                "COMPUTED",
+                "COMPUTED",
+                1,
+                0,
+                0,
+                Decimal("0.500000"),
+                json.dumps({}),
+                json.dumps(breakdown_payload),
+                hashlib.sha256(canonical_json_bytes(breakdown_payload)).hexdigest(),
+            )
     finally:
         await conn.close()

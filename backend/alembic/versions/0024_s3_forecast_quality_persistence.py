@@ -35,6 +35,18 @@ def _sha256_check(column: str, name: str) -> sa.CheckConstraint:
     )
 
 
+def _breakdown_counter_closure_check(is_sqlite: bool) -> sa.CheckConstraint:
+    if is_sqlite:
+        total = "json_extract(canonical_payload, '$.s2_total_binding_row_count')"
+    else:
+        total = "(canonical_payload->>'s2_total_binding_row_count')::bigint"
+    return sa.CheckConstraint(
+        f"{total} IS NOT NULL AND {total} >= 0 AND {total} = "
+        "s2_comparable_row_count + s2_excluded_row_count + s2_not_computable_row_count",
+        name="ck_quality_breakdown_result_counter_closure",
+    )
+
+
 def _create_tables(is_sqlite: bool) -> None:
     json_type = _json_type(is_sqlite)
     bigint = _bigint_type(is_sqlite)
@@ -52,7 +64,12 @@ def _create_tables(is_sqlite: bool) -> None:
         sa.Column("status", sa.Text(), nullable=False),
         sa.Column("canonical_payload", json_type, nullable=False),
         sa.Column("canonical_hash", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("evaluation_request_hash", name="uq_quality_evaluation_run_request"),
         sa.UniqueConstraint("canonical_hash", name="uq_quality_evaluation_run_canonical_hash"),
@@ -89,7 +106,12 @@ def _create_tables(is_sqlite: bool) -> None:
         sa.Column("breakdown_identity", json_type, nullable=False),
         sa.Column("canonical_payload", json_type, nullable=False),
         sa.Column("canonical_hash", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint(
             "quality_evaluation_run_id",
@@ -135,7 +157,12 @@ def _create_tables(is_sqlite: bool) -> None:
         sa.Column("metric_values", json_type, nullable=False),
         sa.Column("canonical_payload", json_type, nullable=False),
         sa.Column("canonical_hash", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint(
             "quality_evaluation_run_id",
@@ -154,6 +181,7 @@ def _create_tables(is_sqlite: bool) -> None:
             "coverage_ratio IS NULL OR (coverage_ratio >= 0 AND coverage_ratio <= 1)",
             name="ck_quality_breakdown_result_coverage_range",
         ),
+        _breakdown_counter_closure_check(is_sqlite),
     )
     op.create_index(
         "ix_quality_breakdown_result_run_id",
@@ -186,7 +214,12 @@ def _create_tables(is_sqlite: bool) -> None:
         sa.Column("reason_code", sa.Text(), nullable=False),
         sa.Column("canonical_payload", json_type, nullable=False),
         sa.Column("canonical_hash", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint(
             "quality_evaluation_run_id",
@@ -198,7 +231,6 @@ def _create_tables(is_sqlite: bool) -> None:
             "baseline_result_hash",
             name="uq_naive_baseline_run_result",
         ),
-        sa.UniqueConstraint("canonical_hash", name="uq_naive_baseline_canonical_hash"),
         _sha256_check("baseline_request_hash", "ck_naive_baseline_request_sha256"),
         _sha256_check("baseline_result_hash", "ck_naive_baseline_result_sha256"),
         _sha256_check("canonical_hash", "ck_naive_baseline_canonical_sha256"),
@@ -240,7 +272,12 @@ def _create_tables(is_sqlite: bool) -> None:
         sa.Column("reason_code", sa.Text(), nullable=False),
         sa.Column("canonical_payload", json_type, nullable=False),
         sa.Column("canonical_hash", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint(
             "quality_evaluation_run_id",
@@ -279,7 +316,12 @@ def _create_tables(is_sqlite: bool) -> None:
         sa.Column("comparison_result_set_hash", sa.Text(), nullable=False),
         sa.Column("manifest_payload", json_type, nullable=False),
         sa.Column("manifest_hash", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("sealed_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("quality_evaluation_run_id", name="uq_quality_manifest_run"),
@@ -314,12 +356,40 @@ def _create_postgresql_enforcement() -> None:
         """
         CREATE FUNCTION quality_evaluation_child_insert_guard() RETURNS trigger
         LANGUAGE plpgsql AS $$
+        DECLARE
+            owning_run_id bigint;
         BEGIN
+            SELECT id INTO owning_run_id
+            FROM quality_evaluation_run
+            WHERE id = NEW.quality_evaluation_run_id
+            FOR UPDATE;
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'forecast-quality owning run does not exist';
+            END IF;
             IF EXISTS (
                 SELECT 1 FROM quality_evaluation_manifest
                 WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
             ) THEN
                 RAISE EXCEPTION 'forecast-quality child cannot be inserted after manifest seal';
+            END IF;
+            RETURN NEW;
+        END;
+        $$
+        """
+    )
+    op.execute(
+        """
+        CREATE FUNCTION quality_evaluation_manifest_insert_guard() RETURNS trigger
+        LANGUAGE plpgsql AS $$
+        DECLARE
+            owning_run_id bigint;
+        BEGIN
+            SELECT id INTO owning_run_id
+            FROM quality_evaluation_run
+            WHERE id = NEW.quality_evaluation_run_id
+            FOR UPDATE;
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'forecast-quality owning run does not exist';
             END IF;
             RETURN NEW;
         END;
@@ -354,6 +424,13 @@ def _create_postgresql_enforcement() -> None:
             FOR EACH ROW EXECUTE FUNCTION quality_evaluation_child_insert_guard()
             """
         )
+    op.execute(
+        """
+        CREATE TRIGGER trg_quality_manifest_insert_guard
+        BEFORE INSERT ON quality_evaluation_manifest
+        FOR EACH ROW EXECUTE FUNCTION quality_evaluation_manifest_insert_guard()
+        """
+    )
 
 
 def upgrade() -> None:
@@ -386,7 +463,12 @@ def downgrade() -> None:
             "quality_evaluation_manifest",
         ):
             op.execute(f"DROP TRIGGER IF EXISTS trg_quality_{table}_immutable ON {table}")
+        op.execute(
+            "DROP TRIGGER IF EXISTS trg_quality_manifest_insert_guard "
+            "ON quality_evaluation_manifest"
+        )
         op.execute("DROP FUNCTION IF EXISTS quality_evaluation_child_insert_guard()")
+        op.execute("DROP FUNCTION IF EXISTS quality_evaluation_manifest_insert_guard()")
         op.execute("DROP FUNCTION IF EXISTS quality_evaluation_immutable_row()")
     for table in (
         "quality_evaluation_manifest",

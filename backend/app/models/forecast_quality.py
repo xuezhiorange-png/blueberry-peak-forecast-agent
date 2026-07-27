@@ -179,7 +179,6 @@ class NaiveBaselineRunModel(Base):
             "baseline_result_hash",
             name="uq_naive_baseline_run_result",
         ),
-        UniqueConstraint("canonical_hash", name="uq_naive_baseline_canonical_hash"),
         _sha256_check("baseline_request_hash", "ck_naive_baseline_request_sha256"),
         _sha256_check("baseline_result_hash", "ck_naive_baseline_result_sha256"),
         _sha256_check("canonical_hash", "ck_naive_baseline_canonical_sha256"),
