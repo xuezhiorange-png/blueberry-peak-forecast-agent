@@ -142,7 +142,70 @@ STRUCTURAL_FAILURE
 
 The implementation must not choose the first record, last record, or latest record.
 
-## 5. Stable common-set classification
+## 5. Baseline member identity set
+
+The comparison contract uses a baseline member set, not a single baseline
+authority. `ComparisonResult` has these two fields instead:
+
+```text
+baseline_member_identity_set
+baseline_member_set_hash
+```
+
+`baseline_member_identity_set` is a JSON array sorted by canonical daily key. Each member has exactly these fields:
+
+```text
+comparison_daily_key
+baseline_request_hash
+baseline_result_hash
+baseline_source_snapshot_identity
+baseline_source_snapshot_hash
+baseline_source_row_set_hash
+visibility_manifest_hash
+baseline_policy_version
+```
+
+`comparison_daily_key` has exactly these fields:
+
+```text
+current_target_date
+current_forecast_cutoff_at
+farm_business_key
+subfarm_business_key
+variety_business_key
+metric_policy_version
+baseline_policy_version
+```
+
+The member set contains no database ID, timestamp outside the semantic cutoff, worker identity, row order, connection data, or raw baseline row. Missing, extra, duplicate, or incorrectly mapped members fail closed.
+
+```text
+BASELINE_MEMBER_SET_SCHEMA_VERSION=v0.2-s3-comparison-baseline-member-set-v1
+
+baseline_member_set_payload = {
+  "members": "member array ordered by comparison_daily_key canonical bytes",
+  "schema_version": "v0.2-s3-comparison-baseline-member-set-v1"
+}
+
+baseline_member_set_hash =
+  SHA256(canonical_json_bytes(baseline_member_set_payload))
+```
+
+The member array is canonicalized before hashing, so changing input order does not change the hash. Every baseline member must correspond to exactly one `naive_baseline_run` row under the owning `quality_evaluation_run`. The matching projections are:
+
+```text
+baseline_request_hash
+baseline_result_hash
+baseline_source_snapshot_identity
+baseline_source_snapshot_hash
+baseline_source_row_set_hash
+visibility_manifest_hash
+baseline_policy_version
+```
+
+The database must reject a member that is absent, belongs to another evaluation run, has a mismatched baseline projection, is duplicated, or produces a mismatched member-set hash. This enforcement is through a PostgreSQL trigger or equivalent database-level enforcement; application-only checks are insufficient.
+
+## 6. Stable common-set classification
 
 The implementation first constructs a stable candidate union, removes no evidence, deduplicates by canonical semantic key, and sorts by canonical key. A semantic daily key must enter exactly one of these classes:
 
@@ -184,7 +247,7 @@ common_comparable_row_count <= baseline_input_row_count
 
 `model_input_row_count` is the count of distinct model candidate keys. `baseline_input_row_count` is the count of distinct baseline candidate keys. All seven counters are included in the canonical payload.
 
-### 5.1 Hand-computed classification example
+### 6.1 Hand-computed classification example
 
 The following six-key example has five model candidates, five baseline candidates, two common rows, one model-only row, one baseline-only row, one excluded row, and one not-computable row:
 
@@ -211,7 +274,7 @@ union=6
 
 The example proves that a key is counted once and that model-only, baseline-only, excluded, and not-computable evidence are not erased to manufacture a larger common set.
 
-## 6. Recompute both metrics on the same common set
+## 7. Recompute both metrics on the same common set
 
 The comparison implementation must not directly compare persisted `DailyMetricResult` rows, because a model metric mask can contain rows unavailable to the baseline. Both sides must be recomputed on exactly the same `COMMON_COMPARABLE_SET`.
 
@@ -276,7 +339,9 @@ reason_code=NO_S2_BINDING_ROWS
 model_value=null
 baseline_value=null
 delta_value=null
-comparison_availability=BLOCKED
+comparison_availability=AVAILABLE
+external_blocker=null
+frozen_limitation=null
 ```
 
 ### 7.2 Metric-specific non-computability
@@ -285,11 +350,17 @@ comparison_availability=BLOCKED
 WAPE denominator zero:
   daily_wape_delta.metric_status=NOT_COMPUTABLE
   daily_wape_delta.reason_code=WAPE_DENOMINATOR_ZERO
+  daily_wape_delta.comparison_availability=AVAILABLE
+  daily_wape_delta.external_blocker=null
+  daily_wape_delta.frozen_limitation=null
   all values=null
 
 MAPE has no eligible row:
   daily_mape_delta.metric_status=NOT_COMPUTABLE
   daily_mape_delta.reason_code=NO_MAPE_ELIGIBLE_ROWS
+  daily_mape_delta.comparison_availability=AVAILABLE
+  daily_mape_delta.external_blocker=null
+  daily_mape_delta.frozen_limitation=null
   all values=null
 ```
 
@@ -341,14 +412,26 @@ TOTAL_RECORD_COUNT_PER_CELL=10
 
 The four S3R-24C records are always:
 
-| `comparison_name` | `comparison_availability` | `metric_status` | `reason_code` |
-| --- | --- | --- | --- |
-| `p80_coverage_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
-| `p90_coverage_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
-| `baseline_p80_p90_peak_comparison` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
-| `interval_width_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE` |
+| `comparison_name` | `comparison_availability` | `metric_status` | `reason_code` | `external_blocker` | `frozen_limitation` |
+| --- | --- | --- | --- | --- | --- |
+| `p80_coverage_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` | null | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `p90_coverage_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` | null | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `baseline_p80_p90_peak_comparison` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` | null | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `interval_width_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE` | null | `PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE` |
 
-For all four, `model_value`, `baseline_value`, and `delta_value` are null. P50 may not substitute for P80 or P90, and zero may not represent missing interval evidence.
+For all four, `model_value`, `baseline_value`, and `delta_value` are null. `external_blocker` is null and `frozen_limitation == reason_code`. P50 may not substitute for P80 or P90, and zero may not represent missing interval evidence.
+
+The Round C truth table is:
+
+| Surface | `comparison_availability` | `external_blocker` | `frozen_limitation` |
+| --- | --- | --- | --- |
+| All S3R-24A records, including zero common rows and denominator failures | `AVAILABLE` | null | null |
+| `p80_coverage_delta` | `BLOCKED` | null | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `p90_coverage_delta` | `BLOCKED` | null | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `baseline_p80_p90_peak_comparison` | `BLOCKED` | null | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `interval_width_delta` | `BLOCKED` | null | `PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE` |
+
+`BLOCKED` is reserved for S3R-24C frozen limitations and a future external-authority-blocked surface. A frozen limitation is never written into `external_blocker`.
 
 COMPLETE_WINDOW_COMPARISON_RECORD_WRITE=false
 COMPLETE_WINDOW_COMPARISON_RECORD_COUNT=0
@@ -389,7 +472,8 @@ The internal `ComparisonResult` contains:
 | `metric_status` | existing `MetricStatus` value |
 | `reason_code` | existing `ReasonCode` value |
 | `model_identity` | normalized `BreakdownSpec.model_identity` text |
-| `baseline_identity` | exact seven-key baseline identity object below |
+| `baseline_member_identity_set` | canonical JSON array of exact baseline member identities |
+| `baseline_member_set_hash` | SHA-256 of the canonical baseline member-set payload |
 | `normalized_breakdown_identity` | exact six-key identity object below |
 | `forecast_horizon_days` | projection from `breakdown_spec`, positive integer |
 | `model_value` | Decimal with six-place HALF_EVEN semantics or null |
@@ -402,6 +486,8 @@ The internal `ComparisonResult` contains:
 | `baseline_only_row_count` | nonnegative integer |
 | `excluded_row_count` | nonnegative integer |
 | `not_computable_row_count` | nonnegative integer |
+| `external_blocker` | nullable string; null for all current Round C records |
+| `frozen_limitation` | nullable string; null for S3R-24A and equal to `reason_code` for S3R-24C |
 | `canonical_payload` | deterministic payload containing semantic identity, status/reason, values, and counters |
 | `canonical_hash` | SHA-256 of the canonical payload |
 
@@ -431,11 +517,20 @@ INSUFFICIENT_SAMPLE:
   reason_code=BELOW_MINIMUM
 
 NOT_COMPUTABLE:
-  comparison_availability=BLOCKED
   reason_code non-NONE
   model_value=null
   baseline_value=null
   delta_value=null
+
+S3R-24A NOT_COMPUTABLE:
+  comparison_availability=AVAILABLE
+  external_blocker=null
+  frozen_limitation=null
+
+S3R-24C NOT_COMPUTABLE:
+  comparison_availability=BLOCKED
+  external_blocker=null
+  frozen_limitation=reason_code
 ```
 
 ## 10. Identity JSON shapes and projection equality
@@ -467,9 +562,11 @@ forecast_horizon_days column
 == normalized_breakdown_identity.forecast_horizon_days
 ```
 
-`baseline_identity` is a JSON object with exactly these seven keys and no additional key:
+`baseline_member_identity_set` is the exact JSON array defined in Section 5.
+Each member has exactly these seven projection fields and no additional field:
 
 ```text
+comparison_daily_key
 baseline_request_hash
 baseline_result_hash
 baseline_source_snapshot_identity
@@ -479,7 +576,11 @@ visibility_manifest_hash
 baseline_policy_version
 ```
 
-Neither identity object contains database IDs or timestamps. `naive_baseline_run_id` is only a lookup FK within the same owning run. Its row projections must equal every corresponding value in `baseline_identity`.
+`baseline_member_set_hash` is the SHA-256 of the canonical member-set
+payload, not the hash of a single baseline row. Neither the member set nor its
+daily key contains database IDs, timestamps outside the semantic cutoff,
+worker identity, row order, connection data, or raw baseline rows. There is no
+legacy single-row lookup authority in the Round C contract.
 
 ## 11. Database schema decision and 0025 contract
 
@@ -495,13 +596,28 @@ OPTION_A alters the existing `model_baseline_comparison` table through migration
 
 ### 11.1 0025 relational columns
 
-Migration 0025 must rename existing `comparison_status` to `metric_status`, add the v2 projections, add nullable `comparison_policy_version` to `quality_evaluation_run`, and preserve the six-table Round B schema while making v1/v2 checks explicit. It creates no seventh table.
+Migration 0025 must first verify that the pre-0025
+`model_baseline_comparison` row count is zero. It must then drop the legacy
+single-baseline relationship:
+
+```text
+DROP CONSTRAINT fk_model_baseline_comparison_baseline
+DROP COLUMN naive_baseline_run_id
+```
+
+It must rename existing `comparison_status` to `metric_status`, add the
+baseline member set and v2 projections, add nullable
+`comparison_policy_version` to `quality_evaluation_run`, and preserve the
+six-table Round B schema while making v1/v2 checks explicit. It creates no
+seventh table. A baseline membership trigger (or equivalent database
+enforcement) locks the owning run and rejects a missing member, a member from
+a foreign run, a mismatched projection, a duplicate member, or a member-set
+hash that does not match the canonical array.
 
 | Column | PostgreSQL type | Nullability/default | Frozen rule |
 | --- | --- | --- | --- |
 | `id` | `BIGINT` | NOT NULL generated primary key | internal only |
 | `quality_evaluation_run_id` | `BIGINT` | NOT NULL | FK `fk_model_baseline_comparison_run` |
-| `naive_baseline_run_id` | `BIGINT` | NOT NULL | FK `fk_model_baseline_comparison_baseline` |
 | `schema_version` | `TEXT` | NOT NULL | `v0.2-s3-quality-persistence-v2` only |
 | `comparison_key_hash` | `TEXT` | NOT NULL | SHA-256; unique with owning run |
 | `comparison_policy_version` | `TEXT` | NOT NULL | `v0.2-s3-comparison-policy-v1` |
@@ -509,8 +625,11 @@ Migration 0025 must rename existing `comparison_status` to `metric_status`, add 
 | `comparison_availability` | `TEXT` | NOT NULL | `AVAILABLE` or `BLOCKED` |
 | `metric_status` | `TEXT` | NOT NULL | existing `MetricStatus` vocabulary |
 | `reason_code` | `TEXT` | NOT NULL | existing `ReasonCode` vocabulary |
+| `external_blocker` | `TEXT` | NULL | null for current Round C; never a frozen limitation |
+| `frozen_limitation` | `TEXT` | NULL | null for S3R-24A; equals `reason_code` for S3R-24C |
 | `model_identity` | `TEXT` | NOT NULL | exact `BreakdownSpec.model_identity` |
-| `baseline_identity` | `JSONB` | NOT NULL | exact seven keys, no extra key |
+| `baseline_member_identity_set` | `JSONB` | NOT NULL | exact non-empty member array and exact member shape |
+| `baseline_member_set_hash` | `TEXT` | NOT NULL | lowercase SHA-256 of canonical member-set payload |
 | `normalized_breakdown_identity` | `JSONB` | NOT NULL | exact six keys, no extra key |
 | `forecast_horizon_days` | `INTEGER` | NOT NULL | equals six-axis projection and greater than zero |
 | `model_value` | `NUMERIC(20,6)` | NULL | conditional-nullability check |
@@ -545,10 +664,70 @@ The exact named constraints are:
 - `ck_model_baseline_comparison_counter_bounds`;
 - `ck_model_baseline_comparison_identity_projection`;
 - `ck_model_baseline_comparison_six_axis_identity`;
-- `ck_model_baseline_comparison_baseline_identity`;
+- `ck_model_baseline_comparison_baseline_member_set_array`;
+- `ck_model_baseline_comparison_baseline_member_set_nonempty`;
+- `ck_model_baseline_comparison_baseline_member_set_hash_sha256`;
+- `ck_model_baseline_comparison_baseline_member_shape`;
+- `ck_model_baseline_comparison_external_blocker_vocabulary`;
+- `ck_model_baseline_comparison_frozen_limitation_vocabulary`;
+- `ck_model_baseline_comparison_blocker_limitation_consistency`;
 - `ck_model_baseline_comparison_conditional_values`.
 
-### 11.2 Six-table v1/v2 schema-version checks
+### 11.2 0025 manifest columns and projections
+
+Migration 0025 adds these columns to the existing
+`quality_evaluation_manifest`; it does not add a table:
+
+| Column | PostgreSQL type | Nullability/default | Frozen rule |
+| --- | --- | --- | --- |
+| `comparison_policy_version` | `TEXT` | NULL | null for v1; `v0.2-s3-comparison-policy-v1` for v2 |
+| `comparison_result_schema_version` | `TEXT` | NULL | null for v1; `v0.2-s3-comparison-result-v1` for v2 |
+| `comparison_result_set_schema_version` | `TEXT` | NOT NULL | v1 or `v0.2-s3-comparison-result-set-v2` according to run version |
+| `comparison_cell_count` | `BIGINT` | NOT NULL | nonnegative; v2 is the distinct normalized identity count |
+| `comparison_result_count` | `BIGINT` | NOT NULL | nonnegative; v2 equals `comparison_cell_count * 10` |
+| `comparison_result_set_hash` | `TEXT` | NOT NULL, retained | exact versioned result-set payload hash |
+
+The v1 manifest projection is frozen as:
+
+```text
+schema_version=v0.2-s3-quality-persistence-v1
+comparison_policy_version=null
+comparison_result_schema_version=null
+comparison_result_set_schema_version=v0.2-s3-comparison-result-set-v1
+comparison_cell_count=0
+comparison_result_count=0
+comparison_result_set_hash=Round B explicit-empty comparison set hash
+```
+
+The v2 manifest projection is frozen as:
+
+```text
+schema_version=v0.2-s3-quality-persistence-v2
+comparison_policy_version=v0.2-s3-comparison-policy-v1
+comparison_result_schema_version=v0.2-s3-comparison-result-v1
+comparison_result_set_schema_version=v0.2-s3-comparison-result-set-v2
+comparison_cell_count=count(distinct normalized_breakdown_identity in owning run)
+comparison_result_count=comparison_cell_count * 10
+comparison_result_set_hash=exact v2 hash rebuilt from database child canonical hashes
+```
+
+For v2, `comparison_result_count` must equal the owning run's database child
+row count, and the rebuilt child-hash payload must equal the stored manifest
+hash. The named constraints are:
+
+```text
+ck_quality_manifest_comparison_versions
+ck_quality_manifest_comparison_counts_nonnegative
+ck_quality_manifest_comparison_count_closure
+ck_quality_manifest_v1_comparison_projection
+ck_quality_manifest_v2_comparison_projection
+```
+
+The ORM, persistence replay path, and isolated direct PostgreSQL probes must
+all verify these projections and reject version, count, child-set, or hash
+mismatches. The manifest remains the last insert and seals the owning run.
+
+### 11.3 Six-table v1/v2 schema-version checks
 
 The six Round B persistence tables (`quality_evaluation_run`, `quality_metric_result`, `quality_breakdown_result`, `naive_baseline_run`, `model_baseline_comparison`, and `quality_evaluation_manifest`) must accept the historical v1 schema version and the new v2 schema version where a schema-version projection exists:
 
@@ -645,11 +824,18 @@ ON (quality_evaluation_run_id, canonical_hash)
 comparison_result_schema_version
 comparison_policy_version
 comparison_name
-baseline_identity
+baseline_member_set_hash
 normalized_breakdown_identity
 ```
 
-`model_identity` and `forecast_horizon_days` are not repeated as independent comparison-key inputs because they are already contained in `normalized_breakdown_identity`. The independent relational columns remain and must equal the corresponding canonical identity projections exactly.
+The complete `baseline_member_identity_set` is included in the comparison
+canonical payload, but the key uses only its deterministic
+`baseline_member_set_hash`. No single-row baseline identity or lookup foreign
+key is a comparison-contract field. `model_identity` and
+`forecast_horizon_days` are not repeated as independent comparison-key inputs
+because they are already contained in `normalized_breakdown_identity`. The
+independent relational columns remain and must equal the corresponding
+canonical identity projections exactly.
 
 The comparison canonical payload contains the key identity, status/reason, values where computable, all seven counters, and the v2 schema/policy versions. It excludes database numeric IDs, timestamps, worker or host identity, database row order, connection information, and unbounded raw rows.
 
@@ -660,7 +846,39 @@ comparison_result_set_hash = hash(sorted explicit comparison canonical hashes)
 
 The manifest comparison set hash is inserted only after all comparison rows have been written. Exact replay requires equality of key projections, baseline projections, six-axis projections, canonical payload/hash, counters, child set, and manifest projections. Conflicting valid evidence is rejected. Partial, orphaned, extra, missing, or self-contradictory evidence fails closed.
 
-## 16. Exact future implementation path union
+## 16. Exact comparison result-set payload
+
+COMPARISON_RESULT_SET_SCHEMA_VERSION=v0.2-s3-comparison-result-set-v2
+
+The v2 comparison result-set payload is exactly:
+
+```json
+{
+  "record_count": "comparison canonical hash count",
+  "records": "lowercase SHA-256 strings sorted in ascending text order",
+  "schema_version": "v0.2-s3-comparison-result-set-v2"
+}
+```
+
+The hash is:
+
+```text
+comparison_result_set_hash =
+  SHA256(canonical_json_bytes(comparison_result_set_payload))
+```
+
+The payload must satisfy:
+
+```text
+record_count == len(records)
+records contains no duplicate
+every records element is lowercase SHA-256 text
+records exactly equals the owning run comparison child canonical-hash set
+```
+
+Hashing a Python set, bare list, database row order, concatenated strings, or Round B's explicit-empty set is forbidden. Reordering database rows cannot change the v2 result-set hash.
+
+## 18. Exact future implementation path union
 
 The following remains the complete and only authorized future Round C implementation union. This document fixup does not expand it.
 
@@ -689,7 +907,7 @@ FUTURE_UNAUTHORIZED_PATH_COUNT=0
 
 `schemas.py` modification is not required. `enums.py` modification is not required. `calculator_daily.py` modification is not required. Round C-only dataclasses and constants are owned by `comparison.py`, existing enums are reused, and the existing daily calculator is reused without numerical modification. If an implementation audit proves one of those three paths is required for compilation, document authoring must stop; it may not be added to this union by inference.
 
-## 17. CI ownership freeze
+## 19. CI ownership freeze
 
 CI_OWNERSHIP_FROZEN=true
 CI_JOB_COUNT_CHANGE=0
@@ -712,7 +930,7 @@ UNOWNED_TEST_NODE_COUNT=0
 
 Each test node has one owner. No new job, required job name, event trigger, PostgreSQL service version, port, credential, or PR canary behavior is authorized.
 
-## 18. Acceptance matrix
+## 20. Acceptance matrix
 
 The future implementation is incomplete until every item below has a passing test in its unique owner:
 
@@ -731,7 +949,7 @@ The future implementation is incomplete until every item below has a passing tes
 | 11 | Baseline prior-season actual is not used as current actual |
 | 12 | Model-only and baseline-only audit counts are preserved |
 | 13 | Common-set closure and counter bounds are enforced |
-| 14 | Zero common rows produce six blocked S3R-24A records |
+| 14 | Zero common rows produce six `AVAILABLE` S3R-24A records with null blocker and limitation |
 | 15 | WAPE denominator zero produces `WAPE_DENOMINATOR_ZERO` |
 | 16 | MAPE without an eligible row produces `NO_MAPE_ELIGIBLE_ROWS` |
 | 17 | One through nine common rows produce `INSUFFICIENT_SAMPLE + BELOW_MINIMUM` when numerically computable |
@@ -756,12 +974,33 @@ The future implementation is incomplete until every item below has a passing tes
 | 36 | Any v2 evaluation or comparison row blocks downgrade without deletion |
 | 37 | Clean `0024 -> 0025 -> 0024 -> 0025` round trip succeeds |
 | 38 | Model and six-axis identity projection equality is enforced |
-| 39 | Baseline identity exact-key and relational projection equality is enforced |
+| 39 | Baseline member identity exact-key and relational projection equality is enforced |
 | 40 | Malformed SHA-256, FK, unique, vocabulary, nullability, counter, horizon, and identity probes are real isolated PostgreSQL rejection probes |
+| 41 | Multi-day baseline member set success |
+| 42 | Baseline member order independence preserves the member-set hash |
+| 43 | Duplicate baseline member is rejected |
+| 44 | Missing baseline member is rejected |
+| 45 | Foreign-run baseline member is rejected |
+| 46 | Baseline member-set hash mismatch is rejected |
+| 47 | Daily zero-common availability remains `AVAILABLE` |
+| 48 | Daily WAPE-zero availability remains `AVAILABLE` |
+| 49 | Daily MAPE-no-eligible availability remains `AVAILABLE` |
+| 50 | Every S3R-24A record has null `external_blocker` and null `frozen_limitation` |
+| 51 | Every S3R-24C limitation has exact `frozen_limitation == reason_code` and null `external_blocker` |
+| 52 | Writing a frozen limitation as an external blocker is rejected |
+| 53 | Exact v2 comparison result-set payload oracle passes |
+| 54 | Bare-list result-set hash is rejected |
+| 55 | Database-row-order result-set hash is rejected |
+| 56 | Duplicate result hash in the result-set payload is rejected |
+| 57 | Historical v1 manifest projection remains compatible and immutable |
+| 58 | V2 manifest version projection is enforced |
+| 59 | V2 result count equals `comparison_cell_count * 10` |
+| 60 | V2 result count equals the database comparison-child count |
+| 61 | Manifest result-set hash is rebuilt exactly from database child hashes |
 
 The negative probes must leave no committed test pollution. Metadata-only constraint-name checks are insufficient; illegal writes must be attempted and rejected by PostgreSQL.
 
-## 19. Explicit non-scope
+## 21. Explicit non-scope
 
 ```text
 REAL_DATA=false
@@ -788,7 +1027,7 @@ TASK10_NUMERICAL_CHANGE=false
 ISSUE102_CLOSE=false
 ```
 
-## 20. Review and handoff gates
+## 22. Review and handoff gates
 
 Independent review must verify:
 
