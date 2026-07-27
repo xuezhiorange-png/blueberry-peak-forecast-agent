@@ -26,6 +26,7 @@ from backend.app.forecast_quality.canonical import canonical_json_bytes
 from backend.app.forecast_quality.enums import FrozenVersion, SupportedQuantile
 from backend.app.forecast_quality.persistence import (
     BaselinePersistenceRecord,
+    ForecastQualityContractError,
     PersistedQualityEvaluation,
     _validate_evaluation_input,
     persist_quality_evaluation,
@@ -274,18 +275,31 @@ def _probe_metric_args(
     *,
     key_hash: str | None = None,
     canonical_hash: str | None = None,
+    metric_status: str = "COMPUTED",
+    reason_code: str = "NONE",
 ) -> tuple[object, ...]:
     return (
         run_id,
         _PROBE_SCHEMA,
         key_hash or _probe_hash(f"metric-key:{suffix}"),
         "daily_mae",
-        "COMPUTED",
-        "COMPUTED",
-        json.dumps({"probe": suffix}),
+        metric_status,
+        reason_code,
+        json.dumps(_probe_identity(suffix)),
         json.dumps({"probe": suffix}),
         canonical_hash or _probe_hash(f"metric-canonical:{suffix}"),
     )
+
+
+def _probe_identity(suffix: str) -> dict[str, object]:
+    return {
+        "forecast_horizon_days": 7,
+        "farm_business_key": f"farm:{suffix}",
+        "subfarm_business_key": f"subfarm:{suffix}",
+        "variety_business_key": f"variety:{suffix}",
+        "season_business_key": f"season:{suffix}",
+        "model_identity": f"model:{suffix}",
+    }
 
 
 def _probe_breakdown_args(
@@ -299,12 +313,15 @@ def _probe_breakdown_args(
     coverage: Decimal | None,
     key_hash: str | None = None,
     canonical_hash: str | None = None,
+    metric_status: str = "COMPUTED",
+    reason_code: str = "NONE",
+    identity_value: object | None = None,
 ) -> tuple[object, ...]:
-    identity = {"probe": suffix}
+    identity = _probe_identity(suffix) if identity_value is None else identity_value
     payload = {
         "cell_identity": identity,
-        "metric_status": "COMPUTED",
-        "reason_code": "COMPUTED",
+        "metric_status": metric_status,
+        "reason_code": reason_code,
         "s2_total_binding_row_count": total,
         "s2_comparable_row_count": comparable,
         "s2_excluded_row_count": excluded,
@@ -317,8 +334,8 @@ def _probe_breakdown_args(
         _PROBE_SCHEMA,
         key_hash or _probe_hash(f"breakdown-key:{suffix}"),
         json.dumps(identity),
-        "COMPUTED",
-        "COMPUTED",
+        metric_status,
+        reason_code,
         comparable,
         excluded,
         not_computable,
@@ -336,6 +353,8 @@ def _probe_baseline_args(
     canonical_hash: str | None = None,
     request_hash: str | None = None,
     result_hash: str | None = None,
+    metric_status: str = "COMPUTED",
+    reason_code: str = "NONE",
 ) -> tuple[object, ...]:
     return (
         run_id,
@@ -347,8 +366,8 @@ def _probe_baseline_args(
         _probe_hash(f"snapshot-row-set:{suffix}"),
         _probe_hash(f"visibility:{suffix}"),
         "baseline-policy-probe",
-        "COMPUTED",
-        "COMPUTED",
+        metric_status,
+        reason_code,
         json.dumps({"probe": suffix}),
         canonical_hash or _probe_hash(f"baseline-canonical:{suffix}"),
     )
@@ -488,6 +507,144 @@ async def test_complete_write_has_six_table_shape_and_empty_comparison() -> None
 
 
 @pytest.mark.asyncio
+async def test_persistence_one_third_coverage_is_quantized_to_six_places() -> None:
+    _live_env()
+    input_data, metric_result, breakdowns, baseline = _fixture("persistence-one-third")
+    breakdown = dict(breakdowns[0])
+    breakdown.update(
+        {
+            "s2_total_binding_row_count": 3,
+            "s2_comparable_row_count": 1,
+            "s2_excluded_row_count": 1,
+            "s2_not_computable_row_count": 1,
+            "coverage_ratio": Decimal("0.333333"),
+        }
+    )
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            persisted = await _persist(
+                session,
+                evaluation_input=input_data,
+                metric_result=metric_result,
+                breakdown_results=[breakdown],
+                baseline_record=baseline,
+            )
+            stored = await session.scalar(
+                select(QualityBreakdownResultModel.coverage_ratio).where(
+                    QualityBreakdownResultModel.quality_evaluation_run_id == persisted.run_id
+                )
+            )
+            assert stored == Decimal("0.333333")
+    print("PERSISTENCE_ONE_THIRD_RESULT=PASS")
+
+
+@pytest.mark.asyncio
+async def test_persistence_half_even_tie_coverage_is_quantized() -> None:
+    _live_env()
+    input_data, metric_result, breakdowns, baseline = _fixture("persistence-half-even-tie")
+    breakdown = dict(breakdowns[0])
+    breakdown.update(
+        {
+            "s2_total_binding_row_count": 128,
+            "s2_comparable_row_count": 1,
+            "s2_excluded_row_count": 127,
+            "s2_not_computable_row_count": 0,
+            "coverage_ratio": Decimal("0.007812"),
+        }
+    )
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            persisted = await _persist(
+                session,
+                evaluation_input=input_data,
+                metric_result=metric_result,
+                breakdown_results=[breakdown],
+                baseline_record=baseline,
+            )
+            stored = await session.scalar(
+                select(QualityBreakdownResultModel.coverage_ratio).where(
+                    QualityBreakdownResultModel.quality_evaluation_run_id == persisted.run_id
+                )
+            )
+            assert stored == Decimal("0.007812")
+    print("PERSISTENCE_HALF_EVEN_TIE_RESULT=PASS")
+
+
+@pytest.mark.asyncio
+async def test_persistence_rejects_wrong_half_even_tie_before_write() -> None:
+    _live_env()
+    input_data, metric_result, breakdowns, baseline = _fixture("persistence-wrong-tie")
+    request_hash = _validate_evaluation_input(input_data)[1]
+    breakdown = dict(breakdowns[0])
+    breakdown.update(
+        {
+            "s2_total_binding_row_count": 128,
+            "s2_comparable_row_count": 1,
+            "s2_excluded_row_count": 127,
+            "s2_not_computable_row_count": 0,
+            "coverage_ratio": Decimal("0.007813"),
+        }
+    )
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ForecastQualityContractError, match="coverage"):
+            await _persist(
+                session,
+                evaluation_input=input_data,
+                metric_result=metric_result,
+                breakdown_results=[breakdown],
+                baseline_record=baseline,
+            )
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationRunModel.id)).where(
+                    QualityEvaluationRunModel.evaluation_request_hash == request_hash
+                )
+            )
+            == 0
+        )
+    print("WRONG_HALF_EVEN_TIE_REJECTED=true")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("metric_status", "UNKNOWN"),
+        ("reason_code", "COMPUTED"),
+        ("reason_code", "UNKNOWN"),
+    ),
+)
+async def test_persistence_rejects_out_of_vocabulary_breakdown_values(
+    field: str, value: str
+) -> None:
+    _live_env()
+    input_data, metric_result, breakdowns, baseline = _fixture(
+        f"persistence-vocabulary-{field}-{value}"
+    )
+    request_hash = _validate_evaluation_input(input_data)[1]
+    breakdown = dict(breakdowns[0])
+    breakdown[field] = value
+    async with AsyncSessionMaker() as session:
+        with pytest.raises(ForecastQualityContractError, match="vocabulary"):
+            await _persist(
+                session,
+                evaluation_input=input_data,
+                metric_result=metric_result,
+                breakdown_results=[breakdown],
+                baseline_record=baseline,
+            )
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationRunModel.id)).where(
+                    QualityEvaluationRunModel.evaluation_request_hash == request_hash
+                )
+            )
+            == 0
+        )
+    print(f"ROUND_A_{'STATUS' if field == 'metric_status' else 'REASON'}_VOCABULARY_RESULT=PASS")
+
+
+@pytest.mark.asyncio
 async def test_postgres_constraints_and_seal_reject_mutation() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("immutability")
@@ -541,8 +698,8 @@ async def test_postgres_constraints_and_seal_reject_mutation() -> None:
                     metric_result_key_hash="e" * 64,
                     metric_name="daily_mae",
                     metric_status="COMPUTED",
-                    reason_code="COMPUTED",
-                    breakdown_identity={},
+                    reason_code="NONE",
+                    breakdown_identity=_probe_identity("after-seal"),
                     canonical_payload={},
                     canonical_hash="f" * 64,
                     completed_at=datetime.now(UTC),
@@ -652,6 +809,13 @@ async def test_foreign_key_and_hash_constraints_are_present() -> None:
             "ck_quality_breakdown_result_counts_nonnegative",
             "ck_quality_breakdown_result_coverage_range",
             "ck_quality_breakdown_result_coverage_consistency",
+            "ck_quality_breakdown_result_six_axis_identity",
+            "ck_quality_metric_result_metric_status_vocabulary",
+            "ck_quality_metric_result_reason_code_vocabulary",
+            "ck_quality_breakdown_result_metric_status_vocabulary",
+            "ck_quality_breakdown_result_reason_code_vocabulary",
+            "ck_naive_baseline_metric_status_vocabulary",
+            "ck_naive_baseline_reason_code_vocabulary",
         ):
             assert required_constraint in constraints, required_constraint
     finally:
@@ -674,7 +838,7 @@ async def test_breakdown_counter_closure_is_database_enforced() -> None:
     breakdown_payload = {
         "cell_identity": identity,
         "metric_status": "COMPUTED",
-        "reason_code": "COMPUTED",
+        "reason_code": "NONE",
         "s2_total_binding_row_count": 2,
         "s2_comparable_row_count": 1,
         "s2_excluded_row_count": 0,
@@ -726,7 +890,7 @@ async def test_breakdown_counter_closure_is_database_enforced() -> None:
                 hashlib.sha256(canonical_json_bytes(identity)).hexdigest(),
                 json.dumps(identity),
                 "COMPUTED",
-                "COMPUTED",
+                "NONE",
                 1,
                 0,
                 0,
@@ -787,6 +951,33 @@ async def test_breakdown_coverage_invariant_is_database_enforced() -> None:
             ),
         )
         valid_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run_id,
+                "half-even-tie-wrong",
+                total=128,
+                comparable=1,
+                excluded=127,
+                not_computable=0,
+                coverage=Decimal("0.007813"),
+            ),
+        )
+        negative_probe_count += 1
+        await conn.execute(
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run_id,
+                "half-even-tie-valid",
+                total=128,
+                comparable=1,
+                excluded=127,
+                not_computable=0,
+                coverage=Decimal("0.007812"),
+            ),
+        )
+        valid_probe_count += 1
         assert negative_probe_count >= 3
         assert valid_probe_count >= 1
         print(f"COVERAGE_INVARIANT_NEGATIVE_PROBE_COUNT={negative_probe_count}")
@@ -807,6 +998,8 @@ async def test_postgres_database_rejection_probes_are_real_and_isolated() -> Non
     conn = await asyncpg.connect(url)
     fk_probe_count = 0
     unique_probe_count = 0
+    vocabulary_probe_count = 0
+    six_axis_probe_count = 0
     malformed_categories: set[str] = set()
     outer = conn.transaction()
     await outer.start()
@@ -989,6 +1182,127 @@ async def test_postgres_database_rejection_probes_are_real_and_isolated() -> Non
             == 2
         )
 
+        await _expect_postgres_rejection(
+            conn,
+            _METRIC_INSERT_SQL,
+            *_probe_metric_args(
+                run2,
+                "invalid-metric-status",
+                metric_status="UNKNOWN",
+            ),
+        )
+        vocabulary_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _METRIC_INSERT_SQL,
+            *_probe_metric_args(
+                run2,
+                "invalid-metric-reason",
+                reason_code="UNKNOWN",
+            ),
+        )
+        vocabulary_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run2,
+                "invalid-breakdown-status",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                metric_status="UNKNOWN",
+            ),
+        )
+        vocabulary_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run2,
+                "invalid-breakdown-reason",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                reason_code="UNKNOWN",
+            ),
+        )
+        vocabulary_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BASELINE_INSERT_SQL,
+            *_probe_baseline_args(
+                run2,
+                "invalid-baseline-status",
+                metric_status="UNKNOWN",
+            ),
+        )
+        vocabulary_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BASELINE_INSERT_SQL,
+            *_probe_baseline_args(
+                run2,
+                "invalid-baseline-reason",
+                reason_code="UNKNOWN",
+            ),
+        )
+        vocabulary_probe_count += 1
+
+        missing_axis = _probe_identity("missing-axis")
+        missing_axis.pop("model_identity")
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run2,
+                "missing-axis",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                identity_value=missing_axis,
+            ),
+        )
+        six_axis_probe_count += 1
+        extra_axis = _probe_identity("extra-axis")
+        extra_axis["extra_axis"] = "forbidden"
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run2,
+                "extra-axis",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                identity_value=extra_axis,
+            ),
+        )
+        six_axis_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run2,
+                "non-object-axis",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                identity_value=["not", "an", "object"],
+            ),
+        )
+        six_axis_probe_count += 1
+
         manifest_hash = _probe_hash("manifest-hash:seed")
         await conn.execute(
             _MANIFEST_INSERT_SQL,
@@ -1036,9 +1350,13 @@ async def test_postgres_database_rejection_probes_are_real_and_isolated() -> Non
         assert await conn.fetchval("SELECT count(*) FROM model_baseline_comparison") == 0
         assert fk_probe_count >= 4
         assert unique_probe_count >= 9
+        assert vocabulary_probe_count >= 6
+        assert six_axis_probe_count >= 3
         assert malformed_categories == {"SHORT_LENGTH", "UPPERCASE_HEX", "NON_HEX_CHARACTER"}
         print(f"FK_REJECTION_PROBE_COUNT={fk_probe_count}")
         print(f"SEMANTIC_UNIQUE_REJECTION_PROBE_COUNT={unique_probe_count}")
+        print(f"VOCABULARY_REJECTION_PROBE_COUNT={vocabulary_probe_count}")
+        print(f"SIX_AXIS_REJECTION_PROBE_COUNT={six_axis_probe_count}")
         print(f"MALFORMED_SHA_REJECTION_CATEGORY_COUNT={len(malformed_categories)}")
         print("COMPARISON_RECORD_WRITE_AUTHORIZED=false")
         print("MODEL_BASELINE_COMPARISON_ROW_WRITE=false")
