@@ -2,6 +2,7 @@
 
 DOCUMENT_STATUS=PROPOSED_AWAITING_INDEPENDENT_REVIEW
 BASE_SHA=36e196d3742e8efaaa449230d86777335a337b8e
+PREVIOUS_REVIEW_ID=4784117810
 
 ROUND_C_AUTHORIZATION_DOCUMENT_COMPLETE=true
 ROUND_C_IMPLEMENTATION_AUTHORIZED=false
@@ -16,7 +17,7 @@ REAL_DATA_OPENED=false
 ISSUE102_CLOSE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 
-This document is the sole Round C authorization artifact. It freezes the comparison contract and the exact future implementation path union. It authorizes no implementation, schema, migration, CI, production, test, data, API, or frontend change.
+This document is the sole Round C authorization artifact. It freezes the comparison contract and the exact future implementation path union. It authorizes no implementation, schema, migration, CI, production, test, data, API, frontend, Ready transition, merge, or Issue #102 action.
 
 ## 1. Frozen requirements and boundary
 
@@ -33,106 +34,367 @@ REAL_DATA_OPENED=false
 BACKTEST_EXECUTED=false
 ISSUE102_CLOSED=false
 
-Round C compares the persisted S3 model evidence with the persisted baseline evidence. The comparison domain is restricted to S3R-24A, S3R-24C, and S3R-25 below. No unrelated metric, model, task, or public API is authorized by this document.
+Round C is restricted to S3R-24A daily point head-to-head comparison, S3R-24C blocked baseline quantile and interval comparison, and S3R-25 comparison delta semantics. S3R-24B remains blocked. The future implementation path union remains exactly 14 paths.
 
-## 2. S3R-24A daily point head-to-head
+## 2. Round C-only symbol ownership
 
-POINT_HEAD_TO_HEAD_OVER=COMMON_COMPARABLE_SET
+ROUND_C_SYMBOL_OWNER_FROZEN=true
+COMPARISON_POLICY_VERSION=v0.2-s3-comparison-policy-v1
+COMPARISON_RESULT_SCHEMA_VERSION=v0.2-s3-comparison-result-v1
 
-The comparison input is the intersection of model and baseline comparable semantic rows. A model-only row and a baseline-only row remain in audit counters; neither is silently deleted, imputed, or treated as a common row. The comparison implementation must construct the common set explicitly and preserve all seven audit counts:
+The only owner of the following Round C-only internal symbols is `backend/app/forecast_quality/comparison.py`:
 
-| Audit counter | Frozen meaning | Type |
-| --- | --- | --- |
-| `model_input_row_count` | Model rows entering the comparison after the declared input filters | nonnegative integer |
-| `baseline_input_row_count` | Baseline rows entering the comparison after the declared input filters | nonnegative integer |
-| `common_comparable_row_count` | Semantic intersection used for numeric head-to-head values | nonnegative integer |
-| `model_only_row_count` | Model rows without a baseline counterpart | nonnegative integer |
-| `baseline_only_row_count` | Baseline rows without a model counterpart | nonnegative integer |
-| `excluded_row_count` | Rows excluded by the frozen comparability rules | nonnegative integer |
-| `not_computable_row_count` | Rows with insufficient evidence for a numeric result | nonnegative integer |
+| Symbol | Sole owner |
+| --- | --- |
+| `ComparisonName` | `backend/app/forecast_quality/comparison.py` |
+| `ComparisonResult` | `backend/app/forecast_quality/comparison.py` |
+| `ComparisonInputRow` | `backend/app/forecast_quality/comparison.py` |
+| `ComparisonBaselineRecord` | `backend/app/forecast_quality/comparison.py` |
+| `COMPARISON_POLICY_VERSION` | `backend/app/forecast_quality/comparison.py` |
+| `COMPARISON_RESULT_SCHEMA_VERSION` | `backend/app/forecast_quality/comparison.py` |
+| `compute_model_baseline_comparisons` | `backend/app/forecast_quality/comparison.py` |
 
-The six authorized daily point outputs are:
+`ComparisonAvailability`, `MetricStatus`, and `ReasonCode` continue to reuse the existing `enums.py` definitions. No second status vocabulary or reason-code vocabulary may be introduced. Future `persistence.py` may import and re-export compatibility names, but it is not an owner of the comparison domain symbols.
 
-| `comparison_name` | `model_value` | `baseline_value` | `delta_value` | Status | Reason |
-| --- | --- | --- | --- | --- | --- |
-| `daily_mae_delta` | model daily MAE | baseline daily MAE | model minus baseline | `COMPUTED` | `NONE` |
-| `daily_wape_delta` | model daily WAPE | baseline daily WAPE | model minus baseline | `COMPUTED` | `NONE` |
-| `daily_smape_delta` | model daily sMAPE | baseline daily sMAPE | model minus baseline | `COMPUTED` | `NONE` |
-| `daily_mape_delta` | model daily MAPE | baseline daily MAPE | model minus baseline | `COMPUTED` | `NONE` |
-| `absolute_bias_magnitude_delta` | absolute model bias | absolute baseline bias | `abs(model_bias) - abs(baseline_bias)` | `COMPUTED` | `NONE` |
-| `signed_bias_delta` | model signed bias | baseline signed bias | `model_signed_bias - baseline_signed_bias` | `COMPARED` | `SIGNED_DIRECTION_ONLY` |
+## 3. Frozen comparison input function
 
-For every loss or magnitude delta:
+The exact future function signature is:
+
+```python
+def compute_model_baseline_comparisons(
+    *,
+    evaluation_input: S3EvaluationInput,
+    breakdown_spec: BreakdownSpec,
+    baseline_records: Sequence[ComparisonBaselineRecord],
+) -> tuple[ComparisonResult, ...]:
+    ...
+```
+
+`ComparisonBaselineRecord` is exactly:
+
+```python
+@dataclass(frozen=True)
+class ComparisonBaselineRecord:
+    request: BaselineRequest
+    snapshot: BaselineSourceSnapshot
+    result: BaselineResult
+```
+
+Input authority is frozen:
+
+```text
+model/current-actual authority = S3EvaluationInput.rows
+baseline authority = BaselineRequest + BaselineSourceSnapshot + BaselineResult
+```
+
+The function must reject or fail closed for all of the following association methods:
+
+- positional `zip` association;
+- database row-order association;
+- latest-baseline fallback;
+- caller-provided arbitrary join key;
+- persisted aggregate metric rows used as common-set row authority.
+
+The comparison function consumes the explicit S3 model/current-actual rows and the explicit three-part baseline evidence record. It does not discover a different baseline through persistence lookup.
+
+## 4. P50 and daily join contract
+
+MODEL_QUANTILE=P50
+BASELINE_QUANTILE=P50
+
+Round C daily point comparison permits P50 on both sides only. Each baseline record matches a current model row only when every condition below is true:
+
+```text
+BaselineRequest.current_target_date
+== S3BindingRow.forecast_target_date
+
+BaselineRequest.current_forecast_cutoff_at
+== S3BindingRow.forecast_cutoff_at
+
+farm_business_key equal
+subfarm_business_key equal
+variety_business_key equal
+
+metric_policy_version equal
+baseline_policy_version equal
+
+current_target_date inside declared current season
+```
+
+`breakdown_spec` is the sole source of the current model breakdown projection and must exactly constrain:
+
+```text
+season_business_key
+farm_business_key
+subfarm_business_key
+variety_business_key
+model_identity
+forecast_horizon_days
+```
+
+The baseline may not invent model identity, forecast horizon, or season identity. Those projections come from the current model breakdown cell. A baseline record whose identity conflicts with the current model breakdown fails closed.
+
+The same baseline semantic key appearing with more than one different evidence record is:
+
+```text
+STRUCTURAL_FAILURE
+```
+
+The implementation must not choose the first record, last record, or latest record.
+
+## 5. Stable common-set classification
+
+The implementation first constructs a stable candidate union, removes no evidence, deduplicates by canonical semantic key, and sorts by canonical key. A semantic daily key must enter exactly one of these classes:
+
+```text
+COMMON_COMPARABLE
+MODEL_ONLY
+BASELINE_ONLY
+EXCLUDED
+NOT_COMPUTABLE
+```
+
+Classification priority is frozen:
+
+1. duplicate or contradictory identity -> `STRUCTURAL_FAILURE`;
+2. model S2 `EXCLUDED` or `NOT_COMPARABLE` -> `EXCLUDED`;
+3. model S2 `NOT_COMPUTABLE` -> `NOT_COMPUTABLE`;
+4. matching baseline status `NOT_COMPUTABLE` -> `NOT_COMPUTABLE`;
+5. model and baseline numeric evidence plus current actual -> `COMMON_COMPARABLE`;
+6. valid model/current actual without matching baseline -> `MODEL_ONLY`;
+7. valid baseline without matching model/current actual -> `BASELINE_ONLY`.
+
+The closure invariant is:
+
+```text
+union_row_count =
+    common_comparable_row_count
+    + model_only_row_count
+    + baseline_only_row_count
+    + excluded_row_count
+    + not_computable_row_count
+```
+
+The counter bounds are:
+
+```text
+common_comparable_row_count <= model_input_row_count
+common_comparable_row_count <= baseline_input_row_count
+```
+
+`model_input_row_count` is the count of distinct model candidate keys. `baseline_input_row_count` is the count of distinct baseline candidate keys. All seven counters are included in the canonical payload.
+
+### 5.1 Hand-computed classification example
+
+The following six-key example has five model candidates, five baseline candidates, two common rows, one model-only row, one baseline-only row, one excluded row, and one not-computable row:
+
+| Key | Model evidence | Baseline evidence | Model state | Frozen class |
+| --- | --- | --- | --- | --- |
+| `d01` | valid P50 and current actual | valid P50 | numeric | `COMMON_COMPARABLE` |
+| `d02` | valid P50 and current actual | valid P50 | numeric | `COMMON_COMPARABLE` |
+| `d03` | valid P50 and current actual | absent | numeric | `MODEL_ONLY` |
+| `d04` | absent | valid P50 | n/a | `BASELINE_ONLY` |
+| `d05` | present | valid P50 | S2 `EXCLUDED` | `EXCLUDED` |
+| `d06` | present | valid P50 | S2 `NOT_COMPUTABLE` | `NOT_COMPUTABLE` |
+
+```text
+model candidates=5: d01,d02,d03,d05,d06
+baseline candidates=5: d01,d02,d04,d05,d06
+common=2: d01,d02
+model_only=1: d03
+baseline_only=1: d04
+excluded=1: d05
+not_computable=1: d06
+union=6
+2 + 1 + 1 + 1 + 1 = 6
+```
+
+The example proves that a key is counted once and that model-only, baseline-only, excluded, and not-computable evidence are not erased to manufacture a larger common set.
+
+## 6. Recompute both metrics on the same common set
+
+The comparison implementation must not directly compare persisted `DailyMetricResult` rows, because a model metric mask can contain rows unavailable to the baseline. Both sides must be recomputed on exactly the same `COMMON_COMPARABLE_SET`.
+
+The implementation may create two temporary, non-persistent calculation inputs inside `comparison.py`:
+
+```text
+MODEL_COMMON_INPUT:
+  forecast = model P50 forecast
+  actual = current actual
+
+BASELINE_COMMON_INPUT:
+  forecast = baseline P50 point forecast
+  actual = the same current actual
+```
+
+Both inputs must have:
+
+- the same semantic daily keys;
+- the same current actual values;
+- row-order-independent identity;
+- the same Decimal-only arithmetic policy.
+
+The implementation reuses the existing Round A daily metric algorithms and Decimal rules. It must not maintain a second independent formula set. Baseline prior-season actual is never the current comparison actual.
+
+## 7. S3R-24A record status rules
+
+Every comparison cell always produces these six S3R-24A records:
+
+```text
+daily_mae_delta
+daily_wape_delta
+daily_smape_delta
+daily_mape_delta
+absolute_bias_magnitude_delta
+signed_bias_delta
+```
+
+The delta semantics remain:
 
 ```text
 loss_delta = model_loss - baseline_loss
 positive = model worse
 negative = model better
 zero = tie
-```
 
-For the absolute bias magnitude delta:
-
-```text
 absolute_bias_magnitude_delta = abs(model_bias) - abs(baseline_bias)
 positive = model worse
 negative = model better
 zero = tie
+
+signed_bias_delta = model_signed_bias - baseline_signed_bias
+direction only; not an improvement score
 ```
 
-`signed_bias_delta` is directional information only. It is not an improvement score and must not be assigned the positive-is-worse or negative-is-better loss interpretation.
+### 7.1 Zero common rows
 
-The model-only and baseline-only rows must remain represented in the audit counters. Removing either side to force an apparent common set is forbidden.
+When `common_comparable_row_count=0`, all six S3R-24A records are:
 
-## 3. S3R-24C non-computable outputs
+```text
+metric_status=NOT_COMPUTABLE
+reason_code=NO_S2_BINDING_ROWS
+model_value=null
+baseline_value=null
+delta_value=null
+comparison_availability=BLOCKED
+```
 
-No baseline P80 or P90 distribution may be invented. P50 may not replace P80 or P90, and zero may not replace an unavailable value. The following outputs are persisted only as blocked comparison records with null numeric values:
+### 7.2 Metric-specific non-computability
 
-| `comparison_name` | `comparison_availability` | `metric_status` | `reason_code` | `external_blocker` |
-| --- | --- | --- | --- | --- |
-| `p80_coverage_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` | `none` |
-| `p90_coverage_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` | `none` |
-| `baseline_p80_p90_peak_comparison` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` | `none` |
-| `interval_width_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE` | `none` |
+```text
+WAPE denominator zero:
+  daily_wape_delta.metric_status=NOT_COMPUTABLE
+  daily_wape_delta.reason_code=WAPE_DENOMINATOR_ZERO
+  all values=null
 
-For all four records, `model_value`, `baseline_value`, and `delta_value` are null. The record remains auditable through its semantic identity, status, reason, and counters.
+MAPE has no eligible row:
+  daily_mape_delta.metric_status=NOT_COMPUTABLE
+  daily_mape_delta.reason_code=NO_MAPE_ELIGIBLE_ROWS
+  all values=null
+```
 
-## 4. S3R-24B remains blocked
+### 7.3 Insufficient sample
 
-COMPLETE_WINDOW_HEAD_TO_HEAD_AUTHORIZED=false
-COMPLETE_WINDOW_COMPARISON_VALUE_WRITE=false
-BLOCKER=S2_COMPLETE_DAILY_ROW_SET_AUTHORITY
-STATUS=NOT_COMPUTABLE
-REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+For one through nine common rows, when the particular metric is numerically computable, the result is:
 
-The following outputs remain blocked and may not receive comparison values:
+```text
+metric_status=INSUFFICIENT_SAMPLE
+reason_code=BELOW_MINIMUM
+comparison_availability=AVAILABLE
+model_value non-null
+baseline_value non-null
+delta_value non-null
+```
 
-- `absolute_cumulative_bias_magnitude_delta`
-- `signed_cumulative_error_delta`
-- `single_day_peak_date_absolute_error_delta_q`
-- `single_day_peak_quantity_absolute_error_delta_q`
-- `sustained_7day_start_date_absolute_error_delta_q`
-- `sustained_7day_quantity_absolute_error_delta_q`
+For at least ten common rows, when the metric is numerically computable:
 
-## 5. Comparison result internal contract
+```text
+loss/magnitude:
+  metric_status=COMPUTED
+  reason_code=NONE
+  comparison_availability=AVAILABLE
 
-The future implementation must produce one internal Python comparison record with exactly this contract. Database identifiers, timestamps, worker identity, and connection identity are persistence metadata and are not part of the semantic record.
+signed bias:
+  metric_status=COMPARED
+  reason_code=SIGNED_DIRECTION_ONLY
+  comparison_availability=AVAILABLE
+```
+
+The state priority is:
+
+```text
+NOT_COMPUTABLE condition
+>
+INSUFFICIENT_SAMPLE
+>
+COMPUTED / COMPARED
+```
+
+The conditional-nullability matrix therefore includes `INSUFFICIENT_SAMPLE + BELOW_MINIMUM` with three non-null numeric values, in addition to the `COMPUTED`, `COMPARED`, and `NOT_COMPUTABLE` cases.
+
+## 8. S3R-24C, S3R-24B, and child cardinality
+
+S3R24A_RECORD_COUNT=6
+S3R24C_RECORD_COUNT=4
+S3R24B_RECORD_COUNT=0
+TOTAL_RECORD_COUNT_PER_CELL=10
+
+The four S3R-24C records are always:
+
+| `comparison_name` | `comparison_availability` | `metric_status` | `reason_code` |
+| --- | --- | --- | --- |
+| `p80_coverage_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `p90_coverage_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `baseline_p80_p90_peak_comparison` | `BLOCKED` | `NOT_COMPUTABLE` | `BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED` |
+| `interval_width_delta` | `BLOCKED` | `NOT_COMPUTABLE` | `PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE` |
+
+For all four, `model_value`, `baseline_value`, and `delta_value` are null. P50 may not substitute for P80 or P90, and zero may not represent missing interval evidence.
+
+COMPLETE_WINDOW_COMPARISON_RECORD_WRITE=false
+COMPLETE_WINDOW_COMPARISON_RECORD_COUNT=0
+
+S3R-24B remains a contract assertion only. It contributes no comparison child to the persisted set.
+
+```text
+comparison_result_count = comparison_cell_count * 10
+```
+
+The manifest must contain all of these relational projections:
+
+```text
+comparison_policy_version
+comparison_result_schema_version
+comparison_cell_count
+comparison_result_count
+comparison_result_set_hash
+```
+
+## 9. Comparison result contract and Decimal rules
+
+The Round C-only symbols and versions are owned by `comparison.py`:
+
+```text
+COMPARISON_POLICY_VERSION=v0.2-s3-comparison-policy-v1
+COMPARISON_RESULT_SCHEMA_VERSION=v0.2-s3-comparison-result-v1
+```
+
+The internal `ComparisonResult` contains:
 
 | Field | Contract |
 | --- | --- |
-| `schema_version` | non-null version string |
-| `comparison_policy_version` | non-null frozen policy string |
-| `comparison_name` | non-null value from the frozen comparison-name vocabulary in this document |
-| `comparison_availability` | `AVAILABLE` for computable outputs or `BLOCKED` for frozen non-computable outputs |
-| `metric_status` | existing `MetricStatus` vocabulary only |
-| `reason_code` | existing `ReasonCode` vocabulary only |
-| `model_identity` | normalized model identity object |
-| `baseline_identity` | normalized baseline canonical identity object; includes the baseline canonical evidence identity and no database ID |
-| `normalized_breakdown_identity` | normalized six-axis identity object |
-| `forecast_horizon_days` | positive integer |
-| `model_value` | Decimal with six-place HALF_EVEN semantics when computable; null otherwise |
-| `baseline_value` | Decimal with six-place HALF_EVEN semantics when computable; null otherwise |
-| `delta_value` | Decimal with six-place HALF_EVEN semantics when computable; null otherwise |
+| `schema_version` | `v0.2-s3-comparison-result-v1` for new comparison children |
+| `comparison_policy_version` | `v0.2-s3-comparison-policy-v1` |
+| `comparison_name` | one frozen S3R-24A or S3R-24C name |
+| `comparison_availability` | `AVAILABLE` or `BLOCKED` |
+| `metric_status` | existing `MetricStatus` value |
+| `reason_code` | existing `ReasonCode` value |
+| `model_identity` | normalized `BreakdownSpec.model_identity` text |
+| `baseline_identity` | exact seven-key baseline identity object below |
+| `normalized_breakdown_identity` | exact six-key identity object below |
+| `forecast_horizon_days` | projection from `breakdown_spec`, positive integer |
+| `model_value` | Decimal with six-place HALF_EVEN semantics or null |
+| `baseline_value` | Decimal with six-place HALF_EVEN semantics or null |
+| `delta_value` | Decimal with six-place HALF_EVEN semantics or null |
 | `model_input_row_count` | nonnegative integer |
 | `baseline_input_row_count` | nonnegative integer |
 | `common_comparable_row_count` | nonnegative integer |
@@ -140,31 +402,8 @@ The future implementation must produce one internal Python comparison record wit
 | `baseline_only_row_count` | nonnegative integer |
 | `excluded_row_count` | nonnegative integer |
 | `not_computable_row_count` | nonnegative integer |
-| `canonical_payload` | deterministic JSON object containing the semantic identity, status/reason, computable values, and all seven audit counters |
-| `canonical_hash` | SHA-256 of the canonical JSON payload |
-
-Conditional nullability is frozen as follows:
-
-```text
-COMPUTED:
-  model_value is non-null
-  baseline_value is non-null
-  delta_value is non-null
-  reason_code = NONE
-
-COMPARED + SIGNED_DIRECTION_ONLY:
-  model_value is non-null
-  baseline_value is non-null
-  delta_value is non-null
-  reason_code = SIGNED_DIRECTION_ONLY
-
-NOT_COMPUTABLE:
-  model_value is null
-  baseline_value is null
-  delta_value is null
-  reason_code is non-NONE
-  comparison_availability = BLOCKED
-```
+| `canonical_payload` | deterministic payload containing semantic identity, status/reason, values, and counters |
+| `canonical_hash` | SHA-256 of the canonical payload |
 
 All Decimal arithmetic is frozen:
 
@@ -174,100 +413,40 @@ ROUNDING=ROUND_HALF_EVEN
 NATIVE_FLOAT_ALLOWED=false
 ```
 
-The implementation must quantize model values, baseline values, and delta values to six places before canonical serialization. Native binary floats, NaN, and infinity are not valid comparison values.
-
-## 6. Database schema decision
-
-ROUND_C_SCHEMA_DECISION=OPTION_A
-PREFERRED_SCHEMA_DECISION=OPTION_A
-ALEMBIC_0025_REQUIRED=true
-ALEMBIC_REVISION=0025_s3_model_baseline_comparison
-ALEMBIC_DOWN_REVISION=0024_s3_forecast_quality_persistence
-ALEMBIC_HEAD_COUNT=1
-NEW_TABLE_COUNT=0
-
-### 6.1 Decision comparison
-
-| Decision criterion | OPTION_A: alter `model_baseline_comparison` with migration 0025 | OPTION_B: retain existing columns and make `canonical_payload` the sole arithmetic authority |
-| --- | --- | --- |
-| Queryability | Relational projections are directly queryable by comparison name, status, horizon, identity, values, and counters | Every consumer must parse JSON for ordinary filters and numeric reads |
-| Canonical authority | `canonical_payload` remains the hash authority while projections are checked against it | JSON is the only authority and relational corruption is harder to detect |
-| Constraint enforcement | PostgreSQL can enforce vocabulary, conditional nullability, counter ranges, horizon, six-axis shape, and Decimal scale | Conditional and numeric rules cannot be enforced completely through existing columns |
-| Conditional nullability | `CHECK` constraints directly reject invalid computable and blocked rows | Application checks can be bypassed by direct SQL |
-| Idempotent replay | Semantic key and canonical hash projections support exact replay and conflict classification | Replay requires JSON extraction and cannot enforce the full identity contract relationally |
-| Corruption detection | Stored projections can be rebuilt from canonical payload and compared during replay | A payload-only read cannot detect missing relational projections because none are present |
-| Migration compatibility | One forward-only 0025 migration can rename `comparison_status` to `metric_status`, add projections, and reverse them on downgrade | Existing schema ambiguity remains and future S4 reads inherit the ambiguity |
-| Future S4 reads | Stable relational columns provide bounded, typed read inputs without exposing raw rows | S4 must depend on an unbounded JSON shape as its read contract |
-
-OPTION_A is selected because it preserves canonical authority while making the required projections queryable and database-enforceable. OPTION_B is rejected for the comparison contract.
-
-### 6.2 Option A exact table decision
-
-Migration `0025_s3_model_baseline_comparison` alters the existing `model_baseline_comparison` table. It does not create a seventh table. Existing `comparison_status` is renamed to `metric_status` as a compatibility-preserving projection change; the migration must preserve existing rows and reverse the rename on downgrade.
-
-| Column | PostgreSQL type | Nullability/default | Check or key rule | Canonical inclusion | ORM owner | Test owner |
-| --- | --- | --- | --- | --- | --- | --- |
-| `id` | `BIGINT` | NOT NULL, generated primary key | primary key | excluded | `ModelBaselineComparisonModel` | postgres-migration |
-| `quality_evaluation_run_id` | `BIGINT` | NOT NULL | FK `fk_model_baseline_comparison_run` | excluded | `ModelBaselineComparisonModel` | postgres-migration |
-| `naive_baseline_run_id` | `BIGINT` | NOT NULL | FK `fk_model_baseline_comparison_baseline` | excluded | `ModelBaselineComparisonModel` | postgres-migration |
-| `schema_version` | `TEXT` | NOT NULL | non-empty version check | included | `ModelBaselineComparisonModel` | postgres-migration |
-| `comparison_key_hash` | `TEXT` | NOT NULL | SHA-256 format check; unique with owning run | derived from included identity; not re-input | `ModelBaselineComparisonModel` | postgres-migration |
-| `comparison_policy_version` | `TEXT` | NOT NULL | non-empty version check | included | `ModelBaselineComparisonModel` | postgres-migration |
-| `comparison_name` | `TEXT` | NOT NULL | exact frozen comparison-name check | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `comparison_availability` | `TEXT` | NOT NULL | `AVAILABLE` or `BLOCKED` | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `metric_status` | `TEXT` | NOT NULL | existing `MetricStatus` vocabulary check | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `reason_code` | `TEXT` | NOT NULL | existing `ReasonCode` vocabulary check | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `model_identity` | `JSONB` | NOT NULL | JSON object check | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `baseline_identity` | `JSONB` | NOT NULL | normalized baseline canonical identity object check | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `normalized_breakdown_identity` | `JSONB` | NOT NULL | exact six-axis object check | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `forecast_horizon_days` | `INTEGER` | NOT NULL | greater than zero | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `model_value` | `NUMERIC(20,6)` | NULL | conditional nullability check | included when computable | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `baseline_value` | `NUMERIC(20,6)` | NULL | conditional nullability check | included when computable | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `delta_value` | `NUMERIC(20,6)` | NULL | conditional nullability check | included when computable | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `model_input_row_count` | `BIGINT` | NOT NULL | nonnegative | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `baseline_input_row_count` | `BIGINT` | NOT NULL | nonnegative | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `common_comparable_row_count` | `BIGINT` | NOT NULL | nonnegative and bounded by both inputs | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `model_only_row_count` | `BIGINT` | NOT NULL | nonnegative | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `baseline_only_row_count` | `BIGINT` | NOT NULL | nonnegative | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `excluded_row_count` | `BIGINT` | NOT NULL | nonnegative | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `not_computable_row_count` | `BIGINT` | NOT NULL | nonnegative | included | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `canonical_payload` | `JSONB` | NOT NULL | canonical object check | authority payload | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `canonical_hash` | `TEXT` | NOT NULL | SHA-256 format check; unique with owning run | derived from payload | `ModelBaselineComparisonModel` | postgres-domain-1 |
-| `created_at` | `TIMESTAMPTZ` | NOT NULL, default `now()` | immutable timestamp | excluded | `ModelBaselineComparisonModel` | postgres-migration |
-| `completed_at` | `TIMESTAMPTZ` | NOT NULL | immutable timestamp | excluded | `ModelBaselineComparisonModel` | postgres-migration |
-
-The exact named constraints are frozen:
-
-- `uq_model_baseline_comparison_run_key` on `(quality_evaluation_run_id, comparison_key_hash)`.
-- `uq_model_baseline_comparison_run_canonical_hash` on `(quality_evaluation_run_id, canonical_hash)`; the same valid canonical evidence may be reused by a different owning run.
-- `ck_model_baseline_comparison_key_sha256` and `ck_model_baseline_comparison_canonical_sha256`.
-- `ck_model_baseline_comparison_name_vocabulary`.
-- `ck_model_baseline_comparison_availability_vocabulary`.
-- `ck_model_baseline_comparison_metric_status_vocabulary`.
-- `ck_model_baseline_comparison_reason_code_vocabulary`.
-- `ck_model_baseline_comparison_forecast_horizon_positive`.
-- `ck_model_baseline_comparison_counters_nonnegative`.
-- `ck_model_baseline_comparison_counter_bounds`.
-- `ck_model_baseline_comparison_six_axis_identity`.
-- `ck_model_baseline_comparison_conditional_values`.
-
-## 7. Canonical identity and manifest projections
-
-### 7.1 Comparison key identity
-
-`comparison_key_hash` is the SHA-256 hash of a canonical JSON identity object with exactly these semantic inputs:
+Conditional nullability is frozen:
 
 ```text
-comparison_schema_version
-comparison_policy_version
-comparison_name
-model_identity
-baseline canonical identity
-normalized six-axis breakdown identity
-forecast_horizon_days
+COMPUTED or COMPARED or INSUFFICIENT_SAMPLE:
+  model_value non-null
+  baseline_value non-null
+  delta_value non-null
+
+COMPUTED:
+  reason_code=NONE
+
+COMPARED:
+  reason_code=SIGNED_DIRECTION_ONLY
+
+INSUFFICIENT_SAMPLE:
+  reason_code=BELOW_MINIMUM
+
+NOT_COMPUTABLE:
+  comparison_availability=BLOCKED
+  reason_code non-NONE
+  model_value=null
+  baseline_value=null
+  delta_value=null
 ```
 
-The baseline canonical identity is the baseline evidence identity, not `naive_baseline_run.id`. The normalized breakdown identity is the exact six-axis object from the Round B contract:
+## 10. Identity JSON shapes and projection equality
+
+`model_identity` is not an arbitrary JSON object. It is the exact `BreakdownSpec.model_identity` text and the relational column is:
+
+```text
+model_identity TEXT NOT NULL
+```
+
+`normalized_breakdown_identity` is a JSON object with exactly these six keys and no additional key:
 
 ```text
 forecast_horizon_days
@@ -278,40 +457,212 @@ season_business_key
 model_identity
 ```
 
-No database numeric ID, timestamp, worker or host identity, database row order, connection information, or unbounded raw row is an input to `comparison_key_hash`.
-
-### 7.2 Comparison canonical payload
-
-`canonical_payload` contains the semantic identity, comparison availability, metric status, reason code, model identity, baseline identity, normalized six-axis identity, horizon, all non-null computable values, and all seven audit counters. It excludes database numeric IDs, timestamps, worker or host identity, database row order, connection information, and unbounded raw rows.
-
-`canonical_hash=SHA256(canonical_json(canonical_payload))`. Canonical JSON key order, Decimal rendering, null handling, and six-place HALF_EVEN quantization are fixed implementation inputs. Relational projections must be rebuilt from this payload and compared during replay.
-
-### 7.3 Result-set hash
-
-The comparison result-set hash is:
+The database and replay checks must enforce:
 
 ```text
-hash(canonical explicit set of sorted comparison canonical hashes)
+model_identity column
+== normalized_breakdown_identity.model_identity
+
+forecast_horizon_days column
+== normalized_breakdown_identity.forecast_horizon_days
 ```
 
-The sorted set is explicit and contains every comparison child for the owning evaluation run. After Round C, the implementation must not use Round B's explicit-empty comparison set hash for a run containing comparison records or for a comparison contract that has been authorized to produce records.
+`baseline_identity` is a JSON object with exactly these seven keys and no additional key:
 
-The manifest `comparison_result_set_hash` must equal the rebuilt explicit set hash. A missing, extra, orphaned, reordered, or mismatched comparison child fails closed.
+```text
+baseline_request_hash
+baseline_result_hash
+baseline_source_snapshot_identity
+baseline_source_snapshot_hash
+baseline_source_row_set_hash
+visibility_manifest_hash
+baseline_policy_version
+```
 
-### 7.4 Replay and seal behavior
+Neither identity object contains database IDs or timestamps. `naive_baseline_run_id` is only a lookup FK within the same owning run. Its row projections must equal every corresponding value in `baseline_identity`.
 
-EXACT_REPLAY_ZERO_WRITE=true
-CONFLICTING_REPLAY_REJECTED=true
-PARTIAL_COMPARISON_PERSISTENCE_FORBIDDEN=true
-MANIFEST_INSERTED_LAST=true
-CHILD_AFTER_SEAL_FORBIDDEN=true
-CALLER_OWNED_TRANSACTION=true
+## 11. Database schema decision and 0025 contract
 
-Exact replay requires equality of semantic key projection, canonical payload/hash, relational projections, audit counters, and the manifest comparison set hash. Same semantic identity with different valid evidence is a conflict. Missing, extra, orphaned, partial, or self-contradictory evidence is a partial result. The function must not commit, rollback, or create a session owned by the caller.
+ROUND_C_SCHEMA_DECISION=OPTION_A
+PREFERRED_SCHEMA_DECISION=OPTION_A
+ALEMBIC_0025_REQUIRED=true
+ALEMBIC_REVISION=0025_s3_model_baseline_comparison
+ALEMBIC_DOWN_REVISION=0024_s3_forecast_quality_persistence
+ALEMBIC_HEAD_COUNT=1
+NEW_TABLE_COUNT=0
 
-## 8. Exact future implementation path union
+OPTION_A alters the existing `model_baseline_comparison` table through migration 0025 and adds deterministic relational projections. OPTION_B, in which `canonical_payload` is the sole arithmetic authority while existing columns remain ambiguous, is rejected because it cannot provide the required queryability, conditional-nullability enforcement, corruption detection, idempotent projections, or future S4 read contract.
 
-The following is the complete and only authorized future Round C implementation union. It is not an authorization to modify these paths now.
+### 11.1 0025 relational columns
+
+Migration 0025 must rename existing `comparison_status` to `metric_status`, add the v2 projections, add nullable `comparison_policy_version` to `quality_evaluation_run`, and preserve the six-table Round B schema while making v1/v2 checks explicit. It creates no seventh table.
+
+| Column | PostgreSQL type | Nullability/default | Frozen rule |
+| --- | --- | --- | --- |
+| `id` | `BIGINT` | NOT NULL generated primary key | internal only |
+| `quality_evaluation_run_id` | `BIGINT` | NOT NULL | FK `fk_model_baseline_comparison_run` |
+| `naive_baseline_run_id` | `BIGINT` | NOT NULL | FK `fk_model_baseline_comparison_baseline` |
+| `schema_version` | `TEXT` | NOT NULL | `v0.2-s3-quality-persistence-v2` only |
+| `comparison_key_hash` | `TEXT` | NOT NULL | SHA-256; unique with owning run |
+| `comparison_policy_version` | `TEXT` | NOT NULL | `v0.2-s3-comparison-policy-v1` |
+| `comparison_name` | `TEXT` | NOT NULL | exact S3R-24A/S3R-24C vocabulary |
+| `comparison_availability` | `TEXT` | NOT NULL | `AVAILABLE` or `BLOCKED` |
+| `metric_status` | `TEXT` | NOT NULL | existing `MetricStatus` vocabulary |
+| `reason_code` | `TEXT` | NOT NULL | existing `ReasonCode` vocabulary |
+| `model_identity` | `TEXT` | NOT NULL | exact `BreakdownSpec.model_identity` |
+| `baseline_identity` | `JSONB` | NOT NULL | exact seven keys, no extra key |
+| `normalized_breakdown_identity` | `JSONB` | NOT NULL | exact six keys, no extra key |
+| `forecast_horizon_days` | `INTEGER` | NOT NULL | equals six-axis projection and greater than zero |
+| `model_value` | `NUMERIC(20,6)` | NULL | conditional-nullability check |
+| `baseline_value` | `NUMERIC(20,6)` | NULL | conditional-nullability check |
+| `delta_value` | `NUMERIC(20,6)` | NULL | conditional-nullability check |
+| `model_input_row_count` | `BIGINT` | NOT NULL | nonnegative |
+| `baseline_input_row_count` | `BIGINT` | NOT NULL | nonnegative |
+| `common_comparable_row_count` | `BIGINT` | NOT NULL | nonnegative and bounded by both inputs |
+| `model_only_row_count` | `BIGINT` | NOT NULL | nonnegative |
+| `baseline_only_row_count` | `BIGINT` | NOT NULL | nonnegative |
+| `excluded_row_count` | `BIGINT` | NOT NULL | nonnegative |
+| `not_computable_row_count` | `BIGINT` | NOT NULL | nonnegative |
+| `canonical_payload` | `JSONB` | NOT NULL | v2 payload and projection equality |
+| `canonical_hash` | `TEXT` | NOT NULL | SHA-256; unique with owning run |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL default `now()` | immutable |
+| `completed_at` | `TIMESTAMPTZ` | NOT NULL | immutable |
+
+The exact named constraints are:
+
+- `uq_model_baseline_comparison_run_key` on `(quality_evaluation_run_id, comparison_key_hash)`;
+- `uq_model_baseline_comparison_run_canonical_hash` on `(quality_evaluation_run_id, canonical_hash)`;
+- `ck_model_baseline_comparison_key_sha256`;
+- `ck_model_baseline_comparison_canonical_sha256`;
+- `ck_model_baseline_comparison_schema_version_v2`;
+- `ck_model_baseline_comparison_policy_version_v2`;
+- `ck_model_baseline_comparison_name_vocabulary`;
+- `ck_model_baseline_comparison_availability_vocabulary`;
+- `ck_model_baseline_comparison_metric_status_vocabulary`;
+- `ck_model_baseline_comparison_reason_code_vocabulary`;
+- `ck_model_baseline_comparison_forecast_horizon_positive`;
+- `ck_model_baseline_comparison_counters_nonnegative`;
+- `ck_model_baseline_comparison_counter_bounds`;
+- `ck_model_baseline_comparison_identity_projection`;
+- `ck_model_baseline_comparison_six_axis_identity`;
+- `ck_model_baseline_comparison_baseline_identity`;
+- `ck_model_baseline_comparison_conditional_values`.
+
+### 11.2 Six-table v1/v2 schema-version checks
+
+The six Round B persistence tables (`quality_evaluation_run`, `quality_metric_result`, `quality_breakdown_result`, `naive_baseline_run`, `model_baseline_comparison`, and `quality_evaluation_manifest`) must accept the historical v1 schema version and the new v2 schema version where a schema-version projection exists:
+
+```text
+LEGACY_PERSISTENCE_SCHEMA_VERSION=v0.2-s3-quality-persistence-v1
+ROUND_C_PERSISTENCE_SCHEMA_VERSION=v0.2-s3-quality-persistence-v2
+```
+
+`model_baseline_comparison` rows are v2-only. Existing v1 rows in the other five tables remain valid and immutable. Every v2 child canonical payload contains the v2 schema version, separating v2 canonical hashes from historical v1 hashes.
+
+## 12. Round B v1 and Round C v2 lifecycle
+
+### 12.1 Historical Round B v1
+
+```text
+LEGACY_PERSISTENCE_SCHEMA_VERSION=v0.2-s3-quality-persistence-v1
+comparison_policy_version=null
+comparison record count=0
+comparison_result_set_hash=Round B explicit-empty hash
+```
+
+Historical v1 runs remain valid, immutable, and non-partial. Their explicit-empty comparison set hash is not reinterpreted as corruption. Comparison rows may not be appended to a sealed v1 run. A sealed v1 run may not be backfilled in place, and its manifest may not be rewritten.
+
+### 12.2 New Round C v2
+
+```text
+ROUND_C_PERSISTENCE_SCHEMA_VERSION=v0.2-s3-quality-persistence-v2
+comparison_policy_version=v0.2-s3-comparison-policy-v1
+comparison records are part of the initial complete write
+manifest inserted after comparison rows
+```
+
+The Round C evaluation request payload must add exactly these fields:
+
+```text
+persistence_schema_version
+comparison_policy_version
+comparison_result_schema_version
+comparison_contract_enabled=true
+```
+
+The v2 request identity therefore differs from v1:
+
+```text
+v1 evaluation_request_hash != v2 evaluation_request_hash
+```
+
+The same S3 source inputs under Round C create an independent v2 evaluation because the request identity is different. V1 data is not rewritten as v2 data.
+
+## 13. 0025 upgrade and downgrade policy
+
+Migration 0025 must fail closed before changing schema when either precondition below is false:
+
+```text
+pre-0025 model_baseline_comparison row count == 0
+all discovered comparison rows are absent
+```
+
+If any pre-0025 comparison row exists, upgrade is rejected. No row is silently transformed, deleted, or projected into the v2 shape.
+
+0025 downgrade is allowed only when both conditions hold:
+
+```text
+no v2 quality_evaluation_run rows exist
+model_baseline_comparison row count == 0
+```
+
+If any v2 evaluation or comparison row exists, downgrade is rejected fail closed. Data is not deleted, truncated, or projected back into 0024. The clean database path must pass:
+
+```text
+0024 -> 0025 -> 0024 -> 0025
+```
+
+The future implementation must not claim that existing Round C rows are preserved through downgrade; v2 data explicitly blocks downgrade.
+
+## 14. Comparison unique transition
+
+Migration 0025 must perform this exact transition:
+
+```text
+DROP uq_model_baseline_comparison_canonical_hash
+
+CREATE uq_model_baseline_comparison_run_canonical_hash
+ON (quality_evaluation_run_id, canonical_hash)
+```
+
+`uq_model_baseline_comparison_run_key` remains unchanged. The database must allow identical valid canonical comparison evidence in two different v2 evaluation runs, while rejecting identical canonical comparison evidence twice in one run.
+
+## 15. Simplified comparison key identity
+
+`comparison_key_hash` has exactly these canonical inputs:
+
+```text
+comparison_result_schema_version
+comparison_policy_version
+comparison_name
+baseline_identity
+normalized_breakdown_identity
+```
+
+`model_identity` and `forecast_horizon_days` are not repeated as independent comparison-key inputs because they are already contained in `normalized_breakdown_identity`. The independent relational columns remain and must equal the corresponding canonical identity projections exactly.
+
+The comparison canonical payload contains the key identity, status/reason, values where computable, all seven counters, and the v2 schema/policy versions. It excludes database numeric IDs, timestamps, worker or host identity, database row order, connection information, and unbounded raw rows.
+
+```text
+canonical_hash = SHA256(canonical_json(canonical_payload))
+comparison_result_set_hash = hash(sorted explicit comparison canonical hashes)
+```
+
+The manifest comparison set hash is inserted only after all comparison rows have been written. Exact replay requires equality of key projections, baseline projections, six-axis projections, canonical payload/hash, counters, child set, and manifest projections. Conflicting valid evidence is rejected. Partial, orphaned, extra, missing, or self-contradictory evidence fails closed.
+
+## 16. Exact future implementation path union
+
+The following remains the complete and only authorized future Round C implementation union. This document fixup does not expand it.
 
 FUTURE_IMPLEMENTATION_PATH_COUNT=14
 FUTURE_CREATE_PATH_COUNT=5
@@ -319,85 +670,98 @@ FUTURE_MODIFY_PATH_COUNT=9
 FUTURE_DELETE_PATH_COUNT=0
 FUTURE_UNAUTHORIZED_PATH_COUNT=0
 
-| Path | Operation | Fixed future responsibility |
+| Path | Operation | Fixed owner or responsibility |
 | --- | --- | --- |
-| `backend/app/forecast_quality/comparison.py` | CREATE | S3R-24A/S3R-24C/S3R-25 comparison calculation, common-set construction, Decimal contract, canonical identity, and blocked-output contract |
-| `backend/app/forecast_quality/persistence.py` | MODIFY | Caller-owned comparison persistence, exact replay classification, relational projection validation, result-set hash, manifest-last seal, and zero-write rules |
-| `backend/app/models/forecast_quality.py` | MODIFY | ORM owner for the Option A comparison projections and named constraints |
-| `backend/alembic/versions/0025_s3_model_baseline_comparison.py` | CREATE | Forward-only 0025 schema alteration, constraint creation, downgrade, and re-upgrade compatibility |
-| `backend/tests/forecast_quality/test_comparison_point.py` | CREATE | PostgreSQL S3R-24A hand-computed point oracle, sign semantics, tie semantics, common-set intersection, and audit counters; owner `postgres-domain-1` |
-| `backend/tests/forecast_quality/test_comparison_quantile.py` | CREATE | PostgreSQL S3R-24C blocked quantile and interval outputs; owner `postgres-domain-1` |
-| `backend/tests/forecast_quality/test_comparison_delta.py` | CREATE | PostgreSQL S3R-25 delta semantics, signed-bias direction-only semantics, and projection/canonical checks; owner `postgres-domain-1` |
-| `backend/tests/forecast_quality/test_persistence.py` | MODIFY | PostgreSQL 0025 migration round trip, comparison table projections, nullability, FK, unique, hash, and direct SQL rejection probes; owner `postgres-migration` |
-| `backend/tests/forecast_quality/test_idempotency.py` | MODIFY | Non-concurrency exact replay/conflict/partial/immutability tests owned by `postgres-domain-1`; nodes marked `postgres_concurrency` and `concurrency` owned by `postgres-concurrency` |
-| `backend/tests/forecast_quality/test_blocked_surfaces.py` | MODIFY | Pure contract assertions that S3R-24B, S3R-22, S3R-23, HTTP API, frontend, S4, and S5 remain blocked; owner `unit-contract-golden` |
-| `backend/tests/actual_harvest_import/alembic_cases.py` | MODIFY | 0025 revision/down-revision and single-head lineage helper assertions; exercised by `postgres-migration` |
-| `backend/tests/test_historical_backtest_alembic.py` | MODIFY | 0024-to-0025 migration compatibility and upgrade/downgrade/re-upgrade historical assertions; owner `postgres-migration` |
-| `ci-shard-manifest.yml` | MODIFY | Add the three new comparison test files to the existing `postgres-domain-1` ownership and record the exact marker precedence; no new job |
-| `.github/workflows/ci.yml` | MODIFY | Add the three new comparison test files to the existing `postgres-domain-1` pytest argument list; no new job, event, service, port, credential, or canary change |
+| `backend/app/forecast_quality/comparison.py` | CREATE | Sole owner of Round C-only symbols, input join, common-set classification, recalculation, Decimal rules, and result construction |
+| `backend/app/forecast_quality/persistence.py` | MODIFY | Caller-owned v2 persistence, replay, projection validation, result-set hash, and manifest-last seal |
+| `backend/app/models/forecast_quality.py` | MODIFY | ORM owner for v2 comparison and run projections |
+| `backend/alembic/versions/0025_s3_model_baseline_comparison.py` | CREATE | 0025 upgrade, preconditions, downgrade guards, constraints, and v1/v2 checks |
+| `backend/tests/forecast_quality/test_comparison_point.py` | CREATE | Point join, common-set, daily metric, and sign contract tests; owner `postgres-domain-1` |
+| `backend/tests/forecast_quality/test_comparison_quantile.py` | CREATE | P50-only and S3R-24C blocked output tests; owner `postgres-domain-1` |
+| `backend/tests/forecast_quality/test_comparison_delta.py` | CREATE | Delta, cardinality, identity projection, and canonical tests; owner `postgres-domain-1` |
+| `backend/tests/forecast_quality/test_persistence.py` | MODIFY | 0025 migration, schema, database constraint, ordering, and v1/v2 persistence tests; owner `postgres-migration` |
+| `backend/tests/forecast_quality/test_idempotency.py` | MODIFY | Non-concurrency v2 replay tests owned by `postgres-domain-1`; marked concurrency nodes owned by `postgres-concurrency` |
+| `backend/tests/forecast_quality/test_blocked_surfaces.py` | MODIFY | Non-implementation boundary tests; owner `unit-contract-golden` |
+| `backend/tests/actual_harvest_import/alembic_cases.py` | MODIFY | 0025 lineage and single-head helper assertions; exercised by `postgres-migration` |
+| `backend/tests/test_historical_backtest_alembic.py` | MODIFY | 0024/0025 clean round-trip and fail-closed transition tests; owner `postgres-migration` |
+| `ci-shard-manifest.yml` | MODIFY | Existing shard ownership entries for the three comparison test files; no new job |
+| `.github/workflows/ci.yml` | MODIFY | Existing shard pytest argument entries for the three comparison test files; no job/event/service change |
 
-The two CI files are included because the current workflow uses explicit pytest file lists and the current manifest does not collect the three new comparison test paths. Their modification is therefore required for collection and ownership proof, while job names, job count, event triggers, PostgreSQL service configuration, and `full-suite-canary` policy remain unchanged.
+`schemas.py` modification is not required. `enums.py` modification is not required. `calculator_daily.py` modification is not required. Round C-only dataclasses and constants are owned by `comparison.py`, existing enums are reused, and the existing daily calculator is reused without numerical modification. If an implementation audit proves one of those three paths is required for compilation, document authoring must stop; it may not be added to this union by inference.
 
-No second local branch, seventh table, public API, production data path, or path outside this 14-path union is authorized for the future implementation.
-
-## 9. CI ownership freeze
+## 17. CI ownership freeze
 
 CI_OWNERSHIP_FROZEN=true
 CI_JOB_COUNT_CHANGE=0
 CI_EVENT_CHANGE=0
 CI_POSTGRES_SERVICE_CHANGE=0
 CI_FULL_SUITE_CANARY_ON_PULL_REQUEST=false
-
-| Test path or node class | Unique PR CI owner | Collection rule |
-| --- | --- | --- |
-| `backend/tests/forecast_quality/test_comparison_point.py` | `postgres-domain-1` | Explicit file argument in domain-1; no other PR job includes the file |
-| `backend/tests/forecast_quality/test_comparison_quantile.py` | `postgres-domain-1` | Explicit file argument in domain-1; no other PR job includes the file |
-| `backend/tests/forecast_quality/test_comparison_delta.py` | `postgres-domain-1` | Explicit file argument in domain-1; no other PR job includes the file |
-| `backend/tests/forecast_quality/test_persistence.py` | `postgres-migration` | Existing explicit migration argument; no other PR job includes the file |
-| `backend/tests/test_historical_backtest_alembic.py` | `postgres-migration` | Existing explicit migration argument; no other PR job includes the file |
-| Non-concurrency nodes in `backend/tests/forecast_quality/test_idempotency.py` | `postgres-domain-1` | Existing explicit domain-1 argument plus `-m "not postgres_concurrency"` |
-| `postgres_concurrency` nodes in `backend/tests/forecast_quality/test_idempotency.py` | `postgres-concurrency` | Existing explicit concurrency argument plus `-m postgres_concurrency` |
-| `backend/tests/forecast_quality/test_blocked_surfaces.py` | `unit-contract-golden` | Marker-residual unit selector; file remains without PostgreSQL markers |
-
-The ownership proof is frozen at node level:
-
-```text
 DUPLICATE_EXECUTION_NODE_COUNT=0
 UNOWNED_TEST_NODE_COUNT=0
-```
 
-Every new PostgreSQL node appears in one explicit owning shard only. The marker sharp selector sends concurrency nodes to `postgres-concurrency`; domain-1 excludes those nodes. The new pure blocked-surface nodes remain in the unit residual selector and carry no PostgreSQL marker.
+| Test node class | Unique owner | Rule |
+| --- | --- | --- |
+| `test_comparison_point.py` | `postgres-domain-1` | Explicit domain-1 file argument only |
+| `test_comparison_quantile.py` | `postgres-domain-1` | Explicit domain-1 file argument only |
+| `test_comparison_delta.py` | `postgres-domain-1` | Explicit domain-1 file argument only |
+| `test_persistence.py` | `postgres-migration` | Explicit migration file argument only |
+| `test_historical_backtest_alembic.py` | `postgres-migration` | Explicit migration file argument only |
+| Non-concurrency `test_idempotency.py` nodes | `postgres-domain-1` | Domain-1 argument with `not postgres_concurrency` |
+| `postgres_concurrency` `test_idempotency.py` nodes | `postgres-concurrency` | Concurrency argument with `postgres_concurrency` |
+| `test_blocked_surfaces.py` nodes | `unit-contract-golden` | Marker-residual unit selector |
 
-## 10. Frozen acceptance matrix
+Each test node has one owner. No new job, required job name, event trigger, PostgreSQL service version, port, credential, or PR canary behavior is authorized.
 
-The future implementation is incomplete until every row below has a passing test in its unique owner.
+## 18. Acceptance matrix
 
-| # | Required acceptance | Required owner |
-| ---: | --- | --- |
-| 1 | Hand-computed daily point comparison oracle | `postgres-domain-1` |
-| 2 | Positive delta means model worse for loss and magnitude outputs | `postgres-domain-1` |
-| 3 | Negative delta means model better for loss and magnitude outputs | `postgres-domain-1` |
-| 4 | Zero delta is a tie | `postgres-domain-1` |
-| 5 | Signed bias is direction only and uses `COMPARED` plus `SIGNED_DIRECTION_ONLY` | `postgres-domain-1` |
-| 6 | Common comparable set is the semantic intersection | `postgres-domain-1` |
-| 7 | Model-only and baseline-only audit counts are preserved | `postgres-domain-1` |
-| 8 | Baseline quantile comparison remains `NOT_COMPUTABLE` with the frozen reason | `postgres-domain-1` |
-| 9 | Interval width remains `NOT_COMPUTABLE` with the frozen reason | `postgres-domain-1` |
-| 10 | Complete-window comparisons remain blocked with the S2 authority reason | `unit-contract-golden` and `postgres-domain-1` |
-| 11 | Exact replay performs zero writes | `postgres-domain-1` |
-| 12 | Conflicting replay is rejected | `postgres-domain-1` |
-| 13 | Partial comparison result is rejected | `postgres-domain-1` |
-| 14 | Manifest comparison set hash equals the exact rebuilt set | `postgres-domain-1` and `postgres-migration` |
-| 15 | Comparison rows are immutable | `postgres-domain-1` |
-| 16 | Child insert after manifest seal is rejected | `postgres-domain-1` |
-| 17 | PostgreSQL concurrent identical comparison persistence converges to one result | `postgres-concurrency` |
-| 18 | PostgreSQL concurrent conflicting comparison persistence has one conflict and no partial result | `postgres-concurrency` |
-| 19 | 0025 upgrade, downgrade, and re-upgrade preserve the single head | `postgres-migration` |
-| 20 | Malformed hash, FK, unique, conditional-nullability, vocabulary, horizon, counter, and six-axis rejection probes are real database probes | `postgres-migration` |
+The future implementation is incomplete until every item below has a passing test in its unique owner:
 
-The acceptance matrix requires isolation for negative probes and zero committed test pollution. A direct SQL rejection probe must execute the illegal write against PostgreSQL and observe database rejection; metadata-only constraint-name inspection is insufficient.
+| # | Frozen acceptance |
+| ---: | --- |
+| 1 | Hand-computed daily point comparison oracle |
+| 2 | Positive delta means model worse for loss and magnitude |
+| 3 | Negative delta means model better for loss and magnitude |
+| 4 | Zero delta is a tie |
+| 5 | Signed bias is direction only with `COMPARED` and `SIGNED_DIRECTION_ONLY` |
+| 6 | Common-set exact join positive matrix |
+| 7 | Cutoff mismatch rejection |
+| 8 | P50/P80 mismatch rejection |
+| 9 | Duplicate baseline semantic key rejection |
+| 10 | The same current actual is used by both sides |
+| 11 | Baseline prior-season actual is not used as current actual |
+| 12 | Model-only and baseline-only audit counts are preserved |
+| 13 | Common-set closure and counter bounds are enforced |
+| 14 | Zero common rows produce six blocked S3R-24A records |
+| 15 | WAPE denominator zero produces `WAPE_DENOMINATOR_ZERO` |
+| 16 | MAPE without an eligible row produces `NO_MAPE_ELIGIBLE_ROWS` |
+| 17 | One through nine common rows produce `INSUFFICIENT_SAMPLE + BELOW_MINIMUM` when numerically computable |
+| 18 | At least ten common rows produce `COMPUTED` or `COMPARED` when numerically computable |
+| 19 | Exactly ten comparison records are produced per cell |
+| 20 | Four S3R-24C records remain blocked and S3R-24B produces zero comparison rows |
+| 21 | Exact replay performs zero writes |
+| 22 | Conflicting replay is rejected |
+| 23 | Partial comparison persistence is rejected |
+| 24 | Manifest comparison result-set hash equals the explicit sorted child set |
+| 25 | V2 comparison rows are inserted before the manifest |
+| 26 | Comparison rows are immutable |
+| 27 | Child insert after manifest seal is rejected |
+| 28 | PostgreSQL concurrent identical comparison persistence converges to one result |
+| 29 | PostgreSQL concurrent conflicting comparison persistence has one conflict and no partial result |
+| 30 | Historical v1 manifest remains valid and immutable |
+| 31 | A v1 run cannot receive a comparison child |
+| 32 | The same source inputs create a separate v2 request identity |
+| 33 | Identical valid comparison evidence is allowed across two v2 runs |
+| 34 | Identical comparison evidence twice in one run is rejected |
+| 35 | Any pre-0025 comparison row blocks upgrade without transformation |
+| 36 | Any v2 evaluation or comparison row blocks downgrade without deletion |
+| 37 | Clean `0024 -> 0025 -> 0024 -> 0025` round trip succeeds |
+| 38 | Model and six-axis identity projection equality is enforced |
+| 39 | Baseline identity exact-key and relational projection equality is enforced |
+| 40 | Malformed SHA-256, FK, unique, vocabulary, nullability, counter, horizon, and identity probes are real isolated PostgreSQL rejection probes |
 
-## 11. Explicit non-scope
+The negative probes must leave no committed test pollution. Metadata-only constraint-name checks are insufficient; illegal writes must be attempted and rejected by PostgreSQL.
+
+## 19. Explicit non-scope
 
 ```text
 REAL_DATA=false
@@ -424,20 +788,26 @@ TASK10_NUMERICAL_CHANGE=false
 ISSUE102_CLOSE=false
 ```
 
-This authorization does not authorize marking the PR ready, merging the PR, deleting the branch, cleaning the worktree, opening real data, executing a backtest, or closing Issue #102.
+## 20. Review and handoff gates
 
-## 12. Review and handoff gates
+Independent review must verify:
 
-The document itself is complete only as a proposed authorization artifact. Independent review must verify:
-
-1. The document is the only changed repository path.
-2. The implementation path union is exactly 14 paths with 5 creates, 9 modifies, and 0 deletes.
-3. Option A and migration `0025_s3_model_baseline_comparison` are explicitly selected.
-4. The three Round C requirements and the continued S3R-24B block are preserved.
-5. CI ownership has zero duplicate and zero unowned test nodes.
-6. The Draft PR head equals the committed document head.
-7. Exact-head CI completes successfully without enabling `full-suite-canary` on pull requests.
+1. Only `docs/forecast-quality/s3-round-c-comparison-authorization.md` changed in this fixup.
+2. The path union remains exactly 14 future paths with 5 creates, 9 modifies, and 0 deletes.
+3. `comparison.py` is the sole owner of Round C-only symbols and versions.
+4. The exact function signature, three-part baseline record, P50 join, stable classification, closure, and common-set recalculation contracts are present.
+5. S3R-24A, S3R-24C, and the continued S3R-24B block are preserved.
+6. V1 historical validity and V2 request identity are separated.
+7. 0025 upgrade and downgrade guards fail closed as specified.
+8. The global comparison canonical unique is replaced by the owning-run unique.
+9. CI ownership has zero duplicate and zero unowned nodes.
+10. The Draft PR head equals the new fast-forward commit head.
 
 ROUND_C_AUTHORIZATION_DOCUMENT_ACCEPTED=false
-STOPPED_AWAITING_INDEPENDENT_REVIEW=true
+ROUND_C_IMPLEMENTATION_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+REAL_DATA_OPENED=false
+ISSUE102_CLOSED=false
+STOPPED_AWAITING_EXACT_HEAD_REREVIEW=true
 NO_STEP_IMPLIES_THE_NEXT=true
