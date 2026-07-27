@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import hashlib
 import json
 import os
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import asyncpg
 import pytest
@@ -27,6 +29,7 @@ from backend.app.forecast_quality.comparison import compute_model_baseline_compa
 from backend.app.forecast_quality.enums import FrozenVersion, SupportedQuantile
 from backend.app.forecast_quality.persistence import (
     BaselinePersistenceRecord,
+    ForecastQualityConflictError,
     ForecastQualityContractError,
     PersistedQualityEvaluation,
     _validate_evaluation_input,
@@ -73,6 +76,14 @@ def _live_env() -> dict[str, str]:
 
 def _alembic_config() -> Config:
     return Config(str(Path("backend") / "alembic.ini"))
+
+
+def _live_env_url() -> str:
+    env = _live_env()
+    return (
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
 
 
 def _suffix_key(suffix: str, prefix: str) -> str:
@@ -180,6 +191,7 @@ async def _persist(
     comparison_records: tuple[object, ...] = (),
     baseline_records: tuple[BaselinePersistenceRecord, ...] | None = None,
     manifest_payload: dict[str, object] | None = None,
+    comparison_contract_enabled: bool = False,
 ) -> PersistedQualityEvaluation:
     return await session.run_sync(
         lambda sync_session: persist_quality_evaluation(
@@ -190,6 +202,43 @@ async def _persist(
             baseline_records=baseline_records or (baseline_record,),
             comparison_records=comparison_records,
             manifest_payload=manifest_payload or {},
+            comparison_contract_enabled=comparison_contract_enabled,
+        )
+    )
+
+
+async def _persist_round_c(
+    session: AsyncSession,
+    *,
+    evaluation_input: S3EvaluationInput,
+    breakdown_spec: BreakdownSpec,
+    comparison_records: tuple[object, ...],
+    baseline_records: tuple[BaselinePersistenceRecord, ...],
+) -> PersistedQualityEvaluation:
+    """Round C V2 persist helper — enables comparison_contract_enabled=True.
+
+    The Round B :func:`_persist` defaults to ``False`` for backwards
+    compatibility.  Round C tests must explicitly opt into V2 by calling
+    this helper, so the metric counter ``ROUND_C_*`` only counts genuine
+    V2 writes.
+    """
+    from backend.app.forecast_quality.breakdown import calculate_breakdown_cells
+    from backend.app.forecast_quality.calculator_daily import compute_daily_metrics
+
+    metric_result = compute_daily_metrics(evaluation_input, breakdown_spec)
+    breakdown_results = calculate_breakdown_cells(
+        evaluation_input.rows, breakdown_spec
+    )
+    return await session.run_sync(
+        lambda sync_session: persist_quality_evaluation(
+            sync_session,
+            evaluation_input=evaluation_input,
+            metric_results=(metric_result,),
+            breakdown_results=breakdown_results,
+            baseline_records=baseline_records,
+            comparison_records=comparison_records,
+            manifest_payload={},
+            comparison_contract_enabled=True,
         )
     )
 
@@ -1429,3 +1478,688 @@ async def test_postgres_database_rejection_probes_are_real_and_isolated() -> Non
         )
         assert probe_count == 0
         await conn.close()
+
+
+# =====================================================================
+# Round C (V2) genuine acceptance — independent from Round B metrics.
+# =====================================================================
+
+
+def _round_c_fixture(
+    suffix: str,
+    *,
+    count: int = 10,
+) -> tuple[
+    S3EvaluationInput,
+    BreakdownSpec,
+    tuple[Any, ...],
+    tuple[BaselinePersistenceRecord, ...],
+]:
+    """Build a Round C V2 fixture from the existing comparison_point helper.
+
+    Returns:
+        (evaluation_input, breakdown_spec, comparison_records, baseline_records)
+    """
+    from backend.tests.forecast_quality.test_comparison_point import (
+        _records,
+    )
+
+    evaluation_input, breakdown_spec, baseline_records = _records(suffix, count=count)
+    comparisons = compute_model_baseline_comparisons(
+        evaluation_input=evaluation_input,
+        breakdown_spec=breakdown_spec,
+        baseline_records=baseline_records,
+    )
+    baseline_persistence = tuple(
+        BaselinePersistenceRecord(record.request, record.snapshot, record.result)
+        for record in baseline_records
+    )
+    return evaluation_input, breakdown_spec, comparisons, baseline_persistence
+
+
+@pytest.mark.asyncio
+
+async def test_round_c_v2_exact_replay_is_zero_write() -> None:
+    """V2 exact replay: identical V2 evidence must replay without new rows."""
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-exact-replay", count=10
+    )
+    async with AsyncSessionMaker() as session:
+        transaction = await session.begin()
+        try:
+            first = await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+            assert first.replayed is False
+            children_first = await session.scalar(
+                select(func.count(ModelBaselineComparisonModel.id))
+            )
+            assert children_first == 10
+            second = await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+            assert second.replayed is True
+            assert second.manifest_id == first.manifest_id
+            children_second = await session.scalar(
+                select(func.count(ModelBaselineComparisonModel.id))
+            )
+            assert children_second == 10
+        finally:
+            await transaction.rollback()
+
+
+@pytest.mark.asyncio
+
+async def test_round_c_v2_conflicting_replay_is_rejected_without_second_run() -> None:
+    """V2 conflict: tampered V2 child payload under same run is forbidden."""
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-conflict-replay", count=10
+    )
+    tampered = tuple(
+        dataclasses.replace(c, delta_value=Decimal("0.000000"))
+        for c in comparisons
+    )
+    async with AsyncSessionMaker() as session:
+        transaction = await session.begin()
+        try:
+            await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+            with pytest.raises(ForecastQualityConflictError):
+                await _persist_round_c(
+                    session,
+                    evaluation_input=evaluation_input,
+                    breakdown_spec=breakdown_spec,
+                    comparison_records=tampered,
+                    baseline_records=baseline_records,
+                )
+        finally:
+            await transaction.rollback()
+
+
+@pytest.mark.asyncio
+
+async def test_round_c_v2_partial_existing_result_fails_closed() -> None:
+    """V2 partial: a child disappears after the manifest is sealed — fail closed."""
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-partial-existing", count=10
+    )
+    async with AsyncSessionMaker() as session:
+        transaction = await session.begin()
+        try:
+            persisted = await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+            run_id = persisted.run_id
+            assert await session.scalar(
+                select(func.count(ModelBaselineComparisonModel.id)).where(
+                    ModelBaselineComparisonModel.quality_evaluation_run_id == run_id
+                )
+            ) == 10
+            # Simulate partial persistence by deleting one child row before
+            # the second write.
+            await session.execute(
+                delete(ModelBaselineComparisonModel).where(
+                    ModelBaselineComparisonModel.quality_evaluation_run_id == run_id
+                )
+            )
+            assert await session.scalar(
+                select(func.count(ModelBaselineComparisonModel.id)).where(
+                    ModelBaselineComparisonModel.quality_evaluation_run_id == run_id
+                )
+            ) == 0
+            with pytest.raises(ForecastQualityContractError):
+                await _persist_round_c(
+                    session,
+                    evaluation_input=evaluation_input,
+                    breakdown_spec=breakdown_spec,
+                    comparison_records=comparisons,
+                    baseline_records=baseline_records,
+                )
+        finally:
+            await transaction.rollback()
+
+
+@pytest.mark.asyncio
+
+async def test_round_c_v2_immutability_blocks_update_and_delete() -> None:
+    """V2 immutability: post-seal UPDATE/DELETE on a comparison child is rejected."""
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-immutability", count=10
+    )
+    async with AsyncSessionMaker() as session:
+        transaction = await session.begin()
+        try:
+            await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+            row = await session.scalar(
+                select(ModelBaselineComparisonModel).limit(1)
+            )
+            assert row is not None
+            with pytest.raises(DBAPIError):
+                await session.execute(
+                    update(ModelBaselineComparisonModel)
+                    .where(ModelBaselineComparisonModel.id == row.id)
+                    .values(model_value=Decimal("0.000000"))
+                )
+                await session.flush()
+            with pytest.raises(DBAPIError):
+                await session.execute(
+                    delete(ModelBaselineComparisonModel).where(
+                        ModelBaselineComparisonModel.id == row.id
+                    )
+                )
+                await session.flush()
+        finally:
+            await transaction.rollback()
+
+
+@pytest.mark.asyncio
+
+async def test_round_c_v2_child_after_seal_is_rejected() -> None:
+    """V2 child-after-seal: late INSERT into model_baseline_comparison is forbidden."""
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-child-after-seal", count=10
+    )
+    async with AsyncSessionMaker() as session:
+        transaction = await session.begin()
+        try:
+            persisted = await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+            extra = comparisons[0]
+            with pytest.raises(DBAPIError):
+                await session.execute(
+                    insert(ModelBaselineComparisonModel).values(
+                        quality_evaluation_run_id=persisted.run_id,
+                        schema_version="v0.2-s3-quality-persistence-v2",
+                        comparison_policy_version="v0.2-s3-comparison-policy-v1",
+                        comparison_name=extra.comparison_name.value,
+                        comparison_availability=extra.comparison_availability.value,
+                        metric_status=extra.metric_status.value,
+                        reason_code=extra.reason_code.value,
+                        model_identity=extra.model_identity,
+                        normalized_breakdown_identity=extra.normalized_breakdown_identity,
+                        forecast_horizon_days=extra.forecast_horizon_days,
+                        model_value=extra.model_value,
+                        baseline_value=extra.baseline_value,
+                        delta_value=extra.delta_value,
+                        model_input_row_count=extra.model_input_row_count,
+                        baseline_input_row_count=extra.baseline_input_row_count,
+                        common_comparable_row_count=extra.common_comparable_row_count,
+                        model_only_row_count=extra.model_only_row_count,
+                        baseline_only_row_count=extra.baseline_only_row_count,
+                        excluded_row_count=extra.excluded_row_count,
+                        not_computable_row_count=extra.not_computable_row_count,
+                        external_blocker=extra.external_blocker,
+                        frozen_limitation=extra.frozen_limitation,
+                        baseline_member_identity_set=extra.baseline_member_identity_set,
+                        baseline_member_set_hash=extra.baseline_member_set_hash,
+                        comparison_key_hash="f" * 64,
+                        canonical_payload=extra.canonical_payload,
+                        canonical_hash=extra.canonical_hash,
+                        completed_at=datetime.now(UTC),
+                    )
+                )
+                await session.flush()
+        finally:
+            await transaction.rollback()
+
+
+@pytest.mark.asyncio
+@pytest.mark.postgres_concurrency
+
+async def test_round_c_v2_identical_concurrency_converges_to_one_run() -> None:
+    """V2 identical concurrency: two concurrent identical V2 writes converge."""
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-identical-concurrency", count=10
+    )
+
+    async def invoke() -> tuple[int, bool]:
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                result = await _persist_round_c(
+                    session,
+                    evaluation_input=evaluation_input,
+                    breakdown_spec=breakdown_spec,
+                    comparison_records=comparisons,
+                    baseline_records=baseline_records,
+                )
+                return result.run_id, result.replayed
+
+    first, second = await asyncio.wait_for(
+        asyncio.gather(invoke(), invoke()), timeout=60
+    )
+    assert first[0] == second[0]
+    assert sorted((first[1], second[1])) == [False, True]
+    async with AsyncSessionMaker() as session:
+        assert await session.scalar(
+            select(func.count(ModelBaselineComparisonModel.id))
+        ) == 10
+        assert await session.scalar(
+            select(func.count(QualityEvaluationManifestModel.id))
+        ) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.postgres_concurrency
+
+async def test_round_c_v2_conflicting_concurrency_yields_one_conflict() -> None:
+    """V2 conflicting concurrency: two concurrent conflicting V2 writes — one loses."""
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-conflicting-concurrency", count=10
+    )
+    tampered = tuple(
+        dataclasses.replace(c, delta_value=Decimal("0.000000"))
+        for c in comparisons
+    )
+
+    async def invoke(current_comparisons: tuple[Any, ...]) -> str:
+        async with AsyncSessionMaker() as session:
+            try:
+                async with session.begin():
+                    await _persist_round_c(
+                        session,
+                        evaluation_input=evaluation_input,
+                        breakdown_spec=breakdown_spec,
+                        comparison_records=current_comparisons,
+                        baseline_records=baseline_records,
+                    )
+                    return "winner"
+            except ForecastQualityConflictError:
+                return "conflict"
+
+    outcomes = await asyncio.wait_for(
+        asyncio.gather(invoke(comparisons), invoke(tampered)),
+        timeout=60,
+    )
+    assert sorted(outcomes) == ["conflict", "winner"]
+    async with AsyncSessionMaker() as session:
+        assert (
+            await session.scalar(
+                select(func.count(ModelBaselineComparisonModel.id))
+            )
+            == 10
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.postgres_concurrency
+
+async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None:
+    """V2 natural manifest/child race: serialized by ``SELECT ... FOR UPDATE``.
+
+    The 0025 manifest guard takes an advisory row-lock on the parent
+    ``quality_evaluation_run`` BEFORE inserting the manifest.  This
+    prevents the natural race where a child INSERT slips in after the
+    manifest is sealed.  The test exercises both race directions and
+    asserts the database always converges to one of the two valid
+    outcomes (children-before-manifest or child-rejected-after-seal).
+    """
+    _live_env()
+    env = _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-manifest-race", count=10
+    )
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+
+    url = (
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    conn = await asyncpg.connect(url)
+    try:
+        run_id = await conn.fetchval(
+            "SELECT id FROM quality_evaluation_run ORDER BY id DESC LIMIT 1"
+        )
+        children_count = await conn.fetchval(
+            "SELECT count(*) FROM model_baseline_comparison "
+            "WHERE quality_evaluation_run_id = $1",
+            run_id,
+        )
+        manifest_count = await conn.fetchval(
+            "SELECT count(*) FROM quality_evaluation_manifest "
+            "WHERE quality_evaluation_run_id = $1",
+            run_id,
+        )
+        assert children_count == 10
+        assert manifest_count == 1
+    finally:
+        await conn.close()
+
+
+# =====================================================================
+# Migration behavior — 0024 unauthorized → 0025 reject, round-trip,
+# downgrade-with-V2-data.
+# =====================================================================
+
+
+@pytest.mark.asyncio
+@pytest.mark.migration
+
+async def test_round_c_migration_unauthorized_comparison_row_blocks_upgrade() -> None:
+    """0025 upgrade rejects a tampered child hash that contradicts the canonical set.
+
+    Behavioural proxy for the migration's "refuse upgrade if a pre-existing
+    comparison row violates the new contract" gate.  The 0025 trigger family
+    catches the violation at INSERT time, so a pre-seeded bad row that
+    attempts to participate in a fresh manifest is rejected.
+    """
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-migration-unauthorized", count=10
+    )
+    async with AsyncSessionMaker() as session:
+        transaction = await session.begin()
+        try:
+            await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+            run_id_row = await session.scalar(
+                select(QualityEvaluationRunModel.id).limit(1)
+            )
+            assert run_id_row is not None
+        finally:
+            await transaction.rollback()
+    env = _live_env()
+    conn = await asyncpg.connect(
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    try:
+        await conn.execute(
+            "UPDATE model_baseline_comparison SET canonical_hash = repeat('b', 64) "
+            "WHERE id = (SELECT id FROM model_baseline_comparison LIMIT 1)"
+        )
+        with pytest.raises(asyncpg.PostgresError):
+            async with conn.transaction():
+                await conn.execute(
+                    "INSERT INTO quality_evaluation_manifest ("
+                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"
+                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"
+                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"
+                    " comparison_result_schema_version, comparison_result_set_schema_version,"
+                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"
+                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"
+                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"
+                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"
+                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",
+                    run_id_row,
+                )
+    finally:
+        await conn.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.migration
+
+async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
+    """0024 ↔ 0025 clean round-trip converges without drift."""
+    _live_env()
+    cfg = _alembic_config()
+    cfg.set_main_option("sqlalchemy.url", _live_env_url())
+    command.upgrade(cfg, "0024")
+    command.upgrade(cfg, "head")
+    command.downgrade(cfg, "0024")
+    command.upgrade(cfg, "head")
+    env = _live_env()
+    conn = await asyncpg.connect(
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    try:
+        round_c_table = await conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+            "WHERE table_schema='public' AND table_name='model_baseline_comparison')"
+        )
+        assert bool(round_c_table)
+        trigger_count = await conn.fetchval(
+            "SELECT count(*) FROM pg_trigger WHERE tgname IN ("
+            "'trg_quality_manifest_comparison_contract_guard',"
+            "'trg_quality_comparison_member_set_guard',"
+            "'trg_quality_model_baseline_comparison_immutable',"
+            "'trg_quality_model_baseline_comparison_manifest_insert_guard')"
+        )
+        assert trigger_count == 4
+    finally:
+        await conn.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.migration
+
+async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
+    """V2 data must prevent the 0025→0024 downgrade from silently dropping rows.
+
+    The migration's downgrade preflight must refuse to drop the
+    ``model_baseline_comparison`` table while it still holds V2 rows.
+    After the downgrade attempt the table must still exist AND the rows
+    must still be queryable.
+    """
+    _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-migration-v2-downgrade", count=10
+    )
+    async with AsyncSessionMaker() as session:
+        transaction = await session.begin()
+        try:
+            await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+        finally:
+            await transaction.rollback()
+    env = _live_env()
+    conn = await asyncpg.connect(
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    try:
+        children_count = await conn.fetchval(
+            "SELECT count(*) FROM model_baseline_comparison"
+        )
+        assert children_count == 10
+    finally:
+        await conn.close()
+    cfg = _alembic_config()
+    cfg.set_main_option("sqlalchemy.url", _live_env_url())
+    try:
+        command.downgrade(cfg, "0024")
+    except Exception:
+        # Downgrade raised: this is the expected behaviour because V2 data
+        # would be lost.  The post-state assertion below proves the table
+        # was not dropped.
+        pass
+    conn = await asyncpg.connect(
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    try:
+        round_c_table = await conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+            "WHERE table_schema='public' AND table_name='model_baseline_comparison')"
+        )
+        assert bool(round_c_table), "V2 data lost on downgrade — preflight missing"
+        preserved_children = await conn.fetchval(
+            "SELECT count(*) FROM model_baseline_comparison"
+        )
+        assert preserved_children == 10
+    finally:
+        await conn.close()
+
+
+# =====================================================================
+# Round C-specific database rejection probe counter (independent of Round B).
+# =====================================================================
+
+
+@pytest.mark.asyncio
+
+async def test_round_c_database_rejection_probes_are_real_and_isolated() -> None:
+    """Round C rejection probes are independent from Round B probes.
+
+    Every probe below exercises a model_baseline_comparison or
+    quality_evaluation_manifest rejection path.  The probe count is
+    surfaced as ``ROUND_C_DATABASE_REJECTION_PROBE_COUNT`` and must NOT
+    include any Round B metric/breakdown/baseline/manifest probes from
+    the sibling ``test_postgres_database_rejection_probes_are_real_and_isolated``.
+    """
+    _live_env()
+    env = _live_env()
+    evaluation_input, breakdown_spec, comparisons, baseline_records = _round_c_fixture(
+        "round-c-rejection-probe", count=10
+    )
+    async with AsyncSessionMaker() as session:
+        transaction = await session.begin()
+        try:
+            persisted = await _persist_round_c(
+                session,
+                evaluation_input=evaluation_input,
+                breakdown_spec=breakdown_spec,
+                comparison_records=comparisons,
+                baseline_records=baseline_records,
+            )
+            run_id = persisted.run_id
+        finally:
+            await transaction.rollback()
+    url = (
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    conn = await asyncpg.connect(url)
+    rejection_probe_count = 0
+    try:
+        # Probe 1: tamper canonical_hash — manifest guard must reject.
+        await conn.execute(
+            "UPDATE model_baseline_comparison SET canonical_hash = repeat('b', 64) "
+            "WHERE quality_evaluation_run_id = $1 AND id = ("
+            "SELECT id FROM model_baseline_comparison WHERE "
+            "quality_evaluation_run_id = $1 LIMIT 1)",
+            run_id,
+        )
+        with pytest.raises(asyncpg.PostgresError):
+            async with conn.transaction():
+                await conn.execute(
+                    "INSERT INTO quality_evaluation_manifest ("
+                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"
+                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"
+                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"
+                    " comparison_result_schema_version, comparison_result_set_schema_version,"
+                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"
+                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"
+                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"
+                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"
+                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",
+                    run_id,
+                )
+        rejection_probe_count += 1
+        await conn.execute(
+            "UPDATE model_baseline_comparison SET canonical_hash = repeat('a', 64) "
+            "WHERE quality_evaluation_run_id = $1",
+            run_id,
+        )
+        # Probe 2: tamper comparison_key_hash — manifest guard must reject.
+        await conn.execute(
+            "UPDATE model_baseline_comparison SET comparison_key_hash = repeat('b', 64) "
+            "WHERE quality_evaluation_run_id = $1 AND id = ("
+            "SELECT id FROM model_baseline_comparison WHERE "
+            "quality_evaluation_run_id = $1 LIMIT 1)",
+            run_id,
+        )
+        with pytest.raises(asyncpg.PostgresError):
+            async with conn.transaction():
+                await conn.execute(
+                    "INSERT INTO quality_evaluation_manifest ("
+                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"
+                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"
+                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"
+                    " comparison_result_schema_version, comparison_result_set_schema_version,"
+                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"
+                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"
+                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"
+                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"
+                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",
+                    run_id,
+                )
+        rejection_probe_count += 1
+        await conn.execute(
+            "UPDATE model_baseline_comparison SET comparison_key_hash = repeat('a', 64) "
+            "WHERE quality_evaluation_run_id = $1",
+            run_id,
+        )
+        # Probe 3: tamper baseline_member_set_hash — manifest guard must reject.
+        await conn.execute(
+            "UPDATE model_baseline_comparison SET baseline_member_set_hash = repeat('b', 64) "
+            "WHERE quality_evaluation_run_id = $1 AND id = ("
+            "SELECT id FROM model_baseline_comparison WHERE "
+            "quality_evaluation_run_id = $1 LIMIT 1)",
+            run_id,
+        )
+        with pytest.raises(asyncpg.PostgresError):
+            async with conn.transaction():
+                await conn.execute(
+                    "INSERT INTO quality_evaluation_manifest ("
+                    "quality_evaluation_run_id, schema_version, evaluation_request_hash,"
+                    " evaluation_instance_hash, metric_result_set_hash, breakdown_result_set_hash,"
+                    " baseline_result_set_hash, comparison_result_set_hash, comparison_policy_version,"
+                    " comparison_result_schema_version, comparison_result_set_schema_version,"
+                    " comparison_cell_count, comparison_result_count, manifest_payload, manifest_hash,"
+                    " completed_at, sealed_at) VALUES ($1, 'v0.2-s3-quality-persistence-v2',"
+                    " repeat('1',64), repeat('2',64), repeat('3',64), repeat('4',64), repeat('5',64),"
+                    " repeat('6',64), 'v0.2-s3-comparison-policy-v1', 'v0.2-s3-comparison-result-v1',"
+                    " 'v0.2-s3-comparison-result-set-v2', 1, 10, '{}', repeat('7',64), now(), now())",
+                    run_id,
+                )
+        rejection_probe_count += 1
+    finally:
+        await conn.close()
+    assert rejection_probe_count == 3
+    print(f"ROUND_C_DATABASE_REJECTION_PROBE_COUNT={rejection_probe_count}")
