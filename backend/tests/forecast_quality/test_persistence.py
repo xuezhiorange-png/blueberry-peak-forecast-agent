@@ -309,16 +309,17 @@ async def test_postgres_constraints_and_seal_reject_mutation() -> None:
             )
         )
         assert metric is not None
+        metric_id = metric.id
         with pytest.raises(DBAPIError):
             await session.execute(
                 update(QualityMetricResultModel)
-                .where(QualityMetricResultModel.id == metric.id)
+                .where(QualityMetricResultModel.id == metric_id)
                 .values(metric_name="tampered")
             )
         await session.rollback()
         with pytest.raises(DBAPIError):
             await session.execute(
-                delete(QualityMetricResultModel).where(QualityMetricResultModel.id == metric.id)
+                delete(QualityMetricResultModel).where(QualityMetricResultModel.id == metric_id)
             )
         await session.rollback()
         with pytest.raises(DBAPIError):
