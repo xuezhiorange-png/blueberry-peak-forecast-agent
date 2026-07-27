@@ -691,8 +691,29 @@ def _create_postgresql_guards() -> None:
             actual_cells bigint;
             rebuilt_hash text;
             rebuilt_records jsonb;
+            rebuilt_key_hash text;
+            rebuilt_canonical_hash text;
+            rebuilt_member_set_hash text;
+            rebuilt_member_set jsonb;
+            run_locked int;
+            projection_record jsonb;
         BEGIN
             IF NEW.schema_version = 'v0.2-s3-quality-persistence-v2' THEN
+                -- §5.6 Run-lock first: take an advisory row-lock on the parent
+                -- run so a concurrent child INSERT cannot slip into the manifest
+                -- closure window.  This replaces the prior reliance on trigger
+                -- ordering (insert-child before insert-manifest) with a
+                -- deterministic database-enforced serialization point.
+                SELECT 1 INTO run_locked
+                FROM quality_evaluation_run
+                WHERE id = NEW.quality_evaluation_run_id
+                FOR UPDATE;
+                IF NOT FOUND THEN
+                    RAISE EXCEPTION 'parent quality_evaluation_run not found';
+                END IF;
+                -- §5.5 truth table: count closure must match both the
+                -- declared manifest counts AND the canonical projection that
+                -- Round C persistence sealed on the application side.
                 SELECT count(*), count(DISTINCT normalized_breakdown_identity)
                 INTO actual_count, actual_cells
                 FROM model_baseline_comparison
@@ -701,6 +722,10 @@ def _create_postgresql_guards() -> None:
                    OR actual_cells <> NEW.comparison_cell_count THEN
                     RAISE EXCEPTION 'comparison manifest count closure mismatch';
                 END IF;
+                -- Rebuild the canonical comparison_result_set_hash from the
+                -- actually-written children and compare to what the caller
+                -- declared.  This is the database authority for the canonical
+                -- projection (Round C cannot rely on the application alone).
                 SELECT coalesce(jsonb_agg(canonical_hash ORDER BY canonical_hash), '[]'::jsonb)
                 INTO rebuilt_records
                 FROM model_baseline_comparison
@@ -719,6 +744,177 @@ def _create_postgresql_guards() -> None:
                 IF rebuilt_hash <> NEW.comparison_result_set_hash THEN
                     RAISE EXCEPTION 'comparison result set hash mismatch';
                 END IF;
+                -- §5.5 per-child truth table: canonical_hash, comparison_key_hash,
+                -- baseline_member_set_hash, and baseline member membership must
+                -- all match the relational projection.  We iterate the children
+                -- once more so any drift between canonical_payload and the
+                -- relational columns is rejected at insert time.
+                FOR projection_record IN
+                    SELECT
+                        canonical_hash,
+                        comparison_key_hash,
+                        baseline_member_set_hash,
+                        baseline_member_identity_set,
+                        model_value,
+                        baseline_value,
+                        delta_value,
+                        metric_status,
+                        comparison_availability,
+                        external_blocker,
+                        frozen_limitation,
+                        comparison_name,
+                        reason_code
+                    FROM model_baseline_comparison
+                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                LOOP
+                    -- conditional numeric nullability: NOT_COMPUTABLE -> all null,
+                    -- otherwise all three numeric values required.  Mirrors the
+                    -- application _comparison_evidence truth-table gate.
+                    IF projection_record.metric_status = 'NOT_COMPUTABLE' THEN
+                        IF projection_record.model_value IS NOT NULL
+                           OR projection_record.baseline_value IS NOT NULL
+                           OR projection_record.delta_value IS NOT NULL THEN
+                            RAISE EXCEPTION 'not-computable comparison has non-null numeric value';
+                        END IF;
+                    ELSE
+                        IF projection_record.model_value IS NULL
+                           OR projection_record.baseline_value IS NULL
+                           OR projection_record.delta_value IS NULL THEN
+                            RAISE EXCEPTION 'computable comparison has null numeric value';
+                        END IF;
+                    END IF;
+                    -- availability / blocker / limitation truth table:
+                    -- AVAILABLE -> both blocker columns NULL; BLOCKED -> frozen_limitation equals reason_code.
+                    IF projection_record.comparison_availability = 'AVAILABLE' THEN
+                        IF projection_record.external_blocker IS NOT NULL
+                           OR projection_record.frozen_limitation IS NOT NULL THEN
+                            RAISE EXCEPTION 'available comparison has non-null blocker or limitation';
+                        END IF;
+                    ELSIF projection_record.comparison_availability = 'BLOCKED' THEN
+                        IF projection_record.external_blocker IS NOT NULL
+                           OR projection_record.frozen_limitation IS DISTINCT FROM projection_record.reason_code THEN
+                            RAISE EXCEPTION 'blocked comparison has incorrect blocker or limitation projection';
+                        END IF;
+                    ELSE
+                        RAISE EXCEPTION 'unknown comparison_availability value';
+                    END IF;
+                    -- comparison_key_hash replay: recompute from the relational
+                    -- projection columns and compare to the stored value.
+                    rebuilt_key_hash := encode(
+                        digest(
+                            quality_canonical_jsonb(jsonb_build_object(
+                                'comparison_result_schema_version', 'v0.2-s3-comparison-result-v1',
+                                'comparison_policy_version', 'v0.2-s3-comparison-policy-v1',
+                                'comparison_name', projection_record.comparison_name,
+                                'baseline_member_set_hash', projection_record.baseline_member_set_hash,
+                                'normalized_breakdown_identity', jsonb_build_object(
+                                    'forecast_horizon_days', NEW.forecast_horizon_days,
+                                    'farm_business_key', NEW.farm_business_key,
+                                    'subfarm_business_key', NEW.subfarm_business_key,
+                                    'variety_business_key', NEW.variety_business_key,
+                                    'season_business_key', NEW.season_business_key,
+                                    'model_identity', NEW.model_identity
+                                )
+                            )),
+                            'sha256'
+                        ),
+                        'hex'
+                    );
+                    IF rebuilt_key_hash <> projection_record.comparison_key_hash THEN
+                        RAISE EXCEPTION 'comparison_key_hash projection mismatch';
+                    END IF;
+                    -- canonical_hash replay: rebuild from baseline_member_identity_set
+                    -- plus the six relational projection columns that participate
+                    -- in the canonical payload and verify against the stored hash.
+                    rebuilt_member_set := (
+                        SELECT jsonb_agg(elem ORDER BY elem::text)
+                        FROM jsonb_array_elements(projection_record.baseline_member_identity_set) AS elem
+                    );
+                    rebuilt_member_set_hash := encode(
+                        digest(
+                            quality_canonical_jsonb(jsonb_build_object(
+                                'members', COALESCE(rebuilt_member_set, '[]'::jsonb),
+                                'schema_version', 'v0.2-s3-comparison-baseline-member-set-v1'
+                            )),
+                            'sha256'
+                        ),
+                        'hex'
+                    );
+                    IF rebuilt_member_set_hash <> projection_record.baseline_member_set_hash THEN
+                        RAISE EXCEPTION 'baseline_member_set_hash projection mismatch';
+                    END IF;
+                    rebuilt_canonical_hash := encode(
+                        digest(
+                            quality_canonical_jsonb(jsonb_build_object(
+                                'schema_version', 'v0.2-s3-comparison-result-v1',
+                                'comparison_policy_version', 'v0.2-s3-comparison-policy-v1',
+                                'comparison_name', projection_record.comparison_name,
+                                'comparison_availability', projection_record.comparison_availability,
+                                'metric_status', projection_record.metric_status,
+                                'reason_code', projection_record.reason_code,
+                                'model_identity', NEW.model_identity,
+                                'baseline_member_identity_set', projection_record.baseline_member_identity_set,
+                                'baseline_member_set_hash', projection_record.baseline_member_set_hash,
+                                'normalized_breakdown_identity', jsonb_build_object(
+                                    'forecast_horizon_days', NEW.forecast_horizon_days,
+                                    'farm_business_key', NEW.farm_business_key,
+                                    'subfarm_business_key', NEW.subfarm_business_key,
+                                    'variety_business_key', NEW.variety_business_key,
+                                    'season_business_key', NEW.season_business_key,
+                                    'model_identity', NEW.model_identity
+                                ),
+                                'forecast_horizon_days', NEW.forecast_horizon_days,
+                                'model_value', projection_record.model_value,
+                                'baseline_value', projection_record.baseline_value,
+                                'delta_value', projection_record.delta_value,
+                                'model_input_row_count', (
+                                    SELECT model_input_row_count FROM model_baseline_comparison
+                                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                                      AND comparison_key_hash = projection_record.comparison_key_hash
+                                ),
+                                'baseline_input_row_count', (
+                                    SELECT baseline_input_row_count FROM model_baseline_comparison
+                                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                                      AND comparison_key_hash = projection_record.comparison_key_hash
+                                ),
+                                'common_comparable_row_count', (
+                                    SELECT common_comparable_row_count FROM model_baseline_comparison
+                                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                                      AND comparison_key_hash = projection_record.comparison_key_hash
+                                ),
+                                'model_only_row_count', (
+                                    SELECT model_only_row_count FROM model_baseline_comparison
+                                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                                      AND comparison_key_hash = projection_record.comparison_key_hash
+                                ),
+                                'baseline_only_row_count', (
+                                    SELECT baseline_only_row_count FROM model_baseline_comparison
+                                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                                      AND comparison_key_hash = projection_record.comparison_key_hash
+                                ),
+                                'excluded_row_count', (
+                                    SELECT excluded_row_count FROM model_baseline_comparison
+                                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                                      AND comparison_key_hash = projection_record.comparison_key_hash
+                                ),
+                                'not_computable_row_count', (
+                                    SELECT not_computable_row_count FROM model_baseline_comparison
+                                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                                      AND comparison_key_hash = projection_record.comparison_key_hash
+                                ),
+                                'external_blocker', projection_record.external_blocker,
+                                'frozen_limitation', projection_record.frozen_limitation,
+                                'comparison_key_hash', projection_record.comparison_key_hash,
+                                'persistence_schema_version', 'v0.2-s3-quality-persistence-v2'
+                            )),
+                            'sha256'
+                        ),
+                        'hex'
+                    );
+                    IF rebuilt_canonical_hash <> projection_record.canonical_hash THEN
+                        RAISE EXCEPTION 'canonical_hash projection mismatch';
+                    END IF;
+                END LOOP;
             END IF;
             RETURN NEW;
         END;
