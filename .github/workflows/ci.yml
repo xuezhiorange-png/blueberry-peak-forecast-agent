@@ -714,6 +714,9 @@ jobs:
             backend/tests/integration/test_core_forecast_persistence_postgres.py \
             backend/tests/integration/test_core_forecast_cli_postgres.py \
             backend/tests/forecast_quality/test_idempotency.py \
+            backend/tests/forecast_quality/test_comparison_point.py \
+            backend/tests/forecast_quality/test_comparison_quantile.py \
+            backend/tests/forecast_quality/test_comparison_delta.py \
             -m "not postgres_concurrency" -q --tb=long \
             --timeout=120 \
             --timeout-method=signal \
