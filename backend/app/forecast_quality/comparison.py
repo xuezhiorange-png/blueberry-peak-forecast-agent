@@ -16,13 +16,21 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from enum import StrEnum
 from typing import Any
 
+from .calculator_daily import compute_daily_metrics
 from .canonical import canonical_json_bytes
-from .enums import ComparisonAvailability, MetricStatus, ReasonCode, SupportedQuantile
+from .enums import (
+    ComparisonAvailability,
+    FrozenVersion,
+    MetricStatus,
+    ReasonCode,
+    SupportedQuantile,
+)
 from .schemas import (
     BaselineRequest,
     BaselineResult,
     BaselineSourceSnapshot,
     BreakdownSpec,
+    DailyMetricResult,
     S3BindingRow,
     S3EvaluationInput,
 )
@@ -48,6 +56,26 @@ class ComparisonName(StrEnum):
     P90_COVERAGE_DELTA = "p90_coverage_delta"
     BASELINE_P80_P90_PEAK_COMPARISON = "baseline_p80_p90_peak_comparison"
     INTERVAL_WIDTH_DELTA = "interval_width_delta"
+
+
+# Metric name mapping: comparison delta → Round A calculator cell name.  Round C
+# reuses the Round A daily metric calculator as the single source of truth for
+# MAE / WAPE / sMAPE / MAPE / bias.  No local formula may exist.
+_ROUND_A_CALCULATOR_METRIC_NAMES: dict[ComparisonName, str] = {
+    ComparisonName.DAILY_MAE_DELTA: "daily_mae",
+    ComparisonName.DAILY_WAPE_DELTA: "daily_wape",
+    ComparisonName.DAILY_SMAPE_DELTA: "daily_smape",
+    ComparisonName.DAILY_MAPE_DELTA: "daily_mape",
+    ComparisonName.SIGNED_BIAS_DELTA: "daily_bias_kg",
+}
+
+
+# ComparisonName values that come from a calculator cell.  Names not listed
+# here (e.g. ABSOLUTE_BIAS_MAGNITUDE_DELTA = |signed_bias|) must be derived
+# from a calculator cell via the HALF_EVEN projection rule below.
+_CALCULATOR_DERIVED_NAMES: frozenset[ComparisonName] = frozenset(
+    _ROUND_A_CALCULATOR_METRIC_NAMES
+)
 
 
 class ComparisonContractError(ValueError):
@@ -324,24 +352,169 @@ def _numeric_model(row: S3BindingRow) -> bool:
     )
 
 
-def _metric_values(
-    rows: Sequence[tuple[Decimal, Decimal, Decimal]],
-) -> dict[ComparisonName, tuple[Decimal | None, ReasonCode | None]]:
-    if not rows:
-        return {
-            name: (None, ReasonCode.NO_S2_BINDING_ROWS)
-            for name in (
-                ComparisonName.DAILY_MAE_DELTA,
-                ComparisonName.DAILY_WAPE_DELTA,
-                ComparisonName.DAILY_SMAPE_DELTA,
-                ComparisonName.DAILY_MAPE_DELTA,
-                ComparisonName.ABSOLUTE_BIAS_MAGNITUDE_DELTA,
-                ComparisonName.SIGNED_BIAS_DELTA,
+def _calculator_cell_value(
+    result: DailyMetricResult,
+    cell_name: str,
+) -> tuple[Decimal | None, ReasonCode | None]:
+    """Read a canonical metric value out of a Round A calculator result.
+
+    Returns (value, reason).  ``value`` is the calculator-quantized value
+    (``DECIMAL_QUANTUM``).  ``reason`` is propagated from the calculator cell
+    so downstream truth-table comparisons match the database ``reason_code``.
+    """
+    for cell in result.metric_cells:
+        if cell.metric_name == cell_name:
+            return cell.metric_value, cell.reason_code
+    raise ComparisonContractError(
+        f"Round A calculator did not emit expected cell '{cell_name}'"
+    )
+
+
+def _calculator_inputs(
+    rows: Sequence[S3BindingRow],
+    *,
+    side: str,
+    baseline_lookup: Mapping[bytes, ComparisonBaselineRecord],
+    model_keys: set[bytes],
+    evaluation_input: S3EvaluationInput,
+) -> S3EvaluationInput:
+    """Build a calculator S3EvaluationInput for one side (model or baseline).
+
+    Each side calls ``compute_daily_metrics`` on its own forecast series but
+    always against the same actuals.  ``baseline_lookup`` and ``model_keys``
+    constrain rows to the COMMON_COMPARABLE_SET (excluded/not_computable
+    rows are dropped on the calculator side too).
+    """
+    rebuilt: list[S3BindingRow] = []
+    for row in rows:
+        key = _daily_key_bytes(_model_daily_key(row, evaluation_input))
+        baseline_record = baseline_lookup.get(key)
+        if row.s2_status in {"EXCLUDED", "NOT_COMPARABLE"}:
+            continue
+        if baseline_record is None:
+            continue
+        if key not in model_keys:
+            continue
+        if not _numeric_baseline(baseline_record):
+            continue
+        if not _numeric_model(row):
+            continue
+        if side == "baseline":
+            forecast = baseline_record.result.baseline_point_forecast_kg
+            assert forecast is not None
+        else:
+            forecast = row.forecast_value_kg
+            assert forecast is not None
+        rebuilt.append(dataclasses.replace(row, forecast_value_kg=forecast))
+    return dataclasses.replace(evaluation_input, rows=tuple(rebuilt))
+
+
+_ROW_TEMPLATE_INPUT = S3EvaluationInput(
+    rows=(),
+    s2_run_identity="round-c-side-template",
+    s2_manifest_identity="round-c-side-template",
+    s2_binding_row_set_hash="round-c-side-template",
+    metric_policy_version=FrozenVersion.METRIC_INPUT_MASK_V1,
+    baseline_policy_version=FrozenVersion.SEASON_ANALOG_MAPPING_V1,
+)
+
+
+def _baseline_round_trip_replay(
+    records: Sequence[ComparisonBaselineRecord],
+) -> None:
+    """Recompute and verify BaselineResult.canonical_hash for every record.
+
+    Each ``BaselineResult`` carries an embedded ``canonical_hash`` that was
+    sealed when the evidence was built.  Comparison arithmetic may only run
+    after every supplied record has been replayed and matched.  Any drift
+    between the replayed payload hash and the stored ``canonical_hash``
+    (e.g. forecast value tampered after sealing) raises
+    :class:`ComparisonStructuralFailure`.
+
+    Quantile and snapshot identity checks raise :class:`ComparisonContractError`
+    because they reflect evidence-shape errors, not replay failures.
+    """
+    for record in records:
+        result = record.result
+        if result.baseline_quantile != SupportedQuantile.P50.value:
+            raise ComparisonContractError(
+                f"BASELINE_QUANTILE=P50 is required (got "
+                f"{result.baseline_quantile!r})"
             )
-        }
-    model_values = _metric_side_values(rows, side="model")
-    baseline_values = _metric_side_values(rows, side="baseline")
-    result: dict[ComparisonName, tuple[Decimal | None, ReasonCode | None]] = {}
+        if not result.source_snapshot_identity:
+            raise ComparisonContractError(
+                "BaselineResult.source_snapshot_identity is empty"
+            )
+        if not result.source_snapshot_hash:
+            raise ComparisonContractError(
+                "BaselineResult.source_snapshot_hash is empty"
+            )
+        if not result.source_row_set_hash:
+            raise ComparisonContractError(
+                "BaselineResult.source_row_set_hash is empty"
+            )
+        if not result.visibility_manifest_hash:
+            raise ComparisonContractError(
+                "BaselineResult.visibility_manifest_hash is empty"
+            )
+        payload = dataclasses.asdict(result)
+        payload["canonical_hash"] = ""
+        replayed = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+        if replayed != result.canonical_hash:
+            raise ComparisonStructuralFailure(
+                f"BaselineResult canonical_hash replay failed for "
+                f"{result.source_snapshot_identity}"
+            )
+
+
+def _half_even_delta(
+    model_value: Decimal | None,
+    baseline_value: Decimal | None,
+) -> Decimal | None:
+    """Apply the HALF_EVEN projection oracle.
+
+    The brief mandates that ``delta_value`` equal ``quantize(model - baseline,
+    DECIMAL_QUANTUM, ROUND_HALF_EVEN)``.  This is the only projection rule
+    Round C arithmetic is allowed to use.
+    """
+    if model_value is None or baseline_value is None:
+        return None
+    return (model_value - baseline_value).quantize(DECIMAL_QUANTUM, rounding=ROUND_HALF_EVEN)
+
+
+def _round_c_metric_outputs(
+    rows: Sequence[S3BindingRow],
+    breakdown_spec: BreakdownSpec,
+    baseline_records: Sequence[ComparisonBaselineRecord],
+    model_keys: set[bytes],
+    evaluation_input: S3EvaluationInput,
+) -> dict[ComparisonName, tuple[Decimal | None, ReasonCode | None]]:
+    """Compute Round A calculator outputs for both sides and project to deltas.
+
+    Calls :func:`compute_daily_metrics` once per side (model / baseline) on
+    the COMMON_COMPARABLE_SET rows.  Reads canonical values from the
+    calculator cells, applies the HALF_EVEN projection oracle, and emits
+    one output per ComparisonName.  Local metric formulas are forbidden.
+    """
+    baseline_lookup = _baseline_record_map(baseline_records)
+    model_calculator_input = _calculator_inputs(
+        rows,
+        side="model",
+        baseline_lookup=baseline_lookup,
+        model_keys=model_keys,
+        evaluation_input=evaluation_input,
+    )
+    baseline_calculator_input = _calculator_inputs(
+        rows,
+        side="baseline",
+        baseline_lookup=baseline_lookup,
+        model_keys=model_keys,
+        evaluation_input=evaluation_input,
+    )
+    model_result = compute_daily_metrics(model_calculator_input, breakdown_spec)
+    baseline_result = compute_daily_metrics(baseline_calculator_input, breakdown_spec)
+    common_row_count = len(model_calculator_input.rows)
+    output: dict[ComparisonName, tuple[Decimal | None, ReasonCode | None]] = {}
     for name in (
         ComparisonName.DAILY_MAE_DELTA,
         ComparisonName.DAILY_WAPE_DELTA,
@@ -350,62 +523,123 @@ def _metric_values(
         ComparisonName.ABSOLUTE_BIAS_MAGNITUDE_DELTA,
         ComparisonName.SIGNED_BIAS_DELTA,
     ):
-        model_value, model_reason = model_values[name]
-        baseline_value, baseline_reason = baseline_values[name]
-        result[name] = (
-            None if model_value is None or baseline_value is None else model_value - baseline_value,
-            model_reason or baseline_reason,
+        if common_row_count == 0:
+            # Round C collapses every calculator cell reason (WAPE_DENOMINATOR_ZERO,
+            # NO_MAPE_ELIGIBLE_ROWS, etc.) to NO_S2_BINDING_ROWS when no rows are
+            # comparable.  Domain surface is uniform across the six daily deltas.
+            output[name] = (None, ReasonCode.NO_S2_BINDING_ROWS)
+            continue
+        if name == ComparisonName.ABSOLUTE_BIAS_MAGNITUDE_DELTA:
+            signed_model_value, _ = _calculator_cell_value(
+                model_result, _ROUND_A_CALCULATOR_METRIC_NAMES[
+                    ComparisonName.SIGNED_BIAS_DELTA
+                ]
+            )
+            signed_baseline_value, _ = _calculator_cell_value(
+                baseline_result, _ROUND_A_CALCULATOR_METRIC_NAMES[
+                    ComparisonName.SIGNED_BIAS_DELTA
+                ]
+            )
+            if signed_model_value is None or signed_baseline_value is None:
+                output[name] = (None, ReasonCode.NO_S2_BINDING_ROWS)
+                continue
+            model_value = abs(signed_model_value).quantize(
+                DECIMAL_QUANTUM, rounding=ROUND_HALF_EVEN
+            )
+            baseline_value = abs(signed_baseline_value).quantize(
+                DECIMAL_QUANTUM, rounding=ROUND_HALF_EVEN
+            )
+            delta_value = _half_even_delta(model_value, baseline_value)
+            output[name] = (delta_value, None if delta_value is not None else ReasonCode.NO_S2_BINDING_ROWS)
+            continue
+        cell_name = _ROUND_A_CALCULATOR_METRIC_NAMES[name]
+        model_value, _ = _calculator_cell_value(model_result, cell_name)
+        baseline_value, _ = _calculator_cell_value(
+            baseline_result, cell_name
         )
-    return result
+        delta_value = _half_even_delta(model_value, baseline_value)
+        if delta_value is None:
+            # When the calculator side itself rejected (zero denominators,
+            # no eligible rows, etc.) propagate the calculator cell reason
+            # verbatim.  Only the empty-common-row path collapses to
+            # NO_S2_BINDING_ROWS to keep the Round C domain surface uniform.
+            calculator_reason = (
+                _calculator_cell_value(model_result, cell_name)[1]
+                or _calculator_cell_value(baseline_result, cell_name)[1]
+            )
+            output[name] = (None, calculator_reason or ReasonCode.NO_S2_BINDING_ROWS)
+        else:
+            output[name] = (delta_value, None)
+    return output
 
 
-def _metric_side_values(
-    rows: Sequence[tuple[Decimal, Decimal, Decimal]],
-    *,
-    side: str,
-) -> dict[ComparisonName, tuple[Decimal | None, ReasonCode | None]]:
-    forecasts = [model if side == "model" else baseline for model, baseline, _ in rows]
-    actuals = [actual for _, _, actual in rows]
-    errors = [forecast - actual for forecast, actual in zip(forecasts, actuals, strict=True)]
-    absolute_errors = [abs(value) for value in errors]
-    total_actual = sum(actuals, Decimal("0"))
-    mae = sum(absolute_errors, Decimal("0")) / Decimal(len(rows))
-    smape = sum(
-        Decimal("0")
-        if forecast == 0 and actual == 0
-        else Decimal("2") * abs(forecast - actual) / (abs(forecast) + abs(actual))
-        for forecast, actual in zip(forecasts, actuals, strict=True)
-    ) / Decimal(len(rows))
-    eligible = [
-        (forecast, actual)
-        for forecast, actual in zip(forecasts, actuals, strict=True)
-        if actual > 0
-    ]
-    mape = (
-        None
-        if not eligible
-        else sum(
-            (abs(forecast - actual) / abs(actual) for forecast, actual in eligible),
-            Decimal("0"),
-        )
-        / Decimal(len(eligible))
+def _round_c_side_values(
+    rows: Sequence[S3BindingRow],
+    breakdown_spec: BreakdownSpec,
+    baseline_records: Sequence[ComparisonBaselineRecord],
+    model_keys: set[bytes],
+    evaluation_input: S3EvaluationInput,
+) -> tuple[
+    dict[ComparisonName, Decimal | None],
+    dict[ComparisonName, Decimal | None],
+]:
+    """Return (model_canonical_values, baseline_canonical_values).
+
+    Each side reads canonical values straight from the Round A calculator;
+    no projection or quantization step is applied here because the
+    calculator already emits ``DECIMAL_QUANTUM``-aligned values.  These
+    populate ``ComparisonResult.model_value`` / ``ComparisonResult.baseline_value``
+    so the relational projection stores the exact canonical numbers that
+    produced the delta.
+    """
+    baseline_lookup = _baseline_record_map(baseline_records)
+    model_input = _calculator_inputs(
+        rows,
+        side="model",
+        baseline_lookup=baseline_lookup,
+        model_keys=model_keys,
+        evaluation_input=evaluation_input,
     )
-    wape = None if total_actual == 0 else sum(absolute_errors, Decimal("0")) / total_actual
-    bias = sum(errors, Decimal("0")) / Decimal(len(rows))
-    return {
-        ComparisonName.DAILY_MAE_DELTA: (mae, None),
-        ComparisonName.DAILY_WAPE_DELTA: (
-            wape,
-            ReasonCode.WAPE_DENOMINATOR_ZERO if wape is None else None,
-        ),
-        ComparisonName.DAILY_SMAPE_DELTA: (smape, None),
-        ComparisonName.DAILY_MAPE_DELTA: (
-            mape,
-            ReasonCode.NO_MAPE_ELIGIBLE_ROWS if mape is None else None,
-        ),
-        ComparisonName.ABSOLUTE_BIAS_MAGNITUDE_DELTA: (abs(bias), None),
-        ComparisonName.SIGNED_BIAS_DELTA: (bias, None),
-    }
+    baseline_input = _calculator_inputs(
+        rows,
+        side="baseline",
+        baseline_lookup=baseline_lookup,
+        model_keys=model_keys,
+        evaluation_input=evaluation_input,
+    )
+    model_result = compute_daily_metrics(model_input, breakdown_spec)
+    baseline_result = compute_daily_metrics(baseline_input, breakdown_spec)
+    model_values: dict[ComparisonName, Decimal | None] = {}
+    baseline_values: dict[ComparisonName, Decimal | None] = {}
+    for name in (
+        ComparisonName.DAILY_MAE_DELTA,
+        ComparisonName.DAILY_WAPE_DELTA,
+        ComparisonName.DAILY_SMAPE_DELTA,
+        ComparisonName.DAILY_MAPE_DELTA,
+        ComparisonName.SIGNED_BIAS_DELTA,
+    ):
+        cell_name = _ROUND_A_CALCULATOR_METRIC_NAMES[name]
+        model_value, _ = _calculator_cell_value(model_result, cell_name)
+        baseline_value, _ = _calculator_cell_value(baseline_result, cell_name)
+        model_values[name] = model_value
+        baseline_values[name] = baseline_value
+    signed_model_value, _ = _calculator_cell_value(
+        model_result, _ROUND_A_CALCULATOR_METRIC_NAMES[ComparisonName.SIGNED_BIAS_DELTA]
+    )
+    signed_baseline_value, _ = _calculator_cell_value(
+        baseline_result, _ROUND_A_CALCULATOR_METRIC_NAMES[ComparisonName.SIGNED_BIAS_DELTA]
+    )
+    model_values[ComparisonName.ABSOLUTE_BIAS_MAGNITUDE_DELTA] = (
+        abs(signed_model_value).quantize(DECIMAL_QUANTUM, rounding=ROUND_HALF_EVEN)
+        if signed_model_value is not None
+        else None
+    )
+    baseline_values[ComparisonName.ABSOLUTE_BIAS_MAGNITUDE_DELTA] = (
+        abs(signed_baseline_value).quantize(DECIMAL_QUANTUM, rounding=ROUND_HALF_EVEN)
+        if signed_baseline_value is not None
+        else None
+    )
+    return model_values, baseline_values
 
 
 def _status_for(
@@ -560,6 +794,7 @@ def compute_model_baseline_comparisons(
         raise ComparisonStructuralFailure("baseline member set must be nonempty")
     for record in baseline_records:
         _validate_baseline_against_spec(record, breakdown_spec)
+    _baseline_round_trip_replay(baseline_records)
     members, member_set_hash = _member_set(baseline_records)
     model_rows = _validate_model_rows(evaluation_input, breakdown_spec)
     baseline_map = _baseline_record_map(baseline_records)
@@ -637,7 +872,20 @@ def compute_model_baseline_comparisons(
     if len(common_rows) > len(model_rows) or len(common_rows) > len(baseline_map):
         raise ComparisonStructuralFailure("common-set counter exceeds input counter")
     identity = _six_axis_identity(breakdown_spec)
-    metric_values = _metric_values(common_rows)
+    metric_values = _round_c_metric_outputs(
+        rows=tuple(model_rows.values()),
+        breakdown_spec=breakdown_spec,
+        baseline_records=baseline_records,
+        model_keys=set(model_rows),
+        evaluation_input=evaluation_input,
+    )
+    canonical_model_values, canonical_baseline_values = _round_c_side_values(
+        rows=tuple(model_rows.values()),
+        breakdown_spec=breakdown_spec,
+        baseline_records=baseline_records,
+        model_keys=set(model_rows),
+        evaluation_input=evaluation_input,
+    )
     results: list[ComparisonResult] = []
     for name in (
         ComparisonName.DAILY_MAE_DELTA,
@@ -649,15 +897,8 @@ def compute_model_baseline_comparisons(
     ):
         value, reason = metric_values[name]
         status, final_reason, availability = _status_for(name, value, reason, len(common_rows))
-        baseline_value: Decimal | None = None
-        model_value: Decimal | None = None
-        if value is not None:
-            # Recompute both components from the same common rows so the
-            # delta never compares incompatible masks.
-            component = _metric_side_values(common_rows, side="model")[name]
-            baseline_component = _metric_side_values(common_rows, side="baseline")[name]
-            model_value, _ = component
-            baseline_value, _ = baseline_component
+        baseline_value = canonical_baseline_values.get(name)
+        model_value = canonical_model_values.get(name)
         results.append(
             _make_result(
                 name=name,

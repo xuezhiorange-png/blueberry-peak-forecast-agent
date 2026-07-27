@@ -586,12 +586,29 @@ def _build_evidence(
     baseline_records: Sequence[BaselinePersistenceRecord],
     comparison_records: Sequence[ComparisonResult | Mapping[str, object]],
     manifest_payload: Mapping[str, object],
+    comparison_contract_enabled: bool = False,
 ) -> _EvidenceSet:
+    """Build a pre-SQL graph evidence set with explicit V1/V2 mode selection.
+
+    The caller MUST declare whether Round C comparison contract is enabled
+    via ``comparison_contract_enabled``.  Round C no longer infers the mode
+    from ``bool(comparisons)``.  V1 callers (``False``) must not supply any
+    comparison records; V2 callers (``True``) may supply zero cells (full
+    V2 schema) or full ten-record cells.
+    """
     comparisons = tuple(_comparison_evidence(item) for item in comparison_records)
-    round_c = bool(comparisons)
+    if not comparison_contract_enabled:
+        if comparisons:
+            raise ForecastQualityContractError(
+                "comparison records supplied without comparison_contract_enabled=True"
+            )
+    # V2 zero-cell branch must still publish V2 request identity, result-set
+    # schema, and empty-set hash — never silently fall back to V1.  This is
+    # achieved by keying ``comparison_contract_enabled`` through every schema
+    # selector below (instead of ``bool(comparisons)``).
     run_payload, evaluation_request_hash, run_hash = _validate_evaluation_input(
         evaluation_input,
-        round_c=round_c,
+        round_c=comparison_contract_enabled,
     )
     metrics = tuple(item for result in metric_results for item in _metric_evidence(result))
     if len({item.key_hash for item in metrics}) != len(metrics):
@@ -602,22 +619,75 @@ def _build_evidence(
     baselines = tuple(_baseline_evidence(item) for item in baseline_records)
     if len({item.request_hash for item in baselines}) != len(baselines):
         raise ForecastQualityContractError("duplicate baseline request identity")
+    # baseline supplied set: hash of request identities that were supplied.
+    supplied_baseline_result_hashes = {item.result_hash for item in baselines}
+    supplied_baseline_request_hashes = {item.request_hash for item in baselines}
+    names_by_cell: dict[bytes, set[str]] = {}
     if comparisons:
         keys = [item.key_hash for item in comparisons]
         if len(set(keys)) != len(keys):
             raise ForecastQualityContractError("duplicate comparison semantic identity")
-        names_by_cell: dict[bytes, set[str]] = {}
         for item in comparisons:
             cell_key = canonical_json_bytes(item.result.normalized_breakdown_identity)
             names_by_cell.setdefault(cell_key, set()).add(item.result.comparison_name.value)
         expected_names = {name.value for name in ComparisonName}
         if any(names != expected_names for names in names_by_cell.values()):
             raise ForecastQualityContractError("each comparison cell must contain ten records")
+        # baseline referenced member set: every comparison must reference a
+        # member of the supplied baseline set (by baseline_result_hash) and
+        # all members referenced across all comparisons must coincide (no
+        # comparison references a baseline that the caller did not supply).
+        referenced_baseline_result_hashes: set[str] = set()
+        referenced_baseline_request_hashes: set[str] = set()
+        for item in comparisons:
+            for member in item.result.baseline_member_identity_set:
+                result_hash = member["baseline_result_hash"]
+                request_hash = member["baseline_request_hash"]
+                if result_hash not in supplied_baseline_result_hashes:
+                    raise ForecastQualityContractError(
+                        f"comparison references baseline_result_hash={result_hash[:12]}... "
+                        "not present in supplied baseline set"
+                    )
+                if request_hash not in supplied_baseline_request_hashes:
+                    raise ForecastQualityContractError(
+                        f"comparison references baseline_request_hash={request_hash[:12]}... "
+                        "not present in supplied baseline set"
+                    )
+                referenced_baseline_result_hashes.add(result_hash)
+                referenced_baseline_request_hashes.add(request_hash)
+        if referenced_baseline_result_hashes != supplied_baseline_result_hashes:
+            missing = supplied_baseline_result_hashes - referenced_baseline_result_hashes
+            if missing:
+                raise ForecastQualityContractError(
+                    f"supplied baseline set has members never referenced by any comparison: "
+                    f"{sorted(hash[:12] for hash in missing)}"
+                )
+        # Comparison cell identity: every comparison inside one cell must
+        # share the same baseline_member_set_hash.  Already implicit through
+        # the canonical payload replay, but we make it explicit here.
+        cell_member_set_hashes: dict[bytes, str] = {}
+        for item in comparisons:
+            cell_key = canonical_json_bytes(item.result.normalized_breakdown_identity)
+            existing = cell_member_set_hashes.get(cell_key)
+            if existing is None:
+                cell_member_set_hashes[cell_key] = item.result.baseline_member_set_hash
+            elif existing != item.result.baseline_member_set_hash:
+                raise ForecastQualityContractError(
+                    f"comparison cell has inconsistent baseline_member_set_hash"
+                )
+        # canonical payload truth table: every ComparisonResult stored
+        # field must agree with its derivation from the calculator cells.
+        # (Per-cell baseline_member_set_hash and comparison_key_hash are
+        # verified inside _comparison_evidence.)
+    if comparison_contract_enabled:
+        # V2: comparison_result_set_schema_version, comparison_policy_version,
+        # and persistence_schema_version always published (zero cells included).
         comparison_result_set_schema_version = COMPARISON_RESULT_SET_SCHEMA_VERSION
         comparison_result_schema_version = COMPARISON_RESULT_SCHEMA_VERSION
         comparison_policy_version: str | None = COMPARISON_POLICY_VERSION
         persistence_schema_version = ROUND_C_PERSISTENCE_SCHEMA_VERSION
     else:
+        # V1: V1 persistence only, no comparison children expected.
         comparison_result_set_schema_version = "v0.2-s3-comparison-result-set-v1"
         comparison_result_schema_version = None
         comparison_policy_version = None
@@ -629,12 +699,12 @@ def _build_evidence(
     comparison_hashes = [item.canonical_hash for item in comparisons]
     comparison_result_set_payload = (
         build_comparison_result_set_payload(comparison_hashes)
-        if comparisons
+        if comparison_contract_enabled
         else COMPARISON_RESULT_SET_PAYLOAD
     )
     comparison_result_set_hash = (
         compute_comparison_result_set_hash(comparison_hashes)
-        if comparisons
+        if comparison_contract_enabled
         else COMPARISON_RESULT_SET_HASH
     )
     instance_payload = {
@@ -1174,10 +1244,18 @@ def persist_quality_evaluation(
     metric_results: Sequence[DailyMetricResult],
     breakdown_results: Sequence[Mapping[str, object]],
     baseline_records: Sequence[BaselinePersistenceRecord],
-    comparison_records: Sequence[ComparisonResult | Mapping[str, object]],
+    comparison_records: Sequence[ComparisonResult | Mapping[str, object]] = (),
     manifest_payload: Mapping[str, object],
+    comparison_contract_enabled: bool = False,
 ) -> PersistedQualityEvaluation:
-    """Persist one complete result without taking transaction ownership."""
+    """Persist one complete result without taking transaction ownership.
+
+    ``comparison_contract_enabled`` declares whether the caller is using V2
+    (Round C) persistence.  ``False`` selects V1 persistence and rejects any
+    comparison records that may have been passed in by mistake.  ``True``
+    selects V2 persistence regardless of whether comparison_records is
+    empty (V2 zero-cell branch) or populated with full ten-record cells.
+    """
     if not isinstance(session, Session):
         raise TypeError("persist_quality_evaluation requires a synchronous SQLAlchemy Session")
     if not isinstance(manifest_payload, Mapping):
@@ -1189,6 +1267,7 @@ def persist_quality_evaluation(
         baseline_records=baseline_records,
         comparison_records=comparison_records,
         manifest_payload=manifest_payload,
+        comparison_contract_enabled=comparison_contract_enabled,
     )
     existing = cast(
         QualityEvaluationRunModel | None,

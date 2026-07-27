@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 from decimal import Decimal
 
 import pytest
 
+from backend.app.forecast_quality.canonical import canonical_json_bytes
 from backend.app.forecast_quality.comparison import (
+    ComparisonBaselineRecord,
     ComparisonName,
     compute_model_baseline_comparisons,
 )
@@ -24,19 +27,23 @@ def test_positive_negative_and_zero_delta_semantics() -> None:
         ("tie", Decimal("10"), Decimal("0.000000")),
     ):
         input_data, spec, records = _records(suffix, count=10)
-        records = tuple(
-            dataclasses.replace(
+
+        def _reseal(record: ComparisonBaselineRecord, new_value: Decimal) -> ComparisonBaselineRecord:
+            """Replace baseline forecast value AND reseal the canonical hash."""
+            new_result_without_hash = dataclasses.replace(
+                record.result, baseline_point_forecast_kg=new_value, canonical_hash=""
+            )
+            return dataclasses.replace(
                 record,
                 result=dataclasses.replace(
-                    record.result,
-                    baseline_point_forecast_kg=baseline_value,
+                    new_result_without_hash,
+                    canonical_hash=hashlib.sha256(
+                        canonical_json_bytes(dataclasses.asdict(new_result_without_hash))
+                    ).hexdigest(),
                 ),
             )
-            for record in records
-        )
-        # Rebuild the source hashes after changing only the evidence value is
-        # intentionally unnecessary for the domain contract; persistence
-        # performs the full BaselineResult canonical replay check.
+
+        records = tuple(_reseal(record, baseline_value) for record in records)
         results = compute_model_baseline_comparisons(
             evaluation_input=input_data, breakdown_spec=spec, baseline_records=records
         )
