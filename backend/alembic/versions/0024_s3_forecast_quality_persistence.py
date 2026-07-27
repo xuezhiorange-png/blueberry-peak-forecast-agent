@@ -116,11 +116,11 @@ def _breakdown_identity_check(is_sqlite: bool) -> sa.CheckConstraint:
     if is_sqlite:
         expression = "json_type(breakdown_identity) = 'object'"
     else:
-        keys = " AND ".join(f"breakdown_identity ? '{key}'" for key in _BREAKDOWN_IDENTITY_KEYS)
+        key_array = ", ".join(f"'{key}'" for key in _BREAKDOWN_IDENTITY_KEYS)
         expression = (
             "jsonb_typeof(breakdown_identity) = 'object' "
-            "AND jsonb_object_length(breakdown_identity) = 6 "
-            f"AND {keys}"
+            f"AND breakdown_identity ?& ARRAY[{key_array}]::text[] "
+            f"AND (breakdown_identity - ARRAY[{key_array}]::text[]) = '{{}}'::jsonb"
         )
     return sa.CheckConstraint(expression, name="ck_quality_breakdown_result_six_axis_identity")
 
