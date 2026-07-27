@@ -133,7 +133,6 @@ def _axes_check(is_sqlite: bool) -> sa.CheckConstraint:
         expected = ", ".join(repr(value) for value in AXES)
         expression = (
             "jsonb_typeof(normalized_breakdown_identity) = 'object' "
-            "AND jsonb_object_length(normalized_breakdown_identity) = 6 "
             f"AND normalized_breakdown_identity ?& ARRAY[{expected}]::text[] "
             f"AND (normalized_breakdown_identity - ARRAY[{expected}]::text[]) = '{{}}'::jsonb"
         )
