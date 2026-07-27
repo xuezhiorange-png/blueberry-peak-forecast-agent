@@ -190,6 +190,203 @@ async def _persist(
     )
 
 
+_PROBE_SCHEMA = "v0.2-s3-quality-persistence-v1"
+
+_RUN_INSERT_SQL = """
+    INSERT INTO quality_evaluation_run (
+        schema_version, evaluation_request_hash, s2_run_identity,
+        s2_manifest_identity, s2_binding_row_set_hash,
+        metric_policy_version, baseline_policy_version, status,
+        canonical_payload, canonical_hash, completed_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETE', $8::jsonb, $9, now())
+    RETURNING id
+"""
+
+_METRIC_INSERT_SQL = """
+    INSERT INTO quality_metric_result (
+        quality_evaluation_run_id, schema_version, metric_result_key_hash,
+        metric_name, metric_status, reason_code, breakdown_identity,
+        canonical_payload, canonical_hash, completed_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, now())
+"""
+
+_BREAKDOWN_INSERT_SQL = """
+    INSERT INTO quality_breakdown_result (
+        quality_evaluation_run_id, schema_version, breakdown_key_hash,
+        breakdown_identity, metric_status, reason_code,
+        s2_comparable_row_count, s2_excluded_row_count,
+        s2_not_computable_row_count, coverage_ratio, metric_values,
+        canonical_payload, canonical_hash, completed_at
+    ) VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11::jsonb,
+              $12::jsonb, $13, now())
+"""
+
+_BASELINE_INSERT_SQL = """
+    INSERT INTO naive_baseline_run (
+        quality_evaluation_run_id, schema_version,
+        baseline_request_hash, baseline_result_hash,
+        baseline_source_snapshot_identity, baseline_source_snapshot_hash,
+        baseline_source_row_set_hash, visibility_manifest_hash,
+        baseline_policy_version, metric_status, reason_code,
+        canonical_payload, canonical_hash, completed_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+              $12::jsonb, $13, now())
+"""
+
+_MANIFEST_INSERT_SQL = """
+    INSERT INTO quality_evaluation_manifest (
+        quality_evaluation_run_id, schema_version,
+        evaluation_request_hash, evaluation_instance_hash,
+        metric_result_set_hash, breakdown_result_set_hash,
+        baseline_result_set_hash, comparison_result_set_hash,
+        manifest_payload, manifest_hash, completed_at, sealed_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, now(), now())
+"""
+
+
+def _probe_hash(label: str) -> str:
+    return hashlib.sha256(label.encode("utf-8")).hexdigest()
+
+
+def _probe_run_args(
+    suffix: str,
+    *,
+    request_hash: str | None = None,
+    canonical_hash: str | None = None,
+) -> tuple[object, ...]:
+    payload = {"probe": suffix}
+    return (
+        _PROBE_SCHEMA,
+        request_hash or _probe_hash(f"request:{suffix}"),
+        f"probe:run:{suffix}",
+        f"probe:manifest:{suffix}",
+        _probe_hash(f"row-set:{suffix}"),
+        "metric-policy-probe",
+        "baseline-policy-probe",
+        json.dumps(payload),
+        canonical_hash or _probe_hash(f"canonical:{suffix}"),
+    )
+
+
+def _probe_metric_args(
+    run_id: int,
+    suffix: str,
+    *,
+    key_hash: str | None = None,
+    canonical_hash: str | None = None,
+) -> tuple[object, ...]:
+    return (
+        run_id,
+        _PROBE_SCHEMA,
+        key_hash or _probe_hash(f"metric-key:{suffix}"),
+        "daily_mae",
+        "COMPUTED",
+        "COMPUTED",
+        json.dumps({"probe": suffix}),
+        json.dumps({"probe": suffix}),
+        canonical_hash or _probe_hash(f"metric-canonical:{suffix}"),
+    )
+
+
+def _probe_breakdown_args(
+    run_id: int,
+    suffix: str,
+    *,
+    total: int,
+    comparable: int,
+    excluded: int,
+    not_computable: int,
+    coverage: Decimal | None,
+    key_hash: str | None = None,
+    canonical_hash: str | None = None,
+) -> tuple[object, ...]:
+    identity = {"probe": suffix}
+    payload = {
+        "cell_identity": identity,
+        "metric_status": "COMPUTED",
+        "reason_code": "COMPUTED",
+        "s2_total_binding_row_count": total,
+        "s2_comparable_row_count": comparable,
+        "s2_excluded_row_count": excluded,
+        "s2_not_computable_row_count": not_computable,
+        "coverage_ratio": None if coverage is None else f"{coverage:.6f}",
+        "metric_values": {},
+    }
+    return (
+        run_id,
+        _PROBE_SCHEMA,
+        key_hash or _probe_hash(f"breakdown-key:{suffix}"),
+        json.dumps(identity),
+        "COMPUTED",
+        "COMPUTED",
+        comparable,
+        excluded,
+        not_computable,
+        coverage,
+        json.dumps({}),
+        json.dumps(payload),
+        canonical_hash or _probe_hash(f"breakdown-canonical:{suffix}"),
+    )
+
+
+def _probe_baseline_args(
+    run_id: int,
+    suffix: str,
+    *,
+    canonical_hash: str | None = None,
+    request_hash: str | None = None,
+    result_hash: str | None = None,
+) -> tuple[object, ...]:
+    return (
+        run_id,
+        _PROBE_SCHEMA,
+        request_hash or _probe_hash(f"baseline-request:{suffix}"),
+        result_hash or _probe_hash(f"baseline-result:{suffix}"),
+        f"snapshot:{suffix}",
+        _probe_hash(f"snapshot-hash:{suffix}"),
+        _probe_hash(f"snapshot-row-set:{suffix}"),
+        _probe_hash(f"visibility:{suffix}"),
+        "baseline-policy-probe",
+        "COMPUTED",
+        "COMPUTED",
+        json.dumps({"probe": suffix}),
+        canonical_hash or _probe_hash(f"baseline-canonical:{suffix}"),
+    )
+
+
+def _probe_manifest_args(
+    run_id: int,
+    suffix: str,
+    *,
+    manifest_hash: str | None = None,
+) -> tuple[object, ...]:
+    return (
+        run_id,
+        _PROBE_SCHEMA,
+        _probe_hash(f"manifest-request:{suffix}"),
+        _probe_hash(f"manifest-instance:{suffix}"),
+        _probe_hash(f"manifest-metric-set:{suffix}"),
+        _probe_hash(f"manifest-breakdown-set:{suffix}"),
+        _probe_hash(f"manifest-baseline-set:{suffix}"),
+        _probe_hash(f"manifest-comparison-set:{suffix}"),
+        json.dumps({"probe": suffix}),
+        manifest_hash or _probe_hash(f"manifest-hash:{suffix}"),
+    )
+
+
+async def _expect_postgres_rejection(
+    conn: asyncpg.Connection,
+    statement: str,
+    *args: object,
+) -> None:
+    try:
+        async with conn.transaction():
+            await conn.execute(statement, *args)
+    except asyncpg.PostgresError:
+        return
+    raise AssertionError("database accepted a forbidden PostgreSQL probe")
+
+
 @pytest.mark.asyncio
 async def test_round_b_migration_round_trip_creates_one_head() -> None:
     env = _live_env()
@@ -454,6 +651,7 @@ async def test_foreign_key_and_hash_constraints_are_present() -> None:
             "ck_quality_manifest_hash_sha256",
             "ck_quality_breakdown_result_counts_nonnegative",
             "ck_quality_breakdown_result_coverage_range",
+            "ck_quality_breakdown_result_coverage_consistency",
         ):
             assert required_constraint in constraints, required_constraint
     finally:
@@ -538,4 +736,320 @@ async def test_breakdown_counter_closure_is_database_enforced() -> None:
                 hashlib.sha256(canonical_json_bytes(breakdown_payload)).hexdigest(),
             )
     finally:
+        await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_breakdown_coverage_invariant_is_database_enforced() -> None:
+    env = _live_env()
+    url = (
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    conn = await asyncpg.connect(url)
+    negative_probe_count = 0
+    valid_probe_count = 0
+    outer = conn.transaction()
+    await outer.start()
+    try:
+        run_id = await conn.fetchval(_RUN_INSERT_SQL, *_probe_run_args("coverage"))
+        assert run_id is not None
+        for suffix, total, comparable, excluded, not_computable, coverage in (
+            ("zero-with-coverage", 0, 0, 0, 0, Decimal("0.000000")),
+            ("positive-without-coverage", 3, 1, 1, 1, None),
+            ("positive-with-wrong-coverage", 3, 1, 1, 1, Decimal("0.500000")),
+        ):
+            await _expect_postgres_rejection(
+                conn,
+                _BREAKDOWN_INSERT_SQL,
+                *_probe_breakdown_args(
+                    run_id,
+                    suffix,
+                    total=total,
+                    comparable=comparable,
+                    excluded=excluded,
+                    not_computable=not_computable,
+                    coverage=coverage,
+                ),
+            )
+            negative_probe_count += 1
+
+        await conn.execute(
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run_id,
+                "valid-coverage",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+            ),
+        )
+        valid_probe_count += 1
+        assert negative_probe_count >= 3
+        assert valid_probe_count >= 1
+        print(f"COVERAGE_INVARIANT_NEGATIVE_PROBE_COUNT={negative_probe_count}")
+        print(f"COVERAGE_INVARIANT_VALID_PROBE_COUNT={valid_probe_count}")
+        print("BREAKDOWN_COVERAGE_DATABASE_INVARIANT_RESULT=PASS")
+    finally:
+        await outer.rollback()
+        await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_postgres_database_rejection_probes_are_real_and_isolated() -> None:
+    env = _live_env()
+    url = (
+        f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}/{env['ISOLATED_DB_NAME']}"
+    )
+    conn = await asyncpg.connect(url)
+    fk_probe_count = 0
+    unique_probe_count = 0
+    malformed_categories: set[str] = set()
+    outer = conn.transaction()
+    await outer.start()
+    try:
+        run1_request_hash = _probe_hash("request:rejection-run-1")
+        run1_canonical_hash = _probe_hash("canonical:rejection-run-1")
+        run1 = await conn.fetchval(
+            _RUN_INSERT_SQL,
+            *_probe_run_args(
+                "rejection-run-1",
+                request_hash=run1_request_hash,
+                canonical_hash=run1_canonical_hash,
+            ),
+        )
+        run2 = await conn.fetchval(_RUN_INSERT_SQL, *_probe_run_args("rejection-run-2"))
+        assert run1 is not None and run2 is not None
+
+        await _expect_postgres_rejection(
+            conn,
+            _METRIC_INSERT_SQL,
+            *_probe_metric_args(999_999_999, "orphan-metric"),
+        )
+        fk_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                999_999_999,
+                "orphan-breakdown",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+            ),
+        )
+        fk_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BASELINE_INSERT_SQL,
+            *_probe_baseline_args(999_999_999, "orphan-baseline"),
+        )
+        fk_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _MANIFEST_INSERT_SQL,
+            *_probe_manifest_args(999_999_999, "orphan-manifest"),
+        )
+        fk_probe_count += 1
+
+        metric_key = _probe_hash("metric-key:seed")
+        metric_canonical = _probe_hash("metric-canonical:seed")
+        await conn.execute(
+            _METRIC_INSERT_SQL,
+            *_probe_metric_args(run1, "seed", key_hash=metric_key, canonical_hash=metric_canonical),
+        )
+        breakdown_key = _probe_hash("breakdown-key:seed")
+        breakdown_canonical = _probe_hash("breakdown-canonical:seed")
+        await conn.execute(
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run1,
+                "seed",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                key_hash=breakdown_key,
+                canonical_hash=breakdown_canonical,
+            ),
+        )
+        baseline_request = _probe_hash("baseline-request:shared")
+        baseline_result = _probe_hash("baseline-result:shared")
+        baseline_canonical = _probe_hash("baseline-canonical:shared")
+        await conn.execute(
+            _BASELINE_INSERT_SQL,
+            *_probe_baseline_args(
+                run1,
+                "shared",
+                request_hash=baseline_request,
+                result_hash=baseline_result,
+                canonical_hash=baseline_canonical,
+            ),
+        )
+
+        duplicate_run_request = list(_probe_run_args("duplicate-run-request"))
+        duplicate_run_request[1] = run1_request_hash
+        await _expect_postgres_rejection(conn, _RUN_INSERT_SQL, *duplicate_run_request)
+        unique_probe_count += 1
+        duplicate_run_canonical = list(_probe_run_args("duplicate-run-canonical"))
+        duplicate_run_canonical[8] = run1_canonical_hash
+        await _expect_postgres_rejection(conn, _RUN_INSERT_SQL, *duplicate_run_canonical)
+        unique_probe_count += 1
+
+        await _expect_postgres_rejection(
+            conn,
+            _METRIC_INSERT_SQL,
+            *_probe_metric_args(
+                run1,
+                "duplicate-metric-key",
+                key_hash=metric_key,
+            ),
+        )
+        unique_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _METRIC_INSERT_SQL,
+            *_probe_metric_args(
+                run1,
+                "duplicate-metric-canonical",
+                canonical_hash=metric_canonical,
+            ),
+        )
+        unique_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run1,
+                "duplicate-breakdown-key",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                key_hash=breakdown_key,
+            ),
+        )
+        unique_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run1,
+                "duplicate-breakdown-canonical",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                canonical_hash=breakdown_canonical,
+            ),
+        )
+        unique_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BASELINE_INSERT_SQL,
+            *_probe_baseline_args(
+                run1,
+                "duplicate-baseline-request",
+                request_hash=baseline_request,
+            ),
+        )
+        unique_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _BASELINE_INSERT_SQL,
+            *_probe_baseline_args(
+                run1,
+                "duplicate-baseline-result",
+                result_hash=baseline_result,
+            ),
+        )
+        unique_probe_count += 1
+
+        await conn.execute(
+            _BASELINE_INSERT_SQL,
+            *_probe_baseline_args(
+                run2,
+                "shared-cross-run",
+                canonical_hash=baseline_canonical,
+            ),
+        )
+        assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM naive_baseline_run WHERE canonical_hash = $1",
+                baseline_canonical,
+            )
+            == 2
+        )
+
+        manifest_hash = _probe_hash("manifest-hash:seed")
+        await conn.execute(
+            _MANIFEST_INSERT_SQL,
+            *_probe_manifest_args(run1, "seed", manifest_hash=manifest_hash),
+        )
+        await _expect_postgres_rejection(
+            conn,
+            _MANIFEST_INSERT_SQL,
+            *_probe_manifest_args(run1, "duplicate-manifest-run"),
+        )
+        unique_probe_count += 1
+        await _expect_postgres_rejection(
+            conn,
+            _MANIFEST_INSERT_SQL,
+            *_probe_manifest_args(run2, "duplicate-manifest-hash", manifest_hash=manifest_hash),
+        )
+        unique_probe_count += 1
+
+        short_run = list(_probe_run_args("malformed-short"))
+        short_run[1] = "a"
+        await _expect_postgres_rejection(conn, _RUN_INSERT_SQL, *short_run)
+        malformed_categories.add("SHORT_LENGTH")
+        await _expect_postgres_rejection(
+            conn,
+            _METRIC_INSERT_SQL,
+            *_probe_metric_args(run2, "malformed-uppercase", key_hash="A" * 64),
+        )
+        malformed_categories.add("UPPERCASE_HEX")
+        await _expect_postgres_rejection(
+            conn,
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run2,
+                "malformed-non-hex",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                key_hash="g" * 64,
+            ),
+        )
+        malformed_categories.add("NON_HEX_CHARACTER")
+
+        assert await conn.fetchval("SELECT count(*) FROM model_baseline_comparison") == 0
+        assert fk_probe_count >= 4
+        assert unique_probe_count >= 9
+        assert malformed_categories == {"SHORT_LENGTH", "UPPERCASE_HEX", "NON_HEX_CHARACTER"}
+        print(f"FK_REJECTION_PROBE_COUNT={fk_probe_count}")
+        print(f"SEMANTIC_UNIQUE_REJECTION_PROBE_COUNT={unique_probe_count}")
+        print(f"MALFORMED_SHA_REJECTION_CATEGORY_COUNT={len(malformed_categories)}")
+        print("COMPARISON_RECORD_WRITE_AUTHORIZED=false")
+        print("MODEL_BASELINE_COMPARISON_ROW_WRITE=false")
+        print("COMPARISON_ROW_COUNT=0")
+    finally:
+        await outer.rollback()
+        probe_count = await conn.fetchval(
+            """
+            SELECT count(*) FROM quality_evaluation_run
+            WHERE s2_run_identity LIKE 'probe:run:rejection-run-%'
+            """
+        )
+        assert probe_count == 0
         await conn.close()

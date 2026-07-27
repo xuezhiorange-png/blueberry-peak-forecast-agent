@@ -47,6 +47,22 @@ def _breakdown_counter_closure_check(is_sqlite: bool) -> sa.CheckConstraint:
     )
 
 
+def _breakdown_coverage_consistency_check(is_sqlite: bool) -> sa.CheckConstraint:
+    if is_sqlite:
+        total = "CAST(json_extract(canonical_payload, '$.s2_total_binding_row_count') AS NUMERIC)"
+    else:
+        total = "(canonical_payload->>'s2_total_binding_row_count')::numeric"
+    ratio = f"s2_comparable_row_count::numeric / NULLIF({total}, 0)"
+    if is_sqlite:
+        ratio = f"CAST(s2_comparable_row_count AS REAL) / NULLIF(CAST({total} AS REAL), 0)"
+    return sa.CheckConstraint(
+        f"(({total} = 0 AND coverage_ratio IS NULL) OR "
+        f"({total} > 0 AND coverage_ratio IS NOT NULL AND "
+        f"coverage_ratio = ROUND({ratio}, 6)))",
+        name="ck_quality_breakdown_result_coverage_consistency",
+    )
+
+
 def _create_tables(is_sqlite: bool) -> None:
     json_type = _json_type(is_sqlite)
     bigint = _bigint_type(is_sqlite)
@@ -182,6 +198,7 @@ def _create_tables(is_sqlite: bool) -> None:
             name="ck_quality_breakdown_result_coverage_range",
         ),
         _breakdown_counter_closure_check(is_sqlite),
+        _breakdown_coverage_consistency_check(is_sqlite),
     )
     op.create_index(
         "ix_quality_breakdown_result_run_id",
