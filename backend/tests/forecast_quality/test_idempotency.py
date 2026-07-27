@@ -112,7 +112,7 @@ async def _insert_race_child(conn: asyncpg.Connection, run_id: int) -> str:
                 quality_evaluation_run_id, schema_version, metric_result_key_hash,
                 metric_name, metric_status, reason_code, breakdown_identity,
                 canonical_payload, canonical_hash, completed_at
-            ) VALUES ($1, $2, $3, 'daily_mae', 'COMPUTED', 'COMPUTED',
+            ) VALUES ($1, $2, $3, 'daily_mae', 'COMPUTED', 'NONE',
                       '{}'::jsonb, '{}'::jsonb, $4, now())
             """,
             run_id,
@@ -608,8 +608,13 @@ async def test_concurrent_manifest_seal_vs_child_insert_is_serialized() -> None:
                 evaluation_request_hash, evaluation_instance_hash,
                 metric_result_set_hash, breakdown_result_set_hash,
                 baseline_result_set_hash, comparison_result_set_hash,
+                comparison_policy_version, comparison_result_schema_version,
+                comparison_result_set_schema_version, comparison_cell_count,
+                comparison_result_count,
                 manifest_payload, manifest_hash, completed_at, sealed_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, now(), now())
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, NULL,
+                      'v0.2-s3-comparison-result-set-v1', 0, 0,
+                      $9::jsonb, $10, now(), now())
             """,
             run_id,
             "v0.2-s3-quality-persistence-v1",

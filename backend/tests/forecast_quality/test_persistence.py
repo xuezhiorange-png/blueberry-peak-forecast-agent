@@ -23,6 +23,7 @@ from backend.app.forecast_quality.baseline import resolve_baseline_point_forecas
 from backend.app.forecast_quality.breakdown import calculate_breakdown_cells
 from backend.app.forecast_quality.calculator_daily import compute_daily_metrics
 from backend.app.forecast_quality.canonical import canonical_json_bytes
+from backend.app.forecast_quality.comparison import compute_model_baseline_comparisons
 from backend.app.forecast_quality.enums import FrozenVersion, SupportedQuantile
 from backend.app.forecast_quality.persistence import (
     BaselinePersistenceRecord,
@@ -176,6 +177,8 @@ async def _persist(
     metric_result: DailyMetricResult,
     breakdown_results: list[dict[str, object]],
     baseline_record: BaselinePersistenceRecord,
+    comparison_records: tuple[object, ...] = (),
+    baseline_records: tuple[BaselinePersistenceRecord, ...] | None = None,
     manifest_payload: dict[str, object] | None = None,
 ) -> PersistedQualityEvaluation:
     return await session.run_sync(
@@ -184,8 +187,8 @@ async def _persist(
             evaluation_input=evaluation_input,
             metric_results=(metric_result,),
             breakdown_results=breakdown_results,
-            baseline_records=(baseline_record,),
-            comparison_records=(),
+            baseline_records=baseline_records or (baseline_record,),
+            comparison_records=comparison_records,
             manifest_payload=manifest_payload or {},
         )
     )
@@ -240,8 +243,13 @@ _MANIFEST_INSERT_SQL = """
         evaluation_request_hash, evaluation_instance_hash,
         metric_result_set_hash, breakdown_result_set_hash,
         baseline_result_set_hash, comparison_result_set_hash,
+        comparison_policy_version, comparison_result_schema_version,
+        comparison_result_set_schema_version, comparison_cell_count,
+        comparison_result_count,
         manifest_payload, manifest_hash, completed_at, sealed_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, now(), now())
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, NULL,
+              'v0.2-s3-comparison-result-set-v1', 0, 0,
+              $9::jsonb, $10, now(), now())
 """
 
 
@@ -416,7 +424,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
     conn = await asyncpg.connect(url)
     try:
         assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-            "0024_s3_forecast_quality_persistence"
+            "0025_s3_model_baseline_comparison"
         )
         nullable_rows = await conn.fetch(
             """
@@ -477,7 +485,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
     conn = await asyncpg.connect(url)
     try:
         assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-            "0024_s3_forecast_quality_persistence"
+            "0025_s3_model_baseline_comparison"
         )
     finally:
         await conn.close()
@@ -504,6 +512,50 @@ async def test_complete_write_has_six_table_shape_and_empty_comparison() -> None
             assert await session.scalar(select(func.count(NaiveBaselineRunModel.id))) == 1
             assert await session.scalar(select(func.count(ModelBaselineComparisonModel.id))) == 0
             assert await session.scalar(select(func.count(QualityEvaluationManifestModel.id))) == 1
+
+
+@pytest.mark.asyncio
+async def test_round_c_comparison_persistence_writes_children_before_v2_manifest() -> None:
+    _live_env()
+    from backend.tests.forecast_quality.test_comparison_point import _records
+
+    input_data, spec, comparison_baselines = _records("persist-round-c", count=10)
+    metric_result = compute_daily_metrics(input_data, spec)
+    breakdowns = calculate_breakdown_cells(input_data.rows, spec)
+    comparisons = compute_model_baseline_comparisons(
+        evaluation_input=input_data,
+        breakdown_spec=spec,
+        baseline_records=comparison_baselines,
+    )
+    baseline_records = tuple(
+        BaselinePersistenceRecord(record.request, record.snapshot, record.result)
+        for record in comparison_baselines
+    )
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            persisted = await _persist(
+                session,
+                evaluation_input=input_data,
+                metric_result=metric_result,
+                breakdown_results=breakdowns,
+                baseline_record=baseline_records[0],
+                baseline_records=baseline_records,
+                comparison_records=comparisons,
+            )
+            assert persisted.replayed is False
+            assert await session.scalar(select(func.count(ModelBaselineComparisonModel.id))) == 10
+            manifest = await session.scalar(
+                select(QualityEvaluationManifestModel).where(
+                    QualityEvaluationManifestModel.id == persisted.manifest_id
+                )
+            )
+            assert manifest is not None
+            assert manifest.schema_version == "v0.2-s3-quality-persistence-v2"
+            assert manifest.comparison_cell_count == 1
+            assert manifest.comparison_result_count == 10
+            assert manifest.comparison_result_set_schema_version == (
+                "v0.2-s3-comparison-result-set-v2"
+            )
 
 
 @pytest.mark.asyncio
@@ -715,12 +767,12 @@ async def test_postgres_constraints_and_seal_reject_mutation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_nonempty_comparison_fails_before_database_write() -> None:
+async def test_malformed_comparison_fails_before_database_write() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("comparison")
     request_hash = _validate_evaluation_input(input_data)[1]
     async with AsyncSessionMaker() as session:
-        with pytest.raises(Exception, match="NONEMPTY_COMPARISON_RECORDS_FAIL_CLOSED"):
+        with pytest.raises(ForecastQualityContractError, match="ComparisonResult"):
             await session.run_sync(
                 lambda sync_session: persist_quality_evaluation(
                     sync_session,
@@ -773,7 +825,7 @@ async def test_foreign_key_and_hash_constraints_are_present() -> None:
         assert "fk_quality_breakdown_result_run" in constraints
         assert "fk_naive_baseline_run_run" in constraints
         assert "fk_model_baseline_comparison_run" in constraints
-        assert "fk_model_baseline_comparison_baseline" in constraints
+        assert "fk_model_baseline_comparison_baseline" not in constraints
         assert "fk_quality_manifest_run" in constraints
         assert "uq_naive_baseline_run_request" in constraints
         assert "uq_naive_baseline_run_result" in constraints
@@ -785,7 +837,7 @@ async def test_foreign_key_and_hash_constraints_are_present() -> None:
             "uq_quality_breakdown_result_run_key",
             "uq_quality_breakdown_result_canonical_hash",
             "uq_model_baseline_comparison_run_key",
-            "uq_model_baseline_comparison_canonical_hash",
+            "uq_model_baseline_comparison_run_canonical_hash",
             "uq_quality_manifest_run",
             "uq_quality_manifest_hash",
             "ck_quality_evaluation_run_request_sha256",
