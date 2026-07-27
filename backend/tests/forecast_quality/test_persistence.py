@@ -532,7 +532,8 @@ async def test_round_c_comparison_persistence_writes_children_before_v2_manifest
         for record in comparison_baselines
     )
     async with AsyncSessionMaker() as session:
-        async with session.begin():
+        transaction = await session.begin()
+        try:
             persisted = await _persist(
                 session,
                 evaluation_input=input_data,
@@ -556,6 +557,11 @@ async def test_round_c_comparison_persistence_writes_children_before_v2_manifest
             assert manifest.comparison_result_set_schema_version == (
                 "v0.2-s3-comparison-result-set-v2"
             )
+        finally:
+            # Keep this behavior probe isolated; the migration shard later
+            # proves that comparison writes are not authorized by its
+            # rejection-probe transaction.
+            await transaction.rollback()
 
 
 @pytest.mark.asyncio
