@@ -16,6 +16,40 @@ depends_on = None
 
 _SCHEMA_VERSION = "v0.2-s3-quality-persistence-v1"
 
+_METRIC_STATUS_VALUES = (
+    "COMPUTED",
+    "COMPARED",
+    "NOT_COMPUTABLE",
+    "NOT_VERIFIED",
+    "INSUFFICIENT_SAMPLE",
+)
+_REASON_CODE_VALUES = (
+    "NONE",
+    "NO_MAPE_ELIGIBLE_ROWS",
+    "MAPE_DENOMINATOR_ZERO",
+    "WAPE_DENOMINATOR_ZERO",
+    "RELATIVE_BIAS_DENOMINATOR_ZERO",
+    "NO_COMPLETE_7DAY_WINDOW",
+    "QUANTILE_SEMANTICS_NOT_VERIFIED",
+    "BELOW_MINIMUM",
+    "BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED",
+    "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "SIGNED_DIRECTION_ONLY",
+    "PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE",
+    "NO_PRIOR_SEASON_ANALOG_DAY",
+    "NO_PRIOR_SEASON_ANALOG_ACTUAL",
+    "BASELINE_SOURCE_NOT_VISIBLE_AT_CURRENT_FORECAST_CUTOFF",
+    "NO_S2_BINDING_ROWS",
+)
+_BREAKDOWN_IDENTITY_KEYS = (
+    "forecast_horizon_days",
+    "farm_business_key",
+    "subfarm_business_key",
+    "variety_business_key",
+    "season_business_key",
+    "model_identity",
+)
+
 
 def _json_type(is_sqlite: bool) -> TypeEngine[Any]:
     return sa.JSON() if is_sqlite else postgresql.JSONB(astext_type=sa.Text())
@@ -35,6 +69,11 @@ def _sha256_check(column: str, name: str) -> sa.CheckConstraint:
     )
 
 
+def _vocabulary_check(column: str, values: tuple[str, ...], name: str) -> sa.CheckConstraint:
+    quoted_values = ", ".join(f"'{value}'" for value in values)
+    return sa.CheckConstraint(f"{column} IN ({quoted_values})", name=name)
+
+
 def _breakdown_counter_closure_check(is_sqlite: bool) -> sa.CheckConstraint:
     if is_sqlite:
         total = "json_extract(canonical_payload, '$.s2_total_binding_row_count')"
@@ -52,15 +91,38 @@ def _breakdown_coverage_consistency_check(is_sqlite: bool) -> sa.CheckConstraint
         total = "CAST(json_extract(canonical_payload, '$.s2_total_binding_row_count') AS NUMERIC)"
     else:
         total = "(canonical_payload->>'s2_total_binding_row_count')::numeric"
-    ratio = f"s2_comparable_row_count::numeric / NULLIF({total}, 0)"
     if is_sqlite:
         ratio = f"CAST(s2_comparable_row_count AS REAL) / NULLIF(CAST({total} AS REAL), 0)"
+        rounded_ratio = f"ROUND({ratio}, 6)"
+    else:
+        ratio = f"s2_comparable_row_count::numeric / NULLIF({total}, 0)"
+        scaled = f"({ratio}) * 1000000"
+        lower = f"floor({scaled})"
+        fraction = f"({scaled}) - ({lower})"
+        rounded_ratio = (
+            f"CASE WHEN {fraction} = 0.5 "
+            f"AND mod(({lower})::bigint, 2) = 0 "
+            f"THEN ({lower}) / 1000000::numeric ELSE round({ratio}, 6) END"
+        )
     return sa.CheckConstraint(
         f"(({total} = 0 AND coverage_ratio IS NULL) OR "
         f"({total} > 0 AND coverage_ratio IS NOT NULL AND "
-        f"coverage_ratio = ROUND({ratio}, 6)))",
+        f"coverage_ratio = {rounded_ratio}))",
         name="ck_quality_breakdown_result_coverage_consistency",
     )
+
+
+def _breakdown_identity_check(is_sqlite: bool) -> sa.CheckConstraint:
+    if is_sqlite:
+        expression = "json_type(breakdown_identity) = 'object'"
+    else:
+        keys = " AND ".join(f"breakdown_identity ? '{key}'" for key in _BREAKDOWN_IDENTITY_KEYS)
+        expression = (
+            "jsonb_typeof(breakdown_identity) = 'object' "
+            "AND jsonb_object_length(breakdown_identity) = 6 "
+            f"AND {keys}"
+        )
+    return sa.CheckConstraint(expression, name="ck_quality_breakdown_result_six_axis_identity")
 
 
 def _create_tables(is_sqlite: bool) -> None:
@@ -141,6 +203,16 @@ def _create_tables(is_sqlite: bool) -> None:
             "metric_status <> '' AND reason_code <> ''",
             name="ck_quality_metric_result_status_reason_nonempty",
         ),
+        _vocabulary_check(
+            "metric_status",
+            _METRIC_STATUS_VALUES,
+            "ck_quality_metric_result_metric_status_vocabulary",
+        ),
+        _vocabulary_check(
+            "reason_code",
+            _REASON_CODE_VALUES,
+            "ck_quality_metric_result_reason_code_vocabulary",
+        ),
     )
     op.create_index(
         "ix_quality_metric_result_run_id",
@@ -199,6 +271,17 @@ def _create_tables(is_sqlite: bool) -> None:
         ),
         _breakdown_counter_closure_check(is_sqlite),
         _breakdown_coverage_consistency_check(is_sqlite),
+        _breakdown_identity_check(is_sqlite),
+        _vocabulary_check(
+            "metric_status",
+            _METRIC_STATUS_VALUES,
+            "ck_quality_breakdown_result_metric_status_vocabulary",
+        ),
+        _vocabulary_check(
+            "reason_code",
+            _REASON_CODE_VALUES,
+            "ck_quality_breakdown_result_reason_code_vocabulary",
+        ),
     )
     op.create_index(
         "ix_quality_breakdown_result_run_id",
@@ -251,6 +334,16 @@ def _create_tables(is_sqlite: bool) -> None:
         _sha256_check("baseline_request_hash", "ck_naive_baseline_request_sha256"),
         _sha256_check("baseline_result_hash", "ck_naive_baseline_result_sha256"),
         _sha256_check("canonical_hash", "ck_naive_baseline_canonical_sha256"),
+        _vocabulary_check(
+            "metric_status",
+            _METRIC_STATUS_VALUES,
+            "ck_naive_baseline_metric_status_vocabulary",
+        ),
+        _vocabulary_check(
+            "reason_code",
+            _REASON_CODE_VALUES,
+            "ck_naive_baseline_reason_code_vocabulary",
+        ),
     )
     op.create_index(
         "ix_naive_baseline_run_run_id",

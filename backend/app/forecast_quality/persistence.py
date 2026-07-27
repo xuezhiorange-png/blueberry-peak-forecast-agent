@@ -8,7 +8,7 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
 from typing import Any, cast
 
 from sqlalchemy import select
@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.forecast_quality.canonical import canonical_json_bytes
+from backend.app.forecast_quality.enums import MetricStatus, ReasonCode
 from backend.app.forecast_quality.schemas import (
     BaselineRequest,
     BaselineResult,
@@ -52,6 +53,8 @@ _EXPECTED_METRIC_NAMES = frozenset(
         "daily_absolute_error_sum_kg",
     }
 )
+
+_COVERAGE_QUANTUM = Decimal("0.000001")
 
 
 class ForecastQualityPersistenceError(RuntimeError):
@@ -112,7 +115,7 @@ class _BreakdownEvidence:
     comparable_count: int
     excluded_count: int
     not_computable_count: int
-    coverage_ratio: Any
+    coverage_ratio: Decimal | None
     metric_values: dict[str, Any]
 
 
@@ -266,7 +269,6 @@ def _breakdown_evidence(value: Mapping[str, Any]) -> _BreakdownEvidence:
         if identity[field] in (None, ""):
             raise ForecastQualityContractError(f"breakdown identity field is empty: {field}")
     key_hash = _hash(identity)
-    canonical_hash = _hash(payload)
     try:
         total = int(payload["s2_total_binding_row_count"])
         comparable = int(payload["s2_comparable_row_count"])
@@ -285,27 +287,51 @@ def _breakdown_evidence(value: Mapping[str, Any]) -> _BreakdownEvidence:
         raise ForecastQualityContractError("breakdown identity hash mismatch")
     metric_status = str(payload.get("metric_status", ""))
     reason_code = str(payload.get("reason_code", ""))
-    if not metric_status or not reason_code:
-        raise ForecastQualityContractError("breakdown status and reason are required")
+    try:
+        normalized_status = MetricStatus(metric_status)
+        normalized_reason = ReasonCode(reason_code)
+    except ValueError as exc:
+        raise ForecastQualityContractError(
+            "breakdown status or reason is outside Round A vocabulary"
+        ) from exc
     coverage_ratio = payload.get("coverage_ratio")
     if total == 0:
         if coverage_ratio is not None:
             raise ForecastQualityContractError("zero-row breakdown coverage must be null")
-    elif coverage_ratio is None or Decimal(str(coverage_ratio)) != Decimal(comparable) / Decimal(
-        total
-    ):
-        raise ForecastQualityContractError("breakdown coverage does not match counters")
+        normalized_coverage: Decimal | None = None
+    else:
+        if coverage_ratio is None:
+            raise ForecastQualityContractError("breakdown coverage does not match counters")
+        expected_coverage = (Decimal(comparable) / Decimal(total)).quantize(
+            _COVERAGE_QUANTUM,
+            rounding=ROUND_HALF_EVEN,
+        )
+        try:
+            actual_coverage = Decimal(str(coverage_ratio))
+        except (InvalidOperation, ValueError) as exc:
+            raise ForecastQualityContractError(
+                "breakdown coverage does not match counters"
+            ) from exc
+        if actual_coverage != expected_coverage:
+            raise ForecastQualityContractError("breakdown coverage does not match counters")
+        normalized_coverage = expected_coverage
+    payload["metric_status"] = normalized_status.value
+    payload["reason_code"] = normalized_reason.value
+    payload["coverage_ratio"] = (
+        None if normalized_coverage is None else format(normalized_coverage, "f")
+    )
+    canonical_hash = _hash(payload)
     return _BreakdownEvidence(
         key_hash=key_hash,
         canonical_hash=canonical_hash,
         payload=payload,
         identity=identity,
-        metric_status=metric_status,
-        reason_code=reason_code,
+        metric_status=normalized_status.value,
+        reason_code=normalized_reason.value,
         comparable_count=comparable,
         excluded_count=excluded,
         not_computable_count=not_computable,
-        coverage_ratio=coverage_ratio,
+        coverage_ratio=normalized_coverage,
         metric_values=payload.get("metric_values", {}),
     )
 
