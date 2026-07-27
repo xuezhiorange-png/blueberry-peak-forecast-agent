@@ -433,21 +433,168 @@ def _stored_hash(payload: Any) -> str:
     return _hash(payload)
 
 
-def _hashes(rows: Sequence[Any], field: str) -> list[str]:
-    values: list[str] = []
-    for row in rows:
+def _stored_canonical_hash(row: Any, field: str = "canonical_hash") -> str:
+    try:
         stored = _require_hash(getattr(row, field), field)
-        if _stored_hash(row.canonical_payload) != stored:
-            raise ForecastQualityPartialResultError(f"stored {field} payload hash mismatch")
-        values.append(stored)
-    return values
+    except ForecastQualityContractError as exc:
+        raise ForecastQualityPartialResultError(
+            f"PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored {field} is invalid"
+        ) from exc
+    if _stored_hash(row.canonical_payload) != stored:
+        raise ForecastQualityPartialResultError(
+            f"PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored {field} payload hash mismatch"
+        )
+    return stored
+
+
+def _require_stored_hash(value: Any, field: str) -> str:
+    try:
+        return _require_hash(value, field)
+    except ForecastQualityContractError as exc:
+        raise ForecastQualityPartialResultError(
+            f"PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored {field} is invalid"
+        ) from exc
+
+
+def _require_projection(actual: Any, expected: Any, field: str) -> None:
+    if canonical_json_bytes(actual) != canonical_json_bytes(expected):
+        raise ForecastQualityPartialResultError(
+            f"PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: {field} projection mismatch"
+        )
+
+
+def _stored_metric_projection(row: QualityMetricResultModel) -> tuple[str, str]:
+    canonical_hash = _stored_canonical_hash(row)
+    try:
+        payload = row.canonical_payload
+        daily_result = payload["daily_metric_result"]
+        metric_cell = payload["metric_cell"]
+        identity = daily_result["breakdown_identity"]
+        expected_key = _hash(
+            {
+                "s2_binding_row_set_hash": daily_result["s2_binding_row_set_hash"],
+                "metric_input_quantile": daily_result["metric_input_quantile"],
+                "breakdown_identity": identity,
+                "metric_name": metric_cell["metric_name"],
+            }
+        )
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: metric semantic projection is malformed"
+        ) from exc
+    key_hash = _require_stored_hash(row.metric_result_key_hash, "metric_result_key_hash")
+    if key_hash != expected_key:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: metric key projection mismatch"
+        )
+    for column, expected in (
+        ("metric_name", metric_cell.get("metric_name")),
+        ("metric_status", metric_cell.get("metric_status")),
+        ("reason_code", metric_cell.get("reason_code")),
+        ("metric_value", metric_cell.get("metric_value")),
+        ("numerator", metric_cell.get("numerator")),
+        ("denominator", metric_cell.get("denominator")),
+        ("breakdown_identity", identity),
+    ):
+        _require_projection(getattr(row, column), expected, f"metric {column}")
+    return key_hash, canonical_hash
+
+
+def _stored_breakdown_projection(row: QualityBreakdownResultModel) -> tuple[str, str]:
+    canonical_hash = _stored_canonical_hash(row)
+    try:
+        payload = row.canonical_payload
+        identity = payload.get("cell_identity", payload.get("breakdown_identity"))
+        expected_key = _hash(identity)
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: breakdown semantic projection is malformed"
+        ) from exc
+    key_hash = _require_stored_hash(row.breakdown_key_hash, "breakdown_key_hash")
+    if key_hash != expected_key:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: breakdown key projection mismatch"
+        )
+    for column, expected in (
+        ("breakdown_identity", identity),
+        ("metric_status", payload.get("metric_status")),
+        ("reason_code", payload.get("reason_code")),
+        ("s2_comparable_row_count", payload.get("s2_comparable_row_count")),
+        ("s2_excluded_row_count", payload.get("s2_excluded_row_count")),
+        ("s2_not_computable_row_count", payload.get("s2_not_computable_row_count")),
+        ("coverage_ratio", payload.get("coverage_ratio")),
+        ("metric_values", payload.get("metric_values", {})),
+    ):
+        _require_projection(getattr(row, column), expected, f"breakdown {column}")
+    return key_hash, canonical_hash
+
+
+def _stored_baseline_projection(row: NaiveBaselineRunModel) -> tuple[tuple[str, str], str]:
+    canonical_hash = _stored_canonical_hash(row)
+    try:
+        payload = row.canonical_payload
+        request_payload = payload["request"]
+        result_payload = payload["result"]
+        expected_request_hash = _hash(request_payload)
+        expected_result_hash = _require_stored_hash(
+            result_payload["canonical_hash"], "baseline.result.canonical_hash"
+        )
+        payload_result_hash = _require_stored_hash(
+            payload["result_canonical_hash"], "baseline.result_canonical_hash"
+        )
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: baseline semantic projection is malformed"
+        ) from exc
+    if payload_result_hash != expected_result_hash:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: baseline result projection mismatch"
+        )
+    request_hash = _require_stored_hash(row.baseline_request_hash, "baseline_request_hash")
+    result_hash = _require_stored_hash(row.baseline_result_hash, "baseline_result_hash")
+    if request_hash != expected_request_hash or result_hash != expected_result_hash:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: baseline key projection mismatch"
+        )
+    for column, expected in (
+        ("baseline_source_snapshot_identity", result_payload.get("source_snapshot_identity")),
+        ("baseline_source_snapshot_hash", result_payload.get("source_snapshot_hash")),
+        ("baseline_source_row_set_hash", result_payload.get("source_row_set_hash")),
+        ("visibility_manifest_hash", result_payload.get("visibility_manifest_hash")),
+        ("baseline_policy_version", request_payload.get("baseline_policy_version")),
+        ("metric_status", result_payload.get("metric_status")),
+        ("reason_code", result_payload.get("reason_code")),
+    ):
+        _require_projection(getattr(row, column), expected, f"baseline {column}")
+    return (request_hash, result_hash), canonical_hash
+
+
+def _compare_projection_mapping(
+    *,
+    label: str,
+    stored: Sequence[tuple[Any, str]],
+    expected: Sequence[tuple[Any, str]],
+) -> None:
+    stored_map = dict(stored)
+    expected_map = dict(expected)
+    if len(stored) != len(stored_map) or set(stored_map) != set(expected_map):
+        raise ForecastQualityPartialResultError(
+            f"PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: {label} child set mismatch"
+        )
+    for key, stored_hash in stored_map.items():
+        if stored_hash != expected_map[key]:
+            raise ForecastQualityConflictError(
+                f"CONFLICTING_REPLAY_REJECTED: {label} evidence drift"
+            )
 
 
 def _classify_existing(
     session: Session, run: QualityEvaluationRunModel, evidence: _EvidenceSet
 ) -> PersistedQualityEvaluation:
     if _stored_hash(run.canonical_payload) != run.canonical_hash:
-        raise ForecastQualityPartialResultError("stored run payload hash mismatch")
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored run payload hash mismatch"
+        )
     if run.canonical_hash != evidence.run_hash:
         raise ForecastQualityConflictError("CONFLICTING_REPLAY_REJECTED: run evidence drift")
     metrics = list(
@@ -487,28 +634,39 @@ def _classify_existing(
         raise ForecastQualityPartialResultError("comparison rows are forbidden in Round B")
     if manifest is None:
         raise ForecastQualityPartialResultError("PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: no manifest")
-    if (
-        len(metrics) != len(evidence.metrics)
-        or len(breakdowns) != len(evidence.breakdowns)
-        or len(baselines) != len(evidence.baselines)
-    ):
-        raise ForecastQualityPartialResultError("PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: child set")
-    if sorted(_hashes(metrics, "canonical_hash")) != sorted(
-        item.canonical_hash for item in evidence.metrics
-    ):
-        raise ForecastQualityConflictError("CONFLICTING_REPLAY_REJECTED: metric evidence drift")
-    if sorted(_hashes(breakdowns, "canonical_hash")) != sorted(
-        item.canonical_hash for item in evidence.breakdowns
-    ):
-        raise ForecastQualityConflictError("CONFLICTING_REPLAY_REJECTED: breakdown evidence drift")
-    if sorted(_hashes(baselines, "canonical_hash")) != sorted(
-        item.canonical_hash for item in evidence.baselines
-    ):
-        raise ForecastQualityConflictError("CONFLICTING_REPLAY_REJECTED: baseline evidence drift")
+    _compare_projection_mapping(
+        label="metric",
+        stored=[_stored_metric_projection(row) for row in metrics],
+        expected=[(item.key_hash, item.canonical_hash) for item in evidence.metrics],
+    )
+    _compare_projection_mapping(
+        label="breakdown",
+        stored=[_stored_breakdown_projection(row) for row in breakdowns],
+        expected=[(item.key_hash, item.canonical_hash) for item in evidence.breakdowns],
+    )
+    _compare_projection_mapping(
+        label="baseline",
+        stored=[_stored_baseline_projection(row) for row in baselines],
+        expected=[
+            ((item.request_hash, item.result_hash), item.canonical_hash)
+            for item in evidence.baselines
+        ],
+    )
     if _stored_hash(manifest.manifest_payload) != manifest.manifest_hash:
-        raise ForecastQualityPartialResultError("stored manifest payload hash mismatch")
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored manifest payload hash mismatch"
+        )
     if manifest.manifest_hash != evidence.manifest_hash:
         raise ForecastQualityConflictError("CONFLICTING_REPLAY_REJECTED: manifest evidence drift")
+    for field, expected in (
+        ("evaluation_request_hash", evidence.evaluation_request_hash),
+        ("evaluation_instance_hash", evidence.evaluation_instance_hash),
+        ("metric_result_set_hash", evidence.metric_set_hash),
+        ("breakdown_result_set_hash", evidence.breakdown_set_hash),
+        ("baseline_result_set_hash", evidence.baseline_set_hash),
+        ("comparison_result_set_hash", COMPARISON_RESULT_SET_HASH),
+    ):
+        _require_projection(getattr(manifest, field), expected, f"manifest {field}")
     return PersistedQualityEvaluation(
         run_id=run.id,
         manifest_id=manifest.id,
