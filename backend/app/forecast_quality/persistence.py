@@ -1123,7 +1123,12 @@ def _persist_new(session: Session, evidence: _EvidenceSet) -> PersistedQualityEv
         )
         for item in evidence.comparisons
     ]
-    session.add_all([*metric_rows, *breakdown_rows, *baseline_rows, *comparison_rows])
+    session.add_all([*metric_rows, *breakdown_rows, *baseline_rows])
+    # The PostgreSQL comparison trigger validates every baseline member
+    # against its owning run.  Make the dependency visible inside the same
+    # caller-owned transaction before inserting comparison children.
+    session.flush()
+    session.add_all(comparison_rows)
     session.flush()
     manifest = QualityEvaluationManifestModel(
         quality_evaluation_run_id=run.id,
