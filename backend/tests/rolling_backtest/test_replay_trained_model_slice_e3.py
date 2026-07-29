@@ -1138,7 +1138,10 @@ async def test_post_service_error_does_not_log_raw_idempotency_key(
     request = _stub_request(idempotency_key=raw_sentinel)
     body = request.to_payload()
     body["idempotency_key"] = raw_sentinel
-    with caplog.at_level("ERROR"):
+    with caplog.at_level(
+        "ERROR",
+        logger=rolling_backtest_replay_trained.__name__,
+    ):
         async with client as c:
             response = await c.post(
                 "/api/v1/rolling-backtest/replay-trained-predictions", json=body
@@ -1174,7 +1177,10 @@ async def test_post_unexpected_error_does_not_log_raw_idempotency_key(
     request = _stub_request(idempotency_key=raw_sentinel)
     body = request.to_payload()
     body["idempotency_key"] = raw_sentinel
-    with caplog.at_level("ERROR"):
+    with caplog.at_level(
+        "ERROR",
+        logger=rolling_backtest_replay_trained.__name__,
+    ):
         async with client as c:
             response = await c.post(
                 "/api/v1/rolling-backtest/replay-trained-predictions", json=body
