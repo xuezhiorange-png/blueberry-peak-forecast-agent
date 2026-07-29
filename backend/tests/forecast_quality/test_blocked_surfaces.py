@@ -7,7 +7,6 @@ def test_round_b_surface_boundary_is_preserved() -> None:
         "calculator_cumulative.py",
         "peak.py",
         "quantile.py",
-        "comparison.py",
         "repository.py",
         "application.py",
         "__init__.py",
@@ -15,4 +14,5 @@ def test_round_b_surface_boundary_is_preserved() -> None:
         assert not (forecast_quality_root / blocked_name).exists()
 
     assert (forecast_quality_root / "persistence.py").is_file()
+    assert (forecast_quality_root / "comparison.py").is_file()
     assert Path("backend/app/models/forecast_quality.py").is_file()

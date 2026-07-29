@@ -1,4 +1,4 @@
-"""Caller-owned persistence for the V0.2-S3 Round B evidence set."""
+"""Caller-owned persistence for the V0.2-S3 Round B and Round C evidence sets."""
 
 from __future__ import annotations
 
@@ -16,7 +16,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.forecast_quality.canonical import canonical_json_bytes
-from backend.app.forecast_quality.enums import MetricStatus, ReasonCode
+from backend.app.forecast_quality.comparison import (
+    COMPARISON_POLICY_VERSION,
+    COMPARISON_RESULT_SCHEMA_VERSION,
+    COMPARISON_RESULT_SET_SCHEMA_VERSION,
+    ComparisonName,
+    ComparisonResult,
+    build_comparison_result_set_payload,
+    compute_comparison_result_set_hash,
+)
+from backend.app.forecast_quality.enums import ComparisonAvailability, MetricStatus, ReasonCode
 from backend.app.forecast_quality.schemas import (
     BaselineRequest,
     BaselineResult,
@@ -26,6 +35,7 @@ from backend.app.forecast_quality.schemas import (
 )
 from backend.app.models.forecast_quality import (
     PERSISTENCE_SCHEMA_VERSION,
+    ROUND_C_PERSISTENCE_SCHEMA_VERSION,
     ModelBaselineComparisonModel,
     NaiveBaselineRunModel,
     QualityBreakdownResultModel,
@@ -135,6 +145,14 @@ class _BaselineEvidence:
 
 
 @dataclass(frozen=True)
+class _ComparisonEvidence:
+    key_hash: str
+    canonical_hash: str
+    payload: dict[str, Any]
+    result: ComparisonResult
+
+
+@dataclass(frozen=True)
 class _EvidenceSet:
     evaluation_request_hash: str
     run_payload: dict[str, Any]
@@ -142,6 +160,13 @@ class _EvidenceSet:
     metrics: tuple[_MetricEvidence, ...]
     breakdowns: tuple[_BreakdownEvidence, ...]
     baselines: tuple[_BaselineEvidence, ...]
+    comparisons: tuple[_ComparisonEvidence, ...]
+    persistence_schema_version: str
+    comparison_policy_version: str | None
+    comparison_result_schema_version: str | None
+    comparison_result_set_schema_version: str
+    comparison_result_set_hash: str
+    comparison_cell_count: int
     metric_set_hash: str
     breakdown_set_hash: str
     baseline_set_hash: str
@@ -188,7 +213,11 @@ def _object_hash_with_blank_canonical_hash(value: Any) -> str:
     return _hash(payload)
 
 
-def _validate_evaluation_input(value: S3EvaluationInput) -> tuple[dict[str, Any], str, str]:
+def _validate_evaluation_input(
+    value: S3EvaluationInput,
+    *,
+    round_c: bool = False,
+) -> tuple[dict[str, Any], str, str]:
     for field in (
         "s2_run_identity",
         "s2_manifest_identity",
@@ -197,14 +226,25 @@ def _validate_evaluation_input(value: S3EvaluationInput) -> tuple[dict[str, Any]
         _nonempty(getattr(value, field), field)
     for field in ("metric_policy_version", "baseline_policy_version"):
         _nonempty(getattr(value, field).value, field)
-    request_payload = {
-        "schema_version": PERSISTENCE_SCHEMA_VERSION,
+    request_payload: dict[str, Any] = {
+        "schema_version": ROUND_C_PERSISTENCE_SCHEMA_VERSION
+        if round_c
+        else PERSISTENCE_SCHEMA_VERSION,
         "s2_run_identity": value.s2_run_identity,
         "s2_manifest_identity": value.s2_manifest_identity,
         "s2_binding_row_set_hash": value.s2_binding_row_set_hash,
         "metric_policy_version": value.metric_policy_version,
         "baseline_policy_version": value.baseline_policy_version,
     }
+    if round_c:
+        request_payload.update(
+            {
+                "persistence_schema_version": ROUND_C_PERSISTENCE_SCHEMA_VERSION,
+                "comparison_policy_version": COMPARISON_POLICY_VERSION,
+                "comparison_result_schema_version": COMPARISON_RESULT_SCHEMA_VERSION,
+                "comparison_contract_enabled": True,
+            }
+        )
     return request_payload, _hash(request_payload), _hash(request_payload)
 
 
@@ -340,6 +380,13 @@ def _baseline_evidence(record: BaselinePersistenceRecord) -> _BaselineEvidence:
     request = record.request
     snapshot = record.snapshot
     result = record.result
+    try:
+        normalized_status = MetricStatus(result.metric_status)
+        normalized_reason = ReasonCode(result.reason_code)
+    except ValueError as exc:
+        raise ForecastQualityContractError(
+            "baseline status or reason is outside Round A vocabulary"
+        ) from exc
     if request.requested_quantile != result.baseline_quantile:
         raise ForecastQualityContractError("baseline request/result quantile mismatch")
     pairs = (
@@ -384,8 +431,150 @@ def _baseline_evidence(record: BaselinePersistenceRecord) -> _BaselineEvidence:
             snapshot.visibility_manifest_hash, "visibility_manifest_hash"
         ),
         baseline_policy_version=request_payload["baseline_policy_version"],
-        metric_status=str(result.metric_status.value),
-        reason_code=str(result.reason_code.value),
+        metric_status=normalized_status.value,
+        reason_code=normalized_reason.value,
+    )
+
+
+def _comparison_evidence(value: ComparisonResult | Mapping[str, object]) -> _ComparisonEvidence:
+    if isinstance(value, ComparisonResult):
+        result = value
+    else:
+        raise ForecastQualityContractError(
+            "comparison_records must contain ComparisonResult instances"
+        )
+    if result.schema_version != COMPARISON_RESULT_SCHEMA_VERSION:
+        raise ForecastQualityContractError("comparison result schema version mismatch")
+    if result.comparison_policy_version != COMPARISON_POLICY_VERSION:
+        raise ForecastQualityContractError("comparison policy version mismatch")
+    try:
+        normalized_availability = ComparisonAvailability(result.comparison_availability)
+        normalized_status = MetricStatus(result.metric_status)
+        normalized_reason = ReasonCode(result.reason_code)
+    except ValueError as exc:
+        raise ForecastQualityContractError(
+            "comparison status, availability, or reason is outside Round C vocabulary"
+        ) from exc
+    payload = _json_ready(result.canonical_payload)
+    canonical_hash = _require_hash(result.canonical_hash, "comparison.canonical_hash")
+    if _hash(payload) != canonical_hash:
+        raise ForecastQualityContractError("comparison canonical hash replay failed")
+    member_set = result.baseline_member_identity_set
+    if not isinstance(member_set, list) or not member_set:
+        raise ForecastQualityContractError("comparison baseline member set must be nonempty")
+    member_keys = {
+        "comparison_daily_key",
+        "baseline_request_hash",
+        "baseline_result_hash",
+        "baseline_source_snapshot_identity",
+        "baseline_source_snapshot_hash",
+        "baseline_source_row_set_hash",
+        "visibility_manifest_hash",
+        "baseline_policy_version",
+    }
+    daily_keys = {
+        "current_target_date",
+        "current_forecast_cutoff_at",
+        "farm_business_key",
+        "subfarm_business_key",
+        "variety_business_key",
+        "metric_policy_version",
+        "baseline_policy_version",
+    }
+    normalized_members: list[dict[str, Any]] = []
+    for member in member_set:
+        if not isinstance(member, Mapping) or set(member) != member_keys:
+            raise ForecastQualityContractError("comparison baseline member shape mismatch")
+        daily_key = member.get("comparison_daily_key")
+        if not isinstance(daily_key, Mapping) or set(daily_key) != daily_keys:
+            raise ForecastQualityContractError("comparison daily key shape mismatch")
+        for field in member_keys - {"comparison_daily_key"}:
+            _nonempty(member[field], f"comparison member {field}")
+        for field in (
+            "baseline_request_hash",
+            "baseline_result_hash",
+            "baseline_source_snapshot_hash",
+            "baseline_source_row_set_hash",
+            "visibility_manifest_hash",
+        ):
+            _require_hash(member[field], f"comparison member {field}")
+        normalized_members.append(_json_ready(dict(member)))
+    normalized_members.sort(key=lambda item: canonical_json_bytes(item["comparison_daily_key"]))
+    if normalized_members != member_set:
+        raise ForecastQualityContractError("comparison baseline member order is not canonical")
+    member_set_payload = {
+        "members": normalized_members,
+        "schema_version": "v0.2-s3-comparison-baseline-member-set-v1",
+    }
+    if result.baseline_member_set_hash != _hash(member_set_payload):
+        raise ForecastQualityContractError("comparison baseline member set hash mismatch")
+    name = result.comparison_name
+    if not isinstance(name, ComparisonName):
+        try:
+            name = ComparisonName(name)
+        except ValueError as exc:
+            raise ForecastQualityContractError(
+                "comparison name is outside Round C vocabulary"
+            ) from exc
+    if set(result.normalized_breakdown_identity) != {
+        "forecast_horizon_days",
+        "farm_business_key",
+        "subfarm_business_key",
+        "variety_business_key",
+        "season_business_key",
+        "model_identity",
+    }:
+        raise ForecastQualityContractError("comparison breakdown identity must contain six axes")
+    if result.model_identity != result.normalized_breakdown_identity["model_identity"]:
+        raise ForecastQualityContractError("comparison model identity projection mismatch")
+    if (
+        result.forecast_horizon_days
+        != result.normalized_breakdown_identity["forecast_horizon_days"]
+    ):
+        raise ForecastQualityContractError("comparison horizon projection mismatch")
+    expected_key = _hash(
+        {
+            "comparison_result_schema_version": COMPARISON_RESULT_SCHEMA_VERSION,
+            "comparison_policy_version": COMPARISON_POLICY_VERSION,
+            "comparison_name": name.value,
+            "baseline_member_set_hash": result.baseline_member_set_hash,
+            "normalized_breakdown_identity": result.normalized_breakdown_identity,
+        }
+    )
+    if result.comparison_key_hash != expected_key:
+        raise ForecastQualityContractError("comparison key projection mismatch")
+    if normalized_status is MetricStatus.NOT_COMPUTABLE:
+        if any(
+            value is not None
+            for value in (result.model_value, result.baseline_value, result.delta_value)
+        ):
+            raise ForecastQualityContractError("not-computable comparison values must be null")
+        if normalized_reason is ReasonCode.NONE:
+            raise ForecastQualityContractError("not-computable comparison reason is required")
+    elif any(
+        value is None for value in (result.model_value, result.baseline_value, result.delta_value)
+    ):
+        raise ForecastQualityContractError("computable comparison values are required")
+    if normalized_availability is ComparisonAvailability.AVAILABLE and (
+        result.external_blocker is not None or result.frozen_limitation is not None
+    ):
+        raise ForecastQualityContractError("daily comparison limitation fields must be null")
+    if normalized_availability is ComparisonAvailability.BLOCKED and (
+        result.external_blocker is not None or result.frozen_limitation != normalized_reason.value
+    ):
+        raise ForecastQualityContractError("blocked comparison limitation projection mismatch")
+    return _ComparisonEvidence(
+        key_hash=expected_key,
+        canonical_hash=canonical_hash,
+        payload=payload,
+        result=dataclasses.replace(
+            result,
+            comparison_name=name,
+            comparison_availability=normalized_availability,
+            metric_status=normalized_status,
+            reason_code=normalized_reason,
+            baseline_member_identity_set=normalized_members,
+        ),
     )
 
 
@@ -395,9 +584,32 @@ def _build_evidence(
     metric_results: Sequence[DailyMetricResult],
     breakdown_results: Sequence[Mapping[str, object]],
     baseline_records: Sequence[BaselinePersistenceRecord],
+    comparison_records: Sequence[ComparisonResult | Mapping[str, object]],
     manifest_payload: Mapping[str, object],
+    comparison_contract_enabled: bool = False,
 ) -> _EvidenceSet:
-    run_payload, evaluation_request_hash, run_hash = _validate_evaluation_input(evaluation_input)
+    """Build a pre-SQL graph evidence set with explicit V1/V2 mode selection.
+
+    The caller MUST declare whether Round C comparison contract is enabled
+    via ``comparison_contract_enabled``.  Round C no longer infers the mode
+    from ``bool(comparisons)``.  V1 callers (``False``) must not supply any
+    comparison records; V2 callers (``True``) may supply zero cells (full
+    V2 schema) or full ten-record cells.
+    """
+    comparisons = tuple(_comparison_evidence(item) for item in comparison_records)
+    if not comparison_contract_enabled:
+        if comparisons:
+            raise ForecastQualityContractError(
+                "comparison records supplied without comparison_contract_enabled=True"
+            )
+    # V2 zero-cell branch must still publish V2 request identity, result-set
+    # schema, and empty-set hash — never silently fall back to V1.  This is
+    # achieved by keying ``comparison_contract_enabled`` through every schema
+    # selector below (instead of ``bool(comparisons)``).
+    run_payload, evaluation_request_hash, run_hash = _validate_evaluation_input(
+        evaluation_input,
+        round_c=comparison_contract_enabled,
+    )
     metrics = tuple(item for result in metric_results for item in _metric_evidence(result))
     if len({item.key_hash for item in metrics}) != len(metrics):
         raise ForecastQualityContractError("duplicate metric child identity")
@@ -407,17 +619,101 @@ def _build_evidence(
     baselines = tuple(_baseline_evidence(item) for item in baseline_records)
     if len({item.request_hash for item in baselines}) != len(baselines):
         raise ForecastQualityContractError("duplicate baseline request identity")
+    # baseline supplied set: hash of request identities that were supplied.
+    supplied_baseline_result_hashes = {item.result_hash for item in baselines}
+    supplied_baseline_request_hashes = {item.request_hash for item in baselines}
+    names_by_cell: dict[bytes, set[str]] = {}
+    if comparisons:
+        keys = [item.key_hash for item in comparisons]
+        if len(set(keys)) != len(keys):
+            raise ForecastQualityContractError("duplicate comparison semantic identity")
+        for item in comparisons:
+            cell_key = canonical_json_bytes(item.result.normalized_breakdown_identity)
+            names_by_cell.setdefault(cell_key, set()).add(item.result.comparison_name.value)
+        expected_names = {name.value for name in ComparisonName}
+        if any(names != expected_names for names in names_by_cell.values()):
+            raise ForecastQualityContractError("each comparison cell must contain ten records")
+        # baseline referenced member set: every comparison must reference a
+        # member of the supplied baseline set (by baseline_result_hash) and
+        # all members referenced across all comparisons must coincide (no
+        # comparison references a baseline that the caller did not supply).
+        referenced_baseline_result_hashes: set[str] = set()
+        referenced_baseline_request_hashes: set[str] = set()
+        for item in comparisons:
+            for member in item.result.baseline_member_identity_set:
+                result_hash = member["baseline_result_hash"]
+                request_hash = member["baseline_request_hash"]
+                if result_hash not in supplied_baseline_result_hashes:
+                    raise ForecastQualityContractError(
+                        f"comparison references baseline_result_hash={result_hash[:12]}... "
+                        "not present in supplied baseline set"
+                    )
+                if request_hash not in supplied_baseline_request_hashes:
+                    raise ForecastQualityContractError(
+                        f"comparison references baseline_request_hash={request_hash[:12]}... "
+                        "not present in supplied baseline set"
+                    )
+                referenced_baseline_result_hashes.add(result_hash)
+                referenced_baseline_request_hashes.add(request_hash)
+        if referenced_baseline_result_hashes != supplied_baseline_result_hashes:
+            missing = supplied_baseline_result_hashes - referenced_baseline_result_hashes
+            if missing:
+                raise ForecastQualityContractError(
+                    f"supplied baseline set has members never referenced by any comparison: "
+                    f"{sorted(hash[:12] for hash in missing)}"
+                )
+        # Comparison cell identity: every comparison inside one cell must
+        # share the same baseline_member_set_hash.  Already implicit through
+        # the canonical payload replay, but we make it explicit here.
+        cell_member_set_hashes: dict[bytes, str] = {}
+        for item in comparisons:
+            cell_key = canonical_json_bytes(item.result.normalized_breakdown_identity)
+            existing = cell_member_set_hashes.get(cell_key)
+            if existing is None:
+                cell_member_set_hashes[cell_key] = item.result.baseline_member_set_hash
+            elif existing != item.result.baseline_member_set_hash:
+                raise ForecastQualityContractError(
+                    "comparison cell has inconsistent baseline_member_set_hash"
+                )
+        # canonical payload truth table: every ComparisonResult stored
+        # field must agree with its derivation from the calculator cells.
+        # (Per-cell baseline_member_set_hash and comparison_key_hash are
+        # verified inside _comparison_evidence.)
+    if comparison_contract_enabled:
+        # V2: comparison_result_set_schema_version, comparison_policy_version,
+        # and persistence_schema_version always published (zero cells included).
+        comparison_result_set_schema_version = COMPARISON_RESULT_SET_SCHEMA_VERSION
+        comparison_result_schema_version = COMPARISON_RESULT_SCHEMA_VERSION
+        comparison_policy_version: str | None = COMPARISON_POLICY_VERSION
+        persistence_schema_version = ROUND_C_PERSISTENCE_SCHEMA_VERSION
+    else:
+        # V1: V1 persistence only, no comparison children expected.
+        comparison_result_set_schema_version = "v0.2-s3-comparison-result-set-v1"
+        comparison_result_schema_version = None
+        comparison_policy_version = None
+        persistence_schema_version = PERSISTENCE_SCHEMA_VERSION
 
     metric_set_hash = _hash_set([item.canonical_hash for item in metrics])
     breakdown_set_hash = _hash_set([item.canonical_hash for item in breakdowns])
     baseline_set_hash = _hash_set([item.canonical_hash for item in baselines])
+    comparison_hashes = [item.canonical_hash for item in comparisons]
+    comparison_result_set_payload = (
+        build_comparison_result_set_payload(comparison_hashes)
+        if comparison_contract_enabled
+        else COMPARISON_RESULT_SET_PAYLOAD
+    )
+    comparison_result_set_hash = (
+        compute_comparison_result_set_hash(comparison_hashes)
+        if comparison_contract_enabled
+        else COMPARISON_RESULT_SET_HASH
+    )
     instance_payload = {
-        "schema_version": PERSISTENCE_SCHEMA_VERSION,
+        "schema_version": persistence_schema_version,
         "evaluation_request_hash": evaluation_request_hash,
         "metric_result_set_hash": metric_set_hash,
         "breakdown_result_set_hash": breakdown_set_hash,
         "baseline_result_set_hash": baseline_set_hash,
-        "comparison_result_set_hash": COMPARISON_RESULT_SET_HASH,
+        "comparison_result_set_hash": comparison_result_set_hash,
     }
     instance_hash = _hash(instance_payload)
     final_manifest_payload = {
@@ -427,8 +723,14 @@ def _build_evidence(
             "metric_results": len(metrics),
             "breakdown_results": len(breakdowns),
             "baseline_results": len(baselines),
-            "comparison_results": 0,
+            "comparison_results": len(comparisons),
         },
+        "comparison_result_set_payload": comparison_result_set_payload,
+        "comparison_cell_count": len(names_by_cell) if comparisons else 0,
+        "comparison_result_count": len(comparisons),
+        "comparison_policy_version": comparison_policy_version,
+        "comparison_result_schema_version": comparison_result_schema_version,
+        "comparison_result_set_schema_version": comparison_result_set_schema_version,
     }
     supplied = _json_ready(dict(manifest_payload))
     unknown = set(supplied) - set(final_manifest_payload)
@@ -446,6 +748,13 @@ def _build_evidence(
         metrics=metrics,
         breakdowns=breakdowns,
         baselines=baselines,
+        comparisons=comparisons,
+        persistence_schema_version=persistence_schema_version,
+        comparison_policy_version=comparison_policy_version,
+        comparison_result_schema_version=comparison_result_schema_version,
+        comparison_result_set_schema_version=comparison_result_set_schema_version,
+        comparison_result_set_hash=comparison_result_set_hash,
+        comparison_cell_count=len(names_by_cell) if comparisons else 0,
         metric_set_hash=metric_set_hash,
         breakdown_set_hash=breakdown_set_hash,
         baseline_set_hash=baseline_set_hash,
@@ -595,6 +904,45 @@ def _stored_baseline_projection(row: NaiveBaselineRunModel) -> tuple[tuple[str, 
     return (request_hash, result_hash), canonical_hash
 
 
+def _stored_comparison_projection(row: ModelBaselineComparisonModel) -> tuple[str, str]:
+    canonical_hash = _stored_canonical_hash(row)
+    payload = row.canonical_payload
+    key_hash = _require_stored_hash(row.comparison_key_hash, "comparison_key_hash")
+    if payload.get("comparison_key_hash") != key_hash:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: comparison key projection mismatch"
+        )
+    if payload.get("comparison_name") != row.comparison_name:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: comparison name projection mismatch"
+        )
+    for column in (
+        "comparison_policy_version",
+        "comparison_availability",
+        "metric_status",
+        "reason_code",
+        "external_blocker",
+        "frozen_limitation",
+        "model_identity",
+        "baseline_member_identity_set",
+        "baseline_member_set_hash",
+        "normalized_breakdown_identity",
+        "forecast_horizon_days",
+        "model_value",
+        "baseline_value",
+        "delta_value",
+        "model_input_row_count",
+        "baseline_input_row_count",
+        "common_comparable_row_count",
+        "model_only_row_count",
+        "baseline_only_row_count",
+        "excluded_row_count",
+        "not_computable_row_count",
+    ):
+        _require_projection(getattr(row, column), payload.get(column), f"comparison {column}")
+    return key_hash, canonical_hash
+
+
 def _compare_projection_mapping(
     *,
     label: str,
@@ -656,8 +1004,6 @@ def _classify_existing(
             QualityEvaluationManifestModel.quality_evaluation_run_id == run.id
         )
     )
-    if comparisons:
-        raise ForecastQualityPartialResultError("comparison rows are forbidden in Round B")
     if manifest is None:
         raise ForecastQualityPartialResultError("PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: no manifest")
     _compare_projection_mapping(
@@ -678,6 +1024,11 @@ def _classify_existing(
             for item in evidence.baselines
         ],
     )
+    _compare_projection_mapping(
+        label="comparison",
+        stored=[_stored_comparison_projection(row) for row in comparisons],
+        expected=[(item.key_hash, item.canonical_hash) for item in evidence.comparisons],
+    )
     if _stored_hash(manifest.manifest_payload) != manifest.manifest_hash:
         raise ForecastQualityPartialResultError(
             "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored manifest payload hash mismatch"
@@ -690,7 +1041,15 @@ def _classify_existing(
         ("metric_result_set_hash", evidence.metric_set_hash),
         ("breakdown_result_set_hash", evidence.breakdown_set_hash),
         ("baseline_result_set_hash", evidence.baseline_set_hash),
-        ("comparison_result_set_hash", COMPARISON_RESULT_SET_HASH),
+        ("comparison_result_set_hash", evidence.comparison_result_set_hash),
+        ("comparison_policy_version", evidence.comparison_policy_version),
+        ("comparison_result_schema_version", evidence.comparison_result_schema_version),
+        (
+            "comparison_result_set_schema_version",
+            evidence.comparison_result_set_schema_version,
+        ),
+        ("comparison_cell_count", evidence.comparison_cell_count),
+        ("comparison_result_count", len(evidence.comparisons)),
     ):
         _require_projection(getattr(manifest, field), expected, f"manifest {field}")
     return PersistedQualityEvaluation(
@@ -705,13 +1064,14 @@ def _classify_existing(
 
 def _make_run(evidence: _EvidenceSet, now: datetime) -> QualityEvaluationRunModel:
     return QualityEvaluationRunModel(
-        schema_version=PERSISTENCE_SCHEMA_VERSION,
+        schema_version=evidence.persistence_schema_version,
         evaluation_request_hash=evidence.evaluation_request_hash,
         s2_run_identity=evidence.run_payload["s2_run_identity"],
         s2_manifest_identity=evidence.run_payload["s2_manifest_identity"],
         s2_binding_row_set_hash=evidence.run_payload["s2_binding_row_set_hash"],
         metric_policy_version=evidence.run_payload["metric_policy_version"],
         baseline_policy_version=evidence.run_payload["baseline_policy_version"],
+        comparison_policy_version=evidence.comparison_policy_version,
         status="COMPLETE",
         canonical_payload=evidence.run_payload,
         canonical_hash=evidence.run_hash,
@@ -723,19 +1083,89 @@ def _make_run(evidence: _EvidenceSet, now: datetime) -> QualityEvaluationRunMode
 def _persist_new(session: Session, evidence: _EvidenceSet) -> PersistedQualityEvaluation:
     now = datetime.now(UTC)
     run = _make_run(evidence, now)
+    # Brief §12/§13 — run UNIQUE race classification.
+    # A concurrent writer may have committed the run row for this
+    # evaluation_request_hash between our SELECT (above) and our
+    # INSERT (below).  The DB rejects our INSERT with
+    # SQLSTATE=23505 + constraint_name=uq_quality_evaluation_run_request.
+    # We classify that specific failure by re-reading
+    # evaluation_request_hash and routing through
+    # ``_classify_existing``.  Any other SQLSTATE or constraint
+    # propagates verbatim so we never silently turn a contract
+    # failure into a replay.
     try:
         with session.begin_nested():
             session.add(run)
             session.flush()
     except IntegrityError as exc:
-        existing = session.scalar(
-            select(QualityEvaluationRunModel).where(
-                QualityEvaluationRunModel.evaluation_request_hash
-                == evidence.evaluation_request_hash
+        # Brief §5.3 — extract sqlstate and constraint_name in
+        # this order.  If the adapter does not expose
+        # ``sqlstate`` (asyncpg ``RaiseError``) we must still
+        # not guess — the text fallback below is bounded to the
+        # exact ``duplicate key value violates unique constraint
+        # "<name>"`` shape; anything else is fail-closed.
+        orig = getattr(exc, "orig", None)
+        sqlstate: str | None = None
+        if orig is not None and hasattr(orig, "sqlstate"):
+            sqlstate = getattr(orig, "sqlstate", None)
+        constraint_name: str | None = None
+        if orig is not None and hasattr(orig, "constraint_name"):
+            constraint_name = getattr(orig, "constraint_name", None)
+        if sqlstate is None or constraint_name is None:
+            msg = str(exc)
+            import re
+
+            sql_match = re.search(r"SQLSTATE (\d{5})", msg)
+            if sqlstate is None and sql_match is not None:
+                sqlstate = sql_match.group(1)
+            cstr_match = re.search(
+                r'duplicate key value violates unique constraint "([^"]+)"',
+                msg,
             )
-        )
+            if constraint_name is None and cstr_match is not None:
+                constraint_name = cstr_match.group(1)
+        if sqlstate is None or constraint_name is None:
+            # Brief §5.3 — unknown adapter exception shape must
+            # propagate verbatim, never get coerced to a replay.
+            raise
+        if sqlstate != "23505" or constraint_name not in ("uq_quality_evaluation_run_request",):
+            # Brief §5.2 — run INSERT may ONLY classify the
+            # ``uq_quality_evaluation_run_request`` UNIQUE race.
+            # All other SQLSTATEs, all other constraints
+            # (including ``uq_quality_manifest_run``), and any
+            # unknown adapter shape must propagate verbatim so we
+            # never silently turn a contract failure into a
+            # replay.
+            raise
+        # Brief §3 mandates caller-owned transaction.  When the
+        # asyncpg connection is in "transaction aborted" state, a
+        # fresh SAVEPOINT cannot succeed.  The post-failure
+        # SAVEPOINT rollback, however, places the connection back
+        # at the outer transaction's snapshot — a subsequent
+        # plain ``SELECT`` issued without an explicit SAVEPOINT
+        # wrapper succeeds because PostgreSQL's MVCC snapshot is
+        # already restored to its pre-failure state.  We therefore
+        # route the classification read through the caller-owned
+        # session WITHOUT wrapping it in ``begin_nested``.
+        # When even the bare SELECT fails (the SAVEPOINT itself
+        # left the connection in error state), we surface a
+        # structured ``ForecastQualityPersistenceError`` so the
+        # brief §3 caller-owned-transaction contract holds and
+        # we never silently turn a contract failure into a
+        # replay.
+        try:
+            existing = session.scalar(
+                select(QualityEvaluationRunModel).where(
+                    QualityEvaluationRunModel.evaluation_request_hash
+                    == evidence.evaluation_request_hash
+                )
+            )
+        except IntegrityError:
+            existing = None
         if existing is None:
-            raise ForecastQualityPersistenceError("failed to create evaluation run") from exc
+            raise ForecastQualityPersistenceError(
+                "run UNIQUE race lost but no owning run found"
+            ) from exc
         return _classify_existing(session, existing, evidence)
 
     if run.id is None:
@@ -743,7 +1173,7 @@ def _persist_new(session: Session, evidence: _EvidenceSet) -> PersistedQualityEv
     metric_rows = [
         QualityMetricResultModel(
             quality_evaluation_run_id=run.id,
-            schema_version=PERSISTENCE_SCHEMA_VERSION,
+            schema_version=evidence.persistence_schema_version,
             metric_result_key_hash=item.key_hash,
             metric_name=item.metric_name,
             metric_status=item.metric_status,
@@ -762,7 +1192,7 @@ def _persist_new(session: Session, evidence: _EvidenceSet) -> PersistedQualityEv
     breakdown_rows = [
         QualityBreakdownResultModel(
             quality_evaluation_run_id=run.id,
-            schema_version=PERSISTENCE_SCHEMA_VERSION,
+            schema_version=evidence.persistence_schema_version,
             breakdown_key_hash=item.key_hash,
             breakdown_identity=item.identity,
             metric_status=item.metric_status,
@@ -782,7 +1212,7 @@ def _persist_new(session: Session, evidence: _EvidenceSet) -> PersistedQualityEv
     baseline_rows = [
         NaiveBaselineRunModel(
             quality_evaluation_run_id=run.id,
-            schema_version=PERSISTENCE_SCHEMA_VERSION,
+            schema_version=evidence.persistence_schema_version,
             baseline_request_hash=item.request_hash,
             baseline_result_hash=item.result_hash,
             baseline_source_snapshot_identity=item.source_identity,
@@ -799,31 +1229,145 @@ def _persist_new(session: Session, evidence: _EvidenceSet) -> PersistedQualityEv
         )
         for item in evidence.baselines
     ]
+    comparison_rows = [
+        ModelBaselineComparisonModel(
+            quality_evaluation_run_id=run.id,
+            schema_version=evidence.persistence_schema_version,
+            comparison_key_hash=item.key_hash,
+            comparison_policy_version=evidence.comparison_policy_version,
+            comparison_name=item.result.comparison_name.value,
+            comparison_availability=item.result.comparison_availability.value,
+            metric_status=item.result.metric_status.value,
+            reason_code=item.result.reason_code.value,
+            external_blocker=item.result.external_blocker,
+            frozen_limitation=item.result.frozen_limitation,
+            model_identity=item.result.model_identity,
+            baseline_member_identity_set=item.result.baseline_member_identity_set,
+            baseline_member_set_hash=item.result.baseline_member_set_hash,
+            normalized_breakdown_identity=item.result.normalized_breakdown_identity,
+            forecast_horizon_days=item.result.forecast_horizon_days,
+            model_value=item.result.model_value,
+            baseline_value=item.result.baseline_value,
+            delta_value=item.result.delta_value,
+            model_input_row_count=item.result.model_input_row_count,
+            baseline_input_row_count=item.result.baseline_input_row_count,
+            common_comparable_row_count=item.result.common_comparable_row_count,
+            model_only_row_count=item.result.model_only_row_count,
+            baseline_only_row_count=item.result.baseline_only_row_count,
+            excluded_row_count=item.result.excluded_row_count,
+            not_computable_row_count=item.result.not_computable_row_count,
+            canonical_payload=item.payload,
+            canonical_hash=item.canonical_hash,
+            created_at=now,
+            completed_at=now,
+        )
+        for item in evidence.comparisons
+    ]
     session.add_all([*metric_rows, *breakdown_rows, *baseline_rows])
+    # The PostgreSQL comparison trigger validates every baseline member
+    # against its owning run.  Make the dependency visible inside the same
+    # caller-owned transaction before inserting comparison children.
+    session.flush()
+    session.add_all(comparison_rows)
     session.flush()
     manifest = QualityEvaluationManifestModel(
         quality_evaluation_run_id=run.id,
-        schema_version=PERSISTENCE_SCHEMA_VERSION,
+        schema_version=evidence.persistence_schema_version,
         evaluation_request_hash=evidence.evaluation_request_hash,
         evaluation_instance_hash=evidence.evaluation_instance_hash,
         metric_result_set_hash=evidence.metric_set_hash,
         breakdown_result_set_hash=evidence.breakdown_set_hash,
         baseline_result_set_hash=evidence.baseline_set_hash,
-        comparison_result_set_hash=COMPARISON_RESULT_SET_HASH,
+        comparison_result_set_hash=evidence.comparison_result_set_hash,
+        comparison_policy_version=evidence.comparison_policy_version,
+        comparison_result_schema_version=evidence.comparison_result_schema_version,
+        comparison_result_set_schema_version=evidence.comparison_result_set_schema_version,
+        comparison_cell_count=evidence.comparison_cell_count,
+        comparison_result_count=len(comparison_rows),
         manifest_payload=evidence.manifest_payload,
         manifest_hash=evidence.manifest_hash,
         created_at=now,
         completed_at=now,
         sealed_at=now,
     )
-    session.add(manifest)
+    # Brief §12/§13 — manifest UNIQUE race classification.
+    # Wrap the manifest INSERT in a SAVEPOINT so we can roll back only
+    # this statement if the DB rejects it with SQLSTATE=23505 +
+    # constraint_name=uq_quality_manifest_run.  A concurrent writer
+    # may have committed a manifest for the same run between our
+    # run SELECT and our manifest INSERT.  Any other SQLSTATE or
+    # constraint_name propagates verbatim — we never translate a
+    # contract failure into a replay.
+    try:
+        with session.begin_nested():
+            session.add(manifest)
+            session.flush()
+    except IntegrityError as exc:
+        # Brief §5.3 — same fail-closed extraction as the run
+        # INSERT path.  Unknown adapter shape or missing
+        # sqlstate/constraint_name propagates verbatim.
+        orig = getattr(exc, "orig", None)
+        manifest_sqlstate: str | None = None
+        if orig is not None and hasattr(orig, "sqlstate"):
+            manifest_sqlstate = getattr(orig, "sqlstate", None)
+        manifest_constraint_name: str | None = None
+        if orig is not None and hasattr(orig, "constraint_name"):
+            manifest_constraint_name = getattr(orig, "constraint_name", None)
+        if manifest_sqlstate is None or manifest_constraint_name is None:
+            msg = str(exc)
+            import re
+
+            sql_match = re.search(r"SQLSTATE (\d{5})", msg)
+            if manifest_sqlstate is None and sql_match is not None:
+                manifest_sqlstate = sql_match.group(1)
+            cstr_match = re.search(
+                r'duplicate key value violates unique constraint "([^"]+)"',
+                msg,
+            )
+            if manifest_constraint_name is None and cstr_match is not None:
+                manifest_constraint_name = cstr_match.group(1)
+        if manifest_sqlstate is None or manifest_constraint_name is None:
+            raise
+        if manifest_sqlstate != "23505" or manifest_constraint_name != "uq_quality_manifest_run":
+            # Brief §5.2 — manifest INSERT may ONLY classify
+            # ``uq_quality_manifest_run``.  All other SQLSTATEs
+            # (including other UNIQUE constraints, CHECK, FK,
+            # trigger) propagate verbatim — we never translate
+            # a contract failure into a replay.
+            raise
+        # Concurrent winner already sealed the manifest.
+        # Brief §3 mandates caller-owned transaction; we look up
+        # the existing run via the caller-owned session WITHOUT
+        # wrapping the read in ``begin_nested`` (asyncpg leaves
+        # the connection in error state, but a plain ``SELECT``
+        # after SAVEPOINT rollback operates on the outer
+        # transaction's restored snapshot).
+        try:
+            existing = session.scalar(
+                select(QualityEvaluationRunModel).where(
+                    QualityEvaluationRunModel.evaluation_request_hash
+                    == evidence.evaluation_request_hash
+                )
+            )
+        except IntegrityError:
+            existing = None
+        if existing is None:
+            raise ForecastQualityPersistenceError(
+                "manifest UNIQUE race lost but no owning run found"
+            ) from exc
+        return _classify_existing(session, existing, evidence)
     session.flush()
     return PersistedQualityEvaluation(
         run_id=run.id,
         manifest_id=manifest.id,
         evaluation_request_hash=evidence.evaluation_request_hash,
         evaluation_instance_hash=evidence.evaluation_instance_hash,
-        new_write_count=1 + len(metric_rows) + len(breakdown_rows) + len(baseline_rows) + 1,
+        new_write_count=1
+        + len(metric_rows)
+        + len(breakdown_rows)
+        + len(baseline_rows)
+        + len(comparison_rows)
+        + 1,
         replayed=False,
     )
 
@@ -835,14 +1379,18 @@ def persist_quality_evaluation(
     metric_results: Sequence[DailyMetricResult],
     breakdown_results: Sequence[Mapping[str, object]],
     baseline_records: Sequence[BaselinePersistenceRecord],
-    comparison_records: Sequence[Mapping[str, object]],
+    comparison_records: Sequence[ComparisonResult | Mapping[str, object]] = (),
     manifest_payload: Mapping[str, object],
+    comparison_contract_enabled: bool = False,
 ) -> PersistedQualityEvaluation:
-    """Persist one complete result without taking transaction ownership."""
-    if comparison_records:
-        raise ForecastQualityContractError(
-            "NONEMPTY_COMPARISON_RECORDS_FAIL_CLOSED: comparison rows are not authorized"
-        )
+    """Persist one complete result without taking transaction ownership.
+
+    ``comparison_contract_enabled`` declares whether the caller is using V2
+    (Round C) persistence.  ``False`` selects V1 persistence and rejects any
+    comparison records that may have been passed in by mistake.  ``True``
+    selects V2 persistence regardless of whether comparison_records is
+    empty (V2 zero-cell branch) or populated with full ten-record cells.
+    """
     if not isinstance(session, Session):
         raise TypeError("persist_quality_evaluation requires a synchronous SQLAlchemy Session")
     if not isinstance(manifest_payload, Mapping):
@@ -852,7 +1400,9 @@ def persist_quality_evaluation(
         metric_results=metric_results,
         breakdown_results=breakdown_results,
         baseline_records=baseline_records,
+        comparison_records=comparison_records,
         manifest_payload=manifest_payload,
+        comparison_contract_enabled=comparison_contract_enabled,
     )
     existing = cast(
         QualityEvaluationRunModel | None,
@@ -870,11 +1420,16 @@ def persist_quality_evaluation(
 
 __all__ = [
     "BaselinePersistenceRecord",
+    "COMPARISON_POLICY_VERSION",
+    "COMPARISON_RESULT_SCHEMA_VERSION",
+    "COMPARISON_RESULT_SET_SCHEMA_VERSION",
     "COMPARISON_RESULT_SET_HASH",
+    "ComparisonResult",
     "ForecastQualityConflictError",
     "ForecastQualityContractError",
     "ForecastQualityPartialResultError",
     "ForecastQualityPersistenceError",
     "PersistedQualityEvaluation",
+    "ROUND_C_PERSISTENCE_SCHEMA_VERSION",
     "persist_quality_evaluation",
 ]
