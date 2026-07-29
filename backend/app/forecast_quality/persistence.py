@@ -1083,19 +1083,89 @@ def _make_run(evidence: _EvidenceSet, now: datetime) -> QualityEvaluationRunMode
 def _persist_new(session: Session, evidence: _EvidenceSet) -> PersistedQualityEvaluation:
     now = datetime.now(UTC)
     run = _make_run(evidence, now)
+    # Brief §12/§13 — run UNIQUE race classification.
+    # A concurrent writer may have committed the run row for this
+    # evaluation_request_hash between our SELECT (above) and our
+    # INSERT (below).  The DB rejects our INSERT with
+    # SQLSTATE=23505 + constraint_name=uq_quality_evaluation_run_request.
+    # We classify that specific failure by re-reading
+    # evaluation_request_hash and routing through
+    # ``_classify_existing``.  Any other SQLSTATE or constraint
+    # propagates verbatim so we never silently turn a contract
+    # failure into a replay.
     try:
         with session.begin_nested():
             session.add(run)
             session.flush()
     except IntegrityError as exc:
-        existing = session.scalar(
-            select(QualityEvaluationRunModel).where(
-                QualityEvaluationRunModel.evaluation_request_hash
-                == evidence.evaluation_request_hash
+        # Brief §5.3 — extract sqlstate and constraint_name in
+        # this order.  If the adapter does not expose
+        # ``sqlstate`` (asyncpg ``RaiseError``) we must still
+        # not guess — the text fallback below is bounded to the
+        # exact ``duplicate key value violates unique constraint
+        # "<name>"`` shape; anything else is fail-closed.
+        orig = getattr(exc, "orig", None)
+        sqlstate: str | None = None
+        if orig is not None and hasattr(orig, "sqlstate"):
+            sqlstate = getattr(orig, "sqlstate", None)
+        constraint_name: str | None = None
+        if orig is not None and hasattr(orig, "constraint_name"):
+            constraint_name = getattr(orig, "constraint_name", None)
+        if sqlstate is None or constraint_name is None:
+            msg = str(exc)
+            import re
+
+            sql_match = re.search(r"SQLSTATE (\d{5})", msg)
+            if sqlstate is None and sql_match is not None:
+                sqlstate = sql_match.group(1)
+            cstr_match = re.search(
+                r'duplicate key value violates unique constraint "([^"]+)"',
+                msg,
             )
-        )
+            if constraint_name is None and cstr_match is not None:
+                constraint_name = cstr_match.group(1)
+        if sqlstate is None or constraint_name is None:
+            # Brief §5.3 — unknown adapter exception shape must
+            # propagate verbatim, never get coerced to a replay.
+            raise
+        if sqlstate != "23505" or constraint_name not in ("uq_quality_evaluation_run_request",):
+            # Brief §5.2 — run INSERT may ONLY classify the
+            # ``uq_quality_evaluation_run_request`` UNIQUE race.
+            # All other SQLSTATEs, all other constraints
+            # (including ``uq_quality_manifest_run``), and any
+            # unknown adapter shape must propagate verbatim so we
+            # never silently turn a contract failure into a
+            # replay.
+            raise
+        # Brief §3 mandates caller-owned transaction.  When the
+        # asyncpg connection is in "transaction aborted" state, a
+        # fresh SAVEPOINT cannot succeed.  The post-failure
+        # SAVEPOINT rollback, however, places the connection back
+        # at the outer transaction's snapshot — a subsequent
+        # plain ``SELECT`` issued without an explicit SAVEPOINT
+        # wrapper succeeds because PostgreSQL's MVCC snapshot is
+        # already restored to its pre-failure state.  We therefore
+        # route the classification read through the caller-owned
+        # session WITHOUT wrapping it in ``begin_nested``.
+        # When even the bare SELECT fails (the SAVEPOINT itself
+        # left the connection in error state), we surface a
+        # structured ``ForecastQualityPersistenceError`` so the
+        # brief §3 caller-owned-transaction contract holds and
+        # we never silently turn a contract failure into a
+        # replay.
+        try:
+            existing = session.scalar(
+                select(QualityEvaluationRunModel).where(
+                    QualityEvaluationRunModel.evaluation_request_hash
+                    == evidence.evaluation_request_hash
+                )
+            )
+        except IntegrityError:
+            existing = None
         if existing is None:
-            raise ForecastQualityPersistenceError("failed to create evaluation run") from exc
+            raise ForecastQualityPersistenceError(
+                "run UNIQUE race lost but no owning run found"
+            ) from exc
         return _classify_existing(session, existing, evidence)
 
     if run.id is None:
@@ -1220,7 +1290,72 @@ def _persist_new(session: Session, evidence: _EvidenceSet) -> PersistedQualityEv
         completed_at=now,
         sealed_at=now,
     )
-    session.add(manifest)
+    # Brief §12/§13 — manifest UNIQUE race classification.
+    # Wrap the manifest INSERT in a SAVEPOINT so we can roll back only
+    # this statement if the DB rejects it with SQLSTATE=23505 +
+    # constraint_name=uq_quality_manifest_run.  A concurrent writer
+    # may have committed a manifest for the same run between our
+    # run SELECT and our manifest INSERT.  Any other SQLSTATE or
+    # constraint_name propagates verbatim — we never translate a
+    # contract failure into a replay.
+    try:
+        with session.begin_nested():
+            session.add(manifest)
+            session.flush()
+    except IntegrityError as exc:
+        # Brief §5.3 — same fail-closed extraction as the run
+        # INSERT path.  Unknown adapter shape or missing
+        # sqlstate/constraint_name propagates verbatim.
+        orig = getattr(exc, "orig", None)
+        manifest_sqlstate: str | None = None
+        if orig is not None and hasattr(orig, "sqlstate"):
+            manifest_sqlstate = getattr(orig, "sqlstate", None)
+        manifest_constraint_name: str | None = None
+        if orig is not None and hasattr(orig, "constraint_name"):
+            manifest_constraint_name = getattr(orig, "constraint_name", None)
+        if manifest_sqlstate is None or manifest_constraint_name is None:
+            msg = str(exc)
+            import re
+
+            sql_match = re.search(r"SQLSTATE (\d{5})", msg)
+            if manifest_sqlstate is None and sql_match is not None:
+                manifest_sqlstate = sql_match.group(1)
+            cstr_match = re.search(
+                r'duplicate key value violates unique constraint "([^"]+)"',
+                msg,
+            )
+            if manifest_constraint_name is None and cstr_match is not None:
+                manifest_constraint_name = cstr_match.group(1)
+        if manifest_sqlstate is None or manifest_constraint_name is None:
+            raise
+        if manifest_sqlstate != "23505" or manifest_constraint_name != "uq_quality_manifest_run":
+            # Brief §5.2 — manifest INSERT may ONLY classify
+            # ``uq_quality_manifest_run``.  All other SQLSTATEs
+            # (including other UNIQUE constraints, CHECK, FK,
+            # trigger) propagate verbatim — we never translate
+            # a contract failure into a replay.
+            raise
+        # Concurrent winner already sealed the manifest.
+        # Brief §3 mandates caller-owned transaction; we look up
+        # the existing run via the caller-owned session WITHOUT
+        # wrapping the read in ``begin_nested`` (asyncpg leaves
+        # the connection in error state, but a plain ``SELECT``
+        # after SAVEPOINT rollback operates on the outer
+        # transaction's restored snapshot).
+        try:
+            existing = session.scalar(
+                select(QualityEvaluationRunModel).where(
+                    QualityEvaluationRunModel.evaluation_request_hash
+                    == evidence.evaluation_request_hash
+                )
+            )
+        except IntegrityError:
+            existing = None
+        if existing is None:
+            raise ForecastQualityPersistenceError(
+                "manifest UNIQUE race lost but no owning run found"
+            ) from exc
+        return _classify_existing(session, existing, evidence)
     session.flush()
     return PersistedQualityEvaluation(
         run_id=run.id,

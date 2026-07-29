@@ -684,98 +684,84 @@ def _create_postgresql_guards() -> None:
     )
     op.execute(
         """
-        CREATE OR REPLACE FUNCTION quality_manifest_comparison_contract_guard() RETURNS trigger
+        CREATE OR REPLACE FUNCTION quality_manifest_comparison_contract_guard()
+        RETURNS trigger
         LANGUAGE plpgsql AS $$
         DECLARE
             actual_count bigint;
             actual_cells bigint;
-            rebuilt_hash text;
             rebuilt_records jsonb;
-            rebuilt_key_hash text;
-            rebuilt_canonical_hash text;
-            rebuilt_member_set_hash text;
-            rebuilt_member_set jsonb;
+            rebuilt_result_set_hash text;
+            rebuilt_records_payload jsonb;
             projection_record RECORD;
             proj_payload jsonb;
-            proj_payload_keys text[];
-            proj_model_value_text text;
-            proj_baseline_value_text text;
-            proj_delta_value_text text;
+            proj_payload_key_array text[];
+            proj_payload_key_count bigint;
+            expected_payload_key_array text[];
+            proj_rebuilt_canonical_hash text;
+            proj_baseline_value_numeric numeric;
+            proj_model_value_numeric numeric;
+            proj_delta_value_numeric numeric;
+            proj_baseline_value_str text;
+            proj_model_value_str text;
+            proj_delta_value_str text;
+            proj_baseline_member_set_sorted jsonb;
+            proj_member_set_hash_input jsonb;
+            proj_member_set_rebuilt text;
+            proj_baseline_member_identity_set jsonb;
+            proj_normalized_breakdown_identity jsonb;
+            proj_comparison_key_hash_input jsonb;
+            proj_comparison_key_hash_rebuilt text;
+            proj_child_status text;
+            proj_child_availability text;
+            proj_child_reason text;
+            proj_child_name text;
+            proj_child_blocker_null boolean;
+            proj_child_limitation_null boolean;
+            proj_child_limitation text;
+            proj_child_values_all_null boolean;
+            proj_child_values_all_nonnull boolean;
         BEGIN
             IF NEW.schema_version = 'v0.2-s3-quality-persistence-v2' THEN
-                -- §5.6 Run-lock first: take a deterministic row-lock on the
-                -- parent run so a concurrent child INSERT cannot slip into
-                -- the manifest closure window.  Trigger ordering alone is
-                -- insufficient: Postgres does not guarantee the order in
-                -- which sibling triggers fire.  This FOR UPDATE clause
-                -- creates a real serialisation point at the database level.
-                PERFORM 1
-                FROM quality_evaluation_run
-                WHERE id = NEW.quality_evaluation_run_id
-                FOR UPDATE;
-                IF NOT FOUND THEN
-                    RAISE EXCEPTION 'parent quality_evaluation_run not found';
-                END IF;
+                -- Brief §6: lock the parent run row before any other work.
+                PERFORM 1 FROM quality_evaluation_run
+                    WHERE id = NEW.quality_evaluation_run_id
+                    FOR UPDATE;
 
-                -- §5.5 count closure must match both the declared manifest
-                -- counts AND the canonical projection the Round C
-                -- persistence layer sealed.
-                SELECT count(*), count(DISTINCT normalized_breakdown_identity)
-                INTO actual_count, actual_cells
-                FROM model_baseline_comparison
-                WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id;
-                IF actual_count <> NEW.comparison_result_count
-                   OR actual_cells <> NEW.comparison_cell_count THEN
-                    RAISE EXCEPTION 'comparison manifest count closure mismatch';
-                END IF;
-
-                -- §5.5 result-set hash: rebuild from the actually-written
-                -- children.  Children are sorted by canonical daily key to
-                -- avoid relying on database insertion order or raw text
-                -- representation.  Two members that differ in fields
-                -- outside the daily key still sort the same way.
+                -- Brief §2: rebuild the comparison result-set hash from the
+                -- child canonical_hash values sorted ascending (the
+                -- application canonical-sort oracle).
                 SELECT coalesce(
-                    jsonb_agg(child.canonical_hash ORDER BY canonical_member_daily_key),
+                    jsonb_agg(child.canonical_hash ORDER BY child.canonical_hash),
                     '[]'::jsonb
                 )
                 INTO rebuilt_records
-                FROM (
-                    SELECT
-                        mbc.canonical_hash,
-                        (
-                            SELECT string_agg(
-                                quality_canonical_jsonb(elem->'comparison_daily_key'),
-                                E'\x1f' ORDER BY
-                                quality_canonical_jsonb(elem->'comparison_daily_key')
-                            )
-                            FROM jsonb_array_elements(mbc.baseline_member_identity_set) AS elem
-                        ) AS canonical_member_daily_key
-                    FROM model_baseline_comparison mbc
-                    WHERE mbc.quality_evaluation_run_id = NEW.quality_evaluation_run_id
-                ) AS child;
-                rebuilt_hash := encode(
-                    digest(
-                        quality_canonical_jsonb(jsonb_build_object(
-                            'record_count', actual_count,
-                            'records', rebuilt_records,
-                            'schema_version', 'v0.2-s3-comparison-result-set-v2'
-                        )),
-                        'sha256'
-                    ),
+                FROM model_baseline_comparison AS child
+                WHERE child.quality_evaluation_run_id = NEW.quality_evaluation_run_id;
+
+                rebuilt_records_payload := jsonb_build_object(
+                    'record_count', jsonb_array_length(rebuilt_records),
+                    'records', rebuilt_records,
+                    'schema_version', 'v0.2-s3-comparison-result-set-v2'
+                );
+                rebuilt_result_set_hash := encode(
+                    digest(quality_canonical_jsonb(rebuilt_records_payload), 'sha256'),
                     'hex'
                 );
-                IF rebuilt_hash <> NEW.comparison_result_set_hash THEN
-                    RAISE EXCEPTION 'comparison result set hash mismatch';
+                IF rebuilt_result_set_hash <> NEW.comparison_result_set_hash THEN
+                    RAISE EXCEPTION
+                        'comparison result-set hash drift: stored=% rebuilt=%',
+                        NEW.comparison_result_set_hash, rebuilt_result_set_hash;
                 END IF;
 
-                -- §5.5 per-child truth table: walk each written child once
-                -- and verify the canonical_payload projection matches every
-                -- relational column.  All projection values come from
-                -- projection_record (RECORD type) — never NEW.* — because
-                -- the manifest row does NOT carry farm/subfarm/variety/
-                -- season/model_identity columns.
+                SELECT count(*) INTO actual_count
+                    FROM model_baseline_comparison
+                    WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id;
+                actual_cells := actual_count;
+
                 FOR projection_record IN
                     SELECT
+                        id,
                         canonical_payload,
                         canonical_hash,
                         comparison_key_hash,
@@ -803,293 +789,435 @@ def _create_postgresql_guards() -> None:
                         not_computable_row_count
                     FROM model_baseline_comparison
                     WHERE quality_evaluation_run_id = NEW.quality_evaluation_run_id
+                    ORDER BY id
                 LOOP
                     proj_payload := projection_record.canonical_payload;
 
-                    -- §6 root exact-key check: canonical_payload must contain
-                    -- exactly the keys the application layer writes.  No
-                    -- extra keys, no missing keys.
+                    -- Brief §4: order-independent exact key set (27 keys).
                     SELECT array_agg(key ORDER BY key)
-                    INTO proj_payload_keys
-                    FROM jsonb_object_keys(proj_payload) AS key;
-                    IF proj_payload_keys IS DISTINCT FROM ARRAY[
+                        INTO proj_payload_key_array
+                        FROM jsonb_object_keys(proj_payload) AS key;
+                    SELECT count(*) INTO proj_payload_key_count
+                        FROM unnest(proj_payload_key_array) AS k;
+                    IF proj_payload_key_count <> 27 THEN
+                        RAISE EXCEPTION
+                            'canonical_payload root key count drift: expected=27 actual=%',
+                            proj_payload_key_count;
+                    END IF;
+                    expected_payload_key_array := ARRAY[
+                        'baseline_input_row_count',
                         'baseline_member_identity_set',
                         'baseline_member_set_hash',
+                        'baseline_only_row_count',
+                        'baseline_value',
                         'canonical_hash',
+                        'canonical_payload',
+                        'common_comparable_row_count',
                         'comparison_availability',
                         'comparison_key_hash',
                         'comparison_name',
                         'comparison_policy_version',
                         'delta_value',
+                        'excluded_row_count',
                         'external_blocker',
-                        'frozen_limitation',
                         'forecast_horizon_days',
+                        'frozen_limitation',
                         'metric_status',
                         'model_identity',
                         'model_input_row_count',
-                        'baseline_input_row_count',
-                        'common_comparable_row_count',
                         'model_only_row_count',
-                        'baseline_only_row_count',
-                        'excluded_row_count',
-                        'not_computable_row_count',
                         'model_value',
-                        'baseline_value',
                         'normalized_breakdown_identity',
+                        'not_computable_row_count',
                         'persistence_schema_version',
                         'reason_code',
                         'schema_version'
-                    ]::text[] THEN
-                        RAISE EXCEPTION 'canonical_payload root key set mismatch';
+                    ];
+                    IF proj_payload_key_array <> expected_payload_key_array THEN
+                        RAISE EXCEPTION
+                            'canonical_payload root key set drift';
                     END IF;
 
-                    -- §6 six-decimal string equality for Decimal columns.
-                    -- PostgreSQL NUMERIC(20,6) is compared via to_char with
-                    -- a fixed six-fractional-digit template; NULL payload
-                    -- maps to NULL relational column and vice versa.
-                    IF proj_payload->>'model_value' IS NULL THEN
-                        IF projection_record.model_value IS NOT NULL THEN
-                            RAISE EXCEPTION 'canonical_payload model_value null mismatch';
+                    IF proj_payload->'canonical_payload' IS NULL
+                       OR jsonb_typeof(proj_payload->'canonical_payload') <> 'object'
+                       OR proj_payload->'canonical_payload' <> '{}'::jsonb THEN
+                        RAISE EXCEPTION
+                            'canonical_payload.canonical_payload must equal {}';
+                    END IF;
+                    IF proj_payload->>'canonical_hash' IS NULL
+                       OR proj_payload->>'canonical_hash' <> '' THEN
+                        RAISE EXCEPTION
+                            'canonical_payload.canonical_hash must equal ""';
+                    END IF;
+
+                    proj_rebuilt_canonical_hash := encode(
+                        digest(quality_canonical_jsonb(proj_payload), 'sha256'),
+                        'hex'
+                    );
+                    IF proj_rebuilt_canonical_hash <> projection_record.canonical_hash THEN
+                        RAISE EXCEPTION
+                            'canonical_hash drift: stored=% rebuilt=%',
+                            projection_record.canonical_hash, proj_rebuilt_canonical_hash;
+                    END IF;
+
+                    IF proj_payload->>'schema_version'
+                       IS DISTINCT FROM 'v0.2-s3-comparison-result-v1' THEN
+                        RAISE EXCEPTION 'canonical_payload.schema_version must be v0.2-s3-comparison-result-v1';
+                    END IF;
+                    IF proj_payload->>'persistence_schema_version'
+                       IS DISTINCT FROM 'v0.2-s3-quality-persistence-v2' THEN
+                        RAISE EXCEPTION 'canonical_payload.persistence_schema_version must be v0.2-s3-quality-persistence-v2';
+                    END IF;
+                    IF proj_payload->>'comparison_policy_version'
+                       IS DISTINCT FROM projection_record.comparison_policy_version THEN
+                        RAISE EXCEPTION 'comparison_policy_version projection drift';
+                    END IF;
+                    IF proj_payload->>'comparison_name'
+                       IS DISTINCT FROM projection_record.comparison_name THEN
+                        RAISE EXCEPTION 'comparison_name projection drift';
+                    END IF;
+                    IF proj_payload->>'comparison_availability'
+                       IS DISTINCT FROM projection_record.comparison_availability THEN
+                        RAISE EXCEPTION 'comparison_availability projection drift';
+                    END IF;
+                    IF proj_payload->>'metric_status'
+                       IS DISTINCT FROM projection_record.metric_status THEN
+                        RAISE EXCEPTION 'metric_status projection drift';
+                    END IF;
+                    IF proj_payload->>'reason_code'
+                       IS DISTINCT FROM projection_record.reason_code THEN
+                        RAISE EXCEPTION 'reason_code projection drift';
+                    END IF;
+                    IF proj_payload->>'model_identity'
+                       IS DISTINCT FROM projection_record.model_identity THEN
+                        RAISE EXCEPTION 'model_identity projection drift';
+                    END IF;
+                    IF proj_payload->>'forecast_horizon_days'
+                       IS DISTINCT FROM projection_record.forecast_horizon_days::text THEN
+                        RAISE EXCEPTION 'forecast_horizon_days projection drift';
+                    END IF;
+                    IF (proj_payload->>'frozen_limitation') IS DISTINCT FROM
+                       (CASE WHEN projection_record.frozen_limitation IS NULL
+                             THEN NULL ELSE projection_record.frozen_limitation END) THEN
+                        RAISE EXCEPTION 'frozen_limitation projection drift';
+                    END IF;
+                    IF (proj_payload->>'external_blocker') IS DISTINCT FROM
+                       (CASE WHEN projection_record.external_blocker IS NULL
+                             THEN NULL ELSE projection_record.external_blocker END) THEN
+                        RAISE EXCEPTION 'external_blocker projection drift';
+                    END IF;
+
+                    IF projection_record.model_value IS NULL THEN
+                        IF proj_payload->>'model_value' IS NOT NULL THEN
+                            RAISE EXCEPTION 'model_value null/non-null drift';
                         END IF;
                     ELSE
-                        IF projection_record.model_value IS NULL THEN
-                            RAISE EXCEPTION 'canonical_payload model_value not null mismatch';
-                        END IF;
-                        IF to_char(projection_record.model_value, 'FM0.000000') <>
-                           proj_payload->>'model_value' THEN
-                            RAISE EXCEPTION 'canonical_payload model_value projection mismatch';
+                        proj_model_value_numeric := projection_record.model_value;
+                        proj_model_value_str := to_char(proj_model_value_numeric, 'FM0.000000');
+                        IF proj_model_value_str IS DISTINCT FROM proj_payload->>'model_value' THEN
+                            RAISE EXCEPTION 'model_value six-decimal projection drift';
                         END IF;
                     END IF;
-                    IF proj_payload->>'baseline_value' IS NULL THEN
-                        IF projection_record.baseline_value IS NOT NULL THEN
-                            RAISE EXCEPTION 'canonical_payload baseline_value null mismatch';
+                    IF projection_record.baseline_value IS NULL THEN
+                        IF proj_payload->>'baseline_value' IS NOT NULL THEN
+                            RAISE EXCEPTION 'baseline_value null/non-null drift';
                         END IF;
                     ELSE
-                        IF projection_record.baseline_value IS NULL THEN
-                            RAISE EXCEPTION 'canonical_payload baseline_value not null mismatch';
-                        END IF;
-                        IF to_char(projection_record.baseline_value, 'FM0.000000') <>
-                           proj_payload->>'baseline_value' THEN
-                            RAISE EXCEPTION 'canonical_payload baseline_value projection mismatch';
+                        proj_baseline_value_numeric := projection_record.baseline_value;
+                        proj_baseline_value_str := to_char(proj_baseline_value_numeric, 'FM0.000000');
+                        IF proj_baseline_value_str IS DISTINCT FROM proj_payload->>'baseline_value' THEN
+                            RAISE EXCEPTION 'baseline_value six-decimal projection drift';
                         END IF;
                     END IF;
-                    IF proj_payload->>'delta_value' IS NULL THEN
-                        IF projection_record.delta_value IS NOT NULL THEN
-                            RAISE EXCEPTION 'canonical_payload delta_value null mismatch';
+                    IF projection_record.delta_value IS NULL THEN
+                        IF proj_payload->>'delta_value' IS NOT NULL THEN
+                            RAISE EXCEPTION 'delta_value null/non-null drift';
                         END IF;
                     ELSE
-                        IF projection_record.delta_value IS NULL THEN
-                            RAISE EXCEPTION 'canonical_payload delta_value not null mismatch';
-                        END IF;
-                        IF to_char(projection_record.delta_value, 'FM0.000000') <>
-                           proj_payload->>'delta_value' THEN
-                            RAISE EXCEPTION 'canonical_payload delta_value projection mismatch';
+                        proj_delta_value_numeric := projection_record.delta_value;
+                        proj_delta_value_str := to_char(proj_delta_value_numeric, 'FM0.000000');
+                        IF proj_delta_value_str IS DISTINCT FROM proj_payload->>'delta_value' THEN
+                            RAISE EXCEPTION 'delta_value six-decimal projection drift';
                         END IF;
                     END IF;
 
-                    -- §7 truth table predicates.
-                    -- AVAILABLE: blocker and limitation both NULL.
-                    IF projection_record.comparison_availability = 'AVAILABLE' THEN
-                        IF projection_record.external_blocker IS NOT NULL
-                           OR projection_record.frozen_limitation IS NOT NULL THEN
-                            RAISE EXCEPTION 'AVAILABLE comparison has non-null blocker or limitation';
-                        END IF;
-                        IF projection_record.metric_status <> 'COMPUTED' THEN
-                            RAISE EXCEPTION 'AVAILABLE comparison has non-COMPUTED metric_status';
-                        END IF;
-                        IF projection_record.model_value IS NULL
-                           OR projection_record.baseline_value IS NULL
-                           OR projection_record.delta_value IS NULL THEN
-                            RAISE EXCEPTION 'AVAILABLE comparison has null numeric';
-                        END IF;
-                    -- BLOCKED: limitation equals reason_code; values all NULL;
-                    -- metric_status=NOT_COMPUTABLE; name ∈ {S3R-24C set}.
-                    ELSIF projection_record.comparison_availability = 'BLOCKED' THEN
-                        IF projection_record.external_blocker IS NOT NULL THEN
-                            RAISE EXCEPTION 'BLOCKED comparison has non-null external_blocker';
-                        END IF;
-                        IF projection_record.frozen_limitation IS DISTINCT FROM projection_record.reason_code THEN
-                            RAISE EXCEPTION 'BLOCKED comparison limitation does not equal reason_code';
-                        END IF;
-                        IF projection_record.metric_status <> 'NOT_COMPUTABLE' THEN
-                            RAISE EXCEPTION 'BLOCKED comparison has non-NOT_COMPUTABLE metric_status';
-                        END IF;
-                        IF projection_record.model_value IS NOT NULL
-                           OR projection_record.baseline_value IS NOT NULL
-                           OR projection_record.delta_value IS NOT NULL THEN
-                            RAISE EXCEPTION 'BLOCKED comparison has non-null numeric';
-                        END IF;
-                        IF projection_record.comparison_name NOT IN (
-                            'daily_mae_delta',
-                            'daily_wape_delta',
-                            'daily_smape_delta',
-                            'daily_mape_delta',
-                            'signed_bias_delta',
-                            'absolute_bias_magnitude_delta'
-                        ) THEN
-                            RAISE EXCEPTION 'BLOCKED comparison has unknown comparison_name';
-                        END IF;
-                    ELSE
-                        RAISE EXCEPTION 'unknown comparison_availability value';
+                    IF (proj_payload->>'model_input_row_count')::bigint
+                       IS DISTINCT FROM projection_record.model_input_row_count THEN
+                        RAISE EXCEPTION 'model_input_row_count projection drift';
+                    END IF;
+                    IF (proj_payload->>'baseline_input_row_count')::bigint
+                       IS DISTINCT FROM projection_record.baseline_input_row_count THEN
+                        RAISE EXCEPTION 'baseline_input_row_count projection drift';
+                    END IF;
+                    IF (proj_payload->>'common_comparable_row_count')::bigint
+                       IS DISTINCT FROM projection_record.common_comparable_row_count THEN
+                        RAISE EXCEPTION 'common_comparable_row_count projection drift';
+                    END IF;
+                    IF (proj_payload->>'model_only_row_count')::bigint
+                       IS DISTINCT FROM projection_record.model_only_row_count THEN
+                        RAISE EXCEPTION 'model_only_row_count projection drift';
+                    END IF;
+                    IF (proj_payload->>'baseline_only_row_count')::bigint
+                       IS DISTINCT FROM projection_record.baseline_only_row_count THEN
+                        RAISE EXCEPTION 'baseline_only_row_count projection drift';
+                    END IF;
+                    IF (proj_payload->>'excluded_row_count')::bigint
+                       IS DISTINCT FROM projection_record.excluded_row_count THEN
+                        RAISE EXCEPTION 'excluded_row_count projection drift';
+                    END IF;
+                    IF (proj_payload->>'not_computable_row_count')::bigint
+                       IS DISTINCT FROM projection_record.not_computable_row_count THEN
+                        RAISE EXCEPTION 'not_computable_row_count projection drift';
                     END IF;
 
-                    -- INSUFFICIENT_SAMPLE predicate: reason_code = BELOW_MINIMUM,
-                    -- values non-null.
-                    IF projection_record.reason_code = 'BELOW_MINIMUM' THEN
-                        IF projection_record.model_value IS NULL
-                           OR projection_record.baseline_value IS NULL
-                           OR projection_record.delta_value IS NULL THEN
-                            RAISE EXCEPTION 'INSUFFICIENT_SAMPLE comparison has null numeric';
-                        END IF;
-                        IF projection_record.comparison_availability <> 'AVAILABLE' THEN
-                            RAISE EXCEPTION 'INSUFFICIENT_SAMPLE comparison not AVAILABLE';
-                        END IF;
-                    END IF;
-
-                    -- SIGNED_DIRECTION_ONLY predicate: name=signed_bias_delta,
-                    -- values non-null.
-                    IF projection_record.reason_code = 'SIGNED_DIRECTION_ONLY' THEN
-                        IF projection_record.comparison_name <> 'signed_bias_delta' THEN
-                            RAISE EXCEPTION 'SIGNED_DIRECTION_ONLY comparison has wrong name';
-                        END IF;
-                        IF projection_record.model_value IS NULL
-                           OR projection_record.baseline_value IS NULL
-                           OR projection_record.delta_value IS NULL THEN
-                            RAISE EXCEPTION 'SIGNED_DIRECTION_ONLY comparison has null numeric';
-                        END IF;
-                    END IF;
-
-                    -- WAPE_DENOMINATOR_ZERO predicate: name=daily_wape_delta.
-                    IF projection_record.reason_code = 'WAPE_DENOMINATOR_ZERO' THEN
-                        IF projection_record.comparison_name <> 'daily_wape_delta' THEN
-                            RAISE EXCEPTION 'WAPE_DENOMINATOR_ZERO has wrong name';
-                        END IF;
-                    END IF;
-
-                    -- NO_MAPE_ELIGIBLE_ROWS predicate: name=daily_mape_delta.
-                    IF projection_record.reason_code = 'NO_MAPE_ELIGIBLE_ROWS' THEN
-                        IF projection_record.comparison_name <> 'daily_mape_delta' THEN
-                            RAISE EXCEPTION 'NO_MAPE_ELIGIBLE_ROWS has wrong name';
-                        END IF;
-                    END IF;
-
-                    -- §6 delta projection: when all three numeric values are
-                    -- non-null, delta must equal model - baseline under the
-                    -- six-decimal fixed-point projection.
                     IF projection_record.model_value IS NOT NULL
                        AND projection_record.baseline_value IS NOT NULL
                        AND projection_record.delta_value IS NOT NULL THEN
-                        IF to_char(
-                            projection_record.delta_value -
-                            (projection_record.model_value - projection_record.baseline_value),
-                            'FM0.000000'
-                        ) <> '0.000000' THEN
-                            RAISE EXCEPTION 'delta_value projection mismatch';
+                        proj_delta_value_numeric :=
+                            projection_record.model_value - projection_record.baseline_value;
+                        proj_delta_value_str := to_char(proj_delta_value_numeric, 'FM0.000000');
+                        IF proj_delta_value_str IS DISTINCT FROM
+                           to_char(projection_record.delta_value, 'FM0.000000') THEN
+                            RAISE EXCEPTION
+                                'delta != model - baseline: model=% baseline=% delta=%',
+                                projection_record.model_value,
+                                projection_record.baseline_value,
+                                projection_record.delta_value;
                         END IF;
                     END IF;
 
-                    -- §7a six-axis breakdown identity projection.
-                    IF projection_record.normalized_breakdown_identity->>'model_identity'
+                    proj_baseline_member_identity_set :=
+                        projection_record.baseline_member_identity_set;
+                    WITH member_daily_keys AS (
+                        SELECT
+                            elem->'comparison_daily_key' AS daily_key,
+                            elem
+                        FROM jsonb_array_elements(proj_baseline_member_identity_set)
+                            AS elem
+                    ),
+                    sorted_members AS (
+                        SELECT jsonb_agg(elem ORDER BY
+                            quality_canonical_jsonb(elem->'comparison_daily_key'))
+                            AS sorted_set
+                        FROM member_daily_keys
+                    )
+                    SELECT sorted_set INTO proj_baseline_member_set_sorted FROM sorted_members;
+                    proj_member_set_hash_input := jsonb_build_object(
+                        'members', proj_baseline_member_set_sorted,
+                        'schema_version', 'v0.2-s3-comparison-baseline-member-set-v1'
+                    );
+                    proj_member_set_rebuilt := encode(
+                        digest(quality_canonical_jsonb(proj_member_set_hash_input), 'sha256'),
+                        'hex'
+                    );
+                    IF proj_member_set_rebuilt <> projection_record.baseline_member_set_hash THEN
+                        RAISE EXCEPTION
+                            'baseline_member_set_hash drift: stored=% rebuilt=%',
+                            projection_record.baseline_member_set_hash, proj_member_set_rebuilt;
+                    END IF;
+
+                    proj_normalized_breakdown_identity :=
+                        projection_record.normalized_breakdown_identity;
+                    IF proj_normalized_breakdown_identity IS NULL
+                       OR jsonb_typeof(proj_normalized_breakdown_identity) <> 'object' THEN
+                        RAISE EXCEPTION 'normalized_breakdown_identity must be a jsonb object';
+                    END IF;
+                    IF (proj_normalized_breakdown_identity->>'model_identity')
                        IS DISTINCT FROM projection_record.model_identity THEN
-                        RAISE EXCEPTION 'normalized_breakdown_identity model_identity projection mismatch';
+                        RAISE EXCEPTION
+                            'normalized_breakdown_identity.model_identity mismatch';
                     END IF;
-                    IF (projection_record.normalized_breakdown_identity->>'forecast_horizon_days')::integer
+                    IF (proj_normalized_breakdown_identity->>'forecast_horizon_days')::integer
                        IS DISTINCT FROM projection_record.forecast_horizon_days THEN
-                        RAISE EXCEPTION 'normalized_breakdown_identity forecast_horizon_days projection mismatch';
+                        RAISE EXCEPTION
+                            'normalized_breakdown_identity.forecast_horizon_days mismatch';
                     END IF;
-
-                    -- §7a member-set membership: every daily key in the
-                    -- canonical set must appear in baseline_member_identity_set.
-                    IF (
-                        SELECT bool_and(
-                            proj_payload->'baseline_member_identity_set' @>
-                            jsonb_build_array(elem)
-                        )
-                        FROM jsonb_array_elements(projection_record.baseline_member_identity_set) AS elem
-                    ) IS DISTINCT FROM TRUE THEN
-                        RAISE EXCEPTION 'baseline_member_identity_set not closed under itself';
-                    END IF;
-
-                    -- §7a baseline_member_set_hash replay: rebuild from the
-                    -- child row's baseline_member_identity_set sorted by the
-                    -- canonicalised daily key (matches the application layer
-                    -- order oracle).  This guards against hash drift even
-                    -- when other fields in the member element are mutated.
-                    rebuilt_member_set := (
-                        SELECT coalesce(
-                            jsonb_agg(elem ORDER BY
-                                quality_canonical_jsonb(elem->'comparison_daily_key')
-                            ),
-                            '[]'::jsonb
-                        )
-                        FROM jsonb_array_elements(projection_record.baseline_member_identity_set) AS elem
+                    proj_comparison_key_hash_input := jsonb_build_object(
+                        'comparison_result_schema_version',
+                            'v0.2-s3-comparison-result-v1',
+                        'comparison_policy_version',
+                            projection_record.comparison_policy_version,
+                        'comparison_name',
+                            projection_record.comparison_name,
+                        'baseline_member_set_hash',
+                            projection_record.baseline_member_set_hash,
+                        'normalized_breakdown_identity',
+                            proj_normalized_breakdown_identity
                     );
-                    rebuilt_member_set_hash := encode(
-                        digest(
-                            quality_canonical_jsonb(jsonb_build_object(
-                                'members', rebuilt_member_set,
-                                'schema_version', 'v0.2-s3-comparison-baseline-member-set-v1'
-                            )),
-                            'sha256'
-                        ),
+                    proj_comparison_key_hash_rebuilt := encode(
+                        digest(quality_canonical_jsonb(proj_comparison_key_hash_input),
+                            'sha256'),
                         'hex'
                     );
-                    IF rebuilt_member_set_hash <> projection_record.baseline_member_set_hash THEN
-                        RAISE EXCEPTION 'baseline_member_set_hash projection mismatch';
+                    IF proj_comparison_key_hash_rebuilt
+                       <> projection_record.comparison_key_hash THEN
+                        RAISE EXCEPTION
+                            'comparison_key_hash drift: stored=% rebuilt=%',
+                            projection_record.comparison_key_hash,
+                            proj_comparison_key_hash_rebuilt;
                     END IF;
 
-                    -- §7a canonical-hash replay using ONLY projection_record
-                    -- (never NEW.*) so the database is the sole authority for
-                    -- projection equality.
-                    rebuilt_canonical_hash := encode(
-                        digest(
-                            quality_canonical_jsonb(jsonb_build_object(
-                                'schema_version', 'v0.2-s3-comparison-result-v1',
-                                'comparison_policy_version', projection_record.comparison_policy_version,
-                                'comparison_name', projection_record.comparison_name,
-                                'comparison_availability', projection_record.comparison_availability,
-                                'metric_status', projection_record.metric_status,
-                                'reason_code', projection_record.reason_code,
-                                'model_identity', projection_record.model_identity,
-                                'baseline_member_identity_set', projection_record.baseline_member_identity_set,
-                                'baseline_member_set_hash', projection_record.baseline_member_set_hash,
-                                'normalized_breakdown_identity', projection_record.normalized_breakdown_identity,
-                                'forecast_horizon_days', projection_record.forecast_horizon_days,
-                                'model_value',
-                                    CASE WHEN projection_record.model_value IS NULL
-                                         THEN NULL
-                                         ELSE to_char(projection_record.model_value, 'FM0.000000')
-                                    END,
-                                'baseline_value',
-                                    CASE WHEN projection_record.baseline_value IS NULL
-                                         THEN NULL
-                                         ELSE to_char(projection_record.baseline_value, 'FM0.000000')
-                                    END,
-                                'delta_value',
-                                    CASE WHEN projection_record.delta_value IS NULL
-                                         THEN NULL
-                                         ELSE to_char(projection_record.delta_value, 'FM0.000000')
-                                    END,
-                                'model_input_row_count', projection_record.model_input_row_count,
-                                'baseline_input_row_count', projection_record.baseline_input_row_count,
-                                'common_comparable_row_count', projection_record.common_comparable_row_count,
-                                'model_only_row_count', projection_record.model_only_row_count,
-                                'baseline_only_row_count', projection_record.baseline_only_row_count,
-                                'excluded_row_count', projection_record.excluded_row_count,
-                                'not_computable_row_count', projection_record.not_computable_row_count,
-                                'external_blocker', projection_record.external_blocker,
-                                'frozen_limitation', projection_record.frozen_limitation,
-                                'comparison_key_hash', projection_record.comparison_key_hash,
-                                'persistence_schema_version', 'v0.2-s3-quality-persistence-v2'
-                            )),
-                            'sha256'
-                        ),
-                        'hex'
-                    );
-                    IF rebuilt_canonical_hash <> projection_record.canonical_hash THEN
-                        RAISE EXCEPTION 'canonical_hash projection mismatch';
+                    proj_child_status := projection_record.metric_status;
+                    proj_child_availability := projection_record.comparison_availability;
+                    proj_child_reason := projection_record.reason_code;
+                    proj_child_name := projection_record.comparison_name;
+                    proj_child_blocker_null :=
+                        projection_record.external_blocker IS NULL;
+                    proj_child_limitation_null :=
+                        projection_record.frozen_limitation IS NULL;
+                    proj_child_limitation := projection_record.frozen_limitation;
+                    proj_child_values_all_null :=
+                        projection_record.model_value IS NULL
+                        AND projection_record.baseline_value IS NULL
+                        AND projection_record.delta_value IS NULL;
+                    proj_child_values_all_nonnull :=
+                        projection_record.model_value IS NOT NULL
+                        AND projection_record.baseline_value IS NOT NULL
+                        AND projection_record.delta_value IS NOT NULL;
+
+                    IF proj_child_availability = 'AVAILABLE' THEN
+                        IF NOT proj_child_blocker_null THEN
+                            RAISE EXCEPTION
+                                'AVAILABLE comparison has non-null external_blocker';
+                        END IF;
+                        IF NOT proj_child_limitation_null THEN
+                            RAISE EXCEPTION
+                                'AVAILABLE comparison has non-null frozen_limitation';
+                        END IF;
+                        IF proj_child_status = 'COMPUTED' THEN
+                            IF NOT proj_child_values_all_nonnull THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+COMPUTED comparison has null numeric';
+                            END IF;
+                            IF proj_child_reason <> 'NONE' THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+COMPUTED comparison has reason_code <> NONE';
+                            END IF;
+                            IF proj_child_name NOT IN (
+                                'daily_mae_delta',
+                                'daily_wape_delta',
+                                'daily_smape_delta',
+                                'daily_mape_delta',
+                                'absolute_bias_magnitude_delta'
+                            ) THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+COMPUTED comparison has unknown name';
+                            END IF;
+                        ELSIF proj_child_status = 'COMPARED' THEN
+                            IF NOT proj_child_values_all_nonnull THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+COMPARED comparison has null numeric';
+                            END IF;
+                            IF proj_child_reason <> 'SIGNED_DIRECTION_ONLY' THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+COMPARED comparison has reason_code <> SIGNED_DIRECTION_ONLY';
+                            END IF;
+                            IF proj_child_name <> 'signed_bias_delta' THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+COMPARED comparison has name <> signed_bias_delta';
+                            END IF;
+                        ELSIF proj_child_status = 'INSUFFICIENT_SAMPLE' THEN
+                            IF NOT proj_child_values_all_nonnull THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+INSUFFICIENT_SAMPLE comparison has null numeric';
+                            END IF;
+                            IF proj_child_reason <> 'BELOW_MINIMUM' THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+INSUFFICIENT_SAMPLE comparison has reason_code <> BELOW_MINIMUM';
+                            END IF;
+                            IF proj_child_name NOT IN (
+                                'daily_mae_delta',
+                                'daily_wape_delta',
+                                'daily_smape_delta',
+                                'daily_mape_delta',
+                                'signed_bias_delta',
+                                'absolute_bias_magnitude_delta'
+                            ) THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+INSUFFICIENT_SAMPLE comparison has unknown name';
+                            END IF;
+                        ELSIF proj_child_status = 'NOT_COMPUTABLE' THEN
+                            IF NOT proj_child_values_all_null THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+NOT_COMPUTABLE comparison has non-null numeric';
+                            END IF;
+                            IF proj_child_reason NOT IN (
+                                'NO_S2_BINDING_ROWS',
+                                'WAPE_DENOMINATOR_ZERO',
+                                'NO_MAPE_ELIGIBLE_ROWS'
+                            ) THEN
+                                RAISE EXCEPTION
+                                    'AVAILABLE+NOT_COMPUTABLE comparison has unsupported reason_code';
+                            END IF;
+                            IF proj_child_reason = 'WAPE_DENOMINATOR_ZERO'
+                               AND proj_child_name <> 'daily_wape_delta' THEN
+                                RAISE EXCEPTION
+                                    'WAPE_DENOMINATOR_ZERO only allowed for daily_wape_delta';
+                            END IF;
+                            IF proj_child_reason = 'NO_MAPE_ELIGIBLE_ROWS'
+                               AND proj_child_name <> 'daily_mape_delta' THEN
+                                RAISE EXCEPTION
+                                    'NO_MAPE_ELIGIBLE_ROWS only allowed for daily_mape_delta';
+                            END IF;
+                            IF proj_child_reason = 'NO_S2_BINDING_ROWS'
+                               AND proj_child_name NOT IN (
+                                   'daily_mae_delta',
+                                   'daily_wape_delta',
+                                   'daily_smape_delta',
+                                   'daily_mape_delta',
+                                   'signed_bias_delta',
+                                   'absolute_bias_magnitude_delta'
+                               ) THEN
+                                RAISE EXCEPTION
+                                    'NO_S2_BINDING_ROWS has unknown name';
+                            END IF;
+                        ELSE
+                            RAISE EXCEPTION
+                                'AVAILABLE comparison has unknown metric_status';
+                        END IF;
+                    ELSIF proj_child_availability = 'BLOCKED' THEN
+                        IF NOT proj_child_blocker_null THEN
+                            RAISE EXCEPTION
+                                'BLOCKED comparison has non-null external_blocker';
+                        END IF;
+                        IF proj_child_limitation <> proj_child_reason THEN
+                            RAISE EXCEPTION
+                                'BLOCKED comparison limitation != reason_code';
+                        END IF;
+                        IF proj_child_status <> 'NOT_COMPUTABLE' THEN
+                            RAISE EXCEPTION
+                                'BLOCKED comparison has non-NOT_COMPUTABLE status';
+                        END IF;
+                        IF NOT proj_child_values_all_null THEN
+                            RAISE EXCEPTION
+                                'BLOCKED comparison has non-null numeric';
+                        END IF;
+                        IF proj_child_name = 'p80_coverage_delta'
+                           OR proj_child_name = 'p90_coverage_delta'
+                           OR proj_child_name = 'baseline_p80_p90_peak_comparison' THEN
+                            IF proj_child_reason
+                               <> 'BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED' THEN
+                                RAISE EXCEPTION
+                                    'BLOCKED coverage name requires BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED';
+                            END IF;
+                        ELSIF proj_child_name = 'interval_width_delta' THEN
+                            IF proj_child_reason
+                               <> 'PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE' THEN
+                                RAISE EXCEPTION
+                                    'BLOCKED interval_width_delta requires PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE';
+                            END IF;
+                        ELSE
+                            RAISE EXCEPTION
+                                'BLOCKED comparison has unsupported name=%',
+                                proj_child_name;
+                        END IF;
+                    ELSE
+                        RAISE EXCEPTION
+                            'unknown comparison_availability value: %',
+                            proj_child_availability;
                     END IF;
                 END LOOP;
+
             END IF;
             RETURN NEW;
         END;
