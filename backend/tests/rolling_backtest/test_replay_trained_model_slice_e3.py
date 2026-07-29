@@ -14,6 +14,9 @@ through a fresh session and ASGITransport.
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any, cast
 
 import httpx
@@ -48,6 +51,39 @@ def app() -> Any:
 def client(app: Any) -> Any:
     transport = ASGITransport(app=app)
     return httpx.AsyncClient(transport=transport, base_url="http://test")
+
+
+class _RecordingLogHandler(logging.Handler):
+    def __init__(self, sink: list[str]) -> None:
+        super().__init__(level=logging.ERROR)
+        self._sink = sink
+        self.setFormatter(logging.Formatter("%(levelname)s %(name)s %(message)s"))
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self._sink.append(self.format(record))
+
+
+@contextmanager
+def _capture_replay_trained_log_output() -> Iterator[list[str]]:
+    target_logger = rolling_backtest_replay_trained.logger
+    output: list[str] = []
+    handler = _RecordingLogHandler(output)
+
+    original_disabled = target_logger.disabled
+    original_level = target_logger.level
+    original_global_disable = logging.root.manager.disable
+
+    try:
+        logging.disable(logging.NOTSET)
+        target_logger.disabled = False
+        target_logger.setLevel(logging.ERROR)
+        target_logger.addHandler(handler)
+        yield output
+    finally:
+        target_logger.removeHandler(handler)
+        target_logger.setLevel(original_level)
+        target_logger.disabled = original_disabled
+        logging.disable(original_global_disable)
 
 
 def _stub_result(*, created: bool = True) -> ReplayTrainedExecutionResult:
@@ -1113,7 +1149,6 @@ async def test_schema_rejects_wrong_nested_boolean_type(client: Any) -> None:
 async def test_post_service_error_does_not_log_raw_idempotency_key(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """The transport layer MUST NOT log the raw ``idempotency_key``.
 
@@ -1138,28 +1173,25 @@ async def test_post_service_error_does_not_log_raw_idempotency_key(
     request = _stub_request(idempotency_key=raw_sentinel)
     body = request.to_payload()
     body["idempotency_key"] = raw_sentinel
-    with caplog.at_level(
-        "ERROR",
-        logger=rolling_backtest_replay_trained.__name__,
-    ):
+    with _capture_replay_trained_log_output() as captured:
         async with client as c:
             response = await c.post(
                 "/api/v1/rolling-backtest/replay-trained-predictions", json=body
             )
+    log_text = "\n".join(captured)
     assert response.status_code == 500
-    assert raw_sentinel not in caplog.text
+    assert raw_sentinel not in log_text
     # SHA-256[:12] of the sentinel prefix MUST be present so two log
     # lines about the same execution can still be correlated.
     import hashlib
 
     prefix = hashlib.sha256(raw_sentinel.encode("utf-8")).hexdigest()[:12]
-    assert prefix in caplog.text
+    assert prefix in log_text
 
 
 async def test_post_unexpected_error_does_not_log_raw_idempotency_key(
     monkeypatch: pytest.MonkeyPatch,
     client: Any,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
     raw_sentinel = "RAW_IDEMPOTENCY_SENTINEL_unexpected"
 
@@ -1177,17 +1209,15 @@ async def test_post_unexpected_error_does_not_log_raw_idempotency_key(
     request = _stub_request(idempotency_key=raw_sentinel)
     body = request.to_payload()
     body["idempotency_key"] = raw_sentinel
-    with caplog.at_level(
-        "ERROR",
-        logger=rolling_backtest_replay_trained.__name__,
-    ):
+    with _capture_replay_trained_log_output() as captured:
         async with client as c:
             response = await c.post(
                 "/api/v1/rolling-backtest/replay-trained-predictions", json=body
             )
+    log_text = "\n".join(captured)
     assert response.status_code == 500
-    assert raw_sentinel not in caplog.text
+    assert raw_sentinel not in log_text
     import hashlib
 
     prefix = hashlib.sha256(raw_sentinel.encode("utf-8")).hexdigest()[:12]
-    assert prefix in caplog.text
+    assert prefix in log_text
