@@ -19,11 +19,13 @@ from backend.app.api.residual_model import router as residual_model_router
 from backend.app.api.rolling_backtest_replay_trained import (
     router as rolling_backtest_replay_trained_router,
 )
+from backend.app.api.trial import router as trial_router
 from backend.app.api.weather import router as weather_router
 from backend.app.core.config import AppSettings, get_settings
 from backend.app.core.version import APP_VERSION
 from backend.app.db import session as db_session
 from backend.app.schemas.harvest_state import HarvestStateErrorResponse
+from backend.app.trial import TrialErrorResponse, map_actual_harvest_error
 
 
 @asynccontextmanager
@@ -46,6 +48,10 @@ def _is_actual_harvest_path(path: str) -> bool:
     return path == "/api/v1/actual-harvest" or path.startswith("/api/v1/actual-harvest/")
 
 
+def _is_trial_path(path: str) -> bool:
+    return path == "/api/v1/trial" or path.startswith("/api/v1/trial/")
+
+
 def create_app(settings: AppSettings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(title=app_settings.app_name, version=APP_VERSION, lifespan=lifespan)
@@ -57,6 +63,18 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         request: Request,
         exc: ActualHarvestApiError,
     ) -> JSONResponse:
+        if _is_trial_path(request.url.path):
+            trial_error = map_actual_harvest_error(exc)
+            return JSONResponse(
+                status_code=trial_error.status_code,
+                content=TrialErrorResponse(
+                    request_id=request.headers.get("x-request-id"),
+                    code=trial_error.code.value,
+                    message_template_id=trial_error.code.value,
+                    retryable=trial_error.retryable,
+                    details=trial_error.details,
+                ).model_dump(mode="json"),
+            )
         del request
         return JSONResponse(
             status_code=exc.status_code,
@@ -94,6 +112,16 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
                         "identity": {},
                     }
                 },
+            )
+        if _is_trial_path(request.url.path):
+            return JSONResponse(
+                status_code=422,
+                content=TrialErrorResponse(
+                    request_id=request.headers.get("x-request-id"),
+                    code="TRIAL_REQUEST_INVALID",
+                    message_template_id="TRIAL_REQUEST_INVALID",
+                    retryable=False,
+                ).model_dump(mode="json"),
             )
         if _is_actual_harvest_path(request.url.path):
             error_code = "API_REQUEST_INVALID"
@@ -159,6 +187,7 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         prefix="/api/v1/rolling-backtest",
         tags=["rolling-backtest", "task-012"],
     )
+    app.include_router(trial_router, prefix="/api/v1/trial", tags=["trial"])
     return app
 
 
