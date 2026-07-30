@@ -77,10 +77,21 @@ EXISTING_VITE_CONFIG_COUNT=0
 EXISTING_PLAYWRIGHT_CONFIG_COUNT=0
 ```
 
-Only `.github/workflows/ci.yml` exists. It owns eight pull-request Python/
-PostgreSQL jobs and one non-pull-request `full-suite-canary`; it has no Node
-setup, frontend job, browser job, or Playwright artifact contract.
-`ci-shard-manifest.yml` is absent and is not created or changed here.
+`.github/workflows/ci.yml` and `ci-shard-manifest.yml` both exist on the frozen
+base. The workflow owns eight pull-request Python/PostgreSQL jobs and one
+non-pull-request `full-suite-canary`; it has no Node setup, frontend job,
+browser job, or Playwright artifact contract.
+
+```text
+EXISTING_CI_SHARD_MANIFEST=true
+CI_SHARD_MANIFEST_PATH=ci-shard-manifest.yml
+CI_SHARD_MANIFEST_BLOB_SHA=d4780d47e6a0303d913cd18ec58617b576afcb50
+CI_SHARD_MANIFEST_IS_PYTEST_OWNERSHIP_SOURCE_OF_TRUTH=true
+CI_SHARD_MANIFEST_UPDATE_REQUIRED=true
+```
+
+ci-shard-manifest.yml already exists on the frozen base. It is the repository
+source of truth for single-execution pytest ownership.
 
 ## 4. Product boundary and routes
 
@@ -373,15 +384,52 @@ IDLE -> SUBMITTING -> PENDING -> COMPLETED
                      ERROR
 ```
 
-Actual import lifecycle is displayed precisely:
+Actual import lifecycle is displayed precisely. The exact backend DTO and enum
+values remain authoritative:
 
 ```text
-RECEIVED -> UPLOADING -> SEALED -> PARSING -> VALIDATING -> VALIDATED -> COMMITTED
-                              \-> BLOCKED
-                              \-> CANCELLED
+ACTUAL_HARVEST_IMPORT_SERVER_STATUSES=
+RECEIVED,
+UPLOADING,
+SEALED,
+PARSING,
+PARSE_FAILED,
+VALIDATING,
+VALIDATION_FAILED,
+VALIDATED,
+COMMITTING,
+COMMITTED,
+COMMIT_FAILED,
+CANCELLED
 ```
 
-The exact DTO state names remain authoritative. `NOT_COMPUTABLE`,
+```text
+RECEIVED
+-> UPLOADING
+-> SEALED
+-> PARSING
+   |-> PARSE_FAILED
+   \-> VALIDATING
+      |-> VALIDATION_FAILED
+      \-> VALIDATED
+         -> COMMITTING
+            |-> COMMIT_FAILED
+            \-> COMMITTED
+```
+
+Any pre-terminal permitted state may transition to `CANCELLED` only where the
+backend lifecycle contract allows cancellation.
+
+```text
+BLOCKED_IS_SERVER_BATCH_STATUS=false
+BLOCKED_IS_UI_RESOURCE_STATE=true
+```
+
+`BLOCKED` is a frontend presentation state derived from a typed error,
+validation reason, unavailable authority, or non-progressable lifecycle
+condition. It must not be serialized or compared as a server batch status.
+
+`NOT_COMPUTABLE`,
 `INSUFFICIENT_COVERAGE`, `SEMANTICS_UNVERIFIED`, and
 `LOWER_BOUND_UNAVAILABLE` are never displayed as zero. Sustained seven-day
 peak is rendered from the backend state/value only; no frontend window is
@@ -479,7 +527,11 @@ interception. No real business data is permitted in CI fixtures.
 ```text
 CI_OPTION=OPTION_A_ADD_DEDICATED_FRONTEND_PR_JOBS
 CHANGED_PATH_FILTERS_ALLOWED=false
-CI_SHARD_MANIFEST_UPDATE_REQUIRED=false
+EXISTING_CI_SHARD_MANIFEST=true
+CI_SHARD_MANIFEST_PATH=ci-shard-manifest.yml
+CI_SHARD_MANIFEST_IS_PYTEST_OWNERSHIP_SOURCE_OF_TRUTH=true
+CI_SHARD_MANIFEST_UPDATE_REQUIRED=true
+CI_SHARD_MANIFEST_FUTURE_CHANGE_SCOPE=REGISTER_BACKEND_TESTS_TRIAL_UNDER_UNIT_CONTRACT_GOLDEN_ONLY
 ```
 
 No path filter is used for dedicated jobs; they run on every pull request and
@@ -510,8 +562,17 @@ CI freeze:
   to `GITHUB_STEP_SUMMARY`.
 - `full-suite-canary` remains the backend full pytest gate; it is not replaced
   by `frontend-e2e`. S5 closeout requires both.
-- No `ci-shard-manifest.yml` update is needed because frontend jobs do not own
-  Python pytest nodes, and the absent file must not be created.
+- `ci-shard-manifest.yml` already exists on the frozen base and is the
+  repository source of truth for single-execution pytest ownership. Round A
+  introduces or changes Trial backend tests under `backend/tests/trial/`, so
+  its future change may register `backend/tests/trial/` under the
+  `unit-contract-golden` marker-residual ownership without changing existing
+  PostgreSQL, migration, concurrency, Task 11, or canary ownership.
+- Dedicated frontend jobs are not pytest owners and do not replace or duplicate
+  the manifest's Python-test ownership rules.
+- No existing shard selector may be modified, no test may be moved or
+  reclassified, no marker may be changed, no existing owner may be deleted, and
+  no unrelated test directory may be added to the manifest change.
 
 No workflow file is changed by this audit.
 
@@ -569,12 +630,14 @@ frontend/e2e/forecast-flow.spec.ts
 frontend/e2e/quality-flow.spec.ts
 frontend/e2e/fixtures/actual-harvest.csv
 frontend/e2e/fixtures/actual-harvest.xlsx
+backend/tests/trial/test_upload_contract.py
 ~~~
 
 ### MODIFY_PATHS
 
 ~~~text
 .github/workflows/ci.yml
+ci-shard-manifest.yml
 backend/app/api/trial.py
 backend/app/trial.py
 backend/app/main.py
@@ -584,18 +647,18 @@ backend/app/actual_harvest_import/api_errors.py
 backend/app/api/actual_harvest_imports.py
 backend/tests/trial/test_api.py
 backend/tests/trial/test_contract.py
-backend/tests/trial/test_upload_contract.py
 ~~~
 
 Round A may use only the explicitly listed backend files and Trial tests.
-backend/tests/trial/test_upload_contract.py is a future creation path, not an
-existing file. No migration or data model path is allowed.
+`backend/tests/trial/test_upload_contract.py` is a future CREATE path.
+`ci-shard-manifest.yml` is an existing future MODIFY path with a narrowly
+bounded pytest-ownership registration scope. No migration or data model path is
+allowed.
 
 ### FORBIDDEN_PATHS
 
 ~~~text
 frontend/.gitkeep
-ci-shard-manifest.yml
 docker-compose.yml
 docker-compose.override.yml
 pyproject.toml
@@ -616,14 +679,21 @@ Directory rules are subordinate to the explicit file lists. No generic
 backend/**, docs/**, .github/**, or "files as needed" authority exists.
 
 ~~~text
-FUTURE_CHANGED_FILE_CEILING=57
-FUTURE_BACKEND_CHANGE_CEILING=11
+FUTURE_CREATE_PATH_COUNT=47
+FUTURE_MODIFY_PATH_COUNT=11
+FUTURE_CHANGED_FILE_CEILING=58
+FUTURE_BACKEND_CHANGE_CEILING=10
 FUTURE_WORKFLOW_CHANGE_CEILING=1
+FUTURE_CI_CONTROL_FILE_CEILING=2
 ~~~
 
-The file ceiling is a hard maximum across CREATE_PATHS and MODIFY_PATHS. The
-backend ceiling is the eleven explicitly listed backend paths. The workflow
-ceiling is exactly one file.
+The 47 CREATE paths contain 46 existing frontend create paths and one backend
+test create path: `backend/tests/trial/test_upload_contract.py`. The 11 MODIFY
+paths contain one workflow, one CI ownership manifest, and nine existing
+backend application/test paths. The backend ceiling is ten explicitly listed
+backend paths. The two CI control paths are `.github/workflows/ci.yml` and
+`ci-shard-manifest.yml`. The file ceiling is a hard maximum across CREATE_PATHS
+and MODIFY_PATHS; the workflow ceiling is exactly one file.
 
 ## 16. S5 implementation rounds
 
