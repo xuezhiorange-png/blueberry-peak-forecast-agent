@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Annotated
 
 from fastapi import Depends
@@ -29,11 +30,52 @@ class ActualHarvestActorContext(BaseModel):
 
 
 async def get_actual_harvest_actor() -> ActualHarvestActorContext:
-    raise ActualHarvestApiError(
-        ActualHarvestApiErrorCode.ACTUAL_HARVEST_AUTHORIZATION_UNAVAILABLE,
-        "actual-harvest authorization is unavailable",
-        status_code=503,
-    )
+    """Load the server-owned actor; missing or malformed config fails closed."""
+
+    identity = os.getenv("TRIAL_ACTOR_IDENTITY", "").strip()
+    source_systems = _csv_env("TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS")
+    channels = _csv_env("TRIAL_ACTOR_ALLOWED_CHANNELS")
+    permissions = _csv_env("TRIAL_ACTOR_PERMISSIONS")
+    known_permissions = {
+        "may_create",
+        "may_append",
+        "may_preview",
+        "may_seal",
+        "may_cancel",
+        "may_validate",
+        "may_commit",
+    }
+    if (
+        not identity
+        or not source_systems
+        or not channels
+        or not channels.issubset({item.value for item in ActualHarvestImportChannel})
+        or not permissions
+        or not permissions.issubset(known_permissions)
+    ):
+        raise ActualHarvestApiError(
+            ActualHarvestApiErrorCode.ACTUAL_HARVEST_AUTHORIZATION_UNAVAILABLE,
+            "actual-harvest authorization is unavailable",
+            status_code=503,
+        )
+    try:
+        return ActualHarvestActorContext(
+            identity=identity,
+            allowed_source_systems=frozenset(source_systems),
+            allowed_channels=frozenset(ActualHarvestImportChannel(item) for item in channels),
+            **{permission: permission in permissions for permission in known_permissions},
+        )
+    except (TypeError, ValueError) as exc:
+        raise ActualHarvestApiError(
+            ActualHarvestApiErrorCode.ACTUAL_HARVEST_AUTHORIZATION_UNAVAILABLE,
+            "actual-harvest authorization is unavailable",
+            status_code=503,
+        ) from exc
+
+
+def _csv_env(name: str) -> frozenset[str]:
+    raw = os.getenv(name, "")
+    return frozenset(item.strip() for item in raw.split(",") if item.strip())
 
 
 ActorDep = Annotated[ActualHarvestActorContext, Depends(get_actual_harvest_actor)]

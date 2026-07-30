@@ -13,6 +13,7 @@ from backend.app.actual_harvest_import.api_auth import (
     ActualHarvestActorContext,
     get_actual_harvest_actor,
 )
+from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
 from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiCommitRequest,
     ActualHarvestApiCreateImportRequest,
@@ -21,9 +22,13 @@ from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.db.session import get_db_session
 from backend.app.main import create_app
 from backend.app.trial import (
+    DefaultTrialApplicationService,
     TrialActualHarvestCommitResponse,
     TrialActualHarvestImportCreateResponse,
     TrialActualHarvestImportStatusResponse,
+    TrialActualHarvestInvalidRowsResponse,
+    TrialActualHarvestUploadMetadata,
+    TrialActualHarvestUploadResponse,
     TrialApiError,
     TrialApiErrorCode,
     TrialCsvDocument,
@@ -41,11 +46,16 @@ from backend.app.trial import (
 NOW = datetime(2026, 7, 29, 8, 0, tzinfo=UTC)
 
 
-def _actor(*, preview: bool = True, create: bool = True) -> ActualHarvestActorContext:
+def _actor(
+    *,
+    preview: bool = True,
+    create: bool = True,
+    channels: frozenset[ActualHarvestImportChannel] | None = None,
+) -> ActualHarvestActorContext:
     return ActualHarvestActorContext(
         identity="trial-user-1",
         allowed_source_systems=frozenset({"synthetic-farm-system"}),
-        allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+        allowed_channels=channels or frozenset({ActualHarvestImportChannel.API}),
         may_create=create,
         may_append=create,
         may_preview=preview,
@@ -121,6 +131,7 @@ class SyntheticTrialService:
     def __init__(self) -> None:
         self.forecast_requests: dict[str, TrialForecastCreateRequest] = {}
         self.quality_requests: dict[str, TrialQualityReportCreateRequest] = {}
+        self.upload_calls: list[str] = []
 
     async def create_forecast(
         self,
@@ -252,6 +263,62 @@ class SyntheticTrialService:
             commit_policy_version="actual-harvest-commit-policy-v1",
             commit_manifest_hash="d" * 64,
             reused_existing_commit=True,
+        )
+
+    async def authorize_import_upload(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        actor: ActualHarvestActorContext,
+    ) -> None:
+        del session
+        self.upload_calls.append("authorize_import_upload")
+        if not actor.may_append or import_id != "import-public-1":
+            raise TrialApiError(
+                TrialApiErrorCode.RESOURCE_NOT_FOUND, status_code=404, message="missing"
+            )
+
+    async def upload_import(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        content: bytes,
+        metadata: TrialActualHarvestUploadMetadata,
+        actor: ActualHarvestActorContext,
+    ) -> TrialActualHarvestUploadResponse:
+        self.upload_calls.append("upload_import")
+        del session, content, metadata, actor
+        return TrialActualHarvestUploadResponse(
+            import_id=import_id,
+            server_status="VALIDATED",
+            source_file_name="harvest.csv",
+            source_mime_type="text/csv",
+            source_file_sha256="a" * 64,
+            uploaded_record_count=2,
+            valid_record_count=2,
+            invalid_record_count=0,
+            validation_status="VALIDATED",
+            validation_run_instance_identity_hash_or_null="b" * 64,
+            validation_result_hash_or_null="c" * 64,
+            reason_codes=(),
+        )
+
+    async def get_import_errors(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        *,
+        page_size: int,
+        page_token: str | None,
+        actor: ActualHarvestActorContext,
+    ) -> TrialActualHarvestInvalidRowsResponse:
+        del session, page_size, page_token, actor
+        return TrialActualHarvestInvalidRowsResponse(
+            import_id=import_id,
+            validation_status="VALIDATION_FAILED",
+            validation_run_instance_identity_hash_or_null="b" * 64,
+            rows=(),
+            next_page_token=None,
         )
 
     async def create_quality_report(
@@ -449,6 +516,42 @@ async def test_actual_import_create_api_acceptance(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_actual_import_create_scope_mismatch_is_forbidden_before_lifecycle(
+    client: AsyncClient,
+    trial_app,
+) -> None:
+    trial_app.dependency_overrides[get_trial_service] = lambda: DefaultTrialApplicationService()
+    trial_app.dependency_overrides[get_actual_harvest_actor] = lambda: _actor(
+        channels=frozenset({ActualHarvestImportChannel.CSV})
+    )
+    body = {
+        "source_system": "synthetic-farm-system",
+        "source_dataset": "synthetic-dataset",
+        "source_version": "v1",
+        "external_batch_id": "batch-scope-check",
+        "idempotency_key": "import-scope-check",
+        "submitted_at": NOW.isoformat(),
+        "submitted_by_identity": "trial-user-1",
+        "import_channel": "api",
+        "raw_payload_hash": "a" * 64,
+        "schema_version": "synthetic-v1",
+        "mapping_policy_version": "mapping-v1",
+        "validation_policy_version": "validation-v1",
+        "source_semantics_attestation": {
+            "attestation_version": "attestation-v1",
+            "physical_event": "FARM_PICK",
+            "quantity_basis": "OBSERVED_WEIGHT",
+            "quantity_unit": "KG",
+            "missing_record_semantics": "UNKNOWN_NOT_ZERO",
+        },
+        "source_semantics_attestation_hash": "b" * 64,
+    }
+    response = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
+    assert response.status_code == 403
+    assert response.json()["code"] == "TRIAL_AUTHORIZATION_FORBIDDEN"
+
+
+@pytest.mark.asyncio
 async def test_actual_import_get_api_acceptance(client: AsyncClient) -> None:
     response = await client.get("/api/v1/trial/actual-harvest/imports/import-public-1")
     assert response.status_code == 200
@@ -463,6 +566,114 @@ async def test_actual_import_commit_api_acceptance(client: AsyncClient) -> None:
     )
     assert response.status_code == 200
     assert response.json()["status"] == "COMMITTED"
+
+
+@pytest.mark.asyncio
+async def test_actual_import_upload_uses_raw_binary_body(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/trial/actual-harvest/imports/import-public-1/upload",
+        content=b"raw-csv-bytes",
+        headers={"content-type": "text/csv", "x-file-name": "harvest.csv"},
+    )
+    assert response.status_code == 200
+    assert response.json()["validation_status"] == "VALIDATED"
+
+
+@pytest.mark.asyncio
+async def test_actual_import_upload_authorizes_before_upload_service(
+    client: AsyncClient,
+    synthetic_service: SyntheticTrialService,
+) -> None:
+    response = await client.post(
+        "/api/v1/trial/actual-harvest/imports/import-public-1/upload",
+        content=b"raw-csv-bytes",
+        headers={"content-type": "text/csv", "x-file-name": "harvest.csv"},
+    )
+    assert response.status_code == 200
+    assert synthetic_service.upload_calls == ["authorize_import_upload", "upload_import"]
+
+
+@pytest.mark.asyncio
+async def test_actual_import_upload_preflight_conceals_before_metadata_or_body(
+    client: AsyncClient,
+    trial_app,
+) -> None:
+    class RejectingUploadPreflightService:
+        upload_import_called = False
+
+        async def authorize_import_upload(
+            self,
+            session: AsyncSession,
+            import_id: str,
+            actor: ActualHarvestActorContext,
+        ) -> None:
+            del session, import_id, actor
+            raise TrialApiError(
+                TrialApiErrorCode.RESOURCE_NOT_FOUND,
+                status_code=404,
+                message="Resource was not found.",
+            )
+
+        async def upload_import(
+            self,
+            session: AsyncSession,
+            import_id: str,
+            content: bytes,
+            metadata: TrialActualHarvestUploadMetadata,
+            actor: ActualHarvestActorContext,
+        ) -> TrialActualHarvestUploadResponse:
+            del session, import_id, content, metadata, actor
+            self.upload_import_called = True
+            raise AssertionError("upload service must not run after failed preflight")
+
+    service = RejectingUploadPreflightService()
+    trial_app.dependency_overrides[get_trial_service] = lambda: service
+    response = await client.post(
+        "/api/v1/trial/actual-harvest/imports/import-public-1/upload",
+        content=b"non-empty-body",
+        headers={"content-type": "invalid/content-type", "x-file-name": "../unsafe.csv"},
+    )
+    assert response.status_code == 404
+    assert response.json()["code"] == "RESOURCE_NOT_FOUND"
+    assert service.upload_import_called is False
+
+
+@pytest.mark.asyncio
+async def test_actual_import_errors_api_acceptance(client: AsyncClient) -> None:
+    response = await client.get(
+        "/api/v1/trial/actual-harvest/imports/import-public-1/errors",
+        params={"page_size": 1, "page_token": "page-1"},
+    )
+    assert response.status_code == 200
+    assert response.json()["validation_status"] == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_upload_rejects_unsupported_content_type_with_typed_error(
+    client: AsyncClient,
+) -> None:
+    response = await client.post(
+        "/api/v1/trial/actual-harvest/imports/import-public-1/upload",
+        content=b"raw-bytes",
+        headers={"content-type": "application/octet-stream", "x-file-name": "harvest.csv"},
+    )
+    assert response.status_code == 415
+    assert response.json()["code"] == "TRIAL_UNSUPPORTED_CONTENT_TYPE"
+
+
+@pytest.mark.asyncio
+async def test_actor_configuration_fails_closed_without_server_config() -> None:
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        for name in (
+            "TRIAL_ACTOR_IDENTITY",
+            "TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS",
+            "TRIAL_ACTOR_ALLOWED_CHANNELS",
+            "TRIAL_ACTOR_PERMISSIONS",
+        ):
+            monkeypatch.delenv(name, raising=False)
+        with pytest.raises(ActualHarvestApiError) as error:
+            await get_actual_harvest_actor()
+        assert error.value.status_code == 503
 
 
 @pytest.mark.asyncio
@@ -502,6 +713,8 @@ def test_openapi_schema_acceptance(trial_app) -> None:
         "/api/v1/trial/forecasts/{run_id}/export.csv",
         "/api/v1/trial/actual-harvest/imports",
         "/api/v1/trial/actual-harvest/imports/{import_id}",
+        "/api/v1/trial/actual-harvest/imports/{import_id}/upload",
+        "/api/v1/trial/actual-harvest/imports/{import_id}/errors",
         "/api/v1/trial/actual-harvest/imports/{import_id}/commit",
         "/api/v1/trial/quality-reports",
         "/api/v1/trial/quality-reports/{report_id}",
