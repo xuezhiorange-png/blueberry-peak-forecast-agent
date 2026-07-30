@@ -13,6 +13,10 @@ from backend.app.actual_harvest_import.api_auth import (
     get_actual_harvest_actor,
 )
 from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
+from backend.app.actual_harvest_import.api_schemas import (
+    ActualHarvestApiCommitRequest,
+    ActualHarvestApiCreateImportRequest,
+)
 from backend.app.actual_harvest_import.enums import (
     ActualHarvestImportBatchStatus,
     ActualHarvestImportChannel,
@@ -42,17 +46,61 @@ def _request(*, content_type: str, file_name: str, file_hash: str | None = None)
 def _actor(
     *,
     channel: ActualHarvestImportChannel = ActualHarvestImportChannel.CSV,
+    channels: frozenset[ActualHarvestImportChannel] | None = None,
+    identity: str = "trial-user",
 ) -> ActualHarvestActorContext:
     return ActualHarvestActorContext(
-        identity="trial-user",
+        identity=identity,
         allowed_source_systems=frozenset({"farm-system"}),
-        allowed_channels=frozenset({channel}),
+        allowed_channels=channels or frozenset({channel}),
         may_create=True,
         may_append=True,
         may_preview=True,
         may_seal=True,
         may_validate=True,
         may_commit=True,
+    )
+
+
+def _batch(
+    *,
+    source_system: str = "farm-system",
+    channel: ActualHarvestImportChannel = ActualHarvestImportChannel.CSV,
+    identity: str = "trial-user",
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        import_channel=channel.value,
+        source_system=source_system,
+        submitted_by_identity=identity,
+    )
+
+
+def _create_request(
+    *,
+    source_system: str = "farm-system",
+    identity: str = "trial-user",
+) -> ActualHarvestApiCreateImportRequest:
+    return ActualHarvestApiCreateImportRequest(
+        import_channel=ActualHarvestImportChannel.API,
+        source_system=source_system,
+        source_dataset="dataset-1",
+        source_version="v1",
+        external_batch_id="batch-1",
+        idempotency_key="idempotency-1",
+        submitted_at=datetime(2026, 1, 1, 8, tzinfo=UTC),
+        submitted_by_identity=identity,
+        raw_payload_hash="a" * 64,
+        schema_version="schema-v1",
+        mapping_policy_version="mapping-v1",
+        validation_policy_version="validation-v1",
+        source_semantics_attestation={
+            "attestation_version": "attestation-v1",
+            "physical_event": "FARM_PICK",
+            "quantity_basis": "OBSERVED_WEIGHT",
+            "quantity_unit": "KG",
+            "missing_record_semantics": "UNKNOWN_NOT_ZERO",
+        },
+        source_semantics_attestation_hash="b" * 64,
     )
 
 
@@ -88,7 +136,7 @@ async def test_upload_parses_before_any_lifecycle_mutation(monkeypatch: pytest.M
     service = DefaultTrialApplicationService()
     calls: list[str] = []
     session = SimpleNamespace()
-    batch = SimpleNamespace(source_system="farm-system", submitted_by_identity="trial-user")
+    batch = _batch()
     summary = SimpleNamespace(
         validation_status="VALIDATED",
         valid_count=1,
@@ -163,7 +211,7 @@ async def test_upload_parser_failure_does_not_mutate_batch(monkeypatch: pytest.M
 
     async def get_batch(session, import_id):
         del session, import_id
-        return SimpleNamespace(source_system="farm-system", submitted_by_identity="trial-user")
+        return _batch()
 
     monkeypatch.setattr(trial_module, "get_import", get_batch)
 
@@ -198,7 +246,7 @@ async def test_xlsx_upload_reuses_parser_and_lifecycle(monkeypatch: pytest.Monke
     service = DefaultTrialApplicationService()
     calls: list[str] = []
     session = SimpleNamespace()
-    batch = SimpleNamespace(source_system="farm-system", submitted_by_identity="trial-user")
+    batch = _batch(channel=ActualHarvestImportChannel.XLSX)
     summary = SimpleNamespace(
         validation_status="VALIDATED",
         valid_count=1,
@@ -268,7 +316,7 @@ async def test_empty_upload_is_rejected_before_parser(monkeypatch: pytest.Monkey
 
     async def get_batch(session, import_id):
         del session, import_id
-        return SimpleNamespace(source_system="farm-system", submitted_by_identity="trial-user")
+        return _batch()
 
     monkeypatch.setattr(trial_module, "get_import", get_batch)
     parser_called = False
@@ -321,7 +369,7 @@ async def test_upload_hash_mismatch_is_rejected_before_append(
 
     async def get_batch(session, import_id):
         del session, import_id
-        return SimpleNamespace(source_system="farm-system", submitted_by_identity="trial-user")
+        return _batch()
 
     monkeypatch.setattr(trial_module, "get_import", get_batch)
     append_called = False
@@ -359,7 +407,7 @@ async def test_oversized_upload_is_rejected_before_parser(monkeypatch: pytest.Mo
 
     async def get_batch(session, import_id):
         del session, import_id
-        return SimpleNamespace(source_system="farm-system", submitted_by_identity="trial-user")
+        return _batch()
 
     monkeypatch.setattr(trial_module, "get_import", get_batch)
     with pytest.raises(TrialApiError) as error:
@@ -382,6 +430,12 @@ async def test_invalid_row_pagination_is_returned_without_recomputation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     service = DefaultTrialApplicationService()
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return _batch()
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
     summary = SimpleNamespace(
         validation_status="VALIDATION_FAILED",
         validation_run_identity="a" * 64,
@@ -422,7 +476,7 @@ async def test_cross_scope_upload_is_concealed(monkeypatch: pytest.MonkeyPatch) 
 
     async def get_batch(session, import_id):
         del session, import_id
-        return SimpleNamespace(source_system="other-system", submitted_by_identity="other-user")
+        return _batch(source_system="other-system", identity="other-user")
 
     monkeypatch.setattr(trial_module, "get_import", get_batch)
     with pytest.raises(ActualHarvestApiError) as error:
@@ -463,3 +517,220 @@ async def test_actor_configuration_fails_closed_and_validates_server_config(
     assert actor.identity == "configured-actor"
     assert actor.may_append is True
     assert actor.may_commit is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("request_kwargs", "actor"),
+    [
+        (
+            {"source_system": "other-system"},
+            _actor(channels=frozenset({ActualHarvestImportChannel.API})),
+        ),
+        ({}, _actor()),
+        (
+            {"identity": "other-user"},
+            _actor(channels=frozenset({ActualHarvestImportChannel.API})),
+        ),
+    ],
+    ids=("source", "channel", "owner"),
+)
+async def test_create_import_scope_failure_is_forbidden_before_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+    request_kwargs: dict[str, str],
+    actor: ActualHarvestActorContext,
+) -> None:
+    service = DefaultTrialApplicationService()
+    mutation_called = False
+
+    async def create_batch(*args, **kwargs):
+        nonlocal mutation_called
+        mutation_called = True
+        del args, kwargs
+        raise AssertionError("create lifecycle must not run")
+
+    monkeypatch.setattr(trial_module, "create_import", create_batch)
+    with pytest.raises(ActualHarvestApiError) as error:
+        await service.create_import(None, _create_request(**request_kwargs), actor)
+    assert error.value.status_code == 403
+    assert mutation_called is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "batch",
+    [
+        _batch(source_system="other-system"),
+        _batch(identity="other-user"),
+        _batch(channel=ActualHarvestImportChannel.API),
+    ],
+    ids=("source", "owner", "channel"),
+)
+async def test_get_import_scope_failure_is_concealed_before_validation(
+    monkeypatch: pytest.MonkeyPatch,
+    batch: SimpleNamespace,
+) -> None:
+    service = DefaultTrialApplicationService()
+    validation_called = False
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return batch
+
+    async def read_validation(session, import_id):
+        nonlocal validation_called
+        validation_called = True
+        del session, import_id
+        raise AssertionError("validation summary must not be read")
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
+    monkeypatch.setattr(trial_module, "validation_summary", read_validation)
+    with pytest.raises(ActualHarvestApiError) as error:
+        await service.get_import(None, "import-1", _actor())
+    assert error.value.status_code == 404
+    assert validation_called is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "batch",
+    [
+        _batch(source_system="other-system"),
+        _batch(identity="other-user"),
+        _batch(channel=ActualHarvestImportChannel.API),
+    ],
+    ids=("source", "owner", "channel"),
+)
+async def test_commit_import_scope_failure_is_concealed_before_commit(
+    monkeypatch: pytest.MonkeyPatch,
+    batch: SimpleNamespace,
+) -> None:
+    service = DefaultTrialApplicationService()
+    commit_called = False
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return batch
+
+    async def commit(*args, **kwargs):
+        nonlocal commit_called
+        commit_called = True
+        del args, kwargs
+        raise AssertionError("commit lifecycle must not run")
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
+    monkeypatch.setattr(trial_module, "commit_batch", commit)
+    with pytest.raises(ActualHarvestApiError) as error:
+        await service.commit_import(
+            None,
+            "import-1",
+            ActualHarvestApiCommitRequest(validation_run_instance_identity_hash="a" * 64),
+            _actor(),
+        )
+    assert error.value.status_code == 404
+    assert commit_called is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("batch", "actor", "channel"),
+    [
+        (_batch(source_system="other-system"), _actor(), ActualHarvestImportChannel.CSV),
+        (_batch(identity="other-user"), _actor(), ActualHarvestImportChannel.CSV),
+        (_batch(channel=ActualHarvestImportChannel.API), _actor(), ActualHarvestImportChannel.CSV),
+        (_batch(), _actor(), ActualHarvestImportChannel.XLSX),
+    ],
+    ids=("source", "owner", "persisted-channel", "upload-channel"),
+)
+async def test_upload_scope_failure_is_concealed_before_parse_or_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+    batch: SimpleNamespace,
+    actor: ActualHarvestActorContext,
+    channel: ActualHarvestImportChannel,
+) -> None:
+    service = DefaultTrialApplicationService()
+    parser_called = False
+    mutation_called = False
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return batch
+
+    def parser(content):
+        nonlocal parser_called
+        parser_called = True
+        del content
+        raise AssertionError("parser must not run")
+
+    async def mutation(*args, **kwargs):
+        nonlocal mutation_called
+        mutation_called = True
+        del args, kwargs
+        raise AssertionError("upload mutation must not run")
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
+    monkeypatch.setattr(trial_module, "parse_csv", parser)
+    monkeypatch.setattr(trial_module, "parse_xlsx", parser)
+    monkeypatch.setattr(trial_module, "_run_mutation", mutation)
+    with pytest.raises(ActualHarvestApiError) as error:
+        await service.upload_import(
+            None,
+            "import-1",
+            b"raw-content",
+            TrialActualHarvestUploadMetadata(
+                file_name=(
+                    "harvest.xlsx" if channel is ActualHarvestImportChannel.XLSX else "harvest.csv"
+                ),
+                mime_type=(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    if channel is ActualHarvestImportChannel.XLSX
+                    else "text/csv"
+                ),
+                channel=channel,
+            ),
+            actor,
+        )
+    assert error.value.status_code == 404
+    assert parser_called is False
+    assert mutation_called is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "batch",
+    [
+        _batch(source_system="other-system"),
+        _batch(identity="other-user"),
+        _batch(channel=ActualHarvestImportChannel.API),
+    ],
+    ids=("source", "owner", "channel"),
+)
+async def test_import_errors_scope_failure_is_concealed_before_read(
+    monkeypatch: pytest.MonkeyPatch,
+    batch: SimpleNamespace,
+) -> None:
+    service = DefaultTrialApplicationService()
+    errors_called = False
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return batch
+
+    async def read_errors(*args, **kwargs):
+        nonlocal errors_called
+        errors_called = True
+        del args, kwargs
+        raise AssertionError("validation errors must not be read")
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
+    monkeypatch.setattr(trial_module, "validation_errors", read_errors)
+    with pytest.raises(ActualHarvestApiError) as error:
+        await service.get_import_errors(
+            None,
+            "import-1",
+            page_size=1,
+            page_token=None,
+            actor=_actor(),
+        )
+    assert error.value.status_code == 404
+    assert errors_called is False
