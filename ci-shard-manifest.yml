@@ -192,6 +192,8 @@ shards:
       - backend/tests/rolling_backtest/
       - backend/tests/weather/
       - backend/tests/core_forecast/
+      # S5 Round A Trial contract tests are unit/contract owned here.
+      - backend/tests/trial/
       # Root-level test files (no postgres requirement):
       - backend/tests/test_config.py
       - backend/tests/test_health.py

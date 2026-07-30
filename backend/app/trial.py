@@ -7,32 +7,58 @@ and persistence semantics remain owned by the existing S1-S3 services.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Protocol
+from typing import Annotated, Any, Protocol
 
 from fastapi import Depends
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.actual_harvest_import.api_auth import (
     ActualHarvestActorContext,
     get_actual_harvest_actor,
+    require_actor_scope,
 )
 from backend.app.actual_harvest_import.api_errors import (
     ActualHarvestApiError,
     ActualHarvestApiErrorCode,
 )
 from backend.app.actual_harvest_import.api_schemas import (
+    ActualHarvestApiAppendRecordsRequest,
+    ActualHarvestApiBatchSummary,
     ActualHarvestApiCommitRequest,
     ActualHarvestApiCreateImportRequest,
+    ActualHarvestApiRecordInput,
+    ActualHarvestApiRecordOutput,
 )
 from backend.app.actual_harvest_import.commit_service import commit_batch
-from backend.app.actual_harvest_import.lifecycle import create_import, get_import
+from backend.app.actual_harvest_import.enums import (
+    ActualHarvestImportBatchStatus,
+    ActualHarvestImportChannel,
+)
+from backend.app.actual_harvest_import.lifecycle import (
+    append_import_records,
+    create_import,
+    get_import,
+    seal_import,
+    validate_import,
+    validation_errors,
+    validation_summary,
+)
+from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
+from backend.app.actual_harvest_import.spreadsheet_parser import (
+    SpreadsheetParserError,
+    parse_csv,
+    parse_xlsx,
+)
+from backend.app.actual_harvest_import.spreadsheet_policy import DEFAULT_SPREADSHEET_POLICY
 from backend.app.api.actual_harvest_imports import _run_mutation
 from backend.app.forecast_quality.canonical import emit_s3_decimal
 
@@ -54,6 +80,13 @@ class TrialApiErrorCode(StrEnum):
     AUTHORIZATION_UNAVAILABLE = "TRIAL_AUTHORIZATION_UNAVAILABLE"
     TRIAL_SERVICE_UNAVAILABLE = "TRIAL_SERVICE_UNAVAILABLE"
     INTERNAL_ERROR = "TRIAL_INTERNAL_ERROR"
+    UNSUPPORTED_CONTENT_TYPE = "TRIAL_UNSUPPORTED_CONTENT_TYPE"
+    UNSAFE_FILE_NAME = "TRIAL_UNSAFE_FILE_NAME"
+    FILE_HASH_MISMATCH = "TRIAL_FILE_HASH_MISMATCH"
+    FILE_SIZE_EXCEEDED = "TRIAL_FILE_SIZE_EXCEEDED"
+    CSV_PARSE_FAILED = "TRIAL_CSV_PARSE_FAILED"
+    XLSX_PARSE_FAILED = "TRIAL_XLSX_PARSE_FAILED"
+    VALIDATION_FAILED = "TRIAL_VALIDATION_FAILED"
 
 
 class TrialApiError(RuntimeError):
@@ -189,6 +222,40 @@ class TrialActualHarvestImportStatusResponse(_FrozenModel):
     validation_evidence_hash: StrictStr | None
 
 
+class TrialActualHarvestUploadResponse(_FrozenModel):
+    import_id: StrictStr
+    server_status: StrictStr
+    source_file_name: StrictStr
+    source_mime_type: StrictStr
+    source_file_sha256: StrictStr
+    uploaded_record_count: StrictInt
+    valid_record_count: StrictInt
+    invalid_record_count: StrictInt
+    validation_status: StrictStr
+    validation_run_instance_identity_hash_or_null: StrictStr | None
+    validation_result_hash_or_null: StrictStr | None
+    reason_codes: tuple[StrictStr, ...]
+
+
+class TrialActualHarvestInvalidRow(_FrozenModel):
+    severity: StrictStr
+    error_code: StrictStr
+    record_index: int | None
+    external_logical_record_id: StrictStr | None
+    external_revision_id: StrictStr | None
+    field_path: StrictStr | None
+    message_template_id: StrictStr
+    details: dict[str, object] = Field(default_factory=dict)
+
+
+class TrialActualHarvestInvalidRowsResponse(_FrozenModel):
+    import_id: StrictStr
+    validation_status: StrictStr
+    validation_run_instance_identity_hash_or_null: StrictStr | None
+    rows: tuple[TrialActualHarvestInvalidRow, ...]
+    next_page_token: StrictStr | None
+
+
 class TrialActualHarvestCommitResponse(_FrozenModel):
     import_id: StrictStr
     status: StrictStr
@@ -273,6 +340,14 @@ class TrialQualityCsvExportResponse(TrialForecastCsvExportResponse):
 
 
 @dataclass(frozen=True)
+class TrialActualHarvestUploadMetadata:
+    file_name: str
+    mime_type: str
+    channel: ActualHarvestImportChannel
+    sha256: str | None = None
+
+
+@dataclass(frozen=True)
 class TrialCsvDocument:
     filename: str
     content: bytes
@@ -328,6 +403,25 @@ class TrialApplicationService(Protocol):
         request: ActualHarvestApiCommitRequest,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestCommitResponse: ...
+
+    async def upload_import(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        content: bytes,
+        metadata: TrialActualHarvestUploadMetadata,
+        actor: ActualHarvestActorContext,
+    ) -> TrialActualHarvestUploadResponse: ...
+
+    async def get_import_errors(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        *,
+        page_size: int,
+        page_token: str | None,
+        actor: ActualHarvestActorContext,
+    ) -> TrialActualHarvestInvalidRowsResponse: ...
 
     async def create_quality_report(
         self,
@@ -394,6 +488,7 @@ class DefaultTrialApplicationService:
     ) -> TrialActualHarvestImportStatusResponse:
         _require_permission(actor, "may_preview")
         summary = await get_import(session, import_id)
+        validation = await validation_summary(session, import_id)
         return TrialActualHarvestImportStatusResponse(
             import_id=summary.import_id,
             status=_public_import_status(summary.status),
@@ -401,9 +496,14 @@ class DefaultTrialApplicationService:
             valid_record_count=summary.valid_record_count,
             invalid_record_count=summary.invalid_record_count,
             committed_record_count=summary.committed_record_count,
-            validation_status="UNKNOWN",
-            validation_reason_codes=(),
-            validation_evidence_hash=summary.seal_manifest_hash_or_null,
+            validation_status=validation.validation_status,
+            validation_reason_codes=(
+                ("VALIDATION_FAILED",)
+                if validation.validation_status == "VALIDATION_FAILED"
+                else ()
+            ),
+            validation_evidence_hash=validation.validation_result_hash
+            or summary.seal_manifest_hash_or_null,
         )
 
     async def commit_import(
@@ -430,6 +530,119 @@ class DefaultTrialApplicationService:
             commit_policy_version=result.commit_policy_version,
             commit_manifest_hash=result.commit_manifest_hash,
             reused_existing_commit=result.reused_existing_commit,
+        )
+
+    async def upload_import(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        content: bytes,
+        metadata: TrialActualHarvestUploadMetadata,
+        actor: ActualHarvestActorContext,
+    ) -> TrialActualHarvestUploadResponse:
+        _require_permission(actor, "may_append")
+        batch = await get_import(session, import_id)
+        require_actor_scope(
+            actor,
+            source_system=batch.source_system,
+            channel=metadata.channel,
+            permission="may_append",
+            submitted_by_identity=batch.submitted_by_identity,
+            hide_identity_mismatch=True,
+        )
+        if not content:
+            raise TrialApiError(
+                TrialApiErrorCode.REQUEST_INVALID,
+                status_code=422,
+                message="Uploaded file is empty.",
+            )
+        if len(content) > DEFAULT_SPREADSHEET_POLICY.max_file_size_bytes:
+            raise TrialApiError(
+                TrialApiErrorCode.FILE_SIZE_EXCEEDED,
+                status_code=413,
+                message="Uploaded file exceeds the supported size.",
+            )
+        actual_hash = hashlib.sha256(content).hexdigest()
+        if metadata.sha256 is not None and metadata.sha256 != actual_hash:
+            raise TrialApiError(
+                TrialApiErrorCode.FILE_HASH_MISMATCH,
+                status_code=422,
+                message="Uploaded file hash does not match.",
+            )
+        try:
+            parsed = parse_csv(content) if metadata.channel.value == "csv" else parse_xlsx(content)
+        except SpreadsheetParserError as error:
+            code = (
+                TrialApiErrorCode.CSV_PARSE_FAILED
+                if metadata.channel.value == "csv"
+                else TrialApiErrorCode.XLSX_PARSE_FAILED
+            )
+            raise TrialApiError(code, status_code=422, message="File parsing failed.") from error
+        records = tuple(
+            ActualHarvestApiRecordInput.model_validate(
+                record.model_dump(exclude={"source_row_number", "source_sheet_name"})
+            )
+            for record in parsed.records
+        )
+        append_request = ActualHarvestApiAppendRecordsRequest(records=records)
+
+        async def append_and_record_metadata() -> tuple[
+            ActualHarvestApiBatchSummary,
+            tuple[ActualHarvestApiRecordOutput, ...],
+            bool,
+        ]:
+            await session.run_sync(
+                lambda sync_session: _store_upload_metadata(
+                    sync_session,
+                    import_id=import_id,
+                    file_name=metadata.file_name,
+                    file_hash=actual_hash,
+                )
+            )
+            return await append_import_records(session, import_id, append_request)
+
+        await _run_mutation(session, append_and_record_metadata)
+        await _run_mutation(
+            session,
+            lambda: seal_import(session, import_id, actor_identity=actor.identity),
+        )
+        summary = await validate_import(session, import_id)
+        return TrialActualHarvestUploadResponse(
+            import_id=import_id,
+            server_status=summary.validation_status,
+            source_file_name=metadata.file_name,
+            source_mime_type=metadata.mime_type,
+            source_file_sha256=actual_hash,
+            uploaded_record_count=len(records),
+            valid_record_count=summary.valid_count,
+            invalid_record_count=summary.invalid_count,
+            validation_status=summary.validation_status,
+            validation_run_instance_identity_hash_or_null=summary.validation_run_identity,
+            validation_result_hash_or_null=summary.validation_result_hash,
+            reason_codes=tuple(
+                ("VALIDATION_FAILED",) if summary.validation_status == "VALIDATION_FAILED" else ()
+            ),
+        )
+
+    async def get_import_errors(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        *,
+        page_size: int,
+        page_token: str | None,
+        actor: ActualHarvestActorContext,
+    ) -> TrialActualHarvestInvalidRowsResponse:
+        _require_permission(actor, "may_validate")
+        summary, rows, next_token = await validation_errors(
+            session, import_id, page_size=page_size, page_token=page_token
+        )
+        return TrialActualHarvestInvalidRowsResponse(
+            import_id=import_id,
+            validation_status=summary.validation_status,
+            validation_run_instance_identity_hash_or_null=summary.validation_run_identity,
+            rows=tuple(TrialActualHarvestInvalidRow.model_validate(row) for row in rows),
+            next_page_token=next_token,
         )
 
     async def create_forecast(
@@ -504,6 +717,28 @@ def _require_permission(actor: ActualHarvestActorContext, permission: str) -> No
         )
 
 
+def _store_upload_metadata(
+    session: Any,
+    *,
+    import_id: str,
+    file_name: str,
+    file_hash: str,
+) -> None:
+    batch = session.scalar(
+        select(ActualHarvestImportBatchModel).where(
+            ActualHarvestImportBatchModel.import_id == import_id
+        )
+    )
+    if batch is None:
+        raise ActualHarvestApiError(
+            ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_FOUND,
+            "actual-harvest import batch was not found",
+            status_code=404,
+        )
+    batch.source_file_name_or_null = file_name
+    batch.source_file_hash_or_null = file_hash
+
+
 def _service_unavailable(component: str) -> TrialApiError:
     del component
     return TrialApiError(
@@ -515,13 +750,9 @@ def _service_unavailable(component: str) -> TrialApiError:
 
 
 def _public_import_status(status: str) -> str:
-    if status in {"PARSE_FAILED", "VALIDATION_FAILED", "COMMIT_FAILED", "CANCELLED"}:
-        return "BLOCKED"
-    if status in {"RECEIVED", "UPLOADING", "SEALED", "PARSING", "VALIDATING", "VALIDATED"}:
+    if status in {item.value for item in ActualHarvestImportBatchStatus}:
         return status
-    if status == "COMMITTED":
-        return "COMMITTED"
-    return "BLOCKED"
+    return status
 
 
 def map_actual_harvest_error(error: ActualHarvestApiError) -> TrialApiError:
@@ -531,6 +762,18 @@ def map_actual_harvest_error(error: ActualHarvestApiError) -> TrialApiError:
             503,
             True,
             "Trial authorization is unavailable.",
+        ),
+        ActualHarvestApiErrorCode.ACTUAL_HARVEST_SCOPE_FORBIDDEN: (
+            TrialApiErrorCode.RESOURCE_NOT_FOUND,
+            404,
+            False,
+            "Resource was not found.",
+        ),
+        ActualHarvestApiErrorCode.ACTUAL_HARVEST_ACTOR_MISMATCH: (
+            TrialApiErrorCode.RESOURCE_NOT_FOUND,
+            404,
+            False,
+            "Resource was not found.",
         ),
         ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_FOUND: (
             TrialApiErrorCode.RESOURCE_NOT_FOUND,
@@ -569,10 +812,22 @@ def map_actual_harvest_error(error: ActualHarvestApiError) -> TrialApiError:
             "Request is invalid.",
         ),
         ActualHarvestApiErrorCode.API_CONTENT_TYPE_UNSUPPORTED: (
-            TrialApiErrorCode.REQUEST_INVALID,
+            TrialApiErrorCode.UNSUPPORTED_CONTENT_TYPE,
             415,
             False,
             "Request content type is unsupported.",
+        ),
+        ActualHarvestApiErrorCode.API_REQUEST_BODY_TOO_LARGE: (
+            TrialApiErrorCode.FILE_SIZE_EXCEEDED,
+            413,
+            False,
+            "Uploaded file exceeds the supported size.",
+        ),
+        ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_UPLOADING: (
+            TrialApiErrorCode.CONCURRENCY_CONFLICT,
+            409,
+            False,
+            "Import is not accepting uploads.",
         ),
     }
     code, status, retryable, message = code_map.get(
@@ -642,6 +897,10 @@ __all__ = [
     "TrialActualHarvestCommitResponse",
     "TrialActualHarvestImportCreateResponse",
     "TrialActualHarvestImportStatusResponse",
+    "TrialActualHarvestInvalidRow",
+    "TrialActualHarvestInvalidRowsResponse",
+    "TrialActualHarvestUploadMetadata",
+    "TrialActualHarvestUploadResponse",
     "TrialApiError",
     "TrialApiErrorCode",
     "TrialApplicationService",
