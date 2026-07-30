@@ -22,6 +22,7 @@ from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.db.session import get_db_session
 from backend.app.main import create_app
 from backend.app.trial import (
+    DefaultTrialApplicationService,
     TrialActualHarvestCommitResponse,
     TrialActualHarvestImportCreateResponse,
     TrialActualHarvestImportStatusResponse,
@@ -45,11 +46,16 @@ from backend.app.trial import (
 NOW = datetime(2026, 7, 29, 8, 0, tzinfo=UTC)
 
 
-def _actor(*, preview: bool = True, create: bool = True) -> ActualHarvestActorContext:
+def _actor(
+    *,
+    preview: bool = True,
+    create: bool = True,
+    channels: frozenset[ActualHarvestImportChannel] | None = None,
+) -> ActualHarvestActorContext:
     return ActualHarvestActorContext(
         identity="trial-user-1",
         allowed_source_systems=frozenset({"synthetic-farm-system"}),
-        allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+        allowed_channels=channels or frozenset({ActualHarvestImportChannel.API}),
         may_create=create,
         may_append=create,
         may_preview=preview,
@@ -492,6 +498,42 @@ async def test_actual_import_create_api_acceptance(client: AsyncClient) -> None:
     response = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
     assert response.status_code == 200
     assert response.json()["status"] == "UPLOADING"
+
+
+@pytest.mark.asyncio
+async def test_actual_import_create_scope_mismatch_is_forbidden_before_lifecycle(
+    client: AsyncClient,
+    trial_app,
+) -> None:
+    trial_app.dependency_overrides[get_trial_service] = lambda: DefaultTrialApplicationService()
+    trial_app.dependency_overrides[get_actual_harvest_actor] = lambda: _actor(
+        channels=frozenset({ActualHarvestImportChannel.CSV})
+    )
+    body = {
+        "source_system": "synthetic-farm-system",
+        "source_dataset": "synthetic-dataset",
+        "source_version": "v1",
+        "external_batch_id": "batch-scope-check",
+        "idempotency_key": "import-scope-check",
+        "submitted_at": NOW.isoformat(),
+        "submitted_by_identity": "trial-user-1",
+        "import_channel": "api",
+        "raw_payload_hash": "a" * 64,
+        "schema_version": "synthetic-v1",
+        "mapping_policy_version": "mapping-v1",
+        "validation_policy_version": "validation-v1",
+        "source_semantics_attestation": {
+            "attestation_version": "attestation-v1",
+            "physical_event": "FARM_PICK",
+            "quantity_basis": "OBSERVED_WEIGHT",
+            "quantity_unit": "KG",
+            "missing_record_semantics": "UNKNOWN_NOT_ZERO",
+        },
+        "source_semantics_attestation_hash": "b" * 64,
+    }
+    response = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
+    assert response.status_code == 403
+    assert response.json()["code"] == "TRIAL_AUTHORIZATION_FORBIDDEN"
 
 
 @pytest.mark.asyncio

@@ -77,6 +77,7 @@ class TrialApiErrorCode(StrEnum):
     PARTIAL_RESULT_REJECTED = "PARTIAL_RESULT_REJECTED"
     CONCURRENCY_CONFLICT = "CONCURRENCY_CONFLICT"
     RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND"
+    AUTHORIZATION_FORBIDDEN = "TRIAL_AUTHORIZATION_FORBIDDEN"
     AUTHORIZATION_UNAVAILABLE = "TRIAL_AUTHORIZATION_UNAVAILABLE"
     TRIAL_SERVICE_UNAVAILABLE = "TRIAL_SERVICE_UNAVAILABLE"
     INTERNAL_ERROR = "TRIAL_INTERNAL_ERROR"
@@ -467,7 +468,13 @@ class DefaultTrialApplicationService:
         request: ActualHarvestApiCreateImportRequest,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestImportCreateResponse:
-        _require_permission(actor, "may_create")
+        require_actor_scope(
+            actor,
+            source_system=request.source_system,
+            channel=request.import_channel,
+            permission="may_create",
+            submitted_by_identity=request.submitted_by_identity,
+        )
         summary, _ = await _run_mutation(session, lambda: create_import(session, request))
         return TrialActualHarvestImportCreateResponse(
             import_id=summary.import_id,
@@ -486,8 +493,7 @@ class DefaultTrialApplicationService:
         import_id: str,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestImportStatusResponse:
-        _require_permission(actor, "may_preview")
-        summary = await get_import(session, import_id)
+        summary = await _load_scoped_import_batch(session, import_id, actor, "may_preview")
         validation = await validation_summary(session, import_id)
         return TrialActualHarvestImportStatusResponse(
             import_id=summary.import_id,
@@ -513,7 +519,7 @@ class DefaultTrialApplicationService:
         request: ActualHarvestApiCommitRequest,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestCommitResponse:
-        _require_permission(actor, "may_commit")
+        await _load_scoped_import_batch(session, import_id, actor, "may_commit")
         result = await _run_mutation(
             session,
             lambda: commit_batch(
@@ -540,15 +546,13 @@ class DefaultTrialApplicationService:
         metadata: TrialActualHarvestUploadMetadata,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestUploadResponse:
-        _require_permission(actor, "may_append")
-        batch = await get_import(session, import_id)
-        require_actor_scope(
+        batch = await _load_scoped_import_batch(session, import_id, actor, "may_append")
+        _require_import_scope(
+            batch,
             actor,
-            source_system=batch.source_system,
+            "may_append",
             channel=metadata.channel,
-            permission="may_append",
-            submitted_by_identity=batch.submitted_by_identity,
-            hide_identity_mismatch=True,
+            conceal_mismatch=True,
         )
         if not content:
             raise TrialApiError(
@@ -633,7 +637,7 @@ class DefaultTrialApplicationService:
         page_token: str | None,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestInvalidRowsResponse:
-        _require_permission(actor, "may_validate")
+        await _load_scoped_import_batch(session, import_id, actor, "may_validate")
         summary, rows, next_token = await validation_errors(
             session, import_id, page_size=page_size, page_token=page_token
         )
@@ -717,6 +721,58 @@ def _require_permission(actor: ActualHarvestActorContext, permission: str) -> No
         )
 
 
+def _concealed_import_scope_error() -> ActualHarvestApiError:
+    return ActualHarvestApiError(
+        ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_FOUND,
+        "actual-harvest import batch was not found",
+        status_code=404,
+    )
+
+
+def _require_import_scope(
+    batch: ActualHarvestApiBatchSummary,
+    actor: ActualHarvestActorContext,
+    permission: str,
+    *,
+    channel: ActualHarvestImportChannel | None = None,
+    conceal_mismatch: bool,
+) -> None:
+    try:
+        persisted_channel = ActualHarvestImportChannel(batch.import_channel)
+    except ValueError as error:
+        if conceal_mismatch:
+            raise _concealed_import_scope_error() from error
+        raise
+
+    try:
+        require_actor_scope(
+            actor,
+            source_system=batch.source_system,
+            channel=persisted_channel if channel is None else channel,
+            permission=permission,
+            submitted_by_identity=batch.submitted_by_identity,
+            hide_identity_mismatch=conceal_mismatch,
+        )
+    except ActualHarvestApiError as error:
+        if conceal_mismatch and error.code in {
+            ActualHarvestApiErrorCode.ACTUAL_HARVEST_ACTOR_MISMATCH,
+            ActualHarvestApiErrorCode.ACTUAL_HARVEST_SCOPE_FORBIDDEN,
+        }:
+            raise _concealed_import_scope_error() from error
+        raise
+
+
+async def _load_scoped_import_batch(
+    session: AsyncSession,
+    import_id: str,
+    actor: ActualHarvestActorContext,
+    permission: str,
+) -> ActualHarvestApiBatchSummary:
+    batch = await get_import(session, import_id)
+    _require_import_scope(batch, actor, permission, conceal_mismatch=True)
+    return batch
+
+
 def _store_upload_metadata(
     session: Any,
     *,
@@ -764,16 +820,16 @@ def map_actual_harvest_error(error: ActualHarvestApiError) -> TrialApiError:
             "Trial authorization is unavailable.",
         ),
         ActualHarvestApiErrorCode.ACTUAL_HARVEST_SCOPE_FORBIDDEN: (
-            TrialApiErrorCode.RESOURCE_NOT_FOUND,
-            404,
+            TrialApiErrorCode.AUTHORIZATION_FORBIDDEN,
+            403,
             False,
-            "Resource was not found.",
+            "Trial authorization scope is forbidden.",
         ),
         ActualHarvestApiErrorCode.ACTUAL_HARVEST_ACTOR_MISMATCH: (
-            TrialApiErrorCode.RESOURCE_NOT_FOUND,
-            404,
+            TrialApiErrorCode.AUTHORIZATION_FORBIDDEN,
+            403,
             False,
-            "Resource was not found.",
+            "Trial actor identity is forbidden.",
         ),
         ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_FOUND: (
             TrialApiErrorCode.RESOURCE_NOT_FOUND,
