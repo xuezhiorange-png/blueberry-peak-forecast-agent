@@ -405,6 +405,13 @@ class TrialApplicationService(Protocol):
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestCommitResponse: ...
 
+    async def authorize_import_upload(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        actor: ActualHarvestActorContext,
+    ) -> None: ...
+
     async def upload_import(
         self,
         session: AsyncSession,
@@ -537,6 +544,14 @@ class DefaultTrialApplicationService:
             commit_manifest_hash=result.commit_manifest_hash,
             reused_existing_commit=result.reused_existing_commit,
         )
+
+    async def authorize_import_upload(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        actor: ActualHarvestActorContext,
+    ) -> None:
+        await _load_scoped_import_batch(session, import_id, actor, "may_append")
 
     async def upload_import(
         self,
@@ -748,11 +763,28 @@ def _require_import_scope(
         require_actor_scope(
             actor,
             source_system=batch.source_system,
-            channel=persisted_channel if channel is None else channel,
+            channel=persisted_channel,
             permission=permission,
             submitted_by_identity=batch.submitted_by_identity,
             hide_identity_mismatch=conceal_mismatch,
         )
+        if channel is not None and channel is not persisted_channel:
+            if conceal_mismatch:
+                raise _concealed_import_scope_error()
+            raise ActualHarvestApiError(
+                ActualHarvestApiErrorCode.ACTUAL_HARVEST_SCOPE_FORBIDDEN,
+                "uploaded channel does not match the import batch",
+                status_code=403,
+            )
+        if channel is not None:
+            require_actor_scope(
+                actor,
+                source_system=batch.source_system,
+                channel=channel,
+                permission=permission,
+                submitted_by_identity=batch.submitted_by_identity,
+                hide_identity_mismatch=conceal_mismatch,
+            )
     except ActualHarvestApiError as error:
         if conceal_mismatch and error.code in {
             ActualHarvestApiErrorCode.ACTUAL_HARVEST_ACTOR_MISMATCH,
