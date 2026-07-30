@@ -697,6 +697,101 @@ async def test_upload_scope_failure_is_concealed_before_parse_or_mutation(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("batch_channel", "upload_channel"),
+    [
+        (ActualHarvestImportChannel.CSV, ActualHarvestImportChannel.XLSX),
+        (ActualHarvestImportChannel.XLSX, ActualHarvestImportChannel.CSV),
+    ],
+    ids=("csv-batch-xlsx-upload", "xlsx-batch-csv-upload"),
+)
+async def test_upload_channel_must_match_persisted_batch_channel(
+    monkeypatch: pytest.MonkeyPatch,
+    batch_channel: ActualHarvestImportChannel,
+    upload_channel: ActualHarvestImportChannel,
+) -> None:
+    service = DefaultTrialApplicationService()
+    batch = _batch(channel=batch_channel)
+    actor = _actor(
+        channels=frozenset({ActualHarvestImportChannel.CSV, ActualHarvestImportChannel.XLSX})
+    )
+    parser_called = False
+    metadata_store_called = False
+    append_called = False
+    seal_called = False
+    validate_called = False
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return batch
+
+    def parser(content):
+        nonlocal parser_called
+        parser_called = True
+        del content
+        raise AssertionError("parser must not run for channel mismatch")
+
+    def store_metadata(*args, **kwargs):
+        nonlocal metadata_store_called
+        metadata_store_called = True
+        del args, kwargs
+
+    async def append(*args, **kwargs):
+        nonlocal append_called
+        append_called = True
+        del args, kwargs
+        raise AssertionError("append must not run for channel mismatch")
+
+    async def seal(*args, **kwargs):
+        nonlocal seal_called
+        seal_called = True
+        del args, kwargs
+        raise AssertionError("seal must not run for channel mismatch")
+
+    async def validate(*args, **kwargs):
+        nonlocal validate_called
+        validate_called = True
+        del args, kwargs
+        raise AssertionError("validate must not run for channel mismatch")
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
+    monkeypatch.setattr(trial_module, "parse_csv", parser)
+    monkeypatch.setattr(trial_module, "parse_xlsx", parser)
+    monkeypatch.setattr(trial_module, "_store_upload_metadata", store_metadata)
+    monkeypatch.setattr(trial_module, "append_import_records", append)
+    monkeypatch.setattr(trial_module, "seal_import", seal)
+    monkeypatch.setattr(trial_module, "validate_import", validate)
+
+    with pytest.raises(ActualHarvestApiError) as error:
+        await service.upload_import(
+            None,
+            "import-1",
+            b"raw-content",
+            TrialActualHarvestUploadMetadata(
+                file_name=(
+                    "harvest.csv"
+                    if upload_channel is ActualHarvestImportChannel.CSV
+                    else "harvest.xlsx"
+                ),
+                mime_type=(
+                    "text/csv"
+                    if upload_channel is ActualHarvestImportChannel.CSV
+                    else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+                channel=upload_channel,
+            ),
+            actor,
+        )
+
+    assert error.value.status_code == 404
+    assert parser_called is False
+    assert metadata_store_called is False
+    assert append_called is False
+    assert seal_called is False
+    assert validate_called is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     "batch",
     [
         _batch(source_system="other-system"),

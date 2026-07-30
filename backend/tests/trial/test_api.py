@@ -131,6 +131,7 @@ class SyntheticTrialService:
     def __init__(self) -> None:
         self.forecast_requests: dict[str, TrialForecastCreateRequest] = {}
         self.quality_requests: dict[str, TrialQualityReportCreateRequest] = {}
+        self.upload_calls: list[str] = []
 
     async def create_forecast(
         self,
@@ -264,6 +265,19 @@ class SyntheticTrialService:
             reused_existing_commit=True,
         )
 
+    async def authorize_import_upload(
+        self,
+        session: AsyncSession,
+        import_id: str,
+        actor: ActualHarvestActorContext,
+    ) -> None:
+        del session
+        self.upload_calls.append("authorize_import_upload")
+        if not actor.may_append or import_id != "import-public-1":
+            raise TrialApiError(
+                TrialApiErrorCode.RESOURCE_NOT_FOUND, status_code=404, message="missing"
+            )
+
     async def upload_import(
         self,
         session: AsyncSession,
@@ -272,6 +286,7 @@ class SyntheticTrialService:
         metadata: TrialActualHarvestUploadMetadata,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestUploadResponse:
+        self.upload_calls.append("upload_import")
         del session, content, metadata, actor
         return TrialActualHarvestUploadResponse(
             import_id=import_id,
@@ -562,6 +577,65 @@ async def test_actual_import_upload_uses_raw_binary_body(client: AsyncClient) ->
     )
     assert response.status_code == 200
     assert response.json()["validation_status"] == "VALIDATED"
+
+
+@pytest.mark.asyncio
+async def test_actual_import_upload_authorizes_before_upload_service(
+    client: AsyncClient,
+    synthetic_service: SyntheticTrialService,
+) -> None:
+    response = await client.post(
+        "/api/v1/trial/actual-harvest/imports/import-public-1/upload",
+        content=b"raw-csv-bytes",
+        headers={"content-type": "text/csv", "x-file-name": "harvest.csv"},
+    )
+    assert response.status_code == 200
+    assert synthetic_service.upload_calls == ["authorize_import_upload", "upload_import"]
+
+
+@pytest.mark.asyncio
+async def test_actual_import_upload_preflight_conceals_before_metadata_or_body(
+    client: AsyncClient,
+    trial_app,
+) -> None:
+    class RejectingUploadPreflightService:
+        upload_import_called = False
+
+        async def authorize_import_upload(
+            self,
+            session: AsyncSession,
+            import_id: str,
+            actor: ActualHarvestActorContext,
+        ) -> None:
+            del session, import_id, actor
+            raise TrialApiError(
+                TrialApiErrorCode.RESOURCE_NOT_FOUND,
+                status_code=404,
+                message="Resource was not found.",
+            )
+
+        async def upload_import(
+            self,
+            session: AsyncSession,
+            import_id: str,
+            content: bytes,
+            metadata: TrialActualHarvestUploadMetadata,
+            actor: ActualHarvestActorContext,
+        ) -> TrialActualHarvestUploadResponse:
+            del session, import_id, content, metadata, actor
+            self.upload_import_called = True
+            raise AssertionError("upload service must not run after failed preflight")
+
+    service = RejectingUploadPreflightService()
+    trial_app.dependency_overrides[get_trial_service] = lambda: service
+    response = await client.post(
+        "/api/v1/trial/actual-harvest/imports/import-public-1/upload",
+        content=b"non-empty-body",
+        headers={"content-type": "invalid/content-type", "x-file-name": "../unsafe.csv"},
+    )
+    assert response.status_code == 404
+    assert response.json()["code"] == "RESOURCE_NOT_FOUND"
+    assert service.upload_import_called is False
 
 
 @pytest.mark.asyncio

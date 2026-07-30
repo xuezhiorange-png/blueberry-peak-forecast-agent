@@ -294,6 +294,7 @@ async def upload_trial_actual_harvest_import(
 ) -> TrialActualHarvestUploadResponse | JSONResponse:
     request_id = _request_id(request)
     try:
+        await service.authorize_import_upload(session, import_id, actor)
         metadata = _upload_metadata(request)
         content = await _read_bounded_upload(request)
         return await service.upload_import(session, import_id, content, metadata, actor)
