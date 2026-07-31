@@ -35,6 +35,8 @@ from backend.app.trial import (
     TrialForecastCreateRequest,
     TrialForecastDailyCurveResponse,
     TrialForecastDailyRow,
+    TrialForecastInputAuthorityItem,
+    TrialForecastInputAuthorityResponse,
     TrialForecastSummaryResponse,
     TrialQualityComparisonResponse,
     TrialQualityReportCreateRequest,
@@ -63,6 +65,10 @@ def _actor(
         may_cancel=create,
         may_validate=create,
         may_commit=create,
+        may_read_forecast_authority=create,
+        may_create_forecast=create,
+        may_read_forecast=preview,
+        may_export_forecast=preview,
     )
 
 
@@ -144,15 +150,49 @@ class SyntheticTrialService:
             raise TrialApiError(
                 TrialApiErrorCode.RESOURCE_NOT_FOUND, status_code=404, message="missing"
             )
-        previous = self.forecast_requests.get(request.request_idempotency_key)
+        key = (
+            request.farm_business_key,
+            request.subfarm_business_key_or_null,
+            request.variety_business_key,
+            request.season_business_key,
+            request.destination_factory_business_key,
+        )
+        previous = self.forecast_requests.get(str(key))
         if previous is not None and previous != request:
             raise TrialApiError(
                 TrialApiErrorCode.CONFLICTING_REPLAY,
                 status_code=409,
                 message="conflict",
             )
-        self.forecast_requests[request.request_idempotency_key] = request
+        self.forecast_requests[str(key)] = request
         return _forecast()
+
+    async def get_forecast_input_authority(
+        self,
+        session: AsyncSession,
+        actor: ActualHarvestActorContext,
+    ) -> TrialForecastInputAuthorityResponse:
+        del session
+        if not actor.may_read_forecast_authority:
+            raise TrialApiError(
+                TrialApiErrorCode.RESOURCE_NOT_FOUND, status_code=404, message="missing"
+            )
+        return TrialForecastInputAuthorityResponse(
+            forecast_input_authority_hash="a" * 64,
+            authority_available_at=NOW,
+            items=(
+                TrialForecastInputAuthorityItem(
+                    farm_business_key="farm-a",
+                    subfarm_business_key_or_null="subfarm-a",
+                    season_business_key="season-2026",
+                    variety_business_key="variety-a",
+                    destination_factory_business_key="factory-a",
+                    plan_version="1",
+                    plan_row_hash="b" * 64,
+                    planting_area_mu=Decimal("10.000000"),
+                ),
+            ),
+        )
 
     async def get_forecast(
         self,
@@ -429,18 +469,18 @@ async def client(trial_app) -> AsyncIterator[AsyncClient]:
 
 def _forecast_request(*, key: str = "forecast-key", model: str = "model-v1") -> dict[str, Any]:
     return {
+        "farm_business_key": "farm-a",
+        "subfarm_business_key_or_null": "subfarm-a",
+        "variety_business_key": "variety-a",
         "season_business_key": "season-2026",
-        "farm_business_keys": ["farm-a"],
-        "subfarm_business_keys": ["subfarm-a"],
-        "variety_business_keys": ["variety-a"],
-        "requested_horizons_days": [7],
-        "forecast_quantiles": ["P50", "P80", "P90"],
+        "destination_factory_business_key": "factory-a",
         "forecast_cutoff_at": NOW.isoformat(),
-        "label_observation_cutoff_at_or_null": NOW.isoformat(),
-        "request_idempotency_key": key,
-        "model_identity": model,
-        "parameter_version": "parameter-v1",
-        "policy_versions": {"forecast": "policy-v1"},
+        "forecast_input_authority_hash": "a" * 64,
+        "plan_row_hash": "b" * 64 if model == "model-v1" else "c" * 64,
+        "planting_area_mu": "10.000000",
+        "flowering_date_or_null": None,
+        "maturity_stage_or_null": None,
+        "already_picked_quantity_kg_or_null": None,
     }
 
 
@@ -462,6 +502,14 @@ async def test_forecast_create_api_acceptance(client: AsyncClient) -> None:
     response = await client.post("/api/v1/trial/forecasts", json=_forecast_request())
     assert response.status_code == 200
     assert response.json()["run_id"] == "forecast-public-1"
+
+
+@pytest.mark.asyncio
+async def test_forecast_input_authority_api_acceptance(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/trial/forecast-input-authority")
+    assert response.status_code == 200
+    assert response.json()["forecast_input_authority_hash"] == "a" * 64
+    assert "farm_id" not in str(response.json())
 
 
 @pytest.mark.asyncio
@@ -678,6 +726,7 @@ def test_openapi_schema_acceptance(trial_app) -> None:
     paths = trial_app.openapi()["paths"]
     expected = {
         "/api/v1/trial/forecasts",
+        "/api/v1/trial/forecast-input-authority",
         "/api/v1/trial/forecasts/{run_id}",
         "/api/v1/trial/forecasts/{run_id}/daily-curve",
         "/api/v1/trial/forecasts/{run_id}/export.csv",

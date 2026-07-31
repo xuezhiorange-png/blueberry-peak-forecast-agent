@@ -35,6 +35,7 @@ from backend.app.trial import (
     TrialErrorResponse,
     TrialForecastCreateRequest,
     TrialForecastDailyCurveResponse,
+    TrialForecastInputAuthorityResponse,
     TrialForecastSummaryResponse,
     TrialQualityComparisonResponse,
     TrialQualityReportCreateRequest,
@@ -132,6 +133,28 @@ async def _read_bounded_upload(request: Request) -> bytes:
             )
         chunks.append(chunk)
     return b"".join(chunks)
+
+
+@router.get(
+    "/forecast-input-authority",
+    response_model=TrialForecastInputAuthorityResponse,
+    operation_id="getTrialForecastInputAuthority",
+)
+async def get_trial_forecast_input_authority(
+    request: Request,
+    session: SessionDep,
+    actor: TrialActorDep,
+    service: TrialServiceDep,
+) -> TrialForecastInputAuthorityResponse | JSONResponse:
+    request_id = _request_id(request)
+    try:
+        return await service.get_forecast_input_authority(session, actor)
+    except TrialApiError as error:
+        return _error_response(request_id, error)
+    except ActualHarvestApiError as error:
+        return _error_response(request_id, map_actual_harvest_error(error))
+    except Exception as error:
+        return _error_response(request_id, map_unhandled_error(error))
 
 
 @router.post(
