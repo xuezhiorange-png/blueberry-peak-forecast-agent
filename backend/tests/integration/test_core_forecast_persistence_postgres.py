@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -226,7 +227,7 @@ async def _seed_marketable_policy(
                 sorting_retention_rate=Decimal("0.800000"),
                 postharvest_retention_rate=Decimal("0.900000"),
                 source_version="marketable-v1",
-                row_hash=f"{index + 1:064x}",
+                row_hash=hashlib.sha256(f"{public_hash}:{index}".encode()).hexdigest(),
             )
         )
     await session.flush()
@@ -299,14 +300,13 @@ async def test_postgres_trial_binding_identity_fields_are_database_immutable(
         "parent_import_id": "import-2",
     }.items():
         with pytest.raises(IntegrityError):
-            await transactional_pg_session.execute(
-                update(TrialResourceBindingModel)
-                .where(TrialResourceBindingModel.id == binding.id)
-                .values(**{field: value})
-            )
-            await transactional_pg_session.flush()
-        await transactional_pg_session.rollback()
-        await transactional_pg_session.refresh(binding)
+            async with transactional_pg_session.begin_nested():
+                await transactional_pg_session.execute(
+                    update(TrialResourceBindingModel)
+                    .where(TrialResourceBindingModel.id == binding.id)
+                    .values(**{field: value})
+                )
+                await transactional_pg_session.flush()
 
 
 async def test_concurrent_same_request_creates_one_physical_run() -> None:
