@@ -645,12 +645,12 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
     db_name = await _create_round_b_temporary_database("migration_round_trip")
     try:
         await _run_alembic_async("head", db_name)
-        # §8 oracle — verify the dedicated DB reached 0025 head.
+        # §8 oracle — verify the dedicated DB reached 0026 head.
         conn = await asyncpg.connect(_temporary_database_url(db_name))
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0025_s3_model_baseline_comparison"
+                "0026_s5_round_a2_policy_and_trial_resource_binding"
             )
             nullable_rows = await conn.fetch(
                 """
@@ -704,7 +704,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
             )
         finally:
             await conn.close()
-        # Round-trip downgrade to 0023 then back up to 0025.  The 0025→0024
+        # Round-trip downgrade to 0023 then back up to 0026.  The 0025→0024
         # downgrade refuses if any V2 data exists; on this fresh DB there
         # are no rows to block it.
         await _run_alembic_async("0023_historical_backtest_binding", db_name)
@@ -713,7 +713,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0025_s3_model_baseline_comparison"
+                "0026_s5_round_a2_policy_and_trial_resource_binding"
             )
         finally:
             await conn.close()
@@ -2307,7 +2307,7 @@ async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert (
                 await conn.fetchval("SELECT version_num FROM alembic_version")
-                == "0025_s3_model_baseline_comparison"
+                == "0026_s5_round_a2_policy_and_trial_resource_binding"
             )
             columns = await conn.fetch(
                 "SELECT column_name FROM information_schema.columns "
@@ -2399,11 +2399,11 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
         conn = await asyncpg.connect(_temporary_database_url(db_name))
         try:
             # §11.3 oracle: current_database is still the temp DB and
-            # version is still 0025.
+            # version is still 0026.
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert (
                 await conn.fetchval("SELECT version_num FROM alembic_version")
-                == "0025_s3_model_baseline_comparison"
+                == "0026_s5_round_a2_policy_and_trial_resource_binding"
             )
             assert (
                 await conn.fetchval(

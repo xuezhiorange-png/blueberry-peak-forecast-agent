@@ -96,6 +96,11 @@ from backend.app.models.task9_authority import (
     Task9RunParameterPackage,
     Task9WeatherRuleConfigVersion,
 )
+from backend.app.models.trial import (
+    CoreForecastMarketablePolicyEntryModel,
+    CoreForecastMarketablePolicyModel,
+    TrialResourceBindingModel,
+)
 from backend.app.models.weather import (
     BaseTemperatureSearchRun,
     LocationWeatherMapping,
@@ -128,6 +133,8 @@ __all__ = [
     "ClimateZoneImportRun",
     "BaselineBacktestRun",
     "CoreForecastDailyRowModel",
+    "CoreForecastMarketablePolicyEntryModel",
+    "CoreForecastMarketablePolicyModel",
     "CoreForecastMetricModel",
     "CoreForecastRunModel",
     "FactReceiptRaw",
@@ -187,6 +194,7 @@ __all__ = [
     "Task9MatureInventoryLossAuthority",
     "Task9RunParameterPackage",
     "Task9WeatherRuleConfigVersion",
+    "TrialResourceBindingModel",
     "Season",
     "Subfarm",
     "Variety",

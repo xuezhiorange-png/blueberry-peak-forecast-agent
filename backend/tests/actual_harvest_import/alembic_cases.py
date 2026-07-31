@@ -23,6 +23,10 @@ MIGRATION_0024_PATH = _ALEMBIC_VERSIONS_DIR / "0024_s3_forecast_quality_persiste
 MIGRATION_0024_REVISION = "0024_s3_forecast_quality_persistence"
 MIGRATION_0025_PATH = _ALEMBIC_VERSIONS_DIR / "0025_s3_model_baseline_comparison.py"
 MIGRATION_0025_REVISION = "0025_s3_model_baseline_comparison"
+MIGRATION_0026_PATH = (
+    _ALEMBIC_VERSIONS_DIR / "0026_s5_round_a2_policy_and_trial_resource_binding.py"
+)
+MIGRATION_0026_REVISION = "0026_s5_round_a2_policy_and_trial_resource_binding"
 
 
 def _migration_module() -> ModuleType:
@@ -65,11 +69,11 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
     # 0022 remains the I7 lineage parent for finalized_at, 0023 remains the
-    # S2 historical binding extension, and 0025 is the current unique head.
+    # S2 historical binding extension, and 0026 is the current unique head.
     heads = script.get_heads()
     assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [MIGRATION_0025_REVISION], (
-        f"alembic heads must be [{MIGRATION_0025_REVISION!r}], got {heads!r}"
+    assert heads == [MIGRATION_0026_REVISION], (
+        f"alembic heads must be [{MIGRATION_0026_REVISION!r}], got {heads!r}"
     )
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
@@ -106,6 +110,14 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     spec_0025.loader.exec_module(migration_0025)
     assert migration_0025.revision == MIGRATION_0025_REVISION
     assert migration_0025.down_revision == MIGRATION_0024_REVISION
+    spec_0026 = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_0026", MIGRATION_0026_PATH
+    )
+    assert spec_0026 is not None and spec_0026.loader is not None
+    migration_0026 = importlib.util.module_from_spec(spec_0026)
+    spec_0026.loader.exec_module(migration_0026)
+    assert migration_0026.revision == MIGRATION_0026_REVISION
+    assert migration_0026.down_revision == MIGRATION_0025_REVISION
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
