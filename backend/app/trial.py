@@ -34,7 +34,6 @@ from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiAppendRecordsRequest,
     ActualHarvestApiBatchSummary,
     ActualHarvestApiCommitRequest,
-    ActualHarvestApiCreateImportRequest,
     ActualHarvestApiRecordInput,
     ActualHarvestApiRecordOutput,
 )
@@ -44,10 +43,12 @@ from backend.app.actual_harvest_import.enums import (
     ActualHarvestImportChannel,
 )
 from backend.app.actual_harvest_import.lifecycle import (
+    Clock,
     append_import_records,
     create_import,
     get_import,
     seal_import,
+    utc_now,
     validate_import,
     validation_errors,
     validation_summary,
@@ -66,6 +67,8 @@ from backend.app.forecast_quality.canonical import emit_s3_decimal
 class TrialApiErrorCode(StrEnum):
     REQUEST_INVALID = "TRIAL_REQUEST_INVALID"
     AUTHORITY_NOT_FOUND = "AUTHORITY_NOT_FOUND"
+    AUTHORITY_UNAVAILABLE = "TRIAL_AUTHORITY_UNAVAILABLE"
+    EVIDENCE_CONFLICT = "EVIDENCE_CONFLICT"
     FORECAST_BLOCKED = "FORECAST_BLOCKED"
     IMPORT_PARSE_FAILED = "IMPORT_PARSE_FAILED"
     IMPORT_VALIDATION_FAILED = "IMPORT_VALIDATION_FAILED"
@@ -112,6 +115,24 @@ class TrialApiError(RuntimeError):
 
 class _FrozenModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class TrialActualHarvestImportCreateRequest(_FrozenModel):
+    """Browser-safe inputs for creating an actual-harvest import batch."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        str_strip_whitespace=True,
+        validate_default=True,
+    )
+
+    source_system: StrictStr = Field(min_length=1, max_length=256)
+    source_dataset: StrictStr = Field(min_length=1, max_length=256)
+    source_version: StrictStr = Field(min_length=1, max_length=128)
+    external_batch_id: StrictStr = Field(min_length=1, max_length=256)
+    expected_record_count_or_null: StrictInt | None = Field(default=None, ge=0)
+    request_idempotency_key: StrictStr = Field(min_length=1, max_length=256)
 
 
 class TrialForecastCreateRequest(_FrozenModel):
@@ -386,7 +407,7 @@ class TrialApplicationService(Protocol):
     async def create_import(
         self,
         session: AsyncSession,
-        request: ActualHarvestApiCreateImportRequest,
+        request: TrialActualHarvestImportCreateRequest,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestImportCreateResponse: ...
 
@@ -469,20 +490,54 @@ class DefaultTrialApplicationService:
     dependency seam; no domain algorithm is duplicated here.
     """
 
+    def __init__(self, *, clock: Clock = utc_now) -> None:
+        self.clock = clock
+
     async def create_import(
         self,
         session: AsyncSession,
-        request: ActualHarvestApiCreateImportRequest,
+        request: TrialActualHarvestImportCreateRequest,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestImportCreateResponse:
+        if not isinstance(request, TrialActualHarvestImportCreateRequest):
+            require_actor_scope(
+                actor,
+                source_system=request.source_system,
+                channel=ActualHarvestImportChannel.API,
+                permission="may_create",
+                submitted_by_identity=getattr(request, "submitted_by_identity", None),
+            )
+            raise ActualHarvestApiError(
+                ActualHarvestApiErrorCode.API_REQUEST_INVALID,
+                "Trial create request contract is invalid",
+                status_code=422,
+            )
         require_actor_scope(
             actor,
             source_system=request.source_system,
-            channel=request.import_channel,
+            channel=ActualHarvestImportChannel.API,
             permission="may_create",
-            submitted_by_identity=request.submitted_by_identity,
+            submitted_by_identity=actor.identity,
         )
-        summary, _ = await _run_mutation(session, lambda: create_import(session, request))
+        from backend.app.actual_harvest_import.trial_create import (
+            compose_trial_actual_harvest_create,
+        )
+
+        composed = await compose_trial_actual_harvest_create(
+            session,
+            request,
+            actor,
+            clock=self.clock,
+        )
+        summary, _ = await _run_mutation(
+            session,
+            lambda: create_import(
+                session,
+                composed.internal_request,
+                clock=lambda: composed.created_at,
+                replay_identity_hash=composed.create_identity_hash,
+            ),
+        )
         return TrialActualHarvestImportCreateResponse(
             import_id=summary.import_id,
             status=_public_import_status(summary.status),
@@ -863,6 +918,36 @@ def map_actual_harvest_error(error: ActualHarvestApiError) -> TrialApiError:
             False,
             "Trial actor identity is forbidden.",
         ),
+        ActualHarvestApiErrorCode.IDENTITY_MAPPING_AUTHORITY_UNAVAILABLE: (
+            TrialApiErrorCode.AUTHORITY_UNAVAILABLE,
+            503,
+            True,
+            "Trial authority is unavailable.",
+        ),
+        ActualHarvestApiErrorCode.IDENTITY_MAPPING_AUTHORITY_CONFLICT: (
+            TrialApiErrorCode.EVIDENCE_CONFLICT,
+            409,
+            False,
+            "Trial authority is conflicting.",
+        ),
+        ActualHarvestApiErrorCode.IDENTITY_MAPPING_REGISTRY_HASH_CHANGED: (
+            TrialApiErrorCode.EVIDENCE_CONFLICT,
+            409,
+            False,
+            "Trial authority evidence is conflicting.",
+        ),
+        ActualHarvestApiErrorCode.IDEMPOTENCY_KEY_CONFLICT: (
+            TrialApiErrorCode.CONFLICTING_REPLAY,
+            409,
+            False,
+            "Request conflicts with an existing replay.",
+        ),
+        ActualHarvestApiErrorCode.EXTERNAL_BATCH_ID_CONFLICT: (
+            TrialApiErrorCode.CONFLICTING_REPLAY,
+            409,
+            False,
+            "Request conflicts with an existing replay.",
+        ),
         ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_FOUND: (
             TrialApiErrorCode.RESOURCE_NOT_FOUND,
             404,
@@ -982,6 +1067,7 @@ def csv_response_metadata(resource_id: str, document: TrialCsvDocument) -> Trial
 
 __all__ = [
     "DefaultTrialApplicationService",
+    "TrialActualHarvestImportCreateRequest",
     "TrialActualHarvestCommitResponse",
     "TrialActualHarvestImportCreateResponse",
     "TrialActualHarvestImportStatusResponse",

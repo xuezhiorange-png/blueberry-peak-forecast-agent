@@ -54,7 +54,10 @@ from backend.app.actual_harvest_import.models import (
     ActualHarvestImportRecordModel,
 )
 from backend.app.actual_harvest_import.schemas import ActualHarvestImportRecordInput
-from backend.app.actual_harvest_import.validation_hashes import digest
+from backend.app.actual_harvest_import.validation_hashes import (
+    compute_mapping_registry_hash,
+    digest,
+)
 from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestMappingPolicyRegistryModel,
     ActualHarvestMappingRegistryEntryModel,
@@ -76,6 +79,7 @@ from backend.app.actual_harvest_import.validation_service import (
     create_mapping_registry,
     finalize_validation,
     renew_validation_attempt_lease,
+    resolve_unique_sealed_mapping_registry,
     seal_mapping_registry,
 )
 from backend.app.db.session import AsyncSessionMaker
@@ -492,6 +496,154 @@ async def _cleanup_registry(mapping_policy: str) -> None:
                 )
             )
             await session.delete(registry)
+
+
+async def _seed_empty_registry(
+    *,
+    source_system: str,
+    mapping_policy: str,
+    status: str = "SEALED",
+    hash_value: str | None = None,
+    entry_count: int = 0,
+) -> None:
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            if status == "SEALED":
+                session.add(
+                    ActualHarvestMappingPolicyRegistryModel(
+                        registry_version=f"registry-{uuid4().hex}",
+                        source_system=source_system,
+                        mapping_policy_version=mapping_policy,
+                        status="SEALED",
+                        entry_count=entry_count,
+                        registry_content_hash=hash_value
+                        if hash_value is not None
+                        else compute_mapping_registry_hash(()),
+                        sealed_at=datetime.now(UTC),
+                        created_at=datetime.now(UTC),
+                    )
+                )
+            else:
+                create_mapping_registry(
+                    session,
+                    registry_version=f"registry-{uuid4().hex}",
+                    source_system=source_system,
+                    mapping_policy_version=mapping_policy,
+                    entries=(),
+                    now=datetime.now(UTC),
+                )
+
+
+@pytest.mark.asyncio
+async def test_trial_mapping_selector_requires_one_intact_sealed_registry() -> None:
+    _require_postgres()
+    source_system = f"trial-selector-{uuid4().hex}"
+    await _seed_empty_registry(
+        source_system=source_system,
+        mapping_policy=f"mapping-{uuid4().hex}",
+    )
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            registry, entries = await session.run_sync(
+                lambda sync_session: resolve_unique_sealed_mapping_registry(
+                    sync_session,
+                    source_system=source_system,
+                )
+            )
+
+    assert registry.source_system == source_system
+    assert registry.status == "SEALED"
+    assert entries == ()
+
+
+@pytest.mark.asyncio
+async def test_trial_mapping_selector_rejects_zero_or_draft_registries() -> None:
+    _require_postgres()
+    cases = (("zero", None), ("draft", "DRAFT"))
+    for case, status in cases:
+        source_system = f"trial-selector-{case}-{uuid4().hex}"
+        if status is not None:
+            await _seed_empty_registry(
+                source_system=source_system,
+                mapping_policy=f"mapping-{uuid4().hex}",
+                status=status,
+            )
+        expected_code = ActualHarvestApiErrorCode.IDENTITY_MAPPING_AUTHORITY_UNAVAILABLE
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                with pytest.raises(ActualHarvestApiError) as error:
+                    await session.run_sync(
+                        lambda sync_session, source=source_system: (
+                            resolve_unique_sealed_mapping_registry(
+                                sync_session,
+                                source_system=source,
+                            )
+                        )
+                    )
+        assert error.value.code is expected_code
+
+
+@pytest.mark.asyncio
+async def test_trial_mapping_selector_rejects_multiple_sealed_registries() -> None:
+    _require_postgres()
+    source_system = f"trial-selector-multiple-{uuid4().hex}"
+    await _seed_empty_registry(
+        source_system=source_system,
+        mapping_policy=f"mapping-{uuid4().hex}",
+    )
+    await _seed_empty_registry(
+        source_system=source_system,
+        mapping_policy=f"mapping-{uuid4().hex}",
+    )
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestApiError) as error:
+                await session.run_sync(
+                    lambda sync_session: resolve_unique_sealed_mapping_registry(
+                        sync_session,
+                        source_system=source_system,
+                    )
+                )
+
+    assert error.value.code is ActualHarvestApiErrorCode.IDENTITY_MAPPING_AUTHORITY_CONFLICT
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("case", "hash_value", "entry_count"),
+    (
+        ("null-hash", None, 0),
+        ("entry-count-drift", compute_mapping_registry_hash(()), 1),
+        ("hash-drift", "f" * 64, 0),
+    ),
+)
+async def test_trial_mapping_selector_rejects_registry_integrity_drift(
+    case: str,
+    hash_value: str | None,
+    entry_count: int,
+) -> None:
+    _require_postgres()
+    source_system = f"trial-selector-{case}-{uuid4().hex}"
+    await _seed_empty_registry(
+        source_system=source_system,
+        mapping_policy=f"mapping-{uuid4().hex}",
+        hash_value=hash_value,
+        entry_count=entry_count,
+    )
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            with pytest.raises(ActualHarvestApiError) as error:
+                await session.run_sync(
+                    lambda sync_session: resolve_unique_sealed_mapping_registry(
+                        sync_session,
+                        source_system=source_system,
+                    )
+                )
+
+    assert error.value.code is ActualHarvestApiErrorCode.IDENTITY_MAPPING_REGISTRY_HASH_CHANGED
 
 
 def _seed_i5_registry_sync(
