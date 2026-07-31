@@ -17,7 +17,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
 from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiCommitRequest,
-    ActualHarvestApiCreateImportRequest,
 )
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.spreadsheet_policy import DEFAULT_SPREADSHEET_POLICY
@@ -25,6 +24,7 @@ from backend.app.db.session import get_db_session
 from backend.app.trial import (
     TrialActorDep,
     TrialActualHarvestCommitResponse,
+    TrialActualHarvestImportCreateRequest,
     TrialActualHarvestImportCreateResponse,
     TrialActualHarvestImportStatusResponse,
     TrialActualHarvestInvalidRowsResponse,
@@ -241,7 +241,7 @@ async def export_trial_forecast_csv(
 )
 async def create_trial_actual_harvest_import(
     request: Request,
-    body: ActualHarvestApiCreateImportRequest,
+    body: TrialActualHarvestImportCreateRequest,
     session: SessionDep,
     actor: TrialActorDep,
     service: TrialServiceDep,
