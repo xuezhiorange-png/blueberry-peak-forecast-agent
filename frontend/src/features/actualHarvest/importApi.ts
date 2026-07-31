@@ -10,9 +10,12 @@ export const importCreateResponseSchema = z
     source_system: z.string(),
     source_dataset: z.string(),
     source_version: z.string(),
-    expected_record_count_or_null: nullableString,
+    expected_record_count_or_null: z.number().int().nonnegative().nullable(),
     policy_version: z.string(),
-    canonical_public_hash: z.string(),
+    canonical_public_hash: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .nullable(),
   })
   .passthrough();
 
@@ -51,7 +54,7 @@ export const importInvalidRowSchema = z
   .object({
     severity: z.string(),
     error_code: z.string(),
-    record_index: z.number(),
+    record_index: z.number().int().nonnegative().nullable(),
     external_logical_record_id: nullableString,
     external_revision_id: nullableString,
     field_path: nullableString,

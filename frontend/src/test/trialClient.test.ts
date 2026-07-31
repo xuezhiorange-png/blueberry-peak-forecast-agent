@@ -200,6 +200,48 @@ describe("trialClient", () => {
     expect(importCommitResponseSchema.parse(commitShape).status).toBe("COMMITTED");
   });
 
+  it("accepts nullable create fields and nullable invalid-row indexes", () => {
+    expect(
+      importCreateResponseSchema.parse({
+        ...createShape,
+        expected_record_count_or_null: 12,
+      }).expected_record_count_or_null,
+    ).toBe(12);
+    expect(
+      importCreateResponseSchema.parse({
+        ...createShape,
+        canonical_public_hash: null,
+      }).canonical_public_hash,
+    ).toBeNull();
+    expect(
+      importInvalidRowsResponseSchema.parse({
+        ...rowsShape,
+        rows: [{ ...rowsShape.rows[0], record_index: null }],
+      }).rows[0]?.record_index,
+    ).toBeNull();
+  });
+
+  it("rejects invalid import nullable field values", () => {
+    expect(() =>
+      importCreateResponseSchema.parse({
+        ...createShape,
+        expected_record_count_or_null: "12",
+      }),
+    ).toThrow();
+    expect(() =>
+      importCreateResponseSchema.parse({
+        ...createShape,
+        canonical_public_hash: "not-a-sha",
+      }),
+    ).toThrow();
+    expect(() =>
+      importInvalidRowsResponseSchema.parse({
+        ...rowsShape,
+        rows: [{ ...rowsShape.rows[0], record_index: -1 }],
+      }),
+    ).toThrow();
+  });
+
   it("uses status for GET, server_status for upload, and status for commit", async () => {
     const statusFetcher = vi.fn().mockResolvedValue(response(readShape));
     expect((await importApi.status("import-1", statusFetcher)).status).toBe("VALIDATED");
