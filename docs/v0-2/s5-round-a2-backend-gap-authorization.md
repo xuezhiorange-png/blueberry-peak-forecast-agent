@@ -142,6 +142,44 @@ display labels, authority version, and authority hash. It returns no database
 IDs and is unavailable with `503 TRIAL_AUTHORITY_UNAVAILABLE` when the server
 cannot prove a complete authority snapshot.
 
+For every allowed business scope it also returns:
+
+```text
+farm_business_key
+subfarm_business_key_or_null
+season_business_key
+variety_business_key
+destination_factory_business_key
+plan_version
+plan_row_hash
+planting_area_mu
+```
+
+The authority response includes top-level `forecast_input_authority_hash` and
+`authority_available_at`. The server never selects a plan row using latest
+version, latest availability, arbitrary first row, or any `ORDER BY ... LIMIT
+1` fallback.
+
+The Forecast POST submits `forecast_input_authority_hash`, `plan_row_hash`, and
+`planting_area_mu` in addition to the business scope. The server revalidates
+the plan row using:
+
+```text
+row_hash = submitted plan_row_hash
+farm/subfarm/season/variety = submitted business scope
+available_at <= forecast_cutoff business date
+effective_from <= forecast_start_date
+effective_to is null OR effective_to >= forecast_start_date
+```
+
+Zero rows return `404 RESOURCE_NOT_FOUND`, one row compares canonical
+`planting_area_mu`, and more than one row returns `409 EVIDENCE_CONFLICT`.
+Authority-hash drift and plan-row-hash drift return `409 EVIDENCE_CONFLICT`.
+An exact planting-area mismatch returns `422 TRIAL_REQUEST_INVALID`. The
+authority hash, plan row hash, and planting area are all part of the canonical
+Trial request and idempotency payload. These hashes are public evidence
+identities, never database IDs.
+
 No forecast formula, model training rule, parameter value, or maturity
 algorithm changes as part of this contract.
 
@@ -209,16 +247,32 @@ more than 1 matching policy
 
 The selector must not use `ORDER BY available_at DESC LIMIT 1`, latest-row
 wins, highest-version wins, partial-scope fallback, or entries mixed from
-multiple headers. This authorization chooses database exclusion constraints on
-the policy scope/effective interval to prevent overlapping active policies.
-The selector still fails closed if historical data contains multiple matching
-candidates.
+multiple headers. Policy overlap may be stored, but the selector still fails
+closed if historical data contains multiple matching candidates.
+
+```text
+POLICY_OVERLAP_STORAGE_ALLOWED=true
+POLICY_SELECTOR_FAILS_CLOSED_ON_MULTIPLE_MATCHES=true
+POLICY_DATABASE_EXCLUSION_CONSTRAINT_REQUIRED=false
+```
 
 ### 4.4 Trial actor permissions and resource ownership
 
-The server-owned actor permission vocabulary is:
+Both A1 actual-harvest and A2 Forecast/Quality APIs use the same
+server-owned `ActualHarvestActorContext` and the same
+`get_actual_harvest_actor` dependency from
+`backend/app/actual_harvest_import/api_auth.py`. The legal permission set is
+the union of A1 and A2 permissions:
 
 ```text
+may_create
+may_append
+may_preview
+may_seal
+may_cancel
+may_validate
+may_commit
+
 may_read_forecast_authority
 may_create_forecast
 may_read_forecast
@@ -228,6 +282,12 @@ may_read_quality
 may_read_quality_comparison
 may_export_quality
 ```
+
+`TRIAL_ACTOR_PERMISSIONS` is parsed once by that shared dependency. Unknown
+permissions, empty identity, invalid channel, and invalid source configuration
+remain fail-closed `503` responses. No second actor environment parser may be
+added to `backend/app/trial.py`. Existing A1 owner/source/channel concealment
+behavior is unchanged.
 
 Every Forecast and Quality public resource is bound in the same persistence
 boundary as its creation. The binding is not inferred from knowledge of a
@@ -367,6 +427,27 @@ All public endpoints remain under `/api/v1/trial/*`.
 | `GET /api/v1/trial/quality-reports/{report_id}/comparison` | path evaluation instance hash | typed `TrialQualityComparisonResponse` | `200` | `404 RESOURCE_NOT_FOUND`; `409 EVIDENCE_CONFLICT`; `503 QUALITY_PERSISTENCE_UNAVAILABLE` |
 | `GET /api/v1/trial/quality-reports/{report_id}/export.csv` | path evaluation instance hash | canonical CSV bytes | `200` | `404 RESOURCE_NOT_FOUND`; `409 EVIDENCE_CONFLICT`; `text/csv` only |
 
+The Forecast create request must contain these public fields and no internal
+database IDs:
+
+```text
+farm_business_key
+subfarm_business_key_or_null
+variety_business_key
+season_business_key
+destination_factory_business_key
+forecast_cutoff_at
+forecast_input_authority_hash
+plan_row_hash
+planting_area_mu
+flowering_date_or_null
+maturity_stage_or_null
+already_picked_quantity_kg_or_null
+```
+
+The optional fields are accepted only when null under the current Core
+consumer contract. Non-null values fail with `TRIAL_INPUT_NOT_SUPPORTED`.
+
 The public Trial error enum is:
 
 | Error code | HTTP status | Retryable | Meaning |
@@ -437,9 +518,9 @@ Required constraints are lowercase SHA-256 checks, positive foreign keys,
 rates in `[0,1]`, one unique entry per policy and business scope, one unique
 policy hash, one unique `(resource_kind, public_resource_id)`, non-empty
 immutable owner identity, and indexes for public resource plus owner scope.
-The policy table uses an exclusion constraint over the active scope/effective
-interval to prevent overlapping active policies. The selector remains
-fail-closed if historical data contains overlap. The rollback is deterministic:
+Policy overlap storage is allowed. The database does not require a cross-table
+exclusion constraint. The selector remains fail-closed if historical data
+contains overlap. The rollback is deterministic:
 drop resource bindings, policy entries, then policy headers and their
 indexes/constraints; do not rewrite existing Core, S2, or Quality evidence.
 
@@ -464,9 +545,10 @@ not authorized by accepting this document.
 
 The following paths are the complete future ceiling for the A2 authorization
 program. A future implementation must still use separate commits for the
-schema, Forecast, and Quality sub-rounds. The public Trial surface is owned by
-`A2_F_FORECAST_AUTHORITY_AND_ADAPTERS`; `A2_Q_QUALITY_ADAPTERS_OVERLAY_AND_METRICS`
-may not expand or modify that shared router/service surface.
+schema, Forecast, and Quality sub-rounds. The public Trial router is owned by
+`A2_F_FORECAST_AUTHORITY_AND_ADAPTERS`; the Quality sub-round may modify only
+the explicitly overlapping `backend/app/trial.py` service methods described in
+the delivery plan.
 
 ```text
 CREATE_PATHS=
@@ -476,6 +558,7 @@ backend/alembic/versions/0026_s5_round_a2_policy_and_trial_resource_binding.py
 backend/tests/trial/test_resource_binding.py
 
 MODIFY_PATHS=
+backend/app/actual_harvest_import/api_auth.py
 backend/app/api/trial.py
 backend/app/trial.py
 backend/app/core_forecast/repository.py
@@ -509,7 +592,7 @@ backend/app/forecast_quality/baseline.py
 backend/app/agent/
 backend/app/maturity/
 backend/app/harvest_state/
-backend/app/actual_harvest_import/
+backend/app/actual_harvest_import/ (except backend/app/actual_harvest_import/api_auth.py)
 backend/app/models/core_forecast.py
 backend/app/models/forecast_quality.py
 backend/app/models/rolling_backtest.py
@@ -517,9 +600,9 @@ backend/alembic/versions/0025_s3_model_baseline_comparison.py
 backend/tests/ (except the exact test files above)
 
 A2_CREATE_PATH_COUNT=4
-A2_MODIFY_PATH_COUNT=14
-A2_CHANGED_FILE_CEILING=18
-A2_BACKEND_APP_FILE_CEILING=8
+A2_MODIFY_PATH_COUNT=15
+A2_CHANGED_FILE_CEILING=19
+A2_BACKEND_APP_FILE_CEILING=9
 A2_TEST_FILE_CEILING=9
 A2_WORKFLOW_FILE_CEILING=0
 A2_MIGRATION_FILE_CEILING=1
@@ -546,14 +629,19 @@ The order is strict:
    testable, and revertible.
 2. `A2_F_FORECAST_AUTHORITY_AND_ADAPTERS` resolves business-key authority,
    consumes the persisted policy, wires Core execution, and owns the shared
-   Trial router/service boundary plus typed Forecast create/read/daily/export
-   behavior. It must not change Core algorithms.
+   Trial router plus typed Forecast create/read/daily/export behavior. In
+   `backend/app/trial.py` it may implement only Forecast DTOs, actor checks,
+   methods, error mapping, and CSV projection. Quality methods remain
+   fail-closed. It must not change Core algorithms.
 3. `A2_Q_QUALITY_ADAPTERS_OVERLAY_AND_METRICS` adds complete Quality readback,
    creates reports from committed import and S2 evidence, projects overlay and
-   typed metrics, and exposes persisted comparison/export behavior through the
-   shared boundary owned by A2_F.
+   typed metrics, and exposes persisted comparison/export behavior by modifying
+   only the Quality methods in the shared `backend/app/trial.py` service file.
+   It must not modify A1 import code, Forecast code, the actor parser, or the
+   public router.
 
-Each sub-round has an exclusive path set:
+Each sub-round has an exact path set. The one documented overlap is sequential,
+not simultaneous:
 
 ```text
 A2_S_SCHEMA_AUTHORITY_PERSISTENCE_PATHS=
@@ -566,12 +654,14 @@ backend/tests/trial/test_resource_binding.py
 backend/tests/integration/test_core_forecast_persistence_postgres.py
 
 A2_F_FORECAST_AUTHORITY_AND_ADAPTERS_PATHS=
+backend/app/actual_harvest_import/api_auth.py
 backend/app/api/trial.py
 backend/app/trial.py
 backend/tests/trial/test_api.py
 backend/tests/trial/test_contract.py
 
 A2_Q_QUALITY_ADAPTERS_OVERLAY_AND_METRICS_PATHS=
+backend/app/trial.py
 backend/app/forecast_quality/persistence.py
 backend/app/rolling_backtest/persistence.py
 backend/tests/forecast_quality/test_idempotency.py
@@ -581,15 +671,19 @@ backend/tests/integration/test_rolling_backtest_persistence.py
 backend/tests/rolling_backtest/test_persistence_contracts.py
 
 A2_S_PATH_COUNT=7
-A2_F_PATH_COUNT=4
-A2_Q_PATH_COUNT=7
-A2_SUBROUND_PATH_OVERLAP_COUNT=0
+A2_F_PATH_COUNT=5
+A2_Q_PATH_COUNT=8
+A2_SUBROUND_PATH_OVERLAP_COUNT=1
+A2_SUBROUND_OVERLAP_PATHS=backend/app/trial.py
+A2_UNIQUE_CHANGED_PATH_COUNT=19
 ```
 
-The A2_F shared boundary must expose typed seams that A2_Q consumes; A2_Q may
-not modify `backend/app/api/trial.py` or `backend/app/trial.py`. This keeps the
-three commits independently reviewable and makes a Quality rollback leave the
-schema and Forecast boundary intact.
+The A2_F commit lands before A2_Q. A2_Q may modify only the Quality DTOs,
+production methods, error mapping, overlay, and metric projection in
+`backend/app/trial.py`; it may not use `getattr`, dynamic imports, missing
+function placeholders, or runtime monkeypatching to bypass the shared service
+contract. Reverting A2_Q reverts only the A2_Q commit and leaves A2_F Forecast
+code intact.
 
 Each sub-round requires its own commit, targeted tests, PostgreSQL tests, and
 rollback review. A failed Quality sub-round must not require reverting the
