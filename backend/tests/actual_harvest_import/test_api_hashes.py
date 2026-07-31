@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
+
 from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiCreateImportRequest,
 )
@@ -21,6 +23,14 @@ from backend.app.actual_harvest_import.enums import (
 from backend.app.actual_harvest_import.schemas import (
     ActualHarvestSourceSemanticsAttestation,
     CanonicalActualHarvestImportRecord,
+)
+from backend.app.actual_harvest_import.trial_create import (
+    TRIAL_ACTUAL_HARVEST_ATTESTATION_VERSION,
+    TRIAL_ACTUAL_HARVEST_SCHEMA_VERSION,
+    TRIAL_ACTUAL_HARVEST_VALIDATION_POLICY_VERSION,
+    _attestation,
+    _attestation_hash,
+    _create_identity_hash,
 )
 from backend.app.actual_harvest_import.validation_hashes import (
     ACTUAL_HARVEST_SEASON_RESOLVER_VERSION,
@@ -59,6 +69,65 @@ def _create() -> ActualHarvestApiCreateImportRequest:
 
 def test_create_hash_is_stable_for_equal_payload() -> None:
     assert compute_create_payload_hash(_create()) == compute_create_payload_hash(_create())
+
+
+def _trial_identity(**updates: object) -> str:
+    attestation = _attestation()
+    values: dict[str, object] = {
+        "request_idempotency_key": "key-1",
+        "actor_identity": "actor-1",
+        "source_system": "farm-system",
+        "source_dataset": "actual-harvest",
+        "source_version": "v1",
+        "external_batch_id": "batch-1",
+        "expected_record_count_or_null": 1,
+        "attestation": attestation,
+        "attestation_hash": _attestation_hash(attestation),
+        "mapping_registry_version": "registry-v1",
+        "mapping_policy_version": "mapping-v1",
+        "mapping_registry_content_hash": "c" * 64,
+    }
+    values.update(updates)
+    return _create_identity_hash(**values)
+
+
+def test_trial_create_identity_excludes_request_key_actor_and_clock() -> None:
+    baseline = _trial_identity(request_idempotency_key="key-1", actor_identity="actor-1")
+    assert baseline == _trial_identity(request_idempotency_key="key-2", actor_identity="actor-2")
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "source_dataset",
+        "source_version",
+        "external_batch_id",
+        "expected_record_count_or_null",
+        "mapping_registry_version",
+        "mapping_policy_version",
+        "mapping_registry_content_hash",
+    ],
+)
+def test_trial_create_identity_binds_business_and_authority_fields(field: str) -> None:
+    baseline = _trial_identity()
+    changed = {
+        "source_dataset": "other-dataset",
+        "source_version": "v2",
+        "external_batch_id": "batch-2",
+        "expected_record_count_or_null": 2,
+        "mapping_registry_version": "registry-v2",
+        "mapping_policy_version": "mapping-v2",
+        "mapping_registry_content_hash": "d" * 64,
+    }
+    assert _trial_identity(**{field: changed[field]}) != baseline
+
+
+def test_trial_attestation_hash_and_server_versions_are_stable() -> None:
+    attestation = _attestation()
+    assert attestation.attestation_version == TRIAL_ACTUAL_HARVEST_ATTESTATION_VERSION
+    assert _attestation_hash(attestation) == _attestation_hash(attestation)
+    assert TRIAL_ACTUAL_HARVEST_SCHEMA_VERSION == "actual-harvest-canonical-schema-v1"
+    assert TRIAL_ACTUAL_HARVEST_VALIDATION_POLICY_VERSION == "actual-harvest-validation-policy-v1"
 
 
 def test_record_hash_excludes_transport_provenance() -> None:

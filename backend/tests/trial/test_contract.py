@@ -7,12 +7,83 @@ import pytest
 from pydantic import ValidationError
 
 from backend.app.trial import (
+    TrialActualHarvestImportCreateRequest,
     TrialForecastCreateRequest,
     TrialForecastDailyCurveResponse,
     TrialForecastDailyRow,
     TrialQualityReportCreateRequest,
     serialize_csv,
 )
+
+
+def _actual_import_create_payload() -> dict[str, object]:
+    return {
+        "source_system": "farm-system",
+        "source_dataset": "actual-harvest",
+        "source_version": "2026-07",
+        "external_batch_id": "batch-1",
+        "expected_record_count_or_null": 1,
+        "request_idempotency_key": "key-1",
+    }
+
+
+def test_actual_import_create_dto_has_only_browser_fields() -> None:
+    request = TrialActualHarvestImportCreateRequest.model_validate(
+        {**_actual_import_create_payload(), "source_system": " farm-system "}
+    )
+    assert set(request.model_dump()) == {
+        "source_system",
+        "source_dataset",
+        "source_version",
+        "external_batch_id",
+        "expected_record_count_or_null",
+        "request_idempotency_key",
+    }
+    assert request.source_system == "farm-system"
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "import_channel",
+        "submitted_at",
+        "submitted_by_identity",
+        "idempotency_key",
+        "schema_version",
+        "mapping_policy_version",
+        "validation_policy_version",
+        "raw_payload_hash",
+        "source_semantics_attestation",
+        "source_semantics_attestation_hash",
+        "attestation_version",
+        "permissions",
+        "actor_identity",
+        "internal_id",
+        "database_id",
+        "file_name",
+        "file_hash",
+    ],
+)
+def test_actual_import_create_dto_rejects_server_owned_fields(field: str) -> None:
+    with pytest.raises(ValidationError):
+        TrialActualHarvestImportCreateRequest.model_validate(
+            {**_actual_import_create_payload(), field: "forbidden"}
+        )
+
+
+def test_actual_import_create_dto_enforces_bounds() -> None:
+    with pytest.raises(ValidationError):
+        TrialActualHarvestImportCreateRequest.model_validate(
+            {**_actual_import_create_payload(), "expected_record_count_or_null": -1}
+        )
+    with pytest.raises(ValidationError):
+        TrialActualHarvestImportCreateRequest.model_validate(
+            {**_actual_import_create_payload(), "source_system": " "}
+        )
+    with pytest.raises(ValidationError):
+        TrialActualHarvestImportCreateRequest.model_validate(
+            {**_actual_import_create_payload(), "source_version": "v" * 129}
+        )
 
 
 def test_page_dto_extra_fields_are_forbidden() -> None:

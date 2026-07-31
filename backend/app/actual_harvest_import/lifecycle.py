@@ -145,6 +145,7 @@ async def create_import(
     request: ActualHarvestApiCreateImportRequest,
     *,
     clock: Clock = utc_now,
+    replay_identity_hash: str | None = None,
 ) -> tuple[ActualHarvestApiBatchSummary, bool]:
     batch, reused = await session.run_sync(
         lambda sync_session: persist_create_batch(
@@ -152,6 +153,7 @@ async def create_import(
             request,
             import_id=uuid4().hex,
             now=clock(),
+            replay_identity_hash=replay_identity_hash,
         )
     )
     return _summary(batch), reused
