@@ -28,4 +28,68 @@ test.describe("frontend-first quality route smoke", () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
   });
+
+  test("renders selected file hash without horizontal overflow on mobile", async ({ page }) => {
+    const apiRequests: string[] = [];
+
+    page.on("request", (request) => {
+      const pathname = new URL(request.url()).pathname;
+      if (pathname.startsWith("/api/")) apiRequests.push(pathname);
+    });
+
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 360, height: 800 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/trial/quality");
+
+      const fileInput = page.getByLabel("选择 CSV 或 XLSX 文件");
+
+      await expect(fileInput).toBeEnabled();
+
+      await fileInput.setInputFiles({
+        name: "actual-harvest-mobile.csv",
+        mimeType: "text/csv",
+        buffer: Buffer.from(
+          [
+            "farm_code,variety_code,harvest_date,quantity_kg",
+            "FARM-001,DUKE,2026-07-30,125.50",
+          ].join("\n"),
+          "utf8",
+        ),
+      });
+
+      await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
+
+      const hashValue = page
+        .locator('dl[aria-label="文件元数据"]')
+        .locator("div")
+        .filter({ hasText: "SHA-256" })
+        .locator("dd");
+
+      await expect(hashValue).toHaveText(/^[0-9a-f]{64}$/);
+
+      const dimensions = await page.evaluate(() => ({
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+        bodyWidth: document.body.scrollWidth,
+      }));
+
+      expect(
+        dimensions.documentWidth,
+        `${viewport.width}x${viewport.height}: document overflow`,
+      ).toBeLessThanOrEqual(dimensions.viewportWidth);
+
+      expect(
+        dimensions.bodyWidth,
+        `${viewport.width}x${viewport.height}: body overflow`,
+      ).toBeLessThanOrEqual(dimensions.viewportWidth);
+
+      await expect(page.getByRole("button", { name: "上传并校验" })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "提交导入" })).toBeDisabled();
+    }
+
+    expect(apiRequests, `unexpected API requests: ${apiRequests.join(", ")}`).toEqual([]);
+  });
 });
