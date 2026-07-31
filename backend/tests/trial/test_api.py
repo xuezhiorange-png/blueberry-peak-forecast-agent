@@ -16,7 +16,6 @@ from backend.app.actual_harvest_import.api_auth import (
 from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
 from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiCommitRequest,
-    ActualHarvestApiCreateImportRequest,
 )
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.db.session import get_db_session
@@ -24,6 +23,7 @@ from backend.app.main import create_app
 from backend.app.trial import (
     DefaultTrialApplicationService,
     TrialActualHarvestCommitResponse,
+    TrialActualHarvestImportCreateRequest,
     TrialActualHarvestImportCreateResponse,
     TrialActualHarvestImportStatusResponse,
     TrialActualHarvestInvalidRowsResponse,
@@ -202,7 +202,7 @@ class SyntheticTrialService:
     async def create_import(
         self,
         session: AsyncSession,
-        request: ActualHarvestApiCreateImportRequest,
+        request: TrialActualHarvestImportCreateRequest,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestImportCreateResponse:
         del session, request
@@ -493,22 +493,7 @@ async def test_actual_import_create_api_acceptance(client: AsyncClient) -> None:
         "source_dataset": "synthetic-dataset",
         "source_version": "v1",
         "external_batch_id": "batch-1",
-        "idempotency_key": "import-key-1",
-        "submitted_at": NOW.isoformat(),
-        "submitted_by_identity": "trial-user-1",
-        "import_channel": "api",
-        "raw_payload_hash": "a" * 64,
-        "schema_version": "synthetic-v1",
-        "mapping_policy_version": "mapping-v1",
-        "validation_policy_version": "validation-v1",
-        "source_semantics_attestation": {
-            "attestation_version": "attestation-v1",
-            "physical_event": "FARM_PICK",
-            "quantity_basis": "OBSERVED_WEIGHT",
-            "quantity_unit": "KG",
-            "missing_record_semantics": "UNKNOWN_NOT_ZERO",
-        },
-        "source_semantics_attestation_hash": "b" * 64,
+        "request_idempotency_key": "import-key-1",
     }
     response = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
     assert response.status_code == 200
@@ -529,22 +514,7 @@ async def test_actual_import_create_scope_mismatch_is_forbidden_before_lifecycle
         "source_dataset": "synthetic-dataset",
         "source_version": "v1",
         "external_batch_id": "batch-scope-check",
-        "idempotency_key": "import-scope-check",
-        "submitted_at": NOW.isoformat(),
-        "submitted_by_identity": "trial-user-1",
-        "import_channel": "api",
-        "raw_payload_hash": "a" * 64,
-        "schema_version": "synthetic-v1",
-        "mapping_policy_version": "mapping-v1",
-        "validation_policy_version": "validation-v1",
-        "source_semantics_attestation": {
-            "attestation_version": "attestation-v1",
-            "physical_event": "FARM_PICK",
-            "quantity_basis": "OBSERVED_WEIGHT",
-            "quantity_unit": "KG",
-            "missing_record_semantics": "UNKNOWN_NOT_ZERO",
-        },
-        "source_semantics_attestation_hash": "b" * 64,
+        "request_idempotency_key": "import-scope-check",
     }
     response = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
     assert response.status_code == 403

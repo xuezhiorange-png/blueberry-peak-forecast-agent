@@ -245,6 +245,70 @@ def _entry_payload(entry: ActualHarvestMappingRegistryEntryModel) -> dict[str, A
     }
 
 
+def resolve_unique_sealed_mapping_registry(
+    session: Session, *, source_system: str
+) -> tuple[
+    ActualHarvestMappingPolicyRegistryModel,
+    tuple[ActualHarvestMappingRegistryEntryModel, ...],
+]:
+    """Resolve exactly one intact sealed mapping registry for a source."""
+    registries = tuple(
+        session.scalars(
+            select(ActualHarvestMappingPolicyRegistryModel).where(
+                ActualHarvestMappingPolicyRegistryModel.source_system == source_system,
+                ActualHarvestMappingPolicyRegistryModel.status == "SEALED",
+            )
+        ).all()
+    )
+    candidates: list[
+        tuple[
+            ActualHarvestMappingPolicyRegistryModel,
+            tuple[ActualHarvestMappingRegistryEntryModel, ...],
+        ]
+    ] = []
+    for registry in registries:
+        entries = tuple(
+            session.scalars(
+                select(ActualHarvestMappingRegistryEntryModel)
+                .where(ActualHarvestMappingRegistryEntryModel.registry_id == registry.id)
+                .order_by(
+                    ActualHarvestMappingRegistryEntryModel.source_field,
+                    ActualHarvestMappingRegistryEntryModel.source_code,
+                    ActualHarvestMappingRegistryEntryModel.target_type,
+                    ActualHarvestMappingRegistryEntryModel.target_business_key,
+                )
+            ).all()
+        )
+        computed = compute_mapping_registry_hash(_entry_payload(entry) for entry in entries)
+        if registry.registry_content_hash is None or registry.entry_count != len(entries):
+            raise _api_error(
+                ActualHarvestApiErrorCode.IDENTITY_MAPPING_REGISTRY_HASH_CHANGED,
+                "mapping registry integrity is unavailable",
+                409,
+            )
+        if computed != registry.registry_content_hash:
+            raise _api_error(
+                ActualHarvestApiErrorCode.IDENTITY_MAPPING_REGISTRY_HASH_CHANGED,
+                "mapping registry integrity changed",
+                409,
+            )
+        candidates.append((registry, entries))
+
+    if not candidates:
+        raise _api_error(
+            ActualHarvestApiErrorCode.IDENTITY_MAPPING_AUTHORITY_UNAVAILABLE,
+            "mapping authority is unavailable",
+            503,
+        )
+    if len(candidates) > 1:
+        raise _api_error(
+            ActualHarvestApiErrorCode.IDENTITY_MAPPING_AUTHORITY_CONFLICT,
+            "mapping authority is conflicting",
+            409,
+        )
+    return candidates[0]
+
+
 def create_mapping_registry(
     session: Session,
     *,
@@ -2031,6 +2095,7 @@ __all__ = [
     "finalize_validation",
     "renew_validation_attempt_lease",
     "list_validation_errors",
+    "resolve_unique_sealed_mapping_registry",
     "seal_mapping_registry",
     "validate_import",
 ]
