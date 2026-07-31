@@ -6,7 +6,6 @@ from collections.abc import AsyncIterator
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from enum import StrEnum
-from typing import NoReturn
 from uuid import uuid4
 
 import pytest
@@ -95,7 +94,6 @@ from backend.app.actual_harvest_import.validation_service import (
     resolve_unique_sealed_mapping_registry,
     seal_mapping_registry,
 )
-from backend.app.api import trial as trial_api_module
 from backend.app.db.session import AsyncSessionMaker, get_db_session
 from backend.app.main import create_app
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
@@ -721,11 +719,6 @@ async def test_postgres_trial_default_service_create_and_replay_contract(
         original_service_init(self, clock=lambda: next(server_clocks))
 
     monkeypatch.setattr(DefaultTrialApplicationService, "__init__", _fixed_clock_init)
-
-    def _rethrow_unhandled(error: Exception) -> NoReturn:
-        raise error
-
-    monkeypatch.setattr(trial_api_module, "map_unhandled_error", _rethrow_unhandled)
 
     def seed_registry(
         sync_session,
