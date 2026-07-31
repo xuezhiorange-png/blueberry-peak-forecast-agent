@@ -143,8 +143,6 @@ async def compose_trial_actual_harvest_create(
         submitted_at=now,
         submitted_by_identity=actor.identity,
         expected_record_count_or_null=request.expected_record_count_or_null,
-        source_file_name_or_null=None,
-        source_file_hash_or_null=None,
         raw_payload_hash=create_identity_hash,
         schema_version=TRIAL_ACTUAL_HARVEST_SCHEMA_VERSION,
         mapping_policy_version=registry.mapping_policy_version,
