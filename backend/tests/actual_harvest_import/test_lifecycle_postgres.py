@@ -11,12 +11,16 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 import sqlalchemy as sa
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.actual_harvest_import import validation_service as validation_service_module
-from backend.app.actual_harvest_import.api_auth import ActualHarvestActorContext
+from backend.app.actual_harvest_import.api_auth import (
+    ActualHarvestActorContext,
+    get_actual_harvest_actor,
+)
 from backend.app.actual_harvest_import.api_errors import (
     ActualHarvestApiError,
     ActualHarvestApiErrorCode,
@@ -54,6 +58,14 @@ from backend.app.actual_harvest_import.models import (
     ActualHarvestImportRecordModel,
 )
 from backend.app.actual_harvest_import.schemas import ActualHarvestImportRecordInput
+from backend.app.actual_harvest_import.trial_create import (
+    TRIAL_ACTUAL_HARVEST_ATTESTATION_VERSION,
+    TRIAL_ACTUAL_HARVEST_SCHEMA_VERSION,
+    TRIAL_ACTUAL_HARVEST_VALIDATION_POLICY_VERSION,
+    _attestation,
+    _attestation_hash,
+    _create_identity_hash,
+)
 from backend.app.actual_harvest_import.validation_hashes import (
     compute_mapping_registry_hash,
     digest,
@@ -82,8 +94,10 @@ from backend.app.actual_harvest_import.validation_service import (
     resolve_unique_sealed_mapping_registry,
     seal_mapping_registry,
 )
-from backend.app.db.session import AsyncSessionMaker
+from backend.app.db.session import AsyncSessionMaker, get_db_session
+from backend.app.main import create_app
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
+from backend.app.trial import DefaultTrialApplicationService
 from backend.tests.actual_harvest_import.test_api_schemas import (
     _create_payload,
     _record_payload,
@@ -498,17 +512,30 @@ async def _cleanup_registry(mapping_policy: str) -> None:
             await session.delete(registry)
 
 
+_DEFAULT_REGISTRY_HASH = object()
+
+
 async def _seed_empty_registry(
     *,
     source_system: str,
     mapping_policy: str,
     status: str = "SEALED",
-    hash_value: str | None = None,
+    hash_value: str | None | object = _DEFAULT_REGISTRY_HASH,
     entry_count: int = 0,
 ) -> None:
     async with AsyncSessionMaker() as session:
         async with session.begin():
             if status == "SEALED":
+                if hash_value is _DEFAULT_REGISTRY_HASH:
+                    registry_content_hash = compute_mapping_registry_hash(())
+                elif hash_value is None:
+                    registry_content_hash = None
+                else:
+                    if not isinstance(hash_value, str):
+                        raise TypeError(
+                            "hash_value must be a string, None, or the default sentinel"
+                        )
+                    registry_content_hash = hash_value
                 session.add(
                     ActualHarvestMappingPolicyRegistryModel(
                         registry_version=f"registry-{uuid4().hex}",
@@ -516,21 +543,21 @@ async def _seed_empty_registry(
                         mapping_policy_version=mapping_policy,
                         status="SEALED",
                         entry_count=entry_count,
-                        registry_content_hash=hash_value
-                        if hash_value is not None
-                        else compute_mapping_registry_hash(()),
+                        registry_content_hash=registry_content_hash,
                         sealed_at=datetime.now(UTC),
                         created_at=datetime.now(UTC),
                     )
                 )
             else:
-                create_mapping_registry(
-                    session,
-                    registry_version=f"registry-{uuid4().hex}",
-                    source_system=source_system,
-                    mapping_policy_version=mapping_policy,
-                    entries=(),
-                    now=datetime.now(UTC),
+                await session.run_sync(
+                    lambda sync_session: create_mapping_registry(
+                        sync_session,
+                        registry_version=f"registry-{uuid4().hex}",
+                        source_system=source_system,
+                        mapping_policy_version=mapping_policy,
+                        entries=(),
+                        now=datetime.now(UTC),
+                    )
                 )
 
 
@@ -626,12 +653,27 @@ async def test_trial_mapping_selector_rejects_registry_integrity_drift(
 ) -> None:
     _require_postgres()
     source_system = f"trial-selector-{case}-{uuid4().hex}"
+    mapping_policy = f"mapping-{uuid4().hex}"
     await _seed_empty_registry(
         source_system=source_system,
-        mapping_policy=f"mapping-{uuid4().hex}",
+        mapping_policy=mapping_policy,
         hash_value=hash_value,
         entry_count=entry_count,
     )
+
+    if case == "null-hash":
+        async with AsyncSessionMaker() as session:
+            persisted_registry = await session.scalar(
+                sa.select(ActualHarvestMappingPolicyRegistryModel).where(
+                    ActualHarvestMappingPolicyRegistryModel.source_system == source_system,
+                    ActualHarvestMappingPolicyRegistryModel.mapping_policy_version
+                    == mapping_policy,
+                )
+            )
+        assert persisted_registry is not None
+        assert persisted_registry.status == "SEALED"
+        assert persisted_registry.registry_content_hash is None
+        assert persisted_registry.entry_count == 0
 
     async with AsyncSessionMaker() as session:
         async with session.begin():
@@ -644,6 +686,212 @@ async def test_trial_mapping_selector_rejects_registry_integrity_drift(
                 )
 
     assert error.value.code is ActualHarvestApiErrorCode.IDENTITY_MAPPING_REGISTRY_HASH_CHANGED
+    assert error.value.status_code == 409
+
+
+@pytest.mark.asyncio
+@pytest.mark.postgres
+@pytest.mark.integration
+async def test_postgres_trial_default_service_create_and_replay_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _require_postgres()
+
+    source_system = f"trial-create-{uuid4().hex}"
+    mapping_policy = f"trial-mapping-{uuid4().hex}"
+    registry_version = f"trial-registry-{uuid4().hex}"
+    second_mapping_policy = f"trial-mapping-{uuid4().hex}"
+    second_registry_version = f"trial-registry-{uuid4().hex}"
+
+    server_clocks = iter(
+        (
+            datetime(2026, 7, 29, 8, 0, tzinfo=UTC),
+            datetime(2026, 7, 29, 8, 1, tzinfo=UTC),
+            datetime(2026, 7, 29, 8, 2, tzinfo=UTC),
+            datetime(2026, 7, 29, 8, 3, tzinfo=UTC),
+            datetime(2026, 7, 29, 8, 4, tzinfo=UTC),
+        )
+    )
+    original_service_init = DefaultTrialApplicationService.__init__
+
+    def _fixed_clock_init(self, *, clock=None) -> None:
+        del clock
+        original_service_init(self, clock=lambda: next(server_clocks))
+
+    monkeypatch.setattr(DefaultTrialApplicationService, "__init__", _fixed_clock_init)
+
+    def seed_registry(
+        sync_session,
+        *,
+        registry_version: str,
+        mapping_policy_version: str,
+    ) -> None:
+        create_mapping_registry(
+            sync_session,
+            registry_version=registry_version,
+            source_system=source_system,
+            mapping_policy_version=mapping_policy_version,
+            entries=(),
+            now=datetime(2026, 7, 29, 7, 59, tzinfo=UTC),
+        )
+        seal_mapping_registry(
+            sync_session,
+            mapping_policy_version=mapping_policy_version,
+            now=datetime(2026, 7, 29, 7, 59, tzinfo=UTC),
+        )
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.run_sync(
+                lambda sync_session: seed_registry(
+                    sync_session,
+                    registry_version=registry_version,
+                    mapping_policy_version=mapping_policy,
+                )
+            )
+
+    actor = ActualHarvestActorContext(
+        identity="trial-postgres-actor",
+        allowed_source_systems=frozenset({source_system}),
+        allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+        may_create=True,
+        may_append=True,
+        may_preview=True,
+        may_seal=True,
+        may_cancel=True,
+        may_validate=True,
+        may_commit=True,
+    )
+    app = create_app()
+
+    async def _session_override() -> AsyncIterator[AsyncSession]:
+        async with AsyncSessionMaker() as session:
+            yield session
+
+    app.dependency_overrides[get_db_session] = _session_override
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: actor
+
+    body = {
+        "source_system": source_system,
+        "source_dataset": "actual-harvest",
+        "source_version": "v1",
+        "external_batch_id": f"external-{uuid4().hex}",
+        "expected_record_count_or_null": 12,
+        "request_idempotency_key": f"request-{uuid4().hex}",
+    }
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        first = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
+
+        assert first.status_code == 200
+        first_payload = first.json()
+        assert set(first_payload) == {
+            "import_id",
+            "status",
+            "source_system",
+            "source_dataset",
+            "source_version",
+            "expected_record_count_or_null",
+            "policy_version",
+            "canonical_public_hash",
+        }
+        import_id = first_payload["import_id"]
+        assert first_payload["status"] == "UPLOADING"
+        assert first_payload["source_system"] == source_system
+        assert first_payload["source_dataset"] == body["source_dataset"]
+        assert first_payload["source_version"] == body["source_version"]
+        assert first_payload["expected_record_count_or_null"] == 12
+
+        async with AsyncSessionMaker() as session:
+            batch = await session.scalar(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == import_id
+                )
+            )
+
+        assert batch is not None
+        first_server_clock = datetime(2026, 7, 29, 8, 0, tzinfo=UTC)
+        assert batch.submitted_at == first_server_clock
+        assert batch.import_received_at == first_server_clock
+        assert batch.ingested_at == first_server_clock
+        assert batch.created_at == first_server_clock
+        assert batch.submitted_by_identity == actor.identity
+        assert batch.import_channel == ActualHarvestImportChannel.API.value
+        assert batch.schema_version == TRIAL_ACTUAL_HARVEST_SCHEMA_VERSION
+        assert batch.validation_policy_version == TRIAL_ACTUAL_HARVEST_VALIDATION_POLICY_VERSION
+        assert batch.mapping_policy_version == mapping_policy
+        assert (
+            batch.source_semantics_attestation_version == TRIAL_ACTUAL_HARVEST_ATTESTATION_VERSION
+        )
+        assert batch.source_semantics_physical_event == "FARM_PICK"
+        assert batch.source_semantics_quantity_basis == "OBSERVED_WEIGHT"
+        assert batch.source_semantics_quantity_unit == "KG"
+        assert batch.source_semantics_missing_record_semantics == "UNKNOWN_NOT_ZERO"
+        attestation_hash = _attestation_hash(_attestation())
+        assert batch.source_semantics_attestation_hash == attestation_hash
+        assert len(batch.raw_payload_hash) == 64
+        assert batch.raw_payload_hash == batch.raw_payload_hash.lower()
+        assert set(batch.raw_payload_hash) <= set("0123456789abcdef")
+        assert batch.raw_payload_hash == _create_identity_hash(
+            source_system=source_system,
+            source_dataset=body["source_dataset"],
+            source_version=body["source_version"],
+            external_batch_id=body["external_batch_id"],
+            expected_record_count_or_null=body["expected_record_count_or_null"],
+            attestation=_attestation(),
+            attestation_hash=attestation_hash,
+            mapping_registry_version=registry_version,
+            mapping_policy_version=mapping_policy,
+            mapping_registry_content_hash=compute_mapping_registry_hash(()),
+        )
+
+        replay = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
+        assert replay.status_code == 200
+        assert replay.json()["import_id"] == import_id
+
+        conflicting_body = {**body, "source_version": "v2"}
+        conflicting_replay = await client.post(
+            "/api/v1/trial/actual-harvest/imports",
+            json=conflicting_body,
+        )
+        assert conflicting_replay.status_code == 409
+        assert conflicting_replay.json()["code"] == "CONFLICTING_REPLAY"
+
+        external_batch_conflict = await client.post(
+            "/api/v1/trial/actual-harvest/imports",
+            json={**body, "request_idempotency_key": f"request-{uuid4().hex}"},
+        )
+        assert external_batch_conflict.status_code == 409
+        assert external_batch_conflict.json()["code"] == "CONFLICTING_REPLAY"
+
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                await session.run_sync(
+                    lambda sync_session: seed_registry(
+                        sync_session,
+                        registry_version=second_registry_version,
+                        mapping_policy_version=second_mapping_policy,
+                    )
+                )
+
+        authority_conflict = await client.post(
+            "/api/v1/trial/actual-harvest/imports",
+            json=body,
+        )
+        assert authority_conflict.status_code == 409
+        assert authority_conflict.json()["code"] == "EVIDENCE_CONFLICT"
+
+    async with AsyncSessionMaker() as session:
+        batches = (
+            await session.scalars(
+                sa.select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.source_system == source_system
+                )
+            )
+        ).all()
+    assert len(batches) == 1
 
 
 def _seed_i5_registry_sync(
