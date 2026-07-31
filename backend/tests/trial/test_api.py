@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.actual_harvest_import.api_auth import (
@@ -16,14 +19,28 @@ from backend.app.actual_harvest_import.api_auth import (
 from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
 from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiCommitRequest,
-    ActualHarvestApiCreateImportRequest,
 )
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
-from backend.app.db.session import get_db_session
+from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
+from backend.app.actual_harvest_import.trial_create import (
+    TRIAL_ACTUAL_HARVEST_ATTESTATION_VERSION,
+    TRIAL_ACTUAL_HARVEST_SCHEMA_VERSION,
+    TRIAL_ACTUAL_HARVEST_VALIDATION_POLICY_VERSION,
+    _attestation,
+    _attestation_hash,
+    _create_identity_hash,
+)
+from backend.app.actual_harvest_import.validation_hashes import compute_mapping_registry_hash
+from backend.app.actual_harvest_import.validation_service import (
+    create_mapping_registry,
+    seal_mapping_registry,
+)
+from backend.app.db.session import AsyncSessionMaker, get_db_session
 from backend.app.main import create_app
 from backend.app.trial import (
     DefaultTrialApplicationService,
     TrialActualHarvestCommitResponse,
+    TrialActualHarvestImportCreateRequest,
     TrialActualHarvestImportCreateResponse,
     TrialActualHarvestImportStatusResponse,
     TrialActualHarvestInvalidRowsResponse,
@@ -42,6 +59,7 @@ from backend.app.trial import (
     get_trial_service,
     serialize_csv,
 )
+from backend.tests.db.profile import assert_safe_postgres_test_identity
 
 NOW = datetime(2026, 7, 29, 8, 0, tzinfo=UTC)
 
@@ -202,7 +220,7 @@ class SyntheticTrialService:
     async def create_import(
         self,
         session: AsyncSession,
-        request: ActualHarvestApiCreateImportRequest,
+        request: TrialActualHarvestImportCreateRequest,
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestImportCreateResponse:
         del session, request
@@ -493,22 +511,7 @@ async def test_actual_import_create_api_acceptance(client: AsyncClient) -> None:
         "source_dataset": "synthetic-dataset",
         "source_version": "v1",
         "external_batch_id": "batch-1",
-        "idempotency_key": "import-key-1",
-        "submitted_at": NOW.isoformat(),
-        "submitted_by_identity": "trial-user-1",
-        "import_channel": "api",
-        "raw_payload_hash": "a" * 64,
-        "schema_version": "synthetic-v1",
-        "mapping_policy_version": "mapping-v1",
-        "validation_policy_version": "validation-v1",
-        "source_semantics_attestation": {
-            "attestation_version": "attestation-v1",
-            "physical_event": "FARM_PICK",
-            "quantity_basis": "OBSERVED_WEIGHT",
-            "quantity_unit": "KG",
-            "missing_record_semantics": "UNKNOWN_NOT_ZERO",
-        },
-        "source_semantics_attestation_hash": "b" * 64,
+        "request_idempotency_key": "import-key-1",
     }
     response = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
     assert response.status_code == 200
@@ -529,26 +532,114 @@ async def test_actual_import_create_scope_mismatch_is_forbidden_before_lifecycle
         "source_dataset": "synthetic-dataset",
         "source_version": "v1",
         "external_batch_id": "batch-scope-check",
-        "idempotency_key": "import-scope-check",
-        "submitted_at": NOW.isoformat(),
-        "submitted_by_identity": "trial-user-1",
-        "import_channel": "api",
-        "raw_payload_hash": "a" * 64,
-        "schema_version": "synthetic-v1",
-        "mapping_policy_version": "mapping-v1",
-        "validation_policy_version": "validation-v1",
-        "source_semantics_attestation": {
-            "attestation_version": "attestation-v1",
-            "physical_event": "FARM_PICK",
-            "quantity_basis": "OBSERVED_WEIGHT",
-            "quantity_unit": "KG",
-            "missing_record_semantics": "UNKNOWN_NOT_ZERO",
-        },
-        "source_semantics_attestation_hash": "b" * 64,
+        "request_idempotency_key": "import-scope-check",
     }
     response = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
     assert response.status_code == 403
     assert response.json()["code"] == "TRIAL_AUTHORIZATION_FORBIDDEN"
+
+
+@pytest.mark.asyncio
+@pytest.mark.postgres
+@pytest.mark.integration
+async def test_actual_import_create_default_service_postgres() -> None:
+    if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
+        pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
+    assert_safe_postgres_test_identity(env=None)
+
+    source_system = f"trial-create-{uuid4().hex}"
+    mapping_policy = f"trial-mapping-{uuid4().hex}"
+    registry_version = f"trial-registry-{uuid4().hex}"
+
+    def seed_registry(sync_session) -> None:
+        create_mapping_registry(
+            sync_session,
+            registry_version=registry_version,
+            source_system=source_system,
+            mapping_policy_version=mapping_policy,
+            entries=(),
+            now=NOW,
+        )
+        seal_mapping_registry(
+            sync_session,
+            mapping_policy_version=mapping_policy,
+            now=NOW,
+        )
+
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.run_sync(seed_registry)
+
+    actor = ActualHarvestActorContext(
+        identity="trial-postgres-actor",
+        allowed_source_systems=frozenset({source_system}),
+        allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+        may_create=True,
+        may_append=True,
+        may_preview=True,
+        may_seal=True,
+        may_cancel=True,
+        may_validate=True,
+        may_commit=True,
+    )
+    app = create_app()
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: actor
+
+    body = {
+        "source_system": source_system,
+        "source_dataset": "actual-harvest",
+        "source_version": "v1",
+        "external_batch_id": f"external-{uuid4().hex}",
+        "expected_record_count_or_null": 12,
+        "request_idempotency_key": f"request-{uuid4().hex}",
+    }
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
+
+    assert response.status_code == 200
+    response_payload = response.json()
+    import_id = response_payload["import_id"]
+    assert "id" not in response_payload
+    assert "database_id" not in response_payload
+    assert "submitted_by_identity" not in response_payload
+
+    async with AsyncSessionMaker() as session:
+        batch = await session.scalar(
+            select(ActualHarvestImportBatchModel).where(
+                ActualHarvestImportBatchModel.import_id == import_id
+            )
+        )
+
+    assert batch is not None
+    attestation = _attestation()
+    attestation_hash = _attestation_hash(attestation)
+    expected_identity = _create_identity_hash(
+        source_system=source_system,
+        source_dataset=body["source_dataset"],
+        source_version=body["source_version"],
+        external_batch_id=body["external_batch_id"],
+        expected_record_count_or_null=body["expected_record_count_or_null"],
+        attestation=attestation,
+        attestation_hash=attestation_hash,
+        mapping_registry_version=registry_version,
+        mapping_policy_version=mapping_policy,
+        mapping_registry_content_hash=compute_mapping_registry_hash(()),
+    )
+    assert batch.import_channel == ActualHarvestImportChannel.API.value
+    assert batch.submitted_by_identity == actor.identity
+    assert batch.schema_version == TRIAL_ACTUAL_HARVEST_SCHEMA_VERSION
+    assert batch.validation_policy_version == TRIAL_ACTUAL_HARVEST_VALIDATION_POLICY_VERSION
+    assert batch.mapping_policy_version == mapping_policy
+    assert batch.source_semantics_attestation_version == TRIAL_ACTUAL_HARVEST_ATTESTATION_VERSION
+    assert batch.source_semantics_physical_event == "FARM_PICK"
+    assert batch.source_semantics_quantity_basis == "OBSERVED_WEIGHT"
+    assert batch.source_semantics_quantity_unit == "KG"
+    assert batch.source_semantics_missing_record_semantics == "UNKNOWN_NOT_ZERO"
+    assert batch.source_semantics_attestation_hash == attestation_hash
+    assert batch.raw_payload_hash == expected_identity
 
 
 @pytest.mark.asyncio

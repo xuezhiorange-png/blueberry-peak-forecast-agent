@@ -110,7 +110,11 @@ def _all_records(session: Session, batch_id: int) -> tuple[CanonicalActualHarves
 def _batch_payload_matches(
     existing: CanonicalActualHarvestImportBatch,
     request: ActualHarvestApiCreateImportRequest,
+    *,
+    replay_identity_hash: str | None = None,
 ) -> bool:
+    if replay_identity_hash is not None:
+        return existing.raw_payload_hash == replay_identity_hash
     return compute_create_payload_hash(_batch_input(existing)) == compute_create_payload_hash(
         request
     )
@@ -122,6 +126,7 @@ def create_batch(
     *,
     import_id: str,
     now: datetime,
+    replay_identity_hash: str | None = None,
 ) -> tuple[CanonicalActualHarvestImportBatch, bool]:
     batch = CanonicalActualHarvestImportBatch.model_validate(
         {
@@ -189,7 +194,11 @@ def create_batch(
         )
         if existing is not None:
             existing_schema = _batch_to_schema(existing)
-            if _batch_payload_matches(existing_schema, request):
+            if _batch_payload_matches(
+                existing_schema,
+                request,
+                replay_identity_hash=replay_identity_hash,
+            ):
                 return existing_schema, True
             raise _api_error(
                 ActualHarvestApiErrorCode.IDEMPOTENCY_KEY_CONFLICT,
