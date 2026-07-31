@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import UTC, date, datetime
+from decimal import Decimal
 
 import pytest
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,14 +14,26 @@ from backend.app.core_forecast.persistence import (
     CoreForecastPersistenceConflictError,
     CoreForecastRunRepository,
 )
+from backend.app.core_forecast.repository import (
+    MarketableRetentionPolicyConflictError,
+    MarketableRetentionPolicyMissingError,
+    SqlAlchemyCoreForecastRepository,
+)
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.core_forecast import (
     CoreForecastDailyRowModel,
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
+from backend.app.models.trial import (
+    CoreForecastMarketablePolicyEntryModel,
+    CoreForecastMarketablePolicyModel,
+    TrialResourceBindingModel,
+)
 from backend.tests.core_forecast.s4_test_helpers import fixture_request_and_outputs
 from backend.tests.integration.test_v0_1_s2_complete_daily_curve_postgres import (
+    FACTORY_ID,
+    SEASON_ID,
     _seed_authorities,
 )
 
@@ -175,6 +189,124 @@ async def test_postgres_core_forecast_constraints_reject_duplicate_daily_key(
     with pytest.raises(IntegrityError):
         await transactional_pg_session.flush()
     await transactional_pg_session.rollback()
+
+
+async def _seed_marketable_policy(
+    session: AsyncSession,
+    *,
+    public_hash: str,
+    status: str = "ACTIVE",
+    scopes: tuple[tuple[int, int, int], ...] = ((101, 1101, 2101),),
+    available_at: datetime = datetime(2026, 2, 1, tzinfo=UTC),
+    effective_from: date = date(2026, 1, 1),
+    effective_to: date | None = date(2026, 12, 31),
+) -> None:
+    header = CoreForecastMarketablePolicyModel(
+        public_policy_hash=public_hash,
+        row_set_hash="e" * 64,
+        policy_version="marketable-v1",
+        season_id=SEASON_ID,
+        factory_id=FACTORY_ID,
+        source_system="authority-fixture",
+        source_record_key=f"record-{public_hash[:8]}",
+        available_at=available_at,
+        effective_from=effective_from,
+        effective_to=effective_to,
+        status=status,
+    )
+    session.add(header)
+    await session.flush()
+    for index, (farm_id, subfarm_id, variety_id) in enumerate(scopes):
+        session.add(
+            CoreForecastMarketablePolicyEntryModel(
+                policy_id=header.id,
+                farm_id=farm_id,
+                subfarm_id=subfarm_id,
+                variety_id=variety_id,
+                sorting_retention_rate=Decimal("0.800000"),
+                postharvest_retention_rate=Decimal("0.900000"),
+                source_version="marketable-v1",
+                row_hash=f"{index + 1:064x}",
+            )
+        )
+    await session.flush()
+
+
+async def test_postgres_marketable_policy_selector_requires_exact_complete_scope(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    await _seed_authorities(transactional_pg_session)
+    await _seed_marketable_policy(transactional_pg_session, public_hash="a" * 64)
+    repository = SqlAlchemyCoreForecastRepository(transactional_pg_session)
+    result = await repository.load_marketable_retention_policy(
+        season_id=SEASON_ID,
+        factory_id=FACTORY_ID,
+        forecast_cutoff_at=datetime(2026, 2, 15, tzinfo=UTC),
+        forecast_start_date=date(2026, 2, 1),
+        forecast_end_date=date(2026, 4, 30),
+        scopes=((101, 1101, 2101),),
+    )
+    assert result.entries[0].sorting_retention_rate == "0.800000"
+    assert result.entries[0].hash == "a" * 64
+    with pytest.raises(MarketableRetentionPolicyMissingError):
+        await repository.load_marketable_retention_policy(
+            season_id=SEASON_ID,
+            factory_id=FACTORY_ID,
+            forecast_cutoff_at=datetime(2026, 2, 15, tzinfo=UTC),
+            forecast_start_date=date(2026, 2, 1),
+            forecast_end_date=date(2026, 4, 30),
+            scopes=((101, 1101, 2101), (101, 1102, 2102)),
+        )
+
+
+async def test_postgres_marketable_policy_selector_is_ambiguous_without_latest_winner(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    await _seed_authorities(transactional_pg_session)
+    await _seed_marketable_policy(transactional_pg_session, public_hash="a" * 64)
+    await _seed_marketable_policy(transactional_pg_session, public_hash="b" * 64)
+    repository = SqlAlchemyCoreForecastRepository(transactional_pg_session)
+    with pytest.raises(MarketableRetentionPolicyConflictError):
+        await repository.load_marketable_retention_policy(
+            season_id=SEASON_ID,
+            factory_id=FACTORY_ID,
+            forecast_cutoff_at=datetime(2026, 2, 15, tzinfo=UTC),
+            forecast_start_date=date(2026, 2, 1),
+            forecast_end_date=date(2026, 4, 30),
+            scopes=((101, 1101, 2101),),
+        )
+
+
+async def test_postgres_trial_binding_identity_fields_are_database_immutable(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    binding = TrialResourceBindingModel(
+        resource_kind="FORECAST",
+        public_resource_id="a" * 64,
+        owner_identity="actor:one",
+        business_scope_hash="b" * 64,
+        parent_forecast_public_id=None,
+        parent_import_id=None,
+    )
+    transactional_pg_session.add(binding)
+    await transactional_pg_session.flush()
+    for field, value in {
+        "resource_kind": "QUALITY_REPORT",
+        "public_resource_id": "c" * 64,
+        "owner_identity": "actor:two",
+        "business_scope_hash": "d" * 64,
+        "parent_forecast_public_id": "e" * 64,
+        "parent_import_id": "import-2",
+    }.items():
+        with pytest.raises(IntegrityError):
+            await transactional_pg_session.execute(
+                update(TrialResourceBindingModel)
+                .where(TrialResourceBindingModel.id == binding.id)
+                .values(**{field: value})
+            )
+            await transactional_pg_session.flush()
+        await transactional_pg_session.rollback()
+        await transactional_pg_session.refresh(binding)
 
 
 async def test_concurrent_same_request_creates_one_physical_run() -> None:

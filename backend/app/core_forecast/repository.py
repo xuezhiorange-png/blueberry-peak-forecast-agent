@@ -6,10 +6,12 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Protocol
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core_forecast.schemas import (
+    MarketableRetentionPolicyEntry,
+    MarketableRetentionPolicySnapshot,
     ResolvedCoreForecastIdentity,
     ResolvedCoreForecastScopeIdentity,
 )
@@ -22,6 +24,10 @@ from backend.app.models.maturity import (
     MaturityDailyPredictionModel,
     MaturityForecastRun,
     MaturityModelArtifact,
+)
+from backend.app.models.trial import (
+    CoreForecastMarketablePolicyEntryModel,
+    CoreForecastMarketablePolicyModel,
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
@@ -87,6 +93,23 @@ class SeasonSource:
     code: str
 
 
+class MarketableRetentionPolicySelectionError(RuntimeError):
+    """Base error for fail-closed persisted policy selection."""
+
+    def __init__(self, message: str = "marketable retention policy selection failed") -> None:
+        super().__init__(message)
+
+
+class MarketableRetentionPolicyMissingError(MarketableRetentionPolicySelectionError):
+    def __init__(self) -> None:
+        super().__init__("marketable retention policy is unavailable")
+
+
+class MarketableRetentionPolicyConflictError(MarketableRetentionPolicySelectionError):
+    def __init__(self) -> None:
+        super().__init__("marketable retention policy selection is ambiguous")
+
+
 class CoreForecastRepository(Protocol):
     async def load_task8_authority(self, run_id: int) -> Task8AuthoritySource | None: ...
 
@@ -101,6 +124,17 @@ class CoreForecastRepository(Protocol):
         factory_id: int,
         scopes: tuple[tuple[int, int, int], ...],
     ) -> ResolvedCoreForecastIdentity | None: ...
+
+    async def load_marketable_retention_policy(
+        self,
+        *,
+        season_id: int,
+        factory_id: int,
+        forecast_cutoff_at: datetime,
+        forecast_start_date: date,
+        forecast_end_date: date,
+        scopes: tuple[tuple[int, int, int], ...],
+    ) -> MarketableRetentionPolicySnapshot: ...
 
 
 class SqlAlchemyCoreForecastRepository:
@@ -240,4 +274,87 @@ class SqlAlchemyCoreForecastRepository:
             resolved_identity_snapshot_hash=hashlib.sha256(
                 canonical_json_dumps(projection).encode("utf-8")
             ).hexdigest(),
+        )
+
+    async def load_marketable_retention_policy(
+        self,
+        *,
+        season_id: int,
+        factory_id: int,
+        forecast_cutoff_at: datetime,
+        forecast_start_date: date,
+        forecast_end_date: date,
+        scopes: tuple[tuple[int, int, int], ...],
+    ) -> MarketableRetentionPolicySnapshot:
+        requested_scopes = set(scopes)
+        if not requested_scopes or len(requested_scopes) != len(scopes):
+            raise MarketableRetentionPolicySelectionError("forecast policy scope is invalid")
+
+        headers = tuple(
+            await self._session.scalars(
+                select(CoreForecastMarketablePolicyModel).where(
+                    CoreForecastMarketablePolicyModel.status == "ACTIVE",
+                    CoreForecastMarketablePolicyModel.season_id == season_id,
+                    CoreForecastMarketablePolicyModel.factory_id == factory_id,
+                    CoreForecastMarketablePolicyModel.available_at <= forecast_cutoff_at,
+                    CoreForecastMarketablePolicyModel.effective_from <= forecast_start_date,
+                    or_(
+                        CoreForecastMarketablePolicyModel.effective_to.is_(None),
+                        CoreForecastMarketablePolicyModel.effective_to >= forecast_end_date,
+                    ),
+                )
+            )
+        )
+        complete_candidates: list[
+            tuple[
+                CoreForecastMarketablePolicyModel,
+                tuple[CoreForecastMarketablePolicyEntryModel, ...],
+            ]
+        ] = []
+        for header in headers:
+            entries = tuple(
+                await self._session.scalars(
+                    select(CoreForecastMarketablePolicyEntryModel).where(
+                        CoreForecastMarketablePolicyEntryModel.policy_id == header.id
+                    )
+                )
+            )
+            entry_scopes = {
+                (entry.farm_id, entry.subfarm_id, entry.variety_id) for entry in entries
+            }
+            if entry_scopes == requested_scopes and len(entries) == len(requested_scopes):
+                complete_candidates.append((header, entries))
+
+        if not complete_candidates:
+            raise MarketableRetentionPolicyMissingError()
+        if len(complete_candidates) > 1:
+            raise MarketableRetentionPolicyConflictError()
+
+        header, entries = complete_candidates[0]
+        season = await self.load_season(header.season_id)
+        if season is None:
+            raise MarketableRetentionPolicyMissingError()
+
+        def fixed_six(value: Decimal) -> str:
+            return f"{Decimal(value):.6f}"
+
+        return MarketableRetentionPolicySnapshot(
+            entries=tuple(
+                MarketableRetentionPolicyEntry(
+                    forecast_season_id=header.season_id,
+                    forecast_season_code=season.code,
+                    farm_id=entry.farm_id,
+                    subfarm_id=entry.subfarm_id,
+                    variety_id=entry.variety_id,
+                    sorting_retention_rate=fixed_six(entry.sorting_retention_rate),
+                    postharvest_retention_rate=fixed_six(entry.postharvest_retention_rate),
+                    source=header.source_system,
+                    version=header.policy_version,
+                    hash=header.public_policy_hash,
+                )
+                for entry in sorted(
+                    entries,
+                    key=lambda item: (item.farm_id, item.subfarm_id, item.variety_id),
+                )
+            )
         )
