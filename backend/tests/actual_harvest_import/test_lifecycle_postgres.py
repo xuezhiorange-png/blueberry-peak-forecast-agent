@@ -785,7 +785,7 @@ async def test_postgres_trial_default_service_create_and_replay_contract(
     ) as client:
         first = await client.post("/api/v1/trial/actual-harvest/imports", json=body)
 
-        assert first.status_code == 200
+        assert first.status_code == 200, first.text
         first_payload = first.json()
         assert set(first_payload) == {
             "import_id",
