@@ -87,23 +87,47 @@ test double.
 | Field | Source | Public Trial expression | Current state |
 | --- | --- | --- | --- |
 | `farm` | `dim_farm` business name, resolved inside the server | exact `farm_business_key`; no internal ID | Existing master table; no single Trial authority response |
+| `destination_factory` | `dim_factory.code`, resolved inside the server | exact `destination_factory_business_key`; no internal ID | Required production authority is not yet exposed by Trial |
 | `subfarm` | `dim_subfarm` name scoped by resolved farm | exact `subfarm_business_key` | Existing master table; cross-farm ambiguity must be concealed |
 | `variety` | `dim_variety.code` | exact `variety_business_key` | Existing master table; no free-form lookup bypass |
 | `season` | `dim_season.code` | exact `season_business_key` | Existing unique business key |
 | `forecast_date` | server-derived from the accepted cutoff and selected authority period | `forecast_date: date` in response/authority DTO | Current request exposes only an aware `forecast_cutoff_at` |
-| `planting_area` | user-submitted canonical quantity, then bound to the selected farm/subfarm/variety/season authority | `planting_area_mu: canonical decimal string` | Current Trial request does not expose it |
-| `flowering_date` | optional user input only when a frozen domain override consumes it; otherwise a typed blocker | `flowering_date_or_null: date` | Current Core request has no consumer |
-| `maturity_stage` | optional typed domain value from a frozen authority/override | bounded enum/string, never arbitrary text | Current Core request has no consumer |
-| `already_picked_quantity` | optional canonical quantity from an accepted actual-harvest authority or explicit supported override | `already_picked_quantity_kg_or_null` | Current Core request has no consumer |
+| `planting_area` | user confirmation of the authoritative farm/season/variety plan area | `planting_area_mu: canonical decimal string` | Must compare exactly with server authority; it is not a new formula input |
+| `flowering_date` | optional user input only when a separately authorized domain consumer exists | `flowering_date_or_null: date` | `null` is accepted; non-null is currently unsupported |
+| `maturity_stage` | optional typed domain value only when a separately authorized domain consumer exists | bounded enum/string, never arbitrary text | `null` is accepted; non-null is currently unsupported |
+| `already_picked_quantity` | optional canonical quantity only when a separately authorized domain consumer exists | `already_picked_quantity_kg_or_null` | `null` is accepted; non-null is currently unsupported |
 | `model_identity` | persisted maturity model run/artifact plus Core code authority | server-owned public identity/hash | Existing authority evidence is internal and not Trial-projected |
 | `parameter_identity` | `ParameterLibraryVersion`, parameter observations/inference, and Task 9 parameter package | server-owned version/hash | Existing parameter infrastructure; selection policy must be explicit |
-| `policy_identity` | persisted marketable-retention policy snapshot | server-owned version/hash | Missing as a queryable production authority; current CLI accepts fixture policy input |
+| `policy_identity` | persisted marketable-retention policy snapshot selected by the frozen selector below | server-owned version/hash | Missing as a queryable production authority; current CLI accepts fixture policy input |
 
-The client submits business keys and the allowed user input quantities/dates.
-The server resolves all internal IDs, Task 8 and Task 9 run references, model,
+The client submits business keys and the allowed user input quantities. The
+server resolves all internal IDs, Task 8 and Task 9 run references, model,
 parameter, code, and policy identities. No client field may contain an internal
-database ID. A missing or ambiguous business key is a fail-closed typed error;
-cross-scope resources are concealed as `404 RESOURCE_NOT_FOUND`.
+database ID. A missing, inactive, ambiguous, or cross-scope business key is a
+fail-closed typed error; concealed resource enumeration or cross-scope reads
+return `404 RESOURCE_NOT_FOUND`.
+
+`destination_factory_business_key` is sourced from `dim_factory.code` and may
+only be selected from an active factory returned by
+`GET /api/v1/trial/forecast-input-authority`. That response includes the
+allowed farm/subfarm/variety/season relationships for each factory. The Trial
+request never accepts `factory_id`. The server resolves
+`CompleteDailyMarketableCurveRequest.destination_factory_id` from this business
+key. It must not choose a nearest factory, the first row, or an implicit latest
+factory. Missing, inactive, ambiguous, and cross-scope factory values fail
+closed; concealed resource enumeration returns `404 RESOURCE_NOT_FOUND`.
+
+`planting_area_mu` is a confirmation of the authoritative planning area. The
+server loads the existing farm/season/variety plan authority and compares both
+canonical Decimal values exactly. A mismatch returns `422 TRIAL_REQUEST_INVALID`;
+the server never overwrites, ignores, converts, or uses the submitted value as
+a new formula input. The submitted value remains in the Trial idempotency
+payload, so two different values cannot silently reuse one mutation.
+
+`flowering_date_or_null`, `maturity_stage_or_null`, and
+`already_picked_quantity_kg_or_null` have no current Core consumer. `null` is
+accepted; any non-null value returns `422 TRIAL_INPUT_NOT_SUPPORTED` before
+forecast execution. No A2 claim may state that these fields are consumed.
 
 Business-key strings are exact identifiers, not arbitrary search text. No Trial
 client may query `dim_*`, planning, Task 8, Task 9, or parameter tables
@@ -117,11 +141,6 @@ It returns typed seasons, farms, subfarms, varieties, allowed relationships,
 display labels, authority version, and authority hash. It returns no database
 IDs and is unavailable with `503 TRIAL_AUTHORITY_UNAVAILABLE` when the server
 cannot prove a complete authority snapshot.
-
-The adapter must not silently discard `flowering_date_or_null`,
-`maturity_stage_or_null`, or `already_picked_quantity_kg_or_null`. If the
-authoritative Core service cannot consume a submitted optional field, the
-request fails with a typed blocker and does not execute a forecast.
 
 No forecast formula, model training rule, parameter value, or maturity
 algorithm changes as part of this contract.
@@ -159,6 +178,90 @@ repository and never re-run the forecast.
 
 The existing `core_forecast.cli` policy loader is a fixture/CLI boundary and is
 not a production authority. It cannot be called by Trial as a fallback.
+
+### 4.3 Retention policy selector
+
+The server selects exactly one immutable policy header before constructing the
+Core request. A candidate must satisfy every condition:
+
+```text
+status = ACTIVE
+available_at <= forecast_cutoff_at
+effective_from <= forecast_start_date
+effective_to is null OR effective_to >= forecast_end_date
+season_id = resolved season
+factory_id = resolved destination factory
+entries exactly cover all requested farm/subfarm/variety scopes
+```
+
+The result is deterministic:
+
+```text
+0 matching policies
+-> MARKETABLE_RETENTION_POLICY_MISSING
+
+1 matching policy
+-> use that immutable policy snapshot
+
+more than 1 matching policy
+-> MARKETABLE_RETENTION_POLICY_CONFLICT
+```
+
+The selector must not use `ORDER BY available_at DESC LIMIT 1`, latest-row
+wins, highest-version wins, partial-scope fallback, or entries mixed from
+multiple headers. This authorization chooses database exclusion constraints on
+the policy scope/effective interval to prevent overlapping active policies.
+The selector still fails closed if historical data contains multiple matching
+candidates.
+
+### 4.4 Trial actor permissions and resource ownership
+
+The server-owned actor permission vocabulary is:
+
+```text
+may_read_forecast_authority
+may_create_forecast
+may_read_forecast
+may_export_forecast
+may_create_quality
+may_read_quality
+may_read_quality_comparison
+may_export_quality
+```
+
+Every Forecast and Quality public resource is bound in the same persistence
+boundary as its creation. The binding is not inferred from knowledge of a
+public hash:
+
+```text
+trial_resource_binding
+
+resource_kind:
+  FORECAST | QUALITY_REPORT
+
+public_resource_id:
+  lowercase SHA-256
+
+owner_identity:
+  immutable Trial actor identity
+
+business_scope_hash:
+  canonical hash of season/factory/farm/subfarm/variety scope
+
+parent_forecast_public_id_or_null
+parent_import_id_or_null
+created_at
+```
+
+The unique key is `(resource_kind, public_resource_id)`. The public ID is a
+lowercase SHA-256, owner identity is non-empty and immutable, and the binding
+is created with the Forecast Core run in one transaction result boundary.
+Quality creation first proves that the actual-harvest import is committed,
+its owner equals the actor, and the parent Forecast binding owner equals the
+actor. GET, daily, comparison, and export authorize with
+`public_resource_id + owner_identity` in one query before loading complete
+resource evidence. Any mismatch is concealed as `404 RESOURCE_NOT_FOUND`.
+No endpoint first reads a complete resource and then compares identity.
 
 ## 5. Quality production authority
 
@@ -254,15 +357,36 @@ All public endpoints remain under `/api/v1/trial/*`.
 
 | Method and endpoint | Request DTO | Response DTO | Success | Required errors |
 | --- | --- | --- | --- | --- |
-| `GET /api/v1/trial/forecast-input-authority` | none | `TrialForecastInputAuthorityResponse` | `200` | `404 TRIAL_RESOURCE_NOT_FOUND` for concealed scope; `503 TRIAL_AUTHORITY_UNAVAILABLE` |
-| `POST /api/v1/trial/forecasts` | expanded `TrialForecastCreateRequest` | `TrialForecastSummaryResponse` | `200` | `422 TRIAL_REQUEST_INVALID`; `404 TRIAL_RESOURCE_NOT_FOUND`; `409 CONFLICTING_REPLAY`; `503 TRIAL_AUTHORITY_UNAVAILABLE` |
-| `GET /api/v1/trial/forecasts/{run_id}` | path public request hash | typed `TrialForecastSummaryResponse` | `200` | `404 TRIAL_RESOURCE_NOT_FOUND`; `409 CONCURRENCY_CONFLICT`; `503 TRIAL_SERVICE_UNAVAILABLE` |
-| `GET /api/v1/trial/forecasts/{run_id}/daily-curve` | path public request hash | typed `TrialForecastDailyCurveResponse` | `200` | same read errors; no recomputation |
-| `GET /api/v1/trial/forecasts/{run_id}/export.csv` | path public request hash | canonical CSV bytes | `200` | same read errors; `text/csv` only |
-| `POST /api/v1/trial/quality-reports` | `TrialQualityReportCreateRequest` | typed `TrialQualityReportResponse` | `200` | `422 TRIAL_REQUEST_INVALID`; `404 TRIAL_RESOURCE_NOT_FOUND`; `409 CONFLICTING_REPLAY`; `503 QUALITY_AUTHORITY_UNAVAILABLE` |
-| `GET /api/v1/trial/quality-reports/{report_id}` | path evaluation instance hash | typed `TrialQualityReportResponse` | `200` | `404 TRIAL_RESOURCE_NOT_FOUND`; `409 EVIDENCE_CONFLICT`; `503 QUALITY_PERSISTENCE_UNAVAILABLE` |
-| `GET /api/v1/trial/quality-reports/{report_id}/comparison` | path evaluation instance hash | typed `TrialQualityComparisonResponse` | `200` | `404 TRIAL_RESOURCE_NOT_FOUND`; `409 EVIDENCE_CONFLICT`; `503 QUALITY_PERSISTENCE_UNAVAILABLE` |
-| `GET /api/v1/trial/quality-reports/{report_id}/export.csv` | path evaluation instance hash | canonical CSV bytes | `200` | same read errors; `text/csv` only |
+| `GET /api/v1/trial/forecast-input-authority` | none | `TrialForecastInputAuthorityResponse` | `200` | `404 RESOURCE_NOT_FOUND` for concealed scope; `503 TRIAL_AUTHORITY_UNAVAILABLE` |
+| `POST /api/v1/trial/forecasts` | expanded `TrialForecastCreateRequest` | `TrialForecastSummaryResponse` | `200` | `422 TRIAL_REQUEST_INVALID` or `TRIAL_INPUT_NOT_SUPPORTED`; `404 RESOURCE_NOT_FOUND`; `409 CONFLICTING_REPLAY`; `503 TRIAL_AUTHORITY_UNAVAILABLE` |
+| `GET /api/v1/trial/forecasts/{run_id}` | path public request hash | typed `TrialForecastSummaryResponse` | `200` | `404 RESOURCE_NOT_FOUND`; `409 CONCURRENCY_CONFLICT`; `503 TRIAL_SERVICE_UNAVAILABLE` |
+| `GET /api/v1/trial/forecasts/{run_id}/daily-curve` | path public request hash | typed `TrialForecastDailyCurveResponse` | `200` | `404 RESOURCE_NOT_FOUND`; `409 CONCURRENCY_CONFLICT`; no recomputation |
+| `GET /api/v1/trial/forecasts/{run_id}/export.csv` | path public request hash | canonical CSV bytes | `200` | `404 RESOURCE_NOT_FOUND`; `409 CONCURRENCY_CONFLICT`; `text/csv` only |
+| `POST /api/v1/trial/quality-reports` | `TrialQualityReportCreateRequest` | typed `TrialQualityReportResponse` | `200` | `422 TRIAL_REQUEST_INVALID`; `404 RESOURCE_NOT_FOUND`; `409 CONFLICTING_REPLAY`; `503 QUALITY_AUTHORITY_UNAVAILABLE` |
+| `GET /api/v1/trial/quality-reports/{report_id}` | path evaluation instance hash | typed `TrialQualityReportResponse` | `200` | `404 RESOURCE_NOT_FOUND`; `409 EVIDENCE_CONFLICT`; `503 QUALITY_PERSISTENCE_UNAVAILABLE` |
+| `GET /api/v1/trial/quality-reports/{report_id}/comparison` | path evaluation instance hash | typed `TrialQualityComparisonResponse` | `200` | `404 RESOURCE_NOT_FOUND`; `409 EVIDENCE_CONFLICT`; `503 QUALITY_PERSISTENCE_UNAVAILABLE` |
+| `GET /api/v1/trial/quality-reports/{report_id}/export.csv` | path evaluation instance hash | canonical CSV bytes | `200` | `404 RESOURCE_NOT_FOUND`; `409 EVIDENCE_CONFLICT`; `text/csv` only |
+
+The public Trial error enum is:
+
+| Error code | HTTP status | Retryable | Meaning |
+| --- | ---: | --- | --- |
+| `RESOURCE_NOT_FOUND` | `404` | no | Concealed missing, owner, scope, inactive, or ambiguous resource |
+| `TRIAL_REQUEST_INVALID` | `422` | no | Invalid canonical input or planting-area mismatch |
+| `TRIAL_INPUT_NOT_SUPPORTED` | `422` | no | Non-null optional input has no authorized Core consumer |
+| `MARKETABLE_RETENTION_POLICY_MISSING` | `503` | yes | No effective policy authority is available |
+| `MARKETABLE_RETENTION_POLICY_CONFLICT` | `409` | no | More than one effective policy matches |
+| `TRIAL_AUTHORITY_UNAVAILABLE` | `503` | yes | Complete Trial authority snapshot cannot be served |
+| `QUALITY_AUTHORITY_UNAVAILABLE` | `503` | yes | Point-in-time or committed-label authority is unavailable |
+| `QUALITY_PERSISTENCE_UNAVAILABLE` | `503` | yes | Verified persisted Quality evidence cannot be loaded |
+| `EVIDENCE_CONFLICT` | `409` | no | Persisted evidence or replay identity does not match |
+| `CONFLICTING_REPLAY` | `409` | no | Idempotency key is bound to a different canonical request |
+| `CONCURRENCY_CONFLICT` | `409` | no | Resource state changed during a protected operation |
+
+Internal domain blockers may use more specific exception types, but only the
+listed public codes cross the Trial boundary. Exception text, database IDs,
+owner identity, source system, channel, and actor permissions never appear in
+responses.
 
 The existing A1 actual-harvest endpoints remain the only upload and commit
 surface. A2 must not call `/api/v1/actual-harvest/*`, internal planning routes,
@@ -279,10 +403,9 @@ CURRENT_ALEMBIC_HEAD_COUNT=1
 
 The existing schema is sufficient for Core run, daily curve, peak metrics, S2
 binding, Quality evidence, baseline, comparison, and integrity manifests. It
-is not sufficient for a production Trial authority lookup because no persisted
-marketable-retention policy authority stores both retention rates with an
-effective scope, source identity, policy version, availability timestamp, and
-canonical row-set identity.
+is not sufficient for production Trial authority and resource authorization:
+there is no persisted marketable-retention policy authority and no immutable
+binding between a public Forecast/Quality ID and its Trial actor/scope.
 
 `FarmSeasonVarietyPlan.marketable_rate` and the parameter library are related
 production inputs, but neither is the Core
@@ -303,13 +426,36 @@ core_forecast_marketable_policy_entry
   sorting_retention_rate NUMERIC(24,6),
   postharvest_retention_rate NUMERIC(24,6),
   source_version, row_hash
+
+trial_resource_binding
+  resource_kind, public_resource_id, owner_identity,
+  business_scope_hash, parent_forecast_public_id,
+  parent_import_id, created_at
 ```
 
 Required constraints are lowercase SHA-256 checks, positive foreign keys,
 rates in `[0,1]`, one unique entry per policy and business scope, one unique
-policy hash, and indexes on policy/scope and policy/effective date. The
-rollback is deterministic: drop policy entries, then policy headers and their
+policy hash, one unique `(resource_kind, public_resource_id)`, non-empty
+immutable owner identity, and indexes for public resource plus owner scope.
+The policy table uses an exclusion constraint over the active scope/effective
+interval to prevent overlapping active policies. The selector remains
+fail-closed if historical data contains overlap. The rollback is deterministic:
+drop resource bindings, policy entries, then policy headers and their
 indexes/constraints; do not rewrite existing Core, S2, or Quality evidence.
+
+The binding repository/service contract is explicit:
+
+```text
+backend/app/repositories/trial_resource_binding.py
+  create_forecast_binding_in_result_boundary
+  create_quality_binding_in_result_boundary
+  authorize_trial_resource
+```
+
+`authorize_trial_resource` must filter by resource kind, public ID, and owner
+identity in one query before loading complete evidence. It returns only a
+typed authorization result or concealed `RESOURCE_NOT_FOUND`; it never returns
+an unscoped row to Trial.
 
 The schema sub-round is a prerequisite to production Forecast create. It is
 not authorized by accepting this document.
@@ -318,19 +464,24 @@ not authorized by accepting this document.
 
 The following paths are the complete future ceiling for the A2 authorization
 program. A future implementation must still use separate commits for the
-schema, Forecast, and Quality sub-rounds.
+schema, Forecast, and Quality sub-rounds. The public Trial surface is owned by
+`A2_F_FORECAST_AUTHORITY_AND_ADAPTERS`; `A2_Q_QUALITY_ADAPTERS_OVERLAY_AND_METRICS`
+may not expand or modify that shared router/service surface.
 
 ```text
 CREATE_PATHS=
-backend/alembic/versions/0026_s5_round_a2_marketable_policy_authority.py
+backend/app/models/trial.py
+backend/app/repositories/trial_resource_binding.py
+backend/alembic/versions/0026_s5_round_a2_policy_and_trial_resource_binding.py
+backend/tests/trial/test_resource_binding.py
 
 MODIFY_PATHS=
 backend/app/api/trial.py
 backend/app/trial.py
 backend/app/core_forecast/repository.py
 backend/app/forecast_quality/persistence.py
-backend/app/models/core_forecast.py
 backend/app/rolling_backtest/persistence.py
+backend/app/models/__init__.py
 backend/tests/trial/test_api.py
 backend/tests/trial/test_contract.py
 backend/tests/forecast_quality/test_idempotency.py
@@ -350,6 +501,7 @@ uv.lock
 backend/app/core_forecast/application.py
 backend/app/core_forecast/service.py
 backend/app/core_forecast/metrics.py
+backend/app/core_forecast/persistence.py
 backend/app/forecast_quality/calculator_daily.py
 backend/app/forecast_quality/comparison.py
 backend/app/forecast_quality/aggregation.py
@@ -358,15 +510,17 @@ backend/app/agent/
 backend/app/maturity/
 backend/app/harvest_state/
 backend/app/actual_harvest_import/
-backend/app/models/ (except backend/app/models/core_forecast.py)
-backend/alembic/ (except the exact 0026 file above)
+backend/app/models/core_forecast.py
+backend/app/models/forecast_quality.py
+backend/app/models/rolling_backtest.py
+backend/alembic/versions/0025_s3_model_baseline_comparison.py
 backend/tests/ (except the exact test files above)
 
-A2_CREATE_PATH_COUNT=1
+A2_CREATE_PATH_COUNT=4
 A2_MODIFY_PATH_COUNT=14
-A2_CHANGED_FILE_CEILING=15
-A2_BACKEND_APP_FILE_CEILING=6
-A2_TEST_FILE_CEILING=8
+A2_CHANGED_FILE_CEILING=18
+A2_BACKEND_APP_FILE_CEILING=8
+A2_TEST_FILE_CEILING=9
 A2_WORKFLOW_FILE_CEILING=0
 A2_MIGRATION_FILE_CEILING=1
 ```
@@ -388,14 +542,54 @@ A2_Q_QUALITY_ADAPTERS_OVERLAY_AND_METRICS
 The order is strict:
 
 1. `A2_S_SCHEMA_AUTHORITY_PERSISTENCE` adds and verifies the retention-policy
-   authority table and migration. It is independently reviewable, testable,
-   and revertible.
+   authority and Trial resource-binding tables. It is independently reviewable,
+   testable, and revertible.
 2. `A2_F_FORECAST_AUTHORITY_AND_ADAPTERS` resolves business-key authority,
-   consumes the persisted policy, wires Core execution, and exposes typed
-   create/read/daily/export behavior. It must not change Core algorithms.
+   consumes the persisted policy, wires Core execution, and owns the shared
+   Trial router/service boundary plus typed Forecast create/read/daily/export
+   behavior. It must not change Core algorithms.
 3. `A2_Q_QUALITY_ADAPTERS_OVERLAY_AND_METRICS` adds complete Quality readback,
    creates reports from committed import and S2 evidence, projects overlay and
-   typed metrics, and exposes persisted comparison/export behavior.
+   typed metrics, and exposes persisted comparison/export behavior through the
+   shared boundary owned by A2_F.
+
+Each sub-round has an exclusive path set:
+
+```text
+A2_S_SCHEMA_AUTHORITY_PERSISTENCE_PATHS=
+backend/app/models/trial.py
+backend/app/repositories/trial_resource_binding.py
+backend/app/models/__init__.py
+backend/app/core_forecast/repository.py
+backend/alembic/versions/0026_s5_round_a2_policy_and_trial_resource_binding.py
+backend/tests/trial/test_resource_binding.py
+backend/tests/integration/test_core_forecast_persistence_postgres.py
+
+A2_F_FORECAST_AUTHORITY_AND_ADAPTERS_PATHS=
+backend/app/api/trial.py
+backend/app/trial.py
+backend/tests/trial/test_api.py
+backend/tests/trial/test_contract.py
+
+A2_Q_QUALITY_ADAPTERS_OVERLAY_AND_METRICS_PATHS=
+backend/app/forecast_quality/persistence.py
+backend/app/rolling_backtest/persistence.py
+backend/tests/forecast_quality/test_idempotency.py
+backend/tests/forecast_quality/test_persistence.py
+backend/tests/integration/test_rolling_backtest_historical_binding.py
+backend/tests/integration/test_rolling_backtest_persistence.py
+backend/tests/rolling_backtest/test_persistence_contracts.py
+
+A2_S_PATH_COUNT=7
+A2_F_PATH_COUNT=4
+A2_Q_PATH_COUNT=7
+A2_SUBROUND_PATH_OVERLAP_COUNT=0
+```
+
+The A2_F shared boundary must expose typed seams that A2_Q consumes; A2_Q may
+not modify `backend/app/api/trial.py` or `backend/app/trial.py`. This keeps the
+three commits independently reviewable and makes a Quality rollback leave the
+schema and Forecast boundary intact.
 
 Each sub-round requires its own commit, targeted tests, PostgreSQL tests, and
 rollback review. A failed Quality sub-round must not require reverting the
@@ -406,16 +600,27 @@ schema authority or Forecast adapter. No sub-round authorizes Round B.
 ### 10.1 Forecast gates
 
 - business-key authority lookup returns no internal IDs;
+- factory authority uses `dim_factory.code`, active-factory membership, and
+  explicit farm/subfarm/variety/season relationships;
 - duplicate, missing, inactive, and cross-scope authority values fail closed;
-- retention policy is selected by explicit effective/availability policy, not
-  by an implicit latest-row query;
+- `TrialApplicationService` actor permissions include
+  `may_read_forecast_authority`, `may_create_forecast`, `may_read_forecast`,
+  and `may_export_forecast`;
+- every Forecast public ID has a persisted `FORECAST` resource binding with
+  owner identity and business-scope hash;
+- Forecast create writes its resource binding in the same transaction result
+  boundary as the Core run;
+- retention policy selection satisfies all effective/availability/scope
+  predicates, returns missing or conflict explicitly, and never uses a latest
+  row or partial-scope fallback;
 - Core Task 8 and Task 9 completed runs are selected by frozen authority
   references;
 - code, model, parameter, and policy identities are persisted in the public
   result provenance;
-- `planting_area_mu` accepts only canonical decimal strings greater than zero;
-- optional date, stage, and already-picked inputs are consumed or rejected by a
-  typed blocker, never ignored;
+- `planting_area_mu` is compared exactly to authoritative planning area and a
+  mismatch returns `422 TRIAL_REQUEST_INVALID`;
+- null optional date, stage, and already-picked inputs are accepted while
+  non-null values return `422 TRIAL_INPUT_NOT_SUPPORTED` before execution;
 - exact replay returns the same public request hash;
 - conflicting replay returns `409 CONFLICTING_REPLAY`;
 - GET does not execute Forecast again;
@@ -427,6 +632,14 @@ schema authority or Forecast adapter. No sub-round authorizes Round B.
 ### 10.2 Quality gates
 
 - a committed import is the only actual-label source;
+- `TrialApplicationService` actor permissions include
+  `may_create_quality`, `may_read_quality`,
+  `may_read_quality_comparison`, and `may_export_quality`;
+- every Quality public ID has a persisted `QUALITY_REPORT` resource binding;
+- Quality create proves committed import ownership and parent Forecast binding
+  ownership before creating the report binding;
+- GET, comparison, daily, and export authorize by public ID plus owner in one
+  query and conceal mismatch as `404 RESOURCE_NOT_FOUND`;
 - point-in-time forecast and label cutoffs are checked independently;
 - S2 manifest and binding row hashes are verified before Quality calculation;
 - persisted report readback rejects missing manifest, partial child sets,
