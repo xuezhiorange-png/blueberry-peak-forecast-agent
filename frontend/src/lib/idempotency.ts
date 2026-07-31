@@ -1,4 +1,19 @@
-export function createIdempotencyKey(prefix = "trial") {
-  if (typeof crypto.randomUUID === "function") return `${prefix}-${crypto.randomUUID()}`;
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+function secureUuid(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function getOrCreateIdempotencyKey(scope: string): string {
+  const storageKey = `trial:idempotency:${scope}`;
+  const existing = sessionStorage.getItem(storageKey);
+  if (existing) return existing;
+  const created = `${storageKey}:${secureUuid()}`;
+  sessionStorage.setItem(storageKey, created);
+  return created;
+}
+
+export function clearIdempotencyKey(scope: string): void {
+  sessionStorage.removeItem(`trial:idempotency:${scope}`);
 }

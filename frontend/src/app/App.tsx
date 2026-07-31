@@ -12,6 +12,8 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryS
   }
 
   componentDidCatch(_error: Error, _info: ErrorInfo) {
+    void _error;
+    void _info;
     // Deliberately keep exception details out of the UI.
   }
 

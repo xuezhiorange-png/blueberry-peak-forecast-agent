@@ -1,11 +1,16 @@
 import { z } from "zod";
 import { trialErrorMessage, type TrialErrorCode } from "./errorCatalog";
 
-const errorSchema = z.object({
-  code: z.string().optional(),
-  retryable: z.boolean().optional(),
-  status: z.number().optional(),
-});
+export const trialErrorResponseSchema = z
+  .object({
+    request_id: z.string().nullable(),
+    status: z.literal("ERROR"),
+    code: z.string(),
+    message_template_id: z.string(),
+    retryable: z.boolean(),
+    details: z.record(z.string(), z.unknown()),
+  })
+  .passthrough();
 
 export class TrialClientError extends Error {
   readonly code: string;
@@ -24,9 +29,10 @@ export class TrialClientError extends Error {
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 function requestId(): string {
-  return typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `trial-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function assertTrialPath(path: string): void {
@@ -43,10 +49,15 @@ async function parseError(response: Response): Promise<TrialClientError> {
   } catch {
     payload = undefined;
   }
-  const parsed = errorSchema.safeParse(payload);
-  const code = parsed.success ? parsed.data.code : undefined;
-  const retryable = parsed.success ? parsed.data.retryable === true : response.status === 503;
-  return new TrialClientError(code ?? fallbackCode(response.status), response.status, retryable);
+  const parsed = trialErrorResponseSchema.safeParse(payload);
+  if (parsed.success) {
+    return new TrialClientError(parsed.data.code, response.status, parsed.data.retryable);
+  }
+  return new TrialClientError(
+    fallbackCode(response.status),
+    response.status,
+    response.status === 503,
+  );
 }
 
 function fallbackCode(status: number): TrialErrorCode {
@@ -67,7 +78,7 @@ async function request<T>(
 ): Promise<T> {
   assertTrialPath(path);
   const headers = new Headers(init.headers);
-  headers.set("x-request-id", headers.get("x-request-id") ?? requestId());
+  headers.set("x-request-id", requestId());
   const response = await fetcher(path, { ...init, headers });
   if (!response.ok) throw await parseError(response);
   let body: unknown;

@@ -1,15 +1,52 @@
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { AsyncState } from "../components/AsyncState";
 import { ErrorState } from "../components/ErrorState";
 import { StatusBadge } from "../components/StatusBadge";
 import { ImportLifecycle } from "../features/actualHarvest/ImportLifecycle";
+import { sha256Hex } from "../features/actualHarvest/importApi";
 import { QualityReport } from "../features/quality";
 import { displayFileSize } from "../lib/formatters";
 
 const importChainAvailable = false;
 
+type HashState = "IDLE" | "HASHING" | "COMPLETED" | "ERROR";
+
 export function QualityPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [hash, setHash] = useState<string | null>(null);
+  const [hashState, setHashState] = useState<HashState>("IDLE");
+  const [fileError, setFileError] = useState<string | null>(null);
+  const selectionId = useRef(0);
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0] ?? null;
+    const currentSelection = ++selectionId.current;
+    setFile(selected);
+    setHash(null);
+    setFileError(null);
+    setHashState("IDLE");
+    if (!selected) return;
+
+    const lowerName = selected.name.toLowerCase();
+    if (!lowerName.endsWith(".csv") && !lowerName.endsWith(".xlsx")) {
+      setFileError("不支持的文件类型，仅允许 .csv 或 .xlsx。文件未上传。");
+      setHashState("ERROR");
+      return;
+    }
+
+    setHashState("HASHING");
+    try {
+      const calculatedHash = await sha256Hex(selected);
+      if (currentSelection !== selectionId.current) return;
+      setHash(calculatedHash);
+      setHashState("COMPLETED");
+    } catch {
+      if (currentSelection !== selectionId.current) return;
+      setHashState("ERROR");
+      setFileError("文件校验暂时无法完成，文件未上传。");
+    }
+  }
+
   return (
     <main className="page" data-testid="quality-page">
       <div className="page-heading">
@@ -49,23 +86,36 @@ export function QualityPage() {
               aria-label="选择 CSV 或 XLSX 文件"
               id="actual-harvest-file"
               type="file"
-              accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              disabled={!importChainAvailable}
+              accept=".csv,.xlsx"
+              onChange={handleFileChange}
             />
             <label htmlFor="actual-harvest-file">
               <strong>{file ? file.name : "选择 CSV 或 XLSX 文件"}</strong>
               <span>
                 {file
-                  ? `${displayFileSize(file.size)} · ${file.type || "未知类型"}`
-                  : "文件选择保留，上传能力尚未开放"}
+                  ? `${displayFileSize(file.size)} · ${file.type || "未知 MIME type"}`
+                  : "文件选择可用，上传能力尚未开放"}
               </span>
             </label>
+          </div>
+          {fileError && <ErrorState title="本地文件未就绪" message={fileError} />}
+          <div className="state-row" role="status" aria-busy={hashState === "HASHING"}>
+            <StatusBadge
+              label={hashState === "HASHING" ? "HASHING" : "LOCAL"}
+              tone={hashState === "ERROR" ? "danger" : "neutral"}
+            />
+            <span>
+              {hashState === "HASHING"
+                ? "SHA-256 计算中…"
+                : hashState === "COMPLETED"
+                  ? "SHA-256 已完成"
+                  : "等待文件选择"}
+            </span>
           </div>
           <dl className="file-meta" aria-label="文件元数据">
             {[
               "文件名",
-              "文件类型",
+              "MIME type",
               "文件大小",
               "SHA-256",
               "source system",
@@ -79,9 +129,15 @@ export function QualityPage() {
                 <dd>
                   {label === "文件名" && file
                     ? file.name
-                    : label === "文件大小" && file
-                      ? displayFileSize(file.size)
-                      : "—"}
+                    : label === "MIME type" && file
+                      ? file.type || "未知 MIME type"
+                      : label === "文件大小" && file
+                        ? displayFileSize(file.size)
+                        : label === "SHA-256" && hashState === "HASHING"
+                          ? "计算中…"
+                          : label === "SHA-256" && hash
+                            ? hash
+                            : "—"}
                 </dd>
               </div>
             ))}
@@ -114,14 +170,14 @@ export function QualityPage() {
           <div className="button-row">
             <button
               className="button button-primary"
-              disabled
+              disabled={!importChainAvailable}
               aria-describedby="import-disabled-reason"
             >
               上传并校验
             </button>
             <button
               className="button button-secondary"
-              disabled
+              disabled={!importChainAvailable}
               aria-describedby="import-disabled-reason"
             >
               提交导入
