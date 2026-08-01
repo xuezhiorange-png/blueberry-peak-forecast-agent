@@ -26,6 +26,7 @@ from backend.app.models.core_forecast import (
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
+from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.models.trial import (
     CoreForecastMarketablePolicyEntryModel,
     CoreForecastMarketablePolicyModel,
@@ -33,7 +34,11 @@ from backend.app.models.trial import (
     TrialResourceBindingModel,
 )
 from backend.app.repositories.trial_forecast_evidence import (
+    TrialForecastEvidenceConflictError,
+    TrialForecastEvidenceIntegrityError,
+    TrialForecastEvidenceNotFoundError,
     authorize_and_load_forecast_evidence,
+    compute_trial_business_scope_hash,
     create_forecast_evidence_and_binding_in_result_boundary,
 )
 from backend.tests.core_forecast.s4_test_helpers import fixture_request_and_outputs
@@ -53,8 +58,20 @@ pytestmark = [
 ]
 
 
-async def _cleanup_s4_rows() -> None:
+async def _cleanup_s4_rows(public_forecast_id: str | None = None) -> None:
     async with AsyncSessionMaker() as session:
+        if public_forecast_id is not None:
+            await session.execute(
+                delete(TrialResourceBindingModel).where(
+                    TrialResourceBindingModel.resource_kind == "FORECAST",
+                    TrialResourceBindingModel.public_resource_id == public_forecast_id,
+                )
+            )
+            await session.execute(
+                delete(TrialForecastEvidenceModel).where(
+                    TrialForecastEvidenceModel.public_forecast_id == public_forecast_id
+                )
+            )
         await session.execute(delete(CoreForecastMetricModel))
         await session.execute(delete(CoreForecastDailyRowModel))
         await session.execute(delete(CoreForecastRunModel))
@@ -65,6 +82,178 @@ async def _seed_committed_authorities() -> None:
     async with AsyncSessionMaker() as session:
         await _seed_authorities(session)
         await session.commit()
+
+
+async def _persist_core_run(session: AsyncSession) -> str:
+    await _seed_authorities(session)
+    (
+        request,
+        curve,
+        metrics,
+        policy_hash,
+        input_hash,
+        request_hash,
+        result_hash,
+    ) = await fixture_request_and_outputs()
+    persisted = await CoreForecastRunRepository(session).save_completed_run(
+        request=request,
+        forecast_input_hash=input_hash,
+        request_hash=request_hash,
+        result_hash=result_hash,
+        retention_policy_snapshot_hash=policy_hash,
+        curve=curve,
+        metrics=metrics,
+        rerun_of_run_id=None,
+    )
+    assert persisted.run.request_hash == request_hash
+    return request_hash
+
+
+async def _persist_committed_core_run() -> str:
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            return await _persist_core_run(session)
+
+
+def _evidence_input(
+    public_forecast_id: str,
+    *,
+    owner_identity: str = "actor:postgres-evidence",
+    forecast_input_authority_hash: str = "a" * 64,
+    plan_row_hash: str = "b" * 64,
+    farm_business_key: str = "farm-postgres",
+    subfarm_business_key_or_null: str | None = "subfarm-postgres",
+    season_business_key: str = "season-2026",
+    variety_business_key: str = "variety-blue",
+    destination_factory_business_key: str = "factory-main",
+    plan_version: str = "plan-v1",
+    planting_area_mu: Decimal = Decimal("12.340000"),
+) -> dict[str, object]:
+    return {
+        "public_forecast_id": public_forecast_id,
+        "owner_identity": owner_identity,
+        "forecast_input_authority_hash": forecast_input_authority_hash,
+        "authority_available_at": datetime(2026, 1, 1, tzinfo=UTC),
+        "farm_business_key": farm_business_key,
+        "subfarm_business_key_or_null": subfarm_business_key_or_null,
+        "season_business_key": season_business_key,
+        "variety_business_key": variety_business_key,
+        "destination_factory_business_key": destination_factory_business_key,
+        "plan_version": plan_version,
+        "plan_row_hash": plan_row_hash,
+        "planting_area_mu": planting_area_mu,
+    }
+
+
+async def _related_row_counts(
+    session: AsyncSession,
+    public_forecast_id: str,
+) -> tuple[int, int, int]:
+    core_run_count = await session.scalar(
+        select(func.count())
+        .select_from(CoreForecastRunModel)
+        .where(CoreForecastRunModel.request_hash == public_forecast_id)
+    )
+    evidence_count = await session.scalar(
+        select(func.count())
+        .select_from(TrialForecastEvidenceModel)
+        .where(TrialForecastEvidenceModel.public_forecast_id == public_forecast_id)
+    )
+    binding_count = await session.scalar(
+        select(func.count())
+        .select_from(TrialResourceBindingModel)
+        .where(
+            TrialResourceBindingModel.resource_kind == "FORECAST",
+            TrialResourceBindingModel.public_resource_id == public_forecast_id,
+        )
+    )
+    return int(core_run_count or 0), int(evidence_count or 0), int(binding_count or 0)
+
+
+async def _cleanup_pg_failure_trigger(
+    *,
+    table_name: str,
+    trigger_name: str,
+    function_name: str,
+) -> None:
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            await session.execute(text(f"DROP TRIGGER IF EXISTS {trigger_name} ON {table_name}"))
+            await session.execute(text(f"DROP FUNCTION IF EXISTS {function_name}()"))
+
+
+async def _install_pg_evidence_insert_failure_trigger(session: AsyncSession) -> None:
+    await session.execute(
+        text(
+            """
+            CREATE OR REPLACE FUNCTION test_trial_forecast_evidence_insert_failure()
+            RETURNS trigger
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                RAISE EXCEPTION 'test evidence insert failure' USING ERRCODE = '23514';
+            END;
+            $$
+            """
+        )
+    )
+    await session.execute(
+        text(
+            """
+            DROP TRIGGER IF EXISTS test_trial_forecast_evidence_insert_failure_trigger
+                ON trial_forecast_evidence
+            """
+        )
+    )
+    await session.execute(
+        text(
+            """
+            CREATE TRIGGER test_trial_forecast_evidence_insert_failure_trigger
+            BEFORE INSERT ON trial_forecast_evidence
+            FOR EACH ROW
+            EXECUTE FUNCTION test_trial_forecast_evidence_insert_failure()
+            """
+        )
+    )
+
+
+async def _install_pg_forecast_binding_insert_failure_trigger(session: AsyncSession) -> None:
+    await session.execute(
+        text(
+            """
+            CREATE OR REPLACE FUNCTION test_trial_forecast_binding_insert_failure()
+            RETURNS trigger
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF NEW.resource_kind = 'FORECAST' THEN
+                    RAISE EXCEPTION 'test forecast binding insert failure'
+                        USING ERRCODE = '23514';
+                END IF;
+                RETURN NEW;
+            END;
+            $$
+            """
+        )
+    )
+    await session.execute(
+        text(
+            """
+            DROP TRIGGER IF EXISTS test_trial_forecast_binding_insert_failure_trigger
+                ON trial_resource_binding
+            """
+        )
+    )
+    await session.execute(
+        text(
+            """
+            CREATE TRIGGER test_trial_forecast_binding_insert_failure_trigger
+            BEFORE INSERT ON trial_resource_binding
+            FOR EACH ROW
+            EXECUTE FUNCTION test_trial_forecast_binding_insert_failure()
+            """
+        )
+    )
 
 
 async def test_postgres_core_forecast_persistence_round_trip_and_integrity(
@@ -504,7 +693,7 @@ async def test_concurrent_same_request_creates_one_physical_run() -> None:
             assert await verify.scalar(select(func.count(CoreForecastDailyRowModel.id))) == 1080
             assert await verify.scalar(select(func.count(CoreForecastMetricModel.id))) == 3
     finally:
-        await _cleanup_s4_rows()
+        await _cleanup_s4_rows(request_hash or None)
 
 
 async def test_existing_same_hash_different_payload_raises_conflict() -> None:
@@ -550,4 +739,322 @@ async def test_existing_same_hash_different_payload_raises_conflict() -> None:
             )
             await conflict_session.rollback()
     finally:
-        await _cleanup_s4_rows()
+        await _cleanup_s4_rows(request_hash)
+
+
+async def test_postgres_concurrent_trial_forecast_evidence_exact_replay_is_single_row() -> None:
+    request_hash = ""
+    try:
+        request_hash = await _persist_committed_core_run()
+        barrier = asyncio.Barrier(2)
+        evidence_input = _evidence_input(request_hash)
+
+        async def create_once():
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await asyncio.wait_for(barrier.wait(), timeout=10)
+                    return await create_forecast_evidence_and_binding_in_result_boundary(
+                        session,
+                        **evidence_input,
+                    )
+
+        results = await asyncio.wait_for(asyncio.gather(create_once(), create_once()), timeout=60)
+        assert len(results) == 2
+        assert results[0].public_forecast_id == request_hash
+        assert results[0].forecast_evidence_hash == results[1].forecast_evidence_hash
+        assert results[0].business_scope_hash == results[1].business_scope_hash
+        assert results[0].canonical_payload == results[1].canonical_payload
+        assert results[0].created_at == results[1].created_at
+
+        async with AsyncSessionMaker() as verify:
+            evidence_rows = (
+                await verify.scalars(
+                    select(TrialForecastEvidenceModel).where(
+                        TrialForecastEvidenceModel.public_forecast_id == request_hash
+                    )
+                )
+            ).all()
+            binding_rows = (
+                await verify.scalars(
+                    select(TrialResourceBindingModel).where(
+                        TrialResourceBindingModel.resource_kind == "FORECAST",
+                        TrialResourceBindingModel.public_resource_id == request_hash,
+                    )
+                )
+            ).all()
+            assert len(evidence_rows) == 1
+            assert len(binding_rows) == 1
+            assert binding_rows[0].owner_identity == "actor:postgres-evidence"
+            assert binding_rows[0].business_scope_hash == evidence_rows[0].business_scope_hash
+            assert await _related_row_counts(verify, request_hash) == (1, 1, 1)
+    finally:
+        await _cleanup_s4_rows(request_hash or None)
+
+
+async def test_postgres_concurrent_trial_forecast_evidence_conflict_is_single_winner() -> None:
+    try:
+        request_hash = await _persist_committed_core_run()
+        barrier = asyncio.Barrier(2)
+
+        async def create_once(owner_identity: str):
+            async with AsyncSessionMaker() as session:
+                async with session.begin():
+                    await asyncio.wait_for(barrier.wait(), timeout=10)
+                    try:
+                        evidence = await create_forecast_evidence_and_binding_in_result_boundary(
+                            session,
+                            **_evidence_input(request_hash, owner_identity=owner_identity),
+                        )
+                    except TrialForecastEvidenceConflictError as exc:
+                        return "conflict", owner_identity, exc
+                    return "success", owner_identity, evidence
+
+        results = await asyncio.wait_for(
+            asyncio.gather(
+                create_once("actor:postgres-conflict-a"),
+                create_once("actor:postgres-conflict-b"),
+            ),
+            timeout=60,
+        )
+        assert [result[0] for result in results].count("success") == 1
+        assert [result[0] for result in results].count("conflict") == 1
+        successful_result = next(result for result in results if result[0] == "success")
+        assert successful_result[2].public_forecast_id == request_hash
+
+        async with AsyncSessionMaker() as verify:
+            evidence_rows = (
+                await verify.scalars(
+                    select(TrialForecastEvidenceModel).where(
+                        TrialForecastEvidenceModel.public_forecast_id == request_hash
+                    )
+                )
+            ).all()
+            binding_rows = (
+                await verify.scalars(
+                    select(TrialResourceBindingModel).where(
+                        TrialResourceBindingModel.resource_kind == "FORECAST",
+                        TrialResourceBindingModel.public_resource_id == request_hash,
+                    )
+                )
+            ).all()
+            assert len(evidence_rows) == 1
+            assert len(binding_rows) == 1
+            assert binding_rows[0].owner_identity in {
+                "actor:postgres-conflict-a",
+                "actor:postgres-conflict-b",
+            }
+            assert binding_rows[0].business_scope_hash == evidence_rows[0].business_scope_hash
+            assert binding_rows[0].owner_identity == successful_result[1]
+            assert await _related_row_counts(verify, request_hash) == (1, 1, 1)
+    finally:
+        await _cleanup_s4_rows(request_hash)
+
+
+async def test_postgres_trial_forecast_evidence_insert_failure_rolls_back_outer_transaction(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    request_hash = await _persist_core_run(transactional_pg_session)
+    try:
+        await _install_pg_evidence_insert_failure_trigger(transactional_pg_session)
+        with pytest.raises(TrialForecastEvidenceConflictError):
+            await create_forecast_evidence_and_binding_in_result_boundary(
+                transactional_pg_session,
+                **_evidence_input(request_hash, owner_identity="actor:postgres-evidence-failure"),
+            )
+    finally:
+        try:
+            await transactional_pg_session.rollback()
+        finally:
+            await _cleanup_pg_failure_trigger(
+                table_name="trial_forecast_evidence",
+                trigger_name="test_trial_forecast_evidence_insert_failure_trigger",
+                function_name="test_trial_forecast_evidence_insert_failure",
+            )
+
+    async with AsyncSessionMaker() as verify:
+        assert await _related_row_counts(verify, request_hash) == (0, 0, 0)
+
+
+async def test_postgres_trial_forecast_binding_insert_failure_rolls_back_outer_transaction(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    request_hash = await _persist_core_run(transactional_pg_session)
+    try:
+        await _install_pg_forecast_binding_insert_failure_trigger(transactional_pg_session)
+        with pytest.raises(TrialForecastEvidenceConflictError):
+            await create_forecast_evidence_and_binding_in_result_boundary(
+                transactional_pg_session,
+                **_evidence_input(request_hash, owner_identity="actor:postgres-binding-failure"),
+            )
+    finally:
+        try:
+            await transactional_pg_session.rollback()
+        finally:
+            await _cleanup_pg_failure_trigger(
+                table_name="trial_resource_binding",
+                trigger_name="test_trial_forecast_binding_insert_failure_trigger",
+                function_name="test_trial_forecast_binding_insert_failure",
+            )
+
+    async with AsyncSessionMaker() as verify:
+        assert await _related_row_counts(verify, request_hash) == (0, 0, 0)
+
+
+async def test_postgres_trial_forecast_evidence_wrong_owner_is_concealed_not_found(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    request_hash = await _persist_core_run(transactional_pg_session)
+    created = await create_forecast_evidence_and_binding_in_result_boundary(
+        transactional_pg_session,
+        **_evidence_input(request_hash, owner_identity="actor:postgres-owner"),
+    )
+
+    with pytest.raises(TrialForecastEvidenceNotFoundError):
+        await authorize_and_load_forecast_evidence(
+            transactional_pg_session,
+            public_forecast_id=request_hash,
+            owner_identity="actor:postgres-wrong-owner",
+        )
+    loaded = await authorize_and_load_forecast_evidence(
+        transactional_pg_session,
+        public_forecast_id=request_hash,
+        owner_identity="actor:postgres-owner",
+    )
+    assert loaded == created
+    row = await transactional_pg_session.scalar(
+        select(TrialForecastEvidenceModel).where(
+            TrialForecastEvidenceModel.public_forecast_id == request_hash
+        )
+    )
+    assert row is not None
+    assert row.forecast_evidence_hash == created.forecast_evidence_hash
+    assert await _related_row_counts(transactional_pg_session, request_hash) == (1, 1, 1)
+
+
+async def test_postgres_trial_forecast_evidence_only_half_state_fails_closed(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    request_hash = await _persist_core_run(transactional_pg_session)
+    evidence_input = _evidence_input(request_hash, owner_identity="actor:postgres-half-evidence")
+    created = await create_forecast_evidence_and_binding_in_result_boundary(
+        transactional_pg_session,
+        **evidence_input,
+    )
+    await transactional_pg_session.execute(
+        delete(TrialResourceBindingModel).where(
+            TrialResourceBindingModel.resource_kind == "FORECAST",
+            TrialResourceBindingModel.public_resource_id == request_hash,
+        )
+    )
+    await transactional_pg_session.flush()
+
+    with pytest.raises(TrialForecastEvidenceIntegrityError):
+        await create_forecast_evidence_and_binding_in_result_boundary(
+            transactional_pg_session,
+            **evidence_input,
+        )
+    with pytest.raises(TrialForecastEvidenceNotFoundError):
+        await authorize_and_load_forecast_evidence(
+            transactional_pg_session,
+            public_forecast_id=request_hash,
+            owner_identity="actor:postgres-half-evidence",
+        )
+    row = await transactional_pg_session.scalar(
+        select(TrialForecastEvidenceModel).where(
+            TrialForecastEvidenceModel.public_forecast_id == request_hash
+        )
+    )
+    assert row is not None
+    assert row.forecast_evidence_hash == created.forecast_evidence_hash
+    assert await _related_row_counts(transactional_pg_session, request_hash) == (1, 1, 0)
+
+
+async def test_postgres_trial_forecast_binding_only_half_state_fails_closed(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    request_hash = await _persist_core_run(transactional_pg_session)
+    owner_identity = "actor:postgres-half-binding"
+    scope_hash = compute_trial_business_scope_hash(
+        farm_business_key="farm-postgres",
+        subfarm_business_key_or_null="subfarm-postgres",
+        season_business_key="season-2026",
+        variety_business_key="variety-blue",
+        destination_factory_business_key="factory-main",
+    )
+    transactional_pg_session.add(
+        TrialResourceBindingModel(
+            resource_kind="FORECAST",
+            public_resource_id=request_hash,
+            owner_identity=owner_identity,
+            business_scope_hash=scope_hash,
+            parent_forecast_public_id=None,
+            parent_import_id=None,
+        )
+    )
+    await transactional_pg_session.flush()
+    evidence_input = _evidence_input(request_hash, owner_identity=owner_identity)
+
+    with pytest.raises(TrialForecastEvidenceIntegrityError):
+        await create_forecast_evidence_and_binding_in_result_boundary(
+            transactional_pg_session,
+            **evidence_input,
+        )
+    with pytest.raises(TrialForecastEvidenceIntegrityError):
+        await authorize_and_load_forecast_evidence(
+            transactional_pg_session,
+            public_forecast_id=request_hash,
+            owner_identity=owner_identity,
+        )
+    row = await transactional_pg_session.scalar(
+        select(TrialResourceBindingModel).where(
+            TrialResourceBindingModel.resource_kind == "FORECAST",
+            TrialResourceBindingModel.public_resource_id == request_hash,
+        )
+    )
+    assert row is not None
+    assert row.owner_identity == owner_identity
+    assert row.business_scope_hash == scope_hash
+    assert await _related_row_counts(transactional_pg_session, request_hash) == (1, 0, 1)
+
+
+async def test_postgres_trial_forecast_evidence_readback_is_stable_after_plan_change(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    request_hash = await _persist_core_run(transactional_pg_session)
+    created = await create_forecast_evidence_and_binding_in_result_boundary(
+        transactional_pg_session,
+        **_evidence_input(request_hash, owner_identity="actor:postgres-stability"),
+    )
+    await transactional_pg_session.execute(
+        update(FarmSeasonVarietyPlan)
+        .where(FarmSeasonVarietyPlan.id == 3201)
+        .values(planted_area_mu=Decimal("999.000000"), row_hash="f" * 64)
+    )
+    await transactional_pg_session.flush()
+    changed_plan = await transactional_pg_session.scalar(
+        select(FarmSeasonVarietyPlan).where(FarmSeasonVarietyPlan.id == 3201)
+    )
+    assert changed_plan is not None
+    assert changed_plan.planted_area_mu == Decimal("999.000000")
+    assert changed_plan.row_hash == "f" * 64
+
+    loaded = await authorize_and_load_forecast_evidence(
+        transactional_pg_session,
+        public_forecast_id=request_hash,
+        owner_identity="actor:postgres-stability",
+    )
+    assert loaded == created
+    assert loaded.canonical_payload == created.canonical_payload
+    assert loaded.forecast_evidence_hash == created.forecast_evidence_hash
+    assert loaded.business_scope_hash == created.business_scope_hash
+    assert loaded.plan_row_hash == "b" * 64
+    assert loaded.planting_area_mu == Decimal("12.340000")
+    row = await transactional_pg_session.scalar(
+        select(TrialForecastEvidenceModel).where(
+            TrialForecastEvidenceModel.public_forecast_id == request_hash
+        )
+    )
+    assert row is not None
+    assert row.plan_row_hash == "b" * 64
+    assert row.forecast_evidence_hash == created.forecast_evidence_hash
+    assert await _related_row_counts(transactional_pg_session, request_hash) == (1, 1, 1)
