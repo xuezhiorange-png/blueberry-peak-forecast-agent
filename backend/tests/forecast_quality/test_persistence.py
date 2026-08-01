@@ -17,6 +17,7 @@ import asyncpg
 import pytest
 from alembic import command
 from alembic.config import Config
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sqlalchemy import delete, func, insert, select, text, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import (
@@ -100,7 +101,9 @@ from backend.app.residual_model.canonical import (
     canonical_payload_hash,
     prediction_input_signature_hash,
 )
+from backend.app.residual_model.config import load_residual_model_config
 from backend.app.residual_model.manifest import manifest_hash as residual_manifest_hash
+from backend.app.residual_model.model import build_artifact_metadata, serialize_estimator
 from backend.app.residual_model.persistence import (
     _feature_schema_hash,
     _prediction_hash_from_result,
@@ -109,6 +112,7 @@ from backend.app.residual_model.persistence import (
     save_residual_training_run,
 )
 from backend.app.residual_model.schemas import (
+    PersistableResidualArtifact,
     ResidualPredictionExecutionResult,
     ResidualPredictionRow,
     ResidualTrainingExecutionResult,
@@ -138,6 +142,7 @@ from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
 from backend.tests.integration.test_core_forecast_persistence_postgres import (
     _prepare_default_trial_forecast,
 )
+from backend.tests.residual_model.support import residual_model_config_path
 
 pytestmark = [pytest.mark.postgres, pytest.mark.migration]
 
@@ -1133,10 +1138,11 @@ async def _seed_quality_task10_fixture(
 ) -> ResidualModelPredictionRun:
     """Persist a real, loader-verifiable structural-only Task 10 authority."""
 
+    residual_config = load_residual_model_config(residual_model_config_path())
     training_signature = "3" * 64
-    config_hash = "4" * 64
+    config_hash = residual_config.config_hash
     training_manifest_hash = residual_manifest_hash(())
-    feature_schema_version = "quality-task10-feature-schema-v1"
+    feature_schema_version = residual_config.rules.feature_schema_version
     feature_schema_hash = _feature_schema_hash([])
     training_input_snapshot = {
         "config_snapshot": {},
@@ -1151,12 +1157,12 @@ async def _seed_quality_task10_fixture(
         },
     }
     training_result = ResidualTrainingExecutionResult(
-        execution_status="blocked",
-        eligibility_status="ineligible",
-        model_family="quality-task10-fixture",
-        model_version="quality-task10-fixture-v1",
+        execution_status="completed",
+        eligibility_status="eligible",
+        model_family=residual_config.rules.model_family,
+        model_version=residual_config.rules.model_version,
         feature_schema_version=feature_schema_version,
-        artifact_schema_version="quality-task10-artifact-v1",
+        artifact_schema_version=residual_config.rules.artifact_schema_version,
         training_signature=training_signature,
         config_hash=config_hash,
         manifest_hash=training_manifest_hash,
@@ -1164,12 +1170,50 @@ async def _seed_quality_task10_fixture(
         distinct_season_count=0,
         distinct_factory_count=0,
         warnings=(),
-        blockers=("FIXTURE_STRUCTURAL_ONLY",),
+        blockers=(),
         feature_audit_summary={},
         metrics={"feature_names": [], "validation": {"global": {}}},
-        eligibility_reasons=("FIXTURE_STRUCTURAL_ONLY",),
-        input_snapshot=training_input_snapshot,
+        eligibility_reasons=(),
+        input_snapshot={
+            **training_input_snapshot,
+            "config_snapshot": residual_config.snapshot,
+        },
     )
+    artifacts: list[PersistableResidualArtifact] = []
+    for quantile_label, quantile in (("P50", 0.5), ("P80", 0.8), ("P90", 0.9)):
+        estimator = HistGradientBoostingRegressor(
+            loss="quantile",
+            quantile=quantile,
+            learning_rate=residual_config.rules.estimator.learning_rate,
+            max_iter=residual_config.rules.estimator.max_iter,
+            max_leaf_nodes=residual_config.rules.estimator.max_leaf_nodes,
+            max_depth=residual_config.rules.estimator.max_depth,
+            min_samples_leaf=residual_config.rules.estimator.min_samples_leaf,
+            l2_regularization=residual_config.rules.estimator.l2_regularization,
+            early_stopping=residual_config.rules.estimator.early_stopping,
+            validation_fraction=residual_config.rules.estimator.validation_fraction,
+            n_iter_no_change=residual_config.rules.estimator.n_iter_no_change,
+            tol=residual_config.rules.estimator.tol,
+            random_state=residual_config.rules.random_seed,
+        )
+        artifact_bytes = serialize_estimator(estimator)
+        artifacts.append(
+            PersistableResidualArtifact(
+                quantile_label=quantile_label,
+                artifact_bytes=artifact_bytes,
+                metadata=build_artifact_metadata(
+                    quantile_label=quantile_label,
+                    config=residual_config,
+                    training_signature=training_signature,
+                    manifest_hash=training_manifest_hash,
+                    feature_schema_hash=feature_schema_hash,
+                    estimator=estimator,
+                    artifact_bytes=artifact_bytes,
+                    category_encodings=[],
+                ),
+            )
+        )
+    training_result = training_result.model_copy(update={"artifacts": tuple(artifacts)})
     training_run = await save_residual_training_run(
         session,
         result=training_result,
