@@ -32,8 +32,10 @@ from backend.app.forecast_quality.schemas import (
     BaselineResult,
     BaselineSourceSnapshot,
     DailyMetricResult,
+    QualityStatusEvidenceCell,
     S3EvaluationInput,
 )
+from backend.app.forecast_quality.status_evidence import _validate_cell
 from backend.app.models.forecast_quality import (
     PERSISTENCE_SCHEMA_VERSION,
     ROUND_C_PERSISTENCE_SCHEMA_VERSION,
@@ -256,6 +258,7 @@ def _validate_evaluation_input(
     }
     if request_identity_payload is not None:
         identity = _json_ready(dict(request_identity_payload))
+        identity_schema_version = identity.get("schema_version")
         actor_identity = identity.get("actor_identity")
         idempotency_key = identity.get("request_idempotency_key")
         canonical_request = identity.get("canonical_request")
@@ -265,13 +268,13 @@ def _validate_evaluation_input(
             raise ForecastQualityContractError("request_idempotency_key is required")
         if not isinstance(canonical_request, Mapping):
             raise ForecastQualityContractError("canonical_request is required")
+        if identity_schema_version != request_payload["schema_version"]:
+            raise ForecastQualityContractError("trial request schema version is invalid")
         request_payload["trial_request_identity"] = identity
-        request_identity_hash = _hash(
-            {
-                "schema_version": request_payload["schema_version"],
-                "actor_identity": actor_identity,
-                "request_idempotency_key": idempotency_key,
-            }
+        request_identity_hash = compute_trial_quality_request_hash(
+            schema_version=str(request_payload["schema_version"]),
+            actor_identity=actor_identity,
+            request_idempotency_key=idempotency_key,
         )
     else:
         request_identity_hash = _hash(request_payload)
@@ -285,6 +288,27 @@ def _validate_evaluation_input(
             }
         )
     return request_payload, request_identity_hash, _hash(request_payload)
+
+
+def compute_trial_quality_request_hash(
+    *, schema_version: str, actor_identity: str, request_idempotency_key: str
+) -> str:
+    """Return the persisted Quality request identity hash.
+
+    The complete public request remains in ``trial_request_identity``.  Only
+    the stable schema/actor/key tuple is used as the idempotency identity; the
+    request itself is deliberately not placed in its own hash preimage.
+    """
+
+    return _hash(
+        {
+            "schema_version": _nonempty(schema_version, "schema_version"),
+            "actor_identity": _nonempty(actor_identity, "actor_identity"),
+            "request_idempotency_key": _nonempty(
+                request_idempotency_key, "request_idempotency_key"
+            ),
+        }
+    )
 
 
 def _metric_evidence(result: DailyMetricResult) -> tuple[_MetricEvidence, ...]:
@@ -330,6 +354,48 @@ def _metric_evidence(result: DailyMetricResult) -> tuple[_MetricEvidence, ...]:
     if {item.metric_name for item in evidence} != _EXPECTED_METRIC_NAMES:
         raise ForecastQualityContractError("complete seven-metric result set is required")
     return tuple(evidence)
+
+
+def _status_metric_evidence(cell: QualityStatusEvidenceCell) -> _MetricEvidence:
+    """Adapt one frozen S3 status cell to the existing metric table contract."""
+
+    _validate_cell(cell)
+    inner = _json_ready(cell.canonical_payload)
+    if _hash(inner) != cell.canonical_hash:
+        raise ForecastQualityContractError("status evidence canonical hash replay failed")
+    identity = inner.get("breakdown_identity")
+    if not isinstance(identity, dict):
+        raise ForecastQualityContractError("status evidence breakdown identity is required")
+    expected_key = _hash(
+        {
+            "schema_version": inner.get("schema_version"),
+            "metric_name": cell.metric_name,
+            "forecast_horizon_days": cell.scope.forecast_horizon_days,
+            "forecast_quantile": cell.forecast_quantile,
+            "breakdown_identity": identity,
+            "source_s2_binding_row_set_hash": cell.source_s2_binding_row_set_hash,
+        }
+    )
+    if expected_key != cell.metric_result_key_hash:
+        raise ForecastQualityContractError("status evidence key hash replay failed")
+    payload = {
+        "schema_version": PERSISTENCE_SCHEMA_VERSION,
+        "status_evidence": inner,
+        "status_evidence_canonical_hash": cell.canonical_hash,
+        "status_evidence_key_hash": cell.metric_result_key_hash,
+    }
+    return _MetricEvidence(
+        key_hash=cell.metric_result_key_hash,
+        canonical_hash=_hash(payload),
+        payload=_json_ready(payload),
+        breakdown_identity=identity,
+        metric_name=cell.metric_name,
+        metric_status=cell.metric_status,
+        reason_code=cell.reason_code,
+        metric_value=cell.metric_value,
+        numerator=cell.numerator,
+        denominator=cell.denominator,
+    )
 
 
 def _breakdown_evidence(value: Mapping[str, Any]) -> _BreakdownEvidence:
@@ -621,6 +687,7 @@ def _build_evidence(
     *,
     evaluation_input: S3EvaluationInput,
     metric_results: Sequence[DailyMetricResult],
+    status_evidence: Sequence[QualityStatusEvidenceCell],
     breakdown_results: Sequence[Mapping[str, object]],
     baseline_records: Sequence[BaselinePersistenceRecord],
     comparison_records: Sequence[ComparisonResult | Mapping[str, object]],
@@ -651,7 +718,10 @@ def _build_evidence(
         round_c=comparison_contract_enabled,
         request_identity_payload=request_identity_payload,
     )
-    metrics = tuple(item for result in metric_results for item in _metric_evidence(result))
+    metrics = tuple(
+        [item for result in metric_results for item in _metric_evidence(result)]
+        + [_status_metric_evidence(item) for item in status_evidence]
+    )
     if len({item.key_hash for item in metrics}) != len(metrics):
         raise ForecastQualityContractError("duplicate metric child identity")
     breakdowns = tuple(_breakdown_evidence(item) for item in breakdown_results)
@@ -843,6 +913,47 @@ def _stored_metric_projection(row: QualityMetricResultModel) -> tuple[str, str]:
     canonical_hash = _stored_canonical_hash(row)
     try:
         payload = row.canonical_payload
+        status_evidence = payload.get("status_evidence")
+        if isinstance(status_evidence, Mapping):
+            inner_hash = _require_stored_hash(
+                payload.get("status_evidence_canonical_hash"),
+                "status_evidence_canonical_hash",
+            )
+            if _stored_hash(status_evidence) != inner_hash:
+                raise ForecastQualityPartialResultError(
+                    "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: status evidence hash mismatch"
+                )
+            identity = status_evidence.get("breakdown_identity")
+            if not isinstance(identity, Mapping):
+                raise KeyError("breakdown_identity")
+            expected_key = _hash(
+                {
+                    "schema_version": status_evidence["schema_version"],
+                    "metric_name": status_evidence["metric_name"],
+                    "forecast_horizon_days": status_evidence["forecast_horizon_days"],
+                    "forecast_quantile": status_evidence["forecast_quantile"],
+                    "breakdown_identity": identity,
+                    "source_s2_binding_row_set_hash": status_evidence[
+                        "source_s2_binding_row_set_hash"
+                    ],
+                }
+            )
+            key_hash = _require_stored_hash(row.metric_result_key_hash, "metric_result_key_hash")
+            if key_hash != expected_key or payload.get("status_evidence_key_hash") != key_hash:
+                raise ForecastQualityPartialResultError(
+                    "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: status evidence key projection mismatch"
+                )
+            for column, expected in (
+                ("metric_name", status_evidence.get("metric_name")),
+                ("metric_status", status_evidence.get("metric_status")),
+                ("reason_code", status_evidence.get("reason_code")),
+                ("metric_value", status_evidence.get("metric_value")),
+                ("numerator", status_evidence.get("numerator")),
+                ("denominator", status_evidence.get("denominator")),
+                ("breakdown_identity", identity),
+            ):
+                _require_projection(getattr(row, column), expected, f"status metric {column}")
+            return key_hash, canonical_hash
         daily_result = payload["daily_metric_result"]
         metric_cell = payload["metric_cell"]
         identity = daily_result["breakdown_identity"]
@@ -874,6 +985,133 @@ def _stored_metric_projection(row: QualityMetricResultModel) -> tuple[str, str]:
     ):
         _require_projection(getattr(row, column), expected, f"metric {column}")
     return key_hash, canonical_hash
+
+
+def _validate_frozen_status_evidence(
+    metrics: Sequence[QualityMetricResultModel],
+    run_payload: Mapping[str, object],
+) -> None:
+    status_rows = [
+        row for row in metrics if isinstance(row.canonical_payload.get("status_evidence"), Mapping)
+    ]
+    if len(status_rows) != 30:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: frozen status evidence count mismatch"
+        )
+    observed: set[tuple[str, int, str]] = set()
+    for row in status_rows:
+        payload = row.canonical_payload["status_evidence"]
+        if not isinstance(payload, Mapping):
+            raise ForecastQualityPartialResultError(
+                "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: frozen status payload malformed"
+            )
+        try:
+            key = (
+                str(payload["metric_name"]),
+                int(payload["forecast_horizon_days"]),
+                str(payload["forecast_quantile"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ForecastQualityPartialResultError(
+                "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: frozen status key malformed"
+            ) from exc
+        if key in observed:
+            raise ForecastQualityPartialResultError(
+                "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: duplicate frozen status key"
+            )
+        observed.add(key)
+        expected_source = (
+            run_payload.get("s2_run_identity"),
+            run_payload.get("s2_manifest_identity"),
+            run_payload.get("s2_binding_row_set_hash"),
+        )
+        actual_source = (
+            payload.get("source_s2_run_identity"),
+            payload.get("source_s2_manifest_identity"),
+            payload.get("source_s2_binding_row_set_hash"),
+        )
+        if actual_source != expected_source:
+            raise ForecastQualityPartialResultError(
+                "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: frozen status source identity drift"
+            )
+        metric_name, horizon, quantile = key
+        if horizon not in (7, 14, 21) or quantile not in ("P50", "P80", "P90"):
+            raise ForecastQualityPartialResultError(
+                "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: frozen status axis is invalid"
+            )
+        if metric_name in ("p80_upper_coverage", "p90_upper_coverage"):
+            expected_quantile = "P80" if metric_name.startswith("p80") else "P90"
+            if (
+                quantile != expected_quantile
+                or payload.get("metric_status") != "NOT_VERIFIED"
+                or payload.get("reason_code") != "QUANTILE_SEMANTICS_NOT_VERIFIED"
+                or payload.get("metric_value") is not None
+                or payload.get("numerator") is not None
+                or payload.get("denominator") is not None
+                or payload.get("covered_count_or_null") is not None
+            ):
+                raise ForecastQualityPartialResultError(
+                    "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: coverage status drift"
+                )
+        elif metric_name in ("single_day_peak", "sustained_seven_day_peak"):
+            if (
+                payload.get("metric_status") != "NOT_COMPUTABLE"
+                or payload.get("reason_code")
+                != "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING"
+                or any(
+                    payload.get(field) is not None
+                    for field in (
+                        "metric_value",
+                        "business_date_or_null",
+                        "window_start_date_or_null",
+                        "window_end_date_or_null",
+                    )
+                )
+            ):
+                raise ForecastQualityPartialResultError(
+                    "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: peak status drift"
+                )
+        elif metric_name == "prediction_interval":
+            if (
+                quantile not in ("P80", "P90")
+                or payload.get("metric_status") != "NOT_COMPUTABLE"
+                or payload.get("reason_code") != "PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE"
+                or payload.get("lower_bound_available_or_null") is not False
+                or any(
+                    payload.get(field) is not None
+                    for field in (
+                        "metric_value",
+                        "lower_bound_value_or_null",
+                        "upper_bound_value_or_null",
+                    )
+                )
+            ):
+                raise ForecastQualityPartialResultError(
+                    "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: interval status drift"
+                )
+        else:
+            raise ForecastQualityPartialResultError(
+                "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: unknown frozen status metric"
+            )
+    expected: set[tuple[str, int, str]] = set()
+    for horizon in (7, 14, 21):
+        expected.update(
+            {
+                ("p80_upper_coverage", horizon, "P80"),
+                ("p90_upper_coverage", horizon, "P90"),
+                *(
+                    (metric, horizon, quantile)
+                    for metric in ("single_day_peak", "sustained_seven_day_peak")
+                    for quantile in ("P50", "P80", "P90")
+                ),
+                ("prediction_interval", horizon, "P80"),
+                ("prediction_interval", horizon, "P90"),
+            }
+        )
+    if observed != expected:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: frozen status evidence semantic set mismatch"
+        )
 
 
 def _stored_breakdown_projection(row: QualityBreakdownResultModel) -> tuple[str, str]:
@@ -1151,10 +1389,6 @@ def load_quality_evaluation_by_instance_hash(
         raise ForecastQualityPartialResultError(
             "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored run payload hash mismatch"
         )
-    if run.canonical_payload.get("evaluation_request_hash") != run.evaluation_request_hash:
-        raise ForecastQualityPartialResultError(
-            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: run request identity projection mismatch"
-        )
     request_identity = run.canonical_payload.get("trial_request_identity")
     if not isinstance(request_identity, Mapping):
         raise ForecastQualityPartialResultError(
@@ -1173,12 +1407,24 @@ def load_quality_evaluation_by_instance_hash(
         raise ForecastQualityPartialResultError(
             "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: trial request identity is invalid"
         )
-    expected_request_hash = _hash(
-        {
-            "schema_version": run.schema_version,
-            "actor_identity": actor_identity,
-            "request_idempotency_key": idempotency_key,
-        }
+    if set(canonical_request) != {
+        "forecast_run_id",
+        "actual_harvest_import_id",
+        "forecast_cutoff_at",
+        "label_observation_cutoff_at",
+        "requested_horizons_days",
+    }:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: canonical public request is incomplete"
+        )
+    if request_identity.get("schema_version") != run.schema_version:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: trial request schema version drift"
+        )
+    expected_request_hash = compute_trial_quality_request_hash(
+        schema_version=run.schema_version,
+        actor_identity=actor_identity,
+        request_idempotency_key=idempotency_key,
     )
     if expected_request_hash != run.evaluation_request_hash:
         raise ForecastQualityPartialResultError(
@@ -1244,6 +1490,7 @@ def load_quality_evaluation_by_instance_hash(
         )
 
     metric_projections = tuple(_stored_metric_projection(row) for row in metrics)
+    _validate_frozen_status_evidence(metrics, run.canonical_payload)
     breakdown_projections = tuple(_stored_breakdown_projection(row) for row in breakdowns)
     baseline_projections = tuple(_stored_baseline_projection(row) for row in baselines)
     comparison_projections = tuple(_stored_comparison_projection(row) for row in comparisons)
@@ -1293,6 +1540,59 @@ def load_quality_evaluation_by_instance_hash(
         breakdowns=tuple(dict(row.canonical_payload) for row in breakdowns),
         baselines=tuple(dict(row.canonical_payload) for row in baselines),
         comparisons=tuple(dict(row.canonical_payload) for row in comparisons),
+    )
+
+
+def resolve_trial_quality_request_replay(
+    session: Session,
+    *,
+    schema_version: str,
+    actor_identity: str,
+    request_idempotency_key: str,
+    canonical_request: Mapping[str, object],
+) -> PersistedQualityEvaluationReadModel | None:
+    """Resolve an existing Quality request before any child write occurs."""
+
+    if not isinstance(session, Session):
+        raise TypeError("resolve_trial_quality_request_replay requires a synchronous Session")
+    request_hash = compute_trial_quality_request_hash(
+        schema_version=schema_version,
+        actor_identity=actor_identity,
+        request_idempotency_key=request_idempotency_key,
+    )
+    run = session.scalar(
+        select(QualityEvaluationRunModel).where(
+            QualityEvaluationRunModel.evaluation_request_hash == request_hash
+        )
+    )
+    if run is None:
+        return None
+    identity = run.canonical_payload.get("trial_request_identity")
+    if not isinstance(identity, Mapping):
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: trial request identity is missing"
+        )
+    stored_request = identity.get("canonical_request")
+    if (
+        identity.get("schema_version") != schema_version
+        or identity.get("actor_identity") != actor_identity
+        or identity.get("request_idempotency_key") != request_idempotency_key
+        or not isinstance(stored_request, Mapping)
+        or canonical_json_bytes(stored_request) != canonical_json_bytes(canonical_request)
+    ):
+        raise ForecastQualityConflictError("CONFLICTING_REPLAY_REJECTED: request identity differs")
+    manifest = session.scalar(
+        select(QualityEvaluationManifestModel).where(
+            QualityEvaluationManifestModel.quality_evaluation_run_id == run.id
+        )
+    )
+    if manifest is None:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: quality manifest is missing"
+        )
+    return load_quality_evaluation_by_instance_hash(
+        session,
+        evaluation_instance_hash=manifest.evaluation_instance_hash,
     )
 
 
@@ -1611,6 +1911,7 @@ def persist_quality_evaluation(
     *,
     evaluation_input: S3EvaluationInput,
     metric_results: Sequence[DailyMetricResult],
+    status_evidence: Sequence[QualityStatusEvidenceCell] = (),
     breakdown_results: Sequence[Mapping[str, object]],
     baseline_records: Sequence[BaselinePersistenceRecord],
     comparison_records: Sequence[ComparisonResult | Mapping[str, object]] = (),
@@ -1633,6 +1934,7 @@ def persist_quality_evaluation(
     evidence = _build_evidence(
         evaluation_input=evaluation_input,
         metric_results=metric_results,
+        status_evidence=status_evidence,
         breakdown_results=breakdown_results,
         baseline_records=baseline_records,
         comparison_records=comparison_records,
@@ -1668,6 +1970,8 @@ __all__ = [
     "PersistedQualityEvaluation",
     "PersistedQualityEvaluationReadModel",
     "ROUND_C_PERSISTENCE_SCHEMA_VERSION",
+    "compute_trial_quality_request_hash",
     "load_quality_evaluation_by_instance_hash",
     "persist_quality_evaluation",
+    "resolve_trial_quality_request_replay",
 ]

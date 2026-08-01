@@ -153,7 +153,7 @@ def _quality() -> TrialQualityReportResponse:
     coverage = {
         "quantile": "P80",
         "metric_status": "COMPUTED",
-        "covered_count": 2,
+        "covered_count_or_null": 2,
         "total_count": 2,
         "coverage_ratio_or_null": "1.000000",
         "reason_codes": [],
@@ -845,7 +845,13 @@ async def test_quality_report_create_api_acceptance(client: AsyncClient) -> None
 async def test_quality_report_get_api_acceptance(client: AsyncClient) -> None:
     response = await client.get("/api/v1/trial/quality-reports/quality-public-1")
     assert response.status_code == 200
-    assert response.json()["coverage_counts"] == {"total": 2, "comparable": 2}
+    assert response.json()["coverage_counts"] == {
+        "total": 2,
+        "comparable": 2,
+        "covered": 0,
+        "excluded": 0,
+        "not_computable": 0,
+    }
 
 
 @pytest.mark.asyncio
@@ -860,6 +866,27 @@ async def test_quality_csv_export_acceptance(client: AsyncClient) -> None:
     response = await client.get("/api/v1/trial/quality-reports/quality-public-1/export.csv")
     assert response.status_code == 200
     assert response.text.splitlines() == ["metric_name,metric_value", "daily_mae,1.000000"]
+
+
+@pytest.mark.asyncio
+async def test_default_quality_service_requires_api_channel_and_quality_permission() -> None:
+    service = DefaultTrialApplicationService()
+    request = TrialQualityReportCreateRequest(**_quality_request())
+
+    async def assert_concealed(actor: ActualHarvestActorContext) -> None:
+        for operation in (
+            lambda: service.create_quality_report(None, request, actor),
+            lambda: service.get_quality_report(None, "a" * 64, actor),
+            lambda: service.get_quality_comparison(None, "a" * 64, actor),
+            lambda: service.export_quality_report(None, "a" * 64, actor),
+        ):
+            with pytest.raises(TrialApiError) as caught:
+                await operation()
+            assert caught.value.code is TrialApiErrorCode.RESOURCE_NOT_FOUND
+            assert caught.value.status_code == 404
+
+    await assert_concealed(_actor(channels=frozenset({ActualHarvestImportChannel.CSV})))
+    await assert_concealed(_actor(create=False, preview=False))
 
 
 def test_openapi_schema_acceptance(trial_app) -> None:

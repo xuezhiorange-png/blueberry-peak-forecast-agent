@@ -223,6 +223,7 @@ async def test_trial_request_idempotency_is_persisted_and_conflicts() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("trial-request-idempotency")
     request_identity = {
+        "schema_version": "v0.2-s3-quality-persistence-v1",
         "actor_identity": "quality-actor-1",
         "request_idempotency_key": "quality-key-1",
         "canonical_request": {

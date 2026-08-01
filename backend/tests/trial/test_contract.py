@@ -228,6 +228,7 @@ def test_quality_request_identity_is_persisted_for_replay_contract() -> None:
         baseline_policy_version=FrozenVersion.NAIVE_BASELINE_POLICY_V1,
     )
     identity = {
+        "schema_version": "v0.2-s3-quality-persistence-v1",
         "actor_identity": "quality-actor",
         "request_idempotency_key": "key-1",
         "canonical_request": {"forecast_run_id": "a" * 64},

@@ -10,7 +10,7 @@ import os
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 
 import asyncpg
@@ -26,6 +26,14 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from backend.app.actual_harvest_import.api_auth import ActualHarvestActorContext
+from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
+from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
+from backend.app.actual_harvest_import.validation_models import (
+    ActualHarvestMappingRegistryEntryModel,
+    ActualHarvestValidationMappingEvidenceModel,
+    ActualHarvestValidationRunModel,
+)
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.forecast_quality.baseline import resolve_baseline_point_forecast
 from backend.app.forecast_quality.breakdown import calculate_breakdown_cells
@@ -40,6 +48,7 @@ from backend.app.forecast_quality.persistence import (
     ForecastQualityPartialResultError,
     PersistedQualityEvaluation,
     _validate_evaluation_input,
+    load_quality_evaluation_by_instance_hash,
     persist_quality_evaluation,
 )
 from backend.app.forecast_quality.schemas import (
@@ -47,8 +56,12 @@ from backend.app.forecast_quality.schemas import (
     BaselineSourceSnapshot,
     BreakdownSpec,
     DailyMetricResult,
+    QualityStatusEvidenceCell,
     S3BindingRow,
     S3EvaluationInput,
+)
+from backend.app.forecast_quality.status_evidence import (
+    build_frozen_quality_status_evidence,
 )
 from backend.app.models.forecast_quality import (
     ModelBaselineComparisonModel,
@@ -57,6 +70,22 @@ from backend.app.models.forecast_quality import (
     QualityEvaluationManifestModel,
     QualityEvaluationRunModel,
     QualityMetricResultModel,
+)
+from backend.app.models.trial import TrialResourceBindingModel
+from backend.app.trial import (
+    DefaultTrialApplicationService,
+    TrialApiError,
+    TrialApiErrorCode,
+    TrialQualityReportCreateRequest,
+)
+from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
+    _build_record as _build_i7_record,
+)
+from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
+    _seed_seeded_batch,
+)
+from backend.tests.integration.test_core_forecast_persistence_postgres import (
+    _prepare_default_trial_forecast,
 )
 
 pytestmark = [pytest.mark.postgres, pytest.mark.migration]
@@ -340,6 +369,7 @@ async def _persist(
     *,
     evaluation_input: S3EvaluationInput,
     metric_result: DailyMetricResult,
+    status_evidence: tuple[QualityStatusEvidenceCell, ...] = (),
     breakdown_results: list[dict[str, object]],
     baseline_record: BaselinePersistenceRecord,
     comparison_records: tuple[object, ...] = (),
@@ -353,6 +383,7 @@ async def _persist(
             sync_session,
             evaluation_input=evaluation_input,
             metric_results=(metric_result,),
+            status_evidence=status_evidence,
             breakdown_results=breakdown_results,
             baseline_records=baseline_records or (baseline_record,),
             comparison_records=comparison_records,
@@ -762,6 +793,322 @@ async def test_complete_write_has_six_table_shape_and_empty_comparison() -> None
                 assert (
                     await session.scalar(select(func.count(QualityEvaluationManifestModel.id))) == 1
                 )
+    finally:
+        await engine.dispose()
+        await _drop_temporary_database(db_name)
+
+
+@pytest.mark.asyncio
+async def test_postgres_frozen_status_evidence_persists_and_reads_back() -> None:
+    """The 30 frozen S3 status cells are real metric rows, not read-time DTOs."""
+
+    _live_env()
+    input_data, metric_result, breakdowns, baseline = _fixture("frozen-status")
+    input_data = dataclasses.replace(
+        input_data,
+        s2_run_identity="a" * 64,
+        s2_manifest_identity="b" * 64,
+        s2_binding_row_set_hash="c" * 64,
+    )
+    base_row = input_data.rows[0]
+    status_rows = tuple(
+        dataclasses.replace(
+            base_row,
+            forecast_business_key=f"frozen-status:{horizon}:{quantile.value}",
+            forecast_quantile=quantile,
+            forecast_horizon_days=horizon,
+            forecast_target_date=_TARGET + timedelta(days=horizon),
+        )
+        for horizon in (7, 14, 21)
+        for quantile in SupportedQuantile
+    )
+    status_evidence = build_frozen_quality_status_evidence(
+        requested_horizons_days=(7, 14, 21),
+        rows=status_rows,
+        source_s2_run_identity=input_data.s2_run_identity,
+        source_s2_manifest_identity=input_data.s2_manifest_identity,
+        source_s2_binding_row_set_hash=input_data.s2_binding_row_set_hash,
+    )
+    request_identity = {
+        "schema_version": "v0.2-s3-quality-persistence-v2",
+        "actor_identity": "status-evidence-actor",
+        "request_idempotency_key": "status-evidence-key",
+        "canonical_request": {
+            "forecast_run_id": "d" * 64,
+            "actual_harvest_import_id": "status-import",
+            "forecast_cutoff_at": "2026-03-01T04:00:00+00:00",
+            "label_observation_cutoff_at": "2026-03-01T04:00:00+00:00",
+            "requested_horizons_days": [7, 14, 21],
+        },
+    }
+    db_name = await _create_temporary_database("frozen_status_evidence")
+    engine, sessionmaker = await _build_temp_sessionmaker(db_name)
+    try:
+        await _run_alembic_async("head", db_name)
+        async with sessionmaker() as session:
+            async with session.begin():
+                persisted = await _persist(
+                    session,
+                    evaluation_input=input_data,
+                    metric_result=metric_result,
+                    breakdown_results=breakdowns,
+                    baseline_record=baseline,
+                    status_evidence=status_evidence,
+                    comparison_contract_enabled=True,
+                    request_identity_payload=request_identity,
+                )
+            assert persisted.replayed is False
+            assert await session.scalar(select(func.count(QualityMetricResultModel.id))) == 37
+            loaded = await session.run_sync(
+                lambda sync_session: load_quality_evaluation_by_instance_hash(
+                    sync_session,
+                    evaluation_instance_hash=persisted.evaluation_instance_hash,
+                )
+            )
+            assert sum("status_evidence" in payload for payload in loaded.metrics) == 30
+            assert len(loaded.metrics) == 37
+    finally:
+        await engine.dispose()
+        await _drop_temporary_database(db_name)
+
+
+async def _quality_chain_counts(session: AsyncSession) -> tuple[int, ...]:
+    tables = (
+        "actual_harvest_label_snapshot",
+        "rolling_backtest_run",
+        "rolling_backtest_manifest",
+        "rolling_backtest_binding_row",
+        "quality_evaluation_run",
+        "quality_metric_result",
+        "quality_evaluation_manifest",
+    )
+    counts: list[int] = []
+    for table in tables:
+        value = await session.scalar(text(f"SELECT count(*) FROM {table}"))
+        counts.append(int(value or 0))
+    quality_binding_count = await session.scalar(
+        select(func.count())
+        .select_from(TrialResourceBindingModel)
+        .where(TrialResourceBindingModel.resource_kind == "QUALITY_REPORT")
+    )
+    counts.append(int(quality_binding_count or 0))
+    return tuple(counts)
+
+
+async def _align_i7_seed_to_forecast_scope(
+    sessionmaker: async_sessionmaker[AsyncSession],
+    *,
+    batch_id: int,
+    actor_identity: str,
+    scope: Any,
+) -> None:
+    async with sessionmaker() as session:
+        batch = await session.get(ActualHarvestImportBatchModel, batch_id)
+        assert batch is not None
+        batch.submitted_by_identity = actor_identity
+        validation_run = await session.scalar(
+            select(ActualHarvestValidationRunModel).where(
+                ActualHarvestValidationRunModel.batch_id == batch_id
+            )
+        )
+        assert validation_run is not None
+        values = {
+            "SEASON": (scope.season_business_key, None),
+            "FARM": (scope.farm_business_key, None),
+            "SUBFARM": (scope.subfarm_business_key_or_null, scope.farm_business_key),
+            "VARIETY": (scope.variety_business_key, None),
+        }
+        for target_type, (business_key, parent_key) in values.items():
+            await session.execute(
+                update(ActualHarvestValidationMappingEvidenceModel)
+                .where(
+                    ActualHarvestValidationMappingEvidenceModel.validation_run_id
+                    == validation_run.id,
+                    ActualHarvestValidationMappingEvidenceModel.target_type == target_type,
+                )
+                .values(
+                    target_business_key=business_key,
+                    target_parent_business_key=parent_key,
+                    resolved_master_business_key=business_key,
+                    resolved_master_parent_business_key=parent_key,
+                )
+            )
+            await session.execute(
+                update(ActualHarvestMappingRegistryEntryModel)
+                .where(ActualHarvestMappingRegistryEntryModel.target_type == target_type)
+                .values(target_business_key=business_key, target_parent_business_key=parent_key)
+            )
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_service_postgres_create_replay_and_status_readback() -> None:
+    """Exercise the real Trial Quality service against PostgreSQL persistence."""
+
+    _live_env()
+    db_name = await _create_temporary_database("default_quality_service")
+    engine, sessionmaker = await _build_temp_sessionmaker(db_name)
+    try:
+        await _run_alembic_async("head", db_name)
+        async with sessionmaker() as session:
+            (
+                forecast_service,
+                forecast_request,
+                forecast_actor,
+            ) = await _prepare_default_trial_forecast(session)
+            forecast = await forecast_service.create_forecast(
+                session, forecast_request, forecast_actor
+            )
+            assert forecast.forecast_scope is not None
+            forecast_scope = forecast.forecast_scope
+
+        import_id = "quality-service-import"
+        record = _build_i7_record(
+            source_system="source-test",
+            external_logical_record_id="quality-service-logical",
+            external_revision_id="quality-service-revision",
+            harvest_date=date(2026, 3, 8),
+            season_code="season-1",
+        )
+        seeded = await _seed_seeded_batch(
+            sessionmaker,
+            import_id=import_id,
+            records=[record],
+            source_system="source-test",
+            registry_suffix="quality-service",
+        )
+        await _align_i7_seed_to_forecast_scope(
+            sessionmaker,
+            batch_id=cast(int, seeded["batch_id"]),
+            actor_identity=forecast_actor.identity,
+            scope=forecast_scope,
+        )
+
+        quality_actor = ActualHarvestActorContext(
+            identity=forecast_actor.identity,
+            allowed_source_systems=frozenset({"source-test"}),
+            allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+            may_read_forecast_authority=True,
+            may_create_forecast=True,
+            may_read_forecast=True,
+            may_export_forecast=True,
+            may_create_quality=True,
+            may_read_quality=True,
+            may_read_quality_comparison=True,
+            may_export_quality=True,
+        )
+        request = TrialQualityReportCreateRequest(
+            forecast_run_id=forecast.run_id,
+            actual_harvest_import_id=import_id,
+            forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
+            label_observation_cutoff_at=datetime(2026, 3, 1, tzinfo=UTC),
+            requested_horizons_days=(7, 14, 21),
+            request_idempotency_key="quality-service-key",
+        )
+        quality_service = DefaultTrialApplicationService()
+
+        async with sessionmaker() as session:
+            created = await quality_service.create_quality_report(session, request, quality_actor)
+            before_get = await quality_service.get_quality_report(
+                session, created.report_id, quality_actor
+            )
+            before_comparison = await quality_service.get_quality_comparison(
+                session, created.report_id, quality_actor
+            )
+            before_csv = await quality_service.export_quality_report(
+                session, created.report_id, quality_actor
+            )
+            counts_before_replay = await _quality_chain_counts(session)
+            read_model = await session.run_sync(
+                lambda sync_session: load_quality_evaluation_by_instance_hash(
+                    sync_session,
+                    evaluation_instance_hash=created.report_id,
+                )
+            )
+            status_rows = [
+                payload for payload in read_model.metrics if "status_evidence" in payload
+            ]
+            assert len(status_rows) == 30
+            assert created.model_dump(mode="json") == before_get.model_dump(mode="json")
+            assert before_comparison.report_id == created.report_id
+            assert before_csv.filename == f"{created.report_id}.csv"
+
+            await session.execute(
+                text(
+                    "UPDATE farm_season_variety_plan "
+                    "SET planted_area_mu = 999.000000, row_hash = repeat('f', 64) "
+                    "WHERE id = 3201"
+                )
+            )
+            await session.execute(
+                text(
+                    "UPDATE core_forecast_marketable_policy "
+                    "SET status = 'RETIRED' WHERE public_policy_hash = repeat('a', 64)"
+                )
+            )
+            stable_get = await quality_service.get_quality_report(
+                session, created.report_id, quality_actor
+            )
+            stable_comparison = await quality_service.get_quality_comparison(
+                session, created.report_id, quality_actor
+            )
+            stable_csv = await quality_service.export_quality_report(
+                session, created.report_id, quality_actor
+            )
+            assert stable_get.model_dump(mode="json") == before_get.model_dump(mode="json")
+            assert stable_comparison.model_dump(mode="json") == before_comparison.model_dump(
+                mode="json"
+            )
+            assert stable_csv.content == before_csv.content
+
+            replay = await quality_service.create_quality_report(session, request, quality_actor)
+            after_get = await quality_service.get_quality_report(
+                session, created.report_id, quality_actor
+            )
+            after_comparison = await quality_service.get_quality_comparison(
+                session, created.report_id, quality_actor
+            )
+            after_csv = await quality_service.export_quality_report(
+                session, created.report_id, quality_actor
+            )
+            assert replay.model_dump(mode="json") == created.model_dump(mode="json")
+            assert after_get.model_dump(mode="json") == before_get.model_dump(mode="json")
+            assert after_comparison.model_dump(mode="json") == before_comparison.model_dump(
+                mode="json"
+            )
+            assert after_csv.content == before_csv.content
+            assert await _quality_chain_counts(session) == counts_before_replay
+
+            for changed_request in (
+                request.model_copy(update={"actual_harvest_import_id": "other-import"}),
+                request.model_copy(
+                    update={"label_observation_cutoff_at": datetime(2026, 3, 2, tzinfo=UTC)}
+                ),
+                request.model_copy(update={"forecast_run_id": "e" * 64}),
+            ):
+                with pytest.raises(TrialApiError) as conflict:
+                    await quality_service.create_quality_report(
+                        session, changed_request, quality_actor
+                    )
+                assert conflict.value.code is TrialApiErrorCode.CONFLICTING_REPLAY
+                assert conflict.value.status_code == 409
+                assert conflict.value.retryable is False
+                assert await _quality_chain_counts(session) == counts_before_replay
+
+            wrong_owner = quality_actor.model_copy(update={"identity": "actor:quality-wrong-owner"})
+            for operation in (
+                lambda: quality_service.get_quality_report(session, created.report_id, wrong_owner),
+                lambda: quality_service.get_quality_comparison(
+                    session, created.report_id, wrong_owner
+                ),
+                lambda: quality_service.export_quality_report(
+                    session, created.report_id, wrong_owner
+                ),
+            ):
+                with pytest.raises(TrialApiError) as caught:
+                    await operation()
+                assert caught.value.code is TrialApiErrorCode.RESOURCE_NOT_FOUND
+                assert caught.value.status_code == 404
     finally:
         await engine.dispose()
         await _drop_temporary_database(db_name)
