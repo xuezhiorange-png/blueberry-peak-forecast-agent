@@ -650,7 +650,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0026_s5_round_a2_policy_and_trial_resource_binding"
+                "0027_s5_a2_forecast_evidence_persistence"
             )
             nullable_rows = await conn.fetch(
                 """
@@ -713,7 +713,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0026_s5_round_a2_policy_and_trial_resource_binding"
+                "0027_s5_a2_forecast_evidence_persistence"
             )
         finally:
             await conn.close()
@@ -2307,7 +2307,7 @@ async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert (
                 await conn.fetchval("SELECT version_num FROM alembic_version")
-                == "0026_s5_round_a2_policy_and_trial_resource_binding"
+                == "0027_s5_a2_forecast_evidence_persistence"
             )
             columns = await conn.fetch(
                 "SELECT column_name FROM information_schema.columns "
@@ -2403,7 +2403,7 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert (
                 await conn.fetchval("SELECT version_num FROM alembic_version")
-                == "0026_s5_round_a2_policy_and_trial_resource_binding"
+                == "0027_s5_a2_forecast_evidence_persistence"
             )
             assert (
                 await conn.fetchval(
