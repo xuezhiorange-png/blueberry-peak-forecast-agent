@@ -13,6 +13,22 @@ from backend.app.actual_harvest_import.api_errors import (
 from backend.app.actual_harvest_import.api_policy import API_POLICY
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 
+_KNOWN_PERMISSIONS = frozenset(
+    {
+        "may_create",
+        "may_append",
+        "may_preview",
+        "may_seal",
+        "may_cancel",
+        "may_validate",
+        "may_commit",
+        "may_read_forecast_authority",
+        "may_create_forecast",
+        "may_read_forecast",
+        "may_export_forecast",
+    }
+)
+
 
 class ActualHarvestActorContext(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -27,6 +43,10 @@ class ActualHarvestActorContext(BaseModel):
     may_cancel: bool = False
     may_validate: bool = False
     may_commit: bool = False  # v0.2-S1
+    may_read_forecast_authority: bool = False
+    may_create_forecast: bool = False
+    may_read_forecast: bool = False
+    may_export_forecast: bool = False
 
 
 async def get_actual_harvest_actor() -> ActualHarvestActorContext:
@@ -36,22 +56,13 @@ async def get_actual_harvest_actor() -> ActualHarvestActorContext:
     source_systems = _csv_env("TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS")
     channels = _csv_env("TRIAL_ACTOR_ALLOWED_CHANNELS")
     permissions = _csv_env("TRIAL_ACTOR_PERMISSIONS")
-    known_permissions = {
-        "may_create",
-        "may_append",
-        "may_preview",
-        "may_seal",
-        "may_cancel",
-        "may_validate",
-        "may_commit",
-    }
     if (
         not identity
         or not source_systems
         or not channels
         or not channels.issubset({item.value for item in ActualHarvestImportChannel})
         or not permissions
-        or not permissions.issubset(known_permissions)
+        or not permissions.issubset(_KNOWN_PERMISSIONS)
     ):
         raise ActualHarvestApiError(
             ActualHarvestApiErrorCode.ACTUAL_HARVEST_AUTHORIZATION_UNAVAILABLE,
@@ -63,7 +74,7 @@ async def get_actual_harvest_actor() -> ActualHarvestActorContext:
             identity=identity,
             allowed_source_systems=frozenset(source_systems),
             allowed_channels=frozenset(ActualHarvestImportChannel(item) for item in channels),
-            **{permission: permission in permissions for permission in known_permissions},
+            **{permission: permission in permissions for permission in _KNOWN_PERMISSIONS},
         )
     except (TypeError, ValueError) as exc:
         raise ActualHarvestApiError(
@@ -108,7 +119,20 @@ def require_actor_scope(
             "actor is outside the requested source scope",
             status_code=403,
         )
-    if not getattr(actor, permission):
+    permission_values = {
+        "may_create": actor.may_create,
+        "may_append": actor.may_append,
+        "may_preview": actor.may_preview,
+        "may_seal": actor.may_seal,
+        "may_cancel": actor.may_cancel,
+        "may_validate": actor.may_validate,
+        "may_commit": actor.may_commit,
+        "may_read_forecast_authority": actor.may_read_forecast_authority,
+        "may_create_forecast": actor.may_create_forecast,
+        "may_read_forecast": actor.may_read_forecast,
+        "may_export_forecast": actor.may_export_forecast,
+    }
+    if permission not in _KNOWN_PERMISSIONS or not permission_values[permission]:
         raise ActualHarvestApiError(
             ActualHarvestApiErrorCode.ACTUAL_HARVEST_SCOPE_FORBIDDEN,
             "actor is not authorized for this operation",

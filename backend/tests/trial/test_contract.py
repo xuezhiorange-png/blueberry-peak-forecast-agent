@@ -11,6 +11,7 @@ from backend.app.trial import (
     TrialForecastCreateRequest,
     TrialForecastDailyCurveResponse,
     TrialForecastDailyRow,
+    TrialForecastInputAuthorityResponse,
     TrialQualityReportCreateRequest,
     serialize_csv,
 )
@@ -90,21 +91,81 @@ def test_page_dto_extra_fields_are_forbidden() -> None:
     with pytest.raises(ValidationError):
         TrialForecastCreateRequest.model_validate(
             {
+                "farm_business_key": "farm",
+                "subfarm_business_key_or_null": "farm/subfarm",
+                "variety_business_key": "variety",
                 "season_business_key": "season",
-                "farm_business_keys": ["farm"],
-                "subfarm_business_keys": ["subfarm"],
-                "variety_business_keys": ["variety"],
-                "requested_horizons_days": [7],
-                "forecast_quantiles": ["P50"],
+                "destination_factory_business_key": "factory",
                 "forecast_cutoff_at": "2026-07-29T08:00:00Z",
-                "label_observation_cutoff_at_or_null": None,
-                "request_idempotency_key": "key",
-                "model_identity": "model",
-                "parameter_version": "parameter",
-                "policy_versions": {"forecast": "v1"},
+                "forecast_input_authority_hash": "a" * 64,
+                "plan_row_hash": "b" * 64,
+                "planting_area_mu": "10.000000",
+                "flowering_date_or_null": None,
+                "maturity_stage_or_null": None,
+                "already_picked_quantity_kg_or_null": None,
                 "database_id": 1,
             }
         )
+
+
+def test_forecast_create_dto_exposes_only_public_a2f_fields() -> None:
+    request = TrialForecastCreateRequest.model_validate(
+        {
+            "farm_business_key": " farm ",
+            "subfarm_business_key_or_null": "farm/subfarm",
+            "variety_business_key": "variety",
+            "season_business_key": "season",
+            "destination_factory_business_key": "factory",
+            "forecast_cutoff_at": "2026-07-29T08:00:00Z",
+            "forecast_input_authority_hash": "a" * 64,
+            "plan_row_hash": "b" * 64,
+            "planting_area_mu": "10.000000",
+            "flowering_date_or_null": None,
+            "maturity_stage_or_null": None,
+            "already_picked_quantity_kg_or_null": None,
+        }
+    )
+    assert set(request.model_dump()) == {
+        "farm_business_key",
+        "subfarm_business_key_or_null",
+        "variety_business_key",
+        "season_business_key",
+        "destination_factory_business_key",
+        "forecast_cutoff_at",
+        "forecast_input_authority_hash",
+        "plan_row_hash",
+        "planting_area_mu",
+        "flowering_date_or_null",
+        "maturity_stage_or_null",
+        "already_picked_quantity_kg_or_null",
+    }
+    assert request.farm_business_key == "farm"
+    assert request.planting_area_mu == Decimal("10.000000")
+
+
+def test_forecast_authority_dto_contains_no_internal_ids() -> None:
+    response = TrialForecastInputAuthorityResponse.model_validate(
+        {
+            "forecast_input_authority_hash": "a" * 64,
+            "authority_available_at": "2026-07-29T08:00:00Z",
+            "items": [
+                {
+                    "farm_business_key": "farm",
+                    "subfarm_business_key_or_null": "farm/subfarm",
+                    "season_business_key": "season",
+                    "variety_business_key": "variety",
+                    "destination_factory_business_key": "factory",
+                    "plan_version": "1",
+                    "plan_row_hash": "b" * 64,
+                    "planting_area_mu": "10.000000",
+                }
+            ],
+        }
+    )
+    dumped = response.model_dump(mode="json")
+    assert "farm_id" not in str(dumped)
+    assert "factory_id" not in str(dumped)
+    assert "season_id" not in str(dumped)
 
 
 def test_native_float_is_not_accepted_for_canonical_forecast_quantity() -> None:
