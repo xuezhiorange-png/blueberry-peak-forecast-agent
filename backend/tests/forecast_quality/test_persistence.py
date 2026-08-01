@@ -984,6 +984,7 @@ async def _seed_quality_service_batch(
             await session.flush()
             for record in records:
                 record.batch_id = batch.id
+                record.external_batch_id = batch.external_batch_id
                 session.add(record)
             await session.flush()
             validation_run_id = await _seed_validation_run(
