@@ -346,6 +346,7 @@ async def _persist(
     baseline_records: tuple[BaselinePersistenceRecord, ...] | None = None,
     manifest_payload: dict[str, object] | None = None,
     comparison_contract_enabled: bool = False,
+    request_identity_payload: dict[str, object] | None = None,
 ) -> PersistedQualityEvaluation:
     return await session.run_sync(
         lambda sync_session: persist_quality_evaluation(
@@ -357,6 +358,7 @@ async def _persist(
             comparison_records=comparison_records,
             manifest_payload=manifest_payload or {},
             comparison_contract_enabled=comparison_contract_enabled,
+            request_identity_payload=request_identity_payload,
         )
     )
 

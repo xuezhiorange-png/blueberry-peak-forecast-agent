@@ -6,6 +6,9 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
+from backend.app.forecast_quality.enums import FrozenVersion
+from backend.app.forecast_quality.persistence import _validate_evaluation_input
+from backend.app.forecast_quality.schemas import S3EvaluationInput
 from backend.app.trial import (
     TrialActualHarvestImportCreateRequest,
     TrialForecastCreateRequest,
@@ -186,15 +189,76 @@ def test_timezone_aware_timestamps_are_required() -> None:
             forecast_cutoff_at=datetime(2026, 7, 29),
             rows=(),
         )
+
+
+def test_quality_request_freezes_public_fields_and_exact_horizons() -> None:
+    payload = {
+        "forecast_run_id": "a" * 64,
+        "actual_harvest_import_id": "import-1",
+        "forecast_cutoff_at": datetime(2026, 7, 29, tzinfo=UTC),
+        "label_observation_cutoff_at": datetime(2026, 7, 29, tzinfo=UTC),
+        "requested_horizons_days": (7, 14, 21),
+        "request_idempotency_key": "quality-key",
+    }
+    request = TrialQualityReportCreateRequest(**payload)
+    assert set(request.model_dump()) == set(payload)
+    for forbidden in (
+        "actual_label_snapshot_identity",
+        "forecast_horizon_days",
+        "quality_policy_version",
+        "baseline_policy_version",
+        "database_id",
+    ):
+        with pytest.raises(ValidationError):
+            TrialQualityReportCreateRequest(**{**payload, forbidden: "forbidden"})
+    for horizons in ((7, 14), (7, 14, 21, 28), (7, 7, 14), (7.0, 14, 21)):
+        with pytest.raises(ValidationError):
+            TrialQualityReportCreateRequest(**{**payload, "requested_horizons_days": horizons})
+    with pytest.raises(ValidationError):
+        TrialQualityReportCreateRequest(**{**payload, "forecast_run_id": "A" * 64})
+
+
+def test_quality_request_identity_is_persisted_for_replay_contract() -> None:
+    evaluation_input = S3EvaluationInput(
+        rows=(),
+        s2_run_identity="b" * 64,
+        s2_manifest_identity="c" * 64,
+        s2_binding_row_set_hash="d" * 64,
+        metric_policy_version=FrozenVersion.METRIC_INPUT_MASK_V1,
+        baseline_policy_version=FrozenVersion.NAIVE_BASELINE_POLICY_V1,
+    )
+    identity = {
+        "actor_identity": "quality-actor",
+        "request_idempotency_key": "key-1",
+        "canonical_request": {"forecast_run_id": "a" * 64},
+    }
+    same = _validate_evaluation_input(
+        evaluation_input,
+        request_identity_payload=identity,
+    )
+    replay = _validate_evaluation_input(
+        evaluation_input,
+        request_identity_payload=identity,
+    )
+    conflict = _validate_evaluation_input(
+        evaluation_input,
+        request_identity_payload={
+            **identity,
+            "canonical_request": {"forecast_run_id": "e" * 64},
+        },
+    )
+    assert same[1] == replay[1]
+    assert same[2] == replay[2]
+    assert same[1] == conflict[1]
+    assert same[2] != conflict[2]
+    assert same[0]["trial_request_identity"] == identity
     with pytest.raises(ValidationError):
         TrialQualityReportCreateRequest(
-            forecast_run_id="run",
-            actual_label_snapshot_identity="snapshot",
+            forecast_run_id="a" * 64,
+            actual_harvest_import_id="import-1",
             forecast_cutoff_at=datetime(2026, 7, 29, tzinfo=UTC),
             label_observation_cutoff_at=datetime(2026, 7, 29),
-            forecast_horizon_days=7,
-            quality_policy_version="quality-v1",
-            baseline_policy_version="baseline-v1",
+            requested_horizons_days=(7, 14, 21),
             request_idempotency_key="key",
         )
 
