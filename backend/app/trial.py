@@ -16,7 +16,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Any, Literal, Protocol
+from typing import Annotated, Any, Literal, Protocol, cast
 
 from fastapi import Depends
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator
@@ -107,6 +107,7 @@ from backend.app.forecast_quality.enums import (
     SupportedQuantile,
 )
 from backend.app.forecast_quality.persistence import (
+    ROUND_C_PERSISTENCE_SCHEMA_VERSION,
     BaselinePersistenceRecord,
     ForecastQualityConflictError,
     ForecastQualityContractError,
@@ -114,14 +115,19 @@ from backend.app.forecast_quality.persistence import (
     ForecastQualityPersistenceError,
     load_quality_evaluation_by_instance_hash,
     persist_quality_evaluation,
+    resolve_trial_quality_request_replay,
 )
 from backend.app.forecast_quality.schemas import (
     BaselineRequest,
     BaselineSourceSnapshot,
     BreakdownSpec,
     DailyMetricResult,
+    QualityStatusEvidenceCell,
     S3BindingRow,
     S3EvaluationInput,
+)
+from backend.app.forecast_quality.status_evidence import (
+    build_frozen_quality_status_evidence,
 )
 from backend.app.harvest_state.persistence import load_harvest_state_output_by_id
 from backend.app.models.core_forecast import (
@@ -571,6 +577,8 @@ class TrialQualityPeakMetric(_FrozenModel):
     window_start_date_or_null: date | None
     window_end_date_or_null: date | None
     reason_codes: tuple[StrictStr, ...] = ()
+    quantile: Literal["P50", "P80", "P90"] = "P50"
+    forecast_horizon_days: StrictInt = 7
 
     @field_validator("metric_value_or_null", mode="before")
     @classmethod
@@ -583,10 +591,11 @@ class TrialQualityPeakMetric(_FrozenModel):
 class TrialQualityCoverageMetric(_FrozenModel):
     quantile: Literal["P80", "P90"]
     metric_status: StrictStr
-    covered_count: StrictInt
+    covered_count_or_null: StrictInt | None = None
     total_count: StrictInt
     coverage_ratio_or_null: Decimal | None
     reason_codes: tuple[StrictStr, ...] = ()
+    forecast_horizon_days: StrictInt = 7
 
     @field_validator("coverage_ratio_or_null", mode="before")
     @classmethod
@@ -603,6 +612,8 @@ class TrialQualityIntervalMetric(_FrozenModel):
     upper_bound_value_or_null: Decimal | None
     metric_value_or_null: Decimal | None
     reason_codes: tuple[StrictStr, ...] = ()
+    quantile: Literal["P80", "P90"] = "P80"
+    forecast_horizon_days: StrictInt = 7
 
     @field_validator(
         "lower_bound_value_or_null",
@@ -617,14 +628,48 @@ class TrialQualityIntervalMetric(_FrozenModel):
         return value
 
 
+class TrialQualityBreakdownIdentity(_FrozenModel):
+    forecast_horizon_days: Literal[7, 14, 21]
+    farm_business_key: StrictStr
+    subfarm_business_key: StrictStr
+    variety_business_key: StrictStr
+    season_business_key: StrictStr
+    model_identity: StrictStr
+
+
+class TrialQualityMetricValues(_FrozenModel):
+    daily_mae: Decimal | None = None
+    daily_wape: Decimal | None = None
+    daily_smape: Decimal | None = None
+    daily_mape: Decimal | None = None
+    daily_bias_kg: Decimal | None = None
+    daily_relative_bias: Decimal | None = None
+    daily_absolute_error_sum_kg: Decimal | None = None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityRowCounts(_FrozenModel):
+    total: StrictInt = 0
+    comparable: StrictInt = 0
+    covered: StrictInt = 0
+    excluded: StrictInt = 0
+    not_computable: StrictInt = 0
+
+
 class TrialQualityBreakdown(_FrozenModel):
-    breakdown_identity: Mapping[str, object]
+    breakdown_identity: TrialQualityBreakdownIdentity
     metric_status: StrictStr
     coverage_ratio_or_null: Decimal | None
     comparable_row_count: StrictInt
     excluded_row_count: StrictInt
     not_computable_row_count: StrictInt
-    metric_values: Mapping[str, Decimal | None]
+    metric_values: TrialQualityMetricValues
     reason_codes: tuple[StrictStr, ...] = ()
 
     @field_validator("coverage_ratio_or_null", mode="before")
@@ -741,8 +786,8 @@ class TrialQualityReportResponse(_FrozenModel):
     naive_baseline_results: tuple[TrialQualityBaselineResult, ...]
     computability_status: StrictStr
     reason_codes: tuple[StrictStr, ...]
-    coverage_counts: Mapping[str, StrictInt]
-    excluded_row_counts: Mapping[str, StrictInt]
+    coverage_counts: TrialQualityRowCounts
+    excluded_row_counts: TrialQualityRowCounts
 
     @field_validator("forecast_cutoff_at", "label_observation_cutoff_at")
     @classmethod
@@ -762,9 +807,12 @@ class TrialQualityHorizonMetrics(_FrozenModel):
     p80_coverage: TrialQualityCoverageMetric
     p90_coverage: TrialQualityCoverageMetric
     interval_metric: TrialQualityIntervalMetric
-    coverage_counts: Mapping[str, StrictInt]
-    excluded_row_counts: Mapping[str, StrictInt]
+    coverage_counts: TrialQualityRowCounts
+    excluded_row_counts: TrialQualityRowCounts
     reason_codes: tuple[StrictStr, ...] = ()
+    single_day_peaks: tuple[TrialQualityPeakMetric, ...] = ()
+    sustained_seven_day_peaks: tuple[TrialQualityPeakMetric, ...] = ()
+    interval_metrics: tuple[TrialQualityIntervalMetric, ...] = ()
 
 
 TrialQualityReportResponse.model_rebuild()
@@ -1356,8 +1404,22 @@ class _QualityReadContext:
 
 
 def _require_quality_permission(actor: ActualHarvestActorContext, permission: str) -> None:
-    if not actor.identity or not getattr(actor, permission, False):
+    if (
+        not actor.identity.strip()
+        or not actor.allowed_source_systems
+        or not all(item.strip() for item in actor.allowed_source_systems)
+        or ActualHarvestImportChannel.API not in actor.allowed_channels
+    ):
         raise _resource_not_found()
+    try:
+        require_actor_scope(
+            actor,
+            source_system=sorted(actor.allowed_source_systems)[0],
+            channel=ActualHarvestImportChannel.API,
+            permission=permission,
+        )
+    except ActualHarvestApiError as error:
+        raise _resource_not_found() from error
 
 
 def _quality_error(
@@ -1448,6 +1510,7 @@ def _quality_request_identity(
     server_owned_evidence: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     identity: dict[str, object] = {
+        "schema_version": ROUND_C_PERSISTENCE_SCHEMA_VERSION,
         "actor_identity": actor_identity,
         "request_idempotency_key": request.request_idempotency_key,
         "canonical_request": {
@@ -1478,8 +1541,11 @@ async def _create_quality_label_snapshot(
         canonical_json_dumps(
             {
                 "actor_identity": actor.identity,
-                "quality_key": request.request_idempotency_key,
-                "forecast_run_id": request.forecast_run_id,
+                "request_idempotency_key": request.request_idempotency_key,
+                "canonical_request": _quality_request_identity(
+                    request,
+                    actor_identity=actor.identity,
+                )["canonical_request"],
             }
         ).encode("utf-8")
     ).hexdigest()
@@ -1916,6 +1982,52 @@ async def _create_quality_report(
     clock: Clock,
 ) -> TrialQualityReportResponse:
     del clock
+    request_identity = _quality_request_identity(request, actor_identity=actor.identity)
+    try:
+        replay = await session.run_sync(
+            lambda sync_session: resolve_trial_quality_request_replay(
+                sync_session,
+                schema_version=ROUND_C_PERSISTENCE_SCHEMA_VERSION,
+                actor_identity=actor.identity,
+                request_idempotency_key=request.request_idempotency_key,
+                canonical_request=cast(Mapping[str, object], request_identity["canonical_request"]),
+            )
+        )
+    except ForecastQualityConflictError as error:
+        raise TrialApiError(
+            TrialApiErrorCode.CONFLICTING_REPLAY,
+            status_code=409,
+            message="Request conflicts with an existing replay.",
+        ) from error
+    except (ForecastQualityPartialResultError, ForecastQualityContractError) as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    except ForecastQualityPersistenceError as error:
+        raise _quality_error(
+            TrialApiErrorCode.QUALITY_PERSISTENCE_UNAVAILABLE,
+            status_code=503,
+            retryable=True,
+        ) from error
+    if replay is not None:
+        try:
+            binding = await authorize_trial_resource(
+                session,
+                resource_kind=TrialResourceKind.QUALITY_REPORT,
+                public_resource_id=replay.evaluation_instance_hash,
+                owner_identity=actor.identity,
+            )
+        except TrialResourceNotFoundError as error:
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+        if (
+            binding.parent_forecast_public_id_or_null != request.forecast_run_id
+            or binding.parent_import_id_or_null != request.actual_harvest_import_id
+        ):
+            raise TrialApiError(
+                TrialApiErrorCode.CONFLICTING_REPLAY,
+                status_code=409,
+                message="Request conflicts with an existing replay.",
+            )
+        read_model = await _load_quality_read_model(session, replay.evaluation_instance_hash, actor)
+        return await _project_quality_report(session, read_model, actor)
     evidence, persisted, import_batch = await _load_quality_parent_forecast(
         session,
         request=request,
@@ -1960,6 +2072,15 @@ async def _create_quality_report(
             s2=s2,
             snapshot=snapshot,
         )
+        status_evidence: tuple[QualityStatusEvidenceCell, ...] = (
+            build_frozen_quality_status_evidence(
+                requested_horizons_days=request.requested_horizons_days,
+                rows=evaluation_input.rows,
+                source_s2_run_identity=evaluation_input.s2_run_identity,
+                source_s2_manifest_identity=evaluation_input.s2_manifest_identity,
+                source_s2_binding_row_set_hash=evaluation_input.s2_binding_row_set_hash,
+            )
+        )
         request_identity = _quality_request_identity(
             request,
             actor_identity=actor.identity,
@@ -1975,6 +2096,7 @@ async def _create_quality_report(
                 sync_session,
                 evaluation_input=evaluation_input,
                 metric_results=metric_results,
+                status_evidence=status_evidence,
                 breakdown_results=breakdown_results,
                 baseline_records=baseline_records,
                 comparison_records=comparison_records,
@@ -2165,34 +2287,125 @@ def _quality_overlay_rows(
     return tuple(output)
 
 
-def _quality_coverage(
-    overlay: Sequence[TrialQualityDailyOverlayRow],
+def _quality_status_payload(
+    metric_payloads: Sequence[Mapping[str, object]],
     *,
+    metric_name: str,
+    horizon: int,
+    quantile: str,
+) -> Mapping[str, object]:
+    matches = []
+    for payload in metric_payloads:
+        status = payload.get("status_evidence")
+        if not isinstance(status, Mapping):
+            continue
+        if (
+            status.get("metric_name") == metric_name
+            and status.get("forecast_horizon_days") == horizon
+            and status.get("forecast_quantile") == quantile
+        ):
+            matches.append(status)
+    if len(matches) != 1:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    return matches[0]
+
+
+def _quality_status_reason(payload: Mapping[str, object]) -> tuple[str, ...]:
+    reason = payload.get("reason_code")
+    return () if reason in (None, "") else (str(reason),)
+
+
+def _quality_status_coverage(
+    metric_payloads: Sequence[Mapping[str, object]],
+    *,
+    horizon: int,
     quantile: Literal["P80", "P90"],
 ) -> TrialQualityCoverageMetric:
-    total = len(overlay)
-    covered = sum(item.coverage_state == "AVAILABLE" for item in overlay)
-    ratio = (
-        None if total == 0 else (Decimal(covered) / Decimal(total)).quantize(Decimal("0.000001"))
+    payload = _quality_status_payload(
+        metric_payloads,
+        metric_name=f"{quantile.lower()}_upper_coverage",
+        horizon=horizon,
+        quantile=quantile,
     )
+    candidate_count = payload.get("candidate_row_count_or_null")
+    if (
+        not isinstance(candidate_count, int)
+        or isinstance(candidate_count, bool)
+        or candidate_count < 0
+    ):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
     return TrialQualityCoverageMetric(
         quantile=quantile,
-        metric_status="COMPUTED" if total else "NOT_COMPUTABLE",
-        covered_count=covered,
-        total_count=total,
-        coverage_ratio_or_null=ratio,
-        reason_codes=() if total else ("NO_S2_BINDING_ROWS",),
+        forecast_horizon_days=horizon,
+        metric_status=str(payload.get("metric_status", "")),
+        covered_count_or_null=None,
+        total_count=candidate_count,
+        coverage_ratio_or_null=None,
+        reason_codes=_quality_status_reason(payload),
     )
 
 
-def _quality_unavailable_peak() -> TrialQualityPeakMetric:
+def _quality_status_peak(
+    metric_payloads: Sequence[Mapping[str, object]],
+    *,
+    metric_name: str,
+    horizon: int,
+    quantile: Literal["P50", "P80", "P90"],
+) -> TrialQualityPeakMetric:
+    payload = _quality_status_payload(
+        metric_payloads,
+        metric_name=metric_name,
+        horizon=horizon,
+        quantile=quantile,
+    )
     return TrialQualityPeakMetric(
-        metric_status="NOT_COMPUTABLE",
-        metric_value_or_null=None,
-        business_date_or_null=None,
-        window_start_date_or_null=None,
-        window_end_date_or_null=None,
-        reason_codes=("QUALITY_PEAK_EVIDENCE_NOT_PERSISTED",),
+        quantile=quantile,
+        forecast_horizon_days=horizon,
+        metric_status=str(payload.get("metric_status", "")),
+        metric_value_or_null=_quality_decimal(payload.get("metric_value")),
+        business_date_or_null=(
+            None
+            if payload.get("business_date_or_null") is None
+            else date.fromisoformat(str(payload["business_date_or_null"]))
+        ),
+        window_start_date_or_null=(
+            None
+            if payload.get("window_start_date_or_null") is None
+            else date.fromisoformat(str(payload["window_start_date_or_null"]))
+        ),
+        window_end_date_or_null=(
+            None
+            if payload.get("window_end_date_or_null") is None
+            else date.fromisoformat(str(payload["window_end_date_or_null"]))
+        ),
+        reason_codes=_quality_status_reason(payload),
+    )
+
+
+def _quality_status_interval(
+    metric_payloads: Sequence[Mapping[str, object]],
+    *,
+    horizon: int,
+    quantile: Literal["P80", "P90"],
+) -> TrialQualityIntervalMetric:
+    payload = _quality_status_payload(
+        metric_payloads,
+        metric_name="prediction_interval",
+        horizon=horizon,
+        quantile=quantile,
+    )
+    lower_available = payload.get("lower_bound_available_or_null")
+    if not isinstance(lower_available, bool):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    return TrialQualityIntervalMetric(
+        quantile=quantile,
+        forecast_horizon_days=horizon,
+        metric_status=str(payload.get("metric_status", "")),
+        lower_bound_available=lower_available,
+        lower_bound_value_or_null=_quality_decimal(payload.get("lower_bound_value_or_null")),
+        upper_bound_value_or_null=_quality_decimal(payload.get("upper_bound_value_or_null")),
+        metric_value_or_null=_quality_decimal(payload.get("metric_value")),
+        reason_codes=_quality_status_reason(payload),
     )
 
 
@@ -2234,47 +2447,68 @@ async def _project_quality_report(
         )
         if cumulative.metric_name != "cumulative_error":
             cumulative = cumulative.model_copy(update={"metric_name": "cumulative_error"})
-        coverage_p80 = _quality_coverage(overlay, quantile="P80")
-        coverage_p90 = _quality_coverage(overlay, quantile="P90")
+        coverage_p80 = _quality_status_coverage(metric_payloads, horizon=horizon, quantile="P80")
+        coverage_p90 = _quality_status_coverage(metric_payloads, horizon=horizon, quantile="P90")
+        single_day_peaks = tuple(
+            _quality_status_peak(
+                metric_payloads,
+                metric_name="single_day_peak",
+                horizon=horizon,
+                quantile=quantile,
+            )
+            for quantile in cast(tuple[Literal["P50", "P80", "P90"], ...], ("P50", "P80", "P90"))
+        )
+        sustained_peaks = tuple(
+            _quality_status_peak(
+                metric_payloads,
+                metric_name="sustained_seven_day_peak",
+                horizon=horizon,
+                quantile=quantile,
+            )
+            for quantile in cast(tuple[Literal["P50", "P80", "P90"], ...], ("P50", "P80", "P90"))
+        )
+        interval_metrics = tuple(
+            _quality_status_interval(metric_payloads, horizon=horizon, quantile=quantile)
+            for quantile in cast(tuple[Literal["P80", "P90"], ...], ("P80", "P90"))
+        )
         overlays.append(
             TrialQualityHorizonMetrics(
                 horizon_days=horizon,
                 daily_overlay=overlay,
                 daily_metrics=tuple(metrics),
                 cumulative_metric=cumulative,
-                single_day_peak=_quality_unavailable_peak(),
-                sustained_seven_day_peak=_quality_unavailable_peak(),
+                single_day_peak=single_day_peaks[0],
+                sustained_seven_day_peak=sustained_peaks[0],
                 p80_coverage=coverage_p80,
                 p90_coverage=coverage_p90,
-                interval_metric=TrialQualityIntervalMetric(
-                    metric_status="NOT_COMPUTABLE",
-                    lower_bound_available=False,
-                    lower_bound_value_or_null=None,
-                    upper_bound_value_or_null=None,
-                    metric_value_or_null=None,
-                    reason_codes=("PREDICTION_INTERVAL_LOWER_BOUND_UNAVAILABLE",),
-                ),
-                coverage_counts={"total": len(overlay), "covered": coverage_p80.covered_count},
+                interval_metric=interval_metrics[0],
+                coverage_counts={
+                    "total": len(overlay),
+                    "covered": sum(item.actual_available for item in overlay),
+                },
                 excluded_row_counts={
+                    "total": len(overlay),
                     "excluded": sum(item.coverage_state == "EXCLUDED" for item in overlay),
                     "not_computable": sum(
                         item.coverage_state == "NOT_COMPUTABLE" for item in overlay
                     ),
                 },
+                single_day_peaks=single_day_peaks,
+                sustained_seven_day_peaks=sustained_peaks,
+                interval_metrics=interval_metrics,
             )
         )
     first_row = s2.rows[0]
+    label_snapshot_identity = server_owned.get("label_snapshot_identity")
+    if not isinstance(label_snapshot_identity, str) or not label_snapshot_identity:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    model_identity = first_row.forecast_authority.model_identity
+    if not isinstance(model_identity, str) or not model_identity.strip():
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
     identity = TrialQualityEvidenceIdentity(
         forecast_run_id=context.parent_forecast_public_id,
         actual_harvest_import_id=context.parent_import_id,
-        actual_label_snapshot_identity=str(
-            server_owned.get("label_snapshot_identity")
-            or (
-                first_row.actual_label.label_snapshot_identity_hash
-                if first_row.actual_label
-                else "0" * 64
-            )
-        ),
+        actual_label_snapshot_identity=label_snapshot_identity,
         s2_run_identity=str(quality.run_payload["s2_run_identity"]),
         s2_manifest_identity=str(quality.run_payload["s2_manifest_identity"]),
         s2_binding_row_set_hash=str(quality.run_payload["s2_binding_row_set_hash"]),
@@ -2290,7 +2524,7 @@ async def _project_quality_report(
         metric_policy_version=str(quality.run_payload["metric_policy_version"]),
         baseline_policy_version=str(quality.run_payload["baseline_policy_version"]),
         comparison_policy_version_or_null=quality.run_payload.get("comparison_policy_version"),
-        model_identity=first_row.forecast_authority.model_identity,
+        model_identity=model_identity,
     )
     top = overlays[0]
     all_reasons = tuple(
@@ -2326,16 +2560,20 @@ async def _project_quality_report(
         interval_metric=top.interval_metric,
         breakdowns=tuple(
             TrialQualityBreakdown(
-                breakdown_identity=dict(payload.get("cell_identity", {})),
+                breakdown_identity=TrialQualityBreakdownIdentity.model_validate(
+                    dict(payload.get("cell_identity", {}))
+                ),
                 metric_status=str(payload.get("metric_status", "NOT_COMPUTABLE")),
                 coverage_ratio_or_null=_quality_decimal(payload.get("coverage_ratio")),
                 comparable_row_count=int(payload.get("s2_comparable_row_count", 0)),
                 excluded_row_count=int(payload.get("s2_excluded_row_count", 0)),
                 not_computable_row_count=int(payload.get("s2_not_computable_row_count", 0)),
-                metric_values={
-                    str(key): _quality_decimal(value)
-                    for key, value in dict(payload.get("metric_values", {})).items()
-                },
+                metric_values=TrialQualityMetricValues.model_validate(
+                    {
+                        str(key): _quality_decimal(value)
+                        for key, value in dict(payload.get("metric_values", {})).items()
+                    }
+                ),
                 reason_codes=(str(payload.get("reason_code", "")),),
             )
             for payload in quality.breakdowns
@@ -2463,27 +2701,28 @@ def _project_quality_csv(report: TrialQualityReportResponse) -> TrialCsvDocument
                     "|".join(sorted(metric.reason_codes)),
                 )
             )
-        for name, peak_metric in (
-            ("single_day_peak", horizon.single_day_peak),
-            ("sustained_seven_day_peak", horizon.sustained_seven_day_peak),
+        for name, peak_metrics in (
+            ("single_day_peak", horizon.single_day_peaks),
+            ("sustained_seven_day_peak", horizon.sustained_seven_day_peaks),
         ):
-            rows.append(
-                (
-                    "PEAK",
-                    horizon.horizon_days,
-                    peak_metric.business_date_or_null,
-                    name,
-                    "",
-                    None,
-                    None,
-                    None,
-                    peak_metric.metric_value_or_null,
-                    None,
-                    None,
-                    None,
-                    "|".join(sorted(peak_metric.reason_codes)),
+            for peak_metric in peak_metrics:
+                rows.append(
+                    (
+                        "PEAK",
+                        horizon.horizon_days,
+                        peak_metric.business_date_or_null,
+                        name,
+                        peak_metric.quantile,
+                        None,
+                        None,
+                        peak_metric.metric_status,
+                        peak_metric.metric_value_or_null,
+                        None,
+                        None,
+                        None,
+                        "|".join(sorted(peak_metric.reason_codes)),
+                    )
                 )
-            )
         for coverage in (horizon.p80_coverage, horizon.p90_coverage):
             rows.append(
                 (
@@ -2496,30 +2735,30 @@ def _project_quality_csv(report: TrialQualityReportResponse) -> TrialCsvDocument
                     None,
                     coverage.metric_status,
                     coverage.coverage_ratio_or_null,
-                    coverage.covered_count,
+                    coverage.covered_count_or_null,
                     coverage.total_count,
                     coverage.metric_status,
                     "|".join(sorted(coverage.reason_codes)),
                 )
             )
-        interval = horizon.interval_metric
-        rows.append(
-            (
-                "INTERVAL",
-                horizon.horizon_days,
-                None,
-                "interval",
-                "",
-                None,
-                None,
-                interval.metric_status,
-                interval.metric_value_or_null,
-                None,
-                None,
-                None,
-                "|".join(sorted(interval.reason_codes)),
+        for interval in horizon.interval_metrics:
+            rows.append(
+                (
+                    "INTERVAL",
+                    horizon.horizon_days,
+                    None,
+                    "prediction_interval",
+                    interval.quantile,
+                    None,
+                    None,
+                    interval.metric_status,
+                    interval.metric_value_or_null,
+                    None,
+                    None,
+                    None,
+                    "|".join(sorted(interval.reason_codes)),
+                )
             )
-        )
     rows.sort(
         key=lambda row: (
             type_order[str(row[0])],
@@ -3748,6 +3987,9 @@ __all__ = [
     "TrialQualityPeakMetric",
     "TrialQualityBaselineResult",
     "TrialQualityBreakdown",
+    "TrialQualityBreakdownIdentity",
+    "TrialQualityMetricValues",
+    "TrialQualityRowCounts",
     "TrialQualityReportCreateRequest",
     "TrialQualityReportResponse",
     "TrialServiceDep",
