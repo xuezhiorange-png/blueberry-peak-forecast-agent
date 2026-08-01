@@ -11,7 +11,7 @@ import hashlib
 import io
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -87,13 +87,16 @@ from backend.app.models.trial import (
     CoreForecastMarketablePolicyEntryModel,
     CoreForecastMarketablePolicyModel,
 )
-from backend.app.repositories.trial_resource_binding import (
-    TrialResourceBindingConflictError,
-    TrialResourceBindingError,
-    TrialResourceKind,
-    TrialResourceNotFoundError,
-    authorize_trial_resource,
-    create_forecast_binding_in_result_boundary,
+from backend.app.repositories.trial_forecast_evidence import (
+    TrialForecastEvidence,
+    TrialForecastEvidenceConflictError,
+    TrialForecastEvidenceError,
+    TrialForecastEvidenceInputError,
+    TrialForecastEvidenceIntegrityError,
+    TrialForecastEvidenceNotFoundError,
+    authorize_and_load_forecast_evidence,
+    compute_trial_business_scope_hash,
+    create_forecast_evidence_and_binding_in_result_boundary,
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
@@ -858,6 +861,12 @@ class DefaultTrialApplicationService:
         actor: ActualHarvestActorContext,
     ) -> TrialForecastSummaryResponse:
         _require_forecast_permission(actor, "may_create_forecast")
+        if request.subfarm_business_key_or_null is None:
+            raise TrialApiError(
+                TrialApiErrorCode.INPUT_NOT_SUPPORTED,
+                status_code=422,
+                message="A concrete subfarm is required for Trial Forecast creation.",
+            )
         if any(
             value is not None
             for value in (
@@ -871,9 +880,9 @@ class DefaultTrialApplicationService:
                 status_code=422,
                 message="The supplied optional forecast input is not supported.",
             )
-        authority = await _resolve_create_authority(session, request)
 
-        async def execute_and_bind() -> TrialForecastSummaryResponse:
+        async def execute_and_persist() -> TrialForecastSummaryResponse:
+            authority = await _resolve_create_authority(session, request)
             execution = await execute_core_forecast_run(
                 session,
                 request=authority.core_request,
@@ -881,28 +890,62 @@ class DefaultTrialApplicationService:
             if execution.status != "COMPLETED" or execution.run is None:
                 raise _map_core_execution_error(execution)
             try:
-                await create_forecast_binding_in_result_boundary(
+                evidence = await create_forecast_evidence_and_binding_in_result_boundary(
                     session,
                     public_forecast_id=execution.run.request_hash,
                     owner_identity=actor.identity,
-                    business_scope_hash=authority.business_scope_hash,
+                    forecast_input_authority_hash=authority.evidence.forecast_input_authority_hash,
+                    authority_available_at=authority.evidence.authority_available_at,
+                    farm_business_key=authority.evidence.scope.farm_business_key,
+                    subfarm_business_key_or_null=(
+                        authority.evidence.scope.subfarm_business_key_or_null
+                    ),
+                    season_business_key=authority.evidence.scope.season_business_key,
+                    variety_business_key=authority.evidence.scope.variety_business_key,
+                    destination_factory_business_key=(
+                        authority.evidence.scope.destination_factory_business_key
+                    ),
+                    plan_version=authority.evidence.plan_version,
+                    plan_row_hash=authority.evidence.plan_row_hash,
+                    planting_area_mu=authority.evidence.planting_area_mu,
                 )
-            except TrialResourceBindingConflictError as error:
+            except TrialForecastEvidenceConflictError as error:
                 raise TrialApiError(
                     TrialApiErrorCode.CONFLICTING_REPLAY,
                     status_code=409,
                     message="Request conflicts with an existing replay.",
                 ) from error
-            except TrialResourceBindingError as error:
+            except TrialForecastEvidenceIntegrityError as error:
+                raise TrialApiError(
+                    TrialApiErrorCode.EVIDENCE_CONFLICT,
+                    status_code=409,
+                    message="Forecast evidence integrity cannot be verified.",
+                ) from error
+            except TrialForecastEvidenceNotFoundError as error:
+                raise TrialApiError(
+                    TrialApiErrorCode.EVIDENCE_CONFLICT,
+                    status_code=409,
+                    message="Forecast evidence is unavailable.",
+                ) from error
+            except TrialForecastEvidenceInputError as error:
+                raise TrialApiError(
+                    TrialApiErrorCode.REQUEST_INVALID,
+                    status_code=422,
+                    message="Forecast evidence input is invalid.",
+                ) from error
+            except TrialForecastEvidenceError as error:
                 raise TrialApiError(
                     TrialApiErrorCode.CONCURRENCY_CONFLICT,
                     status_code=409,
                     message="Concurrent persistence conflict.",
                     retryable=True,
                 ) from error
-            return _project_forecast_summary(execution, authority.evidence)
+            return _project_forecast_summary(
+                execution,
+                _authority_evidence_from_persisted_evidence(evidence, authority.evidence),
+            )
 
-        return await _run_mutation(session, execute_and_bind)
+        return await _run_mutation(session, execute_and_persist)
 
     async def get_forecast(
         self, session: AsyncSession, run_id: str, actor: ActualHarvestActorContext
@@ -1215,24 +1258,17 @@ def _with_scope_hash(
     authority_hash: str,
     authority_available_at: datetime,
 ) -> _ForecastAuthorityEvidence:
-    payload = {
-        "farm_business_key": evidence.scope.farm_business_key,
-        "subfarm_business_key_or_null": evidence.scope.subfarm_business_key_or_null,
-        "season_business_key": evidence.scope.season_business_key,
-        "variety_business_key": evidence.scope.variety_business_key,
-        "destination_factory_business_key": evidence.scope.destination_factory_business_key,
-        "forecast_input_authority_hash": authority_hash,
-        "plan_row_hash": evidence.plan_row_hash,
-    }
-    return evidence.__class__(
-        **{
-            **evidence.__dict__,
-            "forecast_input_authority_hash": authority_hash,
-            "authority_available_at": authority_available_at,
-            "business_scope_hash": hashlib.sha256(
-                canonical_json_dumps(payload).encode("utf-8")
-            ).hexdigest(),
-        }
+    return replace(
+        evidence,
+        forecast_input_authority_hash=authority_hash,
+        authority_available_at=authority_available_at,
+        business_scope_hash=compute_trial_business_scope_hash(
+            farm_business_key=evidence.scope.farm_business_key,
+            subfarm_business_key_or_null=evidence.scope.subfarm_business_key_or_null,
+            season_business_key=evidence.scope.season_business_key,
+            variety_business_key=evidence.scope.variety_business_key,
+            destination_factory_business_key=evidence.scope.destination_factory_business_key,
+        ),
     )
 
 
@@ -1240,6 +1276,12 @@ async def _resolve_create_authority(
     session: AsyncSession,
     request: TrialForecastCreateRequest,
 ) -> _CreateForecastAuthority:
+    if request.subfarm_business_key_or_null is None:
+        raise TrialApiError(
+            TrialApiErrorCode.INPUT_NOT_SUPPORTED,
+            status_code=422,
+            message="A concrete subfarm is required for Trial Forecast creation.",
+        )
     snapshot = await _load_forecast_authority_snapshot(session)
     if (
         request.forecast_input_authority_hash
@@ -1292,8 +1334,6 @@ async def _resolve_create_authority(
     if len(factories) != 1:
         raise _resource_not_found()
     factory = factories[0]
-    if request.subfarm_business_key_or_null is None:
-        raise _resource_not_found()
     subfarm_key = request.subfarm_business_key_or_null
     subfarm_keys = [subfarm_key]
     if subfarm_key.startswith(f"{farm.name}/"):
@@ -1555,23 +1595,26 @@ async def _load_verified_forecast(
     if re.fullmatch(r"[0-9a-f]{64}", run_id) is None:
         raise _resource_not_found()
     try:
-        binding = await authorize_trial_resource(
+        persisted_evidence = await authorize_and_load_forecast_evidence(
             session,
-            resource_kind=TrialResourceKind.FORECAST,
-            public_resource_id=run_id,
+            public_forecast_id=run_id,
             owner_identity=actor.identity,
         )
-    except TrialResourceNotFoundError as error:
+    except TrialForecastEvidenceNotFoundError as error:
         raise _resource_not_found() from error
+    except TrialForecastEvidenceIntegrityError as error:
+        raise _evidence_conflict() from error
+    except TrialForecastEvidenceConflictError as error:
+        raise _evidence_conflict() from error
+    except TrialForecastEvidenceError as error:
+        raise _service_unavailable("forecast evidence persistence") from error
     try:
         persisted = await CoreForecastRunRepository(session).get_run_by_request_hash(run_id)
     except CoreForecastPersistenceIntegrityError as error:
         raise _evidence_conflict() from error
     if persisted is None or persisted.run.request_hash != run_id:
         raise _resource_not_found()
-    evidence = await _resolve_persisted_evidence(session, persisted)
-    if binding.business_scope_hash != evidence.business_scope_hash:
-        raise _evidence_conflict()
+    evidence = _authority_evidence_from_persisted_evidence(persisted_evidence, persisted)
     execution = CoreForecastExecutionResult(
         status="COMPLETED",
         run=persisted.run,
@@ -1580,79 +1623,103 @@ async def _load_verified_forecast(
         reused_existing_run=True,
         blockers=(),
     )
-    return binding, execution, evidence
+    return persisted_evidence, execution, evidence
 
 
-async def _resolve_persisted_evidence(
-    session: AsyncSession,
-    persisted: Any,
+def _authority_evidence_from_persisted_evidence(
+    evidence: TrialForecastEvidence,
+    source: _ForecastAuthorityEvidence | Any,
 ) -> _ForecastAuthorityEvidence:
+    """Project immutable public evidence while preserving already-resolved IDs.
+
+    ``source`` is either the creation-time authority carrying the resolved
+    database scope IDs, or a hydrated Core Forecast run carrying its persisted
+    request identity.  No current master-data or policy rows are consulted.
+    """
+
+    if isinstance(source, _ForecastAuthorityEvidence):
+        if (
+            evidence.business_scope_hash
+            != compute_trial_business_scope_hash(
+                farm_business_key=evidence.farm_business_key,
+                subfarm_business_key_or_null=evidence.subfarm_business_key_or_null,
+                season_business_key=evidence.season_business_key,
+                variety_business_key=evidence.variety_business_key,
+                destination_factory_business_key=evidence.destination_factory_business_key,
+            )
+            or evidence.subfarm_business_key_or_null is None
+        ):
+            raise _evidence_conflict()
+        return replace(
+            source,
+            scope=TrialForecastScope(
+                farm_business_key=evidence.farm_business_key,
+                subfarm_business_key_or_null=evidence.subfarm_business_key_or_null,
+                season_business_key=evidence.season_business_key,
+                variety_business_key=evidence.variety_business_key,
+                destination_factory_business_key=evidence.destination_factory_business_key,
+            ),
+            plan_row_hash=evidence.plan_row_hash,
+            plan_version=evidence.plan_version,
+            planting_area_mu=evidence.planting_area_mu,
+            forecast_input_authority_hash=evidence.forecast_input_authority_hash,
+            authority_available_at=evidence.authority_available_at,
+            business_scope_hash=evidence.business_scope_hash,
+        )
+
+    persisted = source
     request = persisted.request
     run = persisted.run
     identity = request.resolved_identity
-    if identity is None or len(identity.scopes) != 1:
+    core_scopes = request.curve_request.scopes
+    if identity is None or len(identity.scopes) != 1 or len(core_scopes) != 1:
         raise _evidence_conflict()
     scope_identity = identity.scopes[0]
-    farm = await session.get(Farm, request.curve_request.scopes[0].farm_id)
-    subfarm = await session.get(Subfarm, request.curve_request.scopes[0].subfarm_id)
-    variety = await session.get(Variety, request.curve_request.scopes[0].variety_id)
-    season = await session.get(Season, run.forecast_season_id)
-    factory = await session.get(Factory, run.destination_factory_id)
+    core_scope = core_scopes[0]
+    subfarm_key = evidence.subfarm_business_key_or_null
+    if subfarm_key is None:
+        raise _evidence_conflict()
     if (
-        farm is None
-        or subfarm is None
-        or variety is None
-        or season is None
-        or factory is None
-        or not factory.active
-        or factory.code is None
-        or subfarm.farm_id != farm.id
-        or farm.name != scope_identity.farm_business_key
-        or f"{farm.name}/{subfarm.name}" != scope_identity.subfarm_business_key
-        or variety.code != scope_identity.variety_business_key
-        or season.code != identity.season_business_key
-        or factory.code != identity.factory_business_key
+        run.request_hash != evidence.public_forecast_id
+        or identity.season_business_key != evidence.season_business_key
+        or identity.factory_business_key != evidence.destination_factory_business_key
+        or scope_identity.farm_business_key != evidence.farm_business_key
+        or scope_identity.variety_business_key != evidence.variety_business_key
+        or scope_identity.subfarm_business_key
+        not in {subfarm_key, f"{evidence.farm_business_key}/{subfarm_key}"}
+        or run.forecast_season_id != request.curve_request.forecast_season_id
+        or run.forecast_season_code != evidence.season_business_key
+        or run.destination_factory_id != request.curve_request.destination_factory_id
     ):
         raise _evidence_conflict()
-    cutoff = run.forecast_effective_cutoff_at
-    if cutoff is None:
+    if evidence.business_scope_hash != compute_trial_business_scope_hash(
+        farm_business_key=evidence.farm_business_key,
+        subfarm_business_key_or_null=subfarm_key,
+        season_business_key=evidence.season_business_key,
+        variety_business_key=evidence.variety_business_key,
+        destination_factory_business_key=evidence.destination_factory_business_key,
+    ):
         raise _evidence_conflict()
-    plans = tuple(
-        await session.scalars(
-            select(FarmSeasonVarietyPlan).where(
-                FarmSeasonVarietyPlan.farm_id == farm.id,
-                FarmSeasonVarietyPlan.subfarm_id == subfarm.id,
-                FarmSeasonVarietyPlan.season_id == season.id,
-                FarmSeasonVarietyPlan.variety_id == variety.id,
-                FarmSeasonVarietyPlan.available_at <= _aware_datetime(cutoff).date(),
-                FarmSeasonVarietyPlan.effective_from <= run.forecast_start_date,
-                or_(
-                    FarmSeasonVarietyPlan.effective_to.is_(None),
-                    FarmSeasonVarietyPlan.effective_to >= run.forecast_start_date,
-                ),
-            )
-        )
+    return _ForecastAuthorityEvidence(
+        scope=TrialForecastScope(
+            farm_business_key=evidence.farm_business_key,
+            subfarm_business_key_or_null=subfarm_key,
+            season_business_key=evidence.season_business_key,
+            variety_business_key=evidence.variety_business_key,
+            destination_factory_business_key=evidence.destination_factory_business_key,
+        ),
+        farm_id=core_scope.farm_id,
+        subfarm_id=core_scope.subfarm_id,
+        variety_id=core_scope.variety_id,
+        season_id=request.curve_request.forecast_season_id,
+        factory_id=request.curve_request.destination_factory_id,
+        plan_row_hash=evidence.plan_row_hash,
+        plan_version=evidence.plan_version,
+        planting_area_mu=evidence.planting_area_mu,
+        forecast_input_authority_hash=evidence.forecast_input_authority_hash,
+        authority_available_at=evidence.authority_available_at,
+        business_scope_hash=evidence.business_scope_hash,
     )
-    if len(plans) != 1:
-        raise _evidence_conflict()
-    try:
-        snapshot = await _load_forecast_authority_snapshot(session)
-    except TrialApiError as error:
-        if error.code is TrialApiErrorCode.AUTHORITY_UNAVAILABLE:
-            raise _evidence_conflict() from error
-        raise
-    matches = [
-        item
-        for item in snapshot.evidence_by_key.values()
-        if item.farm_id == farm.id
-        and item.subfarm_id == subfarm.id
-        and item.variety_id == variety.id
-        and item.season_id == season.id
-        and item.factory_id == factory.id
-    ]
-    if len(matches) != 1 or matches[0].plan_row_hash != plans[0].row_hash:
-        raise _evidence_conflict()
-    return matches[0]
 
 
 def _project_forecast_summary(
