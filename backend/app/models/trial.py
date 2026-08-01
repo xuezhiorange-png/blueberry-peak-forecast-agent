@@ -6,6 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     CheckConstraint,
     Date,
@@ -17,12 +18,15 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.actual_harvest_import.models import UTCDateTime
 from backend.app.db.base import Base
 
 _BIGINT_VARIANT = BigInteger().with_variant(Integer(), "sqlite")
+_JSON_VARIANT = JSON().with_variant(JSONB(), "postgresql")
+TRIAL_FORECAST_EVIDENCE_SCHEMA_VERSION = "v0.2-trial-forecast-evidence-v1"
 
 
 def _sha256_checks(column: str, name: str) -> tuple[CheckConstraint, CheckConstraint]:
@@ -223,6 +227,95 @@ class TrialResourceBindingModel(Base):
         ),
         nullable=True,
     )
+    created_at: Mapped[datetime] = mapped_column(
+        UTCDateTime(), nullable=False, server_default=func.now()
+    )
+
+
+class TrialForecastEvidenceModel(Base):
+    """Immutable creation-time evidence for one public Core Forecast request."""
+
+    __tablename__ = "trial_forecast_evidence"
+    __table_args__ = (
+        *_sha256_checks("public_forecast_id", "ck_trial_forecast_evidence_public_id"),
+        *_sha256_checks(
+            "forecast_input_authority_hash",
+            "ck_trial_forecast_evidence_authority_hash",
+        ),
+        *_sha256_checks("plan_row_hash", "ck_trial_forecast_evidence_plan_row_hash"),
+        *_sha256_checks("business_scope_hash", "ck_trial_forecast_evidence_scope_hash"),
+        *_sha256_checks(
+            "forecast_evidence_hash",
+            "ck_trial_forecast_evidence_evidence_hash",
+        ),
+        CheckConstraint(
+            f"evidence_schema_version = '{TRIAL_FORECAST_EVIDENCE_SCHEMA_VERSION}'",
+            name="ck_trial_forecast_evidence_schema_version",
+        ),
+        CheckConstraint("id > 0", name="ck_trial_forecast_evidence_id_positive"),
+        _non_empty("farm_business_key", "ck_trial_forecast_evidence_farm_nonempty"),
+        CheckConstraint(
+            "subfarm_business_key_or_null IS NULL OR "
+            "length(trim(subfarm_business_key_or_null)) > 0",
+            name="ck_trial_forecast_evidence_subfarm_nonempty",
+        ),
+        _non_empty("season_business_key", "ck_trial_forecast_evidence_season_nonempty"),
+        _non_empty("variety_business_key", "ck_trial_forecast_evidence_variety_nonempty"),
+        _non_empty(
+            "destination_factory_business_key",
+            "ck_trial_forecast_evidence_factory_nonempty",
+        ),
+        _non_empty("plan_version", "ck_trial_forecast_evidence_plan_version_nonempty"),
+        CheckConstraint(
+            "planting_area_mu >= 0",
+            name="ck_trial_forecast_evidence_planting_area_nonnegative",
+        ),
+        UniqueConstraint(
+            "public_forecast_id",
+            name="uq_trial_forecast_evidence_public_forecast_id",
+        ),
+        UniqueConstraint(
+            "forecast_evidence_hash",
+            name="uq_trial_forecast_evidence_evidence_hash",
+        ),
+        Index(
+            "ix_trial_forecast_evidence_business_scope_hash",
+            "business_scope_hash",
+        ),
+        Index(
+            "ix_trial_forecast_evidence_authority_hash",
+            "forecast_input_authority_hash",
+        ),
+        Index("ix_trial_forecast_evidence_plan_row_hash", "plan_row_hash"),
+    )
+
+    id: Mapped[int] = mapped_column(_BIGINT_VARIANT, primary_key=True, autoincrement=True)
+    evidence_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
+    public_forecast_id: Mapped[str] = mapped_column(
+        Text,
+        ForeignKey(
+            "core_forecast_run.request_hash",
+            name="fk_trial_forecast_evidence_public_forecast",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    forecast_input_authority_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    authority_available_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    farm_business_key: Mapped[str] = mapped_column(Text, nullable=False)
+    subfarm_business_key_or_null: Mapped[str | None] = mapped_column(Text, nullable=True)
+    season_business_key: Mapped[str] = mapped_column(Text, nullable=False)
+    variety_business_key: Mapped[str] = mapped_column(Text, nullable=False)
+    destination_factory_business_key: Mapped[str] = mapped_column(Text, nullable=False)
+    plan_version: Mapped[str] = mapped_column(Text, nullable=False)
+    plan_row_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    planting_area_mu: Mapped[Decimal] = mapped_column(Numeric(24, 6), nullable=False)
+    business_scope_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    canonical_payload: Mapped[dict[str, object]] = mapped_column(
+        _JSON_VARIANT,
+        nullable=False,
+    )
+    forecast_evidence_hash: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         UTCDateTime(), nullable=False, server_default=func.now()
     )
