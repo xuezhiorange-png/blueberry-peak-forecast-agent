@@ -95,6 +95,21 @@ from backend.app.models.harvest_state import (
 )
 from backend.app.models.master_data import Season
 from backend.app.models.trial import TrialResourceBindingModel
+from backend.app.residual_model.canonical import (
+    canonical_payload_hash,
+    prediction_input_signature_hash,
+)
+from backend.app.residual_model.persistence import (
+    _feature_schema_hash,
+    _prediction_hash_from_result,
+    save_residual_prediction_run,
+    save_residual_training_run,
+)
+from backend.app.residual_model.schemas import (
+    ResidualPredictionExecutionResult,
+    ResidualPredictionRow,
+    ResidualTrainingExecutionResult,
+)
 from backend.app.trial import (
     DefaultTrialApplicationService,
     TrialApiError,
@@ -1104,6 +1119,152 @@ async def _repair_task9_fixture_for_quality(
     await session.flush()
 
 
+async def _seed_quality_task10_fixture(
+    session: AsyncSession,
+    *,
+    task9_run_id: int,
+    task9_result_hash: str,
+) -> None:
+    """Persist a real, loader-verifiable structural-only Task 10 authority."""
+
+    training_signature = "3" * 64
+    config_hash = "4" * 64
+    manifest_hash = "5" * 64
+    feature_schema_version = "quality-task10-feature-schema-v1"
+    feature_schema_hash = _feature_schema_hash([])
+    training_input_snapshot = {
+        "config_snapshot": {},
+        "manifest_summary": {
+            "row_count": 0,
+            "included_row_count": 0,
+            "excluded_row_count": 0,
+            "distinct_season_count": 0,
+            "distinct_factory_count": 0,
+            "split_counts": {},
+            "feature_names": [],
+        },
+    }
+    training_result = ResidualTrainingExecutionResult(
+        execution_status="blocked",
+        eligibility_status="ineligible",
+        model_family="quality-task10-fixture",
+        model_version="quality-task10-fixture-v1",
+        feature_schema_version=feature_schema_version,
+        artifact_schema_version="quality-task10-artifact-v1",
+        training_signature=training_signature,
+        config_hash=config_hash,
+        manifest_hash=manifest_hash,
+        sample_count=0,
+        distinct_season_count=0,
+        distinct_factory_count=0,
+        warnings=(),
+        blockers=("FIXTURE_STRUCTURAL_ONLY",),
+        feature_audit_summary={},
+        metrics={"feature_names": [], "validation": {"global": {}}},
+        eligibility_reasons=("FIXTURE_STRUCTURAL_ONLY",),
+        input_snapshot=training_input_snapshot,
+    )
+    training_run = await save_residual_training_run(
+        session,
+        result=training_result,
+        manifest_rows=[],
+    )
+
+    common_snapshot: dict[str, Any] = {
+        "training_signature": training_signature,
+        "feature_schema_version": feature_schema_version,
+        "feature_schema_hash": feature_schema_hash,
+        "projection_version": "quality-task10-projection-v1",
+        "fallback_policy": "artifact_validation_failed",
+        "artifact_hashes": [],
+        "feature_audit_hashes": [],
+        "feature_rows": [],
+        "supplemental_feature_values": [],
+        "feature_analytics_build_run_id": None,
+        "feature_actual_snapshot": None,
+    }
+    prediction_input_signature = prediction_input_signature_hash(
+        model_run_id=training_run.id,
+        training_signature=training_signature,
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        feature_analytics_build_run_id=None,
+        feature_actual_snapshot=None,
+        supplemental_feature_values=[],
+        feature_audit_hashes=[],
+        feature_rows=[],
+        artifact_hashes=[],
+        config_hash=config_hash,
+        feature_schema_version=feature_schema_version,
+        feature_schema_hash=feature_schema_hash,
+        projection_version="quality-task10-projection-v1",
+        fallback_policy_version="artifact_validation_failed",
+    )
+    rows: list[ResidualPredictionRow] = []
+    for horizon in (7, 14, 21):
+        target_date = date(2026, 2, 28) + timedelta(days=horizon)
+        row_payload: dict[str, object] = {
+            "model_run_id": training_run.id,
+            "prediction_run_id": 0,
+            "task9_run_id": task9_run_id,
+            "task9_result_hash": task9_result_hash,
+            "destination_factory_id": 9101,
+            "arrival_local_date": target_date,
+            "forecast_horizon_days": horizon,
+            "structural_p50_kg": Decimal("0.000000"),
+            "structural_p80_kg": Decimal("0.000000"),
+            "structural_p90_kg": Decimal("0.000000"),
+            "raw_residual_p50_kg": Decimal("0.000000"),
+            "raw_residual_p80_kg": Decimal("0.000000"),
+            "raw_residual_p90_kg": Decimal("0.000000"),
+            "corrected_raw_p50_kg": Decimal("0.000000"),
+            "corrected_raw_p80_kg": Decimal("0.000000"),
+            "corrected_raw_p90_kg": Decimal("0.000000"),
+            "corrected_p50_kg": Decimal("0.000000"),
+            "corrected_p80_kg": Decimal("0.000000"),
+            "corrected_p90_kg": Decimal("0.000000"),
+            "nonnegative_projection_applied": False,
+            "quantile_projection_applied": False,
+            "projection_reasons": [],
+            "feature_vector_hash": "6" * 64,
+            "feature_audit_hash": "7" * 64,
+            "mode": "structural_only",
+            "fallback_reason": "artifact_validation_failed",
+        }
+        row_hash = canonical_payload_hash(row_payload)
+        rows.append(
+            ResidualPredictionRow(
+                **row_payload,
+                prediction_hash=row_hash,
+            )
+        )
+    prediction_result = ResidualPredictionExecutionResult(
+        execution_status="completed",
+        mode="structural_only",
+        model_run_id=training_run.id,
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        config_hash=config_hash,
+        prediction_input_signature=prediction_input_signature,
+        prediction_hash="8" * 64,
+        warnings=(),
+        blockers=(),
+        fallback_reason="artifact_validation_failed",
+        rows=tuple(rows),
+        input_snapshot=common_snapshot,
+    )
+    prediction_result = prediction_result.model_copy(
+        update={"prediction_hash": _prediction_hash_from_result(prediction_result)}
+    )
+    await save_residual_prediction_run(
+        session,
+        result=prediction_result,
+        feature_schema_version=feature_schema_version,
+        feature_schema_hash=feature_schema_hash,
+        artifact_hashes=[],
+    )
+
+
 async def _quality_chain_counts(session: AsyncSession) -> tuple[int, ...]:
     tables = (
         "actual_harvest_label_snapshot",
@@ -1308,6 +1469,13 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
             await _repair_task9_fixture_for_quality(session)
             forecast = await forecast_service.create_forecast(
                 session, forecast_request, forecast_actor
+            )
+            task9_run = await session.get(HarvestStateRun, 910001)
+            assert task9_run is not None
+            await _seed_quality_task10_fixture(
+                session,
+                task9_run_id=task9_run.id,
+                task9_result_hash=task9_run.result_hash,
             )
             assert forecast.forecast_scope is not None
             forecast_scope = forecast.forecast_scope
