@@ -1219,6 +1219,8 @@ async def _seed_quality_task10_fixture(
         result=training_result,
         manifest_rows=[],
     )
+    training_run.finished_at = _CUTOFF - timedelta(days=1)
+    await session.flush()
     artifact_hashes = [artifact.metadata.binary_sha256 for artifact in artifacts]
 
     common_snapshot: dict[str, Any] = {
