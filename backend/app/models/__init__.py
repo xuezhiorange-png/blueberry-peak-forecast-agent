@@ -99,6 +99,7 @@ from backend.app.models.task9_authority import (
 from backend.app.models.trial import (
     CoreForecastMarketablePolicyEntryModel,
     CoreForecastMarketablePolicyModel,
+    TrialForecastEvidenceModel,
     TrialResourceBindingModel,
 )
 from backend.app.models.weather import (
@@ -194,6 +195,7 @@ __all__ = [
     "Task9MatureInventoryLossAuthority",
     "Task9RunParameterPackage",
     "Task9WeatherRuleConfigVersion",
+    "TrialForecastEvidenceModel",
     "TrialResourceBindingModel",
     "Season",
     "Subfarm",
