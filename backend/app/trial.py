@@ -168,6 +168,11 @@ from backend.app.residual_model.persistence import (
     load_residual_prediction_run_by_id,
     load_residual_training_run_by_id,
 )
+from backend.app.residual_model.schemas import (
+    ResidualPredictionExecutionResult,
+    ResidualPredictionRow,
+    ResidualTrainingExecutionResult,
+)
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 from backend.app.rolling_backtest.errors import RollingBacktestCanonicalParityError
 from backend.app.rolling_backtest.orchestration import (
@@ -1648,21 +1653,49 @@ async def _build_quality_s2_candidates(
             )
         )
     )
-    prediction_outputs: list[tuple[Any, Any, Any]] = []
-    for prediction_run in prediction_runs:
+    prediction_outputs: list[
+        tuple[
+            ResidualModelPredictionRun,
+            ResidualPredictionExecutionResult,
+            ResidualTrainingExecutionResult,
+            ResidualModelTrainingRun,
+        ]
+    ] = []
+    for persisted_prediction_run in prediction_runs:
+        if (
+            persisted_prediction_run.id <= 0
+            or persisted_prediction_run.task9_run_id != task9_run.id
+            or persisted_prediction_run.execution_status != "completed"
+        ):
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
         output = await load_residual_prediction_run_by_id(
             session,
-            run_id=prediction_run.id,
+            run_id=persisted_prediction_run.id,
         )
         if output is None or output.model_run_id is None:
-            continue
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+        if (
+            output.model_run_id != persisted_prediction_run.training_run_id
+            or output.task9_run_id != persisted_prediction_run.task9_run_id
+            or output.task9_result_hash != persisted_prediction_run.task9_result_hash
+            or output.prediction_hash != persisted_prediction_run.prediction_hash
+        ):
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
         training_output = await load_residual_training_run_by_id(
             session,
             run_id=output.model_run_id,
         )
         training_row = await session.get(ResidualModelTrainingRun, output.model_run_id)
-        if training_output is not None and training_row is not None:
-            prediction_outputs.append((output, training_output, training_row))
+        if training_output is None or training_row is None:
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+        prediction_outputs.append(
+            (
+                persisted_prediction_run,
+                output,
+                training_output,
+                training_row,
+            )
+        )
     if not prediction_outputs:
         raise _quality_error(TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE, status_code=503)
 
@@ -1736,8 +1769,21 @@ async def _build_quality_s2_candidates(
                 )
             task9_member = matching_members[0]
             task9_member_hash = _task9_member_identity_hash(task9_member)
-            matching_predictions: list[tuple[Any, Any, Any, Any]] = []
-            for output, training_output, training_row in prediction_outputs:
+            matching_predictions: list[
+                tuple[
+                    ResidualModelPredictionRun,
+                    ResidualPredictionExecutionResult,
+                    ResidualTrainingExecutionResult,
+                    ResidualModelTrainingRun,
+                    ResidualPredictionRow,
+                ]
+            ] = []
+            for (
+                persisted_prediction_run,
+                output,
+                training_output,
+                training_row,
+            ) in prediction_outputs:
                 rows = tuple(
                     row
                     for row in output.rows
@@ -1746,15 +1792,29 @@ async def _build_quality_s2_candidates(
                     and row.destination_factory_id == core_run.destination_factory_id
                 )
                 if len(rows) == 1:
-                    matching_predictions.append((output, training_output, training_row, rows[0]))
-            if len(matching_predictions) != 1:
+                    matching_predictions.append(
+                        (
+                            persisted_prediction_run,
+                            output,
+                            training_output,
+                            training_row,
+                            rows[0],
+                        )
+                    )
+            if not matching_predictions:
                 raise _quality_error(
                     TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE,
                     status_code=503,
                 )
-            prediction_output, training_output, training_row, prediction_row = matching_predictions[
-                0
-            ]
+            if len(matching_predictions) > 1:
+                raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+            (
+                persisted_prediction_run,
+                prediction_output,
+                training_output,
+                training_row,
+                prediction_row,
+            ) = matching_predictions[0]
 
             exact_labels = tuple(
                 row
@@ -1822,7 +1882,7 @@ async def _build_quality_s2_candidates(
                         core_forecast_run_id=core_run.id,
                         core_forecast_daily_row_id=core_row.id,
                         task9_run_id=task9_run.id,
-                        task10_prediction_run_id=prediction_row.prediction_run_id,
+                        task10_prediction_run_id=persisted_prediction_run.id,
                         label_snapshot_id=snapshot.header.snapshot_id,
                         label_row_id=None if label_row is None else label_row.id,
                         label_winner_id=None if winner_row is None else winner_row.id,
