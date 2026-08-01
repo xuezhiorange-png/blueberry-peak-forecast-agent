@@ -95,10 +95,7 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 from backend.app.models.master_data import Season
-from backend.app.models.residual_model import (
-    ResidualModelPredictionRun,
-    ResidualModelTrainingRun,
-)
+from backend.app.models.residual_model import ResidualModelPredictionRun
 from backend.app.models.trial import TrialResourceBindingModel
 from backend.app.residual_model.canonical import (
     canonical_payload_hash,
@@ -1138,6 +1135,7 @@ async def _seed_quality_task10_fixture(
     *,
     task9_run_id: int,
     task9_result_hash: str,
+    forecast_cutoff_at: datetime,
 ) -> ResidualModelPredictionRun:
     """Persist a real, loader-verifiable structural-only Task 10 authority."""
 
@@ -1317,11 +1315,10 @@ async def _seed_quality_task10_fixture(
         feature_schema_hash=feature_schema_hash,
         artifact_hashes=artifact_hashes,
     )
-    await session.execute(
-        update(ResidualModelTrainingRun)
-        .where(ResidualModelTrainingRun.id == training_run.id)
-        .values(finished_at=_CUTOFF - timedelta(days=1))
-    )
+    cutoff_safe_finished_at = forecast_cutoff_at - timedelta(days=1)
+    training_run.finished_at = cutoff_safe_finished_at
+    await session.flush()
+    await session.refresh(training_run)
     await session.commit()
     return prediction_run
 
@@ -1537,6 +1534,7 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
                 session,
                 task9_run_id=task9_run.id,
                 task9_result_hash=task9_run.result_hash,
+                forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
             )
             expected_prediction_run_id = persisted_prediction_run.id
             assert expected_prediction_run_id > 0
