@@ -3,11 +3,12 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
-from datetime import UTC, date, datetime
+from collections import defaultdict
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import delete, func, select, text, update
+from sqlalchemy import and_, delete, func, not_, select, text, update
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +30,8 @@ from backend.app.models.core_forecast import (
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
-from backend.app.models.harvest_state import HarvestStateRun
+from backend.app.models.harvest_state import HarvestStateDailyMemberRowModel, HarvestStateRun
+from backend.app.models.maturity import MaturityDailyPredictionModel
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.models.trial import (
     CoreForecastMarketablePolicyEntryModel,
@@ -54,6 +56,7 @@ from backend.app.trial import (
 from backend.tests.core_forecast.s4_test_helpers import fixture_request_and_outputs
 from backend.tests.integration.test_v0_1_s2_complete_daily_curve_postgres import (
     FACTORY_ID,
+    INPUT,
     SEASON_ID,
     _seed_authorities,
 )
@@ -616,10 +619,73 @@ def _forecast_actor(identity: str) -> ActualHarvestActorContext:
     )
 
 
+async def _restrict_authorities_to_trial_scope(session: AsyncSession) -> None:
+    farm_id, subfarm_id, variety_id = 101, 1101, 2101
+    await session.execute(
+        delete(HarvestStateDailyMemberRowModel).where(
+            not_(
+                and_(
+                    HarvestStateDailyMemberRowModel.farm_id == farm_id,
+                    HarvestStateDailyMemberRowModel.subfarm_id == subfarm_id,
+                    HarvestStateDailyMemberRowModel.variety_id == variety_id,
+                )
+            )
+        )
+    )
+    await session.execute(
+        delete(MaturityDailyPredictionModel).where(
+            MaturityDailyPredictionModel.forecast_run_id == 810001
+        )
+    )
+
+    by_day_quantile: dict[tuple[date, str], Decimal] = defaultdict(lambda: Decimal("0"))
+    for source in INPUT["daily_inputs"]:
+        if (source["farm_id"], source["subfarm_id"], source["variety_id"]) == (
+            farm_id,
+            subfarm_id,
+            variety_id,
+        ):
+            by_day_quantile[(date.fromisoformat(source["date"]), source["forecast_quantile"])] += (
+                Decimal(source["natural_maturity_supply_kg"])
+            )
+
+    cumulative = {quantile: Decimal("0") for quantile in ("P50", "P80", "P90")}
+    start = date.fromisoformat(INPUT["season"]["forecast_start_date"])
+    for offset in range(90):
+        current_date = start + timedelta(days=offset)
+        values = {
+            quantile: by_day_quantile[(current_date, quantile)]
+            for quantile in ("P50", "P80", "P90")
+        }
+        for quantile, value in values.items():
+            cumulative[quantile] += value
+        session.add(
+            MaturityDailyPredictionModel(
+                forecast_run_id=810001,
+                prediction_date=current_date,
+                phenology_coordinate_day=Decimal(offset + 1),
+                p50_kg=values["P50"],
+                p80_kg=values["P80"],
+                p90_kg=values["P90"],
+                cumulative_p50_kg=cumulative["P50"],
+                cumulative_p80_kg=cumulative["P80"],
+                cumulative_p90_kg=cumulative["P90"],
+                curve_share=Decimal("0.0100000000"),
+                confidence_level="HIGH",
+                quality_flags=[],
+            )
+        )
+    await session.execute(
+        update(HarvestStateRun).where(HarvestStateRun.id == 910001).values(member_row_count=270)
+    )
+    await session.flush()
+
+
 async def _prepare_default_trial_forecast(
     session: AsyncSession,
 ) -> tuple[DefaultTrialApplicationService, TrialForecastCreateRequest, ActualHarvestActorContext]:
     await _seed_authorities(session)
+    await _restrict_authorities_to_trial_scope(session)
     await _seed_marketable_policy(
         session,
         public_hash="a" * 64,
