@@ -219,6 +219,44 @@ async def test_create_requires_core_request_and_rolls_back_with_caller(
     ) == 0
 
 
+async def test_result_boundary_rolls_back_after_evidence_or_binding_failure(
+    sqlite_session: AsyncSession,
+) -> None:
+    await _seed_core(sqlite_session)
+    await sqlite_session.execute(
+        text(
+            "CREATE TRIGGER reject_trial_forecast_evidence_insert "
+            "BEFORE INSERT ON trial_forecast_evidence BEGIN "
+            "SELECT RAISE(ABORT, 'injected evidence failure'); END"
+        )
+    )
+    with pytest.raises(TrialForecastEvidenceConflictError):
+        await _create_evidence(sqlite_session)
+    assert (
+        await sqlite_session.scalar(select(func.count()).select_from(TrialForecastEvidenceModel))
+    ) == 0
+    assert (
+        await sqlite_session.scalar(select(func.count()).select_from(TrialResourceBindingModel))
+    ) == 0
+    await sqlite_session.execute(text("DROP TRIGGER reject_trial_forecast_evidence_insert"))
+
+    await sqlite_session.execute(
+        text(
+            "CREATE TRIGGER reject_trial_resource_binding_insert "
+            "BEFORE INSERT ON trial_resource_binding BEGIN "
+            "SELECT RAISE(ABORT, 'injected binding failure'); END"
+        )
+    )
+    with pytest.raises(TrialForecastEvidenceConflictError):
+        await _create_evidence(sqlite_session)
+    assert (
+        await sqlite_session.scalar(select(func.count()).select_from(TrialForecastEvidenceModel))
+    ) == 0
+    assert (
+        await sqlite_session.scalar(select(func.count()).select_from(TrialResourceBindingModel))
+    ) == 0
+
+
 async def test_authorized_readback_is_persisted_and_wrong_owner_is_concealed(
     sqlite_session: AsyncSession,
 ) -> None:
