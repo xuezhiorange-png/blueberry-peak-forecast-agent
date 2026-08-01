@@ -219,6 +219,65 @@ async def test_conflicting_replay_is_rejected_without_second_run() -> None:
 
 
 @pytest.mark.asyncio
+async def test_trial_request_idempotency_is_persisted_and_conflicts() -> None:
+    _live_env()
+    input_data, metric_result, breakdowns, baseline = _fixture("trial-request-idempotency")
+    request_identity = {
+        "actor_identity": "quality-actor-1",
+        "request_idempotency_key": "quality-key-1",
+        "canonical_request": {
+            "forecast_run_id": "a" * 64,
+            "actual_harvest_import_id": "import-1",
+            "forecast_cutoff_at": "2026-07-29T08:00:00+00:00",
+            "label_observation_cutoff_at": "2026-07-29T08:00:00+00:00",
+            "requested_horizons_days": [7, 14, 21],
+        },
+    }
+    changed_identity = {
+        **request_identity,
+        "canonical_request": {
+            **request_identity["canonical_request"],
+            "actual_harvest_import_id": "import-2",
+        },
+    }
+    async with AsyncSessionMaker() as session:
+        async with session.begin():
+            first = await _persist(
+                session,
+                evaluation_input=input_data,
+                metric_result=metric_result,
+                breakdown_results=breakdowns,
+                baseline_record=baseline,
+                request_identity_payload=request_identity,
+            )
+        async with session.begin():
+            replay = await _persist(
+                session,
+                evaluation_input=input_data,
+                metric_result=metric_result,
+                breakdown_results=breakdowns,
+                baseline_record=baseline,
+                request_identity_payload=request_identity,
+            )
+        with pytest.raises(ForecastQualityConflictError, match="CONFLICTING_REPLAY_REJECTED"):
+            async with session.begin():
+                await _persist(
+                    session,
+                    evaluation_input=input_data,
+                    metric_result=metric_result,
+                    breakdown_results=breakdowns,
+                    baseline_record=baseline,
+                    request_identity_payload=changed_identity,
+                )
+        assert replay.run_id == first.run_id
+        assert replay.evaluation_instance_hash == first.evaluation_instance_hash
+        stored = await session.get(QualityEvaluationRunModel, first.run_id)
+        assert stored is not None
+        assert stored.canonical_payload["trial_request_identity"] == request_identity
+        assert await session.scalar(select(func.count(QualityEvaluationRunModel.id))) == 1
+
+
+@pytest.mark.asyncio
 async def test_partial_existing_result_fails_closed() -> None:
     _live_env()
     input_data, metric_result, breakdowns, baseline = _fixture("partial-result")

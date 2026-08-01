@@ -69,6 +69,10 @@ def _actor(
         may_create_forecast=create,
         may_read_forecast=preview,
         may_export_forecast=preview,
+        may_create_quality=create,
+        may_read_quality=preview,
+        may_read_quality_comparison=preview,
+        may_export_quality=preview,
     )
 
 
@@ -111,25 +115,114 @@ def _curve() -> TrialForecastDailyCurveResponse:
 
 
 def _quality() -> TrialQualityReportResponse:
-    return TrialQualityReportResponse(
-        report_id="quality-public-1",
-        forecast_identity={"run_id": "forecast-public-1", "model_version": "model-v1"},
-        actual_label_snapshot_identity="label-snapshot-1",
-        forecast_cutoff_at=NOW,
-        label_observation_cutoff_at=NOW,
-        forecast_horizon_days=7,
-        daily_metrics=({"metric_name": "daily_mae", "metric_status": "COMPUTED"},),
-        cumulative_error_status="NOT_COMPUTABLE",
-        single_day_peak_error_status="NOT_COMPUTABLE",
-        sustained_seven_day_peak_error_status="NOT_COMPUTABLE",
-        p80_p90_metric_status="NOT_COMPUTABLE",
-        interval_metric_status="NOT_COMPUTABLE",
-        breakdowns=(),
-        naive_baseline_result={"metric_status": "COMPUTED", "value_kg": "10.000000"},
-        computability_status="COMPUTED",
-        reason_codes=(),
-        coverage_counts={"total": 2, "comparable": 2},
-        excluded_row_counts={"excluded": 0, "not_computable": 0},
+    identity = {
+        "forecast_run_id": "a" * 64,
+        "actual_harvest_import_id": "import-public-1",
+        "actual_label_snapshot_identity": "a" * 64,
+        "s2_run_identity": "b" * 64,
+        "s2_manifest_identity": "c" * 64,
+        "s2_binding_row_set_hash": "d" * 64,
+        "evaluation_request_hash": "e" * 64,
+        "evaluation_instance_hash": "f" * 64,
+        "quality_manifest_hash": "1" * 64,
+        "metric_result_set_hash": "2" * 64,
+        "breakdown_result_set_hash": "3" * 64,
+        "baseline_result_set_hash": "4" * 64,
+        "comparison_result_set_hash": "5" * 64,
+        "metric_policy_version": "metric-v1",
+        "baseline_policy_version": "baseline-v1",
+        "comparison_policy_version_or_null": None,
+        "model_identity": "model-v1",
+    }
+    metric = {
+        "metric_name": "daily_mae",
+        "metric_status": "COMPUTED",
+        "metric_value_or_null": "1.000000",
+        "numerator_or_null": "1.000000",
+        "denominator_or_null": "1.000000",
+        "reason_codes": [],
+    }
+    peak = {
+        "metric_status": "NOT_COMPUTABLE",
+        "metric_value_or_null": None,
+        "business_date_or_null": None,
+        "window_start_date_or_null": None,
+        "window_end_date_or_null": None,
+        "reason_codes": ["NOT_AVAILABLE"],
+    }
+    coverage = {
+        "quantile": "P80",
+        "metric_status": "COMPUTED",
+        "covered_count": 2,
+        "total_count": 2,
+        "coverage_ratio_or_null": "1.000000",
+        "reason_codes": [],
+    }
+
+    def horizon(days: int) -> dict[str, object]:
+        return {
+            "horizon_days": days,
+            "daily_overlay": [
+                {
+                    "business_date": "2026-01-01",
+                    "forecast_p50_kg_or_null": "10.000000",
+                    "forecast_p80_kg_or_null": "11.000000",
+                    "forecast_p90_kg_or_null": "12.000000",
+                    "actual_quantity_kg_or_null": "9.000000",
+                    "actual_available": True,
+                    "coverage_state": "AVAILABLE",
+                    "exclusion_reason_codes": [],
+                }
+            ],
+            "daily_metrics": [metric],
+            "cumulative_metric": {**metric, "metric_name": "cumulative_error"},
+            "single_day_peak": peak,
+            "sustained_seven_day_peak": peak,
+            "p80_coverage": coverage,
+            "p90_coverage": {**coverage, "quantile": "P90"},
+            "interval_metric": {
+                "metric_status": "NOT_COMPUTABLE",
+                "lower_bound_available": False,
+                "lower_bound_value_or_null": None,
+                "upper_bound_value_or_null": None,
+                "metric_value_or_null": None,
+                "reason_codes": ["NOT_AVAILABLE"],
+            },
+            "coverage_counts": {"total": 2, "covered": 2},
+            "excluded_row_counts": {"excluded": 0, "not_computable": 0},
+            "reason_codes": [],
+        }
+
+    return TrialQualityReportResponse.model_validate(
+        {
+            "report_id": "a" * 64,
+            "forecast_identity": identity,
+            "actual_label_snapshot_identity": "a" * 64,
+            "forecast_cutoff_at": NOW,
+            "label_observation_cutoff_at": NOW,
+            "requested_horizons_days": [7, 14, 21],
+            "horizons": [horizon(7), horizon(14), horizon(21)],
+            "daily_metrics": [metric],
+            "cumulative_error": {**metric, "metric_name": "cumulative_error"},
+            "single_day_peak": peak,
+            "sustained_seven_day_peak": peak,
+            "p80_coverage": coverage,
+            "p90_coverage": {**coverage, "quantile": "P90"},
+            "interval_metric": {
+                "metric_status": "NOT_COMPUTABLE",
+                "lower_bound_available": False,
+                "lower_bound_value_or_null": None,
+                "upper_bound_value_or_null": None,
+                "metric_value_or_null": None,
+                "reason_codes": ["NOT_AVAILABLE"],
+            },
+            "breakdowns": [],
+            "naive_baseline_results": [],
+            "computability_status": "COMPUTED",
+            "reason_codes": [],
+            "coverage_counts": {"total": 2, "comparable": 2},
+            "excluded_row_counts": {"excluded": 0, "not_computable": 0},
+        }
     )
 
 
@@ -422,7 +515,7 @@ class SyntheticTrialService:
                 TrialApiErrorCode.RESOURCE_NOT_FOUND, status_code=404, message="missing"
             )
         return TrialQualityComparisonResponse(
-            report_id=report_id,
+            report_id="a" * 64,
             comparison_availability="BLOCKED",
             comparison_status="NOT_COMPUTABLE",
             comparison_policy_version="v0.2-s3-comparison-policy-v1",
@@ -501,13 +594,11 @@ def _forecast_request(*, key: str = "forecast-key", model: str = "model-v1") -> 
 
 def _quality_request(*, key: str = "quality-key") -> dict[str, Any]:
     return {
-        "forecast_run_id": "forecast-public-1",
-        "actual_label_snapshot_identity": "label-snapshot-1",
+        "forecast_run_id": "a" * 64,
+        "actual_harvest_import_id": "import-public-1",
         "forecast_cutoff_at": NOW.isoformat(),
         "label_observation_cutoff_at": NOW.isoformat(),
-        "forecast_horizon_days": 7,
-        "quality_policy_version": "quality-v1",
-        "baseline_policy_version": "baseline-v1",
+        "requested_horizons_days": [7, 14, 21],
         "request_idempotency_key": key,
     }
 
@@ -713,6 +804,31 @@ async def test_actor_configuration_fails_closed_without_server_config() -> None:
             "TRIAL_ACTOR_PERMISSIONS",
         ):
             monkeypatch.delenv(name, raising=False)
+        with pytest.raises(ActualHarvestApiError) as error:
+            await get_actual_harvest_actor()
+        assert error.value.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_quality_permissions_use_shared_actor_parser_and_unknown_fails_closed() -> None:
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setenv("TRIAL_ACTOR_IDENTITY", "quality-actor")
+        monkeypatch.setenv("TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS", "synthetic-farm-system")
+        monkeypatch.setenv("TRIAL_ACTOR_ALLOWED_CHANNELS", "api")
+        monkeypatch.setenv(
+            "TRIAL_ACTOR_PERMISSIONS",
+            "may_create_quality,may_read_quality,may_read_quality_comparison,may_export_quality",
+        )
+        actor = await get_actual_harvest_actor()
+        assert actor.may_create_quality is True
+        assert actor.may_read_quality is True
+        assert actor.may_read_quality_comparison is True
+        assert actor.may_export_quality is True
+
+        monkeypatch.setenv(
+            "TRIAL_ACTOR_PERMISSIONS",
+            "may_create_quality,unknown_quality_permission",
+        )
         with pytest.raises(ActualHarvestApiError) as error:
             await get_actual_harvest_actor()
         assert error.value.status_code == 503

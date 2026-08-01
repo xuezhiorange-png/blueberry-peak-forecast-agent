@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -98,6 +99,22 @@ class PersistedQualityEvaluation:
     evaluation_instance_hash: str
     new_write_count: int
     replayed: bool
+
+
+@dataclass(frozen=True)
+class PersistedQualityEvaluationReadModel:
+    """Immutable, verified Quality evidence returned by the read adapter."""
+
+    run_id: int
+    manifest_id: int
+    evaluation_request_hash: str
+    evaluation_instance_hash: str
+    run_payload: Mapping[str, object]
+    manifest_payload: Mapping[str, object]
+    metrics: tuple[Mapping[str, object], ...]
+    breakdowns: tuple[Mapping[str, object], ...]
+    baselines: tuple[Mapping[str, object], ...]
+    comparisons: tuple[Mapping[str, object], ...]
 
 
 @dataclass(frozen=True)
@@ -217,6 +234,7 @@ def _validate_evaluation_input(
     value: S3EvaluationInput,
     *,
     round_c: bool = False,
+    request_identity_payload: Mapping[str, object] | None = None,
 ) -> tuple[dict[str, Any], str, str]:
     for field in (
         "s2_run_identity",
@@ -236,6 +254,27 @@ def _validate_evaluation_input(
         "metric_policy_version": value.metric_policy_version,
         "baseline_policy_version": value.baseline_policy_version,
     }
+    if request_identity_payload is not None:
+        identity = _json_ready(dict(request_identity_payload))
+        actor_identity = identity.get("actor_identity")
+        idempotency_key = identity.get("request_idempotency_key")
+        canonical_request = identity.get("canonical_request")
+        if not isinstance(actor_identity, str) or not actor_identity.strip():
+            raise ForecastQualityContractError("actor_identity is required")
+        if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+            raise ForecastQualityContractError("request_idempotency_key is required")
+        if not isinstance(canonical_request, Mapping):
+            raise ForecastQualityContractError("canonical_request is required")
+        request_payload["trial_request_identity"] = identity
+        request_identity_hash = _hash(
+            {
+                "schema_version": request_payload["schema_version"],
+                "actor_identity": actor_identity,
+                "request_idempotency_key": idempotency_key,
+            }
+        )
+    else:
+        request_identity_hash = _hash(request_payload)
     if round_c:
         request_payload.update(
             {
@@ -245,7 +284,7 @@ def _validate_evaluation_input(
                 "comparison_contract_enabled": True,
             }
         )
-    return request_payload, _hash(request_payload), _hash(request_payload)
+    return request_payload, request_identity_hash, _hash(request_payload)
 
 
 def _metric_evidence(result: DailyMetricResult) -> tuple[_MetricEvidence, ...]:
@@ -587,6 +626,7 @@ def _build_evidence(
     comparison_records: Sequence[ComparisonResult | Mapping[str, object]],
     manifest_payload: Mapping[str, object],
     comparison_contract_enabled: bool = False,
+    request_identity_payload: Mapping[str, object] | None = None,
 ) -> _EvidenceSet:
     """Build a pre-SQL graph evidence set with explicit V1/V2 mode selection.
 
@@ -609,6 +649,7 @@ def _build_evidence(
     run_payload, evaluation_request_hash, run_hash = _validate_evaluation_input(
         evaluation_input,
         round_c=comparison_contract_enabled,
+        request_identity_payload=request_identity_payload,
     )
     metrics = tuple(item for result in metric_results for item in _metric_evidence(result))
     if len({item.key_hash for item in metrics}) != len(metrics):
@@ -1062,6 +1103,194 @@ def _classify_existing(
     )
 
 
+def load_quality_evaluation_by_instance_hash(
+    session: Session,
+    *,
+    evaluation_instance_hash: str,
+) -> PersistedQualityEvaluationReadModel:
+    """Load one complete Quality result from immutable persisted evidence.
+
+    The Trial layer receives this value object rather than an ORM graph.  The
+    loader deliberately performs the same projection and hash checks used by
+    the replay path, so missing children and normalized-column drift fail
+    closed before any public DTO is produced.
+    """
+
+    if not isinstance(session, Session):
+        raise TypeError("load_quality_evaluation_by_instance_hash requires a synchronous Session")
+    if (
+        not isinstance(evaluation_instance_hash, str)
+        or re.fullmatch(r"[0-9a-f]{64}", evaluation_instance_hash) is None
+    ):
+        raise ForecastQualityContractError("evaluation_instance_hash must be lowercase SHA-256")
+    manifest = session.scalar(
+        select(QualityEvaluationManifestModel).where(
+            QualityEvaluationManifestModel.evaluation_instance_hash == evaluation_instance_hash
+        )
+    )
+    if manifest is None:
+        raise ForecastQualityPartialResultError("PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: no manifest")
+    run = session.get(QualityEvaluationRunModel, manifest.quality_evaluation_run_id)
+    if run is None or run.status != "COMPLETE":
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: complete run is missing"
+        )
+    if run.schema_version not in {
+        PERSISTENCE_SCHEMA_VERSION,
+        ROUND_C_PERSISTENCE_SCHEMA_VERSION,
+    } or manifest.schema_version != run.schema_version or manifest.sealed_at is None:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: sealed schema identity is invalid"
+        )
+    if _stored_hash(run.canonical_payload) != run.canonical_hash:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored run payload hash mismatch"
+        )
+    if run.canonical_payload.get("evaluation_request_hash") != run.evaluation_request_hash:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: run request identity projection mismatch"
+        )
+    request_identity = run.canonical_payload.get("trial_request_identity")
+    if not isinstance(request_identity, Mapping):
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: trial request identity is missing"
+        )
+    actor_identity = request_identity.get("actor_identity")
+    idempotency_key = request_identity.get("request_idempotency_key")
+    canonical_request = request_identity.get("canonical_request")
+    if (
+        not isinstance(actor_identity, str)
+        or not actor_identity.strip()
+        or not isinstance(idempotency_key, str)
+        or not idempotency_key.strip()
+        or not isinstance(canonical_request, Mapping)
+    ):
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: trial request identity is invalid"
+        )
+    expected_request_hash = _hash(
+        {
+            "schema_version": run.schema_version,
+            "actor_identity": actor_identity,
+            "request_idempotency_key": idempotency_key,
+        }
+    )
+    if expected_request_hash != run.evaluation_request_hash:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: evaluation request hash drift"
+        )
+    if _stored_hash(manifest.manifest_payload) != manifest.manifest_hash:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: stored manifest payload hash mismatch"
+        )
+    if (
+        manifest.evaluation_request_hash != run.evaluation_request_hash
+        or manifest.evaluation_instance_hash != evaluation_instance_hash
+        or manifest.manifest_payload.get("evaluation_instance_hash") != evaluation_instance_hash
+        or run.canonical_payload.get("schema_version") != run.schema_version
+        or manifest.manifest_payload.get("schema_version") != manifest.schema_version
+    ):
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: manifest identity projection mismatch"
+        )
+
+    metrics = tuple(
+        session.scalars(
+            select(QualityMetricResultModel)
+            .where(QualityMetricResultModel.quality_evaluation_run_id == run.id)
+            .order_by(QualityMetricResultModel.metric_result_key_hash)
+        )
+    )
+    breakdowns = tuple(
+        session.scalars(
+            select(QualityBreakdownResultModel)
+            .where(QualityBreakdownResultModel.quality_evaluation_run_id == run.id)
+            .order_by(QualityBreakdownResultModel.breakdown_key_hash)
+        )
+    )
+    baselines = tuple(
+        session.scalars(
+            select(NaiveBaselineRunModel)
+            .where(NaiveBaselineRunModel.quality_evaluation_run_id == run.id)
+            .order_by(NaiveBaselineRunModel.baseline_request_hash)
+        )
+    )
+    comparisons = tuple(
+        session.scalars(
+            select(ModelBaselineComparisonModel)
+            .where(ModelBaselineComparisonModel.quality_evaluation_run_id == run.id)
+            .order_by(ModelBaselineComparisonModel.comparison_key_hash)
+        )
+    )
+    expected_counts = manifest.manifest_payload.get("child_counts")
+    if not isinstance(expected_counts, Mapping):
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: child counts are missing"
+        )
+    actual_counts = {
+        "metric_results": len(metrics),
+        "breakdown_results": len(breakdowns),
+        "baseline_results": len(baselines),
+        "comparison_results": len(comparisons),
+    }
+    if dict(expected_counts) != actual_counts:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: child count mismatch"
+        )
+
+    metric_projections = tuple(_stored_metric_projection(row) for row in metrics)
+    breakdown_projections = tuple(_stored_breakdown_projection(row) for row in breakdowns)
+    baseline_projections = tuple(_stored_baseline_projection(row) for row in baselines)
+    comparison_projections = tuple(_stored_comparison_projection(row) for row in comparisons)
+    if manifest.metric_result_set_hash != _hash_set([item[1] for item in metric_projections]):
+        raise ForecastQualityPartialResultError("metric result-set hash drift")
+    if manifest.breakdown_result_set_hash != _hash_set([item[1] for item in breakdown_projections]):
+        raise ForecastQualityPartialResultError("breakdown result-set hash drift")
+    if manifest.baseline_result_set_hash != _hash_set([item[1] for item in baseline_projections]):
+        raise ForecastQualityPartialResultError("baseline result-set hash drift")
+    if manifest.schema_version == ROUND_C_PERSISTENCE_SCHEMA_VERSION:
+        comparison_hash = compute_comparison_result_set_hash(
+            [item[1] for item in comparison_projections]
+        )
+    else:
+        comparison_hash = COMPARISON_RESULT_SET_HASH
+    if manifest.comparison_result_set_hash != comparison_hash:
+        raise ForecastQualityPartialResultError("comparison result-set hash drift")
+    if manifest.comparison_result_count != len(comparisons):
+        raise ForecastQualityPartialResultError("comparison result count drift")
+    if manifest.comparison_cell_count != int(
+        manifest.manifest_payload.get("comparison_cell_count", -1)
+    ):
+        raise ForecastQualityPartialResultError("comparison cell count drift")
+    expected_instance_hash = _hash(
+        {
+            "schema_version": run.schema_version,
+            "evaluation_request_hash": run.evaluation_request_hash,
+            "metric_result_set_hash": manifest.metric_result_set_hash,
+            "breakdown_result_set_hash": manifest.breakdown_result_set_hash,
+            "baseline_result_set_hash": manifest.baseline_result_set_hash,
+            "comparison_result_set_hash": manifest.comparison_result_set_hash,
+        }
+    )
+    if expected_instance_hash != evaluation_instance_hash:
+        raise ForecastQualityPartialResultError(
+            "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: evaluation instance hash drift"
+        )
+
+    return PersistedQualityEvaluationReadModel(
+        run_id=run.id,
+        manifest_id=manifest.id,
+        evaluation_request_hash=run.evaluation_request_hash,
+        evaluation_instance_hash=evaluation_instance_hash,
+        run_payload=dict(run.canonical_payload),
+        manifest_payload=dict(manifest.manifest_payload),
+        metrics=tuple(dict(row.canonical_payload) for row in metrics),
+        breakdowns=tuple(dict(row.canonical_payload) for row in breakdowns),
+        baselines=tuple(dict(row.canonical_payload) for row in baselines),
+        comparisons=tuple(dict(row.canonical_payload) for row in comparisons),
+    )
+
+
 def _make_run(evidence: _EvidenceSet, now: datetime) -> QualityEvaluationRunModel:
     return QualityEvaluationRunModel(
         schema_version=evidence.persistence_schema_version,
@@ -1382,6 +1611,7 @@ def persist_quality_evaluation(
     comparison_records: Sequence[ComparisonResult | Mapping[str, object]] = (),
     manifest_payload: Mapping[str, object],
     comparison_contract_enabled: bool = False,
+    request_identity_payload: Mapping[str, object] | None = None,
 ) -> PersistedQualityEvaluation:
     """Persist one complete result without taking transaction ownership.
 
@@ -1403,6 +1633,7 @@ def persist_quality_evaluation(
         comparison_records=comparison_records,
         manifest_payload=manifest_payload,
         comparison_contract_enabled=comparison_contract_enabled,
+        request_identity_payload=request_identity_payload,
     )
     existing = cast(
         QualityEvaluationRunModel | None,
@@ -1430,6 +1661,8 @@ __all__ = [
     "ForecastQualityPartialResultError",
     "ForecastQualityPersistenceError",
     "PersistedQualityEvaluation",
+    "PersistedQualityEvaluationReadModel",
     "ROUND_C_PERSISTENCE_SCHEMA_VERSION",
+    "load_quality_evaluation_by_instance_hash",
     "persist_quality_evaluation",
 ]
