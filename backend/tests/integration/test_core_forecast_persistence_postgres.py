@@ -813,7 +813,7 @@ async def test_postgres_default_trial_service_historical_readback_is_stable(
     await transactional_pg_session.execute(
         update(CoreForecastMarketablePolicyModel)
         .where(CoreForecastMarketablePolicyModel.public_policy_hash == "a" * 64)
-        .values(status="INACTIVE")
+        .values(status="RETIRED")
     )
     await transactional_pg_session.flush()
 
