@@ -1135,10 +1135,15 @@ def load_quality_evaluation_by_instance_hash(
         raise ForecastQualityPartialResultError(
             "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: complete run is missing"
         )
-    if run.schema_version not in {
-        PERSISTENCE_SCHEMA_VERSION,
-        ROUND_C_PERSISTENCE_SCHEMA_VERSION,
-    } or manifest.schema_version != run.schema_version or manifest.sealed_at is None:
+    if (
+        run.schema_version
+        not in {
+            PERSISTENCE_SCHEMA_VERSION,
+            ROUND_C_PERSISTENCE_SCHEMA_VERSION,
+        }
+        or manifest.schema_version != run.schema_version
+        or manifest.sealed_at is None
+    ):
         raise ForecastQualityPartialResultError(
             "PARTIAL_METRIC_PERSISTENCE_FORBIDDEN: sealed schema identity is invalid"
         )
