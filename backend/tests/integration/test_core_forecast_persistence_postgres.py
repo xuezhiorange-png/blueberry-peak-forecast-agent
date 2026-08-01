@@ -7,8 +7,8 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import delete, func, select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import delete, func, select, text, update
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core_forecast.persistence import (
@@ -29,7 +29,12 @@ from backend.app.models.core_forecast import (
 from backend.app.models.trial import (
     CoreForecastMarketablePolicyEntryModel,
     CoreForecastMarketablePolicyModel,
+    TrialForecastEvidenceModel,
     TrialResourceBindingModel,
+)
+from backend.app.repositories.trial_forecast_evidence import (
+    authorize_and_load_forecast_evidence,
+    create_forecast_evidence_and_binding_in_result_boundary,
 )
 from backend.tests.core_forecast.s4_test_helpers import fixture_request_and_outputs
 from backend.tests.integration.test_v0_1_s2_complete_daily_curve_postgres import (
@@ -114,6 +119,157 @@ async def test_postgres_core_forecast_persistence_round_trip_and_integrity(
         rerun_of_run_id=None,
     )
     assert duplicate.run.run_id == persisted.run.run_id
+
+
+async def test_postgres_trial_forecast_evidence_readback_and_immutable_guards(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    await _seed_authorities(transactional_pg_session)
+    (
+        request,
+        curve,
+        metrics,
+        policy_hash,
+        input_hash,
+        request_hash,
+        result_hash,
+    ) = await fixture_request_and_outputs()
+    persisted = await CoreForecastRunRepository(transactional_pg_session).save_completed_run(
+        request=request,
+        forecast_input_hash=input_hash,
+        request_hash=request_hash,
+        result_hash=result_hash,
+        retention_policy_snapshot_hash=policy_hash,
+        curve=curve,
+        metrics=metrics,
+        rerun_of_run_id=None,
+    )
+    assert persisted.run.request_hash == request_hash
+
+    created = await create_forecast_evidence_and_binding_in_result_boundary(
+        transactional_pg_session,
+        public_forecast_id=request_hash,
+        owner_identity="actor:postgres",
+        forecast_input_authority_hash="a" * 64,
+        authority_available_at=datetime(2026, 1, 1, tzinfo=UTC),
+        farm_business_key="farm-postgres",
+        subfarm_business_key_or_null="subfarm-postgres",
+        season_business_key="season-2026",
+        variety_business_key="variety-blue",
+        destination_factory_business_key="factory-main",
+        plan_version="plan-v1",
+        plan_row_hash="b" * 64,
+        planting_area_mu=Decimal("12.340000"),
+    )
+    replay = await create_forecast_evidence_and_binding_in_result_boundary(
+        transactional_pg_session,
+        public_forecast_id=request_hash,
+        owner_identity="actor:postgres",
+        forecast_input_authority_hash="a" * 64,
+        authority_available_at=datetime(2026, 1, 1, tzinfo=UTC),
+        farm_business_key="farm-postgres",
+        subfarm_business_key_or_null="subfarm-postgres",
+        season_business_key="season-2026",
+        variety_business_key="variety-blue",
+        destination_factory_business_key="factory-main",
+        plan_version="plan-v1",
+        plan_row_hash="b" * 64,
+        planting_area_mu=Decimal("12.340000"),
+    )
+    assert replay == created
+    loaded = await authorize_and_load_forecast_evidence(
+        transactional_pg_session,
+        public_forecast_id=request_hash,
+        owner_identity="actor:postgres",
+    )
+    assert loaded == created
+    assert (
+        await transactional_pg_session.scalar(
+            select(func.count()).select_from(TrialForecastEvidenceModel)
+        )
+    ) == 1
+    assert (
+        await transactional_pg_session.scalar(
+            select(func.count()).select_from(TrialResourceBindingModel)
+        )
+    ) == 1
+
+    for statement in (
+        "UPDATE trial_forecast_evidence SET plan_version = 'tampered' "
+        "WHERE public_forecast_id = :public_forecast_id",
+        "DELETE FROM trial_forecast_evidence WHERE public_forecast_id = :public_forecast_id",
+    ):
+        with pytest.raises(DBAPIError) as caught:
+            async with transactional_pg_session.begin_nested():
+                await transactional_pg_session.execute(
+                    text(statement),
+                    {"public_forecast_id": request_hash},
+                )
+        original = caught.value.orig
+        assert getattr(original, "sqlstate", None) == "23514"
+        assert "trial forecast evidence is immutable" in str(original)
+
+
+async def test_postgres_trial_forecast_evidence_and_binding_rollback_with_core_run(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    await _seed_authorities(transactional_pg_session)
+    (
+        request,
+        curve,
+        metrics,
+        policy_hash,
+        input_hash,
+        request_hash,
+        result_hash,
+    ) = await fixture_request_and_outputs()
+    await CoreForecastRunRepository(transactional_pg_session).save_completed_run(
+        request=request,
+        forecast_input_hash=input_hash,
+        request_hash=request_hash,
+        result_hash=result_hash,
+        retention_policy_snapshot_hash=policy_hash,
+        curve=curve,
+        metrics=metrics,
+        rerun_of_run_id=None,
+    )
+    await create_forecast_evidence_and_binding_in_result_boundary(
+        transactional_pg_session,
+        public_forecast_id=request_hash,
+        owner_identity="actor:rollback",
+        forecast_input_authority_hash="c" * 64,
+        authority_available_at=datetime(2026, 1, 1, tzinfo=UTC),
+        farm_business_key="farm-rollback",
+        subfarm_business_key_or_null=None,
+        season_business_key="season-2026",
+        variety_business_key="variety-blue",
+        destination_factory_business_key="factory-main",
+        plan_version="plan-v1",
+        plan_row_hash="d" * 64,
+        planting_area_mu=Decimal("1.000000"),
+    )
+    await transactional_pg_session.rollback()
+    assert (
+        await transactional_pg_session.scalar(
+            select(func.count())
+            .select_from(CoreForecastRunModel)
+            .where(CoreForecastRunModel.request_hash == request_hash)
+        )
+    ) == 0
+    assert (
+        await transactional_pg_session.scalar(
+            select(func.count())
+            .select_from(TrialForecastEvidenceModel)
+            .where(TrialForecastEvidenceModel.public_forecast_id == request_hash)
+        )
+    ) == 0
+    assert (
+        await transactional_pg_session.scalar(
+            select(func.count())
+            .select_from(TrialResourceBindingModel)
+            .where(TrialResourceBindingModel.public_resource_id == request_hash)
+        )
+    ) == 0
 
 
 async def test_postgres_core_forecast_parent_delete_is_restricted(
