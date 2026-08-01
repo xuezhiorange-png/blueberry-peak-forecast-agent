@@ -7,7 +7,7 @@ import dataclasses
 import hashlib
 import json
 import os
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, cast
@@ -64,6 +64,21 @@ from backend.app.forecast_quality.schemas import (
 from backend.app.forecast_quality.status_evidence import (
     build_frozen_quality_status_evidence,
 )
+from backend.app.harvest_state.canonical import (
+    canonical_json_value,
+    make_result_hash,
+    make_season_record_hash,
+    sha256_hex,
+)
+from backend.app.harvest_state.schemas import (
+    CohortTransitionRow,
+    DailyMemberStateRow,
+    DailyPoolResolvedParameters,
+    DailyPoolStateRow,
+    ResolvedParameterSnapshot,
+    RunResolvedParameters,
+    Task9ACompletedOutput,
+)
 from backend.app.models.forecast_quality import (
     ModelBaselineComparisonModel,
     NaiveBaselineRunModel,
@@ -72,6 +87,13 @@ from backend.app.models.forecast_quality import (
     QualityEvaluationRunModel,
     QualityMetricResultModel,
 )
+from backend.app.models.harvest_state import (
+    HarvestStateCohortTransitionRowModel,
+    HarvestStateDailyMemberRowModel,
+    HarvestStateDailyPoolRowModel,
+    HarvestStateRun,
+)
+from backend.app.models.master_data import Season
 from backend.app.models.trial import TrialResourceBindingModel
 from backend.app.trial import (
     DefaultTrialApplicationService,
@@ -880,6 +902,208 @@ async def test_postgres_frozen_status_evidence_persists_and_reads_back() -> None
         await _drop_temporary_database(db_name)
 
 
+async def _repair_task9_fixture_for_quality(
+    session: AsyncSession,
+) -> None:
+    """Make the shared Core fixture satisfy the real Task 9 readback contract."""
+
+    run = await session.get(HarvestStateRun, 910001)
+    assert run is not None
+    members = tuple(
+        await session.scalars(
+            select(HarvestStateDailyMemberRowModel)
+            .where(HarvestStateDailyMemberRowModel.harvest_state_run_id == run.id)
+            .order_by(HarvestStateDailyMemberRowModel.id.asc())
+        )
+    )
+    assert members
+    first = members[0]
+    membership_hash = first.capacity_pool_membership_hash
+    pool_id = first.capacity_pool_id
+    zero = Decimal("0.000")
+    pool = HarvestStateDailyPoolRowModel(
+        harvest_state_run_id=run.id,
+        state_date=first.state_date,
+        forecast_quantile="P50",
+        capacity_pool_id=pool_id,
+        capacity_pool_grain=first.capacity_pool_grain,
+        capacity_pool_membership_hash=membership_hash,
+        capacity_input_mode="DIRECT_CAPACITY",
+        opening_mature_inventory_kg=first.opening_mature_inventory_kg,
+        natural_maturity_supply_kg=first.natural_maturity_supply_kg,
+        available_mature_quantity_kg=first.available_mature_quantity_kg,
+        mature_inventory_loss_quantity_kg=first.mature_inventory_loss_quantity_kg,
+        harvestable_mature_quantity_kg=first.harvestable_mature_quantity_kg,
+        nominal_harvest_capacity_kg_per_day=first.allocated_harvest_capacity_kg,
+        labor_availability_ratio=Decimal("1.000000"),
+        weather_harvest_efficiency_ratio=Decimal("1.000000"),
+        operational_efficiency_ratio=Decimal("1.000000"),
+        effective_harvest_capacity_kg_per_day=first.allocated_harvest_capacity_kg,
+        effective_capacity_for_day_kg=first.allocated_harvest_capacity_kg,
+        harvested_quantity_kg=first.harvested_quantity_kg,
+        closing_mature_inventory_kg=first.closing_mature_inventory_kg,
+        unharvested_backlog_kg=first.unharvested_backlog_kg,
+        arrival_quantity_kg=first.arrival_quantity_kg,
+        opening_cohort_count=0,
+        closing_cohort_count=0,
+        member_count=1,
+        mass_balance_passed=True,
+        capacity_constraint_passed=True,
+        continuity_passed=True,
+        parameter_source_ref_hashes=[],
+        cohort_source_ref_hashes=[],
+    )
+    cohort_key = sha256_hex({"fixture": "quality-task9-cohort"})
+    source_ref_hash = sha256_hex({"fixture": "quality-task9-source"})
+    cohort = HarvestStateCohortTransitionRowModel(
+        harvest_state_run_id=run.id,
+        state_date=first.state_date,
+        forecast_quantile="P50",
+        capacity_pool_id=pool_id,
+        farm_id=first.farm_id,
+        subfarm_id=first.subfarm_id,
+        variety_id=first.variety_id,
+        destination_factory_id=first.destination_factory_id,
+        capacity_pool_membership_hash=membership_hash,
+        stable_cohort_key=cohort_key,
+        stable_cohort_key_schema_version="task9a-cohort-key-v1",
+        source_ref_hash=source_ref_hash,
+        source_ref={"fixture": "quality-task9"},
+        cohort_date=first.state_date,
+        opening_quantity_kg=zero,
+        new_supply_quantity_kg=zero,
+        quantity_before_loss_kg=zero,
+        mature_inventory_loss_quantity_kg=zero,
+        quantity_before_harvest_kg=zero,
+        harvested_quantity_kg=zero,
+        closing_quantity_kg=zero,
+        harvest_anchor_at=None,
+        arrival_at=None,
+        arrival_local_date=None,
+        arrival_quantity_kg=zero,
+    )
+    session.add_all([pool, cohort])
+    await session.flush()
+
+    pool_output = DailyPoolStateRow.model_validate(
+        {field: getattr(pool, field) for field in DailyPoolStateRow.model_fields}
+    )
+    member_output = tuple(
+        DailyMemberStateRow.model_validate(
+            {field: getattr(member, field) for field in DailyMemberStateRow.model_fields}
+        )
+        for member in members
+    )
+    cohort_output = CohortTransitionRow.model_validate(
+        {field: getattr(cohort, field) for field in CohortTransitionRow.model_fields}
+    )
+    season = await session.get(Season, run.forecast_season_id)
+    assert season is not None
+    season_snapshot = {
+        "season_id": season.id,
+        "season_code": season.code,
+        "start_date": season.start_date,
+        "end_date": season.end_date,
+        "season_record_hash": make_season_record_hash(
+            season_id=season.id,
+            season_code=season.code,
+            start_date=season.start_date,
+            end_date=season.end_date,
+        ),
+    }
+    input_snapshot = {
+        "input_snapshot_schema_version": "task9a-input-snapshot-v2",
+        "forecast_season_identity": season_snapshot,
+    }
+    run_parameters = RunResolvedParameters(
+        forecast_start_date=run.forecast_start_date,
+        forecast_end_date=run.forecast_end_date,
+        forecast_quantiles=["P50", "P80", "P90"],
+        destination_factory_id=run.destination_factory_id,
+        farm_timezone="Asia/Shanghai",
+        destination_factory_timezone="Asia/Shanghai",
+        harvest_bucket_anchor_local_time=time(18, 0),
+        harvest_to_arrival_lag_days=1,
+        holiday_calendar_version="quality-task9-holiday-v1",
+        holiday_calendar_hash="1" * 64,
+        weather_rule_version="quality-task9-weather-v1",
+        weather_rule_config_hash="2" * 64,
+        decimal_precision=3,
+        quantity_scale="0.001",
+        ratio_scale="0.000001",
+        rounding_mode="ROUND_HALF_UP",
+        source_ref_schema_version="task9a-source-ref-v1",
+        stable_cohort_key_schema_version="task9a-cohort-key-v1",
+        result_hash_schema_version="task9a-result-hash-v2",
+    )
+    resolved_parameters = ResolvedParameterSnapshot(
+        run_parameters=run_parameters,
+        daily_pool_parameters=[
+            DailyPoolResolvedParameters(
+                capacity_date=first.state_date,
+                capacity_pool_id=pool_id,
+                capacity_pool_grain=first.capacity_pool_grain,
+                capacity_pool_membership_hash=membership_hash,
+                capacity_input_mode="DIRECT_CAPACITY",
+                resolved_nominal_capacity_kg_per_day=first.allocated_harvest_capacity_kg,
+                labor_availability_ratio=Decimal("1.000000"),
+                weather_harvest_efficiency_ratio=Decimal("1.000000"),
+                operational_efficiency_ratio=Decimal("1.000000"),
+                resolved_effective_capacity_kg_per_day=first.allocated_harvest_capacity_kg,
+                holiday_applied=False,
+                capacity_parameter_source_ref_hashes=[],
+                weather_feature_source_ref_hashes=[],
+            )
+        ],
+    )
+    output = Task9ACompletedOutput(
+        forecast_season_id=run.forecast_season_id,
+        forecast_start_date=run.forecast_start_date,
+        forecast_end_date=run.forecast_end_date,
+        forecast_quantiles=["P50", "P80", "P90"],
+        input_snapshot=input_snapshot,
+        resolved_parameter_snapshot=resolved_parameters,
+        daily_pool_state_rows=[pool_output],
+        daily_member_state_rows=list(member_output),
+        cohort_transition_rows=[cohort_output],
+        future_arrival_schedule=[],
+        source_ref_catalog=[],
+        warnings=[],
+        blockers=[],
+        mass_balance_result={"passed": True},
+        continuity_result={"passed": True},
+        config_hash=run.config_hash,
+        result_hash="b" * 64,
+    )
+    output = output.model_copy(
+        update={
+            "result_hash": make_result_hash(
+                output.model_dump(mode="python"),
+                result_hash_schema_version="task9a-result-hash-v2",
+            )
+        }
+    )
+    canonical_output = cast(dict[str, Any], canonical_json_value(output.model_dump(mode="json")))
+    run.input_snapshot = cast(dict[str, Any], canonical_json_value(input_snapshot))
+    run.resolved_parameter_snapshot = cast(
+        dict[str, Any], canonical_json_value(resolved_parameters.model_dump(mode="json"))
+    )
+    run.source_ref_catalog = []
+    run.warnings = []
+    run.blockers = []
+    run.mass_balance_result = {"passed": True}
+    run.continuity_result = {"passed": True}
+    run.canonical_output = canonical_output
+    run.config_hash = output.config_hash
+    run.result_hash = output.result_hash
+    run.canonical_payload_hash = sha256_hex(canonical_output)
+    run.pool_row_count = 1
+    run.member_row_count = len(member_output)
+    run.cohort_row_count = 1
+    run.future_arrival_row_count = 0
+    await session.flush()
+
+
 async def _quality_chain_counts(session: AsyncSession) -> tuple[int, ...]:
     tables = (
         "actual_harvest_label_snapshot",
@@ -1081,6 +1305,7 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
                 forecast_request,
                 forecast_actor,
             ) = await _prepare_default_trial_forecast(session)
+            await _repair_task9_fixture_for_quality(session)
             forecast = await forecast_service.create_forecast(
                 session, forecast_request, forecast_actor
             )
