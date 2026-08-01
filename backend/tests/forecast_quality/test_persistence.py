@@ -30,7 +30,6 @@ from backend.app.actual_harvest_import.api_auth import ActualHarvestActorContext
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
 from backend.app.actual_harvest_import.validation_models import (
-    ActualHarvestMappingRegistryEntryModel,
     ActualHarvestValidationMappingEvidenceModel,
     ActualHarvestValidationRunModel,
 )
@@ -933,11 +932,10 @@ async def _align_i7_seed_to_forecast_scope(
                     resolved_master_parent_business_key=parent_key,
                 )
             )
-            await session.execute(
-                update(ActualHarvestMappingRegistryEntryModel)
-                .where(ActualHarvestMappingRegistryEntryModel.target_type == target_type)
-                .values(target_business_key=business_key, target_parent_business_key=parent_key)
-            )
+        # The registry is sealed by _seed_seeded_batch and is deliberately
+        # immutable.  The snapshot service reads the owning validation-run
+        # evidence for the public scope, so only that test projection is
+        # aligned here; never rewrite sealed registry entries.
         await session.commit()
 
 
