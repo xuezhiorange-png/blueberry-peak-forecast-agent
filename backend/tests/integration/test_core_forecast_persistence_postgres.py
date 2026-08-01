@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 import hashlib
+import io
 import os
+import re
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -193,6 +196,19 @@ async def _related_row_counts(
             TrialResourceBindingModel.resource_kind == "FORECAST",
             TrialResourceBindingModel.public_resource_id == public_forecast_id,
         )
+    )
+    return int(core_run_count or 0), int(evidence_count or 0), int(binding_count or 0)
+
+
+async def _all_forecast_row_counts(session: AsyncSession) -> tuple[int, int, int]:
+    core_run_count = await session.scalar(select(func.count()).select_from(CoreForecastRunModel))
+    evidence_count = await session.scalar(
+        select(func.count()).select_from(TrialForecastEvidenceModel)
+    )
+    binding_count = await session.scalar(
+        select(func.count())
+        .select_from(TrialResourceBindingModel)
+        .where(TrialResourceBindingModel.resource_kind == "FORECAST")
     )
     return int(core_run_count or 0), int(evidence_count or 0), int(binding_count or 0)
 
@@ -683,15 +699,22 @@ async def _restrict_authorities_to_trial_scope(session: AsyncSession) -> None:
 
 async def _prepare_default_trial_forecast(
     session: AsyncSession,
+    *,
+    seed_policy: bool = True,
+    policy_available_at: datetime = datetime(2026, 2, 1, tzinfo=UTC),
+    policy_effective_from: date = date(2026, 1, 1),
 ) -> tuple[DefaultTrialApplicationService, TrialForecastCreateRequest, ActualHarvestActorContext]:
     await _seed_authorities(session)
     await _restrict_authorities_to_trial_scope(session)
-    await _seed_marketable_policy(
-        session,
-        public_hash="a" * 64,
-        sorting_retention_rate=Decimal("1.000000"),
-        postharvest_retention_rate=Decimal("1.000000"),
-    )
+    if seed_policy:
+        await _seed_marketable_policy(
+            session,
+            public_hash="a" * 64,
+            available_at=policy_available_at,
+            effective_from=policy_effective_from,
+            sorting_retention_rate=Decimal("1.000000"),
+            postharvest_retention_rate=Decimal("1.000000"),
+        )
     await session.execute(
         update(HarvestStateRun)
         .where(HarvestStateRun.id == 910001)
@@ -828,6 +851,91 @@ async def test_postgres_default_trial_service_historical_readback_is_stable(
     assert loaded.plan_row_hash == created.plan_row_hash
     assert loaded.planting_area_mu == created.planting_area_mu
     assert after_daily.model_dump(mode="json") == before_daily.model_dump(mode="json")
+    assert after_csv.content == before_csv.content
+
+
+async def test_postgres_default_trial_service_missing_policy_maps_public_error_and_writes_nothing(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    service, request, actor = await _prepare_default_trial_forecast(
+        transactional_pg_session,
+        policy_available_at=datetime(2026, 3, 1, tzinfo=UTC),
+    )
+
+    with pytest.raises(TrialApiError) as caught:
+        await service.create_forecast(transactional_pg_session, request, actor)
+
+    assert caught.value.status_code == 503
+    assert caught.value.code is TrialApiErrorCode.MARKETABLE_RETENTION_POLICY_MISSING
+    assert caught.value.retryable is True
+    assert await _all_forecast_row_counts(transactional_pg_session) == (0, 0, 0)
+
+
+async def test_postgres_default_trial_service_conflicting_policy_maps_error_and_writes_nothing(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    service, request, actor = await _prepare_default_trial_forecast(transactional_pg_session)
+    await _seed_marketable_policy(transactional_pg_session, public_hash="b" * 64)
+
+    with pytest.raises(TrialApiError) as caught:
+        await service.create_forecast(transactional_pg_session, request, actor)
+
+    assert caught.value.status_code == 409
+    assert caught.value.code is TrialApiErrorCode.MARKETABLE_RETENTION_POLICY_CONFLICT
+    assert caught.value.retryable is False
+    assert await _all_forecast_row_counts(transactional_pg_session) == (0, 0, 0)
+
+
+async def test_postgres_default_trial_service_csv_contract_is_stable_and_owner_scoped(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    service, request, actor = await _prepare_default_trial_forecast(transactional_pg_session)
+    created = await service.create_forecast(transactional_pg_session, request, actor)
+    loaded = await service.get_forecast(transactional_pg_session, created.run_id, actor)
+    daily = await service.get_daily_curve(transactional_pg_session, created.run_id, actor)
+    before_csv = await service.export_forecast(transactional_pg_session, created.run_id, actor)
+
+    assert loaded.run_id == daily.run_id == created.run_id
+    assert before_csv.filename == f"{created.run_id}.csv"
+    rows = list(csv.reader(io.StringIO(before_csv.content.decode("utf-8"))))
+    assert rows[0] == [
+        "target_date",
+        "p50_value_kg",
+        "p80_value_kg",
+        "p90_value_kg",
+        "row_status",
+    ]
+    body_rows = rows[1:]
+    dates = [row[0] for row in body_rows]
+    assert dates == sorted(dates)
+    assert len(dates) == len(set(dates)) == len(daily.rows)
+    for row in body_rows:
+        assert len(row) == 5
+        assert all(re.fullmatch(r"\d+\.\d{6}", row[index]) for index in (1, 2, 3))
+        assert row[4] == "COMPLETED"
+
+    with pytest.raises(TrialApiError) as wrong_owner:
+        await service.export_forecast(
+            transactional_pg_session,
+            created.run_id,
+            _forecast_actor("actor:postgres-csv-wrong-owner"),
+        )
+    assert wrong_owner.value.code is TrialApiErrorCode.RESOURCE_NOT_FOUND
+    assert wrong_owner.value.status_code == 404
+
+    await transactional_pg_session.execute(
+        update(FarmSeasonVarietyPlan)
+        .where(FarmSeasonVarietyPlan.id == 3201)
+        .values(planted_area_mu=Decimal("999.000000"), row_hash="f" * 64)
+    )
+    await transactional_pg_session.execute(
+        update(CoreForecastMarketablePolicyModel)
+        .where(CoreForecastMarketablePolicyModel.public_policy_hash == "a" * 64)
+        .values(status="RETIRED")
+    )
+    await transactional_pg_session.flush()
+    after_csv = await service.export_forecast(transactional_pg_session, created.run_id, actor)
+    assert after_csv.filename == f"{daily.run_id}.csv"
     assert after_csv.content == before_csv.content
 
 
