@@ -234,8 +234,23 @@ class SyntheticTrialService:
         return TrialCsvDocument(
             filename="forecast-public-1.csv",
             content=serialize_csv(
-                ("target_date", "p50_value_kg"),
-                (("2026-01-01", Decimal("10.000000")), ("2026-01-02", Decimal("12.000000"))),
+                ("target_date", "p50_value_kg", "p80_value_kg", "p90_value_kg", "row_status"),
+                (
+                    (
+                        "2026-01-01",
+                        Decimal("10.000000"),
+                        Decimal("11.000000"),
+                        Decimal("12.000000"),
+                        "COMPLETED",
+                    ),
+                    (
+                        "2026-01-02",
+                        Decimal("12.000000"),
+                        Decimal("13.000000"),
+                        Decimal("14.000000"),
+                        "COMPLETED",
+                    ),
+                ),
             ),
         )
 
@@ -531,7 +546,16 @@ async def test_forecast_csv_export_acceptance(client: AsyncClient) -> None:
     response = await client.get("/api/v1/trial/forecasts/forecast-public-1/export.csv")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/csv")
-    assert response.text.splitlines()[0] == "target_date,p50_value_kg"
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="forecast-public-1.csv"'
+    )
+    assert response.text.splitlines()[0] == (
+        "target_date,p50_value_kg,p80_value_kg,p90_value_kg,row_status"
+    )
+    assert response.text.splitlines()[1:] == [
+        "2026-01-01,10.000000,11.000000,12.000000,COMPLETED",
+        "2026-01-02,12.000000,13.000000,14.000000,COMPLETED",
+    ]
 
 
 @pytest.mark.asyncio
