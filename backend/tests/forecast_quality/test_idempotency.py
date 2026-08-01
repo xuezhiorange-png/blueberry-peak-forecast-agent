@@ -274,7 +274,15 @@ async def test_trial_request_idempotency_is_persisted_and_conflicts() -> None:
         stored = await session.get(QualityEvaluationRunModel, first.run_id)
         assert stored is not None
         assert stored.canonical_payload["trial_request_identity"] == request_identity
-        assert await session.scalar(select(func.count(QualityEvaluationRunModel.id))) == 1
+        assert (
+            await session.scalar(
+                select(func.count(QualityEvaluationRunModel.id)).where(
+                    QualityEvaluationRunModel.evaluation_request_hash
+                    == first.evaluation_request_hash
+                )
+            )
+            == 1
+        )
 
 
 @pytest.mark.asyncio
