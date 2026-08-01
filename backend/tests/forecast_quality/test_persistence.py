@@ -95,7 +95,10 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 from backend.app.models.master_data import Season
-from backend.app.models.residual_model import ResidualModelPredictionRun
+from backend.app.models.residual_model import (
+    ResidualModelPredictionRun,
+    ResidualModelTrainingRun,
+)
 from backend.app.models.trial import TrialResourceBindingModel
 from backend.app.residual_model.canonical import (
     canonical_payload_hash,
@@ -1314,8 +1317,12 @@ async def _seed_quality_task10_fixture(
         feature_schema_hash=feature_schema_hash,
         artifact_hashes=artifact_hashes,
     )
-    training_run.finished_at = _CUTOFF - timedelta(days=1)
-    await session.flush()
+    await session.execute(
+        update(ResidualModelTrainingRun)
+        .where(ResidualModelTrainingRun.id == training_run.id)
+        .values(finished_at=_CUTOFF - timedelta(days=1))
+    )
+    await session.commit()
     return prediction_run
 
 
