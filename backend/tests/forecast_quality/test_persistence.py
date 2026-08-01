@@ -1219,6 +1219,7 @@ async def _seed_quality_task10_fixture(
         result=training_result,
         manifest_rows=[],
     )
+    artifact_hashes = [artifact.metadata.binary_sha256 for artifact in artifacts]
 
     common_snapshot: dict[str, Any] = {
         "training_signature": training_signature,
@@ -1226,7 +1227,7 @@ async def _seed_quality_task10_fixture(
         "feature_schema_hash": feature_schema_hash,
         "projection_version": "quality-task10-projection-v1",
         "fallback_policy": "artifact_validation_failed",
-        "artifact_hashes": [],
+        "artifact_hashes": artifact_hashes,
         "feature_audit_hashes": [],
         "feature_rows": [],
         "supplemental_feature_values": [],
@@ -1243,7 +1244,7 @@ async def _seed_quality_task10_fixture(
         supplemental_feature_values=[],
         feature_audit_hashes=[],
         feature_rows=[],
-        artifact_hashes=[],
+        artifact_hashes=artifact_hashes,
         config_hash=config_hash,
         feature_schema_version=feature_schema_version,
         feature_schema_hash=feature_schema_hash,
@@ -1311,7 +1312,7 @@ async def _seed_quality_task10_fixture(
         result=prediction_result,
         feature_schema_version=feature_schema_version,
         feature_schema_hash=feature_schema_hash,
-        artifact_hashes=[],
+        artifact_hashes=artifact_hashes,
     )
 
 
