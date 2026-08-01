@@ -1219,8 +1219,6 @@ async def _seed_quality_task10_fixture(
         result=training_result,
         manifest_rows=[],
     )
-    training_run.finished_at = _CUTOFF - timedelta(days=1)
-    await session.flush()
     artifact_hashes = [artifact.metadata.binary_sha256 for artifact in artifacts]
 
     common_snapshot: dict[str, Any] = {
@@ -1309,13 +1307,16 @@ async def _seed_quality_task10_fixture(
     prediction_result = prediction_result.model_copy(
         update={"prediction_hash": _prediction_hash_from_result(prediction_result)}
     )
-    return await save_residual_prediction_run(
+    prediction_run = await save_residual_prediction_run(
         session,
         result=prediction_result,
         feature_schema_version=feature_schema_version,
         feature_schema_hash=feature_schema_hash,
         artifact_hashes=artifact_hashes,
     )
+    training_run.finished_at = _CUTOFF - timedelta(days=1)
+    await session.flush()
+    return prediction_run
 
 
 async def _quality_chain_counts(session: AsyncSession) -> tuple[int, ...]:
