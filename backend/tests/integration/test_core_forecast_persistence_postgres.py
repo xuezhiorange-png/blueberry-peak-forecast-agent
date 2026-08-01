@@ -701,6 +701,8 @@ async def _prepare_default_trial_forecast(
     session: AsyncSession,
     *,
     seed_policy: bool = True,
+    policy_available_at: datetime = datetime(2026, 2, 1, tzinfo=UTC),
+    policy_effective_from: date = date(2026, 1, 1),
 ) -> tuple[DefaultTrialApplicationService, TrialForecastCreateRequest, ActualHarvestActorContext]:
     await _seed_authorities(session)
     await _restrict_authorities_to_trial_scope(session)
@@ -708,6 +710,8 @@ async def _prepare_default_trial_forecast(
         await _seed_marketable_policy(
             session,
             public_hash="a" * 64,
+            available_at=policy_available_at,
+            effective_from=policy_effective_from,
             sorting_retention_rate=Decimal("1.000000"),
             postharvest_retention_rate=Decimal("1.000000"),
         )
@@ -855,7 +859,7 @@ async def test_postgres_default_trial_service_missing_policy_maps_public_error_a
 ) -> None:
     service, request, actor = await _prepare_default_trial_forecast(
         transactional_pg_session,
-        seed_policy=False,
+        policy_available_at=datetime(2026, 3, 1, tzinfo=UTC),
     )
 
     with pytest.raises(TrialApiError) as caught:
