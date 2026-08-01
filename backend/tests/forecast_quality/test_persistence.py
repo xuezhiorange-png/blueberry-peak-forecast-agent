@@ -99,6 +99,7 @@ from backend.app.residual_model.canonical import (
     canonical_payload_hash,
     prediction_input_signature_hash,
 )
+from backend.app.residual_model.manifest import manifest_hash as residual_manifest_hash
 from backend.app.residual_model.persistence import (
     _feature_schema_hash,
     _prediction_hash_from_result,
@@ -1129,7 +1130,7 @@ async def _seed_quality_task10_fixture(
 
     training_signature = "3" * 64
     config_hash = "4" * 64
-    manifest_hash = "5" * 64
+    training_manifest_hash = residual_manifest_hash(())
     feature_schema_version = "quality-task10-feature-schema-v1"
     feature_schema_hash = _feature_schema_hash([])
     training_input_snapshot = {
@@ -1153,7 +1154,7 @@ async def _seed_quality_task10_fixture(
         artifact_schema_version="quality-task10-artifact-v1",
         training_signature=training_signature,
         config_hash=config_hash,
-        manifest_hash=manifest_hash,
+        manifest_hash=training_manifest_hash,
         sample_count=0,
         distinct_season_count=0,
         distinct_factory_count=0,
