@@ -629,7 +629,13 @@ async def _prepare_default_trial_forecast(
     await session.execute(
         update(HarvestStateRun)
         .where(HarvestStateRun.id == 910001)
-        .values(forecast_effective_cutoff_at=datetime(2026, 2, 28, tzinfo=UTC))
+        .values(
+            is_replay=True,
+            forecast_effective_cutoff_at=datetime(2026, 2, 28, tzinfo=UTC),
+            replay_executed_at=datetime(2026, 2, 28, 1, tzinfo=UTC),
+            replay_code_version="a2-f-default-trial-fixture-v1",
+            replay_run_correlation_id="a2-f-default-trial-fixture-910001",
+        )
     )
     await CoreForecastRunRepository(session).register_code_authority(
         RegisterCoreForecastCodeAuthority(
