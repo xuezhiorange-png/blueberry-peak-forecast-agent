@@ -3,14 +3,17 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
-from datetime import UTC, date, datetime
+from collections import defaultdict
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import delete, func, select, text, update
+from sqlalchemy import and_, delete, func, not_, select, text, update
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.actual_harvest_import.api_auth import ActualHarvestActorContext
+from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.core_forecast.persistence import (
     CoreForecastPersistenceConflictError,
     CoreForecastRunRepository,
@@ -20,12 +23,15 @@ from backend.app.core_forecast.repository import (
     MarketableRetentionPolicyMissingError,
     SqlAlchemyCoreForecastRepository,
 )
+from backend.app.core_forecast.schemas import RegisterCoreForecastCodeAuthority
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.core_forecast import (
     CoreForecastDailyRowModel,
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
+from backend.app.models.harvest_state import HarvestStateDailyMemberRowModel, HarvestStateRun
+from backend.app.models.maturity import MaturityDailyPredictionModel
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.models.trial import (
     CoreForecastMarketablePolicyEntryModel,
@@ -41,9 +47,16 @@ from backend.app.repositories.trial_forecast_evidence import (
     compute_trial_business_scope_hash,
     create_forecast_evidence_and_binding_in_result_boundary,
 )
+from backend.app.trial import (
+    DefaultTrialApplicationService,
+    TrialApiError,
+    TrialApiErrorCode,
+    TrialForecastCreateRequest,
+)
 from backend.tests.core_forecast.s4_test_helpers import fixture_request_and_outputs
 from backend.tests.integration.test_v0_1_s2_complete_daily_curve_postgres import (
     FACTORY_ID,
+    INPUT,
     SEASON_ID,
     _seed_authorities,
 )
@@ -560,6 +573,8 @@ async def _seed_marketable_policy(
     available_at: datetime = datetime(2026, 2, 1, tzinfo=UTC),
     effective_from: date = date(2026, 1, 1),
     effective_to: date | None = date(2026, 12, 31),
+    sorting_retention_rate: Decimal = Decimal("0.800000"),
+    postharvest_retention_rate: Decimal = Decimal("0.900000"),
 ) -> None:
     header = CoreForecastMarketablePolicyModel(
         public_policy_hash=public_hash,
@@ -583,13 +598,320 @@ async def _seed_marketable_policy(
                 farm_id=farm_id,
                 subfarm_id=subfarm_id,
                 variety_id=variety_id,
-                sorting_retention_rate=Decimal("0.800000"),
-                postharvest_retention_rate=Decimal("0.900000"),
+                sorting_retention_rate=sorting_retention_rate,
+                postharvest_retention_rate=postharvest_retention_rate,
                 source_version="marketable-v1",
                 row_hash=hashlib.sha256(f"{public_hash}:{index}".encode()).hexdigest(),
             )
         )
     await session.flush()
+
+
+def _forecast_actor(identity: str) -> ActualHarvestActorContext:
+    return ActualHarvestActorContext(
+        identity=identity,
+        allowed_source_systems=frozenset({"trial-api"}),
+        allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+        may_read_forecast_authority=True,
+        may_create_forecast=True,
+        may_read_forecast=True,
+        may_export_forecast=True,
+    )
+
+
+async def _restrict_authorities_to_trial_scope(session: AsyncSession) -> None:
+    farm_id, subfarm_id, variety_id = 101, 1101, 2101
+    await session.execute(
+        delete(HarvestStateDailyMemberRowModel).where(
+            not_(
+                and_(
+                    HarvestStateDailyMemberRowModel.farm_id == farm_id,
+                    HarvestStateDailyMemberRowModel.subfarm_id == subfarm_id,
+                    HarvestStateDailyMemberRowModel.variety_id == variety_id,
+                )
+            )
+        )
+    )
+    await session.execute(
+        delete(MaturityDailyPredictionModel).where(
+            MaturityDailyPredictionModel.forecast_run_id == 810001
+        )
+    )
+
+    by_day_quantile: dict[tuple[date, str], Decimal] = defaultdict(lambda: Decimal("0"))
+    for source in INPUT["daily_inputs"]:
+        if (source["farm_id"], source["subfarm_id"], source["variety_id"]) == (
+            farm_id,
+            subfarm_id,
+            variety_id,
+        ):
+            by_day_quantile[(date.fromisoformat(source["date"]), source["forecast_quantile"])] += (
+                Decimal(source["natural_maturity_supply_kg"])
+            )
+
+    cumulative = {quantile: Decimal("0") for quantile in ("P50", "P80", "P90")}
+    start = date.fromisoformat(INPUT["season"]["forecast_start_date"])
+    for offset in range(90):
+        current_date = start + timedelta(days=offset)
+        values = {
+            quantile: by_day_quantile[(current_date, quantile)]
+            for quantile in ("P50", "P80", "P90")
+        }
+        for quantile, value in values.items():
+            cumulative[quantile] += value
+        session.add(
+            MaturityDailyPredictionModel(
+                forecast_run_id=810001,
+                prediction_date=current_date,
+                phenology_coordinate_day=Decimal(offset + 1),
+                p50_kg=values["P50"],
+                p80_kg=values["P80"],
+                p90_kg=values["P90"],
+                cumulative_p50_kg=cumulative["P50"],
+                cumulative_p80_kg=cumulative["P80"],
+                cumulative_p90_kg=cumulative["P90"],
+                curve_share=Decimal("0.0100000000"),
+                confidence_level="HIGH",
+                quality_flags=[],
+            )
+        )
+    await session.execute(
+        update(HarvestStateRun).where(HarvestStateRun.id == 910001).values(member_row_count=270)
+    )
+    await session.flush()
+
+
+async def _prepare_default_trial_forecast(
+    session: AsyncSession,
+) -> tuple[DefaultTrialApplicationService, TrialForecastCreateRequest, ActualHarvestActorContext]:
+    await _seed_authorities(session)
+    await _restrict_authorities_to_trial_scope(session)
+    await _seed_marketable_policy(
+        session,
+        public_hash="a" * 64,
+        sorting_retention_rate=Decimal("1.000000"),
+        postharvest_retention_rate=Decimal("1.000000"),
+    )
+    await session.execute(
+        update(HarvestStateRun)
+        .where(HarvestStateRun.id == 910001)
+        .values(
+            is_replay=True,
+            forecast_effective_cutoff_at=datetime(2026, 2, 28, tzinfo=UTC),
+            replay_executed_at=datetime(2026, 2, 28, 1, tzinfo=UTC),
+            replay_code_version="a2-f-default-trial-fixture-v1",
+            replay_run_correlation_id="a2-f-default-trial-fixture-910001",
+        )
+    )
+    await CoreForecastRunRepository(session).register_code_authority(
+        RegisterCoreForecastCodeAuthority(
+            source_commit_sha="1" * 40,
+            engine_code_hash="2" * 64,
+            build_artifact_hash="3" * 64,
+            config_bundle_hash="4" * 64,
+            available_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+    )
+    service = DefaultTrialApplicationService()
+    actor = _forecast_actor("actor:postgres-default-trial")
+    authority = await service.get_forecast_input_authority(session, actor)
+    assert len(authority.items) == 1
+    item = authority.items[0]
+    request = TrialForecastCreateRequest(
+        farm_business_key=item.farm_business_key,
+        subfarm_business_key_or_null=item.subfarm_business_key_or_null,
+        variety_business_key=item.variety_business_key,
+        season_business_key=item.season_business_key,
+        destination_factory_business_key=item.destination_factory_business_key,
+        forecast_cutoff_at=datetime(2026, 2, 28, tzinfo=UTC),
+        forecast_input_authority_hash=authority.forecast_input_authority_hash,
+        plan_row_hash=item.plan_row_hash,
+        planting_area_mu=item.planting_area_mu,
+    )
+    return service, request, actor
+
+
+async def test_postgres_default_trial_service_create_replay_and_owner_readback(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    service, request, actor = await _prepare_default_trial_forecast(transactional_pg_session)
+    created = await service.create_forecast(transactional_pg_session, request, actor)
+    assert created.run_id == created.canonical_public_hash
+    assert created.forecast_scope is not None
+    assert created.forecast_scope.farm_business_key == request.farm_business_key
+    assert (
+        created.forecast_scope.subfarm_business_key_or_null == request.subfarm_business_key_or_null
+    )
+    assert created.forecast_scope.season_business_key == request.season_business_key
+    assert created.forecast_scope.variety_business_key == request.variety_business_key
+    assert (
+        created.forecast_scope.destination_factory_business_key
+        == request.destination_factory_business_key
+    )
+
+    counts = await _related_row_counts(transactional_pg_session, created.run_id)
+    assert counts == (1, 1, 1)
+    evidence = await authorize_and_load_forecast_evidence(
+        transactional_pg_session,
+        public_forecast_id=created.run_id,
+        owner_identity=actor.identity,
+    )
+    assert evidence.business_scope_hash == compute_trial_business_scope_hash(
+        farm_business_key=evidence.farm_business_key,
+        subfarm_business_key_or_null=evidence.subfarm_business_key_or_null,
+        season_business_key=evidence.season_business_key,
+        variety_business_key=evidence.variety_business_key,
+        destination_factory_business_key=evidence.destination_factory_business_key,
+    )
+    binding = await transactional_pg_session.scalar(
+        select(TrialResourceBindingModel).where(
+            TrialResourceBindingModel.resource_kind == "FORECAST",
+            TrialResourceBindingModel.public_resource_id == created.run_id,
+        )
+    )
+    assert binding is not None
+    assert binding.owner_identity == actor.identity
+    assert binding.business_scope_hash == evidence.business_scope_hash
+
+    replay = await service.create_forecast(transactional_pg_session, request, actor)
+    assert replay.model_dump(mode="json") == created.model_dump(mode="json")
+    assert await _related_row_counts(transactional_pg_session, created.run_id) == (1, 1, 1)
+
+    loaded = await service.get_forecast(transactional_pg_session, created.run_id, actor)
+    assert loaded.model_dump(mode="json") == created.model_dump(mode="json")
+    with pytest.raises(TrialApiError) as wrong_owner:
+        await service.get_forecast(
+            transactional_pg_session,
+            created.run_id,
+            _forecast_actor("actor:postgres-wrong-owner"),
+        )
+    assert wrong_owner.value.code is TrialApiErrorCode.RESOURCE_NOT_FOUND
+    assert wrong_owner.value.status_code == 404
+    with pytest.raises(TrialApiError) as conflicting_owner_replay:
+        await service.create_forecast(
+            transactional_pg_session,
+            request,
+            _forecast_actor("actor:postgres-conflicting-owner"),
+        )
+    assert conflicting_owner_replay.value.code is TrialApiErrorCode.CONFLICTING_REPLAY
+    assert conflicting_owner_replay.value.status_code == 409
+    assert await _related_row_counts(transactional_pg_session, created.run_id) == (1, 1, 1)
+
+
+async def test_postgres_default_trial_service_historical_readback_is_stable(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    service, request, actor = await _prepare_default_trial_forecast(transactional_pg_session)
+    created = await service.create_forecast(transactional_pg_session, request, actor)
+    before_daily = await service.get_daily_curve(transactional_pg_session, created.run_id, actor)
+    before_csv = await service.export_forecast(transactional_pg_session, created.run_id, actor)
+    await transactional_pg_session.execute(
+        update(FarmSeasonVarietyPlan)
+        .where(FarmSeasonVarietyPlan.id == 3201)
+        .values(planted_area_mu=Decimal("999.000000"), row_hash="f" * 64)
+    )
+    await transactional_pg_session.execute(
+        update(CoreForecastMarketablePolicyModel)
+        .where(CoreForecastMarketablePolicyModel.public_policy_hash == "a" * 64)
+        .values(status="RETIRED")
+    )
+    await transactional_pg_session.flush()
+
+    loaded = await service.get_forecast(transactional_pg_session, created.run_id, actor)
+    after_daily = await service.get_daily_curve(transactional_pg_session, created.run_id, actor)
+    after_csv = await service.export_forecast(transactional_pg_session, created.run_id, actor)
+    assert loaded.forecast_scope == created.forecast_scope
+    assert loaded.forecast_start_date == created.forecast_start_date
+    assert loaded.forecast_end_date == created.forecast_end_date
+    assert loaded.forecast_cutoff_at == created.forecast_cutoff_at
+    assert loaded.forecast_input_authority_hash == created.forecast_input_authority_hash
+    assert loaded.plan_row_hash == created.plan_row_hash
+    assert loaded.planting_area_mu == created.planting_area_mu
+    assert after_daily.model_dump(mode="json") == before_daily.model_dump(mode="json")
+    assert after_csv.content == before_csv.content
+
+
+async def test_postgres_default_trial_service_nullable_subfarm_is_unsupported_before_writes(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    service, request, actor = await _prepare_default_trial_forecast(transactional_pg_session)
+    unsupported = request.model_copy(update={"subfarm_business_key_or_null": None})
+    with pytest.raises(TrialApiError) as caught:
+        await service.create_forecast(transactional_pg_session, unsupported, actor)
+    assert caught.value.code is TrialApiErrorCode.INPUT_NOT_SUPPORTED
+    assert caught.value.status_code == 422
+    assert await transactional_pg_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
+    assert (
+        await transactional_pg_session.scalar(select(func.count(TrialForecastEvidenceModel.id)))
+        == 0
+    )
+    assert (
+        await transactional_pg_session.scalar(select(func.count(TrialResourceBindingModel.id))) == 0
+    )
+
+
+async def test_postgres_default_trial_service_evidence_insert_failure_rolls_back_everything(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    service, request, actor = await _prepare_default_trial_forecast(transactional_pg_session)
+    await _install_pg_evidence_insert_failure_trigger(transactional_pg_session)
+    try:
+        with pytest.raises(TrialApiError) as caught:
+            await service.create_forecast(transactional_pg_session, request, actor)
+        assert caught.value.code is TrialApiErrorCode.CONFLICTING_REPLAY
+        assert (
+            await transactional_pg_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
+        )
+        assert (
+            await transactional_pg_session.scalar(select(func.count(TrialForecastEvidenceModel.id)))
+            == 0
+        )
+        assert (
+            await transactional_pg_session.scalar(select(func.count(TrialResourceBindingModel.id)))
+            == 0
+        )
+    finally:
+        await transactional_pg_session.execute(
+            text(
+                "DROP TRIGGER IF EXISTS test_trial_forecast_evidence_insert_failure_trigger "
+                "ON trial_forecast_evidence"
+            )
+        )
+        await transactional_pg_session.execute(
+            text("DROP FUNCTION IF EXISTS test_trial_forecast_evidence_insert_failure()")
+        )
+
+
+async def test_postgres_default_trial_service_binding_insert_failure_rolls_back_everything(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    service, request, actor = await _prepare_default_trial_forecast(transactional_pg_session)
+    await _install_pg_forecast_binding_insert_failure_trigger(transactional_pg_session)
+    try:
+        with pytest.raises(TrialApiError) as caught:
+            await service.create_forecast(transactional_pg_session, request, actor)
+        assert caught.value.code is TrialApiErrorCode.CONFLICTING_REPLAY
+        assert (
+            await transactional_pg_session.scalar(select(func.count(CoreForecastRunModel.id))) == 0
+        )
+        assert (
+            await transactional_pg_session.scalar(select(func.count(TrialForecastEvidenceModel.id)))
+            == 0
+        )
+        assert (
+            await transactional_pg_session.scalar(select(func.count(TrialResourceBindingModel.id)))
+            == 0
+        )
+    finally:
+        await transactional_pg_session.execute(
+            text(
+                "DROP TRIGGER IF EXISTS test_trial_forecast_binding_insert_failure_trigger "
+                "ON trial_resource_binding"
+            )
+        )
+        await transactional_pg_session.execute(
+            text("DROP FUNCTION IF EXISTS test_trial_forecast_binding_insert_failure()")
+        )
 
 
 async def test_postgres_marketable_policy_selector_requires_exact_complete_scope(
