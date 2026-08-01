@@ -30,6 +30,8 @@ from backend.app.actual_harvest_import.api_auth import ActualHarvestActorContext
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
 from backend.app.actual_harvest_import.validation_models import (
+    ActualHarvestMappingPolicyRegistryModel,
+    ActualHarvestMappingRegistryEntryModel,
     ActualHarvestValidationMappingEvidenceModel,
     ActualHarvestValidationRunModel,
 )
@@ -78,10 +80,17 @@ from backend.app.trial import (
     TrialQualityReportCreateRequest,
 )
 from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
-    _build_record as _build_i7_record,
+    _build_batch,
+    _build_commit_manifest,
+    _hex64,
+    _seed_lineage_basis_and_evidence,
+    _seed_mapping_snapshot,
+    _seed_master_data,
+    _seed_validation_result,
+    _seed_validation_run,
 )
 from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
-    _seed_seeded_batch,
+    _build_record as _build_i7_record,
 )
 from backend.tests.integration.test_core_forecast_persistence_postgres import (
     _prepare_default_trial_forecast,
@@ -894,6 +903,123 @@ async def _quality_chain_counts(session: AsyncSession) -> tuple[int, ...]:
     return tuple(counts)
 
 
+async def _seed_quality_service_batch(
+    sessionmaker: async_sessionmaker[AsyncSession],
+    *,
+    import_id: str,
+    records: list[Any],
+    source_system: str = "source-test",
+    registry_suffix: str,
+) -> dict[str, object]:
+    """Seed the committed I7 chain with PostgreSQL-safe registry ordering.
+
+    The shared I7 helper creates a SEALED registry before inserting its
+    entries.  PostgreSQL correctly rejects that sequence.  This local test
+    helper keeps the same persisted evidence shape while inserting entries
+    under DRAFT and sealing only after the entry set is complete.
+    """
+
+    async with sessionmaker() as session:
+        async with session.begin():
+            from backend.app.models.master_data import Season
+
+            if await session.scalar(select(Season).where(Season.id == 1)) is None:
+                await _seed_master_data(session)
+                await session.flush()
+
+            policy_version = f"mapping-test-{registry_suffix}"
+            registry = ActualHarvestMappingPolicyRegistryModel(
+                registry_version=f"registry-{registry_suffix}",
+                source_system=source_system,
+                mapping_policy_version=policy_version,
+                status="DRAFT",
+                entry_count=4,
+                registry_content_hash=_hex64(f"registry-content-{registry_suffix}"),
+            )
+            session.add(registry)
+            await session.flush()
+            session.add_all(
+                [
+                    ActualHarvestMappingRegistryEntryModel(
+                        registry_id=registry.id,
+                        source_field="season_code",
+                        source_code="season-1",
+                        target_type="SEASON",
+                        target_business_key="season-business-key-1",
+                        entry_hash=_hex64(f"season-entry-{registry_suffix}"),
+                    ),
+                    ActualHarvestMappingRegistryEntryModel(
+                        registry_id=registry.id,
+                        source_field="farm_code",
+                        source_code="farm-1",
+                        target_type="FARM",
+                        target_business_key="farm-business-key-1",
+                        entry_hash=_hex64(f"farm-entry-{registry_suffix}"),
+                    ),
+                    ActualHarvestMappingRegistryEntryModel(
+                        registry_id=registry.id,
+                        source_field="subfarm_or_plot_code",
+                        source_code="sub-1",
+                        target_type="SUBFARM",
+                        target_business_key="sub-business-key-1",
+                        target_parent_business_key="farm-business-key-1",
+                        entry_hash=_hex64(f"subfarm-entry-{registry_suffix}"),
+                    ),
+                    ActualHarvestMappingRegistryEntryModel(
+                        registry_id=registry.id,
+                        source_field="variety_code",
+                        source_code="var-1",
+                        target_type="VARIETY",
+                        target_business_key="var-business-key-1",
+                        entry_hash=_hex64(f"variety-entry-{registry_suffix}"),
+                    ),
+                ]
+            )
+            await session.flush()
+            registry.status = "SEALED"
+            await session.flush()
+
+            batch = _build_batch(import_id=import_id, source_system=source_system)
+            session.add(batch)
+            await session.flush()
+            for record in records:
+                record.batch_id = batch.id
+                session.add(record)
+            await session.flush()
+            validation_run_id = await _seed_validation_run(
+                session,
+                batch_id=batch.id,
+                policy_version=policy_version,
+            )
+            await _seed_mapping_snapshot(
+                session,
+                validation_run_id=validation_run_id,
+                policy_version=policy_version,
+            )
+            await _seed_validation_result(session, validation_run_id=validation_run_id)
+            await _seed_lineage_basis_and_evidence(
+                session,
+                batch_id=batch.id,
+                validation_run_id=validation_run_id,
+                records=records,
+            )
+            manifest = _build_commit_manifest(
+                batch_id=batch.id,
+                validation_run_id=validation_run_id,
+                record_count=len(records),
+            )
+            session.add(manifest)
+            await session.flush()
+            batch.status = "COMMITTED"
+            batch.committed_at_or_null = datetime(2024, 1, 1, tzinfo=UTC)
+
+        return {
+            "policy_version": policy_version,
+            "batch_id": batch.id,
+            "manifest_hash": manifest.commit_manifest_hash,
+        }
+
+
 async def _align_i7_seed_to_forecast_scope(
     sessionmaker: async_sessionmaker[AsyncSession],
     *,
@@ -968,7 +1094,7 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
             harvest_date=date(2026, 3, 8),
             season_code="season-1",
         )
-        seeded = await _seed_seeded_batch(
+        seeded = await _seed_quality_service_batch(
             sessionmaker,
             import_id=import_id,
             records=[record],
