@@ -1436,6 +1436,22 @@ def _quality_error(
     )
 
 
+def _persisted_subfarm_identity_matches(
+    persisted_subfarm_business_key: str,
+    *,
+    farm_business_key: str,
+    subfarm_business_key_or_null: str | None,
+) -> bool:
+    """Compare the two persisted public spellings of a subfarm key."""
+
+    if subfarm_business_key_or_null is None:
+        return False
+    return persisted_subfarm_business_key in {
+        subfarm_business_key_or_null,
+        f"{farm_business_key}/{subfarm_business_key_or_null}",
+    }
+
+
 async def _load_quality_parent_forecast(
     session: AsyncSession,
     *,
@@ -1487,7 +1503,11 @@ async def _load_quality_parent_forecast(
     resolved_scope = resolved_identity.scopes[0]
     if (
         resolved_scope.farm_business_key != evidence.farm_business_key
-        or resolved_scope.subfarm_business_key != evidence.subfarm_business_key_or_null
+        or not _persisted_subfarm_identity_matches(
+            resolved_scope.subfarm_business_key,
+            farm_business_key=evidence.farm_business_key,
+            subfarm_business_key_or_null=evidence.subfarm_business_key_or_null,
+        )
         or resolved_scope.variety_business_key != evidence.variety_business_key
     ):
         raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
