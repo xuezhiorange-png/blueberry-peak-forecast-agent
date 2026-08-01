@@ -78,6 +78,20 @@ async def _cleanup_s4_rows(public_forecast_id: str | None = None) -> None:
         await session.commit()
 
 
+async def _truncate_s4_rows_for_postgres_test() -> None:
+    """Reset committed S4 rows without bypassing the immutable-row assertion."""
+
+    async with AsyncSessionMaker() as session:
+        await session.execute(
+            text(
+                "TRUNCATE trial_resource_binding, trial_forecast_evidence, "
+                "core_forecast_metric, core_forecast_daily_row, core_forecast_run "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
+        await session.commit()
+
+
 async def _seed_committed_authorities() -> None:
     async with AsyncSessionMaker() as session:
         await _seed_authorities(session)
@@ -788,7 +802,7 @@ async def test_postgres_concurrent_trial_forecast_evidence_exact_replay_is_singl
             assert binding_rows[0].business_scope_hash == evidence_rows[0].business_scope_hash
             assert await _related_row_counts(verify, request_hash) == (1, 1, 1)
     finally:
-        await _cleanup_s4_rows(request_hash or None)
+        await _truncate_s4_rows_for_postgres_test()
 
 
 async def test_postgres_concurrent_trial_forecast_evidence_conflict_is_single_winner() -> None:
@@ -847,7 +861,7 @@ async def test_postgres_concurrent_trial_forecast_evidence_conflict_is_single_wi
             assert binding_rows[0].owner_identity == successful_result[1]
             assert await _related_row_counts(verify, request_hash) == (1, 1, 1)
     finally:
-        await _cleanup_s4_rows(request_hash)
+        await _truncate_s4_rows_for_postgres_test()
 
 
 async def test_postgres_trial_forecast_evidence_insert_failure_rolls_back_outer_transaction(
