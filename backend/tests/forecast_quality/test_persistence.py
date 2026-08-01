@@ -94,6 +94,7 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 from backend.app.models.master_data import Season
+from backend.app.models.residual_model import ResidualModelPredictionRun
 from backend.app.models.trial import TrialResourceBindingModel
 from backend.app.residual_model.canonical import (
     canonical_payload_hash,
@@ -103,6 +104,7 @@ from backend.app.residual_model.manifest import manifest_hash as residual_manife
 from backend.app.residual_model.persistence import (
     _feature_schema_hash,
     _prediction_hash_from_result,
+    load_residual_prediction_run_by_id,
     save_residual_prediction_run,
     save_residual_training_run,
 )
@@ -110,6 +112,9 @@ from backend.app.residual_model.schemas import (
     ResidualPredictionExecutionResult,
     ResidualPredictionRow,
     ResidualTrainingExecutionResult,
+)
+from backend.app.rolling_backtest.persistence import (
+    load_s2_historical_binding_by_instance_hash,
 )
 from backend.app.trial import (
     DefaultTrialApplicationService,
@@ -1125,7 +1130,7 @@ async def _seed_quality_task10_fixture(
     *,
     task9_run_id: int,
     task9_result_hash: str,
-) -> None:
+) -> ResidualModelPredictionRun:
     """Persist a real, loader-verifiable structural-only Task 10 authority."""
 
     training_signature = "3" * 64
@@ -1257,7 +1262,7 @@ async def _seed_quality_task10_fixture(
     prediction_result = prediction_result.model_copy(
         update={"prediction_hash": _prediction_hash_from_result(prediction_result)}
     )
-    await save_residual_prediction_run(
+    return await save_residual_prediction_run(
         session,
         result=prediction_result,
         feature_schema_version=feature_schema_version,
@@ -1473,11 +1478,22 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
             )
             task9_run = await session.get(HarvestStateRun, 910001)
             assert task9_run is not None
-            await _seed_quality_task10_fixture(
+            persisted_prediction_run = await _seed_quality_task10_fixture(
                 session,
                 task9_run_id=task9_run.id,
                 task9_result_hash=task9_run.result_hash,
             )
+            expected_prediction_run_id = persisted_prediction_run.id
+            assert expected_prediction_run_id > 0
+            task10_before = await load_residual_prediction_run_by_id(
+                session,
+                run_id=expected_prediction_run_id,
+            )
+            assert task10_before is not None
+            expected_prediction_hash = persisted_prediction_run.prediction_hash
+            expected_input_signature = persisted_prediction_run.prediction_input_signature
+            expected_row_hashes = tuple(row.prediction_hash for row in task10_before.rows)
+            assert all(row.prediction_run_id == 0 for row in task10_before.rows)
             assert forecast.forecast_scope is not None
             forecast_scope = forecast.forecast_scope
 
@@ -1544,6 +1560,30 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
                     evaluation_instance_hash=created.report_id,
                 )
             )
+            s2_identity = read_model.run_payload.get("s2_run_identity")
+            assert isinstance(s2_identity, str)
+            s2_read_model = await load_s2_historical_binding_by_instance_hash(
+                session,
+                instance_hash=s2_identity,
+            )
+            assert s2_read_model.rows
+            assert all(row.authority_verification == "PERSISTED" for row in s2_read_model.rows)
+            assert {
+                row.forecast_authority.task10_authority_identity_hash for row in s2_read_model.rows
+            } == {expected_prediction_hash}
+            assert {
+                row.forecast_authority.task10_prediction_row_identity_hash
+                for row in s2_read_model.rows
+            } <= set(expected_row_hashes)
+            task10_after = await load_residual_prediction_run_by_id(
+                session,
+                run_id=expected_prediction_run_id,
+            )
+            assert task10_after is not None
+            assert task10_after.prediction_hash == expected_prediction_hash
+            assert task10_after.prediction_input_signature == expected_input_signature
+            assert tuple(row.prediction_hash for row in task10_after.rows) == expected_row_hashes
+            assert all(row.prediction_run_id == 0 for row in task10_after.rows)
             status_rows = [
                 payload for payload in read_model.metrics if "status_evidence" in payload
             ]
