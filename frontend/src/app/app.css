@@ -489,6 +489,7 @@ h1 {
   background: var(--line);
 }
 .metric {
+  min-width: 0;
   min-height: 100px;
   padding: 16px;
   background: var(--paper);
@@ -504,6 +505,7 @@ h1 {
   color: var(--pine);
   font-family: Georgia, serif;
   font-size: 25px;
+  overflow-wrap: anywhere;
 }
 .metric-value.muted {
   color: #8e9b94;
@@ -542,15 +544,18 @@ h1 {
   color: var(--muted);
 }
 .result-line span:last-child {
+  min-width: 0;
   color: var(--ink);
   font-weight: 700;
   text-align: right;
+  overflow-wrap: anywhere;
 }
 .result-line .dash {
   color: #8d9b94;
   font-weight: 400;
 }
 .chart-shell {
+  min-width: 0;
   min-height: 230px;
   margin-top: 18px;
   padding: 20px;
@@ -589,6 +594,8 @@ h1 {
   font-size: 12px;
 }
 .table-wrap {
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--line);
 }
@@ -946,7 +953,12 @@ h1 {
     padding: 18px;
   }
   .section-header {
+    flex-direction: column;
     margin-bottom: 18px;
+  }
+  .section-header > * {
+    min-width: 0;
+    max-width: 100%;
   }
   .section-header h2 {
     font-size: 21px;
@@ -986,6 +998,10 @@ h1 {
   }
   .chart-shell {
     padding: 14px;
+  }
+  .chart-title {
+    flex-wrap: wrap;
+    gap: 8px 12px;
   }
   .not-found {
     padding: 40px 0;
