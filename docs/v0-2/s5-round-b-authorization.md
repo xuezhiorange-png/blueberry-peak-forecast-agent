@@ -57,18 +57,18 @@ dependency, or lockfile change is authorized here.
 
 | PR | Title | State | Merged | Merge SHA | Merged at | Base | Final PR head |
 | ---: | --- | --- | --- | --- | --- | --- | --- |
-| 143 | feat(v0.2-s5): add Trial import API foundation | MERGED | true | 96fd95b8fdf03040329b1294ab7fbad9371dc3b3 | 2026-07-30T14:12:14Z | main | 03e4ca... |
-| 145 | feat(v0.2-s5): add A2 schema authority persistence | MERGED | true | e496adbc5edb741191e2d50946d3e9a29ab38755 | 2026-07-31T17:10:58Z | main | 7b2778... |
-| 149 | feat(v0.2-s5): add A2 Forecast authority and adapters | MERGED | true | c6ecf13348bfcbdd1d6c8e6636262fb4e85e4d52 | 2026-08-01T09:29:48Z | main | 4a7104... |
-| 150 | fix(v0.2-s5): persist immutable Trial Forecast evidence | MERGED | true | 63000a98de47f7d261c876ddf9a18c32a3d49c53 | 2026-08-01T03:11:10Z | main | 502a907... |
-| 151 | test(v0.2-s5): harden A2 Forecast public contracts | MERGED | true | 5dded261850de5f1d1edaa826ffda99a129efc0d | 2026-08-01T11:01:33Z | main | 73f2a8... |
-| 152 | feat(v0.2-s5): add A2 Quality adapters and typed metrics | MERGED | true | c24d91719b03ecd213db568a22653376edecf8ae | 2026-08-02T12:59:09Z | main | 7cb4d917... |
-| 153 | fix(v0.2-s2): persist I7 snapshot scope as canonical JSON | MERGED | true | a53ff7fa7a935597f4ee68606c808cba62c63c30 | 2026-08-02T02:10:47Z | main | 505ce0c... |
-| 154 | fix(v0.2-s5): type Forecast public summary contracts | MERGED | true | 38043358e8310f3827f7d17329ba44f031a9a81d | 2026-08-02T14:43:28Z | main | 7a942528... |
+| 143 | feat(v0.2-s5): add Trial import API foundation | MERGED | true | 96fd95b8fdf03040329b1294ab7fbad9371dc3b3 | 2026-07-30T14:12:14Z | main | 03e4ca53ab939f362c76f238c9baeccac434db53 |
+| 145 | feat(v0.2-s5): add A2 schema authority persistence | MERGED | true | e496adbc5edb741191e2d50946d3e9a29ab38755 | 2026-07-31T17:10:58Z | main | 7b27788096dc83ecbcdffcec933e9142b0028651 |
+| 149 | feat(v0.2-s5): add A2 Forecast authority and adapters | MERGED | true | c6ecf13348bfcbdd1d6c8e6636262fb4e85e4d52 | 2026-08-01T09:29:48Z | main | 4a7104ba5606ab7fb0beda76749aed923e36289e |
+| 150 | fix(v0.2-s5): persist immutable Trial Forecast evidence | MERGED | true | 63000a98de47f7d261c876ddf9a18c32a3d49c53 | 2026-08-01T03:11:10Z | main | 502a907941dedf0c5a4acde2a139d6b9a6afa735 |
+| 151 | test(v0.2-s5): harden A2 Forecast public contracts | MERGED | true | 5dded261850de5f1d1edaa826ffda99a129efc0d | 2026-08-01T11:01:33Z | main | 73f2a8d618c9ab2fe0c4c41ac3518e4bd397b755 |
+| 152 | feat(v0.2-s5): add A2 Quality adapters and typed metrics | MERGED | true | c24d91719b03ecd213db568a22653376edecf8ae | 2026-08-02T12:59:09Z | main | 7cb4d917400454d5ce6650c9a74ae5bd9ac8c99a |
+| 153 | fix(v0.2-s2): persist I7 snapshot scope as canonical JSON | MERGED | true | a53ff7fa7a935597f4ee68606c808cba62c63c30 | 2026-08-02T02:10:47Z | main | 505ce0c44255ba9f95169e54def7d4386df310b3 |
+| 154 | fix(v0.2-s5): type Forecast public summary contracts | MERGED | true | 38043358e8310f3827f7d17329ba44f031a9a81d | 2026-08-02T14:43:28Z | main | 7a942528bae1bfabb5d7cc2b4c2cdb4c39ba2767 |
 
-The abbreviated PR-head column is display-only. The merge commits, states,
-base branches, and merge timestamps were read from GitHub; the audited main
-is exactly the PR154 merge commit.
+The merge commits, states, base branches, merge timestamps, and complete final
+PR-head SHA values above were read from GitHub; the audited main is exactly
+the PR154 merge commit.
 
 PR143_MERGED=true
 PR145_MERGED=true
