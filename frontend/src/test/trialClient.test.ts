@@ -11,7 +11,7 @@ import {
 } from "../features/actualHarvest/importApi";
 import { getOrCreateIdempotencyKey } from "../lib/idempotency";
 
-const okSchema = z.object({ ok: z.boolean() });
+const okSchema = z.object({ ok: z.boolean() }).strict();
 const uploadHash = "a".repeat(64);
 
 function response(body: unknown, status = 200, headers?: HeadersInit) {
@@ -148,6 +148,36 @@ describe("trialClient", () => {
     });
   });
 
+  it("maps a structured 422 without retrying or exposing payload details", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      response(
+        {
+          request_id: null,
+          status: "ERROR",
+          code: "TRIAL_REQUEST_INVALID",
+          message_template_id: "TRIAL_REQUEST_INVALID",
+          retryable: false,
+          details: { internal: "must not be shown" },
+        },
+        422,
+      ),
+    );
+    const error = await getJson("/api/v1/trial/forecasts/x", okSchema, fetcher).catch(
+      (value) => value,
+    );
+    expect(error).toMatchObject({ code: "TRIAL_REQUEST_INVALID", status: 422, retryable: false });
+    expect(String(error)).not.toContain("must not be shown");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects unknown success keys as a response contract error", async () => {
+    const fetcher = vi.fn().mockResolvedValue(response({ ok: true, extra: "unexpected" }));
+    await expect(getJson("/api/v1/trial/forecasts/x", okSchema, fetcher)).rejects.toMatchObject({
+      code: "TRIAL_RESPONSE_CONTRACT_INVALID",
+      status: 502,
+    });
+  });
+
   it("uses a safe HTTP fallback for invalid JSON", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response("not-json", { status: 502 }));
     const error = await getJson("/api/v1/trial/forecasts/x", okSchema, fetcher).catch(
@@ -178,7 +208,10 @@ describe("trialClient", () => {
   it("maps CSV filename from a server export and supports abort", async () => {
     const csv = vi.fn().mockResolvedValue(
       new Response("a,b\n", {
-        headers: { "content-disposition": 'attachment; filename="report.csv"' },
+        headers: {
+          "content-type": "text/csv",
+          "content-disposition": 'attachment; filename="report.csv"',
+        },
       }),
     );
     const result = await downloadCsv("/api/v1/trial/quality-reports/x/export.csv", csv);

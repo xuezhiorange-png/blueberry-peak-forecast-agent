@@ -62,7 +62,9 @@ describe("QualityPage", () => {
     const unsupported = new File(["not a spreadsheet"], "notes.txt", { type: "text/plain" });
     fireEvent.change(input, { target: { files: [unsupported] } });
     await waitFor(() =>
-      expect(screen.getByText("不支持的文件类型，仅允许 .csv 或 .xlsx。文件未上传。")).toBeTruthy(),
+      expect(
+        screen.getByText("不支持的文件类型或 MIME，仅允许 .csv 或 .xlsx。文件未上传。"),
+      ).toBeTruthy(),
     );
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
