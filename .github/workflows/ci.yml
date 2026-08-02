@@ -707,6 +707,7 @@ jobs:
             backend/tests/integration/test_task9_authority_resolution_postgres.py \
             backend/tests/integration/test_task9_authority_repository_postgres.py \
             backend/tests/actual_harvest_import/test_lifecycle_postgres.py \
+            backend/tests/actual_harvest_import/test_i7_label_snapshot_postgres.py \
             backend/tests/integration/agent/test_orchestration_postgres.py \
             backend/tests/integration/agent/test_postgres_selector_year_extraction.py \
             backend/tests/integration/agent/test_slice_c_orchestration_postgres.py \

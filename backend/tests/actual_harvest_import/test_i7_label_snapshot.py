@@ -16,6 +16,7 @@ Coverage matrix mirrors
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -815,6 +816,83 @@ def _base_request(**overrides) -> ActualHarvestLabelSnapshotRequest:
     return ActualHarvestLabelSnapshotRequest.model_validate(payload)
 
 
+@pytest.mark.parametrize(
+    ("scope_case", "overrides"),
+    [
+        ("single", {}),
+        (
+            "multiple",
+            {
+                "season_business_keys": (
+                    "season-business-key-1",
+                    "season-business-key-2",
+                ),
+                "farm_business_keys_or_empty_for_all": (
+                    "farm-business-key-1",
+                    "farm-business-key-2",
+                ),
+                "variety_business_keys_or_empty_for_all": (
+                    "var-business-key-1",
+                    "var-business-key-2",
+                ),
+            },
+        ),
+        (
+            "empty-optional",
+            {
+                "farm_business_keys_or_empty_for_all": (),
+                "variety_business_keys_or_empty_for_all": (),
+            },
+        ),
+    ],
+)
+async def test_scope_fields_are_canonical_json_arrays(
+    session_maker: async_sessionmaker[AsyncSession],
+    scope_case: str,
+    overrides: dict[str, object],
+) -> None:
+    record = _build_record(
+        external_logical_record_id=f"logical-scope-{scope_case}",
+        external_revision_id=f"rev-scope-{scope_case}",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id=f"imp-scope-{scope_case}",
+        records=[record],
+    )
+    request = _base_request(
+        snapshot_idempotency_key=f"idem-scope-{scope_case}",
+        **overrides,
+    )
+
+    async with session_maker() as session:
+        async with session.begin():
+            result = await create_label_snapshot(
+                session,
+                request=request,
+                created_by_identity="op-test",
+            )
+
+    async with session_maker() as session:
+        snapshot = await session.scalar(
+            select(ActualHarvestLabelSnapshotModel).where(
+                ActualHarvestLabelSnapshotModel.snapshot_idempotency_key
+                == request.snapshot_idempotency_key
+            )
+        )
+    assert snapshot is not None
+    assert json.loads(snapshot.season_business_keys) == list(request.season_business_keys)
+    assert json.loads(snapshot.farm_business_keys_or_empty_for_all) == list(
+        request.farm_business_keys_or_empty_for_all
+    )
+    assert json.loads(snapshot.variety_business_keys_or_empty_for_all) == list(
+        request.variety_business_keys_or_empty_for_all
+    )
+    assert snapshot.snapshot_request_identity_hash == result.header.snapshot_request_identity_hash
+    assert snapshot.snapshot_instance_identity_hash == result.header.snapshot_instance_identity_hash
+    assert snapshot.label_snapshot_hash == result.header.label_snapshot_hash
+
+
 # ---------------------------------------------------------------------------
 # Winner / cutoff visibility
 # ---------------------------------------------------------------------------
@@ -1183,6 +1261,12 @@ async def test_idempotent_replay_zero_write(
             )
 
     assert first.header.label_snapshot_hash == second.header.label_snapshot_hash
+    assert first.header.snapshot_request_identity_hash == (
+        second.header.snapshot_request_identity_hash
+    )
+    assert first.header.snapshot_instance_identity_hash == (
+        second.header.snapshot_instance_identity_hash
+    )
     assert first.header.winner_count == second.header.winner_count
 
     async with session_maker() as session:
@@ -1221,6 +1305,11 @@ async def test_idempotency_conflict(
                     request=second_request,
                     created_by_identity="op-test",
                 )
+
+    async with session_maker() as session:
+        snapshots = (await session.scalars(select(ActualHarvestLabelSnapshotModel))).all()
+    assert len(snapshots) == 1
+    assert json.loads(snapshots[0].season_business_keys) == list(first_request.season_business_keys)
 
 
 async def test_new_idempotency_key_creates_new_snapshot(
