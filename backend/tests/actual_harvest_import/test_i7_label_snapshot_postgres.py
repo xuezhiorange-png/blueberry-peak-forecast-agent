@@ -1162,17 +1162,16 @@ async def test_e5_3_pg_scope_json_arrays_round_trip_and_hashes() -> None:
 
     try:
         await _truncate_i7_tables()
+        season_business_keys = tuple(sorted((f"season-{suffix}", "season-extra")))
+        farm_business_keys_or_empty_for_all = tuple(sorted((f"farm-master-{suffix}", "farm-extra")))
+        variety_business_keys_or_empty_for_all = tuple(
+            sorted((f"variety-master-{suffix}", "variety-extra"))
+        )
         request = _i7_request(
             snapshot_idempotency_key=f"idem-e5-3-scope-{suffix}",
-            season_business_keys=(f"season-{suffix}", "season-extra"),
-            farm_business_keys_or_empty_for_all=(
-                f"farm-master-{suffix}",
-                "farm-extra",
-            ),
-            variety_business_keys_or_empty_for_all=(
-                f"variety-master-{suffix}",
-                "variety-extra",
-            ),
+            season_business_keys=season_business_keys,
+            farm_business_keys_or_empty_for_all=farm_business_keys_or_empty_for_all,
+            variety_business_keys_or_empty_for_all=variety_business_keys_or_empty_for_all,
         )
 
         async with AsyncSessionMaker() as session:
