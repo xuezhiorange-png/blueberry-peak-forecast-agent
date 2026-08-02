@@ -2202,6 +2202,8 @@ jobs:
           PY
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
+      - name: Install existing Playwright Chromium
+        run: frontend/node_modules/.bin/playwright install --with-deps chromium
       - name: Start real backend
         env:
           POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
