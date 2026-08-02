@@ -32,12 +32,17 @@ from backend.app.trial import (
     TrialApiError,
     TrialApiErrorCode,
     TrialCsvDocument,
+    TrialForecastBacklogSummaryResponse,
     TrialForecastCreateRequest,
     TrialForecastDailyCurveResponse,
     TrialForecastDailyRow,
     TrialForecastInputAuthorityItem,
     TrialForecastInputAuthorityResponse,
+    TrialForecastInventorySummaryResponse,
+    TrialForecastPolicyVersionsResponse,
+    TrialForecastSingleDayPeakResponse,
     TrialForecastSummaryResponse,
+    TrialForecastSustainedSevenDayPeakResponse,
     TrialQualityComparisonResponse,
     TrialQualityReportCreateRequest,
     TrialQualityReportResponse,
@@ -94,14 +99,30 @@ def _forecast() -> TrialForecastSummaryResponse:
         daily_p50_series=rows,
         daily_p80_series=rows,
         daily_p90_series=rows,
-        single_day_peak={"target_date": "2026-01-02", "quantity_kg": "14.000000"},
-        sustained_seven_day_peak=None,
+        single_day_peak=TrialForecastSingleDayPeakResponse(
+            date=date(2026, 1, 2),
+            quantity_kg=Decimal("14.000000"),
+            tie_break="EARLIEST_DATE",
+        ),
+        sustained_seven_day_peak=TrialForecastSustainedSevenDayPeakResponse(
+            start_date=date(2026, 1, 2),
+            end_date=date(2026, 1, 8),
+            cumulative_quantity_kg=Decimal("98.000000"),
+            daily_average_kg_per_day=Decimal("14.000000"),
+            window_days=7,
+            metric="ROLLING_CUMULATIVE",
+            date_continuity="STRICT_CALENDAR_DAYS",
+            tie_break="EARLIEST_START_DATE",
+        ),
         season_cumulative_quantity=Decimal("22.000000"),
-        mature_inventory_summary={"quantity_kg": "3.000000"},
-        backlog_summary={"quantity_kg": "0.000000"},
+        mature_inventory_summary=TrialForecastInventorySummaryResponse(
+            opening_quantity_kg=Decimal("3.000000"),
+            closing_quantity_kg=Decimal("2.000000"),
+        ),
+        backlog_summary=TrialForecastBacklogSummaryResponse(quantity_kg=Decimal("0.000000")),
         model_version="model-v1",
         parameter_version="parameter-v1",
-        policy_versions={"forecast": "policy-v1"},
+        policy_versions=TrialForecastPolicyVersionsResponse(forecast="policy-v1"),
         canonical_public_hash="a" * 64,
     )
 
@@ -954,5 +975,9 @@ async def test_conflicting_replay_api_acceptance(client: AsyncClient) -> None:
 async def test_no_frontend_recomputation_acceptance(client: AsyncClient) -> None:
     response = await client.get("/api/v1/trial/forecasts/forecast-public-1")
     body = response.json()
-    assert body["single_day_peak"] == {"target_date": "2026-01-02", "quantity_kg": "14.000000"}
+    assert body["single_day_peak"] == {
+        "date": "2026-01-02",
+        "quantity_kg": "14.000000",
+        "tie_break": "EARLIEST_DATE",
+    }
     assert body["season_cumulative_quantity"] == "22.000000"
