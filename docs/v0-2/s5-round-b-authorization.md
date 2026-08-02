@@ -13,6 +13,17 @@ AUDIT_MODE=READ_ONLY_CLOSEOUT_AND_AUTHORIZATION_DRAFT
 S5_ROUND_A1_COMPLETE=true
 S5_ROUND_A2_COMPLETE=true
 S5_PRE_B_PUBLIC_DTO_HARDENING_COMPLETE=true
+SOURCE_TASK_EXECUTION_RESULT=FAIL
+SOURCE_TASK_BLOCK_REASON=TRANSIENT_UNAUTHORIZED_WRITE_IN_PROTECTED_WORKTREE_RECOVERED
+PROTECTED_WORKTREE_TRANSIENT_WRITE_OCCURRED=true
+PROTECTED_WORKTREE_FINAL_STATE_RESTORED=true
+PROTECTED_WORKTREE_TRACKED_STATE_CHANGED_AT_END=false
+PROTECTED_WORKTREE_PROTECTED_UNTRACKED_CONTENT_PRESERVED=true
+NO_UNAUTHORIZED_MUTATION=false
+NO_NEW_UNAUTHORIZED_MUTATION_IN_REMEDIATION=true
+ROUND_A2_TECHNICAL_CLOSEOUT=PASS
+ROUND_B_PRODUCT_READINESS=READY
+SOURCE_TASK_PROCESS_INTEGRITY=FAIL
 ROUND_B_READINESS=READY
 ROUND_B_AUTHORIZATION_DRAFTED=true
 ROUND_B_AUTHORIZATION_ACCEPTED=false
@@ -47,9 +58,62 @@ BASELINE_ACTUAL_SHA=38043358e8310f3827f7d17329ba44f031a9a81d
 BASELINE_DRIFT=none
 PR154_IS_ANCESTOR_OF_MAIN=true
 
-The protected original worktree was not checked out, cleaned, staged, or
-edited. No backend, frontend, test, migration, workflow, manifest,
-dependency, or lockfile change is authorized here.
+During the source task, the authorization document was initially written to
+the protected original worktree by mistake. The file was removed immediately,
+and the protected worktree was restored to its original branch, HEAD, tracked
+state, and protected untracked contents before the source task ended.
+
+The transient write did not enter the Round B authorization branch and did not
+change the final PR path set. It was nevertheless an unauthorized write during
+execution. The source task therefore correctly reported FAIL and preserved
+NO_UNAUTHORIZED_MUTATION=false. No backend, frontend, test, migration,
+workflow, manifest, dependency, or lockfile change is authorized here.
+
+The final state being restored does not erase the execution event.
+
+## Execution-integrity disclosure
+
+1. What happened: the new authorization document was first applied in the
+   protected source worktree instead of the isolated documentation worktree.
+2. Write target: the protected original worktree at
+   /Users/charles/Documents/智能agent开发.
+3. Discovery: the issue was found immediately when the intended isolated
+   worktree did not contain the new document and the original worktree showed
+   an unexpected untracked docs file.
+4. Recovery: the accidental document file was removed immediately. No
+   protected untracked file was removed, moved, overwritten, or staged.
+5. Final state: the original branch, HEAD, tracked state, and protected
+   untracked contents were restored. The protected worktree ended with the
+   same final state as its start snapshot.
+6. Branch and PR integrity: the transient file was never committed to the
+   Round B authorization branch. The PR contains only
+   docs/v0-2/s5-round-b-authorization.md.
+7. Process result: recovery produced no remaining file delta, but it did not
+   make the source execution compliant. The source task remains FAIL with
+   NO_UNAUTHORIZED_MUTATION=false.
+8. Product result: the independent Round A2 technical evidence and product
+   readiness conclusions remain separately reviewable. They do not override
+   the process failure.
+9. Correction method: this disclosure is being added as a new ordinary
+   commit. Existing commits are not amended, removed, or rewritten.
+10. Governance boundary: Ready, Merge, Round B implementation, Round C, and
+    V0.2 release remain unauthorized.
+
+This event is retained as an execution violation. It is not described as
+harmless, irrelevant, compliant, or absent.
+
+Execution and product conclusions are intentionally separate:
+
+ROUND_A2_TECHNICAL_CLOSEOUT=PASS
+ROUND_B_PRODUCT_READINESS=READY
+SOURCE_TASK_PROCESS_INTEGRITY=FAIL
+ROUND_B_AUTHORIZATION_ACCEPTED=false
+ROUND_B_IMPLEMENTATION_AUTHORIZED=false
+
+ROUND_B_READINESS=READY is a product and technology audit conclusion. The
+source task execution result is a governance/process conclusion. Neither
+conclusion overwrites the other. This corrective document does not accept
+Round B authorization and does not authorize Round B implementation.
 
 ## 2. Round A1 and Round A2 closeout evidence
 
