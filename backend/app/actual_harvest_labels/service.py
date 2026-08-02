@@ -80,6 +80,7 @@ from backend.app.actual_harvest_labels.schemas import (
     ActualHarvestLabelSnapshotResult,
     ActualHarvestWinnerRow,
 )
+from backend.app.rolling_backtest.canonical import canonical_json_dumps
 
 SOURCE_PRIORITY_NOT_AUTHORIZED = "cross-source conflict has no authorized priority"
 
@@ -473,10 +474,12 @@ async def create_label_snapshot(
         label_observation_cutoff_at_or_null=request.label_observation_cutoff_at_or_null,
         harvest_date_start=request.harvest_date_start,
         harvest_date_end=request.harvest_date_end,
-        season_business_keys=",".join(request.season_business_keys),
-        farm_business_keys_or_empty_for_all=",".join(request.farm_business_keys_or_empty_for_all),
-        variety_business_keys_or_empty_for_all=",".join(
-            request.variety_business_keys_or_empty_for_all
+        season_business_keys=canonical_json_dumps(list(request.season_business_keys)),
+        farm_business_keys_or_empty_for_all=canonical_json_dumps(
+            list(request.farm_business_keys_or_empty_for_all)
+        ),
+        variety_business_keys_or_empty_for_all=canonical_json_dumps(
+            list(request.variety_business_keys_or_empty_for_all)
         ),
         snapshot_policy_version=request.snapshot_policy_version,
         winner_policy_version=request.winner_policy_version,
