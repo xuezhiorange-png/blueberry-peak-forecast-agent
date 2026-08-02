@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from .enums import (
     ComparisonAvailability,
@@ -30,6 +30,85 @@ class S3EvaluationInput:
     s2_binding_row_set_hash: str
     metric_policy_version: FrozenVersion
     baseline_policy_version: FrozenVersion
+
+
+@dataclass(frozen=True, slots=True)
+class QualityStatusEvidenceScope:
+    """Typed public business grain carried by frozen status evidence."""
+
+    forecast_horizon_days: Literal[7, 14, 21]
+    season_business_key: str
+    farm_business_key: str
+    subfarm_business_key: str
+    variety_business_key: str
+    model_identity: str
+
+    def as_payload(self) -> dict[str, object]:
+        return {
+            "forecast_horizon_days": self.forecast_horizon_days,
+            "season_business_key": self.season_business_key,
+            "farm_business_key": self.farm_business_key,
+            "subfarm_business_key": self.subfarm_business_key,
+            "variety_business_key": self.variety_business_key,
+            "model_identity": self.model_identity,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class QualityStatusEvidenceCell:
+    """One immutable, typed NOT_VERIFIED/NOT_COMPUTABLE Quality metric cell."""
+
+    metric_name: Literal[
+        "p80_upper_coverage",
+        "p90_upper_coverage",
+        "single_day_peak",
+        "sustained_seven_day_peak",
+        "prediction_interval",
+    ]
+    metric_status: Literal["NOT_VERIFIED", "NOT_COMPUTABLE"]
+    reason_code: str
+    scope: QualityStatusEvidenceScope
+    forecast_quantile: Literal["P50", "P80", "P90"]
+    metric_value: Decimal | None
+    numerator: Decimal | None
+    denominator: Decimal | None
+    covered_count_or_null: int | None
+    candidate_row_count_or_null: int | None
+    business_date_or_null: date | None
+    window_start_date_or_null: date | None
+    window_end_date_or_null: date | None
+    lower_bound_available_or_null: bool | None
+    lower_bound_value_or_null: Decimal | None
+    upper_bound_value_or_null: Decimal | None
+    source_s2_run_identity: str
+    source_s2_manifest_identity: str
+    source_s2_binding_row_set_hash: str
+    metric_result_key_hash: str
+    canonical_payload: dict[str, object]
+    canonical_hash: str
+
+    @property
+    def deterministic(self) -> bool:
+        return True
+
+    @property
+    def canonicalizable(self) -> bool:
+        return True
+
+    @property
+    def decimal_only(self) -> bool:
+        return True
+
+    @property
+    def native_float_allowed(self) -> bool:
+        return False
+
+
+# These names make the frozen contract explicit to callers while keeping one
+# persistence representation and one validation path for all status cells.
+QualityCoverageStatusEvidence = QualityStatusEvidenceCell
+QualityPeakStatusEvidence = QualityStatusEvidenceCell
+QualityIntervalStatusEvidence = QualityStatusEvidenceCell
 
 
 @dataclass(frozen=True)

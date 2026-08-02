@@ -7,16 +7,17 @@ import dataclasses
 import hashlib
 import json
 import os
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 
 import asyncpg
 import pytest
 from alembic import command
 from alembic.config import Config
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sqlalchemy import delete, func, insert, select, text, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import (
@@ -26,6 +27,15 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from backend.app.actual_harvest_import.api_auth import ActualHarvestActorContext
+from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
+from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
+from backend.app.actual_harvest_import.validation_models import (
+    ActualHarvestMappingPolicyRegistryModel,
+    ActualHarvestMappingRegistryEntryModel,
+    ActualHarvestValidationMappingEvidenceModel,
+    ActualHarvestValidationRunModel,
+)
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.forecast_quality.baseline import resolve_baseline_point_forecast
 from backend.app.forecast_quality.breakdown import calculate_breakdown_cells
@@ -38,8 +48,10 @@ from backend.app.forecast_quality.persistence import (
     ForecastQualityConflictError,
     ForecastQualityContractError,
     ForecastQualityPartialResultError,
+    ForecastQualityPersistenceError,
     PersistedQualityEvaluation,
     _validate_evaluation_input,
+    load_quality_evaluation_by_instance_hash,
     persist_quality_evaluation,
 )
 from backend.app.forecast_quality.schemas import (
@@ -47,8 +59,27 @@ from backend.app.forecast_quality.schemas import (
     BaselineSourceSnapshot,
     BreakdownSpec,
     DailyMetricResult,
+    QualityStatusEvidenceCell,
     S3BindingRow,
     S3EvaluationInput,
+)
+from backend.app.forecast_quality.status_evidence import (
+    build_frozen_quality_status_evidence,
+)
+from backend.app.harvest_state.canonical import (
+    canonical_json_value,
+    make_result_hash,
+    make_season_record_hash,
+    sha256_hex,
+)
+from backend.app.harvest_state.schemas import (
+    CohortTransitionRow,
+    DailyMemberStateRow,
+    DailyPoolResolvedParameters,
+    DailyPoolStateRow,
+    ResolvedParameterSnapshot,
+    RunResolvedParameters,
+    Task9ACompletedOutput,
 )
 from backend.app.models.forecast_quality import (
     ModelBaselineComparisonModel,
@@ -58,6 +89,62 @@ from backend.app.models.forecast_quality import (
     QualityEvaluationRunModel,
     QualityMetricResultModel,
 )
+from backend.app.models.harvest_state import (
+    HarvestStateCohortTransitionRowModel,
+    HarvestStateDailyMemberRowModel,
+    HarvestStateDailyPoolRowModel,
+    HarvestStateRun,
+)
+from backend.app.models.master_data import Season
+from backend.app.models.residual_model import ResidualModelPredictionRun
+from backend.app.models.trial import TrialResourceBindingModel
+from backend.app.repositories.trial_resource_binding import TrialResourceBindingError
+from backend.app.residual_model.canonical import (
+    canonical_payload_hash,
+    prediction_input_signature_hash,
+)
+from backend.app.residual_model.config import load_residual_model_config
+from backend.app.residual_model.manifest import manifest_hash as residual_manifest_hash
+from backend.app.residual_model.model import build_artifact_metadata, serialize_estimator
+from backend.app.residual_model.persistence import (
+    _feature_schema_hash,
+    _prediction_hash_from_result,
+    load_residual_prediction_run_by_id,
+    save_residual_prediction_run,
+    save_residual_training_run,
+)
+from backend.app.residual_model.schemas import (
+    PersistableResidualArtifact,
+    ResidualPredictionExecutionResult,
+    ResidualPredictionRow,
+    ResidualTrainingExecutionResult,
+)
+from backend.app.rolling_backtest.persistence import (
+    load_s2_historical_binding_by_instance_hash,
+)
+from backend.app.trial import (
+    DefaultTrialApplicationService,
+    TrialApiError,
+    TrialApiErrorCode,
+    TrialQualityReportCreateRequest,
+)
+from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
+    _build_batch,
+    _build_commit_manifest,
+    _hex64,
+    _seed_lineage_basis_and_evidence,
+    _seed_mapping_snapshot,
+    _seed_master_data,
+    _seed_validation_result,
+    _seed_validation_run,
+)
+from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
+    _build_record as _build_i7_record,
+)
+from backend.tests.integration.test_core_forecast_persistence_postgres import (
+    _prepare_default_trial_forecast,
+)
+from backend.tests.residual_model.support import residual_model_config_path
 
 pytestmark = [pytest.mark.postgres, pytest.mark.migration]
 
@@ -340,23 +427,27 @@ async def _persist(
     *,
     evaluation_input: S3EvaluationInput,
     metric_result: DailyMetricResult,
+    status_evidence: tuple[QualityStatusEvidenceCell, ...] = (),
     breakdown_results: list[dict[str, object]],
     baseline_record: BaselinePersistenceRecord,
     comparison_records: tuple[object, ...] = (),
     baseline_records: tuple[BaselinePersistenceRecord, ...] | None = None,
     manifest_payload: dict[str, object] | None = None,
     comparison_contract_enabled: bool = False,
+    request_identity_payload: dict[str, object] | None = None,
 ) -> PersistedQualityEvaluation:
     return await session.run_sync(
         lambda sync_session: persist_quality_evaluation(
             sync_session,
             evaluation_input=evaluation_input,
             metric_results=(metric_result,),
+            status_evidence=status_evidence,
             breakdown_results=breakdown_results,
             baseline_records=baseline_records or (baseline_record,),
             comparison_records=comparison_records,
             manifest_payload=manifest_payload or {},
             comparison_contract_enabled=comparison_contract_enabled,
+            request_identity_payload=request_identity_payload,
         )
     )
 
@@ -763,6 +854,1198 @@ async def test_complete_write_has_six_table_shape_and_empty_comparison() -> None
     finally:
         await engine.dispose()
         await _drop_temporary_database(db_name)
+
+
+@pytest.mark.asyncio
+async def test_postgres_frozen_status_evidence_persists_and_reads_back() -> None:
+    """The 30 frozen S3 status cells are real metric rows, not read-time DTOs."""
+
+    _live_env()
+    input_data, metric_result, breakdowns, baseline = _fixture("frozen-status")
+    input_data = dataclasses.replace(
+        input_data,
+        s2_run_identity="a" * 64,
+        s2_manifest_identity="b" * 64,
+        s2_binding_row_set_hash="c" * 64,
+    )
+    base_row = input_data.rows[0]
+    status_rows = tuple(
+        dataclasses.replace(
+            base_row,
+            forecast_business_key=f"frozen-status:{horizon}:{quantile.value}",
+            forecast_quantile=quantile,
+            forecast_horizon_days=horizon,
+            forecast_target_date=_TARGET + timedelta(days=horizon),
+        )
+        for horizon in (7, 14, 21)
+        for quantile in SupportedQuantile
+    )
+    status_evidence = build_frozen_quality_status_evidence(
+        requested_horizons_days=(7, 14, 21),
+        rows=status_rows,
+        source_s2_run_identity=input_data.s2_run_identity,
+        source_s2_manifest_identity=input_data.s2_manifest_identity,
+        source_s2_binding_row_set_hash=input_data.s2_binding_row_set_hash,
+    )
+    request_identity = {
+        "schema_version": "v0.2-s3-quality-persistence-v2",
+        "actor_identity": "status-evidence-actor",
+        "request_idempotency_key": "status-evidence-key",
+        "canonical_request": {
+            "forecast_run_id": "d" * 64,
+            "actual_harvest_import_id": "status-import",
+            "forecast_cutoff_at": "2026-03-01T04:00:00+00:00",
+            "label_observation_cutoff_at": "2026-03-01T04:00:00+00:00",
+            "requested_horizons_days": [7, 14, 21],
+        },
+    }
+    db_name = await _create_temporary_database("frozen_status_evidence")
+    engine, sessionmaker = await _build_temp_sessionmaker(db_name)
+    try:
+        await _run_alembic_async("head", db_name)
+        async with sessionmaker() as session:
+            async with session.begin():
+                persisted = await _persist(
+                    session,
+                    evaluation_input=input_data,
+                    metric_result=metric_result,
+                    breakdown_results=breakdowns,
+                    baseline_record=baseline,
+                    status_evidence=status_evidence,
+                    comparison_contract_enabled=True,
+                    request_identity_payload=request_identity,
+                )
+            assert persisted.replayed is False
+            assert await session.scalar(select(func.count(QualityMetricResultModel.id))) == 37
+            loaded = await session.run_sync(
+                lambda sync_session: load_quality_evaluation_by_instance_hash(
+                    sync_session,
+                    evaluation_instance_hash=persisted.evaluation_instance_hash,
+                )
+            )
+            assert sum("status_evidence" in payload for payload in loaded.metrics) == 30
+            assert len(loaded.metrics) == 37
+    finally:
+        await engine.dispose()
+        await _drop_temporary_database(db_name)
+
+
+async def _repair_task9_fixture_for_quality(
+    session: AsyncSession,
+) -> None:
+    """Make the shared Core fixture satisfy the real Task 9 readback contract."""
+
+    run = await session.get(HarvestStateRun, 910001)
+    assert run is not None
+    members = tuple(
+        await session.scalars(
+            select(HarvestStateDailyMemberRowModel)
+            .where(HarvestStateDailyMemberRowModel.harvest_state_run_id == run.id)
+            .order_by(HarvestStateDailyMemberRowModel.id.asc())
+        )
+    )
+    assert members
+    first = members[0]
+    membership_hash = first.capacity_pool_membership_hash
+    pool_id = first.capacity_pool_id
+    zero = Decimal("0.000")
+    pool = HarvestStateDailyPoolRowModel(
+        harvest_state_run_id=run.id,
+        state_date=first.state_date,
+        forecast_quantile="P50",
+        capacity_pool_id=pool_id,
+        capacity_pool_grain=first.capacity_pool_grain,
+        capacity_pool_membership_hash=membership_hash,
+        capacity_input_mode="DIRECT_CAPACITY",
+        opening_mature_inventory_kg=first.opening_mature_inventory_kg,
+        natural_maturity_supply_kg=first.natural_maturity_supply_kg,
+        available_mature_quantity_kg=first.available_mature_quantity_kg,
+        mature_inventory_loss_quantity_kg=first.mature_inventory_loss_quantity_kg,
+        harvestable_mature_quantity_kg=first.harvestable_mature_quantity_kg,
+        nominal_harvest_capacity_kg_per_day=first.allocated_harvest_capacity_kg,
+        labor_availability_ratio=Decimal("1.000000"),
+        weather_harvest_efficiency_ratio=Decimal("1.000000"),
+        operational_efficiency_ratio=Decimal("1.000000"),
+        effective_harvest_capacity_kg_per_day=first.allocated_harvest_capacity_kg,
+        effective_capacity_for_day_kg=first.allocated_harvest_capacity_kg,
+        harvested_quantity_kg=first.harvested_quantity_kg,
+        closing_mature_inventory_kg=first.closing_mature_inventory_kg,
+        unharvested_backlog_kg=first.unharvested_backlog_kg,
+        arrival_quantity_kg=first.arrival_quantity_kg,
+        opening_cohort_count=0,
+        closing_cohort_count=0,
+        member_count=1,
+        mass_balance_passed=True,
+        capacity_constraint_passed=True,
+        continuity_passed=True,
+        parameter_source_ref_hashes=[],
+        cohort_source_ref_hashes=[],
+    )
+    cohort_key = sha256_hex({"fixture": "quality-task9-cohort"})
+    source_ref_hash = sha256_hex({"fixture": "quality-task9-source"})
+    cohort = HarvestStateCohortTransitionRowModel(
+        harvest_state_run_id=run.id,
+        state_date=first.state_date,
+        forecast_quantile="P50",
+        capacity_pool_id=pool_id,
+        farm_id=first.farm_id,
+        subfarm_id=first.subfarm_id,
+        variety_id=first.variety_id,
+        destination_factory_id=first.destination_factory_id,
+        capacity_pool_membership_hash=membership_hash,
+        stable_cohort_key=cohort_key,
+        stable_cohort_key_schema_version="task9a-cohort-key-v1",
+        source_ref_hash=source_ref_hash,
+        source_ref={"fixture": "quality-task9"},
+        cohort_date=first.state_date,
+        opening_quantity_kg=zero,
+        new_supply_quantity_kg=zero,
+        quantity_before_loss_kg=zero,
+        mature_inventory_loss_quantity_kg=zero,
+        quantity_before_harvest_kg=zero,
+        harvested_quantity_kg=zero,
+        closing_quantity_kg=zero,
+        harvest_anchor_at=None,
+        arrival_at=None,
+        arrival_local_date=None,
+        arrival_quantity_kg=zero,
+    )
+    session.add_all([pool, cohort])
+    await session.flush()
+
+    pool_output = DailyPoolStateRow.model_validate(
+        {field: getattr(pool, field) for field in DailyPoolStateRow.model_fields}
+    )
+    member_output = tuple(
+        DailyMemberStateRow.model_validate(
+            {field: getattr(member, field) for field in DailyMemberStateRow.model_fields}
+        )
+        for member in members
+    )
+    cohort_output = CohortTransitionRow.model_validate(
+        {field: getattr(cohort, field) for field in CohortTransitionRow.model_fields}
+    )
+    season = await session.get(Season, run.forecast_season_id)
+    assert season is not None
+    season_snapshot = {
+        "season_id": season.id,
+        "season_code": season.code,
+        "start_date": season.start_date,
+        "end_date": season.end_date,
+        "season_record_hash": make_season_record_hash(
+            season_id=season.id,
+            season_code=season.code,
+            start_date=season.start_date,
+            end_date=season.end_date,
+        ),
+    }
+    input_snapshot = {
+        "input_snapshot_schema_version": "task9a-input-snapshot-v2",
+        "forecast_season_identity": season_snapshot,
+    }
+    run_parameters = RunResolvedParameters(
+        forecast_start_date=run.forecast_start_date,
+        forecast_end_date=run.forecast_end_date,
+        forecast_quantiles=["P50", "P80", "P90"],
+        destination_factory_id=run.destination_factory_id,
+        farm_timezone="Asia/Shanghai",
+        destination_factory_timezone="Asia/Shanghai",
+        harvest_bucket_anchor_local_time=time(18, 0),
+        harvest_to_arrival_lag_days=1,
+        holiday_calendar_version="quality-task9-holiday-v1",
+        holiday_calendar_hash="1" * 64,
+        weather_rule_version="quality-task9-weather-v1",
+        weather_rule_config_hash="2" * 64,
+        decimal_precision=3,
+        quantity_scale="0.001",
+        ratio_scale="0.000001",
+        rounding_mode="ROUND_HALF_UP",
+        source_ref_schema_version="task9a-source-ref-v1",
+        stable_cohort_key_schema_version="task9a-cohort-key-v1",
+        result_hash_schema_version="task9a-result-hash-v2",
+    )
+    resolved_parameters = ResolvedParameterSnapshot(
+        run_parameters=run_parameters,
+        daily_pool_parameters=[
+            DailyPoolResolvedParameters(
+                capacity_date=first.state_date,
+                capacity_pool_id=pool_id,
+                capacity_pool_grain=first.capacity_pool_grain,
+                capacity_pool_membership_hash=membership_hash,
+                capacity_input_mode="DIRECT_CAPACITY",
+                resolved_nominal_capacity_kg_per_day=first.allocated_harvest_capacity_kg,
+                labor_availability_ratio=Decimal("1.000000"),
+                weather_harvest_efficiency_ratio=Decimal("1.000000"),
+                operational_efficiency_ratio=Decimal("1.000000"),
+                resolved_effective_capacity_kg_per_day=first.allocated_harvest_capacity_kg,
+                holiday_applied=False,
+                capacity_parameter_source_ref_hashes=[],
+                weather_feature_source_ref_hashes=[],
+            )
+        ],
+    )
+    output = Task9ACompletedOutput(
+        forecast_season_id=run.forecast_season_id,
+        forecast_start_date=run.forecast_start_date,
+        forecast_end_date=run.forecast_end_date,
+        forecast_quantiles=["P50", "P80", "P90"],
+        input_snapshot=input_snapshot,
+        resolved_parameter_snapshot=resolved_parameters,
+        daily_pool_state_rows=[pool_output],
+        daily_member_state_rows=list(member_output),
+        cohort_transition_rows=[cohort_output],
+        future_arrival_schedule=[],
+        source_ref_catalog=[],
+        warnings=[],
+        blockers=[],
+        mass_balance_result={"passed": True},
+        continuity_result={"passed": True},
+        config_hash=run.config_hash,
+        result_hash="b" * 64,
+    )
+    output = output.model_copy(
+        update={
+            "result_hash": make_result_hash(
+                output.model_dump(mode="python"),
+                result_hash_schema_version="task9a-result-hash-v2",
+            )
+        }
+    )
+    canonical_output = cast(dict[str, Any], canonical_json_value(output.model_dump(mode="json")))
+    run.input_snapshot = cast(dict[str, Any], canonical_json_value(input_snapshot))
+    run.resolved_parameter_snapshot = cast(
+        dict[str, Any], canonical_json_value(resolved_parameters.model_dump(mode="json"))
+    )
+    run.source_ref_catalog = []
+    run.warnings = []
+    run.blockers = []
+    run.mass_balance_result = {"passed": True}
+    run.continuity_result = {"passed": True}
+    run.canonical_output = canonical_output
+    run.config_hash = output.config_hash
+    run.result_hash = output.result_hash
+    run.canonical_payload_hash = sha256_hex(canonical_output)
+    run.pool_row_count = 1
+    run.member_row_count = len(member_output)
+    run.cohort_row_count = 1
+    run.future_arrival_row_count = 0
+    await session.flush()
+
+
+async def _seed_quality_task10_fixture(
+    session: AsyncSession,
+    *,
+    task9_run_id: int,
+    task9_result_hash: str,
+    forecast_cutoff_at: datetime,
+) -> ResidualModelPredictionRun:
+    """Persist a real, loader-verifiable structural-only Task 10 authority."""
+
+    residual_config = load_residual_model_config(residual_model_config_path())
+    training_signature = "3" * 64
+    config_hash = residual_config.config_hash
+    training_manifest_hash = residual_manifest_hash(())
+    feature_schema_version = residual_config.rules.feature_schema_version
+    feature_schema_hash = _feature_schema_hash([])
+    training_input_snapshot = {
+        "config_snapshot": {},
+        "manifest_summary": {
+            "row_count": 0,
+            "included_row_count": 0,
+            "excluded_row_count": 0,
+            "distinct_season_count": 0,
+            "distinct_factory_count": 0,
+            "split_counts": {},
+            "feature_names": [],
+        },
+    }
+    training_result = ResidualTrainingExecutionResult(
+        execution_status="completed",
+        eligibility_status="eligible",
+        model_family=residual_config.rules.model_family,
+        model_version=residual_config.rules.model_version,
+        feature_schema_version=feature_schema_version,
+        artifact_schema_version=residual_config.rules.artifact_schema_version,
+        training_signature=training_signature,
+        config_hash=config_hash,
+        manifest_hash=training_manifest_hash,
+        sample_count=0,
+        distinct_season_count=0,
+        distinct_factory_count=0,
+        warnings=(),
+        blockers=(),
+        feature_audit_summary={},
+        metrics={"feature_names": [], "validation": {"global": {}}},
+        eligibility_reasons=(),
+        input_snapshot={
+            **training_input_snapshot,
+            "config_snapshot": residual_config.snapshot,
+        },
+    )
+    artifacts: list[PersistableResidualArtifact] = []
+    for quantile_label, quantile in (("P50", 0.5), ("P80", 0.8), ("P90", 0.9)):
+        estimator = HistGradientBoostingRegressor(
+            loss="quantile",
+            quantile=quantile,
+            learning_rate=residual_config.rules.estimator.learning_rate,
+            max_iter=residual_config.rules.estimator.max_iter,
+            max_leaf_nodes=residual_config.rules.estimator.max_leaf_nodes,
+            max_depth=residual_config.rules.estimator.max_depth,
+            min_samples_leaf=residual_config.rules.estimator.min_samples_leaf,
+            l2_regularization=residual_config.rules.estimator.l2_regularization,
+            early_stopping=residual_config.rules.estimator.early_stopping,
+            validation_fraction=residual_config.rules.estimator.validation_fraction,
+            n_iter_no_change=residual_config.rules.estimator.n_iter_no_change,
+            tol=residual_config.rules.estimator.tol,
+            random_state=residual_config.rules.random_seed,
+        )
+        artifact_bytes = serialize_estimator(estimator)
+        artifacts.append(
+            PersistableResidualArtifact(
+                quantile_label=quantile_label,
+                artifact_bytes=artifact_bytes,
+                metadata=build_artifact_metadata(
+                    quantile_label=quantile_label,
+                    config=residual_config,
+                    training_signature=training_signature,
+                    manifest_hash=training_manifest_hash,
+                    feature_schema_hash=feature_schema_hash,
+                    estimator=estimator,
+                    artifact_bytes=artifact_bytes,
+                    category_encodings=[],
+                ),
+            )
+        )
+    training_result = training_result.model_copy(update={"artifacts": tuple(artifacts)})
+    training_run = await save_residual_training_run(
+        session,
+        result=training_result,
+        manifest_rows=[],
+    )
+    artifact_hashes = [artifact.metadata.binary_sha256 for artifact in artifacts]
+
+    common_snapshot: dict[str, Any] = {
+        "training_signature": training_signature,
+        "feature_schema_version": feature_schema_version,
+        "feature_schema_hash": feature_schema_hash,
+        "projection_version": "quality-task10-projection-v1",
+        "fallback_policy": "artifact_validation_failed",
+        "artifact_hashes": artifact_hashes,
+        "feature_audit_hashes": [],
+        "feature_rows": [],
+        "supplemental_feature_values": [],
+        "feature_analytics_build_run_id": None,
+        "feature_actual_snapshot": None,
+    }
+    prediction_input_signature = prediction_input_signature_hash(
+        model_run_id=training_run.id,
+        training_signature=training_signature,
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        feature_analytics_build_run_id=None,
+        feature_actual_snapshot=None,
+        supplemental_feature_values=[],
+        feature_audit_hashes=[],
+        feature_rows=[],
+        artifact_hashes=artifact_hashes,
+        config_hash=config_hash,
+        feature_schema_version=feature_schema_version,
+        feature_schema_hash=feature_schema_hash,
+        projection_version="quality-task10-projection-v1",
+        fallback_policy_version="artifact_validation_failed",
+    )
+    rows: list[ResidualPredictionRow] = []
+    for horizon in (7, 14, 21):
+        target_date = date(2026, 2, 28) + timedelta(days=horizon)
+        row_payload: dict[str, object] = {
+            "model_run_id": training_run.id,
+            "prediction_run_id": 0,
+            "task9_run_id": task9_run_id,
+            "task9_result_hash": task9_result_hash,
+            "destination_factory_id": 9101,
+            "arrival_local_date": target_date,
+            "forecast_horizon_days": horizon,
+            "structural_p50_kg": Decimal("0.000000"),
+            "structural_p80_kg": Decimal("0.000000"),
+            "structural_p90_kg": Decimal("0.000000"),
+            "raw_residual_p50_kg": Decimal("0.000000"),
+            "raw_residual_p80_kg": Decimal("0.000000"),
+            "raw_residual_p90_kg": Decimal("0.000000"),
+            "corrected_raw_p50_kg": Decimal("0.000000"),
+            "corrected_raw_p80_kg": Decimal("0.000000"),
+            "corrected_raw_p90_kg": Decimal("0.000000"),
+            "corrected_p50_kg": Decimal("0.000000"),
+            "corrected_p80_kg": Decimal("0.000000"),
+            "corrected_p90_kg": Decimal("0.000000"),
+            "nonnegative_projection_applied": False,
+            "quantile_projection_applied": False,
+            "projection_reasons": [],
+            "feature_vector_hash": "6" * 64,
+            "feature_audit_hash": "7" * 64,
+            "mode": "structural_only",
+            "fallback_reason": "artifact_validation_failed",
+        }
+        row_hash = canonical_payload_hash(row_payload)
+        rows.append(
+            ResidualPredictionRow(
+                **row_payload,
+                prediction_hash=row_hash,
+            )
+        )
+    prediction_result = ResidualPredictionExecutionResult(
+        execution_status="completed",
+        mode="structural_only",
+        model_run_id=training_run.id,
+        task9_run_id=task9_run_id,
+        task9_result_hash=task9_result_hash,
+        config_hash=config_hash,
+        prediction_input_signature=prediction_input_signature,
+        prediction_hash="8" * 64,
+        warnings=(),
+        blockers=(),
+        fallback_reason="artifact_validation_failed",
+        rows=tuple(rows),
+        input_snapshot=common_snapshot,
+    )
+    prediction_result = prediction_result.model_copy(
+        update={"prediction_hash": _prediction_hash_from_result(prediction_result)}
+    )
+    prediction_run = await save_residual_prediction_run(
+        session,
+        result=prediction_result,
+        feature_schema_version=feature_schema_version,
+        feature_schema_hash=feature_schema_hash,
+        artifact_hashes=artifact_hashes,
+    )
+    cutoff_safe_finished_at = forecast_cutoff_at - timedelta(days=1)
+    training_run.finished_at = cutoff_safe_finished_at
+    await session.flush()
+    await session.refresh(training_run)
+    await session.commit()
+    return prediction_run
+
+
+async def _quality_chain_counts(session: AsyncSession) -> tuple[int, ...]:
+    tables = (
+        "actual_harvest_label_snapshot",
+        "rolling_backtest_run",
+        "rolling_backtest_manifest",
+        "rolling_backtest_binding_row",
+        "quality_evaluation_run",
+        "quality_metric_result",
+        "quality_evaluation_manifest",
+    )
+    counts: list[int] = []
+    for table in tables:
+        value = await session.scalar(text(f"SELECT count(*) FROM {table}"))
+        counts.append(int(value or 0))
+    quality_binding_count = await session.scalar(
+        select(func.count())
+        .select_from(TrialResourceBindingModel)
+        .where(TrialResourceBindingModel.resource_kind == "QUALITY_REPORT")
+    )
+    counts.append(int(quality_binding_count or 0))
+    return tuple(counts)
+
+
+async def _seed_quality_service_batch(
+    sessionmaker: async_sessionmaker[AsyncSession],
+    *,
+    import_id: str,
+    records: list[Any],
+    source_system: str = "source-test",
+    registry_suffix: str,
+) -> dict[str, object]:
+    """Seed the committed I7 chain with PostgreSQL-safe registry ordering.
+
+    The shared I7 helper creates a SEALED registry before inserting its
+    entries.  PostgreSQL correctly rejects that sequence.  This local test
+    helper keeps the same persisted evidence shape while inserting entries
+    under DRAFT and sealing only after the entry set is complete.
+    """
+
+    async with sessionmaker() as session:
+        async with session.begin():
+            from backend.app.models.master_data import Season
+
+            if await session.scalar(select(Season).where(Season.id == 1)) is None:
+                await _seed_master_data(session)
+                await session.flush()
+
+            policy_version = f"mapping-test-{registry_suffix}"
+            registry = ActualHarvestMappingPolicyRegistryModel(
+                registry_version=f"registry-{registry_suffix}",
+                source_system=source_system,
+                mapping_policy_version=policy_version,
+                status="DRAFT",
+                entry_count=4,
+                registry_content_hash=_hex64(f"registry-content-{registry_suffix}"),
+            )
+            session.add(registry)
+            await session.flush()
+            session.add_all(
+                [
+                    ActualHarvestMappingRegistryEntryModel(
+                        registry_id=registry.id,
+                        source_field="season_code",
+                        source_code="season-1",
+                        target_type="SEASON",
+                        target_business_key="season-business-key-1",
+                        entry_hash=_hex64(f"season-entry-{registry_suffix}"),
+                    ),
+                    ActualHarvestMappingRegistryEntryModel(
+                        registry_id=registry.id,
+                        source_field="farm_code",
+                        source_code="farm-1",
+                        target_type="FARM",
+                        target_business_key="farm-business-key-1",
+                        entry_hash=_hex64(f"farm-entry-{registry_suffix}"),
+                    ),
+                    ActualHarvestMappingRegistryEntryModel(
+                        registry_id=registry.id,
+                        source_field="subfarm_or_plot_code",
+                        source_code="sub-1",
+                        target_type="SUBFARM",
+                        target_business_key="sub-business-key-1",
+                        target_parent_business_key="farm-business-key-1",
+                        entry_hash=_hex64(f"subfarm-entry-{registry_suffix}"),
+                    ),
+                    ActualHarvestMappingRegistryEntryModel(
+                        registry_id=registry.id,
+                        source_field="variety_code",
+                        source_code="var-1",
+                        target_type="VARIETY",
+                        target_business_key="var-business-key-1",
+                        entry_hash=_hex64(f"variety-entry-{registry_suffix}"),
+                    ),
+                ]
+            )
+            await session.flush()
+            registry.status = "SEALED"
+            await session.flush()
+
+            batch = _build_batch(import_id=import_id, source_system=source_system)
+            session.add(batch)
+            await session.flush()
+            for record in records:
+                record.batch_id = batch.id
+                record.external_batch_id = batch.external_batch_id
+                session.add(record)
+            await session.flush()
+            validation_run_id = await _seed_validation_run(
+                session,
+                batch_id=batch.id,
+                policy_version=policy_version,
+            )
+            await _seed_mapping_snapshot(
+                session,
+                validation_run_id=validation_run_id,
+                policy_version=policy_version,
+            )
+            await _seed_validation_result(session, validation_run_id=validation_run_id)
+            await _seed_lineage_basis_and_evidence(
+                session,
+                batch_id=batch.id,
+                validation_run_id=validation_run_id,
+                records=records,
+            )
+            manifest = _build_commit_manifest(
+                batch_id=batch.id,
+                validation_run_id=validation_run_id,
+                record_count=len(records),
+            )
+            session.add(manifest)
+            await session.flush()
+            batch.status = "COMMITTED"
+            batch.committed_at_or_null = datetime(2024, 1, 1, tzinfo=UTC)
+
+        return {
+            "policy_version": policy_version,
+            "batch_id": batch.id,
+            "manifest_hash": manifest.commit_manifest_hash,
+        }
+
+
+async def _align_i7_seed_to_forecast_scope(
+    sessionmaker: async_sessionmaker[AsyncSession],
+    *,
+    batch_id: int,
+    actor_identity: str,
+    scope: Any,
+) -> None:
+    async with sessionmaker() as session:
+        batch = await session.get(ActualHarvestImportBatchModel, batch_id)
+        assert batch is not None
+        batch.submitted_by_identity = actor_identity
+        validation_run = await session.scalar(
+            select(ActualHarvestValidationRunModel).where(
+                ActualHarvestValidationRunModel.batch_id == batch_id
+            )
+        )
+        assert validation_run is not None
+        values = {
+            "SEASON": (scope.season_business_key, None),
+            "FARM": (scope.farm_business_key, None),
+            "SUBFARM": (scope.subfarm_business_key_or_null, scope.farm_business_key),
+            "VARIETY": (scope.variety_business_key, None),
+        }
+        for target_type, (business_key, parent_key) in values.items():
+            await session.execute(
+                update(ActualHarvestValidationMappingEvidenceModel)
+                .where(
+                    ActualHarvestValidationMappingEvidenceModel.validation_run_id
+                    == validation_run.id,
+                    ActualHarvestValidationMappingEvidenceModel.target_type == target_type,
+                )
+                .values(
+                    target_business_key=business_key,
+                    target_parent_business_key=parent_key,
+                    resolved_master_business_key=business_key,
+                    resolved_master_parent_business_key=parent_key,
+                )
+            )
+        # The registry is sealed by _seed_seeded_batch and is deliberately
+        # immutable.  The snapshot service reads the owning validation-run
+        # evidence for the public scope, so only that test projection is
+        # aligned here; never rewrite sealed registry entries.
+        await session.commit()
+
+
+@dataclasses.dataclass(frozen=True)
+class _QualityServicePostgresCase:
+    db_name: str
+    engine: AsyncEngine
+    sessionmaker: async_sessionmaker[AsyncSession]
+    service: DefaultTrialApplicationService
+    request: TrialQualityReportCreateRequest
+    actor: ActualHarvestActorContext
+    prediction_run_id: int
+
+
+async def _prepare_default_quality_service_case(
+    label: str,
+) -> _QualityServicePostgresCase:
+    """Build the real PostgreSQL parent graph used by negative service tests."""
+
+    _live_env()
+    db_name = await _create_temporary_database(label)
+    engine, sessionmaker = await _build_temp_sessionmaker(db_name)
+    try:
+        await _run_alembic_async("head", db_name)
+        async with sessionmaker() as session:
+            (
+                forecast_service,
+                forecast_request,
+                forecast_actor,
+            ) = await _prepare_default_trial_forecast(session)
+            await _repair_task9_fixture_for_quality(session)
+            forecast = await forecast_service.create_forecast(
+                session, forecast_request, forecast_actor
+            )
+            task9_run = await session.get(HarvestStateRun, 910001)
+            assert task9_run is not None
+            prediction_run = await _seed_quality_task10_fixture(
+                session,
+                task9_run_id=task9_run.id,
+                task9_result_hash=task9_run.result_hash,
+                forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
+            )
+            assert prediction_run.id > 0
+            forecast_scope = forecast.forecast_scope
+            assert forecast_scope is not None
+
+        import_id = f"{label}-import"
+        record = _build_i7_record(
+            source_system="source-test",
+            external_logical_record_id=f"{label}-logical",
+            external_revision_id=f"{label}-revision",
+            harvest_date=date(2026, 3, 8),
+            season_code="season-1",
+        )
+        seeded = await _seed_quality_service_batch(
+            sessionmaker,
+            import_id=import_id,
+            records=[record],
+            source_system="source-test",
+            registry_suffix=label,
+        )
+        await _align_i7_seed_to_forecast_scope(
+            sessionmaker,
+            batch_id=cast(int, seeded["batch_id"]),
+            actor_identity=forecast_actor.identity,
+            scope=forecast_scope,
+        )
+
+        actor = ActualHarvestActorContext(
+            identity=forecast_actor.identity,
+            allowed_source_systems=frozenset({"source-test"}),
+            allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+            may_read_forecast_authority=True,
+            may_create_forecast=True,
+            may_read_forecast=True,
+            may_export_forecast=True,
+            may_create_quality=True,
+            may_read_quality=True,
+            may_read_quality_comparison=True,
+            may_export_quality=True,
+        )
+        request = TrialQualityReportCreateRequest(
+            forecast_run_id=forecast.run_id,
+            actual_harvest_import_id=import_id,
+            forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
+            label_observation_cutoff_at=datetime(2030, 1, 1, tzinfo=UTC),
+            requested_horizons_days=(7, 14, 21),
+            request_idempotency_key=f"{label}-key",
+        )
+        return _QualityServicePostgresCase(
+            db_name=db_name,
+            engine=engine,
+            sessionmaker=sessionmaker,
+            service=DefaultTrialApplicationService(),
+            request=request,
+            actor=actor,
+            prediction_run_id=prediction_run.id,
+        )
+    except BaseException:
+        await engine.dispose()
+        await _drop_temporary_database(db_name)
+        raise
+
+
+async def _seed_cross_run_task10_prediction(
+    session: AsyncSession,
+    *,
+    source_prediction_run_id: int,
+) -> ResidualModelPredictionRun:
+    """Persist a second Task 10 parent with the same business axis.
+
+    The projection version changes the immutable prediction input identity while
+    preserving the Task 9 and row axis.  This creates a real ambiguity for the
+    Quality authority resolver without modifying Task 10 persistence semantics.
+    """
+
+    source = await load_residual_prediction_run_by_id(
+        session,
+        run_id=source_prediction_run_id,
+    )
+    assert source is not None
+    snapshot = dict(source.input_snapshot)
+    snapshot["projection_version"] = "quality-task10-cross-run-v2"
+    artifact_hashes = cast(list[str], snapshot.get("artifact_hashes", []))
+    input_signature = prediction_input_signature_hash(
+        model_run_id=source.model_run_id,
+        training_signature=cast(str, snapshot["training_signature"]),
+        task9_run_id=cast(int, source.task9_run_id),
+        task9_result_hash=cast(str, source.task9_result_hash),
+        feature_analytics_build_run_id=cast(
+            int | None,
+            snapshot.get("feature_analytics_build_run_id"),
+        ),
+        feature_actual_snapshot=cast(
+            dict[str, Any] | None,
+            snapshot.get("feature_actual_snapshot"),
+        ),
+        supplemental_feature_values=cast(
+            list[object], snapshot.get("supplemental_feature_values", [])
+        ),
+        feature_audit_hashes=cast(list[str], snapshot.get("feature_audit_hashes", [])),
+        feature_rows=cast(list[object], snapshot.get("feature_rows", [])),
+        artifact_hashes=artifact_hashes,
+        config_hash=source.config_hash,
+        feature_schema_version=cast(str, snapshot["feature_schema_version"]),
+        feature_schema_hash=cast(str, snapshot["feature_schema_hash"]),
+        projection_version=cast(str, snapshot["projection_version"]),
+        fallback_policy_version=cast(str, snapshot["fallback_policy"]),
+    )
+    duplicate = source.model_copy(
+        update={
+            "input_snapshot": snapshot,
+            "prediction_input_signature": input_signature,
+        }
+    )
+    duplicate = duplicate.model_copy(
+        update={"prediction_hash": _prediction_hash_from_result(duplicate)}
+    )
+    assert duplicate.prediction_input_signature != source.prediction_input_signature
+    assert duplicate.prediction_hash != source.prediction_hash
+    return await save_residual_prediction_run(
+        session,
+        result=duplicate,
+        feature_schema_version=cast(str, snapshot["feature_schema_version"]),
+        feature_schema_hash=cast(str, snapshot["feature_schema_hash"]),
+        artifact_hashes=artifact_hashes,
+    )
+
+
+async def _assert_quality_chain_is_empty(
+    sessionmaker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with sessionmaker() as session:
+        assert await _quality_chain_counts(session) == (0,) * 8
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_service_postgres_create_replay_and_status_readback() -> None:
+    """Exercise the real Trial Quality service against PostgreSQL persistence."""
+
+    _live_env()
+    db_name = await _create_temporary_database("default_quality_service")
+    engine, sessionmaker = await _build_temp_sessionmaker(db_name)
+    try:
+        await _run_alembic_async("head", db_name)
+        async with sessionmaker() as session:
+            (
+                forecast_service,
+                forecast_request,
+                forecast_actor,
+            ) = await _prepare_default_trial_forecast(session)
+            await _repair_task9_fixture_for_quality(session)
+            forecast = await forecast_service.create_forecast(
+                session, forecast_request, forecast_actor
+            )
+            task9_run = await session.get(HarvestStateRun, 910001)
+            assert task9_run is not None
+            persisted_prediction_run = await _seed_quality_task10_fixture(
+                session,
+                task9_run_id=task9_run.id,
+                task9_result_hash=task9_run.result_hash,
+                forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
+            )
+            expected_prediction_run_id = persisted_prediction_run.id
+            assert expected_prediction_run_id > 0
+            task10_before = await load_residual_prediction_run_by_id(
+                session,
+                run_id=expected_prediction_run_id,
+            )
+            assert task10_before is not None
+            expected_prediction_hash = persisted_prediction_run.prediction_hash
+            expected_input_signature = persisted_prediction_run.prediction_input_signature
+            expected_row_hashes = tuple(row.prediction_hash for row in task10_before.rows)
+            assert all(row.prediction_run_id == 0 for row in task10_before.rows)
+            assert forecast.forecast_scope is not None
+            forecast_scope = forecast.forecast_scope
+
+        import_id = "quality-service-import"
+        record = _build_i7_record(
+            source_system="source-test",
+            external_logical_record_id="quality-service-logical",
+            external_revision_id="quality-service-revision",
+            harvest_date=date(2026, 3, 8),
+            season_code="season-1",
+        )
+        seeded = await _seed_quality_service_batch(
+            sessionmaker,
+            import_id=import_id,
+            records=[record],
+            source_system="source-test",
+            registry_suffix="quality-service",
+        )
+        await _align_i7_seed_to_forecast_scope(
+            sessionmaker,
+            batch_id=cast(int, seeded["batch_id"]),
+            actor_identity=forecast_actor.identity,
+            scope=forecast_scope,
+        )
+
+        quality_actor = ActualHarvestActorContext(
+            identity=forecast_actor.identity,
+            allowed_source_systems=frozenset({"source-test"}),
+            allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+            may_read_forecast_authority=True,
+            may_create_forecast=True,
+            may_read_forecast=True,
+            may_export_forecast=True,
+            may_create_quality=True,
+            may_read_quality=True,
+            may_read_quality_comparison=True,
+            may_export_quality=True,
+        )
+        request = TrialQualityReportCreateRequest(
+            forecast_run_id=forecast.run_id,
+            actual_harvest_import_id=import_id,
+            forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
+            label_observation_cutoff_at=datetime(2030, 1, 1, tzinfo=UTC),
+            requested_horizons_days=(7, 14, 21),
+            request_idempotency_key="quality-service-key",
+        )
+        quality_service = DefaultTrialApplicationService()
+
+        async with sessionmaker() as session:
+            created = await quality_service.create_quality_report(session, request, quality_actor)
+            before_get = await quality_service.get_quality_report(
+                session, created.report_id, quality_actor
+            )
+            before_comparison = await quality_service.get_quality_comparison(
+                session, created.report_id, quality_actor
+            )
+            before_csv = await quality_service.export_quality_report(
+                session, created.report_id, quality_actor
+            )
+            counts_before_replay = await _quality_chain_counts(session)
+            read_model = await session.run_sync(
+                lambda sync_session: load_quality_evaluation_by_instance_hash(
+                    sync_session,
+                    evaluation_instance_hash=created.report_id,
+                )
+            )
+            s2_identity = read_model.run_payload.get("s2_run_identity")
+            assert isinstance(s2_identity, str)
+            s2_read_model = await load_s2_historical_binding_by_instance_hash(
+                session,
+                instance_hash=s2_identity,
+            )
+            assert s2_read_model.rows
+            assert all(row.authority_verification == "PERSISTED" for row in s2_read_model.rows)
+            assert {
+                row.forecast_authority.task10_authority_identity_hash for row in s2_read_model.rows
+            } == {expected_prediction_hash}
+            assert {
+                row.forecast_authority.task10_prediction_row_identity_hash
+                for row in s2_read_model.rows
+            } <= set(expected_row_hashes)
+            task10_after = await load_residual_prediction_run_by_id(
+                session,
+                run_id=expected_prediction_run_id,
+            )
+            assert task10_after is not None
+            assert task10_after.prediction_hash == expected_prediction_hash
+            assert task10_after.prediction_input_signature == expected_input_signature
+            assert tuple(row.prediction_hash for row in task10_after.rows) == expected_row_hashes
+            assert all(row.prediction_run_id == 0 for row in task10_after.rows)
+            status_rows = [
+                payload for payload in read_model.metrics if "status_evidence" in payload
+            ]
+            assert len(status_rows) == 30
+            assert created.model_dump(mode="json") == before_get.model_dump(mode="json")
+            assert before_comparison.report_id == created.report_id
+            assert before_csv.filename == f"{created.report_id}.csv"
+
+            await session.execute(
+                text(
+                    "UPDATE farm_season_variety_plan "
+                    "SET planted_area_mu = 999.000000, row_hash = repeat('f', 64) "
+                    "WHERE id = 3201"
+                )
+            )
+            await session.execute(
+                text(
+                    "UPDATE core_forecast_marketable_policy "
+                    "SET status = 'RETIRED' WHERE public_policy_hash = repeat('a', 64)"
+                )
+            )
+            stable_get = await quality_service.get_quality_report(
+                session, created.report_id, quality_actor
+            )
+            stable_comparison = await quality_service.get_quality_comparison(
+                session, created.report_id, quality_actor
+            )
+            stable_csv = await quality_service.export_quality_report(
+                session, created.report_id, quality_actor
+            )
+            assert stable_get.model_dump(mode="json") == before_get.model_dump(mode="json")
+            assert stable_comparison.model_dump(mode="json") == before_comparison.model_dump(
+                mode="json"
+            )
+            assert stable_csv.content == before_csv.content
+
+            replay = await quality_service.create_quality_report(session, request, quality_actor)
+            after_get = await quality_service.get_quality_report(
+                session, created.report_id, quality_actor
+            )
+            after_comparison = await quality_service.get_quality_comparison(
+                session, created.report_id, quality_actor
+            )
+            after_csv = await quality_service.export_quality_report(
+                session, created.report_id, quality_actor
+            )
+            assert replay.model_dump(mode="json") == created.model_dump(mode="json")
+            assert after_get.model_dump(mode="json") == before_get.model_dump(mode="json")
+            assert after_comparison.model_dump(mode="json") == before_comparison.model_dump(
+                mode="json"
+            )
+            assert after_csv.content == before_csv.content
+            assert await _quality_chain_counts(session) == counts_before_replay
+
+            for changed_request in (
+                request.model_copy(update={"actual_harvest_import_id": "other-import"}),
+                request.model_copy(
+                    update={"label_observation_cutoff_at": datetime(2026, 3, 2, tzinfo=UTC)}
+                ),
+                request.model_copy(update={"forecast_run_id": "e" * 64}),
+            ):
+                with pytest.raises(TrialApiError) as conflict:
+                    await quality_service.create_quality_report(
+                        session, changed_request, quality_actor
+                    )
+                assert conflict.value.code is TrialApiErrorCode.CONFLICTING_REPLAY
+                assert conflict.value.status_code == 409
+                assert conflict.value.retryable is False
+                assert await _quality_chain_counts(session) == counts_before_replay
+
+            wrong_owner = quality_actor.model_copy(update={"identity": "actor:quality-wrong-owner"})
+            for operation in (
+                lambda: quality_service.get_quality_report(session, created.report_id, wrong_owner),
+                lambda: quality_service.get_quality_comparison(
+                    session, created.report_id, wrong_owner
+                ),
+                lambda: quality_service.export_quality_report(
+                    session, created.report_id, wrong_owner
+                ),
+            ):
+                with pytest.raises(TrialApiError) as caught:
+                    await operation()
+                assert caught.value.code is TrialApiErrorCode.RESOURCE_NOT_FOUND
+                assert caught.value.status_code == 404
+    finally:
+        await engine.dispose()
+        await _drop_temporary_database(db_name)
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_postgres_persistence_failure_rolls_back_everything(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Quality persistence error rolls back I7, S2, Quality, and binding rows."""
+
+    case = await _prepare_default_quality_service_case("quality_persistence_failure")
+    injected_calls = 0
+
+    def fail_quality_persistence(*args: object, **kwargs: object) -> object:
+        nonlocal injected_calls
+        del args, kwargs
+        injected_calls += 1
+        raise ForecastQualityPersistenceError("injected PostgreSQL persistence failure")
+
+    monkeypatch.setattr(
+        "backend.app.trial.persist_quality_evaluation",
+        fail_quality_persistence,
+    )
+    try:
+        with pytest.raises(TrialApiError) as caught:
+            async with case.sessionmaker() as session:
+                async with session.begin():
+                    await case.service.create_quality_report(
+                        session,
+                        case.request,
+                        case.actor,
+                    )
+        assert injected_calls == 1
+        assert caught.value.code is TrialApiErrorCode.QUALITY_PERSISTENCE_UNAVAILABLE
+        assert caught.value.status_code == 503
+        assert caught.value.retryable is True
+        await _assert_quality_chain_is_empty(case.sessionmaker)
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_postgres_binding_failure_rolls_back_everything(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Quality binding failure rolls back flushed Quality evidence and parents."""
+
+    case = await _prepare_default_quality_service_case("quality_binding_failure")
+    injected_calls = 0
+
+    async def fail_quality_binding(*args: object, **kwargs: object) -> None:
+        nonlocal injected_calls
+        del args, kwargs
+        injected_calls += 1
+        raise TrialResourceBindingError("injected Quality binding failure")
+
+    monkeypatch.setattr(
+        "backend.app.trial.create_quality_binding_in_result_boundary",
+        fail_quality_binding,
+    )
+    try:
+        with pytest.raises(TrialApiError) as caught:
+            async with case.sessionmaker() as session:
+                async with session.begin():
+                    await case.service.create_quality_report(
+                        session,
+                        case.request,
+                        case.actor,
+                    )
+        assert injected_calls == 1
+        assert caught.value.code is TrialApiErrorCode.CONFLICTING_REPLAY
+        assert caught.value.status_code == 409
+        await _assert_quality_chain_is_empty(case.sessionmaker)
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_postgres_readback_integrity_failure_rolls_back_everything(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A final persisted-readback integrity failure rolls back the outer mutation."""
+
+    case = await _prepare_default_quality_service_case("quality_readback_failure")
+    injected_calls = 0
+
+    def fail_quality_readback(*args: object, **kwargs: object) -> object:
+        nonlocal injected_calls
+        del args, kwargs
+        injected_calls += 1
+        raise ForecastQualityPartialResultError("injected readback integrity failure")
+
+    monkeypatch.setattr(
+        "backend.app.trial.load_quality_evaluation_by_instance_hash",
+        fail_quality_readback,
+    )
+    try:
+        with pytest.raises(TrialApiError) as caught:
+            async with case.sessionmaker() as session:
+                async with session.begin():
+                    await case.service.create_quality_report(
+                        session,
+                        case.request,
+                        case.actor,
+                    )
+        assert injected_calls == 1
+        assert caught.value.code is TrialApiErrorCode.EVIDENCE_CONFLICT
+        assert caught.value.status_code == 409
+        await _assert_quality_chain_is_empty(case.sessionmaker)
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_postgres_task10_cross_run_substitution_rejected() -> None:
+    """A second matching Task 10 parent is an evidence conflict, never a fallback."""
+
+    case = await _prepare_default_quality_service_case("quality_task10_cross_run")
+    try:
+        async with case.sessionmaker() as session:
+            duplicate = await _seed_cross_run_task10_prediction(
+                session,
+                source_prediction_run_id=case.prediction_run_id,
+            )
+            assert duplicate.id > 0
+            assert duplicate.id != case.prediction_run_id
+
+        async with case.sessionmaker() as session:
+            counts_before = await _quality_chain_counts(session)
+
+        with pytest.raises(TrialApiError) as caught:
+            async with case.sessionmaker() as session:
+                async with session.begin():
+                    await case.service.create_quality_report(
+                        session,
+                        case.request,
+                        case.actor,
+                    )
+        assert caught.value.code is TrialApiErrorCode.EVIDENCE_CONFLICT
+        assert caught.value.status_code == 409
+
+        async with case.sessionmaker() as session:
+            assert await _quality_chain_counts(session) == counts_before
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
 
 
 @pytest.mark.asyncio

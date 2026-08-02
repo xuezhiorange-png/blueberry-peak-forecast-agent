@@ -26,6 +26,10 @@ _KNOWN_PERMISSIONS = frozenset(
         "may_create_forecast",
         "may_read_forecast",
         "may_export_forecast",
+        "may_create_quality",
+        "may_read_quality",
+        "may_read_quality_comparison",
+        "may_export_quality",
     }
 )
 
@@ -47,6 +51,10 @@ class ActualHarvestActorContext(BaseModel):
     may_create_forecast: bool = False
     may_read_forecast: bool = False
     may_export_forecast: bool = False
+    may_create_quality: bool = False
+    may_read_quality: bool = False
+    may_read_quality_comparison: bool = False
+    may_export_quality: bool = False
 
 
 async def get_actual_harvest_actor() -> ActualHarvestActorContext:
@@ -131,6 +139,10 @@ def require_actor_scope(
         "may_create_forecast": actor.may_create_forecast,
         "may_read_forecast": actor.may_read_forecast,
         "may_export_forecast": actor.may_export_forecast,
+        "may_create_quality": actor.may_create_quality,
+        "may_read_quality": actor.may_read_quality,
+        "may_read_quality_comparison": actor.may_read_quality_comparison,
+        "may_export_quality": actor.may_export_quality,
     }
     if permission not in _KNOWN_PERMISSIONS or not permission_values[permission]:
         raise ActualHarvestApiError(
