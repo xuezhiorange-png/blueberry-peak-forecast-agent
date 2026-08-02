@@ -62,7 +62,9 @@ async function uploadAndCommitCsv(page: Page, batchId = "trial-harvest-batch") {
   await page.getByRole("button", { name: "上传并校验" }).click();
   const lifecycle = page.locator('[aria-label="实际采摘导入生命周期"]');
   await expect(lifecycle).toContainText("VALIDATED", { timeout: 30_000 });
-  await page.getByRole("button", { name: "提交导入" }).click();
+  const commitButton = page.getByRole("button", { name: "提交导入" });
+  await expect(commitButton).toBeEnabled({ timeout: 30_000 });
+  await commitButton.click();
   await expect(lifecycle).toContainText("COMMITTED", { timeout: 30_000 });
 }
 
@@ -148,7 +150,9 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     await page.getByRole("button", { name: "上传并校验" }).click();
     const lifecycle = page.locator('[aria-label="实际采摘导入生命周期"]');
     await expect(lifecycle).toContainText("VALIDATED", { timeout: 30_000 });
-    await page.getByRole("button", { name: "提交导入" }).click();
+    const commitButton = page.getByRole("button", { name: "提交导入" });
+    await expect(commitButton).toBeEnabled({ timeout: 30_000 });
+    await commitButton.click();
     await expect(lifecycle).toContainText("COMMITTED", { timeout: 30_000 });
   });
 

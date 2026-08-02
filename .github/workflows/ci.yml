@@ -1992,7 +1992,7 @@ jobs:
       POSTGRES_DB: blueberry_peak
       TRIAL_ACTOR_IDENTITY: actor:postgres-default-trial
       TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS: trial-api
-      TRIAL_ACTOR_ALLOWED_CHANNELS: api
+      TRIAL_ACTOR_ALLOWED_CHANNELS: api,csv,xlsx
       TRIAL_ACTOR_PERMISSIONS: >-
         may_create,may_append,may_preview,may_validate,may_commit,
         may_read_forecast_authority,may_create_forecast,may_read_forecast,
