@@ -1,78 +1,227 @@
-const authorityFields = ["加工厂", "产季", "农场", "分场", "品种"];
-const inputFields = [
-  ["预测日期", "date"],
-  ["种植面积（亩）", "text"],
-  ["开花日期", "date"],
-  ["成熟阶段", "text"],
-  ["已采摘数量（kg）", "text"],
-] as const;
+import { useMemo, useState, type FormEvent } from "react";
+import type {
+  ForecastInputAuthority,
+  ForecastInputAuthorityItem,
+  TrialForecastRequest,
+} from "./forecastSchemas";
 
-export function ForecastForm() {
+type AuthorityKey =
+  | "farm_business_key"
+  | "subfarm_business_key_or_null"
+  | "season_business_key"
+  | "variety_business_key"
+  | "destination_factory_business_key";
+
+const authorityFields: Array<[AuthorityKey, string]> = [
+  ["destination_factory_business_key", "加工厂"],
+  ["season_business_key", "产季"],
+  ["farm_business_key", "农场"],
+  ["subfarm_business_key_or_null", "分场"],
+  ["variety_business_key", "品种"],
+];
+
+export function ForecastForm({
+  authority,
+  selectedItem,
+  onSelectItem,
+  onSubmit,
+  submitting,
+  errorMessage,
+}: {
+  authority: ForecastInputAuthority | null;
+  selectedItem: ForecastInputAuthorityItem | null;
+  onSelectItem: (item: ForecastInputAuthorityItem) => void;
+  onSubmit: (request: TrialForecastRequest) => Promise<void>;
+  submitting: boolean;
+  errorMessage: string | null;
+}) {
+  const [forecastCutoffAt, setForecastCutoffAt] = useState("2026-02-28T00:00");
+  const [floweringDate, setFloweringDate] = useState("");
+  const [maturityStage, setMaturityStage] = useState("");
+  const [alreadyPicked, setAlreadyPicked] = useState("");
+  const [confirmedArea, setConfirmedArea] = useState(false);
+
+  const optionsByField = useMemo(() => {
+    const output = new Map<AuthorityKey, string[]>();
+    for (const [key] of authorityFields) {
+      const values = new Set<string>();
+      for (const item of authority?.items ?? []) {
+        const value = item[key];
+        if (value !== null) values.add(value);
+      }
+      output.set(key, [...values].sort());
+    }
+    return output;
+  }, [authority]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!authority || !selectedItem || !confirmedArea) return;
+    const cutoff = new Date(forecastCutoffAt);
+    if (Number.isNaN(cutoff.getTime())) return;
+    await onSubmit({
+      farm_business_key: selectedItem.farm_business_key,
+      subfarm_business_key_or_null: selectedItem.subfarm_business_key_or_null,
+      variety_business_key: selectedItem.variety_business_key,
+      season_business_key: selectedItem.season_business_key,
+      destination_factory_business_key: selectedItem.destination_factory_business_key,
+      forecast_cutoff_at: cutoff.toISOString(),
+      forecast_input_authority_hash: authority.forecast_input_authority_hash,
+      plan_row_hash: selectedItem.plan_row_hash,
+      planting_area_mu: selectedItem.planting_area_mu,
+      flowering_date_or_null: floweringDate || null,
+      maturity_stage_or_null: maturityStage.trim() || null,
+      already_picked_quantity_kg_or_null: alreadyPicked.trim() || null,
+    });
+  }
+
+  function changeField(key: AuthorityKey, value: string) {
+    const candidate = authority?.items.find((item) => item[key] === value);
+    if (candidate) onSelectItem(candidate);
+  }
+
   return (
     <section className="surface section" aria-labelledby="forecast-input-title">
       <div className="section-header">
         <div>
-          <p className="section-index">01 / INPUT</p>
+          <p className="section-index">01 / INPUT AUTHORITY</p>
           <h2 id="forecast-input-title">预测输入</h2>
-          <p>正式权威范围开放后，输入将进入同一 Trial 合同。</p>
+          <p>范围、面积、策略和证据身份均来自服务端 authority。</p>
         </div>
-        <span className="eyebrow-tag">未就绪</span>
+        <span className="eyebrow-tag">{authority ? "已连接" : "读取中"}</span>
       </div>
-      <div className="notice" role="status">
-        <span className="notice-icon" aria-hidden="true">
-          i
-        </span>
-        <div>
-          <strong>预测后端能力未就绪</strong>
-          当前页面已完成输入、结果及异常状态结构。后端生产适配器完成后才会开放预测提交和结果读取。
-        </div>
-      </div>
-      <div className="form-grid" style={{ marginTop: 20 }}>
-        {authorityFields.map((label) => (
-          <div className="field" key={label}>
-            <label htmlFor={`authority-${label}`}>{label}</label>
-            <select
-              id={`authority-${label}`}
-              disabled
-              aria-describedby="forecast-disabled-reason"
-              defaultValue=""
-            >
-              <option value="">等待后端提供可选范围</option>
-            </select>
+      {errorMessage && (
+        <div className="notice notice-danger" role="alert">
+          <span className="notice-icon" aria-hidden="true">
+            !
+          </span>
+          <div>
+            <strong>输入权威不可用</strong>
+            {errorMessage}
           </div>
-        ))}
-        {inputFields.map(([label, type]) => (
-          <div className="field" key={label}>
-            <label htmlFor={`input-${label}`}>{label}</label>
+        </div>
+      )}
+      {!authority && !errorMessage && (
+        <div className="notice" role="status" aria-busy="true">
+          <span className="notice-icon" aria-hidden="true">
+            i
+          </span>
+          <div>
+            <strong>正在读取输入权威</strong>不会使用静态范围或演示数据。
+          </div>
+        </div>
+      )}
+      {authority && authority.items.length === 0 && (
+        <div className="notice" role="status">
+          <span className="notice-icon" aria-hidden="true">
+            i
+          </span>
+          <div>
+            <strong>暂无可用输入范围</strong>服务端没有返回可创建预测的 authority。
+          </div>
+        </div>
+      )}
+      <form onSubmit={submit}>
+        <div className="form-grid form-grid-spaced">
+          {authorityFields.map(([key, label]) => {
+            const values = optionsByField.get(key) ?? [];
+            const current = selectedItem?.[key] ?? "";
+            return (
+              <div className="field" key={key}>
+                <label htmlFor={`authority-${key}`}>{label}</label>
+                <select
+                  id={`authority-${key}`}
+                  value={current ?? ""}
+                  onChange={(event) => changeField(key, event.target.value)}
+                  disabled={!authority || values.length === 0 || submitting}
+                >
+                  <option value="">选择服务端范围</option>
+                  {values.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+          <div className="field">
+            <label htmlFor="forecast-cutoff-at">预测截止时间</label>
             <input
-              id={`input-${label}`}
-              type={type}
-              disabled
-              placeholder="预测输入能力尚未就绪"
-              aria-describedby="forecast-disabled-reason"
+              id="forecast-cutoff-at"
+              type="datetime-local"
+              value={forecastCutoffAt}
+              onChange={(event) => setForecastCutoffAt(event.target.value)}
+              disabled={!authority || submitting}
+            />
+            <span className="field-hint">将按 RFC3339 aware timestamp 发送。</span>
+          </div>
+          <div className="field">
+            <label htmlFor="forecast-planting-area">权威种植面积（亩）</label>
+            <input
+              id="forecast-planting-area"
+              value={selectedItem?.planting_area_mu ?? ""}
+              readOnly
+              disabled={!selectedItem}
+            />
+            <label className="checkbox-field" htmlFor="forecast-area-confirmed">
+              <input
+                id="forecast-area-confirmed"
+                type="checkbox"
+                checked={confirmedArea}
+                onChange={(event) => setConfirmedArea(event.target.checked)}
+                disabled={!selectedItem || submitting}
+              />
+              我确认使用服务端权威面积
+            </label>
+          </div>
+          <div className="field">
+            <label htmlFor="forecast-flowering-date">开花日期（可选）</label>
+            <input
+              id="forecast-flowering-date"
+              type="date"
+              value={floweringDate}
+              onChange={(event) => setFloweringDate(event.target.value)}
+              disabled={submitting}
             />
           </div>
-        ))}
-      </div>
-      <div className="button-row">
-        <button
-          className="button button-primary"
-          disabled
-          aria-describedby="forecast-disabled-reason"
-        >
-          生成预测
-        </button>
-        <button
-          className="button button-secondary"
-          disabled
-          aria-describedby="forecast-disabled-reason"
-        >
-          查询预测
-        </button>
-        <span id="forecast-disabled-reason" className="disabled-reason">
-          预测输入权威与生产预测适配器尚未就绪，不会发起网络请求。
-        </span>
-      </div>
+          <div className="field">
+            <label htmlFor="forecast-maturity-stage">成熟阶段（可选）</label>
+            <input
+              id="forecast-maturity-stage"
+              value={maturityStage}
+              onChange={(event) => setMaturityStage(event.target.value)}
+              disabled={submitting}
+              placeholder="按服务端合同填写"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="forecast-picked-quantity">已采摘数量 kg（可选）</label>
+            <input
+              id="forecast-picked-quantity"
+              value={alreadyPicked}
+              onChange={(event) => setAlreadyPicked(event.target.value)}
+              disabled={submitting}
+              placeholder="canonical Decimal string"
+              inputMode="decimal"
+            />
+          </div>
+        </div>
+        <div className="button-row">
+          <button
+            className="button button-primary"
+            disabled={!authority || !selectedItem || !confirmedArea || submitting}
+            type="submit"
+          >
+            {submitting ? "生成中…" : "生成预测"}
+          </button>
+          <span className="disabled-reason">
+            {selectedItem
+              ? `plan ${selectedItem.plan_version} · authority ${authority?.authority_version}`
+              : "请选择服务端返回的完整范围，并确认权威面积。"}
+          </span>
+        </div>
+      </form>
     </section>
   );
 }
